@@ -62,8 +62,8 @@ public class IoController {
             @PathVariable("kind") String kind,
             @RequestParam(value = "target", required = false) String target) {
 
-        LOG.debug("Fetching I/O throughput timeline: kind={} target={}", kind, target);
-        return mgr(profileId).throughputTimeline(IoKind.fromPath(kind), IoTargetFilter.ofNullable(target));
+        LOG.debug("Fetching I/O timeline: kind={} target={}", kind, target);
+        return mgr(profileId).timeline(IoKind.fromPath(kind), IoTargetFilter.ofNullable(target));
     }
 
     @GetMapping("/{kind}/endpoint-timelines")

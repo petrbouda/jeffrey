@@ -49,11 +49,14 @@ public interface IoManager {
     IoOverview overview(IoKind kind);
 
     /**
-     * Bytes-read-per-second and bytes-written-per-second across the recording, for the kind — either
-     * across every endpoint ({@link IoTargetFilter#all()}) or scoped to a single peer/file, so one
-     * endpoint's throughput can be read against the aggregate.
+     * The per-second I/O timeline for the kind — either across every endpoint
+     * ({@link IoTargetFilter#all()}) or scoped to a single peer/file, so one endpoint can be read
+     * against the aggregate.
+     * <p>
+     * Four series, in order: bytes read, bytes written, read operations, write operations. Callers
+     * pick the pair that matches the metric they are showing.
      */
-    TimeseriesData throughputTimeline(IoKind kind, IoTargetFilter targetFilter);
+    TimeseriesData timeline(IoKind kind, IoTargetFilter targetFilter);
 
     /**
      * The heaviest endpoints of the kind, each paired with its bytes-per-second shape, ranked by

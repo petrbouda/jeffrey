@@ -30,7 +30,7 @@ import cafe.jeffrey.profile.manager.model.io.IoOperation;
 import cafe.jeffrey.profile.manager.model.io.IoOverview;
 import cafe.jeffrey.profile.manager.model.io.IoOverviewBuilder;
 import cafe.jeffrey.profile.manager.model.io.IoTargetFilter;
-import cafe.jeffrey.profile.manager.model.io.IoThroughputTimeseriesBuilder;
+import cafe.jeffrey.profile.manager.model.io.IoTimelineTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.io.SlowestIoBuilder;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
@@ -71,13 +71,13 @@ public class IoManagerImpl implements IoManager {
     }
 
     @Override
-    public TimeseriesData throughputTimeline(IoKind kind, IoTargetFilter targetFilter) {
+    public TimeseriesData timeline(IoKind kind, IoTargetFilter targetFilter) {
         RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventTypes(kind.types())
                 .withJsonFields();
         return eventStreamRepository.genericStreaming(
-                configurer, new IoThroughputTimeseriesBuilder(timeRange, targetFilter));
+                configurer, new IoTimelineTimeseriesBuilder(timeRange, targetFilter));
     }
 
     @Override

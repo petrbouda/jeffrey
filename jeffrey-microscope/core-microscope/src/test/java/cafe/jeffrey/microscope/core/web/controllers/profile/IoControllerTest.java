@@ -71,7 +71,7 @@ class IoControllerTest {
     void timelineScopesToTheRequestedPeer() {
         when(resolver.resolve("p-1")).thenReturn(profileManager);
         when(profileManager.ioManager()).thenReturn(ioManager);
-        when(ioManager.throughputTimeline(IoKind.SOCKET, IoTargetFilter.ofNullable("db:1521")))
+        when(ioManager.timeline(IoKind.SOCKET, IoTargetFilter.ofNullable("db:1521")))
                 .thenReturn(new TimeseriesData(new SingleSerie("Bytes Read / sec", List.of(List.of(1L, 512L)))));
 
         MockMvcTester mvc = mockMvcTesterFor(new IoController(resolver));
@@ -86,7 +86,7 @@ class IoControllerTest {
     void timelineWithoutTargetCoversEveryPeer() {
         when(resolver.resolve("p-1")).thenReturn(profileManager);
         when(profileManager.ioManager()).thenReturn(ioManager);
-        when(ioManager.throughputTimeline(IoKind.SOCKET, IoTargetFilter.all()))
+        when(ioManager.timeline(IoKind.SOCKET, IoTargetFilter.all()))
                 .thenReturn(TimeseriesData.empty());
 
         MockMvcTester mvc = mockMvcTesterFor(new IoController(resolver));
