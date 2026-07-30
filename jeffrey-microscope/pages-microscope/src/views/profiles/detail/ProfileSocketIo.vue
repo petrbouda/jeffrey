@@ -16,20 +16,24 @@
 
       <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
 
-      <!-- Throughput -->
-      <div v-show="activeTab === 'throughput'">
-        <ChartDescription
-          shows="Bytes read and written per second over socket connections."
-          use-case="Sustained read/write plateaus that line up with latency spikes point at a slow or saturated peer."
+      <!-- Total -->
+      <div v-show="activeTab === 'total'">
+        <MetricTileSwitch
+          v-model="metric"
+          :tiles="metricTiles"
+          aria-label="Socket I/O metric"
+          class="mb-3"
         />
+        <ChartDescription :shows="metricDescription.shows" :use-case="metricDescription.useCase" />
         <div class="chart-container">
           <TimeSeriesChart
-            :primaryData="readSeries"
-            primaryTitle="Bytes Read / sec"
-            :secondaryData="writeSeries"
-            secondaryTitle="Bytes Written / sec"
-            :primaryAxisType="AxisFormatType.BYTES"
-            :secondaryAxisType="AxisFormatType.BYTES"
+            :key="metric"
+            :primaryData="primarySeries"
+            :primaryTitle="primaryTitle"
+            :secondaryData="secondarySeries"
+            :secondaryTitle="secondaryTitle"
+            :primaryAxisType="metricAxisType"
+            :secondaryAxisType="metricAxisType"
             :visibleMinutes="60"
           />
         </div>
@@ -37,10 +41,7 @@
 
       <!-- Peer Timeline -->
       <div v-show="activeTab === 'peer-timeline'">
-        <ChartDescription
-          shows="Every busy peer as a sparkline; pick one for its full read/write timeline."
-          use-case="Recognise the peer behind a spike by its shape, before reading a single name."
-        />
+        <ChartDescription :shows="peerDescription.shows" :use-case="peerDescription.useCase" />
 
         <EmptyState
           v-if="peerTimelines.length === 0"
@@ -49,8 +50,15 @@
           description="Per-peer timelines come from jdk.SocketRead and jdk.SocketWrite, which are threshold-gated in the bundled configs. Re-record with threshold=0ms to capture every operation."
         />
         <template v-else>
+          <MetricTileSwitch
+            v-model="metric"
+            :tiles="metricTiles"
+            aria-label="Socket I/O metric"
+            class="mb-3"
+          />
+
           <div class="gallery-toolbar">
-            <span class="toolbar-info">Top peers by bytes</span>
+            <span class="toolbar-info">{{ galleryHeading }}</span>
             <Badge
               key-label="Showing"
               :value="`${peerTimelines.length} of ${peers.length}`"
@@ -59,6 +67,7 @@
               borderless
             />
             <span class="toolbar-hint">Click a tile to open its timeline</span>
+            <LoadingIndicator v-if="galleryLoading" text="Re-ranking peers..." />
           </div>
 
           <div class="peer-gallery">
@@ -66,9 +75,10 @@
               v-for="timeline in peerTimelines"
               :key="timeline.endpoint.target"
               :target="timeline.endpoint.target"
-              :points="timeline.throughput.data"
-              :bytes="timeline.endpoint.bytes"
-              :share-of-bytes="shareOfBytes(timeline.endpoint.bytes)"
+              :points="timeline.serie.data"
+              :value="tileValue(timeline.endpoint)"
+              :share-of-total="shareOfTotal(timeline.endpoint)"
+              :measure="isBytes ? 'Throughput' : 'Operations'"
               :selected="timeline.endpoint.target === selectedPeer"
               @select="selectPeer"
             />
@@ -88,15 +98,15 @@
               <LoadingIndicator v-if="peerTimelineLoading" text="Loading peer timeline..." />
               <TimeSeriesChart
                 v-else-if="activeTab === 'peer-timeline'"
-                :key="selectedPeer ?? 'none'"
-                :primaryData="selectedPeerReadSeries"
-                primaryTitle="Bytes Read / sec"
-                :secondaryData="selectedPeerWriteSeries"
-                secondaryTitle="Bytes Written / sec"
+                :key="`${selectedPeer ?? 'none'}-${metric}`"
+                :primaryData="selectedPeerPrimarySeries"
+                :primaryTitle="primaryTitle"
+                :secondaryData="selectedPeerSecondarySeries"
+                :secondaryTitle="secondaryTitle"
                 :primaryColor="peerReadColor"
                 :secondaryColor="peerWriteColor"
-                :primaryAxisType="AxisFormatType.BYTES"
-                :secondaryAxisType="AxisFormatType.BYTES"
+                :primaryAxisType="metricAxisType"
+                :secondaryAxisType="metricAxisType"
                 :visibleMinutes="60"
               />
             </div>
@@ -304,13 +314,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import StatsTable from '@shared/components/table/StatsTable.vue';
 import TabBar from '@shared/components/TabBar.vue';
 import type { TabBarItem } from '@shared/components/TabBar.vue';
+import MetricTileSwitch from '@shared/components/MetricTileSwitch.vue';
+import type { MetricTile } from '@shared/components/MetricTileSwitch.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import ChartDescription from '@shared/components/ChartDescription.vue';
 import DataTable from '@shared/components/table/DataTable.vue';
@@ -333,6 +345,7 @@ import FormattingService from '@shared/services/FormattingService';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import { useTableView } from '@/composables/useTableView';
 import ProfileSocketIoClient from '@/services/api/ProfileSocketIoClient';
+import IoMetric from '@/services/api/model/IoMetric';
 import type {
   IoEndpoint,
   IoEndpointTimeline,
@@ -375,6 +388,8 @@ const peerTimelines = ref<IoEndpointTimeline[]>([]);
 const selectedPeer = ref<string | null>(null);
 const selectedPeerTimeline = ref<TimeseriesData>();
 const peerTimelineLoading = ref(false);
+// Set while the gallery is being re-ranked server-side after a metric switch.
+const galleryLoading = ref(false);
 
 const slowestView = useTableView<IoOperation>(slowest, {
   searchableText: (r) => `${r.target} ${r.thread ?? ''}`
@@ -383,29 +398,117 @@ const peersView = useTableView<IoEndpoint>(peers, {
   searchableText: (r) => r.target
 });
 
-const activeTab = ref('throughput');
+const activeTab = ref('total');
+
+// The /timeline payload carries both metrics at once — bytes in series 0/1, operation counts in
+// series 2/3 — so every chart on this page switches instantly. The peer gallery is the exception:
+// it is ranked and capped server-side, so it has to be re-fetched (see the watch below).
+const metric = ref<string>(IoMetric.BYTES);
+
+const isBytes = computed(() => metric.value !== IoMetric.COUNT);
+const currentMetric = computed<IoMetric>(() => (isBytes.value ? IoMetric.BYTES : IoMetric.COUNT));
 
 const readSeries = computed<number[][]>(() => timeline.value?.series?.[0]?.data ?? []);
 const writeSeries = computed<number[][]>(() => timeline.value?.series?.[1]?.data ?? []);
+const readCountSeries = computed<number[][]>(() => timeline.value?.series?.[2]?.data ?? []);
+const writeCountSeries = computed<number[][]>(() => timeline.value?.series?.[3]?.data ?? []);
+
+const primarySeries = computed<number[][]>(() =>
+  isBytes.value ? readSeries.value : readCountSeries.value
+);
+const secondarySeries = computed<number[][]>(() =>
+  isBytes.value ? writeSeries.value : writeCountSeries.value
+);
+const primaryTitle = computed(() => (isBytes.value ? 'Bytes Read / sec' : 'Reads / sec'));
+const secondaryTitle = computed(() => (isBytes.value ? 'Bytes Written / sec' : 'Writes / sec'));
+const metricAxisType = computed(() =>
+  isBytes.value ? AxisFormatType.BYTES : AxisFormatType.NUMBER
+);
+
+const metricDescription = computed(() =>
+  isBytes.value
+    ? {
+        shows: 'Bytes read and written per second over socket connections.',
+        useCase:
+          'Sustained read/write plateaus that line up with latency spikes point at a slow or saturated peer.'
+      }
+    : {
+        shows: 'Socket read and write operations performed per second.',
+        useCase:
+          'A high call rate moving few bytes means chatty, undersized reads — the fix is buffering, not bandwidth.'
+      }
+);
+
+const metricTiles = computed<MetricTile[]>(() => {
+  const o = overview.value;
+  return [
+    {
+      id: IoMetric.BYTES,
+      icon: 'arrow-down-up',
+      caption: 'Throughput',
+      value: FormattingService.formatBytes(o?.bytesRead ?? 0),
+      subLabel: `read · ${FormattingService.formatBytes(o?.bytesWritten ?? 0)} written`
+    },
+    {
+      id: IoMetric.COUNT,
+      icon: 'hdd-network',
+      caption: 'Invocations',
+      value: FormattingService.formatNumber(o?.opCount ?? 0),
+      subLabel: 'socket operations'
+    }
+  ];
+});
 
 const maxPeerBytes = computed(() => peers.value.reduce((max, p) => Math.max(max, p.bytes), 0));
 const shareWidth = (bytes: number): number =>
   maxPeerBytes.value > 0 ? (bytes / maxPeerBytes.value) * 100 : 0;
 
 const totalPeerBytes = computed(() => peers.value.reduce((sum, p) => sum + p.bytes, 0));
-const shareOfBytes = (bytes: number): number =>
-  totalPeerBytes.value > 0 ? bytes / totalPeerBytes.value : 0;
+const totalPeerOps = computed(() => peers.value.reduce((sum, p) => sum + p.opCount, 0));
+
+// Share is taken against the active metric's total, so the percentages on the tiles always add up
+// to the column they sit under.
+const shareOfTotal = (endpoint: IoEndpoint): number => {
+  const value = isBytes.value ? endpoint.bytes : endpoint.opCount;
+  const total = isBytes.value ? totalPeerBytes.value : totalPeerOps.value;
+  return total > 0 ? value / total : 0;
+};
+
+const tileValue = (endpoint: IoEndpoint): string =>
+  isBytes.value
+    ? FormattingService.formatBytes(endpoint.bytes)
+    : `${FormattingService.formatNumber(endpoint.opCount)} ops`;
+
+// Named for what the server actually did: it ranked by this metric before capping to the gallery
+// size, so the two headings describe genuinely different sets of peers.
+const galleryHeading = computed(() =>
+  isBytes.value ? 'Top peers by bytes' : 'Top peers by operations'
+);
+
+const peerDescription = computed(() =>
+  isBytes.value
+    ? {
+        shows: 'Every busy peer as a sparkline; pick one for its full read/write timeline.',
+        useCase: 'Recognise the peer behind a spike by its shape, before reading a single name.'
+      }
+    : {
+        shows: 'Every chatty peer as a sparkline of its call rate; pick one for its full timeline.',
+        useCase:
+          'Peers absent from the bytes view show up here — a cache hammered by tiny reads ranks nowhere by volume.'
+      }
+);
 
 // Violet and amber mark peer-scoped series everywhere on this page — the same violet as the
 // "Single peer" badge — so a peer chart is never mistaken for the aggregate one.
 const peerReadColor = ChartColors.chartColor('color-violet');
 const peerWriteColor = ChartColors.chartColor('color-amber');
 
-const selectedPeerReadSeries = computed<number[][]>(
-  () => selectedPeerTimeline.value?.series?.[0]?.data ?? []
+// Same four-series payload as the aggregate chart, so the peer view switches without a refetch.
+const selectedPeerPrimarySeries = computed<number[][]>(
+  () => selectedPeerTimeline.value?.series?.[isBytes.value ? 0 : 2]?.data ?? []
 );
-const selectedPeerWriteSeries = computed<number[][]>(
-  () => selectedPeerTimeline.value?.series?.[1]?.data ?? []
+const selectedPeerSecondarySeries = computed<number[][]>(
+  () => selectedPeerTimeline.value?.series?.[isBytes.value ? 1 : 3]?.data ?? []
 );
 
 const selectedPeerSummary = computed<string>(() => {
@@ -421,7 +524,7 @@ const selectedPeerSummary = computed<string>(() => {
 });
 
 const tabs = computed<TabBarItem[]>(() => [
-  { id: 'throughput', label: 'Throughput', icon: 'graph-up' },
+  { id: 'total', label: 'Total', icon: 'graph-up' },
   {
     id: 'peer-timeline',
     label: 'Peer Timeline',
@@ -496,6 +599,31 @@ const selectPeer = async (target: string): Promise<void> => {
     peerTimelineLoading.value = false;
   }
 };
+
+// Unlike every other chart on this page, the gallery cannot switch metric client-side: the server
+// ranks by the metric and then keeps only the top few, so the other metric's peers were never sent.
+// A peer that drops out of the new ranking keeps its chart — the timeline endpoint serves any
+// target — but the selection has to move to a tile that is actually on screen.
+watch(metric, async () => {
+  if (!client) {
+    return;
+  }
+  galleryLoading.value = true;
+  try {
+    const refreshed = await client.getPeerTimelines(currentMetric.value);
+    peerTimelines.value = refreshed;
+
+    const stillListed = refreshed.some(entry => entry.endpoint.target === selectedPeer.value);
+    const replacement = refreshed[0];
+    if (!stillListed && replacement) {
+      await selectPeer(replacement.endpoint.target);
+    }
+  } catch (e) {
+    console.error('Failed to re-rank peer timelines:', e);
+  } finally {
+    galleryLoading.value = false;
+  }
+});
 
 onMounted(async () => {
   try {

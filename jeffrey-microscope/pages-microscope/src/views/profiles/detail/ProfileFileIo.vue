@@ -16,20 +16,24 @@
 
       <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
 
-      <!-- Throughput -->
-      <div v-show="activeTab === 'throughput'">
-        <ChartDescription
-          shows="Bytes read and written per second over file descriptors."
-          use-case="Sustained throughput or spikes that line up with latency point at heavy disk I/O or an uncached hot file."
+      <!-- Total -->
+      <div v-show="activeTab === 'total'">
+        <MetricTileSwitch
+          v-model="metric"
+          :tiles="metricTiles"
+          aria-label="File I/O metric"
+          class="mb-3"
         />
+        <ChartDescription :shows="metricDescription.shows" :use-case="metricDescription.useCase" />
         <div class="chart-container">
           <TimeSeriesChart
-            :primaryData="readSeries"
-            primaryTitle="Bytes Read / sec"
-            :secondaryData="writeSeries"
-            secondaryTitle="Bytes Written / sec"
-            :primaryAxisType="AxisFormatType.BYTES"
-            :secondaryAxisType="AxisFormatType.BYTES"
+            :key="metric"
+            :primaryData="primarySeries"
+            :primaryTitle="primaryTitle"
+            :secondaryData="secondarySeries"
+            :secondaryTitle="secondaryTitle"
+            :primaryAxisType="metricAxisType"
+            :secondaryAxisType="metricAxisType"
             :visibleMinutes="60"
           />
         </div>
@@ -436,6 +440,8 @@ import PageHeader from '@shared/components/layout/PageHeader.vue';
 import StatsTable from '@shared/components/table/StatsTable.vue';
 import TabBar from '@shared/components/TabBar.vue';
 import type { TabBarItem } from '@shared/components/TabBar.vue';
+import MetricTileSwitch from '@shared/components/MetricTileSwitch.vue';
+import type { MetricTile } from '@shared/components/MetricTileSwitch.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import ChartDescription from '@shared/components/ChartDescription.vue';
 import DataTable from '@shared/components/table/DataTable.vue';
@@ -513,17 +519,73 @@ const directoriesView = useTableView<IoEndpoint>(directories, {
   searchableText: r => r.target
 });
 
-const activeTab = ref('throughput');
+const activeTab = ref('total');
+
+// The /timeline payload carries both metrics at once — bytes in series 0/1, operation counts in
+// series 2/3 — so switching is instant and needs no refetch.
+type IoMetric = 'bytes' | 'count';
+
+const metric = ref<IoMetric>('bytes');
 
 const readSeries = computed<number[][]>(() => timeline.value?.series?.[0]?.data ?? []);
 const writeSeries = computed<number[][]>(() => timeline.value?.series?.[1]?.data ?? []);
+const readCountSeries = computed<number[][]>(() => timeline.value?.series?.[2]?.data ?? []);
+const writeCountSeries = computed<number[][]>(() => timeline.value?.series?.[3]?.data ?? []);
+
+const isBytes = computed(() => metric.value === 'bytes');
+
+const primarySeries = computed<number[][]>(() =>
+  isBytes.value ? readSeries.value : readCountSeries.value
+);
+const secondarySeries = computed<number[][]>(() =>
+  isBytes.value ? writeSeries.value : writeCountSeries.value
+);
+const primaryTitle = computed(() => (isBytes.value ? 'Bytes Read / sec' : 'Reads / sec'));
+const secondaryTitle = computed(() => (isBytes.value ? 'Bytes Written / sec' : 'Writes / sec'));
+const metricAxisType = computed(() =>
+  isBytes.value ? AxisFormatType.BYTES : AxisFormatType.NUMBER
+);
+
+const metricDescription = computed(() =>
+  isBytes.value
+    ? {
+        shows: 'Bytes read and written per second over file descriptors.',
+        useCase:
+          'Sustained throughput or spikes that line up with latency point at heavy disk I/O or an uncached hot file.'
+      }
+    : {
+        shows: 'File read and write operations performed per second.',
+        useCase:
+          'A high call rate moving few bytes means undersized reads — a buffered stream costs far less than the syscalls.'
+      }
+);
+
+const metricTiles = computed<MetricTile[]>(() => {
+  const o = overview.value;
+  return [
+    {
+      id: 'bytes',
+      icon: 'arrow-down-up',
+      caption: 'Throughput',
+      value: FormattingService.formatBytes(o?.bytesRead ?? 0),
+      subLabel: `read · ${FormattingService.formatBytes(o?.bytesWritten ?? 0)} written`
+    },
+    {
+      id: 'count',
+      icon: 'file-earmark',
+      caption: 'Invocations',
+      value: FormattingService.formatNumber(o?.opCount ?? 0),
+      subLabel: 'file operations'
+    }
+  ];
+});
 
 const maxFileBytes = computed(() => files.value.reduce((max, f) => Math.max(max, f.bytes), 0));
 const maxDirBytes = computed(() => directories.value.reduce((max, d) => Math.max(max, d.bytes), 0));
 const shareWidth = (bytes: number, max: number): number => (max > 0 ? (bytes / max) * 100 : 0);
 
 const tabs = computed<TabBarItem[]>(() => [
-  { id: 'throughput', label: 'Throughput', icon: 'graph-up' },
+  { id: 'total', label: 'Total', icon: 'graph-up' },
   {
     id: 'files',
     label: 'Top Files',

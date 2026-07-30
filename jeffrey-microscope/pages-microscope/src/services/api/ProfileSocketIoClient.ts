@@ -18,6 +18,7 @@
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
+import IoMetric from '@/services/api/model/IoMetric';
 import type {
   IoEndpoint,
   IoEndpointTimeline,
@@ -42,10 +43,12 @@ export default class ProfileSocketIoClient extends BaseProfileClient {
   }
 
   /**
-   * The heaviest peers, each with its own bytes-per-second series for the sparkline gallery.
+   * The top peers for the given metric, each with its own per-second series for the sparkline
+   * gallery. The metric picks the ranking as well as the series, and the server ranks before it
+   * caps — so BYTES and COUNT return different peers, not the same peers reordered.
    */
-  public getPeerTimelines(): Promise<IoEndpointTimeline[]> {
-    return this.get<IoEndpointTimeline[]>('/endpoint-timelines');
+  public getPeerTimelines(metric: IoMetric = IoMetric.BYTES): Promise<IoEndpointTimeline[]> {
+    return this.get<IoEndpointTimeline[]>('/endpoint-timelines', { metric });
   }
 
   public getSlowest(): Promise<IoOperation[]> {

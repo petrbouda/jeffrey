@@ -18,16 +18,15 @@
 
 package cafe.jeffrey.profile.manager.model.io;
 
-import cafe.jeffrey.timeseries.SingleSerie;
-
 /**
- * One endpoint's aggregated I/O paired with its shape over the recording, so a gallery of peers can
- * be rendered as sparkline tiles from a single request.
- *
- * @param endpoint totals for the endpoint (bytes, op count, total/max duration)
- * @param serie    per second, read and written combined, zero-filled across the recording — bytes
- *                 or operations depending on the {@link IoMetric} the gallery was built for. The
- *                 serie carries its own name, so the unit travels with the data.
+ * How an endpoint's I/O is measured: by the volume it moved, or by how often it was called.
+ * <p>
+ * The distinction matters because it decides which endpoints are even worth showing. The heaviest
+ * peers by bytes and the busiest peers by call count are frequently disjoint sets — a cache or a
+ * message broker can dominate the call count while moving a rounding error's worth of bytes — so
+ * the metric has to reach the ranking, not just the labels.
  */
-public record IoEndpointTimeline(IoEndpoint endpoint, SingleSerie serie) {
+public enum IoMetric {
+    BYTES,
+    COUNT
 }

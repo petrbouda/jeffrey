@@ -31,6 +31,7 @@ import cafe.jeffrey.profile.manager.model.io.FileForceStats;
 import cafe.jeffrey.profile.manager.model.io.IoEndpoint;
 import cafe.jeffrey.profile.manager.model.io.IoEndpointTimeline;
 import cafe.jeffrey.profile.manager.model.io.IoKind;
+import cafe.jeffrey.profile.manager.model.io.IoMetric;
 import cafe.jeffrey.profile.manager.model.io.IoOperation;
 import cafe.jeffrey.profile.manager.model.io.IoOverview;
 import cafe.jeffrey.profile.manager.model.io.IoTargetFilter;
@@ -62,16 +63,18 @@ public class IoController {
             @PathVariable("kind") String kind,
             @RequestParam(value = "target", required = false) String target) {
 
-        LOG.debug("Fetching I/O throughput timeline: kind={} target={}", kind, target);
-        return mgr(profileId).throughputTimeline(IoKind.fromPath(kind), IoTargetFilter.ofNullable(target));
+        LOG.debug("Fetching I/O timeline: kind={} target={}", kind, target);
+        return mgr(profileId).timeline(IoKind.fromPath(kind), IoTargetFilter.ofNullable(target));
     }
 
     @GetMapping("/{kind}/endpoint-timelines")
     public List<IoEndpointTimeline> endpointTimelines(
-            @PathVariable("profileId") String profileId, @PathVariable("kind") String kind) {
+            @PathVariable("profileId") String profileId,
+            @PathVariable("kind") String kind,
+            @RequestParam(value = "metric", defaultValue = "BYTES") IoMetric metric) {
 
-        LOG.debug("Fetching I/O endpoint timelines: kind={}", kind);
-        return mgr(profileId).endpointTimelines(IoKind.fromPath(kind));
+        LOG.debug("Fetching I/O endpoint timelines: kind={} metric={}", kind, metric);
+        return mgr(profileId).endpointTimelines(IoKind.fromPath(kind), metric);
     }
 
     @GetMapping("/{kind}/slowest")

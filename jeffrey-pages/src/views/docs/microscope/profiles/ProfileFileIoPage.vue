@@ -27,7 +27,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
-  { id: 'throughput', text: 'Throughput', level: 2 },
+  { id: 'total', text: 'Total', level: 2 },
   { id: 'files', text: 'Top Files', level: 2 },
   { id: 'directories', text: 'By Directory', level: 2 },
   { id: 'slowest', text: 'Slowest Operations', level: 2 },
@@ -54,8 +54,8 @@ onMounted(() => {
       <h2 id="overview">Overview</h2>
       <p>The header strip shows total bytes read and written, the file operation count, and the single slowest operation with its file.</p>
 
-      <h2 id="throughput">Throughput</h2>
-      <p>Bytes read and written per second over file descriptors. Heavy sustained writes often mean logging or flushing; repeated reads of the same files suggest a missing in-memory cache.</p>
+      <h2 id="total">Total</h2>
+      <p>Two views of the same traffic, picked with the metric tiles above the chart. <strong>Throughput</strong> plots bytes read and written per second: heavy sustained writes often mean logging or flushing; repeated reads of the same files suggest a missing in-memory cache. <strong>Invocations</strong> plots read and write operations per second — a high call rate moving few bytes means undersized reads, where a buffered stream costs far less than the syscalls. Each tile carries its own total, so the split is readable before you switch.</p>
 
       <h2 id="files">Top Files</h2>
       <p>Individual files ranked by bytes (with a share bar), operation count and total/max time, from <code>jdk.FileRead</code> / <code>jdk.FileWrite</code>.</p>

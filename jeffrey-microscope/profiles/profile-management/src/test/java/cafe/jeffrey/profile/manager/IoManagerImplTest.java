@@ -28,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.profile.manager.model.io.IoEndpoint;
 import cafe.jeffrey.profile.manager.model.io.IoEndpointTimeline;
 import cafe.jeffrey.profile.manager.model.io.IoKind;
+import cafe.jeffrey.profile.manager.model.io.IoMetric;
 import cafe.jeffrey.profile.manager.model.io.IoOperation;
 import cafe.jeffrey.profile.manager.model.io.IoOverview;
 import cafe.jeffrey.profile.manager.model.io.IoTargetFilter;
@@ -131,7 +132,7 @@ class IoManagerImplTest {
     }
 
     @Nested
-    @DisplayName("throughputTimeline(kind, targetFilter)")
+    @DisplayName("timeline(kind, targetFilter)")
     class Throughput {
 
         @Test
@@ -141,13 +142,59 @@ class IoManagerImplTest {
                     record(Type.SOCKET_READ, 2, Duration.ofMillis(1), socketFields("h", 1, 1000, true)),
                     record(Type.SOCKET_WRITE, 2, Duration.ofMillis(1), socketFields("h", 1, 300, false)));
 
-            TimeseriesData timeline = manager().throughputTimeline(IoKind.SOCKET, IoTargetFilter.all());
+            TimeseriesData timeline = manager().timeline(IoKind.SOCKET, IoTargetFilter.all());
 
             SingleSerie read = timeline.series().get(0);
             SingleSerie write = timeline.series().get(1);
             assertEquals("Bytes Read / sec", read.name());
             assertEquals(1000, valueAt(read, 2));
             assertEquals(300, valueAt(write, 2));
+        }
+
+        @Test
+        @DisplayName("Counts read and write operations per second alongside the bytes")
+        void countsOperations() {
+            stubStreaming(
+                    record(Type.SOCKET_READ, 2, Duration.ofMillis(1), socketFields("h", 1, 1000, true)),
+                    record(Type.SOCKET_READ, 2, Duration.ofMillis(1), socketFields("h", 1, 500, true)),
+                    record(Type.SOCKET_WRITE, 2, Duration.ofMillis(1), socketFields("h", 1, 300, false)));
+
+            TimeseriesData timeline = manager().timeline(IoKind.SOCKET, IoTargetFilter.all());
+
+            assertEquals(4, timeline.series().size());
+            SingleSerie readCount = timeline.series().get(2);
+            SingleSerie writeCount = timeline.series().get(3);
+            assertEquals("Reads / sec", readCount.name());
+            assertEquals("Writes / sec", writeCount.name());
+            assertEquals(2, valueAt(readCount, 2));
+            assertEquals(1, valueAt(writeCount, 2));
+        }
+
+        @Test
+        @DisplayName("A zero-byte read still counts as an invocation but adds no throughput")
+        void countsZeroByteOperations() {
+            stubStreaming(
+                    record(Type.SOCKET_READ, 5, Duration.ofMillis(1), socketFields("h", 1, 0, true)));
+
+            TimeseriesData timeline = manager().timeline(IoKind.SOCKET, IoTargetFilter.all());
+
+            assertEquals(0, valueAt(timeline.series().get(0), 5));
+            assertEquals(1, valueAt(timeline.series().get(2), 5));
+        }
+
+        @Test
+        @DisplayName("The target filter applies to the operation counts too")
+        void filtersCountsByTarget() {
+            stubStreaming(
+                    record(Type.SOCKET_READ, 2, Duration.ofMillis(1), socketFields("a", 80, 1000, true)),
+                    record(Type.SOCKET_READ, 3, Duration.ofMillis(1), socketFields("b", 90, 4000, true)));
+
+            TimeseriesData timeline =
+                    manager().timeline(IoKind.SOCKET, IoTargetFilter.ofNullable("b:90"));
+
+            SingleSerie readCount = timeline.series().get(2);
+            assertEquals(0, valueAt(readCount, 2));
+            assertEquals(1, valueAt(readCount, 3));
         }
 
         @Test
@@ -159,7 +206,7 @@ class IoManagerImplTest {
                     record(Type.SOCKET_WRITE, 3, Duration.ofMillis(1), socketFields("b", 90, 700, false)));
 
             TimeseriesData timeline =
-                    manager().throughputTimeline(IoKind.SOCKET, IoTargetFilter.ofNullable("b:90"));
+                    manager().timeline(IoKind.SOCKET, IoTargetFilter.ofNullable("b:90"));
 
             SingleSerie read = timeline.series().get(0);
             SingleSerie write = timeline.series().get(1);
@@ -176,14 +223,14 @@ class IoManagerImplTest {
                     record(Type.SOCKET_READ, 1, Duration.ofMillis(1), socketFields("b", 90, 500, true)));
 
             TimeseriesData timeline =
-                    manager().throughputTimeline(IoKind.SOCKET, IoTargetFilter.ofNullable("  "));
+                    manager().timeline(IoKind.SOCKET, IoTargetFilter.ofNullable("  "));
 
             assertEquals(1500, valueAt(timeline.series().get(0), 1));
         }
     }
 
     @Nested
-    @DisplayName("endpointTimelines(kind)")
+    @DisplayName("endpointTimelines(kind, metric)")
     class EndpointTimelines {
 
         @Test
@@ -195,18 +242,56 @@ class IoManagerImplTest {
                     record(Type.SOCKET_READ, 2, Duration.ofMillis(1), socketFields("a", 80, 400, true)),
                     record(Type.SOCKET_WRITE, 2, Duration.ofMillis(1), socketFields("b", 90, 900, false)));
 
-            List<IoEndpointTimeline> timelines = manager().endpointTimelines(IoKind.SOCKET);
+            List<IoEndpointTimeline> timelines = manager().endpointTimelines(IoKind.SOCKET, IoMetric.BYTES);
 
             assertEquals(2, timelines.size());
             IoEndpointTimeline heaviest = timelines.getFirst();
             assertEquals("b:90", heaviest.endpoint().target());
-            assertEquals("Bytes / sec", heaviest.throughput().name());
-            assertEquals(900, valueAt(heaviest.throughput(), 2));
-            assertEquals(0, valueAt(heaviest.throughput(), 1));
+            assertEquals("Bytes / sec", heaviest.serie().name());
+            assertEquals(900, valueAt(heaviest.serie(), 2));
+            assertEquals(0, valueAt(heaviest.serie(), 1));
 
-            SingleSerie other = timelines.get(1).throughput();
+            SingleSerie other = timelines.get(1).serie();
             assertEquals(100, valueAt(other, 1));
             assertEquals(400, valueAt(other, 2));
+        }
+
+        @Test
+        @DisplayName("COUNT ranks by operations, so a chatty peer outranks a heavy one")
+        void countRanksByOperations() {
+            when(eventRepository.containsEventType(Type.SOCKET_READ)).thenReturn(true);
+            stubStreaming(
+                    // One fat read against "heavy", three tiny ones against "chatty".
+                    record(Type.SOCKET_READ, 1, Duration.ofMillis(1), socketFields("heavy", 80, 9000, true)),
+                    record(Type.SOCKET_READ, 1, Duration.ofMillis(1), socketFields("chatty", 90, 10, true)),
+                    record(Type.SOCKET_READ, 1, Duration.ofMillis(1), socketFields("chatty", 90, 10, true)),
+                    record(Type.SOCKET_READ, 2, Duration.ofMillis(1), socketFields("chatty", 90, 10, true)));
+
+            List<IoEndpointTimeline> timelines = manager().endpointTimelines(IoKind.SOCKET, IoMetric.COUNT);
+
+            IoEndpointTimeline first = timelines.getFirst();
+            assertEquals("chatty:90", first.endpoint().target());
+            assertEquals("Ops / sec", first.serie().name());
+            assertEquals(2, valueAt(first.serie(), 1));
+            assertEquals(1, valueAt(first.serie(), 2));
+
+            // Same events, ranked by bytes, put the heavy peer first — a different order entirely.
+            assertEquals("heavy:80",
+                    manager().endpointTimelines(IoKind.SOCKET, IoMetric.BYTES).getFirst().endpoint().target());
+        }
+
+        @Test
+        @DisplayName("COUNT counts zero-byte operations that the bytes series drops")
+        void countIncludesZeroByteOperations() {
+            when(eventRepository.containsEventType(Type.SOCKET_READ)).thenReturn(true);
+            stubStreaming(
+                    record(Type.SOCKET_READ, 4, Duration.ofMillis(1), socketFields("a", 80, 0, true)));
+
+            List<IoEndpointTimeline> counted = manager().endpointTimelines(IoKind.SOCKET, IoMetric.COUNT);
+            assertEquals(1, valueAt(counted.getFirst().serie(), 4));
+
+            List<IoEndpointTimeline> bytes = manager().endpointTimelines(IoKind.SOCKET, IoMetric.BYTES);
+            assertEquals(0, valueAt(bytes.getFirst().serie(), 4));
         }
 
         @Test
@@ -215,7 +300,7 @@ class IoManagerImplTest {
             when(eventRepository.containsEventType(Type.SOCKET_READ)).thenReturn(false);
             when(eventRepository.containsEventType(Type.SOCKET_WRITE)).thenReturn(false);
 
-            assertTrue(manager().endpointTimelines(IoKind.SOCKET).isEmpty());
+            assertTrue(manager().endpointTimelines(IoKind.SOCKET, IoMetric.BYTES).isEmpty());
             verify(eventStreamRepository, never()).genericStreaming(any(), any());
         }
     }

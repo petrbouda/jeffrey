@@ -27,11 +27,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Accumulates I/O events into per-target totals and hands them back ranked by bytes. The grouping key
- * is the caller's business — socket peer, file path or parent directory — so the same aggregation
- * serves Top Peers, Files and the per-peer timelines.
+ * Accumulates I/O events into per-target totals and hands them back ranked. The grouping key is the
+ * caller's business — socket peer, file path or parent directory — so the same aggregation serves
+ * Top Peers, Files and the per-peer timelines.
  */
 final class IoEndpointGrouping {
+
+    private static final Comparator<IoEndpoint> BY_BYTES =
+            Comparator.comparingLong(IoEndpoint::bytes).reversed();
+    private static final Comparator<IoEndpoint> BY_OP_COUNT =
+            Comparator.comparingLong(IoEndpoint::opCount).reversed();
 
     private final Map<String, IoEndpointAccumulator> accumulatorsByTarget = new HashMap<>();
 
@@ -43,9 +48,26 @@ final class IoEndpointGrouping {
      * Every target seen so far, heaviest first.
      */
     List<IoEndpoint> rankedByBytes() {
+        return ranked(BY_BYTES);
+    }
+
+    /**
+     * Every target seen so far, busiest first. A different order than {@link #rankedByBytes()}, and
+     * once a caller truncates to a top-N also a different <em>set</em>: a chatty endpoint moving
+     * almost nothing places highly here and nowhere at all there.
+     */
+    List<IoEndpoint> rankedByOpCount() {
+        return ranked(BY_OP_COUNT);
+    }
+
+    List<IoEndpoint> rankedBy(IoMetric metric) {
+        return metric == IoMetric.COUNT ? rankedByOpCount() : rankedByBytes();
+    }
+
+    private List<IoEndpoint> ranked(Comparator<IoEndpoint> comparator) {
         List<IoEndpoint> result = new ArrayList<>(accumulatorsByTarget.size());
         accumulatorsByTarget.forEach((target, accumulator) -> result.add(accumulator.toEndpoint(target)));
-        result.sort(Comparator.comparingLong(IoEndpoint::bytes).reversed());
+        result.sort(comparator);
         return result;
     }
 }
