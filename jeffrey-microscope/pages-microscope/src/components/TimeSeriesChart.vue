@@ -88,6 +88,7 @@ import TimeRange from '@/services/api/model/TimeRange';
 import LoadingIndicator from '@shared/components/LoadingIndicator.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType.ts';
 import TimeConverter, { type TimeUnit } from '@/services/timeseries/TimeConverter.ts';
+import TimeseriesDownsampler from '@/services/timeseries/TimeseriesDownsampler.ts';
 import MessageBus from '@/services/MessageBus.ts';
 
 // A vertical marker drawn on the main chart at time `x` (data units), with a small chip
@@ -200,6 +201,12 @@ const effectiveSearchData = computed(() =>
 
 // Default values
 const defaultVisibleMinutes = 15;
+
+// Point budget handed to ApexCharts per series. The navigator spans the whole recording in a
+// ~120px strip, so it gets a smaller budget than the main chart, which only renders the visible
+// window. Both are downsampled peak-preserving, so a spike survives whatever the budget is.
+const MAIN_CHART_MAX_POINTS = 5000;
+const BRUSH_CHART_MAX_POINTS = 1500;
 
 // Refs
 const chartContainer = ref<HTMLDivElement | null>(null);
@@ -539,58 +546,27 @@ const attachAnnotationTooltips = (): void => {
   });
 };
 
-// Convert data format for ApexCharts with optional downsampling
-const processDataForApex = (
-  data: number[][] = [],
-  maxPoints: number = 5000
-): Array<{ x: number; y: number }> => {
+// A point in ApexCharts coordinates: x in chart milliseconds, y in the series' native unit.
+interface ChartPoint {
+  x: number;
+  y: number;
+}
+
+// Convert data format for ApexCharts, peak-preserving-downsampled to the given point budget.
+const processDataForApex = (data: number[][] = [], maxPoints: number): ChartPoint[] => {
   const tc = timeConverter.value;
-
-  if (data.length <= maxPoints) {
-    return data.map(point => ({
-      x: tc.toChartTime(point[0]),
-      y: point[1]
-    }));
-  }
-
-  // Downsample using every nth point
-  const step = Math.ceil(data.length / maxPoints);
-  const downsampled = [];
-
-  for (let i = 0; i < data.length; i += step) {
-    downsampled.push({
-      x: tc.toChartTime(data[i][0]),
-      y: data[i][1]
-    });
-  }
-
-  return downsampled;
-};
-
-// Filter data for visible range with downsampling
-const getVisibleData = (data: number[][] = []): Array<{ x: number; y: number }> => {
-  const filtered = data.filter(
-    point => point[0] >= visibleStartTime.value && point[0] <= visibleEndTime.value
-  );
-  const tc = timeConverter.value;
-
-  // Downsample if too many points for main chart
-  if (filtered.length > 5000) {
-    const step = Math.ceil(filtered.length / 5000);
-    const downsampled = [];
-    for (let i = 0; i < filtered.length; i += step) {
-      downsampled.push({
-        x: tc.toChartTime(filtered[i][0]),
-        y: filtered[i][1]
-      });
-    }
-    return downsampled;
-  }
-
-  return filtered.map(point => ({
+  return TimeseriesDownsampler.downsamplePeaks(data, maxPoints).map(point => ({
     x: tc.toChartTime(point[0]),
     y: point[1]
   }));
+};
+
+// Filter data down to the visible range, then downsample it for the main chart
+const getVisibleData = (data: number[][] = []): ChartPoint[] => {
+  const filtered = data.filter(
+    point => point[0] >= visibleStartTime.value && point[0] <= visibleEndTime.value
+  );
+  return processDataForApex(filtered, MAIN_CHART_MAX_POINTS);
 };
 
 // Main chart series
@@ -650,7 +626,7 @@ const brushChartSeries = computed(() => {
   if (isMultiSeries.value) {
     return resolvedSeries.value.map(serie => ({
       name: serie.name,
-      data: processDataForApex(serie.data, 1500),
+      data: processDataForApex(serie.data, BRUSH_CHART_MAX_POINTS),
       color: serie.color
     }));
   }
@@ -664,7 +640,7 @@ const brushChartSeries = computed(() => {
   if (primaryData && primaryData.length > 0) {
     series.push({
       name: props.primaryTitle || 'Primary',
-      data: processDataForApex(primaryData, 1500),
+      data: processDataForApex(primaryData, BRUSH_CHART_MAX_POINTS),
       color: primaryColor
     });
   }
@@ -672,7 +648,7 @@ const brushChartSeries = computed(() => {
   if (secondaryData && secondaryData.length > 0) {
     series.push({
       name: props.secondaryTitle || 'Secondary',
-      data: processDataForApex(secondaryData, 1500),
+      data: processDataForApex(secondaryData, BRUSH_CHART_MAX_POINTS),
       color: secondaryColor
     });
   }
@@ -680,7 +656,7 @@ const brushChartSeries = computed(() => {
   if (tertiaryData && tertiaryData.length > 0) {
     series.push({
       name: props.tertiaryTitle || 'Tertiary',
-      data: processDataForApex(tertiaryData, 1500),
+      data: processDataForApex(tertiaryData, BRUSH_CHART_MAX_POINTS),
       color: tertiaryColor
     });
   }
@@ -689,7 +665,7 @@ const brushChartSeries = computed(() => {
   if (searchData && searchData.length > 0) {
     series.push({
       name: 'Search Results',
-      data: processDataForApex(searchData, 1500),
+      data: processDataForApex(searchData, BRUSH_CHART_MAX_POINTS),
       color: searchHighlightColor
     });
   }
@@ -1082,7 +1058,9 @@ const brushChartOptions = computed(() => ({
     enabled: false
   },
   stroke: {
-    curve: 'smooth',
+    // Straight, not smooth: in a ~120px strip a spline widens the shoulders of an isolated
+    // spike and smears the gradient fill underneath it.
+    curve: 'straight',
     width: 1
   },
   fill: {
