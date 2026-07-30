@@ -23,10 +23,10 @@ import ThreadStatisticsResponse from '@/services/api/model/ThreadStatisticsRespo
 import Serie from '@/services/timeseries/model/Serie';
 import type { ParsedDump, ThreadDumpAnalysis } from '@/services/api/model/ThreadDumpModels';
 import type ReservedStackActivation from '@/services/api/model/ReservedStackActivation';
-import type ThreadEventDetail from '@/services/api/model/ThreadEventDetail';
 import type { ThreadEventState } from '@/services/api/model/ThreadEventDetail';
 import type ThreadInfo from '@/services/api/model/ThreadInfo';
-import type ThreadPeriod from '@/services/api/model/ThreadPeriod';
+import type ThreadTimeWindow from '@/services/api/model/ThreadTimeWindow';
+import type ThreadWindowEvents from '@/services/api/model/ThreadWindowEvents';
 import type { ThreadGroupResponse } from '@/services/api/model/ThreadGroupData';
 
 export default class ProfileThreadClient extends BaseProfileClient {
@@ -72,25 +72,29 @@ export default class ProfileThreadClient extends BaseProfileClient {
   }
 
   /**
-   * The events behind a single timeline band, for its tooltip. The timeline itself carries only
-   * rectangles and event counts, so the fields are fetched for the band under the pointer.
+   * What one category of a lane was doing during the slice of time under the pointer — the count a
+   * tooltip shows and the events whose fields it renders.
    *
-   * A band on a collapsed lane belongs to the group rather than to a thread, so it names the group
-   * instead: the lane's own {@link ThreadInfo} carries placeholder ids that match no real thread.
+   * Scoped to the hovered window rather than to the band beneath it: a band merges every run of
+   * activity too dense to draw apart, so on a busy lane it spans the whole recording and would
+   * answer the same thing at every position.
+   *
+   * A collapsed lane belongs to a group rather than to a thread, so it names the group instead: the
+   * lane's own {@link ThreadInfo} carries placeholder ids that match no real thread.
    */
-  public bandEvents(
+  public windowEvents(
     threadInfo: ThreadInfo,
     state: ThreadEventState,
-    band: ThreadPeriod,
+    window: ThreadTimeWindow,
     limit = 1,
     group: string | null = null
-  ): Promise<ThreadEventDetail[]> {
+  ): Promise<ThreadWindowEvents> {
     const target = group ? { group: group } : { osId: threadInfo.osId, javaId: threadInfo.javaId };
-    return this.get<ThreadEventDetail[]>('/events', {
+    return this.get<ThreadWindowEvents>('/events', {
       ...target,
       state: state,
-      from: band.startOffset,
-      to: band.startOffset + band.width,
+      from: window.from,
+      to: window.to,
       limit: limit
     });
   }

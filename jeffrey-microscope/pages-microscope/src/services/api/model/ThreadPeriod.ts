@@ -19,9 +19,13 @@
 /**
  * One drawable band on a thread's timeline, in nanoseconds from the start of the recording.
  *
- * A band covers `eventCount` source events: the backend merges events that are closer together
- * than the timeline can resolve. The events' own fields are not part of the band — they are
- * fetched for the hovered band only, via `ProfileThreadClient.bandEvents`.
+ * A band covers `eventCount` source events: the backend merges events that are closer together than
+ * the timeline can resolve. Merging chains, so on a busy lane one band spans the whole recording and
+ * its count is that run's total — it is not a count for any position inside the band, and a tooltip
+ * must not read it as one.
+ *
+ * The events' own fields are not part of the band. They are fetched for the slice of time under the
+ * pointer, via `ProfileThreadClient.windowEvents`.
  */
 export default class ThreadPeriod {
   constructor(

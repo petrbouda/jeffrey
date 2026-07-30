@@ -37,7 +37,6 @@ import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalyzer;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpBuilder;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpParser;
 import cafe.jeffrey.profile.thread.ThreadBands;
-import cafe.jeffrey.profile.thread.ThreadEventDetail;
 import cafe.jeffrey.profile.thread.ThreadEventsQuery;
 import cafe.jeffrey.profile.thread.ThreadGroup;
 import cafe.jeffrey.profile.thread.ThreadGroupMembers;
@@ -47,10 +46,10 @@ import cafe.jeffrey.profile.thread.ThreadInfoProvider;
 import cafe.jeffrey.profile.thread.ThreadMembersQuery;
 import cafe.jeffrey.profile.thread.ThreadPage;
 import cafe.jeffrey.profile.thread.ThreadPageQuery;
-import cafe.jeffrey.profile.thread.ThreadRecord;
 import cafe.jeffrey.profile.thread.ThreadRoot;
 import cafe.jeffrey.profile.thread.ThreadRow;
-import cafe.jeffrey.profile.thread.ThreadsRecordBuilder;
+import cafe.jeffrey.profile.thread.ThreadWindowEvents;
+import cafe.jeffrey.profile.thread.ThreadWindowEventsBuilder;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
@@ -68,6 +67,8 @@ import java.util.function.Predicate;
 public class ThreadManagerImpl implements ThreadManager {
 
     private static final int MAX_THREAD_DUMPS = 200;
+    private static final long NANOS_PER_MILLI = 1_000_000L;
+    private static final long MIN_WINDOW_MILLIS = 1L;
 
     private final ProfileInfo profileInfo;
     private final ProfileEventRepository eventRepository;
@@ -236,35 +237,34 @@ public class ThreadManagerImpl implements ThreadManager {
     }
 
     @Override
-    public List<ThreadEventDetail> threadEvents(ThreadEventsQuery query) {
+    public ThreadWindowEvents threadEvents(ThreadEventsQuery query) {
+        RelativeTimeRange window = storageWindow(query);
+
         EventQueryConfigurer configurer = new EventQueryConfigurer()
                 .withEventType(query.state().eventType())
                 .withSpecifiedThreads(query.threads())
-                .withTimeRange(bandTimeRange(query))
-                .withEventTypeInfo()
+                .withTimeRange(window)
                 .withJsonFields();
 
-        List<ThreadRecord> records =
-                eventStreamRepository.genericStreaming(configurer, new ThreadsRecordBuilder());
-
-        return records.stream()
-                .limit(query.limit())
-                .map(record -> new ThreadEventDetail(
-                        record.start().toNanos(),
-                        record.duration() == null ? 1 : Math.max(record.duration().toNanos(), 1),
-                        record.values()))
-                .toList();
+        return eventStreamRepository.genericStreaming(
+                configurer, new ThreadWindowEventsBuilder(window, query.limit()));
     }
 
     /**
-     * Widens the band to whole milliseconds, because that is the resolution the events are stored
-     * at. A band narrower than a millisecond would otherwise select nothing — its start and end
-     * truncate to the same value, and the upper bound is exclusive.
+     * Snaps the hovered window onto the millisecond grid the events are stored at.
+     *
+     * <p>The start rounds down and the end rounds up, so a window narrower than a millisecond still
+     * selects the millisecond it falls in rather than nothing at all. The query's upper bound is
+     * exclusive, which is what lets the windows of two neighbouring pixels tile without counting an
+     * event under both of them.
      */
-    private static RelativeTimeRange bandTimeRange(ThreadEventsQuery query) {
-        Duration from = Duration.ofMillis(query.from().toMillis());
-        Duration to = Duration.ofMillis(query.to().toMillis() + 1);
-        return new RelativeTimeRange(from, to);
+    private static RelativeTimeRange storageWindow(ThreadEventsQuery query) {
+        long fromMillis = Math.floorDiv(query.from().toNanos(), NANOS_PER_MILLI);
+        long toMillis = Math.ceilDiv(query.to().toNanos(), NANOS_PER_MILLI);
+        if (toMillis <= fromMillis) {
+            toMillis = fromMillis + MIN_WINDOW_MILLIS;
+        }
+        return new RelativeTimeRange(Duration.ofMillis(fromMillis), Duration.ofMillis(toMillis));
     }
 
     @Override

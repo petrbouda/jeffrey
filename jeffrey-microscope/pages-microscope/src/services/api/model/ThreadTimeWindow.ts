@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -16,27 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.thread;
-
-import cafe.jeffrey.shared.common.model.ThreadInfo;
-
-import java.time.Duration;
-import java.util.List;
-
-public record ThreadRecord(
-        ThreadInfo threadInfo,
-        List<Object> values,
-        Duration start,
-        Duration duration,
-        String eventLabel,
-        ThreadState state) {
-
-    public ThreadRecord(
-            ThreadInfo threadInfo,
-            Duration start,
-            String eventLabel,
-            ThreadState state) {
-
-        this(threadInfo, List.of(), start, null, eventLabel, state);
-    }
+/**
+ * The slice of recording time under the pointer, in nanoseconds from the start of the recording.
+ *
+ * This is what the client *asks* about — one pixel of the timeline converted back to time. The
+ * server answers about the window it could actually resolve, which is this one snapped to the
+ * millisecond grid the events are stored at; that one comes back as `ThreadWindowEvents.fromOffset`
+ * and `toOffset`. Render those, not these, or a count will look finer-grained than it is.
+ */
+export default class ThreadTimeWindow {
+  constructor(
+    public readonly from: number,
+    public readonly to: number
+  ) {}
 }

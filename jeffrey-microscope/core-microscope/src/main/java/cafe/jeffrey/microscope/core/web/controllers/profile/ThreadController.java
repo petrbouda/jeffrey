@@ -33,7 +33,6 @@ import cafe.jeffrey.profile.manager.model.thread.ThreadStats;
 import cafe.jeffrey.profile.manager.model.thread.ThreadWithCpuLoad;
 import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
-import cafe.jeffrey.profile.thread.ThreadEventDetail;
 import cafe.jeffrey.profile.thread.ThreadEventsQuery;
 import cafe.jeffrey.profile.thread.ThreadGroupPage;
 import cafe.jeffrey.profile.thread.ThreadMembersQuery;
@@ -41,6 +40,7 @@ import cafe.jeffrey.profile.thread.ThreadPage;
 import cafe.jeffrey.profile.thread.ThreadPageQuery;
 import cafe.jeffrey.profile.thread.ThreadSort;
 import cafe.jeffrey.profile.thread.ThreadState;
+import cafe.jeffrey.profile.thread.ThreadWindowEvents;
 import cafe.jeffrey.provider.profile.api.AllocatingThread;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.Type;
@@ -58,10 +58,11 @@ public class ThreadController {
     private static final int TOP_CPU_LOADS = 10;
 
     /**
-     * A tooltip renders one event's fields and takes the rest from the band's own count, so there is
-     * no reason to let a caller pull a whole band's worth of events back.
+     * A tooltip renders one event's fields and takes the rest from the window's own count, so there
+     * is no reason to let a caller pull a whole window's worth of events back. The count that comes
+     * back is never capped by this — only the sample of events is.
      */
-    private static final int MAX_BAND_EVENTS = 20;
+    private static final int MAX_WINDOW_EVENTS = 20;
 
     /**
      * The ceiling on one page of threads. Each row still carries a lane's worth of bands, so an
@@ -127,11 +128,16 @@ public class ThreadController {
     }
 
     /**
-     * The events behind one band of the timeline. The timeline itself ships rectangles and event
-     * counts only, so the fields a tooltip renders are read here, one hovered band at a time.
+     * What a lane was doing during the slice of time under the pointer. The timeline itself ships
+     * rectangles only, so both the count a tooltip shows and the fields it renders are read here,
+     * one hovered window at a time.
+     *
+     * <p>Scoped to the window rather than to the band beneath it: a band merges every run of
+     * activity too dense to draw apart, so on a busy lane it covers the whole recording and would
+     * answer the same thing wherever the pointer is.
      */
     @GetMapping("/events")
-    public List<ThreadEventDetail> threadEvents(
+    public ThreadWindowEvents threadEvents(
             @PathVariable("profileId") String profileId,
             @RequestParam(value = "osId", required = false) Long osId,
             @RequestParam(value = "javaId", required = false) Long javaId,
@@ -148,16 +154,16 @@ public class ThreadController {
                 state,
                 Duration.ofNanos(fromNanos),
                 Duration.ofNanos(toNanos),
-                Math.min(limit, MAX_BAND_EVENTS));
+                Math.min(limit, MAX_WINDOW_EVENTS));
 
-        LOG.debug("Fetching events of a timeline band: state={} from={} to={} threads={}",
+        LOG.debug("Fetching events of a hovered timeline window: state={} from={} to={} threads={}",
                 state, fromNanos, toNanos, threads.size());
         return mgr(profileId).threadEvents(query);
     }
 
     /**
-     * A band on a collapsed lane belongs to the whole group, not to one thread — the lane has no
-     * thread of its own — so the group is resolved to its members. A request naming neither is
+     * A lane that stands for a collapsed group belongs to the whole group, not to one thread — it has
+     * no thread of its own — so the group is resolved to its members. A request naming neither is
      * rejected before anything is resolved, so a bad request answers 400 rather than failing later.
      */
     private List<ThreadInfo> threadsOf(String profileId, String group, Long osId, Long javaId) {

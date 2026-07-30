@@ -20,7 +20,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import axios from 'axios';
 import ProfileThreadClient from '@/services/api/ProfileThreadClient';
 import ThreadInfo from '@/services/api/model/ThreadInfo';
-import ThreadPeriod from '@/services/api/model/ThreadPeriod';
+import ThreadTimeWindow from '@/services/api/model/ThreadTimeWindow';
 
 vi.mock('axios', () => ({
   default: {
@@ -29,7 +29,7 @@ vi.mock('axios', () => ({
 }));
 
 const THREAD = new ThreadInfo('oracleApp:connection-adder-13', 13, '42');
-const BAND = new ThreadPeriod(1_000, 250, 4);
+const WINDOW = new ThreadTimeWindow(1_000, 1_250);
 
 function getMock() {
   return vi.mocked(axios.get);
@@ -46,9 +46,9 @@ beforeEach(() => {
   getMock().mockResolvedValue({ data: [] });
 });
 
-describe('bandEvents', () => {
+describe('windowEvents', () => {
   it('names the hovered thread by its ids', async () => {
-    await new ProfileThreadClient('p1').bandEvents(THREAD, 'PARKED', BAND);
+    await new ProfileThreadClient('p1').windowEvents(THREAD, 'PARKED', WINDOW);
 
     expect(lastParams()).toEqual({
       osId: '42',
@@ -61,16 +61,16 @@ describe('bandEvents', () => {
   });
 
   /**
-   * A band on a collapsed lane belongs to the group rather than to a thread. The lane's own ids are
+   * A collapsed lane belongs to the group rather than to a thread. The lane's own ids are
    * placeholders that match no real thread, so they must not travel with the request.
    */
-  it('names the group when the band belongs to a collapsed lane', async () => {
+  it('names the group when the lane stands for a collapsed group', async () => {
     const lane = new ThreadInfo('oracleApp:connection-adder*', -1, '-1');
 
-    await new ProfileThreadClient('p1').bandEvents(
+    await new ProfileThreadClient('p1').windowEvents(
       lane,
       'SOCKET_READ',
-      BAND,
+      WINDOW,
       1,
       'oracleApp:connection-adder*'
     );
@@ -82,5 +82,19 @@ describe('bandEvents', () => {
       to: 1_250,
       limit: 1
     });
+  });
+
+  /**
+   * A pixel of a short recording is narrower than the millisecond the events are stored at. The
+   * window still has to be a real range — the server is what widens it to something selectable.
+   */
+  it('sends a non-empty window for a sub-millisecond pixel', async () => {
+    await new ProfileThreadClient('p1').windowEvents(
+      THREAD,
+      'SOCKET_READ',
+      new ThreadTimeWindow(500_000, 900_000)
+    );
+
+    expect(lastParams()).toMatchObject({ from: 500_000, to: 900_000 });
   });
 });

@@ -22,26 +22,40 @@ import ThreadRow from './ThreadRow';
 import Rectangle from './Rectangle';
 import ThreadPeriod from '@/services/api/model/ThreadPeriod';
 
+/**
+ * The rectangles of one band category on one row, ready to draw and to hit-test.
+ *
+ * Built once through {@link ThreadGroups.of} and immutable afterwards, so the ordering the
+ * hit-test relies on is established a single time rather than re-established on every pointer move.
+ */
 export default class ThreadGroups {
   static readonly MIN_WIDTH = 1;
 
-  private rectangles: ThreadRectangle[] = [];
-
-  constructor(
-    private totalWidth: number,
-    private pxPerMillis: number,
-    private color: string
+  private constructor(
+    private readonly color: string,
+    private readonly rectangles: ThreadRectangle[]
   ) {}
 
-  public addPeriod(period: ThreadPeriod): void {
-    const rect = this.createRectangle(period);
-    const rectangle = new ThreadRectangle(rect, period);
-    this.rectangles.push(rectangle);
+  /**
+   * @param totalWidth  width of the row's canvas in pixels
+   * @param pxPerNano   pixels per nanosecond of recording time — the canvas width over the
+   *                    recording's total duration, which the timeline carries in nanoseconds
+   */
+  public static of(
+    totalWidth: number,
+    pxPerNano: number,
+    color: string,
+    periods: ThreadPeriod[]
+  ): ThreadGroups {
+    const rectangles = periods.map(
+      period =>
+        new ThreadRectangle(ThreadGroups.createRectangle(period, totalWidth, pxPerNano), period)
+    );
+    rectangles.sort((a, b) => a.start - b.start);
+    return new ThreadGroups(color, rectangles);
   }
 
   public createLayer(): Konva.Layer {
-    this.rectangles.sort((a, b) => a.start - b.start);
-
     const layer = new Konva.Layer();
     this.rectangles.forEach(group => {
       const konvaRect = new Konva.Rect({
@@ -57,27 +71,36 @@ export default class ThreadGroups {
     return layer;
   }
 
-  selectRectangles(xPos: number): ThreadRectangle[] {
-    this.rectangles.sort((a, b) => a.start - b.start);
-
-    const selectedSegments: ThreadRectangle[] = [];
-    for (const segment of this.rectangles) {
-      if (segment.start <= xPos && segment.end > xPos) {
-        selectedSegments.push(segment);
-      }
-    }
-    return selectedSegments;
+  /**
+   * Whether this category has anything drawn at the given pixel — that is, whether it belongs in the
+   * tooltip at all. What is *in* that pixel is answered by the server for the hovered time window,
+   * not read off the rectangle: a rectangle can stand for a whole run of merged activity.
+   */
+  public covers(xPos: number): boolean {
+    return this.rectangles.some(segment => segment.start <= xPos && segment.end > xPos);
   }
 
-  private createRectangle(period: ThreadPeriod): Rectangle {
-    let x = Math.floor(period.startOffset * this.pxPerMillis);
+  /**
+   * The first rectangle drawn at the given pixel, or `undefined`. Used only to fall back to the
+   * event a rectangle began with, when nothing starts inside the hovered window itself.
+   */
+  public rectangleAt(xPos: number): ThreadRectangle | undefined {
+    return this.rectangles.find(segment => segment.start <= xPos && segment.end > xPos);
+  }
+
+  private static createRectangle(
+    period: ThreadPeriod,
+    totalWidth: number,
+    pxPerNano: number
+  ): Rectangle {
+    let x = Math.floor(period.startOffset * pxPerNano);
     // if the activity is at the end of the thread, the x value can be equal to the canvas width (not visible)
     // in this case, we need to decrease the x value by 1 to make the activity visible, e.g. Shutdown hook Thread
-    if (x === this.totalWidth) {
+    if (x === totalWidth) {
       x = x - (ThreadGroups.MIN_WIDTH + 1);
     }
 
-    const calculatedWidth = Math.round(period.width * this.pxPerMillis);
+    const calculatedWidth = Math.round(period.width * pxPerNano);
     return new Rectangle(
       x,
       0,

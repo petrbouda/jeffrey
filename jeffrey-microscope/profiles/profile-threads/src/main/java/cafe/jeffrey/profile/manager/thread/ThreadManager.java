@@ -26,13 +26,13 @@ import cafe.jeffrey.profile.manager.model.thread.ThreadCpuLoads;
 import cafe.jeffrey.profile.manager.model.thread.ThreadStats;
 import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
 import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
-import cafe.jeffrey.profile.thread.ThreadEventDetail;
 import cafe.jeffrey.profile.thread.ThreadEventsQuery;
 import cafe.jeffrey.profile.thread.ThreadGroupPage;
 import cafe.jeffrey.profile.thread.ThreadMembersQuery;
 import cafe.jeffrey.profile.thread.ThreadPage;
 import cafe.jeffrey.profile.thread.ThreadPageQuery;
 import cafe.jeffrey.profile.thread.ThreadRoot;
+import cafe.jeffrey.profile.thread.ThreadWindowEvents;
 import cafe.jeffrey.provider.profile.api.AllocatingThread;
 import cafe.jeffrey.timeseries.SingleSerie;
 
@@ -83,11 +83,16 @@ public interface ThreadManager {
     List<ThreadInfo> threadGroupThreads(String groupKey);
 
     /**
-     * The events behind one band of {@link #threadRows()}, for the tooltip that opens when the
-     * pointer settles on it. The timeline itself ships only rectangles and event counts, so the
-     * fields are read here — one band at a time — instead of for every event in the recording.
+     * What one category of a lane was doing during a hovered slice of time, for the tooltip that
+     * opens when the pointer settles. The timeline itself ships only rectangles, so both the count
+     * and the field values are read here — one window at a time — instead of for every event in the
+     * recording.
+     *
+     * <p>Scoped to the window rather than to the band under the pointer on purpose: a band merges
+     * every run of activity too dense to draw apart, so on a busy lane it covers the whole recording
+     * and would answer the same thing wherever the pointer is.
      */
-    List<ThreadEventDetail> threadEvents(ThreadEventsQuery query);
+    ThreadWindowEvents threadEvents(ThreadEventsQuery query);
 
     /**
      * Cross-dump analysis of all {@code jdk.ThreadDump} occurrences (state timeline, top frames,
