@@ -17,9 +17,12 @@
   -->
 
 <!--
-  A single endpoint in the peer gallery: its name, its throughput shape and its share of total
-  bytes. The sparkline is what makes the gallery worth having — the shape of every peer is visible
-  before one is chosen, so an outlier announces itself without a click.
+  A single endpoint in the peer gallery: its name, its shape over the recording and its share of
+  the total. The sparkline is what makes the gallery worth having — the shape of every peer is
+  visible before one is chosen, so an outlier announces itself without a click.
+
+  The tile is metric-neutral: the caller formats the headline figure and names the measure, so the
+  same tile serves a bytes gallery and an operations one without knowing which is which.
 -->
 <template>
   <button
@@ -36,11 +39,11 @@
       :color="sparklineColor"
       variant="area"
       :height="SPARKLINE_HEIGHT"
-      :aria-label="`Throughput of ${target}`"
+      :aria-label="`${measure} of ${target}`"
     />
     <span class="tile-figures">
-      <span class="tile-bytes">{{ FormattingService.formatBytes(bytes) }}</span>
-      <span class="tile-share">{{ FormattingService.formatPercentage(shareOfBytes) }}</span>
+      <span class="tile-value">{{ value }}</span>
+      <span class="tile-share">{{ FormattingService.formatPercentage(shareOfTotal) }}</span>
     </span>
   </button>
 </template>
@@ -53,9 +56,12 @@ import FormattingService from '@shared/services/FormattingService';
 interface Props {
   target: string;
   points: number[][];
-  bytes: number;
-  /** Fraction (0..1) of the profile's total I/O bytes that belongs to this endpoint. */
-  shareOfBytes: number;
+  /** Headline figure, already formatted by the caller — "2.17 GiB" or "41.2k ops". */
+  value: string;
+  /** Fraction (0..1) of the profile's total for the active metric that belongs to this endpoint. */
+  shareOfTotal: number;
+  /** What the sparkline plots, for the accessible label — e.g. "Throughput" or "Operations". */
+  measure: string;
   selected: boolean;
 }
 
@@ -119,7 +125,7 @@ const sparklineColor = ChartColors.chartColor('color-violet');
   font-variant-numeric: tabular-nums;
 }
 
-.tile-bytes {
+.tile-value {
   font-weight: 600;
   color: var(--color-text);
 }

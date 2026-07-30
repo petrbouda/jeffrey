@@ -22,6 +22,7 @@ import cafe.jeffrey.profile.manager.model.io.FileForceStats;
 import cafe.jeffrey.profile.manager.model.io.IoEndpoint;
 import cafe.jeffrey.profile.manager.model.io.IoEndpointTimeline;
 import cafe.jeffrey.profile.manager.model.io.IoKind;
+import cafe.jeffrey.profile.manager.model.io.IoMetric;
 import cafe.jeffrey.profile.manager.model.io.IoOperation;
 import cafe.jeffrey.profile.manager.model.io.IoOverview;
 import cafe.jeffrey.profile.manager.model.io.IoTargetFilter;
@@ -59,11 +60,14 @@ public interface IoManager {
     TimeseriesData timeline(IoKind kind, IoTargetFilter targetFilter);
 
     /**
-     * The heaviest endpoints of the kind, each paired with its bytes-per-second shape, ranked by
-     * bytes and capped so a recording with thousands of peers stays cheap to render. Empty when no
-     * events of the kind are present.
+     * The top endpoints of the kind, each paired with its per-second shape, capped so a recording
+     * with thousands of peers stays cheap to render. Empty when no events of the kind are present.
+     * <p>
+     * The metric selects both the series and the ranking, and ranking precedes the cap — so
+     * {@link IoMetric#BYTES} and {@link IoMetric#COUNT} return genuinely different sets of
+     * endpoints, not the same set in a different order.
      */
-    List<IoEndpointTimeline> endpointTimelines(IoKind kind);
+    List<IoEndpointTimeline> endpointTimelines(IoKind kind, IoMetric metric);
 
     /**
      * Slowest individual operations of the kind, ordered by descending duration.

@@ -31,6 +31,7 @@ import cafe.jeffrey.profile.manager.model.io.FileForceStats;
 import cafe.jeffrey.profile.manager.model.io.IoEndpoint;
 import cafe.jeffrey.profile.manager.model.io.IoEndpointTimeline;
 import cafe.jeffrey.profile.manager.model.io.IoKind;
+import cafe.jeffrey.profile.manager.model.io.IoMetric;
 import cafe.jeffrey.profile.manager.model.io.IoOperation;
 import cafe.jeffrey.profile.manager.model.io.IoOverview;
 import cafe.jeffrey.profile.manager.model.io.IoTargetFilter;
@@ -68,10 +69,12 @@ public class IoController {
 
     @GetMapping("/{kind}/endpoint-timelines")
     public List<IoEndpointTimeline> endpointTimelines(
-            @PathVariable("profileId") String profileId, @PathVariable("kind") String kind) {
+            @PathVariable("profileId") String profileId,
+            @PathVariable("kind") String kind,
+            @RequestParam(value = "metric", defaultValue = "BYTES") IoMetric metric) {
 
-        LOG.debug("Fetching I/O endpoint timelines: kind={}", kind);
-        return mgr(profileId).endpointTimelines(IoKind.fromPath(kind));
+        LOG.debug("Fetching I/O endpoint timelines: kind={} metric={}", kind, metric);
+        return mgr(profileId).endpointTimelines(IoKind.fromPath(kind), metric);
     }
 
     @GetMapping("/{kind}/slowest")

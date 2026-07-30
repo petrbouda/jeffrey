@@ -26,6 +26,7 @@ import cafe.jeffrey.profile.manager.model.io.IoEndpointTimeline;
 import cafe.jeffrey.profile.manager.model.io.IoEndpointTimelinesBuilder;
 import cafe.jeffrey.profile.manager.model.io.IoEndpointsBuilder;
 import cafe.jeffrey.profile.manager.model.io.IoKind;
+import cafe.jeffrey.profile.manager.model.io.IoMetric;
 import cafe.jeffrey.profile.manager.model.io.IoOperation;
 import cafe.jeffrey.profile.manager.model.io.IoOverview;
 import cafe.jeffrey.profile.manager.model.io.IoOverviewBuilder;
@@ -81,7 +82,7 @@ public class IoManagerImpl implements IoManager {
     }
 
     @Override
-    public List<IoEndpointTimeline> endpointTimelines(IoKind kind) {
+    public List<IoEndpointTimeline> endpointTimelines(IoKind kind, IoMetric metric) {
         if (!hasAny(kind.types())) {
             return List.of();
         }
@@ -90,7 +91,7 @@ public class IoManagerImpl implements IoManager {
                 .withEventTypes(kind.types())
                 .withJsonFields();
         return eventStreamRepository.genericStreaming(
-                configurer, new IoEndpointTimelinesBuilder(timeRange, MAX_ENDPOINT_TIMELINES));
+                configurer, new IoEndpointTimelinesBuilder(timeRange, MAX_ENDPOINT_TIMELINES, metric));
     }
 
     @Override

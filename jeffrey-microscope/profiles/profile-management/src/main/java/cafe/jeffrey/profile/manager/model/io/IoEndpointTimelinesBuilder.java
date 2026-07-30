@@ -31,9 +31,15 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Builds a bytes-per-second series per endpoint in a single pass, returning the heaviest endpoints
- * with their throughput shape. Feeds the sparkline gallery, where every peer's shape has to be
- * visible before the user picks one — one query instead of one request per tile.
+ * Builds a per-second series per endpoint in a single pass, returning the top endpoints with their
+ * shape. Feeds the sparkline gallery, where every peer's shape has to be visible before the user
+ * picks one — one query instead of one request per tile.
+ * <p>
+ * The {@link IoMetric} decides both what the series holds and how the endpoints are ranked, and the
+ * ranking runs before the top-N cut. That is the whole point of passing the metric down here rather
+ * than letting the frontend re-sort: a chatty endpoint moving a few kilobytes is not merely further
+ * down the bytes-ranked list, it is absent from it, and no client-side sort can recover a tile the
+ * server never sent.
  * <p>
  * Per-endpoint buckets are collected sparsely while streaming and only zero-filled across the whole
  * recording for the endpoints that actually make the cut, so a recording with thousands of peers
@@ -41,16 +47,21 @@ import java.util.Map;
  */
 public class IoEndpointTimelinesBuilder implements RecordBuilder<GenericRecord, List<IoEndpointTimeline>> {
 
-    private static final String THROUGHPUT_SERIES_NAME = "Bytes / sec";
+    private static final String BYTES_SERIES_NAME = "Bytes / sec";
+    private static final String COUNT_SERIES_NAME = "Ops / sec";
+
+    private static final long SINGLE_OPERATION = 1;
 
     private final RelativeTimeRange timeRange;
     private final int maxEndpoints;
+    private final IoMetric metric;
     private final IoEndpointGrouping grouping = new IoEndpointGrouping();
-    private final Map<String, LongLongHashMap> bytesPerSecondByTarget = new HashMap<>();
+    private final Map<String, LongLongHashMap> valuesPerSecondByTarget = new HashMap<>();
 
-    public IoEndpointTimelinesBuilder(RelativeTimeRange timeRange, int maxEndpoints) {
+    public IoEndpointTimelinesBuilder(RelativeTimeRange timeRange, int maxEndpoints, IoMetric metric) {
         this.timeRange = timeRange;
         this.maxEndpoints = maxEndpoints;
+        this.metric = metric;
     }
 
     @Override
@@ -58,30 +69,38 @@ public class IoEndpointTimelinesBuilder implements RecordBuilder<GenericRecord, 
         String target = IoEventFields.target(record.type(), record.jsonFields());
         grouping.record(target, record);
 
-        long bytes = IoEventFields.bytes(record.type(), record.jsonFields());
-        if (bytes <= 0) {
-            return;
+        // A zero-byte read moves nothing but is still a call, so it belongs in the count series and
+        // not in the bytes one — the same asymmetry IoTimelineTimeseriesBuilder documents.
+        long value;
+        if (metric == IoMetric.COUNT) {
+            value = SINGLE_OPERATION;
+        } else {
+            value = IoEventFields.bytes(record.type(), record.jsonFields());
+            if (value <= 0) {
+                return;
+            }
         }
-        bytesPerSecondByTarget.computeIfAbsent(target, key -> new LongLongHashMap())
-                .addToValue(record.timestampFromStart().toSeconds(), bytes);
+        valuesPerSecondByTarget.computeIfAbsent(target, key -> new LongLongHashMap())
+                .addToValue(record.timestampFromStart().toSeconds(), value);
     }
 
     @Override
     public List<IoEndpointTimeline> build() {
-        List<IoEndpoint> ranked = grouping.rankedByBytes();
+        List<IoEndpoint> ranked = grouping.rankedBy(metric);
         List<IoEndpointTimeline> result = new ArrayList<>(Math.min(ranked.size(), maxEndpoints));
         for (IoEndpoint endpoint : ranked.subList(0, Math.min(ranked.size(), maxEndpoints))) {
-            result.add(new IoEndpointTimeline(endpoint, throughputOf(endpoint.target())));
+            result.add(new IoEndpointTimeline(endpoint, serieOf(endpoint.target())));
         }
         return result;
     }
 
-    private SingleSerie throughputOf(String target) {
+    private SingleSerie serieOf(String target) {
         LongLongHashMap timeseries = TimeseriesUtils.initWithZeros(timeRange);
-        LongLongHashMap recorded = bytesPerSecondByTarget.get(target);
+        LongLongHashMap recorded = valuesPerSecondByTarget.get(target);
         if (recorded != null) {
             recorded.forEachKeyValue(timeseries::addToValue);
         }
-        return TimeseriesUtils.buildSerie(THROUGHPUT_SERIES_NAME, timeseries);
+        String name = metric == IoMetric.COUNT ? COUNT_SERIES_NAME : BYTES_SERIES_NAME;
+        return TimeseriesUtils.buildSerie(name, timeseries);
     }
 }

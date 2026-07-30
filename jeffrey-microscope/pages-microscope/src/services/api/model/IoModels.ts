@@ -42,12 +42,13 @@ export interface IoEndpoint {
 }
 
 /**
- * One endpoint's totals paired with its bytes-per-second shape, so a gallery of peers can be drawn
- * as sparkline tiles from a single request.
+ * One endpoint's totals paired with its per-second shape, so a gallery of peers can be drawn as
+ * sparkline tiles from a single request. The serie holds bytes or operations depending on the
+ * `IoMetric` the gallery was requested with, and carries its own name so the unit travels with it.
  */
 export interface IoEndpointTimeline {
   endpoint: IoEndpoint;
-  throughput: {
+  serie: {
     name: string;
     data: number[][];
   };
