@@ -20,31 +20,20 @@ package cafe.jeffrey.profile.ai.oql.config;
 
 import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.oql.service.HeapDumpContextExtractor;
-import cafe.jeffrey.profile.ai.oql.service.NoOpOqlAssistantService;
 import cafe.jeffrey.profile.ai.oql.service.OqlAssistantService;
 import cafe.jeffrey.profile.ai.oql.service.OqlAssistantServiceImpl;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 
 public class AiAssistantConfiguration {
 
     /**
-     * Create the OQL Assistant Service when AI is enabled and a chat backend is available.
+     * Creates the OQL Assistant Service. It is registered whether or not AI is configured and reports
+     * its availability from the backend on each call, so turning AI on or off is a change of answer
+     * rather than a change of wiring.
      */
     @Bean
-    @ConditionalOnExpression("'${jeffrey.microscope.ai.provider:none}' != 'none'")
     public OqlAssistantService oqlAssistantService(AiChatBackend chatBackend) {
         return new OqlAssistantServiceImpl(chatBackend);
-    }
-
-    /**
-     * Create a no-op service when AI is not configured or no ChatModel is available.
-     */
-    @Bean
-    @ConditionalOnMissingBean(OqlAssistantService.class)
-    public OqlAssistantService noOpOqlAssistantService() {
-        return new NoOpOqlAssistantService();
     }
 
     /**

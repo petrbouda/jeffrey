@@ -41,6 +41,13 @@ public class OqlAssistantServiceImpl implements OqlAssistantService {
 
     private static final String AI_CALL_SPAN_NAME = "ai.oql.call";
 
+    private static final String NOT_CONFIGURED_MESSAGE = """
+            The AI assistant is not available because no AI provider is configured.
+
+            Open Settings → AI Configuration and choose a provider. The change takes effect
+            immediately — no restart required.
+            """;
+
     private final AiChatBackend chatBackend;
     private final HeapDumpContextExtractor contextExtractor;
     private final OqlExtractor oqlExtractor;
@@ -49,7 +56,9 @@ public class OqlAssistantServiceImpl implements OqlAssistantService {
         this.chatBackend = chatBackend;
         this.contextExtractor = new HeapDumpContextExtractor();
         this.oqlExtractor = new OqlExtractor();
-        LOG.info("OQL Assistant initialized: provider={}", chatBackend.providerName());
+        // Debug, not info: the provider is no longer fixed at construction, so this only records the
+        // state at startup. ReloadableAiChatBackend logs the provider whenever it actually changes.
+        LOG.debug("OQL Assistant initialized: provider={}", chatBackend.providerName());
     }
 
     @Override
@@ -59,13 +68,16 @@ public class OqlAssistantServiceImpl implements OqlAssistantService {
 
     @Override
     public AiStatusResponse getStatus() {
-        return new AiStatusResponse(true, chatBackend.providerName(), isAvailable());
+        if (!isAvailable()) {
+            return AiStatusResponse.disabled();
+        }
+        return new AiStatusResponse(true, chatBackend.providerName(), true);
     }
 
     @Override
     public OqlChatResponse chat(HeapDumpContext context, OqlChatRequest request) {
         if (!isAvailable()) {
-            return OqlChatResponse.textOnly("AI assistant is not configured. Please check your settings.");
+            return OqlChatResponse.textOnly(NOT_CONFIGURED_MESSAGE);
         }
 
         try {

@@ -18,44 +18,31 @@
 
 package cafe.jeffrey.profile.ai.claudecode.config;
 
-import cafe.jeffrey.profile.ai.chat.AiChatBackend;
-import cafe.jeffrey.profile.ai.claudecode.ClaudeCodeChatBackend;
-import cafe.jeffrey.profile.ai.claudecode.ClaudeCodeCliClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
-
-import java.time.Duration;
+import cafe.jeffrey.profile.ai.config.AiBackendProvider;
+import cafe.jeffrey.shared.common.config.SettingsStore;
 
 /**
- * Wires the {@code claude-code} provider: a provider-agnostic {@link AiChatBackend} backed by the
- * Claude Code CLI in headless mode. Authentication reuses the host's Claude subscription, so no API
- * key is required.
+ * Contributes the {@code claude-code} provider — a backend driving the Claude Code CLI in headless
+ * mode, authenticated through the host's Claude subscription rather than an API key.
  * <p>
- * Active only when {@code jeffrey.microscope.ai.provider} is {@code claude-code}; the API-key
- * providers (Claude via the Anthropic API, ChatGPT, Ollama) are wired separately by
- * {@code AiChatModelConfiguration}. Database-stored settings are injected into the Spring Environment
- * on startup by {@code SettingsConfiguration}, so they are available via {@code @Value} and
- * {@code @ConditionalOnExpression}.
+ * The provider is always registered. Whether it is actually used is decided at call time by the
+ * configured {@code jeffrey.microscope.ai.provider}, so switching to or away from Claude Code no longer
+ * needs a restart.
  */
-@ConditionalOnExpression("'${jeffrey.microscope.ai.provider:none}' == 'claude-code'")
 public class ClaudeCodeConfiguration {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ClaudeCodeConfiguration.class);
-
-    private static final String CLI_DEFAULT_MODEL = "<cli-default>";
+    /**
+     * Detects whether the CLI is installed. Declared here rather than in the application module
+     * because this module owns the class, and the provider bean below depends on it.
+     */
+    @Bean
+    public ClaudeCodeDetector claudeCodeDetector(SettingsStore settingsStore) {
+        return new ClaudeCodeDetector(settingsStore);
+    }
 
     @Bean
-    public AiChatBackend aiChatBackend(
-            @Value("${jeffrey.microscope.ai.model:}") String modelName,
-            @Value("${jeffrey.microscope.ai.cli-path:claude}") String cliPath,
-            @Value("${jeffrey.microscope.ai.timeout-seconds:600}") int timeoutSeconds) {
-
-        LOG.info("Creating Claude Code backend: cli_path={} model={} timeout_in_sec={}",
-                cliPath, modelName.isBlank() ? CLI_DEFAULT_MODEL : modelName, timeoutSeconds);
-        ClaudeCodeCliClient cliClient = new ClaudeCodeCliClient(cliPath, Duration.ofSeconds(timeoutSeconds));
-        return new ClaudeCodeChatBackend(cliClient, modelName);
+    public AiBackendProvider claudeCodeBackendProvider(ClaudeCodeDetector claudeCodeDetector) {
+        return new ClaudeCodeBackendProvider(claudeCodeDetector);
     }
 }

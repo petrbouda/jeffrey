@@ -19,6 +19,13 @@
 import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 import type Setting from '@/services/api/model/Setting';
 
+export interface SettingUpdate {
+  category: string;
+  name: string;
+  value: string;
+  secret: boolean;
+}
+
 export default class SettingsClient extends BasePlatformClient {
   constructor() {
     super('/settings');
@@ -36,7 +43,16 @@ export default class SettingsClient extends BasePlatformClient {
     return super.put<void>(`/${category}/${name}`, { value, secret });
   }
 
-  fetchStatus(): Promise<{ restartRequired: boolean; encryptionMode: string }> {
-    return super.get<{ restartRequired: boolean; encryptionMode: string }>('/status');
+  /**
+   * Saves several settings in one request. Preferred when a whole settings tab is saved: the backend
+   * validates and applies the batch together, so derived state is never rebuilt from a half-written
+   * configuration.
+   */
+  upsertAll(items: SettingUpdate[]): Promise<void> {
+    return super.put<void>('', { items });
+  }
+
+  fetchStatus(): Promise<{ encryptionMode: string }> {
+    return super.get<{ encryptionMode: string }>('/status');
   }
 }

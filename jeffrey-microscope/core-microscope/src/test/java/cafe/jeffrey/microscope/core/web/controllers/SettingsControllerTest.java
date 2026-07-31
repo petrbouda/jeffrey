@@ -22,14 +22,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.configuration.SettingsMetadata;
+import cafe.jeffrey.microscope.core.manager.SettingUpdate;
 import cafe.jeffrey.microscope.core.manager.SettingsManager;
 import cafe.jeffrey.shared.common.encryption.MachineFingerprint.BindingMode;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 
@@ -56,7 +59,6 @@ class SettingsControllerTest {
 
     @Test
     void exposesStatus() {
-        when(settingsManager.isRestartRequired()).thenReturn(true);
         when(settingsManager.getBindingMode()).thenReturn(BindingMode.MACHINE_BOUND);
 
         MockMvcTester mvc = mockMvcTesterFor(new SettingsController(settingsManager, settingsMetadata));
@@ -64,7 +66,51 @@ class SettingsControllerTest {
         assertThat(mvc.get().uri("/api/internal/settings/status"))
                 .hasStatusOk()
                 .bodyJson()
-                .hasPathSatisfying("$.restartRequired", v -> assertThat(v).asBoolean().isTrue())
                 .hasPathSatisfying("$.encryptionMode", v -> assertThat(v).asString().isEqualTo("MACHINE_BOUND"));
+    }
+
+    @Test
+    void statusNoLongerReportsARestartRequirement() {
+        when(settingsManager.getBindingMode()).thenReturn(BindingMode.MACHINE_BOUND);
+
+        MockMvcTester mvc = mockMvcTesterFor(new SettingsController(settingsManager, settingsMetadata));
+
+        assertThat(mvc.get().uri("/api/internal/settings/status"))
+                .hasStatusOk()
+                .bodyJson()
+                .doesNotHavePath("$.restartRequired");
+    }
+
+    @Test
+    void batchUpsertAppliesEverySettingInOneCall() {
+        MockMvcTester mvc = mockMvcTesterFor(new SettingsController(settingsManager, settingsMetadata));
+
+        assertThat(mvc.put().uri("/api/internal/settings")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"items":[
+                          {"category":"ai","name":"jeffrey.microscope.ai.provider","value":"ollama","secret":false},
+                          {"category":"ai","name":"jeffrey.microscope.ai.api-key","value":"secret","secret":true}
+                        ]}
+                        """))
+                .hasStatusOk();
+
+        verify(settingsManager).upsertAll(List.of(
+                new SettingUpdate("ai", "jeffrey.microscope.ai.provider", "ollama", false),
+                new SettingUpdate("ai", "jeffrey.microscope.ai.api-key", "secret", true)));
+    }
+
+    @Test
+    void singleUpsertStripsTheLeadingSlashFromTheWildcardName() {
+        MockMvcTester mvc = mockMvcTesterFor(new SettingsController(settingsManager, settingsMetadata));
+
+        assertThat(mvc.put().uri("/api/internal/settings/ai/jeffrey.microscope.ai.provider")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"value":"claude-code","secret":false}
+                        """))
+                .hasStatusOk();
+
+        verify(settingsManager).upsert("ai", "jeffrey.microscope.ai.provider", "claude-code", false);
     }
 }

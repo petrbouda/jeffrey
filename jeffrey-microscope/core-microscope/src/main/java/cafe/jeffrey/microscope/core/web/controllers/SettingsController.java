@@ -26,10 +26,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.configuration.SettingDescriptor;
 import cafe.jeffrey.microscope.core.configuration.SettingsMetadata;
+import cafe.jeffrey.microscope.core.manager.SettingUpdate;
 import cafe.jeffrey.microscope.core.manager.SettingsManager;
+import cafe.jeffrey.microscope.core.web.dto.request.SettingsBatchRequest;
 import cafe.jeffrey.microscope.core.web.dto.request.SettingsRequest;
 import cafe.jeffrey.microscope.core.web.dto.response.SettingsResponse;
-import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.util.List;
 import java.util.Map;
@@ -57,10 +58,7 @@ public class SettingsController {
 
     @GetMapping("/status")
     public Map<String, Object> status() {
-        return Map.of(
-                "restartRequired", settingsManager.isRestartRequired(),
-                "encryptionMode", settingsManager.getBindingMode().name()
-        );
+        return Map.of("encryptionMode", settingsManager.getBindingMode().name());
     }
 
     @GetMapping("/{category}")
@@ -68,6 +66,15 @@ public class SettingsController {
         return settingsMetadata.byCategory(category).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @PutMapping
+    public void upsertAll(@RequestBody SettingsBatchRequest request) {
+        List<SettingUpdate> updates = request.items().stream()
+                .map(item -> new SettingUpdate(item.category(), item.name(), item.value(), item.secret()))
+                .toList();
+
+        settingsManager.upsertAll(updates);
     }
 
     @PutMapping("/{category}/{*name}")
@@ -78,10 +85,6 @@ public class SettingsController {
 
         // {*name} captures with a leading slash; strip it for compatibility.
         String settingName = name.startsWith("/") ? name.substring(1) : name;
-        if (!settingsMetadata.isKnown(settingName)) {
-            throw Exceptions.invalidRequest("Unknown setting: " + settingName);
-        }
-
         settingsManager.upsert(category, settingName, request.value(), request.secret());
     }
 

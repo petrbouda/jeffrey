@@ -73,9 +73,10 @@ public final class ClaudeCodeCliClient {
     }
 
     /**
-     * Whether the CLI binary is present and runnable. The result is memoized for the lifetime of the
-     * client; a configuration change requires an application restart (consistent with the rest of the
-     * AI settings, which are read at startup).
+     * Whether the CLI binary is present and runnable. The result is memoized for the lifetime of this
+     * client, which is a single AI call. Availability questions asked outside a call go through
+     * {@code ClaudeCodeDetector}, which memoizes per CLI path so a changed path is re-probed and an
+     * unchanged one is not.
      */
     public boolean isAvailable() {
         Boolean cached = available;

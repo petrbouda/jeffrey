@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,6 +31,8 @@ import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpMcpTools;
 import cafe.jeffrey.profile.ai.duckdb.jfr.tools.DuckDbMcpTools;
 import cafe.jeffrey.profile.mcp.AbstractMcpStreamableHttpController;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
+import cafe.jeffrey.shared.common.config.MicroscopeSettingKeys;
+import cafe.jeffrey.shared.common.config.SettingsStore;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import tools.jackson.databind.JsonNode;
 
@@ -42,24 +43,31 @@ import tools.jackson.databind.JsonNode;
  * <p>
  * The endpoint is profile-scoped through the {@code profileId} query parameter and tool-family-scoped
  * through {@code toolset} ({@code jfr}|{@code heap}), so the model only sees the relevant family and
- * always operates on the correct profile. Only active when the {@code claude-code} provider is selected.
+ * always operates on the correct profile.
+ * <p>
+ * The endpoint only serves requests while the {@code claude-code} provider is selected. That is checked
+ * per request rather than by registering the controller conditionally: whether a controller exists is
+ * decided once at startup, which would make the provider un-switchable at runtime.
  */
 @RestController
 @RequestMapping("/api/internal/mcp/claude-code")
-@ConditionalOnExpression("'${jeffrey.microscope.ai.provider:none}' == 'claude-code'")
 public class McpStreamableHttpController extends AbstractMcpStreamableHttpController {
 
     private static final String TOOLSET_JFR = "jfr";
     private static final String TOOLSET_HEAP = "heap";
+    private static final String PROVIDER_CLAUDE_CODE = "claude-code";
 
     private final ProfileManagerResolver profileManagerResolver;
     private final DatabaseManagerResolver databaseManagerResolver;
+    private final SettingsStore settingsStore;
 
     public McpStreamableHttpController(
             ProfileManagerResolver profileManagerResolver,
-            DatabaseManagerResolver databaseManagerResolver) {
+            DatabaseManagerResolver databaseManagerResolver,
+            SettingsStore settingsStore) {
         this.profileManagerResolver = profileManagerResolver;
         this.databaseManagerResolver = databaseManagerResolver;
+        this.settingsStore = settingsStore;
     }
 
     @PostMapping
@@ -67,7 +75,18 @@ public class McpStreamableHttpController extends AbstractMcpStreamableHttpContro
             @RequestParam("profileId") String profileId,
             @RequestParam("toolset") String toolset,
             @RequestBody JsonNode request) {
+
+        if (!isClaudeCodeSelected()) {
+            return ResponseEntity.notFound().build();
+        }
+
         return dispatch(request, () -> toolsetFor(profileId, toolset));
+    }
+
+    private boolean isClaudeCodeSelected() {
+        String provider = settingsStore.getString(
+                MicroscopeSettingKeys.AI_PROVIDER, MicroscopeSettingKeys.PROVIDER_NONE);
+        return PROVIDER_CLAUDE_CODE.equals(provider);
     }
 
     private ReflectiveToolset toolsetFor(String profileId, String toolset) {

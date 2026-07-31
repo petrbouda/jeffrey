@@ -18,56 +18,62 @@
 
 package cafe.jeffrey.profile.ai.config;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.chat.McpToolsetFactory;
+import cafe.jeffrey.profile.ai.chat.SettingsDrivenAiChatBackend;
+import cafe.jeffrey.shared.common.config.SettingsStore;
+
+import java.util.List;
 
 /**
- * Manual configuration of the AI backend. Produces a single provider-agnostic {@link AiChatBackend}
- * bean from the {@code jeffrey.microscope.ai.*} settings.
+ * Wires the AI backend.
  * <p>
- * The API-key providers (Claude via the Anthropic API, ChatGPT, Ollama) are built by the shared
- * {@link SpringAiBackendFactory}. The {@code claude-code} provider is wired separately by
- * {@code ClaudeCodeConfiguration} (in the {@code claude-code-headless} module), since it drives the
- * Claude Code CLI rather than a Spring AI chat model.
+ * The provider used to decide which beans existed: the backend, the assistant services and even an MCP
+ * controller were gated on {@code jeffrey.microscope.ai.provider}, which froze the choice at startup
+ * because bean existence cannot be revisited. The wiring is now identical for every provider —
+ * including {@code none} — and the provider is looked up per call, so it can be changed while the
+ * application runs.
  * <p>
- * The {@code mcpToolsetFactory} bean is active for any real provider (not {@code none}), while the
- * Spring AI {@code aiChatBackend} bean is active only for the API-key providers. Database-stored
- * settings are injected into the Spring Environment on startup by {@code SettingsConfiguration}, so
- * they are available via {@code @Value} and {@code @ConditionalOnExpression}.
+ * The Spring AI providers are declared below; the Claude Code provider contributes its own
+ * {@link AiBackendProvider} bean from the module that owns the CLI client, and the factory discovers
+ * them all through the injected list.
  */
-@ConditionalOnExpression("'${jeffrey.microscope.ai.provider:none}' != 'none'")
 public class AiChatModelConfiguration {
 
-    private static final String PROVIDER_CLAUDE = "claude";
-    private static final String PROVIDER_CHATGPT = "chatgpt";
-    private static final String PROVIDER_OLLAMA = "ollama";
-
     @Bean
-    public McpToolsetFactory mcpToolsetFactory(
-            @Value("${jeffrey.microscope.ai.mcp-url:http://127.0.0.1:8080/api/internal/mcp/claude-code}") String mcpUrl) {
-        return new McpToolsetFactory(mcpUrl);
+    public McpToolsetFactory mcpToolsetFactory(SettingsStore settingsStore) {
+        return new McpToolsetFactory(settingsStore);
     }
 
     @Bean
-    @ConditionalOnExpression("'${jeffrey.microscope.ai.provider:none}' == 'claude'"
-            + " or '${jeffrey.microscope.ai.provider:none}' == 'chatgpt'"
-            + " or '${jeffrey.microscope.ai.provider:none}' == 'ollama'")
-    public AiChatBackend aiChatBackend(
-            @Value("${jeffrey.microscope.ai.provider}") String provider,
-            @Value("${jeffrey.microscope.ai.model:}") String modelName,
-            @Value("${jeffrey.microscope.ai.max-tokens:4096}") int maxTokens,
-            @Value("${jeffrey.microscope.ai.api-key:}") String apiKey,
-            @Value("${jeffrey.microscope.ai.base-url:" + SpringAiBackendFactory.DEFAULT_OLLAMA_BASE_URL + "}") String baseUrl) {
+    public AiBackendProvider anthropicBackendProvider() {
+        return new SpringAiBackendProvider("claude", "Claude",
+                settings -> SpringAiBackendFactory.anthropic(
+                        settings.apiKey(), settings.model(), settings.maxTokens()));
+    }
 
-        return switch (provider.toLowerCase()) {
-            case PROVIDER_CLAUDE -> SpringAiBackendFactory.anthropic(apiKey, modelName, maxTokens);
-            case PROVIDER_CHATGPT -> SpringAiBackendFactory.openAi(apiKey, modelName, maxTokens);
-            case PROVIDER_OLLAMA -> SpringAiBackendFactory.ollama(baseUrl, modelName, maxTokens);
-            default -> throw new IllegalArgumentException("Unknown AI provider: " + provider
-                    + ". Supported providers: claude, chatgpt, ollama");
-        };
+    @Bean
+    public AiBackendProvider openAiBackendProvider() {
+        return new SpringAiBackendProvider("chatgpt", "ChatGPT",
+                settings -> SpringAiBackendFactory.openAi(
+                        settings.apiKey(), settings.model(), settings.maxTokens()));
+    }
+
+    @Bean
+    public AiBackendProvider ollamaBackendProvider() {
+        return new SpringAiBackendProvider("ollama", "Ollama",
+                settings -> SpringAiBackendFactory.ollama(
+                        settings.baseUrl(), settings.model(), settings.maxTokens()));
+    }
+
+    @Bean
+    public AiBackendFactory aiBackendFactory(List<AiBackendProvider> providers) {
+        return new AiBackendFactory(providers);
+    }
+
+    @Bean
+    public AiChatBackend aiChatBackend(AiBackendFactory factory, SettingsStore settingsStore) {
+        return new SettingsDrivenAiChatBackend(factory, settingsStore);
     }
 }

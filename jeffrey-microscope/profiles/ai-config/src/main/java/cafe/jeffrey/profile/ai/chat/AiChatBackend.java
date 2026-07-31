@@ -24,7 +24,7 @@ package cafe.jeffrey.profile.ai.chat;
  * authentication). Domain assistants depend on this interface so the same feature code works
  * regardless of which provider is selected.
  */
-public interface AiChatBackend {
+public interface AiChatBackend extends AutoCloseable {
 
     /**
      * @return true if the backend is reachable and properly configured
@@ -57,4 +57,15 @@ public interface AiChatBackend {
      * @return the assistant text plus the names of any tools invoked
      */
     ToolCallResult analyze(ToolExchange exchange);
+
+    /**
+     * Releases anything this backend owns — typically an SDK client holding a connection pool.
+     * <p>
+     * Backends built for a single call are closed when that call ends, so the lifetime is bounded by
+     * the request rather than by a configuration change. Implementations that own no resources need
+     * not override it.
+     */
+    @Override
+    default void close() {
+    }
 }

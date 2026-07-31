@@ -188,6 +188,15 @@ onMounted(() => {
         <router-link to="/docs/microscope/configuration/secrets">secret</router-link>
         rather than placing it in <code>application.properties</code>.
       </DocsCallout>
+
+      <DocsCallout type="info">
+        <strong>Editable at runtime:</strong> the AI properties above, the log level
+        (<code>logging.level.cafe.jeffrey</code>) and the flamegraph thresholds are also editable from
+        <strong>Settings</strong> in the Microscope UI. A change saved there is stored in the Microscope
+        database and applied immediately — switching AI provider, pasting an API key or raising the log
+        level does not need a restart. Values stored that way take precedence over
+        <code>application.properties</code>, system properties and environment variables.
+      </DocsCallout>
     </div>
 
     <DocsNavFooter />

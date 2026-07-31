@@ -37,11 +37,24 @@ public final class SpringAiChatBackend implements AiChatBackend {
     private final ChatClient chatClient;
     private final String providerName;
     private final String modelName;
+    private final Runnable clientCleanup;
 
-    public SpringAiChatBackend(ChatClient chatClient, String providerName, String modelName) {
+    /**
+     * @param clientCleanup releases the underlying SDK client (and its connection pool) once this
+     *                      backend is replaced; a no-op for providers that own nothing closeable
+     */
+    public SpringAiChatBackend(
+            ChatClient chatClient, String providerName, String modelName, Runnable clientCleanup) {
+
         this.chatClient = chatClient;
         this.providerName = providerName;
         this.modelName = modelName;
+        this.clientCleanup = clientCleanup;
+    }
+
+    @Override
+    public void close() {
+        clientCleanup.run();
     }
 
     @Override

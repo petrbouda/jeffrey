@@ -17,7 +17,8 @@
  */
 
 import SettingsClient from '@/services/api/SettingsClient';
-import { markRestartRequired } from '@/stores/restartStore';
+import MessageBus from '@/services/MessageBus';
+import ToastService from '@shared/services/ToastService';
 
 // Offer to enable Claude Code as the AI provider when its CLI is detected but no provider is configured.
 // Mirrors UpdateCheckToast: a DOM toast in the shared #toast-container. Dismissal is kept in
@@ -55,12 +56,15 @@ function hideToast(toast: HTMLElement): void {
 }
 
 async function enable(toast: HTMLElement, action: HTMLElement): Promise<void> {
-  action.innerHTML = '<span class="cc-enabling"><i class="bi bi-arrow-repeat cc-spin"></i> Enabling…</span>';
+  action.innerHTML =
+    '<span class="cc-enabling"><i class="bi bi-arrow-repeat cc-spin"></i> Enabling…</span>';
   try {
     await new SettingsClient().upsert(AI_CATEGORY, PROVIDER_SETTING, PROVIDER_CLAUDE_CODE, false);
-    markRestartRequired();
     dismiss();
-    // The header now shows the "restart to apply" indicator, so just close the toast.
+    // Applied by the backend immediately. Open profile pages cached their feature list on mount, so
+    // nudge them to refresh it rather than leaving AI looking unavailable until a reload.
+    MessageBus.emit(MessageBus.AI_SETTINGS_CHANGED, null);
+    ToastService.success('AI enabled', 'Claude Code is now the configured AI provider.');
     hideToast(toast);
   } catch {
     action.innerHTML =
@@ -137,8 +141,7 @@ function buildToast(): HTMLElement {
   // ToS footnote
   const tos = document.createElement('span');
   tos.className = 'cc-tos';
-  tos.innerHTML =
-    `By enabling you agree to <a href="${ANTHROPIC_TOS_URL}" target="_blank" rel="noopener noreferrer">Anthropic's Terms of Service</a>.`;
+  tos.innerHTML = `By enabling you agree to <a href="${ANTHROPIC_TOS_URL}" target="_blank" rel="noopener noreferrer">Anthropic's Terms of Service</a>.`;
   content.appendChild(tos);
 
   toast.appendChild(content);

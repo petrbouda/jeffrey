@@ -92,9 +92,11 @@ const cliArgExample = `java -jar microscope.jar \\
       <h2 id="in-app">In-App Settings (Recommended)</h2>
       <p>
         Open Microscope and use the in-app Settings to enter the API key. The value is encrypted
-        before being stored in the embedded DuckDB database, then transparently decrypted and
-        injected into the Spring environment on the next startup. This avoids leaking the key into
-        process listings, environment dumps, or shell history.
+        before being stored in the embedded DuckDB database, and decrypted into the running
+        configuration as soon as you save it — the AI backend is rebuilt with the new key
+        immediately, with no restart. On subsequent starts the stored value is decrypted and
+        injected during startup. This avoids leaking the key into process listings, environment
+        dumps, or shell history.
       </p>
 
       <h2 id="env-vars">Environment Variables</h2>

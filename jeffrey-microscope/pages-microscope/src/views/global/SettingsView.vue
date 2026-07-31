@@ -5,12 +5,6 @@
         <MainCardHeader icon="bi bi-sliders" title="Settings" />
       </template>
 
-      <!-- Restart Banner -->
-      <div v-if="restartRequired" class="restart-banner">
-        <i class="bi bi-exclamation-triangle"></i>
-        <span>Settings have been modified. Restart the application to apply changes.</span>
-      </div>
-
       <!-- Encryption Warning -->
       <div v-if="encryptionMode === 'USER_BOUND'" class="encryption-warning">
         <i class="bi bi-info-circle"></i>
@@ -87,13 +81,16 @@
             <div class="ai-sub-point">
               <i class="bi bi-shield-check"></i>
               <span>
-                By enabling, you <strong>agree to comply with Anthropic's
+                By enabling, you
+                <strong
+                  >agree to comply with Anthropic's
                   <a
                     href="https://www.anthropic.com/legal/consumer-terms"
                     target="_blank"
                     rel="noopener noreferrer"
                     >Terms of Service</a
-                  ></strong>.
+                  ></strong
+                >.
               </span>
             </div>
           </div>
@@ -411,8 +408,9 @@ import '@shared/styles/form-utilities.css';
 import '@shared/styles/shared-components.css';
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import SettingsClient from '@/services/api/SettingsClient';
-import { useRestartRequired } from '@/stores/restartStore';
+import SettingsClient, { type SettingUpdate } from '@/services/api/SettingsClient';
+import MessageBus from '@/services/MessageBus';
+import ToastService from '@shared/services/ToastService';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import DataTable from '@shared/components/table/DataTable.vue';
@@ -460,8 +458,6 @@ watch(activeTab, tab => {
     nextTick(() => drawPreviews());
   }
 });
-// Shared with the header indicator: saving any setting marks a restart as required.
-const restartRequired = useRestartRequired();
 const showApiKey = ref(false);
 const saving = ref(false);
 const encryptionMode = ref('');
@@ -506,7 +502,6 @@ onMounted(async () => {
   try {
     const [fetched, status] = await Promise.all([client.fetchAll(), client.fetchStatus()]);
 
-    restartRequired.value = status.restartRequired;
     encryptionMode.value = status.encryptionMode;
 
     for (const setting of fetched) {
@@ -634,9 +629,10 @@ async function onAiToggleChange() {
     try {
       await client.upsert('ai', 'jeffrey.microscope.ai.provider', 'none', false);
       settings.set('jeffrey.microscope.ai.provider', 'none');
-      restartRequired.value = true;
+      announceAiChange('AI disabled');
     } catch (e) {
       console.error('Failed to disable AI', e);
+      ToastService.error('Settings', 'Failed to disable AI');
       aiToggle.value = true;
     } finally {
       saving.value = false;
@@ -653,132 +649,122 @@ async function onAiToggleChange() {
 }
 
 async function saveAiSettings() {
-  saving.value = true;
-  try {
-    const apiKey = settings.get('jeffrey.microscope.ai.api-key') || '';
-    await Promise.all([
-      client.upsert(
-        'ai',
-        'jeffrey.microscope.ai.provider',
-        settings.get('jeffrey.microscope.ai.provider') || '',
-        false
-      ),
-      client.upsert(
-        'ai',
-        'jeffrey.microscope.ai.model',
-        settings.get('jeffrey.microscope.ai.model') || '',
-        false
-      ),
-      client.upsert(
-        'ai',
-        'jeffrey.microscope.ai.max-tokens',
-        settings.get('jeffrey.microscope.ai.max-tokens') || '',
-        false
-      ),
-      client.upsert(
-        'ai',
-        'jeffrey.microscope.ai.base-url',
-        settings.get('jeffrey.microscope.ai.base-url') || '',
-        false
-      ),
-      client.upsert(
-        'ai',
-        'jeffrey.microscope.ai.cli-path',
-        settings.get('jeffrey.microscope.ai.cli-path') || 'claude',
-        false
-      ),
-      client.upsert(
-        'ai',
-        'jeffrey.microscope.ai.timeout-seconds',
-        settings.get('jeffrey.microscope.ai.timeout-seconds') || '120',
-        false
-      ),
-      ...(apiKey && !apiKey.includes('****')
-        ? [client.upsert('ai', 'jeffrey.microscope.ai.api-key', apiKey, true)]
-        : [])
-    ]);
-    restartRequired.value = true;
-  } catch (e) {
-    console.error('Failed to save AI settings', e);
-  } finally {
-    saving.value = false;
-  }
+  const apiKey = settings.get('jeffrey.microscope.ai.api-key') || '';
+  const updates: SettingUpdate[] = [
+    aiSetting(
+      'jeffrey.microscope.ai.provider',
+      settings.get('jeffrey.microscope.ai.provider') || ''
+    ),
+    aiSetting('jeffrey.microscope.ai.model', settings.get('jeffrey.microscope.ai.model') || ''),
+    aiSetting(
+      'jeffrey.microscope.ai.max-tokens',
+      settings.get('jeffrey.microscope.ai.max-tokens') || ''
+    ),
+    aiSetting(
+      'jeffrey.microscope.ai.base-url',
+      settings.get('jeffrey.microscope.ai.base-url') || ''
+    ),
+    aiSetting(
+      'jeffrey.microscope.ai.cli-path',
+      settings.get('jeffrey.microscope.ai.cli-path') || 'claude'
+    ),
+    aiSetting(
+      'jeffrey.microscope.ai.timeout-seconds',
+      settings.get('jeffrey.microscope.ai.timeout-seconds') || '120'
+    ),
+    // A masked key is what the server sent us, not something the user typed — saving it back would
+    // overwrite the real key with its own mask.
+    ...(apiKey && !apiKey.includes('****')
+      ? [{ category: 'ai', name: 'jeffrey.microscope.ai.api-key', value: apiKey, secret: true }]
+      : [])
+  ];
+
+  await save(updates, () => announceAiChange('AI settings applied'));
+}
+
+function aiSetting(name: string, value: string): SettingUpdate {
+  return { category: 'ai', name, value, secret: false };
 }
 
 async function saveGeneralSettings() {
-  saving.value = true;
-  try {
-    await client.upsert(
-      'logging',
-      'logging.level.cafe.jeffrey',
-      settings.get('logging.level.cafe.jeffrey') || '',
-      false
-    );
-    restartRequired.value = true;
-  } catch (e) {
-    console.error('Failed to save general settings', e);
-  } finally {
-    saving.value = false;
-  }
+  await save(
+    [
+      {
+        category: 'logging',
+        name: 'logging.level.cafe.jeffrey',
+        value: settings.get('logging.level.cafe.jeffrey') || '',
+        secret: false
+      }
+    ],
+    () => ToastService.success('Settings', 'Log level applied')
+  );
 }
 
 async function saveVisualizationSettings() {
+  await save(
+    [
+      {
+        category: 'visualization',
+        name: 'jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct',
+        value:
+          settings.get('jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct') || '',
+        secret: false
+      },
+      {
+        category: 'visualization',
+        name: 'jeffrey.microscope.visualization.flamegraph.frame-text-mode',
+        value: frameTextMode.value,
+        secret: false
+      }
+    ],
+    () => ToastService.success('Settings', 'Visualization settings applied')
+  );
+}
+
+async function saveAiExportSettings() {
+  await save(
+    [
+      {
+        category: 'ai-export',
+        name: 'jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct',
+        value:
+          settings.get('jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct') || '',
+        secret: false
+      }
+    ],
+    () => ToastService.success('Settings', 'AI export settings applied')
+  );
+}
+
+/**
+ * Saves a tab's settings as one batch. Sending them together lets the server validate and apply them
+ * as a unit, so a rejected value leaves nothing half-written and derived state is rebuilt once from
+ * the final values rather than once per field.
+ */
+async function save(updates: SettingUpdate[], onSaved: () => void) {
   saving.value = true;
   try {
-    await Promise.all([
-      client.upsert(
-        'visualization',
-        'jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct',
-        settings.get('jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct') || '',
-        false
-      ),
-      client.upsert(
-        'visualization',
-        'jeffrey.microscope.visualization.flamegraph.frame-text-mode',
-        frameTextMode.value,
-        false
-      )
-    ]);
-    restartRequired.value = true;
+    await client.upsertAll(updates);
+    onSaved();
   } catch (e) {
-    console.error('Failed to save visualization settings', e);
+    console.error('Failed to save settings', e);
+    ToastService.error('Settings', 'Failed to save settings. Check the values and try again.');
   } finally {
     saving.value = false;
   }
 }
 
-async function saveAiExportSettings() {
-  saving.value = true;
-  try {
-    await client.upsert(
-      'ai-export',
-      'jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct',
-      settings.get('jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct') || '',
-      false
-    );
-  } catch (e) {
-    console.error('Failed to save AI export settings', e);
-  } finally {
-    saving.value = false;
-  }
+/**
+ * The backend applies an AI change immediately, but rebuilding the backend can take a moment and open
+ * profile pages cached their feature list on mount — so tell them to refresh it.
+ */
+function announceAiChange(message: string) {
+  ToastService.success('Settings', message);
+  MessageBus.emit(MessageBus.AI_SETTINGS_CHANGED, null);
 }
 </script>
 
 <style scoped>
-.restart-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--color-warning-bg);
-  border: 1px solid var(--color-warning-border);
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 20px;
-  color: var(--color-warning-text);
-  font-size: 13px;
-  font-weight: 500;
-}
-
 .encryption-warning {
   display: flex;
   align-items: center;

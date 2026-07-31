@@ -18,23 +18,42 @@
 
 package cafe.jeffrey.microscope.core.configuration;
 
+import org.springframework.boot.logging.LoggingSystem;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 import cafe.jeffrey.microscope.core.manager.SettingsManager;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.jdbc.JdbcSettingsRepository;
+import cafe.jeffrey.shared.common.config.SettingsStore;
 import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
 import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
 
+/**
+ * Wires the settings write path.
+ * <p>
+ * The {@link SettingsStore} itself is not created here: it is built and registered as a singleton by
+ * {@code SettingsApplicationListener}, which runs before the application context exists because the
+ * resolved settings must reach the {@code Environment} in time for log-level configuration.
+ */
 @Configuration
 public class SettingsConfiguration {
 
     @Bean
-    public SettingsManager settingsManager(MicroscopeCorePersistenceProvider localCorePersistenceProvider, Environment environment) {
+    public SettingsManager settingsManager(
+            MicroscopeCorePersistenceProvider localCorePersistenceProvider,
+            SettingsStore settingsStore,
+            SettingsMetadata settingsMetadata,
+            LoggingSystem loggingSystem) {
+
         var machineFingerprint = new MachineFingerprint();
         var secretEncryptor = new SecretEncryptor(machineFingerprint);
         var settingsRepository = new JdbcSettingsRepository(localCorePersistenceProvider.databaseClientProvider());
-        return new SettingsManager(settingsRepository, secretEncryptor, machineFingerprint, environment);
+        return new SettingsManager(
+                settingsRepository,
+                secretEncryptor,
+                machineFingerprint,
+                settingsStore,
+                settingsMetadata,
+                loggingSystem);
     }
 }
