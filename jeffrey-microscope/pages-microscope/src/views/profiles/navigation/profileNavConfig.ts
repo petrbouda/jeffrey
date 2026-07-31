@@ -12,7 +12,8 @@ export type ProfileMode =
   | 'Technologies'
   | 'Visualization'
   | 'HeapDump'
-  | 'Tools';
+  | 'Tools'
+  | 'Advisor';
 
 export type DifferentialType = 'flamegraphs' | 'subsecond';
 
@@ -439,6 +440,31 @@ export const profileNavSections: Record<
       ]
     }
   ],
+  Advisor: [
+    {
+      title: 'RECOMMENDATIONS',
+      items: [
+        item('Findings', 'bi-lightbulb', '/advisor', {
+          disabledKeys: [AI_ANALYSIS_KEY],
+          cssClass: AI_ITEM_CLASS
+        }),
+        item('Patch & Verification', 'bi-file-earmark-diff', '/advisor/patch', {
+          disabledKeys: [AI_ANALYSIS_KEY]
+        })
+      ]
+    },
+    {
+      title: 'ANALYSIS',
+      items: [
+        item('Regression', 'bi-graph-up-arrow', '/advisor/regression'),
+        item('Fleet Patterns', 'bi-diagram-3', '/advisor/fleet')
+      ]
+    },
+    {
+      title: 'SETUP',
+      items: [item('Source & Settings', 'bi-folder2-open', '/advisor/settings')]
+    }
+  ],
   Tools: [
     {
       title: 'TRANSFORM',
@@ -509,6 +535,9 @@ export function getModeForPath(path: string): ProfileMode {
   }
   if (path.includes('/tools/')) {
     return 'Tools';
+  }
+  if (path.includes('/advisor')) {
+    return 'Advisor';
   }
   const subPath = path.replace(PROFILE_PATH_PREFIX, '');
   if (OVERVIEW_SUB_PATHS.has(subPath)) {

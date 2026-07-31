@@ -36,4 +36,8 @@ public interface MicroscopeCoreRepositories {
 
     List<ProfileInfo> findAllProfilesByProject(String projectId);
 
+    AdvisorSettingsRepository advisorSettingsRepository();
+
+    AdvisorClaimIndexRepository advisorClaimIndexRepository();
+
 }

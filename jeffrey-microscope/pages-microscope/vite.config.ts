@@ -11,14 +11,44 @@ export default defineConfig({
     // to THIS app's node_modules — exact `^vue$`/`^axios$` keeps a single instance without
     // disturbing subpath imports.
     alias: [
-      { find: '@instances', replacement: fileURLToPath(new URL('../../shared/ui/instances/src', import.meta.url)) },
-      { find: '@workspaces', replacement: fileURLToPath(new URL('../../shared/ui/workspaces/ui', import.meta.url)) },
-      { find: '@shared', replacement: fileURLToPath(new URL('../../shared/ui/common/src', import.meta.url)) },
+      {
+        find: '@instances',
+        replacement: fileURLToPath(new URL('../../shared/ui/instances/src', import.meta.url))
+      },
+      {
+        find: '@workspaces',
+        replacement: fileURLToPath(new URL('../../shared/ui/workspaces/ui', import.meta.url))
+      },
+      {
+        find: '@shared',
+        replacement: fileURLToPath(new URL('../../shared/ui/common/src', import.meta.url))
+      },
       { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
       { find: /^vue$/, replacement: fileURLToPath(new URL('./node_modules/vue', import.meta.url)) },
-      { find: /^axios$/, replacement: fileURLToPath(new URL('./node_modules/axios', import.meta.url)) },
+      {
+        find: /^axios$/,
+        replacement: fileURLToPath(new URL('./node_modules/axios', import.meta.url))
+      },
       // Pinned for shared chart components (e.g. @shared DonutWithLegend) that bare-import apexcharts.
-      { find: /^apexcharts$/, replacement: fileURLToPath(new URL('./node_modules/apexcharts', import.meta.url)) }
+      {
+        find: /^apexcharts$/,
+        replacement: fileURLToPath(new URL('./node_modules/apexcharts', import.meta.url))
+      },
+      // Pinned for @shared MarkdownRenderer, which renders model-authored markdown through both.
+      {
+        find: /^marked$/,
+        replacement: fileURLToPath(new URL('./node_modules/marked', import.meta.url))
+      },
+      {
+        find: /^dompurify$/,
+        replacement: fileURLToPath(new URL('./node_modules/dompurify', import.meta.url))
+      },
+      // Prefix (not exact) match: @shared DiffViewer imports highlight.js subpaths such as
+      // `highlight.js/lib/core` and `highlight.js/lib/languages/java`.
+      {
+        find: 'highlight.js',
+        replacement: fileURLToPath(new URL('./node_modules/highlight.js', import.meta.url))
+      }
     ]
   },
   server: {

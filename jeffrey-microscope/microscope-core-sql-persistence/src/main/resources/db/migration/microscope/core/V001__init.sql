@@ -175,3 +175,51 @@ CREATE TABLE IF NOT EXISTS guardians
     solution          VARCHAR,
     created_at        TIMESTAMPTZ NOT NULL
 );
+
+--
+-- PROJECT ADVISOR SETTINGS TABLE
+-- Per-project configuration for the profile Advisor, keyed the same way profiler_settings is:
+-- workspaces and projects are listed live from the hub over gRPC, so there is no local projects table
+-- to reference and the identity has to be carried as a plain pair.
+--
+-- source_path points at the working copy on THIS machine, which is why the setting is local even
+-- though the project is remote. compile_command and test_command are blank by default: the patch
+-- verification ladder reports those levels as skipped rather than running a build nobody asked for.
+--
+CREATE TABLE IF NOT EXISTS project_advisor_settings
+(
+    workspace_id            VARCHAR,
+    project_id              VARCHAR,
+    source_path             VARCHAR,
+    prune_threshold_pct     DOUBLE      NOT NULL DEFAULT 1.0,
+    regression_threshold_pp DOUBLE      NOT NULL DEFAULT 2.0,
+    compile_command         VARCHAR,
+    test_command            VARCHAR,
+    modified_at             TIMESTAMPTZ NOT NULL,
+    UNIQUE (workspace_id, project_id)
+);
+
+--
+-- ADVISOR CLAIM INDEX TABLE
+-- Grounded claims duplicated out of the per-profile databases so the fleet rollup can ask a question
+-- no single profile can answer: which frames are hot across more than one project. Per-profile
+-- databases are isolated by design, so a cross-profile query needs a shared table rather than a fan-out
+-- over every profile file.
+--
+-- Only grounded claims land here. An unverified citation is worth showing on the profile that produced
+-- it, but rolling it up would let one invented frame masquerade as a fleet-wide pattern.
+--
+CREATE TABLE IF NOT EXISTS advisor_claim_index
+(
+    profile_id   VARCHAR     NOT NULL,
+    profile_name VARCHAR,
+    workspace_id VARCHAR,
+    project_id   VARCHAR     NOT NULL,
+    event_type   VARCHAR     NOT NULL,
+    title        VARCHAR     NOT NULL,
+    cited_frame  VARCHAR     NOT NULL,
+    source_path  VARCHAR,
+    self_pct     DOUBLE      NOT NULL DEFAULT 0,
+    total_pct    DOUBLE      NOT NULL DEFAULT 0,
+    generated_at TIMESTAMPTZ NOT NULL
+);

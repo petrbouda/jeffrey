@@ -13,7 +13,8 @@ function redirectTo(targetSubPath: string) {
 const analysisRoutes = [
   {
     path: '',
-    redirect: (to: { params: { profileId: string } }) => `/profiles/${to.params.profileId}/dashboard`
+    redirect: (to: { params: { profileId: string } }) =>
+      `/profiles/${to.params.profileId}/dashboard`
   },
   {
     path: 'dashboard',
@@ -642,6 +643,40 @@ const toolsRoutes = [
   }
 ];
 
+// AI advisor: grounded recommendations, patch verification, regression and fleet rollup
+const advisorRoutes = [
+  {
+    path: 'advisor',
+    name: 'profile-advisor',
+    component: () => import('@/views/profiles/detail/advisor/AdvisorFindings.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'advisor/patch',
+    name: 'profile-advisor-patch',
+    component: () => import('@/views/profiles/detail/advisor/AdvisorPatch.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'advisor/regression',
+    name: 'profile-advisor-regression',
+    component: () => import('@/views/profiles/detail/advisor/AdvisorRegression.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'advisor/fleet',
+    name: 'profile-advisor-fleet',
+    component: () => import('@/views/profiles/detail/advisor/AdvisorFleet.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'advisor/settings',
+    name: 'profile-advisor-settings',
+    component: () => import('@/views/profiles/detail/advisor/AdvisorSettings.vue'),
+    meta: { layout: 'profile' }
+  }
+];
+
 export const profileChildRoutes = [
   ...analysisRoutes,
   ...visualizationRoutes,
@@ -652,5 +687,6 @@ export const profileChildRoutes = [
   ...runtimeRoutes,
   ...heapDumpRoutes,
   ...technologyRoutes,
-  ...toolsRoutes
+  ...toolsRoutes,
+  ...advisorRoutes
 ];

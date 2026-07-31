@@ -99,6 +99,22 @@
             <small>Profile data transformations</small>
           </div>
         </div>
+        <!-- Advisor mode (hidden for heap-dump-only profiles; it analyzes sampled call trees) -->
+        <div
+          v-if="!isHeapDumpOnlyProfile"
+          class="nav-pill"
+          :class="{ active: selectedMode === 'Advisor' }"
+          title="AI recommendations grounded in this profile and your source"
+          @click="selectMode('Advisor')"
+        >
+          <div class="pill-content">
+            <div class="title-row">
+              <i class="bi bi-lightbulb"></i>
+              <span>Advisor</span>
+            </div>
+            <small>AI recommendations from your source</small>
+          </div>
+        </div>
         <!-- Heap Dump mode (only when a heap dump is attached; pprof/OTLP profiles have no heap data) -->
         <div
           v-if="!isPprofOnlyProfile && !isOtlpOnlyProfile && heapDumpAttached"
@@ -630,7 +646,8 @@ const selectMode = (mode: ProfileMode) => {
     Technologies: `/profiles/${profileId}/technologies/hub`,
     Visualization: `/profiles/${profileId}/flamegraphs/primary`,
     HeapDump: `/profiles/${profileId}/heap-dump/settings`,
-    Tools: `/profiles/${profileId}/tools/rename-frames`
+    Tools: `/profiles/${profileId}/tools/rename-frames`,
+    Advisor: `/profiles/${profileId}/advisor`
   };
 
   router.push(firstRoutes[mode]);

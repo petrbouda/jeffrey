@@ -5,7 +5,7 @@ Jeffrey is a self-hosted performance analyst for the JVM. It ingests JVM diagnos
 
 ## Architecture
 This is a full-stack application with two deployment modes:
-- **Backend**: Java 25 + Spring Boot 4.0.4 + Jersey/JAX-RS + gRPC 1.72.0
+- **Backend**: Java 25 + Spring Boot 4.0.4 + Spring MVC + gRPC 1.72.0
 - **Frontend**: Vue 3 SPA with TypeScript (separate frontends for microscope and server deployments)
 - **Build System**: Maven (Java) + Vite (Frontend)
 - **Database**: DuckDB 1.5.0.0 (three-tier: microscope core DB + server DB + per-profile DBs)
@@ -70,11 +70,12 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `profile-sql-persistence` — Per-profile DuckDB persistence (isolated database per profile)
 - `profile-persistence-api` — Persistence interfaces for profile domain
 - `common-profile` — Shared profile utilities
-- `flamegraph`, `timeseries`, `subsecond`, `profile-guardian`, `profile-thread`, `frame-ir` — Analysis modules
+- `flamegraph`, `timeseries`, `subsecond`, `profile-guardian`, `profile-threads`, `profile-gc`, `profile-memory`, `profile-custom-events`, `frame-ir` — Analysis modules
 - `heap-dump` — Heap dump analysis
 - `ai-config` — AI configuration for profile analysis
 - `oql-assistant` — OQL AI assistant
-- `duckdb-ai-mcp`, `heap-dump-ai-mcp` — MCP servers for AI integration
+- `duckdb-jfr-mcp`, `duckdb-heapdump-mcp` — MCP servers for AI integration
+- `profile-advisor` — AI recommendations grounded in the profile and a local source folder
 - `claude-code-headless` — Claude Code (headless) AI backend + reusable MCP tool machinery (`ReflectiveToolset`)
 
 **jeffrey-hub** (`jeffrey-hub/`):
@@ -99,7 +100,7 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 
 ### Backend (Java)
 - **Java**: Version 25
-- **Spring Boot**: 4.0.4 with Jersey/JAX-RS for REST APIs
+- **Spring Boot**: 4.0.4 with Spring MVC for REST APIs
 - **Maven**: Build tool and dependency management
 - **DuckDB**: 1.5.0.0 — Three-tier database architecture (microscope core DB + server DB + per-profile DBs)
 - **Flyway**: 10.24.0 for database migrations
@@ -162,13 +163,14 @@ jeffrey/
 │       ├── timeseries/                # Time series analysis
 │       ├── subsecond/                 # Sub-second analysis
 │       ├── profile-guardian/          # Profile validation/checks
-│       ├── profile-thread/            # Thread analysis
+│       ├── profile-threads/           # Thread analysis
 │       ├── frame-ir/                  # Frame intermediate representation
 │       ├── heap-dump/                 # Heap dump analysis
 │       ├── ai-config/                 # AI configuration
 │       ├── oql-assistant/             # OQL AI assistant
-│       ├── duckdb-ai-mcp/            # DuckDB MCP server for AI
-│       └── heap-dump-ai-mcp/         # Heap dump MCP server for AI
+│       ├── duckdb-jfr-mcp/           # DuckDB MCP server for AI
+│       ├── duckdb-heapdump-mcp/      # Heap dump MCP server for AI
+│       └── profile-advisor/           # AI recommendations from a local source folder
 ├── jeffrey-hub/                    # Multi-workspace server deployment
 │   ├── core-hub/                   # Main Spring Boot app (HubApplication)
 │   │   └── src/.../server/core/
@@ -314,7 +316,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 ### Java Best Practices
 - **Prefer records for parameter grouping**: When a method has 3+ related parameters (e.g., sessionId + eventTypes + timeRange), group them into a record. This makes call sites readable and refactoring safe. Example: `LiveSubscriptionRequest(sessionIds, eventTypes)` instead of passing them individually.
 - **Prefer records for callback grouping**: When multiple callbacks travel together (e.g., onBatch + onComplete + onError), group them into a record. Example: `StreamingCallbacks(onBatch, onComplete, onError)`.
-- **Keep domain logic free of framework types**: Records, subscription objects, and domain classes should not depend on gRPC, Jersey, or Spring types. Map framework-specific types (e.g., `StatusRuntimeException`) at the boundary (controller/gRPC service), not in domain code. Example: `StreamingWindow` throws `IllegalArgumentException`, the gRPC service maps it to `INVALID_ARGUMENT`.
+- **Keep domain logic free of framework types**: Records, subscription objects, and domain classes should not depend on gRPC or Spring types. Map framework-specific types (e.g., `StatusRuntimeException`) at the boundary (controller/gRPC service), not in domain code. Example: `StreamingWindow` throws `IllegalArgumentException`, the gRPC service maps it to `INVALID_ARGUMENT`.
 - **Use utility classes for repetitive framework boilerplate**: Extract common framework patterns into static utility classes. Example: `GrpcExceptions.notFound(description)` instead of `Status.NOT_FOUND.withDescription(description).asRuntimeException()`.
 - **Validate in constructors**: Records with invariants should validate in compact constructors and throw standard Java exceptions (e.g., `IllegalArgumentException`), not framework-specific ones.
 - **Compose, don't inherit**: Prefer composition with records and delegation over deep class hierarchies. Example: `ReplayStreamReader` (composite) delegates to `SingleRecordingFileReader` (per-file).
@@ -383,12 +385,12 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 
 ## API Structure
 - **jeffrey-microscope REST**: `/api/internal/` for frontend-facing APIs — resources in `jeffrey-microscope/core-microscope/.../resources/`
-- **Profile REST**: `/api/internal/profiles/{profileId}/` for profile features — resources in `jeffrey-microscope/profiles/profile-management/.../resources/`
+- **Profile REST**: `/api/internal/profiles/{profileId}/` for profile features — controllers in `jeffrey-microscope/core-microscope/.../web/controllers/profile/`
 - **jeffrey-hub REST**: `/api/internal/` for minimal server UI — resources in `jeffrey-hub/core-hub/.../resources/`
 - **gRPC**: Remote workspace communication between jeffrey-microscope and jeffrey-hub — proto definitions in `shared/hub-api/src/main/proto/jeffrey/api/v1/`, service implementations in `jeffrey-hub/core-hub/.../grpc/`, clients in `jeffrey-microscope/core-microscope/.../client/`
 - gRPC proto files: `workspace_service.proto`, `project_service.proto`, `instance_service.proto`, `recording_download_service.proto`, `repository_service.proto`, `profiler_settings_service.proto`, `messages_service.proto`
 - gRPC clients: `HubClients` record containing `DiscoveryClient`, `RepositoryClient`, `RecordingStreamClient`, `ProfilerClient`, `RemoteMessagesClient`, `InstancesClient`, `ProjectsClient`
-- Implemented using Jersey/JAX-RS (not Spring MVC) for REST
+- Implemented using Spring MVC `@RestController` for REST. Profile-scoped controllers live in `jeffrey-microscope/core-microscope/.../web/controllers/profile/`; `profiles/profile-management/.../resources/` holds request DTOs only.
 - JSON data exchange format for REST, Protobuf for gRPC
 - Multi-part file uploads for JFR files
 
@@ -415,7 +417,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 
 ## AI Integration
 - Spring AI 2.0.0-M3 with Claude and OpenAI providers
-- AI modules: `jeffrey-microscope/profiles/ai-config/`, `jeffrey-microscope/profiles/oql-assistant/`, `jeffrey-microscope/profiles/duckdb-ai-mcp/`, `jeffrey-microscope/profiles/heap-dump-ai-mcp/`
+- AI modules: `jeffrey-microscope/profiles/ai-config/`, `jeffrey-microscope/profiles/oql-assistant/`, `jeffrey-microscope/profiles/duckdb-jfr-mcp/`, `jeffrey-microscope/profiles/duckdb-heapdump-mcp/`, `jeffrey-microscope/profiles/profile-advisor/`
 - Config: `jeffrey.ai.provider=claude`, `jeffrey.ai.model=claude-opus-4-8`
 
 ## DuckDB MCP Servers
@@ -423,7 +425,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 
 ### Structure of the Database
 - Three-tier architecture: microscope core database, server database, and per-profile databases (isolated)
-- Local Core DB: workspaces, projects, recordings, remote workspace connections
+- Local Core DB: hubs, recordings, profiles, settings, guardians, per-project advisor settings. Workspaces and projects are NOT stored locally — they are listed live from a hub over gRPC, so anything per-project is keyed by the `(workspace_id, project_id)` pair
 - Server DB: server-side workspaces, projects, scheduling
 - Profile DB: events, flamegraph data, analysis results for a single profile
 - `profile_id` gathers all data related to a specific profile
