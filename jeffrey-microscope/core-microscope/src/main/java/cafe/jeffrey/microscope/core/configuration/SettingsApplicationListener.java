@@ -30,7 +30,7 @@ import org.springframework.context.event.GenericApplicationListener;
 import org.springframework.core.Ordered;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.MapPropertySource;
+import cafe.jeffrey.shared.common.config.SettingsStore;
 import cafe.jeffrey.shared.common.encryption.EncryptionException;
 import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
 import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
@@ -54,7 +54,8 @@ import java.util.Map;
  * <ol>
  *   <li>{@code ApplicationEnvironmentPreparedEvent} — injects settings into the Environment
  *       (runs before {@code LoggingApplicationListener} at order {@code HIGHEST_PRECEDENCE + 20})</li>
- *   <li>{@code ApplicationContextInitializedEvent} — registers {@code SettingsMetadata} as a singleton bean</li>
+ *   <li>{@code ApplicationContextInitializedEvent} — registers {@code SettingsMetadata} and the
+ *       {@code SettingsStore} as singleton beans</li>
  * </ol>
  *
  * <p>Resolution order:
@@ -63,6 +64,11 @@ import java.util.Map;
  *   <li>Database overrides for all settings (both properties and secrets)</li>
  *   <li>Secret values are decrypted before injection</li>
  * </ol>
+ *
+ * <p>The resolved values are held in a mutable {@link SettingsStore} rather than copied into a
+ * snapshot, so a later change saved through the settings API is visible to every reader without a
+ * restart. This listener runs before the application context exists, which is why it opens the
+ * database over plain JDBC instead of going through the repository layer.
  */
 public class SettingsApplicationListener implements GenericApplicationListener {
 
@@ -72,7 +78,11 @@ public class SettingsApplicationListener implements GenericApplicationListener {
     private static final String DEFAULT_HOME_DIR = System.getProperty("user.home") + "/.jeffrey-microscope";
     private static final String DB_FILENAME = "jeffrey-data.db";
 
+    private static final String SETTINGS_METADATA_BEAN = "settingsMetadata";
+    private static final String SETTINGS_STORE_BEAN = "settingsStore";
+
     private SettingsMetadata settingsMetadata;
+    private SettingsStore settingsStore;
 
     private record DbSetting(String name, String value, boolean secret) {
     }
@@ -109,46 +119,53 @@ public class SettingsApplicationListener implements GenericApplicationListener {
         String homeDir = environment.getProperty("jeffrey.microscope.home.dir", DEFAULT_HOME_DIR);
         Path dbPath = Path.of(homeDir).resolve(DB_FILENAME);
 
-        Map<String, Object> properties = new HashMap<>();
+        Map<String, String> overrides = Files.exists(dbPath)
+                ? resolveOverrides(loadFromDatabase(dbPath))
+                : Map.of();
 
-        // Start with HOCON defaults (properties + empty-string secret defaults)
-        for (SettingDescriptor descriptor : settingsMetadata.descriptors()) {
-            properties.put(descriptor.name(), descriptor.defaultValue());
-        }
+        settingsStore = new SettingsStore(settingsMetadata.defaults(), overrides);
+        environment.getPropertySources().addFirst(new SettingsPropertySource(settingsStore));
 
-        // Override with DB values (all settings, including secrets)
-        if (Files.exists(dbPath)) {
-            List<DbSetting> dbSettings = loadFromDatabase(dbPath);
-            SecretEncryptor encryptor = createEncryptorIfNeeded(dbSettings);
+        LOG.info("Injected settings into Spring Environment: keys={}", settingsStore.names());
+    }
 
-            for (DbSetting setting : dbSettings) {
-                if (setting.secret()) {
-                    if (encryptor != null) {
-                        try {
-                            properties.put(setting.name(), encryptor.decrypt(setting.value()));
-                        } catch (EncryptionException e) {
-                            LOG.warn("Failed to decrypt setting '{}', keeping default: {}",
-                                    setting.name(), e.getMessage());
-                        }
-                    }
-                } else {
-                    properties.put(setting.name(), setting.value());
-                }
+    /**
+     * Turns the stored rows into resolved values, decrypting secrets. A row that cannot be decrypted
+     * is dropped so the setting falls back to its declared default.
+     */
+    private Map<String, String> resolveOverrides(List<DbSetting> dbSettings) {
+        SecretEncryptor encryptor = createEncryptorIfNeeded(dbSettings);
+        Map<String, String> overrides = new HashMap<>();
+
+        for (DbSetting setting : dbSettings) {
+            if (!setting.secret()) {
+                overrides.put(setting.name(), setting.value());
+                continue;
+            }
+
+            if (encryptor == null) {
+                continue;
+            }
+
+            try {
+                overrides.put(setting.name(), encryptor.decrypt(setting.value()));
+            } catch (EncryptionException e) {
+                LOG.warn("Failed to decrypt setting, keeping default: name={} message={}",
+                        setting.name(), e.getMessage());
             }
         }
 
-        if (!properties.isEmpty()) {
-            environment.getPropertySources()
-                    .addFirst(new MapPropertySource("jeffrey-db-settings", properties));
-            LOG.info("Injected settings into Spring Environment: keys={}", properties.keySet());
-        }
+        return overrides;
     }
 
     private void onContextInitialized(ApplicationContextInitializedEvent event) {
-        if (settingsMetadata != null) {
-            event.getApplicationContext().getBeanFactory()
-                    .registerSingleton("settingsMetadata", settingsMetadata);
+        if (settingsMetadata == null) {
+            return;
         }
+
+        var beanFactory = event.getApplicationContext().getBeanFactory();
+        beanFactory.registerSingleton(SETTINGS_METADATA_BEAN, settingsMetadata);
+        beanFactory.registerSingleton(SETTINGS_STORE_BEAN, settingsStore);
     }
 
     private static SettingsMetadata loadSettingsMetadata() {
@@ -172,7 +189,7 @@ public class SettingsApplicationListener implements GenericApplicationListener {
             for (Map.Entry<String, ConfigValue> entry : categoryConfig.entrySet()) {
                 String propertyName = entry.getKey();
                 String defaultValue = categoryConfig.getString(propertyName);
-                descriptors.add(new SettingDescriptor(category, propertyName, defaultValue, secret));
+                descriptors.add(SettingDescriptor.of(category, propertyName, defaultValue, secret));
             }
         }
     }

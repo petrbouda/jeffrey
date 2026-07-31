@@ -18,41 +18,47 @@
 
 package cafe.jeffrey.microscope.core.web.controllers;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.dto.response.ClaudeCodeDetectResponse;
 import cafe.jeffrey.profile.ai.claudecode.config.ClaudeCodeDetector;
+import cafe.jeffrey.shared.common.config.MicroscopeSettingKeys;
+import cafe.jeffrey.shared.common.config.SettingsStore;
 
 /**
- * Reports, on startup, whether the Claude Code CLI is installed while no AI provider is configured — so
- * the UI can offer to enable it. Always registered (not AI-gated). Returns {@code 204 No Content} when
- * there is nothing to prompt (AI already configured, or Claude Code not detected), mirroring the
- * update-check endpoint so the frontend stays trivial.
+ * Reports whether the Claude Code CLI is installed while no AI provider is configured — so the UI can
+ * offer to enable it. Returns {@code 204 No Content} when there is nothing to prompt (AI already
+ * configured, or Claude Code not detected), mirroring the update-check endpoint so the frontend stays
+ * trivial.
+ * <p>
+ * The configured provider is read per request rather than captured at startup, so the prompt stops
+ * appearing as soon as a provider is selected.
  */
 @RestController
 @RequestMapping("/api/internal/ai")
 public class AiProviderDetectController {
 
-    private static final String PROVIDER_NONE = "none";
-
     private final ClaudeCodeDetector claudeCodeDetector;
-    private final boolean aiConfigured;
+    private final SettingsStore settingsStore;
 
-    public AiProviderDetectController(
-            ClaudeCodeDetector claudeCodeDetector,
-            @Value("${jeffrey.microscope.ai.provider:none}") String aiProvider) {
+    public AiProviderDetectController(ClaudeCodeDetector claudeCodeDetector, SettingsStore settingsStore) {
         this.claudeCodeDetector = claudeCodeDetector;
-        this.aiConfigured = !PROVIDER_NONE.equals(aiProvider);
+        this.settingsStore = settingsStore;
     }
 
     @GetMapping("/claude-code-detect")
     public ResponseEntity<ClaudeCodeDetectResponse> detect() {
-        if (aiConfigured || !claudeCodeDetector.isInstalled()) {
+        if (isAiConfigured() || !claudeCodeDetector.isInstalled()) {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.ok(new ClaudeCodeDetectResponse(false, true));
+    }
+
+    private boolean isAiConfigured() {
+        String provider = settingsStore.getString(
+                MicroscopeSettingKeys.AI_PROVIDER, MicroscopeSettingKeys.PROVIDER_NONE);
+        return !MicroscopeSettingKeys.PROVIDER_NONE.equals(provider);
     }
 }

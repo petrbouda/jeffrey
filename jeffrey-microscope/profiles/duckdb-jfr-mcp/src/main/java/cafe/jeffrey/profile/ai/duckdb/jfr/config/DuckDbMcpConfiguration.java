@@ -18,47 +18,27 @@
 
 package cafe.jeffrey.profile.ai.duckdb.jfr.config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.chat.McpToolsetFactory;
 import cafe.jeffrey.profile.ai.duckdb.jfr.service.JfrAnalysisAssistantService;
 import cafe.jeffrey.profile.ai.duckdb.jfr.service.JfrAnalysisAssistantServiceImpl;
-import cafe.jeffrey.profile.ai.duckdb.jfr.service.NoOpJfrAnalysisAssistantService;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 
 /**
  * Spring Boot configuration for DuckDB MCP integration with AI-powered JFR analysis.
+ * <p>
+ * The service is registered whether or not AI is configured. It reports its availability from the
+ * backend on each call, so turning AI on or off is a change of answer rather than a change of wiring.
  */
 public class DuckDbMcpConfiguration {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DuckDbMcpConfiguration.class);
-
-    /**
-     * Create the JFR Analysis Assistant Service when AI is enabled.
-     * Requires an AiChatBackend and DatabaseManagerResolver to be available.
-     */
     @Bean
-    @ConditionalOnExpression("'${jeffrey.microscope.ai.provider:none}' != 'none'")
     public JfrAnalysisAssistantService jfrAnalysisAssistantService(
             AiChatBackend chatBackend,
             DatabaseManagerResolver databaseManagerResolver,
             McpToolsetFactory mcpToolsetFactory) {
-        LOG.info("Creating JFR Analysis Assistant Service with MCP tools: provider={} model={}",
-                chatBackend.providerName(), chatBackend.modelName());
-        return new JfrAnalysisAssistantServiceImpl(chatBackend, databaseManagerResolver, mcpToolsetFactory);
-    }
 
-    /**
-     * Create a no-op service when AI is not configured.
-     */
-    @Bean
-    @ConditionalOnMissingBean(JfrAnalysisAssistantService.class)
-    public JfrAnalysisAssistantService noOpJfrAnalysisAssistantService() {
-        LOG.info("Creating No-Op JFR Analysis Assistant Service (AI not configured)");
-        return new NoOpJfrAnalysisAssistantService();
+        return new JfrAnalysisAssistantServiceImpl(chatBackend, databaseManagerResolver, mcpToolsetFactory);
     }
 }

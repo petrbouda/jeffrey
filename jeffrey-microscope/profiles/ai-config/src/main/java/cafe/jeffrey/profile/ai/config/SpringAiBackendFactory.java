@@ -19,6 +19,7 @@
 package cafe.jeffrey.profile.ai.config;
 
 import com.openai.client.OpenAIClient;
+import com.openai.client.OpenAIClientAsync;
 import io.micrometer.observation.ObservationRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,23 +65,6 @@ public final class SpringAiBackendFactory {
     }
 
     public static AiChatBackend anthropic(String apiKey, String modelName, int maxTokens) {
-        return wrap(createAnthropicChatModel(apiKey, modelName, maxTokens), DISPLAY_CLAUDE, modelName);
-    }
-
-    public static AiChatBackend openAi(String apiKey, String modelName, int maxTokens) {
-        return wrap(createOpenAiChatModel(apiKey, modelName, maxTokens), DISPLAY_CHATGPT, modelName);
-    }
-
-    public static AiChatBackend ollama(String baseUrl, String modelName, int maxTokens) {
-        return wrap(createOllamaChatModel(baseUrl, modelName, maxTokens), DISPLAY_OLLAMA, modelName);
-    }
-
-    private static AiChatBackend wrap(ChatModel chatModel, String providerDisplayName, String modelName) {
-        ChatClient chatClient = ChatClient.builder(chatModel).build();
-        return new SpringAiChatBackend(chatClient, providerDisplayName, modelName);
-    }
-
-    private static ChatModel createAnthropicChatModel(String apiKey, String modelName, int maxTokens) {
         LOG.info("Creating Anthropic ChatModel: model={} maxTokens={}", modelName, maxTokens);
 
         var client = AnthropicSetup.setupSyncClient(null, apiKey, null, null, null, null);
@@ -90,16 +74,60 @@ public final class SpringAiBackendFactory {
                 .maxTokens(maxTokens)
                 .build();
 
-        return AnthropicChatModel.builder()
+        ChatModel chatModel = AnthropicChatModel.builder()
                 .anthropicClient(client)
                 .options(options)
                 .build();
+
+        return wrap(chatModel, DISPLAY_CLAUDE, modelName, client::close);
     }
 
-    private static ChatModel createOpenAiChatModel(String apiKey, String modelName, int maxTokens) {
+    public static AiChatBackend openAi(String apiKey, String modelName, int maxTokens) {
         LOG.info("Creating OpenAI ChatModel: model={} maxTokens={}", modelName, maxTokens);
 
-        OpenAIClient client = OpenAiSetup.setupSyncClient(
+        // Both clients are supplied explicitly. OpenAiChatModel needs an async client as well as a sync
+        // one, and left unset it builds its own from the builder's (empty) credentials and fails with
+        // "At least one credential source must be specified".
+        OpenAIClient client = createOpenAiClient(apiKey, modelName);
+        OpenAIClientAsync asyncClient = createOpenAiAsyncClient(apiKey, modelName);
+
+        OpenAiChatOptions options = OpenAiChatOptions.builder()
+                .model(modelName)
+                .maxCompletionTokens(maxTokens)
+                .build();
+
+        ChatModel chatModel = OpenAiChatModel.builder()
+                .openAiClient(client)
+                .openAiClientAsync(asyncClient)
+                .options(options)
+                .build();
+
+        return wrap(chatModel, DISPLAY_CHATGPT, modelName, () -> {
+            client.close();
+            asyncClient.close();
+        });
+    }
+
+    public static AiChatBackend ollama(String baseUrl, String modelName, int maxTokens) {
+        // The Ollama client is a Spring RestClient wrapper and owns nothing that needs releasing.
+        return wrap(createOllamaChatModel(baseUrl, modelName, maxTokens), DISPLAY_OLLAMA, modelName, () -> {
+        });
+    }
+
+    /**
+     * @param clientCleanup releases the SDK client once the backend is replaced. The API-key providers
+     *                      each hold an HTTP connection pool, so a provider switched several times
+     *                      would otherwise leak one pool per switch.
+     */
+    private static AiChatBackend wrap(
+            ChatModel chatModel, String providerDisplayName, String modelName, Runnable clientCleanup) {
+
+        ChatClient chatClient = ChatClient.builder(chatModel).build();
+        return new SpringAiChatBackend(chatClient, providerDisplayName, modelName, clientCleanup);
+    }
+
+    private static OpenAIClient createOpenAiClient(String apiKey, String modelName) {
+        return OpenAiSetup.setupSyncClient(
                 null,                       // baseUrl (default OpenAI endpoint)
                 apiKey,                     // apiKey
                 null,                       // credential
@@ -116,16 +144,26 @@ public final class SpringAiBackendFactory {
                 ObservationRegistry.NOOP,   // observationRegistry
                 null,                       // meterRegistry
                 List.of());                 // httpClientCustomizers
+    }
 
-        OpenAiChatOptions options = OpenAiChatOptions.builder()
-                .model(modelName)
-                .maxCompletionTokens(maxTokens)
-                .build();
-
-        return OpenAiChatModel.builder()
-                .openAiClient(client)
-                .options(options)
-                .build();
+    private static OpenAIClientAsync createOpenAiAsyncClient(String apiKey, String modelName) {
+        return OpenAiSetup.setupAsyncClient(
+                null,                       // baseUrl (default OpenAI endpoint)
+                apiKey,                     // apiKey
+                null,                       // credential
+                null,                       // azureDeploymentName
+                null,                       // azureOpenAiServiceVersion
+                null,                       // organizationId
+                false,                      // isAzure
+                false,                      // isGitHubModels
+                modelName,                  // modelName
+                OPENAI_CLIENT_TIMEOUT,      // timeout
+                OPENAI_CLIENT_MAX_RETRIES,  // maxRetries
+                null,                       // proxy
+                null,                       // customHeaders
+                ObservationRegistry.NOOP,   // observationRegistry
+                null,                       // meterRegistry
+                List.of());                 // httpClientCustomizers
     }
 
     private static ChatModel createOllamaChatModel(String baseUrl, String modelName, int maxTokens) {

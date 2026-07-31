@@ -18,38 +18,25 @@
 
 package cafe.jeffrey.profile.ai.duckdb.heapdump.config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.chat.McpToolsetFactory;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.service.HeapDumpAnalysisAssistantService;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.service.HeapDumpAnalysisAssistantServiceImpl;
-import cafe.jeffrey.profile.ai.duckdb.heapdump.service.NoOpHeapDumpAnalysisAssistantService;
 
 /**
  * Spring Boot configuration for heap dump MCP integration with AI-powered analysis.
+ * <p>
+ * The service is registered whether or not AI is configured. It reports its availability from the
+ * backend on each call, so turning AI on or off is a change of answer rather than a change of wiring.
  */
 public class HeapDumpMcpConfiguration {
 
-    private static final Logger LOG = LoggerFactory.getLogger(HeapDumpMcpConfiguration.class);
-
     @Bean
-    @ConditionalOnExpression("'${jeffrey.microscope.ai.provider:none}' != 'none'")
     public HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService(
             AiChatBackend chatBackend,
             McpToolsetFactory mcpToolsetFactory) {
-        LOG.info("Creating Heap Dump Analysis Assistant Service with MCP tools: provider={} model={}",
-                chatBackend.providerName(), chatBackend.modelName());
-        return new HeapDumpAnalysisAssistantServiceImpl(chatBackend, mcpToolsetFactory);
-    }
 
-    @Bean
-    @ConditionalOnMissingBean(HeapDumpAnalysisAssistantService.class)
-    public HeapDumpAnalysisAssistantService noOpHeapDumpAnalysisAssistantService() {
-        LOG.info("Creating No-Op Heap Dump Analysis Assistant Service (AI not configured)");
-        return new NoOpHeapDumpAnalysisAssistantService();
+        return new HeapDumpAnalysisAssistantServiceImpl(chatBackend, mcpToolsetFactory);
     }
 }

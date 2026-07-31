@@ -13,29 +13,17 @@
           <h6 class="mb-2">How to enable AI Analysis:</h6>
           <ol class="mb-0">
             <li>
-              Set <code>jeffrey.ai.provider=claude</code> (or <code>chatgpt</code>) in
-              <code>application.properties</code>
+              Open <router-link to="/settings#ai">Settings &rarr; AI Configuration</router-link>
             </li>
             <li>
-              Copy <code>secrets.properties.templates</code> to <code>secrets.properties</code> and
-              configure the import (<code>spring.config.import</code> in
-              <code>application.properties</code>):
+              Turn on <strong>Enable AI</strong> and choose a provider:
               <ul class="mt-1">
                 <li>
-                  <strong>Classpath (default)</strong> &mdash; place the file on the classpath;
-                  already configured as <code>optional:classpath:secrets.properties</code>
+                  <strong>Claude Code</strong> &mdash; uses your existing Claude subscription
+                  through the Claude Code CLI; no API key required
                 </li>
                 <li>
-                  <strong>Filesystem</strong> &mdash; point to an absolute path:
-                  <code>optional:file:/path/to/secrets.properties</code>
-                </li>
-              </ul>
-            </li>
-            <li>
-              Add your API key for one of the supported providers:
-              <ul class="mt-1">
-                <li>
-                  <strong>Anthropic Claude</strong> &mdash;
+                  <strong>Claude (Anthropic)</strong> &mdash; API key from
                   <a
                     href="https://console.anthropic.com"
                     target="_blank"
@@ -44,32 +32,24 @@
                   >
                 </li>
                 <li>
-                  <strong>OpenAI</strong> &mdash;
+                  <strong>ChatGPT (OpenAI)</strong> &mdash; API key from
                   <a href="https://platform.openai.com" target="_blank" class="text-decoration-none"
                     >platform.openai.com</a
                   >
                 </li>
+                <li>
+                  <strong>Ollama</strong> &mdash; a self-hosted model; set the base URL of your
+                  server
+                </li>
               </ul>
             </li>
-            <li>Restart the Jeffrey application</li>
+            <li>Save &mdash; the change applies immediately, no restart required</li>
           </ol>
         </div>
 
-        <div class="next-steps">
-          <h6 class="mb-2">Configuration Example:</h6>
-          <pre class="mt-2 mb-0 bg-light p-2 rounded"><code># application.properties
-jeffrey.ai.provider=claude
-
-# Default: auto-imports secrets.properties from classpath
-spring.config.import=optional:classpath:secrets.properties
-
-# Alternative: import from filesystem path
-# spring.config.import=optional:file:/path/to/secrets.properties
-
-# secrets.properties
-jeffrey.ai.api-key=sk-ant-...
-</code></pre>
-        </div>
+        <p class="mb-0 text-muted small">
+          API keys are encrypted at rest with a machine-bound key.
+        </p>
       </div>
     </div>
   </div>

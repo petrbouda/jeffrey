@@ -41,6 +41,13 @@ public abstract class McpAnalysisAssistantService implements AiAssistantService 
 
     private static final String ANALYSIS_FAILED_PREFIX = "Analysis failed: ";
 
+    private static final String NOT_CONFIGURED_MESSAGE = """
+            AI analysis is not available because no AI provider is configured.
+
+            Open Settings → AI Configuration and choose a provider. The change takes effect
+            immediately — no restart required.
+            """;
+
     /**
      * Prepares the domain-specific {@link ToolExchange} for a single analysis call.
      */
@@ -70,7 +77,9 @@ public abstract class McpAnalysisAssistantService implements AiAssistantService 
         this.assistantName = assistantName;
         this.chatBackend = chatBackend;
         this.suggestionRules = suggestionRules;
-        LOG.info("AI analysis assistant initialized: assistant={} provider={} model={}",
+        // Debug, not info: the provider is no longer fixed at construction, so this only records the
+        // state at startup. ReloadableAiChatBackend logs the provider whenever it actually changes.
+        LOG.debug("AI analysis assistant initialized: assistant={} provider={} model={}",
                 assistantName, chatBackend.providerName(), chatBackend.modelName());
     }
 
@@ -99,6 +108,12 @@ public abstract class McpAnalysisAssistantService implements AiAssistantService 
      * @return the assistant response, or an error response when the call fails
      */
     protected final AssistantResponse runAnalysis(String question, ToolExchangePreparation preparation) {
+        // Checked here rather than relied on at the call sites: without it, an unconfigured backend
+        // would surface as a generic "analysis failed" instead of telling the user what to do.
+        if (!isAvailable()) {
+            return AssistantResponse.textOnly(NOT_CONFIGURED_MESSAGE);
+        }
+
         try {
             ToolExchange exchange = preparation.prepare();
             ToolCallResult result = chatBackend.analyze(exchange);

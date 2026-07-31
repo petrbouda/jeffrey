@@ -29,6 +29,7 @@ module cafe.jeffrey.shared.common {
     exports cafe.jeffrey.shared.common;
     exports cafe.jeffrey.shared.common.span;
     exports cafe.jeffrey.shared.common.compression;
+    exports cafe.jeffrey.shared.common.config;
     exports cafe.jeffrey.shared.common.encryption;
     exports cafe.jeffrey.shared.common.exception;
     exports cafe.jeffrey.shared.common.filesystem;

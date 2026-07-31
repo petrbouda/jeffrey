@@ -21,6 +21,7 @@ package cafe.jeffrey.profile.ai.chat;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * Builds the {@link McpToolset} pointing at Jeffrey's in-JVM MCP server, scoped to a profile and a
@@ -32,14 +33,16 @@ public final class McpToolsetFactory {
     private static final String TOOLSET_JFR = "jfr";
     private static final String TOOLSET_HEAP = "heap";
 
-    private final String baseUrl;
+    private final Supplier<String> baseUrl;
     private final List<String> allowedTools;
 
     /**
-     * @param baseUrl the MCP endpoint base URL (e.g. {@code http://127.0.0.1:8080/api/internal/mcp/claude-code});
-     *                profile and toolset scoping is appended as query parameters
+     * @param baseUrl supplies the MCP endpoint base URL (e.g.
+     *                {@code http://127.0.0.1:8080/api/internal/mcp/claude-code}); profile and toolset
+     *                scoping is appended as query parameters. Read per call because the URL is a
+     *                user-editable setting that can change while the application runs.
      */
-    public McpToolsetFactory(String baseUrl) {
+    public McpToolsetFactory(Supplier<String> baseUrl) {
         this.baseUrl = baseUrl;
         // Restrict the CLI to this server's tools only; built-in tools (Bash, file access) are never granted.
         this.allowedTools = List.of("mcp__" + SERVER_NAME + "__*");
@@ -54,7 +57,7 @@ public final class McpToolsetFactory {
     }
 
     private McpToolset build(String profileId, String toolset) {
-        String url = baseUrl
+        String url = baseUrl.get()
                 + "?profileId=" + URLEncoder.encode(profileId, StandardCharsets.UTF_8)
                 + "&toolset=" + toolset;
         return new McpToolset(SERVER_NAME, url, allowedTools);

@@ -57,4 +57,13 @@ public interface AiChatBackend {
      * @return the assistant text plus the names of any tools invoked
      */
     ToolCallResult analyze(ToolExchange exchange);
+
+    /**
+     * Releases anything this backend owns — typically an SDK client holding a connection pool.
+     * <p>
+     * Called when the backend is replaced after an AI settings change. Implementations that own no
+     * resources need not override it.
+     */
+    default void close() {
+    }
 }

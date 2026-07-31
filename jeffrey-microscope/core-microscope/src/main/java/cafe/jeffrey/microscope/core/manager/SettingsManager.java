@@ -20,15 +20,33 @@ package cafe.jeffrey.microscope.core.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.env.Environment;
+import cafe.jeffrey.microscope.core.configuration.SettingDescriptor;
+import cafe.jeffrey.microscope.core.configuration.SettingsMetadata;
 import cafe.jeffrey.microscope.persistence.api.Setting;
 import cafe.jeffrey.microscope.persistence.api.SettingsRepository;
+import cafe.jeffrey.shared.common.config.SettingsChangeDispatcher;
+import cafe.jeffrey.shared.common.config.SettingsStore;
 import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
 import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
+import cafe.jeffrey.shared.common.exception.Exceptions;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
- * Business logic for application settings. Handles encryption/decryption of secrets
- * and provides access to resolved setting values from the Spring Environment.
+ * Business logic for application settings. Validates incoming values, encrypts secrets, persists the
+ * change, and applies it to the running application.
+ * <p>
+ * A saved setting takes effect immediately: the plaintext value is written into the live
+ * {@link SettingsStore} — which backs the Spring {@code Environment} — and the change is handed to the
+ * {@link SettingsChangeDispatcher} so listeners that hold expensive derived objects can rebuild them.
+ * Nothing here requires a restart.
+ * <p>
+ * Validation happens <em>before</em> anything is written. Values used to be converted by
+ * {@code @Value} at startup, so a malformed one failed the boot; now that they are read lazily, a bad
+ * value would instead surface on every request that reads it. Rejecting it at the door keeps that
+ * failure at the point where the user can still see and fix it.
  */
 public class SettingsManager {
 
@@ -36,46 +54,75 @@ public class SettingsManager {
 
     private final SettingsRepository settingsRepository;
     private final SecretEncryptor secretEncryptor;
-    private final Environment environment;
+    private final SettingsStore settingsStore;
+    private final SettingsMetadata settingsMetadata;
+    private final SettingsChangeDispatcher changeDispatcher;
     private final MachineFingerprint.BindingMode bindingMode;
-
-    private volatile boolean restartRequired;
 
     public SettingsManager(
             SettingsRepository settingsRepository,
             SecretEncryptor secretEncryptor,
             MachineFingerprint machineFingerprint,
-            Environment environment) {
+            SettingsStore settingsStore,
+            SettingsMetadata settingsMetadata,
+            SettingsChangeDispatcher changeDispatcher) {
 
         this.settingsRepository = settingsRepository;
         this.secretEncryptor = secretEncryptor;
-        this.environment = environment;
+        this.settingsStore = settingsStore;
+        this.settingsMetadata = settingsMetadata;
+        this.changeDispatcher = changeDispatcher;
         this.bindingMode = machineFingerprint.resolve().mode();
     }
 
     /**
-     * Upserts a setting. If the setting is marked as secret, encrypts the value before storing.
+     * Validates, persists, and applies a single setting.
      */
     public void upsert(String category, String name, String value, boolean secret) {
-        String storedValue = secret ? secretEncryptor.encrypt(value) : value;
-        settingsRepository.upsert(new Setting(category, name, storedValue, secret));
-        restartRequired = true;
-
-        LOG.info("Setting updated: category={} name={} secret={}", category, name, secret);
+        upsertAll(List.of(new SettingUpdate(category, name, value, secret)));
     }
 
     /**
-     * Returns the current resolved value of a setting from the Spring Environment.
+     * Validates, persists, and applies a batch of settings.
+     * <p>
+     * The whole batch is validated before any of it is written, so a single bad value cannot leave the
+     * application half-updated. Listeners are notified once for the batch rather than once per setting:
+     * a settings page saves every field of a tab together, and rebuilding an AI backend against a
+     * partially applied batch would use a new provider with a stale API key.
+     *
+     * @throws cafe.jeffrey.shared.common.exception.JeffreyClientException when a name is unknown or a
+     *                                                                     value is outside its domain
+     */
+    public void upsertAll(List<SettingUpdate> updates) {
+        if (updates.isEmpty()) {
+            return;
+        }
+
+        for (SettingUpdate update : updates) {
+            validate(update);
+        }
+
+        Set<String> changed = new HashSet<>();
+        for (SettingUpdate update : updates) {
+            String storedValue = update.secret() ? secretEncryptor.encrypt(update.value()) : update.value();
+            settingsRepository.upsert(new Setting(update.category(), update.name(), storedValue, update.secret()));
+
+            if (settingsStore.put(update.name(), update.value())) {
+                changed.add(update.name());
+            }
+
+            LOG.info("Setting updated: category={} name={} secret={}",
+                    update.category(), update.name(), update.secret());
+        }
+
+        changeDispatcher.changed(changed);
+    }
+
+    /**
+     * Returns the current resolved value of a setting.
      */
     public String getResolvedValue(String name) {
-        return environment.getProperty(name, "");
-    }
-
-    /**
-     * Returns whether settings have been modified since startup and a restart is needed.
-     */
-    public boolean isRestartRequired() {
-        return restartRequired;
+        return settingsStore.getString(name, "");
     }
 
     /**
@@ -83,5 +130,15 @@ public class SettingsManager {
      */
     public MachineFingerprint.BindingMode getBindingMode() {
         return bindingMode;
+    }
+
+    private void validate(SettingUpdate update) {
+        SettingDescriptor descriptor = settingsMetadata.find(update.name())
+                .orElseThrow(() -> Exceptions.invalidRequest("Unknown setting: " + update.name()));
+
+        if (!descriptor.type().isValid(update.value())) {
+            throw Exceptions.invalidRequest(
+                    "Invalid value for setting %s: %s".formatted(update.name(), update.value()));
+        }
     }
 }

@@ -18,22 +18,27 @@
 
 package cafe.jeffrey.microscope.core.configuration;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import cafe.jeffrey.profile.ai.claudecode.config.ClaudeCodeDetector;
+import cafe.jeffrey.shared.common.config.MicroscopeSettingKeys;
+import cafe.jeffrey.shared.common.config.SettingsStore;
 
 /**
- * Always-on wiring for Claude Code detection. Unlike the AI provider beans (gated on the configured
- * provider at startup), the detector exists regardless so the UI can offer to enable Claude Code when it
- * is installed but no provider is configured.
+ * Wiring for Claude Code detection. The detector exists regardless of the configured provider so the UI
+ * can offer to enable Claude Code when it is installed but unused.
+ * <p>
+ * The CLI path is passed as a supplier rather than a value, so editing it in the settings page takes
+ * effect without a restart.
  */
 @Configuration
 public class AiProviderDetectionConfiguration {
 
+    private static final String DEFAULT_CLI_PATH = "claude";
+
     @Bean
-    public ClaudeCodeDetector claudeCodeDetector(
-            @Value("${jeffrey.microscope.ai.cli-path:claude}") String cliPath) {
-        return new ClaudeCodeDetector(cliPath);
+    public ClaudeCodeDetector claudeCodeDetector(SettingsStore settingsStore) {
+        return new ClaudeCodeDetector(
+                () -> settingsStore.getString(MicroscopeSettingKeys.AI_CLI_PATH, DEFAULT_CLI_PATH));
     }
 }

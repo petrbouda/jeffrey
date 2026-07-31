@@ -26,6 +26,9 @@ export default class MessageBus {
   static HEAP_DUMP_STATUS_CHANGED = 'heap-dump-status-changed';
   static IDE_VIEW_SOURCE = 'ide-view-source';
   static IDE_TARGET_CHANGED = 'ide-target-changed';
+  // The AI provider changed. Applied by the backend immediately, but open profile pages cached their
+  // feature list on mount, so they re-fetch it on this event instead of waiting for a reload.
+  static AI_SETTINGS_CHANGED = 'ai-settings-changed';
 
   static emit(type: string, content: any) {
     this.INSTANCE.emit(type, content);

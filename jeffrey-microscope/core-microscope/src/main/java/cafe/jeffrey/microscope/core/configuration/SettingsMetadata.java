@@ -19,14 +19,31 @@
 package cafe.jeffrey.microscope.core.configuration;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Holds the complete list of known settings parsed from settings-mappings.conf.
  */
 public record SettingsMetadata(List<SettingDescriptor> descriptors) {
 
-    public boolean isKnown(String name) {
-        return descriptors.stream().anyMatch(d -> d.name().equals(name));
+    /**
+     * @return the descriptor for a setting, or empty when the name was never declared
+     */
+    public Optional<SettingDescriptor> find(String name) {
+        return descriptors.stream()
+                .filter(d -> d.name().equals(name))
+                .findFirst();
+    }
+
+    /**
+     * @return every declared setting name mapped to its default value; defines the settings key set
+     */
+    public Map<String, String> defaults() {
+        return descriptors.stream()
+                .collect(Collectors.toUnmodifiableMap(
+                        SettingDescriptor::name, SettingDescriptor::defaultValue, (first, second) -> first));
     }
 
     public List<SettingDescriptor> byCategory(String category) {
