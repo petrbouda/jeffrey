@@ -19,8 +19,21 @@
 package cafe.jeffrey.performance.analyst.flamegraph;
 
 /**
- * One generated AI flamegraph prompt for a recording, per sample event type. Serialized straight to
- * JSON for the UI: the tab label, the total sample count (for the chip), and the prompt markdown.
+ * One generated AI flamegraph prompt for a recording, per sample event type: the tab label, the total
+ * sample count (for the chip), the prompt markdown the model reads, and the same call tree in the
+ * machine-readable form Jeffrey checks the model's answer against.
+ *
+ * <p>The frame index is not sent to the browser — it would be large and the UI has no use for it — so
+ * the controller maps this to a response type that omits it.</p>
  */
-public record FlamegraphAiPrompt(String eventType, String label, long samples, String markdown) {
+public record FlamegraphAiPrompt(
+        String eventType,
+        String label,
+        long samples,
+        String markdown,
+        ProfileFrameIndex frameIndex) {
+
+    public FlamegraphAiPrompt {
+        frameIndex = frameIndex == null ? ProfileFrameIndex.empty() : frameIndex;
+    }
 }

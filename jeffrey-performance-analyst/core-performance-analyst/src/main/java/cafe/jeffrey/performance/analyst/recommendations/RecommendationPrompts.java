@@ -20,8 +20,13 @@ package cafe.jeffrey.performance.analyst.recommendations;
 
 /**
  * Prompt text for repository-aware recommendation generation. The system prompt frames the model as a
- * performance engineer with read-only repository tools; the user message carries the flamegraph profile
- * summary that Jeffrey already generated for the recording.
+ * performance engineer with read-only repository tools; the user message carries the deterministic facts
+ * Jeffrey measured plus the flamegraph profile summary it already generated for the recording.
+ *
+ * <p>The model is no longer asked to grade severity. That rule was pure arithmetic over a number Jeffrey
+ * already has, so it moved to {@link SeverityCalculator}; asking a model to compute it made the ranking
+ * irreproducible. What the model is asked for instead is a machine-readable list of the frames each
+ * recommendation rests on, so {@link ClaimGrounder} can check them against the measured profile.</p>
  */
 final class RecommendationPrompts {
 
@@ -29,9 +34,10 @@ final class RecommendationPrompts {
             You are a senior Java performance engineer reviewing a profiling result for a service.
 
             You are given:
-            1. A flamegraph profile summary (markdown) exported by Jeffrey from a JFR recording. It is the
+            1. A set of verified findings measured by Jeffrey from the recording. These are facts.
+            2. A flamegraph profile summary (markdown) exported by Jeffrey from a JFR recording. It is the
                authoritative description of where the application spends its time for one event type.
-            2. Read-only access to the application's source repository through tools:
+            3. Read-only access to the application's source repository through tools:
                - listFiles(dir): list a directory
                - glob(pattern): find files by path glob (e.g. **/*.java)
                - readFile(path): read a file
@@ -44,17 +50,21 @@ final class RecommendationPrompts {
             Rules:
             - ALWAYS use the tools to confirm the code exists before describing it. Never invent file
               paths, method names, or code that you have not read via the tools.
-            - Prefer a few high-impact recommendations over many speculative ones. Tie each one back to a
-              specific frame/percentage from the profile.
+            - Every recommendation must rest on a frame that appears in the profile. Jeffrey checks each
+              frame you cite against the measured call tree; a citation that is not in the tree is
+              reported to the user as unverified, so cite frame names exactly as the profile spells them.
+            - Prefer a few high-impact recommendations over many speculative ones.
             - If you cannot locate code relevant to a hotspot, say so explicitly instead of guessing.
+            - Do not grade severity or priority. Jeffrey computes that from the measured profile.
 
             Respond in EXACTLY this format, with these three marker lines present verbatim and nothing
             before the first marker:
 
-            ===SEVERITY===
-            <ONE word — the overall priority of this profile's findings, graded from the measured share of
-            total cost of the dominant hotspot you found: CRITICAL if it is >= 20%, HIGH if 10-20%,
-            MEDIUM if 3-10%, LOW if < 3%. Output exactly one of: CRITICAL | HIGH | MEDIUM | LOW. Nothing else.>
+            ===CLAIMS===
+            <One line per recommendation, in the same order as the sections below, formatted as:
+            <profile frame name> | <repository-relative source path, optionally :line> | <short title>
+            Use the frame name exactly as it appears in the profile call tree. If a recommendation does
+            not rest on a specific profile frame, do not list it here. Nothing else in this section.>
 
             ===RECOMMENDATIONS===
             <Markdown report. Start with a short "Summary" of the dominant hotspots, then one
@@ -71,13 +81,14 @@ final class RecommendationPrompts {
     private RecommendationPrompts() {
     }
 
-    static String userMessage(String eventLabel, String flamegraphMarkdown) {
+    static String userMessage(String eventLabel, String flamegraphMarkdown, String verifiedFindings) {
         return """
                 Analyze the repository and recommend performance changes for the **%s** profile below.
                 Use the repository tools to locate and verify the relevant source before recommending.
 
+                %s
                 --- FLAMEGRAPH PROFILE (%s) ---
                 %s
-                """.formatted(eventLabel, eventLabel, flamegraphMarkdown);
+                """.formatted(eventLabel, verifiedFindings, eventLabel, flamegraphMarkdown);
     }
 }

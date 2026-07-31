@@ -18,68 +18,112 @@
 
 package cafe.jeffrey.performance.analyst.recommendations;
 
-import cafe.jeffrey.shared.common.model.Severity;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Splits the model's single response into the artifacts the UI shows separately: the overall severity,
- * the recommendations markdown and the applicable patch. The model is instructed (see
- * {@link RecommendationPrompts}) to emit sections separated by the {@link #SEVERITY_MARKER},
- * {@link #RECOMMENDATIONS_MARKER} and {@link #PATCH_MARKER} marker lines; this parser is tolerant of a
- * missing severity section (defaults to {@link Severity#MEDIUM}), a missing patch section, a code-fenced
- * patch, and an explicit {@link #NO_PATCH_SENTINEL}.
+ * Splits the model's single response into the artifacts the UI shows separately: the claims each
+ * recommendation rests on, the recommendations markdown and the applicable patch. The model is
+ * instructed (see {@link RecommendationPrompts}) to emit sections separated by the
+ * {@link #CLAIMS_MARKER}, {@link #RECOMMENDATIONS_MARKER} and {@link #PATCH_MARKER} marker lines; this
+ * parser is tolerant of a missing claims section, a missing patch section, a code-fenced patch, and an
+ * explicit {@link #NO_PATCH_SENTINEL}.
+ *
+ * <p>There is deliberately no severity section any more. Severity is computed from the measured profile
+ * by {@link SeverityCalculator}, so this parser has nothing to guess at and no reason to fall back to a
+ * default that hid parse failures.</p>
  */
 final class RecommendationOutputParser {
 
-    static final String SEVERITY_MARKER = "===SEVERITY===";
+    static final String CLAIMS_MARKER = "===CLAIMS===";
     static final String RECOMMENDATIONS_MARKER = "===RECOMMENDATIONS===";
     static final String PATCH_MARKER = "===PATCH===";
     static final String NO_PATCH_SENTINEL = "(no patch)";
 
     private static final String FENCE = "```";
+    private static final String CLAIM_FIELD_SEPARATOR = "\\|";
+    private static final int CLAIM_FIELD_FRAME = 0;
+    private static final int CLAIM_FIELD_SOURCE = 1;
+    private static final int CLAIM_FIELD_TITLE = 2;
 
     private RecommendationOutputParser() {
     }
 
-    static RecommendationResult parse(String raw) {
+    /**
+     * The raw sections of a model response, before any of them have been checked against evidence.
+     */
+    record ParsedOutput(List<RecommendationClaim> claims, String recommendations, String patch) {
+
+        ParsedOutput {
+            claims = claims == null ? List.of() : List.copyOf(claims);
+        }
+    }
+
+    static ParsedOutput parse(String raw) {
         if (raw == null || raw.isBlank()) {
-            return new RecommendationResult(Severity.MEDIUM, "", null);
+            return new ParsedOutput(List.of(), "", null);
         }
 
-        Severity severity = parseSeverity(raw);
+        List<RecommendationClaim> claims = parseClaims(raw);
+        String afterClaims = stripThrough(raw, CLAIMS_MARKER);
 
-        int patchMarker = raw.indexOf(PATCH_MARKER);
+        int patchMarker = afterClaims.indexOf(PATCH_MARKER);
         if (patchMarker < 0) {
-            // No patch section emitted — treat the whole response as recommendations.
-            return new RecommendationResult(severity, stripRecommendationsMarker(raw).strip(), null);
+            // No patch section emitted — treat the rest of the response as recommendations.
+            return new ParsedOutput(claims, stripThrough(afterClaims, RECOMMENDATIONS_MARKER).strip(), null);
         }
 
-        String recommendations = stripRecommendationsMarker(raw.substring(0, patchMarker)).strip();
-        String patch = normalizePatch(raw.substring(patchMarker + PATCH_MARKER.length()));
-        return new RecommendationResult(severity, recommendations, patch);
+        String recommendations = stripThrough(afterClaims.substring(0, patchMarker), RECOMMENDATIONS_MARKER).strip();
+        String patch = normalizePatch(afterClaims.substring(patchMarker + PATCH_MARKER.length()));
+        return new ParsedOutput(claims, recommendations, patch);
     }
 
     /**
-     * Reads the one-word severity from the {@link #SEVERITY_MARKER} section (between it and the
-     * recommendations marker). Defaults to {@link Severity#MEDIUM} when the section is absent or unknown.
+     * Reads the {@code frame | source | title} lines between the claims and recommendations markers.
+     * A line that names no frame is skipped rather than rejected — a malformed claim should cost the
+     * model that one citation, not the whole report.
      */
-    private static Severity parseSeverity(String raw) {
-        int severityMarker = raw.indexOf(SEVERITY_MARKER);
-        if (severityMarker < 0) {
-            return Severity.MEDIUM;
+    private static List<RecommendationClaim> parseClaims(String raw) {
+        int claimsMarker = raw.indexOf(CLAIMS_MARKER);
+        if (claimsMarker < 0) {
+            return List.of();
         }
-        int from = severityMarker + SEVERITY_MARKER.length();
-        int recommendationsMarker = raw.indexOf(RECOMMENDATIONS_MARKER, from);
-        String section = recommendationsMarker < 0 ? raw.substring(from) : raw.substring(from, recommendationsMarker);
-        String firstToken = section.strip().split("\\s+", 2)[0];
-        return Severity.fromString(firstToken);
+
+        int from = claimsMarker + CLAIMS_MARKER.length();
+        int end = raw.indexOf(RECOMMENDATIONS_MARKER, from);
+        String section = end < 0 ? raw.substring(from) : raw.substring(from, end);
+
+        List<RecommendationClaim> claims = new ArrayList<>();
+        for (String rawLine : section.split("\n")) {
+            String line = rawLine.strip();
+            if (line.isEmpty() || !line.contains("|")) {
+                continue;
+            }
+            String[] fields = line.split(CLAIM_FIELD_SEPARATOR, -1);
+            String frame = fields[CLAIM_FIELD_FRAME].strip();
+            if (frame.isEmpty()) {
+                continue;
+            }
+            claims.add(new RecommendationClaim(
+                    field(fields, CLAIM_FIELD_TITLE), frame, emptyToNull(field(fields, CLAIM_FIELD_SOURCE))));
+        }
+        return claims;
     }
 
-    private static String stripRecommendationsMarker(String text) {
-        int marker = text.indexOf(RECOMMENDATIONS_MARKER);
-        if (marker < 0) {
+    private static String field(String[] fields, int index) {
+        return index < fields.length ? fields[index].strip() : "";
+    }
+
+    private static String emptyToNull(String value) {
+        return value.isEmpty() ? null : value;
+    }
+
+    private static String stripThrough(String text, String marker) {
+        int index = text.indexOf(marker);
+        if (index < 0) {
             return text;
         }
-        return text.substring(marker + RECOMMENDATIONS_MARKER.length());
+        return text.substring(index + marker.length());
     }
 
     private static String normalizePatch(String rawPatch) {

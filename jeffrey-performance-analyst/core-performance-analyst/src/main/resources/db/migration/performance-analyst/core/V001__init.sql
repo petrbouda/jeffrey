@@ -90,6 +90,9 @@ CREATE TABLE IF NOT EXISTS project_recordings
 -- One AI flamegraph prompt per (recording, sample event type). project_id is optional until the
 -- recording is assigned to a project. Re-generation upserts on the (recording_id, event_type) key.
 --
+-- frame_index is the JSON-serialized flattened call tree behind the markdown: the same frames and
+-- shares the model is shown, kept in machine-readable form so severity grading and claim grounding can
+-- run later without re-parsing the JFR file.
 CREATE TABLE IF NOT EXISTS generated_prompts
 (
     recording_id  TEXT NOT NULL,
@@ -98,6 +101,7 @@ CREATE TABLE IF NOT EXISTS generated_prompts
     label         TEXT NOT NULL,
     samples       INTEGER NOT NULL,
     markdown      TEXT NOT NULL,
+    frame_index   TEXT,
     generated_at  INTEGER NOT NULL,
     PRIMARY KEY (recording_id, event_type)
 );
@@ -111,6 +115,9 @@ CREATE INDEX IF NOT EXISTS idx_generated_prompts_recording ON generated_prompts 
 -- hub/workspace/project identity (+ denormalized project_name) is captured so the global Overview can
 -- rank, label and deep-link to the recording. Re-generation upserts on the (recording_id, event_type) key.
 --
+-- severity is computed by Jeffrey from the measured profile, not graded by the model.
+-- verification holds the JSON ladder of patch checks (applies/compiles/tests) established while the
+-- analyzed checkout was still on disk; input_tokens/output_tokens/cost_usd record what the run consumed.
 CREATE TABLE IF NOT EXISTS generated_recommendations
 (
     recording_id     TEXT NOT NULL,
@@ -119,15 +126,47 @@ CREATE TABLE IF NOT EXISTS generated_recommendations
     workspace_id     TEXT,
     project_id       TEXT,
     project_name     TEXT,
-    severity         TEXT NOT NULL DEFAULT 'MEDIUM',
+    severity         TEXT NOT NULL DEFAULT 'LOW',
     recommendations  TEXT NOT NULL,
     patch            TEXT,
+    verification     TEXT,
+    input_tokens     INTEGER NOT NULL DEFAULT 0,
+    output_tokens    INTEGER NOT NULL DEFAULT 0,
+    cost_usd         REAL,
     generated_at     INTEGER NOT NULL,
     PRIMARY KEY (recording_id, event_type)
 );
 
 CREATE INDEX IF NOT EXISTS idx_generated_recommendations_recording ON generated_recommendations (recording_id);
 CREATE INDEX IF NOT EXISTS idx_generated_recommendations_severity ON generated_recommendations (severity, generated_at);
+
+--
+-- RECOMMENDATION CLAIMS
+-- One row per citation a recommendation rests on, after it has been checked against the measured
+-- profile and the analyzed checkout. Stored separately from the markdown because these are the
+-- structured facts the fleet rollup groups by — a free-text report cannot be aggregated, a frame can.
+-- grounded is 0 when the cited frame does not appear in the profile at all.
+--
+CREATE TABLE IF NOT EXISTS recommendation_claims
+(
+    recording_id  TEXT NOT NULL,
+    event_type    TEXT NOT NULL,
+    project_id    TEXT,
+    project_name  TEXT,
+    hub_id        TEXT,
+    workspace_id  TEXT,
+    title         TEXT NOT NULL,
+    cited_frame   TEXT NOT NULL,
+    source_path   TEXT,
+    grounded      INTEGER NOT NULL DEFAULT 0,
+    source_found  INTEGER NOT NULL DEFAULT 0,
+    self_pct      REAL NOT NULL DEFAULT 0,
+    total_pct     REAL NOT NULL DEFAULT 0,
+    generated_at  INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_recommendation_claims_recording ON recommendation_claims (recording_id, event_type);
+CREATE INDEX IF NOT EXISTS idx_recommendation_claims_frame ON recommendation_claims (cited_frame, grounded);
 
 --
 -- HUBS (remote jeffrey-hub registry)

@@ -23,6 +23,11 @@ import java.time.Instant;
 /**
  * A stored AI flamegraph prompt for one (recording, sample event type). The persistent form of
  * {@code FlamegraphAiPrompt}, with the recording it was generated from and when.
+ *
+ * <p>{@code frameIndexJson} carries the machine-readable call tree behind the markdown. It is stored
+ * alongside the prose because severity grading and claim grounding happen later, when the JFR file may
+ * no longer be worth re-parsing — and both need the exact numbers the model was shown, not a fresh
+ * approximation of them.</p>
  */
 public record GeneratedPrompt(
         String recordingId,
@@ -30,5 +35,6 @@ public record GeneratedPrompt(
         String label,
         long samples,
         String markdown,
+        String frameIndexJson,
         Instant generatedAt) {
 }

@@ -24,6 +24,9 @@ import org.springframework.context.annotation.Configuration;
 import cafe.jeffrey.performance.analyst.flamegraph.RecordingAiPromptManager;
 import cafe.jeffrey.performance.analyst.flamegraph.RecordingFlamegraphAiExporter;
 import cafe.jeffrey.performance.analyst.persistence.GeneratedPromptRepository;
+import cafe.jeffrey.performance.analyst.persistence.ProjectAiConfigurationRepository;
+import cafe.jeffrey.performance.analyst.regression.RegressionManager;
+import cafe.jeffrey.performance.analyst.settings.ProjectAiSettingsResolver;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
@@ -60,13 +63,28 @@ public class FlamegraphAiExportConfiguration {
     }
 
     @Bean
+    public ProjectAiSettingsResolver projectAiSettingsResolver(
+            ProjectAiConfigurationRepository projectAiConfigurationRepository, Clock clock) {
+        return new ProjectAiSettingsResolver(projectAiConfigurationRepository, clock);
+    }
+
+    @Bean
     public RecordingAiPromptManager recordingAiPromptManager(
             RecordingsCoreManager recordingsCoreManager,
             RecordingFlamegraphAiExporter recordingFlamegraphAiExporter,
             GeneratedPromptRepository generatedPromptRepository,
+            ProjectAiSettingsResolver projectAiSettingsResolver,
             Clock clock) {
 
         return new RecordingAiPromptManager(
-                recordingsCoreManager, recordingFlamegraphAiExporter, generatedPromptRepository, clock);
+                recordingsCoreManager, recordingFlamegraphAiExporter, generatedPromptRepository,
+                projectAiSettingsResolver, clock);
+    }
+
+    @Bean
+    public RegressionManager regressionManager(
+            RecordingAiPromptManager recordingAiPromptManager,
+            ProjectAiSettingsResolver projectAiSettingsResolver) {
+        return new RegressionManager(recordingAiPromptManager, projectAiSettingsResolver);
     }
 }

@@ -17,14 +17,23 @@
  */
 
 import type Severity from '@/services/api/model/Severity';
+import type PatchVerification from '@/services/api/model/PatchVerification';
+import type Claim from '@/services/api/model/Claim';
 
 /**
- * The stored artifacts of a recommendation run for one sample event type: the AI-graded severity, the
- * recommendations markdown and an optional applicable patch (unified diff). Returned by the peek endpoint.
+ * The stored artifacts of a recommendation run for one sample event type: the severity Jeffrey computed
+ * from the measured profile, the recommendations markdown, an optional applicable patch (unified diff),
+ * what was established about that patch, the checked claims, and what the run consumed. Returned by the
+ * peek endpoint so a page load restores everything the original run showed.
  */
 export default interface RecommendationArtifacts {
   eventType: string;
   severity: Severity;
   recommendations: string;
   patch: string | null;
+  verification: PatchVerification | null;
+  claims: Claim[];
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number | null;
 }

@@ -22,14 +22,23 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.shared.common.model.Severity;
 import cafe.jeffrey.shared.persistence.GroupLabel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import cafe.jeffrey.profile.ai.chat.TokenUsage;
+import cafe.jeffrey.performance.analyst.verification.PatchVerification;
+import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
 
 public class JdbcGeneratedRecommendationRepository implements GeneratedRecommendationRepository {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcGeneratedRecommendationRepository.class);
 
     // Maps the textual severity to a sortable rank so a single SQL pass can pick each recording's worst
     // recommendation (SQLite copies the bare columns from the row holding the MAX of this expression).
@@ -39,20 +48,24 @@ public class JdbcGeneratedRecommendationRepository implements GeneratedRecommend
     //language=SQL
     private static final String SELECT_BY_RECORDING = """
             SELECT recording_id, event_type, hub_id, workspace_id, project_id, project_name,
-                   severity, recommendations, patch, generated_at
+                   severity, recommendations, patch, verification, input_tokens, output_tokens,
+                   cost_usd, generated_at
             FROM generated_recommendations WHERE recording_id = :recording_id ORDER BY event_type""";
 
     //language=SQL
     private static final String UPSERT = """
             INSERT INTO generated_recommendations
                 (recording_id, event_type, hub_id, workspace_id, project_id, project_name,
-                 severity, recommendations, patch, generated_at)
+                 severity, recommendations, patch, verification, input_tokens, output_tokens,
+                 cost_usd, generated_at)
             VALUES (:recording_id, :event_type, :hub_id, :workspace_id, :project_id, :project_name,
-                    :severity, :recommendations, :patch, :generated_at)
+                    :severity, :recommendations, :patch, :verification, :input_tokens, :output_tokens,
+                    :cost_usd, :generated_at)
             ON CONFLICT (recording_id, event_type) DO UPDATE SET
                 hub_id = :hub_id, workspace_id = :workspace_id, project_id = :project_id,
                 project_name = :project_name, severity = :severity, recommendations = :recommendations,
-                patch = :patch, generated_at = :generated_at""";
+                patch = :patch, verification = :verification, input_tokens = :input_tokens,
+                output_tokens = :output_tokens, cost_usd = :cost_usd, generated_at = :generated_at""";
 
     //language=SQL
     private static final String FIND_TOP_BY_SEVERITY = """
@@ -100,6 +113,10 @@ public class JdbcGeneratedRecommendationRepository implements GeneratedRecommend
                 .addValue("severity", recommendation.severity().name())
                 .addValue("recommendations", recommendation.recommendations())
                 .addValue("patch", recommendation.patch())
+                .addValue("verification", Json.toString(recommendation.verification()))
+                .addValue("input_tokens", recommendation.usage().inputTokens())
+                .addValue("output_tokens", recommendation.usage().outputTokens())
+                .addValue("cost_usd", recommendation.usage().costUsd())
                 .addValue("generated_at", recommendation.generatedAt().toEpochMilli());
         databaseClient.update(StatementLabel.UPSERT_AI_RECOMMENDATION, UPSERT, params);
     }
@@ -129,7 +146,33 @@ public class JdbcGeneratedRecommendationRepository implements GeneratedRecommend
                 Severity.fromString(rs.getString("severity")),
                 rs.getString("recommendations"),
                 rs.getString("patch"),
+                readVerification(rs.getString("verification")),
+                readUsage(rs),
                 Instant.ofEpochMilli(rs.getLong("generated_at")));
+    }
+
+    /**
+     * Rows written before verification existed carry no JSON. They report "not attempted" rather than
+     * an empty pass list, so the UI never implies a patch was checked when it was not.
+     */
+    private static PatchVerification readVerification(String json) {
+        if (json == null || json.isBlank()) {
+            return PatchVerification.notAttempted();
+        }
+        try {
+            return Json.read(json, PatchVerification.class);
+        } catch (RuntimeException e) {
+            LOG.warn("Could not read stored patch verification: message={}", e.getMessage());
+            return PatchVerification.notAttempted();
+        }
+    }
+
+    private static TokenUsage readUsage(ResultSet rs) throws SQLException {
+        // wasNull() reports on the most recent column read, so the cost must be inspected immediately
+        // after it is fetched — reading the token counts in between would silently answer about those.
+        double costUsd = rs.getDouble("cost_usd");
+        Double cost = rs.wasNull() ? null : costUsd;
+        return new TokenUsage(rs.getLong("input_tokens"), rs.getLong("output_tokens"), cost);
     }
 
     private static RowMapper<TopSeverityRecommendation> topMapper() {

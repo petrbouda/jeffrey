@@ -32,15 +32,16 @@ public class JdbcGeneratedPromptRepository implements GeneratedPromptRepository 
 
     //language=SQL
     private static final String SELECT_BY_RECORDING = """
-            SELECT recording_id, event_type, label, samples, markdown, generated_at
+            SELECT recording_id, event_type, label, samples, markdown, frame_index, generated_at
             FROM generated_prompts WHERE recording_id = :recording_id ORDER BY event_type""";
 
     //language=SQL
     private static final String UPSERT = """
-            INSERT INTO generated_prompts (recording_id, event_type, label, samples, markdown, generated_at)
-            VALUES (:recording_id, :event_type, :label, :samples, :markdown, :generated_at)
+            INSERT INTO generated_prompts (recording_id, event_type, label, samples, markdown, frame_index, generated_at)
+            VALUES (:recording_id, :event_type, :label, :samples, :markdown, :frame_index, :generated_at)
             ON CONFLICT (recording_id, event_type) DO UPDATE SET
-                label = :label, samples = :samples, markdown = :markdown, generated_at = :generated_at""";
+                label = :label, samples = :samples, markdown = :markdown, frame_index = :frame_index,
+                generated_at = :generated_at""";
 
     private final DatabaseClient databaseClient;
 
@@ -62,6 +63,7 @@ public class JdbcGeneratedPromptRepository implements GeneratedPromptRepository 
                 .addValue("label", prompt.label())
                 .addValue("samples", prompt.samples())
                 .addValue("markdown", prompt.markdown())
+                .addValue("frame_index", prompt.frameIndexJson())
                 .addValue("generated_at", prompt.generatedAt().toEpochMilli());
         databaseClient.update(StatementLabel.UPSERT_AI_PROMPT, UPSERT, params);
     }
@@ -73,6 +75,7 @@ public class JdbcGeneratedPromptRepository implements GeneratedPromptRepository 
                 rs.getString("label"),
                 rs.getLong("samples"),
                 rs.getString("markdown"),
+                rs.getString("frame_index"),
                 Instant.ofEpochMilli(rs.getLong("generated_at")));
     }
 }

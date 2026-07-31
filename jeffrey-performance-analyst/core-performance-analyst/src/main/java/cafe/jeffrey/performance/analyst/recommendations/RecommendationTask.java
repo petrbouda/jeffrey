@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.performance.analyst.recommendations;
 
+import cafe.jeffrey.performance.analyst.verification.PatchVerification;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.model.Severity;
 
@@ -51,6 +52,8 @@ public class RecommendationTask implements RecommendationProgressSink {
     private volatile Severity severity;
     private volatile String recommendations;
     private volatile String patch;
+    private volatile PatchVerification verification = PatchVerification.notAttempted();
+    private volatile List<GroundedClaim> claims = List.of();
     private volatile String errorMessage;
     private volatile Instant completedAt;
     private volatile CompletableFuture<Void> future;
@@ -70,8 +73,8 @@ public class RecommendationTask implements RecommendationProgressSink {
         this.eventType = eventType;
         this.clock = clock;
         this.createdAt = clock.instant();
-        this.status = RecommendationStatus.CLONING;
-        this.message = "Cloning repository…";
+        this.status = RecommendationStatus.QUEUED;
+        this.message = "Waiting for a generation slot…";
     }
 
     public String taskId() {
@@ -96,8 +99,8 @@ public class RecommendationTask implements RecommendationProgressSink {
 
     public RecommendationProgress currentProgress() {
         return new RecommendationProgress(
-                taskId, recordingId, eventType, status, message, severity, recommendations, patch, errorMessage,
-                createdAt, completedAt);
+                taskId, recordingId, eventType, status, message, severity, recommendations, patch,
+                verification, ClaimResponse.from(claims), errorMessage, createdAt, completedAt);
     }
 
     public void addProgressListener(Consumer<RecommendationProgress> listener) {
@@ -122,12 +125,19 @@ public class RecommendationTask implements RecommendationProgressSink {
         transition(RecommendationStatus.ANALYZING, "Analyzing repository…");
     }
 
+    @Override
+    public void verifying() {
+        transition(RecommendationStatus.VERIFYING, "Checking findings against the profile and the patch…");
+    }
+
     // --- Terminal transitions (driven by the controller) ---
 
     public void completed(RecommendationResult result) {
         this.severity = result.severity();
         this.recommendations = result.recommendations();
         this.patch = result.patch();
+        this.verification = result.verification();
+        this.claims = result.claims();
         this.completedAt = clock.instant();
         transition(RecommendationStatus.COMPLETED, "Recommendations ready");
     }
@@ -143,6 +153,14 @@ public class RecommendationTask implements RecommendationProgressSink {
             future.cancel(true);
         }
         failed("Cancelled");
+    }
+
+    /**
+     * Marks the task as having left the queue and started real work. Called by the runner as it takes a
+     * generation slot, so a user watching a queued task sees it move rather than sit silent.
+     */
+    public void started() {
+        transition(RecommendationStatus.CLONING, "Cloning repository…");
     }
 
     private void transition(RecommendationStatus newStatus, String newMessage) {

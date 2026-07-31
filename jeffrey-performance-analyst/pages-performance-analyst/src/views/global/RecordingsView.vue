@@ -265,7 +265,13 @@
                           size="s"
                           :uppercase="false"
                         />
+                        <span class="recs-severity-note">computed from the measured profile</span>
+                        <span class="ai-spacer"></span>
+                        <span v-if="runCostLabel(selectedRecording.id)" class="recs-cost">
+                          {{ runCostLabel(selectedRecording.id) }}
+                        </span>
                       </div>
+                      <ClaimList :claims="activeRecs(selectedRecording.id).claims" />
                       <div class="ai-markdown" v-html="activeRecsHtml(selectedRecording.id)"></div>
                     </div>
                     <EmptyState
@@ -280,10 +286,10 @@
 
                   <!-- Patch -->
                   <template v-else>
-                    <DiffViewer
-                      v-if="activeRecs(selectedRecording.id).patch"
-                      :patch="activeRecs(selectedRecording.id).patch!"
-                    />
+                    <template v-if="activeRecs(selectedRecording.id).patch">
+                      <PatchVerificationBar :verification="activeRecs(selectedRecording.id).verification" />
+                      <DiffViewer :patch="activeRecs(selectedRecording.id).patch!" />
+                    </template>
                     <EmptyState
                       v-else
                       icon="bi-file-earmark-diff"
@@ -303,7 +309,6 @@
 <script setup lang="ts">
 import { computed, inject, onMounted, onUnmounted, ref, type ComputedRef } from 'vue';
 import { useRoute } from 'vue-router';
-import { marked } from 'marked';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
@@ -311,6 +316,9 @@ import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import Badge from '@shared/components/Badge.vue';
 import DiffViewer from '@/components/DiffViewer.vue';
+import PatchVerificationBar from '@/components/PatchVerificationBar.vue';
+import ClaimList from '@/components/ClaimList.vue';
+import MarkdownRenderer from '@/services/MarkdownRenderer';
 import RecordingFileGroupList from '@workspaces/components/RecordingFileGroupList.vue';
 import RecordingsClient from '@workspaces/services/api/RecordingsClient';
 import type Recording from '@workspaces/services/api/model/Recording';
@@ -325,6 +333,8 @@ import AiCapabilitiesClient from '@/services/api/AiCapabilitiesClient';
 import VersionControlSystemClient from '@/services/api/VersionControlSystemClient';
 import type AiPrompt from '@/services/api/model/AiPrompt';
 import type Severity from '@/services/api/model/Severity';
+import type PatchVerification from '@/services/api/model/PatchVerification';
+import type Claim from '@/services/api/model/Claim';
 import { severityRank, severityVariant } from '@/services/severityDisplay';
 
 // Optional project scope. When projectId is set the list shows that project's recordings; otherwise the
@@ -384,6 +394,10 @@ interface RecsState {
   severity: Severity | null;
   recommendations: string | null;
   patch: string | null;
+  verification: PatchVerification | null;
+  claims: Claim[];
+  costUsd: number | null;
+  totalTokens: number;
   error: string | null;
 }
 const EMPTY_RECS: RecsState = {
@@ -392,6 +406,10 @@ const EMPTY_RECS: RecsState = {
   severity: null,
   recommendations: null,
   patch: null,
+  verification: null,
+  claims: [],
+  costUsd: null,
+  totalTokens: 0,
   error: null,
 };
 const recsStates = ref<Record<string, RecsState>>({});
@@ -509,7 +527,9 @@ const activeMarkdownHtml = (recordingId: string): string => {
   return prompt ? renderMarkdown(prompt.markdown) : '';
 };
 
-const renderMarkdown = (markdown: string): string => marked.parse(markdown, { breaks: true }) as string;
+// Model output quotes source read from a cloned repository, so it is sanitized before it reaches
+// the DOM rather than trusted because it came from our own backend.
+const renderMarkdown = (markdown: string): string => MarkdownRenderer.render(markdown);
 
 const loadPrompts = async (recording: Recording) => {
   const id = recording.id;
@@ -557,6 +577,22 @@ const activeRecs = (recordingId: string): RecsState => {
 const hasRecs = (recordingId: string): boolean => {
   const state = activeRecs(recordingId);
   return state.running || state.error !== null || state.recommendations !== null;
+};
+
+/**
+ * What the run consumed, when the provider reported it. Shown next to the severity because a team
+ * evaluating an AI feature always asks what it costs, and "unknown" is a bad answer.
+ */
+const runCostLabel = (recordingId: string): string | null => {
+  const recs = activeRecs(recordingId);
+  const parts: string[] = [];
+  if (recs.totalTokens > 0) {
+    parts.push(`${FormattingService.formatNumber(recs.totalTokens)} tokens`);
+  }
+  if (recs.costUsd !== null && recs.costUsd !== undefined) {
+    parts.push(`$${recs.costUsd.toFixed(2)}`);
+  }
+  return parts.length > 0 ? parts.join(' · ') : null;
 };
 
 const activeRecsHtml = (recordingId: string): string => {
@@ -653,12 +689,9 @@ const generateRecommendations = async (recording: Recording) => {
 
   const key = recsKey(recording.id, prompt.eventType);
   recsStates.value[key] = {
+    ...EMPTY_RECS,
     running: true,
     message: 'Starting…',
-    severity: null,
-    recommendations: null,
-    patch: null,
-    error: null,
   };
   // Switch to the Recommendations tab so the user watches progress where the result will appear.
   recsViews.value[key] = 'recommendations';
@@ -683,33 +716,22 @@ const generateRecommendations = async (recording: Recording) => {
       },
       onComplete: result => {
         recsStates.value[key] = {
-          running: false,
-          message: '',
+          ...EMPTY_RECS,
           severity: result.severity,
           recommendations: result.recommendations,
           patch: result.patch,
-          error: null,
+          verification: result.verification,
+          claims: result.claims,
         };
       },
       onError: message => {
-        recsStates.value[key] = {
-          running: false,
-          message: '',
-          severity: null,
-          recommendations: null,
-          patch: null,
-          error: message,
-        };
+        recsStates.value[key] = { ...EMPTY_RECS, error: message };
       },
     });
   } catch (e: any) {
     console.error('Failed to start recommendations:', e);
     recsStates.value[key] = {
-      running: false,
-      message: '',
-      severity: null,
-      recommendations: null,
-      patch: null,
+      ...EMPTY_RECS,
       error: e?.response?.data?.message ?? 'Could not start recommendation generation.',
     };
   }
@@ -730,12 +752,14 @@ const peekRecommendations = async (recording: Recording) => {
     const stored = await client.peek();
     stored.forEach(artifacts => {
       recsStates.value[recsKey(recording.id, artifacts.eventType)] = {
-        running: false,
-        message: '',
+        ...EMPTY_RECS,
         severity: artifacts.severity,
         recommendations: artifacts.recommendations,
         patch: artifacts.patch,
-        error: null,
+        verification: artifacts.verification,
+        claims: artifacts.claims ?? [],
+        costUsd: artifacts.costUsd,
+        totalTokens: (artifacts.inputTokens ?? 0) + (artifacts.outputTokens ?? 0),
       };
     });
   } catch {
@@ -1269,6 +1293,17 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.625rem;
+}
+
+.recs-severity-note {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+
+.recs-cost {
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
 .recs-severity-label {

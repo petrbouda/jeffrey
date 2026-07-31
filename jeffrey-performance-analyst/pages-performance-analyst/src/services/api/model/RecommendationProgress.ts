@@ -17,13 +17,22 @@
  */
 
 import type Severity from '@/services/api/model/Severity';
+import type PatchVerification from '@/services/api/model/PatchVerification';
+import type Claim from '@/services/api/model/Claim';
 
-export type RecommendationStatus = 'CLONING' | 'ANALYZING' | 'COMPLETED' | 'FAILED';
+export type RecommendationStatus =
+  | 'QUEUED'
+  | 'CLONING'
+  | 'ANALYZING'
+  | 'VERIFYING'
+  | 'COMPLETED'
+  | 'FAILED';
 
 /**
  * A progress snapshot for a repository-aware AI recommendation task, streamed from the backend over
- * SSE. `severity`, `recommendations` and `patch` are present only on the terminal COMPLETED event
- * (`patch` stays null when the model proposed no code edit); `errorMessage` only on FAILED.
+ * SSE. `severity`, `recommendations`, `patch`, `verification` and `claims` are present only on the
+ * terminal COMPLETED event (`patch` stays null when the model proposed no code edit); `errorMessage`
+ * only on FAILED.
  */
 export default interface RecommendationProgress {
   taskId: string;
@@ -34,5 +43,7 @@ export default interface RecommendationProgress {
   severity: Severity | null;
   recommendations: string | null;
   patch: string | null;
+  verification: PatchVerification | null;
+  claims: Claim[];
   errorMessage: string | null;
 }

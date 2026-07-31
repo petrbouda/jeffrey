@@ -19,13 +19,20 @@
 package cafe.jeffrey.performance.analyst.recommendations;
 
 /**
- * Lifecycle of an AI recommendation task: clone the repository, run the AI analysis, then finish in a
- * terminal {@link #COMPLETED} or {@link #FAILED} state.
+ * Lifecycle of an AI recommendation task: wait for a generation slot, clone the repository, run the AI
+ * analysis, check what came back, then finish in a terminal {@link #COMPLETED} or {@link #FAILED} state.
  */
 public enum RecommendationStatus {
 
+    /** Waiting for a generation slot; another run is using them all. */
+    QUEUED,
+
     CLONING,
     ANALYZING,
+
+    /** Grounding the model's claims and checking the patch against the checkout. */
+    VERIFYING,
+
     COMPLETED,
     FAILED;
 

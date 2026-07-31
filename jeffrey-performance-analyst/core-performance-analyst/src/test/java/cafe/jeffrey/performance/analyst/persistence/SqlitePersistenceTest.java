@@ -75,14 +75,14 @@ class SqlitePersistenceTest {
             JdbcGeneratedPromptRepository repo = new JdbcGeneratedPromptRepository(clientProvider);
             assertTrue(repo.findByRecording("rec-1").isEmpty());
 
-            repo.upsert(new GeneratedPrompt("rec-1", "jdk.ExecutionSample", "CPU", 39668, "# cpu", T));
-            repo.upsert(new GeneratedPrompt("rec-1", "profiler.WallClockSample", "Wall-Clock", 4409322, "# wall", T));
+            repo.upsert(new GeneratedPrompt("rec-1", "jdk.ExecutionSample", "CPU", 39668, "# cpu", null, T));
+            repo.upsert(new GeneratedPrompt("rec-1", "profiler.WallClockSample", "Wall-Clock", 4409322, "# wall", null, T));
 
             List<GeneratedPrompt> prompts = repo.findByRecording("rec-1");
             assertEquals(2, prompts.size());
 
             // upsert on the (recording, event type) key overwrites in place
-            repo.upsert(new GeneratedPrompt("rec-1", "jdk.ExecutionSample", "CPU", 100, "# updated", T));
+            repo.upsert(new GeneratedPrompt("rec-1", "jdk.ExecutionSample", "CPU", 100, "# updated", null, T));
             List<GeneratedPrompt> updated = repo.findByRecording("rec-1");
             assertEquals(2, updated.size());
             GeneratedPrompt cpu = updated.stream()

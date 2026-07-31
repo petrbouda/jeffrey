@@ -20,6 +20,8 @@ import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 import type RecommendationProgress from '@/services/api/model/RecommendationProgress';
 import type RecommendationArtifacts from '@/services/api/model/RecommendationArtifacts';
 import type Severity from '@/services/api/model/Severity';
+import type PatchVerification from '@/services/api/model/PatchVerification';
+import type Claim from '@/services/api/model/Claim';
 
 export interface RecommendationCallbacks {
   onProgress: (progress: RecommendationProgress) => void;
@@ -27,6 +29,8 @@ export interface RecommendationCallbacks {
     severity: Severity | null;
     recommendations: string;
     patch: string | null;
+    verification: PatchVerification | null;
+    claims: Claim[];
   }) => void;
   onError: (error: string) => void;
 }
@@ -99,7 +103,9 @@ export default class RecommendationsClient extends BasePlatformClient {
       callbacks.onComplete({
         severity: progress.severity,
         recommendations: progress.recommendations ?? '',
-        patch: progress.patch
+        patch: progress.patch,
+        verification: progress.verification,
+        claims: progress.claims ?? []
       });
     } else if (progress.status === 'FAILED') {
       this.unsubscribe();

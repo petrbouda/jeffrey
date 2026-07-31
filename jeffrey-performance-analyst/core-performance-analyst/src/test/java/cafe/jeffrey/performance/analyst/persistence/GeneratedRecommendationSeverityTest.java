@@ -24,6 +24,8 @@ import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.RecordingFile;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.performance.analyst.verification.PatchVerification;
+import cafe.jeffrey.profile.ai.chat.TokenUsage;
 import cafe.jeffrey.shared.common.model.Severity;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.SQLiteTest;
@@ -70,7 +72,8 @@ class GeneratedRecommendationSeverityTest {
     private GeneratedRecommendation rec(String recordingId, String eventType, Severity severity, long generatedAt) {
         return new GeneratedRecommendation(
                 recordingId, eventType, "hub-1", "ws-1", "proj-" + recordingId, recordingId + " Project",
-                severity, "## Summary\nHot path in " + recordingId, null, Instant.ofEpochMilli(generatedAt));
+                severity, "## Summary\nHot path in " + recordingId, null,
+                PatchVerification.notAttempted(), TokenUsage.unknown(), Instant.ofEpochMilli(generatedAt));
     }
 
     @Test

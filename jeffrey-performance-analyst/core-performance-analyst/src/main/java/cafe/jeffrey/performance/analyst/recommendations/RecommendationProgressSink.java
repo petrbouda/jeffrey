@@ -31,4 +31,7 @@ public interface RecommendationProgressSink {
 
     /** The repository is cloned; the AI analysis is running. */
     void analyzing();
+
+    /** The model has answered; its claims and patch are being checked against the checkout. */
+    void verifying();
 }

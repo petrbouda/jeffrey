@@ -78,6 +78,12 @@
           </button>
         </div>
       </MainCard>
+
+      <FleetPatternsCard
+        :patterns="fleet.patterns"
+        :analyzed-project-count="fleet.analyzedProjectCount"
+        @open="openOccurrence"
+      />
     </template>
   </div>
 </template>
@@ -92,7 +98,11 @@ import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import Badge from '@shared/components/Badge.vue';
 import FormattingService from '@shared/services/FormattingService';
+import FleetPatternsCard from '@/components/FleetPatternsCard.vue';
 import TopRecommendationsClient from '@/services/api/TopRecommendationsClient';
+import FleetPatternsClient from '@/services/api/FleetPatternsClient';
+import type FleetPatterns from '@/services/api/model/FleetPatterns';
+import type { FleetOccurrence } from '@/services/api/model/FleetPatterns';
 import type TopSeverityOverview from '@/services/api/model/TopSeverityOverview';
 import type { TopSeverityRecommendation } from '@/services/api/model/TopSeverityOverview';
 import type Severity from '@/services/api/model/Severity';
@@ -100,13 +110,17 @@ import { SEVERITY_ORDER, severityColor, severityIcon, severityVariant } from '@/
 
 const router = useRouter();
 const topRecommendationsClient = new TopRecommendationsClient();
+const fleetPatternsClient = new FleetPatternsClient();
 
 const EMPTY_OVERVIEW: TopSeverityOverview = {
   counts: { critical: 0, high: 0, medium: 0, low: 0 },
   items: []
 };
 
+const EMPTY_FLEET: FleetPatterns = { patterns: [], analyzedProjectCount: 0 };
+
 const overview = ref<TopSeverityOverview>(EMPTY_OVERVIEW);
+const fleet = ref<FleetPatterns>(EMPTY_FLEET);
 const loading = ref(true);
 const error = ref<string | null>(null);
 
@@ -134,6 +148,18 @@ const tiles = computed(() =>
   }))
 );
 
+const openOccurrence = (occurrence: FleetOccurrence) => {
+  router.push({
+    name: 'project-recordings',
+    params: {
+      hubId: occurrence.hubId,
+      workspaceId: occurrence.workspaceId,
+      projectId: occurrence.projectId
+    },
+    query: { recording: occurrence.recordingId }
+  });
+};
+
 const openRecording = (item: TopSeverityRecommendation) => {
   router.push({
     name: 'project-recordings',
@@ -146,7 +172,14 @@ const loadOverview = async () => {
   loading.value = true;
   error.value = null;
   try {
-    overview.value = await topRecommendationsClient.loadTopSeverity();
+    // Loaded together so the page settles once; a fleet rollup arriving late would reflow the list
+    // the user is already reading.
+    const [severity, patterns] = await Promise.all([
+      topRecommendationsClient.loadTopSeverity(),
+      fleetPatternsClient.load()
+    ]);
+    overview.value = severity;
+    fleet.value = patterns;
   } catch (e) {
     console.error('Failed to load impact overview:', e);
     error.value = 'Failed to load the impact overview.';

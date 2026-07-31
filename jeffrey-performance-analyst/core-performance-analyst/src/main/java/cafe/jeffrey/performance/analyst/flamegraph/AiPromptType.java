@@ -21,34 +21,64 @@ package cafe.jeffrey.performance.analyst.flamegraph;
 import cafe.jeffrey.shared.common.model.Type;
 
 import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * The sample event types we build an AI flamegraph prompt for, plus their UI label and the filesystem
- * cache slug. Single source of truth shared by the exporter (which builds prompts) and the cache
- * manager (which maps a cached {@code <slug>.md} file back to its event type and label).
+ * The profiles Jeffrey builds an AI prompt for, plus the UI label and cache slug for each. Single source
+ * of truth shared by the exporter (which builds prompts) and the cache manager (which maps a stored row
+ * back to its event type and label).
+ *
+ * <p>Each entry folds one or more JFR event types into a single profile, because that is how a person
+ * thinks about them: "allocation" is one question even though the JVM answers it through three separate
+ * events depending on TLAB behaviour and JDK version.</p>
  */
 public enum AiPromptType {
 
-    CPU(Type.EXECUTION_SAMPLE, "CPU", "execution-sample"),
-    WALL_CLOCK(Type.WALL_CLOCK_SAMPLE, "Wall-Clock", "wall-clock-sample");
+    CPU("CPU", "execution-sample", Type.EXECUTION_SAMPLE),
+
+    WALL_CLOCK("Wall-Clock", "wall-clock-sample", Type.WALL_CLOCK_SAMPLE),
+
+    ALLOCATION("Allocation", "allocation-sample",
+            Type.OBJECT_ALLOCATION_SAMPLE,
+            Type.OBJECT_ALLOCATION_IN_NEW_TLAB,
+            Type.OBJECT_ALLOCATION_OUTSIDE_TLAB),
+
+    BLOCKING("Blocking", "blocking-sample",
+            Type.JAVA_MONITOR_ENTER,
+            Type.JAVA_MONITOR_WAIT,
+            Type.THREAD_PARK);
 
     private static final String FILE_EXTENSION = ".md";
 
-    private final Type eventType;
     private final String label;
     private final String slug;
+    private final List<Type> eventTypes;
 
-    AiPromptType(Type eventType, String label, String slug) {
-        this.eventType = eventType;
+    AiPromptType(String label, String slug, Type... eventTypes) {
         this.label = label;
         this.slug = slug;
+        this.eventTypes = List.of(eventTypes);
     }
 
-    public Type eventType() {
-        return eventType;
+    /**
+     * The event types folded into this profile, in preference order — the first one present in a
+     * recording is the one whose tree is rendered.
+     */
+    public List<Type> eventTypes() {
+        return eventTypes;
+    }
+
+    /**
+     * The event type this profile is identified by in the database and the UI. Always the primary
+     * (first) type, so a stored row keeps a stable identity even if a recording happens to carry a
+     * different member of the group.
+     */
+    public Type primaryEventType() {
+        return eventTypes.getFirst();
     }
 
     public String label() {
@@ -59,12 +89,20 @@ public enum AiPromptType {
         return slug + FILE_EXTENSION;
     }
 
-    public static Set<Type> eventTypes() {
-        return Arrays.stream(values()).map(AiPromptType::eventType).collect(Collectors.toSet());
+    /**
+     * Every JFR event type any prompt is built from — what the parser is restricted to.
+     */
+    public static Set<Type> allEventTypes() {
+        return Arrays.stream(values())
+                .flatMap(promptType -> promptType.eventTypes.stream())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     public static Optional<AiPromptType> byEventCode(String eventCode) {
-        return Arrays.stream(values()).filter(t -> t.eventType.code().equals(eventCode)).findFirst();
+        return Arrays.stream(values())
+                .filter(promptType -> promptType.eventTypes.stream()
+                        .anyMatch(type -> type.code().equals(eventCode)))
+                .findFirst();
     }
 
     public static Optional<AiPromptType> byFileName(String fileName) {

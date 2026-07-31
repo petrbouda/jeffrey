@@ -24,10 +24,12 @@ import cafe.jeffrey.performance.analyst.persistence.GeneratedPromptRepository;
 import cafe.jeffrey.performance.analyst.persistence.GeneratedRecommendationRepository;
 import cafe.jeffrey.performance.analyst.persistence.ProjectAiConfigurationRepository;
 import cafe.jeffrey.performance.analyst.persistence.ProjectRepository;
+import cafe.jeffrey.performance.analyst.persistence.RecommendationClaimRepository;
 import cafe.jeffrey.performance.analyst.persistence.JdbcGeneratedPromptRepository;
 import cafe.jeffrey.performance.analyst.persistence.JdbcGeneratedRecommendationRepository;
 import cafe.jeffrey.performance.analyst.persistence.JdbcProjectAiConfigurationRepository;
 import cafe.jeffrey.performance.analyst.persistence.JdbcProjectRepository;
+import cafe.jeffrey.performance.analyst.persistence.JdbcRecommendationClaimRepository;
 import cafe.jeffrey.performance.analyst.persistence.JdbcVersionControlSystemStore;
 import cafe.jeffrey.performance.analyst.persistence.VersionControlSystemStore;
 import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
@@ -51,6 +53,11 @@ public class PerformanceAnalystPersistenceConfiguration {
     @Bean
     public GeneratedRecommendationRepository generatedRecommendationRepository(DatabaseClientProvider databaseClientProvider) {
         return new JdbcGeneratedRecommendationRepository(databaseClientProvider);
+    }
+
+    @Bean
+    public RecommendationClaimRepository recommendationClaimRepository(DatabaseClientProvider databaseClientProvider) {
+        return new JdbcRecommendationClaimRepository(databaseClientProvider);
     }
 
     @Bean

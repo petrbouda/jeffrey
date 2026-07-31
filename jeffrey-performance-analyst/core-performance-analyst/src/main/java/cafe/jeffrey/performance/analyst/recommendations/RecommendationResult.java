@@ -18,18 +18,40 @@
 
 package cafe.jeffrey.performance.analyst.recommendations;
 
+import cafe.jeffrey.profile.ai.chat.TokenUsage;
+import cafe.jeffrey.performance.analyst.verification.PatchVerification;
 import cafe.jeffrey.shared.common.model.Severity;
 
+import java.util.List;
+
 /**
- * The artifacts an AI recommendation run produces: the overall {@code severity} the model graded for the
- * profile's findings (used to prioritize across recordings), the human-readable {@code recommendations}
- * markdown (analysis + rationale, no diffs) and an applicable {@code patch} (a single unified diff that
- * {@code git apply} can consume). {@code patch} is {@code null} when the model proposed no concrete code
- * edits.
+ * The artifacts an AI recommendation run produces, after each has been checked against evidence:
+ * the {@code severity} Jeffrey computed from the measured profile, the human-readable
+ * {@code recommendations} markdown (analysis + rationale, no diffs), an applicable {@code patch} (a
+ * single unified diff that {@code git apply} can consume), the {@code claims} the report rests on with
+ * their grounding verdicts, what Jeffrey established about the patch, and what the run consumed.
+ *
+ * <p>{@code patch} is {@code null} when the model proposed no concrete code edits.</p>
  */
-public record RecommendationResult(Severity severity, String recommendations, String patch) {
+public record RecommendationResult(
+        Severity severity,
+        String recommendations,
+        String patch,
+        List<GroundedClaim> claims,
+        PatchVerification verification,
+        TokenUsage usage) {
+
+    public RecommendationResult {
+        claims = claims == null ? List.of() : List.copyOf(claims);
+        verification = verification == null ? PatchVerification.notAttempted() : verification;
+        usage = usage == null ? TokenUsage.unknown() : usage;
+    }
 
     public boolean hasPatch() {
         return patch != null && !patch.isBlank();
+    }
+
+    public long groundedClaimCount() {
+        return claims.stream().filter(GroundedClaim::grounded).count();
     }
 }

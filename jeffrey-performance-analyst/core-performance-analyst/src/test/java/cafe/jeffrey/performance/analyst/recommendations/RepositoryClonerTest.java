@@ -45,7 +45,7 @@ class RepositoryClonerTest {
         String missingRepo = tempBase.resolve("does-not-exist.git").toUri().toString();
 
         assertThrows(JeffreyClientException.class,
-                () -> cloner.clone(missingRepo, null, Platform.GITHUB));
+                () -> cloner.clone(missingRepo, null, Platform.GITHUB, null));
 
         // The throwaway checkout directory must not be left behind on failure.
         try (Stream<Path> entries = Files.list(tempBase)) {

@@ -21,7 +21,12 @@ package cafe.jeffrey.performance.analyst.recommendations;
 /**
  * Identifies what a recommendation run targets: the remote hub/workspace/project it belongs to (with the
  * denormalized {@code projectName} the frontend supplies, so the global Overview can label/deep-link
- * without resolving the hub), the recording, and the sample event type to analyze.
+ * without resolving the hub), the recording, the sample event type to analyze, and the commit the
+ * recording came from.
+ *
+ * <p>{@code commitRef} is null when the recording carries no build metadata. That is a meaningful
+ * absence, not a default: without it the analysis reads whatever is on the default branch today, which
+ * may not be the code that produced the profile — so it is surfaced rather than hidden.</p>
  */
 public record RecommendationTarget(
         String hubId,
@@ -29,5 +34,10 @@ public record RecommendationTarget(
         String projectId,
         String projectName,
         String recordingId,
-        String eventType) {
+        String eventType,
+        String commitRef) {
+
+    public boolean hasCommitRef() {
+        return commitRef != null && !commitRef.isBlank();
+    }
 }

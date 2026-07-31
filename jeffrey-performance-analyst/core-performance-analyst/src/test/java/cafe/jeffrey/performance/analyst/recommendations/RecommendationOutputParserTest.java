@@ -18,8 +18,9 @@
 
 package cafe.jeffrey.performance.analyst.recommendations;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.shared.common.model.Severity;
+import cafe.jeffrey.performance.analyst.recommendations.RecommendationOutputParser.ParsedOutput;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -28,126 +29,160 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RecommendationOutputParserTest {
 
-    @Test
-    void splitsRecommendationsAndPatch() {
-        String raw = """
-                ===RECOMMENDATIONS===
-                ## Summary
-                The hot path is in Order.recompute().
+    @Nested
+    class Sections {
 
-                ===PATCH===
-                diff --git a/Order.java b/Order.java
-                --- a/Order.java
-                +++ b/Order.java
-                @@ -1 +1 @@
-                -slow
-                +fast
-                """;
+        @Test
+        void splitsRecommendationsAndPatch() {
+            String raw = """
+                    ===RECOMMENDATIONS===
+                    ## Summary
+                    The hot path is in Order.recompute().
 
-        RecommendationResult result = RecommendationOutputParser.parse(raw);
+                    ===PATCH===
+                    diff --git a/Order.java b/Order.java
+                    --- a/Order.java
+                    +++ b/Order.java
+                    @@ -1 +1 @@
+                    -slow
+                    +fast
+                    """;
 
-        assertTrue(result.recommendations().contains("## Summary"));
-        assertFalse(result.recommendations().contains("diff --git"), "diff must not leak into recommendations");
-        assertTrue(result.hasPatch());
-        assertTrue(result.patch().startsWith("diff --git a/Order.java"));
-        assertTrue(result.patch().contains("+fast"));
+            ParsedOutput output = RecommendationOutputParser.parse(raw);
+
+            assertTrue(output.recommendations().contains("## Summary"));
+            assertFalse(output.recommendations().contains("diff --git"), "diff must not leak into recommendations");
+            assertTrue(output.patch().startsWith("diff --git a/Order.java"));
+            assertTrue(output.patch().contains("+fast"));
+        }
+
+        @Test
+        void treatsNoPatchSentinelAsNoPatch() {
+            String raw = """
+                    ===RECOMMENDATIONS===
+                    Nothing concrete to change.
+                    ===PATCH===
+                    (no patch)
+                    """;
+
+            ParsedOutput output = RecommendationOutputParser.parse(raw);
+
+            assertEquals("Nothing concrete to change.", output.recommendations());
+            assertNull(output.patch());
+        }
+
+        @Test
+        void stripsCodeFenceAroundPatch() {
+            String raw = """
+                    ===RECOMMENDATIONS===
+                    Some advice.
+                    ===PATCH===
+                    ```diff
+                    diff --git a/A.java b/A.java
+                    +x
+                    ```
+                    """;
+
+            ParsedOutput output = RecommendationOutputParser.parse(raw);
+
+            assertTrue(output.patch().startsWith("diff --git a/A.java"), output.patch());
+            assertFalse(output.patch().contains("```"), "code fence must be stripped");
+        }
+
+        @Test
+        void missingPatchMarkerKeepsEverythingAsRecommendations() {
+            String raw = "===RECOMMENDATIONS===\nJust prose, no patch section.";
+
+            ParsedOutput output = RecommendationOutputParser.parse(raw);
+
+            assertEquals("Just prose, no patch section.", output.recommendations());
+            assertNull(output.patch());
+        }
+
+        @Test
+        void handlesBlankResponse() {
+            ParsedOutput output = RecommendationOutputParser.parse("   ");
+
+            assertEquals("", output.recommendations());
+            assertNull(output.patch());
+            assertTrue(output.claims().isEmpty());
+        }
     }
 
-    @Test
-    void parsesSeverityFromItsSection() {
-        String raw = """
-                ===SEVERITY===
-                CRITICAL
-                ===RECOMMENDATIONS===
-                ## Summary
-                Hot path dominates.
-                ===PATCH===
-                (no patch)
-                """;
+    @Nested
+    class Claims {
 
-        RecommendationResult result = RecommendationOutputParser.parse(raw);
+        @Test
+        void parsesFrameSourceAndTitle() {
+            String raw = """
+                    ===CLAIMS===
+                    com/acme/RateTable.lookup | src/main/java/com/acme/RateTable.java:88 | Per-line lookup
+                    java/math/BigDecimal.valueOf | src/main/java/com/acme/Rates.java | Boxing on every read
+                    ===RECOMMENDATIONS===
+                    Advice.
+                    """;
 
-        assertEquals(Severity.CRITICAL, result.severity());
-        assertTrue(result.recommendations().contains("Hot path dominates."));
-        assertFalse(result.recommendations().contains("CRITICAL"), "severity must not leak into recommendations");
-    }
+            ParsedOutput output = RecommendationOutputParser.parse(raw);
 
-    @Test
-    void severityToleratesExtraWordsAndCase() {
-        String raw = """
-                ===SEVERITY===
-                high — about 14% of CPU
-                ===RECOMMENDATIONS===
-                Advice.
-                """;
+            assertEquals(2, output.claims().size());
+            assertEquals("com/acme/RateTable.lookup", output.claims().getFirst().citedFrame());
+            assertEquals("src/main/java/com/acme/RateTable.java:88", output.claims().getFirst().sourcePath());
+            assertEquals("Per-line lookup", output.claims().getFirst().title());
+        }
 
-        assertEquals(Severity.HIGH, RecommendationOutputParser.parse(raw).severity());
-    }
+        @Test
+        void keepsClaimsOutOfTheRecommendationsMarkdown() {
+            String raw = """
+                    ===CLAIMS===
+                    Foo.bar | Foo.java | Something
+                    ===RECOMMENDATIONS===
+                    ## Summary
+                    Real prose.
+                    """;
 
-    @Test
-    void severityDefaultsToMediumWhenMissing() {
-        String raw = "===RECOMMENDATIONS===\nNo severity section here.";
+            ParsedOutput output = RecommendationOutputParser.parse(raw);
 
-        assertEquals(Severity.MEDIUM, RecommendationOutputParser.parse(raw).severity());
-    }
+            assertFalse(output.recommendations().contains("Foo.bar |"), "claims must not leak into the report");
+            assertTrue(output.recommendations().contains("Real prose."));
+        }
 
-    @Test
-    void severityDefaultsToMediumWhenUnknown() {
-        String raw = "===SEVERITY===\nBANANA\n===RECOMMENDATIONS===\nAdvice.";
+        @Test
+        void skipsMalformedLinesWithoutLosingTheRest() {
+            String raw = """
+                    ===CLAIMS===
+                    this line has no separator at all
+                    | missing frame | Title
+                    Good.frame | Good.java | Good title
+                    ===RECOMMENDATIONS===
+                    Advice.
+                    """;
 
-        assertEquals(Severity.MEDIUM, RecommendationOutputParser.parse(raw).severity());
-    }
+            ParsedOutput output = RecommendationOutputParser.parse(raw);
 
-    @Test
-    void treatsNoPatchSentinelAsNoPatch() {
-        String raw = """
-                ===RECOMMENDATIONS===
-                Nothing concrete to change.
-                ===PATCH===
-                (no patch)
-                """;
+            assertEquals(1, output.claims().size());
+            assertEquals("Good.frame", output.claims().getFirst().citedFrame());
+        }
 
-        RecommendationResult result = RecommendationOutputParser.parse(raw);
+        @Test
+        void toleratesAMissingSourcePath() {
+            String raw = """
+                    ===CLAIMS===
+                    Only.frame |  | Just a frame
+                    ===RECOMMENDATIONS===
+                    Advice.
+                    """;
 
-        assertEquals("Nothing concrete to change.", result.recommendations());
-        assertFalse(result.hasPatch());
-        assertNull(result.patch());
-    }
+            ParsedOutput output = RecommendationOutputParser.parse(raw);
 
-    @Test
-    void stripsCodeFenceAroundPatch() {
-        String raw = """
-                ===RECOMMENDATIONS===
-                Some advice.
-                ===PATCH===
-                ```diff
-                diff --git a/A.java b/A.java
-                +x
-                ```
-                """;
+            assertEquals(1, output.claims().size());
+            assertNull(output.claims().getFirst().sourcePath());
+        }
 
-        RecommendationResult result = RecommendationOutputParser.parse(raw);
+        @Test
+        void returnsNoClaimsWhenTheSectionIsAbsent() {
+            ParsedOutput output = RecommendationOutputParser.parse("===RECOMMENDATIONS===\nAdvice.");
 
-        assertTrue(result.hasPatch());
-        assertTrue(result.patch().startsWith("diff --git a/A.java"), result.patch());
-        assertFalse(result.patch().contains("```"), "code fence must be stripped");
-    }
-
-    @Test
-    void missingPatchMarkerKeepsEverythingAsRecommendations() {
-        String raw = "===RECOMMENDATIONS===\nJust prose, no patch section.";
-
-        RecommendationResult result = RecommendationOutputParser.parse(raw);
-
-        assertEquals("Just prose, no patch section.", result.recommendations());
-        assertFalse(result.hasPatch());
-    }
-
-    @Test
-    void handlesBlankInput() {
-        RecommendationResult result = RecommendationOutputParser.parse("  ");
-
-        assertEquals("", result.recommendations());
-        assertFalse(result.hasPatch());
+            assertTrue(output.claims().isEmpty());
+        }
     }
 }

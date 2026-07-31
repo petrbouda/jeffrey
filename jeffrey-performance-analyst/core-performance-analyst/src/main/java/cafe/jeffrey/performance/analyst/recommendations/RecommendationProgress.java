@@ -18,15 +18,17 @@
 
 package cafe.jeffrey.performance.analyst.recommendations;
 
+import cafe.jeffrey.performance.analyst.verification.PatchVerification;
 import cafe.jeffrey.shared.common.model.Severity;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * A snapshot of a recommendation task's progress, serialized to the UI over SSE. {@code severity},
- * {@code recommendations} and {@code patch} are populated only on the terminal
- * {@link RecommendationStatus#COMPLETED} event ({@code patch} stays null when the model proposed no code
- * edit); {@code errorMessage} only on {@link RecommendationStatus#FAILED}.
+ * {@code recommendations}, {@code patch}, {@code verification} and {@code claims} are populated only on
+ * the terminal {@link RecommendationStatus#COMPLETED} event ({@code patch} stays null when the model
+ * proposed no code edit); {@code errorMessage} only on {@link RecommendationStatus#FAILED}.
  */
 public record RecommendationProgress(
         String taskId,
@@ -37,7 +39,13 @@ public record RecommendationProgress(
         Severity severity,
         String recommendations,
         String patch,
+        PatchVerification verification,
+        List<ClaimResponse> claims,
         String errorMessage,
         Instant createdAt,
         Instant completedAt) {
+
+    public RecommendationProgress {
+        claims = claims == null ? List.of() : List.copyOf(claims);
+    }
 }

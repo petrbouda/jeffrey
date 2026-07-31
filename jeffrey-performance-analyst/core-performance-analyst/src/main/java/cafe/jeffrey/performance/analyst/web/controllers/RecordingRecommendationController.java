@@ -32,22 +32,22 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import cafe.jeffrey.performance.analyst.persistence.StoredClaim;
+import cafe.jeffrey.performance.analyst.recommendations.CommitRefResolver;
 import cafe.jeffrey.performance.analyst.recommendations.RecommendationArtifactsResponse;
 import cafe.jeffrey.performance.analyst.recommendations.RecommendationProgress;
-import cafe.jeffrey.performance.analyst.recommendations.RecommendationResult;
+import cafe.jeffrey.performance.analyst.recommendations.RecommendationRunner;
 import cafe.jeffrey.performance.analyst.recommendations.RecommendationStartRequest;
 import cafe.jeffrey.performance.analyst.recommendations.RecommendationTarget;
 import cafe.jeffrey.performance.analyst.recommendations.RecommendationTask;
 import cafe.jeffrey.performance.analyst.recommendations.RecommendationTaskRegistry;
 import cafe.jeffrey.performance.analyst.recommendations.RecommendationTaskResponse;
 import cafe.jeffrey.performance.analyst.recommendations.RecordingRecommendationManager;
-import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.io.IOException;
 import java.time.Clock;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 /**
@@ -67,14 +67,20 @@ public class RecordingRecommendationController {
 
     private final RecordingRecommendationManager recommendationManager;
     private final RecommendationTaskRegistry taskRegistry;
+    private final RecommendationRunner recommendationRunner;
+    private final CommitRefResolver commitRefResolver;
     private final Clock clock;
 
     public RecordingRecommendationController(
             RecordingRecommendationManager recommendationManager,
             RecommendationTaskRegistry taskRegistry,
+            RecommendationRunner recommendationRunner,
+            CommitRefResolver commitRefResolver,
             Clock clock) {
         this.recommendationManager = recommendationManager;
         this.taskRegistry = taskRegistry;
+        this.recommendationRunner = recommendationRunner;
+        this.commitRefResolver = commitRefResolver;
         this.clock = clock;
     }
 
@@ -96,30 +102,22 @@ public class RecordingRecommendationController {
                 hubId, workspaceId, projectId, recordingId, request.eventType(), clock);
         taskRegistry.register(task);
 
+        String commitRef = commitRefResolver.resolve(recordingId).orElse(null);
         RecommendationTarget target = new RecommendationTarget(
-                hubId, workspaceId, projectId, request.projectName(), recordingId, request.eventType());
+                hubId, workspaceId, projectId, request.projectName(), recordingId, request.eventType(), commitRef);
 
-        CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-            try {
-                RecommendationResult result = recommendationManager.generate(target, task);
-                task.completed(result);
-            } catch (Exception e) {
-                LOG.warn("Recommendation task failed: taskId={} recordingId={} error={}",
-                        task.taskId(), recordingId, e.getMessage());
-                task.failed(e.getMessage());
-            }
-        }, Schedulers.sharedVirtual());
-        task.setFuture(future);
+        task.setFuture(recommendationRunner.submit(target, task));
 
-        LOG.info("Started recommendation task: taskId={} recordingId={} eventType={}",
-                task.taskId(), recordingId, request.eventType());
+        LOG.info("Started recommendation task: task_id={} recording_id={} event_type={} commit_ref={}",
+                task.taskId(), recordingId, request.eventType(), commitRef);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(new RecommendationTaskResponse(task.taskId()));
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public List<RecommendationArtifactsResponse> peek(@PathVariable("recordingId") String recordingId) {
+        List<StoredClaim> claims = recommendationManager.peekClaims(recordingId);
         return recommendationManager.peek(recordingId).stream()
-                .map(RecommendationArtifactsResponse::from)
+                .map(stored -> RecommendationArtifactsResponse.from(stored, claims))
                 .toList();
     }
 

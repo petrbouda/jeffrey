@@ -20,13 +20,15 @@ package cafe.jeffrey.performance.analyst.configuration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import cafe.jeffrey.performance.analyst.fleet.FleetPatternsManager;
 import cafe.jeffrey.performance.analyst.persistence.GeneratedRecommendationRepository;
+import cafe.jeffrey.performance.analyst.persistence.RecommendationClaimRepository;
 import cafe.jeffrey.performance.analyst.recommendations.TopRecommendationsManager;
 
 /**
- * Wiring for the global Overview's "Highest Impact" list. Always active (unlike
- * {@link RecommendationConfiguration}) because it only reads already-stored recommendations, so the
- * Overview works regardless of whether an AI provider is configured.
+ * Wiring for the global Overview's "Highest Impact" list and the fleet-wide pattern rollup. Always
+ * active (unlike {@link RecommendationConfiguration}) because both only read already-stored results, so
+ * the Overview works regardless of whether an AI provider is configured.
  */
 @Configuration
 public class OverviewConfiguration {
@@ -35,5 +37,10 @@ public class OverviewConfiguration {
     public TopRecommendationsManager topRecommendationsManager(
             GeneratedRecommendationRepository generatedRecommendationRepository) {
         return new TopRecommendationsManager(generatedRecommendationRepository);
+    }
+
+    @Bean
+    public FleetPatternsManager fleetPatternsManager(RecommendationClaimRepository recommendationClaimRepository) {
+        return new FleetPatternsManager(recommendationClaimRepository);
     }
 }

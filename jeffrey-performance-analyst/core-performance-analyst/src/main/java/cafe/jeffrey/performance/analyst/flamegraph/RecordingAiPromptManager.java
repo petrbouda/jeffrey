@@ -22,7 +22,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.performance.analyst.persistence.GeneratedPrompt;
 import cafe.jeffrey.performance.analyst.persistence.GeneratedPromptRepository;
+import cafe.jeffrey.performance.analyst.settings.ProjectAiSettings;
+import cafe.jeffrey.performance.analyst.settings.ProjectAiSettingsResolver;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
+import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
@@ -34,12 +37,12 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Resolves the AI flamegraph prompts for a recording, caching the generated markdown in the SQLite
- * store (the {@code generated_prompts} table) instead of on the filesystem.
+ * Resolves the AI flamegraph prompts for a recording, caching the generated markdown and the frame
+ * index behind it in the SQLite store (the {@code generated_prompts} table).
  *
- * <p>The prompt is a deterministic function of the (immutable) JFR file plus a fixed threshold, so it
- * is a write-once cache: the first request parses the JFR and upserts one row per event type; later
- * requests read those rows back without re-parsing.
+ * <p>The prompt is a deterministic function of the (immutable) JFR file plus the project's prune
+ * threshold, so it is a write-once cache: the first request parses the JFR and upserts one row per
+ * profile; later requests read those rows back without re-parsing.</p>
  */
 public class RecordingAiPromptManager {
 
@@ -51,35 +54,49 @@ public class RecordingAiPromptManager {
     private final RecordingsCoreManager recordingsManager;
     private final RecordingFlamegraphAiExporter exporter;
     private final GeneratedPromptRepository promptRepository;
+    private final ProjectAiSettingsResolver settingsResolver;
     private final Clock clock;
 
     public RecordingAiPromptManager(
             RecordingsCoreManager recordingsManager,
             RecordingFlamegraphAiExporter exporter,
             GeneratedPromptRepository promptRepository,
+            ProjectAiSettingsResolver settingsResolver,
             Clock clock) {
         this.recordingsManager = recordingsManager;
         this.exporter = exporter;
         this.promptRepository = promptRepository;
+        this.settingsResolver = settingsResolver;
         this.clock = clock;
     }
 
     /**
      * Returns the AI prompts for the recording, generating and persisting them on first request.
+     * {@code projectId} selects the prune threshold; it may be null for an unscoped recording, in which
+     * case the built-in default applies.
      */
-    public List<FlamegraphAiPrompt> getPrompts(String recordingId) {
+    public List<FlamegraphAiPrompt> getPrompts(String recordingId, String projectId) {
         List<GeneratedPrompt> cached = promptRepository.findByRecording(recordingId);
         if (!cached.isEmpty()) {
             LOG.info("Serving cached AI flamegraph prompts: recording_id={} prompts={}", recordingId, cached.size());
             return toFlamegraphPrompts(cached);
         }
 
+        ProjectAiSettings settings = settingsResolver.resolve(projectId);
         List<Path> jfrFiles = resolveJfrFiles(recordingId);
-        LOG.info("Generating AI flamegraph prompts: recording_id={} jfr_files={}", recordingId, jfrFiles.size());
-        List<FlamegraphAiPrompt> prompts = exporter.export(jfrFiles);
+        LOG.info("Generating AI flamegraph prompts: recording_id={} jfr_files={} prune_threshold_pct={}",
+                recordingId, jfrFiles.size(), settings.pruneThresholdPct());
+
+        List<FlamegraphAiPrompt> prompts = exporter.export(jfrFiles, settings.pruneThresholdPct());
         for (FlamegraphAiPrompt prompt : prompts) {
             promptRepository.upsert(new GeneratedPrompt(
-                    recordingId, prompt.eventType(), prompt.label(), prompt.samples(), prompt.markdown(), clock.instant()));
+                    recordingId,
+                    prompt.eventType(),
+                    prompt.label(),
+                    prompt.samples(),
+                    prompt.markdown(),
+                    Json.toString(prompt.frameIndex()),
+                    clock.instant()));
         }
         return prompts;
     }
@@ -94,8 +111,27 @@ public class RecordingAiPromptManager {
 
     private static List<FlamegraphAiPrompt> toFlamegraphPrompts(List<GeneratedPrompt> stored) {
         return stored.stream()
-                .map(p -> new FlamegraphAiPrompt(p.eventType(), p.label(), p.samples(), p.markdown()))
+                .map(p -> new FlamegraphAiPrompt(
+                        p.eventType(), p.label(), p.samples(), p.markdown(), readFrameIndex(p)))
                 .toList();
+    }
+
+    /**
+     * Prompts cached before the frame index existed have no JSON to read. They stay usable for reading,
+     * but any claim against them will be reported as ungrounded rather than silently trusted.
+     */
+    private static ProfileFrameIndex readFrameIndex(GeneratedPrompt prompt) {
+        String json = prompt.frameIndexJson();
+        if (json == null || json.isBlank()) {
+            return ProfileFrameIndex.empty();
+        }
+        try {
+            return Json.read(json, ProfileFrameIndex.class);
+        } catch (RuntimeException e) {
+            LOG.warn("Could not read the cached frame index: recording_id={} event_type={} message={}",
+                    prompt.recordingId(), prompt.eventType(), e.getMessage());
+            return ProfileFrameIndex.empty();
+        }
     }
 
     private List<Path> resolveJfrFiles(String recordingId) {

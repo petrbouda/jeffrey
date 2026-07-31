@@ -30,7 +30,13 @@ import cafe.jeffrey.performance.analyst.mcp.RepoToolsetFactory;
 import cafe.jeffrey.performance.analyst.persistence.GeneratedRecommendation;
 import cafe.jeffrey.performance.analyst.persistence.GeneratedRecommendationRepository;
 import cafe.jeffrey.performance.analyst.persistence.Platform;
+import cafe.jeffrey.performance.analyst.persistence.RecommendationClaimRepository;
 import cafe.jeffrey.performance.analyst.persistence.VersionControlSystem;
+import cafe.jeffrey.performance.analyst.flamegraph.ProfileFrame;
+import cafe.jeffrey.performance.analyst.flamegraph.ProfileFrameIndex;
+import cafe.jeffrey.performance.analyst.verification.CommandRunner;
+import cafe.jeffrey.performance.analyst.verification.PatchVerificationSettings;
+import cafe.jeffrey.performance.analyst.verification.PatchVerifier;
 import cafe.jeffrey.performance.analyst.versioncontrolsystem.VersionControlSystemManager;
 import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.chat.ToolCallResult;
@@ -65,9 +71,11 @@ class RecordingRecommendationManagerTest {
     private static final String PROJECT_NAME = "checkout-service";
     private static final String RECORDING_ID = "rec-1";
     private static final String EVENT_TYPE = "jdk.ExecutionSample";
+    private static final String COMMIT_REF = "a3f91c2";
 
     private static RecommendationTarget target() {
-        return new RecommendationTarget(HUB_ID, WORKSPACE_ID, PROJECT_ID, PROJECT_NAME, RECORDING_ID, EVENT_TYPE);
+        return new RecommendationTarget(
+                HUB_ID, WORKSPACE_ID, PROJECT_ID, PROJECT_NAME, RECORDING_ID, EVENT_TYPE, COMMIT_REF);
     }
 
     private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2026-06-21T18:00:00Z"), ZoneOffset.UTC);
@@ -83,6 +91,7 @@ class RecordingRecommendationManagerTest {
     private AiChatBackend aiChatBackend;
     private RepoToolsRegistry repoToolsRegistry;
     private GeneratedRecommendationRepository recommendationRepository;
+    private RecommendationClaimRepository claimRepository;
     private RecordingRecommendationManager manager;
 
     @BeforeEach
@@ -93,9 +102,15 @@ class RecordingRecommendationManagerTest {
         aiChatBackend = mock(AiChatBackend.class);
         repoToolsRegistry = new RepoToolsRegistry();
         recommendationRepository = mock(GeneratedRecommendationRepository.class);
+        claimRepository = mock(RecommendationClaimRepository.class);
+        // Verification is exercised with no build commands configured, so it exercises the apply check
+        // and reports the rest as skipped -- the shape a default installation actually runs in.
+        PatchVerifier patchVerifier =
+                new PatchVerifier(new CommandRunner(), PatchVerificationSettings.applyOnly());
         manager = new RecordingRecommendationManager(
                 versionControlSystemManager, promptManager, repositoryCloner, aiChatBackend,
-                repoToolsRegistry, new RepoToolsetFactory(MCP_URL), recommendationRepository, FIXED_CLOCK);
+                repoToolsRegistry, new RepoToolsetFactory(MCP_URL), recommendationRepository,
+                claimRepository, patchVerifier, FIXED_CLOCK);
     }
 
     private VersionControlSystem vcs() {
@@ -105,7 +120,9 @@ class RecordingRecommendationManagerTest {
     }
 
     private FlamegraphAiPrompt cpuPrompt() {
-        return new FlamegraphAiPrompt(EVENT_TYPE, "CPU", 100, "# flamegraph markdown");
+        ProfileFrameIndex index = new ProfileFrameIndex(List.of(
+                new ProfileFrame("com/acme/Order.recompute", 18.0, 14.0, 100, 0, 0, 100)));
+        return new FlamegraphAiPrompt(EVENT_TYPE, "CPU", 100, "# flamegraph markdown", index);
     }
 
     @Test
@@ -120,8 +137,9 @@ class RecordingRecommendationManagerTest {
     @Test
     void failsWhenNoPromptForEventType() {
         when(versionControlSystemManager.find(PROJECT_ID)).thenReturn(Optional.of(vcs()));
-        when(promptManager.getPrompts(RECORDING_ID)).thenReturn(List.of(
-                new FlamegraphAiPrompt("profiler.WallClockSample", "Wall-Clock", 5, "# other")));
+        when(promptManager.getPrompts(RECORDING_ID, PROJECT_ID)).thenReturn(List.of(
+                new FlamegraphAiPrompt(
+                        "profiler.WallClockSample", "Wall-Clock", 5, "# other", ProfileFrameIndex.empty())));
 
         RecommendationProgressSink sink = mock(RecommendationProgressSink.class);
         assertThrows(JeffreyClientException.class,
@@ -134,17 +152,18 @@ class RecordingRecommendationManagerTest {
         @Test
         void clonesAnalyzesReturnsAndCleansUp() throws Exception {
             when(versionControlSystemManager.find(PROJECT_ID)).thenReturn(Optional.of(vcs()));
-            when(promptManager.getPrompts(RECORDING_ID)).thenReturn(List.of(cpuPrompt()));
+            when(promptManager.getPrompts(RECORDING_ID, PROJECT_ID)).thenReturn(List.of(cpuPrompt()));
 
             Path cloneRoot = tempBase.resolve("clone");
             Files.createDirectories(cloneRoot);
-            ClonedRepository repository = new ClonedRepository(cloneRoot, new TempDirectory(cloneRoot));
-            when(repositoryCloner.clone(eq(vcs().url()), eq(null), eq(Platform.GITHUB)))
+            ClonedRepository repository =
+                    new ClonedRepository(cloneRoot, COMMIT_REF, new TempDirectory(cloneRoot));
+            when(repositoryCloner.clone(eq(vcs().url()), eq(null), eq(Platform.GITHUB), eq(COMMIT_REF)))
                     .thenReturn(repository);
 
             String rawModelOutput = """
-                    ===SEVERITY===
-                    HIGH
+                    ===CLAIMS===
+                    com/acme/Order.recompute | Order.java | Recompute runs per line
                     ===RECOMMENDATIONS===
                     ## Summary
                     Cache the lookups.
@@ -157,8 +176,10 @@ class RecordingRecommendationManagerTest {
             RecommendationProgressSink sink = mock(RecommendationProgressSink.class);
             RecommendationResult result = manager.generate(target(), sink);
 
-            // The model output is split into severity + the two artifacts.
+            // Severity is computed from the grounded claim's measured 14% self share, not read from the
+            // model's answer -- the model no longer grades anything.
             assertEquals(Severity.HIGH, result.severity());
+            assertEquals(1, result.groundedClaimCount());
             assertTrue(result.recommendations().contains("## Summary"));
             assertFalse(result.recommendations().contains("diff --git"));
             assertTrue(result.hasPatch());
@@ -177,6 +198,7 @@ class RecordingRecommendationManagerTest {
             var order = inOrder(sink);
             order.verify(sink).cloning();
             order.verify(sink).analyzing();
+            order.verify(sink).verifying();
 
             // The checkout is deleted via the try-with-resources handle.
             assertFalse(Files.exists(cloneRoot), "clone directory should be removed after analysis");

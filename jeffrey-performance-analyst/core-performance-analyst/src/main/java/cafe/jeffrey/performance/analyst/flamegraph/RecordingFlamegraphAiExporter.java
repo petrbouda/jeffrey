@@ -37,6 +37,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -50,8 +51,7 @@ public class RecordingFlamegraphAiExporter {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingFlamegraphAiExporter.class);
 
-    private static final Set<Type> SAMPLE_EVENT_TYPES = AiPromptType.eventTypes();
-    private static final double MIN_FRAME_THRESHOLD_PCT = 1.0;
+    private static final Set<Type> SAMPLE_EVENT_TYPES = AiPromptType.allEventTypes();
     private static final String CHUNKS_DIR = "chunks";
 
     private final TempDirFactory tempDirFactory;
@@ -63,29 +63,55 @@ public class RecordingFlamegraphAiExporter {
     }
 
     /**
-     * Parses the given JFR files and builds one AI prompt per sample event type that produced samples.
+     * Parses the given JFR files and builds one AI prompt per profile that produced samples, at the
+     * given prune threshold. The threshold is a parameter rather than a constant because it is a
+     * per-project setting: a service with one obvious hotspot wants a coarse tree, one with diffuse cost
+     * wants a fine one.
      */
-    public List<FlamegraphAiPrompt> export(List<Path> jfrFiles) {
+    public List<FlamegraphAiPrompt> export(List<Path> jfrFiles, double pruneThresholdPct) {
         Map<Type, Frame> framesByType = parse(jfrFiles);
 
-        AiExportConfig config = new AiExportConfig(MIN_FRAME_THRESHOLD_PCT);
+        AiExportConfig config = new AiExportConfig(pruneThresholdPct);
         List<FlamegraphAiPrompt> prompts = new ArrayList<>();
         for (AiPromptType promptType : AiPromptType.values()) {
-            Frame root = framesByType.get(promptType.eventType());
-            if (root == null || root.totalSamples() == 0) {
-                continue;
-            }
+            resolveRoot(framesByType, promptType).ifPresent(resolved -> {
+                String markdown = new FlamegraphAiMarkdownBuilder(resolved.type(), config)
+                        .withThreadMode(false)
+                        .build(resolved.root());
+                ProfileFrameIndex frameIndex =
+                        ProfileFrameIndexBuilder.build(resolved.root(), pruneThresholdPct);
 
-            String markdown = new FlamegraphAiMarkdownBuilder(promptType.eventType(), config)
-                    .withThreadMode(false)
-                    .build(root);
-            prompts.add(new FlamegraphAiPrompt(
-                    promptType.eventType().code(), promptType.label(), root.totalSamples(), markdown));
+                prompts.add(new FlamegraphAiPrompt(
+                        promptType.primaryEventType().code(),
+                        promptType.label(),
+                        resolved.root().totalSamples(),
+                        markdown,
+                        frameIndex));
 
-            LOG.info("Generated AI flamegraph prompt: event_type={} total_samples={}",
-                    promptType.eventType().code(), root.totalSamples());
+                LOG.info("Generated AI flamegraph prompt: prompt_type={} event_type={} total_samples={} indexed_frames={}",
+                        promptType.name(), resolved.type().code(), resolved.root().totalSamples(),
+                        frameIndex.frames().size());
+            });
         }
         return prompts;
+    }
+
+    /**
+     * Picks the first event type of the group that actually produced samples. A recording carries either
+     * {@code ObjectAllocationSample} or the older TLAB pair depending on how it was recorded, and the
+     * person reading the result does not care which.
+     */
+    private static Optional<ResolvedProfile> resolveRoot(Map<Type, Frame> framesByType, AiPromptType promptType) {
+        for (Type type : promptType.eventTypes()) {
+            Frame root = framesByType.get(type);
+            if (root != null && root.totalSamples() > 0) {
+                return Optional.of(new ResolvedProfile(type, root));
+            }
+        }
+        return Optional.empty();
+    }
+
+    private record ResolvedProfile(Type type, Frame root) {
     }
 
     private Map<Type, Frame> parse(List<Path> jfrFiles) {

@@ -26,8 +26,13 @@ import java.nio.file.Path;
  * A repository checked out into a throwaway temp directory. {@link #close()} deletes the entire
  * directory, so callers should use it in a try-with-resources block. {@link #root()} is the working
  * tree root the AI tools are sandboxed to.
+ *
+ * <p>{@code resolvedRef} records which revision was actually analyzed — the requested commit when the
+ * recording named one, otherwise the default branch's head. Every claim made about this checkout is
+ * only true of that revision, so it travels with the result.</p>
  */
-public record ClonedRepository(Path root, TempDirectory tempDirectory) implements AutoCloseable {
+public record ClonedRepository(Path root, String resolvedRef, TempDirectory tempDirectory)
+        implements AutoCloseable {
 
     @Override
     public void close() {

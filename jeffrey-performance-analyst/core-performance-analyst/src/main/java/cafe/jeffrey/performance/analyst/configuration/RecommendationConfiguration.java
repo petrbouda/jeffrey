@@ -26,9 +26,16 @@ import cafe.jeffrey.performance.analyst.flamegraph.RecordingAiPromptManager;
 import cafe.jeffrey.performance.analyst.mcp.RepoToolsRegistry;
 import cafe.jeffrey.performance.analyst.mcp.RepoToolsetFactory;
 import cafe.jeffrey.performance.analyst.persistence.GeneratedRecommendationRepository;
+import cafe.jeffrey.performance.analyst.persistence.RecommendationClaimRepository;
+import cafe.jeffrey.microscope.persistence.api.RecordingTagsRepository;
+import cafe.jeffrey.performance.analyst.recommendations.CommitRefResolver;
+import cafe.jeffrey.performance.analyst.recommendations.RecommendationRunner;
 import cafe.jeffrey.performance.analyst.recommendations.RecommendationTaskRegistry;
 import cafe.jeffrey.performance.analyst.recommendations.RecordingRecommendationManager;
 import cafe.jeffrey.performance.analyst.recommendations.RepositoryCloner;
+import cafe.jeffrey.performance.analyst.verification.CommandRunner;
+import cafe.jeffrey.performance.analyst.verification.PatchVerificationSettings;
+import cafe.jeffrey.performance.analyst.verification.PatchVerifier;
 import cafe.jeffrey.performance.analyst.versioncontrolsystem.VersionControlSystemManager;
 import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
@@ -38,6 +45,9 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Wiring for repository-aware AI recommendations. Active only when an AI provider is configured (same
@@ -58,6 +68,17 @@ public class RecommendationConfiguration {
     private static final String MCP_URL =
             "${jeffrey.performance-analyst.ai.mcp-url:http://127.0.0.1:8080/api/internal/mcp/claude-code}";
 
+    private static final String MAX_CONCURRENT_RUNS =
+            "${jeffrey.performance-analyst.recommendations.max-concurrent-runs:2}";
+    private static final String GIT_PATH =
+            "${jeffrey.performance-analyst.verification.git-path:git}";
+    private static final String COMPILE_COMMAND =
+            "${jeffrey.performance-analyst.verification.compile-command:}";
+    private static final String TEST_COMMAND =
+            "${jeffrey.performance-analyst.verification.test-command:}";
+    private static final String VERIFICATION_TIMEOUT_SECONDS =
+            "${jeffrey.performance-analyst.verification.timeout-seconds:600}";
+
     @Bean
     public RepositoryCloner repositoryCloner(@Value(HOME_DIR) String homeDir) {
         Path tempBase = Path.of(homeDir).resolve(TEMP_SUBDIR);
@@ -75,6 +96,11 @@ public class RecommendationConfiguration {
     }
 
     @Bean
+    public CommitRefResolver commitRefResolver(RecordingTagsRepository recordingTagsRepository) {
+        return new CommitRefResolver(recordingTagsRepository);
+    }
+
+    @Bean
     public RepoToolsRegistry repoToolsRegistry() {
         return new RepoToolsRegistry();
     }
@@ -82,6 +108,31 @@ public class RecommendationConfiguration {
     @Bean
     public RepoToolsetFactory repoToolsetFactory(@Value(MCP_URL) String mcpUrl) {
         return new RepoToolsetFactory(mcpUrl);
+    }
+
+    @Bean
+    public CommandRunner commandRunner() {
+        return new CommandRunner();
+    }
+
+    /**
+     * Patch verification runs the apply check out of the box; compiling and testing a cloned repository
+     * means running that repository's build, so both stay unconfigured until an operator opts in.
+     */
+    @Bean
+    public PatchVerifier patchVerifier(
+            CommandRunner commandRunner,
+            @Value(GIT_PATH) String gitPath,
+            @Value(COMPILE_COMMAND) String compileCommand,
+            @Value(TEST_COMMAND) String testCommand,
+            @Value(VERIFICATION_TIMEOUT_SECONDS) long verificationTimeoutSeconds) {
+
+        PatchVerificationSettings settings = new PatchVerificationSettings(
+                gitPath,
+                splitCommand(compileCommand),
+                splitCommand(testCommand),
+                Duration.ofSeconds(verificationTimeoutSeconds));
+        return new PatchVerifier(commandRunner, settings);
     }
 
     @Bean
@@ -93,9 +144,30 @@ public class RecommendationConfiguration {
             RepoToolsRegistry repoToolsRegistry,
             RepoToolsetFactory repoToolsetFactory,
             GeneratedRecommendationRepository generatedRecommendationRepository,
+            RecommendationClaimRepository recommendationClaimRepository,
+            PatchVerifier patchVerifier,
             Clock clock) {
         return new RecordingRecommendationManager(
                 versionControlSystemManager, recordingAiPromptManager, repositoryCloner, aiChatBackend,
-                repoToolsRegistry, repoToolsetFactory, generatedRecommendationRepository, clock);
+                repoToolsRegistry, repoToolsetFactory, generatedRecommendationRepository,
+                recommendationClaimRepository, patchVerifier, clock);
+    }
+
+    @Bean
+    public RecommendationRunner recommendationRunner(
+            RecordingRecommendationManager recordingRecommendationManager,
+            @Value(MAX_CONCURRENT_RUNS) int maxConcurrentRuns) {
+        return new RecommendationRunner(recordingRecommendationManager, maxConcurrentRuns);
+    }
+
+    /**
+     * Splits a configured command line on whitespace. Blank configuration yields an empty list, which is
+     * what marks the corresponding verification level as not configured.
+     */
+    private static List<String> splitCommand(String command) {
+        if (command == null || command.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(command.trim().split("\\s+")).toList();
     }
 }

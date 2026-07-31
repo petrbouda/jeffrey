@@ -30,5 +30,11 @@ export default defineConfig({
   },
   build: {
     outDir: './target/dist/pages-performance-analyst'
+  },
+  test: {
+    // jsdom rather than node: the markdown renderer sanitizes against a real DOM, which is the only
+    // way to assert that a hostile attribute is actually stripped rather than merely escaped.
+    environment: 'jsdom',
+    include: ['src/**/*.spec.ts']
   }
 });

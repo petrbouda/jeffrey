@@ -22,8 +22,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import cafe.jeffrey.performance.analyst.flamegraph.FlamegraphAiPrompt;
+import cafe.jeffrey.performance.analyst.flamegraph.AiPromptResponse;
 import cafe.jeffrey.performance.analyst.flamegraph.RecordingAiPromptManager;
 
 import java.util.List;
@@ -43,12 +44,14 @@ public class FlamegraphAiExportController {
     }
 
     @PostMapping("/{recordingId}/ai-flamegraph-export")
-    public List<FlamegraphAiPrompt> aiExport(@PathVariable("recordingId") String recordingId) {
-        return promptManager.getPrompts(recordingId);
+    public List<AiPromptResponse> aiExport(
+            @PathVariable("recordingId") String recordingId,
+            @RequestParam(value = "projectId", required = false) String projectId) {
+        return AiPromptResponse.from(promptManager.getPrompts(recordingId, projectId));
     }
 
     @GetMapping("/{recordingId}/ai-flamegraph-export")
-    public List<FlamegraphAiPrompt> peek(@PathVariable("recordingId") String recordingId) {
-        return promptManager.peekPrompts(recordingId);
+    public List<AiPromptResponse> peek(@PathVariable("recordingId") String recordingId) {
+        return AiPromptResponse.from(promptManager.peekPrompts(recordingId));
     }
 }

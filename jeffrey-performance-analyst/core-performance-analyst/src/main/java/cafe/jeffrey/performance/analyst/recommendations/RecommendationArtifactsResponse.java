@@ -19,20 +19,45 @@
 package cafe.jeffrey.performance.analyst.recommendations;
 
 import cafe.jeffrey.performance.analyst.persistence.GeneratedRecommendation;
+import cafe.jeffrey.performance.analyst.persistence.StoredClaim;
+import cafe.jeffrey.performance.analyst.verification.PatchVerification;
 import cafe.jeffrey.shared.common.model.Severity;
+
+import java.util.List;
 
 /**
  * A previously generated recommendation result for one sample event type, returned by the peek endpoint
- * so the UI can restore the artifacts (severity + recommendations + patch) on page load.
+ * so the UI can restore everything it showed the first time — the artifacts, what was established about
+ * the patch, the checked claims, and what the run cost — without re-running anything.
  */
 public record RecommendationArtifactsResponse(
         String eventType,
         Severity severity,
         String recommendations,
-        String patch) {
+        String patch,
+        PatchVerification verification,
+        List<ClaimResponse> claims,
+        long inputTokens,
+        long outputTokens,
+        Double costUsd) {
 
-    public static RecommendationArtifactsResponse from(GeneratedRecommendation stored) {
+    public RecommendationArtifactsResponse {
+        claims = claims == null ? List.of() : List.copyOf(claims);
+    }
+
+    public static RecommendationArtifactsResponse from(GeneratedRecommendation stored, List<StoredClaim> claims) {
         return new RecommendationArtifactsResponse(
-                stored.eventType(), stored.severity(), stored.recommendations(), stored.patch());
+                stored.eventType(),
+                stored.severity(),
+                stored.recommendations(),
+                stored.patch(),
+                stored.verification(),
+                claims.stream()
+                        .filter(claim -> claim.eventType().equals(stored.eventType()))
+                        .map(ClaimResponse::from)
+                        .toList(),
+                stored.usage().inputTokens(),
+                stored.usage().outputTokens(),
+                stored.usage().costUsd());
     }
 }
