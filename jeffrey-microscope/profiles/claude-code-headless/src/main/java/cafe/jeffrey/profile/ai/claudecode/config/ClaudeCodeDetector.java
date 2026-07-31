@@ -19,11 +19,12 @@
 package cafe.jeffrey.profile.ai.claudecode.config;
 
 import cafe.jeffrey.profile.ai.claudecode.ClaudeCodeCliClient;
+import cafe.jeffrey.profile.ai.config.AiSettings;
+import cafe.jeffrey.shared.common.config.SettingsStore;
 
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Supplier;
 
 /**
  * Detects whether the Claude Code CLI is installed on the host, independent of whether an AI provider is
@@ -33,6 +34,9 @@ import java.util.function.Supplier;
  * The CLI path is read on every call rather than captured, because it is a user-editable setting that
  * can change while the application runs. Probing costs a subprocess, so results are memoized — but keyed
  * <em>by path</em>: memoizing a single result would make a corrected path keep reporting the old verdict.
+ * <p>
+ * The path is resolved through {@link AiSettings} rather than read directly, so its default lives in
+ * one place alongside the rest of the AI settings.
  */
 public final class ClaudeCodeDetector {
 
@@ -40,11 +44,11 @@ public final class ClaudeCodeDetector {
     // has its own internal timeout.
     private static final Duration UNUSED_INVOCATION_TIMEOUT = Duration.ofSeconds(60);
 
-    private final Supplier<String> cliPath;
+    private final SettingsStore settingsStore;
     private final Map<String, Boolean> probesByPath = new ConcurrentHashMap<>();
 
-    public ClaudeCodeDetector(Supplier<String> cliPath) {
-        this.cliPath = cliPath;
+    public ClaudeCodeDetector(SettingsStore settingsStore) {
+        this.settingsStore = settingsStore;
     }
 
     /**
@@ -52,7 +56,8 @@ public final class ClaudeCodeDetector {
      * {@code --version}. The verdict is memoized per path.
      */
     public boolean isInstalled() {
-        return probesByPath.computeIfAbsent(cliPath.get(), ClaudeCodeDetector::probe);
+        String path = AiSettings.from(settingsStore).cliPath();
+        return probesByPath.computeIfAbsent(path, ClaudeCodeDetector::probe);
     }
 
     private static boolean probe(String path) {

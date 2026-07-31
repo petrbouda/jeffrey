@@ -20,7 +20,6 @@ package cafe.jeffrey.profile.ai.claudecode.config;
 
 import org.springframework.context.annotation.Bean;
 import cafe.jeffrey.profile.ai.config.AiBackendProvider;
-import cafe.jeffrey.shared.common.config.MicroscopeSettingKeys;
 import cafe.jeffrey.shared.common.config.SettingsStore;
 
 /**
@@ -33,19 +32,13 @@ import cafe.jeffrey.shared.common.config.SettingsStore;
  */
 public class ClaudeCodeConfiguration {
 
-    private static final String DEFAULT_CLI_PATH = "claude";
-
     /**
      * Detects whether the CLI is installed. Declared here rather than in the application module
      * because this module owns the class, and the provider bean below depends on it.
-     * <p>
-     * The CLI path is supplied rather than fixed, so editing it in the settings page takes effect
-     * without a restart.
      */
     @Bean
     public ClaudeCodeDetector claudeCodeDetector(SettingsStore settingsStore) {
-        return new ClaudeCodeDetector(
-                () -> settingsStore.getString(MicroscopeSettingKeys.AI_CLI_PATH, DEFAULT_CLI_PATH));
+        return new ClaudeCodeDetector(settingsStore);
     }
 
     @Bean

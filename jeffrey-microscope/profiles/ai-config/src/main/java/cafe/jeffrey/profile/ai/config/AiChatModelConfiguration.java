@@ -22,7 +22,6 @@ import org.springframework.context.annotation.Bean;
 import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.chat.McpToolsetFactory;
 import cafe.jeffrey.profile.ai.chat.SettingsDrivenAiChatBackend;
-import cafe.jeffrey.shared.common.config.MicroscopeSettingKeys;
 import cafe.jeffrey.shared.common.config.SettingsStore;
 
 import java.util.List;
@@ -42,12 +41,9 @@ import java.util.List;
  */
 public class AiChatModelConfiguration {
 
-    private static final String DEFAULT_MCP_URL = "http://127.0.0.1:8080/api/internal/mcp/claude-code";
-
     @Bean
     public McpToolsetFactory mcpToolsetFactory(SettingsStore settingsStore) {
-        return new McpToolsetFactory(
-                () -> settingsStore.getString(MicroscopeSettingKeys.AI_MCP_URL, DEFAULT_MCP_URL));
+        return new McpToolsetFactory(settingsStore);
     }
 
     @Bean
