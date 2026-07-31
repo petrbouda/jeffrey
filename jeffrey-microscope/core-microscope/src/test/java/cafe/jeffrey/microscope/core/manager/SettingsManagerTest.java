@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.microscope.core.manager;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -27,25 +26,20 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.boot.logging.LogLevel;
+import org.springframework.boot.logging.LoggingSystem;
 import cafe.jeffrey.microscope.core.configuration.SettingDescriptor;
 import cafe.jeffrey.microscope.core.configuration.SettingsMetadata;
 import cafe.jeffrey.microscope.persistence.api.Setting;
 import cafe.jeffrey.microscope.persistence.api.SettingsRepository;
-import cafe.jeffrey.shared.common.config.SettingsChangeDispatcher;
-import cafe.jeffrey.shared.common.config.SettingsChangeListener;
 import cafe.jeffrey.shared.common.config.SettingsStore;
 import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
 import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
@@ -57,16 +51,18 @@ import static org.mockito.Mockito.when;
 class SettingsManagerTest {
 
     private static final String AI_CATEGORY = "ai";
+    private static final String LOGGING_CATEGORY = "logging";
     private static final String PROVIDER = "jeffrey.microscope.ai.provider";
     private static final String API_KEY = "jeffrey.microscope.ai.api-key";
     private static final String MAX_TOKENS = "jeffrey.microscope.ai.max-tokens";
     private static final String LOG_LEVEL = "logging.level.cafe.jeffrey";
+    private static final String JEFFREY_LOGGER = "cafe.jeffrey";
 
     private static final SettingsMetadata METADATA = new SettingsMetadata(List.of(
             SettingDescriptor.of(AI_CATEGORY, PROVIDER, "none", false),
             SettingDescriptor.of(AI_CATEGORY, API_KEY, "", true),
             SettingDescriptor.of(AI_CATEGORY, MAX_TOKENS, "128000", false),
-            SettingDescriptor.of("logging", LOG_LEVEL, "INFO", false)));
+            SettingDescriptor.of(LOGGING_CATEGORY, LOG_LEVEL, "INFO", false)));
 
     @Mock
     private SettingsRepository settingsRepository;
@@ -77,11 +73,10 @@ class SettingsManagerTest {
     @Mock
     private MachineFingerprint machineFingerprint;
 
-    /** Counts how many times listeners were applied, so batching behaviour is observable. */
-    private final AtomicInteger applies = new AtomicInteger();
+    @Mock
+    private LoggingSystem loggingSystem;
 
     private SettingsStore store;
-    private SettingsChangeDispatcher dispatcher;
     private SettingsManager manager;
 
     @BeforeEach
@@ -90,27 +85,8 @@ class SettingsManagerTest {
                 new MachineFingerprint.Result("test-fingerprint", MachineFingerprint.BindingMode.MACHINE_BOUND));
 
         store = new SettingsStore(METADATA.defaults(), Map.of());
-        dispatcher = new SettingsChangeDispatcher(store, () -> List.of(new CountingListener()));
         manager = new SettingsManager(
-                settingsRepository, secretEncryptor, machineFingerprint, store, METADATA, dispatcher);
-    }
-
-    @AfterEach
-    void tearDown() {
-        dispatcher.close();
-    }
-
-    private final class CountingListener implements SettingsChangeListener {
-
-        @Override
-        public Set<String> observedSettings() {
-            return Set.of(PROVIDER, API_KEY, MAX_TOKENS, LOG_LEVEL);
-        }
-
-        @Override
-        public void onChanged(SettingsStore ignored) {
-            applies.incrementAndGet();
-        }
+                settingsRepository, secretEncryptor, machineFingerprint, store, METADATA, loggingSystem);
     }
 
     @Nested
@@ -161,22 +137,50 @@ class SettingsManagerTest {
 
             assertEquals("128000", manager.getResolvedValue(MAX_TOKENS));
         }
+    }
+
+    /**
+     * The log level is the only setting that has to be pushed somewhere; everything else is picked up
+     * by whoever next reads the store.
+     */
+    @Nested
+    class LogLevelIsAppliedDirectly {
 
         @Test
-        void changeIsAppliedToListeners() {
-            manager.upsert(AI_CATEGORY, PROVIDER, "ollama", false);
+        void appliesTheNewLevel() {
+            manager.upsert(LOGGING_CATEGORY, LOG_LEVEL, "DEBUG", false);
 
-            await().atMost(5, SECONDS).untilAsserted(() -> assertEquals(1, applies.get()));
+            verify(loggingSystem).setLogLevel(JEFFREY_LOGGER, LogLevel.DEBUG);
         }
 
         @Test
-        void rewritingTheSameValueAppliesNothing() {
-            manager.upsert(AI_CATEGORY, PROVIDER, "none", false);
+        void normalisesCase() {
+            manager.upsert(LOGGING_CATEGORY, LOG_LEVEL, "debug", false);
 
-            verify(settingsRepository).upsert(new Setting(AI_CATEGORY, PROVIDER, "none", false));
-            await().during(Duration.ofMillis(500))
-                    .atMost(5, SECONDS)
-                    .untilAsserted(() -> assertEquals(0, applies.get()));
+            verify(loggingSystem).setLogLevel(JEFFREY_LOGGER, LogLevel.DEBUG);
+        }
+
+        @Test
+        void isAppliedBeforeTheCallReturns() {
+            manager.upsert(LOGGING_CATEGORY, LOG_LEVEL, "WARN", false);
+
+            // No awaiting: the apply is synchronous, so a plain verify is enough.
+            verify(loggingSystem).setLogLevel(JEFFREY_LOGGER, LogLevel.WARN);
+        }
+
+        @Test
+        void anUnrelatedSettingLeavesTheLoggingSystemAlone() {
+            manager.upsert(AI_CATEGORY, PROVIDER, "ollama", false);
+
+            verifyNoInteractions(loggingSystem);
+        }
+
+        @Test
+        void rewritingTheSameLevelChangesNothing() {
+            manager.upsert(LOGGING_CATEGORY, LOG_LEVEL, "INFO", false);
+
+            verify(settingsRepository).upsert(new Setting(LOGGING_CATEGORY, LOG_LEVEL, "INFO", false));
+            verifyNoInteractions(loggingSystem);
         }
     }
 
@@ -210,9 +214,10 @@ class SettingsManagerTest {
         @Test
         void unknownLogLevelIsRejected() {
             assertThrows(JeffreyClientException.class,
-                    () -> manager.upsert("logging", LOG_LEVEL, "VERBOSE", false));
+                    () -> manager.upsert(LOGGING_CATEGORY, LOG_LEVEL, "VERBOSE", false));
 
             verifyNoInteractions(settingsRepository);
+            verifyNoInteractions(loggingSystem);
         }
 
         @Test
@@ -250,23 +255,22 @@ class SettingsManagerTest {
         }
 
         @Test
-        void appliesListenersOnceForTheWholeBatch() {
+        void everyValueIsInTheStoreWhenTheCallReturns() {
             manager.upsertAll(List.of(
                     new SettingUpdate(AI_CATEGORY, PROVIDER, "ollama", false),
                     new SettingUpdate(AI_CATEGORY, MAX_TOKENS, "4096", false)));
 
-            await().atMost(5, SECONDS).untilAsserted(() -> assertEquals(1, applies.get()));
+            assertEquals("ollama", store.get(PROVIDER));
+            assertEquals("4096", store.get(MAX_TOKENS));
         }
 
         @Test
-        void listenersObserveEveryValueOfTheBatch() {
+        void appliesTheLogLevelOnceWhenItIsPartOfTheBatch() {
             manager.upsertAll(List.of(
                     new SettingUpdate(AI_CATEGORY, PROVIDER, "ollama", false),
-                    new SettingUpdate(AI_CATEGORY, MAX_TOKENS, "4096", false)));
+                    new SettingUpdate(LOGGING_CATEGORY, LOG_LEVEL, "ERROR", false)));
 
-            await().atMost(5, SECONDS).untilAsserted(() -> assertEquals(1, applies.get()));
-            assertEquals("ollama", store.get(PROVIDER));
-            assertEquals("4096", store.get(MAX_TOKENS));
+            verify(loggingSystem).setLogLevel(JEFFREY_LOGGER, LogLevel.ERROR);
         }
 
         @Test
@@ -291,7 +295,7 @@ class SettingsManagerTest {
                     new MachineFingerprint.Result("user-only", MachineFingerprint.BindingMode.USER_BOUND));
 
             SettingsManager fallbackManager = new SettingsManager(
-                    settingsRepository, secretEncryptor, machineFingerprint, store, METADATA, dispatcher);
+                    settingsRepository, secretEncryptor, machineFingerprint, store, METADATA, loggingSystem);
 
             assertEquals(MachineFingerprint.BindingMode.USER_BOUND, fallbackManager.getBindingMode());
         }

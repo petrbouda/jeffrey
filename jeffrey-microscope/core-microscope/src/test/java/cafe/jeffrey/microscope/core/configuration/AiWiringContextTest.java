@@ -23,14 +23,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.chat.McpToolsetFactory;
-import cafe.jeffrey.profile.ai.chat.ReloadableAiChatBackend;
+import cafe.jeffrey.profile.ai.chat.SettingsDrivenAiChatBackend;
 import cafe.jeffrey.profile.ai.claudecode.config.ClaudeCodeConfiguration;
 import cafe.jeffrey.profile.ai.config.AiChatModelConfiguration;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.config.HeapDumpMcpConfiguration;
@@ -41,12 +40,11 @@ import cafe.jeffrey.profile.ai.oql.config.AiAssistantConfiguration;
 import cafe.jeffrey.profile.ai.oql.service.OqlAssistantService;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 import cafe.jeffrey.shared.common.config.MicroscopeSettingKeys;
-import cafe.jeffrey.shared.common.config.SettingsChangeDispatcher;
-import cafe.jeffrey.shared.common.config.SettingsChangeListener;
 import cafe.jeffrey.shared.common.config.SettingsStore;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -104,13 +102,6 @@ class AiWiringContextTest {
                     MicroscopeSettingKeys.AI_MODEL, MODELS.getOrDefault(provider, "")));
         }
 
-        @Bean(destroyMethod = "close")
-        public SettingsChangeDispatcher settingsChangeDispatcher(
-                SettingsStore settingsStore, ObjectProvider<SettingsChangeListener> listeners) {
-
-            return new SettingsChangeDispatcher(settingsStore, () -> listeners.stream().toList());
-        }
-
         @Bean
         public DatabaseManagerResolver databaseManagerResolver() {
             return Mockito.mock(DatabaseManagerResolver.class);
@@ -151,18 +142,17 @@ class AiWiringContextTest {
 
         @ParameterizedTest
         @ValueSource(strings = {"none", "claude-code"})
-        void theBackendIsTheReloadableOne(String provider) {
+        void theBackendIsTheSettingsDrivenOne(String provider) {
             try (AnnotationConfigApplicationContext context = contextFor(provider)) {
-                assertNotNull(context.getBean(ReloadableAiChatBackend.class));
-                assertSame(context.getBean(AiChatBackend.class), context.getBean(ReloadableAiChatBackend.class));
+                assertNotNull(context.getBean(SettingsDrivenAiChatBackend.class));
+                assertSame(context.getBean(AiChatBackend.class), context.getBean(SettingsDrivenAiChatBackend.class));
             }
         }
 
         @Test
-        void theBackendIsAlsoRegisteredAsASettingsListener() {
+        void noBackgroundMachineryIsRegistered() {
             try (AnnotationConfigApplicationContext context = contextFor("none")) {
-                assertTrue(context.getBeansOfType(SettingsChangeListener.class)
-                        .containsValue(context.getBean(ReloadableAiChatBackend.class)));
+                assertEquals(0, context.getBeanNamesForType(ExecutorService.class).length);
             }
         }
     }
@@ -229,9 +219,7 @@ class AiWiringContextTest {
                 JfrAnalysisAssistantService assistant = context.getBean(JfrAnalysisAssistantService.class);
                 assertFalse(assistant.isAvailable());
 
-                SettingsStore store = context.getBean(SettingsStore.class);
-                store.put(MicroscopeSettingKeys.AI_PROVIDER, "ollama");
-                context.getBean(ReloadableAiChatBackend.class).onChanged(store);
+                context.getBean(SettingsStore.class).put(MicroscopeSettingKeys.AI_PROVIDER, "ollama");
 
                 assertTrue(assistant.isAvailable());
                 assertEquals("Ollama", assistant.getProviderName());
@@ -244,9 +232,8 @@ class AiWiringContextTest {
                 JfrAnalysisAssistantService assistant = context.getBean(JfrAnalysisAssistantService.class);
                 assertTrue(assistant.isAvailable());
 
-                SettingsStore store = context.getBean(SettingsStore.class);
-                store.put(MicroscopeSettingKeys.AI_PROVIDER, MicroscopeSettingKeys.PROVIDER_NONE);
-                context.getBean(ReloadableAiChatBackend.class).onChanged(store);
+                context.getBean(SettingsStore.class)
+                        .put(MicroscopeSettingKeys.AI_PROVIDER, MicroscopeSettingKeys.PROVIDER_NONE);
 
                 assertFalse(assistant.isAvailable());
             }
@@ -258,9 +245,7 @@ class AiWiringContextTest {
                 OqlAssistantService assistant = context.getBean(OqlAssistantService.class);
                 assertEquals("Ollama", assistant.getStatus().provider());
 
-                SettingsStore store = context.getBean(SettingsStore.class);
-                store.put(MicroscopeSettingKeys.AI_PROVIDER, "claude");
-                context.getBean(ReloadableAiChatBackend.class).onChanged(store);
+                context.getBean(SettingsStore.class).put(MicroscopeSettingKeys.AI_PROVIDER, "claude");
 
                 assertEquals("Claude", assistant.getStatus().provider());
             }

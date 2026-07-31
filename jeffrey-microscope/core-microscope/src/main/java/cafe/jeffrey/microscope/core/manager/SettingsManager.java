@@ -20,11 +20,13 @@ package cafe.jeffrey.microscope.core.manager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.logging.LogLevel;
+import org.springframework.boot.logging.LoggingSystem;
 import cafe.jeffrey.microscope.core.configuration.SettingDescriptor;
 import cafe.jeffrey.microscope.core.configuration.SettingsMetadata;
 import cafe.jeffrey.microscope.persistence.api.Setting;
 import cafe.jeffrey.microscope.persistence.api.SettingsRepository;
-import cafe.jeffrey.shared.common.config.SettingsChangeDispatcher;
+import cafe.jeffrey.shared.common.config.MicroscopeSettingKeys;
 import cafe.jeffrey.shared.common.config.SettingsStore;
 import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
 import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
@@ -32,16 +34,20 @@ import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * Business logic for application settings. Validates incoming values, encrypts secrets, persists the
  * change, and applies it to the running application.
  * <p>
- * A saved setting takes effect immediately: the plaintext value is written into the live
- * {@link SettingsStore} — which backs the Spring {@code Environment} — and the change is handed to the
- * {@link SettingsChangeDispatcher} so listeners that hold expensive derived objects can rebuild them.
- * Nothing here requires a restart.
+ * A saved setting takes effect immediately, and by the time this method returns: the plaintext value
+ * is written into the live {@link SettingsStore}, and everything that consumes a setting reads the
+ * store at the point of use. There is nothing to notify and nothing to rebuild.
+ * <p>
+ * The one exception is the log level. Nothing reads it — {@link LoggingSystem#setLogLevel} has to be
+ * called — so it is applied here directly.
  * <p>
  * Validation happens <em>before</em> anything is written. Values used to be converted by
  * {@code @Value} at startup, so a malformed one failed the boot; now that they are read lazily, a bad
@@ -52,11 +58,21 @@ public class SettingsManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(SettingsManager.class);
 
+    private static final String JEFFREY_LOGGER = "cafe.jeffrey";
+
+    private static final Map<String, LogLevel> LOG_LEVELS = Map.of(
+            "TRACE", LogLevel.TRACE,
+            "DEBUG", LogLevel.DEBUG,
+            "INFO", LogLevel.INFO,
+            "WARN", LogLevel.WARN,
+            "ERROR", LogLevel.ERROR,
+            "OFF", LogLevel.OFF);
+
     private final SettingsRepository settingsRepository;
     private final SecretEncryptor secretEncryptor;
     private final SettingsStore settingsStore;
     private final SettingsMetadata settingsMetadata;
-    private final SettingsChangeDispatcher changeDispatcher;
+    private final LoggingSystem loggingSystem;
     private final MachineFingerprint.BindingMode bindingMode;
 
     public SettingsManager(
@@ -65,13 +81,13 @@ public class SettingsManager {
             MachineFingerprint machineFingerprint,
             SettingsStore settingsStore,
             SettingsMetadata settingsMetadata,
-            SettingsChangeDispatcher changeDispatcher) {
+            LoggingSystem loggingSystem) {
 
         this.settingsRepository = settingsRepository;
         this.secretEncryptor = secretEncryptor;
         this.settingsStore = settingsStore;
         this.settingsMetadata = settingsMetadata;
-        this.changeDispatcher = changeDispatcher;
+        this.loggingSystem = loggingSystem;
         this.bindingMode = machineFingerprint.resolve().mode();
     }
 
@@ -86,9 +102,7 @@ public class SettingsManager {
      * Validates, persists, and applies a batch of settings.
      * <p>
      * The whole batch is validated before any of it is written, so a single bad value cannot leave the
-     * application half-updated. Listeners are notified once for the batch rather than once per setting:
-     * a settings page saves every field of a tab together, and rebuilding an AI backend against a
-     * partially applied batch would use a new provider with a stale API key.
+     * application half-updated.
      *
      * @throws cafe.jeffrey.shared.common.exception.JeffreyClientException when a name is unknown or a
      *                                                                     value is outside its domain
@@ -115,7 +129,26 @@ public class SettingsManager {
                     update.category(), update.name(), update.secret());
         }
 
-        changeDispatcher.changed(changed);
+        if (changed.contains(MicroscopeSettingKeys.LOGGING_LEVEL)) {
+            applyLogLevel();
+        }
+    }
+
+    /**
+     * The log level is the only setting nobody reads on demand, so it is pushed into the logging
+     * system here. Every other setting is picked up by whoever next reads the store.
+     */
+    private void applyLogLevel() {
+        String value = settingsStore.getString(MicroscopeSettingKeys.LOGGING_LEVEL, "");
+        LogLevel level = LOG_LEVELS.get(value.trim().toUpperCase(Locale.ROOT));
+
+        if (level == null) {
+            LOG.warn("Unknown log level, keeping the current one: value={}", value);
+            return;
+        }
+
+        loggingSystem.setLogLevel(JEFFREY_LOGGER, level);
+        LOG.info("Log level applied: logger={} level={}", JEFFREY_LOGGER, level);
     }
 
     /**

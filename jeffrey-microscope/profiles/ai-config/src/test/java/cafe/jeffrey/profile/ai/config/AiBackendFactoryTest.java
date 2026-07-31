@@ -22,7 +22,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.chat.ChatExchange;
-import cafe.jeffrey.profile.ai.chat.DisabledAiChatBackend;
 import cafe.jeffrey.profile.ai.chat.ToolCallResult;
 import cafe.jeffrey.profile.ai.chat.ToolExchange;
 import cafe.jeffrey.shared.common.config.MicroscopeSettingKeys;
@@ -31,10 +30,11 @@ import cafe.jeffrey.shared.common.config.SettingsStore;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AiBackendFactoryTest {
 
@@ -49,6 +49,11 @@ class AiBackendFactoryTest {
 
     /** Stands in for a real provider without building any SDK client. */
     private record StubProvider(String providerId) implements AiBackendProvider {
+
+        @Override
+        public String displayName() {
+            return providerId;
+        }
 
         @Override
         public AiChatBackend create(AiSettings settings) {
@@ -102,47 +107,51 @@ class AiBackendFactoryTest {
 
         @Test
         void selectsTheMatchingProvider() {
-            assertEquals("claude", factory().create(settingsFor("claude")).providerName());
+            assertEquals("claude", factory().find(settingsFor("claude")).orElseThrow().providerId());
         }
 
         @Test
         void selectsAProviderContributedByAnotherModule() {
-            assertEquals("claude-code", factory().create(settingsFor("claude-code")).providerName());
+            assertEquals("claude-code", factory().find(settingsFor("claude-code")).orElseThrow().providerId());
         }
 
         @Test
         void isCaseInsensitive() {
-            assertEquals("ollama", factory().create(settingsFor("OLLAMA")).providerName());
+            assertEquals("ollama", factory().find(settingsFor("OLLAMA")).orElseThrow().providerId());
         }
 
         @Test
         void ignoresSurroundingWhitespace() {
-            assertEquals("chatgpt", factory().create(settingsFor("  chatgpt  ")).providerName());
+            assertEquals("chatgpt", factory().find(settingsFor("  chatgpt  ")).orElseThrow().providerId());
+        }
+
+        @Test
+        void exposesEveryKnownProvider() {
+            assertEquals(Set.of("claude", "chatgpt", "ollama", "claude-code"), factory().knownProviders());
         }
     }
 
     @Nested
-    class DisabledProvider {
+    class NoProvider {
 
         @Test
-        void noneYieldsADisabledBackend() {
-            assertInstanceOf(DisabledAiChatBackend.class, factory().create(settingsFor("none")));
+        void noneResolvesToEmpty() {
+            assertTrue(factory().find(settingsFor("none")).isEmpty());
         }
 
         @Test
-        void unknownProviderYieldsADisabledBackendRatherThanFailing() {
-            assertInstanceOf(DisabledAiChatBackend.class, factory().create(settingsFor("gemini")));
+        void anUnknownProviderResolvesToEmptyRatherThanFailing() {
+            assertTrue(factory().find(settingsFor("gemini")).isEmpty());
         }
 
         @Test
-        void emptyProviderYieldsADisabledBackend() {
-            assertInstanceOf(DisabledAiChatBackend.class, factory().create(settingsFor("")));
+        void anEmptyProviderResolvesToEmpty() {
+            assertTrue(factory().find(settingsFor("")).isEmpty());
         }
 
         @Test
-        void anEmptyRegistryStillResolvesToDisabled() {
-            AiBackendFactory empty = new AiBackendFactory(List.of());
-            assertInstanceOf(DisabledAiChatBackend.class, empty.create(settingsFor("claude")));
+        void anEmptyRegistryResolvesToEmpty() {
+            assertTrue(new AiBackendFactory(List.of()).find(settingsFor("claude")).isEmpty());
         }
     }
 

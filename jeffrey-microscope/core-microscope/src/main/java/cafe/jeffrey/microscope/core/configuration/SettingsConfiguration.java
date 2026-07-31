@@ -18,15 +18,12 @@
 
 package cafe.jeffrey.microscope.core.configuration;
 
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.logging.LoggingSystem;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import cafe.jeffrey.microscope.core.manager.SettingsManager;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.jdbc.JdbcSettingsRepository;
-import cafe.jeffrey.shared.common.config.SettingsChangeDispatcher;
-import cafe.jeffrey.shared.common.config.SettingsChangeListener;
 import cafe.jeffrey.shared.common.config.SettingsStore;
 import cafe.jeffrey.shared.common.encryption.MachineFingerprint;
 import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
@@ -41,29 +38,12 @@ import cafe.jeffrey.shared.common.encryption.SecretEncryptor;
 @Configuration
 public class SettingsConfiguration {
 
-    /**
-     * Listeners are resolved through an {@link ObjectProvider} rather than injected directly: the AI
-     * backend is itself a listener and needs the dispatcher to schedule cleanup of the backend it
-     * replaces, which would otherwise be a construction cycle.
-     */
-    @Bean(destroyMethod = "close")
-    public SettingsChangeDispatcher settingsChangeDispatcher(
-            SettingsStore settingsStore, ObjectProvider<SettingsChangeListener> listeners) {
-
-        return new SettingsChangeDispatcher(settingsStore, () -> listeners.stream().toList());
-    }
-
-    @Bean
-    public LoggingLevelChangeListener loggingLevelChangeListener(LoggingSystem loggingSystem) {
-        return new LoggingLevelChangeListener(loggingSystem);
-    }
-
     @Bean
     public SettingsManager settingsManager(
             MicroscopeCorePersistenceProvider localCorePersistenceProvider,
             SettingsStore settingsStore,
             SettingsMetadata settingsMetadata,
-            SettingsChangeDispatcher settingsChangeDispatcher) {
+            LoggingSystem loggingSystem) {
 
         var machineFingerprint = new MachineFingerprint();
         var secretEncryptor = new SecretEncryptor(machineFingerprint);
@@ -74,6 +54,6 @@ public class SettingsConfiguration {
                 machineFingerprint,
                 settingsStore,
                 settingsMetadata,
-                settingsChangeDispatcher);
+                loggingSystem);
     }
 }

@@ -18,26 +18,21 @@
 
 package cafe.jeffrey.profile.ai.config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import cafe.jeffrey.profile.ai.chat.AiChatBackend;
-import cafe.jeffrey.profile.ai.chat.DisabledAiChatBackend;
-
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Selects the {@link AiBackendProvider} matching the configured provider and builds a backend from it.
+ * Looks up the {@link AiBackendProvider} matching the configured provider.
  * <p>
- * An unknown or absent provider yields a {@link DisabledAiChatBackend} rather than an error: AI is an
- * optional feature, and "not configured" is the normal state for a fresh installation.
+ * An unknown or absent provider resolves to empty rather than an error: AI is optional, and "not
+ * configured" is the normal state for a fresh installation.
  */
 public class AiBackendFactory {
-
-    private static final Logger LOG = LoggerFactory.getLogger(AiBackendFactory.class);
 
     private final Map<String, AiBackendProvider> providersById;
 
@@ -48,16 +43,16 @@ public class AiBackendFactory {
     }
 
     /**
-     * @return a backend for the configured provider, or a disabled one when AI is off or unrecognised
+     * @return the provider for these settings, or empty when AI is off or the provider is unrecognised
      */
-    public AiChatBackend create(AiSettings settings) {
-        AiBackendProvider provider = providersById.get(settings.provider());
-        if (provider == null) {
-            LOG.info("AI is not enabled: provider={} known_providers={}",
-                    settings.provider(), providersById.keySet());
-            return new DisabledAiChatBackend();
-        }
+    public Optional<AiBackendProvider> find(AiSettings settings) {
+        return Optional.ofNullable(providersById.get(settings.provider()));
+    }
 
-        return provider.create(settings);
+    /**
+     * @return every provider identifier that can be configured; used for diagnostics
+     */
+    public Set<String> knownProviders() {
+        return providersById.keySet();
     }
 }

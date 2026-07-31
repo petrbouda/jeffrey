@@ -18,8 +18,6 @@
 
 package cafe.jeffrey.profile.ai.claudecode.config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.claudecode.ClaudeCodeChatBackend;
 import cafe.jeffrey.profile.ai.claudecode.ClaudeCodeCliClient;
@@ -32,10 +30,19 @@ import cafe.jeffrey.profile.ai.config.AiSettings;
  */
 public final class ClaudeCodeBackendProvider implements AiBackendProvider {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ClaudeCodeBackendProvider.class);
-
     private static final String PROVIDER_ID = "claude-code";
-    private static final String CLI_DEFAULT_MODEL = "<cli-default>";
+    private static final String DISPLAY_NAME = "Claude Code";
+
+    private final ClaudeCodeDetector detector;
+
+    /**
+     * @param detector answers "is the CLI installed", memoized per CLI path. Availability is asked far
+     *                 more often than the CLI is invoked — once per profile page load — so it must not
+     *                 fork a process each time.
+     */
+    public ClaudeCodeBackendProvider(ClaudeCodeDetector detector) {
+        this.detector = detector;
+    }
 
     @Override
     public String providerId() {
@@ -43,12 +50,17 @@ public final class ClaudeCodeBackendProvider implements AiBackendProvider {
     }
 
     @Override
-    public AiChatBackend create(AiSettings settings) {
-        LOG.info("Creating Claude Code backend: cli_path={} model={} timeout_in_sec={}",
-                settings.cliPath(),
-                settings.model().isBlank() ? CLI_DEFAULT_MODEL : settings.model(),
-                settings.timeout().toSeconds());
+    public String displayName() {
+        return DISPLAY_NAME;
+    }
 
+    @Override
+    public boolean isAvailable(AiSettings settings) {
+        return detector.isInstalled();
+    }
+
+    @Override
+    public AiChatBackend create(AiSettings settings) {
         ClaudeCodeCliClient cliClient = new ClaudeCodeCliClient(settings.cliPath(), settings.timeout());
         return new ClaudeCodeChatBackend(cliClient, settings.model());
     }

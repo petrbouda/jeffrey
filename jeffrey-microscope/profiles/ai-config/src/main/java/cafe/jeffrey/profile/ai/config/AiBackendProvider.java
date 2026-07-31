@@ -35,8 +35,25 @@ public interface AiBackendProvider {
     String providerId();
 
     /**
-     * Builds a backend from the current settings. Called again whenever the AI settings change, so an
-     * implementation must not assume it is invoked only once.
+     * @return the human-readable provider name reported by the AI status endpoints (e.g. "Claude")
+     */
+    String displayName();
+
+    /**
+     * Builds a backend for a single AI call. The caller closes it when the call ends, so an
+     * implementation is free to allocate a connection pool here.
      */
     AiChatBackend create(AiSettings settings);
+
+    /**
+     * Whether this provider can currently serve a call.
+     * <p>
+     * Answered <em>without</em> building a backend: the feature list and the AI status endpoints ask
+     * this on every profile page load, and constructing an SDK client to answer it would be far more
+     * expensive than the question deserves. Providers reachable purely by API key are always
+     * available; only a provider that shells out to a local binary has anything to check.
+     */
+    default boolean isAvailable(AiSettings settings) {
+        return true;
+    }
 }
