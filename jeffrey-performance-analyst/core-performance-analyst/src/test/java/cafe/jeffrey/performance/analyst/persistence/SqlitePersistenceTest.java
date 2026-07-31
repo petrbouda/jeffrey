@@ -113,21 +113,22 @@ class SqlitePersistenceTest {
             JdbcProjectAiConfigurationRepository repo = new JdbcProjectAiConfigurationRepository(clientProvider);
             assertFalse(repo.find("p2").isPresent());
 
-            repo.upsert(new ProjectAiConfiguration("p2", "claude", "claude-opus-4-8", 1.0, T));
+            repo.upsert(new ProjectAiConfiguration("p2", "claude", "claude-opus-4-8", 1.0, 2.0, T));
             ProjectAiConfiguration config = repo.find("p2").orElseThrow();
             assertEquals("claude", config.provider());
             assertEquals(1.0, config.pruneThresholdPct());
 
-            repo.upsert(new ProjectAiConfiguration("p2", "openai", "gpt", 2.5, T));
+            repo.upsert(new ProjectAiConfiguration("p2", "openai", "gpt", 2.5, 3.5, T));
             assertEquals("openai", repo.find("p2").orElseThrow().provider());
             assertEquals(2.5, repo.find("p2").orElseThrow().pruneThresholdPct());
+            assertEquals(3.5, repo.find("p2").orElseThrow().regressionThresholdPp());
         }
 
         @Test
         void deletingProjectCascadesAiConfiguration() {
             new JdbcProjectRepository(clientProvider).insert(new Project("p3", "Project Three", null, T, T));
             JdbcProjectAiConfigurationRepository aiRepo = new JdbcProjectAiConfigurationRepository(clientProvider);
-            aiRepo.upsert(new ProjectAiConfiguration("p3", "claude", "claude-opus-4-8", 1.0, T));
+            aiRepo.upsert(new ProjectAiConfiguration("p3", "claude", "claude-opus-4-8", 1.0, 2.0, T));
             assertTrue(aiRepo.find("p3").isPresent());
 
             // ON DELETE CASCADE only fires when foreign_keys is enforced — proves the pragma is on.

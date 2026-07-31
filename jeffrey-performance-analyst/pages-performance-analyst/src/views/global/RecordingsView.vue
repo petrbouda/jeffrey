@@ -540,7 +540,7 @@ const loadPrompts = async (recording: Recording) => {
 
   aiStates.value[id] = { loading: true, error: null, prompts: null };
   try {
-    const prompts = await aiExportClient.generate(id);
+    const prompts = await aiExportClient.generate(id, props.projectId ?? null);
     aiStates.value[id] = { loading: false, error: null, prompts };
     if (prompts.length > 0) {
       activeTab.value[id] = prompts[0].eventType;

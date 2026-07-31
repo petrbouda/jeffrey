@@ -21,9 +21,15 @@ package cafe.jeffrey.performance.analyst.persistence;
 import java.time.Instant;
 
 /**
- * AI configuration for a project: the LLM provider/model and the flamegraph prune threshold used when
- * generating prompts. One per project.
+ * AI configuration for a project: the LLM provider/model, the flamegraph prune threshold used when
+ * generating prompts, and the percentage-point move a frame must make before a comparison calls it a
+ * regression. One per project.
  */
 public record ProjectAiConfiguration(
-        String projectId, String provider, String model, double pruneThresholdPct, Instant modifiedAt) {
+        String projectId,
+        String provider,
+        String model,
+        double pruneThresholdPct,
+        double regressionThresholdPp,
+        Instant modifiedAt) {
 }

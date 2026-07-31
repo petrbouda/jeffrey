@@ -62,9 +62,8 @@ public class ProjectAiSettingsResolver {
      * Stores the prune threshold for a project, preserving whatever provider/model the row already
      * carried so a settings screen that only edits the threshold cannot silently clear the rest.
      */
-    public ProjectAiSettings save(String projectId, double pruneThresholdPct) {
-        ProjectAiSettings settings = new ProjectAiSettings(
-                pruneThresholdPct, resolve(projectId).regressionThresholdPp());
+    public ProjectAiSettings save(String projectId, double pruneThresholdPct, double regressionThresholdPp) {
+        ProjectAiSettings settings = new ProjectAiSettings(pruneThresholdPct, regressionThresholdPp);
 
         Optional<ProjectAiConfiguration> existing = configurationRepository.find(projectId);
         configurationRepository.upsert(new ProjectAiConfiguration(
@@ -72,20 +71,31 @@ public class ProjectAiSettingsResolver {
                 existing.map(ProjectAiConfiguration::provider).orElse(null),
                 existing.map(ProjectAiConfiguration::model).orElse(null),
                 settings.pruneThresholdPct(),
+                settings.regressionThresholdPp(),
                 clock.instant()));
 
-        LOG.info("Saved project AI settings: project_id={} prune_threshold_pct={}",
-                projectId, settings.pruneThresholdPct());
+        LOG.info("Saved project AI settings: project_id={} prune_threshold_pct={} regression_threshold_pp={}",
+                projectId, settings.pruneThresholdPct(), settings.regressionThresholdPp());
         return settings;
     }
 
     private static ProjectAiSettings toSettings(ProjectAiConfiguration configuration) {
+        ProjectAiSettings defaults = ProjectAiSettings.defaults();
         double pruneThresholdPct = configuration.pruneThresholdPct();
+        double regressionThresholdPp = configuration.regressionThresholdPp();
+
+        // A row written before validation existed, or edited by hand, must not break analysis; fall
+        // back per field rather than discarding a good value because its neighbour is bad.
         if (pruneThresholdPct <= 0 || pruneThresholdPct >= 100) {
             LOG.warn("Ignoring out-of-range stored prune threshold: project_id={} prune_threshold_pct={}",
                     configuration.projectId(), pruneThresholdPct);
-            return ProjectAiSettings.defaults();
+            pruneThresholdPct = defaults.pruneThresholdPct();
         }
-        return new ProjectAiSettings(pruneThresholdPct, ProjectAiSettings.defaults().regressionThresholdPp());
+        if (regressionThresholdPp < 0) {
+            LOG.warn("Ignoring negative stored regression threshold: project_id={} regression_threshold_pp={}",
+                    configuration.projectId(), regressionThresholdPp);
+            regressionThresholdPp = defaults.regressionThresholdPp();
+        }
+        return new ProjectAiSettings(pruneThresholdPct, regressionThresholdPp);
     }
 }

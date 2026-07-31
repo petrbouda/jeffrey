@@ -36,11 +36,14 @@ public class JdbcProjectAiConfigurationRepository implements ProjectAiConfigurat
 
     //language=SQL
     private static final String UPSERT = """
-            INSERT INTO project_ai_configuration (project_id, provider, model, prune_threshold_pct, modified_at)
-            VALUES (:project_id, :provider, :model, :prune_threshold_pct, :modified_at)
+            INSERT INTO project_ai_configuration
+                (project_id, provider, model, prune_threshold_pct, regression_threshold_pp, modified_at)
+            VALUES (:project_id, :provider, :model, :prune_threshold_pct, :regression_threshold_pp, :modified_at)
             ON CONFLICT (project_id) DO UPDATE SET
                 provider = :provider, model = :model,
-                prune_threshold_pct = :prune_threshold_pct, modified_at = :modified_at""";
+                prune_threshold_pct = :prune_threshold_pct,
+                regression_threshold_pp = :regression_threshold_pp,
+                modified_at = :modified_at""";
 
     private final DatabaseClient databaseClient;
 
@@ -61,6 +64,7 @@ public class JdbcProjectAiConfigurationRepository implements ProjectAiConfigurat
                 .addValue("provider", configuration.provider())
                 .addValue("model", configuration.model())
                 .addValue("prune_threshold_pct", configuration.pruneThresholdPct())
+                .addValue("regression_threshold_pp", configuration.regressionThresholdPp())
                 .addValue("modified_at", configuration.modifiedAt().toEpochMilli());
         databaseClient.update(StatementLabel.UPSERT_PROJECT_AI_CONFIG, UPSERT, params);
     }
@@ -71,6 +75,7 @@ public class JdbcProjectAiConfigurationRepository implements ProjectAiConfigurat
                 rs.getString("provider"),
                 rs.getString("model"),
                 rs.getDouble("prune_threshold_pct"),
+                rs.getDouble("regression_threshold_pp"),
                 Instant.ofEpochMilli(rs.getLong("modified_at")));
     }
 }

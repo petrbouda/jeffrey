@@ -21,7 +21,8 @@ package cafe.jeffrey.performance.analyst.settings;
 /**
  * Body of a "save project AI settings" request.
  *
- * @param pruneThresholdPct minimum share of total samples for a frame to appear in the prompt
+ * @param pruneThresholdPct     minimum share of total samples for a frame to appear in the prompt
+ * @param regressionThresholdPp minimum percentage-point change for a frame to count as moved
  */
-public record ProjectAiSettingsRequest(double pruneThresholdPct) {
+public record ProjectAiSettingsRequest(double pruneThresholdPct, double regressionThresholdPp) {
 }

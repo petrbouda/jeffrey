@@ -26,10 +26,15 @@ export default class FlamegraphAiExportClient extends BasePlatformClient {
 
   /**
    * Parses the recording's JFR file(s) (server-side, cached after first call) and returns one AI
-   * flamegraph prompt per sample event type (jdk.ExecutionSample, profiler.WallClockSample).
+   * prompt per profile that produced samples — CPU, wall-clock, allocation and blocking.
+   *
+   * `projectId` selects the project's prune threshold, which decides how much of the call tree
+   * reaches the model. Without it the backend falls back to the installation default, so an unscoped
+   * recording still works but ignores whatever the project was configured with.
    */
-  async generate(recordingId: string): Promise<AiPrompt[]> {
-    return this.post<AiPrompt[]>(`/${recordingId}/ai-flamegraph-export`);
+  async generate(recordingId: string, projectId?: string | null): Promise<AiPrompt[]> {
+    const query = projectId ? `?projectId=${encodeURIComponent(projectId)}` : '';
+    return this.post<AiPrompt[]>(`/${recordingId}/ai-flamegraph-export${query}`);
   }
 
   /**

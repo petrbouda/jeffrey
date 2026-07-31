@@ -58,7 +58,7 @@ public class ProjectAiSettingsController {
             @RequestBody ProjectAiSettingsRequest request) {
 
         try {
-            return settingsResolver.save(projectId, request.pruneThresholdPct());
+            return settingsResolver.save(projectId, request.pruneThresholdPct(), request.regressionThresholdPp());
         } catch (IllegalArgumentException e) {
             // The record validates its own invariants; map that to a client error at the boundary
             // rather than letting a domain exception surface as a 500.

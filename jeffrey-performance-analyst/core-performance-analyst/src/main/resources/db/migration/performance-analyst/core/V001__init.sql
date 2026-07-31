@@ -44,11 +44,12 @@ CREATE TABLE IF NOT EXISTS projects
 --
 CREATE TABLE IF NOT EXISTS project_ai_configuration
 (
-    project_id           TEXT NOT NULL PRIMARY KEY,
-    provider             TEXT,
-    model                TEXT,
-    prune_threshold_pct  REAL NOT NULL DEFAULT 1.0,
-    modified_at          INTEGER NOT NULL,
+    project_id              TEXT NOT NULL PRIMARY KEY,
+    provider                TEXT,
+    model                   TEXT,
+    prune_threshold_pct     REAL NOT NULL DEFAULT 1.0,
+    regression_threshold_pp REAL NOT NULL DEFAULT 2.0,
+    modified_at             INTEGER NOT NULL,
     FOREIGN KEY (project_id) REFERENCES projects (id) ON DELETE CASCADE
 );
 
