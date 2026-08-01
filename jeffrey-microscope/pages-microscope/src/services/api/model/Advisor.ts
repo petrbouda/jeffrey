@@ -43,6 +43,8 @@ export interface AdvisorRecommendation {
   eventType: string;
   severity: Severity;
   recommendations: string;
+  /** The proposed unified diff, or null when the model proposed no code edit. */
+  patch: string | null;
   sourceRef: string | null;
   generatedAt: number;
   claims: AdvisorClaim[];
@@ -52,12 +54,12 @@ export type AdvisorStatus =
   | 'QUEUED'
   | 'PREPARING_PROMPT'
   | 'RESOLVING_SOURCE'
-  | 'ANALYZING'
-  | 'GROUNDING'
+  | 'REVIEWING'
+  | 'VERIFYING'
   | 'COMPLETED'
   | 'FAILED';
 
-/** The live progress of one timed step (Prompt / Source / Analyze / Ground) within a type's run. */
+/** The live progress of one timed step (Prompt / Source / Review / Verify) within a type's run. */
 export interface AdvisorStepProgress {
   step: string;
   status: 'pending' | 'in_progress' | 'completed' | 'failed';

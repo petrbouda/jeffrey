@@ -28,7 +28,7 @@ import java.util.List;
  * the profile database, and the page reads it from there — so progress answers "where is it up to"
  * and nothing else, and a reload after the run finished shows the same thing as a reload during it.</p>
  *
- * <p>{@code steps} carries the four timed pipeline steps (Prompt / Source / Analyze / Ground) so the
+ * <p>{@code steps} carries the four timed pipeline steps (Prompt / Source / Review / Verify) so the
  * timeline can render each one's tick and measured time. {@code errorMessage} is populated only on
  * {@link AdvisorStatus#FAILED}.</p>
  */

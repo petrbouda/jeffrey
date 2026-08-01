@@ -48,6 +48,23 @@ const DESCRIPTIONS: Record<string, string> = {
   'jdk.JavaMonitorEnter': 'Time parked on locks'
 };
 
+/**
+ * What a percentage of this profile actually measures. Shown next to a patch's headline figure, so
+ * "62.6%" reads as "62.6% of blocked time" rather than as a bare number of unknown units.
+ */
+const COST_LABELS: Record<string, string> = {
+  'jdk.ExecutionSample': 'of CPU time',
+  'profiler.WallClockSample': 'of wall-clock time',
+  'jdk.ObjectAllocationSample': 'of allocated bytes',
+  'jdk.JavaMonitorEnter': 'of blocked time'
+};
+
+const DEFAULT_COST_LABEL = 'of this profile';
+
+export function eventTypeCostLabel(eventTypeCode: string): string {
+  return COST_LABELS[eventTypeCode] ?? DEFAULT_COST_LABEL;
+}
+
 export function eventTypeStyle(eventTypeCode: string): EventTypeStyle {
   return BY_CODE[eventTypeCode] ?? DEFAULT_STYLE;
 }

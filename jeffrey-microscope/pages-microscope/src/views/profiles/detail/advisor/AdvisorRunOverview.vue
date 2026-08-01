@@ -80,30 +80,39 @@
 
     <!-- A run has finished: the kept, static timeline with measured times. -->
     <template v-else-if="runResult">
-      <div class="run-toolbar">
-        <span class="advisor-src">
-          <i class="bi bi-folder2-open"></i>
-          <span class="advisor-src-path">{{ settings?.sourcePath || 'No source folder' }}</span>
-        </span>
-        <router-link :to="findingsPath" class="btn">
-          <i class="bi bi-lightbulb"></i>
-          View findings
-        </router-link>
-        <button type="button" class="btn ghost" :disabled="!sourceConfigured" @click="run()">
-          <i class="bi bi-arrow-repeat"></i>
-          Re-run
-        </button>
-        <button type="button" class="btn ghost" @click="clearResultsDialog = true">
-          <i class="bi bi-trash"></i>
-          Clear results
-        </button>
+      <div class="run-manifest">
+        <div class="manifest-body">
+          <div class="manifest-headline">
+            <span class="manifest-badge">
+              <i class="bi bi-check-lg"></i>
+              Complete
+            </span>
+            <span class="manifest-meta">{{ manifestMeta }}</span>
+          </div>
+          <div class="manifest-path">{{ settings?.sourcePath || 'No source folder' }}</div>
+        </div>
+        <div class="manifest-actions">
+          <router-link :to="findingsPath" class="btn">
+            <i class="bi bi-lightbulb"></i>
+            View findings
+          </router-link>
+          <button type="button" class="btn ghost" :disabled="!sourceConfigured" @click="run()">
+            <i class="bi bi-arrow-repeat"></i>
+            Re-run
+          </button>
+          <span class="manifest-divider"></span>
+          <button type="button" class="btn quiet" @click="clearResultsDialog = true">
+            <i class="bi bi-trash"></i>
+            Clear results
+          </button>
+        </div>
       </div>
       <ProcessingTimeline
         :phases="resultPhases"
         :steps="resultStepsData"
         :tick-now="0"
         title="Last run"
-        :subtitle="resultSubtitle"
+        subtitle="How long each event type spent in each step."
         :show-progress-bar="false"
       />
     </template>
@@ -167,7 +176,6 @@
 
 <script setup lang="ts">
 import '@shared/styles/shared-components.css';
-import '@/views/profiles/detail/advisor/advisor-shared.css';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import LoadingState from '@shared/components/LoadingState.vue';
@@ -251,11 +259,24 @@ const resultTypes = computed<TimelineType[]>(() =>
 const resultPhases = computed(() => timelinePhases(resultTypes.value));
 const resultStepsData = computed(() => resultSteps(runResult.value?.types ?? []));
 
-const resultSubtitle = computed(() =>
-  runResult.value
-    ? `Finished in ${FormattingService.formatDurationMillisCompact(runResult.value.totalElapsedMs)} · ${runResult.value.completedTypes} of ${runResult.value.totalTypes} analyzed`
-    : ''
-);
+/**
+ * The run's outcome, stated once — in the manifest, above the timeline. The timeline's own subtitle
+ * describes what its cards show, so the two no longer say the same sentence twice.
+ */
+const manifestMeta = computed(() => {
+  const result = runResult.value;
+  if (!result) {
+    return '';
+  }
+  const parts = [
+    `${result.completedTypes} of ${result.totalTypes} profiles`,
+    FormattingService.formatDurationMillisCompact(result.totalElapsedMs)
+  ];
+  if (result.completedAt !== null) {
+    parts.push(`finished ${FormattingService.formatRelativeTime(result.completedAt).toLowerCase()}`);
+  }
+  return parts.join(' · ');
+});
 
 const folderInput = ref('');
 const folderReady = computed(() => folderInput.value.trim().length > 0);
@@ -298,13 +319,87 @@ onMounted(async () => {
   margin-bottom: 1rem;
 }
 
+/* The note takes the slack, so the toolbar's trailing button sits right regardless of how many
+   buttons the state has — an auto margin here only worked while there was exactly one. */
 .run-toolbar .run-note {
+  flex: 1;
   font-size: 0.82rem;
   color: var(--color-text-muted);
 }
 
 .run-toolbar.failed .run-note {
   color: var(--color-danger);
+}
+
+/* A finished run's manifest: what was read, what it cost, and what to do with it. The success spine
+   and the tint that fades off it carry "this run completed", so no line of copy has to say it. */
+.run-manifest {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-success);
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, var(--color-success-light), transparent 22%);
+  padding: 0.85rem 0.9rem 0.85rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.manifest-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.manifest-headline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
+}
+
+.manifest-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-success-dark);
+  background: var(--color-success-light);
+  border-radius: var(--radius-sm);
+  padding: 0.16rem 0.4rem;
+}
+
+.manifest-meta {
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+}
+
+.manifest-path {
+  font-family: var(--font-family-monospace);
+  font-size: 0.87rem;
+  font-weight: 500;
+  color: var(--color-heading-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.manifest-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Sets the destructive action apart from the two you actually came for. */
+.manifest-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--color-border);
 }
 
 
@@ -344,8 +439,17 @@ onMounted(async () => {
   background: var(--color-primary-light);
 }
 
-.run-toolbar .btn.ghost {
-  margin-left: auto;
+/* Reserved for the action that ends the run's life — quiet until you reach for it. */
+.btn.quiet {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.btn.quiet:hover:not(:disabled) {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+  border-color: var(--color-danger-border-light);
 }
 
 .btn:disabled {

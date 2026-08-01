@@ -32,9 +32,9 @@ public interface AdvisorProgressSink {
     /** The configured source folder is being validated. */
     void resolvingSource();
 
-    /** The source folder is ready; the AI analysis is running. */
-    void analyzing();
+    /** The source folder is ready; the model is reviewing the source. */
+    void reviewing();
 
-    /** The model has answered; its cited frames are being grounded against the measured call tree. */
-    void grounding();
+    /** The model has answered; its cited frames are being checked against the measured call tree. */
+    void verifying();
 }

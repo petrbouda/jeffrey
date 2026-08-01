@@ -40,10 +40,14 @@ export interface TimelineStep {
   subPhases?: SubPhaseTiming[];
 }
 
-/** A phase groups an ordered set of steps under a title; the component renders one card per phase. */
+/**
+ * A phase groups an ordered set of steps under a title; the component renders one card per phase.
+ * A step's optional `description` is shown as hover text on its label — room for the sentence that
+ * explains what the step actually does, which never fits in the label itself.
+ */
 export interface TimelinePhase {
   id: string;
   name: string;
   description: string;
-  steps: { id: string; label: string }[];
+  steps: { id: string; label: string; description?: string }[];
 }

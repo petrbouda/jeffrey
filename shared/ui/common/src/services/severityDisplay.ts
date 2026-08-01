@@ -34,3 +34,23 @@ const BADGE_VARIANT: Record<Severity, string> = {
 export function severityVariant(severity: Severity): string {
   return BADGE_VARIANT[severity] ?? "grey";
 }
+
+/**
+ * Worst first. Kept here rather than in a view so every screen that orders findings agrees on what
+ * "worse" means — an unknown severity sorts last rather than jumping the queue.
+ */
+const RANK: Record<Severity, number> = {
+  CRITICAL: 0,
+  HIGH: 1,
+  MEDIUM: 2,
+  LOW: 3,
+};
+
+export function severityRank(severity: Severity): number {
+  return RANK[severity] ?? Number.MAX_SAFE_INTEGER;
+}
+
+/** The severity as a word for running text, e.g. "High" — badges use the raw value. */
+export function severityLabel(severity: Severity): string {
+  return severity.charAt(0) + severity.slice(1).toLowerCase();
+}

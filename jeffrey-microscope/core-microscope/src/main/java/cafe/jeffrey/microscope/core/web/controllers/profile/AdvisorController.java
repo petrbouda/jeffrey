@@ -98,12 +98,14 @@ public class AdvisorController {
     }
 
     /**
-     * A stored recommendation with the claims behind it.
+     * A stored recommendation with the claims behind it. {@code patch} is the proposed unified diff, or
+     * null when the model proposed no code edit — the page shows those two cases differently.
      */
     public record RecommendationResponse(
             String eventType,
             String severity,
             String recommendations,
+            String patch,
             String sourceRef,
             long generatedAt,
             List<ClaimResponse> claims) {
@@ -294,6 +296,7 @@ public class AdvisorController {
                 row.eventType(),
                 row.severity(),
                 row.recommendations(),
+                row.patch(),
                 row.sourceRef(),
                 row.generatedAt().toEpochMilli(),
                 claims);

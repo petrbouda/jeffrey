@@ -142,13 +142,15 @@ CREATE TABLE IF NOT EXISTS advisor_prompts
 --
 -- ADVISOR RECOMMENDATIONS TABLE
 -- One advisor result per sample event type. `severity` is computed by Jeffrey from the measured
--- profile, never graded by the model.
+-- profile, never graded by the model. `patch` is the unified diff the model proposed, already
+-- repaired by UnifiedDiffNormalizer so `git apply` accepts it; NULL when it proposed no code edit.
 --
 CREATE TABLE IF NOT EXISTS advisor_recommendations
 (
     event_type      VARCHAR     NOT NULL PRIMARY KEY,
     severity        VARCHAR     NOT NULL DEFAULT 'LOW',
     recommendations VARCHAR     NOT NULL,
+    patch           VARCHAR,
     source_ref      VARCHAR,
     generated_at    TIMESTAMPTZ NOT NULL
 );

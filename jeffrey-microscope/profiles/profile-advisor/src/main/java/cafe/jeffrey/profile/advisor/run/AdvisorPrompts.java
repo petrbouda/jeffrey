@@ -27,6 +27,12 @@ package cafe.jeffrey.profile.advisor.run;
  * already has, so it moved to {@link SeverityCalculator}; asking a model to compute it made the ranking
  * irreproducible. What the model is asked for instead is a machine-readable list of the frames each
  * recommendation rests on, so {@link ClaimGrounder} can check them against the measured profile.</p>
+ *
+ * <p>The third section is a unified diff. Prose alone puts the whole translation from "this is the
+ * problem" to "this is the edit" back on the reader; a patch that {@code git apply} accepts does not.
+ * The model is told to emit it raw and to say {@code (no patch)} rather than invent one, because a
+ * fabricated diff is worse than none — and {@link UnifiedDiffNormalizer} repairs the hunk counts that
+ * models reliably miscount before anything tries to apply it.</p>
  */
 final class AdvisorPrompts {
 
@@ -57,7 +63,7 @@ final class AdvisorPrompts {
             - If you cannot locate code relevant to a hotspot, say so explicitly instead of guessing.
             - Do not grade severity or priority. Jeffrey computes that from the measured profile.
 
-            Respond in EXACTLY this format, with these two marker lines present verbatim and nothing
+            Respond in EXACTLY this format, with these three marker lines present verbatim and nothing
             before the first marker:
 
             ===CLAIMS===
@@ -69,8 +75,15 @@ final class AdvisorPrompts {
             ===RECOMMENDATIONS===
             <Markdown report. Start with a short "Summary" of the dominant hotspots, then one
             "### <file>: <method>" section per recommendation: the cause, why it is hot per the profile,
-            and the recommended change. Describe the change in prose; concrete code snippets are fine
-            inline, but do not emit a separate patch or diff section.>
+            and the recommended change. Describe the change in prose — do NOT put diffs in this section.>
+
+            ===PATCH===
+            <A SINGLE unified diff that applies cleanly with 'git apply -p1' from the repository root
+            and implements the recommended edits. Use repository-relative paths (a/<path> and b/<path>)
+            and real context lines from the files you read through the tools — never invent context.
+            Output the diff RAW: do not wrap it in a code fence. Prefer one small, reviewable change
+            over a sweeping rewrite. If you are not proposing any concrete code edit, write exactly:
+            (no patch)>
             """;
 
     private AdvisorPrompts() {

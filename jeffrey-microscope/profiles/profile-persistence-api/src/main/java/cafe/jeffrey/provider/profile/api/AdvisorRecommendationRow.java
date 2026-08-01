@@ -27,6 +27,7 @@ import java.time.Instant;
  * @param eventType        the sample event type analyzed
  * @param severity         the computed severity name
  * @param recommendations  the report markdown
+ * @param patch            the proposed unified diff, or null when the model proposed no code edit
  * @param sourceRef        the commit the source tree was on, or null when it was not a git checkout
  * @param generatedAt      when the run completed
  */
@@ -34,6 +35,7 @@ public record AdvisorRecommendationRow(
         String eventType,
         String severity,
         String recommendations,
+        String patch,
         String sourceRef,
         Instant generatedAt) {
 }

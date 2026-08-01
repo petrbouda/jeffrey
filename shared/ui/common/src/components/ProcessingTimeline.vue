@@ -86,7 +86,12 @@
                 <i v-else-if="getStep(stepDef.id)?.status === 'failed'" class="bi bi-x-lg"></i>
                 <span v-else>{{ sIdx + 1 }}</span>
               </span>
-              <span class="stage-label">{{ stepDef.label }}</span>
+              <span
+                class="stage-label"
+                :class="{ 'has-description': stepDef.description }"
+                :title="stepDef.description"
+                >{{ stepDef.label }}</span
+              >
               <span class="stage-meta">{{ stageMeta(getStep(stepDef.id)) }}</span>
             </li>
             <li
@@ -445,6 +450,11 @@ const totalElapsed = computed(() => {
 
 .phase-stages .stage-label {
   flex: 1;
+}
+
+/* only steps that carry hover text advertise it */
+.phase-stages .stage-label.has-description {
+  cursor: help;
 }
 
 .phase-stages .stage-meta {

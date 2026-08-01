@@ -80,7 +80,7 @@ class AdvisorRunTest {
         clock.advance(Duration.ofMillis(400));
         run.resolvingSource();
         clock.advance(Duration.ofMillis(200));
-        run.analyzing();
+        run.reviewing();
         clock.advance(Duration.ofSeconds(8));
 
         // Mid-analyze: the two finished steps carry durations, Analyze is live, Ground is pending.
@@ -88,10 +88,10 @@ class AdvisorRunTest {
         assertEquals(AdvisorStepProgress.COMPLETED, steps.get("PREPARING_PROMPT").status());
         assertEquals(400L, steps.get("PREPARING_PROMPT").durationMs());
         assertEquals(200L, steps.get("RESOLVING_SOURCE").durationMs());
-        assertEquals(AdvisorStepProgress.IN_PROGRESS, steps.get("ANALYZING").status());
-        assertEquals(8000L, steps.get("ANALYZING").elapsedMs());
-        assertNull(steps.get("ANALYZING").durationMs());
-        assertEquals(AdvisorStepProgress.PENDING, steps.get("GROUNDING").status());
+        assertEquals(AdvisorStepProgress.IN_PROGRESS, steps.get("REVIEWING").status());
+        assertEquals(8000L, steps.get("REVIEWING").elapsedMs());
+        assertNull(steps.get("REVIEWING").durationMs());
+        assertEquals(AdvisorStepProgress.PENDING, steps.get("VERIFYING").status());
     }
 
     @Test
@@ -104,9 +104,9 @@ class AdvisorRunTest {
         clock.advance(Duration.ofMillis(100));
         run.resolvingSource();
         clock.advance(Duration.ofMillis(100));
-        run.analyzing();
+        run.reviewing();
         clock.advance(Duration.ofMillis(5000));
-        run.grounding();
+        run.verifying();
         clock.advance(Duration.ofMillis(500));
         run.finish();
         pipelineRun.complete();
@@ -115,8 +115,8 @@ class AdvisorRunTest {
         assertEquals(AdvisorStatus.COMPLETED, run.progress().status());
         assertEquals(100L, steps.get("PREPARING_PROMPT").durationMs());
         assertEquals(100L, steps.get("RESOLVING_SOURCE").durationMs());
-        assertEquals(5000L, steps.get("ANALYZING").durationMs());
-        assertEquals(500L, steps.get("GROUNDING").durationMs());
+        assertEquals(5000L, steps.get("REVIEWING").durationMs());
+        assertEquals(500L, steps.get("VERIFYING").durationMs());
         steps.values().forEach(step -> assertEquals(AdvisorStepProgress.COMPLETED, step.status()));
     }
 
@@ -130,15 +130,15 @@ class AdvisorRunTest {
         clock.advance(Duration.ofMillis(300));
         run.resolvingSource();
         clock.advance(Duration.ofMillis(150));
-        run.analyzing();
+        run.reviewing();
         clock.advance(Duration.ofMillis(1000));
         pipelineRun.fail(null, "model error");
 
         Map<String, AdvisorStepProgress> steps = stepsByName(run);
         assertEquals(300L, steps.get("PREPARING_PROMPT").durationMs());
         assertEquals(150L, steps.get("RESOLVING_SOURCE").durationMs());
-        assertEquals(AdvisorStepProgress.FAILED, steps.get("ANALYZING").status());
-        assertNull(steps.get("ANALYZING").durationMs());
-        assertEquals(AdvisorStepProgress.PENDING, steps.get("GROUNDING").status());
+        assertEquals(AdvisorStepProgress.FAILED, steps.get("REVIEWING").status());
+        assertNull(steps.get("REVIEWING").durationMs());
+        assertEquals(AdvisorStepProgress.PENDING, steps.get("VERIFYING").status());
     }
 }

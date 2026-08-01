@@ -22,8 +22,8 @@ import java.util.List;
 
 /**
  * Lifecycle of an advisor run: wait for a slot, build or load the prompt, resolve the source folder,
- * run the AI analysis, ground the findings, then finish in a terminal {@link #COMPLETED} or
- * {@link #FAILED} state.
+ * let the model review the source, verify what it cited, then finish in a terminal
+ * {@link #COMPLETED} or {@link #FAILED} state.
  *
  * <p>The names double as the pipeline's stage ids and the frontend's label keys, so renaming a
  * constant is a wire-format change.</p>
@@ -40,10 +40,10 @@ public enum AdvisorStatus {
     RESOLVING_SOURCE,
 
     /** The model reading the source through the read-only tools. */
-    ANALYZING,
+    REVIEWING,
 
-    /** The model has answered; its cited frames are being grounded against the measured call tree. */
-    GROUNDING,
+    /** The model has answered; its cited frames are being checked against the measured call tree. */
+    VERIFYING,
 
     COMPLETED,
     FAILED;
@@ -54,7 +54,7 @@ public enum AdvisorStatus {
      * step. Each of these is measured and shown as a row under its event type in the run timeline.
      */
     public static final List<AdvisorStatus> STEPS =
-            List.of(PREPARING_PROMPT, RESOLVING_SOURCE, ANALYZING, GROUNDING);
+            List.of(PREPARING_PROMPT, RESOLVING_SOURCE, REVIEWING, VERIFYING);
 
     public boolean isTerminal() {
         return this == COMPLETED || this == FAILED;

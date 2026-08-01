@@ -154,4 +154,82 @@ class AdvisorOutputParserTest {
             assertTrue(output.claims().isEmpty());
         }
     }
+
+    @Nested
+    class Patch {
+
+        private static final String DIFF = """
+                --- a/src/Order.java
+                +++ b/src/Order.java
+                @@ -1,2 +1,2 @@
+                 class Order {
+                -    int slow;
+                +    int fast;
+                """;
+
+        @Test
+        void extractsThePatchAfterTheMarker() {
+            ParsedOutput output = AdvisorOutputParser.parse(
+                    "===RECOMMENDATIONS===\nAdvice.\n===PATCH===\n" + DIFF);
+
+            assertTrue(output.hasPatch());
+            assertTrue(output.patch().contains("+    int fast;"));
+        }
+
+        @Test
+        void keepsThePatchOutOfTheRecommendations() {
+            ParsedOutput output = AdvisorOutputParser.parse(
+                    "===RECOMMENDATIONS===\nAdvice.\n===PATCH===\n" + DIFF);
+
+            assertEquals("Advice.", output.recommendations());
+        }
+
+        @Test
+        void recountsTheHunkHeaderTheModelMiscounted() {
+            String miscounted = """
+                    ===PATCH===
+                    @@ -1,99 +1,99 @@
+                     class Order {
+                    -    int slow;
+                    +    int fast;
+                    """;
+
+            ParsedOutput output = AdvisorOutputParser.parse(miscounted);
+
+            assertTrue(output.patch().contains("@@ -1,2 +1,2 @@"), output.patch());
+        }
+
+        @Test
+        void treatsTheSentinelAsNoPatch() {
+            ParsedOutput output = AdvisorOutputParser.parse(
+                    "===RECOMMENDATIONS===\nAdvice.\n===PATCH===\n(no patch)\n");
+
+            assertFalse(output.hasPatch());
+            assertNull(output.patch());
+        }
+
+        @Test
+        void treatsAnEmptySectionAsNoPatch() {
+            ParsedOutput output = AdvisorOutputParser.parse(
+                    "===RECOMMENDATIONS===\nAdvice.\n===PATCH===\n   \n");
+
+            assertFalse(output.hasPatch());
+        }
+
+        @Test
+        void returnsNoPatchWhenTheSectionIsAbsent() {
+            ParsedOutput output = AdvisorOutputParser.parse("===RECOMMENDATIONS===\nAdvice.");
+
+            assertFalse(output.hasPatch());
+        }
+
+        @Test
+        void unwrapsAFenceTheModelAddedAnyway() {
+            ParsedOutput output = AdvisorOutputParser.parse(
+                    "===PATCH===\n```diff\n" + DIFF + "```\n");
+
+            assertTrue(output.patch().startsWith("--- a/src/Order.java"), output.patch());
+            assertFalse(output.patch().contains("```"));
+        }
+    }
 }

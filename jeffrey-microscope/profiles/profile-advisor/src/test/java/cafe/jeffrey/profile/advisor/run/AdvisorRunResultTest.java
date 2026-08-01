@@ -54,7 +54,7 @@ class AdvisorRunResultTest {
     void aggregatesPerTypeAndPerStepTimings() {
         PipelineRunResult cpu = run("jdk.ExecutionSample", PipelineState.COMPLETED, START,
                 List.of(step("PREPARING_PROMPT", 400), step("RESOLVING_SOURCE", 200),
-                        step("ANALYZING", 8000), step("GROUNDING", 500)));
+                        step("REVIEWING", 8000), step("VERIFYING", 500)));
         PipelineRunResult blocking = run("jdk.JavaMonitorEnter", PipelineState.FAILED, START,
                 List.of(step("PREPARING_PROMPT", 100),
                         new StageResult("RESOLVING_SOURCE", StageStatus.FAILED, null, null)));
@@ -79,9 +79,9 @@ class AdvisorRunResultTest {
         // The types run at the same time, so a batch that ran two 14-second types took 14 seconds,
         // not 28. Summing would report wall clock that never elapsed.
         PipelineRunResult first = run("jdk.ExecutionSample", PipelineState.COMPLETED, START,
-                List.of(step("ANALYZING", 14_000)));
+                List.of(step("REVIEWING", 14_000)));
         PipelineRunResult second = run("jdk.JavaMonitorEnter", PipelineState.COMPLETED,
-                START.plusSeconds(2), List.of(step("ANALYZING", 12_000)));
+                START.plusSeconds(2), List.of(step("REVIEWING", 12_000)));
 
         AdvisorRunResult result = AdvisorRunResult.from(List.of(first, second));
 

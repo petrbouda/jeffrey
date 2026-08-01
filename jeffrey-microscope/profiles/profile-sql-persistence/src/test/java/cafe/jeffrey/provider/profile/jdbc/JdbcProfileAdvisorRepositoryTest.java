@@ -31,6 +31,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DuckDBTest(migration = "classpath:db/migration/profile")
@@ -39,6 +40,13 @@ class JdbcProfileAdvisorRepositoryTest {
     private static final String CPU = "jdk.ExecutionSample";
     private static final String ALLOC = "jdk.ObjectAllocationSample";
     private static final Instant WHEN = Instant.parse("2026-08-01T06:00:14Z");
+    private static final String PATCH = """
+            --- a/RateTable.java
+            +++ b/RateTable.java
+            @@ -1,1 +1,1 @@
+            -slow
+            +fast
+            """;
 
     private static JdbcProfileAdvisorRepository repository(DataSource dataSource) {
         return new JdbcProfileAdvisorRepository(new DatabaseClientProvider(dataSource));
@@ -48,12 +56,46 @@ class JdbcProfileAdvisorRepositoryTest {
         repository.upsertPrompt(
                 new AdvisorPromptRow(CPU, "CPU", 1_000L, "# markdown", "[]", WHEN));
         repository.upsertRecommendation(
-                new AdvisorRecommendationRow(CPU, "HIGH", "report", "abc123", WHEN));
+                new AdvisorRecommendationRow(CPU, "HIGH", "report", PATCH, "abc123", WHEN));
         repository.replaceClaims(CPU, List.of(
                 new AdvisorClaimRow(CPU, "Hot lookup", "RateTable.lookup", "RateTable.java",
                         true, true, 21.5, 30.0, WHEN)));
         repository.replaceClaims(ALLOC, List.of(
                 new AdvisorClaimRow(ALLOC, "Churn", "Parser.parse", null, true, false, 12.0, 18.0, WHEN)));
+    }
+
+    @Nested
+    class Recommendations {
+
+        @Test
+        void roundTripsTheProposedPatch(DataSource dataSource) {
+            JdbcProfileAdvisorRepository repository = repository(dataSource);
+            seed(repository);
+
+            assertEquals(PATCH, repository.findRecommendations().getFirst().patch());
+        }
+
+        @Test
+        void keepsAMissingPatchNullRatherThanEmpty(DataSource dataSource) {
+            JdbcProfileAdvisorRepository repository = repository(dataSource);
+            repository.upsertRecommendation(
+                    new AdvisorRecommendationRow(ALLOC, "LOW", "report", null, "abc123", WHEN));
+
+            assertNull(repository.findRecommendations().getFirst().patch());
+        }
+
+        @Test
+        void replacesThePatchOnARerun(DataSource dataSource) {
+            JdbcProfileAdvisorRepository repository = repository(dataSource);
+            seed(repository);
+
+            repository.upsertRecommendation(
+                    new AdvisorRecommendationRow(CPU, "LOW", "second report", null, "def456", WHEN));
+
+            assertEquals(1, repository.findRecommendations().size());
+            assertNull(repository.findRecommendations().getFirst().patch(),
+                    "a re-run that proposes no edit must clear the previous patch");
+        }
     }
 
     @Nested

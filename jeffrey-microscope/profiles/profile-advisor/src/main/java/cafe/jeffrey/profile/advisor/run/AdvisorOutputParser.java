@@ -23,9 +23,10 @@ import java.util.List;
 
 /**
  * Splits the model's single response into the artifacts the UI shows separately: the claims each
- * recommendation rests on and the recommendations markdown. The model is instructed (see
- * {@link AdvisorPrompts}) to emit sections separated by the {@link #CLAIMS_MARKER} and
- * {@link #RECOMMENDATIONS_MARKER} marker lines; this parser is tolerant of a missing claims section.
+ * recommendation rests on, the recommendations markdown, and the proposed patch. The model is
+ * instructed (see {@link AdvisorPrompts}) to emit sections separated by the {@link #CLAIMS_MARKER},
+ * {@link #RECOMMENDATIONS_MARKER} and {@link #PATCH_MARKER} marker lines; this parser is tolerant of a
+ * missing claims or patch section.
  *
  * <p>There is deliberately no severity section any more. Severity is computed from the measured profile
  * by {@link SeverityCalculator}, so this parser has nothing to guess at and no reason to fall back to a
@@ -35,6 +36,12 @@ final class AdvisorOutputParser {
 
     static final String CLAIMS_MARKER = "===CLAIMS===";
     static final String RECOMMENDATIONS_MARKER = "===RECOMMENDATIONS===";
+    static final String PATCH_MARKER = "===PATCH===";
+
+    /** What the model is told to write when it has no concrete edit to propose. */
+    private static final String NO_PATCH_SENTINEL = "(no patch)";
+
+    private static final String FENCE = "```";
 
     private static final String CLAIM_FIELD_SEPARATOR = "\\|";
     private static final int CLAIM_FIELD_FRAME = 0;
@@ -47,22 +54,68 @@ final class AdvisorOutputParser {
     /**
      * The raw sections of a model response, before any of them have been checked against evidence.
      */
-    record ParsedOutput(List<AdvisorClaim> claims, String recommendations) {
+    record ParsedOutput(List<AdvisorClaim> claims, String recommendations, String patch) {
 
         ParsedOutput {
             claims = claims == null ? List.of() : List.copyOf(claims);
+        }
+
+        boolean hasPatch() {
+            return patch != null && !patch.isBlank();
         }
     }
 
     static ParsedOutput parse(String raw) {
         if (raw == null || raw.isBlank()) {
-            return new ParsedOutput(List.of(), "");
+            return new ParsedOutput(List.of(), "", null);
         }
 
         List<AdvisorClaim> claims = parseClaims(raw);
         String afterClaims = stripThrough(raw, CLAIMS_MARKER);
-        String recommendations = stripThrough(afterClaims, RECOMMENDATIONS_MARKER).strip();
-        return new ParsedOutput(claims, recommendations);
+        String afterRecommendations = stripThrough(afterClaims, RECOMMENDATIONS_MARKER);
+        String recommendations = beforeMarker(afterRecommendations, PATCH_MARKER).strip();
+        return new ParsedOutput(claims, recommendations, parsePatch(raw));
+    }
+
+    /**
+     * The unified diff, repaired so it can actually be applied — or null when the model said it had no
+     * edit to propose. A blank section is treated the same as the sentinel: silence is not a patch.
+     */
+    private static String parsePatch(String raw) {
+        int marker = raw.indexOf(PATCH_MARKER);
+        if (marker < 0) {
+            return null;
+        }
+        String section = stripFence(raw.substring(marker + PATCH_MARKER.length()).strip());
+        if (section.isEmpty() || section.equalsIgnoreCase(NO_PATCH_SENTINEL)) {
+            return null;
+        }
+        return UnifiedDiffNormalizer.normalize(section);
+    }
+
+    /**
+     * Unwraps a fenced block the model added despite being told not to. Only a fence that both opens
+     * and closes the whole section is stripped — a stray fence inside a diff is left alone, because
+     * removing it would corrupt the body.
+     */
+    private static String stripFence(String section) {
+        if (!section.startsWith(FENCE)) {
+            return section;
+        }
+        int firstLineEnd = section.indexOf('\n');
+        if (firstLineEnd < 0) {
+            return section;
+        }
+        int closing = section.lastIndexOf(FENCE);
+        if (closing <= firstLineEnd) {
+            return section;
+        }
+        return section.substring(firstLineEnd + 1, closing).strip();
+    }
+
+    private static String beforeMarker(String text, String marker) {
+        int index = text.indexOf(marker);
+        return index < 0 ? text : text.substring(0, index);
     }
 
     /**

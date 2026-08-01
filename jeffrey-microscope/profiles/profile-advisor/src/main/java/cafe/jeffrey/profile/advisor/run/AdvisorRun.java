@@ -34,7 +34,7 @@ import java.util.List;
  * {@link PipelineRun}, shared with heap-dump initialization. What lives here is the translation: the
  * service announces phases by name through {@link AdvisorProgressSink}, and the UI reads
  * {@link AdvisorProgress}; neither should have to know about a generic pipeline, and the pipeline should
- * not have to know what "grounding" means.</p>
+ * not have to know what "verifying" means.</p>
  *
  * <p>The run holds no findings. Once it completes, the artifacts live in the profile database and the UI
  * reads them from there — which means a page opened after the run finished sees exactly what a page
@@ -69,13 +69,13 @@ public final class AdvisorRun implements AdvisorProgressSink {
     }
 
     @Override
-    public void analyzing() {
-        run.advanceTo(AdvisorStatus.ANALYZING.name());
+    public void reviewing() {
+        run.advanceTo(AdvisorStatus.REVIEWING.name());
     }
 
     @Override
-    public void grounding() {
-        run.advanceTo(AdvisorStatus.GROUNDING.name());
+    public void verifying() {
+        run.advanceTo(AdvisorStatus.VERIFYING.name());
     }
 
     /**

@@ -29,13 +29,33 @@ import { eventTypeDescription } from '@/views/profiles/detail/advisor/eventTypeS
  * and the persisted result render through the same shared component.
  */
 
-const STEP_ORDER = ['PREPARING_PROMPT', 'RESOLVING_SOURCE', 'ANALYZING', 'GROUNDING'] as const;
+const STEP_ORDER = ['PREPARING_PROMPT', 'RESOLVING_SOURCE', 'REVIEWING', 'VERIFYING'] as const;
 
-const STEP_LABELS: Record<string, string> = {
-  PREPARING_PROMPT: 'Prompt',
-  RESOLVING_SOURCE: 'Source',
-  ANALYZING: 'Analyze',
-  GROUNDING: 'Ground'
+/**
+ * The label is what fits in a step row; the description is the hover text, because "what does Verify
+ * actually check" is a fair question and the row has no room to answer it.
+ */
+const STEP_INFO: Record<string, { label: string; description: string }> = {
+  PREPARING_PROMPT: {
+    label: 'Prompt',
+    description: 'Builds the hot call-tree summary for this event type, or loads the cached one.'
+  },
+  RESOLVING_SOURCE: {
+    label: 'Source',
+    description: 'Validates the configured source folder and reads the commit it sits on.'
+  },
+  REVIEWING: {
+    label: 'Review',
+    description:
+      'The model reads your source through read-only tools and writes the recommendations. '
+      + 'This is the only step that calls the AI, so it dominates the run time.'
+  },
+  VERIFYING: {
+    label: 'Verify',
+    description:
+      'Checks every frame the model cited against the measured call tree, and every source path '
+      + 'against the checkout. Anything that does not match is kept but marked unverified.'
+  }
 };
 
 const stepId = (eventType: string, step: string): string => `${eventType}::${step}`;
@@ -50,7 +70,11 @@ export function timelinePhases(types: TimelineType[]): TimelinePhase[] {
     id: type.eventType,
     name: type.label,
     description: eventTypeDescription(type.eventType),
-    steps: STEP_ORDER.map(step => ({ id: stepId(type.eventType, step), label: STEP_LABELS[step] ?? step }))
+    steps: STEP_ORDER.map(step => ({
+      id: stepId(type.eventType, step),
+      label: STEP_INFO[step]?.label ?? step,
+      description: STEP_INFO[step]?.description
+    }))
   }));
 }
 

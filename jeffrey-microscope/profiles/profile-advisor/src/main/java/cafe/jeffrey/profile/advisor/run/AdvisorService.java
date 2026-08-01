@@ -109,23 +109,24 @@ public final class AdvisorService {
         sink.resolvingSource();
         SourceTree sourceTree = sourceTreeResolver.resolve(settings.sourcePath(), recordingId);
 
-        sink.analyzing();
+        sink.reviewing();
         ToolCallResult raw = analyze(target, prompt, new SourceAnalysisTools(sourceTree.root()));
 
-        sink.grounding();
+        sink.verifying();
         AdvisorOutputParser.ParsedOutput parsed = AdvisorOutputParser.parse(raw.text());
         List<GroundedClaim> claims = new ClaimGrounder(prompt.frameIndex(), sourceTree.root())
                 .ground(parsed.claims());
         Severity severity = SeverityCalculator.fromGroundedClaims(claims);
 
-        AdvisorResult result = new AdvisorResult(severity, parsed.recommendations(), claims);
+        AdvisorResult result =
+                new AdvisorResult(severity, parsed.recommendations(), parsed.patch(), claims);
 
         store(target, result, sourceTree);
 
         LOG.info("Generated advisor recommendations: profile_id={} event_type={} severity={} claims={} "
-                        + "grounded={}",
+                        + "grounded={} patched={}",
                 target.profileId(), target.eventType(), severity, claims.size(),
-                result.groundedClaimCount());
+                result.groundedClaimCount(), result.hasPatch());
         return result;
     }
 
@@ -162,6 +163,7 @@ public final class AdvisorService {
                 target.eventType(),
                 result.severity().name(),
                 result.recommendations(),
+                result.patch(),
                 sourceTree.resolvedRef(),
                 generatedAt));
 

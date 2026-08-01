@@ -65,18 +65,19 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
 
     //language=SQL
     private static final String FIND_RECOMMENDATIONS = """
-            SELECT event_type, severity, recommendations, source_ref, generated_at
+            SELECT event_type, severity, recommendations, patch, source_ref, generated_at
             FROM advisor_recommendations
             ORDER BY event_type""";
 
     //language=SQL
     private static final String UPSERT_RECOMMENDATION = """
             INSERT INTO advisor_recommendations (event_type, severity, recommendations,
-                                                 source_ref, generated_at)
-            VALUES (:event_type, :severity, :recommendations, :source_ref, :generated_at)
+                                                 patch, source_ref, generated_at)
+            VALUES (:event_type, :severity, :recommendations, :patch, :source_ref, :generated_at)
             ON CONFLICT (event_type) DO UPDATE SET
                 severity = EXCLUDED.severity,
                 recommendations = EXCLUDED.recommendations,
+                patch = EXCLUDED.patch,
                 source_ref = EXCLUDED.source_ref,
                 generated_at = EXCLUDED.generated_at""";
 
@@ -153,6 +154,7 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
                 .addValue(PARAM_EVENT_TYPE, recommendation.eventType())
                 .addValue("severity", recommendation.severity())
                 .addValue("recommendations", recommendation.recommendations())
+                .addValue("patch", recommendation.patch())
                 .addValue("source_ref", recommendation.sourceRef())
                 .addValue("generated_at", Timestamp.from(recommendation.generatedAt()));
 
@@ -212,6 +214,7 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
                 rs.getString(PARAM_EVENT_TYPE),
                 rs.getString("severity"),
                 rs.getString("recommendations"),
+                rs.getString("patch"),
                 rs.getString("source_ref"),
                 instant(rs, "generated_at"));
     }
