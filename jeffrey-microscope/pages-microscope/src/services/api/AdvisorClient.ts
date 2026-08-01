@@ -64,11 +64,6 @@ export default class AdvisorClient extends BaseProfileClient {
     return super.get<AdvisorRunResult | null>('/run/result');
   }
 
-  /** The stage sequence, served by the backend so the timeline cannot drift from the pipeline. */
-  stages(): Promise<string[]> {
-    return super.get<string[]>('/stages');
-  }
-
   cancel(): Promise<void> {
     return super.delete<void>('/run');
   }

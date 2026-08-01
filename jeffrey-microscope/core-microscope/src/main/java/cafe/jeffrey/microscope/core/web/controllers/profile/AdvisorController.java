@@ -33,7 +33,6 @@ import cafe.jeffrey.profile.advisor.prompt.AdvisorPromptManagerFactory;
 import cafe.jeffrey.profile.advisor.run.AdvisorRunResult;
 import cafe.jeffrey.profile.advisor.run.AdvisorRunner;
 import cafe.jeffrey.profile.advisor.run.AdvisorStages;
-import cafe.jeffrey.profile.advisor.run.AdvisorStatus;
 import cafe.jeffrey.profile.advisor.run.AdvisorTarget;
 import cafe.jeffrey.profile.advisor.run.BatchAdvisorProgress;
 import cafe.jeffrey.profile.advisor.settings.AdvisorSettings;
@@ -260,14 +259,6 @@ public class AdvisorController {
                 .toList();
     }
 
-    /**
-     * The stage sequence the UI renders as a timeline. Served from the backend so the two cannot drift:
-     * a stage added to the pipeline appears in the timeline without a frontend change.
-     */
-    @GetMapping("/stages")
-    public List<String> stages() {
-        return AdvisorStatus.ORDER.stream().map(Enum::name).toList();
-    }
 
     @DeleteMapping("/run")
     public ResponseEntity<Void> cancel(@PathVariable("profileId") String profileId) {

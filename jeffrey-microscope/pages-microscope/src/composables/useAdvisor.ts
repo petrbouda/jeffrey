@@ -27,17 +27,27 @@ import type {
 } from '@/services/api/model/Advisor';
 import ToastService from '@shared/services/ToastService';
 
-const POLL_INTERVAL_MS = 2000;
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const POLL_INTERVAL_MS = 750;
 const TICK_INTERVAL_MS = 250;
+
+/**
+ * Consecutive idle polls tolerated before treating the run as lost. A backend restart drops the batch
+ * from memory and progress starts answering "no batch"; without this the page would poll a run that no
+ * longer exists for as long as it stayed open.
+ */
+const MAX_IDLE_POLLS = 5;
 
 /**
  * Drives one profile's Advisor page: what can be analyzed, what has been analyzed, and the state of a
  * batch run in flight — one launch that processes every event type at once.
  *
  * <p>The run is watched by polling rather than a stream, matching how heap-dump initialization is
- * followed. The trade is deliberate: the run reports a handful of coarse stages per type over several
- * minutes, so a two-second poll shows everything a stream would, without a connection to keep alive
- * through a sleeping laptop or a proxy timeout.</p>
+ * followed — same interval, same idle tolerance, and the same sequential loop rather than a timer, so
+ * a slow poll delays the next one instead of stacking up behind it. The trade is deliberate: the run
+ * reports a handful of coarse stages per type over several minutes, so polling shows everything a
+ * stream would, without a connection to keep alive through a sleeping laptop or a proxy timeout.</p>
  */
 export function useAdvisor(profileId: string) {
   const client = new AdvisorClient(profileId);
@@ -49,7 +59,6 @@ export function useAdvisor(profileId: string) {
   const settings = ref<AdvisorSettings | null>(null);
   const batch = ref<BatchAdvisorProgress | null>(null);
   const runResult = ref<AdvisorRunResult | null>(null);
-  const stages = ref<string[]>([]);
   const selectedEventType = ref<string | null>(null);
   // Ticks while a run is in flight so the live step timers count up smoothly between polls.
   const now = ref(Date.now());
@@ -62,7 +71,8 @@ export function useAdvisor(profileId: string) {
     lastSyncAt.value = Date.now();
   };
 
-  let pollTimer: ReturnType<typeof setInterval> | null = null;
+  // Polling is a loop rather than a timer, so this flag is what ends it.
+  let polling = false;
   let tickTimer: ReturnType<typeof setInterval> | null = null;
 
   const isRunning = computed(
@@ -78,10 +88,7 @@ export function useAdvisor(profileId: string) {
   const sourceConfigured = computed(() => settings.value?.configured === true);
 
   const stopPolling = (): void => {
-    if (pollTimer !== null) {
-      clearInterval(pollTimer);
-      pollTimer = null;
-    }
+    polling = false;
     if (tickTimer !== null) {
       clearInterval(tickTimer);
       tickTimer = null;
@@ -96,58 +103,106 @@ export function useAdvisor(profileId: string) {
       null;
   };
 
+  /** Applies one progress snapshot, returning true while the run is still going. */
+  const applyProgress = async (latest: BatchAdvisorProgress): Promise<boolean> => {
+    syncBatch(latest);
+
+    if (latest.status === 'COMPLETED') {
+      // Each type stores its artifacts in the profile database, so results arrive by re-reading them
+      // rather than by being carried on the progress snapshot. The stored timeline is fetched too, so
+      // the Overview keeps showing the phased, timed run after it finishes.
+      [recommendations.value, runResult.value] = await Promise.all([
+        client.recommendations(),
+        client.runResult()
+      ]);
+      pickSelected();
+      ToastService.success('Advisor', 'Recommendations are ready');
+      return false;
+    }
+    if (latest.status === 'FAILED') {
+      ToastService.error('Advisor', 'The advisor run failed for every event type');
+      return false;
+    }
+    return true;
+  };
+
   const refreshProgress = async (): Promise<void> => {
     try {
-      const latest = await client.runProgress();
-      syncBatch(latest);
-
-      if (latest.status === 'COMPLETED') {
+      if (!(await applyProgress(await client.runProgress()))) {
         stopPolling();
-        // Each type stores its artifacts in the profile database, so results arrive by re-reading them
-        // rather than by being carried on the progress snapshot. The stored timeline is fetched too, so
-        // the Overview keeps showing the phased, timed run after it finishes.
-        [recommendations.value, runResult.value] = await Promise.all([
-          client.recommendations(),
-          client.runResult()
-        ]);
-        pickSelected();
-        ToastService.success('Advisor', 'Recommendations are ready');
-      } else if (latest.status === 'FAILED') {
-        stopPolling();
-        ToastService.error('Advisor', 'The advisor run failed for every event type');
       }
     } catch {
-      // A failed poll is not a failed run: keep polling and let the next tick settle it.
+      // A failed poll is not a failed run: the caller either polls again or is a one-off refresh.
+    }
+  };
+
+  /**
+   * Follows the run until it settles. Sequential rather than a timer, so a poll slower than the
+   * interval delays the next one instead of stacking up behind it.
+   */
+  const pollLoop = async (): Promise<void> => {
+    let idlePolls = 0;
+
+    while (polling) {
+      await sleep(POLL_INTERVAL_MS);
+      if (!polling) {
+        break;
+      }
+
+      try {
+        const latest = await client.runProgress();
+
+        // A null status is the backend saying it holds no batch for this profile — almost always a
+        // restart. Tolerate a few in case the launch has not registered yet, then stop rather than
+        // polling a run that no longer exists.
+        if (latest.status === null) {
+          idlePolls += 1;
+          if (idlePolls > MAX_IDLE_POLLS) {
+            syncBatch(latest);
+            stopPolling();
+            ToastService.error('Advisor', 'The advisor run was lost — please start it again.');
+          }
+          continue;
+        }
+
+        idlePolls = 0;
+        if (!(await applyProgress(latest))) {
+          stopPolling();
+        }
+      } catch {
+        // A failed poll is not a failed run: keep polling and let the next one settle it.
+      }
     }
   };
 
   const startPolling = (): void => {
-    stopPolling();
-    pollTimer = setInterval(refreshProgress, POLL_INTERVAL_MS);
+    if (polling) {
+      return;
+    }
+    polling = true;
+    now.value = Date.now();
     tickTimer = setInterval(() => {
       now.value = Date.now();
     }, TICK_INTERVAL_MS);
+    void pollLoop();
   };
 
   const load = async (): Promise<void> => {
     loading.value = true;
     error.value = null;
     try {
-      const [types, results, currentSettings, currentBatch, stageOrder, storedResult] =
-        await Promise.all([
-          client.eventTypes(),
-          client.recommendations(),
-          client.settings(),
-          client.runProgress(),
-          client.stages(),
-          client.runResult()
-        ]);
+      const [types, results, currentSettings, currentBatch, storedResult] = await Promise.all([
+        client.eventTypes(),
+        client.recommendations(),
+        client.settings(),
+        client.runProgress(),
+        client.runResult()
+      ]);
 
       eventTypes.value = types;
       recommendations.value = results;
       settings.value = currentSettings;
       syncBatch(currentBatch);
-      stages.value = stageOrder;
       runResult.value = storedResult;
       pickSelected();
 
@@ -198,7 +253,6 @@ export function useAdvisor(profileId: string) {
     recommendations,
     settings,
     batch,
-    stages,
     selectedEventType,
     selectedRecommendation,
     sourceConfigured,
