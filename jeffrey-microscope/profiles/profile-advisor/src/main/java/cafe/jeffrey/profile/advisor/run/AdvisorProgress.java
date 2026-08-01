@@ -36,25 +36,13 @@ public record AdvisorProgress(
         String profileId,
         String eventType,
         AdvisorStatus status,
-        String message,
         String errorMessage,
         Long startedAt,
         Long completedAt,
         List<AdvisorStepProgress> steps) {
 
-    private static final String IDLE_MESSAGE = "No advisor run has been started for this profile";
-
     public AdvisorProgress {
         steps = steps == null ? List.of() : List.copyOf(steps);
-    }
-
-    /**
-     * What the endpoint answers for a profile that has never run. Distinguishable from a finished run
-     * because there is no {@code completedAt}, so the UI can show a start button rather than a result
-     * banner for a run that never happened.
-     */
-    public static AdvisorProgress idle(String profileId) {
-        return new AdvisorProgress(profileId, null, null, IDLE_MESSAGE, null, null, null, List.of());
     }
 
     public boolean isRunning() {

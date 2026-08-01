@@ -31,9 +31,9 @@
 
     <template v-else-if="hasResults">
       <div class="results-bar">
-        <span class="src">
+        <span class="advisor-src">
           <i class="bi bi-folder2-open"></i>
-          <span class="src-path">{{ settings?.sourcePath || 'No source folder' }}</span>
+          <span class="advisor-src-path">{{ settings?.sourcePath || 'No source folder' }}</span>
         </span>
         <div class="result-chips">
           <button
@@ -83,26 +83,29 @@
     </template>
 
     <!-- No findings yet: send the user to the Overview to run the Advisor. -->
-    <div v-else class="guard">
-      <div class="guard-icon"><i class="bi bi-lightbulb"></i></div>
-      <h5>{{ isRunning ? 'A run is in progress' : 'No findings yet' }}</h5>
-      <p>
-        {{
-          isRunning
-            ? 'The Advisor is analyzing your profiles now — watch it on the Overview.'
-            : 'Run the Advisor to map the hottest frames in each profile to real code.'
-        }}
-      </p>
-      <router-link :to="overviewPath" class="guard-btn">
-        <i class="bi bi-arrow-right"></i>
-        {{ isRunning ? 'Watch the run' : 'Go to the Advisor Overview' }}
-      </router-link>
-    </div>
+    <EmptyState
+      v-else
+      icon="bi-lightbulb"
+      :title="isRunning ? 'A run is in progress' : 'No findings yet'"
+      :description="
+        isRunning
+          ? 'The Advisor is analyzing your profiles now — watch it on the Overview.'
+          : 'Run the Advisor to map the hottest frames in each profile to real code.'
+      "
+    >
+      <template #action>
+        <router-link :to="overviewPath" class="guard-btn">
+          <i class="bi bi-arrow-right"></i>
+          {{ isRunning ? 'Watch the run' : 'Go to the Advisor Overview' }}
+        </router-link>
+      </template>
+    </EmptyState>
   </PageHeader>
 </template>
 
 <script setup lang="ts">
 import '@shared/styles/shared-components.css';
+import '@/views/profiles/detail/advisor/advisor-shared.css';
 import { computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import LoadingState from '@shared/components/LoadingState.vue';
@@ -114,6 +117,7 @@ import Badge from '@shared/components/Badge.vue';
 import FormattingService from '@shared/services/FormattingService';
 import MarkdownRenderer from '@shared/services/MarkdownRenderer';
 import { severityVariant } from '@shared/services/severityDisplay';
+import EmptyState from '@shared/components/EmptyState.vue';
 import AiDisabledFeatureAlert from '@/components/alerts/AiDisabledFeatureAlert.vue';
 import ClaimList from '@/components/advisor/ClaimList.vue';
 import { eventTypeStyle, eventTypeVars } from '@/views/profiles/detail/advisor/eventTypeStyle';
@@ -177,20 +181,6 @@ onMounted(load);
   margin-bottom: 1.1rem;
 }
 
-.results-bar .src {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-}
-
-.results-bar .src-path {
-  font-family: var(--font-family-monospace);
-  color: var(--color-heading-dark);
-  font-weight: 600;
-}
-
 .result-chips {
   display: inline-flex;
   gap: 0.35rem;
@@ -202,7 +192,7 @@ onMounted(load);
   align-items: center;
   gap: 0.4rem;
   border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.26rem 0.7rem;
   font-size: 0.78rem;
   font-weight: 500;
@@ -286,47 +276,7 @@ onMounted(load);
   border-radius: var(--radius-sm);
 }
 
-/* guard card (no findings yet) */
-.guard {
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 3rem 2rem;
-  text-align: center;
-  max-width: 480px;
-  margin: 2rem auto;
-}
-
-.guard-icon {
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 1.25rem;
-  background: var(--color-primary-light);
-  border-radius: var(--radius-lg);
-  display: grid;
-  place-items: center;
-}
-
-.guard-icon i {
-  font-size: 1.5rem;
-  color: var(--color-primary);
-}
-
-.guard h5 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--color-heading-dark);
-  margin-bottom: 0.5rem;
-}
-
-.guard p {
-  color: var(--color-text-muted);
-  font-size: 0.875rem;
-  line-height: 1.6;
-  margin: 0 auto 1.5rem;
-  max-width: 360px;
-}
-
+/* action button inside the EmptyState (no findings yet) */
 .guard-btn {
   display: inline-flex;
   align-items: center;

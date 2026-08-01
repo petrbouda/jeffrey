@@ -81,9 +81,9 @@
     <!-- A run has finished: the kept, static timeline with measured times. -->
     <template v-else-if="runResult">
       <div class="run-toolbar">
-        <span class="src">
+        <span class="advisor-src">
           <i class="bi bi-folder2-open"></i>
-          <span class="src-path">{{ settings?.sourcePath || 'No source folder' }}</span>
+          <span class="advisor-src-path">{{ settings?.sourcePath || 'No source folder' }}</span>
         </span>
         <router-link :to="findingsPath" class="btn">
           <i class="bi bi-lightbulb"></i>
@@ -167,6 +167,7 @@
 
 <script setup lang="ts">
 import '@shared/styles/shared-components.css';
+import '@/views/profiles/detail/advisor/advisor-shared.css';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import LoadingState from '@shared/components/LoadingState.vue';
@@ -306,19 +307,6 @@ onMounted(async () => {
   color: var(--color-danger);
 }
 
-.run-toolbar .src {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-}
-
-.run-toolbar .src-path {
-  font-family: var(--font-family-monospace);
-  color: var(--color-heading-dark);
-  font-weight: 600;
-}
 
 .btn {
   appearance: none;
@@ -431,7 +419,7 @@ onMounted(async () => {
 .setup input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-light);
+  box-shadow: var(--focus-ring);
 }
 
 .setup-hint {
@@ -504,7 +492,7 @@ onMounted(async () => {
   color: var(--et);
   background: var(--et-light);
   padding: 2px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .rc-desc {

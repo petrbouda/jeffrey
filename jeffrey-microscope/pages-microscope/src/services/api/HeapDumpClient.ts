@@ -77,7 +77,8 @@ export default class HeapDumpClient extends BaseProfileClient {
   }
 
   public getInitProgress(): Promise<HeapDumpInitProgress> {
-    return this.get<HeapDumpInitProgress>('/init-progress');
+    // Polled on a timer while a run is in flight, so a transient failure must not raise a toast per tick.
+    return this.get<HeapDumpInitProgress>('/init-progress', undefined, { suppressToast: true });
   }
 
   public getHistogram(topN: number = 100, sortBy: string = 'SIZE'): Promise<ClassHistogramEntry[]> {

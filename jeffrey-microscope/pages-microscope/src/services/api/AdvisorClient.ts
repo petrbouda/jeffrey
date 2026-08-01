@@ -19,7 +19,6 @@
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import type {
   AdvisorEventType,
-  AdvisorPrompt,
   AdvisorRecommendation,
   AdvisorRunResult,
   AdvisorSettings,
@@ -33,16 +32,6 @@ export default class AdvisorClient extends BaseProfileClient {
 
   eventTypes(): Promise<AdvisorEventType[]> {
     return super.get<AdvisorEventType[]>('/event-types');
-  }
-
-  /** Cached prompts only — opening the page never triggers a call tree walk nobody asked for. */
-  prompts(): Promise<AdvisorPrompt[]> {
-    return super.get<AdvisorPrompt[]>('/prompts');
-  }
-
-  /** Rebuilds every prompt, which is how a changed prune threshold reaches the model. */
-  regeneratePrompts(): Promise<AdvisorPrompt[]> {
-    return super.post<AdvisorPrompt[]>('/prompts', {});
   }
 
   recommendations(): Promise<AdvisorRecommendation[]> {

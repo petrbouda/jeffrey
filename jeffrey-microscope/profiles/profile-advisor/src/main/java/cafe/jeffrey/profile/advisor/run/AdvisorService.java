@@ -56,7 +56,7 @@ import java.util.List;
  * survived. A claim the model invented therefore cannot raise a profile's priority, which is the
  * difference between a ranking you can act on and a ranking that rewards confident writing.</p>
  */
-public class AdvisorService {
+public final class AdvisorService {
 
     private static final Logger LOG = LoggerFactory.getLogger(AdvisorService.class);
 

@@ -22,53 +22,39 @@ import java.util.List;
 
 /**
  * Lifecycle of an advisor run: wait for a slot, build or load the prompt, resolve the source folder,
- * run the AI analysis, then finish in a terminal {@link #COMPLETED} or {@link #FAILED} state.
+ * run the AI analysis, ground the findings, then finish in a terminal {@link #COMPLETED} or
+ * {@link #FAILED} state.
  *
- * <p>{@link #ORDER} is the sequence the UI renders as a stage timeline, so a user watching a long run
- * can see which step it is on rather than a spinner that says nothing.</p>
+ * <p>The names double as the pipeline's stage ids and the frontend's label keys, so renaming a
+ * constant is a wire-format change.</p>
  */
 public enum AdvisorStatus {
 
     /** Waiting for a generation slot; another run is using them all. */
-    QUEUED("Waiting for a generation slot…"),
+    QUEUED,
 
     /** Building the flamegraph prompt, or loading the cached one. */
-    PREPARING_PROMPT("Preparing the profile summary…"),
+    PREPARING_PROMPT,
 
     /** Validating the configured source folder and reading its commit. */
-    RESOLVING_SOURCE("Locating the source folder…"),
+    RESOLVING_SOURCE,
 
-    ANALYZING("Analyzing the source…"),
+    /** The model reading the source through the read-only tools. */
+    ANALYZING,
 
     /** The model has answered; its cited frames are being grounded against the measured call tree. */
-    GROUNDING("Grounding findings against the profile…"),
+    GROUNDING,
 
-    COMPLETED("Recommendations ready"),
-    FAILED("Advisor run failed");
-
-    /**
-     * The non-terminal stages in the order they happen. Terminal states are excluded: they are an
-     * outcome, not a step, and rendering them as one would imply a run can be "in" FAILED for a while.
-     */
-    public static final List<AdvisorStatus> ORDER =
-            List.of(QUEUED, PREPARING_PROMPT, RESOLVING_SOURCE, ANALYZING, GROUNDING);
+    COMPLETED,
+    FAILED;
 
     /**
-     * The timed pipeline steps — {@link #ORDER} minus {@link #QUEUED}, which is a wait for a slot rather
-     * than work. Each of these is measured and shown as a row under its event type in the run timeline.
+     * The timed pipeline steps, in the order they happen — everything except {@link #QUEUED}, which is
+     * a wait for a slot rather than work, and the terminal states, which are an outcome rather than a
+     * step. Each of these is measured and shown as a row under its event type in the run timeline.
      */
     public static final List<AdvisorStatus> STEPS =
             List.of(PREPARING_PROMPT, RESOLVING_SOURCE, ANALYZING, GROUNDING);
-
-    private final String message;
-
-    AdvisorStatus(String message) {
-        this.message = message;
-    }
-
-    public String message() {
-        return message;
-    }
 
     public boolean isTerminal() {
         return this == COMPLETED || this == FAILED;

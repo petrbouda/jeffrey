@@ -156,11 +156,12 @@ public class SourceAnalysisTools {
             return "Error: Not a file: " + path;
         }
 
-        try {
+        // Reads at most the cap, never the whole file: the model can point this at anything in the
+        // tree, including a multi-gigabyte artifact that must not be buffered into memory first.
+        try (var in = Files.newInputStream(target)) {
             long size = Files.size(target);
-            byte[] bytes = Files.readAllBytes(target);
-            String content = new String(
-                    bytes, 0, (int) Math.min(size, MAX_FILE_BYTES), java.nio.charset.StandardCharsets.UTF_8);
+            byte[] bytes = in.readNBytes(MAX_FILE_BYTES);
+            String content = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
             if (size > MAX_FILE_BYTES) {
                 return content + "\n\n… (truncated at " + MAX_FILE_BYTES + " bytes of " + size + ")";
             }

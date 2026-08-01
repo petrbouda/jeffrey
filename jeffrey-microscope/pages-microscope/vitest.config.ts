@@ -4,6 +4,13 @@ import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
   plugins: [vue()],
+  server: {
+    fs: {
+      // The shared UI specs live above the app root; without this, vitest serves them via /@fs and
+      // refuses the path.
+      allow: ['../..']
+    }
+  },
   resolve: {
     // Mirrors vite.config.ts, including the exact-match regex pins. `@shared` sources live above the
     // app root and have no node_modules of their own, so their bare `axios`/`marked`/`dompurify`
@@ -48,6 +55,9 @@ export default defineConfig({
     ]
   },
   test: {
+    // The app's own tests plus the shared UI modules' — shared/ui has no test runner of its own, so
+    // its specs run here, next to the only environment configured to resolve them.
+    include: ['src/**/*.{test,spec}.ts', '../../shared/ui/**/src/**/*.{test,spec}.ts'],
     globals: true,
     // jsdom rather than node: the markdown renderer sanitizes against a real DOM, and its tests assert
     // that a hostile attribute is stripped — not merely escaped, which is what a string check would

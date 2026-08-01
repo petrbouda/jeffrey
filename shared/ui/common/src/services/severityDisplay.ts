@@ -20,9 +20,8 @@
 export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 
 /**
- * Presentation helpers for severity: the Badge variant, a CSS-token color (for accent rails and
- * dots), an icon, and a sort rank. Keeps the severity → look mapping in one place so every screen that
- * ranks findings reads the same way.
+ * Presentation helpers for severity. Keeps the severity → look mapping in one place so every screen
+ * that ranks findings reads the same way.
  */
 
 const BADGE_VARIANT: Record<Severity, string> = {
@@ -32,41 +31,6 @@ const BADGE_VARIANT: Record<Severity, string> = {
   LOW: "grey",
 };
 
-const COLOR_VAR: Record<Severity, string> = {
-  CRITICAL: "var(--color-danger)",
-  HIGH: "var(--color-orange)",
-  MEDIUM: "var(--color-amber)",
-  LOW: "var(--color-text-muted)",
-};
-
-const ICON: Record<Severity, string> = {
-  CRITICAL: "bi-exclamation-octagon-fill",
-  HIGH: "bi-exclamation-triangle-fill",
-  MEDIUM: "bi-dash-circle-fill",
-  LOW: "bi-info-circle-fill",
-};
-
-const RANK: Record<Severity, number> = {
-  CRITICAL: 4,
-  HIGH: 3,
-  MEDIUM: 2,
-  LOW: 1,
-};
-
-export const SEVERITY_ORDER: Severity[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
-
 export function severityVariant(severity: Severity): string {
   return BADGE_VARIANT[severity] ?? "grey";
-}
-
-export function severityColor(severity: Severity): string {
-  return COLOR_VAR[severity] ?? "var(--color-text-muted)";
-}
-
-export function severityIcon(severity: Severity): string {
-  return ICON[severity] ?? "bi-info-circle-fill";
-}
-
-export function severityRank(severity: Severity): number {
-  return RANK[severity] ?? 0;
 }

@@ -334,11 +334,13 @@
   --spacing-12: 3rem;    /* 48px */
   
   /* Border Radius */
+  --radius-xs: 0.125rem; /* 2px — tiny progress bars and micro chips */
   --radius-sm: 0.25rem;  /* 4px */
   --radius-base: 0.375rem; /* 6px */
   --radius-md: 0.5rem;   /* 8px */
   --radius-lg: 0.75rem;  /* 12px */
   --radius-circle: 50%;  /* dots, swatches and other round indicators */
+  --radius-pill: 999px;  /* fully rounded pills and capsule chips */
 
   /* Shadows */
   --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);

@@ -24,14 +24,6 @@ export interface AdvisorEventType {
   label: string;
 }
 
-/** A cached flamegraph prompt. The frame index stays server-side; the UI only shows the markdown. */
-export interface AdvisorPrompt {
-  eventType: string;
-  label: string;
-  samples: number;
-  markdown: string;
-}
-
 /**
  * A citation a recommendation rests on, after checking. An ungrounded claim is shown rather than
  * hidden — a finding the model could not substantiate is exactly what the reader needs to see.
@@ -84,7 +76,6 @@ export interface AdvisorProgress {
   profileId: string;
   eventType: string | null;
   status: AdvisorStatus | null;
-  message: string;
   errorMessage: string | null;
   startedAt: number | null;
   completedAt: number | null;

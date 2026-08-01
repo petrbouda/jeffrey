@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p>The batch holds no result. Each type stores its own artifacts in the profile database as it
  * finishes, so the findings are read from there; the batch answers only "where is each type up to".</p>
  */
-public class BatchAdvisorRun {
+public final class BatchAdvisorRun {
 
     private final String profileId;
     private final List<AdvisorTarget> targets;

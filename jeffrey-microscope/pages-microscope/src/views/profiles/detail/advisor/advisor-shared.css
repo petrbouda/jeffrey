@@ -1,0 +1,21 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the GNU Affero General Public License v3.
+ */
+
+/* The source-folder chip shown in both Advisor views' toolbars (Overview and Findings). */
+.advisor-src {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.advisor-src-path {
+  font-family: var(--font-family-monospace);
+  color: var(--color-heading-dark);
+  font-weight: 600;
+}

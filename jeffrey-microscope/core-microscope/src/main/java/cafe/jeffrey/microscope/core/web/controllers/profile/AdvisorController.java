@@ -223,11 +223,6 @@ public class AdvisorController {
         return runs.isEmpty() ? null : AdvisorRunResult.from(runs);
     }
 
-    @GetMapping("/run/result/exists")
-    public boolean runResultExists(@PathVariable("profileId") String profileId) {
-        return !pipelineRunRepository(profileId).findAll(AdvisorStages.PIPELINE_ID).isEmpty();
-    }
-
     /**
      * Throws away everything the Advisor has derived for this profile — recommendations, claims, the
      * cached prompts and the kept run timeline — so the next run starts from nothing. The counterpart

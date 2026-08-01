@@ -246,7 +246,7 @@ const totalElapsed = computed(() => {
 .processing-card {
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 2rem 2rem 2.5rem;
   width: 100%;
 }
@@ -286,7 +286,7 @@ const totalElapsed = computed(() => {
   background: var(--color-primary-light);
   color: var(--color-primary);
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-weight: 600;
   font-size: 0.74rem;
   font-variant-numeric: tabular-nums;
@@ -302,7 +302,7 @@ const totalElapsed = computed(() => {
 .overall-bar {
   height: 4px;
   background: var(--color-border);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
   margin: 0 0 1.5rem;
 }
@@ -330,7 +330,7 @@ const totalElapsed = computed(() => {
 
 .phase-card.active {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-light);
+  box-shadow: var(--focus-ring);
 }
 
 .phase-card.done {
@@ -341,7 +341,7 @@ const totalElapsed = computed(() => {
 .phase-icon {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -381,7 +381,7 @@ const totalElapsed = computed(() => {
 .phase-bar {
   height: 4px;
   background: var(--color-border);
-  border-radius: 2px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
   margin-bottom: 14px;
 }
@@ -476,7 +476,7 @@ const totalElapsed = computed(() => {
 .phase-stages .tick {
   width: 18px;
   height: 18px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -525,9 +525,9 @@ const totalElapsed = computed(() => {
 .phase-spinner {
   width: 9px;
   height: 9px;
-  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  border: 1.5px solid color-mix(in srgb, var(--color-white) 40%, transparent);
   border-top-color: var(--color-white);
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   animation: phase-spin 0.8s linear infinite;
 }
 
@@ -541,7 +541,7 @@ const totalElapsed = computed(() => {
 
 .phase-stages li.expandable {
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   padding: 2px 4px;
   margin: -2px -4px;
 }
@@ -597,8 +597,8 @@ const totalElapsed = computed(() => {
   align-items: center;
   height: 24px;
   padding: 0 10px;
-  background: rgba(15, 23, 42, 0.04);
-  border-radius: 4px;
+  background: var(--color-light);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   font-size: 0.76rem;
 }
@@ -609,7 +609,7 @@ const totalElapsed = computed(() => {
   top: 0;
   bottom: 0;
   background: var(--color-primary-light);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   transition: width 0.25s ease;
   pointer-events: none;
 }
@@ -633,7 +633,7 @@ const totalElapsed = computed(() => {
   color: var(--color-text-muted);
   background: var(--color-bg-card);
   border: 1px solid var(--color-border);
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
   padding: 1px 6px;
   margin-right: 8px;
   white-space: nowrap;

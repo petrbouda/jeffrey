@@ -23,6 +23,7 @@ import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRequest;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunResult;
 import cafe.jeffrey.profile.common.pipeline.PipelineState;
+import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Starts advisor batch runs — one launch processes every requested event type for a profile — and
@@ -49,16 +51,19 @@ import java.util.concurrent.ConcurrentHashMap;
  * degrade together, so the types drain through the registry's shared slots a few at a time. A queued
  * type says so instead of appearing stuck.</p>
  */
-public class AdvisorRunner {
+public final class AdvisorRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(AdvisorRunner.class);
 
     private static final Duration COMPLETED_RUN_TTL = Duration.ofMinutes(15);
 
+    private static final Duration BATCH_EVICTION_INTERVAL = Duration.ofMinutes(1);
+
     private final Map<String, BatchAdvisorRun> batchesByProfileId = new ConcurrentHashMap<>();
     private final PipelineRunRegistry<AdvisorRunKey> registry;
     private final AdvisorServiceFactory advisorServiceFactory;
     private final AdvisorRunResultWriter runResultWriter;
+    private final Clock clock;
 
     public AdvisorRunner(
             AdvisorServiceFactory advisorServiceFactory,
@@ -68,10 +73,31 @@ public class AdvisorRunner {
 
         this.advisorServiceFactory = advisorServiceFactory;
         this.runResultWriter = runResultWriter;
+        this.clock = clock;
         this.registry = new PipelineRunRegistry<>(
                 AdvisorStages.DEFINITION,
                 PipelineRunOptions.bounded(maxConcurrentRuns, COMPLETED_RUN_TTL),
                 clock);
+
+        // The registry evicts its own runs on the same TTL, but the batch map holds strong references
+        // to every run it aggregates — without this sweep a finished batch (and all its runs) would
+        // stay for the life of the process, one per profile ever analyzed.
+        Schedulers.sharedSingleScheduled().scheduleAtFixedRate(
+                this::evictFinishedBatches,
+                BATCH_EVICTION_INTERVAL.toMillis(),
+                BATCH_EVICTION_INTERVAL.toMillis(),
+                TimeUnit.MILLISECONDS);
+    }
+
+    private void evictFinishedBatches() {
+        long cutoff = clock.instant().minus(COMPLETED_RUN_TTL).toEpochMilli();
+        batchesByProfileId.values().removeIf(batch -> {
+            if (batch.isRunning()) {
+                return false;
+            }
+            Long completedAt = batch.progress().completedAt();
+            return completedAt != null && completedAt < cutoff;
+        });
     }
 
     /**
