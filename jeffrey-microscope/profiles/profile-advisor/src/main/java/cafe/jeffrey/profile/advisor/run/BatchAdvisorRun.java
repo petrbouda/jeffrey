@@ -85,12 +85,16 @@ public class BatchAdvisorRun {
     }
 
     /**
-     * Returns true exactly once — to the first caller that observes every type settled. Each per-type
-     * worker calls this as it finishes, so the last one to complete claims the batch and persists the
-     * result; the rest get false.
+     * Returns true exactly once — to the first caller that observes every type's terminal result
+     * recorded. Each per-type worker records its result and then calls this, so the last one to finish
+     * claims the batch and persists it; the rest get false.
+     *
+     * <p>The claim is decided by <em>recorded results</em>, not by run states, deliberately: a run turns
+     * terminal a moment before its worker records the result, so a state-based claim could win while a
+     * sibling's result is still in flight — and persist a timeline missing that type.</p>
      */
     public boolean tryClaimCompletion() {
-        return !isRunning() && completionClaimed.compareAndSet(false, true);
+        return results.size() == targets.size() && completionClaimed.compareAndSet(false, true);
     }
 
     public BatchAdvisorProgress progress() {

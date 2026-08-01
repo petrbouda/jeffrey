@@ -19,6 +19,8 @@
 package cafe.jeffrey.profile.advisor.run;
 
 import cafe.jeffrey.profile.common.pipeline.PipelineRun;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunResult;
+import cafe.jeffrey.profile.common.pipeline.PipelineState;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -72,6 +74,14 @@ class BatchAdvisorRunTest {
 
     private static LaunchedBatch batch() {
         return LaunchedBatch.of(FOUR);
+    }
+
+    /** A minimal terminal result for one type, as the registry would deliver it to the batch. */
+    private static PipelineRunResult result(AdvisorTarget target) {
+        return new PipelineRunResult(
+                AdvisorStages.PIPELINE_ID, target.eventType(), PipelineState.COMPLETED,
+                0L, 4, 4, null, null,
+                Instant.parse("2026-08-01T06:00:00Z"), Instant.parse("2026-08-01T06:00:10Z"), List.of());
     }
 
     @Nested
@@ -178,10 +188,26 @@ class BatchAdvisorRunTest {
         void claimsCompletionExactlyOnce() {
             LaunchedBatch launched = batch();
             launched.runs().forEach(PipelineRun::complete);
+            FOUR.forEach(target -> launched.batch().record(target, result(target)));
 
             assertTrue(launched.batch().tryClaimCompletion());
             assertFalse(launched.batch().tryClaimCompletion(),
                     "only the worker that finishes last may store the batch");
+        }
+
+        @Test
+        void refusesTheClaimUntilEveryResultIsRecorded() {
+            // A run turns terminal a moment before its worker records the result. A claim granted on
+            // run states alone would let a sibling persist the batch with this type's result missing.
+            LaunchedBatch launched = batch();
+            launched.runs().forEach(PipelineRun::complete);
+            FOUR.stream().limit(3).forEach(target -> launched.batch().record(target, result(target)));
+
+            assertFalse(launched.batch().tryClaimCompletion(),
+                    "three of four results recorded must not be enough");
+
+            launched.batch().record(FOUR.getLast(), result(FOUR.getLast()));
+            assertTrue(launched.batch().tryClaimCompletion());
         }
 
         @Test

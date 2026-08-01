@@ -32,6 +32,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -221,6 +222,35 @@ class PipelineRunTest {
             assertEquals(PipelineState.FAILED, result.state());
             assertEquals("HEAP_DUMP_NEEDS_SANITIZATION", result.errorCode());
             assertEquals("needs repair", result.errorMessage());
+        }
+
+        @Test
+        @DisplayName("stays failed when the cancelled work later reports completion")
+        void firstTerminalTransitionWins() {
+            PipelineRun run = newRun();
+            run.beginStage("first");
+
+            assertTrue(run.fail("CANCELLED", "Cancelled"));
+            // The zombie worker returns minutes later and reports success — too late.
+            assertFalse(run.complete());
+
+            PipelineRunResult result = run.result(Instant.parse("2026-01-01T00:05:00Z"));
+            assertEquals(PipelineState.FAILED, result.state());
+            assertEquals("Cancelled", result.errorMessage());
+        }
+
+        @Test
+        @DisplayName("stays completed when a late cancellation arrives")
+        void lateFailureCannotOverturnCompletion() {
+            PipelineRun run = newRun();
+            run.runStage("first", () -> {
+            });
+
+            assertTrue(run.complete());
+            assertFalse(run.fail(null, "Cancelled"));
+
+            assertEquals(PipelineState.COMPLETED,
+                    run.result(Instant.parse("2026-01-01T00:05:00Z")).state());
         }
 
         @Test

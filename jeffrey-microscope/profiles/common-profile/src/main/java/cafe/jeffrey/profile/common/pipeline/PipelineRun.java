@@ -192,22 +192,39 @@ public final class PipelineRun {
      * Ends the run as succeeded. Normally called by {@link PipelineRunRegistry} once the pipeline body
      * returns; public because a run is a complete object in its own right, and a caller that schedules
      * its own work should not have to go through the registry to say the work finished.
+     *
+     * <p>The first terminal transition wins: a run cancelled while its work was still unwinding must
+     * stay failed when that work eventually returns, not flip to completed as if the cancel never
+     * happened. Synchronized because completion and cancellation genuinely race — the worker thread
+     * calls this, a request thread calls {@link #fail}.</p>
+     *
+     * @return true when this call ended the run, false when it was already terminal
      */
-    public void complete() {
+    public synchronized boolean complete() {
+        if (state != PipelineState.RUNNING) {
+            return false;
+        }
         completedAt = clock.instant();
         state = PipelineState.COMPLETED;
         clearActiveStage();
+        return true;
     }
 
     /**
-     * Ends the run as failed, marking whichever stage was still in flight as failed too.
+     * Ends the run as failed, marking whichever stage was still in flight as failed too. First terminal
+     * transition wins, as with {@link #complete}.
      *
-     * <p>That last part matters for callback-driven pipelines. {@link #runStage} marks its own stage
-     * failed on the way out, but a pipeline driven through {@link #advanceTo} is only ever told which
-     * phase is <em>starting</em> — so without this, the phase that was running when the work blew up
-     * would keep a spinning clock forever instead of reading as the one that broke.</p>
+     * <p>Marking the in-flight stage matters for callback-driven pipelines. {@link #runStage} marks its
+     * own stage failed on the way out, but a pipeline driven through {@link #advanceTo} is only ever
+     * told which phase is <em>starting</em> — so without this, the phase that was running when the work
+     * blew up would keep a spinning clock forever instead of reading as the one that broke.</p>
+     *
+     * @return true when this call ended the run, false when it was already terminal
      */
-    public void fail(String code, String message) {
+    public synchronized boolean fail(String code, String message) {
+        if (state != PipelineState.RUNNING) {
+            return false;
+        }
         String activeId = liveTimerStageId;
         if (activeId != null) {
             updateStage(activeId, StageStatus.FAILED, null, null);
@@ -217,6 +234,7 @@ public final class PipelineRun {
         completedAt = clock.instant();
         state = PipelineState.FAILED;
         clearActiveStage();
+        return true;
     }
 
     public PipelineProgress progress() {

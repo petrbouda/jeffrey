@@ -167,20 +167,80 @@ class PipelineRunRegistryTest {
     class Cancellation {
 
         @Test
-        @DisplayName("marks a cancelled run failed rather than leaving it reading as still going")
+        @DisplayName("marks a cancelled run failed and interrupts the work, which unblocks immediately")
         void cancelMarksTheRunFailed() throws InterruptedException {
             PipelineRunRegistry<String> registry = unbounded();
             CountDownLatch entered = new CountDownLatch(1);
             CountDownLatch release = new CountDownLatch(1);
+            AtomicReference<PipelineRunResult> stored = new AtomicReference<>();
 
-            registry.start(blockingRun("profile-1", entered, release));
+            registry.start(new PipelineRunRequest<>("profile-1", "",
+                    blockingRun("profile-1", entered, release).work(), stored::set));
             assertTrue(entered.await(5, TimeUnit.SECONDS));
 
             assertTrue(registry.cancel("profile-1"));
 
             assertEquals(PipelineState.FAILED, registry.progress("profile-1").state());
             assertFalse(registry.isRunning("profile-1"));
-            release.countDown();
+            // The interrupt reaches the blocked work — no need to release the latch — and the
+            // terminal result delivered to the caller is the cancellation, not a late completion.
+            await().atMost(5, SECONDS).untilAsserted(() -> assertNotNull(stored.get()));
+            assertEquals(PipelineState.FAILED, stored.get().state());
+            assertEquals(PipelineState.FAILED, registry.progress("profile-1").state());
+        }
+
+        @Test
+        @DisplayName("stays cancelled even when the work ignores the interrupt and returns normally")
+        void zombieCompletionCannotOverturnCancellation() throws InterruptedException {
+            PipelineRunRegistry<String> registry = unbounded();
+            CountDownLatch entered = new CountDownLatch(1);
+            CountDownLatch cancelled = new CountDownLatch(1);
+            AtomicReference<PipelineRunResult> stored = new AtomicReference<>();
+
+            // Work that swallows the interrupt and finishes as if nothing happened — the worst case
+            // for cancellation, because the registry then tries to complete the run.
+            registry.start(new PipelineRunRequest<>("profile-1", "", run -> run.runStage("first", () -> {
+                entered.countDown();
+                try {
+                    cancelled.await();
+                } catch (InterruptedException e) {
+                    // Deliberately ignored: simulates non-interruptible work running to completion.
+                }
+            }), stored::set));
+            assertTrue(entered.await(5, TimeUnit.SECONDS));
+
+            assertTrue(registry.cancel("profile-1"));
+            cancelled.countDown();
+
+            await().atMost(5, SECONDS).untilAsserted(() -> assertNotNull(stored.get()));
+            assertEquals(PipelineState.FAILED, stored.get().state(),
+                    "the first terminal transition (the cancel) must win");
+            assertEquals(PipelineState.FAILED, registry.progress("profile-1").state());
+        }
+
+        @Test
+        @DisplayName("a run cancelled while queued for a slot never executes its body")
+        void cancelledQueuedRunNeverExecutes() throws InterruptedException {
+            PipelineRunRegistry<String> registry = new PipelineRunRegistry<>(
+                    DEFINITION, PipelineRunOptions.bounded(1, Duration.ofMinutes(15)), CLOCK);
+            CountDownLatch firstEntered = new CountDownLatch(1);
+            CountDownLatch releaseFirst = new CountDownLatch(1);
+            AtomicInteger secondBodyRuns = new AtomicInteger();
+            AtomicReference<PipelineRunResult> secondResult = new AtomicReference<>();
+
+            assertTrue(registry.start(blockingRun("profile-1", firstEntered, releaseFirst)));
+            assertTrue(firstEntered.await(5, TimeUnit.SECONDS));
+
+            assertTrue(registry.start(new PipelineRunRequest<>("profile-2", "",
+                    run -> run.runStage("first", secondBodyRuns::incrementAndGet),
+                    secondResult::set)));
+
+            assertTrue(registry.cancel("profile-2"));
+            releaseFirst.countDown();
+
+            await().atMost(5, SECONDS).untilAsserted(() -> assertNotNull(secondResult.get()));
+            assertEquals(PipelineState.FAILED, secondResult.get().state());
+            assertEquals(0, secondBodyRuns.get(), "a cancelled queued run must not start its work");
         }
 
         @Test

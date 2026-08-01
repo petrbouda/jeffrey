@@ -51,6 +51,10 @@ public final class PipelineRunRegistry<K> {
 
     private static final Duration EVICTION_INTERVAL = Duration.ofMinutes(1);
 
+    private static final String CANCELLED_MESSAGE = "Cancelled";
+
+    private static final String CANCELLED_WHILE_QUEUED_MESSAGE = "Cancelled while waiting for a slot";
+
     private final PipelineDefinition definition;
     private final PipelineRunOptions options;
     private final Semaphore slots;
@@ -101,8 +105,8 @@ public final class PipelineRunRegistry<K> {
         LOG.info("Queued pipeline run: pipeline_id={} key={} scope_id={} available_slots={}",
                 definition.pipelineId(), request.key(), request.scopeId(), slots.availablePermits());
 
-        candidate.future = CompletableFuture
-                .runAsync(() -> execute(request, candidate.run), Schedulers.sharedVirtual())
+        CompletableFuture
+                .runAsync(() -> execute(request, candidate), Schedulers.sharedVirtual())
                 .exceptionally(ex -> {
                     LOG.error("Pipeline run crashed: pipeline_id={} key={}",
                             definition.pipelineId(), request.key(), ex);
@@ -127,30 +131,44 @@ public final class PipelineRunRegistry<K> {
     }
 
     /**
-     * Cancels an in-flight run. The interrupt reaches the pipeline thread; whether the underlying work
-     * notices is up to that work, so the run is marked failed regardless rather than left hanging in
-     * a state the UI would render as still going.
+     * Cancels an in-flight run: marks it failed and interrupts the thread executing it. Whether the
+     * underlying work notices the interrupt is up to that work, so the run is marked failed regardless
+     * rather than left hanging in a state the UI would render as still going.
+     *
+     * <p>The mark comes first, and the interrupt only fires when the mark won — {@link PipelineRun#fail}
+     * is first-transition-wins, so a run whose work completed a microsecond earlier stays completed and
+     * its thread is never interrupted while it stores results.</p>
      */
     public boolean cancel(K key) {
         TrackedRun tracked = runsByKey.get(key);
-        if (tracked == null || !tracked.run.isRunning()) {
+        if (tracked == null || !tracked.run.fail(null, CANCELLED_MESSAGE)) {
             return false;
         }
-        if (tracked.future != null) {
-            tracked.future.cancel(true);
+        Thread worker = tracked.worker;
+        if (worker != null) {
+            worker.interrupt();
         }
-        tracked.run.fail(null, "Cancelled");
         LOG.info("Cancelled pipeline run: pipeline_id={} key={}", definition.pipelineId(), key);
         return true;
     }
 
-    private void execute(PipelineRunRequest<K> request, PipelineRun run) {
+    private void execute(PipelineRunRequest<K> request, TrackedRun tracked) {
+        PipelineRun run = tracked.run;
+        // Cancelled before this task ever ran (there was no thread to interrupt yet): the work must
+        // not start on a run the caller already ended.
+        if (!run.isRunning()) {
+            notifyFinished(request, run);
+            return;
+        }
+        tracked.worker = Thread.currentThread();
+
         if (options.hasCeiling()) {
             try {
                 slots.acquire();
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                run.fail(null, "Cancelled while waiting for a slot");
+                tracked.worker = null;
+                Thread.interrupted();
+                run.fail(null, CANCELLED_WHILE_QUEUED_MESSAGE);
                 notifyFinished(request, run);
                 return;
             }
@@ -162,11 +180,20 @@ public final class PipelineRunRegistry<K> {
             LOG.info("Pipeline run completed: pipeline_id={} key={} duration_in_ms={}",
                     definition.pipelineId(), request.key(),
                     Duration.between(run.startedAt(), clock.instant()).toMillis());
-        } catch (RuntimeException e) {
+        } catch (Throwable e) {
+            // Errors are marked too — otherwise an OutOfMemoryError would leave the run RUNNING and
+            // its key blocked forever. They still propagate after the finally block runs.
             run.fail(errorCodeOf(e), e.getMessage());
             LOG.warn("Pipeline run failed: pipeline_id={} key={} error_code={} error={}",
                     definition.pipelineId(), request.key(), errorCodeOf(e), e.getMessage());
+            if (e instanceof Error error) {
+                throw error;
+            }
         } finally {
+            tracked.worker = null;
+            // Absorb a cancellation interrupt that landed after the work returned, so storing the
+            // terminal result below is not sabotaged by a flag meant for the work.
+            Thread.interrupted();
             if (options.hasCeiling()) {
                 slots.release();
             }
@@ -194,7 +221,7 @@ public final class PipelineRunRegistry<K> {
      * Jeffrey's own exceptions carry a code the frontend reacts to (the heap dump turns one into a
      * repair prompt). Anything else has no code, which is honest — a message is all we have.
      */
-    private static String errorCodeOf(RuntimeException e) {
+    private static String errorCodeOf(Throwable e) {
         return e instanceof JeffreyException jeffreyException ? jeffreyException.getCode().name() : null;
     }
 
@@ -206,11 +233,15 @@ public final class PipelineRunRegistry<K> {
         });
     }
 
-    /** Pairs a run with the future driving it, so cancellation can reach the pipeline thread. */
+    /**
+     * Pairs a run with the thread executing it, so cancellation can interrupt the actual work.
+     * A {@code CompletableFuture} would not do here: its {@code cancel(true)} never interrupts the
+     * running task — {@code mayInterruptIfRunning} is documented to have no effect.
+     */
     private static final class TrackedRun {
 
         private final PipelineRun run;
-        private volatile CompletableFuture<Void> future;
+        private volatile Thread worker;
 
         private TrackedRun(PipelineRun run) {
             this.run = run;
