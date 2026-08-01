@@ -22,8 +22,7 @@ import java.util.List;
 
 /**
  * Lifecycle of an advisor run: wait for a slot, build or load the prompt, resolve the source folder,
- * run the AI analysis, check what came back, then finish in a terminal {@link #COMPLETED} or
- * {@link #FAILED} state.
+ * run the AI analysis, then finish in a terminal {@link #COMPLETED} or {@link #FAILED} state.
  *
  * <p>{@link #ORDER} is the sequence the UI renders as a stage timeline, so a user watching a long run
  * can see which step it is on rather than a spinner that says nothing.</p>
@@ -41,8 +40,8 @@ public enum AdvisorStatus {
 
     ANALYZING("Analyzing the source…"),
 
-    /** Grounding the model's claims and checking the patch against the source tree. */
-    VERIFYING("Checking findings against the profile and the patch…"),
+    /** The model has answered; its cited frames are being grounded against the measured call tree. */
+    GROUNDING("Grounding findings against the profile…"),
 
     COMPLETED("Recommendations ready"),
     FAILED("Advisor run failed");
@@ -52,7 +51,14 @@ public enum AdvisorStatus {
      * outcome, not a step, and rendering them as one would imply a run can be "in" FAILED for a while.
      */
     public static final List<AdvisorStatus> ORDER =
-            List.of(QUEUED, PREPARING_PROMPT, RESOLVING_SOURCE, ANALYZING, VERIFYING);
+            List.of(QUEUED, PREPARING_PROMPT, RESOLVING_SOURCE, ANALYZING, GROUNDING);
+
+    /**
+     * The timed pipeline steps — {@link #ORDER} minus {@link #QUEUED}, which is a wait for a slot rather
+     * than work. Each of these is measured and shown as a row under its event type in the run timeline.
+     */
+    public static final List<AdvisorStatus> STEPS =
+            List.of(PREPARING_PROMPT, RESOLVING_SOURCE, ANALYZING, GROUNDING);
 
     private final String message;
 

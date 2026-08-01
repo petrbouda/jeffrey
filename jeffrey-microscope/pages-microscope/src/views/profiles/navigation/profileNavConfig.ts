@@ -442,27 +442,14 @@ export const profileNavSections: Record<
   ],
   Advisor: [
     {
-      title: 'RECOMMENDATIONS',
+      title: 'ADVISOR',
       items: [
-        item('Findings', 'bi-lightbulb', '/advisor', {
+        item('Overview', 'bi-play-circle', '/advisor'),
+        item('Findings', 'bi-lightbulb', '/advisor/findings', {
           disabledKeys: [AI_ANALYSIS_KEY],
           cssClass: AI_ITEM_CLASS
-        }),
-        item('Patch & Verification', 'bi-file-earmark-diff', '/advisor/patch', {
-          disabledKeys: [AI_ANALYSIS_KEY]
         })
       ]
-    },
-    {
-      title: 'ANALYSIS',
-      items: [
-        item('Regression', 'bi-graph-up-arrow', '/advisor/regression'),
-        item('Fleet Patterns', 'bi-diagram-3', '/advisor/fleet')
-      ]
-    },
-    {
-      title: 'SETUP',
-      items: [item('Source & Settings', 'bi-folder2-open', '/advisor/settings')]
     }
   ],
   Tools: [

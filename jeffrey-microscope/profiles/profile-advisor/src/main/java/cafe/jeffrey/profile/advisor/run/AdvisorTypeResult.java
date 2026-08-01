@@ -16,27 +16,22 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.advisor.fleet;
+package cafe.jeffrey.profile.advisor.run;
 
 import java.util.List;
 
 /**
- * A hotspot that recurs across projects, with the per-profile occurrences behind it.
+ * One event type's outcome in a stored run result: its terminal status, total measured time, and the
+ * per-step breakdown. The phase card in the run timeline is rendered from this.
  *
- * @param citedFrame      the grounded frame the occurrences share
- * @param projectCount    how many distinct projects it costs time in
- * @param occurrenceCount how many profiles cited it
- * @param peakSelfPct     the worst measured self share among those occurrences
- * @param occurrences     one row per occurrence, heaviest first
+ * @param eventType the sample event type analyzed
+ * @param status    {@code completed} or {@code failed}
+ * @param totalMs   the sum of the step durations
+ * @param steps     the four timed steps
  */
-public record FleetPattern(
-        String citedFrame,
-        long projectCount,
-        long occurrenceCount,
-        double peakSelfPct,
-        List<FleetOccurrence> occurrences) {
+public record AdvisorTypeResult(String eventType, String status, long totalMs, List<AdvisorStepResult> steps) {
 
-    public FleetPattern {
-        occurrences = occurrences == null ? List.of() : List.copyOf(occurrences);
+    public AdvisorTypeResult {
+        steps = steps == null ? List.of() : List.copyOf(steps);
     }
 }

@@ -26,26 +26,27 @@ import cafe.jeffrey.shared.common.model.ProfileInfo;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Starts advisor runs, bounds how many happen at once, and remembers the most recent one per profile so
- * the UI can poll it.
+ * Starts advisor batch runs — one launch processes every requested event type for a profile — bounds how
+ * many per-type analyses happen at once, and remembers the most recent batch per profile so the UI can
+ * poll it.
  *
- * <p>Two limits are enforced, for different reasons. <strong>One run per profile</strong> exists because
- * a second run would overwrite the first one's stored result with a near-identical answer, which is a
- * waste of money rather than a race. <strong>A global ceiling</strong> exists because each run holds a
- * frontier-model call open for minutes; without it a handful of simultaneous requests is enough to hit
- * the provider's rate limit and degrade every run together. A queued run says so instead of appearing
- * stuck.</p>
+ * <p>Two limits are enforced, for different reasons. <strong>One batch per profile</strong> exists
+ * because a second batch would overwrite the first one's stored results with near-identical answers,
+ * which is a waste of money rather than a race. <strong>A global ceiling</strong> exists because each
+ * per-type run holds a frontier-model call open for minutes; without it the types of even a single batch
+ * would hit the provider's rate limit and degrade together, so the types drain through the shared slots
+ * a few at a time. A queued type says so instead of appearing stuck.</p>
  *
- * <p>Finished runs are kept queryable until a short TTL expires, so a page that reloads right after a
- * run completes still learns how it ended.</p>
+ * <p>Finished batches are kept queryable until a short TTL expires, so a page that reloads right after a
+ * batch completes still learns how it ended.</p>
  */
 public class AdvisorRunner {
 
@@ -54,84 +55,85 @@ public class AdvisorRunner {
     private static final Duration COMPLETED_RUN_TTL = Duration.ofMinutes(15);
     private static final Duration CLEANUP_INTERVAL = Duration.ofMinutes(1);
 
-    private final Map<String, AdvisorRun> runsByProfileId = new ConcurrentHashMap<>();
+    private final Map<String, BatchAdvisorRun> batchesByProfileId = new ConcurrentHashMap<>();
     private final AdvisorServiceFactory advisorServiceFactory;
+    private final AdvisorRunResultWriter runResultWriter;
     private final Semaphore slots;
     private final int maxConcurrentRuns;
     private final Clock clock;
 
-    public AdvisorRunner(AdvisorServiceFactory advisorServiceFactory, int maxConcurrentRuns, Clock clock) {
+    public AdvisorRunner(
+            AdvisorServiceFactory advisorServiceFactory,
+            AdvisorRunResultWriter runResultWriter,
+            int maxConcurrentRuns,
+            Clock clock) {
         if (maxConcurrentRuns < 1) {
             throw new IllegalArgumentException(
                     "At least one concurrent run must be allowed: " + maxConcurrentRuns);
         }
         this.advisorServiceFactory = advisorServiceFactory;
+        this.runResultWriter = runResultWriter;
         this.maxConcurrentRuns = maxConcurrentRuns;
         this.slots = new Semaphore(maxConcurrentRuns, true);
         this.clock = clock;
 
         Schedulers.sharedSingleScheduled().scheduleAtFixedRate(
-                this::evictFinishedRuns,
+                this::evictFinishedBatches,
                 CLEANUP_INTERVAL.toMillis(),
                 CLEANUP_INTERVAL.toMillis(),
                 TimeUnit.MILLISECONDS);
     }
 
     /**
-     * Starts a run for {@code profile} and {@code eventType} unless one is already in flight for the
-     * same profile.
+     * Starts a batch that analyzes every {@code target} for {@code profile}, unless a batch is already in
+     * flight for the same profile. Each type is scheduled on its own slot, so they drain a few at a time.
      *
-     * @return true when a run was started, false when one was already running
+     * @return true when a batch was started, false when one was already running
      */
-    public boolean start(ProfileInfo profile, String eventType) {
-        return start(profile, AdvisorTarget.of(profile, eventType));
-    }
-
-    private boolean start(ProfileInfo profile, AdvisorTarget target) {
+    public boolean startBatch(ProfileInfo profile, List<AdvisorTarget> targets) {
         // The candidate is built up front so the outcome can be decided by identity: if compute() gave
-        // back anything else, an in-flight run kept the slot and this call started nothing.
-        AdvisorRun candidate = new AdvisorRun(target, clock);
-        AdvisorRun current = runsByProfileId.compute(target.profileId(), (_, existing) ->
+        // back anything else, an in-flight batch kept its place and this call started nothing.
+        BatchAdvisorRun candidate = new BatchAdvisorRun(profile.id(), targets, clock);
+        BatchAdvisorRun current = batchesByProfileId.compute(profile.id(), (_, existing) ->
                 existing != null && existing.isRunning() ? existing : candidate);
 
         if (current != candidate) {
-            LOG.debug("Advisor run already in flight for this profile: profile_id={} event_type={}",
-                    target.profileId(), current.target().eventType());
+            LOG.debug("Advisor batch already in flight for this profile: profile_id={}", profile.id());
             return false;
         }
 
-        LOG.info("Queued advisor run: profile_id={} event_type={} available_slots={} max_concurrent_runs={}",
-                target.profileId(), target.eventType(), slots.availablePermits(), maxConcurrentRuns);
+        LOG.info("Queued advisor batch: profile_id={} event_types={} available_slots={} max_concurrent_runs={}",
+                profile.id(), targets.size(), slots.availablePermits(), maxConcurrentRuns);
 
-        candidate.attach(CompletableFuture.runAsync(
-                () -> execute(profile, candidate), Schedulers.sharedVirtual()));
+        for (AdvisorRun run : candidate.runs()) {
+            run.attach(CompletableFuture.runAsync(
+                    () -> execute(profile, candidate, run), Schedulers.sharedVirtual()));
+        }
         return true;
     }
 
-    public Optional<AdvisorRun> find(String profileId) {
-        return Optional.ofNullable(runsByProfileId.get(profileId));
-    }
-
-    public AdvisorProgress progress(String profileId) {
-        return find(profileId).map(AdvisorRun::progress).orElseGet(() -> AdvisorProgress.idle(profileId));
+    public BatchAdvisorProgress batchProgress(String profileId) {
+        BatchAdvisorRun batch = batchesByProfileId.get(profileId);
+        return batch != null ? batch.progress() : BatchAdvisorProgress.idle(profileId);
     }
 
     public boolean cancel(String profileId) {
-        AdvisorRun run = runsByProfileId.get(profileId);
-        if (run == null || !run.isRunning()) {
+        BatchAdvisorRun batch = batchesByProfileId.get(profileId);
+        if (batch == null || !batch.isRunning()) {
             return false;
         }
-        run.cancel();
-        LOG.info("Cancelled advisor run: profile_id={}", profileId);
+        batch.cancel();
+        LOG.info("Cancelled advisor batch: profile_id={}", profileId);
         return true;
     }
 
-    private void execute(ProfileInfo profile, AdvisorRun run) {
+    private void execute(ProfileInfo profile, BatchAdvisorRun batch, AdvisorRun run) {
         try {
             slots.acquire();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             run.failed("Cancelled while waiting for a generation slot");
+            persistIfComplete(profile, batch);
             return;
         }
 
@@ -144,13 +146,37 @@ public class AdvisorRunner {
             run.failed(e.getMessage());
         } finally {
             slots.release();
+            persistIfComplete(profile, batch);
         }
     }
 
-    private void evictFinishedRuns() {
+    /**
+     * Stores the batch's timeline once every type has settled — claimed by whichever worker finishes
+     * last. A batch where no type produced findings (all failed or cancelled) is not persisted, so a
+     * failed re-run never clobbers a good previous result.
+     */
+    private void persistIfComplete(ProfileInfo profile, BatchAdvisorRun batch) {
+        if (!batch.tryClaimCompletion()) {
+            return;
+        }
+        BatchAdvisorProgress progress = batch.progress();
+        boolean anyCompleted = progress.types().stream()
+                .anyMatch(type -> type.status() == AdvisorStatus.COMPLETED);
+        if (!anyCompleted) {
+            return;
+        }
+        Instant completedAt = progress.completedAt() != null ? progress.completedAt() : clock.instant();
+        try {
+            runResultWriter.store(profile, AdvisorRunResult.from(progress, completedAt));
+        } catch (Exception e) {
+            LOG.warn("Failed to store advisor run result: profile_id={} error={}", profile.id(), e.getMessage());
+        }
+    }
+
+    private void evictFinishedBatches() {
         Instant cutoff = clock.instant().minus(COMPLETED_RUN_TTL);
-        runsByProfileId.values().removeIf(run -> {
-            Instant completedAt = run.progress().completedAt();
+        batchesByProfileId.values().removeIf(batch -> {
+            Instant completedAt = batch.progress().completedAt();
             return completedAt != null && completedAt.isBefore(cutoff);
         });
     }

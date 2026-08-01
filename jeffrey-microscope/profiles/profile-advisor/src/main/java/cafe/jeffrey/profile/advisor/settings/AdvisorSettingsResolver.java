@@ -22,83 +22,74 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.persistence.api.AdvisorSettingsRepository;
 import cafe.jeffrey.microscope.persistence.api.AdvisorSettingsRow;
+import cafe.jeffrey.shared.common.config.MicroscopeSettingKeys;
+import cafe.jeffrey.shared.common.config.SettingsStore;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 
 import java.time.Clock;
 
 /**
- * Reads and writes a project's Advisor settings, falling back to the installation defaults.
+ * Resolves the settings an advisor run needs: the per-project source folder from the core database and
+ * the installation-wide prune threshold from the global Advisor settings.
  *
- * <p>A stored value that is out of range falls back <em>per field</em>. A row edited by hand, or
- * written before a validation rule existed, must not take the whole feature down — and discarding a
- * perfectly good prune threshold because its neighbour is negative would be exactly that.</p>
+ * <p>The prune threshold is read from the {@link SettingsStore} at resolve time rather than captured
+ * once, so an edit on the settings page reaches the next run instead of the next restart. A stored
+ * value that is out of range falls back to the default rather than taking the feature down — a value
+ * edited by hand, or written before a validation rule existed, must not.</p>
  */
 public class AdvisorSettingsResolver {
 
     private static final Logger LOG = LoggerFactory.getLogger(AdvisorSettingsResolver.class);
 
     private final AdvisorSettingsRepository settingsRepository;
+    private final SettingsStore settingsStore;
     private final Clock clock;
 
-    public AdvisorSettingsResolver(AdvisorSettingsRepository settingsRepository, Clock clock) {
+    public AdvisorSettingsResolver(
+            AdvisorSettingsRepository settingsRepository, SettingsStore settingsStore, Clock clock) {
+
         this.settingsRepository = settingsRepository;
+        this.settingsStore = settingsStore;
         this.clock = clock;
     }
 
     public AdvisorSettings resolve(ProfileInfo profile) {
-        return resolve(profile.workspaceId(), profile.projectId());
+        return resolve(profile.id());
     }
 
     /**
-     * The settings for a project, or the defaults when the project has never been configured. A profile
-     * with no project (Quick Analysis) always gets the defaults, which means it has no source folder and
-     * the Advisor tells the user to open the project view instead.
+     * The settings for a profile: the source folder it has stored (blank until configured) plus the
+     * installation-wide prune threshold. Works for every profile, including a locally-uploaded Quick
+     * Analysis recording that has no project.
      */
-    public AdvisorSettings resolve(String workspaceId, String projectId) {
-        if (projectId == null || projectId.isBlank()) {
-            return AdvisorSettings.defaults();
-        }
-        return settingsRepository.find(workspaceId, projectId)
-                .map(AdvisorSettingsResolver::toSettings)
-                .orElseGet(AdvisorSettings::defaults);
+    public AdvisorSettings resolve(String profileId) {
+        return new AdvisorSettings(sourcePath(profileId), pruneThresholdPct());
     }
 
-    public AdvisorSettings save(String workspaceId, String projectId, AdvisorSettings settings) {
+    public AdvisorSettings save(String profileId, AdvisorSettings settings) {
         settingsRepository.upsert(new AdvisorSettingsRow(
-                workspaceId,
-                projectId,
+                profileId,
                 settings.sourcePath(),
-                settings.pruneThresholdPct(),
-                settings.regressionThresholdPp(),
-                settings.compileCommand(),
-                settings.testCommand(),
                 clock.instant()));
 
-        LOG.info("Saved advisor settings: workspace_id={} project_id={} has_source_path={} "
-                        + "prune_threshold_pct={} regression_threshold_pp={} has_compile_command={} has_test_command={}",
-                workspaceId, projectId, settings.hasSourcePath(), settings.pruneThresholdPct(),
-                settings.regressionThresholdPp(), !settings.compileCommand().isBlank(),
-                !settings.testCommand().isBlank());
+        LOG.info("Saved advisor settings: profile_id={} has_source_path={}",
+                profileId, settings.hasSourcePath());
         return settings;
     }
 
-    private static AdvisorSettings toSettings(AdvisorSettingsRow row) {
-        double pruneThresholdPct = row.pruneThresholdPct();
-        double regressionThresholdPp = row.regressionThresholdPp();
+    private String sourcePath(String profileId) {
+        return settingsRepository.find(profileId)
+                .map(AdvisorSettingsRow::sourcePath)
+                .orElse("");
+    }
 
-        if (pruneThresholdPct <= 0 || pruneThresholdPct >= 100) {
-            LOG.warn("Ignoring out-of-range stored prune threshold: project_id={} prune_threshold_pct={}",
-                    row.projectId(), pruneThresholdPct);
-            pruneThresholdPct = AdvisorSettings.DEFAULT_PRUNE_THRESHOLD_PCT;
+    private double pruneThresholdPct() {
+        double stored = settingsStore.getDouble(
+                MicroscopeSettingKeys.ADVISOR_PRUNE_THRESHOLD_PCT, AdvisorSettings.DEFAULT_PRUNE_THRESHOLD_PCT);
+        if (stored <= 0 || stored >= 100) {
+            LOG.warn("Ignoring out-of-range global prune threshold: prune_threshold_pct={}", stored);
+            return AdvisorSettings.DEFAULT_PRUNE_THRESHOLD_PCT;
         }
-        if (regressionThresholdPp < 0) {
-            LOG.warn("Ignoring negative stored regression threshold: project_id={} regression_threshold_pp={}",
-                    row.projectId(), regressionThresholdPp);
-            regressionThresholdPp = AdvisorSettings.DEFAULT_REGRESSION_THRESHOLD_PP;
-        }
-
-        return new AdvisorSettings(
-                row.sourcePath(), pruneThresholdPct, regressionThresholdPp,
-                row.compileCommand(), row.testCommand());
+        return stored;
     }
 }

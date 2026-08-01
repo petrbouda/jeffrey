@@ -35,6 +35,6 @@ public interface AdvisorProgressSink {
     /** The source folder is ready; the AI analysis is running. */
     void analyzing();
 
-    /** The model has answered; its claims and patch are being checked. */
-    void verifying();
+    /** The model has answered; its cited frames are being grounded against the measured call tree. */
+    void grounding();
 }

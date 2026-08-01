@@ -57,7 +57,7 @@ final class AdvisorPrompts {
             - If you cannot locate code relevant to a hotspot, say so explicitly instead of guessing.
             - Do not grade severity or priority. Jeffrey computes that from the measured profile.
 
-            Respond in EXACTLY this format, with these three marker lines present verbatim and nothing
+            Respond in EXACTLY this format, with these two marker lines present verbatim and nothing
             before the first marker:
 
             ===CLAIMS===
@@ -69,13 +69,8 @@ final class AdvisorPrompts {
             ===RECOMMENDATIONS===
             <Markdown report. Start with a short "Summary" of the dominant hotspots, then one
             "### <file>: <method>" section per recommendation: the cause, why it is hot per the profile,
-            and the recommended change. Do NOT put diffs in this section — describe the change in prose.>
-
-            ===PATCH===
-            <A SINGLE unified diff that applies cleanly with `git apply -p1` from the repository root and
-            implements all the recommended edits. Use correct repository-relative paths (a/<path> and
-            b/<path>) and real context lines from the files you read. Output the diff RAW — do not wrap it
-            in a code fence. If you are not proposing any concrete code edit, write exactly: (no patch)>
+            and the recommended change. Describe the change in prose; concrete code snippets are fine
+            inline, but do not emit a separate patch or diff section.>
             """;
 
     private AdvisorPrompts() {

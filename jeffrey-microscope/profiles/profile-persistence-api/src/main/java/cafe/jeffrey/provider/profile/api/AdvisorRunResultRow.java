@@ -16,19 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import BasePlatformClient from '@shared/services/api/BasePlatformClient';
-import type { FleetPatterns } from '@/services/api/model/Advisor';
+package cafe.jeffrey.provider.profile.api;
+
+import java.time.Instant;
 
 /**
- * Hotspots recurring across projects. Not profile-scoped — the rollup is the one question a single
- * profile cannot answer.
+ * The stored timeline of the last Advisor batch run. {@code resultJson} is the serialized run result
+ * (per-type, per-step durations) — kept opaque here so the advisor domain owns its shape and the
+ * persistence layer just holds the string, exactly as the heap dump keeps its init-pipeline JSON.
+ *
+ * @param resultJson  the serialized run result
+ * @param completedAt when the run finished
  */
-export default class FleetPatternsClient extends BasePlatformClient {
-  constructor() {
-    super('/advisor/fleet-patterns');
-  }
-
-  load(limit: number = 10): Promise<FleetPatterns> {
-    return super.get<FleetPatterns>('', { limit });
-  }
+public record AdvisorRunResultRow(String resultJson, Instant completedAt) {
 }

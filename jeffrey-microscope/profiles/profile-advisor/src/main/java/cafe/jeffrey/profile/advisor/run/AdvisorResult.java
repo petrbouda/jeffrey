@@ -18,37 +18,26 @@
 
 package cafe.jeffrey.profile.advisor.run;
 
-import cafe.jeffrey.profile.advisor.verify.PatchVerification;
 import cafe.jeffrey.profile.ai.chat.TokenUsage;
 import cafe.jeffrey.shared.common.model.Severity;
 
 import java.util.List;
 
 /**
- * The artifacts an advisor run produces, after each has been checked against evidence: the
+ * The artifacts an advisor run produces, after each has been grounded against evidence: the
  * {@code severity} Jeffrey computed from the measured profile, the human-readable
- * {@code recommendations} markdown (analysis + rationale, no diffs), an applicable {@code patch} (a
- * single unified diff that {@code git apply} can consume), the {@code claims} the report rests on with
- * their grounding verdicts, what Jeffrey established about the patch, and what the run consumed.
- *
- * <p>{@code patch} is {@code null} when the model proposed no concrete code edits.</p>
+ * {@code recommendations} markdown (analysis + rationale, no diffs), the {@code claims} the report
+ * rests on with their grounding verdicts, and what the run consumed.
  */
 public record AdvisorResult(
         Severity severity,
         String recommendations,
-        String patch,
         List<GroundedClaim> claims,
-        PatchVerification verification,
         TokenUsage usage) {
 
     public AdvisorResult {
         claims = claims == null ? List.of() : List.copyOf(claims);
-        verification = verification == null ? PatchVerification.notAttempted() : verification;
         usage = usage == null ? TokenUsage.unknown() : usage;
-    }
-
-    public boolean hasPatch() {
-        return patch != null && !patch.isBlank();
     }
 
     public long groundedClaimCount() {

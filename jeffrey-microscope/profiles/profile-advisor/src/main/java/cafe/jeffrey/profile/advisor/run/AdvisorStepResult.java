@@ -16,17 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.advisor.fleet;
-
-import java.util.List;
+package cafe.jeffrey.profile.advisor.run;
 
 /**
- * The fleet rollup as the UI renders it: the recurring patterns, plus how many projects have been
- * analyzed at all — without that denominator, "affects 7 projects" is a number with no scale.
+ * A single timed step in a stored run result — the durable counterpart of {@link AdvisorStepProgress}
+ * with only the measured {@code durationMs} kept (there is no live timer to resume once stored).
+ *
+ * @param step       the pipeline step name (an {@link AdvisorStatus} name)
+ * @param status     {@code completed} or {@code failed}
+ * @param durationMs the measured duration, or null when the step never ran
  */
-public record FleetPatterns(List<FleetPattern> patterns, long analyzedProjectCount) {
-
-    public FleetPatterns {
-        patterns = patterns == null ? List.of() : List.copyOf(patterns);
-    }
+public record AdvisorStepResult(String step, String status, Long durationMs) {
 }

@@ -21,26 +21,15 @@ package cafe.jeffrey.microscope.persistence.api;
 import java.time.Instant;
 
 /**
- * A project's stored Advisor configuration. Kept deliberately dumb — validation belongs to the advisor
- * domain, which falls back per field when a stored value is out of range, so one bad column cannot
- * discard a good neighbour.
+ * A profile's stored Advisor configuration: the working-copy location on this machine. Other advisor
+ * knobs (such as the prune threshold) are installation-wide and live in the global settings, not here.
  *
- * @param workspaceId           the workspace the project belongs to, or null
- * @param projectId             the project the settings belong to
- * @param sourcePath            absolute path to the working copy on this machine, or null
- * @param pruneThresholdPct     minimum share of total samples for a frame to reach the model
- * @param regressionThresholdPp minimum percentage-point change for a frame to count as moved
- * @param compileCommand        command that compiles the patched source, or null
- * @param testCommand           command that runs the tests, or null
- * @param modifiedAt            when the row was last written
+ * @param profileId  the profile the settings belong to
+ * @param sourcePath absolute path to the working copy on this machine, or null
+ * @param modifiedAt when the row was last written
  */
 public record AdvisorSettingsRow(
-        String workspaceId,
-        String projectId,
+        String profileId,
         String sourcePath,
-        double pruneThresholdPct,
-        double regressionThresholdPp,
-        String compileCommand,
-        String testCommand,
         Instant modifiedAt) {
 }

@@ -48,6 +48,8 @@ public final class MicroscopeSettingKeys {
             "jeffrey.microscope.visualization.flamegraph.frame-text-mode";
     public static final String AI_EXPORT_MIN_FRAME_THRESHOLD_PCT =
             "jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct";
+    public static final String ADVISOR_PRUNE_THRESHOLD_PCT =
+            "jeffrey.microscope.advisor.prune-threshold-pct";
 
     /** Provider identifier that disables AI entirely. */
     public static final String PROVIDER_NONE = "none";
@@ -64,7 +66,8 @@ public final class MicroscopeSettingKeys {
             Map.entry(LOGGING_LEVEL, SettingType.LOG_LEVEL),
             Map.entry(FLAMEGRAPH_MIN_FRAME_THRESHOLD_PCT, SettingType.PERCENTAGE),
             Map.entry(FLAMEGRAPH_FRAME_TEXT_MODE, SettingType.FRAME_TEXT_MODE),
-            Map.entry(AI_EXPORT_MIN_FRAME_THRESHOLD_PCT, SettingType.PERCENTAGE));
+            Map.entry(AI_EXPORT_MIN_FRAME_THRESHOLD_PCT, SettingType.PERCENTAGE),
+            Map.entry(ADVISOR_PRUNE_THRESHOLD_PCT, SettingType.PERCENTAGE));
 
     private MicroscopeSettingKeys() {
     }

@@ -142,16 +142,13 @@ CREATE TABLE IF NOT EXISTS advisor_prompts
 --
 -- ADVISOR RECOMMENDATIONS TABLE
 -- One advisor result per sample event type. `severity` is computed by Jeffrey from the measured
--- profile, never graded by the model. `verification` holds the JSON ladder of patch checks
--- (applies/compiles/tests) established against the source tree the model read.
+-- profile, never graded by the model.
 --
 CREATE TABLE IF NOT EXISTS advisor_recommendations
 (
     event_type      VARCHAR     NOT NULL PRIMARY KEY,
     severity        VARCHAR     NOT NULL DEFAULT 'LOW',
     recommendations VARCHAR     NOT NULL,
-    patch           VARCHAR,
-    verification    VARCHAR,
     source_ref      VARCHAR,
     input_tokens    BIGINT      NOT NULL DEFAULT 0,
     output_tokens   BIGINT      NOT NULL DEFAULT 0,
@@ -162,10 +159,10 @@ CREATE TABLE IF NOT EXISTS advisor_recommendations
 --
 -- ADVISOR CLAIMS TABLE
 -- One row per citation a recommendation rests on, after it has been checked against the measured
--- call tree and the source tree. Stored structurally rather than left inside the markdown because
--- these are the facts the fleet rollup groups by — a free-text report cannot be aggregated, a frame
--- can. `grounded` is false when the cited frame does not appear in the profile at all; such a claim
--- is shown to the user, clearly marked, and excluded from severity.
+-- call tree and the source tree. Stored structurally rather than left inside the markdown because a
+-- free-text report cannot be aggregated, a frame can. `grounded` is false when the cited frame does
+-- not appear in the profile at all; such a claim is shown to the user, clearly marked, and excluded
+-- from severity.
 --
 CREATE TABLE IF NOT EXISTS advisor_claims
 (
@@ -178,4 +175,17 @@ CREATE TABLE IF NOT EXISTS advisor_claims
     self_pct     DOUBLE      NOT NULL DEFAULT 0,
     total_pct    DOUBLE      NOT NULL DEFAULT 0,
     generated_at TIMESTAMPTZ NOT NULL
+);
+
+--
+-- ADVISOR RUN TABLE
+-- The last batch run's timeline, kept so the Overview page re-renders the phased, timed processing view
+-- after a reload (the analogue of the heap dump's stored init-pipeline result). `result_json` is the
+-- serialized run result (per-type, per-step durations), opaque by design so the UI owns phase labels.
+-- A single row: a new run replaces the previous one.
+--
+CREATE TABLE IF NOT EXISTS advisor_run
+(
+    result_json  VARCHAR     NOT NULL,
+    completed_at TIMESTAMPTZ NOT NULL
 );

@@ -50,4 +50,12 @@ public interface ProfileAdvisorRepository {
      * the same profile as if both were current.
      */
     void replaceClaims(String eventType, List<AdvisorClaimRow> claims);
+
+    /** The last batch run's stored timeline, or empty when the Advisor has never run for this profile. */
+    Optional<AdvisorRunResultRow> findRunResult();
+
+    boolean runResultExists();
+
+    /** Stores the last run's timeline, replacing any previous one (a new run supersedes it). */
+    void storeRunResult(AdvisorRunResultRow runResult);
 }

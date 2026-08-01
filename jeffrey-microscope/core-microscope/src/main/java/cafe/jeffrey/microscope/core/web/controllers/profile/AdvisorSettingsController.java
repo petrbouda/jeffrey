@@ -27,61 +27,33 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.advisor.settings.AdvisorSettings;
 import cafe.jeffrey.profile.advisor.settings.AdvisorSettingsResolver;
-import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 
 /**
- * The project's Advisor configuration, reached through a profile because that is where the user is
- * standing when they need it.
- *
- * <p>The settings belong to the project — every profile of a service shares one working copy — but
- * Microscope keeps no local project row to address, so the profile supplies the workspace/project pair.
- * A profile with no project (Quick Analysis) has nowhere to store this, and says so rather than writing
- * a row nothing will ever read again.</p>
+ * The profile's Advisor configuration — the source folder it reads. Keyed by the profile, so it works
+ * the same for a project profile and a locally-uploaded Quick Analysis recording.
  */
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}/advisor/settings")
 public class AdvisorSettingsController {
 
     /**
-     * @param sourcePath            absolute path to the working copy on the machine running Microscope
-     * @param configured            true when a source folder is set, so the UI can gate Generate without
-     *                              re-deriving the rule
-     * @param pruneThresholdPct     how much of the call tree reaches the model
-     * @param regressionThresholdPp how far a frame must move to count as a regression
-     * @param compileCommand        blank means the compile check reports as skipped
-     * @param testCommand           blank means the test check reports as skipped
+     * @param sourcePath absolute path to the working copy on the machine running Microscope
+     * @param configured true when a source folder is set, so the UI can gate Generate without
+     *                   re-deriving the rule
      */
     public record AdvisorSettingsResponse(
             String sourcePath,
-            boolean configured,
-            double pruneThresholdPct,
-            double regressionThresholdPp,
-            String compileCommand,
-            String testCommand) {
+            boolean configured) {
 
         static AdvisorSettingsResponse from(AdvisorSettings settings) {
-            return new AdvisorSettingsResponse(
-                    settings.sourcePath(),
-                    settings.hasSourcePath(),
-                    settings.pruneThresholdPct(),
-                    settings.regressionThresholdPp(),
-                    settings.compileCommand(),
-                    settings.testCommand());
+            return new AdvisorSettingsResponse(settings.sourcePath(), settings.hasSourcePath());
         }
     }
 
     public record AdvisorSettingsRequest(
-            String sourcePath,
-            Double pruneThresholdPct,
-            Double regressionThresholdPp,
-            String compileCommand,
-            String testCommand) {
+            String sourcePath) {
     }
-
-    private static final String NO_PROJECT =
-            "This profile does not belong to a project, so it has no source folder to configure. "
-                    + "Open a profile from a project to use the Advisor.";
 
     private final ProfileManagerResolver resolver;
     private final AdvisorSettingsResolver settingsResolver;
@@ -105,39 +77,19 @@ public class AdvisorSettingsController {
             @RequestBody AdvisorSettingsRequest request) {
 
         ProfileInfo profile = resolver.resolve(profileId).info();
-        if (profile.projectId() == null || profile.projectId().isBlank()) {
-            throw Exceptions.invalidRequest(NO_PROJECT);
-        }
-
         AdvisorSettings current = settingsResolver.resolve(profile);
         AdvisorSettings updated = merge(current, request);
-        return AdvisorSettingsResponse.from(
-                settingsResolver.save(profile.workspaceId(), profile.projectId(), updated));
+        return AdvisorSettingsResponse.from(settingsResolver.save(profile.id(), updated));
     }
 
     /**
-     * Applies only the fields the request actually carried. A partial edit — the settings page saving
-     * just the source folder — must not blank the thresholds it never showed.
-     *
-     * <p>The record's own validation rejects out-of-range values, and it throws
-     * {@link IllegalArgumentException} because it is domain code; that is mapped to a client error here,
-     * at the boundary where framework concerns belong.</p>
+     * Applies the source folder the request carried, leaving the rest of the resolved settings — the
+     * global prune threshold — as they are. A request that omits the field leaves the folder unchanged.
      */
     private static AdvisorSettings merge(AdvisorSettings current, AdvisorSettingsRequest request) {
-        if (request == null) {
+        if (request == null || request.sourcePath() == null) {
             return current;
         }
-        try {
-            return new AdvisorSettings(
-                    request.sourcePath() == null ? current.sourcePath() : request.sourcePath(),
-                    request.pruneThresholdPct() == null
-                            ? current.pruneThresholdPct() : request.pruneThresholdPct(),
-                    request.regressionThresholdPp() == null
-                            ? current.regressionThresholdPp() : request.regressionThresholdPp(),
-                    request.compileCommand() == null ? current.compileCommand() : request.compileCommand(),
-                    request.testCommand() == null ? current.testCommand() : request.testCommand());
-        } catch (IllegalArgumentException e) {
-            throw Exceptions.invalidRequest(e.getMessage());
-        }
+        return new AdvisorSettings(request.sourcePath(), current.pruneThresholdPct());
     }
 }

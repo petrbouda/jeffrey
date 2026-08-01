@@ -22,14 +22,11 @@ import java.time.Instant;
 
 /**
  * A stored advisor result for one sample event type. {@code severity} is Jeffrey's own grade computed
- * from the measured profile, and {@code verificationJson} is the ladder of patch checks established
- * against the source tree the model read.
+ * from the measured profile.
  *
  * @param eventType        the sample event type analyzed
  * @param severity         the computed severity name
  * @param recommendations  the report markdown
- * @param patch            a unified diff, or null when the model proposed no code edit
- * @param verificationJson the serialized patch-check ladder
  * @param sourceRef        the commit the source tree was on, or null when it was not a git checkout
  * @param inputTokens      tokens consumed on the input side
  * @param outputTokens     tokens generated
@@ -40,8 +37,6 @@ public record AdvisorRecommendationRow(
         String eventType,
         String severity,
         String recommendations,
-        String patch,
-        String verificationJson,
         String sourceRef,
         long inputTokens,
         long outputTokens,

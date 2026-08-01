@@ -18,16 +18,20 @@
 
 package cafe.jeffrey.profile.advisor.run;
 
+import java.util.List;
+
 import java.time.Instant;
 
 /**
- * An immutable snapshot of an advisor run, polled by the UI.
+ * An immutable snapshot of one event type's advisor run, polled by the UI.
  *
  * <p>The snapshot deliberately carries no result payload. A completed run has already been stored in
  * the profile database, and the page reads it from there — so progress answers "where is it up to"
  * and nothing else, and a reload after the run finished shows the same thing as a reload during it.</p>
  *
- * <p>{@code errorMessage} is populated only on {@link AdvisorStatus#FAILED}.</p>
+ * <p>{@code steps} carries the four timed pipeline steps (Prompt / Source / Analyze / Ground) so the
+ * timeline can render each one's tick and measured time. {@code errorMessage} is populated only on
+ * {@link AdvisorStatus#FAILED}.</p>
  */
 public record AdvisorProgress(
         String profileId,
@@ -36,9 +40,14 @@ public record AdvisorProgress(
         String message,
         String errorMessage,
         Instant startedAt,
-        Instant completedAt) {
+        Instant completedAt,
+        List<AdvisorStepProgress> steps) {
 
     private static final String IDLE_MESSAGE = "No advisor run has been started for this profile";
+
+    public AdvisorProgress {
+        steps = steps == null ? List.of() : List.copyOf(steps);
+    }
 
     /**
      * What the endpoint answers for a profile that has never run. Distinguishable from a finished run
@@ -46,7 +55,7 @@ public record AdvisorProgress(
      * banner for a run that never happened.
      */
     public static AdvisorProgress idle(String profileId) {
-        return new AdvisorProgress(profileId, null, null, IDLE_MESSAGE, null, null, null);
+        return new AdvisorProgress(profileId, null, null, IDLE_MESSAGE, null, null, null, List.of());
     }
 
     public boolean isRunning() {

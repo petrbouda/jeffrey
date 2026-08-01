@@ -16,17 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.advisor.verify;
+package cafe.jeffrey.profile.advisor.run;
 
 /**
- * The outcome of one {@link PatchCheckLevel}.
- *
- * <p>{@link #SKIPPED} is deliberately distinct from {@link #PASSED}. A check that could not run — no
- * build command configured, no {@code git} on the host, a level below it already failed — proves
- * nothing, and reporting it as success would be the one bug that undermines the entire feature.</p>
+ * The state of a whole batch run — one launch that processes every analyzable event type for a profile.
+ * Derived from the per-type runs it aggregates: {@link #QUEUED} until any type starts, {@link #RUNNING}
+ * while at least one is in flight, and a terminal {@link #COMPLETED} or {@link #FAILED} once all have
+ * settled ({@code FAILED} only when every type failed — a batch where some types produced findings is a
+ * completed batch that reports the failures per type).
  */
-public enum PatchCheckStatus {
-    PASSED,
-    FAILED,
-    SKIPPED
+public enum BatchStatus {
+
+    QUEUED,
+    RUNNING,
+    COMPLETED,
+    FAILED;
+
+    public boolean isTerminal() {
+        return this == COMPLETED || this == FAILED;
+    }
 }

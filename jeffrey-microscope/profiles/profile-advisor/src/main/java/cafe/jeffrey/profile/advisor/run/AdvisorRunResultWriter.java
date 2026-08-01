@@ -16,19 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.microscope.persistence.api;
+package cafe.jeffrey.profile.advisor.run;
+
+import cafe.jeffrey.shared.common.model.ProfileInfo;
 
 /**
- * How widely one frame recurs across the analyzed projects — the aggregate row behind a fleet pattern.
- *
- * @param citedFrame   the measured frame
- * @param projectCount how many distinct projects cited it
- * @param claimCount   how many claims cited it in total
- * @param peakSelfPct  the highest measured self share it reached in any of them
+ * Persists a completed batch run's timeline so the Overview page can re-render it after a reload. Kept
+ * as a boundary so the runner stays free of persistence and serialization concerns — the implementation
+ * (wired in {@code AdvisorConfiguration}) opens the profile database and stores the serialized result.
  */
-public record AdvisorFrameOccurrences(
-        String citedFrame,
-        long projectCount,
-        long claimCount,
-        double peakSelfPct) {
+@FunctionalInterface
+public interface AdvisorRunResultWriter {
+
+    void store(ProfileInfo profile, AdvisorRunResult result);
 }

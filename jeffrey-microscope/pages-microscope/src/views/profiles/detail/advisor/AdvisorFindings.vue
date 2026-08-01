@@ -17,89 +17,87 @@
   -->
 
 <template>
-  <LoadingState v-if="loading" message="Loading advisor..." />
+  <LoadingState v-if="loading" message="Loading findings..." />
 
   <ErrorState v-else-if="error" :message="error" />
 
   <PageHeader
     v-else
-    title="Advisor Findings"
+    title="Findings"
     description="AI recommendations mapped to your source, with every cited frame checked against the measured profile"
     icon="bi-lightbulb"
   >
     <AiDisabledFeatureAlert v-if="aiDisabled" />
 
-    <template v-else>
-      <div v-if="!sourceConfigured" class="notice">
-        <i class="bi bi-folder2-open"></i>
-        <span>
-          No source folder is configured for this project. The Advisor reads your working copy
-          directly — point it at one under
-          <router-link :to="settingsPath">Source &amp; Settings</router-link>.
+    <template v-else-if="hasResults">
+      <div class="results-bar">
+        <span class="src">
+          <i class="bi bi-folder2-open"></i>
+          <span class="src-path">{{ settings?.sourcePath || 'No source folder' }}</span>
         </span>
+        <div class="result-chips">
+          <button
+            v-for="rec in recommendations"
+            :key="rec.eventType"
+            type="button"
+            class="rchip"
+            :class="{ selected: selectedEventType === rec.eventType }"
+            :style="eventTypeVars(rec.eventType)"
+            @click="selectedEventType = rec.eventType"
+          >
+            <i class="bi" :class="eventTypeStyle(rec.eventType).icon"></i>
+            {{ labelFor(rec.eventType) }}
+          </button>
+        </div>
+        <router-link :to="overviewPath" class="overview-link">
+          <i class="bi bi-arrow-repeat"></i>
+          Run again
+        </router-link>
       </div>
 
-      <AdvisorRunBar
-        v-if="progress?.status"
-        :progress="progress"
-        :stages="stages"
-        :is-running="isRunning"
-        @cancel="cancel"
-      />
-
-      <MainCard>
+      <MainCard v-if="selectedRecommendation">
         <template #header>
-          <MainCardHeader icon="bi-lightbulb" title="Recommendations">
-            <template #actions>
-              <div class="actions">
-                <select v-model="selectedEventType" class="event-select" :disabled="isRunning">
-                  <option v-for="type in eventTypes" :key="type.eventType" :value="type.eventType">
-                    {{ type.label }}
-                  </option>
-                </select>
-                <button
-                  type="button"
-                  class="generate-btn"
-                  :disabled="!canGenerate"
-                  :title="generateTitle"
-                  @click="onGenerate"
-                >
-                  <i class="bi bi-stars"></i>
-                  {{ selectedRecommendation ? 'Regenerate' : 'Generate' }}
-                </button>
-              </div>
-            </template>
-          </MainCardHeader>
+          <MainCardHeader
+            icon="bi-lightbulb"
+            :title="`${labelFor(selectedRecommendation.eventType)} recommendations`"
+          />
         </template>
+        <div class="result-meta">
+          <Badge
+            :value="selectedRecommendation.severity"
+            :variant="severityVariant(selectedRecommendation.severity)"
+            size="xs"
+          />
+          <span class="meta-item">
+            {{ FormattingService.formatTimestamp(selectedRecommendation.generatedAt) }}
+          </span>
+          <span class="meta-item">{{ usageLabel }}</span>
+          <span class="meta-item source-ref">{{ sourceRefLabel }}</span>
+        </div>
 
-        <EmptyState
-          v-if="!selectedRecommendation"
-          icon="bi-lightbulb"
-          title="No recommendations yet"
-          description="Pick a profile and run the Advisor. It reads your source folder to map the hottest frames to real code."
-        />
+        <ClaimList :claims="selectedRecommendation.claims" />
 
-        <template v-else>
-          <div class="result-meta">
-            <Badge
-              :value="selectedRecommendation.severity"
-              :variant="severityVariant(selectedRecommendation.severity)"
-              size="xs"
-            />
-            <span class="meta-item">
-              {{ FormattingService.formatTimestamp(selectedRecommendation.generatedAt) }}
-            </span>
-            <span class="meta-item">{{ usageLabel }}</span>
-            <span class="meta-item source-ref">{{ sourceRefLabel }}</span>
-          </div>
-
-          <ClaimList :claims="selectedRecommendation.claims" />
-
-          <!-- Sanitized in MarkdownRenderer: this markdown quotes source read off the user's disk. -->
-          <div class="report" v-html="renderedReport"></div>
-        </template>
+        <!-- Sanitized in MarkdownRenderer: this markdown quotes source read off the user's disk. -->
+        <div class="report" v-html="renderedReport"></div>
       </MainCard>
     </template>
+
+    <!-- No findings yet: send the user to the Overview to run the Advisor. -->
+    <div v-else class="guard">
+      <div class="guard-icon"><i class="bi bi-lightbulb"></i></div>
+      <h5>{{ isRunning ? 'A run is in progress' : 'No findings yet' }}</h5>
+      <p>
+        {{
+          isRunning
+            ? 'The Advisor is analyzing your profiles now — watch it on the Overview.'
+            : 'Run the Advisor to map the hottest frames in each profile to real code.'
+        }}
+      </p>
+      <router-link :to="overviewPath" class="guard-btn">
+        <i class="bi bi-arrow-right"></i>
+        {{ isRunning ? 'Watch the run' : 'Go to the Advisor Overview' }}
+      </router-link>
+    </div>
   </PageHeader>
 </template>
 
@@ -109,7 +107,6 @@ import { computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
-import EmptyState from '@shared/components/EmptyState.vue';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
@@ -119,7 +116,7 @@ import MarkdownRenderer from '@shared/services/MarkdownRenderer';
 import { severityVariant } from '@shared/services/severityDisplay';
 import AiDisabledFeatureAlert from '@/components/alerts/AiDisabledFeatureAlert.vue';
 import ClaimList from '@/components/advisor/ClaimList.vue';
-import AdvisorRunBar from '@/views/profiles/detail/advisor/AdvisorRunBar.vue';
+import { eventTypeStyle, eventTypeVars } from '@/views/profiles/detail/advisor/eventTypeStyle';
 import { useAdvisor } from '@/composables/useAdvisor';
 import FeatureType from '@/services/api/model/FeatureType';
 
@@ -132,41 +129,24 @@ const {
   loading,
   error,
   eventTypes,
-  progress,
-  stages,
+  recommendations,
+  settings,
   selectedEventType,
   selectedRecommendation,
-  sourceConfigured,
+  hasResults,
   isRunning,
-  load,
-  generate,
-  cancel
+  load
 } = useAdvisor(profileId);
 
 const aiDisabled = computed(
   () => props.disabledFeatures?.includes(FeatureType.AI_ANALYSIS) === true
 );
 
-const settingsPath = computed(() => `/profiles/${profileId}/advisor/settings`);
+const overviewPath = computed(() => `/profiles/${profileId}/advisor`);
 
-const canGenerate = computed(
-  () => !isRunning.value && sourceConfigured.value && selectedEventType.value != null
-);
+const labelFor = (code: string): string =>
+  eventTypes.value.find(type => type.eventType === code)?.label ?? code;
 
-const generateTitle = computed(() => {
-  if (isRunning.value) {
-    return 'A run is already in progress';
-  }
-  if (!sourceConfigured.value) {
-    return 'Configure a source folder first';
-  }
-  return 'Analyze this profile against your source folder';
-});
-
-/**
- * Providers report cost inconsistently — an API returns token counts, the Claude Code CLI a settled
- * price — so both are shown when known and neither is invented when not.
- */
 const usageLabel = computed(() => {
   const result = selectedRecommendation.value;
   if (!result) {
@@ -185,61 +165,86 @@ const renderedReport = computed(() =>
   MarkdownRenderer.render(selectedRecommendation.value?.recommendations)
 );
 
-const onGenerate = (): void => {
-  if (selectedEventType.value) {
-    generate(selectedEventType.value);
-  }
-};
-
 onMounted(load);
 </script>
 
 <style scoped>
-.notice {
+.results-bar {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
-  border: 1px solid var(--color-amber-border);
-  border-radius: var(--radius-md);
-  background: var(--color-amber-bg);
-  color: var(--color-amber-text);
-  font-size: 0.85rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.1rem;
 }
 
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.event-select {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 0.25rem 0.5rem;
-  font-size: 0.8rem;
-  background: var(--color-white);
-}
-
-.generate-btn {
+.results-bar .src {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 0.3rem 0.75rem;
+  gap: 0.4rem;
   font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-white);
-  background: var(--color-primary);
-  cursor: pointer;
+  color: var(--color-text-muted);
 }
 
-.generate-btn:disabled {
-  background: var(--color-border);
+.results-bar .src-path {
+  font-family: var(--font-family-monospace);
+  color: var(--color-heading-dark);
+  font-weight: 600;
+}
+
+.result-chips {
+  display: inline-flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.rchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.26rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 500;
   color: var(--color-text-muted);
-  cursor: not-allowed;
+  background: var(--color-bg-card);
+  cursor: pointer;
+  transition: color 0.16s, background 0.16s, border-color 0.16s;
+}
+
+.rchip i {
+  color: var(--et);
+}
+
+.rchip:hover {
+  color: var(--color-text);
+  border-color: var(--et);
+}
+
+.rchip.selected {
+  color: var(--color-white);
+  font-weight: 600;
+  background: var(--et);
+  border-color: var(--et);
+}
+
+.rchip.selected i {
+  color: var(--color-white);
+}
+
+.overview-link {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.overview-link:hover {
+  text-decoration: underline;
 }
 
 .result-meta {
@@ -279,5 +284,63 @@ onMounted(load);
   background: var(--color-light);
   padding: 0.1rem 0.3rem;
   border-radius: var(--radius-sm);
+}
+
+/* guard card (no findings yet) */
+.guard {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 3rem 2rem;
+  text-align: center;
+  max-width: 480px;
+  margin: 2rem auto;
+}
+
+.guard-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 1.25rem;
+  background: var(--color-primary-light);
+  border-radius: var(--radius-lg);
+  display: grid;
+  place-items: center;
+}
+
+.guard-icon i {
+  font-size: 1.5rem;
+  color: var(--color-primary);
+}
+
+.guard h5 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-heading-dark);
+  margin-bottom: 0.5rem;
+}
+
+.guard p {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  margin: 0 auto 1.5rem;
+  max-width: 360px;
+}
+
+.guard-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: var(--radius-base);
+  background: var(--color-primary);
+  color: var(--color-white);
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+}
+
+.guard-btn:hover {
+  background: var(--color-primary-hover);
 }
 </style>

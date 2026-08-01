@@ -21,13 +21,12 @@ package cafe.jeffrey.microscope.persistence.api;
 import java.util.Optional;
 
 /**
- * Per-project Advisor configuration in the Microscope core database. Keyed by
- * {@code (workspaceId, projectId)} because projects are listed live from the hub and have no local row
- * to hang a foreign key on.
+ * Per-profile Advisor configuration in the Microscope core database, keyed by {@code profileId} so it
+ * works for every profile — including locally-uploaded (Quick Analysis) recordings that have no project.
  */
 public interface AdvisorSettingsRepository {
 
-    Optional<AdvisorSettingsRow> find(String workspaceId, String projectId);
+    Optional<AdvisorSettingsRow> find(String profileId);
 
     void upsert(AdvisorSettingsRow settings);
 }

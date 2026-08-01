@@ -23,6 +23,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.provider.profile.api.AdvisorClaimRow;
 import cafe.jeffrey.provider.profile.api.AdvisorPromptRow;
 import cafe.jeffrey.provider.profile.api.AdvisorRecommendationRow;
+import cafe.jeffrey.provider.profile.api.AdvisorRunResultRow;
 import cafe.jeffrey.provider.profile.api.ProfileAdvisorRepository;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.StatementLabel;
@@ -65,22 +66,20 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
 
     //language=SQL
     private static final String FIND_RECOMMENDATIONS = """
-            SELECT event_type, severity, recommendations, patch, verification, source_ref,
+            SELECT event_type, severity, recommendations, source_ref,
                    input_tokens, output_tokens, cost_usd, generated_at
             FROM advisor_recommendations
             ORDER BY event_type""";
 
     //language=SQL
     private static final String UPSERT_RECOMMENDATION = """
-            INSERT INTO advisor_recommendations (event_type, severity, recommendations, patch, verification,
+            INSERT INTO advisor_recommendations (event_type, severity, recommendations,
                                                  source_ref, input_tokens, output_tokens, cost_usd, generated_at)
-            VALUES (:event_type, :severity, :recommendations, :patch, :verification,
+            VALUES (:event_type, :severity, :recommendations,
                     :source_ref, :input_tokens, :output_tokens, :cost_usd, :generated_at)
             ON CONFLICT (event_type) DO UPDATE SET
                 severity = EXCLUDED.severity,
                 recommendations = EXCLUDED.recommendations,
-                patch = EXCLUDED.patch,
-                verification = EXCLUDED.verification,
                 source_ref = EXCLUDED.source_ref,
                 input_tokens = EXCLUDED.input_tokens,
                 output_tokens = EXCLUDED.output_tokens,
@@ -104,6 +103,19 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
                                         source_found, self_pct, total_pct, generated_at)
             VALUES (:event_type, :title, :cited_frame, :source_path, :grounded,
                     :source_found, :self_pct, :total_pct, :generated_at)""";
+
+    //language=SQL
+    private static final String FIND_RUN = "SELECT result_json, completed_at FROM advisor_run LIMIT 1";
+
+    //language=SQL
+    private static final String EXISTS_RUN = "SELECT 1 FROM advisor_run LIMIT 1";
+
+    //language=SQL
+    private static final String DELETE_RUN = "DELETE FROM advisor_run";
+
+    //language=SQL
+    private static final String INSERT_RUN =
+            "INSERT INTO advisor_run (result_json, completed_at) VALUES (:result_json, :completed_at)";
 
     private final DatabaseClient databaseClient;
 
@@ -151,8 +163,6 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
                 .addValue(PARAM_EVENT_TYPE, recommendation.eventType())
                 .addValue("severity", recommendation.severity())
                 .addValue("recommendations", recommendation.recommendations())
-                .addValue("patch", recommendation.patch())
-                .addValue("verification", recommendation.verificationJson())
                 .addValue("source_ref", recommendation.sourceRef())
                 .addValue("input_tokens", recommendation.inputTokens())
                 .addValue("output_tokens", recommendation.outputTokens())
@@ -189,6 +199,30 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
         }
     }
 
+    @Override
+    public Optional<AdvisorRunResultRow> findRunResult() {
+        return databaseClient.querySingle(
+                StatementLabel.FIND_ADVISOR_RUN, FIND_RUN, new MapSqlParameterSource(), runResultMapper());
+    }
+
+    @Override
+    public boolean runResultExists() {
+        return databaseClient.querySingle(
+                StatementLabel.EXISTS_ADVISOR_RUN, EXISTS_RUN, new MapSqlParameterSource(),
+                (rs, _) -> Boolean.TRUE).isPresent();
+    }
+
+    @Override
+    public void storeRunResult(AdvisorRunResultRow runResult) {
+        databaseClient.delete(StatementLabel.DELETE_ADVISOR_RUN, DELETE_RUN, new MapSqlParameterSource());
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("result_json", runResult.resultJson())
+                .addValue("completed_at", Timestamp.from(runResult.completedAt()));
+
+        databaseClient.insert(StatementLabel.INSERT_ADVISOR_RUN, INSERT_RUN, params);
+    }
+
     private static RowMapper<AdvisorPromptRow> promptMapper() {
         return (rs, _) -> new AdvisorPromptRow(
                 rs.getString(PARAM_EVENT_TYPE),
@@ -204,8 +238,6 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
                 rs.getString(PARAM_EVENT_TYPE),
                 rs.getString("severity"),
                 rs.getString("recommendations"),
-                rs.getString("patch"),
-                rs.getString("verification"),
                 rs.getString("source_ref"),
                 rs.getLong("input_tokens"),
                 rs.getLong("output_tokens"),
@@ -224,6 +256,12 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
                 rs.getDouble("self_pct"),
                 rs.getDouble("total_pct"),
                 instant(rs, "generated_at"));
+    }
+
+    private static RowMapper<AdvisorRunResultRow> runResultMapper() {
+        return (rs, _) -> new AdvisorRunResultRow(
+                rs.getString("result_json"),
+                instant(rs, "completed_at"));
     }
 
     private static Instant instant(ResultSet rs, String column) throws SQLException {
