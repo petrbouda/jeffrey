@@ -231,7 +231,7 @@
               "
               class="form-control"
               :disabled="!aiEnabled"
-              placeholder="120"
+              placeholder="600"
             />
             <div class="settings-hint">
               Maximum time to wait for a Claude Code response. Agentic tool loops can take longer
@@ -714,7 +714,7 @@ async function saveAiSettings() {
     ),
     aiSetting(
       'jeffrey.microscope.ai.timeout-seconds',
-      settings.get('jeffrey.microscope.ai.timeout-seconds') || '120'
+      settings.get('jeffrey.microscope.ai.timeout-seconds') || '600'
     ),
     // A masked key is what the server sent us, not something the user typed — saving it back would
     // overwrite the real key with its own mask.
