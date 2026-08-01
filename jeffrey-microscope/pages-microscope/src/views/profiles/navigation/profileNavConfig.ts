@@ -12,7 +12,8 @@ export type ProfileMode =
   | 'Technologies'
   | 'Visualization'
   | 'HeapDump'
-  | 'Tools';
+  | 'Tools'
+  | 'Advisor';
 
 export type DifferentialType = 'flamegraphs' | 'subsecond';
 
@@ -439,6 +440,18 @@ export const profileNavSections: Record<
       ]
     }
   ],
+  Advisor: [
+    {
+      title: 'ADVISOR',
+      items: [
+        item('Overview', 'bi-play-circle', '/advisor'),
+        item('Findings', 'bi-lightbulb', '/advisor/findings', {
+          disabledKeys: [AI_ANALYSIS_KEY],
+          cssClass: AI_ITEM_CLASS
+        })
+      ]
+    }
+  ],
   Tools: [
     {
       title: 'TRANSFORM',
@@ -509,6 +522,9 @@ export function getModeForPath(path: string): ProfileMode {
   }
   if (path.includes('/tools/')) {
     return 'Tools';
+  }
+  if (path.includes('/advisor')) {
+    return 'Advisor';
   }
   const subPath = path.replace(PROFILE_PATH_PREFIX, '');
   if (OVERVIEW_SUB_PATHS.has(subPath)) {

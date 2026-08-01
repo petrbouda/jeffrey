@@ -48,6 +48,14 @@
           <i class="bi bi-stars"></i>
           AI Export
         </button>
+        <button
+          class="settings-tab"
+          :class="{ active: activeTab === 'advisor' }"
+          @click="activeTab = 'advisor'"
+        >
+          <i class="bi bi-lightbulb"></i>
+          Advisor
+        </button>
       </div>
 
       <!-- AI Configuration Tab -->
@@ -223,7 +231,7 @@
               "
               class="form-control"
               :disabled="!aiEnabled"
-              placeholder="120"
+              placeholder="600"
             />
             <div class="settings-hint">
               Maximum time to wait for a Claude Code response. Agentic tool loops can take longer
@@ -399,6 +407,41 @@
           </button>
         </div>
       </div>
+
+      <!-- Advisor Tab -->
+      <div v-if="activeTab === 'advisor'" id="advisor" class="settings-content">
+        <div class="settings-form-grid settings-form-grid-single">
+          <div class="settings-form-group">
+            <label class="settings-label">Prompt detail (% of samples)</label>
+            <input
+              type="number"
+              :value="settings.get('jeffrey.microscope.advisor.prune-threshold-pct')"
+              @input="
+                setSetting(
+                  'jeffrey.microscope.advisor.prune-threshold-pct',
+                  ($event.target as HTMLInputElement).value
+                )
+              "
+              class="form-control"
+              style="max-width: 300px"
+              min="0"
+              max="100"
+              step="0.01"
+              placeholder="1.0"
+            />
+            <div class="settings-hint">
+              How much of the call tree reaches the model when the Advisor analyzes a profile. Lower
+              means a finer tree and a longer prompt. Default: 1.0%
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-actions">
+          <button class="btn-primary" @click="saveAdvisorSettings" :disabled="saving">
+            {{ saving ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
+      </div>
     </MainCard>
   </div>
 </template>
@@ -420,7 +463,8 @@ const SUPPORTED_TABS: ReadonlySet<string> = new Set([
   'ai',
   'general',
   'visualization',
-  'ai-export'
+  'ai-export',
+  'advisor'
 ]);
 
 interface ModelInfo {
@@ -670,7 +714,7 @@ async function saveAiSettings() {
     ),
     aiSetting(
       'jeffrey.microscope.ai.timeout-seconds',
-      settings.get('jeffrey.microscope.ai.timeout-seconds') || '120'
+      settings.get('jeffrey.microscope.ai.timeout-seconds') || '600'
     ),
     // A masked key is what the server sent us, not something the user typed — saving it back would
     // overwrite the real key with its own mask.
@@ -733,6 +777,20 @@ async function saveAiExportSettings() {
       }
     ],
     () => ToastService.success('Settings', 'AI export settings applied')
+  );
+}
+
+async function saveAdvisorSettings() {
+  await save(
+    [
+      {
+        category: 'advisor',
+        name: 'jeffrey.microscope.advisor.prune-threshold-pct',
+        value: settings.get('jeffrey.microscope.advisor.prune-threshold-pct') || '',
+        secret: false
+      }
+    ],
+    () => ToastService.success('Settings', 'Advisor settings applied')
   );
 }
 

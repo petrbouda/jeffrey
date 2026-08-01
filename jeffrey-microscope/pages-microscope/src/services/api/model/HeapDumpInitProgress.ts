@@ -2,7 +2,7 @@ import type { SubPhaseTiming } from '@/services/api/model/InitPipelineResult';
 
 export interface HeapDumpInitStageProgress {
   id: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped';
   durationMs: number | null;
   /** Backend-measured milliseconds spent so far while in_progress, else null. */
   elapsedMs: number | null;

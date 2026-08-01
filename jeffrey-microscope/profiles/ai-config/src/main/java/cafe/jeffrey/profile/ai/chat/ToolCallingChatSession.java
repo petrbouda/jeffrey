@@ -23,6 +23,7 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.metadata.Usage;
 import cafe.jeffrey.shared.common.span.Spans;
 
 import java.util.ArrayList;
@@ -70,6 +71,22 @@ public final class ToolCallingChatSession {
      * @return the assistant's response text
      */
     public String call(String systemPrompt, List<ChatMessage> history, String userMessage, Object tools) {
+        return callWithUsage(systemPrompt, history, userMessage, tools).text();
+    }
+
+    /**
+     * The assistant text of one tool-enabled call together with what the call consumed.
+     */
+    public record CallOutcome(String text, TokenUsage usage) {
+    }
+
+    /**
+     * As {@link #call(String, List, String, Object)}, but also surfaces the provider's reported usage so
+     * callers can account for what a run cost.
+     */
+    public CallOutcome callWithUsage(
+            String systemPrompt, List<ChatMessage> history, String userMessage, Object tools) {
+
         List<Message> messages = buildMessages(history, userMessage);
 
         long aiSpan = Spans.start();
@@ -88,7 +105,26 @@ public final class ToolCallingChatSession {
             Spans.end(aiSpan, spanName);
         }
 
-        return response.getResult().getOutput().getText();
+        return new CallOutcome(response.getResult().getOutput().getText(), usageOf(response));
+    }
+
+    /**
+     * Reads the provider's token counts off the response metadata. Providers that report nothing yield
+     * {@link TokenUsage#unknown()} rather than zeros dressed up as a measurement.
+     */
+    private static TokenUsage usageOf(ChatResponse response) {
+        Usage usage = response.getMetadata() == null ? null : response.getMetadata().getUsage();
+        if (usage == null) {
+            return TokenUsage.unknown();
+        }
+        return new TokenUsage(
+                toLong(usage.getPromptTokens()),
+                toLong(usage.getCompletionTokens()),
+                null);
+    }
+
+    private static long toLong(Integer value) {
+        return value == null ? 0L : value.longValue();
     }
 
     private static List<Message> buildMessages(List<ChatMessage> history, String userMessage) {

@@ -17,7 +17,7 @@
  */
 package cafe.jeffrey.profile.heapdump.persistence;
 
-import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
+import cafe.jeffrey.profile.common.pipeline.SubPhaseTiming;
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
 import cafe.jeffrey.shared.persistence.GroupLabel;

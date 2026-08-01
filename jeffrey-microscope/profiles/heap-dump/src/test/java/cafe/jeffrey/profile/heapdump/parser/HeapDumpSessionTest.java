@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import cafe.jeffrey.profile.heapdump.model.IndexBuildProgressListener;
-import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
+import cafe.jeffrey.profile.common.pipeline.SubPhaseTiming;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpSession;
 import cafe.jeffrey.profile.heapdump.view.HprofTag;

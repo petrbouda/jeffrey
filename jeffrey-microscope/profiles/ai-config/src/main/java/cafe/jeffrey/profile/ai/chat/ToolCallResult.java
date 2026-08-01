@@ -21,18 +21,25 @@ package cafe.jeffrey.profile.ai.chat;
 import java.util.List;
 
 /**
- * Raw outcome of a tool-enabled model call: the assistant text and the names of any tools the model
- * invoked. Domain services enrich this into an {@link AssistantResponse} (adding follow-up
- * suggestions).
+ * Raw outcome of a tool-enabled model call: the assistant text, the names of any tools the model
+ * invoked, and what the call consumed. Domain services enrich this into an {@link AssistantResponse}
+ * (adding follow-up suggestions).
  *
  * @param text      the assistant's response text
  * @param toolsUsed the names of tools the model invoked during the call (never null)
+ * @param usage     what the call cost, or {@link TokenUsage#unknown()} when the provider reports none
  */
 public record ToolCallResult(
         String text,
-        List<String> toolsUsed
+        List<String> toolsUsed,
+        TokenUsage usage
 ) {
     public ToolCallResult {
         toolsUsed = toolsUsed == null ? List.of() : List.copyOf(toolsUsed);
+        usage = usage == null ? TokenUsage.unknown() : usage;
+    }
+
+    public ToolCallResult(String text, List<String> toolsUsed) {
+        this(text, toolsUsed, TokenUsage.unknown());
     }
 }

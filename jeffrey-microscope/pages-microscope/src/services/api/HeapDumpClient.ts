@@ -77,7 +77,8 @@ export default class HeapDumpClient extends BaseProfileClient {
   }
 
   public getInitProgress(): Promise<HeapDumpInitProgress> {
-    return this.get<HeapDumpInitProgress>('/init-progress');
+    // Polled on a timer while a run is in flight, so a transient failure must not raise a toast per tick.
+    return this.get<HeapDumpInitProgress>('/init-progress', undefined, { suppressToast: true });
   }
 
   public getHistogram(topN: number = 100, sortBy: string = 'SIZE'): Promise<ClassHistogramEntry[]> {
@@ -159,10 +160,6 @@ export default class HeapDumpClient extends BaseProfileClient {
 
   public getInitPipelineResult(): Promise<InitPipelineResult | null> {
     return this.get<InitPipelineResult | null>('/init-result');
-  }
-
-  public storeInitPipelineResult(result: InitPipelineResult): Promise<void> {
-    return this.post<void>('/init-result', result);
   }
 
   public uploadHeapDump(file: File): Promise<void> {

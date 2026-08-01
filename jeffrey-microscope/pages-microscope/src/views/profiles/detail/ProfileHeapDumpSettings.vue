@@ -441,10 +441,19 @@ const lastInitResultSteps = computed<TimelineStep[]>(() => {
 });
 
 const lastInitResultSubtitle = computed<string>(() => {
-  if (!lastInitResult.value) return '';
-  const epochMs = Date.parse(lastInitResult.value.completedAt);
-  if (Number.isNaN(epochMs)) return '';
-  return `Completed ${FormattingService.formatRelativeTime(epochMs)}`;
+  const result = lastInitResult.value;
+  if (!result) {
+    return '';
+  }
+  const epochMs = Date.parse(result.completedAt);
+  const when = Number.isNaN(epochMs) ? '' : ` ${FormattingService.formatRelativeTime(epochMs)}`;
+  // Failed runs are stored too — reading every stored run as a success would tell the user a broken
+  // initialization completed.
+  if (result.state === 'failed') {
+    const reason = result.errorMessage ? ` — ${result.errorMessage}` : '';
+    return `Failed${when}${reason}`;
+  }
+  return when ? `Completed${when}` : '';
 });
 
 // Upload state
@@ -550,6 +559,7 @@ const followInitRun = async () => {
 
   try {
     let idlePolls = 0;
+    let failedPolls = 0;
     let progress = await client.getInitProgress();
     while (progress.state === 'running' || progress.state === 'idle') {
       if (progress.state === 'idle') {
@@ -562,7 +572,17 @@ const followInitRun = async () => {
         applyProgress(progress);
       }
       await sleep(POLL_INTERVAL_MS);
-      progress = await client.getInitProgress();
+      try {
+        progress = await client.getInitProgress();
+        failedPolls = 0;
+      } catch {
+        // A failed poll is not a failed run — same tolerance as the Advisor's loop. Only a server
+        // that stays unreachable ends the watch.
+        failedPolls++;
+        if (failedPolls > MAX_IDLE_POLLS) {
+          throw new Error('Lost contact with the server while initializing — please reload.');
+        }
+      }
     }
     applyProgress(progress);
 

@@ -16,22 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.heapdump.model;
+/** Severity as Jeffrey computes it from the measured profile — never graded by a model. */
+export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 
 /**
- * One leaf-level timing inside an init-pipeline stage. Surfaced to the UI so a
- * stage that took, say, 84 s can show the user which slice of that time went
- * where (e.g. CHK fixed-point iteration vs persisting rows back to DuckDB).
- *
- * @param name        machine-readable sub-phase id (e.g. {@code "chk_iter"})
- * @param durationMs  wall-clock duration of this sub-phase
- * @param note        optional free-text note shown alongside the time
- *                    (e.g. {@code "5 iterations"} for CHK); {@code null} when
- *                    the duration alone is enough
+ * Presentation helpers for severity. Keeps the severity → look mapping in one place so every screen
+ * that ranks findings reads the same way.
  */
-public record SubPhaseTiming(
-        String name,
-        long durationMs,
-        String note
-) {
+
+const BADGE_VARIANT: Record<Severity, string> = {
+  CRITICAL: "danger",
+  HIGH: "orange",
+  MEDIUM: "warning",
+  LOW: "grey",
+};
+
+export function severityVariant(severity: Severity): string {
+  return BADGE_VARIANT[severity] ?? "grey";
 }

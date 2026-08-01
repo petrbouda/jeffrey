@@ -101,11 +101,31 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
      * {@code jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct}.
      */
     public String generateAiExport(GraphParameters params) {
+        return generateAiExportWithFrames(params).markdown();
+    }
+
+    /**
+     * The AI export together with the call tree it was rendered from. Callers that need to reason about
+     * the same frames the model was shown — grounding a cited frame, grading severity, diffing two
+     * profiles — get them here instead of walking the IR a second time, which would risk describing a
+     * slightly different tree than the one in the prompt.
+     */
+    public AiExport generateAiExportWithFrames(GraphParameters params) {
         Frame root = FlamegraphDataProvider.primary(eventRepository, params)
                 .provideFrame();
-        return new FlamegraphAiMarkdownBuilder(params.eventType(), aiExportConfig)
+        String markdown = new FlamegraphAiMarkdownBuilder(params.eventType(), aiExportConfig)
                 .withThreadMode(params.threadMode())
                 .build(root);
+        return new AiExport(markdown, root);
+    }
+
+    /**
+     * The rendered prompt and the unpruned call tree behind it.
+     *
+     * @param markdown the AI-friendly Markdown export
+     * @param root     the frame tree the markdown was built from
+     */
+    public record AiExport(String markdown, Frame root) {
     }
 
     private static cafe.jeffrey.flamegraph.proto.TimeseriesData convertTimeseries(TimeseriesData data) {

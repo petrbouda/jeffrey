@@ -33,9 +33,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
-import cafe.jeffrey.profile.heapdump.model.HeapDumpInitProgress;
+import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
-import cafe.jeffrey.profile.heapdump.model.InitPipelineResult;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunResult;
 import cafe.jeffrey.profile.heapdump.model.InitializeResult;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
@@ -141,7 +141,7 @@ public class HeapDumpController {
     }
 
     @GetMapping("/init-progress")
-    public HeapDumpInitProgress initProgress(@PathVariable("profileId") String profileId) {
+    public PipelineProgress initProgress(@PathVariable("profileId") String profileId) {
         return initService.progress(profileId);
     }
 
@@ -155,16 +155,14 @@ public class HeapDumpController {
         return mgr(profileId).initPipelineResultExists();
     }
 
+    /**
+     * The last run's stage timings. Written by the pipeline itself now that runs are backend-owned, so
+     * there is no companion POST — a snapshot the frontend could supply would be a second, unverified
+     * account of work the backend already recorded.
+     */
     @GetMapping("/init-result")
-    public InitPipelineResult getInitPipelineResult(@PathVariable("profileId") String profileId) {
+    public PipelineRunResult getInitPipelineResult(@PathVariable("profileId") String profileId) {
         return mgr(profileId).getInitPipelineResult().orElse(null);
-    }
-
-    @PostMapping("/init-result")
-    public void storeInitPipelineResult(
-            @PathVariable("profileId") String profileId,
-            @RequestBody InitPipelineResult result) {
-        mgr(profileId).storeInitPipelineResult(result);
     }
 
     private HeapDumpManager mgr(String profileId) {

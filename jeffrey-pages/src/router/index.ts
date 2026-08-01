@@ -230,6 +230,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope/profiles/ProfileGuardianPage.vue')
       },
       {
+        path: 'microscope/profiles/advisor',
+        name: 'DocsProfilesAdvisor',
+        component: () => import('@/views/docs/microscope/profiles/ProfileAdvisorPage.vue')
+      },
+      {
         path: 'microscope/profiles/garbage-collection',
         name: 'DocsProfilesGarbageCollection',
         component: () => import('@/views/docs/microscope/profiles/ProfileGarbageCollectionPage.vue')

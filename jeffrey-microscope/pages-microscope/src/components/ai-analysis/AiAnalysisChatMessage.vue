@@ -40,14 +40,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import { marked } from 'marked';
+import MarkdownRenderer from '@shared/services/MarkdownRenderer';
 import type { AiAnalysisChatMessage } from '@/composables/useAiAnalysis';
-
-// Configure marked for clean output
-marked.setOptions({
-  gfm: true,
-  breaks: true
-});
 
 const props = defineProps<{
   message: AiAnalysisChatMessage;
@@ -62,9 +56,8 @@ const formatToolName = (tool: string) => {
   return tool.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
 
-const formattedContent = computed(() => {
-  return marked.parse(props.message.content) as string;
-});
+// Sanitized in MarkdownRenderer — this is model-authored content rendered via v-html.
+const formattedContent = computed(() => MarkdownRenderer.render(props.message.content));
 </script>
 
 <style scoped>

@@ -101,4 +101,21 @@ public interface ProfileRepositories {
      * @return a new span repository for the profile
      */
     SpanRepository newSpanRepository(DataSource dataSource);
+
+    /**
+     * Creates an advisor repository for the AI recommendation artifacts stored alongside the profile.
+     *
+     * @param dataSource the profile database connection
+     * @return a new advisor repository for the profile
+     */
+    ProfileAdvisorRepository newAdvisorRepository(DataSource dataSource);
+
+    /**
+     * Creates a repository for the terminal snapshots of staged background runs (heap-dump
+     * initialization, Advisor generations).
+     *
+     * @param dataSource the profile database connection
+     * @return a new pipeline-run repository for the profile
+     */
+    PipelineRunRepository newPipelineRunRepository(DataSource dataSource);
 }

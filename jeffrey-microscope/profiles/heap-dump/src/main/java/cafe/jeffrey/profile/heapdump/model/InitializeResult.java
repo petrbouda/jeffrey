@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.profile.heapdump.model;
 
+import cafe.jeffrey.profile.common.pipeline.SubPhaseTiming;
+
 import java.util.List;
 
 /**

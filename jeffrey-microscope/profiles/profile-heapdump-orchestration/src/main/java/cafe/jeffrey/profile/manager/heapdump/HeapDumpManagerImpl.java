@@ -54,7 +54,8 @@ import cafe.jeffrey.profile.heapdump.model.LeakHintFinding;
 import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
-import cafe.jeffrey.profile.heapdump.model.InitPipelineResult;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunResult;
+import cafe.jeffrey.provider.profile.api.PipelineRunRepository;
 import cafe.jeffrey.profile.heapdump.model.InitializeResult;
 import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
 import cafe.jeffrey.profile.heapdump.model.InstanceSortBy;
@@ -65,7 +66,7 @@ import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
-import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
+import cafe.jeffrey.profile.common.pipeline.SubPhaseTiming;
 import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ThreadStackFrame;
 import cafe.jeffrey.profile.heapdump.oql.OqlEngine;
@@ -120,9 +121,9 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(HeapDumpManagerImpl.class);
 
-    private static final String INIT_PIPELINE_RESULT_FILE = "init-pipeline-result.json";
+    /** The init pipeline runs once per profile, so its run has no sub-scope. */
+    private static final String PROFILE_SCOPE = "";
 
-    private static final String INIT_PIPELINE_RESULT_DISPLAY_NAME = "Init pipeline result";
 
     private static final int MAX_QUERY_LIMIT = 100;
 
@@ -138,15 +139,18 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     private final JvmStringFlagsProvider jvmStringFlagsProvider;
     private final CompressedOopsResolver compressedOopsResolver;
     private final HeapDumpUploadService uploadService;
+    private final PipelineRunRepository pipelineRuns;
 
     public HeapDumpManagerImpl(
             ProfileInfo profileInfo,
             AdditionalFilesManager additionalFilesManager,
             ProfileEventRepository eventRepository,
             HeapDumpSessionCache sessionCache,
-            OqlEngine oqlEngine) {
+            OqlEngine oqlEngine,
+            PipelineRunRepository pipelineRuns) {
 
         this.oqlEngine = oqlEngine;
+        this.pipelineRuns = pipelineRuns;
         this.reports = new HeapDumpReportStore(additionalFilesManager.getHeapDumpAnalysisPath());
         this.sessions = new HeapDumpSessionTemplate(profileInfo, additionalFilesManager, sessionCache);
         this.runner = new CachedAnalysisRunner(sessions, reports);
@@ -322,14 +326,20 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         uploadService.unloadHeap();
     }
 
+    /**
+     * Clearing the cache also drops the stored init run: with the index and every cached analysis gone,
+     * a "last initialization" summary would describe work that no longer exists.
+     */
     @Override
     public void deleteCache() {
         uploadService.deleteCache();
+        pipelineRuns.deleteAll(HeapDumpStages.PIPELINE_ID);
     }
 
     @Override
     public void deleteHeapDump() {
         uploadService.deleteHeapDump();
+        pipelineRuns.deleteAll(HeapDumpStages.PIPELINE_ID);
     }
 
     @Override
@@ -437,17 +447,17 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     @Override
     public boolean initPipelineResultExists() {
-        return reports.exists(INIT_PIPELINE_RESULT_FILE);
+        return getInitPipelineResult().isPresent();
     }
 
     @Override
-    public Optional<InitPipelineResult> getInitPipelineResult() {
-        return reports.read(INIT_PIPELINE_RESULT_FILE, InitPipelineResult.class);
+    public Optional<PipelineRunResult> getInitPipelineResult() {
+        return pipelineRuns.find(HeapDumpStages.PIPELINE_ID, PROFILE_SCOPE);
     }
 
     @Override
-    public void storeInitPipelineResult(InitPipelineResult result) {
-        reports.write(INIT_PIPELINE_RESULT_FILE, result, INIT_PIPELINE_RESULT_DISPLAY_NAME);
+    public void storeInitPipelineResult(PipelineRunResult result) {
+        pipelineRuns.upsert(result);
     }
 
     // --- Dominator Tree --------------------------------------------------

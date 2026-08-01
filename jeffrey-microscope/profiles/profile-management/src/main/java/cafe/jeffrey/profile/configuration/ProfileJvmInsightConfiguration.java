@@ -214,7 +214,8 @@ public class ProfileJvmInsightConfiguration {
                     additionalFilesManagerFactory.apply(profileInfo),
                     profileRepositories.newEventRepository(profileDb),
                     heapDumpSessionCache,
-                    oqlEngine);
+                    oqlEngine,
+                    profileRepositories.newPipelineRunRepository(profileDb));
         };
     }
 

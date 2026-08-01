@@ -5,17 +5,15 @@
  * Licensed under the GNU Affero General Public License v3.
  */
 
-export interface SubPhaseTiming {
-  /** Machine-readable sub-phase id, e.g. 'chk_iter'. */
-  name: string;
-  durationMs: number;
-  /** Optional free-text note shown alongside the time (e.g. '5 iterations'). */
-  note?: string | null;
-}
+// SubPhaseTiming now lives with the shared ProcessingTimeline; re-exported so existing importers of
+// this model keep working unchanged.
+export type { SubPhaseTiming } from '@shared/types/processing';
+import type { SubPhaseTiming } from '@shared/types/processing';
 
 export interface InitStageResult {
   id: string;
-  status: 'completed' | 'skipped' | 'on_demand';
+  /** The backend's StageStatus codes. A failed run stores its untouched stages as 'pending'. */
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped';
   durationMs: number | null;
   /**
    * Optional sub-phase breakdown surfaced as an expandable accordion. Present
@@ -25,9 +23,13 @@ export interface InitStageResult {
 }
 
 export default interface InitPipelineResult {
+  /** Terminal outcome — failed runs are stored too, so the UI must not read every result as a success. */
+  state: 'completed' | 'failed';
   totalElapsedMs: number;
   totalSteps: number;
   completedSteps: number;
+  errorCode: string | null;
+  errorMessage: string | null;
   /** ISO-8601 timestamp (serialised from java.time.Instant). */
   completedAt: string;
   stages: InitStageResult[];

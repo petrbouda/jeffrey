@@ -24,7 +24,8 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
-  { id: 'high-level-architecture', text: 'High-Level Architecture', level: 2 }
+  { id: 'high-level-architecture', text: 'High-Level Architecture', level: 2 },
+  { id: 'staged-pipelines', text: 'Staged Pipelines', level: 2 }
 ];
 
 onMounted(() => {
@@ -188,6 +189,12 @@ onMounted(() => {
             </div>
           </div>
         </div>
+
+        <h2 id="staged-pipelines">Staged Pipelines</h2>
+        <p>Some work in Microscope takes minutes rather than milliseconds — initializing a heap dump, or asking the Advisor to read your source. Those requests return immediately and the frontend polls a stage timeline instead of holding a request open.</p>
+        <p>The machinery behind that timeline is shared, not copied per feature: a run executes in the background under a registry that keeps at most one run per key and remembers the current or most recent one, while each stage records its own duration and exactly one stage at a time reports a live clock. A pipeline supplies only its stage ids and two policy choices — whether runs are capped by a concurrency ceiling, and whether a finished run is evicted after a while. Heap-dump initialization is uncapped and keeps its last run indefinitely, because the work is local CPU and IO and the settings page displays that run; an Advisor run holds a model call open for minutes, so it is capped and expires once its findings are stored.</p>
+        <p>What a run is keyed by is the feature's own business. The heap dump runs once per profile; the Advisor launches a <em>batch</em> that analyses every event type at once, so it files one run per type and the types drain through the shared ceiling a few at a time. The batch itself — the aggregate the Overview renders, and the rule that a profile may only have one in flight — belongs to the Advisor, not to the pipeline.</p>
+        <p>Live progress deliberately lives only in memory. A run interrupted by a restart is gone, which is truthful — the work died with the process. What survives is the terminal outcome: when a run finishes or fails, its stage timings are written to a <code>pipeline_runs</code> row in the profile database, keyed by pipeline and by what the run targeted. A batch is then simply every row of its pipeline, aggregated on read, so a page reopened later still shows what happened.</p>
 
       </div>
 

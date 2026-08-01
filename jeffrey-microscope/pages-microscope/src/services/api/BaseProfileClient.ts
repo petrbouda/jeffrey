@@ -81,4 +81,33 @@ export default abstract class BaseProfileClient {
       )
       .then(HttpUtils.RETURN_DATA);
   }
+
+  /**
+   * Makes a PUT request to the specified path.
+   * @param path - The path relative to the base URL (should start with '/' or be empty)
+   * @param body - The request body
+   * @returns Promise resolving to the response data
+   */
+  protected put<T>(path: string, body: Record<string, any>, options?: RequestOptions): Promise<T> {
+    const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
+    return axios
+      .put<T>(
+        url,
+        body,
+        BaseProfileClient.applyOptions(HttpUtils.JSON_CONTENT_TYPE_HEADER, options)
+      )
+      .then(HttpUtils.RETURN_DATA);
+  }
+
+  /**
+   * Makes a DELETE request to the specified path.
+   * @param path - The path relative to the base URL (should start with '/' or be empty)
+   * @returns Promise resolving to the response data
+   */
+  protected delete<T>(path: string, options?: RequestOptions): Promise<T> {
+    const url = path ? `${this.baseUrl}${path}` : this.baseUrl;
+    return axios
+      .delete<T>(url, BaseProfileClient.applyOptions(HttpUtils.JSON_ACCEPT_HEADER, options))
+      .then(HttpUtils.RETURN_DATA);
+  }
 }

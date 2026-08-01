@@ -18,11 +18,13 @@
 
 package cafe.jeffrey.profile.manager.heapdump;
 
-import cafe.jeffrey.profile.heapdump.model.HeapDumpInitProgress;
-import cafe.jeffrey.profile.heapdump.model.HeapDumpInitStageProgress;
+import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
+import cafe.jeffrey.profile.common.pipeline.PipelineState;
+import cafe.jeffrey.profile.common.pipeline.StageProgress;
+import cafe.jeffrey.profile.common.pipeline.StageStatus;
+import cafe.jeffrey.profile.common.pipeline.SubPhaseTiming;
 import cafe.jeffrey.profile.heapdump.model.IndexBuildProgressListener;
 import cafe.jeffrey.profile.heapdump.model.InitializeResult;
-import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -76,20 +78,20 @@ class HeapDumpInitServiceTest {
 
         clock.advance(Duration.ofSeconds(7));
 
-        HeapDumpInitStageProgress loadStage =
-                stageById(service.progress(PROFILE_ID), HeapDumpInitService.STAGE_LOAD);
-        assertEquals(HeapDumpInitStageProgress.STATUS_IN_PROGRESS, loadStage.status());
+        StageProgress loadStage =
+                stageById(service.progress(PROFILE_ID), HeapDumpStages.LOAD);
+        assertEquals(StageStatus.IN_PROGRESS, loadStage.status());
         assertNotNull(loadStage.elapsedMs(), "the active stage must report live elapsed time");
         assertTrue(loadStage.elapsedMs() >= 7_000L,
                 "elapsed must reflect the advanced clock, was: " + loadStage.elapsedMs());
 
         releaseStage.countDown();
         await().atMost(5, SECONDS).untilAsserted(() -> assertEquals(
-                HeapDumpInitProgress.STATE_COMPLETED, service.progress(PROFILE_ID).state()));
+                PipelineState.COMPLETED, service.progress(PROFILE_ID).state()));
 
-        HeapDumpInitStageProgress completedStage =
-                stageById(service.progress(PROFILE_ID), HeapDumpInitService.STAGE_LOAD);
-        assertEquals(HeapDumpInitStageProgress.STATUS_COMPLETED, completedStage.status());
+        StageProgress completedStage =
+                stageById(service.progress(PROFILE_ID), HeapDumpStages.LOAD);
+        assertEquals(StageStatus.COMPLETED, completedStage.status());
         assertNull(completedStage.elapsedMs(), "terminal stages carry durationMs, not live elapsed");
     }
 
@@ -122,25 +124,25 @@ class HeapDumpInitServiceTest {
 
         assertTrue(service.start(PROFILE_ID, manager, null));
         await().atMost(5, SECONDS).untilAsserted(() -> assertEquals(
-                HeapDumpInitProgress.STATE_COMPLETED, service.progress(PROFILE_ID).state()));
+                PipelineState.COMPLETED, service.progress(PROFILE_ID).state()));
 
-        HeapDumpInitProgress progress = service.progress(PROFILE_ID);
-        HeapDumpInitStageProgress load = stageById(progress, HeapDumpInitService.STAGE_LOAD);
-        HeapDumpInitStageProgress parse = stageById(progress, HeapDumpInitService.STAGE_PARSE);
-        HeapDumpInitStageProgress index = stageById(progress, HeapDumpInitService.STAGE_INDEX);
+        PipelineProgress progress = service.progress(PROFILE_ID);
+        StageProgress load = stageById(progress, HeapDumpStages.LOAD);
+        StageProgress parse = stageById(progress, HeapDumpStages.PARSE);
+        StageProgress index = stageById(progress, HeapDumpStages.INDEX);
 
         // load = walk_top_level + write_stack_traces + drop_indexes.
-        assertEquals(HeapDumpInitStageProgress.STATUS_COMPLETED, load.status());
+        assertEquals(StageStatus.COMPLETED, load.status());
         assertEquals(130L, load.durationMs().longValue());
         assertEquals(3, load.subPhases().size());
 
         // parse = walk_class_dumps + walk_pass_b + apply_shallow_correction + write_string_content.
-        assertEquals(HeapDumpInitStageProgress.STATUS_COMPLETED, parse.status());
+        assertEquals(StageStatus.COMPLETED, parse.status());
         assertEquals(600L, parse.durationMs().longValue());
         assertEquals(4, parse.subPhases().size());
 
         // index = write_metadata + create_indexes + checkpoint.
-        assertEquals(HeapDumpInitStageProgress.STATUS_COMPLETED, index.status());
+        assertEquals(StageStatus.COMPLETED, index.status());
         assertEquals(420L, index.durationMs().longValue());
         assertEquals(3, index.subPhases().size());
     }
@@ -152,7 +154,7 @@ class HeapDumpInitServiceTest {
 
         CountDownLatch parsePhaseStarted = new CountDownLatch(1);
         CountDownLatch releaseParsePhase = new CountDownLatch(1);
-        AtomicReference<HeapDumpInitProgress> snapshotAtParseStart = new AtomicReference<>();
+        AtomicReference<PipelineProgress> snapshotAtParseStart = new AtomicReference<>();
 
         when(manager.initialize(eq(null), any())).thenAnswer(invocation -> {
             IndexBuildProgressListener listener = invocation.getArgument(1);
@@ -174,20 +176,20 @@ class HeapDumpInitServiceTest {
         assertTrue(service.start(PROFILE_ID, manager, null));
         assertTrue(parsePhaseStarted.await(5, TimeUnit.SECONDS), "parse phase must start");
 
-        HeapDumpInitProgress atStart = snapshotAtParseStart.get();
-        assertEquals(HeapDumpInitStageProgress.STATUS_COMPLETED,
-                stageById(atStart, HeapDumpInitService.STAGE_LOAD).status(),
+        PipelineProgress atStart = snapshotAtParseStart.get();
+        assertEquals(StageStatus.COMPLETED,
+                stageById(atStart, HeapDumpStages.LOAD).status(),
                 "load must be completed as soon as the first parse phase starts");
-        assertEquals(HeapDumpInitStageProgress.STATUS_IN_PROGRESS,
-                stageById(atStart, HeapDumpInitService.STAGE_PARSE).status(),
+        assertEquals(StageStatus.IN_PROGRESS,
+                stageById(atStart, HeapDumpStages.PARSE).status(),
                 "parse must be active while its phase runs, not queued behind a completed load");
 
         releaseParsePhase.countDown();
         await().atMost(5, SECONDS).untilAsserted(() -> assertEquals(
-                HeapDumpInitProgress.STATE_COMPLETED, service.progress(PROFILE_ID).state()));
+                PipelineState.COMPLETED, service.progress(PROFILE_ID).state()));
     }
 
-    private static HeapDumpInitStageProgress stageById(HeapDumpInitProgress progress, String stageId) {
+    private static StageProgress stageById(PipelineProgress progress, String stageId) {
         return progress.stages().stream()
                 .filter(stage -> stage.id().equals(stageId))
                 .findFirst()

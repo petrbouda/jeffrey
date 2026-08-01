@@ -56,10 +56,6 @@ public final class HeapDumpUploadService {
 
     private static final String CONFIG_DISPLAY_NAME = "Heap dump config";
 
-    private static final String INIT_PIPELINE_RESULT_FILE = "init-pipeline-result.json";
-
-    private static final String INIT_PIPELINE_DISPLAY_NAME = "Init pipeline result";
-
     private final ProfileInfo profileInfo;
 
     private final AdditionalFilesManager additionalFilesManager;
@@ -128,7 +124,6 @@ public final class HeapDumpUploadService {
         });
         reports.deleteAllCachedAnalyses();
         reports.delete(CONFIG_FILE, CONFIG_DISPLAY_NAME);
-        reports.delete(INIT_PIPELINE_RESULT_FILE, INIT_PIPELINE_DISPLAY_NAME);
     }
 
     public void deleteHeapDump() {

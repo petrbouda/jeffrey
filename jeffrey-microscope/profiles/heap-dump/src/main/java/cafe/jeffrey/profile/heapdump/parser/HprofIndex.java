@@ -18,7 +18,7 @@
 package cafe.jeffrey.profile.heapdump.parser;
 
 import cafe.jeffrey.profile.heapdump.model.IndexBuildProgressListener;
-import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
+import cafe.jeffrey.profile.common.pipeline.SubPhaseTiming;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
 import cafe.jeffrey.shared.common.measure.Elapsed;

@@ -13,7 +13,8 @@ function redirectTo(targetSubPath: string) {
 const analysisRoutes = [
   {
     path: '',
-    redirect: (to: { params: { profileId: string } }) => `/profiles/${to.params.profileId}/dashboard`
+    redirect: (to: { params: { profileId: string } }) =>
+      `/profiles/${to.params.profileId}/dashboard`
   },
   {
     path: 'dashboard',
@@ -642,6 +643,23 @@ const toolsRoutes = [
   }
 ];
 
+// AI advisor: the run overview (phased, timed processing, with the source folder set inline) lands
+// first, then the findings on its own page.
+const advisorRoutes = [
+  {
+    path: 'advisor',
+    name: 'profile-advisor',
+    component: () => import('@/views/profiles/detail/advisor/AdvisorRunOverview.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'advisor/findings',
+    name: 'profile-advisor-findings',
+    component: () => import('@/views/profiles/detail/advisor/AdvisorFindings.vue'),
+    meta: { layout: 'profile' }
+  }
+];
+
 export const profileChildRoutes = [
   ...analysisRoutes,
   ...visualizationRoutes,
@@ -652,5 +670,6 @@ export const profileChildRoutes = [
   ...runtimeRoutes,
   ...heapDumpRoutes,
   ...technologyRoutes,
-  ...toolsRoutes
+  ...toolsRoutes,
+  ...advisorRoutes
 ];

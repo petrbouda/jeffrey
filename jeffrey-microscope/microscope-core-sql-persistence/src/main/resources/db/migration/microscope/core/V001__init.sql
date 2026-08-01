@@ -175,3 +175,19 @@ CREATE TABLE IF NOT EXISTS guardians
     solution          VARCHAR,
     created_at        TIMESTAMPTZ NOT NULL
 );
+
+--
+-- PROFILE ADVISOR SETTINGS TABLE
+-- Per-profile configuration for the profile Advisor: the working-copy location the Advisor reads.
+-- Keyed by profile_id so it works for every profile — a locally-uploaded (Quick Analysis) recording
+-- has no project to key by, and requiring one would lock the Advisor out of the most common local use.
+--
+-- source_path points at the working copy on THIS machine. Installation-wide advisor knobs (such as
+-- the prune threshold) live in the global settings table, not here.
+--
+CREATE TABLE IF NOT EXISTS profile_advisor_settings
+(
+    profile_id  VARCHAR     NOT NULL PRIMARY KEY,
+    source_path VARCHAR,
+    modified_at TIMESTAMPTZ NOT NULL
+);

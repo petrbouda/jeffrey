@@ -256,6 +256,11 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
+                <artifactId>profile-advisor</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
                 <artifactId>duckdb-jfr-mcp</artifactId>
                 <version>${project.version}</version>
             </dependency>

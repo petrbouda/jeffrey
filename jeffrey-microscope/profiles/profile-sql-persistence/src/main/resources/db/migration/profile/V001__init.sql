@@ -121,3 +121,87 @@ CREATE TABLE IF NOT EXISTS profile_info
     project_id   VARCHAR,
     workspace_id VARCHAR
 );
+
+--
+-- ADVISOR PROMPTS TABLE
+-- One AI prompt per sample event type: the markdown the model reads, plus `frame_index`, the same
+-- call tree in JSON. The index is cached rather than rebuilt because grounding a claim, grading
+-- severity and comparing two profiles must all read the numbers the model was actually shown — a
+-- rebuild at a different threshold would answer a subtly different question.
+--
+CREATE TABLE IF NOT EXISTS advisor_prompts
+(
+    event_type   VARCHAR     NOT NULL PRIMARY KEY,
+    label        VARCHAR     NOT NULL,
+    samples      BIGINT      NOT NULL,
+    markdown     VARCHAR     NOT NULL,
+    frame_index  VARCHAR,
+    generated_at TIMESTAMPTZ NOT NULL
+);
+
+--
+-- ADVISOR RECOMMENDATIONS TABLE
+-- One advisor result per sample event type. `severity` is computed by Jeffrey from the measured
+-- profile, never graded by the model.
+--
+CREATE TABLE IF NOT EXISTS advisor_recommendations
+(
+    event_type      VARCHAR     NOT NULL PRIMARY KEY,
+    severity        VARCHAR     NOT NULL DEFAULT 'LOW',
+    recommendations VARCHAR     NOT NULL,
+    source_ref      VARCHAR,
+    input_tokens    BIGINT      NOT NULL DEFAULT 0,
+    output_tokens   BIGINT      NOT NULL DEFAULT 0,
+    cost_usd        DOUBLE,
+    generated_at    TIMESTAMPTZ NOT NULL
+);
+
+--
+-- ADVISOR CLAIMS TABLE
+-- One row per citation a recommendation rests on, after it has been checked against the measured
+-- call tree and the source tree. Stored structurally rather than left inside the markdown because a
+-- free-text report cannot be aggregated, a frame can. `grounded` is false when the cited frame does
+-- not appear in the profile at all; such a claim is shown to the user, clearly marked, and excluded
+-- from severity.
+--
+CREATE TABLE IF NOT EXISTS advisor_claims
+(
+    event_type   VARCHAR     NOT NULL,
+    title        VARCHAR     NOT NULL,
+    cited_frame  VARCHAR     NOT NULL,
+    source_path  VARCHAR,
+    grounded     BOOLEAN     NOT NULL DEFAULT false,
+    source_found BOOLEAN     NOT NULL DEFAULT false,
+    self_pct     DOUBLE      NOT NULL DEFAULT 0,
+    total_pct    DOUBLE      NOT NULL DEFAULT 0,
+    generated_at TIMESTAMPTZ NOT NULL
+);
+
+--
+-- PIPELINE RUNS TABLE
+-- The terminal snapshot of one staged background run — heap-dump initialization, one event type of an
+-- Advisor batch, or any future pipeline. Live progress is deliberately NOT here: it lives in memory and
+-- dies with the process, because so does the work it describes. What a user needs after the fact is the
+-- last completed run, which is what this stores, and it is what re-renders the kept timeline on return.
+--
+-- `stages` is a JSON array rather than a table of its own because it is written and read as a whole and
+-- rendered as a whole; a row per stage would buy queries nobody asks and a join everybody pays for.
+-- `scope_id` is '' rather than NULL for pipelines that run once per profile (the heap dump), and the
+-- event type for the Advisor, whose batch stores one row per type — so the primary key works without
+-- NULL-comparison rules and a batch is simply every row of its pipeline.
+--
+CREATE TABLE IF NOT EXISTS pipeline_runs
+(
+    pipeline_id      VARCHAR     NOT NULL,
+    scope_id         VARCHAR     NOT NULL DEFAULT '',
+    state            VARCHAR     NOT NULL,
+    total_elapsed_ms BIGINT      NOT NULL,
+    total_steps      INTEGER     NOT NULL,
+    completed_steps  INTEGER     NOT NULL,
+    error_code       VARCHAR,
+    error_message    VARCHAR,
+    stages           VARCHAR     NOT NULL,
+    started_at       TIMESTAMPTZ NOT NULL,
+    completed_at     TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (pipeline_id, scope_id)
+);
