@@ -30,9 +30,6 @@ const headings = [
   { id: 'setup', text: 'Setup', level: 2 },
   { id: 'how-a-run-works', text: 'How a Run Works', level: 2 },
   { id: 'grounding', text: 'Grounding and Severity', level: 2 },
-  { id: 'patch-verification', text: 'Patch Verification', level: 2 },
-  { id: 'regression', text: 'Regression', level: 2 },
-  { id: 'fleet-patterns', text: 'Fleet Patterns', level: 2 },
   { id: 'privacy', text: 'What Leaves Your Machine', level: 2 }
 ];
 
@@ -54,22 +51,18 @@ onMounted(() => {
       </p>
 
       <p>
-        Everything the model produces is checked before it is stored. Cited frames are resolved against
-        the measured call tree, cited paths against your working copy, and the patch against
-        <code>git apply</code>. Severity is then computed from what survived — so a finding the model
-        invented cannot raise a profile's priority.
+        Everything the model produces is grounded before it is stored. Cited frames are resolved against
+        the measured call tree and cited paths against your working copy. Severity is then computed from
+        what survived — so a finding the model invented cannot raise a profile's priority.
       </p>
 
       <h2 id="overview">Overview</h2>
 
-      <p>The Advisor is a top-level mode in the profile detail page, with five sections:</p>
+      <p>The Advisor is a top-level mode in the profile detail page, with two pages:</p>
 
       <ul>
-        <li><strong>Findings</strong> — the recommendations report, with the claim list above it.</li>
-        <li><strong>Patch &amp; Verification</strong> — the proposed unified diff and how far it was verified.</li>
-        <li><strong>Regression</strong> — which frames moved against a baseline profile.</li>
-        <li><strong>Fleet Patterns</strong> — hotspots recurring across projects.</li>
-        <li><strong>Source &amp; Settings</strong> — where your code is, and how far verification goes.</li>
+        <li><strong>Overview</strong> — the landing page: set the source folder inline, launch the run, and watch its phased, timed timeline. The finished timeline is kept and re-shown on return.</li>
+        <li><strong>Findings</strong> — a separate page for the recommendations report, with the claim list above it.</li>
       </ul>
 
       <p>
@@ -95,51 +88,44 @@ onMounted(() => {
           out, and it lights up as soon as a provider is selected — no restart.
         </li>
         <li>
-          <strong>A source folder.</strong> Under Advisor → Source &amp; Settings, point the project at
-          an absolute path on the machine running Microscope. Microscope reads your working copy in
-          place: nothing is cloned, no credentials are stored, and the folder is never written to or
-          deleted.
+          <strong>A source folder.</strong> On the Advisor Overview, point the profile at an absolute
+          path on the machine running Microscope. Microscope reads your working copy in place: nothing
+          is cloned, no credentials are stored, and the folder is never written to or deleted.
         </li>
       </ol>
 
-      <DocsCallout type="info" title="Per project, not per profile">
-        The source folder belongs to the project, so every profile of the same service shares it. A
-        Quick Analysis profile has no project and therefore no source folder to configure.
+      <DocsCallout type="info" title="Per profile">
+        The source folder is stored per profile, so it works for any profile — including a
+        locally-uploaded Quick Analysis recording, which has no project.
       </DocsCallout>
 
       <h2 id="how-a-run-works">How a Run Works</h2>
 
       <p>
-        Generation is asynchronous — a run takes minutes — and the page shows the same stage timeline
-        heap-dump initialization uses, with a live clock on the stage in flight and a real duration on
-        each stage that has finished:
+        The Overview page is the landing: set a source folder and press <strong>Run Advisor</strong>. One
+        launch analyzes <strong>every event type at once</strong> — CPU, Wall-Clock, Allocation, Blocking
+        — shown as a processing timeline with a <strong>phase card per type</strong>. Each type moves
+        through the same four <strong>timed steps</strong>, and the types drain a few at a time through a
+        shared ceiling so a single run cannot flood the AI provider:
       </p>
 
       <ol>
-        <li><strong>Building the profile summary</strong> — the flamegraph markdown is built from the profile database and cached, along with the flattened call tree behind it.</li>
-        <li><strong>Locating the source folder</strong> — the configured folder is validated and its commit read.</li>
-        <li><strong>Reading your source</strong> — the model explores your source with four read-only tools: <code>listFiles</code>, <code>glob</code>, <code>readFile</code> and <code>grep</code>.</li>
-        <li><strong>Checking claims and patch</strong> — claims are grounded, the patch is checked, severity is computed.</li>
-        <li><strong>Storing findings</strong> — the recommendation, its claims and its token cost are written to the profile database.</li>
+        <li><strong>Prompt</strong> — the flamegraph markdown is built from the profile database and cached, along with the flattened call tree behind it.</li>
+        <li><strong>Source</strong> — the configured folder is validated and its commit read.</li>
+        <li><strong>Analyze</strong> — the model explores your source with four read-only tools: <code>listFiles</code>, <code>glob</code>, <code>readFile</code> and <code>grep</code>.</li>
+        <li><strong>Ground</strong> — the model's answer is checked: every cited frame is resolved against the measured call tree and severity is computed before anything is stored.</li>
       </ol>
 
       <p>
-        A run is filed per event type: at most one at a time for the same profile group, plus a small
-        global ceiling, so simultaneous requests wait for a slot instead of degrading together. A run
-        that is waiting shows as running with no stage started yet.
+        When it finishes, the timeline is <strong>kept</strong> — with each step's measured time — and
+        re-shown whenever you return to the Overview, the same way the Heap Dump keeps its last
+        initialization. The recommendations themselves live on the separate <strong>Findings</strong> page.
       </p>
 
       <p>
         The prompt is cached per event type, so re-running skips straight to the model. Changing the
-        prompt-detail threshold regenerates it, since that setting only reaches the model through the
-        markdown.
-      </p>
-
-      <p>
-        When a run reaches a terminal state its stage timings are written to the profile database, so
-        reopening the page later still shows how long each stage took. Progress of a run
-        <em>in flight</em> lives only in memory: if Microscope restarts mid-run the work died with the
-        process, and the page reports the run as gone rather than pretending it is still going.
+        prompt-detail threshold under Settings → Advisor regenerates it, since that setting only reaches
+        the model through the markdown.
       </p>
 
       <h2 id="grounding">Grounding and Severity</h2>
@@ -162,45 +148,6 @@ onMounted(() => {
         Severity is Jeffrey's, not the model's: it is computed from the dominant grounded frame's
         measured <em>self</em> share — 20% or more is CRITICAL, 10% HIGH, 3% MEDIUM, otherwise LOW.
         Self share rather than total, because total is dominated by orchestration frames near 100%.
-      </p>
-
-      <h2 id="patch-verification">Patch Verification</h2>
-
-      <p>The patch climbs a ladder, and each level runs only if the one below it passed:</p>
-
-      <ul>
-        <li><strong>Applies cleanly</strong> — <code>git apply --check -p1</code>. Works out of the box for a git checkout.</li>
-        <li><strong>Module compiles</strong> — your configured compile command.</li>
-        <li><strong>Tests pass</strong> — your configured test command.</li>
-      </ul>
-
-      <p>
-        A level that cannot run reports <strong>skipped</strong>, kept distinct from passed. The compile
-        and test commands are blank by default: running your build is a decision only you can make, and
-        Jeffrey will not guess at <code>mvn</code> or <code>gradle</code> on your behalf.
-      </p>
-
-      <DocsCallout type="warning" title="Applying the patch">
-        Jeffrey never writes to your working copy. The diff is shown and can be copied; applying it is
-        yours to do.
-      </DocsCallout>
-
-      <h2 id="regression">Regression</h2>
-
-      <p>
-        Pick a baseline with the <strong>Secondary Profile</strong> selector and the Regression page
-        reports which frames moved. No model is involved — it is arithmetic over the two cached call
-        trees, so it is exact, instant and free. Frames moving less than the configured threshold are
-        hidden, because below it you are looking at sampling noise.
-      </p>
-
-      <h2 id="fleet-patterns">Fleet Patterns</h2>
-
-      <p>
-        Grounded claims are also indexed across profiles, so the Advisor can answer a question no single
-        recording can: which frames are hot in more than one project. When the same frame costs several
-        services time, the fix usually belongs where that frame lives rather than in each caller — a
-        different piece of work with a different owner. Only grounded claims are rolled up.
       </p>
 
       <h2 id="privacy">What Leaves Your Machine</h2>

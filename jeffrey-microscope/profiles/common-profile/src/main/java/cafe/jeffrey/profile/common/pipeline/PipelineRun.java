@@ -59,7 +59,7 @@ public final class PipelineRun {
     /** Start of {@link #liveTimerStageId}; {@code null} between stages. */
     private volatile Instant liveTimerStartedAt;
 
-    PipelineRun(PipelineDefinition definition, String scopeId, Clock clock) {
+    public PipelineRun(PipelineDefinition definition, String scopeId, Clock clock) {
         this.definition = definition;
         this.scopeId = scopeId == null ? "" : scopeId;
         this.clock = clock;
@@ -139,6 +139,35 @@ public final class PipelineRun {
     }
 
     /**
+     * Closes whichever stage the live timer is on — timing it <em>from the timer</em> — and opens
+     * {@code id}.
+     *
+     * <p>This is the third way to drive a pipeline, for the case the other two do not cover: work that
+     * announces each phase as it enters it, through a callback, without ever saying when a phase ended.
+     * {@link #runStage} needs to own the call, and {@link #completeStage} needs a caller who already
+     * knows the duration; a pipeline told only "now analyzing" knows neither, but the boundary is
+     * exactly where the announcement lands, which is what this measures.</p>
+     */
+    public void advanceTo(String id) {
+        completeActiveStage();
+        beginStage(id);
+    }
+
+    /**
+     * Closes the stage the live timer is on, if any, timing it from the timer. Called at the end of a
+     * callback-driven pipeline so its last stage gets a duration rather than being left in progress.
+     */
+    public void completeActiveStage() {
+        String activeId = liveTimerStageId;
+        Instant activeStartedAt = liveTimerStartedAt;
+        if (activeId == null || activeStartedAt == null) {
+            return;
+        }
+        completeStage(activeId, Duration.between(activeStartedAt, clock.instant()).toMillis(), null);
+        clearActiveStage();
+    }
+
+    /**
      * Records a stage that had nothing to do. Kept distinct from completed so a reader can tell "ran and
      * found nothing" from "ran and did the work".
      */
@@ -159,13 +188,30 @@ public final class PipelineRun {
         liveTimerStartedAt = null;
     }
 
-    void complete() {
+    /**
+     * Ends the run as succeeded. Normally called by {@link PipelineRunRegistry} once the pipeline body
+     * returns; public because a run is a complete object in its own right, and a caller that schedules
+     * its own work should not have to go through the registry to say the work finished.
+     */
+    public void complete() {
         completedAt = clock.instant();
         state = PipelineState.COMPLETED;
         clearActiveStage();
     }
 
-    void fail(String code, String message) {
+    /**
+     * Ends the run as failed, marking whichever stage was still in flight as failed too.
+     *
+     * <p>That last part matters for callback-driven pipelines. {@link #runStage} marks its own stage
+     * failed on the way out, but a pipeline driven through {@link #advanceTo} is only ever told which
+     * phase is <em>starting</em> — so without this, the phase that was running when the work blew up
+     * would keep a spinning clock forever instead of reading as the one that broke.</p>
+     */
+    public void fail(String code, String message) {
+        String activeId = liveTimerStageId;
+        if (activeId != null) {
+            updateStage(activeId, StageStatus.FAILED, null, null);
+        }
         errorCode = code;
         errorMessage = message;
         completedAt = clock.instant();

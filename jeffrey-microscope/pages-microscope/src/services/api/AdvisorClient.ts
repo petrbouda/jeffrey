@@ -19,13 +19,12 @@
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import type {
   AdvisorEventType,
-  AdvisorGenerateResponse,
   AdvisorPrompt,
   AdvisorRecommendation,
+  AdvisorRunResult,
   AdvisorSettings,
-  RegressionComparison
+  BatchAdvisorProgress
 } from '@/services/api/model/Advisor';
-import type { PipelineProgress, PipelineRunResult } from '@shared/services/api/model/PipelineRun';
 
 export default class AdvisorClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -50,18 +49,24 @@ export default class AdvisorClient extends BaseProfileClient {
     return super.get<AdvisorRecommendation[]>('/recommendations');
   }
 
-  generate(eventType: string): Promise<AdvisorGenerateResponse> {
-    return super.post<AdvisorGenerateResponse>('/generate', { eventType });
+  /** Launches a batch over the given event types, or every available type when none are passed. */
+  run(eventTypes: string[] = []): Promise<BatchAdvisorProgress> {
+    return super.post<BatchAdvisorProgress>('/run', { eventTypes });
   }
 
-  progress(): Promise<PipelineProgress> {
+  runProgress(): Promise<BatchAdvisorProgress> {
     // Polled on a timer while a run is in flight, so a transient failure must not raise a toast per tick.
-    return super.get<PipelineProgress>('/progress', undefined, { suppressToast: true });
+    return super.get<BatchAdvisorProgress>('/run/progress', undefined, { suppressToast: true });
   }
 
-  /** Stage timings of previous runs, one per event type, read from the profile database. */
-  runs(): Promise<PipelineRunResult[]> {
-    return super.get<PipelineRunResult[]>('/runs');
+  /** The last run's stored timeline (per-type, per-step durations), or null when it has never run. */
+  runResult(): Promise<AdvisorRunResult | null> {
+    return super.get<AdvisorRunResult | null>('/run/result');
+  }
+
+  /** The stage sequence, served by the backend so the timeline cannot drift from the pipeline. */
+  stages(): Promise<string[]> {
+    return super.get<string[]>('/stages');
   }
 
   cancel(): Promise<void> {
@@ -74,9 +79,5 @@ export default class AdvisorClient extends BaseProfileClient {
 
   saveSettings(settings: Partial<AdvisorSettings>): Promise<AdvisorSettings> {
     return super.put<AdvisorSettings>('/settings', settings);
-  }
-
-  regression(baselineProfileId: string, eventType: string): Promise<RegressionComparison> {
-    return super.get<RegressionComparison>('/regression', { baselineProfileId, eventType });
   }
 }

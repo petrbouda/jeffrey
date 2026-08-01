@@ -22,11 +22,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.profile.advisor.fleet.FleetPatternsService;
 import cafe.jeffrey.profile.advisor.mcp.SourceToolsRegistry;
 import cafe.jeffrey.profile.advisor.prompt.AdvisorPromptManager;
 import cafe.jeffrey.profile.advisor.prompt.AdvisorPromptManagerFactory;
-import cafe.jeffrey.profile.advisor.regression.RegressionService;
+import cafe.jeffrey.profile.advisor.run.AdvisorRunResultWriter;
 import cafe.jeffrey.profile.advisor.run.AdvisorRunner;
 import cafe.jeffrey.profile.advisor.run.AdvisorService;
 import cafe.jeffrey.profile.advisor.run.AdvisorServiceFactory;
@@ -34,22 +33,18 @@ import cafe.jeffrey.profile.advisor.settings.AdvisorSettings;
 import cafe.jeffrey.profile.advisor.settings.AdvisorSettingsResolver;
 import cafe.jeffrey.profile.advisor.source.RecordingCommitResolver;
 import cafe.jeffrey.profile.advisor.source.SourceTreeResolver;
-import cafe.jeffrey.profile.advisor.verify.CommandRunner;
-import cafe.jeffrey.profile.advisor.verify.PatchVerificationSettings;
-import cafe.jeffrey.profile.advisor.verify.PatchVerifier;
 import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.chat.McpToolsetFactory;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
+import cafe.jeffrey.provider.profile.api.PipelineRunRepository;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
+import cafe.jeffrey.shared.common.config.SettingsStore;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.ProfilingStartEnd;
 
 import javax.sql.DataSource;
 import java.time.Clock;
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Wiring for the profile Advisor.
@@ -78,8 +73,8 @@ public class AdvisorConfiguration {
     }
 
     @Bean
-    public AdvisorSettingsResolver advisorSettingsResolver(Clock clock) {
-        return new AdvisorSettingsResolver(coreRepositories.advisorSettingsRepository(), clock);
+    public AdvisorSettingsResolver advisorSettingsResolver(SettingsStore settingsStore, Clock clock) {
+        return new AdvisorSettingsResolver(coreRepositories.advisorSettingsRepository(), settingsStore, clock);
     }
 
     @Bean
@@ -99,41 +94,17 @@ public class AdvisorConfiguration {
     }
 
     @Bean
-    public FleetPatternsService fleetPatternsService() {
-        return new FleetPatternsService(coreRepositories.advisorClaimIndexRepository());
-    }
-
-    @Bean
-    public RegressionService regressionService(
-            AdvisorPromptManagerFactory promptManagerFactory, AdvisorSettingsResolver settingsResolver) {
-
-        return new RegressionService(promptManagerFactory, settingsResolver);
-    }
-
-    @Bean
     public AdvisorServiceFactory advisorServiceFactory(
             AdvisorSettingsResolver settingsResolver,
             SourceTreeResolver sourceTreeResolver,
             AiChatBackend aiChatBackend,
             SourceToolsRegistry sourceToolsRegistry,
             McpToolsetFactory mcpToolsetFactory,
-            Clock clock,
-            @Value("${jeffrey.microscope.advisor.verification.git-path:git}")
-            String gitPath,
-            @Value("${jeffrey.microscope.advisor.verification.timeout-seconds:600}")
-            long verificationTimeoutSeconds) {
+            Clock clock) {
 
         return profile -> {
             AdvisorSettings settings = settingsResolver.resolve(profile);
             DataSource profileDb = databaseManagerResolver.open(profile);
-
-            PatchVerifier patchVerifier = new PatchVerifier(
-                    new CommandRunner(),
-                    new PatchVerificationSettings(
-                            gitPath,
-                            splitCommand(settings.compileCommand()),
-                            splitCommand(settings.testCommand()),
-                            Duration.ofSeconds(verificationTimeoutSeconds)));
 
             return new AdvisorService(
                     newPromptManager(profile, clock),
@@ -143,8 +114,6 @@ public class AdvisorConfiguration {
                     sourceToolsRegistry,
                     mcpToolsetFactory,
                     profileRepositories.newAdvisorRepository(profileDb),
-                    coreRepositories.advisorClaimIndexRepository(),
-                    patchVerifier,
                     profile.recordingId(),
                     clock);
         };
@@ -157,12 +126,20 @@ public class AdvisorConfiguration {
             @Value("${jeffrey.microscope.advisor.max-concurrent-runs:" + DEFAULT_MAX_CONCURRENT_RUNS + "}")
             int maxConcurrentRuns) {
 
-        return new AdvisorRunner(
-                advisorServiceFactory,
-                profile -> profileRepositories.newPipelineRunRepository(
-                        databaseManagerResolver.open(profile)),
-                maxConcurrentRuns,
-                clock);
+        return new AdvisorRunner(advisorServiceFactory, runResultWriter(), maxConcurrentRuns, clock);
+    }
+
+    /**
+     * Stores a finished batch's timeline in the profile database, one {@code pipeline_runs} row per event
+     * type — the same table heap-dump initialization stores its run in. Built here rather than injected so
+     * the runner stays free of persistence types; opens the profile DB per call, like the other factories.
+     */
+    private AdvisorRunResultWriter runResultWriter() {
+        return (profile, runs) -> {
+            DataSource profileDb = databaseManagerResolver.open(profile);
+            PipelineRunRepository repository = profileRepositories.newPipelineRunRepository(profileDb);
+            runs.forEach(repository::upsert);
+        };
     }
 
     private AdvisorPromptManager newPromptManager(ProfileInfo profile, Clock clock) {
@@ -173,17 +150,5 @@ public class AdvisorConfiguration {
                 profileRepositories.newAdvisorRepository(profileDb),
                 new ProfilingStartEnd(profile.profilingStartedAt(), profile.profilingFinishedAt()),
                 clock);
-    }
-
-    /**
-     * Splits an operator-configured build command into its argv. Whitespace splitting is deliberately
-     * naive: a command that needs quoting or shell operators belongs in a script the operator owns, not
-     * in a settings field a profiler runs on their behalf.
-     */
-    private static List<String> splitCommand(String command) {
-        if (command == null || command.isBlank()) {
-            return List.of();
-        }
-        return Arrays.stream(command.strip().split("\\s+")).toList();
     }
 }

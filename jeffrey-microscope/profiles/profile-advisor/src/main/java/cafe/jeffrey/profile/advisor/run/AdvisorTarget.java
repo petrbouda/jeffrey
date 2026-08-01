@@ -22,20 +22,13 @@ import cafe.jeffrey.shared.common.model.ProfileInfo;
 
 /**
  * Identifies what an advisor run targets: the profile whose call tree is analyzed and the sample event
- * type to analyze it for. The workspace/project identity travels along because the fleet rollup groups
- * grounded frames across projects, and a per-profile database cannot answer that question on its own.
+ * type to analyze it for.
  *
- * @param profileId   the profile being analyzed
- * @param workspaceId the workspace the profile belongs to, or null for a Quick Analysis profile
- * @param projectId   the project the profile belongs to, or null for a Quick Analysis profile
- * @param profileName the profile's display name, so the fleet view can label an occurrence
- * @param eventType   the sample event type whose call tree is analyzed
+ * @param profileId the profile being analyzed
+ * @param eventType the sample event type whose call tree is analyzed
  */
 public record AdvisorTarget(
         String profileId,
-        String workspaceId,
-        String projectId,
-        String profileName,
         String eventType) {
 
     public AdvisorTarget {
@@ -48,15 +41,6 @@ public record AdvisorTarget(
     }
 
     public static AdvisorTarget of(ProfileInfo profile, String eventType) {
-        return new AdvisorTarget(
-                profile.id(), profile.workspaceId(), profile.projectId(), profile.name(), eventType);
-    }
-
-    /**
-     * True when the run belongs to a project, which is what the fleet rollup groups by. Quick Analysis
-     * profiles have no project, so their claims are shown on the profile but never rolled up.
-     */
-    public boolean hasProject() {
-        return projectId != null && !projectId.isBlank();
+        return new AdvisorTarget(profile.id(), eventType);
     }
 }

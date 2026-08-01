@@ -17,7 +17,6 @@
  */
 
 import type { Severity } from '@shared/services/severityDisplay';
-import type { PipelineProgress } from '@shared/services/api/model/PipelineRun';
 
 /** A profile group the Advisor can analyze, as reported by the backend. */
 export interface AdvisorEventType {
@@ -48,28 +47,10 @@ export interface AdvisorClaim {
   totalPct: number;
 }
 
-export type PatchCheckLevel = 'APPLIES' | 'COMPILES' | 'TESTS_PASS';
-export type PatchCheckStatus = 'PASSED' | 'FAILED' | 'SKIPPED';
-
-export interface PatchCheck {
-  level: PatchCheckLevel;
-  status: PatchCheckStatus;
-  detail: string | null;
-}
-
-/** The ladder of checks run against the patch, plus the revision they were established at. */
-export interface PatchVerification {
-  checks: PatchCheck[];
-  verifiedAgainstRef: string | null;
-}
-
 export interface AdvisorRecommendation {
   eventType: string;
   severity: Severity;
   recommendations: string;
-  patch: string | null;
-  /** Raw JSON of {@link PatchVerification}; parsed by the view that renders the ladder. */
-  verification: string | null;
   sourceRef: string | null;
   inputTokens: number;
   outputTokens: number;
@@ -78,56 +59,85 @@ export interface AdvisorRecommendation {
   claims: AdvisorClaim[];
 }
 
-export interface AdvisorGenerateResponse {
-  started: boolean;
-  progress: PipelineProgress;
+export type AdvisorStatus =
+  | 'QUEUED'
+  | 'PREPARING_PROMPT'
+  | 'RESOLVING_SOURCE'
+  | 'ANALYZING'
+  | 'GROUNDING'
+  | 'COMPLETED'
+  | 'FAILED';
+
+/** The live progress of one timed step (Prompt / Source / Analyze / Ground) within a type's run. */
+export interface AdvisorStepProgress {
+  step: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  durationMs: number | null;
+  elapsedMs: number | null;
+}
+
+/**
+ * One event type's progress within a batch. It carries no result: a completed type's artifacts live in
+ * the profile database, so the page reads them from the recommendations endpoint either way.
+ */
+export interface AdvisorProgress {
+  profileId: string;
+  eventType: string | null;
+  status: AdvisorStatus | null;
+  message: string;
+  errorMessage: string | null;
+  startedAt: number | null;
+  completedAt: number | null;
+  steps: AdvisorStepProgress[];
+}
+
+export type BatchStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+
+/**
+ * A batch run snapshot — one launch processing every event type. {@link status} is null when no run has
+ * ever been launched for the profile, which is how the page knows to show the initial page rather than a
+ * timeline.
+ */
+export interface BatchAdvisorProgress {
+  profileId: string;
+  status: BatchStatus | null;
+  done: number;
+  total: number;
+  pct: number;
+  startedAt: number | null;
+  completedAt: number | null;
+  types: AdvisorProgress[];
 }
 
 export interface AdvisorSettings {
   sourcePath: string;
   configured: boolean;
-  pruneThresholdPct: number;
-  regressionThresholdPp: number;
-  compileCommand: string;
-  testCommand: string;
 }
 
-export interface FrameDelta {
-  frame: string;
-  baselineSelfPct: number;
-  currentSelfPct: number;
-  deltaPp: number;
-  isNew: boolean;
+/** One step in a stored run result — the durable counterpart of {@link AdvisorStepProgress}. */
+export interface AdvisorStepResult {
+  step: string;
+  status: string;
+  durationMs: number | null;
 }
 
-export interface RegressionComparison {
+/** One event type's outcome in a stored run result. */
+export interface AdvisorTypeResult {
   eventType: string;
-  thresholdPp: number;
-  regressed: FrameDelta[];
-  improved: FrameDelta[];
-  promptFragment: string;
+  status: string;
+  totalMs: number;
+  steps: AdvisorStepResult[];
 }
 
-export interface FleetOccurrence {
-  profileId: string;
-  profileName: string | null;
-  workspaceId: string | null;
-  projectId: string;
-  eventType: string;
-  title: string;
-  sourcePath: string | null;
-  selfPct: number;
-}
-
-export interface FleetPattern {
-  citedFrame: string;
-  projectCount: number;
-  occurrenceCount: number;
-  peakSelfPct: number;
-  occurrences: FleetOccurrence[];
-}
-
-export interface FleetPatterns {
-  patterns: FleetPattern[];
-  analyzedProjectCount: number;
+/**
+ * The durable timeline of the last batch run, kept so the Overview page re-renders the phased, timed
+ * processing view after a reload. Null from the endpoint when the Advisor has never run.
+ */
+export interface AdvisorRunResult {
+  totalElapsedMs: number;
+  completedTypes: number;
+  totalTypes: number;
+  /** ISO-8601 timestamp (serialised from java.time.Instant). */
+  completedAt: string;
+  types: AdvisorTypeResult[];
 }

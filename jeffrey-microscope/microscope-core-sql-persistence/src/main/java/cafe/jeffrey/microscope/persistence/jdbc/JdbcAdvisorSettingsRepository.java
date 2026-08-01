@@ -32,32 +32,21 @@ import java.util.Optional;
 
 public class JdbcAdvisorSettingsRepository implements AdvisorSettingsRepository {
 
-    private static final String PARAM_WORKSPACE_ID = "workspace_id";
-    private static final String PARAM_PROJECT_ID = "project_id";
+    private static final String PARAM_PROFILE_ID = "profile_id";
 
-    // DuckDB has no NULL-safe equality operator in ON CONFLICT targets, and a Quick Analysis profile
-    // has no workspace, so the lookup compares with IS NOT DISTINCT FROM rather than '='.
     //language=SQL
     private static final String FIND = """
-            SELECT workspace_id, project_id, source_path, prune_threshold_pct, regression_threshold_pp,
-                   compile_command, test_command, modified_at
-            FROM project_advisor_settings
-            WHERE workspace_id IS NOT DISTINCT FROM :workspace_id
-              AND project_id IS NOT DISTINCT FROM :project_id""";
+            SELECT profile_id, source_path, modified_at
+            FROM profile_advisor_settings
+            WHERE profile_id = :profile_id""";
 
     //language=SQL
-    private static final String DELETE = """
-            DELETE FROM project_advisor_settings
-            WHERE workspace_id IS NOT DISTINCT FROM :workspace_id
-              AND project_id IS NOT DISTINCT FROM :project_id""";
-
-    //language=SQL
-    private static final String INSERT = """
-            INSERT INTO project_advisor_settings (workspace_id, project_id, source_path, prune_threshold_pct,
-                                                  regression_threshold_pp, compile_command, test_command,
-                                                  modified_at)
-            VALUES (:workspace_id, :project_id, :source_path, :prune_threshold_pct,
-                    :regression_threshold_pp, :compile_command, :test_command, :modified_at)""";
+    private static final String UPSERT = """
+            INSERT INTO profile_advisor_settings (profile_id, source_path, modified_at)
+            VALUES (:profile_id, :source_path, :modified_at)
+            ON CONFLICT (profile_id) DO UPDATE SET
+                source_path = EXCLUDED.source_path,
+                modified_at = EXCLUDED.modified_at""";
 
     private final DatabaseClient databaseClient;
 
@@ -66,48 +55,27 @@ public class JdbcAdvisorSettingsRepository implements AdvisorSettingsRepository 
     }
 
     @Override
-    public Optional<AdvisorSettingsRow> find(String workspaceId, String projectId) {
+    public Optional<AdvisorSettingsRow> find(String profileId) {
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue(PARAM_WORKSPACE_ID, workspaceId)
-                .addValue(PARAM_PROJECT_ID, projectId);
+                .addValue(PARAM_PROFILE_ID, profileId);
 
         return databaseClient.querySingle(StatementLabel.FIND_ADVISOR_SETTINGS, FIND, params, mapper());
     }
 
-    /**
-     * Delete-then-insert rather than {@code ON CONFLICT}: the unique key includes a nullable column, and
-     * DuckDB will not match a conflict target on NULLs, so an upsert would silently insert a duplicate
-     * row for every Quick Analysis save.
-     */
     @Override
     public void upsert(AdvisorSettingsRow settings) {
-        MapSqlParameterSource key = new MapSqlParameterSource()
-                .addValue(PARAM_WORKSPACE_ID, settings.workspaceId())
-                .addValue(PARAM_PROJECT_ID, settings.projectId());
-        databaseClient.delete(StatementLabel.UPSERT_ADVISOR_SETTINGS, DELETE, key);
-
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue(PARAM_WORKSPACE_ID, settings.workspaceId())
-                .addValue(PARAM_PROJECT_ID, settings.projectId())
+                .addValue(PARAM_PROFILE_ID, settings.profileId())
                 .addValue("source_path", settings.sourcePath())
-                .addValue("prune_threshold_pct", settings.pruneThresholdPct())
-                .addValue("regression_threshold_pp", settings.regressionThresholdPp())
-                .addValue("compile_command", settings.compileCommand())
-                .addValue("test_command", settings.testCommand())
                 .addValue("modified_at", Timestamp.from(settings.modifiedAt()));
 
-        databaseClient.insert(StatementLabel.UPSERT_ADVISOR_SETTINGS, INSERT, params);
+        databaseClient.insert(StatementLabel.UPSERT_ADVISOR_SETTINGS, UPSERT, params);
     }
 
     private static RowMapper<AdvisorSettingsRow> mapper() {
         return (rs, _) -> new AdvisorSettingsRow(
-                rs.getString(PARAM_WORKSPACE_ID),
-                rs.getString(PARAM_PROJECT_ID),
+                rs.getString(PARAM_PROFILE_ID),
                 rs.getString("source_path"),
-                rs.getDouble("prune_threshold_pct"),
-                rs.getDouble("regression_threshold_pp"),
-                rs.getString("compile_command"),
-                rs.getString("test_command"),
                 rs.getTimestamp("modified_at").toInstant());
     }
 }

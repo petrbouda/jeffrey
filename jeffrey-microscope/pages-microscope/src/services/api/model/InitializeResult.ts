@@ -6,7 +6,7 @@
  */
 
 import type HeapSummary from '@/services/api/model/HeapSummary';
-import type { SubPhaseTiming } from '@shared/services/api/model/PipelineRun';
+import type { SubPhaseTiming } from '@/services/api/model/InitPipelineResult';
 
 /**
  * Response for POST /heap/initialize. `subPhases` carries the per-phase

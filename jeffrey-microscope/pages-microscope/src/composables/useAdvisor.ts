@@ -18,41 +18,26 @@
 
 import { computed, onUnmounted, ref } from 'vue';
 import AdvisorClient from '@/services/api/AdvisorClient';
-import { ADVISOR_PHASES } from '@/views/profiles/detail/advisor/advisorPipeline';
 import type {
   AdvisorEventType,
   AdvisorRecommendation,
-  AdvisorSettings
+  AdvisorRunResult,
+  AdvisorSettings,
+  BatchAdvisorProgress
 } from '@/services/api/model/Advisor';
-import type { TimelineStep } from '@shared/components/StageTimeline.vue';
-import type {
-  PipelineProgress,
-  PipelineRunResult,
-  StageProgress
-} from '@shared/services/api/model/PipelineRun';
 import ToastService from '@shared/services/ToastService';
 
-const POLL_INTERVAL_MS = 750;
-
-/** How often the in-progress stage timer redraws. */
+const POLL_INTERVAL_MS = 2000;
 const TICK_INTERVAL_MS = 250;
 
 /**
- * Consecutive idle polls tolerated before treating a run as lost. A backend restart drops the run from
- * memory, and without this the page would poll a run that no longer exists for as long as it stayed open.
- */
-const MAX_IDLE_POLLS = 5;
-
-const STAGE_IDS: string[] = ADVISOR_PHASES.flatMap(phase => phase.stages.map(stage => stage.id));
-
-/**
- * Drives one profile's Advisor pages: what can be analyzed, what has been analyzed, and where a run in
- * flight has got to.
+ * Drives one profile's Advisor page: what can be analyzed, what has been analyzed, and the state of a
+ * batch run in flight — one launch that processes every event type at once.
  *
- * <p>A run is watched by polling rather than a stream, the same way heap-dump initialization is. The
- * trade is deliberate: the run reports a handful of coarse stages over several minutes, so polling shows
- * everything a stream would, without a connection to keep alive through a sleeping laptop or a proxy
- * timeout.</p>
+ * <p>The run is watched by polling rather than a stream, matching how heap-dump initialization is
+ * followed. The trade is deliberate: the run reports a handful of coarse stages per type over several
+ * minutes, so a two-second poll shows everything a stream would, without a connection to keep alive
+ * through a sleeping laptop or a proxy timeout.</p>
  */
 export function useAdvisor(profileId: string) {
   const client = new AdvisorClient(profileId);
@@ -62,17 +47,29 @@ export function useAdvisor(profileId: string) {
   const eventTypes = ref<AdvisorEventType[]>([]);
   const recommendations = ref<AdvisorRecommendation[]>([]);
   const settings = ref<AdvisorSettings | null>(null);
-  const progress = ref<PipelineProgress | null>(null);
-  const storedRuns = ref<PipelineRunResult[]>([]);
-  const steps = ref<TimelineStep[]>(freshSteps());
+  const batch = ref<BatchAdvisorProgress | null>(null);
+  const runResult = ref<AdvisorRunResult | null>(null);
+  const stages = ref<string[]>([]);
   const selectedEventType = ref<string | null>(null);
-  const tickNow = ref(Date.now());
+  // Ticks while a run is in flight so the live step timers count up smoothly between polls.
+  const now = ref(Date.now());
+  // Wall-clock at the last poll, so an in-progress step's start can be back-dated from its elapsed time
+  // and the timer then advances with `now` between polls instead of snapping back each poll.
+  const lastSyncAt = ref(Date.now());
+
+  const syncBatch = (value: BatchAdvisorProgress): void => {
+    batch.value = value;
+    lastSyncAt.value = Date.now();
+  };
 
   let pollTimer: ReturnType<typeof setInterval> | null = null;
   let tickTimer: ReturnType<typeof setInterval> | null = null;
-  let idlePolls = 0;
 
-  const isRunning = computed(() => progress.value?.state === 'running');
+  const isRunning = computed(
+    () => batch.value?.status === 'QUEUED' || batch.value?.status === 'RUNNING'
+  );
+
+  const hasResults = computed(() => recommendations.value.length > 0);
 
   const selectedRecommendation = computed(() =>
     recommendations.value.find(item => item.eventType === selectedEventType.value)
@@ -80,16 +77,7 @@ export function useAdvisor(profileId: string) {
 
   const sourceConfigured = computed(() => settings.value?.configured === true);
 
-  /** The stored run for the selected profile group, so a reload still shows its stage timings. */
-  const selectedRun = computed(() =>
-    storedRuns.value.find(run => run.scopeId === selectedEventType.value)
-  );
-
-  function freshSteps(): TimelineStep[] {
-    return STAGE_IDS.map(id => ({ id, status: 'pending' }));
-  }
-
-  const stopTimers = (): void => {
+  const stopPolling = (): void => {
     if (pollTimer !== null) {
       clearInterval(pollTimer);
       pollTimer = null;
@@ -100,112 +88,71 @@ export function useAdvisor(profileId: string) {
     }
   };
 
-  const startTimers = (): void => {
-    stopTimers();
-    idlePolls = 0;
-    tickNow.value = Date.now();
-    tickTimer = setInterval(() => {
-      tickNow.value = Date.now();
-    }, TICK_INTERVAL_MS);
-    pollTimer = setInterval(refreshProgress, POLL_INTERVAL_MS);
-  };
-
-  /**
-   * Maps backend per-stage statuses onto the timeline steps. A stage that has just started is backdated
-   * by the backend-measured elapsed time, so a page opened mid-run resumes the stage timer instead of
-   * restarting it from zero.
-   */
-  const applyProgress = (latest: PipelineProgress): void => {
-    for (const stage of latest.stages) {
-      const step = steps.value.find(candidate => candidate.id === stage.id);
-      if (!step) {
-        continue;
-      }
-      applyStage(step, stage);
-    }
-  };
-
-  const applyStage = (step: TimelineStep, stage: StageProgress): void => {
-    if (stage.status === 'in_progress') {
-      if (step.status !== 'in_progress') {
-        step.status = 'in_progress';
-        step.startMs = Date.now() - (stage.elapsedMs ?? 0);
-      }
-      return;
-    }
-    if (stage.status === 'completed' || stage.status === 'skipped') {
-      step.status = stage.status;
-      step.durationMs = stage.durationMs ?? undefined;
-      step.subPhases = stage.subPhases ?? undefined;
-    }
-    // A failed stage stays visually pending; the error banner reports the failure.
+  const pickSelected = (): void => {
+    selectedEventType.value =
+      recommendations.value[0]?.eventType ??
+      selectedEventType.value ??
+      eventTypes.value[0]?.eventType ??
+      null;
   };
 
   const refreshProgress = async (): Promise<void> => {
     try {
-      const latest = await client.progress();
+      const latest = await client.runProgress();
+      syncBatch(latest);
 
-      if (latest.state === 'idle') {
-        // The backend forgot the run — almost always a restart. Give it a few polls in case the run
-        // simply has not registered yet, then stop rather than polling a ghost forever.
-        idlePolls += 1;
-        if (idlePolls >= MAX_IDLE_POLLS) {
-          stopTimers();
-          progress.value = latest;
-        }
-        return;
-      }
-
-      idlePolls = 0;
-      progress.value = latest;
-      applyProgress(latest);
-
-      if (latest.state === 'completed') {
-        stopTimers();
-        // The run stores its artifacts in the profile database, so the result arrives by re-reading
-        // them rather than by being carried on the progress snapshot.
-        [recommendations.value, storedRuns.value] = await Promise.all([
+      if (latest.status === 'COMPLETED') {
+        stopPolling();
+        // Each type stores its artifacts in the profile database, so results arrive by re-reading them
+        // rather than by being carried on the progress snapshot. The stored timeline is fetched too, so
+        // the Overview keeps showing the phased, timed run after it finishes.
+        [recommendations.value, runResult.value] = await Promise.all([
           client.recommendations(),
-          client.runs()
+          client.runResult()
         ]);
+        pickSelected();
         ToastService.success('Advisor', 'Recommendations are ready');
-      } else if (latest.state === 'failed') {
-        stopTimers();
-        storedRuns.value = await client.runs();
-        ToastService.error('Advisor', latest.errorMessage ?? 'The advisor run failed');
+      } else if (latest.status === 'FAILED') {
+        stopPolling();
+        ToastService.error('Advisor', 'The advisor run failed for every event type');
       }
     } catch {
       // A failed poll is not a failed run: keep polling and let the next tick settle it.
     }
   };
 
+  const startPolling = (): void => {
+    stopPolling();
+    pollTimer = setInterval(refreshProgress, POLL_INTERVAL_MS);
+    tickTimer = setInterval(() => {
+      now.value = Date.now();
+    }, TICK_INTERVAL_MS);
+  };
+
   const load = async (): Promise<void> => {
     loading.value = true;
     error.value = null;
     try {
-      const [types, results, currentSettings, currentProgress, runs] = await Promise.all([
-        client.eventTypes(),
-        client.recommendations(),
-        client.settings(),
-        client.progress(),
-        client.runs()
-      ]);
+      const [types, results, currentSettings, currentBatch, stageOrder, storedResult] =
+        await Promise.all([
+          client.eventTypes(),
+          client.recommendations(),
+          client.settings(),
+          client.runProgress(),
+          client.stages(),
+          client.runResult()
+        ]);
 
       eventTypes.value = types;
       recommendations.value = results;
       settings.value = currentSettings;
-      progress.value = currentProgress;
-      storedRuns.value = runs;
+      syncBatch(currentBatch);
+      stages.value = stageOrder;
+      runResult.value = storedResult;
+      pickSelected();
 
-      // Prefer a profile group that already has a result, so a returning user lands on something to
-      // read rather than on an empty first tab.
-      selectedEventType.value =
-        results[0]?.eventType ?? currentProgress.scopeId ?? types[0]?.eventType ?? null;
-
-      steps.value = freshSteps();
-      applyProgress(currentProgress);
       if (isRunning.value) {
-        startTimers();
+        startPolling();
       }
     } catch (e: any) {
       error.value = e?.response?.data?.message ?? e?.message ?? 'Failed to load the Advisor';
@@ -214,21 +161,13 @@ export function useAdvisor(profileId: string) {
     }
   };
 
-  const generate = async (eventType: string): Promise<void> => {
+  const run = async (selectedTypes: string[] = []): Promise<void> => {
     try {
-      const response = await client.generate(eventType);
-      progress.value = response.progress;
-      selectedEventType.value = eventType;
-      steps.value = freshSteps();
-      if (!response.started) {
-        ToastService.info('Advisor', 'A run is already in progress for this profile');
-      }
-      startTimers();
+      runResult.value = null;
+      syncBatch(await client.run(selectedTypes));
+      startPolling();
     } catch (e: any) {
-      ToastService.error(
-        'Advisor',
-        e?.response?.data?.message ?? 'Could not start the advisor run'
-      );
+      ToastService.error('Advisor', e?.response?.data?.message ?? 'Could not start the advisor run');
     }
   };
 
@@ -241,7 +180,16 @@ export function useAdvisor(profileId: string) {
     }
   };
 
-  onUnmounted(stopTimers);
+  const saveSourceFolder = async (sourcePath: string): Promise<void> => {
+    try {
+      settings.value = await client.saveSettings({ sourcePath });
+      ToastService.success('Advisor', 'Source folder saved');
+    } catch (e: any) {
+      ToastService.error('Advisor', e?.response?.data?.message ?? 'Could not save the source folder');
+    }
+  };
+
+  onUnmounted(stopPolling);
 
   return {
     loading,
@@ -249,16 +197,19 @@ export function useAdvisor(profileId: string) {
     eventTypes,
     recommendations,
     settings,
-    progress,
-    steps,
-    tickNow,
+    batch,
+    stages,
     selectedEventType,
     selectedRecommendation,
-    selectedRun,
     sourceConfigured,
     isRunning,
+    hasResults,
+    runResult,
+    now,
+    lastSyncAt,
     load,
-    generate,
-    cancel
+    run,
+    cancel,
+    saveSourceFolder
   };
 }

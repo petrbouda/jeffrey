@@ -65,22 +65,20 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
 
     //language=SQL
     private static final String FIND_RECOMMENDATIONS = """
-            SELECT event_type, severity, recommendations, patch, verification, source_ref,
+            SELECT event_type, severity, recommendations, source_ref,
                    input_tokens, output_tokens, cost_usd, generated_at
             FROM advisor_recommendations
             ORDER BY event_type""";
 
     //language=SQL
     private static final String UPSERT_RECOMMENDATION = """
-            INSERT INTO advisor_recommendations (event_type, severity, recommendations, patch, verification,
+            INSERT INTO advisor_recommendations (event_type, severity, recommendations,
                                                  source_ref, input_tokens, output_tokens, cost_usd, generated_at)
-            VALUES (:event_type, :severity, :recommendations, :patch, :verification,
+            VALUES (:event_type, :severity, :recommendations,
                     :source_ref, :input_tokens, :output_tokens, :cost_usd, :generated_at)
             ON CONFLICT (event_type) DO UPDATE SET
                 severity = EXCLUDED.severity,
                 recommendations = EXCLUDED.recommendations,
-                patch = EXCLUDED.patch,
-                verification = EXCLUDED.verification,
                 source_ref = EXCLUDED.source_ref,
                 input_tokens = EXCLUDED.input_tokens,
                 output_tokens = EXCLUDED.output_tokens,
@@ -151,8 +149,6 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
                 .addValue(PARAM_EVENT_TYPE, recommendation.eventType())
                 .addValue("severity", recommendation.severity())
                 .addValue("recommendations", recommendation.recommendations())
-                .addValue("patch", recommendation.patch())
-                .addValue("verification", recommendation.verificationJson())
                 .addValue("source_ref", recommendation.sourceRef())
                 .addValue("input_tokens", recommendation.inputTokens())
                 .addValue("output_tokens", recommendation.outputTokens())
@@ -204,8 +200,6 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
                 rs.getString(PARAM_EVENT_TYPE),
                 rs.getString("severity"),
                 rs.getString("recommendations"),
-                rs.getString("patch"),
-                rs.getString("verification"),
                 rs.getString("source_ref"),
                 rs.getLong("input_tokens"),
                 rs.getLong("output_tokens"),

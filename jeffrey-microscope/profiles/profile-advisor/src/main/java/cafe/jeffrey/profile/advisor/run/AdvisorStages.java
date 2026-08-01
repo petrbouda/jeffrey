@@ -23,34 +23,23 @@ import cafe.jeffrey.profile.common.pipeline.PipelineDefinition;
 import java.util.List;
 
 /**
- * The Advisor pipeline: what a run does, in the order it does it.
+ * One event type's advisor run, expressed as a {@link PipelineDefinition} for the shared pipeline
+ * machinery.
  *
- * <p>Stage ids are opaque strings the frontend attaches labels to. {@code store} is a stage in its own
- * right rather than a tail-end of {@code verify} because writing the findings and the cross-profile
- * claim index is real work with a real duration, and a stage that is invisible is a stage nobody can
- * tell is slow.</p>
+ * <p>The stage ids are {@link AdvisorStatus#STEPS} by name rather than a second list of strings, and
+ * that is deliberate on both sides of the wire: the UI keys its step labels off the same names, so
+ * deriving them here means a step cannot be added to the enum and forgotten in the pipeline, or
+ * renamed in one place and silently unlabelled in the other.</p>
  */
 public final class AdvisorStages {
 
     public static final String PIPELINE_ID = "advisor";
 
-    /** Building the flamegraph prompt, or loading the cached one. */
-    public static final String PROMPT = "prompt";
+    public static final List<String> STAGE_IDS =
+            AdvisorStatus.STEPS.stream().map(AdvisorStatus::name).toList();
 
-    /** Validating the configured source folder and reading its commit. */
-    public static final String SOURCE = "source";
-
-    /** The model reading the source through the read-only tools. */
-    public static final String ANALYZE = "analyze";
-
-    /** Grounding the model's claims and checking the patch. */
-    public static final String VERIFY = "verify";
-
-    /** Writing the findings and the cross-profile claim index. */
-    public static final String STORE = "store";
-
-    public static final PipelineDefinition DEFINITION = new PipelineDefinition(
-            PIPELINE_ID, List.of(PROMPT, SOURCE, ANALYZE, VERIFY, STORE));
+    public static final PipelineDefinition DEFINITION =
+            new PipelineDefinition(PIPELINE_ID, STAGE_IDS);
 
     private AdvisorStages() {
     }

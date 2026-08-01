@@ -142,16 +142,13 @@ CREATE TABLE IF NOT EXISTS advisor_prompts
 --
 -- ADVISOR RECOMMENDATIONS TABLE
 -- One advisor result per sample event type. `severity` is computed by Jeffrey from the measured
--- profile, never graded by the model. `verification` holds the JSON ladder of patch checks
--- (applies/compiles/tests) established against the source tree the model read.
+-- profile, never graded by the model.
 --
 CREATE TABLE IF NOT EXISTS advisor_recommendations
 (
     event_type      VARCHAR     NOT NULL PRIMARY KEY,
     severity        VARCHAR     NOT NULL DEFAULT 'LOW',
     recommendations VARCHAR     NOT NULL,
-    patch           VARCHAR,
-    verification    VARCHAR,
     source_ref      VARCHAR,
     input_tokens    BIGINT      NOT NULL DEFAULT 0,
     output_tokens   BIGINT      NOT NULL DEFAULT 0,
@@ -162,10 +159,10 @@ CREATE TABLE IF NOT EXISTS advisor_recommendations
 --
 -- ADVISOR CLAIMS TABLE
 -- One row per citation a recommendation rests on, after it has been checked against the measured
--- call tree and the source tree. Stored structurally rather than left inside the markdown because
--- these are the facts the fleet rollup groups by — a free-text report cannot be aggregated, a frame
--- can. `grounded` is false when the cited frame does not appear in the profile at all; such a claim
--- is shown to the user, clearly marked, and excluded from severity.
+-- call tree and the source tree. Stored structurally rather than left inside the markdown because a
+-- free-text report cannot be aggregated, a frame can. `grounded` is false when the cited frame does
+-- not appear in the profile at all; such a claim is shown to the user, clearly marked, and excluded
+-- from severity.
 --
 CREATE TABLE IF NOT EXISTS advisor_claims
 (
@@ -182,15 +179,16 @@ CREATE TABLE IF NOT EXISTS advisor_claims
 
 --
 -- PIPELINE RUNS TABLE
--- The terminal snapshot of one staged background run — heap-dump initialization, an Advisor
--- generation, or any future pipeline. Live progress is deliberately NOT here: it lives in memory and
--- dies with the process, because so does the work it describes. What a user needs after the fact is
--- the last completed run, which is what this stores.
+-- The terminal snapshot of one staged background run — heap-dump initialization, one event type of an
+-- Advisor batch, or any future pipeline. Live progress is deliberately NOT here: it lives in memory and
+-- dies with the process, because so does the work it describes. What a user needs after the fact is the
+-- last completed run, which is what this stores, and it is what re-renders the kept timeline on return.
 --
 -- `stages` is a JSON array rather than a table of its own because it is written and read as a whole and
 -- rendered as a whole; a row per stage would buy queries nobody asks and a join everybody pays for.
--- `scope_id` is '' rather than NULL for pipelines that run once per profile, so the primary key works
--- without NULL-comparison rules.
+-- `scope_id` is '' rather than NULL for pipelines that run once per profile (the heap dump), and the
+-- event type for the Advisor, whose batch stores one row per type — so the primary key works without
+-- NULL-comparison rules and a batch is simply every row of its pipeline.
 --
 CREATE TABLE IF NOT EXISTS pipeline_runs
 (

@@ -23,11 +23,9 @@ import java.util.List;
 
 /**
  * Splits the model's single response into the artifacts the UI shows separately: the claims each
- * recommendation rests on, the recommendations markdown and the applicable patch. The model is
- * instructed (see {@link AdvisorPrompts}) to emit sections separated by the
- * {@link #CLAIMS_MARKER}, {@link #RECOMMENDATIONS_MARKER} and {@link #PATCH_MARKER} marker lines; this
- * parser is tolerant of a missing claims section, a missing patch section, a code-fenced patch, and an
- * explicit {@link #NO_PATCH_SENTINEL}.
+ * recommendation rests on and the recommendations markdown. The model is instructed (see
+ * {@link AdvisorPrompts}) to emit sections separated by the {@link #CLAIMS_MARKER} and
+ * {@link #RECOMMENDATIONS_MARKER} marker lines; this parser is tolerant of a missing claims section.
  *
  * <p>There is deliberately no severity section any more. Severity is computed from the measured profile
  * by {@link SeverityCalculator}, so this parser has nothing to guess at and no reason to fall back to a
@@ -37,10 +35,7 @@ final class AdvisorOutputParser {
 
     static final String CLAIMS_MARKER = "===CLAIMS===";
     static final String RECOMMENDATIONS_MARKER = "===RECOMMENDATIONS===";
-    static final String PATCH_MARKER = "===PATCH===";
-    static final String NO_PATCH_SENTINEL = "(no patch)";
 
-    private static final String FENCE = "```";
     private static final String CLAIM_FIELD_SEPARATOR = "\\|";
     private static final int CLAIM_FIELD_FRAME = 0;
     private static final int CLAIM_FIELD_SOURCE = 1;
@@ -52,7 +47,7 @@ final class AdvisorOutputParser {
     /**
      * The raw sections of a model response, before any of them have been checked against evidence.
      */
-    record ParsedOutput(List<AdvisorClaim> claims, String recommendations, String patch) {
+    record ParsedOutput(List<AdvisorClaim> claims, String recommendations) {
 
         ParsedOutput {
             claims = claims == null ? List.of() : List.copyOf(claims);
@@ -61,21 +56,13 @@ final class AdvisorOutputParser {
 
     static ParsedOutput parse(String raw) {
         if (raw == null || raw.isBlank()) {
-            return new ParsedOutput(List.of(), "", null);
+            return new ParsedOutput(List.of(), "");
         }
 
         List<AdvisorClaim> claims = parseClaims(raw);
         String afterClaims = stripThrough(raw, CLAIMS_MARKER);
-
-        int patchMarker = afterClaims.indexOf(PATCH_MARKER);
-        if (patchMarker < 0) {
-            // No patch section emitted — treat the rest of the response as recommendations.
-            return new ParsedOutput(claims, stripThrough(afterClaims, RECOMMENDATIONS_MARKER).strip(), null);
-        }
-
-        String recommendations = stripThrough(afterClaims.substring(0, patchMarker), RECOMMENDATIONS_MARKER).strip();
-        String patch = normalizePatch(afterClaims.substring(patchMarker + PATCH_MARKER.length()));
-        return new ParsedOutput(claims, recommendations, patch);
+        String recommendations = stripThrough(afterClaims, RECOMMENDATIONS_MARKER).strip();
+        return new ParsedOutput(claims, recommendations);
     }
 
     /**
@@ -124,35 +111,5 @@ final class AdvisorOutputParser {
             return text;
         }
         return text.substring(index + marker.length());
-    }
-
-    private static String normalizePatch(String rawPatch) {
-        String patch = stripCodeFence(rawPatch.strip());
-        if (patch.isBlank() || patch.equalsIgnoreCase(NO_PATCH_SENTINEL)) {
-            return null;
-        }
-        // The model often miscounts hunk headers and drops the trailing newline; repair both so the
-        // stored/downloaded patch actually applies with `git apply`.
-        return UnifiedDiffNormalizer.normalize(patch);
-    }
-
-    /**
-     * Removes a single wrapping code fence (```diff … ```), which the model sometimes adds around the
-     * patch even though it is asked for a bare diff.
-     */
-    private static String stripCodeFence(String text) {
-        if (!text.startsWith(FENCE)) {
-            return text;
-        }
-        int firstNewline = text.indexOf('\n');
-        if (firstNewline < 0) {
-            return text;
-        }
-        String withoutOpeningFence = text.substring(firstNewline + 1);
-        int closingFence = withoutOpeningFence.lastIndexOf(FENCE);
-        if (closingFence < 0) {
-            return withoutOpeningFence.strip();
-        }
-        return withoutOpeningFence.substring(0, closingFence).strip();
     }
 }

@@ -39,7 +39,6 @@ public class JdbcMicroscopeCoreRepositories implements MicroscopeCoreRepositorie
     private final DatabaseClient profilesDatabaseClient;
     private final RecordingTagsRepository recordingTagsRepository;
     private final AdvisorSettingsRepository advisorSettingsRepository;
-    private final AdvisorClaimIndexRepository advisorClaimIndexRepository;
     private final Clock clock;
 
     public JdbcMicroscopeCoreRepositories(DatabaseClientProvider databaseClientProvider, Clock clock) {
@@ -47,7 +46,6 @@ public class JdbcMicroscopeCoreRepositories implements MicroscopeCoreRepositorie
         this.profilesDatabaseClient = databaseClientProvider.provide(GroupLabel.PROFILES);
         this.recordingTagsRepository = new JdbcRecordingTagsRepository(databaseClientProvider);
         this.advisorSettingsRepository = new JdbcAdvisorSettingsRepository(databaseClientProvider);
-        this.advisorClaimIndexRepository = new JdbcAdvisorClaimIndexRepository(databaseClientProvider);
         this.clock = clock;
     }
 
@@ -69,11 +67,6 @@ public class JdbcMicroscopeCoreRepositories implements MicroscopeCoreRepositorie
     @Override
     public AdvisorSettingsRepository advisorSettingsRepository() {
         return advisorSettingsRepository;
-    }
-
-    @Override
-    public AdvisorClaimIndexRepository advisorClaimIndexRepository() {
-        return advisorClaimIndexRepository;
     }
 
     @Override

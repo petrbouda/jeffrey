@@ -38,6 +38,4 @@ public interface MicroscopeCoreRepositories {
 
     AdvisorSettingsRepository advisorSettingsRepository();
 
-    AdvisorClaimIndexRepository advisorClaimIndexRepository();
-
 }

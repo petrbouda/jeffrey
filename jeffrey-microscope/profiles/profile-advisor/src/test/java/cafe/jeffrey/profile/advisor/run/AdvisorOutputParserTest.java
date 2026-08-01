@@ -33,70 +33,40 @@ class AdvisorOutputParserTest {
     class Sections {
 
         @Test
-        void splitsRecommendationsAndPatch() {
+        void extractsRecommendationsAfterTheMarker() {
             String raw = """
                     ===RECOMMENDATIONS===
                     ## Summary
                     The hot path is in Order.recompute().
-
-                    ===PATCH===
-                    diff --git a/Order.java b/Order.java
-                    --- a/Order.java
-                    +++ b/Order.java
-                    @@ -1 +1 @@
-                    -slow
-                    +fast
                     """;
 
             ParsedOutput output = AdvisorOutputParser.parse(raw);
 
             assertTrue(output.recommendations().contains("## Summary"));
-            assertFalse(output.recommendations().contains("diff --git"), "diff must not leak into recommendations");
-            assertTrue(output.patch().startsWith("diff --git a/Order.java"));
-            assertTrue(output.patch().contains("+fast"));
+            assertTrue(output.recommendations().contains("Order.recompute()"));
         }
 
         @Test
-        void treatsNoPatchSentinelAsNoPatch() {
+        void keepsClaimsOutOfTheRecommendations() {
             String raw = """
+                    ===CLAIMS===
+                    Order.recompute | Order.java | Recompute per row
                     ===RECOMMENDATIONS===
-                    Nothing concrete to change.
-                    ===PATCH===
-                    (no patch)
+                    Real prose only.
                     """;
 
             ParsedOutput output = AdvisorOutputParser.parse(raw);
 
-            assertEquals("Nothing concrete to change.", output.recommendations());
-            assertNull(output.patch());
+            assertEquals("Real prose only.", output.recommendations());
         }
 
         @Test
-        void stripsCodeFenceAroundPatch() {
-            String raw = """
-                    ===RECOMMENDATIONS===
-                    Some advice.
-                    ===PATCH===
-                    ```diff
-                    diff --git a/A.java b/A.java
-                    +x
-                    ```
-                    """;
+        void missingRecommendationsMarkerKeepsEverythingAsRecommendations() {
+            String raw = "Just prose, no marker.";
 
             ParsedOutput output = AdvisorOutputParser.parse(raw);
 
-            assertTrue(output.patch().startsWith("diff --git a/A.java"), output.patch());
-            assertFalse(output.patch().contains("```"), "code fence must be stripped");
-        }
-
-        @Test
-        void missingPatchMarkerKeepsEverythingAsRecommendations() {
-            String raw = "===RECOMMENDATIONS===\nJust prose, no patch section.";
-
-            ParsedOutput output = AdvisorOutputParser.parse(raw);
-
-            assertEquals("Just prose, no patch section.", output.recommendations());
-            assertNull(output.patch());
+            assertEquals("Just prose, no marker.", output.recommendations());
         }
 
         @Test
@@ -104,7 +74,6 @@ class AdvisorOutputParserTest {
             ParsedOutput output = AdvisorOutputParser.parse("   ");
 
             assertEquals("", output.recommendations());
-            assertNull(output.patch());
             assertTrue(output.claims().isEmpty());
         }
     }

@@ -643,36 +643,19 @@ const toolsRoutes = [
   }
 ];
 
-// AI advisor: grounded recommendations, patch verification, regression and fleet rollup
+// AI advisor: the run overview (phased, timed processing, with the source folder set inline) lands
+// first, then the findings on its own page.
 const advisorRoutes = [
   {
     path: 'advisor',
     name: 'profile-advisor',
+    component: () => import('@/views/profiles/detail/advisor/AdvisorRunOverview.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'advisor/findings',
+    name: 'profile-advisor-findings',
     component: () => import('@/views/profiles/detail/advisor/AdvisorFindings.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'advisor/patch',
-    name: 'profile-advisor-patch',
-    component: () => import('@/views/profiles/detail/advisor/AdvisorPatch.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'advisor/regression',
-    name: 'profile-advisor-regression',
-    component: () => import('@/views/profiles/detail/advisor/AdvisorRegression.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'advisor/fleet',
-    name: 'profile-advisor-fleet',
-    component: () => import('@/views/profiles/detail/advisor/AdvisorFleet.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'advisor/settings',
-    name: 'profile-advisor-settings',
-    component: () => import('@/views/profiles/detail/advisor/AdvisorSettings.vue'),
     meta: { layout: 'profile' }
   }
 ];

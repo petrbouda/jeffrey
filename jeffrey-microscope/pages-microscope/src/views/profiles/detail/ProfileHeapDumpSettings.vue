@@ -283,13 +283,7 @@
       </div>
 
       <!-- Live processing progress -->
-      <StageTimeline
-        v-if="processing"
-        :phases="HEAP_DUMP_PHASES"
-        :steps="processingSteps"
-        :tick-now="tickNow"
-        subtitle="Please wait while we analyze the heap structure..."
-      />
+      <HeapDumpInitTimeline v-if="processing" :steps="processingSteps" :tick-now="tickNow" />
 
       <!-- Success State with Management Actions -->
       <div v-if="cacheReady && lastSummary" class="ready-section">
@@ -323,8 +317,7 @@
       </div>
 
       <!-- Persisted Initialization Result -->
-      <StageTimeline
-        :phases="HEAP_DUMP_PHASES"
+      <HeapDumpInitTimeline
         v-if="!processing && lastInitResult"
         class="last-init-result"
         :steps="lastInitResultSteps"
@@ -347,14 +340,11 @@ import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import HeapDumpClient from '@/services/api/HeapDumpClient';
-import StageTimeline, { type TimelineStep } from '@shared/components/StageTimeline.vue';
-import { HEAP_DUMP_PHASES } from '@/views/profiles/detail/heapdump/heapDumpPipeline';
+import HeapDumpInitTimeline, { type TimelineStep } from '@/components/HeapDumpInitTimeline.vue';
 import HeapSummary from '@/services/api/model/HeapSummary';
 import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
-import type {
-  PipelineProgress,
-  PipelineRunResult
-} from '@shared/services/api/model/PipelineRun';
+import type InitPipelineResult from '@/services/api/model/InitPipelineResult';
+import type HeapDumpInitProgress from '@/services/api/model/HeapDumpInitProgress';
 import FormattingService from '@shared/services/FormattingService';
 import { ToastService } from '@shared/services/ToastService';
 import MessageBus from '@/services/MessageBus';
@@ -382,7 +372,7 @@ const sanitizing = ref(false);
 // Compressed oops choice: 'auto' | 'enabled' | 'disabled'
 const compressedOopsChoice = ref<string>('auto');
 
-// Pipeline stage tracking — see heapDumpPipeline.ts for the phase grouping and labels.
+// Pipeline stage tracking — see HeapDumpInitTimeline.vue for layout / labels.
 interface ProcessingStep extends TimelineStep {
   /** Frontend ordering keys; the timeline component owns rendering. */
 }
@@ -438,7 +428,7 @@ const stopTick = () => {
 
 // Persisted "last run" snapshot — populated on mount and right after a
 // successful processHeapDump completion. Cleared by clearCache.
-const lastInitResult = ref<PipelineRunResult | null>(null);
+const lastInitResult = ref<InitPipelineResult | null>(null);
 
 const lastInitResultSteps = computed<TimelineStep[]>(() => {
   if (!lastInitResult.value) return [];
@@ -514,7 +504,7 @@ const POLL_INTERVAL_MS = 750;
 const MAX_IDLE_POLLS = 5;
 
 /** Maps backend per-stage statuses onto the live timeline steps. */
-const applyProgress = (progress: PipelineProgress) => {
+const applyProgress = (progress: HeapDumpInitProgress) => {
   for (const stage of progress.stages) {
     const step = findStep(stage.id);
     if (!step) {

@@ -20,8 +20,6 @@ package cafe.jeffrey.profile.advisor.run;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.persistence.api.AdvisorClaimIndexRepository;
-import cafe.jeffrey.microscope.persistence.api.AdvisorClaimIndexRow;
 import cafe.jeffrey.profile.advisor.mcp.SourceToolsRegistry;
 import cafe.jeffrey.profile.advisor.prompt.AdvisorPrompt;
 import cafe.jeffrey.profile.advisor.prompt.AdvisorPromptManager;
@@ -30,9 +28,6 @@ import cafe.jeffrey.profile.advisor.settings.AdvisorSettings;
 import cafe.jeffrey.profile.advisor.source.SourceAnalysisTools;
 import cafe.jeffrey.profile.advisor.source.SourceTree;
 import cafe.jeffrey.profile.advisor.source.SourceTreeResolver;
-import cafe.jeffrey.profile.advisor.verify.PatchVerification;
-import cafe.jeffrey.profile.advisor.verify.PatchVerifier;
-import cafe.jeffrey.profile.common.pipeline.PipelineRun;
 import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.chat.McpToolsetFactory;
 import cafe.jeffrey.profile.ai.chat.ToolBinding;
@@ -42,7 +37,6 @@ import cafe.jeffrey.provider.profile.api.AdvisorClaimRow;
 import cafe.jeffrey.provider.profile.api.AdvisorRecommendationRow;
 import cafe.jeffrey.provider.profile.api.ProfileAdvisorRepository;
 import cafe.jeffrey.shared.common.IDGenerator;
-import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.Severity;
 
@@ -51,17 +45,16 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Produces grounded, verified recommendations for one profile.
+ * Produces grounded recommendations for one profile.
  *
  * <p>The shape is the standalone analyst's, with the clone replaced by a folder the user already has:
  * resolve the cached prompt, point the read-only tools at the source tree, let the model explore it the
- * way an agentic code assistant would, then check everything it said before storing any of it.</p>
+ * way an agentic code assistant would, then ground everything it said before storing any of it.</p>
  *
- * <p>The ordering of that checking is deliberate. Cited frames are resolved against the measured call
- * tree, cited paths against the working tree, and the patch against {@code git apply} — all before
- * severity is computed, so severity can be derived from what survived. A claim the model invented
- * therefore cannot raise a profile's priority, which is the difference between a ranking you can act on
- * and a ranking that rewards confident writing.</p>
+ * <p>The ordering is deliberate. Cited frames are resolved against the measured call tree and cited
+ * paths against the working tree before severity is computed, so severity can be derived from what
+ * survived. A claim the model invented therefore cannot raise a profile's priority, which is the
+ * difference between a ranking you can act on and a ranking that rewards confident writing.</p>
  */
 public class AdvisorService {
 
@@ -76,8 +69,6 @@ public class AdvisorService {
     private final SourceToolsRegistry sourceToolsRegistry;
     private final McpToolsetFactory mcpToolsetFactory;
     private final ProfileAdvisorRepository advisorRepository;
-    private final AdvisorClaimIndexRepository claimIndexRepository;
-    private final PatchVerifier patchVerifier;
     private final String recordingId;
     private final Clock clock;
 
@@ -89,8 +80,6 @@ public class AdvisorService {
             SourceToolsRegistry sourceToolsRegistry,
             McpToolsetFactory mcpToolsetFactory,
             ProfileAdvisorRepository advisorRepository,
-            AdvisorClaimIndexRepository claimIndexRepository,
-            PatchVerifier patchVerifier,
             String recordingId,
             Clock clock) {
 
@@ -101,79 +90,44 @@ public class AdvisorService {
         this.sourceToolsRegistry = sourceToolsRegistry;
         this.mcpToolsetFactory = mcpToolsetFactory;
         this.advisorRepository = advisorRepository;
-        this.claimIndexRepository = claimIndexRepository;
-        this.patchVerifier = patchVerifier;
         this.recordingId = recordingId;
         this.clock = clock;
     }
 
     /**
-     * Runs the full pipeline for {@code target}, timing each stage on {@code run}, and stores what
-     * survived verification.
-     *
-     * <p>Each phase is a stage rather than a status flag, which is what lets the UI show where a
-     * five-minute run's time actually went. The interesting number is usually {@code analyze}, and
-     * before this it was invisible.</p>
+     * Runs the full pipeline for {@code target}, reporting each phase through {@code sink}, and stores
+     * what survived grounding.
      */
-    public AdvisorResult generate(AdvisorTarget target, PipelineRun run) {
+    public AdvisorResult generate(AdvisorTarget target, AdvisorProgressSink sink) {
         AdvisorPromptType promptType = AdvisorPromptType.byEventCode(target.eventType())
                 .orElseThrow(() -> Exceptions.invalidRequest(
                         "The Advisor does not analyze this event type: " + target.eventType()));
 
-        // Each stage assigns into a holder rather than returning, because runStage owns the timing and a
-        // stage that also produced the value would have to smuggle it out of the lambda anyway.
-        AdvisorRunContext context = new AdvisorRunContext();
+        sink.preparingPrompt();
+        AdvisorPrompt prompt = promptManager.resolve(promptType, settings.pruneThresholdPct());
 
-        run.runStage(AdvisorStages.PROMPT, () ->
-                context.prompt = promptManager.resolve(promptType, settings.pruneThresholdPct()));
+        sink.resolvingSource();
+        SourceTree sourceTree = sourceTreeResolver.resolve(settings.sourcePath(), recordingId);
 
-        run.runStage(AdvisorStages.SOURCE, () ->
-                context.sourceTree = sourceTreeResolver.resolve(settings.sourcePath(), recordingId));
+        sink.analyzing();
+        ToolCallResult raw = analyze(target, prompt, new SourceAnalysisTools(sourceTree.root()));
 
-        run.runStage(AdvisorStages.ANALYZE, () ->
-                context.raw = analyze(
-                        target, context.prompt, new SourceAnalysisTools(context.sourceTree.root())));
-
-        run.runStage(AdvisorStages.VERIFY, () -> context.result = verify(context));
-
-        run.runStage(AdvisorStages.STORE, () -> store(target, context.result, context.sourceTree));
-
-        AdvisorResult result = context.result;
-        LOG.info("Generated advisor recommendations: profile_id={} event_type={} severity={} claims={} "
-                        + "grounded={} has_patch={} patch_applies={}",
-                target.profileId(), target.eventType(), result.severity(), result.claims().size(),
-                result.groundedClaimCount(), result.hasPatch(), result.verification().applies());
-        return result;
-    }
-
-    /**
-     * Checks everything the model said before any of it is stored: cited frames against the measured
-     * call tree, cited paths against the working copy, the patch against {@code git apply}. Severity is
-     * computed last, from what survived, so an unverifiable claim cannot raise a profile's priority.
-     */
-    private AdvisorResult verify(AdvisorRunContext context) {
-        AdvisorOutputParser.ParsedOutput parsed = AdvisorOutputParser.parse(context.raw.text());
-
-        List<GroundedClaim> claims =
-                new ClaimGrounder(context.prompt.frameIndex(), context.sourceTree.root())
-                        .ground(parsed.claims());
+        sink.grounding();
+        AdvisorOutputParser.ParsedOutput parsed = AdvisorOutputParser.parse(raw.text());
+        List<GroundedClaim> claims = new ClaimGrounder(prompt.frameIndex(), sourceTree.root())
+                .ground(parsed.claims());
         Severity severity = SeverityCalculator.fromGroundedClaims(claims);
 
-        PatchVerification verification = patchVerifier.verify(
-                parsed.patch(), context.sourceTree.root(), context.sourceTree.resolvedRef());
+        AdvisorResult result = new AdvisorResult(
+                severity, parsed.recommendations(), claims, raw.usage());
 
-        return new AdvisorResult(
-                severity, parsed.recommendations(), parsed.patch(), claims, verification,
-                context.raw.usage());
-    }
+        store(target, result, sourceTree);
 
-    /** What one run accumulates as its stages complete. */
-    private static final class AdvisorRunContext {
-
-        private AdvisorPrompt prompt;
-        private SourceTree sourceTree;
-        private ToolCallResult raw;
-        private AdvisorResult result;
+        LOG.info("Generated advisor recommendations: profile_id={} event_type={} severity={} claims={} "
+                        + "grounded={}",
+                target.profileId(), target.eventType(), severity, claims.size(),
+                result.groundedClaimCount());
+        return result;
     }
 
     /**
@@ -209,8 +163,6 @@ public class AdvisorService {
                 target.eventType(),
                 result.severity().name(),
                 result.recommendations(),
-                result.patch(),
-                Json.toString(result.verification()),
                 sourceTree.resolvedRef(),
                 result.usage().inputTokens(),
                 result.usage().outputTokens(),
@@ -218,7 +170,6 @@ public class AdvisorService {
                 generatedAt));
 
         advisorRepository.replaceClaims(target.eventType(), toClaimRows(target, result, generatedAt));
-        indexGroundedClaims(target, result, generatedAt);
     }
 
     private static List<AdvisorClaimRow> toClaimRows(
@@ -239,41 +190,10 @@ public class AdvisorService {
     }
 
     /**
-     * Copies the grounded claims into the cross-profile index. Ungrounded ones are deliberately left
-     * behind: they belong on the profile that produced them, where the reader can see they were not
-     * substantiated, but counting them in a fleet rollup would let one invented frame look like a
-     * fleet-wide pattern. A profile with no project is skipped for the same reason — there is nothing
-     * to group it by.
-     */
-    private void indexGroundedClaims(AdvisorTarget target, AdvisorResult result, Instant generatedAt) {
-        if (!target.hasProject()) {
-            return;
-        }
-
-        List<AdvisorClaimIndexRow> rows = result.claims().stream()
-                .filter(GroundedClaim::grounded)
-                .map(claim -> new AdvisorClaimIndexRow(
-                        target.profileId(),
-                        target.profileName(),
-                        target.workspaceId(),
-                        target.projectId(),
-                        target.eventType(),
-                        claim.claim().title(),
-                        claim.frame().name(),
-                        claim.claim().sourcePath(),
-                        claim.frame().selfPct(),
-                        claim.frame().totalPct(),
-                        generatedAt))
-                .toList();
-
-        claimIndexRepository.replaceForProfile(target.profileId(), target.eventType(), rows);
-    }
-
-    /**
      * A grounded claim is stored under the frame's measured spelling, not the model's. The model may
      * have written {@code RateTable#lookup} for a frame the profile calls
-     * {@code com/acme/RateTable.lookup}; storing the measured name is what lets the fleet rollup group
-     * two projects that cited the same frame differently.
+     * {@code com/acme/RateTable.lookup}; storing the measured name keeps the claim aligned with the
+     * call tree the reader sees.
      */
     private static String citedFrameOf(GroundedClaim claim) {
         return claim.grounded() ? claim.frame().name() : claim.claim().citedFrame();

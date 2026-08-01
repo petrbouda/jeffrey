@@ -35,14 +35,11 @@ module cafe.jeffrey.microscope.profile.advisor {
     requires org.slf4j;
 
     exports cafe.jeffrey.profile.advisor.config;
-    exports cafe.jeffrey.profile.advisor.fleet;
     exports cafe.jeffrey.profile.advisor.mcp;
     exports cafe.jeffrey.profile.advisor.prompt;
-    exports cafe.jeffrey.profile.advisor.regression;
     exports cafe.jeffrey.profile.advisor.run;
     exports cafe.jeffrey.profile.advisor.settings;
     exports cafe.jeffrey.profile.advisor.source;
-    exports cafe.jeffrey.profile.advisor.verify;
 
     opens cafe.jeffrey.profile.advisor.config to spring.core, spring.beans, spring.context;
     // The source tools are reflected over by Spring AI's @Tool scanner and by ReflectiveToolset.

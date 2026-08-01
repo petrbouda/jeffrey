@@ -184,7 +184,7 @@ class SettingsApplicationListenerTest {
                     (SettingsPropertySource) environment.getPropertySources().get(SettingsPropertySource.NAME);
 
             assertTrue(source.containsProperty(MicroscopeSettingKeys.AI_PROVIDER));
-            assertEquals(12, source.getPropertyNames().length);
+            assertEquals(13, source.getPropertyNames().length);
         }
     }
 

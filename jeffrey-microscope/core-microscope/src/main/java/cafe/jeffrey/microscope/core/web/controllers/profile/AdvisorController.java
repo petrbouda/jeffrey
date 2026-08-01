@@ -30,15 +30,19 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.advisor.prompt.AdvisorPrompt;
 import cafe.jeffrey.profile.advisor.prompt.AdvisorPromptManagerFactory;
-import cafe.jeffrey.profile.advisor.prompt.AdvisorPromptType;
+import cafe.jeffrey.profile.advisor.run.AdvisorRunResult;
 import cafe.jeffrey.profile.advisor.run.AdvisorRunner;
-import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunResult;
+import cafe.jeffrey.profile.advisor.run.AdvisorStages;
+import cafe.jeffrey.profile.advisor.run.AdvisorStatus;
+import cafe.jeffrey.profile.advisor.run.AdvisorTarget;
+import cafe.jeffrey.profile.advisor.run.BatchAdvisorProgress;
 import cafe.jeffrey.profile.advisor.settings.AdvisorSettings;
 import cafe.jeffrey.profile.advisor.settings.AdvisorSettingsResolver;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunResult;
 import cafe.jeffrey.provider.profile.api.AdvisorClaimRow;
 import cafe.jeffrey.provider.profile.api.AdvisorRecommendationRow;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
+import cafe.jeffrey.provider.profile.api.PipelineRunRepository;
 import cafe.jeffrey.provider.profile.api.ProfileAdvisorRepository;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.shared.common.exception.Exceptions;
@@ -47,13 +51,13 @@ import cafe.jeffrey.shared.common.model.ProfileInfo;
 import java.util.List;
 
 /**
- * The profile Advisor: generate AI recommendations for a profile, poll the run, and read back what was
- * stored.
+ * The profile Advisor: launch a batch run over every event type, poll its per-type progress, and read
+ * back what was stored.
  *
- * <p>Generation is asynchronous and returns 202 rather than holding the request open, because a run
- * takes minutes. Progress is polled, following the heap-dump initialization pattern; the response
- * carries no result payload, since a completed run's artifacts are in the profile database and are read
- * from there by the same endpoint a fresh page load uses.</p>
+ * <p>A run is asynchronous and returns 202 rather than holding the request open, because it takes
+ * minutes. Progress is polled, following the heap-dump initialization pattern; the response carries no
+ * result payload, since a completed type's artifacts are in the profile database and are read from there
+ * by the same endpoint a fresh page load uses.</p>
  */
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}/advisor")
@@ -95,16 +99,12 @@ public class AdvisorController {
     }
 
     /**
-     * A stored recommendation with the claims behind it. {@code verification} stays a raw JSON string:
-     * the ladder is produced and consumed as a whole, and re-modelling it here would only add a mapping
-     * that must be kept in step with the verifier for no gain.
+     * A stored recommendation with the claims behind it.
      */
     public record RecommendationResponse(
             String eventType,
             String severity,
             String recommendations,
-            String patch,
-            String verification,
             String sourceRef,
             long inputTokens,
             long outputTokens,
@@ -113,14 +113,15 @@ public class AdvisorController {
             List<ClaimResponse> claims) {
     }
 
-    public record GenerateRequest(String eventType) {
-    }
-
     /**
-     * The outcome of asking for a run. {@code started} is false when one was already in flight, which is
-     * not an error — the caller simply watches the run that exists.
+     * Which event types to analyze. An empty or absent list means "every type this profile has" — the
+     * common case, since the run processes them all.
      */
-    public record GenerateResponse(boolean started, PipelineProgress progress) {
+    public record RunRequest(List<String> eventTypes) {
+
+        public RunRequest {
+            eventTypes = eventTypes == null ? List.of() : List.copyOf(eventTypes);
+        }
     }
 
     private final ProfileManagerResolver resolver;
@@ -188,40 +189,84 @@ public class AdvisorController {
                 .toList();
     }
 
-    @PostMapping("/generate")
-    public ResponseEntity<GenerateResponse> generate(
+    /**
+     * Launches a batch that analyzes every requested event type (or every available one when none are
+     * named). Returns 202 with the batch snapshot either way: the caller's next move is the same — poll
+     * the run — whether this request started it or found one already going.
+     */
+    @PostMapping("/run")
+    public ResponseEntity<BatchAdvisorProgress> run(
             @PathVariable("profileId") String profileId,
-            @RequestBody GenerateRequest request) {
-
-        if (request == null || request.eventType() == null || request.eventType().isBlank()) {
-            throw Exceptions.invalidRequest("An event type is required to generate recommendations.");
-        }
-        if (AdvisorPromptType.byEventCode(request.eventType()).isEmpty()) {
-            throw Exceptions.invalidRequest(
-                    "The Advisor does not analyze this event type: " + request.eventType());
-        }
+            @RequestBody(required = false) RunRequest request) {
 
         ProfileInfo profile = resolver.resolve(profileId).info();
-        boolean started = advisorRunner.start(profile, request.eventType());
+        List<AdvisorTarget> targets = resolveTargets(profile, request);
+        if (targets.isEmpty()) {
+            throw Exceptions.invalidRequest("This profile has no event types the Advisor can analyze.");
+        }
 
-        // 202 either way: the caller's next move is the same — poll the run — whether this request
-        // started it or found one already going.
-        return ResponseEntity.status(HttpStatus.ACCEPTED)
-                .body(new GenerateResponse(started, advisorRunner.progress(profileId)));
+        advisorRunner.startBatch(profile, targets);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(advisorRunner.batchProgress(profileId));
     }
 
-    @GetMapping("/progress")
-    public PipelineProgress progress(@PathVariable("profileId") String profileId) {
-        return advisorRunner.progress(profileId);
+    @GetMapping("/run/progress")
+    public BatchAdvisorProgress runProgress(@PathVariable("profileId") String profileId) {
+        return advisorRunner.batchProgress(profileId);
     }
 
     /**
-     * The stage timings of previous runs, one per event type. Read from the profile database rather
-     * than from the in-memory registry, so a page opened long after a run still shows what it did.
+     * The last batch run's stored timeline (per-type, per-step durations), or null when the Advisor has
+     * never run for this profile. This is what the Overview page re-renders as the kept, static timeline.
      */
-    @GetMapping("/runs")
-    public List<PipelineRunResult> runs(@PathVariable("profileId") String profileId) {
-        return advisorRunner.storedRuns(resolver.resolve(profileId).info());
+    @GetMapping("/run/result")
+    public AdvisorRunResult runResult(@PathVariable("profileId") String profileId) {
+        List<PipelineRunResult> runs = pipelineRunRepository(profileId).findAll(AdvisorStages.PIPELINE_ID);
+        return runs.isEmpty() ? null : AdvisorRunResult.from(runs);
+    }
+
+    @GetMapping("/run/result/exists")
+    public boolean runResultExists(@PathVariable("profileId") String profileId) {
+        return !pipelineRunRepository(profileId).findAll(AdvisorStages.PIPELINE_ID).isEmpty();
+    }
+
+    private ProfileAdvisorRepository advisorRepository(String profileId) {
+        ProfileInfo profile = resolver.resolve(profileId).info();
+        return persistenceProvider.repositories().newAdvisorRepository(databaseManagerResolver.open(profile));
+    }
+
+    private PipelineRunRepository pipelineRunRepository(String profileId) {
+        ProfileInfo profile = resolver.resolve(profileId).info();
+        return persistenceProvider.repositories()
+                .newPipelineRunRepository(databaseManagerResolver.open(profile));
+    }
+
+    /**
+     * The event types to run: the ones the profile can actually produce, narrowed to any explicitly
+     * requested. A requested code the profile does not have is dropped rather than rejected, so a stale
+     * selection cannot fail the whole run.
+     */
+    private List<AdvisorTarget> resolveTargets(ProfileInfo profile, RunRequest request) {
+        List<String> available = promptManagerFactory.apply(profile).availableTypes().stream()
+                .map(type -> type.primaryEventType().code())
+                .toList();
+
+        List<String> requested = request == null ? List.of() : request.eventTypes();
+        List<String> selected = requested.isEmpty()
+                ? available
+                : requested.stream().filter(available::contains).toList();
+
+        return selected.stream()
+                .map(code -> AdvisorTarget.of(profile, code))
+                .toList();
+    }
+
+    /**
+     * The stage sequence the UI renders as a timeline. Served from the backend so the two cannot drift:
+     * a stage added to the pipeline appears in the timeline without a frontend change.
+     */
+    @GetMapping("/stages")
+    public List<String> stages() {
+        return AdvisorStatus.ORDER.stream().map(Enum::name).toList();
     }
 
     @DeleteMapping("/run")
@@ -243,8 +288,6 @@ public class AdvisorController {
                 row.eventType(),
                 row.severity(),
                 row.recommendations(),
-                row.patch(),
-                row.verificationJson(),
                 row.sourceRef(),
                 row.inputTokens(),
                 row.outputTokens(),
