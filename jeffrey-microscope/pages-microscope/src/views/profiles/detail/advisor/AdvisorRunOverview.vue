@@ -17,6 +17,17 @@
   -->
 
 <template>
+  <ConfirmationDialog
+    v-model:show="clearResultsDialog"
+    title="Clear Advisor Results"
+    message="Are you sure you want to clear the Advisor results for this profile?"
+    sub-message="This removes every report, its claims, the kept run timeline and the cached profile summaries. Running the Advisor again costs a fresh AI analysis per event type. This action cannot be undone."
+    confirm-label="Clear"
+    confirm-button-id="clearAdvisorResultsButton"
+    modal-id="clearAdvisorResultsModal"
+    @confirm="clearResults"
+  />
+
   <LoadingState v-if="loading" message="Loading advisor..." />
 
   <ErrorState v-else-if="error" :message="error" />
@@ -58,6 +69,10 @@
         <button type="button" class="btn ghost" :disabled="!sourceConfigured" @click="run()">
           <i class="bi bi-arrow-repeat"></i>
           Re-run
+        </button>
+        <button type="button" class="btn ghost" @click="clearResultsDialog = true">
+          <i class="bi bi-trash"></i>
+          Clear results
         </button>
       </div>
       <ProcessingTimeline
@@ -134,6 +149,7 @@ import { useRoute } from 'vue-router';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
+import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import ProcessingTimeline from '@shared/components/ProcessingTimeline.vue';
 import FormattingService from '@shared/services/FormattingService';
@@ -171,8 +187,11 @@ const {
   load,
   run,
   cancel,
+  clearResults,
   saveSourceFolder
 } = useAdvisor(profileId);
+
+const clearResultsDialog = ref(false);
 
 const aiDisabled = computed(
   () => props.disabledFeatures?.includes(FeatureType.AI_ANALYSIS) === true

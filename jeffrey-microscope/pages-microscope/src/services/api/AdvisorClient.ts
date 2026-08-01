@@ -64,6 +64,14 @@ export default class AdvisorClient extends BaseProfileClient {
     return super.get<AdvisorRunResult | null>('/run/result');
   }
 
+  /**
+   * Throws away every derived artifact — reports, claims, cached prompts and the kept timeline — so the
+   * next run starts from nothing. Refused by the backend while a run is in flight.
+   */
+  deleteResults(): Promise<void> {
+    return super.post<void>('/delete-results', {});
+  }
+
   cancel(): Promise<void> {
     return super.delete<void>('/run');
   }

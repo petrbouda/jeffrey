@@ -128,6 +128,20 @@ onMounted(() => {
         the model through the markdown.
       </p>
 
+      <p>
+        <strong>Clear results</strong> on the Overview throws all of it away — every report, its claims,
+        the kept timeline, and the cached prompts — leaving the profile exactly as if the Advisor had
+        never run. It is the counterpart of the Heap Dump's <em>Clear Cache</em>, and the way to get rid
+        of a report generated against the wrong source folder, or of results for event types a later run
+        no longer covers. Because the cached prompts go too, the next run rebuilds each profile summary
+        from the call tree before it reaches the model.
+      </p>
+
+      <DocsCallout type="warning" title="Re-running costs a fresh analysis">
+        Clearing cannot be undone, and regenerating means one AI analysis per event type. A run already
+        in flight is not affected — clear it after the run finishes, or cancel first.
+      </DocsCallout>
+
       <h2 id="grounding">Grounding and Severity</h2>
 
       <p>

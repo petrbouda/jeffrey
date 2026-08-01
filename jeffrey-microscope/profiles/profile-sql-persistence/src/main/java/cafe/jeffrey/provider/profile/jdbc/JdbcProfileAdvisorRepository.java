@@ -103,6 +103,15 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
             VALUES (:event_type, :title, :cited_frame, :source_path, :grounded,
                     :source_found, :self_pct, :total_pct, :generated_at)""";
 
+    //language=SQL
+    private static final String DELETE_ALL_PROMPTS = "DELETE FROM advisor_prompts";
+
+    //language=SQL
+    private static final String DELETE_ALL_RECOMMENDATIONS = "DELETE FROM advisor_recommendations";
+
+    //language=SQL
+    private static final String DELETE_ALL_CLAIMS = "DELETE FROM advisor_claims";
+
     private final DatabaseClient databaseClient;
 
     public JdbcProfileAdvisorRepository(DatabaseClientProvider databaseClientProvider) {
@@ -183,6 +192,17 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
 
             databaseClient.insert(StatementLabel.INSERT_ADVISOR_CLAIM, INSERT_CLAIM, params);
         }
+    }
+
+    @Override
+    public void deleteAll() {
+        MapSqlParameterSource noParams = new MapSqlParameterSource();
+        databaseClient.delete(
+                StatementLabel.DELETE_ALL_ADVISOR_CLAIMS, DELETE_ALL_CLAIMS, noParams);
+        databaseClient.delete(
+                StatementLabel.DELETE_ALL_ADVISOR_RECOMMENDATIONS, DELETE_ALL_RECOMMENDATIONS, noParams);
+        databaseClient.delete(
+                StatementLabel.DELETE_ALL_ADVISOR_PROMPTS, DELETE_ALL_PROMPTS, noParams);
     }
 
     private static RowMapper<AdvisorPromptRow> promptMapper() {

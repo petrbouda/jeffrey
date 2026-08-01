@@ -50,4 +50,14 @@ public interface ProfileAdvisorRepository {
      * the same profile as if both were current.
      */
     void replaceClaims(String eventType, List<AdvisorClaimRow> claims);
+
+    /**
+     * Drops every derived artifact for this profile — prompts, recommendations and claims — so the next
+     * run starts from nothing.
+     *
+     * <p>One method rather than three deletes at the call site, because the three tables only make
+     * sense together: a recommendation without its claims is unverifiable, and a claim without its
+     * recommendation belongs to a report nobody can read.</p>
+     */
+    void deleteAll();
 }

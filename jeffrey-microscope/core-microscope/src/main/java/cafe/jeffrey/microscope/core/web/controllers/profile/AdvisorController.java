@@ -228,6 +228,27 @@ public class AdvisorController {
         return !pipelineRunRepository(profileId).findAll(AdvisorStages.PIPELINE_ID).isEmpty();
     }
 
+    /**
+     * Throws away everything the Advisor has derived for this profile — recommendations, claims, the
+     * cached prompts and the kept run timeline — so the next run starts from nothing. The counterpart
+     * of the heap dump's cache deletion, and a POST for the same reason: it is an action, not the
+     * removal of the resource the path names.
+     *
+     * <p>Refused while a run is in flight. Deleting mid-run would only look like it worked: the batch
+     * would write its rows back moments later, leaving a half-cleared profile.</p>
+     */
+    @PostMapping("/delete-results")
+    public void deleteResults(@PathVariable("profileId") String profileId) {
+        if (advisorRunner.batchProgress(profileId).isRunning()) {
+            throw Exceptions.invalidRequest(
+                    "An advisor run is in progress for this profile. Cancel it before clearing results.");
+        }
+
+        advisorRepository(profileId).deleteAll();
+        pipelineRunRepository(profileId).deleteAll(AdvisorStages.PIPELINE_ID);
+        advisorRunner.forget(profileId);
+    }
+
     private ProfileAdvisorRepository advisorRepository(String profileId) {
         ProfileInfo profile = resolver.resolve(profileId).info();
         return persistenceProvider.repositories().newAdvisorRepository(databaseManagerResolver.open(profile));

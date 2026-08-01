@@ -235,6 +235,23 @@ export function useAdvisor(profileId: string) {
     }
   };
 
+  /**
+   * Throws away everything the Advisor has derived for this profile and returns the page to its
+   * never-run state. The cached prompts go too, so the next run rebuilds the profile summary.
+   */
+  const clearResults = async (): Promise<void> => {
+    try {
+      await client.deleteResults();
+      recommendations.value = [];
+      runResult.value = null;
+      batch.value = null;
+      selectedEventType.value = null;
+      ToastService.success('Advisor', 'Results cleared');
+    } catch (e: any) {
+      ToastService.error('Advisor', e?.response?.data?.message ?? 'Could not clear the results');
+    }
+  };
+
   const saveSourceFolder = async (sourcePath: string): Promise<void> => {
     try {
       settings.value = await client.saveSettings({ sourcePath });
@@ -264,6 +281,7 @@ export function useAdvisor(profileId: string) {
     load,
     run,
     cancel,
+    clearResults,
     saveSourceFolder
   };
 }

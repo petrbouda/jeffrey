@@ -105,6 +105,21 @@ public class AdvisorRunner {
         return batch != null ? batch.progress() : BatchAdvisorProgress.idle(profileId);
     }
 
+    /**
+     * Forgets the remembered batch for a profile, so progress reads as "never run" again.
+     *
+     * <p>Needed when the profile's stored results are deleted: the finished batch would otherwise
+     * survive its TTL and keep answering {@code COMPLETED} for a profile that now has nothing to show,
+     * which reads as a successful run whose findings vanished.</p>
+     *
+     * <p>A batch still in flight is left alone — the caller is expected to refuse in that case rather
+     * than delete out from under a run that is about to write its rows back.</p>
+     */
+    public void forget(String profileId) {
+        batchesByProfileId.remove(profileId);
+        LOG.info("Forgot advisor batch: profile_id={}", profileId);
+    }
+
     public boolean cancel(String profileId) {
         BatchAdvisorRun batch = batchesByProfileId.get(profileId);
         if (batch == null || !batch.isRunning()) {
