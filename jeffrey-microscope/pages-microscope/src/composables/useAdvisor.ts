@@ -103,8 +103,12 @@ export function useAdvisor(profileId: string) {
       null;
   };
 
-  /** Applies one progress snapshot, returning true while the run is still going. */
-  const applyProgress = async (latest: BatchAdvisorProgress): Promise<boolean> => {
+  /**
+   * Applies one progress snapshot, returning true while the run is still going. Terminal toasts are
+   * suppressed when the terminal state was the user's own doing (a cancel) — telling someone their
+   * deliberate cancellation "failed for every event type" reads as a malfunction.
+   */
+  const applyProgress = async (latest: BatchAdvisorProgress, notify = true): Promise<boolean> => {
     syncBatch(latest);
 
     if (latest.status === 'COMPLETED') {
@@ -116,19 +120,23 @@ export function useAdvisor(profileId: string) {
         client.runResult()
       ]);
       pickSelected();
-      ToastService.success('Advisor', 'Recommendations are ready');
+      if (notify) {
+        ToastService.success('Advisor', 'Recommendations are ready');
+      }
       return false;
     }
     if (latest.status === 'FAILED') {
-      ToastService.error('Advisor', 'The advisor run failed for every event type');
+      if (notify) {
+        ToastService.error('Advisor', 'The advisor run failed for every event type');
+      }
       return false;
     }
     return true;
   };
 
-  const refreshProgress = async (): Promise<void> => {
+  const refreshProgress = async (notify = true): Promise<void> => {
     try {
-      if (!(await applyProgress(await client.runProgress()))) {
+      if (!(await applyProgress(await client.runProgress(), notify))) {
         stopPolling();
       }
     } catch {
@@ -210,7 +218,7 @@ export function useAdvisor(profileId: string) {
         startPolling();
       }
     } catch (e: any) {
-      error.value = e?.response?.data?.message ?? e?.message ?? 'Failed to load the Advisor';
+      error.value = e?.errorResponse?.message ?? e?.message ?? 'Failed to load the Advisor';
     } finally {
       loading.value = false;
     }
@@ -218,20 +226,24 @@ export function useAdvisor(profileId: string) {
 
   const run = async (selectedTypes: string[] = []): Promise<void> => {
     try {
+      const accepted = await client.run(selectedTypes);
+      // Cleared only once the launch is accepted: a rejected launch must not collapse the page from
+      // the kept "last run" timeline to the first-run setup screen.
       runResult.value = null;
-      syncBatch(await client.run(selectedTypes));
+      syncBatch(accepted);
       startPolling();
-    } catch (e: any) {
-      ToastService.error('Advisor', e?.response?.data?.message ?? 'Could not start the advisor run');
+    } catch {
+      // The HTTP interceptor already toasted the backend's message.
     }
   };
 
   const cancel = async (): Promise<void> => {
     try {
       await client.cancel();
-      await refreshProgress();
+      await refreshProgress(false);
+      ToastService.info('Advisor', 'Run cancelled');
     } catch {
-      ToastService.error('Advisor', 'Could not cancel the advisor run');
+      // The HTTP interceptor already toasted the backend's message.
     }
   };
 
@@ -247,8 +259,8 @@ export function useAdvisor(profileId: string) {
       batch.value = null;
       selectedEventType.value = null;
       ToastService.success('Advisor', 'Results cleared');
-    } catch (e: any) {
-      ToastService.error('Advisor', e?.response?.data?.message ?? 'Could not clear the results');
+    } catch {
+      // The HTTP interceptor already toasted the backend's message (e.g. "a run is in progress").
     }
   };
 
@@ -256,8 +268,8 @@ export function useAdvisor(profileId: string) {
     try {
       settings.value = await client.saveSettings({ sourcePath });
       ToastService.success('Advisor', 'Source folder saved');
-    } catch (e: any) {
-      ToastService.error('Advisor', e?.response?.data?.message ?? 'Could not save the source folder');
+    } catch {
+      // The HTTP interceptor already toasted the backend's message.
     }
   };
 

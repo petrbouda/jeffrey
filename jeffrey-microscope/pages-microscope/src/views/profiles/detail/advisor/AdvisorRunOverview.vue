@@ -55,6 +55,29 @@
       />
     </template>
 
+    <!-- The run failed for every event type: keep the timeline visible and say why, instead of
+         collapsing to the first-run setup screen as if nothing had happened. -->
+    <template v-else-if="batchFailed && batch">
+      <div class="run-toolbar failed">
+        <span class="run-note">
+          <i class="bi bi-exclamation-triangle"></i>
+          The run failed for every event type{{ failedReason ? ` — ${failedReason}` : '' }}
+        </span>
+        <button type="button" class="btn ghost" :disabled="!sourceConfigured" @click="run()">
+          <i class="bi bi-arrow-repeat"></i>
+          Try again
+        </button>
+      </div>
+      <ProcessingTimeline
+        :phases="livePhases"
+        :steps="liveStepsData"
+        :tick-now="0"
+        title="Run failed"
+        subtitle="How far each event type got before it failed."
+        :show-progress-bar="false"
+      />
+    </template>
+
     <!-- A run has finished: the kept, static timeline with measured times. -->
     <template v-else-if="runResult">
       <div class="run-toolbar">
@@ -211,6 +234,13 @@ const liveTypes = computed<TimelineType[]>(() =>
 const livePhases = computed(() => timelinePhases(liveTypes.value));
 const liveStepsData = computed(() => liveSteps(batch.value?.types ?? [], lastSyncAt.value));
 
+const batchFailed = computed(() => batch.value?.status === 'FAILED');
+
+/** The first per-type error, as the failure note — one reason is enough to act on. */
+const failedReason = computed(
+  () => batch.value?.types.find(type => type.errorMessage)?.errorMessage ?? null
+);
+
 const resultTypes = computed<TimelineType[]>(() =>
   (runResult.value?.types ?? []).map(type => ({
     eventType: type.eventType,
@@ -270,6 +300,10 @@ onMounted(async () => {
 .run-toolbar .run-note {
   font-size: 0.82rem;
   color: var(--color-text-muted);
+}
+
+.run-toolbar.failed .run-note {
+  color: var(--color-danger);
 }
 
 .run-toolbar .src {

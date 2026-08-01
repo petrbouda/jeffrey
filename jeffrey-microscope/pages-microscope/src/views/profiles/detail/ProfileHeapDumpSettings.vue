@@ -441,10 +441,19 @@ const lastInitResultSteps = computed<TimelineStep[]>(() => {
 });
 
 const lastInitResultSubtitle = computed<string>(() => {
-  if (!lastInitResult.value) return '';
-  const epochMs = Date.parse(lastInitResult.value.completedAt);
-  if (Number.isNaN(epochMs)) return '';
-  return `Completed ${FormattingService.formatRelativeTime(epochMs)}`;
+  const result = lastInitResult.value;
+  if (!result) {
+    return '';
+  }
+  const epochMs = Date.parse(result.completedAt);
+  const when = Number.isNaN(epochMs) ? '' : ` ${FormattingService.formatRelativeTime(epochMs)}`;
+  // Failed runs are stored too — reading every stored run as a success would tell the user a broken
+  // initialization completed.
+  if (result.state === 'failed') {
+    const reason = result.errorMessage ? ` — ${result.errorMessage}` : '';
+    return `Failed${when}${reason}`;
+  }
+  return when ? `Completed${when}` : '';
 });
 
 // Upload state
