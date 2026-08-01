@@ -32,6 +32,7 @@ import cafe.jeffrey.profile.advisor.source.SourceTree;
 import cafe.jeffrey.profile.advisor.source.SourceTreeResolver;
 import cafe.jeffrey.profile.advisor.verify.PatchVerification;
 import cafe.jeffrey.profile.advisor.verify.PatchVerifier;
+import cafe.jeffrey.profile.common.pipeline.PipelineRun;
 import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.chat.McpToolsetFactory;
 import cafe.jeffrey.profile.ai.chat.ToolBinding;
@@ -107,42 +108,72 @@ public class AdvisorService {
     }
 
     /**
-     * Runs the full pipeline for {@code target}, reporting each phase through {@code sink}, and stores
-     * what survived verification.
+     * Runs the full pipeline for {@code target}, timing each stage on {@code run}, and stores what
+     * survived verification.
+     *
+     * <p>Each phase is a stage rather than a status flag, which is what lets the UI show where a
+     * five-minute run's time actually went. The interesting number is usually {@code analyze}, and
+     * before this it was invisible.</p>
      */
-    public AdvisorResult generate(AdvisorTarget target, AdvisorProgressSink sink) {
+    public AdvisorResult generate(AdvisorTarget target, PipelineRun run) {
         AdvisorPromptType promptType = AdvisorPromptType.byEventCode(target.eventType())
                 .orElseThrow(() -> Exceptions.invalidRequest(
                         "The Advisor does not analyze this event type: " + target.eventType()));
 
-        sink.preparingPrompt();
-        AdvisorPrompt prompt = promptManager.resolve(promptType, settings.pruneThresholdPct());
+        // Each stage assigns into a holder rather than returning, because runStage owns the timing and a
+        // stage that also produced the value would have to smuggle it out of the lambda anyway.
+        AdvisorRunContext context = new AdvisorRunContext();
 
-        sink.resolvingSource();
-        SourceTree sourceTree = sourceTreeResolver.resolve(settings.sourcePath(), recordingId);
+        run.runStage(AdvisorStages.PROMPT, () ->
+                context.prompt = promptManager.resolve(promptType, settings.pruneThresholdPct()));
 
-        sink.analyzing();
-        ToolCallResult raw = analyze(target, prompt, new SourceAnalysisTools(sourceTree.root()));
+        run.runStage(AdvisorStages.SOURCE, () ->
+                context.sourceTree = sourceTreeResolver.resolve(settings.sourcePath(), recordingId));
 
-        AdvisorOutputParser.ParsedOutput parsed = AdvisorOutputParser.parse(raw.text());
-        List<GroundedClaim> claims = new ClaimGrounder(prompt.frameIndex(), sourceTree.root())
-                .ground(parsed.claims());
-        Severity severity = SeverityCalculator.fromGroundedClaims(claims);
+        run.runStage(AdvisorStages.ANALYZE, () ->
+                context.raw = analyze(
+                        target, context.prompt, new SourceAnalysisTools(context.sourceTree.root())));
 
-        sink.verifying();
-        PatchVerification verification =
-                patchVerifier.verify(parsed.patch(), sourceTree.root(), sourceTree.resolvedRef());
+        run.runStage(AdvisorStages.VERIFY, () -> context.result = verify(context));
 
-        AdvisorResult result = new AdvisorResult(
-                severity, parsed.recommendations(), parsed.patch(), claims, verification, raw.usage());
+        run.runStage(AdvisorStages.STORE, () -> store(target, context.result, context.sourceTree));
 
-        store(target, result, sourceTree);
-
+        AdvisorResult result = context.result;
         LOG.info("Generated advisor recommendations: profile_id={} event_type={} severity={} claims={} "
                         + "grounded={} has_patch={} patch_applies={}",
-                target.profileId(), target.eventType(), severity, claims.size(),
-                result.groundedClaimCount(), result.hasPatch(), verification.applies());
+                target.profileId(), target.eventType(), result.severity(), result.claims().size(),
+                result.groundedClaimCount(), result.hasPatch(), result.verification().applies());
         return result;
+    }
+
+    /**
+     * Checks everything the model said before any of it is stored: cited frames against the measured
+     * call tree, cited paths against the working copy, the patch against {@code git apply}. Severity is
+     * computed last, from what survived, so an unverifiable claim cannot raise a profile's priority.
+     */
+    private AdvisorResult verify(AdvisorRunContext context) {
+        AdvisorOutputParser.ParsedOutput parsed = AdvisorOutputParser.parse(context.raw.text());
+
+        List<GroundedClaim> claims =
+                new ClaimGrounder(context.prompt.frameIndex(), context.sourceTree.root())
+                        .ground(parsed.claims());
+        Severity severity = SeverityCalculator.fromGroundedClaims(claims);
+
+        PatchVerification verification = patchVerifier.verify(
+                parsed.patch(), context.sourceTree.root(), context.sourceTree.resolvedRef());
+
+        return new AdvisorResult(
+                severity, parsed.recommendations(), parsed.patch(), claims, verification,
+                context.raw.usage());
+    }
+
+    /** What one run accumulates as its stages complete. */
+    private static final class AdvisorRunContext {
+
+        private AdvisorPrompt prompt;
+        private SourceTree sourceTree;
+        private ToolCallResult raw;
+        private AdvisorResult result;
     }
 
     /**

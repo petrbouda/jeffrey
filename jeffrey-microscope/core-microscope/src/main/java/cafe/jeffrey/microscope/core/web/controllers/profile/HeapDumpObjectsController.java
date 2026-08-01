@@ -42,7 +42,7 @@ import cafe.jeffrey.profile.heapdump.model.LeakHintFinding;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
-import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
+import cafe.jeffrey.profile.common.pipeline.SubPhaseTiming;
 import cafe.jeffrey.profile.heapdump.model.ThreadStackFrame;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 

@@ -157,7 +157,12 @@ public class AdvisorConfiguration {
             @Value("${jeffrey.microscope.advisor.max-concurrent-runs:" + DEFAULT_MAX_CONCURRENT_RUNS + "}")
             int maxConcurrentRuns) {
 
-        return new AdvisorRunner(advisorServiceFactory, maxConcurrentRuns, clock);
+        return new AdvisorRunner(
+                advisorServiceFactory,
+                profile -> profileRepositories.newPipelineRunRepository(
+                        databaseManagerResolver.open(profile)),
+                maxConcurrentRuns,
+                clock);
     }
 
     private AdvisorPromptManager newPromptManager(ProfileInfo profile, Clock clock) {

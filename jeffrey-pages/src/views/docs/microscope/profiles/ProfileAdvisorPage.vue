@@ -110,22 +110,36 @@ onMounted(() => {
       <h2 id="how-a-run-works">How a Run Works</h2>
 
       <p>
-        Generation is asynchronous — a run takes minutes — and the page shows a stage timeline while it
-        goes:
+        Generation is asynchronous — a run takes minutes — and the page shows the same stage timeline
+        heap-dump initialization uses, with a live clock on the stage in flight and a real duration on
+        each stage that has finished:
       </p>
 
       <ol>
-        <li><strong>Queued</strong> — waiting for a generation slot. At most one run per profile, and a small global ceiling, so simultaneous requests queue instead of degrading together.</li>
-        <li><strong>Preparing prompt</strong> — the flamegraph markdown is built from the profile database and cached, along with the flattened call tree behind it.</li>
-        <li><strong>Resolving source</strong> — the configured folder is validated and its commit read.</li>
-        <li><strong>Analyzing</strong> — the model explores your source with four read-only tools: <code>listFiles</code>, <code>glob</code>, <code>readFile</code> and <code>grep</code>.</li>
-        <li><strong>Verifying</strong> — claims are grounded, the patch is checked, severity is computed.</li>
+        <li><strong>Building the profile summary</strong> — the flamegraph markdown is built from the profile database and cached, along with the flattened call tree behind it.</li>
+        <li><strong>Locating the source folder</strong> — the configured folder is validated and its commit read.</li>
+        <li><strong>Reading your source</strong> — the model explores your source with four read-only tools: <code>listFiles</code>, <code>glob</code>, <code>readFile</code> and <code>grep</code>.</li>
+        <li><strong>Checking claims and patch</strong> — claims are grounded, the patch is checked, severity is computed.</li>
+        <li><strong>Storing findings</strong> — the recommendation, its claims and its token cost are written to the profile database.</li>
       </ol>
+
+      <p>
+        A run is filed per event type: at most one at a time for the same profile group, plus a small
+        global ceiling, so simultaneous requests wait for a slot instead of degrading together. A run
+        that is waiting shows as running with no stage started yet.
+      </p>
 
       <p>
         The prompt is cached per event type, so re-running skips straight to the model. Changing the
         prompt-detail threshold regenerates it, since that setting only reaches the model through the
         markdown.
+      </p>
+
+      <p>
+        When a run reaches a terminal state its stage timings are written to the profile database, so
+        reopening the page later still shows how long each stage took. Progress of a run
+        <em>in flight</em> lives only in memory: if Microscope restarts mid-run the work died with the
+        process, and the page reports the run as gone rather than pretending it is still going.
       </p>
 
       <h2 id="grounding">Grounding and Severity</h2>

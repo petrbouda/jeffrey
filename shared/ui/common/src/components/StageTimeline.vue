@@ -18,8 +18,8 @@
           >
         </div>
       </div>
-      <p v-if="subtitle ?? defaultSubtitle" class="processing-hint">
-        {{ subtitle ?? defaultSubtitle }}
+      <p v-if="subtitle ?? DEFAULT_SUBTITLE" class="processing-hint">
+        {{ subtitle ?? DEFAULT_SUBTITLE }}
       </p>
     </div>
 
@@ -107,7 +107,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
-import type { SubPhaseTiming } from '@/services/api/model/InitPipelineResult';
+import type { SubPhaseTiming } from '@shared/services/api/model/PipelineRun';
 
 export interface TimelineStep {
   id: string;
@@ -121,15 +121,19 @@ export interface TimelineStep {
   subPhases?: SubPhaseTiming[];
 }
 
-interface Phase {
+export interface TimelinePhase {
   id: string;
   name: string;
   description: string;
   stages: { id: string; label: string }[];
 }
 
+const DEFAULT_SUBTITLE = 'Please wait…';
+
 const props = withDefaults(
   defineProps<{
+    /** Stage grouping and labels — the pipeline's identity, supplied by the page that owns it. */
+    phases: TimelinePhase[];
     steps: TimelineStep[];
     /** Epoch millis the parent ticks while a stage is in progress. Ignored otherwise. */
     tickNow: number;
@@ -140,49 +144,6 @@ const props = withDefaults(
   { showProgressBar: true }
 );
 
-const defaultSubtitle = 'Please wait while we analyze the heap structure...';
-
-/**
- * The canonical pipeline definition (phase grouping + per-stage labels).
- * Source of truth — the backend stores only stage ids + status + duration,
- * the component owns the human-facing labels.
- */
-const phases: Phase[] = [
-  {
-    id: 'indexing',
-    name: 'Heap Indexing',
-    description: 'Loading and parsing the heap file',
-    stages: [
-      { id: 'load', label: 'Loading heap dump' },
-      { id: 'parse', label: 'Parsing heap structure' },
-      { id: 'index', label: 'Building indexes' }
-    ]
-  },
-  {
-    id: 'analysis',
-    name: 'Memory Analysis',
-    description: 'Strings, threads, dominator tree, leaks',
-    stages: [
-      { id: 'strings', label: 'Analyzing strings' },
-      { id: 'dominator', label: 'Computing dominator tree' },
-      { id: 'threads', label: 'Analyzing threads' },
-      { id: 'biggest', label: 'Finding biggest objects' },
-      { id: 'collections', label: 'Analyzing collections' },
-      { id: 'leaks', label: 'Detecting leak suspects' }
-    ]
-  },
-  {
-    id: 'hotspots',
-    name: 'Hotspots',
-    description: 'Class loaders, biggest collections, waste',
-    stages: [
-      { id: 'classloaders', label: 'Analyzing class loaders' },
-      { id: 'consumers', label: 'Aggregating memory consumers' },
-      { id: 'duplicates', label: 'Detecting duplicate data' },
-      { id: 'biggest-collections', label: 'Finding biggest collections' }
-    ]
-  }
-];
 
 const getStep = (id: string): TimelineStep | undefined => props.steps.find(s => s.id === id);
 
@@ -228,7 +189,7 @@ const stageMeta = (step: TimelineStep | undefined): string => {
 const isTerminal = (s: TimelineStep): boolean =>
   s.status === 'completed' || s.status === 'skipped' || s.status === 'on_demand';
 
-const phaseStatus = (phase: Phase): 'done' | 'active' | 'pending' => {
+const phaseStatus = (phase: TimelinePhase): 'done' | 'active' | 'pending' => {
   const steps = phase.stages
     .map(s => getStep(s.id))
     .filter((s): s is TimelineStep => s !== undefined);
@@ -238,7 +199,7 @@ const phaseStatus = (phase: Phase): 'done' | 'active' | 'pending' => {
   return 'pending';
 };
 
-const phaseProgress = (phase: Phase): number => {
+const phaseProgress = (phase: TimelinePhase): number => {
   const steps = phase.stages
     .map(s => getStep(s.id))
     .filter((s): s is TimelineStep => s !== undefined);

@@ -21,6 +21,7 @@ module cafe.jeffrey.microscope.profile.persistence.jdbc {
     requires cafe.jeffrey.shared.common;
     requires cafe.jeffrey.shared.sql.builder;
     requires cafe.jeffrey.microscope.profile.parser.api;
+    requires transitive cafe.jeffrey.microscope.profile.common;
     requires transitive spring.jdbc;
     requires transitive org.eclipse.collections.api;
     requires org.eclipse.collections.impl;

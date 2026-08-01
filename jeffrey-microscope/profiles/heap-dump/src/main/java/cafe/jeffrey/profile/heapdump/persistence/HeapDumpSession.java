@@ -18,7 +18,7 @@
 package cafe.jeffrey.profile.heapdump.persistence;
 
 import cafe.jeffrey.profile.heapdump.model.IndexBuildProgressListener;
-import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
+import cafe.jeffrey.profile.common.pipeline.SubPhaseTiming;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

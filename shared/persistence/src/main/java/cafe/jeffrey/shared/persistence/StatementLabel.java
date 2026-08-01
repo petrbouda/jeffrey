@@ -359,4 +359,12 @@ public enum StatementLabel {
     FIND_ADVISOR_CLAIM_OCCURRENCES,
     COUNT_ADVISOR_ANALYZED_PROJECTS,
 
+    /**
+     * {@link GroupLabel#PIPELINE_RUNS}
+     */
+    FIND_PIPELINE_RUN,
+    FIND_PIPELINE_RUNS,
+    UPSERT_PIPELINE_RUN,
+    DELETE_PIPELINE_RUNS,
+
 }

@@ -52,4 +52,5 @@ public enum GroupLabel {
     HEAP_DUMP_VIEW,
     GUARDIAN_GUARDS,
     ADVISOR,
+    PIPELINE_RUNS,
 }

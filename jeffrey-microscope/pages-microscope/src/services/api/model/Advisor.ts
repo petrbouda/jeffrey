@@ -17,6 +17,7 @@
  */
 
 import type { Severity } from '@shared/services/severityDisplay';
+import type { PipelineProgress } from '@shared/services/api/model/PipelineRun';
 
 /** A profile group the Advisor can analyze, as reported by the backend. */
 export interface AdvisorEventType {
@@ -77,32 +78,9 @@ export interface AdvisorRecommendation {
   claims: AdvisorClaim[];
 }
 
-export type AdvisorStatus =
-  | 'QUEUED'
-  | 'PREPARING_PROMPT'
-  | 'RESOLVING_SOURCE'
-  | 'ANALYZING'
-  | 'VERIFYING'
-  | 'COMPLETED'
-  | 'FAILED';
-
-/**
- * A run snapshot. It deliberately carries no result: a completed run's artifacts live in the profile
- * database, so the page reads them from the recommendations endpoint either way.
- */
-export interface AdvisorProgress {
-  profileId: string;
-  eventType: string | null;
-  status: AdvisorStatus | null;
-  message: string;
-  errorMessage: string | null;
-  startedAt: number | null;
-  completedAt: number | null;
-}
-
 export interface AdvisorGenerateResponse {
   started: boolean;
-  progress: AdvisorProgress;
+  progress: PipelineProgress;
 }
 
 export interface AdvisorSettings {

@@ -31,9 +31,9 @@ import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.advisor.prompt.AdvisorPrompt;
 import cafe.jeffrey.profile.advisor.prompt.AdvisorPromptManagerFactory;
 import cafe.jeffrey.profile.advisor.prompt.AdvisorPromptType;
-import cafe.jeffrey.profile.advisor.run.AdvisorProgress;
 import cafe.jeffrey.profile.advisor.run.AdvisorRunner;
-import cafe.jeffrey.profile.advisor.run.AdvisorStatus;
+import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunResult;
 import cafe.jeffrey.profile.advisor.settings.AdvisorSettings;
 import cafe.jeffrey.profile.advisor.settings.AdvisorSettingsResolver;
 import cafe.jeffrey.provider.profile.api.AdvisorClaimRow;
@@ -120,7 +120,7 @@ public class AdvisorController {
      * The outcome of asking for a run. {@code started} is false when one was already in flight, which is
      * not an error — the caller simply watches the run that exists.
      */
-    public record GenerateResponse(boolean started, AdvisorProgress progress) {
+    public record GenerateResponse(boolean started, PipelineProgress progress) {
     }
 
     private final ProfileManagerResolver resolver;
@@ -211,17 +211,17 @@ public class AdvisorController {
     }
 
     @GetMapping("/progress")
-    public AdvisorProgress progress(@PathVariable("profileId") String profileId) {
+    public PipelineProgress progress(@PathVariable("profileId") String profileId) {
         return advisorRunner.progress(profileId);
     }
 
     /**
-     * The stage sequence the UI renders as a timeline. Served from the backend so the two cannot drift:
-     * a stage added to the pipeline appears in the timeline without a frontend change.
+     * The stage timings of previous runs, one per event type. Read from the profile database rather
+     * than from the in-memory registry, so a page opened long after a run still shows what it did.
      */
-    @GetMapping("/stages")
-    public List<String> stages() {
-        return AdvisorStatus.ORDER.stream().map(Enum::name).toList();
+    @GetMapping("/runs")
+    public List<PipelineRunResult> runs(@PathVariable("profileId") String profileId) {
+        return advisorRunner.storedRuns(resolver.resolve(profileId).info());
     }
 
     @DeleteMapping("/run")

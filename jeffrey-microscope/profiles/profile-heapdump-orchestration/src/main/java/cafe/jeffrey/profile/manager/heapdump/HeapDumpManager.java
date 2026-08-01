@@ -34,7 +34,7 @@ import cafe.jeffrey.profile.heapdump.model.LeakHintFinding;
 import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
 import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
-import cafe.jeffrey.profile.heapdump.model.InitPipelineResult;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunResult;
 import cafe.jeffrey.profile.heapdump.model.InitializeResult;
 import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
 import cafe.jeffrey.profile.heapdump.model.InstanceSortBy;
@@ -48,7 +48,7 @@ import cafe.jeffrey.profile.heapdump.model.SortBy;
 import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
 import cafe.jeffrey.profile.heapdump.model.DuplicateDataReport;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
-import cafe.jeffrey.profile.heapdump.model.SubPhaseTiming;
+import cafe.jeffrey.profile.common.pipeline.SubPhaseTiming;
 import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ThreadStackFrame;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -327,18 +327,16 @@ public interface HeapDumpManager {
     boolean initPipelineResultExists();
 
     /**
-     * Read the persisted snapshot of the last successful initialization
-     * pipeline run. The snapshot is captured client-side and posted from
-     * the frontend after {@code processHeapDump()} completes.
+     * Read the stored snapshot of the last initialization pipeline run, so the Overview page can show
+     * what the last run did without having watched it happen.
      */
-    Optional<InitPipelineResult> getInitPipelineResult();
+    Optional<PipelineRunResult> getInitPipelineResult();
 
     /**
-     * Persist a snapshot of the last successful initialization pipeline
-     * run. Overwrites any prior snapshot. The frontend re-reads it on
-     * subsequent visits to the Heap Dump Overview page.
+     * Store a snapshot of the last initialization pipeline run, replacing any prior one. Written by the
+     * pipeline itself when a run finishes; the frontend only reads it.
      */
-    void storeInitPipelineResult(InitPipelineResult result);
+    void storeInitPipelineResult(PipelineRunResult result);
 
     // --- Path to GC Root ---
 

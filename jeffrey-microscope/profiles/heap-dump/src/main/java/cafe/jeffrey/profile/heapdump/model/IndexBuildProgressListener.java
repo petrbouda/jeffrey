@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.profile.heapdump.model;
 
+import cafe.jeffrey.profile.common.pipeline.SubPhaseTiming;
+
 /**
  * Notified as each index-build sub-phase completes, so callers can surface
  * real-time progress instead of waiting for the whole atomic build to finish.

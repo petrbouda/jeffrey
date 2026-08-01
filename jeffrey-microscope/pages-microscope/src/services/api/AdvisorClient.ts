@@ -20,12 +20,12 @@ import BaseProfileClient from '@/services/api/BaseProfileClient';
 import type {
   AdvisorEventType,
   AdvisorGenerateResponse,
-  AdvisorProgress,
   AdvisorPrompt,
   AdvisorRecommendation,
   AdvisorSettings,
   RegressionComparison
 } from '@/services/api/model/Advisor';
+import type { PipelineProgress, PipelineRunResult } from '@shared/services/api/model/PipelineRun';
 
 export default class AdvisorClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -54,14 +54,14 @@ export default class AdvisorClient extends BaseProfileClient {
     return super.post<AdvisorGenerateResponse>('/generate', { eventType });
   }
 
-  progress(): Promise<AdvisorProgress> {
+  progress(): Promise<PipelineProgress> {
     // Polled on a timer while a run is in flight, so a transient failure must not raise a toast per tick.
-    return super.get<AdvisorProgress>('/progress', undefined, { suppressToast: true });
+    return super.get<PipelineProgress>('/progress', undefined, { suppressToast: true });
   }
 
-  /** The stage sequence, served by the backend so the timeline cannot drift from the pipeline. */
-  stages(): Promise<string[]> {
-    return super.get<string[]>('/stages');
+  /** Stage timings of previous runs, one per event type, read from the profile database. */
+  runs(): Promise<PipelineRunResult[]> {
+    return super.get<PipelineRunResult[]>('/runs');
   }
 
   cancel(): Promise<void> {

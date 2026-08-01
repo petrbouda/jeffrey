@@ -104,4 +104,10 @@ public class JdbcProfileRepositories implements ProfileRepositories {
         DatabaseClientProvider profileClientProvider = new DatabaseClientProvider(dataSource);
         return new JdbcProfileAdvisorRepository(profileClientProvider);
     }
+
+    @Override
+    public PipelineRunRepository newPipelineRunRepository(DataSource dataSource) {
+        DatabaseClientProvider profileClientProvider = new DatabaseClientProvider(dataSource);
+        return new JdbcPipelineRunRepository(profileClientProvider);
+    }
 }

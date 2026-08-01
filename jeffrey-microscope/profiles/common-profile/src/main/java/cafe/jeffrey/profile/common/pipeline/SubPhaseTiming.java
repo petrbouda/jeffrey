@@ -16,12 +16,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.heapdump.model;
+package cafe.jeffrey.profile.common.pipeline;
 
 /**
- * One leaf-level timing inside an init-pipeline stage. Surfaced to the UI so a
- * stage that took, say, 84 s can show the user which slice of that time went
- * where (e.g. CHK fixed-point iteration vs persisting rows back to DuckDB).
+ * One leaf-level timing inside a pipeline stage. Surfaced to the UI so a stage that took, say, 84 s can
+ * show the user which slice of that time went where (e.g. CHK fixed-point iteration vs persisting rows
+ * back to DuckDB).
  *
  * @param name        machine-readable sub-phase id (e.g. {@code "chk_iter"})
  * @param durationMs  wall-clock duration of this sub-phase

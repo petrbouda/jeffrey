@@ -42,10 +42,12 @@ import BiggestObjectsReport from '@/services/api/model/BiggestObjectsReport';
 import BiggestCollectionsReport from '@/services/api/model/BiggestCollectionsReport';
 import type ConsumerReport from '@/services/api/model/ConsumerReport';
 import type DuplicateDataReport from '@/services/api/model/DuplicateDataReport';
-import type HeapDumpInitProgress from '@/services/api/model/HeapDumpInitProgress';
 import HeapDumpConfig from '@/services/api/model/HeapDumpConfig';
-import type InitPipelineResult from '@/services/api/model/InitPipelineResult';
-import type { SubPhaseTiming } from '@/services/api/model/InitPipelineResult';
+import type {
+  PipelineProgress,
+  PipelineRunResult,
+  SubPhaseTiming
+} from '@shared/services/api/model/PipelineRun';
 import type ClassLoaderReport from '@/services/api/model/ClassLoaderReport';
 import type ClassLoaderDetail from '@/services/api/model/ClassLoaderDetail';
 import type ThreadStackFrame from '@/services/api/model/ThreadStackFrame';
@@ -76,8 +78,8 @@ export default class HeapDumpClient extends BaseProfileClient {
     return this.post<void>(`/initialize-all${params}`, {});
   }
 
-  public getInitProgress(): Promise<HeapDumpInitProgress> {
-    return this.get<HeapDumpInitProgress>('/init-progress');
+  public getInitProgress(): Promise<PipelineProgress> {
+    return this.get<PipelineProgress>('/init-progress');
   }
 
   public getHistogram(topN: number = 100, sortBy: string = 'SIZE'): Promise<ClassHistogramEntry[]> {
@@ -157,12 +159,8 @@ export default class HeapDumpClient extends BaseProfileClient {
     return this.get<boolean>('/init-result/exists');
   }
 
-  public getInitPipelineResult(): Promise<InitPipelineResult | null> {
-    return this.get<InitPipelineResult | null>('/init-result');
-  }
-
-  public storeInitPipelineResult(result: InitPipelineResult): Promise<void> {
-    return this.post<void>('/init-result', result);
+  public getInitPipelineResult(): Promise<PipelineRunResult | null> {
+    return this.get<PipelineRunResult | null>('/init-result');
   }
 
   public uploadHeapDump(file: File): Promise<void> {

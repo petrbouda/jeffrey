@@ -39,13 +39,18 @@
         </span>
       </div>
 
-      <AdvisorRunBar
-        v-if="progress?.status"
-        :progress="progress"
-        :stages="stages"
-        :is-running="isRunning"
-        @cancel="cancel"
-      />
+      <div v-if="progress && progress.state !== 'idle'" class="run">
+        <StageTimeline
+          :phases="ADVISOR_PHASES"
+          :steps="steps"
+          :tick-now="tickNow"
+          title="Advisor run"
+          :subtitle="runSubtitle"
+        />
+        <button v-if="isRunning" type="button" class="cancel-btn" @click="cancel">
+          Cancel run
+        </button>
+      </div>
 
       <MainCard>
         <template #header>
@@ -119,7 +124,8 @@ import MarkdownRenderer from '@shared/services/MarkdownRenderer';
 import { severityVariant } from '@shared/services/severityDisplay';
 import AiDisabledFeatureAlert from '@/components/alerts/AiDisabledFeatureAlert.vue';
 import ClaimList from '@/components/advisor/ClaimList.vue';
-import AdvisorRunBar from '@/views/profiles/detail/advisor/AdvisorRunBar.vue';
+import StageTimeline from '@shared/components/StageTimeline.vue';
+import { ADVISOR_PHASES } from '@/views/profiles/detail/advisor/advisorPipeline';
 import { useAdvisor } from '@/composables/useAdvisor';
 import FeatureType from '@/services/api/model/FeatureType';
 
@@ -133,7 +139,8 @@ const {
   error,
   eventTypes,
   progress,
-  stages,
+  steps,
+  tickNow,
   selectedEventType,
   selectedRecommendation,
   sourceConfigured,
@@ -148,6 +155,15 @@ const aiDisabled = computed(
 );
 
 const settingsPath = computed(() => `/profiles/${profileId}/advisor/settings`);
+
+const runSubtitle = computed(() => {
+  if (progress.value?.state === 'failed') {
+    return progress.value.errorMessage ?? 'The advisor run failed';
+  }
+  return isRunning.value
+    ? 'Reading your profile and your source…'
+    : 'Stage timings from the last run';
+});
 
 const canGenerate = computed(
   () => !isRunning.value && sourceConfigured.value && selectedEventType.value != null
@@ -206,6 +222,20 @@ onMounted(load);
   background: var(--color-amber-bg);
   color: var(--color-amber-text);
   font-size: 0.85rem;
+}
+
+.run {
+  margin-bottom: 1rem;
+}
+
+.cancel-btn {
+  margin-top: 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-white);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
 }
 
 .actions {

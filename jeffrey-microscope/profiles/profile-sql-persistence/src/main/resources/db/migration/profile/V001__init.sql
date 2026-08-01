@@ -179,3 +179,31 @@ CREATE TABLE IF NOT EXISTS advisor_claims
     total_pct    DOUBLE      NOT NULL DEFAULT 0,
     generated_at TIMESTAMPTZ NOT NULL
 );
+
+--
+-- PIPELINE RUNS TABLE
+-- The terminal snapshot of one staged background run — heap-dump initialization, an Advisor
+-- generation, or any future pipeline. Live progress is deliberately NOT here: it lives in memory and
+-- dies with the process, because so does the work it describes. What a user needs after the fact is
+-- the last completed run, which is what this stores.
+--
+-- `stages` is a JSON array rather than a table of its own because it is written and read as a whole and
+-- rendered as a whole; a row per stage would buy queries nobody asks and a join everybody pays for.
+-- `scope_id` is '' rather than NULL for pipelines that run once per profile, so the primary key works
+-- without NULL-comparison rules.
+--
+CREATE TABLE IF NOT EXISTS pipeline_runs
+(
+    pipeline_id      VARCHAR     NOT NULL,
+    scope_id         VARCHAR     NOT NULL DEFAULT '',
+    state            VARCHAR     NOT NULL,
+    total_elapsed_ms BIGINT      NOT NULL,
+    total_steps      INTEGER     NOT NULL,
+    completed_steps  INTEGER     NOT NULL,
+    error_code       VARCHAR,
+    error_message    VARCHAR,
+    stages           VARCHAR     NOT NULL,
+    started_at       TIMESTAMPTZ NOT NULL,
+    completed_at     TIMESTAMPTZ NOT NULL,
+    PRIMARY KEY (pipeline_id, scope_id)
+);

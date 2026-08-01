@@ -16,35 +16,30 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.heapdump.model;
+package cafe.jeffrey.profile.common.pipeline;
 
 import java.util.List;
 
 /**
- * One stage of a running (or finished) server-side init pipeline.
+ * One stage of a running (or finished) pipeline.
  *
- * @param id         stage identifier shared with the frontend's pipeline
- *                   definition (e.g. "index", "dominator", "consumers")
- * @param status     {@code pending}, {@code in_progress}, {@code completed} or {@code failed}
+ * @param id         stage identifier shared with the frontend's pipeline definition
+ * @param status     where the stage has got to
  * @param durationMs elapsed milliseconds once terminal, else {@code null}
- * @param elapsedMs  milliseconds spent so far while {@code in_progress}, measured
- *                   with the backend clock so a reconnecting frontend can resume
- *                   the stage timer without client/server clock skew; else {@code null}
+ * @param elapsedMs  milliseconds spent so far while {@link StageStatus#IN_PROGRESS}, measured with the
+ *                   backend clock so a reconnecting frontend can resume the stage timer without
+ *                   client/server clock skew; else {@code null}
  * @param subPhases  fine-grained timing breakdown when available, else {@code null}
  */
-public record HeapDumpInitStageProgress(
+public record StageProgress(
         String id,
-        String status,
+        StageStatus status,
         Long durationMs,
         Long elapsedMs,
         List<SubPhaseTiming> subPhases
 ) {
 
-    public static final String STATUS_PENDING = "pending";
-
-    public static final String STATUS_IN_PROGRESS = "in_progress";
-
-    public static final String STATUS_COMPLETED = "completed";
-
-    public static final String STATUS_FAILED = "failed";
+    static StageProgress pending(String id) {
+        return new StageProgress(id, StageStatus.PENDING, null, null, null);
+    }
 }
