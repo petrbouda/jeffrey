@@ -118,8 +118,7 @@ public final class AdvisorService {
                 .ground(parsed.claims());
         Severity severity = SeverityCalculator.fromGroundedClaims(claims);
 
-        AdvisorResult result = new AdvisorResult(
-                severity, parsed.recommendations(), claims, raw.usage());
+        AdvisorResult result = new AdvisorResult(severity, parsed.recommendations(), claims);
 
         store(target, result, sourceTree);
 
@@ -164,9 +163,6 @@ public final class AdvisorService {
                 result.severity().name(),
                 result.recommendations(),
                 sourceTree.resolvedRef(),
-                result.usage().inputTokens(),
-                result.usage().outputTokens(),
-                result.usage().costUsd(),
                 generatedAt));
 
         advisorRepository.replaceClaims(target.eventType(), toClaimRows(target, result, generatedAt));

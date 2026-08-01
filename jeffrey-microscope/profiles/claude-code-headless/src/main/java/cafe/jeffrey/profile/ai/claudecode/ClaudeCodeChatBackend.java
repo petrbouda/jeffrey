@@ -105,7 +105,7 @@ public final class ClaudeCodeChatBackend implements AiChatBackend {
         long span = Spans.start();
         try {
             ClaudeCodeResult result = cliClient.run(request);
-            return new ToolCallResult(result.text(), result.toolsUsed(), result.usage());
+            return new ToolCallResult(result.text(), result.toolsUsed());
         } finally {
             Spans.end(span, exchange.spanName());
         }

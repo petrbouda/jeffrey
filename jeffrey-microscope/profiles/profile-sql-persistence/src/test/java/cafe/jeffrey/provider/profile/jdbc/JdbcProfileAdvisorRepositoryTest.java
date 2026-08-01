@@ -48,7 +48,7 @@ class JdbcProfileAdvisorRepositoryTest {
         repository.upsertPrompt(
                 new AdvisorPromptRow(CPU, "CPU", 1_000L, "# markdown", "[]", WHEN));
         repository.upsertRecommendation(
-                new AdvisorRecommendationRow(CPU, "HIGH", "report", "abc123", 100L, 200L, 0.42, WHEN));
+                new AdvisorRecommendationRow(CPU, "HIGH", "report", "abc123", WHEN));
         repository.replaceClaims(CPU, List.of(
                 new AdvisorClaimRow(CPU, "Hot lookup", "RateTable.lookup", "RateTable.java",
                         true, true, 21.5, 30.0, WHEN)));

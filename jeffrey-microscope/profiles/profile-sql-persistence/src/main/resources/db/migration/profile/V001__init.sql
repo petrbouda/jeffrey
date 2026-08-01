@@ -150,9 +150,6 @@ CREATE TABLE IF NOT EXISTS advisor_recommendations
     severity        VARCHAR     NOT NULL DEFAULT 'LOW',
     recommendations VARCHAR     NOT NULL,
     source_ref      VARCHAR,
-    input_tokens    BIGINT      NOT NULL DEFAULT 0,
-    output_tokens   BIGINT      NOT NULL DEFAULT 0,
-    cost_usd        DOUBLE,
     generated_at    TIMESTAMPTZ NOT NULL
 );
 

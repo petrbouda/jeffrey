@@ -93,13 +93,13 @@ public final class SpringAiChatBackend implements AiChatBackend {
     @Override
     public ToolCallResult analyze(ToolExchange exchange) {
         ToolCallingChatSession session = new ToolCallingChatSession(chatClient, exchange.spanName());
-        ToolCallingChatSession.CallOutcome outcome = session.callWithUsage(
+        String text = session.call(
                 exchange.systemPrompt(),
                 exchange.history(),
                 exchange.userMessage(),
                 exchange.toolBinding().springAiTools());
         // Spring AI does not surface invoked tool names through its high-level ChatClient API.
-        return new ToolCallResult(outcome.text(), List.of(), outcome.usage());
+        return new ToolCallResult(text, List.of());
     }
 
     private static List<Message> buildMessages(List<ChatMessage> history, String userMessage) {

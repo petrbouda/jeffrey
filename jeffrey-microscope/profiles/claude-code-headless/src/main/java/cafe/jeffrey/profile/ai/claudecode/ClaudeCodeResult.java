@@ -18,8 +18,6 @@
 
 package cafe.jeffrey.profile.ai.claudecode;
 
-import cafe.jeffrey.profile.ai.chat.TokenUsage;
-
 import java.util.List;
 
 /**
@@ -28,24 +26,17 @@ import java.util.List;
  * @param text      the assistant's final text (the {@code result} event), or an error message
  * @param error     true when the CLI reported a failure (non-zero exit or {@code is_error})
  * @param toolsUsed the names of tools the model invoked during the turn (never null)
- * @param usage     token counts and settled cost from the terminal {@code result} event
  */
 public record ClaudeCodeResult(
         String text,
         boolean error,
-        List<String> toolsUsed,
-        TokenUsage usage
+        List<String> toolsUsed
 ) {
     public ClaudeCodeResult {
         toolsUsed = toolsUsed == null ? List.of() : List.copyOf(toolsUsed);
-        usage = usage == null ? TokenUsage.unknown() : usage;
-    }
-
-    public static ClaudeCodeResult success(String text, List<String> toolsUsed) {
-        return new ClaudeCodeResult(text, false, toolsUsed, TokenUsage.unknown());
     }
 
     public static ClaudeCodeResult failure(String message) {
-        return new ClaudeCodeResult(message, true, List.of(), TokenUsage.unknown());
+        return new ClaudeCodeResult(message, true, List.of());
     }
 }

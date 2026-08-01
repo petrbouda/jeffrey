@@ -65,24 +65,19 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
 
     //language=SQL
     private static final String FIND_RECOMMENDATIONS = """
-            SELECT event_type, severity, recommendations, source_ref,
-                   input_tokens, output_tokens, cost_usd, generated_at
+            SELECT event_type, severity, recommendations, source_ref, generated_at
             FROM advisor_recommendations
             ORDER BY event_type""";
 
     //language=SQL
     private static final String UPSERT_RECOMMENDATION = """
             INSERT INTO advisor_recommendations (event_type, severity, recommendations,
-                                                 source_ref, input_tokens, output_tokens, cost_usd, generated_at)
-            VALUES (:event_type, :severity, :recommendations,
-                    :source_ref, :input_tokens, :output_tokens, :cost_usd, :generated_at)
+                                                 source_ref, generated_at)
+            VALUES (:event_type, :severity, :recommendations, :source_ref, :generated_at)
             ON CONFLICT (event_type) DO UPDATE SET
                 severity = EXCLUDED.severity,
                 recommendations = EXCLUDED.recommendations,
                 source_ref = EXCLUDED.source_ref,
-                input_tokens = EXCLUDED.input_tokens,
-                output_tokens = EXCLUDED.output_tokens,
-                cost_usd = EXCLUDED.cost_usd,
                 generated_at = EXCLUDED.generated_at""";
 
     //language=SQL
@@ -159,9 +154,6 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
                 .addValue("severity", recommendation.severity())
                 .addValue("recommendations", recommendation.recommendations())
                 .addValue("source_ref", recommendation.sourceRef())
-                .addValue("input_tokens", recommendation.inputTokens())
-                .addValue("output_tokens", recommendation.outputTokens())
-                .addValue("cost_usd", recommendation.costUsd())
                 .addValue("generated_at", Timestamp.from(recommendation.generatedAt()));
 
         databaseClient.insert(StatementLabel.UPSERT_ADVISOR_RECOMMENDATION, UPSERT_RECOMMENDATION, params);
@@ -221,9 +213,6 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
                 rs.getString("severity"),
                 rs.getString("recommendations"),
                 rs.getString("source_ref"),
-                rs.getLong("input_tokens"),
-                rs.getLong("output_tokens"),
-                nullableDouble(rs, "cost_usd"),
                 instant(rs, "generated_at"));
     }
 
@@ -243,10 +232,5 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
     private static Instant instant(ResultSet rs, String column) throws SQLException {
         Timestamp timestamp = rs.getTimestamp(column);
         return timestamp == null ? null : timestamp.toInstant();
-    }
-
-    private static Double nullableDouble(ResultSet rs, String column) throws SQLException {
-        double value = rs.getDouble(column);
-        return rs.wasNull() ? null : value;
     }
 }

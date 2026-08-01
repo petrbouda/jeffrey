@@ -20,7 +20,6 @@ package cafe.jeffrey.profile.ai.claudecode;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.profile.ai.chat.TokenUsage;
 import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.JsonNode;
 
@@ -45,18 +44,10 @@ final class ClaudeCodeOutputParser {
     private static final String CONTENT_TYPE_TOOL_USE = "tool_use";
     private static final String RESULT_SUBTYPE_SUCCESS = "success";
 
-    private static final String FIELD_USAGE = "usage";
-    private static final String FIELD_INPUT_TOKENS = "input_tokens";
-    private static final String FIELD_OUTPUT_TOKENS = "output_tokens";
-    private static final String FIELD_CACHE_READ_TOKENS = "cache_read_input_tokens";
-    private static final String FIELD_CACHE_CREATION_TOKENS = "cache_creation_input_tokens";
-    private static final String FIELD_TOTAL_COST_USD = "total_cost_usd";
-
     ClaudeCodeResult parse(List<String> lines) {
         Set<String> toolsUsed = new LinkedHashSet<>();
         String resultText = "";
         boolean error = false;
-        TokenUsage usage = TokenUsage.unknown();
 
         for (String line : lines) {
             if (line.isBlank()) {
@@ -78,7 +69,6 @@ final class ClaudeCodeOutputParser {
                     resultText = node.path(EVENT_TYPE_RESULT).asString("");
                     error = node.path("is_error").asBoolean(false)
                             || !RESULT_SUBTYPE_SUCCESS.equals(node.path("subtype").asString(RESULT_SUBTYPE_SUCCESS));
-                    usage = parseUsage(node);
                 }
                 default -> {
                     // system/init and other events carry no result text or tool usage.
@@ -89,29 +79,7 @@ final class ClaudeCodeOutputParser {
         if (resultText.isBlank() && error) {
             return ClaudeCodeResult.failure("Claude Code reported an error without a textual result.");
         }
-        return new ClaudeCodeResult(resultText, error, List.copyOf(toolsUsed), usage);
-    }
-
-    /**
-     * Reads the accounting the CLI attaches to its terminal event. Cache reads and cache writes are
-     * folded into the input side because they are input tokens as far as the operator's bill is
-     * concerned, and separating them here would imply a precision the summary view does not have.
-     */
-    private static TokenUsage parseUsage(JsonNode resultEvent) {
-        JsonNode usage = resultEvent.path(FIELD_USAGE);
-        if (usage.isMissingNode()) {
-            return TokenUsage.unknown();
-        }
-
-        long inputTokens = usage.path(FIELD_INPUT_TOKENS).asLong(0)
-                + usage.path(FIELD_CACHE_READ_TOKENS).asLong(0)
-                + usage.path(FIELD_CACHE_CREATION_TOKENS).asLong(0);
-        long outputTokens = usage.path(FIELD_OUTPUT_TOKENS).asLong(0);
-
-        JsonNode cost = resultEvent.path(FIELD_TOTAL_COST_USD);
-        Double costUsd = cost.isNumber() ? cost.asDouble() : null;
-
-        return new TokenUsage(inputTokens, outputTokens, costUsd);
+        return new ClaudeCodeResult(resultText, error, List.copyOf(toolsUsed));
     }
 
     private static void collectAssistantToolUses(JsonNode assistantEvent, Set<String> toolsUsed) {

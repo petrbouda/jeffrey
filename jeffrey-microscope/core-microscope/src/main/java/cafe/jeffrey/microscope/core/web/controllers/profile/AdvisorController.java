@@ -105,9 +105,6 @@ public class AdvisorController {
             String severity,
             String recommendations,
             String sourceRef,
-            long inputTokens,
-            long outputTokens,
-            Double costUsd,
             long generatedAt,
             List<ClaimResponse> claims) {
     }
@@ -298,9 +295,6 @@ public class AdvisorController {
                 row.severity(),
                 row.recommendations(),
                 row.sourceRef(),
-                row.inputTokens(),
-                row.outputTokens(),
-                row.costUsd(),
                 row.generatedAt().toEpochMilli(),
                 claims);
     }
