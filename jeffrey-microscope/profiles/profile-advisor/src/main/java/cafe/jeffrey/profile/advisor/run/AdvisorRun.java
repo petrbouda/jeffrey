@@ -24,6 +24,7 @@ import cafe.jeffrey.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.profile.common.pipeline.StageProgress;
 import cafe.jeffrey.profile.common.pipeline.StageStatus;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -95,9 +96,14 @@ public final class AdvisorRun implements AdvisorProgressSink {
                 status,
                 status.message(),
                 progress.errorMessage(),
-                run.startedAt(),
-                run.completedAt(),
+                toEpochMilli(run.startedAt()),
+                toEpochMilli(run.completedAt()),
                 progress.stages().stream().map(AdvisorRun::toStep).toList());
+    }
+
+    /** Timestamps cross the wire as UTC epoch millis — an Instant would serialize as an ISO string. */
+    private static Long toEpochMilli(Instant instant) {
+        return instant == null ? null : instant.toEpochMilli();
     }
 
     /**

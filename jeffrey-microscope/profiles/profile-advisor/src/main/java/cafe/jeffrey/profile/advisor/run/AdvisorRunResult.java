@@ -40,14 +40,14 @@ import java.util.function.Function;
  * @param totalElapsedMs the wall-clock time from the first type starting to the last one finishing
  * @param completedTypes how many types produced findings
  * @param totalTypes     how many types were analyzed
- * @param completedAt    when the batch finished
+ * @param completedAt    when the batch finished, as UTC epoch millis
  * @param types          the per-type breakdown
  */
 public record AdvisorRunResult(
         long totalElapsedMs,
         int completedTypes,
         int totalTypes,
-        Instant completedAt,
+        Long completedAt,
         List<AdvisorTypeResult> types) {
 
     public AdvisorRunResult {
@@ -76,7 +76,10 @@ public record AdvisorRunResult(
                 ? Duration.between(startedAt, completedAt).toMillis()
                 : 0L;
 
-        return new AdvisorRunResult(totalElapsedMs, completedTypes, types.size(), completedAt, types);
+        // Epoch millis on the wire: an Instant field would serialize as an ISO string, which the
+        // frontend's timestamp rules forbid.
+        Long completedAtMillis = completedAt == null ? null : completedAt.toEpochMilli();
+        return new AdvisorRunResult(totalElapsedMs, completedTypes, types.size(), completedAtMillis, types);
     }
 
     private static AdvisorTypeResult toTypeResult(PipelineRunResult run) {

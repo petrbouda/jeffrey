@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.profile.advisor.run;
 
-import java.time.Instant;
 import java.util.List;
 
 /**
@@ -45,8 +44,8 @@ public record BatchAdvisorProgress(
         int done,
         int total,
         int pct,
-        Instant startedAt,
-        Instant completedAt,
+        Long startedAt,
+        Long completedAt,
         List<AdvisorProgress> types) {
 
     public BatchAdvisorProgress {

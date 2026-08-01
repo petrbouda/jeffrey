@@ -239,14 +239,16 @@ public class AdvisorController {
      */
     @PostMapping("/delete-results")
     public void deleteResults(@PathVariable("profileId") String profileId) {
-        if (advisorRunner.batchProgress(profileId).isRunning()) {
+        // forget() is the guard, not a separate isRunning check: it refuses atomically inside the
+        // runner's own map, so a run starting between a check and the wipe cannot be deleted out from
+        // under and left executing invisibly.
+        if (!advisorRunner.forget(profileId)) {
             throw Exceptions.invalidRequest(
                     "An advisor run is in progress for this profile. Cancel it before clearing results.");
         }
 
         advisorRepository(profileId).deleteAll();
         pipelineRunRepository(profileId).deleteAll(AdvisorStages.PIPELINE_ID);
-        advisorRunner.forget(profileId);
     }
 
     private ProfileAdvisorRepository advisorRepository(String profileId) {

@@ -20,7 +20,6 @@ package cafe.jeffrey.profile.advisor.run;
 
 import cafe.jeffrey.profile.common.pipeline.PipelineRunResult;
 
-import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -133,18 +132,18 @@ public class BatchAdvisorRun {
         return progress.status() != null && progress.status().isTerminal();
     }
 
-    private static Instant earliestStart(List<AdvisorProgress> types) {
+    private static Long earliestStart(List<AdvisorProgress> types) {
         return types.stream()
                 .map(AdvisorProgress::startedAt)
-                .filter(instant -> instant != null)
+                .filter(startedAt -> startedAt != null)
                 .min(Comparator.naturalOrder())
                 .orElse(null);
     }
 
-    private static Instant latestCompletion(List<AdvisorProgress> types) {
+    private static Long latestCompletion(List<AdvisorProgress> types) {
         return types.stream()
                 .map(AdvisorProgress::completedAt)
-                .filter(instant -> instant != null)
+                .filter(completedAt -> completedAt != null)
                 .max(Comparator.naturalOrder())
                 .orElse(null);
     }

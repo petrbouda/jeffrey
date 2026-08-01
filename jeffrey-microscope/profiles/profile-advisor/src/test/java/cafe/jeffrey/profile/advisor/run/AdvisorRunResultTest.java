@@ -86,6 +86,6 @@ class AdvisorRunResultTest {
         AdvisorRunResult result = AdvisorRunResult.from(List.of(first, second));
 
         assertEquals(14000L, result.totalElapsedMs());
-        assertEquals(END, result.completedAt());
+        assertEquals(END.toEpochMilli(), result.completedAt());
     }
 }

@@ -137,7 +137,7 @@ export interface AdvisorRunResult {
   totalElapsedMs: number;
   completedTypes: number;
   totalTypes: number;
-  /** ISO-8601 timestamp (serialised from java.time.Instant). */
-  completedAt: string;
+  /** UTC epoch millis, or null when no run finished. */
+  completedAt: number | null;
   types: AdvisorTypeResult[];
 }

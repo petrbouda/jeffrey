@@ -20,7 +20,6 @@ package cafe.jeffrey.profile.advisor.run;
 
 import java.util.List;
 
-import java.time.Instant;
 
 /**
  * An immutable snapshot of one event type's advisor run, polled by the UI.
@@ -39,8 +38,8 @@ public record AdvisorProgress(
         AdvisorStatus status,
         String message,
         String errorMessage,
-        Instant startedAt,
-        Instant completedAt,
+        Long startedAt,
+        Long completedAt,
         List<AdvisorStepProgress> steps) {
 
     private static final String IDLE_MESSAGE = "No advisor run has been started for this profile";

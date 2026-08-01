@@ -22,8 +22,6 @@ import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.advisor.prompt.AdvisorPromptManagerFactory;
 import cafe.jeffrey.profile.advisor.run.AdvisorRunner;
 import cafe.jeffrey.profile.advisor.run.AdvisorStages;
-import cafe.jeffrey.profile.advisor.run.BatchAdvisorProgress;
-import cafe.jeffrey.profile.advisor.run.BatchStatus;
 import cafe.jeffrey.profile.advisor.settings.AdvisorSettingsResolver;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
@@ -41,7 +39,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
 import javax.sql.DataSource;
-import java.util.List;
 
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -97,10 +94,6 @@ class AdvisorControllerTest {
                 databaseManagerResolver, persistenceProvider);
     }
 
-    private static BatchAdvisorProgress batch(BatchStatus status) {
-        return new BatchAdvisorProgress(PROFILE_ID, status, 0, 1, 0, null, null, List.of());
-    }
-
     private void profileResolves() {
         when(resolver.resolve(PROFILE_ID)).thenReturn(profileManager);
         when(profileManager.info()).thenReturn(profileInfo);
@@ -113,9 +106,9 @@ class AdvisorControllerTest {
     class DeleteResults {
 
         @Test
-        @DisplayName("drops the stored artifacts, the kept timeline and the remembered batch")
+        @DisplayName("forgets the batch first, then drops the stored artifacts and the kept timeline")
         void clearsEverythingDerived() {
-            when(advisorRunner.batchProgress(PROFILE_ID)).thenReturn(batch(BatchStatus.COMPLETED));
+            when(advisorRunner.forget(PROFILE_ID)).thenReturn(true);
             profileResolves();
             when(repositories.newAdvisorRepository(profileDb)).thenReturn(advisorRepository);
             when(repositories.newPipelineRunRepository(profileDb)).thenReturn(pipelineRunRepository);
@@ -126,14 +119,12 @@ class AdvisorControllerTest {
 
             verify(advisorRepository).deleteAll();
             verify(pipelineRunRepository).deleteAll(AdvisorStages.PIPELINE_ID);
-            // Without this the finished batch would outlive its results and keep reporting COMPLETED.
-            verify(advisorRunner).forget(PROFILE_ID);
         }
 
         @Test
-        @DisplayName("refuses while a run is in flight, rather than being overwritten moments later")
+        @DisplayName("refuses while a run is in flight — forget is the atomic guard, so nothing is wiped")
         void refusesWhileRunning() {
-            when(advisorRunner.batchProgress(PROFILE_ID)).thenReturn(batch(BatchStatus.RUNNING));
+            when(advisorRunner.forget(PROFILE_ID)).thenReturn(false);
 
             MockMvcTester mvc = mockMvcTesterFor(controller());
 
@@ -144,20 +135,6 @@ class AdvisorControllerTest {
 
             verify(advisorRepository, never()).deleteAll();
             verify(pipelineRunRepository, never()).deleteAll(any());
-            verify(advisorRunner, never()).forget(any());
-        }
-
-        @Test
-        @DisplayName("refuses while a run is merely queued, before any type has started")
-        void refusesWhileQueued() {
-            when(advisorRunner.batchProgress(PROFILE_ID)).thenReturn(batch(BatchStatus.QUEUED));
-
-            MockMvcTester mvc = mockMvcTesterFor(controller());
-
-            assertThat(mvc.post().uri("/api/internal/profiles/p-1/advisor/delete-results"))
-                    .hasStatus(400);
-
-            verify(advisorRunner, never()).forget(any());
         }
     }
 }

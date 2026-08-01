@@ -106,18 +106,28 @@ public class AdvisorRunner {
     }
 
     /**
-     * Forgets the remembered batch for a profile, so progress reads as "never run" again.
+     * Forgets the remembered batch for a profile, so progress reads as "never run" again — unless the
+     * batch is still in flight, in which case nothing happens and {@code false} comes back.
      *
      * <p>Needed when the profile's stored results are deleted: the finished batch would otherwise
-     * survive its TTL and keep answering {@code COMPLETED} for a profile that now has nothing to show,
-     * which reads as a successful run whose findings vanished.</p>
+     * survive and keep answering {@code COMPLETED} for a profile that now has nothing to show, which
+     * reads as a successful run whose findings vanished.</p>
      *
-     * <p>A batch still in flight is left alone — the caller is expected to refuse in that case rather
-     * than delete out from under a run that is about to write its rows back.</p>
+     * <p>The running check lives inside the map operation rather than at the caller, because the caller
+     * cannot make check-then-forget atomic — a run started between the two would be deleted out from
+     * under, keep executing invisibly, and let a second batch start for the same profile.</p>
+     *
+     * @return true when the batch was forgotten (or none existed), false when one is still running
      */
-    public void forget(String profileId) {
-        batchesByProfileId.remove(profileId);
+    public boolean forget(String profileId) {
+        BatchAdvisorRun kept = batchesByProfileId.computeIfPresent(
+                profileId, (_, batch) -> batch.isRunning() ? batch : null);
+        if (kept != null) {
+            LOG.debug("Refused to forget a running advisor batch: profile_id={}", profileId);
+            return false;
+        }
         LOG.info("Forgot advisor batch: profile_id={}", profileId);
+        return true;
     }
 
     public boolean cancel(String profileId) {
@@ -140,7 +150,7 @@ public class AdvisorRunner {
     private void startType(ProfileInfo profile, BatchAdvisorRun batch, AdvisorTarget target) {
         AdvisorRunKey key = AdvisorRunKey.of(target);
 
-        registry.start(new PipelineRunRequest<>(
+        boolean started = registry.start(new PipelineRunRequest<>(
                 key,
                 target.eventType(),
                 run -> {
@@ -152,6 +162,14 @@ public class AdvisorRunner {
                     batch.record(target, result);
                     persistIfComplete(profile, batch);
                 }));
+
+        // Should be impossible — the one-batch-per-profile guard means no run of ours is in flight for
+        // this key. If it happens anyway, the stale run's onFinished points at the old batch, so this
+        // batch will never record the type and never persist; say so instead of failing silently.
+        if (!started) {
+            LOG.warn("Event type already had a run in flight, batch will not persist: "
+                    + "profile_id={} event_type={}", profile.id(), target.eventType());
+        }
 
         registry.find(key).ifPresent(run -> batch.attach(new AdvisorRun(target, run)));
     }
