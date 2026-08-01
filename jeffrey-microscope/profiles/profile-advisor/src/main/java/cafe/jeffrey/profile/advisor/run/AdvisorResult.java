@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.profile.advisor.run;
 
-import cafe.jeffrey.profile.ai.chat.TokenUsage;
 import cafe.jeffrey.shared.common.model.Severity;
 
 import java.util.List;
@@ -26,18 +25,16 @@ import java.util.List;
 /**
  * The artifacts an advisor run produces, after each has been grounded against evidence: the
  * {@code severity} Jeffrey computed from the measured profile, the human-readable
- * {@code recommendations} markdown (analysis + rationale, no diffs), the {@code claims} the report
- * rests on with their grounding verdicts, and what the run consumed.
+ * {@code recommendations} markdown (analysis + rationale, no diffs), and the {@code claims} the
+ * report rests on with their grounding verdicts.
  */
 public record AdvisorResult(
         Severity severity,
         String recommendations,
-        List<GroundedClaim> claims,
-        TokenUsage usage) {
+        List<GroundedClaim> claims) {
 
     public AdvisorResult {
         claims = claims == null ? List.of() : List.copyOf(claims);
-        usage = usage == null ? TokenUsage.unknown() : usage;
     }
 
     public long groundedClaimCount() {

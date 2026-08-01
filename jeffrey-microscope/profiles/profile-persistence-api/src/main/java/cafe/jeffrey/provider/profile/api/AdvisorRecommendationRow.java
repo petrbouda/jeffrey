@@ -28,9 +28,6 @@ import java.time.Instant;
  * @param severity         the computed severity name
  * @param recommendations  the report markdown
  * @param sourceRef        the commit the source tree was on, or null when it was not a git checkout
- * @param inputTokens      tokens consumed on the input side
- * @param outputTokens     tokens generated
- * @param costUsd          the provider's own cost figure, or null when it reports none
  * @param generatedAt      when the run completed
  */
 public record AdvisorRecommendationRow(
@@ -38,8 +35,5 @@ public record AdvisorRecommendationRow(
         String severity,
         String recommendations,
         String sourceRef,
-        long inputTokens,
-        long outputTokens,
-        Double costUsd,
         Instant generatedAt) {
 }

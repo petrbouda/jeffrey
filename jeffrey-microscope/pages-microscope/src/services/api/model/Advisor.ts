@@ -44,9 +44,6 @@ export interface AdvisorRecommendation {
   severity: Severity;
   recommendations: string;
   sourceRef: string | null;
-  inputTokens: number;
-  outputTokens: number;
-  costUsd: number | null;
   generatedAt: number;
   claims: AdvisorClaim[];
 }

@@ -71,7 +71,6 @@
           <span class="meta-item">
             {{ FormattingService.formatTimestamp(selectedRecommendation.generatedAt) }}
           </span>
-          <span class="meta-item">{{ usageLabel }}</span>
           <span class="meta-item source-ref">{{ sourceRefLabel }}</span>
         </div>
 
@@ -150,15 +149,6 @@ const overviewPath = computed(() => `/profiles/${profileId}/advisor`);
 
 const labelFor = (code: string): string =>
   eventTypes.value.find(type => type.eventType === code)?.label ?? code;
-
-const usageLabel = computed(() => {
-  const result = selectedRecommendation.value;
-  if (!result) {
-    return '';
-  }
-  const tokens = `${FormattingService.formatNumber(result.inputTokens + result.outputTokens)} tokens`;
-  return result.costUsd == null ? tokens : `${tokens} · $${result.costUsd.toFixed(2)}`;
-});
 
 const sourceRefLabel = computed(() => {
   const ref = selectedRecommendation.value?.sourceRef;
