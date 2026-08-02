@@ -25,7 +25,7 @@ import { eventTypeDescription } from '@/views/profiles/detail/advisor/eventTypeS
 
 /**
  * Maps the Advisor's per-type run data onto the generic ProcessingTimeline shape: each event type is a
- * phase, its five pipeline stages are the steps. Steps are keyed `<eventType>::<stage>` so live progress
+ * phase, its four pipeline stages are the steps. Steps are keyed `<eventType>::<stage>` so live progress
  * and the persisted result render through the same shared component.
  */
 
@@ -33,13 +33,12 @@ const STEP_ORDER = [
   'PREPARING_PROMPT',
   'RESOLVING_SOURCE',
   'REVIEWING',
-  'VERIFYING',
   'BUILDING_PATCH'
 ] as const;
 
 /**
- * The label is what fits in a step row; the description is the hover text, because "what does Verify
- * actually check" is a fair question and the row has no room to answer it.
+ * The label is what fits in a step row; the description is the hover text, because "what does Patch
+ * actually do" is a fair question and the row has no room to answer it.
  */
 const STEP_INFO: Record<string, { label: string; description: string }> = {
   PREPARING_PROMPT: {
@@ -53,14 +52,9 @@ const STEP_INFO: Record<string, { label: string; description: string }> = {
   REVIEWING: {
     label: 'Review',
     description:
-      'The model reads your source through read-only tools and writes the recommendations. '
-      + 'This is the only step that calls the AI, so it dominates the run time.'
-  },
-  VERIFYING: {
-    label: 'Verify',
-    description:
-      'Checks every frame the model cited against the measured call tree, and every source path '
-      + 'against the checkout. Anything that does not match is kept but marked unverified.'
+      'The model reads your source through read-only tools and writes the recommendations, which '
+      + 'are then split from its answer. This is the only step that calls the AI, so it dominates '
+      + 'the run time.'
   },
   BUILDING_PATCH: {
     label: 'Patch',

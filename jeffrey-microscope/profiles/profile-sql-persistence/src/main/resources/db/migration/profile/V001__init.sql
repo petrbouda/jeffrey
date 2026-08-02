@@ -124,56 +124,38 @@ CREATE TABLE IF NOT EXISTS profile_info
 
 --
 -- ADVISOR PROMPTS TABLE
--- One AI prompt per sample event type: the markdown the model reads, plus `frame_index`, the same
--- call tree in JSON. The index is cached rather than rebuilt because grounding a claim, grading
--- severity and comparing two profiles must all read the numbers the model was actually shown — a
--- rebuild at a different threshold would answer a subtly different question.
+-- One AI prompt per sample event type. `prompt` is the complete user message as the model receives
+-- it, composed when the prompt is generated rather than at run time, so the run sends it verbatim and
+-- the Advisor's Prompt page shows exactly what was asked. `dominant_self_pct` is the heaviest
+-- method's measured self share of the profile — the number severity is graded from.
 --
 CREATE TABLE IF NOT EXISTS advisor_prompts
 (
-    event_type   VARCHAR     NOT NULL PRIMARY KEY,
-    label        VARCHAR     NOT NULL,
-    samples      BIGINT      NOT NULL,
-    markdown     VARCHAR     NOT NULL,
-    frame_index  VARCHAR,
-    generated_at TIMESTAMPTZ NOT NULL
+    event_type        VARCHAR     NOT NULL PRIMARY KEY,
+    label             VARCHAR     NOT NULL,
+    samples           BIGINT      NOT NULL,
+    prompt            VARCHAR     NOT NULL,
+    dominant_self_pct DOUBLE      NOT NULL DEFAULT 0,
+    generated_at      TIMESTAMPTZ NOT NULL
 );
 
 --
 -- ADVISOR RECOMMENDATIONS TABLE
 -- One advisor result per sample event type. `severity` is computed by Jeffrey from the measured
--- profile, never graded by the model. `patch` is the unified diff the model proposed, already
+-- profile, never graded by the model, and `dominant_self_pct` is the number it was computed from —
+-- pinned here rather than read back from the prompt, which can be regenerated on its own, so a grade
+-- stays explainable by the run that made it. `patch` is the unified diff the model proposed, already
 -- repaired by UnifiedDiffNormalizer so `git apply` accepts it; NULL when it proposed no code edit.
 --
 CREATE TABLE IF NOT EXISTS advisor_recommendations
 (
-    event_type      VARCHAR     NOT NULL PRIMARY KEY,
-    severity        VARCHAR     NOT NULL DEFAULT 'LOW',
-    recommendations VARCHAR     NOT NULL,
-    patch           VARCHAR,
-    source_ref      VARCHAR,
-    generated_at    TIMESTAMPTZ NOT NULL
-);
-
---
--- ADVISOR CLAIMS TABLE
--- One row per citation a recommendation rests on, after it has been checked against the measured
--- call tree and the source tree. Stored structurally rather than left inside the markdown because a
--- free-text report cannot be aggregated, a frame can. `grounded` is false when the cited frame does
--- not appear in the profile at all; such a claim is shown to the user, clearly marked, and excluded
--- from severity.
---
-CREATE TABLE IF NOT EXISTS advisor_claims
-(
-    event_type   VARCHAR     NOT NULL,
-    title        VARCHAR     NOT NULL,
-    cited_frame  VARCHAR     NOT NULL,
-    source_path  VARCHAR,
-    grounded     BOOLEAN     NOT NULL DEFAULT false,
-    source_found BOOLEAN     NOT NULL DEFAULT false,
-    self_pct     DOUBLE      NOT NULL DEFAULT 0,
-    total_pct    DOUBLE      NOT NULL DEFAULT 0,
-    generated_at TIMESTAMPTZ NOT NULL
+    event_type        VARCHAR     NOT NULL PRIMARY KEY,
+    severity          VARCHAR     NOT NULL DEFAULT 'LOW',
+    dominant_self_pct DOUBLE      NOT NULL DEFAULT 0,
+    recommendations   VARCHAR     NOT NULL,
+    patch             VARCHAR,
+    source_ref        VARCHAR,
+    generated_at      TIMESTAMPTZ NOT NULL
 );
 
 --

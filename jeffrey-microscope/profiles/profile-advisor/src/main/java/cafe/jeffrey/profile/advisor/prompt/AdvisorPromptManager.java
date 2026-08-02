@@ -29,7 +29,6 @@ import cafe.jeffrey.provider.profile.api.ProfileAdvisorRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 import cafe.jeffrey.shared.common.GraphType;
-import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.EventSummary;
 import cafe.jeffrey.shared.common.model.ProfilingStartEnd;
@@ -50,9 +49,11 @@ import java.util.Optional;
  * and the markdown is byte-for-byte what "Copy for AI" produces. The prompt is therefore a projection
  * of data that already exists, not a second parse of the recording that could disagree with the first.</p>
  *
- * <p>Alongside the markdown, the flattened {@link ProfileFrameIndex} is cached. Grounding a claim,
- * grading severity and comparing two profiles must all read the numbers the model was actually shown;
- * rebuilding the index later at a different prune threshold would answer a subtly different question.</p>
+ * <p>What is cached is the <em>complete user message</em>, not the markdown alone. Composing it here
+ * rather than at run time makes the prompt a real artifact: the run sends the stored string verbatim,
+ * and the Advisor's Prompt page shows exactly what was asked rather than a reconstruction. Alongside it
+ * the profile's dominant self share is stored, because severity is graded from that number and it
+ * should be the one measured when the prompt was built.</p>
  */
 public class AdvisorPromptManager {
 
@@ -131,25 +132,25 @@ public class AdvisorPromptManager {
                 eventStreamRepository, pruneThresholdPct, new AiExportConfig(pruneThresholdPct));
 
         DbBasedFlamegraphGenerator.AiExport export = generator.generateAiExportWithFrames(parameters(eventType));
-        ProfileFrameIndex frameIndex = ProfileFrameIndexBuilder.build(export.root(), pruneThresholdPct);
 
         AdvisorPrompt prompt = new AdvisorPrompt(
                 promptType.primaryEventType().code(),
                 promptType.label(),
                 export.root().totalSamples(),
-                export.markdown(),
-                frameIndex);
+                AdvisorPrompts.userMessage(promptType.label(), export.markdown()),
+                DominantSelfShare.of(export.root()),
+                clock.instant());
 
         advisorRepository.upsertPrompt(new AdvisorPromptRow(
                 prompt.eventType(),
                 prompt.label(),
                 prompt.samples(),
-                prompt.markdown(),
-                Json.toString(frameIndex),
-                clock.instant()));
+                prompt.prompt(),
+                prompt.dominantSelfPct(),
+                prompt.generatedAt()));
 
-        LOG.info("Generated advisor prompt: prompt_type={} event_type={} total_samples={} indexed_frames={}",
-                promptType.name(), eventType.code(), prompt.samples(), frameIndex.frames().size());
+        LOG.info("Generated advisor prompt: prompt_type={} event_type={} total_samples={} dominant_self_pct={}",
+                promptType.name(), eventType.code(), prompt.samples(), prompt.dominantSelfPct());
         return Optional.of(prompt);
     }
 
@@ -188,26 +189,14 @@ public class AdvisorPromptManager {
                 .build();
     }
 
-    /**
-     * Rebuilds the domain prompt from its stored row. A frame index that cannot be read falls back to
-     * empty rather than to a guess: every claim then reports as ungrounded, which is the honest answer
-     * when Jeffrey no longer knows what the model was shown.
-     */
+    /** Rebuilds the domain prompt from its stored row. */
     private static AdvisorPrompt toPrompt(AdvisorPromptRow row) {
-        ProfileFrameIndex frameIndex = readFrameIndex(row);
-        return new AdvisorPrompt(row.eventType(), row.label(), row.samples(), row.markdown(), frameIndex);
-    }
-
-    private static ProfileFrameIndex readFrameIndex(AdvisorPromptRow row) {
-        if (row.frameIndexJson() == null || row.frameIndexJson().isBlank()) {
-            return ProfileFrameIndex.empty();
-        }
-        try {
-            return Json.read(row.frameIndexJson(), ProfileFrameIndex.class);
-        } catch (RuntimeException e) {
-            LOG.warn("Could not read the cached frame index; claims will report as ungrounded: "
-                    + "event_type={} message={}", row.eventType(), e.getMessage());
-            return ProfileFrameIndex.empty();
-        }
+        return new AdvisorPrompt(
+                row.eventType(),
+                row.label(),
+                row.samples(),
+                row.prompt(),
+                row.dominantSelfPct(),
+                row.generatedAt());
     }
 }

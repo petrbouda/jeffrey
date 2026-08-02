@@ -54,7 +54,7 @@ class AdvisorRunResultTest {
     void aggregatesPerTypeAndPerStepTimings() {
         PipelineRunResult cpu = run("jdk.ExecutionSample", PipelineState.COMPLETED, START,
                 List.of(step("PREPARING_PROMPT", 400), step("RESOLVING_SOURCE", 200),
-                        step("REVIEWING", 8000), step("VERIFYING", 500)));
+                        step("REVIEWING", 8000), step("BUILDING_PATCH", 500)));
         PipelineRunResult blocking = run("jdk.JavaMonitorEnter", PipelineState.FAILED, START,
                 List.of(step("PREPARING_PROMPT", 100),
                         new StageResult("RESOLVING_SOURCE", StageStatus.FAILED, null, null)));

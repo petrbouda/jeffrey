@@ -75,7 +75,7 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `ai-config` — AI configuration for profile analysis
 - `oql-assistant` — OQL AI assistant
 - `duckdb-jfr-mcp`, `duckdb-heapdump-mcp` — MCP servers for AI integration
-- `profile-advisor` — AI recommendations grounded in the profile and a local source folder
+- `profile-advisor` — AI recommendations and patches from the profile and a local source folder
 - `claude-code-headless` — Claude Code (headless) AI backend + reusable MCP tool machinery (`ReflectiveToolset`)
 
 **jeffrey-hub** (`jeffrey-hub/`):

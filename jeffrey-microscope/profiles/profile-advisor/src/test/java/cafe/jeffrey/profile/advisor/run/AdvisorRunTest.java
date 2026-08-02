@@ -85,7 +85,7 @@ class AdvisorRunTest {
         run.reviewing();
         clock.advance(Duration.ofSeconds(8));
 
-        // Mid-analyze: the two finished steps carry durations, Analyze is live, Ground is pending.
+        // Mid-review: the two finished steps carry durations, Review is live, Patch is pending.
         Map<String, AdvisorStepProgress> steps = stepsByName(run);
         assertEquals(AdvisorStepProgress.COMPLETED, steps.get("PREPARING_PROMPT").status());
         assertEquals(400L, steps.get("PREPARING_PROMPT").durationMs());
@@ -93,7 +93,7 @@ class AdvisorRunTest {
         assertEquals(AdvisorStepProgress.IN_PROGRESS, steps.get("REVIEWING").status());
         assertEquals(8000L, steps.get("REVIEWING").elapsedMs());
         assertNull(steps.get("REVIEWING").durationMs());
-        assertEquals(AdvisorStepProgress.PENDING, steps.get("VERIFYING").status());
+        assertEquals(AdvisorStepProgress.PENDING, steps.get("BUILDING_PATCH").status());
     }
 
     @Test
@@ -108,8 +108,6 @@ class AdvisorRunTest {
         clock.advance(Duration.ofMillis(100));
         run.reviewing();
         clock.advance(Duration.ofMillis(5000));
-        run.verifying();
-        clock.advance(Duration.ofMillis(500));
         run.buildingPatch();
         clock.advance(Duration.ofMillis(50));
         run.finish();
@@ -120,7 +118,6 @@ class AdvisorRunTest {
         assertEquals(100L, steps.get("PREPARING_PROMPT").durationMs());
         assertEquals(100L, steps.get("RESOLVING_SOURCE").durationMs());
         assertEquals(5000L, steps.get("REVIEWING").durationMs());
-        assertEquals(500L, steps.get("VERIFYING").durationMs());
         assertEquals(50L, steps.get("BUILDING_PATCH").durationMs());
         steps.values().forEach(step -> assertEquals(AdvisorStepProgress.COMPLETED, step.status()));
     }
@@ -149,8 +146,6 @@ class AdvisorRunTest {
         assertTrue(run.ended(), "the service checks this at every phase boundary");
 
         // The zombie worker finishes its AI call and announces the rest of the pipeline anyway.
-        run.verifying();
-        clock.advance(Duration.ofMillis(3));
         run.buildingPatch();
         clock.advance(Duration.ofMillis(50));
         run.finish();
@@ -158,7 +153,6 @@ class AdvisorRunTest {
         Map<String, AdvisorStepProgress> steps = stepsByName(run);
         assertEquals(100L, steps.get("PREPARING_PROMPT").durationMs());
         assertEquals(AdvisorStepProgress.FAILED, steps.get("REVIEWING").status());
-        assertEquals(AdvisorStepProgress.PENDING, steps.get("VERIFYING").status());
         assertEquals(AdvisorStepProgress.PENDING, steps.get("BUILDING_PATCH").status());
         assertNull(steps.get("BUILDING_PATCH").elapsedMs(), "nothing may still be spinning");
     }
@@ -182,6 +176,6 @@ class AdvisorRunTest {
         assertEquals(150L, steps.get("RESOLVING_SOURCE").durationMs());
         assertEquals(AdvisorStepProgress.FAILED, steps.get("REVIEWING").status());
         assertNull(steps.get("REVIEWING").durationMs());
-        assertEquals(AdvisorStepProgress.PENDING, steps.get("VERIFYING").status());
+        assertEquals(AdvisorStepProgress.PENDING, steps.get("BUILDING_PATCH").status());
     }
 }

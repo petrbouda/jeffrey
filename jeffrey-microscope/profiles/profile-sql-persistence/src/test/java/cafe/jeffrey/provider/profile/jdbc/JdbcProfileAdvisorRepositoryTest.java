@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
-import cafe.jeffrey.provider.profile.api.AdvisorClaimRow;
 import cafe.jeffrey.provider.profile.api.AdvisorPromptRow;
 import cafe.jeffrey.provider.profile.api.AdvisorRecommendationRow;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
@@ -28,7 +27,6 @@ import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
 import java.time.Instant;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -54,14 +52,26 @@ class JdbcProfileAdvisorRepositoryTest {
 
     private static void seed(JdbcProfileAdvisorRepository repository) {
         repository.upsertPrompt(
-                new AdvisorPromptRow(CPU, "CPU", 1_000L, "# markdown", "[]", WHEN));
+                new AdvisorPromptRow(CPU, "CPU", 1_000L, "the user message", 21.5, WHEN));
+        repository.upsertPrompt(
+                new AdvisorPromptRow(ALLOC, "Allocation", 400L, "the user message", 12.0, WHEN));
         repository.upsertRecommendation(
-                new AdvisorRecommendationRow(CPU, "HIGH", "report", PATCH, "abc123", WHEN));
-        repository.replaceClaims(CPU, List.of(
-                new AdvisorClaimRow(CPU, "Hot lookup", "RateTable.lookup", "RateTable.java",
-                        true, true, 21.5, 30.0, WHEN)));
-        repository.replaceClaims(ALLOC, List.of(
-                new AdvisorClaimRow(ALLOC, "Churn", "Parser.parse", null, true, false, 12.0, 18.0, WHEN)));
+                new AdvisorRecommendationRow(CPU, "HIGH", 21.5, "report", PATCH, "abc123", WHEN));
+    }
+
+    @Nested
+    class Prompts {
+
+        @Test
+        void roundTripsThePromptAndTheShareSeverityIsGradedFrom(DataSource dataSource) {
+            JdbcProfileAdvisorRepository repository = repository(dataSource);
+            seed(repository);
+
+            AdvisorPromptRow row = repository.findPrompt(CPU).orElseThrow();
+
+            assertEquals("the user message", row.prompt());
+            assertEquals(21.5, row.dominantSelfPct());
+        }
     }
 
     @Nested
@@ -79,7 +89,7 @@ class JdbcProfileAdvisorRepositoryTest {
         void keepsAMissingPatchNullRatherThanEmpty(DataSource dataSource) {
             JdbcProfileAdvisorRepository repository = repository(dataSource);
             repository.upsertRecommendation(
-                    new AdvisorRecommendationRow(ALLOC, "LOW", "report", null, "abc123", WHEN));
+                    new AdvisorRecommendationRow(ALLOC, "LOW", 1.2, "report", null, "abc123", WHEN));
 
             assertNull(repository.findRecommendations().getFirst().patch());
         }
@@ -90,7 +100,7 @@ class JdbcProfileAdvisorRepositoryTest {
             seed(repository);
 
             repository.upsertRecommendation(
-                    new AdvisorRecommendationRow(CPU, "LOW", "second report", null, "def456", WHEN));
+                    new AdvisorRecommendationRow(CPU, "LOW", 21.5, "second report", null, "def456", WHEN));
 
             assertEquals(1, repository.findRecommendations().size());
             assertNull(repository.findRecommendations().getFirst().patch(),
@@ -102,7 +112,7 @@ class JdbcProfileAdvisorRepositoryTest {
     class DeleteAll {
 
         @Test
-        void dropsPromptsRecommendationsAndClaimsTogether(DataSource dataSource) {
+        void dropsPromptsAndRecommendationsTogether(DataSource dataSource) {
             JdbcProfileAdvisorRepository repository = repository(dataSource);
             seed(repository);
 
@@ -110,18 +120,17 @@ class JdbcProfileAdvisorRepositoryTest {
 
             assertTrue(repository.findPrompts().isEmpty(), "cached prompts must go too");
             assertTrue(repository.findRecommendations().isEmpty());
-            assertTrue(repository.findClaims().isEmpty());
         }
 
         @Test
         void clearsEveryEventTypeRatherThanJustTheFirst(DataSource dataSource) {
             JdbcProfileAdvisorRepository repository = repository(dataSource);
             seed(repository);
-            assertEquals(2, repository.findClaims().size(), "two event types were seeded");
+            assertEquals(2, repository.findPrompts().size(), "two event types were seeded");
 
             repository.deleteAll();
 
-            assertTrue(repository.findClaims().isEmpty());
+            assertTrue(repository.findPrompts().isEmpty());
         }
 
         @Test
@@ -141,7 +150,7 @@ class JdbcProfileAdvisorRepositoryTest {
 
             // Clearing must not leave anything behind that a re-run would collide with.
             repository.upsertPrompt(
-                    new AdvisorPromptRow(CPU, "CPU", 2_000L, "# rebuilt", "[]", WHEN));
+                    new AdvisorPromptRow(CPU, "CPU", 2_000L, "the rebuilt user message", 8.0, WHEN));
 
             assertEquals(1, repository.findPrompts().size());
             assertEquals(2_000L, repository.findPrompts().getFirst().samples());

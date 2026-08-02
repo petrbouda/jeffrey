@@ -30,7 +30,6 @@ module cafe.jeffrey.microscope.profile.advisor {
     requires spring.context;
     requires spring.beans;
     requires spring.core;
-    requires tools.jackson.databind;
     requires java.sql;
     requires org.slf4j;
 

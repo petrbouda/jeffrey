@@ -27,7 +27,7 @@ import java.nio.file.Path;
  * somebody's working copy.
  *
  * <p>{@code resolvedRef} is the commit the folder is currently on, when it is a git checkout at all.
- * Every claim the model makes about this source is only true of that revision, so it travels with the
+ * Everything the model says about this source is only true of that revision, so it travels with the
  * result. When it is unknown, the UI says so rather than implying the source matched the recording —
  * an unverifiable match is worse than an admitted gap.</p>
  *

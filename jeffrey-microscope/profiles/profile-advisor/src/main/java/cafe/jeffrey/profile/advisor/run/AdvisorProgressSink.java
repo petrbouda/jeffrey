@@ -35,10 +35,7 @@ public interface AdvisorProgressSink {
     /** The source folder is ready; the model is reviewing the source. */
     void reviewing();
 
-    /** The model has answered; its cited frames are being checked against the measured call tree. */
-    void verifying();
-
-    /** The claims are settled; the diff the model proposed is being built into an applicable patch. */
+    /** The model has answered; the diff it proposed is being built into an applicable patch. */
     void buildingPatch();
 
     /**

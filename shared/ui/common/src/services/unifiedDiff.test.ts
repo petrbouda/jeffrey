@@ -17,7 +17,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { parseUnifiedDiff, sameFile, splitCitedPath } from './unifiedDiff';
+import { parseUnifiedDiff } from './unifiedDiff';
 
 const PATCH = `diff --git a/src/main/java/Order.java b/src/main/java/Order.java
 --- a/src/main/java/Order.java
@@ -89,45 +89,5 @@ describe('parseUnifiedDiff', () => {
     );
 
     expect(parsed.files[0].path).toBe('src/Gone.java');
-  });
-});
-
-describe('splitCitedPath', () => {
-  it('splits a path with a line suffix', () => {
-    expect(splitCitedPath('src/Order.java:128')).toEqual({ path: 'src/Order.java', line: 128 });
-  });
-
-  it('keeps a path with no line suffix whole', () => {
-    expect(splitCitedPath('src/Order.java')).toEqual({ path: 'src/Order.java', line: null });
-  });
-
-  it('does not treat a non-numeric suffix as a line', () => {
-    expect(splitCitedPath('src/Order.java:count')).toEqual({
-      path: 'src/Order.java:count',
-      line: null
-    });
-  });
-});
-
-describe('sameFile', () => {
-  it('matches identical paths', () => {
-    expect(sameFile('src/Order.java', 'src/Order.java')).toBe(true);
-  });
-
-  it('matches a cited suffix of the diff path', () => {
-    expect(sameFile('server/src/main/java/Order.java', 'main/java/Order.java')).toBe(true);
-  });
-
-  it('only matches on whole segments', () => {
-    expect(sameFile('src/MyOrder.java', 'Order.java')).toBe(false);
-  });
-
-  it('does not match a different file', () => {
-    expect(sameFile('src/Order.java', 'src/Person.java')).toBe(false);
-  });
-
-  it('is false when either side is missing', () => {
-    expect(sameFile(null, 'src/Order.java')).toBe(false);
-    expect(sameFile('src/Order.java', null)).toBe(false);
   });
 });

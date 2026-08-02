@@ -18,8 +18,8 @@
 
 /**
  * Parses a unified diff into lines a viewer can render, tracking the real file and line number each
- * line lands on. The line numbers are the point: without them a diff cannot be joined to anything the
- * profiler measured, which is the whole reason Jeffrey renders one.
+ * line lands on. The line numbers are what make a proposed change reviewable: a diff without them is
+ * a wall of text you cannot locate in your own source.
  */
 
 export type DiffLineType = 'add' | 'del' | 'ctx' | 'hunk' | 'meta';
@@ -57,7 +57,7 @@ const NO_NEWLINE_MARKER = '\\';
 const DEV_NULL = '/dev/null';
 
 /**
- * Strips the `a/` or `b/` prefix `git apply -p1` expects, so the path matches what a claim cites.
+ * Strips the `a/` or `b/` prefix `git apply -p1` expects, so the path reads as a repository path.
  */
 function stripPathPrefix(raw: string): string {
   const path = raw.split('\t')[0].trim();
@@ -154,52 +154,4 @@ export function parseUnifiedDiff(patch: string): ParsedDiff {
     added: files.reduce((sum, entry) => sum + entry.added, 0),
     removed: files.reduce((sum, entry) => sum + entry.removed, 0)
   };
-}
-
-/**
- * A measured hotspot a patch can be joined to, already grounded against the profile.
- */
-export interface HeatMark {
-  /** Repository-relative source path the claim cited, without any line suffix. */
-  path: string;
-  /** The line the claim cited, or null when it named only a file. */
-  line: number | null;
-  /** That frame's share of the profile, as a percentage. */
-  pct: number;
-  /** The frame the share belongs to, shown as hover text. */
-  frame: string;
-}
-
-/**
- * Splits a cited `path/To/File.java:128` into its path and line. The line suffix is optional and the
- * model often omits it, so a path with no numeric suffix is returned whole.
- */
-export function splitCitedPath(cited: string): { path: string; line: number | null } {
-  const colon = cited.lastIndexOf(':');
-  if (colon < 0) {
-    return { path: cited.trim(), line: null };
-  }
-  const suffix = cited.slice(colon + 1).trim();
-  if (suffix.length === 0 || !/^\d+$/.test(suffix)) {
-    return { path: cited.trim(), line: null };
-  }
-  return { path: cited.slice(0, colon).trim(), line: Number(suffix) };
-}
-
-/**
- * True when a diff path and a cited source path point at the same file. A claim may cite a shorter
- * suffix of the repository path than the diff carries (or the other way round), so a suffix match on
- * whole path segments is the honest comparison — anything looser would attach a measurement to the
- * wrong file.
- */
-export function sameFile(diffPath: string | null, citedPath: string | null): boolean {
-  if (!diffPath || !citedPath) {
-    return false;
-  }
-  if (diffPath === citedPath) {
-    return true;
-  }
-  const longer = diffPath.length >= citedPath.length ? diffPath : citedPath;
-  const shorter = diffPath.length >= citedPath.length ? citedPath : diffPath;
-  return longer.endsWith(`/${shorter}`);
 }

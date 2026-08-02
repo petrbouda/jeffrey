@@ -104,7 +104,7 @@
           v-if="!isHeapDumpOnlyProfile"
           class="nav-pill"
           :class="{ active: selectedMode === 'Advisor' }"
-          title="AI recommendations grounded in this profile and your source"
+          title="AI recommendations from this profile and your source"
           @click="selectMode('Advisor')"
         >
           <div class="pill-content">

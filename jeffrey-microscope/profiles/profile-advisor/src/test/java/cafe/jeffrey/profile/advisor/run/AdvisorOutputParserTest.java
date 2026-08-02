@@ -47,21 +47,8 @@ class AdvisorOutputParserTest {
         }
 
         @Test
-        void keepsClaimsOutOfTheRecommendations() {
-            String raw = """
-                    ===CLAIMS===
-                    Order.recompute | Order.java | Recompute per row
-                    ===RECOMMENDATIONS===
-                    Real prose only.
-                    """;
-
-            ParsedOutput output = AdvisorOutputParser.parse(raw);
-
-            assertEquals("Real prose only.", output.recommendations());
-        }
-
-        @Test
         void missingRecommendationsMarkerKeepsEverythingAsRecommendations() {
+            // A model that ignored the format should still say something useful rather than nothing.
             String raw = "Just prose, no marker.";
 
             ParsedOutput output = AdvisorOutputParser.parse(raw);
@@ -74,84 +61,7 @@ class AdvisorOutputParserTest {
             ParsedOutput output = AdvisorOutputParser.parse("   ");
 
             assertEquals("", output.recommendations());
-            assertTrue(output.claims().isEmpty());
-        }
-    }
-
-    @Nested
-    class Claims {
-
-        @Test
-        void parsesFrameSourceAndTitle() {
-            String raw = """
-                    ===CLAIMS===
-                    com/acme/RateTable.lookup | src/main/java/com/acme/RateTable.java:88 | Per-line lookup
-                    java/math/BigDecimal.valueOf | src/main/java/com/acme/Rates.java | Boxing on every read
-                    ===RECOMMENDATIONS===
-                    Advice.
-                    """;
-
-            ParsedOutput output = AdvisorOutputParser.parse(raw);
-
-            assertEquals(2, output.claims().size());
-            assertEquals("com/acme/RateTable.lookup", output.claims().getFirst().citedFrame());
-            assertEquals("src/main/java/com/acme/RateTable.java:88", output.claims().getFirst().sourcePath());
-            assertEquals("Per-line lookup", output.claims().getFirst().title());
-        }
-
-        @Test
-        void keepsClaimsOutOfTheRecommendationsMarkdown() {
-            String raw = """
-                    ===CLAIMS===
-                    Foo.bar | Foo.java | Something
-                    ===RECOMMENDATIONS===
-                    ## Summary
-                    Real prose.
-                    """;
-
-            ParsedOutput output = AdvisorOutputParser.parse(raw);
-
-            assertFalse(output.recommendations().contains("Foo.bar |"), "claims must not leak into the report");
-            assertTrue(output.recommendations().contains("Real prose."));
-        }
-
-        @Test
-        void skipsMalformedLinesWithoutLosingTheRest() {
-            String raw = """
-                    ===CLAIMS===
-                    this line has no separator at all
-                    | missing frame | Title
-                    Good.frame | Good.java | Good title
-                    ===RECOMMENDATIONS===
-                    Advice.
-                    """;
-
-            ParsedOutput output = AdvisorOutputParser.parse(raw);
-
-            assertEquals(1, output.claims().size());
-            assertEquals("Good.frame", output.claims().getFirst().citedFrame());
-        }
-
-        @Test
-        void toleratesAMissingSourcePath() {
-            String raw = """
-                    ===CLAIMS===
-                    Only.frame |  | Just a frame
-                    ===RECOMMENDATIONS===
-                    Advice.
-                    """;
-
-            ParsedOutput output = AdvisorOutputParser.parse(raw);
-
-            assertEquals(1, output.claims().size());
-            assertNull(output.claims().getFirst().sourcePath());
-        }
-
-        @Test
-        void returnsNoClaimsWhenTheSectionIsAbsent() {
-            ParsedOutput output = AdvisorOutputParser.parse("===RECOMMENDATIONS===\nAdvice.");
-
-            assertTrue(output.claims().isEmpty());
+            assertFalse(output.hasPatch());
         }
     }
 

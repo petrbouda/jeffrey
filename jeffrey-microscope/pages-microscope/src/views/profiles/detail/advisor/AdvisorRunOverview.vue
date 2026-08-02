@@ -36,7 +36,7 @@
         :steps="liveStepsData"
         :tick-now="now"
         title="Analyzing your profiles"
-        subtitle="One report per event type — grounding every cited frame against the measured call tree."
+        subtitle="One prompt, one report and one patch per event type, built from the measured call tree."
       >
         <template #actions>
           <button type="button" class="btn ghost btn-sm" @click="cancel">

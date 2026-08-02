@@ -38,7 +38,6 @@ import cafe.jeffrey.profile.advisor.run.BatchAdvisorProgress;
 import cafe.jeffrey.profile.advisor.settings.AdvisorSettings;
 import cafe.jeffrey.profile.advisor.settings.AdvisorSettingsResolver;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunResult;
-import cafe.jeffrey.provider.profile.api.AdvisorClaimRow;
 import cafe.jeffrey.provider.profile.api.AdvisorRecommendationRow;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 import cafe.jeffrey.provider.profile.api.PipelineRunRepository;
@@ -63,14 +62,19 @@ import java.util.List;
 public class AdvisorController {
 
     /**
-     * A cached prompt as the browser sees it. The frame index is deliberately omitted: it is large, and
-     * the UI has no use for it — grounding happens server-side against the same copy.
+     * A cached prompt as the browser sees it — the complete user message that was sent, which is what
+     * the Advisor's Prompt page renders.
      */
-    public record PromptResponse(String eventType, String label, long samples, String markdown) {
+    public record PromptResponse(
+            String eventType, String label, long samples, String prompt, long generatedAt) {
 
         static PromptResponse from(AdvisorPrompt prompt) {
             return new PromptResponse(
-                    prompt.eventType(), prompt.label(), prompt.samples(), prompt.markdown());
+                    prompt.eventType(),
+                    prompt.label(),
+                    prompt.samples(),
+                    prompt.prompt(),
+                    prompt.generatedAt().toEpochMilli());
         }
     }
 
@@ -80,35 +84,20 @@ public class AdvisorController {
     public record EventTypeResponse(String eventType, String label) {
     }
 
-    public record ClaimResponse(
-            String eventType,
-            String title,
-            String citedFrame,
-            String sourcePath,
-            boolean grounded,
-            boolean sourceFound,
-            double selfPct,
-            double totalPct) {
-
-        static ClaimResponse from(AdvisorClaimRow claim) {
-            return new ClaimResponse(
-                    claim.eventType(), claim.title(), claim.citedFrame(), claim.sourcePath(),
-                    claim.grounded(), claim.sourceFound(), claim.selfPct(), claim.totalPct());
-        }
-    }
-
     /**
-     * A stored recommendation with the claims behind it. {@code patch} is the proposed unified diff, or
-     * null when the model proposed no code edit — the page shows those two cases differently.
+     * A stored recommendation. {@code dominantSelfPct} is the measured share the {@code severity} was
+     * graded from, sent alongside it so the page can show the number behind the grade. {@code patch} is
+     * the proposed unified diff, or null when the model proposed no code edit — the page shows those
+     * two cases differently.
      */
     public record RecommendationResponse(
             String eventType,
             String severity,
+            double dominantSelfPct,
             String recommendations,
             String patch,
             String sourceRef,
-            long generatedAt,
-            List<ClaimResponse> claims) {
+            long generatedAt) {
     }
 
     /**
@@ -163,7 +152,7 @@ public class AdvisorController {
 
     /**
      * Rebuilds every prompt the profile can produce. This is how a changed prune threshold takes effect,
-     * since the setting only reaches the model through the markdown.
+     * since the setting only reaches the model through the call tree the prompt carries.
      */
     @PostMapping("/prompts")
     public List<PromptResponse> regeneratePrompts(@PathVariable("profileId") String profileId) {
@@ -181,9 +170,8 @@ public class AdvisorController {
         ProfileAdvisorRepository advisorRepository = persistenceProvider.repositories()
                 .newAdvisorRepository(databaseManagerResolver.open(profile));
 
-        List<AdvisorClaimRow> claims = advisorRepository.findClaims();
         return advisorRepository.findRecommendations().stream()
-                .map(row -> toResponse(row, claims))
+                .map(AdvisorController::toResponse)
                 .toList();
     }
 
@@ -223,8 +211,8 @@ public class AdvisorController {
     }
 
     /**
-     * Throws away everything the Advisor has derived for this profile — recommendations, claims, the
-     * cached prompts and the kept run timeline — so the next run starts from nothing. The counterpart
+     * Throws away everything the Advisor has derived for this profile — recommendations, the cached
+     * prompts and the kept run timeline — so the next run starts from nothing. The counterpart
      * of the heap dump's cache deletion, and a POST for the same reason: it is an action, not the
      * removal of the resource the path names.
      *
@@ -284,21 +272,14 @@ public class AdvisorController {
                 : ResponseEntity.notFound().build();
     }
 
-    private static RecommendationResponse toResponse(
-            AdvisorRecommendationRow row, List<AdvisorClaimRow> allClaims) {
-
-        List<ClaimResponse> claims = allClaims.stream()
-                .filter(claim -> claim.eventType().equals(row.eventType()))
-                .map(ClaimResponse::from)
-                .toList();
-
+    private static RecommendationResponse toResponse(AdvisorRecommendationRow row) {
         return new RecommendationResponse(
                 row.eventType(),
                 row.severity(),
+                row.dominantSelfPct(),
                 row.recommendations(),
                 row.patch(),
                 row.sourceRef(),
-                row.generatedAt().toEpochMilli(),
-                claims);
+                row.generatedAt().toEpochMilli());
     }
 }

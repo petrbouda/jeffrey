@@ -25,29 +25,27 @@ export interface AdvisorEventType {
 }
 
 /**
- * A citation a recommendation rests on, after checking. An ungrounded claim is shown rather than
- * hidden — a finding the model could not substantiate is exactly what the reader needs to see.
+ * A cached prompt: the complete user message that was sent to the model for one event type, which is
+ * what the Advisor's Prompt page renders.
  */
-export interface AdvisorClaim {
+export interface AdvisorPrompt {
   eventType: string;
-  title: string;
-  citedFrame: string;
-  sourcePath: string | null;
-  grounded: boolean;
-  sourceFound: boolean;
-  selfPct: number;
-  totalPct: number;
+  label: string;
+  samples: number;
+  prompt: string;
+  generatedAt: number;
 }
 
 export interface AdvisorRecommendation {
   eventType: string;
   severity: Severity;
+  /** The measured self share of the profile's heaviest method — the number severity was graded from. */
+  dominantSelfPct: number;
   recommendations: string;
   /** The proposed unified diff, or null when the model proposed no code edit. */
   patch: string | null;
   sourceRef: string | null;
   generatedAt: number;
-  claims: AdvisorClaim[];
 }
 
 export type AdvisorStatus =
@@ -55,12 +53,11 @@ export type AdvisorStatus =
   | 'PREPARING_PROMPT'
   | 'RESOLVING_SOURCE'
   | 'REVIEWING'
-  | 'VERIFYING'
   | 'BUILDING_PATCH'
   | 'COMPLETED'
   | 'FAILED';
 
-/** The live progress of one timed step (Prompt / Source / Review / Verify / Patch) within a type's run. */
+/** The live progress of one timed step (Prompt / Source / Review / Patch) within a type's run. */
 export interface AdvisorStepProgress {
   step: string;
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
