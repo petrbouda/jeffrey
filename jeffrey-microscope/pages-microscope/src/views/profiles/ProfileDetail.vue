@@ -112,7 +112,7 @@
               <i class="bi bi-lightbulb"></i>
               <span>Advisor</span>
             </div>
-            <small>AI recommendations from your source</small>
+            <small>AI from your source</small>
           </div>
         </div>
         <!-- Heap Dump mode (only when a heap dump is attached; pprof/OTLP profiles have no heap data) -->
