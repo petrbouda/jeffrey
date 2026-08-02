@@ -25,11 +25,17 @@ import { eventTypeDescription } from '@/views/profiles/detail/advisor/eventTypeS
 
 /**
  * Maps the Advisor's per-type run data onto the generic ProcessingTimeline shape: each event type is a
- * phase, its four pipeline stages are the steps. Steps are keyed `<eventType>::<stage>` so live progress
+ * phase, its five pipeline stages are the steps. Steps are keyed `<eventType>::<stage>` so live progress
  * and the persisted result render through the same shared component.
  */
 
-const STEP_ORDER = ['PREPARING_PROMPT', 'RESOLVING_SOURCE', 'REVIEWING', 'VERIFYING'] as const;
+const STEP_ORDER = [
+  'PREPARING_PROMPT',
+  'RESOLVING_SOURCE',
+  'REVIEWING',
+  'VERIFYING',
+  'BUILDING_PATCH'
+] as const;
 
 /**
  * The label is what fits in a step row; the description is the hover text, because "what does Verify
@@ -55,6 +61,12 @@ const STEP_INFO: Record<string, { label: string; description: string }> = {
     description:
       'Checks every frame the model cited against the measured call tree, and every source path '
       + 'against the checkout. Anything that does not match is kept but marked unverified.'
+  },
+  BUILDING_PATCH: {
+    label: 'Patch',
+    description:
+      'Repairs the proposed diff so it applies cleanly and checks the files it touches against the '
+      + 'checkout. Nothing is built for a type where the model proposed no code change.'
   }
 };
 

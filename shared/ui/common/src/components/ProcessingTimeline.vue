@@ -33,6 +33,8 @@
             >{{ overallProgress.done }} / {{ overallProgress.total }} ·
             {{ overallProgress.pct }}%</span
           >
+          <!-- Controls for the run this timeline describes — e.g. Cancel while it is in flight. -->
+          <slot name="actions"></slot>
         </div>
       </div>
       <p v-if="subtitle" class="processing-hint">{{ subtitle }}</p>

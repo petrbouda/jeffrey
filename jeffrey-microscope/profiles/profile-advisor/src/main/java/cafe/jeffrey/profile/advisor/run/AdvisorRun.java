@@ -78,6 +78,16 @@ public final class AdvisorRun implements AdvisorProgressSink {
         run.advanceTo(AdvisorStatus.VERIFYING.name());
     }
 
+    @Override
+    public void buildingPatch() {
+        run.advanceTo(AdvisorStatus.BUILDING_PATCH.name());
+    }
+
+    @Override
+    public boolean ended() {
+        return !run.isRunning();
+    }
+
     /**
      * Closes the last step. The sink only ever says which phase is <em>starting</em>, so without this the
      * final step would keep a running clock forever after the work returned.

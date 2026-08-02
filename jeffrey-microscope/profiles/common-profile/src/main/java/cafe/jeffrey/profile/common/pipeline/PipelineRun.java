@@ -128,7 +128,20 @@ public final class PipelineRun {
      * dump's index build is one atomic operation surfaced as three stages, and it is only able to
      * complete a stage at its real phase boundary because it can call this directly.</p>
      */
-    public void beginStage(String id) {
+    /**
+     * Opens a stage and starts the live timer on it — unless the run has already ended.
+     *
+     * <p>The guard is what stops a cancelled run from coming back to life. Cancellation marks the run
+     * failed and interrupts its worker, but whether the work notices the interrupt is up to the work:
+     * a callback-driven pipeline whose HTTP call was already in flight keeps going and announces its
+     * next phase on the way out. Without this, that announcement would open a fresh stage and restart
+     * the timer on a terminal run, leaving the timeline with a stage spinning forever underneath a
+     * "Run failed" heading — and the stages after it reading as work that succeeded after the cancel.</p>
+     */
+    public synchronized void beginStage(String id) {
+        if (state != PipelineState.RUNNING) {
+            return;
+        }
         liveTimerStageId = id;
         liveTimerStartedAt = clock.instant();
         updateStage(id, StageStatus.IN_PROGRESS, null, null);

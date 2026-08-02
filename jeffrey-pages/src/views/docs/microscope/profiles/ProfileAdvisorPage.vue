@@ -30,6 +30,7 @@ const headings = [
   { id: 'setup', text: 'Setup', level: 2 },
   { id: 'how-a-run-works', text: 'How a Run Works', level: 2 },
   { id: 'grounding', text: 'Grounding and Severity', level: 2 },
+  { id: 'patches', text: 'Patches', level: 2 },
   { id: 'privacy', text: 'What Leaves Your Machine', level: 2 }
 ];
 
@@ -58,11 +59,12 @@ onMounted(() => {
 
       <h2 id="overview">Overview</h2>
 
-      <p>The Advisor is a top-level mode in the profile detail page, with two pages:</p>
+      <p>The Advisor is a top-level mode in the profile detail page, with three pages:</p>
 
       <ul>
         <li><strong>Overview</strong> — the landing page: set the source folder inline, launch the run, and watch its phased, timed timeline. The finished timeline is kept and re-shown on return.</li>
         <li><strong>Findings</strong> — a separate page for the recommendations report, with the claim list above it.</li>
+        <li><strong>Patches</strong> — the proposed code changes, one per event type, each shown as a unified diff with the measured cost of what it removes.</li>
       </ul>
 
       <p>
@@ -105,16 +107,22 @@ onMounted(() => {
         The Overview page is the landing: set a source folder and press <strong>Run Advisor</strong>. One
         launch analyzes <strong>every event type at once</strong> — CPU, Wall-Clock, Allocation, Blocking
         — shown as a processing timeline with a <strong>phase card per type</strong>. Each type moves
-        through the same four <strong>timed steps</strong>, and the types drain a few at a time through a
+        through the same five <strong>timed steps</strong>, and the types drain a few at a time through a
         shared ceiling so a single run cannot flood the AI provider:
       </p>
 
       <ol>
         <li><strong>Prompt</strong> — the flamegraph markdown is built from the profile database and cached, along with the flattened call tree behind it.</li>
         <li><strong>Source</strong> — the configured folder is validated and its commit read.</li>
-        <li><strong>Analyze</strong> — the model explores your source with four read-only tools: <code>listFiles</code>, <code>glob</code>, <code>readFile</code> and <code>grep</code>.</li>
-        <li><strong>Ground</strong> — the model's answer is checked: every cited frame is resolved against the measured call tree and severity is computed before anything is stored.</li>
+        <li><strong>Review</strong> — the model explores your source with four read-only tools: <code>listFiles</code>, <code>glob</code>, <code>readFile</code> and <code>grep</code>.</li>
+        <li><strong>Verify</strong> — the model's answer is checked: every cited frame is resolved against the measured call tree and severity is computed before anything is stored.</li>
+        <li><strong>Patch</strong> — the proposed diff is repaired so it applies cleanly, and the files it touches are checked against the folder. A type where the model proposed no code change finishes this step with nothing to build.</li>
       </ol>
+
+      <p>
+        The steps are also where the run's time is accounted for: Review is the only one that calls the
+        AI, so it dominates, while Prompt, Verify and Patch are local work measured in milliseconds.
+      </p>
 
       <p>
         When it finishes, the timeline is <strong>kept</strong> — with each step's measured time — and
@@ -162,6 +170,23 @@ onMounted(() => {
         Severity is Jeffrey's, not the model's: it is computed from the dominant grounded frame's
         measured <em>self</em> share — 20% or more is CRITICAL, 10% HIGH, 3% MEDIUM, otherwise LOW.
         Self share rather than total, because total is dominated by orchestration frames near 100%.
+      </p>
+
+      <h2 id="patches">Patches</h2>
+
+      <p>
+        When the model proposes a concrete edit, it is stored as a unified diff and shown on the
+        <strong>Patches</strong> page — one patch per event type, ranked by severity and then by the
+        measured cost of the heaviest frame it touches. Each is rendered with the grounded claims it
+        rests on above it, and can be copied or saved as a <code>.patch</code> file.
+      </p>
+
+      <p>
+        The figure in the diff gutter is a <em>citation</em>, not a per-line profile. A line carries a
+        share only when it is a cited hotspot that resolved against the measured call tree; every other
+        line is left blank rather than shaded a plausible colour, because Jeffrey measures per method,
+        not per line. A type that produced a report without proposing an edit is named on the page
+        instead of silently missing from it.
       </p>
 
       <h2 id="privacy">What Leaves Your Machine</h2>

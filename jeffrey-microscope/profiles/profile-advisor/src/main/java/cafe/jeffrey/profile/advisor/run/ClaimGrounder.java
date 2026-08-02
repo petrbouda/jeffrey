@@ -21,7 +21,6 @@ package cafe.jeffrey.profile.advisor.run;
 import cafe.jeffrey.profile.advisor.prompt.ProfileFrame;
 import cafe.jeffrey.profile.advisor.prompt.ProfileFrameIndex;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -38,11 +37,11 @@ import java.util.Optional;
 public class ClaimGrounder {
 
     private final ProfileFrameIndex frameIndex;
-    private final Path repositoryRoot;
+    private final SourcePaths sourcePaths;
 
     public ClaimGrounder(ProfileFrameIndex frameIndex, Path repositoryRoot) {
         this.frameIndex = frameIndex;
-        this.repositoryRoot = repositoryRoot == null ? null : repositoryRoot.toAbsolutePath().normalize();
+        this.sourcePaths = new SourcePaths(repositoryRoot);
     }
 
     public List<GroundedClaim> ground(List<AdvisorClaim> claims) {
@@ -58,14 +57,10 @@ public class ClaimGrounder {
     }
 
     private boolean sourceExists(String sourcePath) {
-        if (sourcePath == null || sourcePath.isBlank() || repositoryRoot == null) {
+        if (sourcePath == null || sourcePath.isBlank()) {
             return false;
         }
-        Path resolved = repositoryRoot.resolve(stripLineNumber(sourcePath)).normalize();
-        if (!resolved.startsWith(repositoryRoot)) {
-            return false;
-        }
-        return Files.isRegularFile(resolved);
+        return sourcePaths.containsFile(stripLineNumber(sourcePath));
     }
 
     /**

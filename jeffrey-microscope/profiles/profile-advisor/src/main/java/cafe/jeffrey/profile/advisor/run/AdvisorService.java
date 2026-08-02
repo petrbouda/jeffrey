@@ -43,13 +43,16 @@ import cafe.jeffrey.shared.common.model.Severity;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.CancellationException;
 
 /**
  * Produces grounded recommendations for one profile.
  *
  * <p>The shape is the standalone analyst's, with the clone replaced by a folder the user already has:
  * resolve the cached prompt, point the read-only tools at the source tree, let the model explore it the
- * way an agentic code assistant would, then ground everything it said before storing any of it.</p>
+ * way an agentic code assistant would, ground everything it said, and build its proposed diff into an
+ * applicable patch — each phase reported through the sink, so the run timeline shows where the time
+ * went.</p>
  *
  * <p>The ordering is deliberate. Cited frames are resolved against the measured call tree and cited
  * paths against the working tree before severity is computed, so severity can be derived from what
@@ -61,6 +64,8 @@ public final class AdvisorService {
     private static final Logger LOG = LoggerFactory.getLogger(AdvisorService.class);
 
     private static final String SPAN_NAME = "advisor.recommendation";
+
+    private static final String CANCELLED_MESSAGE = "The run was cancelled";
 
     private final AdvisorPromptManager promptManager;
     private final AdvisorSettings settings;
@@ -103,24 +108,33 @@ public final class AdvisorService {
                 .orElseThrow(() -> Exceptions.invalidRequest(
                         "The Advisor does not analyze this event type: " + target.eventType()));
 
+        abortIfEnded(sink);
         sink.preparingPrompt();
         AdvisorPrompt prompt = promptManager.resolve(promptType, settings.pruneThresholdPct());
 
+        abortIfEnded(sink);
         sink.resolvingSource();
         SourceTree sourceTree = sourceTreeResolver.resolve(settings.sourcePath(), recordingId);
 
+        abortIfEnded(sink);
         sink.reviewing();
         ToolCallResult raw = analyze(target, prompt, new SourceAnalysisTools(sourceTree.root()));
 
+        abortIfEnded(sink);
         sink.verifying();
         AdvisorOutputParser.ParsedOutput parsed = AdvisorOutputParser.parse(raw.text());
         List<GroundedClaim> claims = new ClaimGrounder(prompt.frameIndex(), sourceTree.root())
                 .ground(parsed.claims());
         Severity severity = SeverityCalculator.fromGroundedClaims(claims);
 
-        AdvisorResult result =
-                new AdvisorResult(severity, parsed.recommendations(), parsed.patch(), claims);
+        abortIfEnded(sink);
+        sink.buildingPatch();
+        String patch = new PatchBuilder(sourceTree.root()).build(parsed.patch());
 
+        AdvisorResult result =
+                new AdvisorResult(severity, parsed.recommendations(), patch, claims);
+
+        abortIfEnded(sink);
         store(target, result, sourceTree);
 
         LOG.info("Generated advisor recommendations: profile_id={} event_type={} severity={} claims={} "
@@ -128,6 +142,20 @@ public final class AdvisorService {
                 target.profileId(), target.eventType(), severity, claims.size(),
                 result.groundedClaimCount(), result.hasPatch());
         return result;
+    }
+
+    /**
+     * Stops the pipeline at a phase boundary when the run has already ended.
+     *
+     * <p>Cancelling marks the run failed and interrupts this thread, but an AI call already in flight
+     * can swallow the interrupt and return normally — at which point, without this, the remaining
+     * phases would ground the claims, build the patch and <em>store the results</em> for a run the user
+     * ended. Checking at each boundary keeps the cost of a late cancel to the phase already in flight.</p>
+     */
+    private static void abortIfEnded(AdvisorProgressSink sink) {
+        if (sink.ended()) {
+            throw new CancellationException(CANCELLED_MESSAGE);
+        }
     }
 
     /**

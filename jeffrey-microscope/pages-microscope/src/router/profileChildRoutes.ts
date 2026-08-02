@@ -644,7 +644,7 @@ const toolsRoutes = [
 ];
 
 // AI advisor: the run overview (phased, timed processing, with the source folder set inline) lands
-// first, then the findings on its own page.
+// first, then the findings and the proposed patches, each on its own page.
 const advisorRoutes = [
   {
     path: 'advisor',
@@ -656,6 +656,12 @@ const advisorRoutes = [
     path: 'advisor/findings',
     name: 'profile-advisor-findings',
     component: () => import('@/views/profiles/detail/advisor/AdvisorFindings.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'advisor/patches',
+    name: 'profile-advisor-patches',
+    component: () => import('@/views/profiles/detail/advisor/AdvisorPatches.vue'),
     meta: { layout: 'profile' }
   }
 ];

@@ -239,6 +239,30 @@ class PipelineRunTest {
             assertEquals("Cancelled", result.errorMessage());
         }
 
+        /**
+         * A cancelled run's worker is interrupted, but whether the work notices is up to the work — an
+         * HTTP call already in flight keeps going and announces its next phase on the way out. Opening
+         * that phase would restart the live timer on a run that already ended, leaving the timeline
+         * with a stage spinning forever underneath a "Run failed" heading.
+         */
+        @Test
+        @DisplayName("ignores phase announcements from a worker that outlived the cancellation")
+        void refusesToOpenStagesAfterTheRunEnded() {
+            PipelineRun run = newRun();
+            run.beginStage("first");
+
+            assertTrue(run.fail(null, "Cancelled"));
+            run.advanceTo("second");
+            run.beginStage("third");
+
+            Map<String, StageProgress> stages = stagesOf(run);
+            assertEquals(StageStatus.FAILED, stages.get("first").status(), "the stage that was cut off");
+            assertEquals(StageStatus.PENDING, stages.get("second").status());
+            assertEquals(StageStatus.PENDING, stages.get("third").status());
+            assertNull(stages.get("second").elapsedMs(), "no live timer on an ended run");
+            assertNull(stages.get("third").elapsedMs(), "no live timer on an ended run");
+        }
+
         @Test
         @DisplayName("stays completed when a late cancellation arrives")
         void lateFailureCannotOverturnCompletion() {

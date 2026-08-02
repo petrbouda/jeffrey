@@ -30,7 +30,7 @@
   <div class="heat-diff">
     <div class="hd-bar">
       <span v-if="peak" class="hd-cost" :title="peakTitle">
-        {{ FormattingService.formatPercentage(peak.pct) }}
+        {{ FormattingService.formatPercentValue(peak.pct) }}
         <small>{{ costLabel }}</small>
       </span>
       <span class="hd-files">
@@ -153,7 +153,7 @@ function heatTitle(line: DiffLine): string {
     return '';
   }
   const mark = props.marks.find(entry => sameFile(line.file, entry.path) && entry.pct === pct);
-  return mark ? `${mark.frame} — ${FormattingService.formatPercentage(pct)} ${props.costLabel}` : '';
+  return mark ? `${mark.frame} — ${FormattingService.formatPercentValue(pct)} ${props.costLabel}` : '';
 }
 
 function heatWidth(pct: number): string {

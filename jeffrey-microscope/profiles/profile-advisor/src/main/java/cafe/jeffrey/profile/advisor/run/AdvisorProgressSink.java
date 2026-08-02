@@ -37,4 +37,16 @@ public interface AdvisorProgressSink {
 
     /** The model has answered; its cited frames are being checked against the measured call tree. */
     void verifying();
+
+    /** The claims are settled; the diff the model proposed is being built into an applicable patch. */
+    void buildingPatch();
+
+    /**
+     * True once the run has ended without the work knowing — cancelled from the UI, or failed.
+     *
+     * <p>Cancellation marks the run and interrupts its worker, but an HTTP call already in flight may
+     * swallow the interrupt and return normally, so the thread's own flag is not something the service
+     * can rely on. This reads the run's state instead, which the cancel sets synchronously.</p>
+     */
+    boolean ended();
 }

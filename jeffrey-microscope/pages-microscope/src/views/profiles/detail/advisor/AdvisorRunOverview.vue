@@ -17,17 +17,6 @@
   -->
 
 <template>
-  <ConfirmationDialog
-    v-model:show="clearResultsDialog"
-    title="Clear Advisor Results"
-    message="Are you sure you want to clear the Advisor results for this profile?"
-    sub-message="This removes every report, its claims, the kept run timeline and the cached profile summaries. Running the Advisor again costs a fresh AI analysis per event type. This action cannot be undone."
-    confirm-label="Clear"
-    confirm-button-id="clearAdvisorResultsButton"
-    modal-id="clearAdvisorResultsModal"
-    @confirm="clearResults"
-  />
-
   <LoadingState v-if="loading" message="Loading advisor..." />
 
   <ErrorState v-else-if="error" :message="error" />
@@ -40,19 +29,22 @@
   >
     <AiDisabledFeatureAlert v-if="aiDisabled" />
 
-    <!-- A run is in flight: the live, phased timeline. -->
+    <!-- A run is in flight: the live, phased timeline, with Cancel on the header of the thing it stops. -->
     <template v-else-if="isRunning && batch">
-      <div class="run-toolbar">
-        <span class="run-note">Analyzing every profile — you can leave and come back.</span>
-        <button type="button" class="btn ghost" @click="cancel">Cancel</button>
-      </div>
       <ProcessingTimeline
         :phases="livePhases"
         :steps="liveStepsData"
         :tick-now="now"
         title="Analyzing your profiles"
         subtitle="One report per event type — grounding every cited frame against the measured call tree."
-      />
+      >
+        <template #actions>
+          <button type="button" class="btn ghost btn-sm" @click="cancel">
+            <i class="bi bi-x-lg"></i>
+            Cancel
+          </button>
+        </template>
+      </ProcessingTimeline>
     </template>
 
     <!-- The run failed for every event type: keep the timeline visible and say why, instead of
@@ -101,7 +93,7 @@
             Re-run
           </button>
           <span class="manifest-divider"></span>
-          <button type="button" class="btn quiet" @click="clearResultsDialog = true">
+          <button type="button" class="btn quiet" @click="clearResults">
             <i class="bi bi-trash"></i>
             Clear results
           </button>
@@ -181,7 +173,6 @@ import { useRoute } from 'vue-router';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
-import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import ProcessingTimeline from '@shared/components/ProcessingTimeline.vue';
 import FormattingService from '@shared/services/FormattingService';
@@ -222,8 +213,6 @@ const {
   clearResults,
   saveSourceFolder
 } = useAdvisor(profileId);
-
-const clearResultsDialog = ref(false);
 
 const aiDisabled = computed(
   () => props.disabledFeatures?.includes(FeatureType.AI_ANALYSIS) === true
@@ -437,6 +426,14 @@ onMounted(async () => {
 
 .btn.ghost:hover:not(:disabled) {
   background: var(--color-primary-light);
+}
+
+/* Sits in the timeline's header row, so it matches the elapsed/progress pills rather than the
+   page-level buttons. */
+.btn.btn-sm {
+  font-size: 0.74rem;
+  padding: 0.25rem 0.65rem;
+  gap: 0.3rem;
 }
 
 /* Reserved for the action that ends the run's life — quiet until you reach for it. */

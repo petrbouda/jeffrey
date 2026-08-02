@@ -444,10 +444,14 @@ export const profileNavSections: Record<
     {
       title: 'ADVISOR',
       items: [
+        // No AI highlight here: the whole Advisor mode is already an AI feature, so marking two of its
+        // three pages would single them out for nothing.
         item('Overview', 'bi-play-circle', '/advisor'),
         item('Findings', 'bi-lightbulb', '/advisor/findings', {
-          disabledKeys: [AI_ANALYSIS_KEY],
-          cssClass: AI_ITEM_CLASS
+          disabledKeys: [AI_ANALYSIS_KEY]
+        }),
+        item('Patches', 'bi-file-earmark-diff', '/advisor/patches', {
+          disabledKeys: [AI_ANALYSIS_KEY]
         })
       ]
     }

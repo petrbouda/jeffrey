@@ -78,8 +78,10 @@ final class AdvisorOutputParser {
     }
 
     /**
-     * The unified diff, repaired so it can actually be applied — or null when the model said it had no
-     * edit to propose. A blank section is treated the same as the sentinel: silence is not a patch.
+     * The diff section exactly as the model wrote it, unwrapped from any fence — or null when it said
+     * it had no edit to propose. A blank section is treated the same as the sentinel: silence is not a
+     * patch. Repairing the diff and checking it against the checkout is {@link PatchBuilder}'s job, and
+     * is reported as its own step in the run timeline.
      */
     private static String parsePatch(String raw) {
         int marker = raw.indexOf(PATCH_MARKER);
@@ -90,7 +92,7 @@ final class AdvisorOutputParser {
         if (section.isEmpty() || section.equalsIgnoreCase(NO_PATCH_SENTINEL)) {
             return null;
         }
-        return UnifiedDiffNormalizer.normalize(section);
+        return section;
     }
 
     /**

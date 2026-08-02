@@ -31,7 +31,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AdvisorRunTest {
 
@@ -108,6 +110,8 @@ class AdvisorRunTest {
         clock.advance(Duration.ofMillis(5000));
         run.verifying();
         clock.advance(Duration.ofMillis(500));
+        run.buildingPatch();
+        clock.advance(Duration.ofMillis(50));
         run.finish();
         pipelineRun.complete();
 
@@ -117,7 +121,46 @@ class AdvisorRunTest {
         assertEquals(100L, steps.get("RESOLVING_SOURCE").durationMs());
         assertEquals(5000L, steps.get("REVIEWING").durationMs());
         assertEquals(500L, steps.get("VERIFYING").durationMs());
+        assertEquals(50L, steps.get("BUILDING_PATCH").durationMs());
         steps.values().forEach(step -> assertEquals(AdvisorStepProgress.COMPLETED, step.status()));
+    }
+
+    /**
+     * A cancel marks the run and interrupts the worker, but an AI call already in flight can return
+     * normally afterwards and keep announcing phases. Those announcements must not resurrect the run:
+     * the step that was cut off stays failed, and the steps after it stay pending rather than reading
+     * as work that succeeded after the user pressed Cancel.
+     */
+    @Test
+    void ignoresPhasesAnnouncedAfterACancel() {
+        TickingClock clock = new TickingClock(Instant.parse("2026-08-01T06:00:00Z"));
+        PipelineRun pipelineRun = new PipelineRun(AdvisorStages.DEFINITION, TARGET.eventType(), clock);
+        AdvisorRun run = new AdvisorRun(TARGET, pipelineRun);
+
+        run.preparingPrompt();
+        clock.advance(Duration.ofMillis(100));
+        run.resolvingSource();
+        clock.advance(Duration.ofMillis(100));
+        run.reviewing();
+        clock.advance(Duration.ofSeconds(3));
+
+        assertFalse(run.ended(), "still running until the cancel lands");
+        pipelineRun.fail(null, "Cancelled");
+        assertTrue(run.ended(), "the service checks this at every phase boundary");
+
+        // The zombie worker finishes its AI call and announces the rest of the pipeline anyway.
+        run.verifying();
+        clock.advance(Duration.ofMillis(3));
+        run.buildingPatch();
+        clock.advance(Duration.ofMillis(50));
+        run.finish();
+
+        Map<String, AdvisorStepProgress> steps = stepsByName(run);
+        assertEquals(100L, steps.get("PREPARING_PROMPT").durationMs());
+        assertEquals(AdvisorStepProgress.FAILED, steps.get("REVIEWING").status());
+        assertEquals(AdvisorStepProgress.PENDING, steps.get("VERIFYING").status());
+        assertEquals(AdvisorStepProgress.PENDING, steps.get("BUILDING_PATCH").status());
+        assertNull(steps.get("BUILDING_PATCH").elapsedMs(), "nothing may still be spinning");
     }
 
     @Test

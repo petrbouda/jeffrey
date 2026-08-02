@@ -75,9 +75,19 @@ export default class FormattingService {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
   }
 
+  /** Formats a fraction — 0.2193 renders as "21.93%". For a value already on a 0–100 scale use
+   *  {@link formatPercentValue}, or it comes out a hundred times too large. */
   static formatPercentage(value: number) {
     const percentage = (value * 100).toFixed(2);
     return percentage + '%';
+  }
+
+  /**
+   * Formats a value already expressed on a 0–100 scale — 21.93 renders as "21.9%". Profile shares
+   * (a frame's self/total percentage of samples) arrive from the backend this way.
+   */
+  static formatPercentValue(value: number, decimals: number = 1): string {
+    return value.toFixed(decimals) + '%';
   }
 
   static formatSuccessRate(rate: number): string {

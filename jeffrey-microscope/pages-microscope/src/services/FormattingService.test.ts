@@ -155,6 +155,24 @@ describe('FormattingService', () => {
     });
   });
 
+  describe('formatPercentValue', () => {
+    /**
+     * A profile share arrives on a 0–100 scale. Passing it to formatPercentage renders it a hundred
+     * times too large — a frame worth 0.22% of the CPU reads as 21.93%, which contradicts the LOW
+     * severity computed from the same number.
+     */
+    it('keeps a 0-100 scale value on its own scale', () => {
+      expect(FormattingService.formatPercentValue(21.93)).toBe('21.9%');
+      expect(FormattingService.formatPercentValue(0.2193)).toBe('0.2%');
+      expect(FormattingService.formatPercentValue(0)).toBe('0.0%');
+      expect(FormattingService.formatPercentValue(100)).toBe('100.0%');
+    });
+
+    it('takes the decimal count when more precision is wanted', () => {
+      expect(FormattingService.formatPercentValue(0.2193, 2)).toBe('0.22%');
+    });
+  });
+
   describe('format dispatcher', () => {
     it('routes MemoryAddress to hex', () => {
       expect(FormattingService.format(255, 'jdk.jfr.MemoryAddress')).toBe('0xFF');

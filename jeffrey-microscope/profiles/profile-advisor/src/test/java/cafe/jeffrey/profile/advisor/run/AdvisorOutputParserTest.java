@@ -185,7 +185,7 @@ class AdvisorOutputParserTest {
         }
 
         @Test
-        void recountsTheHunkHeaderTheModelMiscounted() {
+        void leavesTheHunkHeaderUntouchedForThePatchBuilderToRepair() {
             String miscounted = """
                     ===PATCH===
                     @@ -1,99 +1,99 @@
@@ -196,7 +196,7 @@ class AdvisorOutputParserTest {
 
             ParsedOutput output = AdvisorOutputParser.parse(miscounted);
 
-            assertTrue(output.patch().contains("@@ -1,2 +1,2 @@"), output.patch());
+            assertTrue(output.patch().contains("@@ -1,99 +1,99 @@"), output.patch());
         }
 
         @Test

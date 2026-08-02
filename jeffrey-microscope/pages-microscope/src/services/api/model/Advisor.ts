@@ -56,10 +56,11 @@ export type AdvisorStatus =
   | 'RESOLVING_SOURCE'
   | 'REVIEWING'
   | 'VERIFYING'
+  | 'BUILDING_PATCH'
   | 'COMPLETED'
   | 'FAILED';
 
-/** The live progress of one timed step (Prompt / Source / Review / Verify) within a type's run. */
+/** The live progress of one timed step (Prompt / Source / Review / Verify / Patch) within a type's run. */
 export interface AdvisorStepProgress {
   step: string;
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
