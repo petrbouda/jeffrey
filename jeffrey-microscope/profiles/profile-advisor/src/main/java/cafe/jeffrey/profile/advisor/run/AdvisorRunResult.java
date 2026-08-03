@@ -38,7 +38,7 @@ import java.util.function.Function;
  * to answer a question phrased in the Advisor's terms.</p>
  *
  * @param totalElapsedMs the wall-clock time from the first type starting to the last one finishing
- * @param completedTypes how many types produced findings
+ * @param completedTypes how many types produced a result
  * @param totalTypes     how many types were analyzed
  * @param completedAt    when the batch finished, as UTC epoch millis
  * @param types          the per-type breakdown

@@ -194,8 +194,7 @@ onMounted(() => {
       <h2 id="privacy">What Leaves Your Machine</h2>
 
       <p>
-        The model sees the flamegraph markdown, the deterministic findings Jeffrey derived from it, and
-        whatever source it reads through the four tools. Those tools are sandboxed to the configured
+        The model sees the flamegraph markdown and whatever source it reads through the four tools. Those tools are sandboxed to the configured
         folder — every path is checked twice, once lexically and once against its real location, so a
         symlink pointing out of the tree resolves to nothing. There are no write, delete or execute
         tools.
