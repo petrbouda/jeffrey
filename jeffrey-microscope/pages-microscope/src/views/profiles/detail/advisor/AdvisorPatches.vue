@@ -71,7 +71,7 @@
           description="The Advisor analyzed this type and did not find an edit worth making. Its report explains what it measured."
         >
           <template #action>
-            <router-link :to="findingsPath" class="guard-btn">
+            <router-link :to="recommendationsPath" class="guard-btn">
               <i class="bi bi-arrow-right"></i>
               Read the {{ labelFor(selected.eventType) }} report
             </router-link>
@@ -141,7 +141,7 @@ const aiDisabled = computed(
 );
 
 const overviewPath = computed(() => `/profiles/${profileId}/advisor`);
-const findingsPath = computed(() => `/profiles/${profileId}/advisor/findings`);
+const recommendationsPath = computed(() => `/profiles/${profileId}/advisor/recommendations`);
 
 const labelFor = (code: string): string =>
   eventTypes.value.find(type => type.eventType === code)?.label ?? code;
@@ -159,7 +159,7 @@ const costOf = (recommendation: AdvisorRecommendation): string => {
 
 /**
  * Types with a patch first — this page exists to hand you a change, so the ones that have none belong
- * after the ones that do. Within each group the ranking is the Findings docket's: worst severity
+ * after the ones that do. Within each group the ranking is the Recommendations docket's: worst severity
  * first, then the most expensive frame, then alphabetically, so the order is stable across reloads.
  */
 const rankedRecommendations = computed(() =>
@@ -209,7 +209,7 @@ onMounted(load);
   gap: 0.5rem;
 }
 
-/* The left spine is the type's own accent — the same device the Findings docket uses, so the Advisor's
+/* The left spine is the type's own accent — the same device the Recommendations docket uses, so the Advisor's
    pages read as one family. Selection tints the card rather than flooding it, which keeps a red type
    (Blocking) from reading as an error the moment you pick it. */
 .docket-item {

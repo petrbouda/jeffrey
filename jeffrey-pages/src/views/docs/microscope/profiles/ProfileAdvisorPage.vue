@@ -65,7 +65,7 @@ onMounted(() => {
       <ul>
         <li><strong>Overview</strong> — the landing page: set the source folder inline, launch the run, and watch its phased, timed timeline. The finished timeline is kept and re-shown on return.</li>
         <li><strong>Prompt</strong> — the exact message sent to the model for each event type, shown verbatim and copyable.</li>
-        <li><strong>Findings</strong> — a separate page for the recommendations report.</li>
+        <li><strong>Recommendations</strong> — a separate page for the report the model wrote.</li>
         <li><strong>Patches</strong> — the proposed code changes, one per event type, each shown as a unified diff.</li>
       </ul>
 
@@ -128,7 +128,7 @@ onMounted(() => {
       <p>
         When it finishes, the timeline is <strong>kept</strong> — with each step's measured time — and
         re-shown whenever you return to the Overview, the same way the Heap Dump keeps its last
-        initialization. The recommendations themselves live on the separate <strong>Findings</strong> page.
+        initialization. The report itself lives on the separate <strong>Recommendations</strong> page.
       </p>
 
       <p>
@@ -171,7 +171,7 @@ onMounted(() => {
 
       <p>
         Because the rule is arithmetic over a measurement rather than a judgement, the same recording
-        grades the same way on every run, and the Findings and Patches pages can rank profiles against
+        grades the same way on every run, and the Recommendations and Patches pages can rank profiles against
         each other.
       </p>
 

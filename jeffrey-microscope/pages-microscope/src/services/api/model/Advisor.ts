@@ -41,7 +41,8 @@ export interface AdvisorRecommendation {
   severity: Severity;
   /** The measured self share of the profile's heaviest method — the number severity was graded from. */
   dominantSelfPct: number;
-  recommendations: string;
+  /** The recommendations markdown the model wrote. */
+  report: string;
   /** The proposed unified diff, or null when the model proposed no code edit. */
   patch: string | null;
   sourceRef: string | null;

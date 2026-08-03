@@ -113,11 +113,12 @@ describe('profileNavConfig', () => {
     }
   });
 
-  // Pages that moved under the Memory Issues submenu: old sub-path -> new sub-path
+  // Pages that moved or were renamed: old sub-path -> new sub-path
   const LEGACY_REDIRECTS: Array<[string, string]> = [
     ['leak-candidates', 'memory-issues/leak-candidates'],
     ['garbage-collection/finalizers', 'memory-issues/finalizers'],
-    ['garbage-collection/reference-processing', 'memory-issues/reference-processing']
+    ['garbage-collection/reference-processing', 'memory-issues/reference-processing'],
+    ['advisor/findings', 'advisor/recommendations']
   ];
 
   it('legacy paths redirect to their new location', () => {

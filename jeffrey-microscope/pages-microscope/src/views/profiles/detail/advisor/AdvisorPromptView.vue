@@ -123,7 +123,8 @@ const profileId = route.params.profileId as string;
 /**
  * The prompts are fetched here rather than added to `useAdvisor`: their bodies carry a whole call tree
  * each and are the largest thing the Advisor stores, so folding them into the shared load would make
- * the Overview, Findings and Patches pages pay for a payload none of them render. The composable is
+ * the Overview, Recommendations and Patches pages pay for a payload none of them render. The
+ * composable is
  * still used for the run state, which is what tells an empty page whether to say "not yet" or "wait".
  */
 const { isRunning, load: loadRunState } = useAdvisor(profileId);
@@ -179,7 +180,7 @@ onMounted(load);
 </script>
 
 <style scoped>
-/* The docket mirrors Findings and Patches, so the three artifact pages read as one family. */
+/* The docket mirrors Recommendations and Patches, so the three artifact pages read as one family. */
 .docket {
   margin-bottom: 1.1rem;
 }

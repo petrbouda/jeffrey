@@ -94,7 +94,7 @@ public class AdvisorController {
             String eventType,
             String severity,
             double dominantSelfPct,
-            String recommendations,
+            String report,
             String patch,
             String sourceRef,
             long generatedAt) {
@@ -277,7 +277,7 @@ public class AdvisorController {
                 row.eventType(),
                 row.severity(),
                 row.dominantSelfPct(),
-                row.recommendations(),
+                row.report(),
                 row.patch(),
                 row.sourceRef(),
                 row.generatedAt().toEpochMilli());

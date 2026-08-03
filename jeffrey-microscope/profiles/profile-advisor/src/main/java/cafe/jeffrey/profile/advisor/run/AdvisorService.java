@@ -122,7 +122,7 @@ public final class AdvisorService {
         String patch = new PatchBuilder(sourceTree.root()).build(parsed.patch());
 
         Severity severity = SeverityCalculator.fromDominantSharePct(prompt.dominantSelfPct());
-        AdvisorResult result = new AdvisorResult(severity, parsed.recommendations(), patch);
+        AdvisorResult result = new AdvisorResult(severity, parsed.report(), patch);
 
         abortIfEnded(sink);
         store(target, result, prompt, sourceTree);
@@ -179,7 +179,7 @@ public final class AdvisorService {
                 target.eventType(),
                 result.severity().name(),
                 prompt.dominantSelfPct(),
-                result.recommendations(),
+                result.report(),
                 result.patch(),
                 sourceTree.resolvedRef(),
                 clock.instant()));
