@@ -644,12 +644,19 @@ const toolsRoutes = [
 ];
 
 // AI advisor: the run overview (phased, timed processing, with the source folder set inline) lands
-// first, then the findings and the proposed patches, each on its own page.
+// first, then the three artifacts a run produces — the prompt, the findings and the proposed patch —
+// each on its own page.
 const advisorRoutes = [
   {
     path: 'advisor',
     name: 'profile-advisor',
     component: () => import('@/views/profiles/detail/advisor/AdvisorRunOverview.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'advisor/prompt',
+    name: 'profile-advisor-prompt',
+    component: () => import('@/views/profiles/detail/advisor/AdvisorPromptView.vue'),
     meta: { layout: 'profile' }
   },
   {

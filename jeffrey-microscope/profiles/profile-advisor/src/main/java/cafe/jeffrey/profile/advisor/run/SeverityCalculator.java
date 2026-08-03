@@ -18,10 +18,7 @@
 
 package cafe.jeffrey.profile.advisor.run;
 
-import cafe.jeffrey.profile.advisor.prompt.ProfileFrame;
 import cafe.jeffrey.shared.common.model.Severity;
-
-import java.util.Collection;
 
 /**
  * Grades a profile's findings from the measured share of the dominant hotspot.
@@ -43,21 +40,6 @@ public final class SeverityCalculator {
     private static final double MEDIUM_THRESHOLD_PCT = 3.0;
 
     private SeverityCalculator() {
-    }
-
-    /**
-     * Grades from the heaviest of the frames a recommendation actually cited and that were confirmed
-     * present in the profile. Claims that could not be grounded contribute nothing — an invented
-     * hotspot must never be able to raise a profile's priority.
-     */
-    public static Severity fromGroundedClaims(Collection<GroundedClaim> claims) {
-        double dominantSharePct = claims.stream()
-                .filter(GroundedClaim::grounded)
-                .map(GroundedClaim::frame)
-                .mapToDouble(ProfileFrame::selfPct)
-                .max()
-                .orElse(0.0);
-        return fromDominantSharePct(dominantSharePct);
     }
 
     public static Severity fromDominantSharePct(double dominantSharePct) {

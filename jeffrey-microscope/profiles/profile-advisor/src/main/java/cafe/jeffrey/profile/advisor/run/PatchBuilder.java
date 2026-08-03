@@ -37,8 +37,8 @@ import java.util.regex.Pattern;
  * failure modes, and only the second one needs the checkout. Keeping them apart is also what lets the
  * timeline report the patch as its own timed step rather than hiding it inside parsing.</p>
  *
- * <p>The build repairs the diff (see {@link UnifiedDiffNormalizer}) and then checks it against the
- * checkout the same way {@link ClaimGrounder} checks a cited path. A payload with no hunk at all is
+ * <p>The build repairs the diff (see {@link UnifiedDiffNormalizer}) and then checks the paths it names
+ * against the checkout, via {@link SourcePaths}. A payload with no hunk at all is
  * discarded: it is prose the model wrote under the patch marker, and offering it behind a
  * "Save .patch" button would hand the reader a file that cannot apply. Files that do not resolve are
  * logged but kept — a patch against a path Jeffrey cannot see may still be right, and the reader can

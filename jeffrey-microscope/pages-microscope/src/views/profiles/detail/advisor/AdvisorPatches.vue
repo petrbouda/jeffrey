@@ -24,7 +24,7 @@
   <PageHeader
     v-else
     title="Patches"
-    description="The code changes the Advisor proposes, each priced by the measured cost of what it removes"
+    description="The code changes the Advisor proposes, ranked by the measured cost of what they touch"
     icon="bi-file-earmark-diff"
   >
     <AiDisabledFeatureAlert v-if="aiDisabled" />
@@ -57,11 +57,9 @@
       <!-- The diff carries its own frame — file, cost, counts and actions are all on its header bar —
            so it stands on its own rather than inside a card that would repeat the type's name. -->
       <template v-if="selected">
-        <HeatDiffViewer
+        <DiffViewer
           v-if="hasPatch(selected)"
           :patch="selected.patch as string"
-          :marks="heatMarks"
-          :cost-label="costLabel"
           :file-name="patchFileName"
         />
 
@@ -111,11 +109,10 @@ import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
-import HeatDiffViewer from '@shared/components/HeatDiffViewer.vue';
+import DiffViewer from '@shared/components/DiffViewer.vue';
 import FormattingService from '@shared/services/FormattingService';
 import { severityLabel, severityRank } from '@shared/services/severityDisplay';
-import { splitCitedPath, type HeatMark } from '@shared/services/unifiedDiff';
-import type { AdvisorClaim, AdvisorRecommendation } from '@/services/api/model/Advisor';
+import type { AdvisorRecommendation } from '@/services/api/model/Advisor';
 import AiDisabledFeatureAlert from '@/components/alerts/AiDisabledFeatureAlert.vue';
 import {
   eventTypeCostLabel,
@@ -149,15 +146,6 @@ const findingsPath = computed(() => `/profiles/${profileId}/advisor/findings`);
 const labelFor = (code: string): string =>
   eventTypes.value.find(type => type.eventType === code)?.label ?? code;
 
-/**
- * The heaviest grounded claim in a report — what its patch is worth. Ungrounded claims carry no
- * measured share, so they cannot price a change.
- */
-const peakPctOf = (recommendation: AdvisorRecommendation): number =>
-  recommendation.claims
-    .filter(claim => claim.grounded)
-    .reduce((peak, claim) => Math.max(peak, claim.selfPct), 0);
-
 const hasPatch = (recommendation: AdvisorRecommendation): boolean =>
   recommendation.patch !== null && recommendation.patch.trim() !== '';
 
@@ -166,7 +154,7 @@ const costOf = (recommendation: AdvisorRecommendation): string => {
   if (!hasPatch(recommendation)) {
     return 'no patch';
   }
-  return `${FormattingService.formatPercentValue(peakPctOf(recommendation))} ${eventTypeCostLabel(recommendation.eventType)}`;
+  return `${FormattingService.formatPercentValue(recommendation.dominantSelfPct)} ${eventTypeCostLabel(recommendation.eventType)}`;
 };
 
 /**
@@ -183,7 +171,7 @@ const rankedRecommendations = computed(() =>
     if (bySeverity !== 0) {
       return bySeverity;
     }
-    const byCost = peakPctOf(right) - peakPctOf(left);
+    const byCost = right.dominantSelfPct - left.dominantSelfPct;
     if (byCost !== 0) {
       return byCost;
     }
@@ -199,33 +187,6 @@ const selected = computed(
   () =>
     rankedRecommendations.value.find(rec => rec.eventType === selectedType.value) ??
     rankedRecommendations.value[0]
-);
-
-/**
- * The measured hotspots the patch can be joined to. Only grounded claims qualify: a claim whose frame
- * was never sampled has no share of the profile to report, so annotating a diff line with it would be
- * asserting a measurement Jeffrey never made.
- */
-const groundedClaims = computed<AdvisorClaim[]>(() =>
-  (selected.value?.claims ?? []).filter(claim => claim.grounded)
-);
-
-const heatMarks = computed<HeatMark[]>(() =>
-  groundedClaims.value
-    .filter(claim => claim.sourcePath !== null)
-    .map(claim => {
-      const cited = splitCitedPath(claim.sourcePath as string);
-      return {
-        path: cited.path,
-        line: cited.line,
-        pct: claim.selfPct,
-        frame: claim.citedFrame
-      };
-    })
-);
-
-const costLabel = computed(() =>
-  selected.value ? eventTypeCostLabel(selected.value.eventType) : ''
 );
 
 const patchFileName = computed(() => {

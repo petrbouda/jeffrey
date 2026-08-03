@@ -19,6 +19,7 @@
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import type {
   AdvisorEventType,
+  AdvisorPrompt,
   AdvisorRecommendation,
   AdvisorRunResult,
   AdvisorSettings,
@@ -38,6 +39,11 @@ export default class AdvisorClient extends BaseProfileClient {
     return super.get<AdvisorRecommendation[]>('/recommendations');
   }
 
+  /** The cached prompts — one complete user message per event type — for the Prompt page. */
+  prompts(): Promise<AdvisorPrompt[]> {
+    return super.get<AdvisorPrompt[]>('/prompts');
+  }
+
   /** Launches a batch over the given event types, or every available type when none are passed. */
   run(eventTypes: string[] = []): Promise<BatchAdvisorProgress> {
     return super.post<BatchAdvisorProgress>('/run', { eventTypes });
@@ -54,8 +60,8 @@ export default class AdvisorClient extends BaseProfileClient {
   }
 
   /**
-   * Throws away every derived artifact — reports, claims, cached prompts and the kept timeline — so the
-   * next run starts from nothing. Refused by the backend while a run is in flight.
+   * Throws away every derived artifact — reports, patches, cached prompts and the kept timeline — so
+   * the next run starts from nothing. Refused by the backend while a run is in flight.
    */
   deleteResults(): Promise<void> {
     return super.post<void>('/delete-results', {});

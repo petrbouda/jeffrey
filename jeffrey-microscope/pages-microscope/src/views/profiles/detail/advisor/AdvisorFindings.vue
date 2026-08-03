@@ -24,7 +24,7 @@
   <PageHeader
     v-else
     title="Findings"
-    description="AI recommendations mapped to your source, with every cited frame checked against the measured profile"
+    description="AI recommendations mapped to your source, ranked by the profile's measured hotspots"
     icon="bi-lightbulb"
   >
     <AiDisabledFeatureAlert v-if="aiDisabled" />
@@ -47,7 +47,7 @@
               {{ labelFor(rec.eventType) }}
             </span>
             <span class="docket-verdict">
-              {{ severityLabel(rec.severity) }} · {{ findingCountLabel(rec) }}
+              {{ severityLabel(rec.severity) }} · {{ hotspotLabel(rec) }}
             </span>
           </button>
         </div>
@@ -68,14 +68,12 @@
             </template>
           </MainCardHeader>
         </template>
-        <ClaimList :claims="selectedRecommendation.claims" />
-
-        <!-- The change itself lives on Patches; this page keeps the evidence and the reasoning. -->
+        <!-- The change itself lives on Patches; this page keeps the reasoning. -->
         <router-link v-if="selectedRecommendation.patch" :to="patchesPath" class="patch-link">
           <i class="bi bi-file-earmark-diff"></i>
           <span class="patch-link-text">
             <b>A code change is proposed for {{ labelFor(selectedRecommendation.eventType) }}</b>
-            <small>See the diff, with each cited hotspot priced against the measured profile</small>
+            <small>See the diff the Advisor produced for this profile</small>
           </span>
           <i class="bi bi-arrow-right"></i>
         </router-link>
@@ -117,11 +115,11 @@ import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import Badge from '@shared/components/Badge.vue';
 import MarkdownRenderer from '@shared/services/MarkdownRenderer';
+import FormattingService from '@shared/services/FormattingService';
 import { severityLabel, severityRank, severityVariant } from '@shared/services/severityDisplay';
 import type { AdvisorRecommendation } from '@/services/api/model/Advisor';
 import EmptyState from '@shared/components/EmptyState.vue';
 import AiDisabledFeatureAlert from '@/components/alerts/AiDisabledFeatureAlert.vue';
-import ClaimList from '@/components/advisor/ClaimList.vue';
 import { eventTypeStyle, eventTypeVars } from '@/views/profiles/detail/advisor/eventTypeStyle';
 import { useAdvisor } from '@/composables/useAdvisor';
 import FeatureType from '@/services/api/model/FeatureType';
@@ -154,8 +152,8 @@ const labelFor = (code: string): string =>
   eventTypes.value.find(type => type.eventType === code)?.label ?? code;
 
 /**
- * Worst first, then most findings, then alphabetically — so the order is stable across reloads and
- * the report that earns your attention is the one you read first.
+ * Worst first, then by the measured cost behind the grade, then alphabetically — so the order is
+ * stable across reloads and the report that earns your attention is the one you read first.
  */
 const rankedRecommendations = computed(() =>
   [...recommendations.value].sort((left, right) => {
@@ -163,18 +161,17 @@ const rankedRecommendations = computed(() =>
     if (bySeverity !== 0) {
       return bySeverity;
     }
-    const byFindings = right.claims.length - left.claims.length;
-    if (byFindings !== 0) {
-      return byFindings;
+    const byCost = right.dominantSelfPct - left.dominantSelfPct;
+    if (byCost !== 0) {
+      return byCost;
     }
     return labelFor(left.eventType).localeCompare(labelFor(right.eventType));
   })
 );
 
-const findingCountLabel = (recommendation: AdvisorRecommendation): string => {
-  const count = recommendation.claims.length;
-  return `${count} ${count === 1 ? 'finding' : 'findings'}`;
-};
+/** What a type's card says under its name: the share of the profile its hottest method accounts for. */
+const hotspotLabel = (recommendation: AdvisorRecommendation): string =>
+  `${FormattingService.formatPercentValue(recommendation.dominantSelfPct)} in its hottest method`;
 
 const renderedReport = computed(() =>
   MarkdownRenderer.render(selectedRecommendation.value?.recommendations)
@@ -248,8 +245,7 @@ onMounted(load);
   color: var(--et);
 }
 
-/* The hand-off sits between the claims and the prose, where the patch used to: you see what was
-   measured, then that a change exists, then why it is proposed. */
+/* The hand-off sits above the prose: you see that a change exists, then read why it is proposed. */
 .patch-link {
   display: flex;
   align-items: center;

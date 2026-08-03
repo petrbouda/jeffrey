@@ -23,10 +23,9 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 
 /**
- * Answers one question for everything the model cites: does this path name a file that really exists
- * inside the analyzed checkout? Both {@link ClaimGrounder} and {@link PatchBuilder} need it and must
- * answer it identically — a claim that counts as grounded and a patch that counts as applicable have
- * to agree about what "in the source folder" means.
+ * Answers one question about every path a proposed patch names: does it name a file that really exists
+ * inside the analyzed checkout? Used by {@link PatchBuilder} to report a diff written against code
+ * Jeffrey cannot see.
  *
  * <p>Containment is checked after normalization, so {@code ../../etc/passwd} resolves out of the root
  * and is rejected. A null root (no source folder configured) contains nothing.</p>

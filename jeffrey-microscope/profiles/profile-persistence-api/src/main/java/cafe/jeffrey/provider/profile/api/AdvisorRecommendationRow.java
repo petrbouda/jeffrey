@@ -26,6 +26,7 @@ import java.time.Instant;
  *
  * @param eventType        the sample event type analyzed
  * @param severity         the computed severity name
+ * @param dominantSelfPct  the measured self share the severity was computed from
  * @param recommendations  the report markdown
  * @param patch            the proposed unified diff, or null when the model proposed no code edit
  * @param sourceRef        the commit the source tree was on, or null when it was not a git checkout
@@ -34,6 +35,7 @@ import java.time.Instant;
 public record AdvisorRecommendationRow(
         String eventType,
         String severity,
+        double dominantSelfPct,
         String recommendations,
         String patch,
         String sourceRef,

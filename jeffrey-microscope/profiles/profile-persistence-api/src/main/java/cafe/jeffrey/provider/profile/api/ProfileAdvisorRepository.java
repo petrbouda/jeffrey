@@ -22,9 +22,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Advisor artifacts stored in a single profile's database: the cached prompts, the recommendation
- * results, and the checked claims behind them. Everything here is keyed by event type alone, because
- * the database itself already scopes the data to one profile.
+ * Advisor artifacts stored in a single profile's database: the cached prompts and the recommendation
+ * results. Everything here is keyed by event type alone, because the database itself already scopes
+ * the data to one profile.
  */
 public interface ProfileAdvisorRepository {
 
@@ -42,22 +42,13 @@ public interface ProfileAdvisorRepository {
 
     void upsertRecommendation(AdvisorRecommendationRow recommendation);
 
-    List<AdvisorClaimRow> findClaims();
-
     /**
-     * Replaces the claims of one event type with {@code claims}. A re-run supersedes its predecessor
-     * entirely: keeping the old rows alongside the new would present two contradictory verdicts about
-     * the same profile as if both were current.
-     */
-    void replaceClaims(String eventType, List<AdvisorClaimRow> claims);
-
-    /**
-     * Drops every derived artifact for this profile — prompts, recommendations and claims — so the next
+     * Drops every derived artifact for this profile — prompts and recommendations alike — so the next
      * run starts from nothing.
      *
-     * <p>One method rather than three deletes at the call site, because the three tables only make
-     * sense together: a recommendation without its claims is unverifiable, and a claim without its
-     * recommendation belongs to a report nobody can read.</p>
+     * <p>One method rather than two deletes at the call site, because the two tables only make sense
+     * together: a recommendation is a reading of one particular prompt, and keeping either without the
+     * other leaves the page describing a run that no longer exists.</p>
      */
     void deleteAll();
 }

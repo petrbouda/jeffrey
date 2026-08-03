@@ -18,22 +18,28 @@
 
 package cafe.jeffrey.profile.advisor.prompt;
 
+import java.time.Instant;
+
 /**
- * One generated AI prompt for a profile, per sample event type: the tab label, the total sample count
- * (for the chip), the prompt markdown the model reads, and the same call tree in the machine-readable
- * form Jeffrey checks the model's answer against.
+ * One generated AI prompt for a profile, per sample event type.
  *
- * <p>The frame index is not sent to the browser — it would be large and the UI has no use for it — so
- * the controller maps this to a response type that omits it.</p>
+ * <p>{@code prompt} is the complete user message as the model receives it, composed once here rather
+ * than assembled at run time. That makes it a real artifact: the run sends this string verbatim, and
+ * the Advisor's Prompt page can show exactly what was asked without reconstructing it from parts that
+ * may since have changed.</p>
+ *
+ * @param eventType       the sample event type this prompt describes
+ * @param label           the tab label, e.g. "CPU"
+ * @param samples         the profile's total sample count, for the chip beside the label
+ * @param prompt          the full user message sent to the model
+ * @param dominantSelfPct the heaviest method's self share of the profile, which severity is graded from
+ * @param generatedAt     when this prompt was built from the profile
  */
 public record AdvisorPrompt(
         String eventType,
         String label,
         long samples,
-        String markdown,
-        ProfileFrameIndex frameIndex) {
-
-    public AdvisorPrompt {
-        frameIndex = frameIndex == null ? ProfileFrameIndex.empty() : frameIndex;
-    }
+        String prompt,
+        double dominantSelfPct,
+        Instant generatedAt) {
 }

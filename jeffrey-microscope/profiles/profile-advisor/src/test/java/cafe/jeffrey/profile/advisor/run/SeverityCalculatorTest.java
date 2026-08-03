@@ -20,27 +20,11 @@ package cafe.jeffrey.profile.advisor.run;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.profile.advisor.prompt.ProfileFrame;
 import cafe.jeffrey.shared.common.model.Severity;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SeverityCalculatorTest {
-
-    private static ProfileFrame frame(String name, double selfPct) {
-        return new ProfileFrame(name, selfPct, selfPct, 100, 0, 0, 100);
-    }
-
-    private static GroundedClaim grounded(String name, double selfPct) {
-        return new GroundedClaim(
-                new AdvisorClaim("Title", name, "Some.java"), frame(name, selfPct), true);
-    }
-
-    private static GroundedClaim ungrounded(String name) {
-        return GroundedClaim.ungrounded(new AdvisorClaim("Title", name, "Some.java"));
-    }
 
     @Nested
     class Thresholds {
@@ -71,39 +55,19 @@ class SeverityCalculatorTest {
     }
 
     @Nested
-    class FromClaims {
+    class SelfRatherThanTotal {
 
         @Test
-        void gradesFromTheHeaviestGroundedClaim() {
-            Severity severity = SeverityCalculator.fromGroundedClaims(List.of(
-                    grounded("Small.method", 4.0),
-                    grounded("Hot.method", 24.0),
-                    grounded("Medium.method", 11.0)));
-
-            assertEquals(Severity.CRITICAL, severity);
+        void doesNotGradeAnOrchestrationFrameAsCritical() {
+            // A root-adjacent frame's *total* share is ~100% by construction. Grading from that would
+            // make every profile CRITICAL, which is why the input is a self share — here, a run whose
+            // heaviest method only spends 1.2% of samples in itself.
+            assertEquals(Severity.LOW, SeverityCalculator.fromDominantSharePct(1.2));
         }
 
         @Test
-        void ignoresUngroundedClaimsEntirely() {
-            // The ungrounded claim names a frame that was never sampled; letting it raise the grade
-            // would let an invented hotspot outrank a measured one.
-            Severity severity = SeverityCalculator.fromGroundedClaims(List.of(
-                    grounded("Real.method", 4.0),
-                    ungrounded("Imagined.method")));
-
-            assertEquals(Severity.MEDIUM, severity);
-        }
-
-        @Test
-        void gradesLowWhenNothingIsGrounded() {
-            Severity severity = SeverityCalculator.fromGroundedClaims(List.of(ungrounded("Imagined.method")));
-
-            assertEquals(Severity.LOW, severity);
-        }
-
-        @Test
-        void gradesLowWhenThereAreNoClaimsAtAll() {
-            assertEquals(Severity.LOW, SeverityCalculator.fromGroundedClaims(List.of()));
+        void gradesAProfileWithNoSamplesAsLow() {
+            assertEquals(Severity.LOW, SeverityCalculator.fromDominantSharePct(0.0));
         }
     }
 }

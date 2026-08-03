@@ -29,7 +29,7 @@ const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'setup', text: 'Setup', level: 2 },
   { id: 'how-a-run-works', text: 'How a Run Works', level: 2 },
-  { id: 'grounding', text: 'Grounding and Severity', level: 2 },
+  { id: 'severity', text: 'Severity', level: 2 },
   { id: 'patches', text: 'Patches', level: 2 },
   { id: 'privacy', text: 'What Leaves Your Machine', level: 2 }
 ];
@@ -52,19 +52,21 @@ onMounted(() => {
       </p>
 
       <p>
-        Everything the model produces is grounded before it is stored. Cited frames are resolved against
-        the measured call tree and cited paths against your working copy. Severity is then computed from
-        what survived — so a finding the model invented cannot raise a profile's priority.
+        A run produces three artifacts per event type — the prompt that was sent, the recommendations
+        report, and the proposed patch — and each gets its own page. Severity is not one of the model's
+        answers: it is computed from the profile Jeffrey measured, so the same recording always ranks
+        the same way.
       </p>
 
       <h2 id="overview">Overview</h2>
 
-      <p>The Advisor is a top-level mode in the profile detail page, with three pages:</p>
+      <p>The Advisor is a top-level mode in the profile detail page, with four pages:</p>
 
       <ul>
         <li><strong>Overview</strong> — the landing page: set the source folder inline, launch the run, and watch its phased, timed timeline. The finished timeline is kept and re-shown on return.</li>
-        <li><strong>Findings</strong> — a separate page for the recommendations report, with the claim list above it.</li>
-        <li><strong>Patches</strong> — the proposed code changes, one per event type, each shown as a unified diff with the measured cost of what it removes.</li>
+        <li><strong>Prompt</strong> — the exact message sent to the model for each event type, shown verbatim and copyable.</li>
+        <li><strong>Findings</strong> — a separate page for the recommendations report.</li>
+        <li><strong>Patches</strong> — the proposed code changes, one per event type, each shown as a unified diff.</li>
       </ul>
 
       <p>
@@ -107,21 +109,20 @@ onMounted(() => {
         The Overview page is the landing: set a source folder and press <strong>Run Advisor</strong>. One
         launch analyzes <strong>every event type at once</strong> — CPU, Wall-Clock, Allocation, Blocking
         — shown as a processing timeline with a <strong>phase card per type</strong>. Each type moves
-        through the same five <strong>timed steps</strong>, and the types drain a few at a time through a
+        through the same four <strong>timed steps</strong>, and the types drain a few at a time through a
         shared ceiling so a single run cannot flood the AI provider:
       </p>
 
       <ol>
-        <li><strong>Prompt</strong> — the flamegraph markdown is built from the profile database and cached, along with the flattened call tree behind it.</li>
+        <li><strong>Prompt</strong> — the complete user message is composed from the profile database and cached, so the run sends it verbatim and the Prompt page can show exactly what was asked.</li>
         <li><strong>Source</strong> — the configured folder is validated and its commit read.</li>
-        <li><strong>Review</strong> — the model explores your source with four read-only tools: <code>listFiles</code>, <code>glob</code>, <code>readFile</code> and <code>grep</code>.</li>
-        <li><strong>Verify</strong> — the model's answer is checked: every cited frame is resolved against the measured call tree and severity is computed before anything is stored.</li>
+        <li><strong>Review</strong> — the model explores your source with four read-only tools: <code>listFiles</code>, <code>glob</code>, <code>readFile</code> and <code>grep</code>, and its answer is split into the report and the diff.</li>
         <li><strong>Patch</strong> — the proposed diff is repaired so it applies cleanly, and the files it touches are checked against the folder. A type where the model proposed no code change finishes this step with nothing to build.</li>
       </ol>
 
       <p>
         The steps are also where the run's time is accounted for: Review is the only one that calls the
-        AI, so it dominates, while Prompt, Verify and Patch are local work measured in milliseconds.
+        AI, so it dominates, while Prompt and Patch are local work measured in milliseconds.
       </p>
 
       <p>
@@ -137,7 +138,7 @@ onMounted(() => {
       </p>
 
       <p>
-        <strong>Clear results</strong> on the Overview throws all of it away — every report, its claims,
+        <strong>Clear results</strong> on the Overview throws all of it away — every report, its patch,
         the kept timeline, and the cached prompts — leaving the profile exactly as if the Advisor had
         never run. It is the counterpart of the Heap Dump's <em>Clear Cache</em>, and the way to get rid
         of a report generated against the wrong source folder, or of results for event types a later run
@@ -150,26 +151,28 @@ onMounted(() => {
         in flight is not affected — clear it after the run finishes, or cancel first.
       </DocsCallout>
 
-      <h2 id="grounding">Grounding and Severity</h2>
+      <h2 id="severity">Severity</h2>
 
       <p>
-        The model is asked to list, machine-readably, the frame each recommendation rests on. Every
-        citation is resolved against the measured call tree — forgivingly about notation
-        (<code>RateTable#lookup</code>, <code>com/acme/RateTable.lookup</code> and
-        <code>RateTable.lookup</code> all resolve to the same measured frame) but never inventing a
-        match for a frame that was never sampled.
+        Severity is Jeffrey's, not the model's — the model is explicitly told not to grade it. It is
+        computed from the <em>dominant self share</em> of the profile: the heaviest method's samples
+        summed across every call path it appears on, as a percentage of the recording. 20% or more is
+        CRITICAL, 10% HIGH, 3% MEDIUM, otherwise LOW.
       </p>
 
       <p>
-        A claim that does not resolve is <strong>shown, clearly marked as unverified, and excluded from
-        severity</strong> — not silently dropped. Hiding the model's mistake would make an unverifiable
-        report indistinguishable from a verified one.
+        Two details decide what that number means. Self samples are <strong>summed</strong> across call
+        paths, which is exact even under recursion because self weight never nests inside itself. And it
+        is <strong>self rather than total</strong> share, because total share is dominated by
+        orchestration frames sitting near 100% by construction — grading from those would make every
+        profile CRITICAL. Self share is where time is actually spent, and it is what a code change can
+        move.
       </p>
 
       <p>
-        Severity is Jeffrey's, not the model's: it is computed from the dominant grounded frame's
-        measured <em>self</em> share — 20% or more is CRITICAL, 10% HIGH, 3% MEDIUM, otherwise LOW.
-        Self share rather than total, because total is dominated by orchestration frames near 100%.
+        Because the rule is arithmetic over a measurement rather than a judgement, the same recording
+        grades the same way on every run, and the Findings and Patches pages can rank profiles against
+        each other.
       </p>
 
       <h2 id="patches">Patches</h2>
@@ -177,16 +180,15 @@ onMounted(() => {
       <p>
         When the model proposes a concrete edit, it is stored as a unified diff and shown on the
         <strong>Patches</strong> page — one patch per event type, ranked by severity and then by the
-        measured cost of the heaviest frame it touches. Each is rendered with the grounded claims it
-        rests on above it, and can be copied or saved as a <code>.patch</code> file.
+        profile's dominant self share. Each is rendered as a unified diff with line numbers, and can be
+        copied or saved as a <code>.patch</code> file that <code>git apply -p1</code> accepts.
       </p>
 
       <p>
-        The figure in the diff gutter is a <em>citation</em>, not a per-line profile. A line carries a
-        share only when it is a cited hotspot that resolved against the measured call tree; every other
-        line is left blank rather than shaded a plausible colour, because Jeffrey measures per method,
-        not per line. A type that produced a report without proposing an edit is named on the page
-        instead of silently missing from it.
+        The diff is repaired before it is stored: models reliably miscount hunk headers, so those are
+        recomputed, and a payload with no hunk at all is discarded rather than offered behind a button
+        that would hand you a file that cannot apply. A type that produced a report without proposing an
+        edit is named on the page instead of silently missing from it.
       </p>
 
       <h2 id="privacy">What Leaves Your Machine</h2>

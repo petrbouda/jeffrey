@@ -98,9 +98,8 @@ class PatchBuilderTest {
         }
 
         /**
-         * The check mirrors the claim grounder's: a patch is reported, not dropped, when its files do
-         * not resolve. The model may be right about a file Jeffrey cannot see, and a diff the reader
-         * can read is worth more than silence.
+         * A patch is reported, not dropped, when its files do not resolve. The model may be right about
+         * a file Jeffrey cannot see, and a diff the reader can read is worth more than silence.
          */
         @Test
         void keepsAPatchWhoseFilesAreNotInTheSourceFolder() {
