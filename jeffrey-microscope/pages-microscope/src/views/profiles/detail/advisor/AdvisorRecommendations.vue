@@ -17,13 +17,13 @@
   -->
 
 <template>
-  <LoadingState v-if="loading" message="Loading findings..." />
+  <LoadingState v-if="loading" message="Loading recommendations..." />
 
   <ErrorState v-else-if="error" :message="error" />
 
   <PageHeader
     v-else
-    title="Findings"
+    title="Recommendations"
     description="AI recommendations mapped to your source, ranked by the profile's measured hotspots"
     icon="bi-lightbulb"
   >
@@ -83,11 +83,11 @@
       </MainCard>
     </template>
 
-    <!-- No findings yet: send the user to the Overview to run the Advisor. -->
+    <!-- Nothing recommended yet: send the user to the Overview to run the Advisor. -->
     <EmptyState
       v-else
       icon="bi-lightbulb"
-      :title="isRunning ? 'A run is in progress' : 'No findings yet'"
+      :title="isRunning ? 'A run is in progress' : 'No recommendations yet'"
       :description="
         isRunning
           ? 'The Advisor is analyzing your profiles now — watch it on the Overview.'
@@ -174,7 +174,7 @@ const hotspotLabel = (recommendation: AdvisorRecommendation): string =>
   `${FormattingService.formatPercentValue(recommendation.dominantSelfPct)} in its hottest method`;
 
 const renderedReport = computed(() =>
-  MarkdownRenderer.render(selectedRecommendation.value?.recommendations)
+  MarkdownRenderer.render(selectedRecommendation.value?.report)
 );
 
 onMounted(load);
@@ -308,7 +308,7 @@ onMounted(load);
   border-radius: var(--radius-sm);
 }
 
-/* action button inside the EmptyState (no findings yet) */
+/* action button inside the EmptyState (nothing recommended yet) */
 .guard-btn {
   display: inline-flex;
   align-items: center;

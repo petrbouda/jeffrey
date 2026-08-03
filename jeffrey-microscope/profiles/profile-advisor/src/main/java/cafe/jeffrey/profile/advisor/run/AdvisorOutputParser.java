@@ -20,7 +20,7 @@ package cafe.jeffrey.profile.advisor.run;
 
 /**
  * Splits the model's single response into the two artifacts the UI shows separately: the
- * recommendations markdown and the proposed patch. The model is instructed (see
+ * recommendations report and the proposed patch. The model is instructed (see
  * {@code AdvisorPrompts}) to emit sections separated by the {@link #RECOMMENDATIONS_MARKER} and
  * {@link #PATCH_MARKER} marker lines; this parser is tolerant of a missing patch section.
  *
@@ -43,9 +43,9 @@ final class AdvisorOutputParser {
 
     /**
      * The sections of a model response. A response that carries no marker at all yields its whole body
-     * as the recommendations, so a model that ignored the format still says something useful.
+     * as the report, so a model that ignored the format still says something useful.
      */
-    record ParsedOutput(String recommendations, String patch) {
+    record ParsedOutput(String report, String patch) {
 
         boolean hasPatch() {
             return patch != null && !patch.isBlank();
@@ -57,9 +57,9 @@ final class AdvisorOutputParser {
             return new ParsedOutput("", null);
         }
 
-        String afterRecommendations = stripThrough(raw, RECOMMENDATIONS_MARKER);
-        String recommendations = beforeMarker(afterRecommendations, PATCH_MARKER).strip();
-        return new ParsedOutput(recommendations, parsePatch(raw));
+        String afterMarker = stripThrough(raw, RECOMMENDATIONS_MARKER);
+        String report = beforeMarker(afterMarker, PATCH_MARKER).strip();
+        return new ParsedOutput(report, parsePatch(raw));
     }
 
     /**

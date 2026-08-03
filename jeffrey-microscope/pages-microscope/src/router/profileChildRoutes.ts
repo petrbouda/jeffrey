@@ -644,7 +644,7 @@ const toolsRoutes = [
 ];
 
 // AI advisor: the run overview (phased, timed processing, with the source folder set inline) lands
-// first, then the three artifacts a run produces — the prompt, the findings and the proposed patch —
+// first, then the three artifacts a run produces — the prompt, the recommendations and the patch —
 // each on its own page.
 const advisorRoutes = [
   {
@@ -660,10 +660,16 @@ const advisorRoutes = [
     meta: { layout: 'profile' }
   },
   {
-    path: 'advisor/findings',
-    name: 'profile-advisor-findings',
-    component: () => import('@/views/profiles/detail/advisor/AdvisorFindings.vue'),
+    path: 'advisor/recommendations',
+    name: 'profile-advisor-recommendations',
+    component: () => import('@/views/profiles/detail/advisor/AdvisorRecommendations.vue'),
     meta: { layout: 'profile' }
+  },
+  // The page was called Findings until the Advisor's pages were named after the three artifacts a run
+  // produces; keep the old path working for anyone who bookmarked it.
+  {
+    path: 'advisor/findings',
+    redirect: redirectTo('advisor/recommendations')
   },
   {
     path: 'advisor/patches',

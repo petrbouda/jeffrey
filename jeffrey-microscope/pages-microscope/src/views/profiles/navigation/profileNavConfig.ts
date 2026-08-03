@@ -450,7 +450,7 @@ export const profileNavSections: Record<
         item('Prompt', 'bi-chat-square-text', '/advisor/prompt', {
           disabledKeys: [AI_ANALYSIS_KEY]
         }),
-        item('Findings', 'bi-lightbulb', '/advisor/findings', {
+        item('Recommendations', 'bi-lightbulb', '/advisor/recommendations', {
           disabledKeys: [AI_ANALYSIS_KEY]
         }),
         item('Patches', 'bi-file-earmark-diff', '/advisor/patches', {

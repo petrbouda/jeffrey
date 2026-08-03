@@ -152,7 +152,7 @@ CREATE TABLE IF NOT EXISTS advisor_recommendations
     event_type        VARCHAR     NOT NULL PRIMARY KEY,
     severity          VARCHAR     NOT NULL DEFAULT 'LOW',
     dominant_self_pct DOUBLE      NOT NULL DEFAULT 0,
-    recommendations   VARCHAR     NOT NULL,
+    report            VARCHAR     NOT NULL,
     patch             VARCHAR,
     source_ref        VARCHAR,
     generated_at      TIMESTAMPTZ NOT NULL
