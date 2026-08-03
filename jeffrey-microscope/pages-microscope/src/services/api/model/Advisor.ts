@@ -18,10 +18,15 @@
 
 import type { Severity } from '@shared/services/severityDisplay';
 
-/** A profile group the Advisor can analyze, as reported by the backend. */
+/**
+ * A profile group the Advisor knows about. Every group is reported, including the ones this recording
+ * carries no samples for — {@link available} is what separates them. The pages list all of them so a
+ * type keeps its place whatever a recording contains.
+ */
 export interface AdvisorEventType {
   eventType: string;
   label: string;
+  available: boolean;
 }
 
 /**
@@ -33,6 +38,10 @@ export interface AdvisorPrompt {
   label: string;
   samples: number;
   prompt: string;
+  /** The measured self share of the profile's heaviest method, as of when the prompt was built. */
+  dominantSelfPct: number;
+  /** The name of that method, or an empty string when the profile had no samples. */
+  dominantMethod: string;
   generatedAt: number;
 }
 
@@ -41,6 +50,8 @@ export interface AdvisorRecommendation {
   severity: Severity;
   /** The measured self share of the profile's heaviest method — the number severity was graded from. */
   dominantSelfPct: number;
+  /** The name of that method, or an empty string when it is not known. */
+  dominantMethod: string;
   /** The recommendations markdown the model wrote. */
   report: string;
   /** The proposed unified diff, or null when the model proposed no code edit. */

@@ -30,35 +30,44 @@
     <AiDisabledFeatureAlert v-if="aiDisabled" />
 
     <template v-else-if="hasResults">
-      <!-- Every analyzed type is listed, including those the model proposed nothing for: a type that
-           produced no diff is a result, and hiding it would read as a type that was never analyzed. -->
-      <div class="docket">
-        <div class="docket-list">
-          <button
-            v-for="rec in orderedRecommendations"
-            :key="rec.eventType"
-            type="button"
-            class="docket-item"
-            :class="{ selected: selectedType === rec.eventType, empty: !hasPatch(rec) }"
-            :style="eventTypeVars(rec.eventType)"
-            @click="selectedType = rec.eventType"
-          >
-            <span class="docket-name">
-              <i class="bi" :class="eventTypeStyle(rec.eventType).icon"></i>
-              {{ labelFor(rec.eventType) }}
-            </span>
-            <span class="docket-verdict">
-              {{ severityLabel(rec.severity) }} · {{ costOf(rec) }}
-            </span>
-          </button>
-        </div>
-      </div>
+      <!-- Every type is listed, including those the model proposed nothing for: a type that produced
+           no diff is a result, and hiding it would read as a type that was never analyzed. -->
+      <AdvisorDocket v-model:selected="selectedType" :items="items">
+        <template #rows="{ item }">
+          <template v-if="recommendationFor(item.eventType)">
+            <AdvisorDocketRow label="Diff">
+              <template v-if="hasPatch(recommendationFor(item.eventType)!.patch)">
+                <span class="added">+{{ statsFor(item.eventType).added }}</span>
+                <span class="removed">−{{ statsFor(item.eventType).removed }}</span>
+              </template>
+              <template v-else>none</template>
+            </AdvisorDocketRow>
+            <AdvisorDocketRow label="Files">{{ filesLabel(item.eventType) }}</AdvisorDocketRow>
+            <AdvisorDocketRow
+              label="Top method"
+              mono
+              :title="recommendationFor(item.eventType)!.dominantMethod"
+            >
+              {{ topMethod(recommendationFor(item.eventType)!.dominantMethod) }}
+            </AdvisorDocketRow>
+          </template>
+          <AdvisorDocketRow v-else label="Patch">not analysed yet</AdvisorDocketRow>
+        </template>
+      </AdvisorDocket>
+
+      <!-- A type this recording has no samples for: what is missing, and how to record it. -->
+      <AdvisorMissingType
+        v-if="selectedMissing"
+        :event-type="selectedMissing.eventType"
+        :label="selectedMissing.label"
+        missing-artifact="diff to apply"
+      />
 
       <!-- The diff carries its own frame — file, cost, counts and actions are all on its header bar —
            so it stands on its own rather than inside a card that would repeat the type's name. -->
-      <template v-if="selected">
+      <template v-else-if="selected">
         <DiffViewer
-          v-if="hasPatch(selected)"
+          v-if="hasPatch(selected.patch)"
           :patch="selected.patch as string"
           :file-name="patchFileName"
         />
@@ -78,6 +87,14 @@
           </template>
         </EmptyState>
       </template>
+
+      <!-- Recorded, but this run never analysed it. -->
+      <EmptyState
+        v-else
+        icon="bi-file-earmark-diff"
+        :title="`No ${selectedLabel} patch yet`"
+        description="The Advisor analyses this type on its next run."
+      />
     </template>
 
     <!-- The Advisor has not produced anything yet for this profile. -->
@@ -110,16 +127,19 @@ import ErrorState from '@shared/components/ErrorState.vue';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import DiffViewer from '@shared/components/DiffViewer.vue';
-import FormattingService from '@shared/services/FormattingService';
-import { severityLabel } from '@shared/services/severityDisplay';
+import { severityLabel, severityVariant } from '@shared/services/severityDisplay';
 import type { AdvisorRecommendation } from '@/services/api/model/Advisor';
 import AiDisabledFeatureAlert from '@/components/alerts/AiDisabledFeatureAlert.vue';
+import AdvisorDocket from '@/views/profiles/detail/advisor/AdvisorDocket.vue';
+import AdvisorDocketRow from '@/views/profiles/detail/advisor/AdvisorDocketRow.vue';
+import AdvisorMissingType from '@/views/profiles/detail/advisor/AdvisorMissingType.vue';
 import {
-  compareEventTypes,
-  eventTypeCostLabel,
-  eventTypeStyle,
-  eventTypeVars
-} from '@/views/profiles/detail/advisor/eventTypeStyle';
+  docketItems,
+  hasPatch,
+  patchStats,
+  type PatchStats
+} from '@/views/profiles/detail/advisor/advisorDocket';
+import { shortMethodName } from '@/views/profiles/detail/advisor/eventTypeStyle';
 import { useAdvisor } from '@/composables/useAdvisor';
 import FeatureType from '@/services/api/model/FeatureType';
 
@@ -147,37 +167,62 @@ const recommendationsPath = computed(() => `/profiles/${profileId}/advisor/recom
 const labelFor = (code: string): string =>
   eventTypes.value.find(type => type.eventType === code)?.label ?? code;
 
-const hasPatch = (recommendation: AdvisorRecommendation): boolean =>
-  recommendation.patch !== null && recommendation.patch.trim() !== '';
+const recommendationFor = (eventType: string): AdvisorRecommendation | undefined =>
+  recommendations.value.find(item => item.eventType === eventType);
 
-/** What a type's card says under its name: the price of its patch, or that there isn't one. */
-const costOf = (recommendation: AdvisorRecommendation): string => {
-  if (!hasPatch(recommendation)) {
-    return 'no patch';
-  }
-  return `${FormattingService.formatPercentValue(recommendation.dominantSelfPct)} ${eventTypeCostLabel(recommendation.eventType)}`;
+const statsFor = (eventType: string): PatchStats =>
+  patchStats(recommendationFor(eventType)?.patch ?? null);
+
+const filesLabel = (eventType: string): string => {
+  const files = statsFor(eventType).files;
+  return files === 0 ? '\u2014' : String(files);
 };
+
+const topMethod = (method: string): string => (method === '' ? 'unknown' : shortMethodName(method));
 
 /**
  * CPU, Wall-Clock, Allocation, Blocking — the Advisor's canonical order, the same one Prompts and
  * Recommendations use, so a type sits in the same place on all three pages. Whether a type produced a
  * patch is said on its card rather than by moving it.
  */
-const orderedRecommendations = computed(() =>
-  [...recommendations.value].sort((left, right) =>
-    compareEventTypes(left.eventType, right.eventType)
-  )
+const items = computed(() =>
+  docketItems(eventTypes.value, eventType => {
+    const recommendation = recommendationFor(eventType);
+    if (recommendation === undefined) {
+      return undefined;
+    }
+    return {
+      value: severityLabel(recommendation.severity),
+      variant: severityVariant(recommendation.severity)
+    };
+  })
 );
 
 /**
- * Opens on the first type that actually has a patch, so the page lands on something to read rather than
- * on an explanation of an absence — the docket order itself no longer guarantees that.
+ * Opens on the first type that actually has a patch, so the page lands on something to read rather
+ * than on an explanation of an absence — the docket order itself does not guarantee that.
  */
-const selected = computed(
+const firstWithPatch = computed(
   () =>
-    orderedRecommendations.value.find(rec => rec.eventType === selectedType.value) ??
-    orderedRecommendations.value.find(hasPatch) ??
-    orderedRecommendations.value[0]
+    items.value.find(item => hasPatch(recommendationFor(item.eventType)?.patch ?? null))
+      ?.eventType ?? null
+);
+
+const selectedItem = computed(
+  () =>
+    items.value.find(item => item.eventType === selectedType.value) ??
+    items.value.find(item => item.eventType === firstWithPatch.value)
+);
+
+const selectedLabel = computed(() => selectedItem.value?.label ?? '');
+
+/** Set only when the selected type is one this recording carries no samples for. */
+const selectedMissing = computed(() =>
+  selectedItem.value?.available === false ? selectedItem.value : undefined
+);
+
+const selected = computed(() =>
+  selectedItem.value ? recommendationFor(selectedItem.value.eventType) : undefined
 );
 
 const patchFileName = computed(() => {
@@ -189,84 +234,14 @@ onMounted(load);
 </script>
 
 <style scoped>
-/* The docket: the patches ranked by what each one is worth. */
-.docket {
-  margin-bottom: 1.1rem;
+/* The docket's own styling lives in AdvisorDocket; only the diff counts are this page's. */
+.added {
+  color: var(--color-success-dark);
 }
 
-.docket-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 0.5rem;
-}
-
-/* The left spine is the type's own accent — the same device the Recommendations docket uses, so the Advisor's
-   pages read as one family. Selection tints the card rather than flooding it, which keeps a red type
-   (Blocking) from reading as an error the moment you pick it. */
-.docket-item {
-  appearance: none;
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-  border: 1px solid var(--color-border);
-  border-left: 3px solid var(--et);
-  border-radius: var(--radius-base);
-  background: var(--color-bg-card);
-  padding: 0.5rem 0.7rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  transition: background 0.16s, border-color 0.16s;
-}
-
-.docket-item:hover {
-  background: var(--color-light);
-}
-
-.docket-item.selected {
-  background: var(--et-light);
-  border-color: var(--et);
-}
-
-.docket-name {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--color-heading-dark);
-}
-
-.docket-name i {
-  color: var(--et);
-}
-
-.docket-verdict {
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.docket-item.selected .docket-verdict {
-  color: var(--et);
-}
-
-/* Analyzed but with nothing to apply: still listed, still selectable, just visibly not the reason you
-   came to this page. The accent stays so the type keeps its identity across the Advisor's pages. */
-.docket-item.empty .docket-name {
-  color: var(--color-text-muted);
-}
-
-.docket-item.empty .docket-name i {
-  opacity: 0.55;
-}
-
-.docket-item.empty .docket-verdict {
-  font-style: italic;
-  letter-spacing: 0.03em;
-  text-transform: none;
+.removed {
+  color: var(--color-danger);
+  margin-left: 0.3rem;
 }
 
 /* action button inside the EmptyState (nothing to apply) */

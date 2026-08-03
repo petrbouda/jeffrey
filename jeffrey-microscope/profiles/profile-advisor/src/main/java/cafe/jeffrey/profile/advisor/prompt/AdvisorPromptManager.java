@@ -132,13 +132,15 @@ public class AdvisorPromptManager {
                 eventStreamRepository, pruneThresholdPct, new AiExportConfig(pruneThresholdPct));
 
         DbBasedFlamegraphGenerator.AiExport export = generator.generateAiExportWithFrames(parameters(eventType));
+        DominantMethod dominant = DominantSelfShare.of(export.root());
 
         AdvisorPrompt prompt = new AdvisorPrompt(
                 promptType.primaryEventType().code(),
                 promptType.label(),
                 export.root().totalSamples(),
                 AdvisorPrompts.userMessage(promptType.label(), export.markdown()),
-                DominantSelfShare.of(export.root()),
+                dominant.selfPct(),
+                dominant.method(),
                 clock.instant());
 
         advisorRepository.upsertPrompt(new AdvisorPromptRow(
@@ -147,10 +149,13 @@ public class AdvisorPromptManager {
                 prompt.samples(),
                 prompt.prompt(),
                 prompt.dominantSelfPct(),
+                prompt.dominantMethod(),
                 prompt.generatedAt()));
 
-        LOG.info("Generated advisor prompt: prompt_type={} event_type={} total_samples={} dominant_self_pct={}",
-                promptType.name(), eventType.code(), prompt.samples(), prompt.dominantSelfPct());
+        LOG.info("Generated advisor prompt: prompt_type={} event_type={} total_samples={} "
+                        + "dominant_self_pct={} dominant_method={}",
+                promptType.name(), eventType.code(), prompt.samples(), prompt.dominantSelfPct(),
+                prompt.dominantMethod());
         return Optional.of(prompt);
     }
 
@@ -197,6 +202,7 @@ public class AdvisorPromptManager {
                 row.samples(),
                 row.prompt(),
                 row.dominantSelfPct(),
+                row.dominantMethod(),
                 row.generatedAt());
     }
 }

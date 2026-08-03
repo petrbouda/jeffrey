@@ -20,14 +20,15 @@ package cafe.jeffrey.profile.advisor.prompt;
 
 import cafe.jeffrey.frameir.Frame;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The share of a profile spent in its single heaviest method, as a percentage of total samples. This is
- * the one number the Advisor keeps from the parsed call tree, and it is what severity is graded from —
- * so the ranking of a recording is arithmetic over what Jeffrey measured, never something the model was
- * asked to judge.
+ * The single heaviest method of a profile and its share of it, as a percentage of total samples. The
+ * share is what severity is graded from — so the ranking of a recording is arithmetic over what Jeffrey
+ * measured, never something the model was asked to judge — and the method's name is carried out with it,
+ * because a grade that names the frame it came from is one a reader can act on.
  *
  * <p>Two choices decide what the number means. <strong>Self samples are summed</strong> across every
  * call path a method appears on: self weight never nests inside itself, so summing it is exact even
@@ -38,26 +39,35 @@ import java.util.Map;
  */
 public final class DominantSelfShare {
 
+    /**
+     * Heaviest first, and on a tie the alphabetically first name — a walk over a hash map has no order
+     * of its own, so without a tie-break two equally hot methods would name whichever one the map
+     * happened to hand back.
+     */
+    private static final Comparator<Map.Entry<String, Long>> BY_WEIGHT_THEN_NAME =
+            Map.Entry.<String, Long>comparingByValue()
+                    .thenComparing(Map.Entry.<String, Long>comparingByKey(Comparator.reverseOrder()));
+
     private DominantSelfShare() {
     }
 
     /**
-     * The heaviest method's self share of {@code root}, or {@code 0.0} for a tree with no samples.
+     * The heaviest method of {@code root} and its self share, or {@link DominantMethod#NONE} for a tree
+     * with no samples. Ties are broken by method name so the same tree always names the same frame.
      */
-    public static double of(Frame root) {
+    public static DominantMethod of(Frame root) {
         long totalSamples = root.totalSamples();
         if (totalSamples <= 0) {
-            return 0.0;
+            return DominantMethod.NONE;
         }
 
         Map<String, Long> selfByName = new HashMap<>();
         collect(root, selfByName);
 
-        long dominant = selfByName.values().stream()
-                .mapToLong(Long::longValue)
-                .max()
-                .orElse(0L);
-        return 100.0 * dominant / totalSamples;
+        return selfByName.entrySet().stream()
+                .max(BY_WEIGHT_THEN_NAME)
+                .map(entry -> new DominantMethod(entry.getKey(), 100.0 * entry.getValue() / totalSamples))
+                .orElse(DominantMethod.NONE);
     }
 
     /**

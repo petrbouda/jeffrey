@@ -139,7 +139,7 @@
       <p class="picker-cap">What it will analyze</p>
       <div class="ready-grid">
         <div
-          v-for="type in eventTypes"
+          v-for="type in analyzableTypes"
           :key="type.eventType"
           class="ready-card"
           :style="eventTypeVars(type.eventType)"
@@ -157,7 +157,7 @@
       </div>
 
       <EmptyState
-        v-if="eventTypes.length === 0"
+        v-if="analyzableTypes.length === 0"
         icon="bi-lightbulb"
         title="Nothing to analyze"
         description="This profile has no event types the Advisor can work with."
@@ -223,6 +223,13 @@ const recommendationsPath = computed(() => `/profiles/${profileId}/advisor/recom
 const labelFor = (code: string | null): string =>
   eventTypes.value.find(type => type.eventType === code)?.label ?? code ?? 'Unknown';
 
+/**
+ * The types a run would actually process. The endpoint lists every type the Advisor knows about, so
+ * the artifact pages can show a missing one in its place — but this page is about what is going to
+ * happen, and a type with no samples is not part of it.
+ */
+const analyzableTypes = computed(() => eventTypes.value.filter(type => type.available));
+
 const liveTypes = computed<TimelineType[]>(() =>
   (batch.value?.types ?? []).map(type => ({
     eventType: type.eventType ?? '',
@@ -278,7 +285,7 @@ const runTitle = computed(() =>
 );
 
 const analyzeCountLabel = computed(() => {
-  const count = eventTypes.value.length;
+  const count = analyzableTypes.value.length;
   return count === 1 ? '1 profile' : `all ${count} profiles`;
 });
 

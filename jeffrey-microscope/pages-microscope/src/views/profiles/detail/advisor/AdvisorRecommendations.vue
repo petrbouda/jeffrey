@@ -30,31 +30,42 @@
     <AiDisabledFeatureAlert v-if="aiDisabled" />
 
     <template v-else-if="hasResults">
-      <!-- The docket: every analyzed type in the Advisor's canonical order, so a type sits in the same
-           place here as on Prompts and Patches. -->
-      <div class="docket">
-        <div class="docket-list">
-          <button
-            v-for="rec in orderedRecommendations"
-            :key="rec.eventType"
-            type="button"
-            class="docket-item"
-            :class="{ selected: selectedEventType === rec.eventType }"
-            :style="eventTypeVars(rec.eventType)"
-            @click="selectedEventType = rec.eventType"
-          >
-            <span class="docket-name">
-              <i class="bi" :class="eventTypeStyle(rec.eventType).icon"></i>
-              {{ labelFor(rec.eventType) }}
-            </span>
-            <span class="docket-verdict">
-              {{ severityLabel(rec.severity) }} · {{ hotspotLabel(rec) }}
-            </span>
-          </button>
-        </div>
-      </div>
+      <!-- The docket: every type in the Advisor's canonical order, so a type sits in the same place
+           here as on Prompts and Patches, carrying the figures behind its grade. -->
+      <AdvisorDocket v-model:selected="selectedEventType" :items="items">
+        <template #rows="{ item }">
+          <template v-if="recommendationFor(item.eventType)">
+            <AdvisorDocketRow
+              label="Top method"
+              mono
+              :title="recommendationFor(item.eventType)!.dominantMethod"
+            >
+              {{ topMethod(recommendationFor(item.eventType)!.dominantMethod) }}
+            </AdvisorDocketRow>
+            <AdvisorDocketRow label="Its share">
+              {{
+                FormattingService.formatPercentValue(
+                  recommendationFor(item.eventType)!.dominantSelfPct
+                )
+              }}
+            </AdvisorDocketRow>
+            <AdvisorDocketRow label="Analysed in">
+              {{ analysedIn(item.eventType) }}
+            </AdvisorDocketRow>
+          </template>
+          <AdvisorDocketRow v-else label="Report">not analysed yet</AdvisorDocketRow>
+        </template>
+      </AdvisorDocket>
 
-      <MainCard v-if="selectedRecommendation">
+      <!-- A type this recording has no samples for: what is missing, and how to record it. -->
+      <AdvisorMissingType
+        v-if="selectedMissing"
+        :event-type="selectedMissing.eventType"
+        :label="selectedMissing.label"
+        missing-artifact="report to read"
+      />
+
+      <MainCard v-else-if="selectedRecommendation">
         <template #header>
           <MainCardHeader
             icon="bi-lightbulb"
@@ -82,6 +93,14 @@
         <!-- Sanitized in MarkdownRenderer: this markdown quotes source read off the user's disk. -->
         <div class="report" v-html="renderedReport"></div>
       </MainCard>
+
+      <!-- Recorded, but this run never analysed it. -->
+      <EmptyState
+        v-else
+        icon="bi-lightbulb"
+        :title="`No ${selectedLabel} report yet`"
+        description="The Advisor analyses this type on its next run."
+      />
     </template>
 
     <!-- Nothing recommended yet: send the user to the Overview to run the Advisor. -->
@@ -121,11 +140,11 @@ import { severityLabel, severityVariant } from '@shared/services/severityDisplay
 import type { AdvisorRecommendation } from '@/services/api/model/Advisor';
 import EmptyState from '@shared/components/EmptyState.vue';
 import AiDisabledFeatureAlert from '@/components/alerts/AiDisabledFeatureAlert.vue';
-import {
-  compareEventTypes,
-  eventTypeStyle,
-  eventTypeVars
-} from '@/views/profiles/detail/advisor/eventTypeStyle';
+import AdvisorDocket from '@/views/profiles/detail/advisor/AdvisorDocket.vue';
+import AdvisorDocketRow from '@/views/profiles/detail/advisor/AdvisorDocketRow.vue';
+import AdvisorMissingType from '@/views/profiles/detail/advisor/AdvisorMissingType.vue';
+import { analysisDurationMs, docketItems } from '@/views/profiles/detail/advisor/advisorDocket';
+import { shortMethodName } from '@/views/profiles/detail/advisor/eventTypeStyle';
 import { useAdvisor } from '@/composables/useAdvisor';
 import FeatureType from '@/services/api/model/FeatureType';
 
@@ -139,6 +158,7 @@ const {
   error,
   eventTypes,
   recommendations,
+  runResult,
   selectedEventType,
   selectedRecommendation,
   hasResults,
@@ -156,20 +176,45 @@ const patchesPath = computed(() => `/profiles/${profileId}/advisor/patches`);
 const labelFor = (code: string): string =>
   eventTypes.value.find(type => type.eventType === code)?.label ?? code;
 
+const recommendationFor = (eventType: string): AdvisorRecommendation | undefined =>
+  recommendations.value.find(item => item.eventType === eventType);
+
 /**
  * CPU, Wall-Clock, Allocation, Blocking — the Advisor's canonical order rather than a per-page ranking,
- * so the docket reads the same on Prompts, Recommendations and Patches. Each card still carries its
- * severity, which is where the "where to start" signal lives.
+ * so the docket reads the same on Prompts, Recommendations and Patches. The grade rides on the card,
+ * which is where the "where to start" signal lives.
  */
-const orderedRecommendations = computed(() =>
-  [...recommendations.value].sort((left, right) =>
-    compareEventTypes(left.eventType, right.eventType)
-  )
+const items = computed(() =>
+  docketItems(eventTypes.value, eventType => {
+    const recommendation = recommendationFor(eventType);
+    if (recommendation === undefined) {
+      return undefined;
+    }
+    return {
+      value: severityLabel(recommendation.severity),
+      variant: severityVariant(recommendation.severity)
+    };
+  })
 );
 
-/** What a type's card says under its name: the share of the profile its hottest method accounts for. */
-const hotspotLabel = (recommendation: AdvisorRecommendation): string =>
-  `${FormattingService.formatPercentValue(recommendation.dominantSelfPct)} in its hottest method`;
+const topMethod = (method: string): string => (method === '' ? 'unknown' : shortMethodName(method));
+
+/** How long the last run spent on this type — the same stored timings the Overview's timeline uses. */
+const analysedIn = (eventType: string): string => {
+  const durationMs = analysisDurationMs(runResult.value, eventType);
+  return durationMs === null ? '—' : FormattingService.formatDurationMillisCoarse(durationMs);
+};
+
+const selectedItem = computed(() =>
+  items.value.find(item => item.eventType === selectedEventType.value)
+);
+
+const selectedLabel = computed(() => selectedItem.value?.label ?? '');
+
+/** Set only when the selected type is one this recording carries no samples for. */
+const selectedMissing = computed(() =>
+  selectedItem.value?.available === false ? selectedItem.value : undefined
+);
 
 const renderedReport = computed(() =>
   MarkdownRenderer.render(selectedRecommendation.value?.report)
@@ -179,70 +224,6 @@ onMounted(load);
 </script>
 
 <style scoped>
-/* The docket: the reports ranked worst-first. */
-.docket {
-  margin-bottom: 1.1rem;
-}
-
-.docket-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 0.5rem;
-}
-
-/* The left spine is the type's own accent — the same device the Overview's manifest uses, so the two
-   Advisor pages read as one family. Selection tints the card rather than flooding it, which keeps a
-   red type (Blocking) from reading as an error the moment you pick it. */
-.docket-item {
-  appearance: none;
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-  border: 1px solid var(--color-border);
-  border-left: 3px solid var(--et);
-  border-radius: var(--radius-base);
-  background: var(--color-bg-card);
-  padding: 0.5rem 0.7rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  transition: background 0.16s, border-color 0.16s;
-}
-
-.docket-item:hover {
-  background: var(--color-light);
-}
-
-.docket-item.selected {
-  background: var(--et-light);
-  border-color: var(--et);
-}
-
-.docket-name {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--color-heading-dark);
-}
-
-.docket-name i {
-  color: var(--et);
-}
-
-.docket-verdict {
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.docket-item.selected .docket-verdict {
-  color: var(--et);
-}
-
 /* The hand-off sits above the prose: you see that a change exists, then read why it is proposed. */
 .patch-link {
   display: flex;
@@ -254,7 +235,9 @@ onMounted(load);
   border-radius: var(--radius-base);
   background: var(--color-primary-lighter);
   text-decoration: none;
-  transition: background 0.16s, border-color 0.16s;
+  transition:
+    background 0.16s,
+    border-color 0.16s;
 }
 
 .patch-link:hover {

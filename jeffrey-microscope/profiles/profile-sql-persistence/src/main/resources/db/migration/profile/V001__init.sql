@@ -127,7 +127,8 @@ CREATE TABLE IF NOT EXISTS profile_info
 -- One AI prompt per sample event type. `prompt` is the complete user message as the model receives
 -- it, composed when the prompt is generated rather than at run time, so the run sends it verbatim and
 -- the Advisor's Prompt page shows exactly what was asked. `dominant_self_pct` is the heaviest
--- method's measured self share of the profile — the number severity is graded from.
+-- method's measured self share of the profile — the number severity is graded from — and
+-- `dominant_method` names the method holding it, so the share can be shown attached to its frame.
 --
 CREATE TABLE IF NOT EXISTS advisor_prompts
 (
@@ -136,6 +137,7 @@ CREATE TABLE IF NOT EXISTS advisor_prompts
     samples           BIGINT      NOT NULL,
     prompt            VARCHAR     NOT NULL,
     dominant_self_pct DOUBLE      NOT NULL DEFAULT 0,
+    dominant_method   VARCHAR     NOT NULL DEFAULT '',
     generated_at      TIMESTAMPTZ NOT NULL
 );
 
@@ -152,6 +154,7 @@ CREATE TABLE IF NOT EXISTS advisor_recommendations
     event_type        VARCHAR     NOT NULL PRIMARY KEY,
     severity          VARCHAR     NOT NULL DEFAULT 'LOW',
     dominant_self_pct DOUBLE      NOT NULL DEFAULT 0,
+    dominant_method   VARCHAR     NOT NULL DEFAULT '',
     report            VARCHAR     NOT NULL,
     patch             VARCHAR,
     source_ref        VARCHAR,
