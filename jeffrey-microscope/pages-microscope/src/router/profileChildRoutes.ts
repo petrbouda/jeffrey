@@ -656,7 +656,7 @@ const advisorRoutes = [
   {
     path: 'advisor/prompt',
     name: 'profile-advisor-prompt',
-    component: () => import('@/views/profiles/detail/advisor/AdvisorPromptView.vue'),
+    component: () => import('@/views/profiles/detail/advisor/AdvisorPrompt.vue'),
     meta: { layout: 'profile' }
   },
   {

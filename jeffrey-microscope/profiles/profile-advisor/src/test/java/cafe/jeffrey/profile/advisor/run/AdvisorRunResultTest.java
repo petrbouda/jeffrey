@@ -62,7 +62,7 @@ class AdvisorRunResultTest {
         AdvisorRunResult result = AdvisorRunResult.from(List.of(cpu, blocking));
 
         assertEquals(2, result.totalTypes());
-        assertEquals(1, result.completedTypes(), "only the CPU type produced findings");
+        assertEquals(1, result.completedTypes(), "only the CPU type produced a result");
         assertEquals(14000L, result.totalElapsedMs(), "wall clock from first start to finish");
 
         AdvisorTypeResult cpuResult = result.types().getFirst();
