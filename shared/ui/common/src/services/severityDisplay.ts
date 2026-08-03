@@ -21,7 +21,7 @@ export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 
 /**
  * Presentation helpers for severity. Keeps the severity → look mapping in one place so every screen
- * that ranks findings reads the same way.
+ * that ranks recommendations reads the same way.
  */
 
 const BADGE_VARIANT: Record<Severity, string> = {
@@ -36,7 +36,7 @@ export function severityVariant(severity: Severity): string {
 }
 
 /**
- * Worst first. Kept here rather than in a view so every screen that orders findings agrees on what
+ * Worst first. Kept here rather than in a view so every screen that orders recommendations agrees on what
  * "worse" means — an unknown severity sorts last rather than jumping the queue.
  */
 const RANK: Record<Severity, number> = {
