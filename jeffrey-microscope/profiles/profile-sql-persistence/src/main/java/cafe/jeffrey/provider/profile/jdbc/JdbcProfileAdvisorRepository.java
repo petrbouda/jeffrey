@@ -65,7 +65,7 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
 
     //language=SQL
     private static final String FIND_RECOMMENDATIONS = """
-            SELECT event_type, severity, dominant_self_pct, recommendations, patch, source_ref,
+            SELECT event_type, severity, dominant_self_pct, report, patch, source_ref,
                    generated_at
             FROM advisor_recommendations
             ORDER BY event_type""";
@@ -73,13 +73,13 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
     //language=SQL
     private static final String UPSERT_RECOMMENDATION = """
             INSERT INTO advisor_recommendations (event_type, severity, dominant_self_pct,
-                                                 recommendations, patch, source_ref, generated_at)
-            VALUES (:event_type, :severity, :dominant_self_pct, :recommendations, :patch,
+                                                 report, patch, source_ref, generated_at)
+            VALUES (:event_type, :severity, :dominant_self_pct, :report, :patch,
                     :source_ref, :generated_at)
             ON CONFLICT (event_type) DO UPDATE SET
                 severity = EXCLUDED.severity,
                 dominant_self_pct = EXCLUDED.dominant_self_pct,
-                recommendations = EXCLUDED.recommendations,
+                report = EXCLUDED.report,
                 patch = EXCLUDED.patch,
                 source_ref = EXCLUDED.source_ref,
                 generated_at = EXCLUDED.generated_at""";
@@ -136,7 +136,7 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
                 .addValue(PARAM_EVENT_TYPE, recommendation.eventType())
                 .addValue("severity", recommendation.severity())
                 .addValue("dominant_self_pct", recommendation.dominantSelfPct())
-                .addValue("recommendations", recommendation.recommendations())
+                .addValue("report", recommendation.report())
                 .addValue("patch", recommendation.patch())
                 .addValue("source_ref", recommendation.sourceRef())
                 .addValue("generated_at", Timestamp.from(recommendation.generatedAt()));
@@ -168,7 +168,7 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
                 rs.getString(PARAM_EVENT_TYPE),
                 rs.getString("severity"),
                 rs.getDouble("dominant_self_pct"),
-                rs.getString("recommendations"),
+                rs.getString("report"),
                 rs.getString("patch"),
                 rs.getString("source_ref"),
                 instant(rs, "generated_at"));

@@ -36,7 +36,7 @@ import java.util.List;
  * {@link AdvisorProgress}; neither should have to know about a generic pipeline, and the pipeline should
  * not have to know what "reviewing" means.</p>
  *
- * <p>The run holds no findings. Once it completes, the artifacts live in the profile database and the UI
+ * <p>The run holds no results. Once it completes, the artifacts live in the profile database and the UI
  * reads them from there — which means a page opened after the run finished sees exactly what a page
  * that watched it live sees.</p>
  */

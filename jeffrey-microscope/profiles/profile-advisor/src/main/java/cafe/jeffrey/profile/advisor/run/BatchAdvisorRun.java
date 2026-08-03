@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * type would silently read as queued again and the batch would never look finished.</p>
  *
  * <p>The batch holds no result. Each type stores its own artifacts in the profile database as it
- * finishes, so the findings are read from there; the batch answers only "where is each type up to".</p>
+ * finishes, so the results are read from there; the batch answers only "where is each type up to".</p>
  */
 public final class BatchAdvisorRun {
 

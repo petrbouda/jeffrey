@@ -137,7 +137,7 @@ public final class AdvisorRunner {
      *
      * <p>Needed when the profile's stored results are deleted: the finished batch would otherwise
      * survive and keep answering {@code COMPLETED} for a profile that now has nothing to show, which
-     * reads as a successful run whose findings vanished.</p>
+     * reads as a successful run whose results vanished.</p>
      *
      * <p>The running check lives inside the map operation rather than at the caller, because the caller
      * cannot make check-then-forget atomic — a run started between the two would be deleted out from
@@ -202,7 +202,7 @@ public final class AdvisorRunner {
 
     /**
      * Stores the batch's timeline once every type has settled — claimed by whichever worker finishes
-     * last. A batch where no type produced findings (all failed or cancelled) is not persisted, so a
+     * last. A batch where no type produced a result (all failed or cancelled) is not persisted, so a
      * failed re-run never clobbers a good previous result.
      */
     private void persistIfComplete(ProfileInfo profile, BatchAdvisorRun batch) {

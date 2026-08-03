@@ -21,7 +21,7 @@ package cafe.jeffrey.profile.advisor.run;
 import cafe.jeffrey.shared.common.model.Severity;
 
 /**
- * Grades a profile's findings from the measured share of the dominant hotspot.
+ * Grades a profile from the measured share of its dominant hotspot.
  *
  * <p>This used to be a rule written into the system prompt and evaluated by the model, which made the
  * Overview ranking non-reproducible — the same recording could grade differently on two runs, and an

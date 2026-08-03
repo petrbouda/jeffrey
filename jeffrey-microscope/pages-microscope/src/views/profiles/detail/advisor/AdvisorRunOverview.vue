@@ -84,9 +84,9 @@
           <div class="manifest-path">{{ settings?.sourcePath || 'No source folder' }}</div>
         </div>
         <div class="manifest-actions">
-          <router-link :to="findingsPath" class="btn">
+          <router-link :to="recommendationsPath" class="btn">
             <i class="bi bi-lightbulb"></i>
-            View findings
+            View recommendations
           </router-link>
           <button type="button" class="btn ghost" :disabled="!sourceConfigured" @click="run()">
             <i class="bi bi-arrow-repeat"></i>
@@ -218,7 +218,7 @@ const aiDisabled = computed(
   () => props.disabledFeatures?.includes(FeatureType.AI_ANALYSIS) === true
 );
 
-const findingsPath = computed(() => `/profiles/${profileId}/advisor/findings`);
+const recommendationsPath = computed(() => `/profiles/${profileId}/advisor/recommendations`);
 
 const labelFor = (code: string | null): string =>
   eventTypes.value.find(type => type.eventType === code)?.label ?? code ?? 'Unknown';
