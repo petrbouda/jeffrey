@@ -61,6 +61,33 @@ const COST_LABELS: Record<string, string> = {
 
 const DEFAULT_COST_LABEL = 'of this profile';
 
+/**
+ * The order the Advisor lists its event types in — CPU, Wall-Clock, Allocation, Blocking — mirroring the
+ * backend's `AdvisorPromptType` declaration order. Prompts, Recommendations and Patches all sort by it, so
+ * a type keeps its position as you move between the three pages instead of shuffling per page.
+ */
+const CANONICAL_ORDER: string[] = [
+  'jdk.ExecutionSample',
+  'profiler.WallClockSample',
+  'jdk.ObjectAllocationSample',
+  'jdk.JavaMonitorEnter'
+];
+
+/** Unknown codes keep to the end rather than pushing a known type out of its place. */
+function orderIndex(eventTypeCode: string): number {
+  const index = CANONICAL_ORDER.indexOf(eventTypeCode);
+  return index === -1 ? CANONICAL_ORDER.length : index;
+}
+
+/** Comparator putting event types in the Advisor's canonical order; unknown ones last, alphabetically. */
+export function compareEventTypes(left: string, right: string): number {
+  const byOrder = orderIndex(left) - orderIndex(right);
+  if (byOrder !== 0) {
+    return byOrder;
+  }
+  return left.localeCompare(right);
+}
+
 export function eventTypeCostLabel(eventTypeCode: string): string {
   return COST_LABELS[eventTypeCode] ?? DEFAULT_COST_LABEL;
 }

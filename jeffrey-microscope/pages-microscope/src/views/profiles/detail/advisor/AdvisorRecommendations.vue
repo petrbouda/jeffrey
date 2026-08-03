@@ -30,11 +30,12 @@
     <AiDisabledFeatureAlert v-if="aiDisabled" />
 
     <template v-else-if="hasResults">
-      <!-- The docket: the reports ranked worst-first, so the page opens by saying where to start. -->
+      <!-- The docket: every analyzed type in the Advisor's canonical order, so a type sits in the same
+           place here as on Prompts and Patches. -->
       <div class="docket">
         <div class="docket-list">
           <button
-            v-for="rec in rankedRecommendations"
+            v-for="rec in orderedRecommendations"
             :key="rec.eventType"
             type="button"
             class="docket-item"
@@ -116,11 +117,15 @@ import PageHeader from '@shared/components/layout/PageHeader.vue';
 import Badge from '@shared/components/Badge.vue';
 import MarkdownRenderer from '@shared/services/MarkdownRenderer';
 import FormattingService from '@shared/services/FormattingService';
-import { severityLabel, severityRank, severityVariant } from '@shared/services/severityDisplay';
+import { severityLabel, severityVariant } from '@shared/services/severityDisplay';
 import type { AdvisorRecommendation } from '@/services/api/model/Advisor';
 import EmptyState from '@shared/components/EmptyState.vue';
 import AiDisabledFeatureAlert from '@/components/alerts/AiDisabledFeatureAlert.vue';
-import { eventTypeStyle, eventTypeVars } from '@/views/profiles/detail/advisor/eventTypeStyle';
+import {
+  compareEventTypes,
+  eventTypeStyle,
+  eventTypeVars
+} from '@/views/profiles/detail/advisor/eventTypeStyle';
 import { useAdvisor } from '@/composables/useAdvisor';
 import FeatureType from '@/services/api/model/FeatureType';
 
@@ -152,21 +157,14 @@ const labelFor = (code: string): string =>
   eventTypes.value.find(type => type.eventType === code)?.label ?? code;
 
 /**
- * Worst first, then by the measured cost behind the grade, then alphabetically — so the order is
- * stable across reloads and the report that earns your attention is the one you read first.
+ * CPU, Wall-Clock, Allocation, Blocking — the Advisor's canonical order rather than a per-page ranking,
+ * so the docket reads the same on Prompts, Recommendations and Patches. Each card still carries its
+ * severity, which is where the "where to start" signal lives.
  */
-const rankedRecommendations = computed(() =>
-  [...recommendations.value].sort((left, right) => {
-    const bySeverity = severityRank(left.severity) - severityRank(right.severity);
-    if (bySeverity !== 0) {
-      return bySeverity;
-    }
-    const byCost = right.dominantSelfPct - left.dominantSelfPct;
-    if (byCost !== 0) {
-      return byCost;
-    }
-    return labelFor(left.eventType).localeCompare(labelFor(right.eventType));
-  })
+const orderedRecommendations = computed(() =>
+  [...recommendations.value].sort((left, right) =>
+    compareEventTypes(left.eventType, right.eventType)
+  )
 );
 
 /** What a type's card says under its name: the share of the profile its hottest method accounts for. */

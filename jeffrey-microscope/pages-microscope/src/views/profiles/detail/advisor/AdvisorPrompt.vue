@@ -23,7 +23,7 @@
 
   <PageHeader
     v-else
-    title="Prompt"
+    title="Prompts"
     description="The exact message the Advisor sends to the model for each event type"
     icon="bi-chat-square-text"
   >
@@ -33,7 +33,7 @@
       <div class="docket">
         <div class="docket-list">
           <button
-            v-for="prompt in prompts"
+            v-for="prompt in orderedPrompts"
             :key="prompt.eventType"
             type="button"
             class="docket-item"
@@ -109,7 +109,11 @@ import ToastService from '@shared/services/ToastService';
 import AdvisorClient from '@/services/api/AdvisorClient';
 import type { AdvisorPrompt } from '@/services/api/model/Advisor';
 import AiDisabledFeatureAlert from '@/components/alerts/AiDisabledFeatureAlert.vue';
-import { eventTypeStyle, eventTypeVars } from '@/views/profiles/detail/advisor/eventTypeStyle';
+import {
+  compareEventTypes,
+  eventTypeStyle,
+  eventTypeVars
+} from '@/views/profiles/detail/advisor/eventTypeStyle';
 import { useAdvisor } from '@/composables/useAdvisor';
 import FeatureType from '@/services/api/model/FeatureType';
 
@@ -143,9 +147,15 @@ const aiDisabled = computed(
 
 const overviewPath = computed(() => `/profiles/${profileId}/advisor`);
 
+/** CPU, Wall-Clock, Allocation, Blocking — the order Recommendations and Patches list them in too. */
+const orderedPrompts = computed(() =>
+  [...prompts.value].sort((left, right) => compareEventTypes(left.eventType, right.eventType))
+);
+
 const selected = computed(
   () =>
-    prompts.value.find(prompt => prompt.eventType === selectedType.value) ?? prompts.value[0]
+    orderedPrompts.value.find(prompt => prompt.eventType === selectedType.value) ??
+    orderedPrompts.value[0]
 );
 
 async function load(): Promise<void> {

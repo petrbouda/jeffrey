@@ -35,7 +35,7 @@
       <div class="docket">
         <div class="docket-list">
           <button
-            v-for="rec in rankedRecommendations"
+            v-for="rec in orderedRecommendations"
             :key="rec.eventType"
             type="button"
             class="docket-item"
@@ -111,10 +111,11 @@ import PageHeader from '@shared/components/layout/PageHeader.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import DiffViewer from '@shared/components/DiffViewer.vue';
 import FormattingService from '@shared/services/FormattingService';
-import { severityLabel, severityRank } from '@shared/services/severityDisplay';
+import { severityLabel } from '@shared/services/severityDisplay';
 import type { AdvisorRecommendation } from '@/services/api/model/Advisor';
 import AiDisabledFeatureAlert from '@/components/alerts/AiDisabledFeatureAlert.vue';
 import {
+  compareEventTypes,
   eventTypeCostLabel,
   eventTypeStyle,
   eventTypeVars
@@ -158,35 +159,25 @@ const costOf = (recommendation: AdvisorRecommendation): string => {
 };
 
 /**
- * Types with a patch first — this page exists to hand you a change, so the ones that have none belong
- * after the ones that do. Within each group the ranking is the Recommendations docket's: worst severity
- * first, then the most expensive frame, then alphabetically, so the order is stable across reloads.
+ * CPU, Wall-Clock, Allocation, Blocking — the Advisor's canonical order, the same one Prompts and
+ * Recommendations use, so a type sits in the same place on all three pages. Whether a type produced a
+ * patch is said on its card rather than by moving it.
  */
-const rankedRecommendations = computed(() =>
-  [...recommendations.value].sort((left, right) => {
-    if (hasPatch(left) !== hasPatch(right)) {
-      return hasPatch(left) ? -1 : 1;
-    }
-    const bySeverity = severityRank(left.severity) - severityRank(right.severity);
-    if (bySeverity !== 0) {
-      return bySeverity;
-    }
-    const byCost = right.dominantSelfPct - left.dominantSelfPct;
-    if (byCost !== 0) {
-      return byCost;
-    }
-    return labelFor(left.eventType).localeCompare(labelFor(right.eventType));
-  })
+const orderedRecommendations = computed(() =>
+  [...recommendations.value].sort((left, right) =>
+    compareEventTypes(left.eventType, right.eventType)
+  )
 );
 
 /**
- * Opens on the first type that actually has a patch — the ranking puts it first — so the page lands
- * on something to read rather than on an explanation of an absence.
+ * Opens on the first type that actually has a patch, so the page lands on something to read rather than
+ * on an explanation of an absence — the docket order itself no longer guarantees that.
  */
 const selected = computed(
   () =>
-    rankedRecommendations.value.find(rec => rec.eventType === selectedType.value) ??
-    rankedRecommendations.value[0]
+    orderedRecommendations.value.find(rec => rec.eventType === selectedType.value) ??
+    orderedRecommendations.value.find(hasPatch) ??
+    orderedRecommendations.value[0]
 );
 
 const patchFileName = computed(() => {
