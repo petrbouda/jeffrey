@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.advisor.prompt.AdvisorPrompt;
 import cafe.jeffrey.profile.advisor.prompt.AdvisorPromptManagerFactory;
+import cafe.jeffrey.profile.advisor.prompt.AdvisorPromptType;
 import cafe.jeffrey.profile.advisor.run.AdvisorRunResult;
 import cafe.jeffrey.profile.advisor.run.AdvisorRunner;
 import cafe.jeffrey.profile.advisor.run.AdvisorStages;
@@ -66,7 +67,13 @@ public class AdvisorController {
      * the Advisor's Prompt page renders.
      */
     public record PromptResponse(
-            String eventType, String label, long samples, String prompt, long generatedAt) {
+            String eventType,
+            String label,
+            long samples,
+            String prompt,
+            double dominantSelfPct,
+            String dominantMethod,
+            long generatedAt) {
 
         static PromptResponse from(AdvisorPrompt prompt) {
             return new PromptResponse(
@@ -74,14 +81,19 @@ public class AdvisorController {
                     prompt.label(),
                     prompt.samples(),
                     prompt.prompt(),
+                    prompt.dominantSelfPct(),
+                    prompt.dominantMethod(),
                     prompt.generatedAt().toEpochMilli());
         }
     }
 
     /**
-     * A profile group the Advisor can analyze for this profile, so the UI offers only tabs that exist.
+     * A profile group the Advisor knows about. Every group is listed, including those this recording
+     * carries no samples for: the pages show all four in a fixed order and mark the missing ones, so a
+     * docket reads the same whatever a recording happens to contain. {@code available} is what separates
+     * the two — only an available type can be analyzed.
      */
-    public record EventTypeResponse(String eventType, String label) {
+    public record EventTypeResponse(String eventType, String label, boolean available) {
     }
 
     /**
@@ -94,6 +106,7 @@ public class AdvisorController {
             String eventType,
             String severity,
             double dominantSelfPct,
+            String dominantMethod,
             String report,
             String patch,
             String sourceRef,
@@ -134,11 +147,19 @@ public class AdvisorController {
         this.persistenceProvider = persistenceProvider;
     }
 
+    /**
+     * Every profile group the Advisor knows about, in its declared order, each marked with whether this
+     * recording carries samples for it. The pages list all of them so a type keeps its place whatever a
+     * recording contains; only the available ones can be run.
+     */
     @GetMapping("/event-types")
     public List<EventTypeResponse> eventTypes(@PathVariable("profileId") String profileId) {
         ProfileInfo profile = resolver.resolve(profileId).info();
-        return promptManagerFactory.apply(profile).availableTypes().stream()
-                .map(type -> new EventTypeResponse(type.primaryEventType().code(), type.label()))
+        List<AdvisorPromptType> available = promptManagerFactory.apply(profile).availableTypes();
+
+        return List.of(AdvisorPromptType.values()).stream()
+                .map(type -> new EventTypeResponse(
+                        type.primaryEventType().code(), type.label(), available.contains(type)))
                 .toList();
     }
 
@@ -277,6 +298,7 @@ public class AdvisorController {
                 row.eventType(),
                 row.severity(),
                 row.dominantSelfPct(),
+                row.dominantMethod(),
                 row.report(),
                 row.patch(),
                 row.sourceRef(),

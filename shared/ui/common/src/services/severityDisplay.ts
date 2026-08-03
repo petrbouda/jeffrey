@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import type { Variant } from "../types/ui";
+
 /** Severity as Jeffrey computes it from the measured profile — never graded by a model. */
 export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
 
@@ -24,14 +26,14 @@ export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
  * that ranks recommendations reads the same way.
  */
 
-const BADGE_VARIANT: Record<Severity, string> = {
+const BADGE_VARIANT: Record<Severity, Variant> = {
   CRITICAL: "danger",
   HIGH: "orange",
   MEDIUM: "warning",
   LOW: "grey",
 };
 
-export function severityVariant(severity: Severity): string {
+export function severityVariant(severity: Severity): Variant {
   return BADGE_VARIANT[severity] ?? "grey";
 }
 

@@ -48,21 +48,64 @@ const DESCRIPTIONS: Record<string, string> = {
   'jdk.JavaMonitorEnter': 'Time parked on locks'
 };
 
+
 /**
- * What a percentage of this profile actually measures. Shown next to a patch's headline figure, so
- * "62.6%" reads as "62.6% of blocked time" rather than as a bare number of unknown units.
+ * The order the Advisor lists its event types in — CPU, Wall-Clock, Allocation, Blocking — mirroring the
+ * backend's `AdvisorPromptType` declaration order. Prompts, Recommendations and Patches all sort by it, so
+ * a type keeps its position as you move between the three pages instead of shuffling per page.
  */
-const COST_LABELS: Record<string, string> = {
-  'jdk.ExecutionSample': 'of CPU time',
-  'profiler.WallClockSample': 'of wall-clock time',
-  'jdk.ObjectAllocationSample': 'of allocated bytes',
-  'jdk.JavaMonitorEnter': 'of blocked time'
+const CANONICAL_ORDER: string[] = [
+  'jdk.ExecutionSample',
+  'profiler.WallClockSample',
+  'jdk.ObjectAllocationSample',
+  'jdk.JavaMonitorEnter'
+];
+
+/** Unknown codes keep to the end rather than pushing a known type out of its place. */
+function orderIndex(eventTypeCode: string): number {
+  const index = CANONICAL_ORDER.indexOf(eventTypeCode);
+  return index === -1 ? CANONICAL_ORDER.length : index;
+}
+
+/** Comparator putting event types in the Advisor's canonical order; unknown ones last, alphabetically. */
+export function compareEventTypes(left: string, right: string): number {
+  const byOrder = orderIndex(left) - orderIndex(right);
+  if (byOrder !== 0) {
+    return byOrder;
+  }
+  return left.localeCompare(right);
+}
+
+/**
+ * The profiler option that captures each type — the same flags the Profiler Settings command builder
+ * writes. A type missing from a recording is only a useful thing to say next to what would have
+ * produced it, which is what a card shows in place of its data.
+ */
+const CAPTURE_FLAGS: Record<string, string> = {
+  'jdk.ExecutionSample': 'event=ctimer',
+  'profiler.WallClockSample': 'wall=10ms',
+  'jdk.ObjectAllocationSample': 'alloc=512k',
+  'jdk.JavaMonitorEnter': 'lock=10ms'
 };
 
-const DEFAULT_COST_LABEL = 'of this profile';
+export function eventTypeCaptureFlag(eventTypeCode: string): string {
+  return CAPTURE_FLAGS[eventTypeCode] ?? '';
+}
 
-export function eventTypeCostLabel(eventTypeCode: string): string {
-  return COST_LABELS[eventTypeCode] ?? DEFAULT_COST_LABEL;
+/** How many trailing segments of a frame name a card shows before it stops being readable. */
+const METHOD_SEGMENTS_SHOWN = 2;
+
+/**
+ * A frame name shortened to its class and method — `com.acme.pricing.PricingEngine.applyRules` reads as
+ * `PricingEngine.applyRules`. Cards have room for the part that identifies the code and none for the
+ * package; the full name goes in the element's title.
+ */
+export function shortMethodName(method: string): string {
+  const segments = method.split('.');
+  if (segments.length <= METHOD_SEGMENTS_SHOWN) {
+    return method;
+  }
+  return segments.slice(-METHOD_SEGMENTS_SHOWN).join('.');
 }
 
 export function eventTypeStyle(eventTypeCode: string): EventTypeStyle {

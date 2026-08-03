@@ -23,36 +23,44 @@
 
   <PageHeader
     v-else
-    title="Prompt"
+    title="Prompts"
     description="The exact message the Advisor sends to the model for each event type"
     icon="bi-chat-square-text"
   >
     <AiDisabledFeatureAlert v-if="aiDisabled" />
 
     <template v-else-if="prompts.length > 0">
-      <div class="docket">
-        <div class="docket-list">
-          <button
-            v-for="prompt in prompts"
-            :key="prompt.eventType"
-            type="button"
-            class="docket-item"
-            :class="{ selected: selected?.eventType === prompt.eventType }"
-            :style="eventTypeVars(prompt.eventType)"
-            @click="selectedType = prompt.eventType"
-          >
-            <span class="docket-name">
-              <i class="bi" :class="eventTypeStyle(prompt.eventType).icon"></i>
-              {{ prompt.label }}
-            </span>
-            <span class="docket-verdict">
-              {{ FormattingService.formatNumber(prompt.samples) }} samples
-            </span>
-          </button>
-        </div>
-      </div>
+      <AdvisorDocket v-model:selected="selectedType" :items="items">
+        <template #rows="{ item }">
+          <template v-if="promptFor(item.eventType)">
+            <AdvisorDocketRow label="Samples">
+              {{ FormattingService.formatNumber(promptFor(item.eventType)!.samples) }}
+            </AdvisorDocketRow>
+            <AdvisorDocketRow label="Prompt">
+              {{ FormattingService.formatBytesShort(promptFor(item.eventType)!.prompt.length) }}
+            </AdvisorDocketRow>
+            <AdvisorDocketRow
+              label="Top method"
+              mono
+              :title="promptFor(item.eventType)!.dominantMethod"
+            >
+              {{ topMethod(promptFor(item.eventType)!.dominantMethod) }}
+            </AdvisorDocketRow>
+          </template>
+          <AdvisorDocketRow v-else label="Prompt">not built yet</AdvisorDocketRow>
+        </template>
+      </AdvisorDocket>
 
-      <MainCard v-if="selected">
+      <!-- A type this recording has no samples for is still selectable: the page says what is missing
+           and how to record it, rather than leaving a dead card. -->
+      <AdvisorMissingType
+        v-if="selectedMissing"
+        :event-type="selectedMissing.eventType"
+        :label="selectedMissing.label"
+        missing-artifact="prompt to show"
+      />
+
+      <MainCard v-else-if="selected">
         <template #header>
           <MainCardHeader icon="bi-chat-square-text" :title="`${selected.label} prompt`">
             <template #actions>
@@ -71,6 +79,14 @@
              and a rendered call tree is no longer the text the model read. -->
         <pre class="prompt">{{ selected.prompt }}</pre>
       </MainCard>
+
+      <!-- Recorded, but this run never built its prompt. -->
+      <EmptyState
+        v-else
+        icon="bi-chat-square-text"
+        :title="`No ${selectedLabel} prompt yet`"
+        description="The Advisor builds a prompt for this type on its next run."
+      />
     </template>
 
     <!-- Nothing is cached until the Advisor has run at least once for this profile. -->
@@ -109,7 +125,11 @@ import ToastService from '@shared/services/ToastService';
 import AdvisorClient from '@/services/api/AdvisorClient';
 import type { AdvisorPrompt } from '@/services/api/model/Advisor';
 import AiDisabledFeatureAlert from '@/components/alerts/AiDisabledFeatureAlert.vue';
-import { eventTypeStyle, eventTypeVars } from '@/views/profiles/detail/advisor/eventTypeStyle';
+import AdvisorDocket from '@/views/profiles/detail/advisor/AdvisorDocket.vue';
+import AdvisorDocketRow from '@/views/profiles/detail/advisor/AdvisorDocketRow.vue';
+import AdvisorMissingType from '@/views/profiles/detail/advisor/AdvisorMissingType.vue';
+import { docketItems } from '@/views/profiles/detail/advisor/advisorDocket';
+import { shortMethodName } from '@/views/profiles/detail/advisor/eventTypeStyle';
 import { useAdvisor } from '@/composables/useAdvisor';
 import FeatureType from '@/services/api/model/FeatureType';
 
@@ -127,7 +147,7 @@ const profileId = route.params.profileId as string;
  * composable is
  * still used for the run state, which is what tells an empty page whether to say "not yet" or "wait".
  */
-const { isRunning, load: loadRunState } = useAdvisor(profileId);
+const { eventTypes, isRunning, load: loadRunState } = useAdvisor(profileId);
 
 const client = new AdvisorClient(profileId);
 
@@ -143,9 +163,34 @@ const aiDisabled = computed(
 
 const overviewPath = computed(() => `/profiles/${profileId}/advisor`);
 
-const selected = computed(
+/** CPU, Wall-Clock, Allocation, Blocking — every type, in the order the other Advisor pages use. */
+const items = computed(() => docketItems(eventTypes.value, () => undefined));
+
+const promptFor = (eventType: string): AdvisorPrompt | undefined =>
+  prompts.value.find(prompt => prompt.eventType === eventType);
+
+const topMethod = (method: string): string => (method === '' ? 'unknown' : shortMethodName(method));
+
+/** Opens on the first type that has a prompt, so the page lands on something to read. */
+const firstWithPrompt = computed(
+  () => items.value.find(item => promptFor(item.eventType) !== undefined)?.eventType ?? null
+);
+
+const selectedItem = computed(
   () =>
-    prompts.value.find(prompt => prompt.eventType === selectedType.value) ?? prompts.value[0]
+    items.value.find(item => item.eventType === selectedType.value) ??
+    items.value.find(item => item.eventType === firstWithPrompt.value)
+);
+
+const selectedLabel = computed(() => selectedItem.value?.label ?? '');
+
+/** Set only when the selected type is one this recording carries no samples for. */
+const selectedMissing = computed(() =>
+  selectedItem.value?.available === false ? selectedItem.value : undefined
+);
+
+const selected = computed(() =>
+  selectedItem.value ? promptFor(selectedItem.value.eventType) : undefined
 );
 
 async function load(): Promise<void> {
@@ -180,67 +225,6 @@ onMounted(load);
 </script>
 
 <style scoped>
-/* The docket mirrors Recommendations and Patches, so the three artifact pages read as one family. */
-.docket {
-  margin-bottom: 1.1rem;
-}
-
-.docket-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 0.5rem;
-}
-
-.docket-item {
-  appearance: none;
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-  border: 1px solid var(--color-border);
-  border-left: 3px solid var(--et);
-  border-radius: var(--radius-base);
-  background: var(--color-bg-card);
-  padding: 0.5rem 0.7rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  transition: background 0.16s, border-color 0.16s;
-}
-
-.docket-item:hover {
-  background: var(--color-light);
-}
-
-.docket-item.selected {
-  background: var(--et-light);
-  border-color: var(--et);
-}
-
-.docket-name {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--color-heading-dark);
-}
-
-.docket-name i {
-  color: var(--et);
-}
-
-.docket-verdict {
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.docket-item.selected .docket-verdict {
-  color: var(--et);
-}
-
 .generated {
   font-size: 0.72rem;
   color: var(--color-text-muted);

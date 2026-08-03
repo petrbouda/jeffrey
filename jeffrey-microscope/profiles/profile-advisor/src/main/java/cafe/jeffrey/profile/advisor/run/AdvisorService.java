@@ -179,6 +179,7 @@ public final class AdvisorService {
                 target.eventType(),
                 result.severity().name(),
                 prompt.dominantSelfPct(),
+                prompt.dominantMethod(),
                 result.report(),
                 result.patch(),
                 sourceTree.resolvedRef(),

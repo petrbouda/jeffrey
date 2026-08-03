@@ -447,7 +447,7 @@ export const profileNavSections: Record<
         // No AI highlight here: the whole Advisor mode is already an AI feature, so marking three of
         // its four pages would single them out for nothing.
         item('Overview', 'bi-play-circle', '/advisor'),
-        item('Prompt', 'bi-chat-square-text', '/advisor/prompt', {
+        item('Prompts', 'bi-chat-square-text', '/advisor/prompt', {
           disabledKeys: [AI_ANALYSIS_KEY]
         }),
         item('Recommendations', 'bi-lightbulb', '/advisor/recommendations', {

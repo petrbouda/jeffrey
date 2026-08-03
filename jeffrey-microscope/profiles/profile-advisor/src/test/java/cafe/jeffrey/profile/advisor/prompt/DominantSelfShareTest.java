@@ -64,7 +64,9 @@ class DominantSelfShareTest {
 
             // hot is reached two ways for 40 of 70 samples. Counting either path alone would put it
             // behind cold's 30 and grade the profile off the wrong method.
-            assertEquals(57.14, DominantSelfShare.of(root), PRECISION);
+            DominantMethod dominant = DominantSelfShare.of(root);
+            assertEquals("hot", dominant.method());
+            assertEquals(57.14, dominant.selfPct(), PRECISION);
         }
 
         @Test
@@ -75,7 +77,20 @@ class DominantSelfShareTest {
 
             // Self weight never nests inside itself, so the four nested occurrences contribute 40 once,
             // not 160. Summing subtree totals instead would put recurse above 100%.
-            assertEquals(60.0, DominantSelfShare.of(root), PRECISION);
+            DominantMethod dominant = DominantSelfShare.of(root);
+            assertEquals("flat", dominant.method());
+            assertEquals(60.0, dominant.selfPct(), PRECISION);
+        }
+
+        @Test
+        void namesTheAlphabeticallyFirstMethodWhenTwoAreEquallyHot() {
+            Frame root = emptyTree();
+            record(root, 50, "zebra");
+            record(root, 50, "alpha");
+
+            // The walk is over a hash map, so without a tie-break the name would depend on iteration
+            // order and the same recording could report either method between runs.
+            assertEquals("alpha", DominantSelfShare.of(root).method());
         }
     }
 
@@ -89,7 +104,9 @@ class DominantSelfShareTest {
             record(root, 40, "orchestrate", "leafB");
 
             // orchestrate carries 100% of the profile in its subtree but spends none of it itself.
-            assertEquals(60.0, DominantSelfShare.of(root), PRECISION);
+            DominantMethod dominant = DominantSelfShare.of(root);
+            assertEquals("leafA", dominant.method());
+            assertEquals(60.0, dominant.selfPct(), PRECISION);
         }
 
         @Test
@@ -98,7 +115,7 @@ class DominantSelfShareTest {
             root.increment(FrameType.JIT_COMPILED, 100, 100, true);
 
             // The root is the synthetic node the tree hangs from, not a method anyone can change.
-            assertEquals(0.0, DominantSelfShare.of(root), PRECISION);
+            assertEquals(DominantMethod.NONE, DominantSelfShare.of(root));
         }
     }
 
@@ -107,7 +124,7 @@ class DominantSelfShareTest {
 
         @Test
         void gradesAnUnsampledProfileAsZero() {
-            assertEquals(0.0, DominantSelfShare.of(emptyTree()), PRECISION);
+            assertEquals(DominantMethod.NONE, DominantSelfShare.of(emptyTree()));
         }
     }
 }

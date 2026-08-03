@@ -18,6 +18,7 @@
 
 import { computed, onUnmounted, ref } from 'vue';
 import AdvisorClient from '@/services/api/AdvisorClient';
+import { compareEventTypes } from '@/views/profiles/detail/advisor/eventTypeStyle';
 import type {
   AdvisorEventType,
   AdvisorRecommendation,
@@ -94,12 +95,21 @@ export function useAdvisor(profileId: string) {
     }
   };
 
+  /**
+   * Lands on the first analysed type in the docket's own order, so the page opens where the docket
+   * points. Failing that, the first type the recording actually carries — never one it has no samples
+   * for, which would open the page on an explanation of an absence.
+   */
   const pickSelected = (): void => {
-    selectedEventType.value =
-      recommendations.value[0]?.eventType ??
-      selectedEventType.value ??
-      eventTypes.value[0]?.eventType ??
-      null;
+    const analysed = [...recommendations.value].sort((left, right) =>
+      compareEventTypes(left.eventType, right.eventType)
+    )[0]?.eventType;
+
+    const recorded = [...eventTypes.value]
+      .sort((left, right) => compareEventTypes(left.eventType, right.eventType))
+      .find(type => type.available)?.eventType;
+
+    selectedEventType.value = analysed ?? selectedEventType.value ?? recorded ?? null;
   };
 
   /**

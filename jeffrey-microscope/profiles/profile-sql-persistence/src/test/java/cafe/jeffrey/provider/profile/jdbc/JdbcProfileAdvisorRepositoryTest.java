@@ -38,6 +38,7 @@ class JdbcProfileAdvisorRepositoryTest {
     private static final String CPU = "jdk.ExecutionSample";
     private static final String ALLOC = "jdk.ObjectAllocationSample";
     private static final Instant WHEN = Instant.parse("2026-08-01T06:00:14Z");
+    private static final String HOT_METHOD = "com.acme.rates.RateTable.lookup";
     private static final String PATCH = """
             --- a/RateTable.java
             +++ b/RateTable.java
@@ -52,11 +53,11 @@ class JdbcProfileAdvisorRepositoryTest {
 
     private static void seed(JdbcProfileAdvisorRepository repository) {
         repository.upsertPrompt(
-                new AdvisorPromptRow(CPU, "CPU", 1_000L, "the user message", 21.5, WHEN));
+                new AdvisorPromptRow(CPU, "CPU", 1_000L, "the user message", 21.5, HOT_METHOD, WHEN));
         repository.upsertPrompt(
-                new AdvisorPromptRow(ALLOC, "Allocation", 400L, "the user message", 12.0, WHEN));
+                new AdvisorPromptRow(ALLOC, "Allocation", 400L, "the user message", 12.0, HOT_METHOD, WHEN));
         repository.upsertRecommendation(
-                new AdvisorRecommendationRow(CPU, "HIGH", 21.5, "report", PATCH, "abc123", WHEN));
+                new AdvisorRecommendationRow(CPU, "HIGH", 21.5, HOT_METHOD, "report", PATCH, "abc123", WHEN));
     }
 
     @Nested
@@ -71,6 +72,8 @@ class JdbcProfileAdvisorRepositoryTest {
 
             assertEquals("the user message", row.prompt());
             assertEquals(21.5, row.dominantSelfPct());
+            assertEquals(HOT_METHOD, row.dominantMethod(),
+                    "the share is only readable next to the method holding it");
         }
     }
 
@@ -89,7 +92,7 @@ class JdbcProfileAdvisorRepositoryTest {
         void keepsAMissingPatchNullRatherThanEmpty(DataSource dataSource) {
             JdbcProfileAdvisorRepository repository = repository(dataSource);
             repository.upsertRecommendation(
-                    new AdvisorRecommendationRow(ALLOC, "LOW", 1.2, "report", null, "abc123", WHEN));
+                    new AdvisorRecommendationRow(ALLOC, "LOW", 1.2, HOT_METHOD, "report", null, "abc123", WHEN));
 
             assertNull(repository.findRecommendations().getFirst().patch());
         }
@@ -100,7 +103,8 @@ class JdbcProfileAdvisorRepositoryTest {
             seed(repository);
 
             repository.upsertRecommendation(
-                    new AdvisorRecommendationRow(CPU, "LOW", 21.5, "second report", null, "def456", WHEN));
+                    new AdvisorRecommendationRow(
+                            CPU, "LOW", 21.5, HOT_METHOD, "second report", null, "def456", WHEN));
 
             assertEquals(1, repository.findRecommendations().size());
             assertNull(repository.findRecommendations().getFirst().patch(),
@@ -150,7 +154,8 @@ class JdbcProfileAdvisorRepositoryTest {
 
             // Clearing must not leave anything behind that a re-run would collide with.
             repository.upsertPrompt(
-                    new AdvisorPromptRow(CPU, "CPU", 2_000L, "the rebuilt user message", 8.0, WHEN));
+                    new AdvisorPromptRow(
+                            CPU, "CPU", 2_000L, "the rebuilt user message", 8.0, HOT_METHOD, WHEN));
 
             assertEquals(1, repository.findPrompts().size());
             assertEquals(2_000L, repository.findPrompts().getFirst().samples());

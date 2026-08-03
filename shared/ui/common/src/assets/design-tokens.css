@@ -293,6 +293,10 @@
   --color-border: #eaedf1;
   --color-border-light: #edf2f9;
   --color-border-input: #d8e2ef;
+
+  /* The stroke of the diagonal hatch that marks a surface as ruled out — present, but with nothing
+     in it (e.g. an Advisor event type this recording carries no samples for). */
+  --hatch-line: rgba(116, 129, 148, 0.09);
   
   /* Background Colors */
   --color-bg-body: #edf2f9;

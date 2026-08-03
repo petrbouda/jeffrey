@@ -27,6 +27,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
+  { id: 'docket', text: 'The Docket', level: 2 },
   { id: 'setup', text: 'Setup', level: 2 },
   { id: 'how-a-run-works', text: 'How a Run Works', level: 2 },
   { id: 'severity', text: 'Severity', level: 2 },
@@ -64,7 +65,7 @@ onMounted(() => {
 
       <ul>
         <li><strong>Overview</strong> — the landing page: set the source folder inline, launch the run, and watch its phased, timed timeline. The finished timeline is kept and re-shown on return.</li>
-        <li><strong>Prompt</strong> — the exact message sent to the model for each event type, shown verbatim and copyable.</li>
+        <li><strong>Prompts</strong> — the exact message sent to the model for each event type, shown verbatim and copyable.</li>
         <li><strong>Recommendations</strong> — a separate page for the report the model wrote.</li>
         <li><strong>Patches</strong> — the proposed code changes, one per event type, each shown as a unified diff.</li>
       </ul>
@@ -80,6 +81,25 @@ onMounted(() => {
         <li><strong>Allocation</strong> — <code>jdk.ObjectAllocationSample</code>, or the older TLAB pair</li>
         <li><strong>Blocking</strong> — <code>jdk.JavaMonitorEnter</code>, <code>jdk.JavaMonitorWait</code>, <code>jdk.ThreadPark</code></li>
       </ul>
+
+      <h2 id="docket">The Docket</h2>
+
+      <p>
+        Prompts, Recommendations and Patches all open with the same row of cards, always in the order
+        CPU → Wall-Clock → Allocation → Blocking, so a group sits in the same place on every page and
+        every profile. Each card carries that group's own figures: on Prompts the sample count, the size
+        of the cached message and the method holding the largest share of the profile; on
+        Recommendations that method, its share and how long the last run spent analysing the group; on
+        Patches the size of the proposed diff in files and lines.
+      </p>
+
+      <p>
+        A group the recording carries no samples for keeps its place, ruled out with a hatch rather than
+        dropped from the row. It is still selectable: picking it explains what is missing and shows the
+        profiler flag that captures it — <code>event=ctimer</code>, <code>wall=10ms</code>,
+        <code>alloc=512k</code> or <code>lock=10ms</code>. Only the groups a recording actually carries
+        are analysed, and the Overview's "what it will analyze" list shows those alone.
+      </p>
 
       <h2 id="setup">Setup</h2>
 
@@ -179,9 +199,9 @@ onMounted(() => {
 
       <p>
         When the model proposes a concrete edit, it is stored as a unified diff and shown on the
-        <strong>Patches</strong> page — one patch per event type, ranked by severity and then by the
-        profile's dominant self share. Each is rendered as a unified diff with line numbers, and can be
-        copied or saved as a <code>.patch</code> file that <code>git apply -p1</code> accepts.
+        <strong>Patches</strong> page — one patch per event type, listed in the docket's fixed order with
+        the size of each diff on its card. Each is rendered as a unified diff with line numbers, and can
+        be copied or saved as a <code>.patch</code> file that <code>git apply -p1</code> accepts.
       </p>
 
       <p>

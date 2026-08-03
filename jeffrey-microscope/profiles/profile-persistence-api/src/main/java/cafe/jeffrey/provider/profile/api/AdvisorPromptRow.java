@@ -29,6 +29,7 @@ import java.time.Instant;
  * @param samples         total samples the call tree was built from
  * @param prompt          the full user message sent to the model
  * @param dominantSelfPct the heaviest method's self share of the profile, as a percentage
+ * @param dominantMethod  the name of that heaviest method, or "" when it is not known
  * @param generatedAt     when the prompt was generated
  */
 public record AdvisorPromptRow(
@@ -37,5 +38,6 @@ public record AdvisorPromptRow(
         long samples,
         String prompt,
         double dominantSelfPct,
+        String dominantMethod,
         Instant generatedAt) {
 }
