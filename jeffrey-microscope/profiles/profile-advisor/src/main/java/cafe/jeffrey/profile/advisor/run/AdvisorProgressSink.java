@@ -29,11 +29,8 @@ public interface AdvisorProgressSink {
     /** The flamegraph prompt is being built, or the cached one loaded. */
     void preparingPrompt();
 
-    /** The configured source folder is being validated. */
-    void resolvingSource();
-
-    /** The source folder is ready; the model is reviewing the source. */
-    void reviewing();
+    /** The model is reading the source and writing its recommendations. */
+    void recommending();
 
     /** The model has answered; the diff it proposed is being built into an applicable patch. */
     void buildingPatch();

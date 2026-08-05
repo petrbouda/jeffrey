@@ -19,7 +19,7 @@
 <template>
   <span class="docket-row">
     <span class="docket-key">{{ label }}</span>
-    <span class="docket-value" :class="{ mono }" :title="title">
+    <span class="docket-value">
       <slot></slot>
     </span>
   </span>
@@ -28,10 +28,6 @@
 <script setup lang="ts">
 defineProps<{
   label: string;
-  /** Frame names and other code identifiers read better — and truncate more honestly — in monospace. */
-  mono?: boolean;
-  /** The unabbreviated value, for the values a card has to shorten. */
-  title?: string;
 }>();
 </script>
 
@@ -68,11 +64,5 @@ defineProps<{
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--color-heading-dark);
-}
-
-.docket-value.mono {
-  font-family: var(--font-family-monospace);
-  font-size: 0.67rem;
-  font-weight: 500;
 }
 </style>

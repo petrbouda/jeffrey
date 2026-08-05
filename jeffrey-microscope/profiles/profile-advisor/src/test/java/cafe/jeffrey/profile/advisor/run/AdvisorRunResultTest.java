@@ -53,11 +53,11 @@ class AdvisorRunResultTest {
     @Test
     void aggregatesPerTypeAndPerStepTimings() {
         PipelineRunResult cpu = run("jdk.ExecutionSample", PipelineState.COMPLETED, START,
-                List.of(step("PREPARING_PROMPT", 400), step("RESOLVING_SOURCE", 200),
-                        step("REVIEWING", 8000), step("BUILDING_PATCH", 500)));
+                List.of(step("PREPARING_PROMPT", 400), step("RECOMMENDING", 8000),
+                        step("BUILDING_PATCH", 500)));
         PipelineRunResult blocking = run("jdk.JavaMonitorEnter", PipelineState.FAILED, START,
                 List.of(step("PREPARING_PROMPT", 100),
-                        new StageResult("RESOLVING_SOURCE", StageStatus.FAILED, null, null)));
+                        new StageResult("RECOMMENDING", StageStatus.FAILED, null, null)));
 
         AdvisorRunResult result = AdvisorRunResult.from(List.of(cpu, blocking));
 
@@ -68,8 +68,8 @@ class AdvisorRunResultTest {
         AdvisorTypeResult cpuResult = result.types().getFirst();
         assertEquals("jdk.ExecutionSample", cpuResult.eventType());
         assertEquals(AdvisorStepProgress.COMPLETED, cpuResult.status());
-        assertEquals(9100L, cpuResult.totalMs(), "sum of the four step durations");
-        assertEquals(4, cpuResult.steps().size());
+        assertEquals(8900L, cpuResult.totalMs(), "sum of the three step durations");
+        assertEquals(3, cpuResult.steps().size());
 
         assertEquals(AdvisorStepProgress.FAILED, result.types().get(1).status());
     }
@@ -79,9 +79,9 @@ class AdvisorRunResultTest {
         // The types run at the same time, so a batch that ran two 14-second types took 14 seconds,
         // not 28. Summing would report wall clock that never elapsed.
         PipelineRunResult first = run("jdk.ExecutionSample", PipelineState.COMPLETED, START,
-                List.of(step("REVIEWING", 14_000)));
+                List.of(step("RECOMMENDING", 14_000)));
         PipelineRunResult second = run("jdk.JavaMonitorEnter", PipelineState.COMPLETED,
-                START.plusSeconds(2), List.of(step("REVIEWING", 12_000)));
+                START.plusSeconds(2), List.of(step("RECOMMENDING", 12_000)));
 
         AdvisorRunResult result = AdvisorRunResult.from(List.of(first, second));
 

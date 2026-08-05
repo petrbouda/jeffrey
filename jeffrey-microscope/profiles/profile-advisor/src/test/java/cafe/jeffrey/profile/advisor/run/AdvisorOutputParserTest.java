@@ -42,8 +42,8 @@ class AdvisorOutputParserTest {
 
             ParsedOutput output = AdvisorOutputParser.parse(raw);
 
-            assertTrue(output.report().contains("## Summary"));
-            assertTrue(output.report().contains("Order.recompute()"));
+            assertTrue(output.recommendation().contains("## Summary"));
+            assertTrue(output.recommendation().contains("Order.recompute()"));
         }
 
         @Test
@@ -53,14 +53,14 @@ class AdvisorOutputParserTest {
 
             ParsedOutput output = AdvisorOutputParser.parse(raw);
 
-            assertEquals("Just prose, no marker.", output.report());
+            assertEquals("Just prose, no marker.", output.recommendation());
         }
 
         @Test
         void handlesBlankResponse() {
             ParsedOutput output = AdvisorOutputParser.parse("   ");
 
-            assertEquals("", output.report());
+            assertEquals("", output.recommendation());
             assertFalse(output.hasPatch());
         }
     }
@@ -91,7 +91,7 @@ class AdvisorOutputParserTest {
             ParsedOutput output = AdvisorOutputParser.parse(
                     "===RECOMMENDATIONS===\nAdvice.\n===PATCH===\n" + DIFF);
 
-            assertEquals("Advice.", output.report());
+            assertEquals("Advice.", output.recommendation());
         }
 
         @Test

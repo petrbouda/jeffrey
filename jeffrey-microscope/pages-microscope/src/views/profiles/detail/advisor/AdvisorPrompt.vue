@@ -39,13 +39,6 @@
             <AdvisorDocketRow label="Prompt">
               {{ FormattingService.formatBytesShort(promptFor(item.eventType)!.prompt.length) }}
             </AdvisorDocketRow>
-            <AdvisorDocketRow
-              label="Top method"
-              mono
-              :title="promptFor(item.eventType)!.dominantMethod"
-            >
-              {{ topMethod(promptFor(item.eventType)!.dominantMethod) }}
-            </AdvisorDocketRow>
           </template>
           <AdvisorDocketRow v-else label="Prompt">not built yet</AdvisorDocketRow>
         </template>
@@ -129,7 +122,6 @@ import AdvisorDocket from '@/views/profiles/detail/advisor/AdvisorDocket.vue';
 import AdvisorDocketRow from '@/views/profiles/detail/advisor/AdvisorDocketRow.vue';
 import AdvisorMissingType from '@/views/profiles/detail/advisor/AdvisorMissingType.vue';
 import { docketItems } from '@/views/profiles/detail/advisor/advisorDocket';
-import { shortMethodName } from '@/views/profiles/detail/advisor/eventTypeStyle';
 import { useAdvisor } from '@/composables/useAdvisor';
 import FeatureType from '@/services/api/model/FeatureType';
 
@@ -169,7 +161,6 @@ const items = computed(() => docketItems(eventTypes.value, () => undefined));
 const promptFor = (eventType: string): AdvisorPrompt | undefined =>
   prompts.value.find(prompt => prompt.eventType === eventType);
 
-const topMethod = (method: string): string => (method === '' ? 'unknown' : shortMethodName(method));
 
 /** Opens on the first type that has a prompt, so the page lands on something to read. */
 const firstWithPrompt = computed(

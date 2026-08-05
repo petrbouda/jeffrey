@@ -16,19 +16,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.advisor.run;
-
 /**
- * The artifacts an advisor run produces: the human-readable {@code recommendation} markdown (analysis
- * + rationale, no diffs) and the {@code patch} implementing it.
- *
- * <p>A patch is attempted for every recommendation. It is null rather than empty when the model
- * proposed no code edit, so "there is nothing to apply" stays distinguishable from "the model returned
- * an empty diff".</p>
+ * A named working copy on this machine the Advisor may read. Nothing ties it to a workspace, project
+ * or hub: the name is the user's own, and it is what identifies the folder when it is picked for a run.
  */
-public record AdvisorResult(String recommendation, String patch) {
-
-    public boolean hasPatch() {
-        return patch != null && !patch.isBlank();
-    }
+export default interface AdvisorProjectFolder {
+  folderId: string;
+  name: string;
+  path: string;
+  /** Whether the path resolves to a folder right now — a moved checkout stays listed, but missing. */
+  present: boolean;
+  createdAt: number;
 }
+
+/** The editable payload sent when creating or updating a folder (server assigns id/createdAt). */
+export type AdvisorProjectFolderRequest = Pick<AdvisorProjectFolder, 'name' | 'path'>;

@@ -36,7 +36,7 @@
         :steps="liveStepsData"
         :tick-now="now"
         title="Analyzing your profiles"
-        subtitle="One prompt, one report and one patch per event type, built from the measured call tree."
+        subtitle="One prompt, one recommendation and one patch per event type, built from the measured call tree."
       >
         <template #actions>
           <button type="button" class="btn ghost btn-sm" @click="cancel">
@@ -112,18 +112,15 @@
     <!-- Nothing yet: set a source folder and launch a run over every type. -->
     <template v-else>
       <div class="setup">
-        <div class="setup-label">Source folder <span class="req">*</span></div>
+        <div class="setup-label">
+          Source folder <span class="req">*</span>
+          <router-link to="/settings#advisor" class="manage">
+            <i class="bi bi-sliders"></i>
+            Manage folders
+          </router-link>
+        </div>
         <div class="field-row">
-          <label class="input-wrap">
-            <span class="fic"><i class="bi bi-folder2-open"></i></span>
-            <input
-              v-model="folderInput"
-              type="text"
-              spellcheck="false"
-              autocomplete="off"
-              placeholder="/home/you/projects/order-service"
-            />
-          </label>
+          <SourceFolderSelect v-model="folderInput" />
           <button type="button" class="btn primary" :disabled="!canRun" :title="runTitle" @click="onRun">
             <i class="bi bi-stars"></i>
             Run Advisor
@@ -132,7 +129,7 @@
         <p class="setup-hint" :class="{ warn: !folderReady }">
           <i class="bi" :class="folderReady ? 'bi-check-circle' : 'bi-folder2-open'"></i>
           <span v-if="folderReady">Ready — press Run to analyze {{ analyzeCountLabel }}.</span>
-          <span v-else>Set a source folder to enable the run — the Advisor reads your working copy in place.</span>
+          <span v-else>Choose a source folder to enable the run — the Advisor reads your working copy in place.</span>
         </p>
       </div>
 
@@ -177,6 +174,7 @@ import PageHeader from '@shared/components/layout/PageHeader.vue';
 import ProcessingTimeline from '@shared/components/ProcessingTimeline.vue';
 import FormattingService from '@shared/services/FormattingService';
 import AiDisabledFeatureAlert from '@/components/alerts/AiDisabledFeatureAlert.vue';
+import SourceFolderSelect from '@/views/profiles/detail/advisor/SourceFolderSelect.vue';
 import {
   eventTypeDescription,
   eventTypeStyle,
@@ -487,47 +485,27 @@ onMounted(async () => {
   color: var(--color-danger);
 }
 
+/* Sits on the far end of the label row: the list this picker reads is edited in Settings. */
+.setup-label .manage {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.setup-label .manage:hover {
+  text-decoration: underline;
+}
+
 .field-row {
   display: flex;
   gap: 0.6rem;
   align-items: stretch;
   flex-wrap: wrap;
-}
-
-.input-wrap {
-  position: relative;
-  flex: 1 1 320px;
-  display: flex;
-  align-items: center;
-}
-
-.input-wrap .fic {
-  position: absolute;
-  left: 0.65rem;
-  color: var(--color-text-light);
-  pointer-events: none;
-}
-
-.setup input {
-  width: 100%;
-  font-family: var(--font-family-monospace);
-  font-size: 0.84rem;
-  color: var(--color-heading-dark);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-input);
-  border-radius: var(--radius-base);
-  padding: 0.55rem 0.7rem 0.55rem 2.1rem;
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-
-.setup input::placeholder {
-  color: var(--color-text-light);
-}
-
-.setup input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: var(--focus-ring);
 }
 
 .setup-hint {

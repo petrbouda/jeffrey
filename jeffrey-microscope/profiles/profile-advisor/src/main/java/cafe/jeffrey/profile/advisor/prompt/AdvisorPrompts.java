@@ -23,13 +23,13 @@ package cafe.jeffrey.profile.advisor.prompt;
  * performance engineer with read-only repository tools; the user message carries the flamegraph profile
  * summary Jeffrey already generated for the recording.
  *
- * <p>The model is asked for two things and only two things: a report and a diff. It is explicitly not
- * asked to grade severity — that is arithmetic over a number Jeffrey already measured, and asking a
- * model to compute it made the ranking irreproducible, so it lives in {@code SeverityCalculator}
- * instead.</p>
+ * <p>The model is asked for two things and only two things: a recommendation and a diff. It is not
+ * asked to grade or prioritise — the Advisor no longer ranks profiles, so a grade would be a claim
+ * nothing consumes.</p>
  *
- * <p>The diff matters as much as the prose. A report alone puts the whole translation from "this is the
- * problem" to "this is the edit" back on the reader; a patch that {@code git apply} accepts does not.
+ * <p>The diff matters as much as the prose. A recommendation alone puts the whole translation from
+ * "this is the problem" to "this is the edit" back on the reader; a patch that {@code git apply}
+ * accepts does not.
  * The model is told to emit it raw and to say {@code (no patch)} rather than invent one, because a
  * fabricated diff is worse than none.</p>
  */
@@ -57,13 +57,12 @@ public final class AdvisorPrompts {
             - Prefer a few high-impact recommendations over many speculative ones. Tie each one back to a
               specific frame and percentage from the profile.
             - If you cannot locate code relevant to a hotspot, say so explicitly instead of guessing.
-            - Do not grade severity or priority. Jeffrey computes that from the measured profile.
 
             Respond in EXACTLY this format, with both marker lines present verbatim and nothing before
             the first marker:
 
             ===RECOMMENDATIONS===
-            <Markdown report. Start with a short "Summary" of the dominant hotspots, then one
+            <Markdown recommendations. Start with a short "Summary" of the dominant hotspots, then one
             "### <file>: <method>" section per recommendation: the cause, why it is hot per the profile,
             and the recommended change. Describe the change in prose — do NOT put diffs in this section.>
 

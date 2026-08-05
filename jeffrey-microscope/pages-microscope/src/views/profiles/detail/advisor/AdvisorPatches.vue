@@ -43,13 +43,6 @@
               <template v-else>none</template>
             </AdvisorDocketRow>
             <AdvisorDocketRow label="Files">{{ filesLabel(item.eventType) }}</AdvisorDocketRow>
-            <AdvisorDocketRow
-              label="Top method"
-              mono
-              :title="recommendationFor(item.eventType)!.dominantMethod"
-            >
-              {{ topMethod(recommendationFor(item.eventType)!.dominantMethod) }}
-            </AdvisorDocketRow>
           </template>
           <AdvisorDocketRow v-else label="Patch">not analysed yet</AdvisorDocketRow>
         </template>
@@ -77,12 +70,12 @@
           v-else
           icon="bi-file-earmark-diff"
           :title="`No code change proposed for ${labelFor(selected.eventType)}`"
-          description="The Advisor analyzed this type and did not find an edit worth making. Its report explains what it measured."
+          description="The Advisor analyzed this type and did not find an edit worth making. Its recommendation explains what it measured."
         >
           <template #action>
             <router-link :to="recommendationsPath" class="guard-btn">
               <i class="bi bi-arrow-right"></i>
-              Read the {{ labelFor(selected.eventType) }} report
+              Read the {{ labelFor(selected.eventType) }} recommendation
             </router-link>
           </template>
         </EmptyState>
@@ -127,7 +120,6 @@ import ErrorState from '@shared/components/ErrorState.vue';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import DiffViewer from '@shared/components/DiffViewer.vue';
-import { severityLabel, severityVariant } from '@shared/services/severityDisplay';
 import type { AdvisorRecommendation } from '@/services/api/model/Advisor';
 import AiDisabledFeatureAlert from '@/components/alerts/AiDisabledFeatureAlert.vue';
 import AdvisorDocket from '@/views/profiles/detail/advisor/AdvisorDocket.vue';
@@ -139,7 +131,6 @@ import {
   patchStats,
   type PatchStats
 } from '@/views/profiles/detail/advisor/advisorDocket';
-import { shortMethodName } from '@/views/profiles/detail/advisor/eventTypeStyle';
 import { useAdvisor } from '@/composables/useAdvisor';
 import FeatureType from '@/services/api/model/FeatureType';
 
@@ -178,25 +169,13 @@ const filesLabel = (eventType: string): string => {
   return files === 0 ? '\u2014' : String(files);
 };
 
-const topMethod = (method: string): string => (method === '' ? 'unknown' : shortMethodName(method));
 
 /**
  * CPU, Wall-Clock, Allocation, Blocking — the Advisor's canonical order, the same one Prompts and
- * Recommendations use, so a type sits in the same place on all three pages. Whether a type produced a
- * patch is said on its card rather than by moving it.
+ * Recommendations use, so a type sits in the same place on all three pages. No badge here: the Diff
+ * and Files rows already say what each type produced.
  */
-const items = computed(() =>
-  docketItems(eventTypes.value, eventType => {
-    const recommendation = recommendationFor(eventType);
-    if (recommendation === undefined) {
-      return undefined;
-    }
-    return {
-      value: severityLabel(recommendation.severity),
-      variant: severityVariant(recommendation.severity)
-    };
-  })
-);
+const items = computed(() => docketItems(eventTypes.value, () => undefined));
 
 /**
  * Opens on the first type that actually has a patch, so the page lands on something to read rather

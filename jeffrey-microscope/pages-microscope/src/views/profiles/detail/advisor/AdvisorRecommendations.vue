@@ -24,36 +24,21 @@
   <PageHeader
     v-else
     title="Recommendations"
-    description="AI recommendations mapped to your source, ranked by the profile's measured hotspots"
+    description="AI recommendations mapped to your source, one per event type the recording carries"
     icon="bi-lightbulb"
   >
     <AiDisabledFeatureAlert v-if="aiDisabled" />
 
     <template v-else-if="hasResults">
       <!-- The docket: every type in the Advisor's canonical order, so a type sits in the same place
-           here as on Prompts and Patches, carrying the figures behind its grade. -->
+           here as on Prompts and Patches, each card saying whether it produced a patch. -->
       <AdvisorDocket v-model:selected="selectedEventType" :items="items">
+        <!-- Analysed types carry no rows: the badge in the card head is the whole summary, and the
+             recommendation itself is where the detail belongs, not on a selector. -->
         <template #rows="{ item }">
-          <template v-if="recommendationFor(item.eventType)">
-            <AdvisorDocketRow
-              label="Top method"
-              mono
-              :title="recommendationFor(item.eventType)!.dominantMethod"
-            >
-              {{ topMethod(recommendationFor(item.eventType)!.dominantMethod) }}
-            </AdvisorDocketRow>
-            <AdvisorDocketRow label="Its share">
-              {{
-                FormattingService.formatPercentValue(
-                  recommendationFor(item.eventType)!.dominantSelfPct
-                )
-              }}
-            </AdvisorDocketRow>
-            <AdvisorDocketRow label="Analysed in">
-              {{ analysedIn(item.eventType) }}
-            </AdvisorDocketRow>
-          </template>
-          <AdvisorDocketRow v-else label="Report">not analysed yet</AdvisorDocketRow>
+          <AdvisorDocketRow v-if="!recommendationFor(item.eventType)" label="Recommendation">
+            not analysed yet
+          </AdvisorDocketRow>
         </template>
       </AdvisorDocket>
 
@@ -62,7 +47,7 @@
         v-if="selectedMissing"
         :event-type="selectedMissing.eventType"
         :label="selectedMissing.label"
-        missing-artifact="report to read"
+        missing-artifact="recommendation to read"
       />
 
       <MainCard v-else-if="selectedRecommendation">
@@ -71,13 +56,6 @@
             icon="bi-lightbulb"
             :title="`${labelFor(selectedRecommendation.eventType)} recommendations`"
           >
-            <template #actions>
-              <Badge
-                :value="selectedRecommendation.severity"
-                :variant="severityVariant(selectedRecommendation.severity)"
-                size="xs"
-              />
-            </template>
           </MainCardHeader>
         </template>
         <!-- The change itself lives on Patches; this page keeps the reasoning. -->
@@ -91,14 +69,14 @@
         </router-link>
 
         <!-- Sanitized in MarkdownRenderer: this markdown quotes source read off the user's disk. -->
-        <div class="report" v-html="renderedReport"></div>
+        <div class="recommendation" v-html="renderedRecommendation"></div>
       </MainCard>
 
       <!-- Recorded, but this run never analysed it. -->
       <EmptyState
         v-else
         icon="bi-lightbulb"
-        :title="`No ${selectedLabel} report yet`"
+        :title="`No ${selectedLabel} recommendation yet`"
         description="The Advisor analyses this type on its next run."
       />
     </template>
@@ -133,18 +111,14 @@ import ErrorState from '@shared/components/ErrorState.vue';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import PageHeader from '@shared/components/layout/PageHeader.vue';
-import Badge from '@shared/components/Badge.vue';
 import MarkdownRenderer from '@shared/services/MarkdownRenderer';
-import FormattingService from '@shared/services/FormattingService';
-import { severityLabel, severityVariant } from '@shared/services/severityDisplay';
 import type { AdvisorRecommendation } from '@/services/api/model/Advisor';
 import EmptyState from '@shared/components/EmptyState.vue';
 import AiDisabledFeatureAlert from '@/components/alerts/AiDisabledFeatureAlert.vue';
 import AdvisorDocket from '@/views/profiles/detail/advisor/AdvisorDocket.vue';
 import AdvisorDocketRow from '@/views/profiles/detail/advisor/AdvisorDocketRow.vue';
 import AdvisorMissingType from '@/views/profiles/detail/advisor/AdvisorMissingType.vue';
-import { analysisDurationMs, docketItems } from '@/views/profiles/detail/advisor/advisorDocket';
-import { shortMethodName } from '@/views/profiles/detail/advisor/eventTypeStyle';
+import { docketItems, hasPatch } from '@/views/profiles/detail/advisor/advisorDocket';
 import { useAdvisor } from '@/composables/useAdvisor';
 import FeatureType from '@/services/api/model/FeatureType';
 
@@ -158,7 +132,6 @@ const {
   error,
   eventTypes,
   recommendations,
-  runResult,
   selectedEventType,
   selectedRecommendation,
   hasResults,
@@ -181,29 +154,19 @@ const recommendationFor = (eventType: string): AdvisorRecommendation | undefined
 
 /**
  * CPU, Wall-Clock, Allocation, Blocking — the Advisor's canonical order rather than a per-page ranking,
- * so the docket reads the same on Prompts, Recommendations and Patches. The grade rides on the card,
- * which is where the "where to start" signal lives.
+ * so the docket reads the same on Prompts, Recommendations and Patches. The badge says which types the
+ * model actually proposed a change for: a patch is attempted for every recommendation, so its absence
+ * is an answer ("nothing worth changing here") rather than missing work.
  */
 const items = computed(() =>
   docketItems(eventTypes.value, eventType => {
     const recommendation = recommendationFor(eventType);
-    if (recommendation === undefined) {
+    if (recommendation === undefined || !hasPatch(recommendation.patch)) {
       return undefined;
     }
-    return {
-      value: severityLabel(recommendation.severity),
-      variant: severityVariant(recommendation.severity)
-    };
+    return { value: 'Patch', variant: 'primary' };
   })
 );
-
-const topMethod = (method: string): string => (method === '' ? 'unknown' : shortMethodName(method));
-
-/** How long the last run spent on this type — the same stored timings the Overview's timeline uses. */
-const analysedIn = (eventType: string): string => {
-  const durationMs = analysisDurationMs(runResult.value, eventType);
-  return durationMs === null ? '—' : FormattingService.formatDurationMillisCoarse(durationMs);
-};
 
 const selectedItem = computed(() =>
   items.value.find(item => item.eventType === selectedEventType.value)
@@ -216,8 +179,8 @@ const selectedMissing = computed(() =>
   selectedItem.value?.available === false ? selectedItem.value : undefined
 );
 
-const renderedReport = computed(() =>
-  MarkdownRenderer.render(selectedRecommendation.value?.report)
+const renderedRecommendation = computed(() =>
+  MarkdownRenderer.render(selectedRecommendation.value?.recommendation)
 );
 
 onMounted(load);
@@ -268,20 +231,20 @@ onMounted(load);
   color: var(--color-text-muted);
 }
 
-.report {
+.recommendation {
   padding: 1rem;
   font-size: 0.9rem;
   line-height: 1.6;
 }
 
-.report :deep(h2),
-.report :deep(h3) {
+.recommendation :deep(h2),
+.recommendation :deep(h3) {
   font-size: 1rem;
   font-weight: 600;
   margin-top: 1.25rem;
 }
 
-.report :deep(code) {
+.recommendation :deep(code) {
   font-family: var(--font-family-monospace);
   font-size: 0.85em;
   background: var(--color-light);

@@ -21,15 +21,12 @@ package cafe.jeffrey.provider.profile.api;
 import java.time.Instant;
 
 /**
- * A cached advisor prompt as it is stored: the complete user message the model receives, plus the one
- * measured number the run grades severity from.
+ * A cached advisor prompt as it is stored: the complete user message the model receives.
  *
  * @param eventType       the sample event type the prompt describes
  * @param label           the human-readable profile label ("CPU", "Allocation", …)
  * @param samples         total samples the call tree was built from
  * @param prompt          the full user message sent to the model
- * @param dominantSelfPct the heaviest method's self share of the profile, as a percentage
- * @param dominantMethod  the name of that heaviest method, or "" when it is not known
  * @param generatedAt     when the prompt was generated
  */
 public record AdvisorPromptRow(
@@ -37,7 +34,5 @@ public record AdvisorPromptRow(
         String label,
         long samples,
         String prompt,
-        double dominantSelfPct,
-        String dominantMethod,
         Instant generatedAt) {
 }

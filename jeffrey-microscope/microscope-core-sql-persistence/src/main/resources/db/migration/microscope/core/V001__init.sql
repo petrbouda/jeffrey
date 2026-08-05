@@ -191,3 +191,19 @@ CREATE TABLE IF NOT EXISTS profile_advisor_settings
     source_path VARCHAR,
     modified_at TIMESTAMPTZ NOT NULL
 );
+
+--
+-- ADVISOR PROJECT FOLDERS TABLE
+-- The installation-wide list of working copies the Advisor may read, managed from Settings → Advisor.
+-- Deliberately flat: an entry is a name the user chose plus an absolute path on THIS machine, with no
+-- workspace, project or hub key. A folder is picked by name when the Advisor runs on a profile, which
+-- is why the name is unique — two entries with the same name would be indistinguishable in the picker.
+--
+CREATE TABLE IF NOT EXISTS advisor_project_folders
+(
+    folder_id  VARCHAR     NOT NULL PRIMARY KEY,
+    name       VARCHAR     NOT NULL,
+    path       VARCHAR     NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
+    UNIQUE (name)
+);

@@ -64,13 +64,8 @@ public final class AdvisorRun implements AdvisorProgressSink {
     }
 
     @Override
-    public void resolvingSource() {
-        run.advanceTo(AdvisorStatus.RESOLVING_SOURCE.name());
-    }
-
-    @Override
-    public void reviewing() {
-        run.advanceTo(AdvisorStatus.REVIEWING.name());
+    public void recommending() {
+        run.advanceTo(AdvisorStatus.RECOMMENDING.name());
     }
 
     @Override

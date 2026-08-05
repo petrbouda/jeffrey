@@ -410,6 +410,111 @@
 
       <!-- Advisor Tab -->
       <div v-if="activeTab === 'advisor'" id="advisor" class="settings-content">
+        <!-- Project folders: the named working copies the Advisor may read -->
+        <div class="advisor-section">
+          <div class="advisor-section-head">
+            <h4 class="advisor-section-title">
+              <i class="bi bi-folder2-open"></i>
+              Project folders
+              <span v-if="folders.length > 0" class="advisor-section-count">
+                {{ folderCountLabel }}
+              </span>
+            </h4>
+            <p class="advisor-section-sub">
+              Folders on this machine the Advisor can read. Name each one, then pick it by name when
+              you run the Advisor on a profile.
+            </p>
+          </div>
+
+          <LoadingState v-if="foldersLoading" message="Loading project folders..." />
+          <ErrorState v-else-if="foldersError" :message="foldersError" />
+          <template v-else>
+            <DataTable v-if="folders.length > 0">
+              <template #toolbar>
+                <TableToolbar v-model="folderSearch" search-placeholder="Search folders...">
+                  <button class="btn btn-sm btn-primary" @click="openFolderCreate">
+                    <i class="bi bi-plus-lg me-1"></i>
+                    Add folder
+                  </button>
+                </TableToolbar>
+              </template>
+              <thead>
+                <tr>
+                  <th>Project</th>
+                  <th>Local folder</th>
+                  <th>Status</th>
+                  <th class="text-end"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="folder in filteredFolders" :key="folder.folderId">
+                  <td class="folder-name">{{ folder.name }}</td>
+                  <td>
+                    <span class="folder-path">{{ folder.path }}</span>
+                  </td>
+                  <td>
+                    <Badge
+                      :value="folder.present ? 'Found' : 'Not found'"
+                      :variant="folder.present ? 'success' : 'danger'"
+                      :icon="
+                        folder.present
+                          ? 'bi bi-check-circle-fill'
+                          : 'bi bi-exclamation-triangle-fill'
+                      "
+                      size="xs"
+                    />
+                  </td>
+                  <td class="text-end">
+                    <div class="folder-actions">
+                      <button
+                        class="btn btn-sm btn-link folder-action"
+                        title="Edit folder"
+                        @click="openFolderEdit(folder)"
+                      >
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button
+                        class="btn btn-sm btn-link folder-action folder-action-danger"
+                        title="Remove folder"
+                        @click="confirmFolderDelete(folder)"
+                      >
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-if="filteredFolders.length === 0">
+                  <td colspan="4" class="folder-no-match">
+                    No folders match “{{ folderSearch.trim() }}”.
+                  </td>
+                </tr>
+              </tbody>
+            </DataTable>
+            <EmptyState
+              v-else
+              icon="bi-folder2-open"
+              title="No folders yet"
+              description="Add the working copy of a project you profile. The Advisor reads it in place — nothing is copied or written back."
+            >
+              <!-- No icon in this button: EmptyState sizes every <i> it contains as its own hero icon. -->
+              <template #action>
+                <button class="btn btn-sm btn-primary mt-2" @click="openFolderCreate">
+                  Add folder
+                </button>
+              </template>
+            </EmptyState>
+          </template>
+        </div>
+
+        <div class="advisor-section">
+          <div class="advisor-section-head">
+            <h4 class="advisor-section-title">
+              <i class="bi bi-sliders"></i>
+              Prompt detail
+            </h4>
+          </div>
+        </div>
+
         <div class="settings-form-grid settings-form-grid-single">
           <div class="settings-form-group">
             <label class="settings-label">Prompt detail (% of samples)</label>
@@ -443,6 +548,77 @@
         </div>
       </div>
     </MainCard>
+
+    <!-- Add / edit a project folder -->
+    <GenericModal
+      v-model:show="showFolderEditor"
+      modal-id="advisorProjectFolderModal"
+      :title="folderEditorTitle"
+      :icon="editingFolderId ? 'bi bi-pencil' : 'bi bi-folder-plus'"
+      size="md"
+      modal-dialog-class="modal-dialog-centered"
+    >
+      <form id="advisorProjectFolderForm" @submit.prevent="saveFolder">
+        <div class="settings-form-group">
+          <label class="settings-label">Project <span class="folder-required">*</span></label>
+          <input
+            v-model="folderForm.name"
+            type="text"
+            class="form-control folder-name-input"
+            placeholder="order-service"
+            autocomplete="off"
+          />
+          <div class="settings-hint">
+            The name you'll pick from when you run the Advisor. Yours to choose.
+          </div>
+        </div>
+
+        <div class="settings-form-group mt-3">
+          <label class="settings-label">Local folder <span class="folder-required">*</span></label>
+          <input
+            v-model="folderForm.path"
+            type="text"
+            class="form-control"
+            placeholder="/home/you/projects/order-service"
+            spellcheck="false"
+            autocomplete="off"
+          />
+          <div class="settings-hint">
+            An absolute path. The Advisor reads this working copy in place — nothing is copied or
+            written back.
+          </div>
+        </div>
+
+        <div v-if="folderFormError" class="folder-form-error">
+          <i class="bi bi-exclamation-circle"></i>
+          {{ folderFormError }}
+        </div>
+      </form>
+
+      <template #footer>
+        <button type="button" class="btn btn-secondary" @click="showFolderEditor = false">
+          Cancel
+        </button>
+        <button
+          type="submit"
+          form="advisorProjectFolderForm"
+          class="btn btn-primary"
+          :disabled="folderSaving"
+        >
+          {{ folderSaving ? 'Saving...' : folderEditorConfirmLabel }}
+        </button>
+      </template>
+    </GenericModal>
+
+    <ConfirmationDialog
+      v-model:show="showFolderDelete"
+      modal-id="advisorProjectFolderDeleteDialog"
+      title="Remove folder"
+      :message="folderDeleteMessage"
+      sub-message="The folder stays on disk — only the Advisor entry is removed."
+      confirm-label="Remove folder"
+      @confirm="deleteFolder"
+    />
   </div>
 </template>
 
@@ -457,6 +633,15 @@ import ToastService from '@shared/services/ToastService';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import DataTable from '@shared/components/table/DataTable.vue';
+import TableToolbar from '@shared/components/table/TableToolbar.vue';
+import Badge from '@shared/components/Badge.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
+import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
+import GenericModal from '@shared/components/GenericModal.vue';
+import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
+import AdvisorProjectFoldersClient from '@/services/api/AdvisorProjectFoldersClient';
+import type AdvisorProjectFolder from '@/services/api/model/AdvisorProjectFolder';
 
 const route = useRoute();
 const SUPPORTED_TABS: ReadonlySet<string> = new Set([
@@ -472,10 +657,14 @@ interface ModelInfo {
   maxTokens: number;
 }
 
+// One entry per model line, always its latest release. Aliases rather than dated snapshot
+// IDs — an alias resolves to the current release, so the list does not go stale on the next
+// point release. Older versions stay usable: the Model field above takes any ID you type.
 const claudeModels: ModelInfo[] = [
-  { id: 'claude-opus-4-8', maxTokens: 128000 },
-  { id: 'claude-sonnet-4-6', maxTokens: 64000 },
-  { id: 'claude-haiku-4-5-20251001', maxTokens: 64000 }
+  { id: 'claude-fable-5', maxTokens: 128000 },
+  { id: 'claude-opus-5', maxTokens: 128000 },
+  { id: 'claude-sonnet-5', maxTokens: 128000 },
+  { id: 'claude-haiku-4-5', maxTokens: 64000 }
 ];
 
 const chatgptModels: ModelInfo[] = [
@@ -537,6 +726,136 @@ function selectModel(model: ModelInfo) {
   settings.set('jeffrey.microscope.ai.max-tokens', String(model.maxTokens));
 }
 
+// ---------------------------------------------------------------------------
+// Advisor · Project folders
+//
+// The named working copies the Advisor may read. They are their own resource rather than settings
+// rows, so they load and save on their own — the tab's Save Changes button covers the prompt-detail
+// field only, and every folder edit is committed by its dialog.
+// ---------------------------------------------------------------------------
+const foldersClient = new AdvisorProjectFoldersClient();
+
+const folders = ref<AdvisorProjectFolder[]>([]);
+const foldersLoading = ref(false);
+const foldersError = ref<string | null>(null);
+const folderSearch = ref('');
+
+const showFolderEditor = ref(false);
+const editingFolderId = ref<string | null>(null);
+const folderForm = reactive({ name: '', path: '' });
+const folderFormError = ref<string | null>(null);
+const folderSaving = ref(false);
+
+const showFolderDelete = ref(false);
+const folderDeleteTarget = ref<AdvisorProjectFolder | null>(null);
+
+const filteredFolders = computed(() => {
+  const term = folderSearch.value.trim().toLowerCase();
+  if (!term) {
+    return folders.value;
+  }
+  return folders.value.filter(
+    folder => folder.name.toLowerCase().includes(term) || folder.path.toLowerCase().includes(term)
+  );
+});
+
+const folderCountLabel = computed(() => {
+  const total = folders.value.length;
+  const missing = folders.value.filter(folder => !folder.present).length;
+  const folderWord = total === 1 ? 'folder' : 'folders';
+  if (missing === 0) {
+    return `${total} ${folderWord}`;
+  }
+  return `${total} ${folderWord} · ${missing} missing`;
+});
+
+const folderEditorTitle = computed(() => (editingFolderId.value ? 'Edit folder' : 'Add folder'));
+const folderEditorConfirmLabel = computed(() =>
+  editingFolderId.value ? 'Save folder' : 'Add folder'
+);
+const folderDeleteMessage = computed(() =>
+  folderDeleteTarget.value ? `Remove “${folderDeleteTarget.value.name}” from the Advisor?` : ''
+);
+
+async function loadFolders(): Promise<void> {
+  foldersLoading.value = true;
+  foldersError.value = null;
+  try {
+    folders.value = await foldersClient.list();
+  } catch (e: unknown) {
+    foldersError.value = e instanceof Error ? e.message : 'Failed to load project folders';
+  } finally {
+    foldersLoading.value = false;
+  }
+}
+
+function openFolderCreate(): void {
+  editingFolderId.value = null;
+  folderForm.name = '';
+  folderForm.path = '';
+  folderFormError.value = null;
+  showFolderEditor.value = true;
+}
+
+function openFolderEdit(folder: AdvisorProjectFolder): void {
+  editingFolderId.value = folder.folderId;
+  folderForm.name = folder.name;
+  folderForm.path = folder.path;
+  folderFormError.value = null;
+  showFolderEditor.value = true;
+}
+
+async function saveFolder(): Promise<void> {
+  folderFormError.value = null;
+
+  const name = folderForm.name.trim();
+  const path = folderForm.path.trim();
+  if (!name) {
+    folderFormError.value = 'Project name is required';
+    return;
+  }
+  if (!path) {
+    folderFormError.value = 'Local folder is required';
+    return;
+  }
+
+  folderSaving.value = true;
+  try {
+    if (editingFolderId.value) {
+      await foldersClient.update(editingFolderId.value, { name, path });
+    } else {
+      await foldersClient.create({ name, path });
+    }
+    showFolderEditor.value = false;
+    await loadFolders();
+    ToastService.success('Settings', `Folder “${name}” saved`);
+  } catch (e: unknown) {
+    folderFormError.value = e instanceof Error ? e.message : 'Failed to save the folder';
+  } finally {
+    folderSaving.value = false;
+  }
+}
+
+function confirmFolderDelete(folder: AdvisorProjectFolder): void {
+  folderDeleteTarget.value = folder;
+  showFolderDelete.value = true;
+}
+
+async function deleteFolder(): Promise<void> {
+  const target = folderDeleteTarget.value;
+  if (!target) {
+    return;
+  }
+  try {
+    await foldersClient.remove(target.folderId);
+    folderDeleteTarget.value = null;
+    await loadFolders();
+    ToastService.success('Settings', `Folder “${target.name}” removed`);
+  } catch (e: unknown) {
+    ToastService.error('Settings', e instanceof Error ? e.message : 'Failed to remove the folder');
+  }
+}
+
 onMounted(async () => {
   const hash = route.hash.replace(/^#/, '');
   if (SUPPORTED_TABS.has(hash)) {
@@ -560,6 +879,8 @@ onMounted(async () => {
   } catch (e) {
     console.error('Failed to load settings', e);
   }
+
+  await loadFolders();
 });
 
 function drawPreviews() {
@@ -687,7 +1008,7 @@ async function onAiToggleChange() {
       !settings.get('jeffrey.microscope.ai.provider')
     ) {
       settings.set('jeffrey.microscope.ai.provider', 'claude');
-      settings.set('jeffrey.microscope.ai.model', 'claude-opus-4-8');
+      settings.set('jeffrey.microscope.ai.model', 'claude-opus-5');
     }
   }
 }
@@ -888,6 +1209,109 @@ function announceAiChange(message: string) {
 
 .settings-content {
   padding-top: 4px;
+}
+
+/* Advisor tab — sections inside one tab, each with its own heading */
+.advisor-section + .advisor-section {
+  margin-top: 30px;
+  padding-top: 26px;
+  border-top: 1px solid var(--color-border);
+}
+
+.advisor-section-head {
+  margin-bottom: 14px;
+}
+
+.advisor-section-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-dark);
+  margin: 0 0 4px;
+}
+
+.advisor-section-title i {
+  color: var(--color-primary);
+  font-size: 15px;
+}
+
+.advisor-section-count {
+  font-family: var(--font-family-monospace);
+  font-size: 10.5px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-muted);
+  background: var(--color-lighter);
+  border-radius: var(--radius-pill);
+  padding: 2px 9px;
+}
+
+.advisor-section-sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: var(--line-height-base);
+  max-width: 62ch;
+  margin: 0;
+}
+
+.folder-name {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark);
+}
+
+.folder-path {
+  font-family: var(--font-family-monospace);
+  font-size: 12px;
+  color: var(--color-text);
+}
+
+.folder-no-match {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  padding: 18px 12px;
+}
+
+.folder-actions {
+  display: flex;
+  gap: 2px;
+  justify-content: flex-end;
+}
+
+.folder-action {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  padding: 2px 6px;
+}
+
+.folder-action:hover {
+  color: var(--color-primary);
+}
+
+.folder-action-danger:hover {
+  color: var(--color-danger);
+}
+
+.folder-required {
+  color: var(--color-danger);
+}
+
+/* The project name is prose, not a path — the shared .form-control is monospaced by default. */
+.folder-name-input {
+  font-family: var(--font-family-base);
+}
+
+.folder-form-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 9px 12px;
+  border-radius: var(--radius-base);
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+  font-size: 12px;
 }
 
 .content-header {

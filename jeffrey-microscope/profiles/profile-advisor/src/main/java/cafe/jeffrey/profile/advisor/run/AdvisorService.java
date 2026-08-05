@@ -38,7 +38,6 @@ import cafe.jeffrey.provider.profile.api.AdvisorRecommendationRow;
 import cafe.jeffrey.provider.profile.api.ProfileAdvisorRepository;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.model.Severity;
 
 import java.time.Clock;
 import java.util.concurrent.CancellationException;
@@ -49,11 +48,9 @@ import java.util.concurrent.CancellationException;
  * <p>The shape is the standalone analyst's, with the clone replaced by a folder the user already has:
  * resolve the cached prompt, point the read-only tools at the source tree, let the model explore it the
  * way an agentic code assistant would, and build its proposed diff into an applicable patch — each
- * phase reported through the sink, so the run timeline shows where the time went.</p>
+ * phase reported through the sink, so the run timeline shows where the time went. One phase per
+ * artifact produced: prompt, recommendation, patch.</p>
  *
- * <p>Severity is not one of the model's answers. It is graded from the dominant hotspot's measured self
- * share, computed when the prompt was built, so the same recording always ranks the same way and no
- * amount of confident writing can raise a profile's priority.</p>
  */
 public final class AdvisorService {
 
@@ -96,10 +93,23 @@ public final class AdvisorService {
     }
 
     /**
-     * Runs the full pipeline for {@code target}, reporting each phase through {@code sink}, and stores
-     * the report and patch it produced.
+     * Validates the configured source folder and pairs it with the commit information the result is
+     * pinned to. Deliberately separate from {@link #generate}: the folder belongs to the batch, not to
+     * one event type, so it is resolved once before any run starts rather than re-validated — and
+     * re-parsed out of {@code .git} — by every type in the fan-out.
+     *
+     * @throws cafe.jeffrey.shared.common.exception.JeffreyClientException when the folder is unusable,
+     *         which refuses the launch outright instead of failing every type the same way
      */
-    public AdvisorResult generate(AdvisorTarget target, AdvisorProgressSink sink) {
+    public SourceTree resolveSource() {
+        return sourceTreeResolver.resolve(settings.sourcePath(), recordingId);
+    }
+
+    /**
+     * Runs the full pipeline for {@code target} against an already-resolved {@code sourceTree},
+     * reporting each phase through {@code sink}, and stores the recommendation and patch it produced.
+     */
+    public AdvisorResult generate(AdvisorTarget target, AdvisorProgressSink sink, SourceTree sourceTree) {
         AdvisorPromptType promptType = AdvisorPromptType.byEventCode(target.eventType())
                 .orElseThrow(() -> Exceptions.invalidRequest(
                         "The Advisor does not analyze this event type: " + target.eventType()));
@@ -109,11 +119,7 @@ public final class AdvisorService {
         AdvisorPrompt prompt = promptManager.resolve(promptType, settings.pruneThresholdPct());
 
         abortIfEnded(sink);
-        sink.resolvingSource();
-        SourceTree sourceTree = sourceTreeResolver.resolve(settings.sourcePath(), recordingId);
-
-        abortIfEnded(sink);
-        sink.reviewing();
+        sink.recommending();
         ToolCallResult raw = analyze(target, prompt, new SourceAnalysisTools(sourceTree.root()));
         AdvisorOutputParser.ParsedOutput parsed = AdvisorOutputParser.parse(raw.text());
 
@@ -121,16 +127,13 @@ public final class AdvisorService {
         sink.buildingPatch();
         String patch = new PatchBuilder(sourceTree.root()).build(parsed.patch());
 
-        Severity severity = SeverityCalculator.fromDominantSharePct(prompt.dominantSelfPct());
-        AdvisorResult result = new AdvisorResult(severity, parsed.report(), patch);
+        AdvisorResult result = new AdvisorResult(parsed.recommendation(), patch);
 
         abortIfEnded(sink);
-        store(target, result, prompt, sourceTree);
+        store(target, result, sourceTree);
 
-        LOG.info("Generated advisor recommendations: profile_id={} event_type={} severity={} "
-                        + "dominant_self_pct={} patched={}",
-                target.profileId(), target.eventType(), severity, prompt.dominantSelfPct(),
-                result.hasPatch());
+        LOG.info("Generated advisor recommendations: profile_id={} event_type={} patched={}",
+                target.profileId(), target.eventType(), result.hasPatch());
         return result;
     }
 
@@ -168,19 +171,13 @@ public final class AdvisorService {
     }
 
     /**
-     * The dominant self share is stored alongside the severity it produced, rather than left to be
-     * looked up from the prompt later. The prompt can be regenerated on its own; pinning the number
-     * here keeps the grade explainable by the run that made it.
+     * Stores what the run produced, pinned to the source revision it was produced against — the model's
+     * prose is only true of the code it read.
      */
-    private void store(
-            AdvisorTarget target, AdvisorResult result, AdvisorPrompt prompt, SourceTree sourceTree) {
-
+    private void store(AdvisorTarget target, AdvisorResult result, SourceTree sourceTree) {
         advisorRepository.upsertRecommendation(new AdvisorRecommendationRow(
                 target.eventType(),
-                result.severity().name(),
-                prompt.dominantSelfPct(),
-                prompt.dominantMethod(),
-                result.report(),
+                result.recommendation(),
                 result.patch(),
                 sourceTree.resolvedRef(),
                 clock.instant()));

@@ -51,9 +51,7 @@ import java.util.Optional;
  *
  * <p>What is cached is the <em>complete user message</em>, not the markdown alone. Composing it here
  * rather than at run time makes the prompt a real artifact: the run sends the stored string verbatim,
- * and the Advisor's Prompt page shows exactly what was asked rather than a reconstruction. Alongside it
- * the profile's dominant self share is stored, because severity is graded from that number and it
- * should be the one measured when the prompt was built.</p>
+ * and the Advisor's Prompt page shows exactly what was asked rather than a reconstruction.</p>
  */
 public class AdvisorPromptManager {
 
@@ -132,15 +130,12 @@ public class AdvisorPromptManager {
                 eventStreamRepository, pruneThresholdPct, new AiExportConfig(pruneThresholdPct));
 
         DbBasedFlamegraphGenerator.AiExport export = generator.generateAiExportWithFrames(parameters(eventType));
-        DominantMethod dominant = DominantSelfShare.of(export.root());
 
         AdvisorPrompt prompt = new AdvisorPrompt(
                 promptType.primaryEventType().code(),
                 promptType.label(),
                 export.root().totalSamples(),
                 AdvisorPrompts.userMessage(promptType.label(), export.markdown()),
-                dominant.selfPct(),
-                dominant.method(),
                 clock.instant());
 
         advisorRepository.upsertPrompt(new AdvisorPromptRow(
@@ -148,14 +143,10 @@ public class AdvisorPromptManager {
                 prompt.label(),
                 prompt.samples(),
                 prompt.prompt(),
-                prompt.dominantSelfPct(),
-                prompt.dominantMethod(),
                 prompt.generatedAt()));
 
-        LOG.info("Generated advisor prompt: prompt_type={} event_type={} total_samples={} "
-                        + "dominant_self_pct={} dominant_method={}",
-                promptType.name(), eventType.code(), prompt.samples(), prompt.dominantSelfPct(),
-                prompt.dominantMethod());
+        LOG.info("Generated advisor prompt: prompt_type={} event_type={} total_samples={}",
+                promptType.name(), eventType.code(), prompt.samples());
         return Optional.of(prompt);
     }
 
@@ -201,8 +192,6 @@ public class AdvisorPromptManager {
                 row.label(),
                 row.samples(),
                 row.prompt(),
-                row.dominantSelfPct(),
-                row.dominantMethod(),
                 row.generatedAt());
     }
 }

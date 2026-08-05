@@ -41,49 +41,40 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
 
     //language=SQL
     private static final String FIND_PROMPTS = """
-            SELECT event_type, label, samples, prompt, dominant_self_pct, dominant_method, generated_at
+            SELECT event_type, label, samples, prompt, generated_at
             FROM advisor_prompts
             ORDER BY event_type""";
 
     //language=SQL
     private static final String FIND_PROMPT = """
-            SELECT event_type, label, samples, prompt, dominant_self_pct, dominant_method, generated_at
+            SELECT event_type, label, samples, prompt, generated_at
             FROM advisor_prompts
             WHERE event_type = :event_type""";
 
     //language=SQL
     private static final String UPSERT_PROMPT = """
-            INSERT INTO advisor_prompts (event_type, label, samples, prompt, dominant_self_pct,
-                                         dominant_method, generated_at)
-            VALUES (:event_type, :label, :samples, :prompt, :dominant_self_pct, :dominant_method,
-                    :generated_at)
+            INSERT INTO advisor_prompts (event_type, label, samples, prompt, generated_at)
+            VALUES (:event_type, :label, :samples, :prompt, :generated_at)
             ON CONFLICT (event_type) DO UPDATE SET
                 label = EXCLUDED.label,
                 samples = EXCLUDED.samples,
                 prompt = EXCLUDED.prompt,
-                dominant_self_pct = EXCLUDED.dominant_self_pct,
-                dominant_method = EXCLUDED.dominant_method,
                 generated_at = EXCLUDED.generated_at""";
 
     //language=SQL
     private static final String FIND_RECOMMENDATIONS = """
-            SELECT event_type, severity, dominant_self_pct, dominant_method, report, patch,
+            SELECT event_type, recommendation, patch,
                    source_ref, generated_at
             FROM advisor_recommendations
             ORDER BY event_type""";
 
     //language=SQL
     private static final String UPSERT_RECOMMENDATION = """
-            INSERT INTO advisor_recommendations (event_type, severity, dominant_self_pct,
-                                                 dominant_method, report, patch, source_ref,
+            INSERT INTO advisor_recommendations (event_type, recommendation, patch, source_ref,
                                                  generated_at)
-            VALUES (:event_type, :severity, :dominant_self_pct, :dominant_method, :report, :patch,
-                    :source_ref, :generated_at)
+            VALUES (:event_type, :recommendation, :patch, :source_ref, :generated_at)
             ON CONFLICT (event_type) DO UPDATE SET
-                severity = EXCLUDED.severity,
-                dominant_self_pct = EXCLUDED.dominant_self_pct,
-                dominant_method = EXCLUDED.dominant_method,
-                report = EXCLUDED.report,
+                recommendation = EXCLUDED.recommendation,
                 patch = EXCLUDED.patch,
                 source_ref = EXCLUDED.source_ref,
                 generated_at = EXCLUDED.generated_at""";
@@ -122,8 +113,6 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
                 .addValue("label", prompt.label())
                 .addValue("samples", prompt.samples())
                 .addValue("prompt", prompt.prompt())
-                .addValue("dominant_self_pct", prompt.dominantSelfPct())
-                .addValue("dominant_method", prompt.dominantMethod())
                 .addValue("generated_at", Timestamp.from(prompt.generatedAt()));
 
         databaseClient.insert(StatementLabel.UPSERT_ADVISOR_PROMPT, UPSERT_PROMPT, params);
@@ -139,10 +128,7 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
     public void upsertRecommendation(AdvisorRecommendationRow recommendation) {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue(PARAM_EVENT_TYPE, recommendation.eventType())
-                .addValue("severity", recommendation.severity())
-                .addValue("dominant_self_pct", recommendation.dominantSelfPct())
-                .addValue("dominant_method", recommendation.dominantMethod())
-                .addValue("report", recommendation.report())
+                .addValue("recommendation", recommendation.recommendation())
                 .addValue("patch", recommendation.patch())
                 .addValue("source_ref", recommendation.sourceRef())
                 .addValue("generated_at", Timestamp.from(recommendation.generatedAt()));
@@ -165,18 +151,13 @@ public class JdbcProfileAdvisorRepository implements ProfileAdvisorRepository {
                 rs.getString("label"),
                 rs.getLong("samples"),
                 rs.getString("prompt"),
-                rs.getDouble("dominant_self_pct"),
-                rs.getString("dominant_method"),
                 instant(rs, "generated_at"));
     }
 
     private static RowMapper<AdvisorRecommendationRow> recommendationMapper() {
         return (rs, _) -> new AdvisorRecommendationRow(
                 rs.getString(PARAM_EVENT_TYPE),
-                rs.getString("severity"),
-                rs.getDouble("dominant_self_pct"),
-                rs.getString("dominant_method"),
-                rs.getString("report"),
+                rs.getString("recommendation"),
                 rs.getString("patch"),
                 rs.getString("source_ref"),
                 instant(rs, "generated_at"));

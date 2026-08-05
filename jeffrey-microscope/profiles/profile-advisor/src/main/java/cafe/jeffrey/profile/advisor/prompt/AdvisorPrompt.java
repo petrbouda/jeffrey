@@ -32,8 +32,6 @@ import java.time.Instant;
  * @param label           the tab label, e.g. "CPU"
  * @param samples         the profile's total sample count, for the chip beside the label
  * @param prompt          the full user message sent to the model
- * @param dominantSelfPct the heaviest method's self share of the profile, which severity is graded from
- * @param dominantMethod  the name of that heaviest method, or "" when the profile has no samples
  * @param generatedAt     when this prompt was built from the profile
  */
 public record AdvisorPrompt(
@@ -41,7 +39,5 @@ public record AdvisorPrompt(
         String label,
         long samples,
         String prompt,
-        double dominantSelfPct,
-        String dominantMethod,
         Instant generatedAt) {
 }

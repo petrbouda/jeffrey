@@ -22,8 +22,8 @@ package cafe.jeffrey.profile.advisor.run;
  * The state of a whole batch run — one launch that processes every analyzable event type for a profile.
  * Derived from the per-type runs it aggregates: {@link #QUEUED} until any type starts, {@link #RUNNING}
  * while at least one is in flight, and a terminal {@link #COMPLETED} or {@link #FAILED} once all have
- * settled ({@code FAILED} only when every type failed — a batch where some types produced a report is a
- * completed batch that reports the failures per type).
+ * settled ({@code FAILED} only when every type failed — a batch where some types produced a
+ * recommendation is a completed batch that reports the failures per type).
  */
 public enum BatchStatus {
 

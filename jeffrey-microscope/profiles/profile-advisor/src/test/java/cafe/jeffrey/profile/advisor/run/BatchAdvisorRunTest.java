@@ -102,7 +102,7 @@ class BatchAdvisorRunTest {
         void runningWhenSomeTypesAreInFlight() {
             LaunchedBatch launched = batch();
             launched.runs().getFirst().complete();
-            launched.runs().get(1).beginStage(AdvisorStatus.REVIEWING.name());
+            launched.runs().get(1).beginStage(AdvisorStatus.RECOMMENDING.name());
 
             BatchAdvisorProgress progress = launched.progress();
 

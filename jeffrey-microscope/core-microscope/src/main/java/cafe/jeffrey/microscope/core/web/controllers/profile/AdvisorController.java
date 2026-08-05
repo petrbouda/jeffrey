@@ -71,8 +71,6 @@ public class AdvisorController {
             String label,
             long samples,
             String prompt,
-            double dominantSelfPct,
-            String dominantMethod,
             long generatedAt) {
 
         static PromptResponse from(AdvisorPrompt prompt) {
@@ -81,8 +79,6 @@ public class AdvisorController {
                     prompt.label(),
                     prompt.samples(),
                     prompt.prompt(),
-                    prompt.dominantSelfPct(),
-                    prompt.dominantMethod(),
                     prompt.generatedAt().toEpochMilli());
         }
     }
@@ -97,17 +93,13 @@ public class AdvisorController {
     }
 
     /**
-     * A stored recommendation. {@code dominantSelfPct} is the measured share the {@code severity} was
-     * graded from, sent alongside it so the page can show the number behind the grade. {@code patch} is
-     * the proposed unified diff, or null when the model proposed no code edit — the page shows those
+     * A stored recommendation. {@code patch} is the proposed unified diff, or null when the model
+     * proposed no code edit — a patch is attempted for every recommendation, and the page shows those
      * two cases differently.
      */
     public record RecommendationResponse(
             String eventType,
-            String severity,
-            double dominantSelfPct,
-            String dominantMethod,
-            String report,
+            String recommendation,
             String patch,
             String sourceRef,
             long generatedAt) {
@@ -200,6 +192,9 @@ public class AdvisorController {
      * Launches a batch that analyzes every requested event type (or every available one when none are
      * named). Returns 202 with the batch snapshot either way: the caller's next move is the same — poll
      * the run — whether this request started it or found one already going.
+     *
+     * <p>The source folder is validated as part of the launch, so an unusable one fails this request
+     * with the reason instead of starting a batch that fails every type identically minutes later.</p>
      */
     @PostMapping("/run")
     public ResponseEntity<BatchAdvisorProgress> run(
@@ -296,10 +291,7 @@ public class AdvisorController {
     private static RecommendationResponse toResponse(AdvisorRecommendationRow row) {
         return new RecommendationResponse(
                 row.eventType(),
-                row.severity(),
-                row.dominantSelfPct(),
-                row.dominantMethod(),
-                row.report(),
+                row.recommendation(),
                 row.patch(),
                 row.sourceRef(),
                 row.generatedAt().toEpochMilli());

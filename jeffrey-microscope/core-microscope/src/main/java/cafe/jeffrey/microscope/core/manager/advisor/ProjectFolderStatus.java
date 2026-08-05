@@ -16,23 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.provider.profile.api;
+package cafe.jeffrey.microscope.core.manager.advisor;
 
-import java.time.Instant;
+import cafe.jeffrey.microscope.persistence.api.AdvisorProjectFolder;
 
 /**
- * A stored advisor result for one sample event type: what the model wrote, and the patch it proposed.
+ * A stored folder together with what the filesystem says about it right now. The stored row keeps a
+ * path even when it stops resolving — a checkout that moved is worth showing as broken rather than
+ * dropping — so presence is reported alongside it instead of being written into the row.
  *
- * @param eventType        the sample event type analyzed
- * @param recommendation   the recommendations markdown the model wrote
- * @param patch            the proposed unified diff, or null when the model proposed no code edit
- * @param sourceRef        the commit the source tree was on, or null when it was not a git checkout
- * @param generatedAt      when the run completed
+ * @param folder  the stored entry
+ * @param present whether {@link AdvisorProjectFolder#path()} is a folder on this machine
  */
-public record AdvisorRecommendationRow(
-        String eventType,
-        String recommendation,
-        String patch,
-        String sourceRef,
-        Instant generatedAt) {
+public record ProjectFolderStatus(AdvisorProjectFolder folder, boolean present) {
 }

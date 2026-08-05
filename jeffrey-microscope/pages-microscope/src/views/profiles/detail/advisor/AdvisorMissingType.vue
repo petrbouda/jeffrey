@@ -67,7 +67,7 @@ import {
 const props = defineProps<{
   eventType: string;
   label: string;
-  /** What this page would have held for the type — "the prompt", "a report", "a diff". */
+  /** What this page would have held for the type — "the prompt", "a recommendation", "a diff". */
   missingArtifact: string;
 }>();
 

@@ -38,7 +38,6 @@ class JdbcProfileAdvisorRepositoryTest {
     private static final String CPU = "jdk.ExecutionSample";
     private static final String ALLOC = "jdk.ObjectAllocationSample";
     private static final Instant WHEN = Instant.parse("2026-08-01T06:00:14Z");
-    private static final String HOT_METHOD = "com.acme.rates.RateTable.lookup";
     private static final String PATCH = """
             --- a/RateTable.java
             +++ b/RateTable.java
@@ -53,27 +52,25 @@ class JdbcProfileAdvisorRepositoryTest {
 
     private static void seed(JdbcProfileAdvisorRepository repository) {
         repository.upsertPrompt(
-                new AdvisorPromptRow(CPU, "CPU", 1_000L, "the user message", 21.5, HOT_METHOD, WHEN));
+                new AdvisorPromptRow(CPU, "CPU", 1_000L, "the user message", WHEN));
         repository.upsertPrompt(
-                new AdvisorPromptRow(ALLOC, "Allocation", 400L, "the user message", 12.0, HOT_METHOD, WHEN));
+                new AdvisorPromptRow(ALLOC, "Allocation", 400L, "the user message", WHEN));
         repository.upsertRecommendation(
-                new AdvisorRecommendationRow(CPU, "HIGH", 21.5, HOT_METHOD, "report", PATCH, "abc123", WHEN));
+                new AdvisorRecommendationRow(CPU, "the recommendation", PATCH, "abc123", WHEN));
     }
 
     @Nested
     class Prompts {
 
         @Test
-        void roundTripsThePromptAndTheShareSeverityIsGradedFrom(DataSource dataSource) {
+        void roundTripsTheCompleteUserMessage(DataSource dataSource) {
             JdbcProfileAdvisorRepository repository = repository(dataSource);
             seed(repository);
 
             AdvisorPromptRow row = repository.findPrompt(CPU).orElseThrow();
 
-            assertEquals("the user message", row.prompt());
-            assertEquals(21.5, row.dominantSelfPct());
-            assertEquals(HOT_METHOD, row.dominantMethod(),
-                    "the share is only readable next to the method holding it");
+            assertEquals("the user message", row.prompt(),
+                    "the run sends this verbatim, so it must survive the round trip unchanged");
         }
     }
 
@@ -89,10 +86,20 @@ class JdbcProfileAdvisorRepositoryTest {
         }
 
         @Test
+        void roundTripsTheRecommendationMarkdown(DataSource dataSource) {
+            JdbcProfileAdvisorRepository repository = repository(dataSource);
+            seed(repository);
+
+            assertEquals("the recommendation",
+                    repository.findRecommendations().getFirst().recommendation(),
+                    "the prose is the point of the row; the patch is optional");
+        }
+
+        @Test
         void keepsAMissingPatchNullRatherThanEmpty(DataSource dataSource) {
             JdbcProfileAdvisorRepository repository = repository(dataSource);
             repository.upsertRecommendation(
-                    new AdvisorRecommendationRow(ALLOC, "LOW", 1.2, HOT_METHOD, "report", null, "abc123", WHEN));
+                    new AdvisorRecommendationRow(ALLOC, "the recommendation", null, "abc123", WHEN));
 
             assertNull(repository.findRecommendations().getFirst().patch());
         }
@@ -104,7 +111,7 @@ class JdbcProfileAdvisorRepositoryTest {
 
             repository.upsertRecommendation(
                     new AdvisorRecommendationRow(
-                            CPU, "LOW", 21.5, HOT_METHOD, "second report", null, "def456", WHEN));
+                            CPU, "the second recommendation", null, "def456", WHEN));
 
             assertEquals(1, repository.findRecommendations().size());
             assertNull(repository.findRecommendations().getFirst().patch(),
@@ -155,7 +162,7 @@ class JdbcProfileAdvisorRepositoryTest {
             // Clearing must not leave anything behind that a re-run would collide with.
             repository.upsertPrompt(
                     new AdvisorPromptRow(
-                            CPU, "CPU", 2_000L, "the rebuilt user message", 8.0, HOT_METHOD, WHEN));
+                            CPU, "CPU", 2_000L, "the rebuilt user message", WHEN));
 
             assertEquals(1, repository.findPrompts().size());
             assertEquals(2_000L, repository.findPrompts().getFirst().samples());

@@ -19,14 +19,14 @@
 package cafe.jeffrey.profile.advisor.run;
 
 /**
- * The live progress of one timed step (Prompt / Source / Review / Verify) within an event type's run,
+ * The live progress of one timed step (Prompt / Recommendation / Patch) within an event type's run,
  * mirroring the heap-dump init stage progress so the shared timeline renders both the same way.
  *
  * <p>{@code durationMs} is set once the step has finished; {@code elapsedMs} is the running time of the
  * step currently in progress, computed from the injected clock so a reconnecting UI resumes the timer
  * without clock skew. Only one of the two is meaningful at a time.</p>
  *
- * @param step       the pipeline step name (an {@link AdvisorStatus} name, e.g. {@code REVIEWING})
+ * @param step       the pipeline step name (an {@link AdvisorStatus} name, e.g. {@code RECOMMENDING})
  * @param status     one of {@link #PENDING}, {@link #IN_PROGRESS}, {@link #COMPLETED}, {@link #FAILED}
  * @param durationMs the measured duration once completed, or null
  * @param elapsedMs  the live elapsed time while in progress, or null

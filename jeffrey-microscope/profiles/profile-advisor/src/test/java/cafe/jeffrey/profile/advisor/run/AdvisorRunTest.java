@@ -80,19 +80,16 @@ class AdvisorRunTest {
 
         run.preparingPrompt();
         clock.advance(Duration.ofMillis(400));
-        run.resolvingSource();
-        clock.advance(Duration.ofMillis(200));
-        run.reviewing();
+        run.recommending();
         clock.advance(Duration.ofSeconds(8));
 
-        // Mid-review: the two finished steps carry durations, Review is live, Patch is pending.
+        // Mid-run: the finished step carries a duration, Recommendation is live, Patch is pending.
         Map<String, AdvisorStepProgress> steps = stepsByName(run);
         assertEquals(AdvisorStepProgress.COMPLETED, steps.get("PREPARING_PROMPT").status());
         assertEquals(400L, steps.get("PREPARING_PROMPT").durationMs());
-        assertEquals(200L, steps.get("RESOLVING_SOURCE").durationMs());
-        assertEquals(AdvisorStepProgress.IN_PROGRESS, steps.get("REVIEWING").status());
-        assertEquals(8000L, steps.get("REVIEWING").elapsedMs());
-        assertNull(steps.get("REVIEWING").durationMs());
+        assertEquals(AdvisorStepProgress.IN_PROGRESS, steps.get("RECOMMENDING").status());
+        assertEquals(8000L, steps.get("RECOMMENDING").elapsedMs());
+        assertNull(steps.get("RECOMMENDING").durationMs());
         assertEquals(AdvisorStepProgress.PENDING, steps.get("BUILDING_PATCH").status());
     }
 
@@ -104,9 +101,7 @@ class AdvisorRunTest {
 
         run.preparingPrompt();
         clock.advance(Duration.ofMillis(100));
-        run.resolvingSource();
-        clock.advance(Duration.ofMillis(100));
-        run.reviewing();
+        run.recommending();
         clock.advance(Duration.ofMillis(5000));
         run.buildingPatch();
         clock.advance(Duration.ofMillis(50));
@@ -116,8 +111,7 @@ class AdvisorRunTest {
         Map<String, AdvisorStepProgress> steps = stepsByName(run);
         assertEquals(AdvisorStatus.COMPLETED, run.progress().status());
         assertEquals(100L, steps.get("PREPARING_PROMPT").durationMs());
-        assertEquals(100L, steps.get("RESOLVING_SOURCE").durationMs());
-        assertEquals(5000L, steps.get("REVIEWING").durationMs());
+        assertEquals(5000L, steps.get("RECOMMENDING").durationMs());
         assertEquals(50L, steps.get("BUILDING_PATCH").durationMs());
         steps.values().forEach(step -> assertEquals(AdvisorStepProgress.COMPLETED, step.status()));
     }
@@ -136,9 +130,7 @@ class AdvisorRunTest {
 
         run.preparingPrompt();
         clock.advance(Duration.ofMillis(100));
-        run.resolvingSource();
-        clock.advance(Duration.ofMillis(100));
-        run.reviewing();
+        run.recommending();
         clock.advance(Duration.ofSeconds(3));
 
         assertFalse(run.ended(), "still running until the cancel lands");
@@ -152,7 +144,7 @@ class AdvisorRunTest {
 
         Map<String, AdvisorStepProgress> steps = stepsByName(run);
         assertEquals(100L, steps.get("PREPARING_PROMPT").durationMs());
-        assertEquals(AdvisorStepProgress.FAILED, steps.get("REVIEWING").status());
+        assertEquals(AdvisorStepProgress.FAILED, steps.get("RECOMMENDING").status());
         assertEquals(AdvisorStepProgress.PENDING, steps.get("BUILDING_PATCH").status());
         assertNull(steps.get("BUILDING_PATCH").elapsedMs(), "nothing may still be spinning");
     }
@@ -165,17 +157,14 @@ class AdvisorRunTest {
 
         run.preparingPrompt();
         clock.advance(Duration.ofMillis(300));
-        run.resolvingSource();
-        clock.advance(Duration.ofMillis(150));
-        run.reviewing();
+        run.recommending();
         clock.advance(Duration.ofMillis(1000));
         pipelineRun.fail(null, "model error");
 
         Map<String, AdvisorStepProgress> steps = stepsByName(run);
         assertEquals(300L, steps.get("PREPARING_PROMPT").durationMs());
-        assertEquals(150L, steps.get("RESOLVING_SOURCE").durationMs());
-        assertEquals(AdvisorStepProgress.FAILED, steps.get("REVIEWING").status());
-        assertNull(steps.get("REVIEWING").durationMs());
+        assertEquals(AdvisorStepProgress.FAILED, steps.get("RECOMMENDING").status());
+        assertNull(steps.get("RECOMMENDING").durationMs());
         assertEquals(AdvisorStepProgress.PENDING, steps.get("BUILDING_PATCH").status());
     }
 }

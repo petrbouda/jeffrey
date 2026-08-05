@@ -17,7 +17,7 @@
  */
 
 import type { Variant } from '@shared/types/ui';
-import type { AdvisorEventType, AdvisorRunResult } from '@/services/api/model/Advisor';
+import type { AdvisorEventType } from '@/services/api/model/Advisor';
 import { compareEventTypes } from '@/views/profiles/detail/advisor/eventTypeStyle';
 
 /** The grade shown on a card, when the page has one to show. Prompts do not. */
@@ -102,17 +102,4 @@ export function patchStats(patch: string | null): PatchStats {
 
 export function hasPatch(patch: string | null): boolean {
   return patch !== null && patch.trim() !== '';
-}
-
-/**
- * How long the last run spent on one event type, or null when it did not run in it. Read from the
- * stored run result rather than timed in the browser, so it survives a reload like the Overview's
- * timeline does.
- */
-export function analysisDurationMs(
-  runResult: AdvisorRunResult | null,
-  eventType: string
-): number | null {
-  const type = runResult?.types.find(candidate => candidate.eventType === eventType);
-  return type?.totalMs ?? null;
 }

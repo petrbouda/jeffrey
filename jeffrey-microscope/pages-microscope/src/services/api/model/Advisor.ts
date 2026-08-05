@@ -16,8 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import type { Severity } from '@shared/services/severityDisplay';
-
 /**
  * A profile group the Advisor knows about. Every group is reported, including the ones this recording
  * carries no samples for — {@link available} is what separates them. The pages list all of them so a
@@ -38,22 +36,13 @@ export interface AdvisorPrompt {
   label: string;
   samples: number;
   prompt: string;
-  /** The measured self share of the profile's heaviest method, as of when the prompt was built. */
-  dominantSelfPct: number;
-  /** The name of that method, or an empty string when the profile had no samples. */
-  dominantMethod: string;
   generatedAt: number;
 }
 
 export interface AdvisorRecommendation {
   eventType: string;
-  severity: Severity;
-  /** The measured self share of the profile's heaviest method — the number severity was graded from. */
-  dominantSelfPct: number;
-  /** The name of that method, or an empty string when it is not known. */
-  dominantMethod: string;
   /** The recommendations markdown the model wrote. */
-  report: string;
+  recommendation: string;
   /** The proposed unified diff, or null when the model proposed no code edit. */
   patch: string | null;
   sourceRef: string | null;
@@ -63,13 +52,12 @@ export interface AdvisorRecommendation {
 export type AdvisorStatus =
   | 'QUEUED'
   | 'PREPARING_PROMPT'
-  | 'RESOLVING_SOURCE'
-  | 'REVIEWING'
+  | 'RECOMMENDING'
   | 'BUILDING_PATCH'
   | 'COMPLETED'
   | 'FAILED';
 
-/** The live progress of one timed step (Prompt / Source / Review / Patch) within a type's run. */
+/** The live progress of one timed step (Prompt / Recommendation / Patch) within a type's run. */
 export interface AdvisorStepProgress {
   step: string;
   status: 'pending' | 'in_progress' | 'completed' | 'failed';

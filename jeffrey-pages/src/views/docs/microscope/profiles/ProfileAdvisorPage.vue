@@ -30,7 +30,6 @@ const headings = [
   { id: 'docket', text: 'The Docket', level: 2 },
   { id: 'setup', text: 'Setup', level: 2 },
   { id: 'how-a-run-works', text: 'How a Run Works', level: 2 },
-  { id: 'severity', text: 'Severity', level: 2 },
   { id: 'patches', text: 'Patches', level: 2 },
   { id: 'privacy', text: 'What Leaves Your Machine', level: 2 }
 ];
@@ -53,10 +52,10 @@ onMounted(() => {
       </p>
 
       <p>
-        A run produces three artifacts per event type — the prompt that was sent, the recommendations
-        report, and the proposed patch — and each gets its own page. Severity is not one of the model's
-        answers: it is computed from the profile Jeffrey measured, so the same recording always ranks
-        the same way.
+        A run produces three artifacts per event type — the prompt that was sent, the recommendation
+        the model wrote, and the proposed patch — and each gets its own page, and its own step on the
+        run timeline. A patch is attempted for every recommendation, so a type without one means the
+        model found no concrete edit worth proposing, not that it was skipped.
       </p>
 
       <h2 id="overview">Overview</h2>
@@ -66,7 +65,7 @@ onMounted(() => {
       <ul>
         <li><strong>Overview</strong> — the landing page: set the source folder inline, launch the run, and watch its phased, timed timeline. The finished timeline is kept and re-shown on return.</li>
         <li><strong>Prompts</strong> — the exact message sent to the model for each event type, shown verbatim and copyable.</li>
-        <li><strong>Recommendations</strong> — a separate page for the report the model wrote.</li>
+        <li><strong>Recommendations</strong> — a separate page for the recommendation the model wrote.</li>
         <li><strong>Patches</strong> — the proposed code changes, one per event type, each shown as a unified diff.</li>
       </ul>
 
@@ -87,10 +86,9 @@ onMounted(() => {
       <p>
         Prompts, Recommendations and Patches all open with the same row of cards, always in the order
         CPU → Wall-Clock → Allocation → Blocking, so a group sits in the same place on every page and
-        every profile. Each card carries that group's own figures: on Prompts the sample count, the size
-        of the cached message and the method holding the largest share of the profile; on
-        Recommendations that method, its share and how long the last run spent analysing the group; on
-        Patches the size of the proposed diff in files and lines.
+        every profile. Each card carries that group's own figures: on Prompts the sample count and the
+        size of the cached message; on Recommendations a badge marking the groups that produced a
+        patch; on Patches the size of the proposed diff in files and lines.
       </p>
 
       <p>
@@ -112,9 +110,12 @@ onMounted(() => {
           out, and it lights up as soon as a provider is selected — no restart.
         </li>
         <li>
-          <strong>A source folder.</strong> On the Advisor Overview, point the profile at an absolute
-          path on the machine running Microscope. Microscope reads your working copy in place: nothing
-          is cloned, no credentials are stored, and the folder is never written to or deleted.
+          <strong>A source folder.</strong> On the Advisor Overview, choose one of your saved project
+          folders — or type an absolute path of your own — on the machine running Microscope.
+          Microscope reads your working copy in place: nothing is cloned, no credentials are stored,
+          and the folder is never written to or deleted. It is checked once when you press Run — a
+          path that is relative, missing, not a directory or not readable refuses the launch and says
+          which, rather than starting a run that fails minutes later.
         </li>
       </ol>
 
@@ -123,32 +124,53 @@ onMounted(() => {
         locally-uploaded Quick Analysis recording, which has no project.
       </DocsCallout>
 
+      <h3 id="project-folders">Project Folders</h3>
+
+      <p>
+        A working copy you profile often does not have to be typed out every time. Under
+        <strong>Settings → Advisor → Project folders</strong> you keep a list of folders on this
+        machine, each under a name you choose — the name is yours alone, tied to no workspace,
+        project or hub, and it is what you recognise the folder by. Every entry is checked against
+        the filesystem and listed as <em>Found</em> or <em>Not found</em>, so a checkout that moved
+        shows up here rather than at the moment you launch a run.
+      </p>
+
+      <p>
+        The Advisor Overview's <strong>Source folder</strong> control is that list: it opens with a
+        filter, shows each folder by name with its path underneath, and marks a folder whose path no
+        longer resolves as <em>Not found</em> — those cannot be picked, since a run against them
+        could only fail. <strong>Custom path…</strong> at the bottom returns the plain field for a
+        one-off path, which is also what the control offers while no folder is saved yet.
+      </p>
+
       <h2 id="how-a-run-works">How a Run Works</h2>
 
       <p>
         The Overview page is the landing: set a source folder and press <strong>Run Advisor</strong>. One
         launch analyzes <strong>every event type at once</strong> — CPU, Wall-Clock, Allocation, Blocking
         — shown as a processing timeline with a <strong>phase card per type</strong>. Each type moves
-        through the same four <strong>timed steps</strong>, and the types drain a few at a time through a
-        shared ceiling so a single run cannot flood the AI provider:
+        through the same three <strong>timed steps</strong> — one per artifact it produces — and the
+        types drain a few at a time through a shared ceiling so a single run cannot flood the AI
+        provider:
       </p>
 
       <ol>
         <li><strong>Prompt</strong> — the complete user message is composed from the profile database and cached, so the run sends it verbatim and the Prompt page can show exactly what was asked.</li>
-        <li><strong>Source</strong> — the configured folder is validated and its commit read.</li>
-        <li><strong>Review</strong> — the model explores your source with four read-only tools: <code>listFiles</code>, <code>glob</code>, <code>readFile</code> and <code>grep</code>, and its answer is split into the report and the diff.</li>
-        <li><strong>Patch</strong> — the proposed diff is repaired so it applies cleanly, and the files it touches are checked against the folder. A type where the model proposed no code change finishes this step with nothing to build.</li>
+        <li><strong>Recommendation</strong> — the model explores your source with four read-only tools: <code>listFiles</code>, <code>glob</code>, <code>readFile</code> and <code>grep</code>, and its answer is split into the recommendations and the diff.</li>
+        <li><strong>Patch</strong> — the diff the previous step produced is repaired so it applies cleanly, and the files it touches are checked against the folder. A type where the model proposed no code change finishes this step with nothing to build.</li>
       </ol>
 
       <p>
-        The steps are also where the run's time is accounted for: Review is the only one that calls the
-        AI, so it dominates, while Prompt and Patch are local work measured in milliseconds.
+        The steps are also where the run's time is accounted for: Recommendation is the only one that
+        calls the AI, so it dominates, while Prompt and Patch are local work measured in milliseconds.
+        Validating the source folder is not among them — it belongs to the whole launch rather than to
+        one event type, so it happens once before any type starts.
       </p>
 
       <p>
         When it finishes, the timeline is <strong>kept</strong> — with each step's measured time — and
         re-shown whenever you return to the Overview, the same way the Heap Dump keeps its last
-        initialization. The report itself lives on the separate <strong>Recommendations</strong> page.
+        initialization. The recommendation itself lives on the separate <strong>Recommendations</strong> page.
       </p>
 
       <p>
@@ -158,10 +180,10 @@ onMounted(() => {
       </p>
 
       <p>
-        <strong>Clear results</strong> on the Overview throws all of it away — every report, its patch,
+        <strong>Clear results</strong> on the Overview throws all of it away — every recommendation, its patch,
         the kept timeline, and the cached prompts — leaving the profile exactly as if the Advisor had
         never run. It is the counterpart of the Heap Dump's <em>Clear Cache</em>, and the way to get rid
-        of a report generated against the wrong source folder, or of results for event types a later run
+        of a recommendation generated against the wrong source folder, or of results for event types a later run
         no longer covers. Because the cached prompts go too, the next run rebuilds each profile summary
         from the call tree before it reaches the model.
       </p>
@@ -170,30 +192,6 @@ onMounted(() => {
         Clearing cannot be undone, and regenerating means one AI analysis per event type. A run already
         in flight is not affected — clear it after the run finishes, or cancel first.
       </DocsCallout>
-
-      <h2 id="severity">Severity</h2>
-
-      <p>
-        Severity is Jeffrey's, not the model's — the model is explicitly told not to grade it. It is
-        computed from the <em>dominant self share</em> of the profile: the heaviest method's samples
-        summed across every call path it appears on, as a percentage of the recording. 20% or more is
-        CRITICAL, 10% HIGH, 3% MEDIUM, otherwise LOW.
-      </p>
-
-      <p>
-        Two details decide what that number means. Self samples are <strong>summed</strong> across call
-        paths, which is exact even under recursion because self weight never nests inside itself. And it
-        is <strong>self rather than total</strong> share, because total share is dominated by
-        orchestration frames sitting near 100% by construction — grading from those would make every
-        profile CRITICAL. Self share is where time is actually spent, and it is what a code change can
-        move.
-      </p>
-
-      <p>
-        Because the rule is arithmetic over a measurement rather than a judgement, the same recording
-        grades the same way on every run, and the Recommendations and Patches pages can rank profiles against
-        each other.
-      </p>
 
       <h2 id="patches">Patches</h2>
 
@@ -207,7 +205,7 @@ onMounted(() => {
       <p>
         The diff is repaired before it is stored: models reliably miscount hunk headers, so those are
         recomputed, and a payload with no hunk at all is discarded rather than offered behind a button
-        that would hand you a file that cannot apply. A type that produced a report without proposing an
+        that would hand you a file that cannot apply. A type that produced a recommendation without proposing an
         edit is named on the page instead of silently missing from it.
       </p>
 

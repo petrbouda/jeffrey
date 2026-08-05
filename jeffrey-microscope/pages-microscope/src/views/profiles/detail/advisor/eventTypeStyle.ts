@@ -92,22 +92,6 @@ export function eventTypeCaptureFlag(eventTypeCode: string): string {
   return CAPTURE_FLAGS[eventTypeCode] ?? '';
 }
 
-/** How many trailing segments of a frame name a card shows before it stops being readable. */
-const METHOD_SEGMENTS_SHOWN = 2;
-
-/**
- * A frame name shortened to its class and method — `com.acme.pricing.PricingEngine.applyRules` reads as
- * `PricingEngine.applyRules`. Cards have room for the part that identifies the code and none for the
- * package; the full name goes in the element's title.
- */
-export function shortMethodName(method: string): string {
-  const segments = method.split('.');
-  if (segments.length <= METHOD_SEGMENTS_SHOWN) {
-    return method;
-  }
-  return segments.slice(-METHOD_SEGMENTS_SHOWN).join('.');
-}
-
 export function eventTypeStyle(eventTypeCode: string): EventTypeStyle {
   return BY_CODE[eventTypeCode] ?? DEFAULT_STYLE;
 }

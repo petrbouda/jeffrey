@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.profile.advisor.run;
 
+import cafe.jeffrey.profile.advisor.source.SourceTree;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRequest;
@@ -104,9 +105,21 @@ public final class AdvisorRunner {
      * Starts a batch that analyzes every {@code target} for {@code profile}, unless a batch is already in
      * flight for the same profile. Each type is scheduled on its own slot, so they drain a few at a time.
      *
+     * <p>The source folder is resolved <em>once</em>, here, before anything is scheduled. It belongs to
+     * the profile rather than to an event type, so validating it per type would re-read the same folder
+     * and re-parse the same {@code .git} for every type in the fan-out. Resolving it up front also makes
+     * an unusable folder refuse the launch with the reason, at the request the user just made, instead
+     * of starting a batch that fails every type identically.</p>
+     *
      * @return true when a batch was started, false when one was already running
+     * @throws cafe.jeffrey.shared.common.exception.JeffreyClientException when the source folder is
+     *         unusable — nothing is scheduled and no batch is remembered
      */
     public boolean startBatch(ProfileInfo profile, List<AdvisorTarget> targets) {
+        // Resolved before the batch is claimed below, so a bad folder leaves no batch behind to be
+        // reported as failed or to block the next attempt.
+        SourceTree sourceTree = advisorServiceFactory.apply(profile).resolveSource();
+
         // The candidate is built up front so the outcome can be decided by identity: if compute() gave
         // back anything else, an in-flight batch kept its place and this call started nothing.
         BatchAdvisorRun candidate = new BatchAdvisorRun(profile.id(), targets);
@@ -121,7 +134,7 @@ public final class AdvisorRunner {
         LOG.info("Queued advisor batch: profile_id={} event_types={}", profile.id(), targets.size());
 
         for (AdvisorTarget target : targets) {
-            startType(profile, candidate, target);
+            startType(profile, candidate, target, sourceTree);
         }
         return true;
     }
@@ -173,7 +186,9 @@ public final class AdvisorRunner {
      * synchronously, so it is attached before this returns and a poll sees the type as queued at worst,
      * never as missing.
      */
-    private void startType(ProfileInfo profile, BatchAdvisorRun batch, AdvisorTarget target) {
+    private void startType(
+            ProfileInfo profile, BatchAdvisorRun batch, AdvisorTarget target, SourceTree sourceTree) {
+
         AdvisorRunKey key = AdvisorRunKey.of(target);
 
         boolean started = registry.start(new PipelineRunRequest<>(
@@ -181,7 +196,7 @@ public final class AdvisorRunner {
                 target.eventType(),
                 run -> {
                     AdvisorRun advisorRun = new AdvisorRun(target, run);
-                    advisorServiceFactory.apply(profile).generate(target, advisorRun);
+                    advisorServiceFactory.apply(profile).generate(target, advisorRun, sourceTree);
                     advisorRun.finish();
                 },
                 result -> {

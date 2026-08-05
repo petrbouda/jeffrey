@@ -16,23 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.provider.profile.api;
-
-import java.time.Instant;
+package cafe.jeffrey.microscope.core.manager.advisor;
 
 /**
- * A stored advisor result for one sample event type: what the model wrote, and the patch it proposed.
- *
- * @param eventType        the sample event type analyzed
- * @param recommendation   the recommendations markdown the model wrote
- * @param patch            the proposed unified diff, or null when the model proposed no code edit
- * @param sourceRef        the commit the source tree was on, or null when it was not a git checkout
- * @param generatedAt      when the run completed
+ * Answers whether a stored path still points at a readable folder on this machine. Kept behind an
+ * interface so the folder list can be exercised without touching a real filesystem.
  */
-public record AdvisorRecommendationRow(
-        String eventType,
-        String recommendation,
-        String patch,
-        String sourceRef,
-        Instant generatedAt) {
+public interface FolderProbe {
+
+    boolean isDirectory(String path);
 }

@@ -25,18 +25,22 @@ import { eventTypeDescription } from '@/views/profiles/detail/advisor/eventTypeS
 
 /**
  * Maps the Advisor's per-type run data onto the generic ProcessingTimeline shape: each event type is a
- * phase, its four pipeline stages are the steps. Steps are keyed `<eventType>::<stage>` so live progress
- * and the persisted result render through the same shared component.
+ * phase, its three pipeline stages are the steps. Steps are keyed `<eventType>::<stage>` so live
+ * progress and the persisted result render through the same shared component.
  */
 
 const STEP_ORDER = [
   'PREPARING_PROMPT',
-  'RESOLVING_SOURCE',
-  'REVIEWING',
+  'RECOMMENDING',
   'BUILDING_PATCH'
 ] as const;
 
 /**
+ * One step per artifact the run produces, named after it — the same three names as the Prompts,
+ * Recommendations and Patches pages the artifacts end up on. Resolving the source folder is not a step:
+ * it belongs to the batch rather than to an event type, so it happens once before any run starts and
+ * refuses the launch outright when the folder is unusable.
+ *
  * The label is what fits in a step row; the description is the hover text, because "what does Patch
  * actually do" is a fair question and the row has no room to answer it.
  */
@@ -45,22 +49,19 @@ const STEP_INFO: Record<string, { label: string; description: string }> = {
     label: 'Prompt',
     description: 'Builds the hot call-tree summary for this event type, or loads the cached one.'
   },
-  RESOLVING_SOURCE: {
-    label: 'Source',
-    description: 'Validates the configured source folder and reads the commit it sits on.'
-  },
-  REVIEWING: {
-    label: 'Review',
+  RECOMMENDING: {
+    label: 'Recommendation',
     description:
-      'The model reads your source through read-only tools and writes the recommendations, which '
-      + 'are then split from its answer. This is the only step that calls the AI, so it dominates '
-      + 'the run time.'
+      'The model reads your source through read-only tools and writes both the recommendations and '
+      + 'the proposed diff, which are then split from its answer. This is the only step that calls '
+      + 'the AI, so it dominates the run time.'
   },
   BUILDING_PATCH: {
     label: 'Patch',
     description:
-      'Repairs the proposed diff so it applies cleanly and checks the files it touches against the '
-      + 'checkout. Nothing is built for a type where the model proposed no code change.'
+      'Repairs the diff the previous step produced so it applies cleanly, and checks the files it '
+      + 'touches against the checkout. Nothing is built for a type where the model proposed no code '
+      + 'change.'
   }
 };
 

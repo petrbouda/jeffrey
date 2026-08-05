@@ -19,6 +19,22 @@
             <small>Dashboards, insights &amp; profile info</small>
           </div>
         </div>
+        <!-- Advisor mode (hidden for heap-dump-only profiles; it analyzes sampled call trees) -->
+        <div
+          v-if="!isHeapDumpOnlyProfile"
+          class="nav-pill"
+          :class="{ active: selectedMode === 'Advisor' }"
+          title="AI recommendations from this profile and your source"
+          @click="selectMode('Advisor')"
+        >
+          <div class="pill-content">
+            <div class="title-row">
+              <i class="bi bi-lightbulb"></i>
+              <span>Advisor</span>
+            </div>
+            <small>AI from your source</small>
+          </div>
+        </div>
         <!-- JVM Internals mode (hidden for heap-dump-only, pprof and OTLP profiles) -->
         <div
           v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile && !isOtlpOnlyProfile"
@@ -51,22 +67,6 @@
             <small>Threads, behavior and I/O</small>
           </div>
         </div>
-        <!-- Technologies mode (hidden for heap-dump-only, pprof and OTLP profiles) -->
-        <div
-          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile && !isOtlpOnlyProfile"
-          class="nav-pill"
-          :class="{ active: selectedMode === 'Technologies' }"
-          title="Technology-specific analysis"
-          @click="selectMode('Technologies')"
-        >
-          <div class="pill-content">
-            <div class="title-row">
-              <i class="bi bi-layers"></i>
-              <span>Technologies</span>
-            </div>
-            <small>Technology-specific analysis</small>
-          </div>
-        </div>
         <!-- Visualization mode (hidden for heap-dump-only profiles) -->
         <div
           v-if="!isHeapDumpOnlyProfile"
@@ -83,6 +83,22 @@
             <small>Profiling graphs and visualizations</small>
           </div>
         </div>
+        <!-- Technologies mode (hidden for heap-dump-only, pprof and OTLP profiles) -->
+        <div
+          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile && !isOtlpOnlyProfile"
+          class="nav-pill"
+          :class="{ active: selectedMode === 'Technologies' }"
+          title="Technology-specific analysis"
+          @click="selectMode('Technologies')"
+        >
+          <div class="pill-content">
+            <div class="title-row">
+              <i class="bi bi-layers"></i>
+              <span>Technologies</span>
+            </div>
+            <small>Technology-specific analysis</small>
+          </div>
+        </div>
         <!-- Tools mode (hidden for heap-dump-only and pprof profiles; kept for OTLP, which can export) -->
         <div
           v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile"
@@ -97,22 +113,6 @@
               <span>Tools</span>
             </div>
             <small>Profile data transformations</small>
-          </div>
-        </div>
-        <!-- Advisor mode (hidden for heap-dump-only profiles; it analyzes sampled call trees) -->
-        <div
-          v-if="!isHeapDumpOnlyProfile"
-          class="nav-pill"
-          :class="{ active: selectedMode === 'Advisor' }"
-          title="AI recommendations from this profile and your source"
-          @click="selectMode('Advisor')"
-        >
-          <div class="pill-content">
-            <div class="title-row">
-              <i class="bi bi-lightbulb"></i>
-              <span>Advisor</span>
-            </div>
-            <small>AI from your source</small>
           </div>
         </div>
         <!-- Heap Dump mode (only when a heap dump is attached; pprof/OTLP profiles have no heap data) -->

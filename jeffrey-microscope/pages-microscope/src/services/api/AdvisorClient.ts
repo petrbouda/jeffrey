@@ -60,7 +60,7 @@ export default class AdvisorClient extends BaseProfileClient {
   }
 
   /**
-   * Throws away every derived artifact — reports, patches, cached prompts and the kept timeline — so
+   * Throws away every derived artifact — recommendations, patches, cached prompts and the kept timeline — so
    * the next run starts from nothing. Refused by the backend while a run is in flight.
    */
   deleteResults(): Promise<void> {

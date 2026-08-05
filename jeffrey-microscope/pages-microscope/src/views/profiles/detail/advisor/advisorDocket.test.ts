@@ -18,13 +18,11 @@
 
 import { describe, expect, it } from 'vitest';
 import {
-  analysisDurationMs,
   docketItems,
   hasPatch,
   patchStats
 } from '@/views/profiles/detail/advisor/advisorDocket';
-import { shortMethodName } from '@/views/profiles/detail/advisor/eventTypeStyle';
-import type { AdvisorEventType, AdvisorRunResult } from '@/services/api/model/Advisor';
+import type { AdvisorEventType } from '@/services/api/model/Advisor';
 
 const CPU = 'jdk.ExecutionSample';
 const WALL = 'profiler.WallClockSample';
@@ -64,13 +62,30 @@ describe('docketItems', () => {
     expect(items[1].available).toBe(false);
   });
 
-  it('grades only the types the recording carries', () => {
+  it('badges only the types the recording carries', () => {
     const items = docketItems(
       [type(CPU, 'CPU', true), type(WALL, 'Wall-Clock', false)],
-      () => ({ value: 'Critical', variant: 'danger' })
+      () => ({ value: 'Patch', variant: 'primary' })
     );
 
-    expect(items[0].badge?.value).toBe('Critical');
+    // A type with no samples was never analysed, so it cannot have produced a patch — badging it
+    // would claim an outcome for work that never ran.
+    expect(items[0].badge?.value).toBe('Patch');
+    expect(items[1].badge).toBeUndefined();
+  });
+
+  it('leaves an analysed type unbadged when the model proposed no patch', () => {
+    const withPatch = '--- a/A.java\n+++ b/A.java\n@@ -1,1 +1,1 @@\n-a\n+b\n';
+    const patches: Record<string, string | null> = { [CPU]: withPatch, [WALL]: null };
+
+    const items = docketItems(
+      [type(CPU, 'CPU', true), type(WALL, 'Wall-Clock', true)],
+      eventType => (hasPatch(patches[eventType]) ? { value: 'Patch', variant: 'primary' } : undefined)
+    );
+
+    // "No patch" is an answer, not a gap: a patch is attempted for every recommendation, so an
+    // unbadged card means the model found nothing worth changing.
+    expect(items[0].badge?.value).toBe('Patch');
     expect(items[1].badge).toBeUndefined();
   });
 });
@@ -106,37 +121,5 @@ describe('patchStats', () => {
   it('does not count a deleted file as a file the patch writes', () => {
     const deletion = '--- a/Gone.java\n+++ /dev/null\n@@ -1,1 +0,0 @@\n-gone\n';
     expect(patchStats(deletion).files).toBe(0);
-  });
-});
-
-describe('shortMethodName', () => {
-  it('keeps the class and method and drops the package', () => {
-    expect(shortMethodName('com.acme.pricing.PricingEngine.applyRules')).toBe(
-      'PricingEngine.applyRules'
-    );
-  });
-
-  it('leaves a name with nothing to drop alone', () => {
-    expect(shortMethodName('socketRead0')).toBe('socketRead0');
-    expect(shortMethodName('Cache.lookup')).toBe('Cache.lookup');
-  });
-});
-
-describe('analysisDurationMs', () => {
-  const runResult: AdvisorRunResult = {
-    totalElapsedMs: 9_000,
-    completedTypes: 1,
-    totalTypes: 2,
-    completedAt: 1_754_000_000_000,
-    types: [{ eventType: CPU, status: 'COMPLETED', totalMs: 4_200, steps: [] }]
-  };
-
-  it('finds what the last run spent on a type', () => {
-    expect(analysisDurationMs(runResult, CPU)).toBe(4_200);
-  });
-
-  it('has nothing to report for a type that run never touched', () => {
-    expect(analysisDurationMs(runResult, WALL)).toBeNull();
-    expect(analysisDurationMs(null, CPU)).toBeNull();
   });
 });
