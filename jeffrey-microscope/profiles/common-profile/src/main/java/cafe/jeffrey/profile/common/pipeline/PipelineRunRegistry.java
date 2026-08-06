@@ -184,8 +184,10 @@ public final class PipelineRunRegistry<K> {
             // Errors are marked too — otherwise an OutOfMemoryError would leave the run RUNNING and
             // its key blocked forever. They still propagate after the finally block runs.
             run.fail(errorCodeOf(e), e.getMessage());
+            // With the exception attached, not just its message: the message alone is often a wrapper
+            // ("Failed to obtain JDBC Connection") whose actual cause is only in the cause chain.
             LOG.warn("Pipeline run failed: pipeline_id={} key={} error_code={} error={}",
-                    definition.pipelineId(), request.key(), errorCodeOf(e), e.getMessage());
+                    definition.pipelineId(), request.key(), errorCodeOf(e), e.getMessage(), e);
             if (e instanceof Error error) {
                 throw error;
             }

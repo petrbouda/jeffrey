@@ -21,6 +21,7 @@ package cafe.jeffrey.profile.advisor.run;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.microscope.persistence.api.RecordingTagsRepository;
 import cafe.jeffrey.profile.advisor.settings.AdvisorSettings;
+import cafe.jeffrey.shared.persistence.DatabaseLease;
 import cafe.jeffrey.profile.advisor.source.RecordingCommitResolver;
 import cafe.jeffrey.profile.advisor.source.SourceTreeResolver;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -33,6 +34,7 @@ import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -91,12 +93,16 @@ class AdvisorRunnerTest {
      * never reached, which is the point: a batch that cannot resolve its folder schedules nothing.
      */
     private static AdvisorService serviceFor(String sourcePath) {
+        return serviceFor(sourcePath, DatabaseLease.unmanaged(null));
+    }
+
+    private static AdvisorService serviceFor(String sourcePath, DatabaseLease lease) {
         SourceTreeResolver resolver =
                 new SourceTreeResolver(new RecordingCommitResolver(new StubTagsRepository()));
 
         return new AdvisorService(
                 null, new AdvisorSettings(sourcePath, AdvisorSettings.DEFAULT_PRUNE_THRESHOLD_PCT),
-                resolver, null, null, null, null, RECORDING_ID, CLOCK);
+                resolver, null, null, null, null, lease, RECORDING_ID, CLOCK);
     }
 
     @Test
@@ -114,5 +120,28 @@ class AdvisorRunnerTest {
         // A batch left behind here would report as failed for a run that never started, and would block
         // the retry the user is about to make.
         assertNull(runner.batchProgress(PROFILE_ID).status(), "no batch may survive a refused launch");
+    }
+
+    /**
+     * The service pins the profile's connection pool for the duration of a run, so that a model call
+     * lasting minutes cannot have the pool idle-evicted out from under the store that ends the run. A
+     * pin that outlives the run is the other half of that bargain: it would keep the pool alive for the
+     * life of the process. The refused launch is the sharpest case — the service is built and then
+     * discarded on an exception path.
+     */
+    @Test
+    void releasesTheProfilesDatabasePinEvenWhenTheLaunchIsRefused() {
+        AtomicBoolean released = new AtomicBoolean(false);
+        DatabaseLease lease = new DatabaseLease(null, () -> released.set(true));
+
+        AdvisorRunner runner = new AdvisorRunner(
+                _ -> serviceFor(MISSING_FOLDER, lease),
+                (_, _) -> {
+                },
+                2, CLOCK);
+
+        assertThrows(RuntimeException.class, () -> runner.startBatch(PROFILE, FOUR));
+
+        assertTrue(released.get(), "a refused launch must not leave the profile's pool pinned");
     }
 }

@@ -21,6 +21,7 @@ package cafe.jeffrey.provider.profile.jdbc;
 import cafe.jeffrey.provider.profile.api.*;
 
 import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.shared.persistence.DatabaseLease;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
 
 import javax.sql.DataSource;
@@ -40,5 +41,10 @@ public class DatabaseManagerResolverImpl implements DatabaseManagerResolver {
     @Override
     public DataSource open(ProfileInfo profileInfo) {
         return databaseManager.open(profileInfo.id());
+    }
+
+    @Override
+    public DatabaseLease acquire(ProfileInfo profileInfo) {
+        return databaseManager.acquire(profileInfo.id());
     }
 }

@@ -40,6 +40,7 @@ import cafe.jeffrey.provider.profile.api.PipelineRunRepository;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.shared.common.config.SettingsStore;
+import cafe.jeffrey.shared.persistence.DatabaseLease;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.ProfilingStartEnd;
 
@@ -104,7 +105,9 @@ public class AdvisorConfiguration {
 
         return profile -> {
             AdvisorSettings settings = settingsResolver.resolve(profile);
-            DataSource profileDb = databaseManagerResolver.open(profile);
+            // A lease, not a bare open: the service outlives several minutes of model call with no
+            // database activity, and an unpinned pool is idle-evicted out from under it.
+            DatabaseLease databaseLease = databaseManagerResolver.acquire(profile);
 
             return new AdvisorService(
                     newPromptManager(profile, clock),
@@ -113,7 +116,8 @@ public class AdvisorConfiguration {
                     aiChatBackend,
                     sourceToolsRegistry,
                     mcpToolsetFactory,
-                    profileRepositories.newAdvisorRepository(profileDb),
+                    profileRepositories.newAdvisorRepository(databaseLease.dataSource()),
+                    databaseLease,
                     profile.recordingId(),
                     clock);
         };

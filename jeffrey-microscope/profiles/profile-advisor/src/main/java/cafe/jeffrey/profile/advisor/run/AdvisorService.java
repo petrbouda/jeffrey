@@ -37,6 +37,7 @@ import cafe.jeffrey.profile.ai.chat.ToolExchange;
 import cafe.jeffrey.provider.profile.api.AdvisorRecommendationRow;
 import cafe.jeffrey.provider.profile.api.ProfileAdvisorRepository;
 import cafe.jeffrey.shared.common.IDGenerator;
+import cafe.jeffrey.shared.persistence.DatabaseLease;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.time.Clock;
@@ -52,7 +53,7 @@ import java.util.concurrent.CancellationException;
  * artifact produced: prompt, recommendation, patch.</p>
  *
  */
-public final class AdvisorService {
+public final class AdvisorService implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(AdvisorService.class);
 
@@ -67,6 +68,12 @@ public final class AdvisorService {
     private final SourceToolsRegistry sourceToolsRegistry;
     private final McpToolsetFactory mcpToolsetFactory;
     private final ProfileAdvisorRepository advisorRepository;
+    /**
+     * Pins the profile's connection pool for as long as this service lives. A run spends minutes inside
+     * one model call without touching the database, which is long enough for an unpinned pool to be
+     * idle-evicted — and the store that ends the run would then fail on a closed pool.
+     */
+    private final DatabaseLease databaseLease;
     private final String recordingId;
     private final Clock clock;
 
@@ -78,6 +85,7 @@ public final class AdvisorService {
             SourceToolsRegistry sourceToolsRegistry,
             McpToolsetFactory mcpToolsetFactory,
             ProfileAdvisorRepository advisorRepository,
+            DatabaseLease databaseLease,
             String recordingId,
             Clock clock) {
 
@@ -88,6 +96,7 @@ public final class AdvisorService {
         this.sourceToolsRegistry = sourceToolsRegistry;
         this.mcpToolsetFactory = mcpToolsetFactory;
         this.advisorRepository = advisorRepository;
+        this.databaseLease = databaseLease;
         this.recordingId = recordingId;
         this.clock = clock;
     }
@@ -181,5 +190,11 @@ public final class AdvisorService {
                 result.patch(),
                 sourceTree.resolvedRef(),
                 clock.instant()));
+    }
+
+    /** Releases the profile's pool back to normal idle eviction. Never closes the pool itself. */
+    @Override
+    public void close() {
+        databaseLease.close();
     }
 }

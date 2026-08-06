@@ -118,7 +118,10 @@ public final class AdvisorRunner {
     public boolean startBatch(ProfileInfo profile, List<AdvisorTarget> targets) {
         // Resolved before the batch is claimed below, so a bad folder leaves no batch behind to be
         // reported as failed or to block the next attempt.
-        SourceTree sourceTree = advisorServiceFactory.apply(profile).resolveSource();
+        SourceTree sourceTree;
+        try (AdvisorService service = advisorServiceFactory.apply(profile)) {
+            sourceTree = service.resolveSource();
+        }
 
         // The candidate is built up front so the outcome can be decided by identity: if compute() gave
         // back anything else, an in-flight batch kept its place and this call started nothing.
@@ -196,7 +199,11 @@ public final class AdvisorRunner {
                 target.eventType(),
                 run -> {
                     AdvisorRun advisorRun = new AdvisorRun(target, run);
-                    advisorServiceFactory.apply(profile).generate(target, advisorRun, sourceTree);
+                    // Closed when the type finishes, releasing the pool this run pinned for its
+                    // duration — see AdvisorService#close.
+                    try (AdvisorService service = advisorServiceFactory.apply(profile)) {
+                        service.generate(target, advisorRun, sourceTree);
+                    }
                     advisorRun.finish();
                 },
                 result -> {
