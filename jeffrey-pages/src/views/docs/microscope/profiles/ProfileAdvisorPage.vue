@@ -29,6 +29,7 @@ const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'docket', text: 'The Docket', level: 2 },
   { id: 'setup', text: 'Setup', level: 2 },
+  { id: 'project-folders', text: 'Project Folders', level: 3 },
   { id: 'how-a-run-works', text: 'How a Run Works', level: 2 },
   { id: 'patches', text: 'Patches', level: 2 },
   { id: 'privacy', text: 'What Leaves Your Machine', level: 2 }
@@ -140,7 +141,9 @@ onMounted(() => {
         filter, shows each folder by name with its path underneath, and marks a folder whose path no
         longer resolves as <em>Not found</em> — those cannot be picked, since a run against them
         could only fail. <strong>Custom path…</strong> at the bottom returns the plain field for a
-        one-off path, which is also what the control offers while no folder is saved yet.
+        one-off path, which is also what the control offers while no folder is saved yet. A
+        <strong>Manage folders</strong> link beside the field opens Settings → Advisor, so the list
+        can be edited without losing your place.
       </p>
 
       <h2 id="how-a-run-works">How a Run Works</h2>

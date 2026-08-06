@@ -172,7 +172,7 @@ onMounted(() => {
           </tr>
           <tr>
             <td><code>jeffrey.microscope.ai.model</code></td>
-            <td><code>claude-opus-4-8</code></td>
+            <td><code>claude-opus-5</code></td>
             <td>Model identifier matching the chosen provider.</td>
           </tr>
           <tr>

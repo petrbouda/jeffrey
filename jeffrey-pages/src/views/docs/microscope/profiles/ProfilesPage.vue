@@ -202,8 +202,8 @@ const folderStructure = `$JEFFREY_HOME/
         />
         <DocsFeatureCard
           icon="bi bi-pause-circle"
-          title="Stop-The-World"
-          description="Every JVM pause on one timeline — GC pauses, safepoint operations, time-to-safepoint, and per-thread stalls — with the app-stop budget, MMU curve, and click-to-explain drill-down."
+          title="VM Operations &amp; Safepoints"
+          description="The stop-the-world work that is not garbage collection — which VM operations ran, how long each paused the application, and the safepoints they stopped at (including time-to-safepoint)."
         />
         <DocsFeatureCard
           icon="bi bi-ethernet"

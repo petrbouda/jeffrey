@@ -41,7 +41,7 @@ onMounted(() => {
     <DocsPageHeader title="String & Symbol Tables" icon="bi bi-fonts" />
 
     <div class="docs-content">
-      <p>This page tracks the two global JVM intern tables over time, under the Garbage Collection section. The <strong>String table</strong> holds interned <code>String</code> instances (string constants and <code>String.intern()</code> results); the <strong>Symbol table</strong> holds UTF-8 symbols for class, method, and field names. Both live in native memory outside the Java heap, so their growth never shows on the heap chart. Data comes from the periodic <code>jdk.StringTableStatistics</code> and <code>jdk.SymbolTableStatistics</code> events; the page shows an empty state when they are absent.</p>
+      <p>This page tracks the two global JVM intern tables over time, under JVM Internals &rarr; Memory, alongside Garbage Collection. The <strong>String table</strong> holds interned <code>String</code> instances (string constants and <code>String.intern()</code> results); the <strong>Symbol table</strong> holds UTF-8 symbols for class, method, and field names. Both live in native memory outside the Java heap, so their growth never shows on the heap chart. Data comes from the periodic <code>jdk.StringTableStatistics</code> and <code>jdk.SymbolTableStatistics</code> events; the page shows an empty state when they are absent.</p>
 
       <h2 id="overview">Overview</h2>
       <p>A header strip shows the peak entry count and peak footprint for each table.</p>

@@ -82,6 +82,7 @@ onMounted(() => {
       <p>For the G1 collector: the adaptive IHOP threshold vs. current old-generation occupancy over time (<code>jdk.G1AdaptiveIHOP</code>) — when the occupancy line crosses the threshold, a concurrent marking cycle starts — plus per-collection CPU cost (user/system/real) from <code>jdk.GCCPUTime</code> and pause-target adherence (MMU) from <code>jdk.G1MMU</code>, which flags collections whose GC time exceeded the configured pause target. This tab explains <em>why</em> concurrent cycles begin when they do and whether G1 is hitting its pause goal.</p>
 
       <h2 id="reference-processing">Reference Processing</h2>
+      <p>No longer a Garbage Collection tab: this view lives under <strong>Application &rarr; Memory Issues &rarr; Reference Processing</strong>. The old <code>garbage-collection/reference-processing</code> address still redirects there.</p>
       <p>From <code>jdk.GCReferenceStatistics</code> — the count of Soft, Weak, Final and Phantom references each collection processes. On JDK 26 the event carries only the processed count per type and the GC id (no per-phase time), so the views are count-based: a stacked-by-type <strong>timeline</strong> (Soft-reference bursts track heap-pressure episodes; rising Final/Phantom volume points at finalizer/cleaner load), a <strong>by-type</strong> totals/averages table, and a <strong>per-GC</strong> breakdown ranking the collections that processed the most references.</p>
 
       <h2 id="sub-phases">Sub-Phases</h2>

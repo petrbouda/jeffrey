@@ -89,7 +89,7 @@ onMounted(() => {
           <tr>
             <td><strong>Model</strong></td>
             <td>Model name to use</td>
-            <td>claude-opus-4-8</td>
+            <td>claude-opus-5</td>
           </tr>
           <tr>
             <td><strong>API Key</strong></td>
@@ -109,7 +109,7 @@ onMounted(() => {
           <tr>
             <td><strong>Timeout (seconds)</strong></td>
             <td>Maximum time to wait for a Claude Code response (Claude Code only)</td>
-            <td>120</td>
+            <td>600</td>
           </tr>
           <tr>
             <td><strong>Max Tokens</strong></td>
@@ -126,7 +126,7 @@ onMounted(() => {
       <h2 id="supported-providers">Supported Providers</h2>
 
       <h3>Claude (Anthropic)</h3>
-      <p>Recommended provider. Available models include <code>claude-opus-4-8</code>, <code>claude-sonnet-4-6</code>, and <code>claude-haiku-4-5</code>. Authenticates with an Anthropic API key and is billed per token.</p>
+      <p>Recommended provider. The suggested models are <code>claude-fable-5</code>, <code>claude-opus-5</code>, <code>claude-sonnet-5</code>, and <code>claude-haiku-4-5</code> &mdash; one per model line, always its latest release. Any other model identifier can be typed in directly. Authenticates with an Anthropic API key and is billed per token.</p>
 
       <h3>Claude Code (subscription)</h3>
       <p>Drives the <a href="https://code.claude.com/docs" target="_blank" rel="noopener">Claude Code CLI</a> in headless mode, authenticating with your existing <strong>Claude Pro/Max subscription</strong> instead of an API key &mdash; so AI analysis incurs no per-token API charges. The <code>claude</code> CLI must be installed and logged in on the host running Jeffrey. Tool-driven analysis is served through an in-process MCP server that the CLI connects to over localhost, restricted to Jeffrey's read-only analysis tools (no shell or filesystem access). Available in both the <strong>Microscope</strong> (JFR and heap dump analysis) and <strong>Performance Analyst</strong> (repository-aware recommendations) deployments.</p>
