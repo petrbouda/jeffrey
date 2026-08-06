@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.profile.advisor.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
@@ -30,6 +29,7 @@ import cafe.jeffrey.profile.advisor.run.AdvisorRunner;
 import cafe.jeffrey.profile.advisor.run.AdvisorService;
 import cafe.jeffrey.profile.advisor.run.AdvisorServiceFactory;
 import cafe.jeffrey.profile.advisor.settings.AdvisorSettings;
+import cafe.jeffrey.profile.advisor.settings.AdvisorParallelism;
 import cafe.jeffrey.profile.advisor.settings.AdvisorSettingsResolver;
 import cafe.jeffrey.profile.advisor.source.RecordingCommitResolver;
 import cafe.jeffrey.profile.advisor.source.SourceTreeResolver;
@@ -56,8 +56,6 @@ import java.time.Clock;
  * the source folder is the setting without which the feature does nothing at all.</p>
  */
 public class AdvisorConfiguration {
-
-    private static final int DEFAULT_MAX_CONCURRENT_RUNS = 2;
 
     private final ProfileRepositories profileRepositories;
     private final DatabaseManagerResolver databaseManagerResolver;
@@ -126,11 +124,19 @@ public class AdvisorConfiguration {
     @Bean
     public AdvisorRunner advisorRunner(
             AdvisorServiceFactory advisorServiceFactory,
-            Clock clock,
-            @Value("${jeffrey.microscope.advisor.max-concurrent-runs:" + DEFAULT_MAX_CONCURRENT_RUNS + "}")
-            int maxConcurrentRuns) {
+            AdvisorParallelism advisorParallelism,
+            Clock clock) {
 
-        return new AdvisorRunner(advisorServiceFactory, runResultWriter(), maxConcurrentRuns, clock);
+        return new AdvisorRunner(advisorServiceFactory, runResultWriter(), advisorParallelism, clock);
+    }
+
+    /**
+     * The concurrency ceiling as a live read of the global settings rather than a captured number, so
+     * the settings page can change it without a restart.
+     */
+    @Bean
+    public AdvisorParallelism advisorParallelism(SettingsStore settingsStore) {
+        return new AdvisorParallelism(settingsStore);
     }
 
     /**

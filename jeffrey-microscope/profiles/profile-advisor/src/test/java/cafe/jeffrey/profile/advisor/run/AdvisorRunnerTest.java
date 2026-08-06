@@ -111,7 +111,7 @@ class AdvisorRunnerTest {
                 _ -> serviceFor(MISSING_FOLDER),
                 (_, _) -> {
                 },
-                2, CLOCK);
+                () -> 2, CLOCK);
 
         Exception e = assertThrows(RuntimeException.class, () -> runner.startBatch(PROFILE, FOUR));
         assertTrue(e.getMessage().contains(MISSING_FOLDER),
@@ -138,7 +138,7 @@ class AdvisorRunnerTest {
                 _ -> serviceFor(MISSING_FOLDER, lease),
                 (_, _) -> {
                 },
-                2, CLOCK);
+                () -> 2, CLOCK);
 
         assertThrows(RuntimeException.class, () -> runner.startBatch(PROFILE, FOUR));
 

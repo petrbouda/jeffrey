@@ -506,6 +506,85 @@
           </template>
         </div>
 
+        <!-- Parallel analyses: the concurrency ceiling the Advisor's run registry applies. -->
+        <div class="advisor-section">
+          <div class="advisor-section-head">
+            <h4 class="advisor-section-title">
+              <i class="bi bi-diagram-3"></i>
+              Parallel analyses
+              <span class="advisor-scope-chip">
+                <i class="bi bi-globe2"></i>
+                Installation-wide
+              </span>
+            </h4>
+            <p class="advisor-section-sub">
+              How many event types the Advisor analyzes at the same time. Each one holds a model
+              call open for minutes, so this is really a throttle on your provider: raise it to
+              finish sooner, lower it if you are hitting rate limits. The ceiling is
+              installation-wide — two profiles analyzed at once share it.
+            </p>
+          </div>
+
+          <div class="parallel-grid">
+            <button
+              v-for="choice in PARALLELISM_CHOICES"
+              :key="choice.key"
+              type="button"
+              class="parallel-card"
+              :class="{ selected: selectedParallelism === choice.key }"
+              @click="selectParallelism(choice)"
+            >
+              <span class="parallel-top">
+                <span class="parallel-n" :class="{ word: choice.badgeIsWord }">{{
+                  choice.badge
+                }}</span>
+                <span class="parallel-name">{{ choice.name }}</span>
+                <i
+                  v-if="selectedParallelism === choice.key"
+                  class="bi bi-check-circle-fill parallel-check"
+                ></i>
+              </span>
+              <span class="parallel-desc">{{ choice.description }}</span>
+              <span class="parallel-est" :class="{ risk: choice.risk }">
+                <i class="bi" :class="choice.estIcon"></i>
+                {{ choice.estimate }}
+              </span>
+            </button>
+          </div>
+
+          <div v-if="selectedParallelism === 'unlimited'" class="parallel-warn">
+            <i class="bi bi-exclamation-triangle"></i>
+            <span>
+              <strong>Unlimited removes the ceiling everywhere, not just for one run.</strong>
+              Two profiles analyzed at the same time will each start every one of their event types,
+              so the calls in flight add up across profiles.
+            </span>
+          </div>
+
+          <div v-if="selectedParallelism === 'custom'" class="parallel-custom">
+            <label class="settings-label" for="advisor-parallel-custom">Parallel analyses</label>
+            <input
+              id="advisor-parallel-custom"
+              type="number"
+              class="form-control"
+              min="1"
+              max="16"
+              step="1"
+              :value="parallelismValue"
+              @input="setParallelism(($event.target as HTMLInputElement).value)"
+            />
+            <span class="parallel-custom-hint">
+              1 or more. A value at or above the number of types a recording carries behaves like
+              Unlimited for that run.
+            </span>
+          </div>
+
+          <p class="parallel-note">
+            <i class="bi bi-info-circle"></i>
+            Applies to the next run. A batch already in flight keeps the ceiling it started with.
+          </p>
+        </div>
+
         <div class="advisor-section">
           <div class="advisor-section-head">
             <h4 class="advisor-section-title">
@@ -642,6 +721,13 @@ import GenericModal from '@shared/components/GenericModal.vue';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import AdvisorProjectFoldersClient from '@/services/api/AdvisorProjectFoldersClient';
 import type AdvisorProjectFolder from '@/services/api/model/AdvisorProjectFolder';
+import {
+  DEFAULT_MAX_CONCURRENT_RUNS,
+  keyForValue,
+  PARALLELISM_CHOICES,
+  type ParallelismChoice,
+  type ParallelismKey
+} from '@/views/global/advisorParallelism';
 
 const route = useRoute();
 const SUPPORTED_TABS: ReadonlySet<string> = new Set([
@@ -724,6 +810,40 @@ function setSetting(name: string, value: string) {
 function selectModel(model: ModelInfo) {
   settings.set('jeffrey.microscope.ai.model', model.id);
   settings.set('jeffrey.microscope.ai.max-tokens', String(model.maxTokens));
+}
+
+// ---------------------------------------------------------------------------
+// Advisor · Parallel analyses
+//
+// One stored number behind four cards. Custom is not a stored state — it is simply "the value is not
+// one of the named ones", so the card selection is derived rather than tracked separately, and a
+// hand-edited 5 reopens as Custom showing 5.
+// ---------------------------------------------------------------------------
+const PARALLELISM_KEY = 'jeffrey.microscope.advisor.max-concurrent-runs';
+
+const parallelismValue = computed(
+  () => settings.get(PARALLELISM_KEY) ?? String(DEFAULT_MAX_CONCURRENT_RUNS)
+);
+
+const selectedParallelism = computed<ParallelismKey>(() => keyForValue(parallelismValue.value));
+
+function setParallelism(value: string): void {
+  setSetting(PARALLELISM_KEY, value);
+}
+
+/**
+ * Custom keeps whatever the field already holds unless the current value is a named one, in which
+ * case it seeds a neighbouring number — otherwise clicking Custom while on Balanced would leave the
+ * selection on Balanced and look like nothing happened.
+ */
+function selectParallelism(choice: ParallelismChoice): void {
+  if (choice.value !== null) {
+    setParallelism(String(choice.value));
+    return;
+  }
+  if (selectedParallelism.value !== 'custom') {
+    setParallelism(String(DEFAULT_MAX_CONCURRENT_RUNS + 1));
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -1109,6 +1229,12 @@ async function saveAdvisorSettings() {
         name: 'jeffrey.microscope.advisor.prune-threshold-pct',
         value: settings.get('jeffrey.microscope.advisor.prune-threshold-pct') || '',
         secret: false
+      },
+      {
+        category: 'advisor',
+        name: PARALLELISM_KEY,
+        value: parallelismValue.value,
+        secret: false
       }
     ],
     () => ToastService.success('Settings', 'Advisor settings applied')
@@ -1253,6 +1379,169 @@ function announceAiChange(message: string) {
   line-height: var(--line-height-base);
   max-width: 62ch;
   margin: 0;
+}
+
+/* Advisor · Parallel analyses */
+.advisor-scope-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-amber-text);
+  background: var(--color-amber-bg);
+  border: 1px solid var(--color-amber-border);
+  border-radius: var(--radius-pill);
+  padding: 2px 9px;
+}
+
+.parallel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  max-width: 900px;
+}
+
+.parallel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  padding: 14px;
+  cursor: pointer;
+  font-family: var(--font-family-base);
+  transition:
+    border-color var(--transition-base),
+    background var(--transition-base);
+}
+
+.parallel-card:hover {
+  border-color: var(--color-primary-border-light);
+  background: var(--color-bg-hover);
+}
+
+.parallel-card.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-lighter);
+  box-shadow: var(--focus-ring);
+}
+
+.parallel-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.parallel-n {
+  font-family: var(--font-family-monospace);
+  font-size: 15px;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  border-radius: var(--radius-base);
+  padding: 1px 9px;
+}
+
+/* "All" is a word, not a figure — the monospace treatment reads as a typo on it. */
+.parallel-n.word {
+  font-family: var(--font-family-base);
+  font-size: 12px;
+}
+
+.parallel-name {
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark);
+}
+
+.parallel-check {
+  margin-left: auto;
+  color: var(--color-primary);
+  font-size: 13px;
+}
+
+.parallel-desc {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  line-height: var(--line-height-base);
+}
+
+.parallel-est {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-border);
+  font-size: 11px;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.parallel-est i {
+  color: var(--color-text-light);
+  font-size: 11px;
+}
+
+.parallel-est.risk,
+.parallel-est.risk i {
+  color: var(--color-amber-text);
+}
+
+.parallel-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 9px 12px;
+  border-radius: var(--radius-base);
+  background: var(--color-amber-bg);
+  border: 1px solid var(--color-amber-border);
+  font-size: 11.5px;
+  line-height: var(--line-height-base);
+  color: var(--color-amber-text);
+  max-width: 900px;
+}
+
+.parallel-warn i {
+  margin-top: 1px;
+}
+
+.parallel-custom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.parallel-custom .settings-label {
+  margin-bottom: 0;
+}
+
+.parallel-custom .form-control {
+  max-width: 110px;
+}
+
+.parallel-custom-hint {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+}
+
+.parallel-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+}
+
+.parallel-note i {
+  font-size: 12px;
+  color: var(--color-text-light);
 }
 
 .folder-name {

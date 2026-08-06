@@ -184,7 +184,9 @@ class SettingsApplicationListenerTest {
                     (SettingsPropertySource) environment.getPropertySources().get(SettingsPropertySource.NAME);
 
             assertTrue(source.containsProperty(MicroscopeSettingKeys.AI_PROVIDER));
-            assertEquals(13, source.getPropertyNames().length);
+            // Moves by one whenever a setting is declared — deliberately, since a key that never
+            // reaches the property source reads to the rest of the app as "not configurable".
+            assertEquals(14, source.getPropertyNames().length);
         }
     }
 

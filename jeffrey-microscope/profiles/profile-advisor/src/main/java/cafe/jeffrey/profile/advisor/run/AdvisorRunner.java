@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.IntSupplier;
 
 /**
  * Starts advisor batch runs — one launch processes every requested event type for a profile — and
@@ -64,20 +65,23 @@ public final class AdvisorRunner {
     private final PipelineRunRegistry<AdvisorRunKey> registry;
     private final AdvisorServiceFactory advisorServiceFactory;
     private final AdvisorRunResultWriter runResultWriter;
+    /** Read per launch rather than captured, so an edit on the settings page reaches the next batch. */
+    private final IntSupplier maxConcurrentRuns;
     private final Clock clock;
 
     public AdvisorRunner(
             AdvisorServiceFactory advisorServiceFactory,
             AdvisorRunResultWriter runResultWriter,
-            int maxConcurrentRuns,
+            IntSupplier maxConcurrentRuns,
             Clock clock) {
 
         this.advisorServiceFactory = advisorServiceFactory;
         this.runResultWriter = runResultWriter;
+        this.maxConcurrentRuns = maxConcurrentRuns;
         this.clock = clock;
         this.registry = new PipelineRunRegistry<>(
                 AdvisorStages.DEFINITION,
-                PipelineRunOptions.bounded(maxConcurrentRuns, COMPLETED_RUN_TTL),
+                PipelineRunOptions.bounded(maxConcurrentRuns.getAsInt(), COMPLETED_RUN_TTL),
                 clock);
 
         // The registry evicts its own runs on the same TTL, but the batch map holds strong references
@@ -116,6 +120,11 @@ public final class AdvisorRunner {
      *         unusable — nothing is scheduled and no batch is remembered
      */
     public boolean startBatch(ProfileInfo profile, List<AdvisorTarget> targets) {
+        // The ceiling is applied per launch rather than held from construction, so editing it on the
+        // settings page reaches the next batch instead of the next restart. A batch already in flight
+        // keeps the slots it holds — see PipelineRunRegistry#setMaxConcurrentRuns.
+        registry.setMaxConcurrentRuns(maxConcurrentRuns.getAsInt());
+
         // Resolved before the batch is claimed below, so a bad folder leaves no batch behind to be
         // reported as failed or to block the next attempt.
         SourceTree sourceTree;

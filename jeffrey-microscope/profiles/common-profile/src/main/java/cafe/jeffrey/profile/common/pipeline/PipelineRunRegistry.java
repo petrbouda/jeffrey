@@ -30,7 +30,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -57,7 +56,7 @@ public final class PipelineRunRegistry<K> {
 
     private final PipelineDefinition definition;
     private final PipelineRunOptions options;
-    private final Semaphore slots;
+    private final PipelineSlots slots;
     private final Clock clock;
 
     private final ConcurrentMap<K, TrackedRun> runsByKey = new ConcurrentHashMap<>();
@@ -69,7 +68,7 @@ public final class PipelineRunRegistry<K> {
         this.definition = definition;
         this.options = options;
         this.clock = clock;
-        this.slots = new Semaphore(options.maxConcurrentRuns(), true);
+        this.slots = new PipelineSlots(options.maxConcurrentRuns());
 
         if (options.evictsFinishedRuns()) {
             Schedulers.sharedSingleScheduled().scheduleAtFixedRate(
@@ -82,6 +81,23 @@ public final class PipelineRunRegistry<K> {
 
     public PipelineDefinition definition() {
         return definition;
+    }
+
+    /**
+     * Changes how many runs may execute at once, for runs scheduled from now on. Runs already holding a
+     * slot keep it — a lowered ceiling takes hold as they finish rather than by interrupting them.
+     *
+     * @param maxConcurrentRuns the new ceiling, or {@link PipelineRunOptions#UNBOUNDED} for none
+     */
+    public void setMaxConcurrentRuns(int maxConcurrentRuns) {
+        if (slots.resize(maxConcurrentRuns)) {
+            LOG.info("Pipeline concurrency ceiling changed: pipeline_id={} max_concurrent_runs={}",
+                    definition.pipelineId(), maxConcurrentRuns);
+        }
+    }
+
+    public int maxConcurrentRuns() {
+        return slots.permits();
     }
 
     /**
@@ -162,16 +178,14 @@ public final class PipelineRunRegistry<K> {
         }
         tracked.worker = Thread.currentThread();
 
-        if (options.hasCeiling()) {
-            try {
-                slots.acquire();
-            } catch (InterruptedException e) {
-                tracked.worker = null;
-                Thread.interrupted();
-                run.fail(null, CANCELLED_WHILE_QUEUED_MESSAGE);
-                notifyFinished(request, run);
-                return;
-            }
+        try {
+            slots.acquire();
+        } catch (InterruptedException e) {
+            tracked.worker = null;
+            Thread.interrupted();
+            run.fail(null, CANCELLED_WHILE_QUEUED_MESSAGE);
+            notifyFinished(request, run);
+            return;
         }
 
         try {
@@ -196,9 +210,7 @@ public final class PipelineRunRegistry<K> {
             // Absorb a cancellation interrupt that landed after the work returned, so storing the
             // terminal result below is not sabotaged by a flag meant for the work.
             Thread.interrupted();
-            if (options.hasCeiling()) {
-                slots.release();
-            }
+            slots.release();
             notifyFinished(request, run);
         }
     }

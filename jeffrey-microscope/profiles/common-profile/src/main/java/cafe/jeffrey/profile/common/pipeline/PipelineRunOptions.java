@@ -57,10 +57,6 @@ public record PipelineRunOptions(int maxConcurrentRuns, Duration completedRunTtl
         return new PipelineRunOptions(maxConcurrentRuns, completedRunTtl);
     }
 
-    public boolean hasCeiling() {
-        return maxConcurrentRuns != UNBOUNDED;
-    }
-
     public boolean evictsFinishedRuns() {
         return completedRunTtl != null;
     }
