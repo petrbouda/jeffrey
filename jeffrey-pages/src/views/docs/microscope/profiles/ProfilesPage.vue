@@ -85,6 +85,12 @@ const folderStructure = `$JEFFREY_HOME/
         <li><strong>Top event types</strong> — the largest event types in the recording by samples, linking to flamegraphs and the event-type browser.</li>
       </ul>
 
+      <h2 id="advisor">Advisor</h2>
+      <p>Beside the analysis sections below, a profile also has an <strong>Advisor</strong> mode: point it at a folder of source on the same machine and it turns the profile&rsquo;s own call tree into recommendations and ready-to-apply patches.</p>
+      <p class="docs-read-more">
+        <router-link to="/docs/microscope/profiles/advisor">Read the Advisor reference &rarr;</router-link>
+      </p>
+
       <h2 id="visualization">Visualization</h2>
       <p>Profiling graphs for deep performance analysis — flamegraphs and sub-second analysis tools.</p>
 
@@ -192,8 +198,8 @@ const folderStructure = `$JEFFREY_HOME/
         />
         <DocsFeatureCard
           icon="bi bi-stopwatch"
-          title="VM Operations"
-          description="JVM-internal stop-the-world activity beyond GC — VM operations and safepoints, with a catalog of operation types and time-to-safepoint."
+          title="VM Operations &amp; Safepoints"
+          description="The stop-the-world work that is not garbage collection — which VM operations ran, how long each paused the application, and the safepoints they stopped at (including time-to-safepoint)."
         />
         <DocsFeatureCard
           icon="bi bi-lock"
@@ -201,9 +207,9 @@ const folderStructure = `$JEFFREY_HOME/
           description="Where application threads block — lock contention by monitor class, Object.wait(), thread parks, sleeps, and virtual-thread pinning."
         />
         <DocsFeatureCard
-          icon="bi bi-pause-circle"
-          title="VM Operations &amp; Safepoints"
-          description="The stop-the-world work that is not garbage collection — which VM operations ran, how long each paused the application, and the safepoints they stopped at (including time-to-safepoint)."
+          icon="bi bi-thermometer-half"
+          title="Container CPU Throttling"
+          description="How often the cgroup CPU quota actually stopped your threads, and for how long — read from jdk.ContainerCPUThrottling. The verdict also appears as a chip on the Summary dashboard."
         />
         <DocsFeatureCard
           icon="bi bi-ethernet"
@@ -241,6 +247,26 @@ const folderStructure = `$JEFFREY_HOME/
         <router-link to="/docs/microscope/profiles/virtual-threads">Read the Virtual Threads reference &rarr;</router-link>
         &nbsp;·&nbsp;
         <router-link to="/docs/microscope/profiles/security">Read the Security &amp; TLS reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/thread-dumps">Read the Thread Dumps reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/allocations">Read the Allocations reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/leak-candidates">Read the Leak Candidates reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/native-memory">Read the Native Memory reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/nmt">Read the Native Memory Tracking (NMT) reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/vm-operations">Read the VM Operations &amp; Safepoints reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/blocking-operations">Read the Blocking Operations reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/socket-io">Read the Socket I/O reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/file-io">Read the File I/O reference &rarr;</router-link>
+        &nbsp;·&nbsp;
+        <router-link to="/docs/microscope/profiles/system">Read the System &amp; Host reference &rarr;</router-link>
       </p>
 
       <h2 id="technologies">Technologies</h2>

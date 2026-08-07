@@ -153,8 +153,7 @@ onMounted(() => {
         launch analyzes <strong>every event type at once</strong> — CPU, Wall-Clock, Allocation, Blocking
         — shown as a processing timeline with a <strong>phase card per type</strong>. Each type moves
         through the same three <strong>timed steps</strong> — one per artifact it produces — and the
-        types drain a few at a time through a shared ceiling so a single run cannot flood the AI
-        provider:
+        types drain through a configurable ceiling so a single run cannot flood the AI provider:
       </p>
 
       <ol>
@@ -162,6 +161,16 @@ onMounted(() => {
         <li><strong>Recommendation</strong> — the model explores your source with four read-only tools: <code>listFiles</code>, <code>glob</code>, <code>readFile</code> and <code>grep</code>, and its answer is split into the recommendations and the diff.</li>
         <li><strong>Patch</strong> — the diff the previous step produced is repaired so it applies cleanly, and the files it touches are checked against the folder. A type where the model proposed no code change finishes this step with nothing to build.</li>
       </ol>
+
+      <p>
+        That ceiling is <strong>Settings → Advisor → Parallel analyses</strong>, and it is
+        <strong>installation-wide</strong> — two profiles analyzed at once share it. Four choices sit
+        over one stored number: <strong>One at a time</strong> (1) for a rate-limited or shared
+        provider, <strong>Balanced</strong> (2, the default), <strong>Unlimited</strong> (0, every
+        type at once), or an explicit count. Each concurrent type holds a model call open for
+        minutes, so this is really a throttle on your provider: raise it to finish sooner, lower it
+        if you are hitting rate limits.
+      </p>
 
       <p>
         The steps are also where the run's time is accounted for: Recommendation is the only one that

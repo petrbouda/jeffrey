@@ -104,6 +104,20 @@ onMounted(() => {
             <code>.otlp</code>
           </p>
         </div>
+
+        <div class="artifact-tile tile-pprof">
+          <div class="artifact-icon"><i class="bi bi-fire"></i></div>
+          <h3>pprof Profiles</h3>
+          <p>Standard pprof profiles — the format used by Go&rsquo;s runtime profiler, Linux <code>perf</code> converters, and anything else that speaks pprof.</p>
+          <ul class="artifact-features">
+            <li><i class="bi bi-fire"></i> Flame graphs &amp; differential views</li>
+            <li><i class="bi bi-diagram-2"></i> Mixed-language (polyglot) stacks</li>
+            <li><i class="bi bi-box-arrow-up"></i> Re-export from any profile via Tools</li>
+          </ul>
+          <p class="artifact-extension">
+            <code>.pprof</code> &nbsp;·&nbsp; <code>.pb.gz</code>
+          </p>
+        </div>
       </section>
 
       <DocsCallout type="tip">
@@ -129,7 +143,7 @@ onMounted(() => {
           <div class="step-number">1a</div>
           <div class="step-content">
             <h4><i class="bi bi-upload"></i> Manual upload</h4>
-            <p>Drop one or more files onto the dashed <strong>Drop Recordings</strong> zone at the top of the page, or click <strong>Browse files…</strong>. Only <code>.jfr</code>, <code>.jfr.lz4</code>, <code>.hprof</code>, <code>.hprof.gz</code>, and <code>.otlp</code> are accepted — anything else is rejected inline with an error message and the valid files keep uploading.</p>
+            <p>Drop one or more files onto the dashed <strong>Drop Recordings</strong> zone at the top of the page, or click <strong>Browse files…</strong>. Only <code>.jfr</code>, <code>.jfr.lz4</code>, <code>.hprof</code>, <code>.hprof.gz</code>, <code>.otlp</code>, <code>.pprof</code>, and <code>.pb.gz</code> are accepted — anything else is rejected inline with an error message and the valid files keep uploading.</p>
             <p>Uploads start <strong>automatically</strong> the moment files are dropped or selected — there is no &ldquo;Upload all&rdquo; button. Each file gets its own progress row inside the same panel; a completed row disappears about 5 seconds after that individual file finishes, so adding new files mid-batch never wipes earlier ones. Failed rows stay visible with a dismiss button. The active <strong>group</strong> chip on the row below the drop zone is the target group for these uploads — switch it before dropping to land in a different group.</p>
           </div>
         </div>
@@ -325,6 +339,9 @@ onMounted(() => {
 
 .tile-otlp .artifact-icon { background: #ffedd5; color: #ea580c; }
 .tile-otlp:hover         { border-color: #fdba74; }
+
+.tile-pprof .artifact-icon { background: #dcfce7; color: #15803d; }
+.tile-pprof:hover         { border-color: #86efac; }
 
 .artifact-features {
   list-style: none;
