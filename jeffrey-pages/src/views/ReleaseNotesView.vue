@@ -19,12 +19,35 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
-const selectedVersion = ref('0.11.0')
+const selectedVersion = ref('0.12.0')
 
 interface GalleryImage {
   src: string
   caption: string
 }
+
+// ───────────────────────── 0.12.0 galleries ─────────────────────────
+
+const v120AdvisorImages: GalleryImage[] = [
+  { src: '/images/release-notes/v0.12.0/advisor/overview.png', caption: 'Advisor Overview — point it at a source folder; CPU, Wall-Clock, Allocation and Blocking are ready to run' },
+  { src: '/images/release-notes/v0.12.0/advisor/run-timeline.png', caption: 'One batch, every event type — Prompt, Recommendation and Patch, each step timed and cancellable' },
+  { src: '/images/release-notes/v0.12.0/advisor/prompts.png', caption: 'Prompts — the exact message sent to the model, stored per event type' },
+  { src: '/images/release-notes/v0.12.0/advisor/prompt-call-tree.png', caption: 'Inside the prompt: the measured call tree, every frame with its total and self samples' },
+  { src: '/images/release-notes/v0.12.0/advisor/recommendations.png', caption: 'Recommendations — findings mapped to real files, with the measured cost that justifies them' },
+  { src: '/images/release-notes/v0.12.0/advisor/patches.png', caption: 'Patches — the proposed change as a unified diff, ready to copy or save as .patch' },
+]
+
+const v120OpenFormatsImages: GalleryImage[] = [
+  { src: '/images/release-notes/v0.12.0/open-formats/recordings.png', caption: 'Recordings takes .pprof, .pb.gz and .otlp alongside JFR — detected and badged on upload' },
+  { src: '/images/release-notes/v0.12.0/open-formats/otlp-panels.png', caption: 'A re-imported .otlp file brings all three exported event types back as their own panels' },
+  { src: '/images/release-notes/v0.12.0/open-formats/otlp-flamegraph.png', caption: 'Java frames green, native frames red — profile.frame.type survives the round trip' },
+  { src: '/images/release-notes/v0.12.0/open-formats/tools-to-otlp.png', caption: 'Tools → Convert to OTLP — several event types into one file, each as count or weight' },
+  { src: '/images/release-notes/v0.12.0/open-formats/tools-to-pprof.png', caption: 'Tools → Convert to pprof — one event type as a standard .pb.gz, or added straight back to Recordings' },
+]
+
+const v120SummaryImages: GalleryImage[] = [
+  { src: '/images/release-notes/v0.12.0/summary/dashboard.png', caption: 'Summary — health verdicts, key metrics and where to look first, in one screen' },
+]
 
 // ───────────────────────── 0.11.0 galleries ─────────────────────────
 
@@ -211,6 +234,10 @@ const profilerSettingsImages: GalleryImage[] = [
 ]
 
 const activeImages = ref<Record<string, number>>({
+  // 0.12.0
+  advisor: 0,
+  openFormats: 0,
+  summary: 0,
   // 0.11.0
   aiBackends: 0,
   spans: 0,
@@ -290,8 +317,37 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 
 <template>
   <div class="release-notes-page">
+    <!-- ─────────────────────── 0.12.0 Hero ─────────────────────── -->
+    <section v-if="selectedVersion === '0.12.0'" class="hero-banner hero-banner-120">
+      <div class="hero-inner">
+        <div class="hero-version-card">
+          <div class="hero-version-badge">v0.12.0</div>
+          <div class="hero-version-meta">
+            <span class="hero-version-dot advisor"></span>
+            Advisor
+          </div>
+          <div class="hero-version-meta">
+            <span class="hero-version-dot openformats"></span>
+            Open Formats
+          </div>
+        </div>
+        <div class="hero-text">
+          <div class="hero-eyebrow">Release Notes</div>
+          <h1 class="hero-title"><span>Advisor</span> Release</h1>
+          <p class="hero-version">Version 0.12.0 &middot; August 2026</p>
+          <p class="hero-summary">The <strong>Performance Analyst</strong>&rsquo;s recommendation engine moves into Microscope as the <strong>Profile Advisor</strong> &mdash; it reads a folder on your own machine, builds its prompt from the profile&rsquo;s own call tree, and hands back recommendations and a ready-to-apply patch. Jeffrey also stops being JFR-only: <strong>pprof</strong> and <strong>OpenTelemetry</strong> profiles are ingested and exported. And opening a profile now lands on a <strong>Summary dashboard</strong> instead of a list of event types.</p>
+          <div class="hero-docs">
+            <span class="hero-docs-label"><i class="bi bi-journal-text"></i> Documentation</span>
+            <router-link to="/docs/microscope" class="hero-docs-btn"><i class="bi bi-search"></i> Microscope</router-link>
+            <router-link to="/docs/hub" class="hero-docs-btn"><i class="bi bi-cloud"></i> Hub</router-link>
+            <router-link to="/docs/microscope/profiles/advisor" class="hero-docs-btn"><i class="bi bi-lightbulb"></i> Advisor</router-link>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ─────────────────────── 0.11.0 Hero ─────────────────────── -->
-    <section v-if="selectedVersion === '0.11.0'" class="hero-banner hero-banner-110">
+    <section v-else-if="selectedVersion === '0.11.0'" class="hero-banner hero-banner-110">
       <div class="hero-inner">
         <div class="hero-version-card">
           <div class="hero-version-badge">v0.11.0</div>
@@ -403,12 +459,39 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
       </div>
     </section>
 
+    <!-- Release stats strip — 0.12.0 -->
+    <div v-if="selectedVersion === '0.12.0'" class="release-stats">
+      <div class="release-stats-inner">
+        <div class="release-stat">
+          <b>3</b>
+          <span>Headline features</span>
+        </div>
+        <div class="release-stat">
+          <b>2</b>
+          <span>New profile formats</span>
+        </div>
+        <div class="release-stat">
+          <b>7</b>
+          <span>New pages</span>
+        </div>
+        <div class="release-stat">
+          <b>8</b>
+          <span>Improvements</span>
+        </div>
+        <div class="release-stat">
+          <b>68</b>
+          <span>Commits since 0.11.0</span>
+        </div>
+      </div>
+    </div>
+
     <!-- Version Switcher -->
     <div class="version-bar">
       <div class="version-bar-inner">
         <div class="version-bar-left">
           <h3>Release Notes</h3>
           <select v-model="selectedVersion" class="version-select">
+            <option value="0.12.0">0.12.0 &mdash; Advisor Release</option>
             <option value="0.11.0">0.11.0 &mdash; Performance Analysis Release</option>
             <option value="0.10.0">0.10.0 &mdash; IDE Release</option>
             <option value="0.9.0">0.9.0 &mdash; Heap Dumps Release</option>
@@ -579,8 +662,198 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
       </div>
     </section>
 
+    <!-- ──────────────────────── 0.12.0 features ──────────────────────── -->
+    <template v-if="selectedVersion === '0.12.0'">
+      <!-- Feature 01: Profile Advisor (highlighted) -->
+      <section class="feature-section">
+        <div class="feature-frame feature-frame-120">
+          <div class="feature-frame-ribbon">New</div>
+          <div class="feature-row">
+            <div class="feature-text">
+              <div class="feature-number">Feature 01</div>
+              <h2>Profile Advisor <span class="feature-tag-ready"><i class="bi bi-check-circle-fill"></i> Ready to use</span></h2>
+              <p>The recommendation engine that shipped as a separate product in 0.11.0 now lives inside Microscope &mdash; and it reads your actual code. Point it at a <strong>folder on the same machine</strong>: no clone, no credentials, no network, and no &ldquo;is this the revision that produced the profile?&rdquo; ambiguity.</p>
+              <p>The prompt is built from the profile&rsquo;s own call tree &mdash; the same collapsed stacks the Flamegraph page hands to <em>Copy for AI</em> &mdash; so nothing re-parses the JFR file. One run covers <strong>CPU, Wall-Clock, Allocation and Blocking</strong> in a single batch, with a persisted, cancellable timeline you can re-open after it finishes.</p>
+              <p>Three artifacts, three pages: the exact <strong>Prompts</strong> that were sent, the <strong>Recommendations</strong> mapped to real files, and the <strong>Patches</strong> as unified diffs you can copy or save as <code>.patch</code>. <code>Settings &rarr; Advisor</code> keeps your source folders as a named list, each checked against the filesystem.</p>
+              <div class="feature-highlights">
+                <span class="feature-highlight"><i class="bi bi-folder2-open"></i> Local source folder</span>
+                <span class="feature-highlight"><i class="bi bi-file-earmark-diff"></i> Ready-to-apply patches</span>
+                <span class="feature-highlight"><i class="bi bi-diagram-3"></i> Configurable parallelism</span>
+              </div>
+            </div>
+            <div class="feature-gallery">
+              <div class="gallery-main" @click="openLightbox(v120AdvisorImages, activeImages.advisor)">
+                <img :src="v120AdvisorImages[activeImages.advisor].src" :alt="v120AdvisorImages[activeImages.advisor].caption">
+                <div class="gallery-caption">{{ v120AdvisorImages[activeImages.advisor].caption }}</div>
+              </div>
+              <div class="gallery-thumbs">
+                <button
+                  v-for="(img, i) in v120AdvisorImages"
+                  :key="i"
+                  class="gallery-thumb"
+                  :class="{ active: activeImages.advisor === i }"
+                  @click="selectImage('advisor', i)"
+                >
+                  <img :src="img.src" :alt="img.caption">
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feature 02: OpenTelemetry & pprof Profiles -->
+      <section class="feature-section">
+        <div class="feature-row reverse">
+          <div class="feature-text">
+            <div class="feature-number">Feature 02</div>
+            <h2>OpenTelemetry &amp; pprof Profiles</h2>
+            <p>Jeffrey is no longer JFR-only. Drop a <code>.pprof</code>, <code>.pb.gz</code> or <code>.otlp</code> file into Recordings and it is parsed into the same per-profile database everything else uses, then rendered as primary and <strong>differential flame graphs</strong>.</p>
+            <p>OTLP carries <code>profile.frame.type</code>, so Java, native and kernel frames colour distinctly instead of collapsing into one anonymous block &mdash; and runtimes Jeffrey does not model stay neutral rather than pretending to be native.</p>
+            <p>It goes the other way too. <strong>Tools &rarr; Convert</strong> exports any JFR profile &mdash; several event types into a single <code>.otlp</code>, or one event type as a standard <code>.pb.gz</code> &mdash; downloaded, or added straight back to Recordings. Each type carries its sample count, or its weight metric on request, and the OTLP export streams one observation per event so per-observation timestamps survive the round trip.</p>
+            <div class="feature-highlights">
+              <span class="feature-highlight"><i class="bi bi-box-arrow-in-down"></i> .pprof &amp; .otlp ingest</span>
+              <span class="feature-highlight"><i class="bi bi-palette"></i> Real frame types</span>
+              <span class="feature-highlight"><i class="bi bi-box-arrow-up-right"></i> Export from Tools</span>
+            </div>
+          </div>
+          <div class="feature-gallery">
+            <div class="gallery-main" @click="openLightbox(v120OpenFormatsImages, activeImages.openFormats)">
+              <img :src="v120OpenFormatsImages[activeImages.openFormats].src" :alt="v120OpenFormatsImages[activeImages.openFormats].caption">
+              <div class="gallery-caption">{{ v120OpenFormatsImages[activeImages.openFormats].caption }}</div>
+            </div>
+            <div class="gallery-thumbs">
+              <button
+                v-for="(img, i) in v120OpenFormatsImages"
+                :key="i"
+                class="gallery-thumb"
+                :class="{ active: activeImages.openFormats === i }"
+                @click="selectImage('openFormats', i)"
+              >
+                <img :src="img.src" :alt="img.caption">
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feature 03: Profile Summary Dashboard -->
+      <div class="feature-section-bg">
+        <section class="feature-section">
+          <div class="feature-row">
+            <div class="feature-text">
+              <div class="feature-number">Feature 03</div>
+              <h2>Profile Summary Dashboard</h2>
+              <p>Opening a profile used to drop you on a list of event types. It now lands on a <strong>Summary dashboard</strong>: CPU load, garbage collection, allocations, threads, exceptions and safepoints, identity chips for the JVM, GC, heap, CPU and container, and recording-timeline <strong>sparklines</strong> for CPU, heap, GC pauses and allocation rate.</p>
+              <p>Verdicts from <strong>Guardian</strong>, <strong>Auto Analysis</strong> and the new <strong>CPU-throttling detector</strong> tell you whether anything needs attention before you have clicked anything.</p>
+              <p>Every tile is a link. Click a metric and you are on its detail page; click a row in <strong>Top Event Types</strong> and the Event Viewer opens preselected on that type.</p>
+              <div class="feature-highlights">
+                <span class="feature-highlight"><i class="bi bi-shield-check"></i> Verdict chips</span>
+                <span class="feature-highlight"><i class="bi bi-graph-up"></i> Sparkline timelines</span>
+                <span class="feature-highlight"><i class="bi bi-cursor"></i> Every tile navigates</span>
+              </div>
+            </div>
+            <div class="feature-gallery">
+              <div class="gallery-main" @click="openLightbox(v120SummaryImages, activeImages.summary)">
+                <img :src="v120SummaryImages[activeImages.summary].src" :alt="v120SummaryImages[activeImages.summary].caption">
+                <div class="gallery-caption">{{ v120SummaryImages[activeImages.summary].caption }}</div>
+              </div>
+              <div v-if="v120SummaryImages.length > 1" class="gallery-thumbs">
+                <button
+                  v-for="(img, i) in v120SummaryImages"
+                  :key="i"
+                  class="gallery-thumb"
+                  :class="{ active: activeImages.summary === i }"
+                  @click="selectImage('summary', i)"
+                >
+                  <img :src="img.src" :alt="img.caption">
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- 0.12.0 Improvements — grouped by product -->
+      <div class="improvements-section">
+        <div class="improvements-inner">
+          <div class="improvements-header">
+            <div class="improvements-header-line"></div>
+            <h2><i class="bi bi-wrench"></i> Improvements</h2>
+            <div class="improvements-header-line"></div>
+          </div>
+
+          <div class="improvement-group">
+            <div class="improvement-group-label microscope"><i class="bi bi-search"></i> Microscope</div>
+            <div class="improvements-grid">
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Heap Dump Diff</h3>
+                  <p>Pick a <strong>baseline profile</strong> in Heap Dump mode and compare two dumps directly &mdash; what grew, which consumers own it, where duplicate data hides. New <strong>Biggest Objects</strong>, <strong>Consumers</strong> and <strong>Duplicate Data</strong> pages, plus <code>.hprof.gz</code> support and a faster, honestly-staged initialization.</p>
+                </div>
+              </div>
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Container CPU Throttling</h3>
+                  <p>A new <strong>JVM Internals &rarr; Containers</strong> page reading <code>jdk.ContainerCPUThrottling</code>: how often the cgroup quota actually stopped your threads, and for how long. The verdict also surfaces as a chip on the Summary dashboard.</p>
+                </div>
+              </div>
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Threads Timeline, rebuilt</h3>
+                  <p>The <strong>busiest threads load first</strong>, threads sharing a name collapse into one lane instead of a thousand near-empty rows, and a per-event-type breakdown panel shows what each lane is actually made of.</p>
+                </div>
+              </div>
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Socket &amp; File I/O</h3>
+                  <p>A <strong>Peer Timeline</strong> tab with one sparkline per peer, plus an <strong>operation-count</strong> metric alongside bytes and duration &mdash; so a chatty connection is visible even when it moves almost no data.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="improvement-group">
+            <div class="improvement-group-label hub"><i class="bi bi-cloud"></i> Hub</div>
+            <div class="improvements-grid">
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Retention &amp; Session Pinning</h3>
+                  <p>Age-based retention cannot bound a disk. The hub now enforces a <strong>per-project storage quota</strong>, reclaims orphaned session directories, and lets you <strong>pin</strong> a session so retention skips it &mdash; automatically when an <code>hs_err</code> crash log is found.</p>
+                </div>
+              </div>
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Live Workspace Events</h3>
+                  <p>Recording and artifact files are announced as they complete, instance lifecycle transitions are emitted from one place, and the Microscope event log tails over <strong>SSE</strong> with resume-by-offset. Projects get their own <strong>Activity</strong> tab.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="improvement-group">
+            <div class="improvement-group-label platform"><i class="bi bi-boxes"></i> Platform</div>
+            <div class="improvements-grid">
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Zero-Config Onboarding</h3>
+                  <p>The provisioner configures itself from <strong>environment variables</strong>, the entrypoint <strong>fails open</strong> rather than blocking your app from starting, and <code>jeffrey-jib</code> images identify themselves &mdash; so an application appears in the hub with nothing to fill in.</p>
+                </div>
+              </div>
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Global Settings without a Restart</h3>
+                  <p>Every category in <strong>Global Settings</strong> is hot-reloaded &mdash; change a value and it takes effect <strong>immediately</strong>. That covers the AI provider and model, the Claude Code timeout (default raised from 120s to <strong>600s</strong>), the Advisor&rsquo;s prompt-detail threshold and the rest. The suggested Claude models are current too: Fable 5, Opus 5, Sonnet 5, Haiku 4.5.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
     <!-- ──────────────────────── 0.11.0 features ──────────────────────── -->
-    <template v-if="selectedVersion === '0.11.0'">
+    <template v-else-if="selectedVersion === '0.11.0'">
       <!-- Feature 01: Jeffrey Performance Analyst (highlighted) -->
       <section class="feature-section">
         <div class="feature-frame">
@@ -1617,6 +1890,40 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
     radial-gradient(circle at 75% 40%, rgba(168, 85, 247, 0.14) 0%, transparent 55%);
 }
 
+.hero-banner-120 {
+  background: linear-gradient(135deg, #1b1030 0%, #2a1547 50%, #3d1d3a 100%);
+}
+
+.hero-banner-120::before {
+  background:
+    radial-gradient(circle at 22% 45%, rgba(245, 158, 11, 0.20) 0%, transparent 55%),
+    radial-gradient(circle at 78% 55%, rgba(139, 92, 246, 0.22) 0%, transparent 55%);
+}
+
+.hero-banner-120 .hero-eyebrow {
+  color: #fcd34d;
+}
+
+.hero-banner-120 .hero-title span {
+  background: linear-gradient(135deg, #f59e0b, #c084fc, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-banner-120 .hero-summary {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.hero-banner-120 .hero-version {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.hero-banner-120 .hero-docs-btn:hover {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(245, 158, 11, 0.55);
+}
+
 .hero-banner-110 {
   background: linear-gradient(135deg, #07201f 0%, #0d2f33 50%, #0a3a46 100%);
 }
@@ -1768,6 +2075,16 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
   color: #fff;
 }
 
+.hero-version-dot.advisor {
+  background: #f59e0b;
+  box-shadow: 0 0 8px #f59e0b;
+}
+
+.hero-version-dot.openformats {
+  background: #8b5cf6;
+  box-shadow: 0 0 8px #8b5cf6;
+}
+
 .hero-version-dot.internals {
   background: #14b8a6;
   box-shadow: 0 0 8px #14b8a6;
@@ -1828,6 +2145,57 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 
 .hero-banner-110 .hero-version {
   color: rgba(255, 255, 255, 0.6);
+}
+
+/* Release stats strip — sits between the hero and the version bar */
+.release-stats {
+  background: #0f0a1c;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.release-stats-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.release-stat {
+  text-align: center;
+  padding: 6px 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.release-stat:last-child {
+  border-right: 0;
+}
+
+.release-stat b {
+  display: block;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #fbbf24;
+  line-height: 1.2;
+}
+
+.release-stat span {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .release-stats-inner {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .release-stat {
+    border-right: 0;
+  }
 }
 
 /* Version Bar */
@@ -2329,6 +2697,38 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
   background: #f59e0b;
 }
 
+.feature-tag-ready {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 10px;
+  padding: 3px 11px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 999px;
+  color: #fff;
+  background: #10b981;
+}
+
+/* 0.12.0 frame identity — amber → violet instead of the 0.11.0 teal */
+.feature-frame-120 {
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(120deg, #f59e0b, #c084fc, #f472b6, #f59e0b) border-box;
+  background-size: 100% 100%, 300% 300%;
+  box-shadow: 0 18px 50px -12px rgba(139, 92, 246, 0.40);
+}
+
+.feature-frame-120 .feature-number {
+  color: #8b5cf6;
+}
+
+.feature-frame-120 .feature-highlight {
+  background: rgba(139, 92, 246, 0.08);
+  color: #7c3aed;
+}
+
 .feature-text p {
   font-size: 1.05rem;
   color: #6c757d;
@@ -2599,6 +2999,43 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
+}
+
+/* Improvements grouped by product — 0.12.0 */
+.improvement-group {
+  margin-bottom: 40px;
+}
+
+.improvement-group:last-child {
+  margin-bottom: 0;
+}
+
+.improvement-group-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  margin-bottom: 18px;
+}
+
+.improvement-group-label.microscope {
+  background: rgba(94, 100, 255, 0.1);
+  color: #4b50e6;
+}
+
+.improvement-group-label.hub {
+  background: rgba(168, 85, 247, 0.1);
+  color: #9333ea;
+}
+
+.improvement-group-label.platform {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
 }
 
 .improvement-tile {
