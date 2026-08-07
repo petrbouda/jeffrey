@@ -23,6 +23,7 @@ import type Recording from '@workspaces/services/api/model/Recording';
 const recordingsClient = new RecordingsClient();
 
 import router from '@/router';
+import { HEAP_DUMP_SOURCE, profileLandingRoute } from '@/services/ProfileLandingRoute';
 
 /**
  * Status of the quick analysis process.
@@ -168,11 +169,7 @@ const startAnalysis = async () => {
     // Close panel and navigate to appropriate page
     isOpen.value = false;
 
-    if (isHeapDump) {
-      await router.push(`/profiles/${profileId}/heap-dump/settings`);
-    } else {
-      await router.push(`/profiles/${profileId}/overview`);
-    }
+    await router.push(profileLandingRoute(profileId, isHeapDump ? HEAP_DUMP_SOURCE : null));
 
     // Reset after navigation
     reset();
@@ -188,9 +185,9 @@ const startAnalysis = async () => {
 /**
  * Opens a profile in the viewer.
  */
-const openProfile = async (profileId: string) => {
+const openProfile = async (profileId: string, eventSource?: string | null) => {
   isOpen.value = false;
-  await router.push(`/profiles/${profileId}/overview`);
+  await router.push(profileLandingRoute(profileId, eventSource));
 };
 
 /**

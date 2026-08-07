@@ -42,6 +42,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import RecordingsClient from '@workspaces/services/api/RecordingsClient';
+import { profileLandingRoute } from '@/services/ProfileLandingRoute';
 import FlamegraphBuilderWaiter from '@/components/FlamegraphBuilderWaiter.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 
@@ -100,7 +101,7 @@ onMounted(async () => {
     const recordingId = await recordingsClient.importFromPath(path);
     status.value = 'analyzing';
     const profileId = await recordingsClient.analyzeRecording(recordingId, { suppressToast: true });
-    await router.replace(`/profiles/${profileId}/overview`);
+    await router.replace(profileLandingRoute(profileId));
   } catch (error) {
     status.value = 'error';
     errorMessage.value = extractError(error);

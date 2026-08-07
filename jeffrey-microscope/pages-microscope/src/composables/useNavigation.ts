@@ -19,6 +19,7 @@
 import { useRoute, useRouter } from 'vue-router';
 import { computed } from 'vue';
 import { profileStore } from '@/stores/profileStore';
+import { profileLandingRoute } from '@/services/ProfileLandingRoute';
 
 export function useNavigation() {
   const route = useRoute();
@@ -61,8 +62,8 @@ export function useNavigation() {
   /**
    * Navigate to a profile using simplified URL pattern.
    */
-  const navigateToProfile = (prId: string) => {
-    router.push(`/profiles/${prId}/overview`);
+  const navigateToProfile = (prId: string, eventSource?: string | null) => {
+    router.push(profileLandingRoute(prId, eventSource));
   };
 
   /**

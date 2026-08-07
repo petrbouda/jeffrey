@@ -342,10 +342,13 @@ import FormattingService from '@shared/services/FormattingService';
 import ToastService from '@shared/services/ToastService';
 import type RecordingGroup from '@workspaces/services/api/model/RecordingGroup';
 import type Recording from '@workspaces/services/api/model/Recording';
+import {
+  HEAP_DUMP_SOURCE,
+  OTEL_SOURCE,
+  PPROF_SOURCE,
+  profileLandingRoute
+} from '@/services/ProfileLandingRoute';
 
-const HEAP_DUMP_SOURCE = 'HEAP_DUMP';
-const PPROF_SOURCE = 'PPROF';
-const OTEL_SOURCE = 'OPEN_TELEMETRY';
 const UNGROUPED_KEY = '__ungrouped__';
 const ALLOWED_FILE_SUFFIXES = [
   '.jfr',
@@ -807,17 +810,7 @@ const openProfile = async (recording: Recording) => {
   if (!recording.profileId) {
     return;
   }
-  if (recording.eventSource === HEAP_DUMP_SOURCE) {
-    await router.push(`/profiles/${recording.profileId}/heap-dump/settings`);
-  } else if (recording.eventSource === PPROF_SOURCE) {
-    // pprof profiles are stack-samples only — land directly on the flamegraph
-    await router.push(`/profiles/${recording.profileId}/flamegraphs/primary`);
-  } else if (recording.eventSource === OTEL_SOURCE) {
-    // OTLP profiles are stack-samples only — land directly on the flamegraph
-    await router.push(`/profiles/${recording.profileId}/flamegraphs/primary`);
-  } else {
-    await router.push(`/profiles/${recording.profileId}/overview`);
-  }
+  await router.push(profileLandingRoute(recording.profileId, recording.eventSource));
 };
 
 // --- Group CRUD ---
