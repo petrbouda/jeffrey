@@ -302,13 +302,23 @@
             margin-bottom: 0.7rem;
         }
 
-        .hint code {
-            font-family: var(--mono);
-            font-size: 0.68rem;
-            background: var(--chip-bg);
-            border-radius: 0.3rem;
-            padding: 0.1rem 0.3rem;
-            word-break: break-all;
+        .cmd-review {
+            display: none;
+            border: 1px solid var(--primary);
+            background: var(--primary-light);
+            border-radius: 0.5rem;
+            padding: 0.6rem 0.7rem;
+            margin-bottom: 0.7rem;
+        }
+
+        .cmd-review.visible {
+            display: block;
+        }
+
+        .review-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
         }
 
         .row {
@@ -409,6 +419,41 @@
                 display: none;
             }
         }
+
+        .cmd-box {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--chip-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.45rem;
+            padding: 0.4rem 0.55rem;
+        }
+
+        .cmd-box code.cmd-text {
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            word-break: break-all;
+            flex: 1;
+            color: var(--text);
+        }
+
+        .copy-btn {
+            font: inherit;
+            font-size: 0.68rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--primary);
+            border-radius: 0.35rem;
+            padding: 0.25rem 0.6rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--primary);
+        }
     </style>
 </head>
 <body>
@@ -459,9 +504,15 @@
             <div class="expand">
                 <input type="text" id="newHome" placeholder="/home/petr/jeffrey-home-new" spellcheck="false">
                 <div class="error" id="newHomeError"></div>
-                <div class="hint">Absolute path. To make the change permanent, start Jeffrey with
-                    <code>--jeffrey.microscope.home.dir=&lt;path&gt;</code> — otherwise this page appears again
-                    on the next start.</div>
+                <div class="hint">Absolute path — used for this start.</div>
+                <div class="cmd-review" id="cmdReview">
+                    <div class="review-title">One more thing — remember this for the next start:</div>
+                    <div class="cmd-box">
+                        <code class="cmd-text"></code>
+                        <button class="copy-btn" type="button">Copy</button>
+                    </div>
+                    <div class="hint" style="margin: 0.4rem 0 0;">Without it, this recovery page appears again on the next start.</div>
+                </div>
                 <div class="row">
                     <button class="btn btn-primary" id="switchConfirm" type="button">Switch &amp; start</button>
                     <button class="btn btn-ghost" id="switchCancel" type="button">Cancel</button>
@@ -549,6 +600,7 @@
             el('newHome').focus();
         });
         el('switchCancel').addEventListener('click', () => el('switchOption').classList.remove('open'));
+        let switchReviewed = false;
         el('switchConfirm').addEventListener('click', () => {
             const path = el('newHome').value.trim();
             const error = validate(path);
@@ -559,8 +611,52 @@
                 return;
             }
             errorEl.classList.remove('visible');
+            if (!switchReviewed) {
+                switchReviewed = true;
+                refreshCommand();
+                el('cmdReview').classList.add('visible');
+                el('switchConfirm').textContent = 'Got it — start Jeffrey';
+                return;
+            }
             runAction('/api/recovery/switch-home', path);
         });
+        el('newHome').addEventListener('input', () => {
+            if (switchReviewed) {
+                switchReviewed = false;
+                el('cmdReview').classList.remove('visible');
+                el('switchConfirm').textContent = 'Switch & start';
+            }
+        });
+
+
+        const CMD_PREFIX = 'java -jar microscope.jar --jeffrey.microscope.home.dir=';
+        const CMD_PLACEHOLDER = '/path/to/new/home';
+
+        function currentCommand() {
+            const path = el('newHome').value.trim();
+            return CMD_PREFIX + (path === '' ? CMD_PLACEHOLDER : path);
+        }
+
+        function refreshCommand() {
+            document.querySelectorAll('.cmd-text').forEach((node) => {
+                node.textContent = currentCommand();
+            });
+        }
+
+        el('newHome').addEventListener('input', refreshCommand);
+        document.querySelectorAll('.copy-btn').forEach((button) => {
+            button.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(currentCommand());
+                } catch (e) { /* clipboard unavailable in this context */ }
+                const original = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                    button.textContent = original;
+                }, 1400);
+            });
+        });
+        refreshCommand();
 
         el('themeToggle').addEventListener('click', () => {
             const root = document.documentElement;
