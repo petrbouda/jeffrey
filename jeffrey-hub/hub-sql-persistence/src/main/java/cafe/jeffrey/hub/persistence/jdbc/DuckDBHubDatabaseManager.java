@@ -27,7 +27,7 @@ import javax.sql.DataSource;
 
 public class DuckDBHubDatabaseManager implements DatabaseManager {
 
-    private static final String DEFAULT_MIGRATIONS_LOCATION = "classpath:db/migration/server";
+    public static final String DEFAULT_MIGRATIONS_LOCATION = "classpath:db/migration/server";
 
     private static final int MAX_POOL_SIZE = 25;
 

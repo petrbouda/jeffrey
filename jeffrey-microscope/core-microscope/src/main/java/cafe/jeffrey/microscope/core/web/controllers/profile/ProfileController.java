@@ -20,13 +20,16 @@ package cafe.jeffrey.microscope.core.web.controllers.profile;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import cafe.jeffrey.microscope.core.manager.ProfileRecreationManager;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -38,9 +41,11 @@ public class ProfileController {
     private static final Logger LOG = LoggerFactory.getLogger(ProfileController.class);
 
     private final ProfileManagerResolver resolver;
+    private final ProfileRecreationManager recreationManager;
 
-    public ProfileController(ProfileManagerResolver resolver) {
+    public ProfileController(ProfileManagerResolver resolver, ProfileRecreationManager recreationManager) {
         this.resolver = resolver;
+        this.recreationManager = recreationManager;
     }
 
     @GetMapping
@@ -64,6 +69,17 @@ public class ProfileController {
         ProfileManager pm = resolver.resolve(profileId);
         LOG.debug("Deleting profile: profileId={}", pm.info().id());
         pm.delete();
+    }
+
+    /**
+     * Deletes an outdated profile and re-analyzes its original recording. The replacement
+     * profile appears in the profile list with the regular "analyzing" state.
+     */
+    @PostMapping("/recreate")
+    public ResponseEntity<Void> recreateProfile(@PathVariable("profileId") String profileId) {
+        LOG.info("Recreating profile from its recording: profileId={}", profileId);
+        recreationManager.recreate(profileId);
+        return ResponseEntity.accepted().build();
     }
 
     public record UpdateProfile(String name) {

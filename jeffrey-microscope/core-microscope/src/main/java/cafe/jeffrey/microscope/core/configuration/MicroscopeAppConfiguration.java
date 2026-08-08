@@ -25,6 +25,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import cafe.jeffrey.microscope.core.initializer.RecordingSeedInitializer;
+import cafe.jeffrey.microscope.core.manager.ProfileRecreationManager;
 import cafe.jeffrey.microscope.core.manager.recordings.JfrRecordingMetadataParserAdapter;
 import cafe.jeffrey.microscope.core.manager.recordings.MicroscopeProfileCleanup;
 import cafe.jeffrey.microscope.core.manager.recordings.ProfileRecordingsManager;
@@ -179,6 +180,17 @@ public class MicroscopeAppConfiguration {
             Optional<RecordingsManager> recordingsManager,
             MicroscopeCorePersistenceProvider localCorePersistenceProvider) {
         return new ProfileManagerResolver(
+                remoteServersManager,
+                recordingsManager.orElse(null),
+                localCorePersistenceProvider.localCoreRepositories());
+    }
+
+    @Bean
+    public ProfileRecreationManager profileRecreationManager(
+            HubsManager remoteServersManager,
+            Optional<RecordingsManager> recordingsManager,
+            MicroscopeCorePersistenceProvider localCorePersistenceProvider) {
+        return new ProfileRecreationManager(
                 remoteServersManager,
                 recordingsManager.orElse(null),
                 localCorePersistenceProvider.localCoreRepositories());

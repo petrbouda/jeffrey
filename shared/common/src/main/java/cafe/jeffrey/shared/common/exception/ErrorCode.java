@@ -50,6 +50,9 @@ public enum ErrorCode {
     HEAP_DUMP_CORRUPTED,
     HEAP_DUMP_NEEDS_SANITIZATION,
 
+    // Profile schema errors
+    PROFILE_SCHEMA_OUTDATED,
+
     // Generic not-found error for Jersey WebApplicationExceptions
     RESOURCE_NOT_FOUND;
 
@@ -64,7 +67,14 @@ public enum ErrorCode {
             SCHEDULER_JOB_NOT_FOUND,
             RESOURCE_NOT_FOUND);
 
+    private static final Set<ErrorCode> CONFLICT_CODES = EnumSet.of(
+            PROFILE_SCHEMA_OUTDATED);
+
     public boolean isNotFound() {
         return NOT_FOUND_CODES.contains(this);
+    }
+
+    public boolean isConflict() {
+        return CONFLICT_CODES.contains(this);
     }
 }

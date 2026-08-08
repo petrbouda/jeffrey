@@ -18,14 +18,14 @@
 -->
 <!--
   Jeffrey Microscope recovery page. Served by RecoveryWebServer when the existing
-  database schema is incompatible with this Jeffrey version. Fully self-contained:
-  no external assets, works before the SPA / Spring context exists.
+  database is incompatible with this Jeffrey version. Fully self-contained: no
+  external assets, works before the SPA / Spring context exists.
 
   Color values are copied inline from shared/ui/common/src/assets/design-tokens.css
   (this page must render standalone) — keep them in sync with the design tokens.
 
-  Mockup mode: opening this file directly (file://) or anywhere the recovery API is
-  unreachable stubs the endpoints so every interaction is clickable for review.
+  Opening the file directly (or anywhere the recovery API is unreachable) enables a
+  mock mode that stubs the endpoints so the page stays previewable standalone.
 -->
 <html lang="en">
 <head>
@@ -35,64 +35,40 @@
     <title>Jeffrey — Recovery Mode</title>
     <style>
         :root {
-            /* mirrored from design-tokens.css */
-            --color-primary: #5e64ff;
-            --color-primary-hover: #4c52db;
-            --color-primary-light: rgba(94, 100, 255, 0.1);
-            --color-warning: #f5803e;
-            --color-warning-bg: #fff8e1;
-            --color-warning-border: #ffe082;
-            --color-warning-text: #8d6e00;
-            --color-danger: #e63757;
-            --color-danger-light: rgba(230, 55, 87, 0.1);
-            --font-family-base: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            --font-family-monospace: ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace;
-            --radius-base: 0.375rem;
-            --radius-md: 0.5rem;
-            --radius-lg: 0.75rem;
-            --radius-pill: 999px;
-            --shadow-base: 0 0 0.375rem 0 rgba(0, 0, 0, 0.1);
-            --shadow-md: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+            --primary: #5e64ff;
+            --primary-hover: #4c52db;
+            --primary-light: rgba(94, 100, 255, 0.1);
+            --danger: #e63757;
+            --danger-light: rgba(230, 55, 87, 0.08);
+            --sans: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            --mono: ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace;
 
-            /* page theme (light) */
-            --page-bg: #f9fafd;
-            --card-bg: #ffffff;
+            --bg: #f0f2fa;
+            --card: #ffffff;
             --text: #0b1727;
-            --text-muted: #6c757d;
+            --muted: #6c757d;
             --border: #e3e6f0;
-            --code-bg: #f1f3fa;
-            --hero-bg: var(--color-warning-bg);
-            --hero-border: var(--color-warning-border);
-            --hero-text: var(--color-warning-text);
-            --overlay-bg: rgba(249, 250, 253, 0.96);
+            --chip-bg: #f1f3fa;
         }
 
         @media (prefers-color-scheme: dark) {
             :root:not([data-theme="light"]) {
-                --page-bg: #0b1727;
-                --card-bg: #12233b;
+                --bg: #060d18;
+                --card: #101d31;
                 --text: #e8ecf5;
-                --text-muted: #94a3b8;
-                --border: rgba(255, 255, 255, 0.09);
-                --code-bg: rgba(255, 255, 255, 0.06);
-                --hero-bg: rgba(245, 128, 62, 0.12);
-                --hero-border: rgba(245, 128, 62, 0.45);
-                --hero-text: #ffc98a;
-                --overlay-bg: rgba(11, 23, 39, 0.96);
+                --muted: #94a3b8;
+                --border: rgba(255, 255, 255, 0.1);
+                --chip-bg: rgba(255, 255, 255, 0.07);
             }
         }
 
         :root[data-theme="dark"] {
-            --page-bg: #0b1727;
-            --card-bg: #12233b;
+            --bg: #060d18;
+            --card: #101d31;
             --text: #e8ecf5;
-            --text-muted: #94a3b8;
-            --border: rgba(255, 255, 255, 0.09);
-            --code-bg: rgba(255, 255, 255, 0.06);
-            --hero-bg: rgba(245, 128, 62, 0.12);
-            --hero-border: rgba(245, 128, 62, 0.45);
-            --hero-text: #ffc98a;
-            --overlay-bg: rgba(11, 23, 39, 0.96);
+            --muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+            --chip-bg: rgba(255, 255, 255, 0.07);
         }
 
         * {
@@ -101,528 +77,392 @@
 
         body {
             margin: 0;
-            background: var(--page-bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
             color: var(--text);
-            font-family: var(--font-family-base);
-            font-size: 0.9375rem;
+            font-family: var(--sans);
+            font-size: 0.9rem;
             line-height: 1.55;
-            -webkit-font-smoothing: antialiased;
+            padding: 1.5rem;
         }
 
-        .wrap {
-            max-width: 60rem;
-            margin: 0 auto;
-            padding: 1.5rem 1.25rem 3rem;
+        .shell {
+            width: 100%;
+            max-width: 46rem;
+            display: grid;
+            grid-template-columns: 14rem 1fr;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.12);
         }
 
-        /* header */
-        header {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.25rem 0 1.25rem;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 0.55rem;
-            font-weight: 600;
-            font-size: 1.15rem;
-        }
-
-        .brand-mark {
-            width: 2rem;
-            height: 2rem;
-            border-radius: var(--radius-md);
-            background: var(--color-primary);
+        aside {
+            background: linear-gradient(160deg, #5e64ff 0%, #3d43c9 100%);
             color: #fff;
+            padding: 1.6rem 1.4rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        aside .mark {
+            width: 2.3rem;
+            height: 2.3rem;
+            border-radius: 0.6rem;
+            background: rgba(255, 255, 255, 0.18);
             display: grid;
             place-items: center;
             font-weight: 700;
+            font-size: 1.2rem;
+            margin-bottom: 0.9rem;
+        }
+
+        aside .name {
+            font-weight: 600;
             font-size: 1.05rem;
         }
 
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.3rem;
-            padding: 0.2rem 0.65rem;
-            border-radius: var(--radius-pill);
+        aside .mode {
             font-size: 0.72rem;
-            font-weight: 600;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.1em;
             text-transform: uppercase;
-            background: var(--color-danger-light);
-            color: var(--color-danger);
-        }
-
-        .header-spacer {
-            flex: 1;
-        }
-
-        .mock-chrome {
-            display: none;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        body.mock .mock-chrome {
-            display: inline-flex;
-        }
-
-        .mock-badge {
-            padding: 0.2rem 0.6rem;
-            border-radius: var(--radius-pill);
-            border: 1px dashed var(--color-primary);
-            color: var(--color-primary);
-            font-size: 0.72rem;
-            font-weight: 600;
-            letter-spacing: 0.05em;
-        }
-
-        .theme-btn {
-            border: 1px solid var(--border);
-            background: var(--card-bg);
-            color: var(--text);
-            border-radius: var(--radius-base);
-            padding: 0.3rem 0.7rem;
-            font: inherit;
-            font-size: 0.78rem;
-            cursor: pointer;
-        }
-
-        /* hero */
-        .hero {
-            display: flex;
-            gap: 0.9rem;
-            background: var(--hero-bg);
-            border: 1px solid var(--hero-border);
-            border-radius: var(--radius-lg);
-            padding: 1.1rem 1.25rem;
-        }
-
-        .hero-icon {
-            flex: 0 0 auto;
-            width: 2.4rem;
-            height: 2.4rem;
-            border-radius: var(--radius-md);
-            display: grid;
-            place-items: center;
-            background: var(--color-warning);
-            color: #fff;
-        }
-
-        .hero h1 {
-            margin: 0 0 0.3rem;
-            font-size: 1.15rem;
-            font-weight: 600;
-        }
-
-        .hero p {
-            margin: 0;
-            color: var(--hero-text);
-        }
-
-        /* cards */
-        .card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-base);
-            padding: 1.15rem 1.25rem;
-            margin-top: 1.1rem;
-        }
-
-        .card h2 {
-            margin: 0 0 0.65rem;
-            font-size: 0.98rem;
-            font-weight: 600;
-        }
-
-        .detail-grid {
-            display: grid;
-            grid-template-columns: max-content 1fr;
-            gap: 0.45rem 1.25rem;
-            align-items: baseline;
-        }
-
-        .detail-grid dt {
-            color: var(--text-muted);
-            font-size: 0.82rem;
-        }
-
-        .detail-grid dd {
-            margin: 0;
-            font-family: var(--font-family-monospace);
-            font-size: 0.82rem;
-            word-break: break-all;
-        }
-
-        .detail-grid dd.reason {
-            color: var(--color-danger);
-        }
-
-        .affected {
-            margin: 0.35rem 0 0;
-            padding-left: 1.2rem;
-            columns: 2;
-            column-gap: 2.5rem;
-            color: var(--text-muted);
-            font-size: 0.85rem;
-        }
-
-        .affected li {
-            margin-bottom: 0.25rem;
-            break-inside: avoid;
-        }
-
-        /* actions */
-        .actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.1rem;
-            margin-top: 1.1rem;
-        }
-
-        .action-card {
-            margin-top: 0;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
-
-        .action-card.recommended {
-            border-color: var(--color-primary);
-            box-shadow: var(--shadow-md);
-        }
-
-        .recommended-badge {
-            position: absolute;
-            top: -0.65rem;
-            left: 1rem;
-            background: var(--color-primary);
-            color: #fff;
-            font-size: 0.68rem;
-            font-weight: 600;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            padding: 0.15rem 0.6rem;
-            border-radius: var(--radius-pill);
-        }
-
-        .action-card p {
-            margin: 0 0 0.75rem;
-            color: var(--text-muted);
-            font-size: 0.85rem;
-        }
-
-        .action-card .grow {
-            flex: 1;
-        }
-
-        code {
-            font-family: var(--font-family-monospace);
-            font-size: 0.78rem;
-            background: var(--code-bg);
-            border-radius: var(--radius-base);
-            padding: 0.1rem 0.35rem;
-            word-break: break-all;
-        }
-
-        .confirm-row {
-            display: flex;
-            gap: 0.5rem;
-            align-items: flex-start;
-            margin-bottom: 0.85rem;
-            font-size: 0.82rem;
-            color: var(--text-muted);
-        }
-
-        .confirm-row input {
+            opacity: 0.85;
             margin-top: 0.2rem;
-            accent-color: var(--color-primary);
         }
 
-        .field label {
-            display: block;
-            font-size: 0.8rem;
+        aside .spacer {
+            flex: 1;
+        }
+
+        aside .why {
+            font-size: 0.78rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 1.6rem 1.7rem;
+        }
+
+        h1 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0 0 0.4rem;
+        }
+
+        .lead {
+            color: var(--muted);
+            font-size: 0.85rem;
+            margin: 0 0 0.9rem;
+        }
+
+        .chip {
+            display: inline-block;
+            font-family: var(--mono);
+            font-size: 0.76rem;
+            background: var(--chip-bg);
+            border-radius: 0.4rem;
+            padding: 0.3rem 0.6rem;
+            word-break: break-all;
+            margin-bottom: 1.2rem;
+        }
+
+        .option {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.7rem;
+            padding: 0.9rem 1.1rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .option .text {
+            flex: 1;
+        }
+
+        .option h2 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin: 0 0 0.15rem;
+        }
+
+        .option p {
+            margin: 0;
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+
+        .btn {
+            font: inherit;
+            font-size: 0.82rem;
             font-weight: 500;
+            padding: 0.5rem 1.1rem;
+            border-radius: 0.45rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            transition: all 0.15s ease;
+        }
+
+        .btn-danger-outline {
+            background: transparent;
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .btn-danger-outline:hover {
+            background: var(--danger-light);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            filter: brightness(0.92);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border-color: var(--border);
+            color: var(--text);
+        }
+
+        .expand {
+            display: none;
+            border-top: 1px dashed var(--border);
+            margin-top: 0.8rem;
+            padding-top: 0.8rem;
+            width: 100%;
+        }
+
+        .option.open {
+            flex-wrap: wrap;
+        }
+
+        .option.open .expand {
+            display: block;
+        }
+
+        .expand .warn {
+            font-size: 0.8rem;
+            margin-bottom: 0.7rem;
+        }
+
+        .expand .warn b {
+            color: var(--danger);
+        }
+
+        .expand input {
+            width: 100%;
+            font-family: var(--mono);
+            font-size: 0.78rem;
+            padding: 0.5rem 0.7rem;
+            border: 1px solid var(--border);
+            border-radius: 0.45rem;
+            background: var(--bg);
+            color: var(--text);
             margin-bottom: 0.3rem;
         }
 
-        .field input[type="text"] {
-            width: 100%;
-            font-family: var(--font-family-monospace);
-            font-size: 0.82rem;
-            padding: 0.5rem 0.65rem;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-base);
-            background: var(--page-bg);
-            color: var(--text);
-        }
-
-        .field input[type="text"]:focus {
+        .expand input:focus {
             outline: none;
-            border-color: var(--color-primary);
-            box-shadow: 0 0 0 3px var(--color-primary-light);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
         }
 
-        .field-error {
+        .error {
             display: none;
-            color: var(--color-danger);
-            font-size: 0.78rem;
-            margin-top: 0.35rem;
+            color: var(--danger);
+            font-size: 0.75rem;
+            margin-bottom: 0.4rem;
         }
 
-        .field-error.visible {
+        .error.visible {
             display: block;
         }
 
         .hint {
-            font-size: 0.76rem;
-            color: var(--text-muted);
-            margin-top: 0.5rem;
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-bottom: 0.7rem;
         }
 
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.45rem;
-            width: 100%;
-            margin-top: 0.85rem;
-            padding: 0.55rem 1rem;
-            border-radius: var(--radius-base);
-            border: 1px solid transparent;
-            font: inherit;
-            font-size: 0.86rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.15s ease;
-        }
-
-        .btn:disabled {
-            opacity: 0.55;
-            cursor: not-allowed;
-        }
-
-        .btn-primary {
-            background: var(--color-primary);
-            color: #fff;
-        }
-
-        .btn-primary:not(:disabled):hover {
-            background: var(--color-primary-hover);
-        }
-
-        .btn-outline {
-            background: transparent;
-            color: var(--color-primary);
-            border-color: var(--color-primary);
-        }
-
-        .btn-outline:not(:disabled):hover {
-            background: var(--color-primary-light);
-        }
-
-        footer {
-            margin-top: 1.5rem;
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 0.78rem;
-        }
-
-        /* starting overlay */
-        .overlay {
-            position: fixed;
-            inset: 0;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            background: var(--overlay-bg);
-            z-index: 10;
-        }
-
-        .overlay.visible {
+        .row {
             display: flex;
+            gap: 0.6rem;
         }
 
-        .overlay-card {
+        .starting {
+            display: none;
             text-align: center;
-            max-width: 26rem;
-            padding: 2rem;
+            padding: 1.5rem 0 0.5rem;
+        }
+
+        .starting.visible {
+            display: block;
         }
 
         .spinner {
-            width: 2.6rem;
-            height: 2.6rem;
-            margin: 0 auto 1rem;
-            border: 3px solid var(--color-primary-light);
-            border-top-color: var(--color-primary);
+            width: 2.2rem;
+            height: 2.2rem;
+            margin: 0 auto 0.8rem;
+            border: 3px solid var(--primary-light);
+            border-top-color: var(--primary);
             border-radius: 50%;
             animation: spin 0.9s linear infinite;
         }
 
-        .overlay-card.done .spinner {
+        .starting.done .spinner {
             display: none;
         }
 
-        .overlay-check {
+        .starting .check {
             display: none;
-            font-size: 2rem;
-            color: var(--color-primary);
-            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+            color: var(--primary);
+            margin-bottom: 0.4rem;
         }
 
-        .overlay-card.done .overlay-check {
+        .starting.done .check {
             display: block;
         }
 
-        .overlay-card h2 {
-            margin: 0 0 0.4rem;
-            font-size: 1.05rem;
-        }
-
-        .overlay-card p {
+        .starting p {
+            color: var(--muted);
+            font-size: 0.82rem;
             margin: 0;
-            color: var(--text-muted);
-            font-size: 0.85rem;
         }
 
         @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
+            to { transform: rotate(360deg); }
         }
 
-        @media (max-width: 44rem) {
-            .actions {
+        .mock-chrome {
+            position: fixed;
+            top: 1rem;
+            right: 1.1rem;
+            display: none;
+            gap: 0.5rem;
+        }
+
+        body.mock .mock-chrome {
+            display: flex;
+        }
+
+        .pill {
+            font-size: 0.7rem;
+            font-family: var(--mono);
+            border: 1px dashed var(--muted);
+            color: var(--muted);
+            border-radius: 999px;
+            padding: 0.15rem 0.6rem;
+            background: none;
+        }
+
+        button.pill {
+            cursor: pointer;
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        @media (max-width: 40rem) {
+            .shell {
                 grid-template-columns: 1fr;
             }
 
-            .affected {
-                columns: 1;
+            aside {
+                flex-direction: row;
+                align-items: center;
+                gap: 0.8rem;
+                padding: 1rem 1.2rem;
             }
 
-            .detail-grid {
-                grid-template-columns: 1fr;
-                gap: 0.1rem;
+            aside .mark {
+                margin: 0;
             }
 
-            .detail-grid dt {
-                margin-top: 0.5rem;
+            aside .spacer, aside .why {
+                display: none;
             }
         }
     </style>
 </head>
 <body>
-<div class="wrap">
-    <header>
-        <div class="brand">
-            <div class="brand-mark">J</div>
-            <span>Jeffrey</span>
-        </div>
-        <span class="badge">Recovery Mode</span>
-        <div class="header-spacer"></div>
-        <div class="mock-chrome">
-            <span class="mock-badge">Mockup</span>
-            <button class="theme-btn" id="themeToggle" type="button">Toggle dark / light</button>
-        </div>
-    </header>
-
-    <section class="hero">
-        <div class="hero-icon" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                 stroke-linecap="round" stroke-linejoin="round">
-                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                <line x1="12" y1="9" x2="12" y2="13"/>
-                <line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-        </div>
-        <div>
-            <h1>Jeffrey was upgraded — the existing database is incompatible</h1>
-            <p>This version of Jeffrey uses a newer database schema than the data found in your Jeffrey home folder.
-                Jeffrey cannot start until this is resolved. Pick one of the options below — no terminal needed.</p>
-        </div>
-    </section>
-
-    <section class="card">
-        <h2>Details</h2>
-        <dl class="detail-grid">
-            <dt>Database</dt>
-            <dd id="dbPath">—</dd>
-            <dt>Home folder</dt>
-            <dd id="homeDir">—</dd>
-            <dt>Jeffrey version</dt>
-            <dd id="version">—</dd>
-            <dt>Reason</dt>
-            <dd class="reason" id="reason">—</dd>
-        </dl>
-    </section>
-
-    <section class="card">
-        <h2>What is affected</h2>
-        <ul class="affected">
-            <li>Hub connections and remote workspaces</li>
-            <li>Projects and recording metadata</li>
-            <li>Analyzed profiles and their events</li>
-            <li>Guardian configurations</li>
-            <li>Application settings</li>
-            <li>Uploaded recording files (moved to the backup)</li>
-        </ul>
-    </section>
-
-    <div class="actions">
-        <section class="card action-card recommended">
-            <span class="recommended-badge">Recommended</span>
-            <h2>Backup &amp; Reset</h2>
-            <p class="grow">
-                Moves everything in your current home folder into
-                <code id="backupTarget">&lt;home&gt;/backups/upgrade-&lt;timestamp&gt;/</code>
-                and starts Jeffrey fresh. Nothing is deleted — recordings can be re-imported from the backup folder
-                at any time.
-            </p>
-            <label class="confirm-row">
-                <input type="checkbox" id="confirmBackup">
-                <span>I understand my current data will be moved into the backup folder and Jeffrey will start with
-                    an empty database.</span>
-            </label>
-            <button class="btn btn-primary" id="backupBtn" type="button" disabled>Backup &amp; Reset, then start
-                Jeffrey
-            </button>
-        </section>
-
-        <section class="card action-card">
-            <h2>Use a different home folder</h2>
-            <p>
-                Keeps the current home folder untouched and points Jeffrey at a new, empty home folder instead.
-            </p>
-            <div class="field grow">
-                <label for="newHome">New home folder (absolute path)</label>
-                <input type="text" id="newHome" placeholder="/home/you/jeffrey-home-new" spellcheck="false">
-                <div class="field-error" id="newHomeError"></div>
-                <div class="hint">
-                    The choice is remembered in <code>jeffrey-home.redirect</code> inside the current home folder, so
-                    future starts use the new location automatically.
-                </div>
-            </div>
-            <button class="btn btn-outline" id="switchBtn" type="button">Switch &amp; start Jeffrey</button>
-        </section>
-    </div>
-
-    <footer>
-        The same information and instructions were printed to the Jeffrey console log.
-    </footer>
+<div class="mock-chrome">
+    <span class="pill">mockup</span>
+    <button class="pill" id="themeToggle" type="button">dark / light</button>
 </div>
 
-<div class="overlay" id="startingOverlay">
-    <div class="overlay-card" id="overlayCard">
-        <div class="spinner" aria-hidden="true"></div>
-        <div class="overlay-check" aria-hidden="true">✓</div>
-        <h2 id="overlayTitle">Starting Jeffrey…</h2>
-        <p id="overlayText">The database has been prepared. This page reloads into the application as soon as Jeffrey
-            is up.</p>
+<div class="shell">
+    <aside>
+        <div class="mark">J</div>
+        <div>
+            <div class="name">Jeffrey</div>
+            <div class="mode">Recovery mode</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="why">Jeffrey was updated and can’t use the existing data folder.</div>
+    </aside>
+
+    <div class="content" id="content">
+        <h1>Choose how to continue</h1>
+        <p class="lead">Your data folder was created by an older version of Jeffrey.</p>
+        <span class="chip" id="homeDir">—</span>
+
+        <div class="option" id="freshOption">
+            <div class="text">
+                <h2>Start fresh</h2>
+                <p>Removes the data folder and starts again with empty data.</p>
+            </div>
+            <button class="btn btn-danger-outline" id="freshBtn" type="button">Start fresh…</button>
+            <div class="expand">
+                <div class="warn">This <b>permanently removes all data</b> — projects, recordings, profiles and
+                    settings. There is no backup.
+                </div>
+                <div class="row">
+                    <button class="btn btn-danger" id="freshConfirm" type="button">Remove everything &amp; start</button>
+                    <button class="btn btn-ghost" id="freshCancel" type="button">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="option" id="switchOption">
+            <div class="text">
+                <h2>Use a different folder</h2>
+                <p>Keeps the current folder untouched; Jeffrey uses a new one from now on.</p>
+            </div>
+            <button class="btn btn-primary" id="switchBtn" type="button">Choose folder…</button>
+            <div class="expand">
+                <input type="text" id="newHome" placeholder="/home/petr/jeffrey-home-new" spellcheck="false">
+                <div class="error" id="newHomeError"></div>
+                <div class="hint">Absolute path — remembered for future starts.</div>
+                <div class="row">
+                    <button class="btn btn-primary" id="switchConfirm" type="button">Switch &amp; start</button>
+                    <button class="btn btn-ghost" id="switchCancel" type="button">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="starting" id="starting">
+            <div class="spinner"></div>
+            <div class="check">✓</div>
+            <p id="startingText">Starting Jeffrey…</p>
+        </div>
     </div>
 </div>
 
@@ -630,204 +470,86 @@
     (function () {
         'use strict';
 
-        const STATUS_ENDPOINT = '/api/recovery/status';
-        const BACKUP_ENDPOINT = '/api/recovery/backup-reset';
-        const SWITCH_ENDPOINT = '/api/recovery/switch-home';
         const RECOVERY_MARKER = 'name="jeffrey-recovery"';
-        const POLL_INTERVAL_MS = 1000;
-        const MOCK_ACTION_DELAY_MS = 1600;
-        const MOCK_BOOT_DELAY_MS = 2600;
-
-        const MOCK_STATUS = {
-            homeDir: '/home/petr/.jeffrey-microscope',
-            databasePath: '/home/petr/.jeffrey-microscope/jeffrey-data.db',
-            version: '0.5.0',
-            reason: 'Migration checksum mismatch: V001__init.sql (applied checksum 184423782, expected 91582241)',
-            backupTarget: '/home/petr/.jeffrey-microscope/backups/upgrade-20260808-091500'
-        };
-
         let mockMode = location.protocol === 'file:';
-        let currentStatus = null;
-
+        let status = {homeDir: '/home/petr/.jeffrey-microscope'};
         const el = (id) => document.getElementById(id);
 
-        function applyStatus(status) {
-            currentStatus = status;
-            el('dbPath').textContent = status.databasePath;
-            el('homeDir').textContent = status.homeDir;
-            el('version').textContent = status.version;
-            el('reason').textContent = status.reason;
-            el('backupTarget').textContent = status.backupTarget;
-        }
-
-        function enableMockChrome() {
-            document.body.classList.add('mock');
-        }
-
-        async function loadStatus() {
-            if (!mockMode) {
-                try {
-                    const response = await fetch(STATUS_ENDPOINT, {cache: 'no-store'});
-                    if (!response.ok) {
-                        throw new Error('status ' + response.status);
-                    }
-                    applyStatus(await response.json());
-                    return;
-                } catch (e) {
-                    mockMode = true;
-                }
+        function validate(path) {
+            if (path === '') {
+                return 'Enter a path.';
             }
-            enableMockChrome();
-            applyStatus(MOCK_STATUS);
-        }
-
-        function showOverlay() {
-            el('startingOverlay').classList.add('visible');
-        }
-
-        function overlayDone(title, text) {
-            el('overlayCard').classList.add('done');
-            el('overlayTitle').textContent = title;
-            el('overlayText').textContent = text;
-        }
-
-        function pollUntilStarted() {
-            const tick = async () => {
-                try {
-                    const response = await fetch('/', {cache: 'no-store'});
-                    const body = await response.text();
-                    if (response.ok && !body.includes(RECOVERY_MARKER)) {
-                        location.reload();
-                        return;
-                    }
-                } catch (e) {
-                    // server briefly down between recovery stop and app start — keep polling
-                }
-                setTimeout(tick, POLL_INTERVAL_MS);
-            };
-            setTimeout(tick, POLL_INTERVAL_MS);
-        }
-
-        function startJeffrey() {
-            showOverlay();
-            if (mockMode) {
-                setTimeout(() => {
-                    overlayDone('Mockup — Jeffrey would start now',
-                        'In the real flow the recovery server shuts down, the application boots in the same JVM, ' +
-                        'and this page reloads into Jeffrey automatically.');
-                }, MOCK_BOOT_DELAY_MS);
-            } else {
-                pollUntilStarted();
-            }
-        }
-
-        function setBusy(button, busyLabel) {
-            button.dataset.label = button.textContent;
-            button.textContent = busyLabel;
-            button.disabled = true;
-        }
-
-        function clearBusy(button) {
-            if (button.dataset.label) {
-                button.textContent = button.dataset.label;
-            }
-            button.disabled = false;
-        }
-
-        function showFieldError(message) {
-            const error = el('newHomeError');
-            error.textContent = message;
-            error.classList.add('visible');
-        }
-
-        function hideFieldError() {
-            el('newHomeError').classList.remove('visible');
-        }
-
-        function mockValidateHome(path) {
             if (!path.startsWith('/') && !/^[A-Za-z]:[\\/]/.test(path)) {
                 return 'The path must be absolute.';
             }
-            if (currentStatus && path === currentStatus.homeDir) {
-                return 'The new home folder must differ from the current one.';
-            }
-            if (currentStatus && path.startsWith(currentStatus.homeDir + '/')) {
-                return 'The new home folder must not be inside the current home folder.';
+            if (path === status.homeDir) {
+                return 'The new folder must differ from the current one.';
             }
             return null;
         }
 
-        // --- Backup & Reset ---
-
-        el('confirmBackup').addEventListener('change', (event) => {
-            el('backupBtn').disabled = !event.target.checked;
-        });
-
-        el('backupBtn').addEventListener('click', async () => {
-            const button = el('backupBtn');
-            setBusy(button, 'Backing up…');
-            if (mockMode) {
-                setTimeout(startJeffrey, MOCK_ACTION_DELAY_MS);
-                return;
-            }
-            try {
-                const response = await fetch(BACKUP_ENDPOINT, {method: 'POST'});
-                if (!response.ok) {
-                    throw new Error('status ' + response.status);
-                }
-                startJeffrey();
-            } catch (e) {
-                clearBusy(button);
-                alert('Backup failed: ' + e.message + ' — check the Jeffrey console log.');
-            }
-        });
-
-        // --- Switch home folder ---
-
-        el('switchBtn').addEventListener('click', async () => {
-            const button = el('switchBtn');
-            const path = el('newHome').value.trim();
-            hideFieldError();
-            if (path === '') {
-                showFieldError('Enter an absolute path for the new home folder.');
-                return;
-            }
-            setBusy(button, 'Switching…');
+        function runAction(endpoint, path) {
+            el('freshOption').style.display = 'none';
+            el('switchOption').style.display = 'none';
+            el('starting').classList.add('visible');
             if (mockMode) {
                 setTimeout(() => {
-                    const error = mockValidateHome(path);
-                    if (error) {
-                        showFieldError(error);
-                        clearBusy(button);
-                    } else {
-                        startJeffrey();
-                    }
-                }, 500);
+                    el('starting').classList.add('done');
+                    el('startingText').textContent =
+                        '(Mockup) Jeffrey would start now and this page would reload into the application.';
+                }, 2400);
                 return;
             }
-            try {
-                const response = await fetch(SWITCH_ENDPOINT, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({path: path})
-                });
-                if (response.status === 400) {
-                    const body = await response.json();
-                    showFieldError(body.error || 'The path was rejected.');
-                    clearBusy(button);
-                    return;
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: path === null ? null : JSON.stringify({path: path})
+            }).then((r) => {
+                if (!r.ok) {
+                    throw new Error('status ' + r.status);
                 }
-                if (!response.ok) {
-                    throw new Error('status ' + response.status);
-                }
-                startJeffrey();
-            } catch (e) {
-                clearBusy(button);
-                showFieldError('Switching failed: ' + e.message + ' — check the Jeffrey console log.');
-            }
-        });
+                const tick = async () => {
+                    try {
+                        const res = await fetch('/', {cache: 'no-store'});
+                        const t = await res.text();
+                        if (res.ok && !t.includes(RECOVERY_MARKER)) {
+                            location.reload();
+                            return;
+                        }
+                    } catch (e) { /* keep polling */ }
+                    setTimeout(tick, 1000);
+                };
+                setTimeout(tick, 1000);
+            }).catch((e) => {
+                el('startingText').textContent = 'Failed: ' + e.message + ' — check the console log.';
+            });
+        }
 
-        // --- Mockup theme toggle ---
+        el('freshBtn').addEventListener('click', () => {
+            el('freshOption').classList.add('open');
+            el('switchOption').classList.remove('open');
+        });
+        el('freshCancel').addEventListener('click', () => el('freshOption').classList.remove('open'));
+        el('freshConfirm').addEventListener('click', () => runAction('/api/recovery/start-fresh', null));
+
+        el('switchBtn').addEventListener('click', () => {
+            el('switchOption').classList.add('open');
+            el('freshOption').classList.remove('open');
+            el('newHome').focus();
+        });
+        el('switchCancel').addEventListener('click', () => el('switchOption').classList.remove('open'));
+        el('switchConfirm').addEventListener('click', () => {
+            const path = el('newHome').value.trim();
+            const error = validate(path);
+            const errorEl = el('newHomeError');
+            if (error) {
+                errorEl.textContent = error;
+                errorEl.classList.add('visible');
+                return;
+            }
+            errorEl.classList.remove('visible');
+            runAction('/api/recovery/switch-home', path);
+        });
 
         el('themeToggle').addEventListener('click', () => {
             const root = document.documentElement;
@@ -836,7 +558,23 @@
             root.dataset.theme = current === 'dark' ? 'light' : 'dark';
         });
 
-        loadStatus();
+        (async function init() {
+            if (!mockMode) {
+                try {
+                    const r = await fetch('/api/recovery/status', {cache: 'no-store'});
+                    if (!r.ok) {
+                        throw new Error();
+                    }
+                    status = await r.json();
+                } catch (e) {
+                    mockMode = true;
+                }
+            }
+            if (mockMode) {
+                document.body.classList.add('mock');
+            }
+            el('homeDir').textContent = status.homeDir;
+        })();
     })();
 </script>
 </body>

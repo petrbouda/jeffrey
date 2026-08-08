@@ -173,6 +173,10 @@ onMounted(() => {
       <DocsCallout type="tip">
         Override the home directory with <code>jeffrey.hub.home.dir</code> in <code>application.properties</code> or via the <code>JEFFREY_HUB_HOME_DIR</code> environment variable. The <code>recordings/</code> directory is typically mounted from a shared volume regardless of where the home itself lives.
       </DocsCallout>
+
+      <DocsCallout type="warning">
+        <strong>Upgrades:</strong> after an update, an existing database created by an older Jeffrey version cannot be used. The Hub fails fast at startup with a console error describing the two fixes: remove the hub home folder and start again, or start with <code>--jeffrey.hub.home.dir=/path/to/new/home</code>.
+      </DocsCallout>
     </div>
 
     <DocsNavFooter />

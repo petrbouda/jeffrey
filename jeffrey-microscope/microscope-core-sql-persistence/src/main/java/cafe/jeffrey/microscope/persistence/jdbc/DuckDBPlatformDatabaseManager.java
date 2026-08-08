@@ -27,7 +27,7 @@ import javax.sql.DataSource;
 
 public class DuckDBPlatformDatabaseManager implements DatabaseManager {
 
-    private static final String DEFAULT_MIGRATIONS_LOCATION = "classpath:db/migration/microscope/core";
+    public static final String DEFAULT_MIGRATIONS_LOCATION = "classpath:db/migration/microscope/core";
 
     private static final int MAX_POOL_SIZE = 25;
 
