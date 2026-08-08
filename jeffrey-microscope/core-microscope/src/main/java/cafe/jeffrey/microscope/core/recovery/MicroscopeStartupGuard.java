@@ -61,12 +61,20 @@ public final class MicroscopeStartupGuard {
             ================================================================================
             """;
 
-    private static final String PORT_BANNER = """
+    private static final String FALLBACK_PORT_BANNER = """
+            ================================================================================
+             Note: port %d is already in use, so the recovery page is served on a fallback
+             port (see the address above). Jeffrey itself still needs port %d after the
+             recovery completes — free it, or restart with --server.port=<port>.
+            ================================================================================
+            """;
+
+    private static final String SERVER_FAILED_BANNER = """
             ================================================================================
              Jeffrey cannot start: the data folder was created by an older version, and the
-             recovery page cannot be served because port %d is already in use.
+             recovery page cannot be served: %s
 
-             Free the port (or start with --server.port=<port>) and try again.
+             Resolve the error and try again, or fix the data folder manually.
             ================================================================================
             """;
 
@@ -98,7 +106,6 @@ public final class MicroscopeStartupGuard {
     private static Path recover(Path homeDir, int port, SchemaValidationResult result) {
         LOG.warn("Existing database is incompatible with this Jeffrey version: home_dir={} detail={}",
                 homeDir, describe(result));
-        System.out.printf(BANNER, homeDir, port);
 
         Path currentHome = homeDir;
         try (RecoveryWebServer server = new RecoveryWebServer(
@@ -107,12 +114,17 @@ public final class MicroscopeStartupGuard {
                 () -> RecoveryActions.startFresh(currentHome),
                 rawPath -> RecoveryActions.switchHome(currentHome, rawPath))) {
 
+            System.out.printf(BANNER, homeDir, server.port());
+            if (server.usesFallbackPort()) {
+                System.out.printf(FALLBACK_PORT_BANNER, port, port);
+            }
+
             Path newHome = server.awaitAction();
             LOG.info("Recovery action completed, continuing startup: home_dir={}", newHome);
             return newHome;
         } catch (IOException e) {
             LOG.error("Cannot start the recovery web server: port={} message={}", port, e.getMessage());
-            System.out.printf(PORT_BANNER, port);
+            System.out.printf(SERVER_FAILED_BANNER, e.getMessage());
             System.exit(1);
             return homeDir;
         }

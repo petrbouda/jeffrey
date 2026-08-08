@@ -28,6 +28,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.BindException;
 import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
@@ -38,9 +39,12 @@ import java.util.function.Supplier;
 
 /**
  * Minimal web server (JDK built-in {@link HttpServer}, no Spring, no Tomcat) that serves the
- * recovery page on Jeffrey's regular HTTP port while the application cannot start. Once the
- * user completes one of the recovery actions the server is stopped, the port is released and
- * the same JVM continues into the normal Spring Boot startup.
+ * recovery page on Jeffrey's regular HTTP port while the application cannot start. When the
+ * regular port is already taken by another process, the server falls back to an ephemeral
+ * port instead of failing — the recovery page works on any port, only the later Spring Boot
+ * startup needs the regular one. Once the user completes one of the recovery actions the
+ * server is stopped, the port is released and the same JVM continues into the normal Spring
+ * Boot startup.
  */
 public final class RecoveryWebServer implements AutoCloseable {
 
@@ -62,6 +66,7 @@ public final class RecoveryWebServer implements AutoCloseable {
     private static final String CONTENT_TYPE_JSON = "application/json";
 
     private static final int SERVER_STOP_GRACE_SECONDS = 1;
+    private static final int EPHEMERAL_PORT = 0;
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
@@ -75,6 +80,7 @@ public final class RecoveryWebServer implements AutoCloseable {
     }
 
     private final HttpServer server;
+    private final boolean usesFallbackPort;
     private final ExecutorService executor;
     private final Path currentHome;
     private final Supplier<Path> startFreshAction;
@@ -91,7 +97,19 @@ public final class RecoveryWebServer implements AutoCloseable {
         this.startFreshAction = startFreshAction;
         this.switchHomeAction = switchHomeAction;
 
-        this.server = HttpServer.create(new InetSocketAddress(port), 0);
+        HttpServer boundServer;
+        boolean fallbackPort;
+        try {
+            boundServer = HttpServer.create(new InetSocketAddress(port), 0);
+            fallbackPort = false;
+        } catch (BindException e) {
+            LOG.warn("Configured port is already in use, serving the recovery page on a fallback port: " +
+                    "configured_port={} message={}", port, e.getMessage());
+            boundServer = HttpServer.create(new InetSocketAddress(EPHEMERAL_PORT), 0);
+            fallbackPort = true;
+        }
+        this.server = boundServer;
+        this.usesFallbackPort = fallbackPort;
         this.executor = Executors.newVirtualThreadPerTaskExecutor();
         server.createContext(ROOT_PATH, this::handlePage);
         server.createContext(STATUS_PATH, this::handleStatus);
@@ -104,6 +122,14 @@ public final class RecoveryWebServer implements AutoCloseable {
 
     public int port() {
         return server.getAddress().getPort();
+    }
+
+    /**
+     * Returns {@code true} when the configured port was already taken and the server had to
+     * bind an ephemeral fallback port instead.
+     */
+    public boolean usesFallbackPort() {
+        return usesFallbackPort;
     }
 
     /**

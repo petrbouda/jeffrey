@@ -22,6 +22,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.net.ServerSocket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -29,6 +30,8 @@ import java.net.http.HttpResponse;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RecoveryWebServerTest {
@@ -89,6 +92,36 @@ class RecoveryWebServerTest {
         assertTrue(root.body().contains("jeffrey-recovery"));
         assertEquals(200, deepLink.statusCode());
         assertTrue(deepLink.body().contains("jeffrey-recovery"));
+    }
+
+    @Test
+    void bindsConfiguredPortWithoutFallbackWhenFree() {
+        assertFalse(server.usesFallbackPort());
+    }
+
+    @Test
+    void fallsBackToEphemeralPortWhenConfiguredPortIsTaken() throws Exception {
+        try (ServerSocket portBlocker = new ServerSocket(0)) {
+            int takenPort = portBlocker.getLocalPort();
+
+            try (RecoveryWebServer fallbackServer = new RecoveryWebServer(
+                    takenPort,
+                    CURRENT_HOME,
+                    () -> FRESH_HOME,
+                    rawPath -> SWITCHED_HOME)) {
+
+                assertTrue(fallbackServer.usesFallbackPort());
+                assertNotEquals(takenPort, fallbackServer.port());
+
+                HttpResponse<String> root = client.send(
+                        HttpRequest.newBuilder(URI.create("http://localhost:" + fallbackServer.port() + "/"))
+                                .GET()
+                                .build(),
+                        HttpResponse.BodyHandlers.ofString());
+                assertEquals(200, root.statusCode());
+                assertTrue(root.body().contains("jeffrey-recovery"));
+            }
+        }
     }
 
     @Test

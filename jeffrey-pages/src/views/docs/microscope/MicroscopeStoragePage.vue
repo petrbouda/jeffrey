@@ -222,7 +222,7 @@ onMounted(() => {
       </DocsCallout>
 
       <h2 id="upgrades-recovery">Upgrades &amp; Recovery Mode</h2>
-      <p>After an update, the data in your home folder may have been created by an older Jeffrey version and can no longer be used. Microscope detects this at startup and, instead of failing, serves a recovery page on its regular port (default <code>http://localhost:8080</code>) with two options:</p>
+      <p>After an update, the data in your home folder may have been created by an older Jeffrey version and can no longer be used. Microscope detects this at startup and, instead of failing, serves a recovery page on its regular port (default <code>http://localhost:8080</code>) with two options. If the regular port is already taken by another process, the recovery page is served on a fallback port instead — the console banner prints the exact address to open. The regular port still has to be freed (or changed with <code>--server.port</code>) before Jeffrey itself can start after the recovery completes.</p>
       <ul>
         <li><strong>Start fresh</strong> — permanently removes the current data folder and starts again with empty data.</li>
         <li><strong>Use another folder</strong> — keeps the current folder untouched and points Jeffrey at a new home folder for this start. To make the change permanent, launch Jeffrey with <code>jeffrey.microscope.home.dir</code> pointing at the new folder — otherwise the recovery page appears again on the next start.</li>
