@@ -23,6 +23,7 @@ import {
   isNotFoundError
 } from '@/services/api/model/ErrorResponse';
 import { ToastService } from '@shared/services/ToastService';
+import MessageBus from '@/services/MessageBus';
 
 /**
  * Extended Axios request config with custom options
@@ -113,6 +114,8 @@ function getErrorTitle(error: ApiError): string {
         return 'Heap Dump Corrupted';
       case 'HEAP_DUMP_NEEDS_SANITIZATION':
         return 'Heap Dump Needs Repair';
+      case 'PROFILE_SCHEMA_OUTDATED':
+        return 'Profile Outdated';
       case 'REPOSITORY_NOT_FOUND':
         return 'Repository Not Found';
       case 'COMPRESSION_ERROR':
@@ -206,8 +209,11 @@ async function responseErrorInterceptor(error: AxiosError): Promise<never> {
     apiError = new ApiError(error.message || 'An unexpected error occurred', 0);
   }
 
-  // Auto-show toast unless suppressed
-  if (!suppressToast) {
+  // A schema-outdated profile is rendered as a full-page state by ProfileDetail rather than as a
+  // toast — several profile requests can fail with it at once, which would spam notifications.
+  if (apiError.errorResponse?.code === 'PROFILE_SCHEMA_OUTDATED') {
+    MessageBus.emit(MessageBus.PROFILE_SCHEMA_OUTDATED, null);
+  } else if (!suppressToast) {
     showErrorToast(apiError);
   }
 

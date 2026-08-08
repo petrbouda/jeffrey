@@ -292,8 +292,13 @@
         <div class="detail-content-container mb-4">
           <div class="card">
             <div class="card-body">
+              <ProfileSchemaOutdatedState
+                v-if="schemaOutdated"
+                :profile-id="profileId"
+                @resolved="handleSchemaOutdatedResolved"
+              />
               <router-view
-                v-if="profile"
+                v-else-if="profile"
                 :profile="profile"
                 :secondary-profile="secondaryProfile"
                 :disabled-features="disabledFeatures"
@@ -329,6 +334,7 @@ import IdeTargetBar from '@/components/IdeTargetBar.vue';
 import ideConfigStore from '@/stores/ideConfigStore';
 import ideProfileTargetStore from '@/stores/ideProfileTargetStore';
 import ProfileSidebar from '@/components/profile/ProfileSidebar.vue';
+import ProfileSchemaOutdatedState from '@/components/profile/ProfileSchemaOutdatedState.vue';
 import {
   DifferentialType,
   getModeForPath,
@@ -351,6 +357,10 @@ const disabledFeatures = ref<FeatureType[]>([]);
 const isHeapDumpOnlyProfile = ref(false);
 const isPprofOnlyProfile = ref(false);
 const isOtlpOnlyProfile = ref(false);
+// The profile database was created by an older Jeffrey version — any profile-data request answers
+// 409 PROFILE_SCHEMA_OUTDATED (signaled via MessageBus by the HTTP interceptor); the content area
+// then shows the recreate-profile state instead of the failing feature views.
+const schemaOutdated = ref(false);
 // True when the recording carries a heap dump (heap-dump-only profile or an attached .hprof file);
 // the Heap Dump pill is hidden entirely when there is none.
 const heapDumpAttached = ref(false);
@@ -725,13 +735,25 @@ const handleAiSettingsChanged = async () => {
   }
 };
 
+const handleSchemaOutdated = () => {
+  schemaOutdated.value = true;
+};
+
+// After recreating or deleting the outdated profile, this detail page has nothing to show —
+// the replacement appears in the recordings list with the regular "analyzing" state.
+const handleSchemaOutdatedResolved = () => {
+  navigateToProjectRecordings();
+};
+
 // Set up message bus listener
 MessageBus.on(MessageBus.HEAP_DUMP_STATUS_CHANGED, handleHeapDumpStatusChanged);
 MessageBus.on(MessageBus.AI_SETTINGS_CHANGED, handleAiSettingsChanged);
+MessageBus.on(MessageBus.PROFILE_SCHEMA_OUTDATED, handleSchemaOutdated);
 
 onUnmounted(() => {
   MessageBus.off(MessageBus.HEAP_DUMP_STATUS_CHANGED, handleHeapDumpStatusChanged);
   MessageBus.off(MessageBus.AI_SETTINGS_CHANGED, handleAiSettingsChanged);
+  MessageBus.off(MessageBus.PROFILE_SCHEMA_OUTDATED, handleSchemaOutdated);
 });
 </script>
 

@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<!--
+  Jeffrey
+  Copyright (C) 2026 Petr Bouda
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<!--
+  Jeffrey Microscope recovery page. Served by RecoveryWebServer when the existing
+  database is incompatible with this Jeffrey version. Fully self-contained: no
+  external assets, works before the SPA / Spring context exists.
+
+  Color values are copied inline from shared/ui/common/src/assets/design-tokens.css
+  (this page must render standalone) — keep them in sync with the design tokens.
+
+  Opening the file directly (or anywhere the recovery API is unreachable) enables a
+  mock mode that stubs the endpoints so the page stays previewable standalone.
+-->
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="jeffrey-recovery" content="active">
+    <title>Jeffrey — Recovery Mode</title>
+    <style>
+        :root {
+            --primary: #5e64ff;
+            --primary-hover: #4c52db;
+            --primary-light: rgba(94, 100, 255, 0.1);
+            --danger: #e63757;
+            --danger-light: rgba(230, 55, 87, 0.08);
+            --sans: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            --mono: ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace;
+
+            --bg: #f0f2fa;
+            --card: #ffffff;
+            --text: #0b1727;
+            --muted: #6c757d;
+            --border: #e3e6f0;
+            --chip-bg: #f1f3fa;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg: #060d18;
+                --card: #101d31;
+                --text: #e8ecf5;
+                --muted: #94a3b8;
+                --border: rgba(255, 255, 255, 0.1);
+                --chip-bg: rgba(255, 255, 255, 0.07);
+            }
+        }
+
+        :root[data-theme="dark"] {
+            --bg: #060d18;
+            --card: #101d31;
+            --text: #e8ecf5;
+            --muted: #94a3b8;
+            --border: rgba(255, 255, 255, 0.1);
+            --chip-bg: rgba(255, 255, 255, 0.07);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--sans);
+            font-size: 0.9rem;
+            line-height: 1.55;
+            padding: 1.5rem;
+        }
+
+        .shell {
+            width: 100%;
+            max-width: 46rem;
+            display: grid;
+            grid-template-columns: 14rem 1fr;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 0.5rem 2rem rgba(0, 0, 0, 0.12);
+        }
+
+        aside {
+            background: linear-gradient(160deg, #5e64ff 0%, #3d43c9 100%);
+            color: #fff;
+            padding: 1.6rem 1.4rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        aside .mark {
+            width: 2.3rem;
+            height: 2.3rem;
+            border-radius: 0.6rem;
+            background: rgba(255, 255, 255, 0.18);
+            display: grid;
+            place-items: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            margin-bottom: 0.9rem;
+        }
+
+        aside .name {
+            font-weight: 600;
+            font-size: 1.05rem;
+        }
+
+        aside .mode {
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            opacity: 0.85;
+            margin-top: 0.2rem;
+        }
+
+        aside .spacer {
+            flex: 1;
+        }
+
+        aside .why {
+            font-size: 0.78rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 1.6rem 1.7rem;
+        }
+
+        h1 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0 0 0.4rem;
+        }
+
+        .lead {
+            color: var(--muted);
+            font-size: 0.85rem;
+            margin: 0 0 0.9rem;
+        }
+
+        .chip {
+            display: inline-block;
+            font-family: var(--mono);
+            font-size: 0.76rem;
+            background: var(--chip-bg);
+            border-radius: 0.4rem;
+            padding: 0.3rem 0.6rem;
+            word-break: break-all;
+            margin-bottom: 1.2rem;
+        }
+
+        .option {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.7rem;
+            padding: 0.9rem 1.1rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .option .text {
+            flex: 1;
+        }
+
+        .option h2 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin: 0 0 0.15rem;
+        }
+
+        .option p {
+            margin: 0;
+            font-size: 0.78rem;
+            color: var(--muted);
+        }
+
+        .btn {
+            font: inherit;
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 0.5rem 1.1rem;
+            border-radius: 0.45rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            transition: all 0.15s ease;
+        }
+
+        .btn-danger-outline {
+            background: transparent;
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .btn-danger-outline:hover {
+            background: var(--danger-light);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            filter: brightness(0.92);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border-color: var(--border);
+            color: var(--text);
+        }
+
+        .expand {
+            display: none;
+            border-top: 1px dashed var(--border);
+            margin-top: 0.8rem;
+            padding-top: 0.8rem;
+            width: 100%;
+        }
+
+        .option.open {
+            flex-wrap: wrap;
+        }
+
+        .option.open .expand {
+            display: block;
+        }
+
+        .expand .warn {
+            font-size: 0.8rem;
+            margin-bottom: 0.7rem;
+        }
+
+        .expand .warn b {
+            color: var(--danger);
+        }
+
+        .expand input {
+            width: 100%;
+            font-family: var(--mono);
+            font-size: 0.78rem;
+            padding: 0.5rem 0.7rem;
+            border: 1px solid var(--border);
+            border-radius: 0.45rem;
+            background: var(--bg);
+            color: var(--text);
+            margin-bottom: 0.3rem;
+        }
+
+        .expand input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .error {
+            display: none;
+            color: var(--danger);
+            font-size: 0.75rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .error.visible {
+            display: block;
+        }
+
+        .hint {
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-bottom: 0.7rem;
+        }
+
+        .cmd-review {
+            display: none;
+            border: 1px solid var(--primary);
+            background: var(--primary-light);
+            border-radius: 0.5rem;
+            padding: 0.6rem 0.7rem;
+            margin-bottom: 0.7rem;
+        }
+
+        .cmd-review.visible {
+            display: block;
+        }
+
+        .review-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+        }
+
+        .row {
+            display: flex;
+            gap: 0.6rem;
+        }
+
+        .starting {
+            display: none;
+            text-align: center;
+            padding: 1.5rem 0 0.5rem;
+        }
+
+        .starting.visible {
+            display: block;
+        }
+
+        .spinner {
+            width: 2.2rem;
+            height: 2.2rem;
+            margin: 0 auto 0.8rem;
+            border: 3px solid var(--primary-light);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+
+        .starting.done .spinner {
+            display: none;
+        }
+
+        .starting .check {
+            display: none;
+            font-size: 1.8rem;
+            color: var(--primary);
+            margin-bottom: 0.4rem;
+        }
+
+        .starting.done .check {
+            display: block;
+        }
+
+        .starting p {
+            color: var(--muted);
+            font-size: 0.82rem;
+            margin: 0;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .mock-chrome {
+            position: fixed;
+            top: 1rem;
+            right: 1.1rem;
+            display: none;
+            gap: 0.5rem;
+        }
+
+        body.mock .mock-chrome {
+            display: flex;
+        }
+
+        .pill {
+            font-size: 0.7rem;
+            font-family: var(--mono);
+            border: 1px dashed var(--muted);
+            color: var(--muted);
+            border-radius: 999px;
+            padding: 0.15rem 0.6rem;
+            background: none;
+        }
+
+        button.pill {
+            cursor: pointer;
+            color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        @media (max-width: 40rem) {
+            .shell {
+                grid-template-columns: 1fr;
+            }
+
+            aside {
+                flex-direction: row;
+                align-items: center;
+                gap: 0.8rem;
+                padding: 1rem 1.2rem;
+            }
+
+            aside .mark {
+                margin: 0;
+            }
+
+            aside .spacer, aside .why {
+                display: none;
+            }
+        }
+
+        .cmd-box {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--chip-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.45rem;
+            padding: 0.4rem 0.55rem;
+        }
+
+        .cmd-box code.cmd-text {
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            word-break: break-all;
+            flex: 1;
+            color: var(--text);
+        }
+
+        .copy-btn {
+            font: inherit;
+            font-size: 0.68rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--primary);
+            border-radius: 0.35rem;
+            padding: 0.25rem 0.6rem;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+<div class="mock-chrome">
+    <span class="pill">mockup</span>
+    <button class="pill" id="themeToggle" type="button">dark / light</button>
+</div>
+
+<div class="shell">
+    <aside>
+        <div class="mark">J</div>
+        <div>
+            <div class="name">Jeffrey</div>
+            <div class="mode">Recovery mode</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="why">Jeffrey was updated and can’t use the existing data folder.</div>
+    </aside>
+
+    <div class="content" id="content">
+        <h1>Choose how to continue</h1>
+        <p class="lead">Your data folder was created by an older version of Jeffrey.</p>
+        <span class="chip" id="homeDir">—</span>
+
+        <div class="option" id="freshOption">
+            <div class="text">
+                <h2>Start fresh</h2>
+                <p>Removes the data folder and starts again with empty data.</p>
+            </div>
+            <button class="btn btn-danger-outline" id="freshBtn" type="button">Start fresh…</button>
+            <div class="expand">
+                <div class="warn">This <b>permanently removes all data</b> — projects, recordings, profiles and
+                    settings. There is no backup.
+                </div>
+                <div class="row">
+                    <button class="btn btn-danger" id="freshConfirm" type="button">Remove everything &amp; start</button>
+                    <button class="btn btn-ghost" id="freshCancel" type="button">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="option" id="switchOption">
+            <div class="text">
+                <h2>Use a different folder</h2>
+                <p>Keeps the current folder untouched; Jeffrey uses a new one for this start.</p>
+            </div>
+            <button class="btn btn-primary" id="switchBtn" type="button">Choose folder…</button>
+            <div class="expand">
+                <input type="text" id="newHome" placeholder="/home/petr/jeffrey-home-new" spellcheck="false">
+                <div class="error" id="newHomeError"></div>
+                <div class="hint">Absolute path — used for this start.</div>
+                <div class="cmd-review" id="cmdReview">
+                    <div class="review-title">One more thing — remember this for the next start:</div>
+                    <div class="cmd-box">
+                        <code class="cmd-text"></code>
+                        <button class="copy-btn" type="button">Copy</button>
+                    </div>
+                    <div class="hint" style="margin: 0.4rem 0 0;">Without it, this recovery page appears again on the next start.</div>
+                </div>
+                <div class="row">
+                    <button class="btn btn-primary" id="switchConfirm" type="button">Switch &amp; start</button>
+                    <button class="btn btn-ghost" id="switchCancel" type="button">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="starting" id="starting">
+            <div class="spinner"></div>
+            <div class="check">✓</div>
+            <p id="startingText">Starting Jeffrey…</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        'use strict';
+
+        const RECOVERY_MARKER = 'name="jeffrey-recovery"';
+        let mockMode = location.protocol === 'file:';
+        let status = {homeDir: '/home/petr/.jeffrey-microscope'};
+        const el = (id) => document.getElementById(id);
+
+        function validate(path) {
+            if (path === '') {
+                return 'Enter a path.';
+            }
+            if (!path.startsWith('/') && !/^[A-Za-z]:[\\/]/.test(path)) {
+                return 'The path must be absolute.';
+            }
+            if (path === status.homeDir) {
+                return 'The new folder must differ from the current one.';
+            }
+            return null;
+        }
+
+        function runAction(endpoint, path) {
+            el('freshOption').style.display = 'none';
+            el('switchOption').style.display = 'none';
+            el('starting').classList.add('visible');
+            if (mockMode) {
+                setTimeout(() => {
+                    el('starting').classList.add('done');
+                    el('startingText').textContent =
+                        '(Mockup) Jeffrey would start now and this page would reload into the application.';
+                }, 2400);
+                return;
+            }
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: path === null ? null : JSON.stringify({path: path})
+            }).then((r) => {
+                if (!r.ok) {
+                    throw new Error('status ' + r.status);
+                }
+                const tick = async () => {
+                    try {
+                        const res = await fetch('/', {cache: 'no-store'});
+                        const t = await res.text();
+                        if (res.ok && !t.includes(RECOVERY_MARKER)) {
+                            location.reload();
+                            return;
+                        }
+                    } catch (e) { /* keep polling */ }
+                    setTimeout(tick, 1000);
+                };
+                setTimeout(tick, 1000);
+            }).catch((e) => {
+                el('startingText').textContent = 'Failed: ' + e.message + ' — check the console log.';
+            });
+        }
+
+        el('freshBtn').addEventListener('click', () => {
+            el('freshOption').classList.add('open');
+            el('switchOption').classList.remove('open');
+        });
+        el('freshCancel').addEventListener('click', () => el('freshOption').classList.remove('open'));
+        el('freshConfirm').addEventListener('click', () => runAction('/api/recovery/start-fresh', null));
+
+        el('switchBtn').addEventListener('click', () => {
+            el('switchOption').classList.add('open');
+            el('freshOption').classList.remove('open');
+            el('newHome').focus();
+        });
+        el('switchCancel').addEventListener('click', () => el('switchOption').classList.remove('open'));
+        let switchReviewed = false;
+        el('switchConfirm').addEventListener('click', () => {
+            const path = el('newHome').value.trim();
+            const error = validate(path);
+            const errorEl = el('newHomeError');
+            if (error) {
+                errorEl.textContent = error;
+                errorEl.classList.add('visible');
+                return;
+            }
+            errorEl.classList.remove('visible');
+            if (!switchReviewed) {
+                switchReviewed = true;
+                refreshCommand();
+                el('cmdReview').classList.add('visible');
+                el('switchConfirm').textContent = 'Got it — start Jeffrey';
+                return;
+            }
+            runAction('/api/recovery/switch-home', path);
+        });
+        el('newHome').addEventListener('input', () => {
+            if (switchReviewed) {
+                switchReviewed = false;
+                el('cmdReview').classList.remove('visible');
+                el('switchConfirm').textContent = 'Switch & start';
+            }
+        });
+
+
+        const CMD_PREFIX = 'java -jar microscope.jar --jeffrey.microscope.home.dir=';
+        const CMD_PLACEHOLDER = '/path/to/new/home';
+
+        function currentCommand() {
+            const path = el('newHome').value.trim();
+            return CMD_PREFIX + (path === '' ? CMD_PLACEHOLDER : path);
+        }
+
+        function refreshCommand() {
+            document.querySelectorAll('.cmd-text').forEach((node) => {
+                node.textContent = currentCommand();
+            });
+        }
+
+        el('newHome').addEventListener('input', refreshCommand);
+        document.querySelectorAll('.copy-btn').forEach((button) => {
+            button.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(currentCommand());
+                } catch (e) { /* clipboard unavailable in this context */ }
+                const original = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                    button.textContent = original;
+                }, 1400);
+            });
+        });
+        refreshCommand();
+
+        el('themeToggle').addEventListener('click', () => {
+            const root = document.documentElement;
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const current = root.dataset.theme || (prefersDark ? 'dark' : 'light');
+            root.dataset.theme = current === 'dark' ? 'light' : 'dark';
+        });
+
+        (async function init() {
+            if (!mockMode) {
+                try {
+                    const r = await fetch('/api/recovery/status', {cache: 'no-store'});
+                    if (!r.ok) {
+                        throw new Error();
+                    }
+                    status = await r.json();
+                } catch (e) {
+                    mockMode = true;
+                }
+            }
+            if (mockMode) {
+                document.body.classList.add('mock');
+            }
+            el('homeDir').textContent = status.homeDir;
+        })();
+    })();
+</script>
+</body>
+</html>

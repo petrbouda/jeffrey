@@ -15,23 +15,24 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module cafe.jeffrey.shared.persistence {
-    requires transitive java.sql;
-    requires transitive duckdb.jdbc;
-    requires jdk.jfr;
-    requires transitive cafe.jeffrey.shared.common;
-    requires transitive cafe.jeffrey.shared.sql.builder;
-    requires cafe.jeffrey.jfr.events;
-    requires transitive com.zaxxer.hikari;
-    requires transitive spring.jdbc;
-    requires spring.tx;
-    requires tools.jackson.databind;
-    requires flyway.core;
 
-    exports cafe.jeffrey.shared.persistence;
-    exports cafe.jeffrey.shared.persistence.client;
-    exports cafe.jeffrey.shared.persistence.metrics;
-    exports cafe.jeffrey.shared.persistence.schema;
+package cafe.jeffrey.hub.persistence.jdbc;
 
-    uses java.sql.Driver;
+/**
+ * The existing hub database was created by an older Jeffrey version and cannot be used by this
+ * build. Surfaced at startup as an actionable console error by the hub's failure analyzer.
+ */
+public class HubDatabaseIncompatibleException extends RuntimeException {
+
+    private final String databaseUrl;
+
+    public HubDatabaseIncompatibleException(String databaseUrl, String detail) {
+        super("Hub database is incompatible with this Jeffrey version: database_url=%s detail=%s"
+                .formatted(databaseUrl, detail));
+        this.databaseUrl = databaseUrl;
+    }
+
+    public String databaseUrl() {
+        return databaseUrl;
+    }
 }

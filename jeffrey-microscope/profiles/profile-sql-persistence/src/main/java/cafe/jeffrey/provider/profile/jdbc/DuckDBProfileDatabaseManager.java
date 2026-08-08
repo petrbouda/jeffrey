@@ -19,17 +19,25 @@
 package cafe.jeffrey.provider.profile.jdbc;
 
 import org.flywaydb.core.Flyway;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.persistence.DataSourceParams;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
 import cafe.jeffrey.shared.persistence.DataSourceProvider;
+import cafe.jeffrey.shared.persistence.DataSourceUtils;
+import cafe.jeffrey.shared.persistence.schema.FlywaySchemaValidator;
+import cafe.jeffrey.shared.persistence.schema.SchemaValidationResult;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.time.Duration;
 
 public class DuckDBProfileDatabaseManager implements DatabaseManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(DuckDBProfileDatabaseManager.class);
 
     private static final String PROFILE_DB_FILENAME = "profile-data.db";
     private static final String PROFILE_MIGRATIONS_LOCATION = "classpath:db/migration/profile";
@@ -78,7 +86,39 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
             return dataSource;
         }
 
-        return createDataSource(dbPath, profileId);
+        DataSource dataSource = createDataSource(dbPath, profileId);
+        validateExistingDatabase(dataSource, profileId);
+        return dataSource;
+    }
+
+    /**
+     * An existing profile database may have been created by an older Jeffrey version. A database
+     * that is merely behind the shipped migrations is migrated in place; one created from
+     * different migration content (in-place edited {@code V001__init.sql}) cannot be used and is
+     * surfaced as a "profile schema outdated" client error, so the frontend can offer recreating
+     * the profile from its original recording.
+     */
+    private void validateExistingDatabase(DataSource dataSource, String profileId) {
+        SchemaValidationResult result = FlywaySchemaValidator.validate(dataSource, PROFILE_MIGRATIONS_LOCATION);
+        switch (result) {
+            case SchemaValidationResult.Valid ignored -> {
+            }
+            case SchemaValidationResult.Migratable ignored -> {
+                runMigrations(dataSource);
+            }
+            case SchemaValidationResult.Incompatible incompatible -> {
+                LOG.warn("Profile database schema is outdated: profile_id={} detail={}",
+                        profileId, String.join("; ", incompatible.details()));
+                DataSourceUtils.close(dataSource);
+                throw Exceptions.profileSchemaOutdated(profileId);
+            }
+            case SchemaValidationResult.Unreadable unreadable -> {
+                LOG.warn("Profile database cannot be read: profile_id={} detail={}",
+                        profileId, unreadable.message());
+                DataSourceUtils.close(dataSource);
+                throw Exceptions.profileSchemaOutdated(profileId);
+            }
+        }
     }
 
     @Override

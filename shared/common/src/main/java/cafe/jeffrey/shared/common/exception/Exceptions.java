@@ -79,6 +79,13 @@ public abstract class Exceptions {
         return new JeffreyClientException(ErrorCode.INVALID_REQUEST, message);
     }
 
+    public static JeffreyClientException profileSchemaOutdated(String profileId) {
+        return new JeffreyClientException(
+                ErrorCode.PROFILE_SCHEMA_OUTDATED,
+                ("Profile was analyzed by an older Jeffrey version and its data format is outdated, "
+                        + "recreate it from the original recording: %s").formatted(profileId));
+    }
+
     public static JeffreyInternalException compressionError(String message) {
         return new JeffreyInternalException(ErrorCode.COMPRESSION_ERROR, message);
     }

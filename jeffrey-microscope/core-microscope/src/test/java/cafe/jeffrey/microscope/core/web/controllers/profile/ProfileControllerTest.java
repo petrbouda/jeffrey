@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import cafe.jeffrey.microscope.core.manager.ProfileRecreationManager;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
@@ -32,6 +33,8 @@ import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 
@@ -42,6 +45,9 @@ class ProfileControllerTest {
     ProfileManagerResolver resolver;
 
     @Mock
+    ProfileRecreationManager recreationManager;
+
+    @Mock
     ProfileManager profileManager;
 
     @Test
@@ -50,7 +56,7 @@ class ProfileControllerTest {
         when(resolver.resolve("p-1")).thenReturn(profileManager);
         when(profileManager.info()).thenReturn(info);
 
-        MockMvcTester mvc = mockMvcTesterFor(new ProfileController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new ProfileController(resolver, recreationManager));
 
         assertThat(mvc.get().uri("/api/internal/profiles/p-1"))
                 .hasStatusOk()
@@ -62,12 +68,34 @@ class ProfileControllerTest {
     void unknownProfileReturnsNotFound() {
         when(resolver.resolve("ghost")).thenThrow(Exceptions.profileNotFound("ghost"));
 
-        MockMvcTester mvc = mockMvcTesterFor(new ProfileController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new ProfileController(resolver, recreationManager));
 
         assertThat(mvc.get().uri("/api/internal/profiles/ghost"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");
+    }
+
+    @Test
+    void recreateProfileIsAccepted() {
+        MockMvcTester mvc = mockMvcTesterFor(new ProfileController(resolver, recreationManager));
+
+        assertThat(mvc.post().uri("/api/internal/profiles/p-1/recreate"))
+                .hasStatus(202);
+        verify(recreationManager).recreate("p-1");
+    }
+
+    @Test
+    void recreateWithoutRecordingReturnsNotFound() {
+        doThrow(Exceptions.recordingNotFound("rec-1"))
+                .when(recreationManager).recreate("p-1");
+
+        MockMvcTester mvc = mockMvcTesterFor(new ProfileController(resolver, recreationManager));
+
+        assertThat(mvc.post().uri("/api/internal/profiles/p-1/recreate"))
+                .hasStatus(404)
+                .bodyJson()
+                .extractingPath("$.code").asString().isEqualTo("RECORDING_NOT_FOUND");
     }
 
     static ProfileInfo sampleProfile() {

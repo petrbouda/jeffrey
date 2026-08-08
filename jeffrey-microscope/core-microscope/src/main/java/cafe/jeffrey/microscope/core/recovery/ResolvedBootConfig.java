@@ -15,23 +15,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module cafe.jeffrey.shared.persistence {
-    requires transitive java.sql;
-    requires transitive duckdb.jdbc;
-    requires jdk.jfr;
-    requires transitive cafe.jeffrey.shared.common;
-    requires transitive cafe.jeffrey.shared.sql.builder;
-    requires cafe.jeffrey.jfr.events;
-    requires transitive com.zaxxer.hikari;
-    requires transitive spring.jdbc;
-    requires spring.tx;
-    requires tools.jackson.databind;
-    requires flyway.core;
 
-    exports cafe.jeffrey.shared.persistence;
-    exports cafe.jeffrey.shared.persistence.client;
-    exports cafe.jeffrey.shared.persistence.metrics;
-    exports cafe.jeffrey.shared.persistence.schema;
+package cafe.jeffrey.microscope.core.recovery;
 
-    uses java.sql.Driver;
+import java.nio.file.Path;
+import java.util.Optional;
+
+/**
+ * Boot-relevant configuration resolved before Spring starts: the Jeffrey home directory, an
+ * optional external core-database URL (which disables file-based recovery) and the HTTP port
+ * the recovery page binds to.
+ */
+public record ResolvedBootConfig(Path homeDir, Optional<String> externalDatabaseUrl, int port) {
 }
