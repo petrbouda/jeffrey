@@ -27,10 +27,14 @@ import java.nio.file.Path;
 
 /**
  * Pre-flight guard that runs in {@code main()} BEFORE {@code SpringApplication.run}. It resolves
- * the Jeffrey home directory (following {@link HomeRedirect} markers), validates the existing
- * core database against this build's migrations and — when the database is incompatible — serves
- * the recovery page instead of crashing. After the user picks a recovery action the same JVM
- * continues into the normal Spring Boot startup, so no process restart is needed.
+ * the Jeffrey home directory, validates the existing core database against this build's
+ * migrations and — when the database is incompatible — serves the recovery page instead of
+ * crashing. After the user picks a recovery action the same JVM continues into the normal
+ * Spring Boot startup, so no process restart is needed.
+ *
+ * <p>Switching to a different home folder applies to the current run only: if the configured
+ * home still points at the incompatible folder on the next start, validation fails again and
+ * the recovery page is shown again.
  */
 public final class MicroscopeStartupGuard {
 
@@ -81,7 +85,7 @@ public final class MicroscopeStartupGuard {
             return args;
         }
 
-        Path homeDir = HomeRedirect.follow(config.homeDir());
+        Path homeDir = config.homeDir();
         SchemaValidationResult result = CoreDatabaseCompatibilityCheck.checkHome(homeDir);
         while (CoreDatabaseCompatibilityCheck.requiresRecovery(result)) {
             homeDir = recover(homeDir, config.port(), result);

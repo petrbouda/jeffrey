@@ -49,8 +49,10 @@ public final class RecoveryActions {
     }
 
     /**
-     * Points Jeffrey at a different home directory, leaving the current one untouched. The choice
-     * is remembered via {@link HomeRedirect} so future starts resolve the new directory too.
+     * Points Jeffrey at a different home directory for THIS run, leaving the current one
+     * untouched. The choice is deliberately not persisted: unless the user changes the home-dir
+     * configuration permanently, the next start resolves the old directory again, fails
+     * validation again and lands back on the recovery page.
      */
     public static Path switchHome(Path currentHome, String rawPath) {
         Path newHome = parseAbsolutePath(rawPath);
@@ -66,7 +68,6 @@ public final class RecoveryActions {
         }
 
         FileSystemUtils.createDirectories(newHome);
-        HomeRedirect.write(currentHome, newHome);
         LOG.warn("Recovery action, switching to a different home directory: from={} to={}", currentHome, newHome);
         return newHome;
     }

@@ -54,16 +54,18 @@ class RecoveryActionsTest {
     class SwitchHome {
 
         @Test
-        void createsNewHomeAndWritesRedirect(@TempDir Path tempDir) throws Exception {
+        void createsNewHomeAndLeavesCurrentOneUntouched(@TempDir Path tempDir) throws Exception {
             Path currentHome = Files.createDirectories(tempDir.resolve("current"));
+            Files.writeString(currentHome.resolve("jeffrey-data.db"), "old data");
             Path newHome = tempDir.resolve("brand-new");
 
             Path result = RecoveryActions.switchHome(currentHome, newHome.toString());
 
             assertEquals(newHome, result);
             assertTrue(Files.isDirectory(newHome));
-            assertEquals(newHome.toString(),
-                    Files.readString(currentHome.resolve(HomeRedirect.REDIRECT_FILE)));
+            try (var entries = Files.list(currentHome)) {
+                assertEquals(1, entries.count());
+            }
         }
 
         @Test

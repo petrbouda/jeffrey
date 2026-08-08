@@ -302,6 +302,15 @@
             margin-bottom: 0.7rem;
         }
 
+        .hint code {
+            font-family: var(--mono);
+            font-size: 0.68rem;
+            background: var(--chip-bg);
+            border-radius: 0.3rem;
+            padding: 0.1rem 0.3rem;
+            word-break: break-all;
+        }
+
         .row {
             display: flex;
             gap: 0.6rem;
@@ -444,13 +453,15 @@
         <div class="option" id="switchOption">
             <div class="text">
                 <h2>Use a different folder</h2>
-                <p>Keeps the current folder untouched; Jeffrey uses a new one from now on.</p>
+                <p>Keeps the current folder untouched; Jeffrey uses a new one for this start.</p>
             </div>
             <button class="btn btn-primary" id="switchBtn" type="button">Choose folder…</button>
             <div class="expand">
                 <input type="text" id="newHome" placeholder="/home/petr/jeffrey-home-new" spellcheck="false">
                 <div class="error" id="newHomeError"></div>
-                <div class="hint">Absolute path — remembered for future starts.</div>
+                <div class="hint">Absolute path. To make the change permanent, start Jeffrey with
+                    <code>--jeffrey.microscope.home.dir=&lt;path&gt;</code> — otherwise this page appears again
+                    on the next start.</div>
                 <div class="row">
                     <button class="btn btn-primary" id="switchConfirm" type="button">Switch &amp; start</button>
                     <button class="btn btn-ghost" id="switchCancel" type="button">Cancel</button>
