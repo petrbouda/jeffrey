@@ -55,20 +55,10 @@ public class JeffreyExceptionHandler {
         }
         HttpStatus status = switch (ex.getType()) {
             case INTERNAL -> HttpStatus.INTERNAL_SERVER_ERROR;
-            case CLIENT -> clientStatus(ex.getCode());
+            case CLIENT -> ex.getCode().isNotFound() ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
         };
         return ResponseEntity.status(status)
                 .body(new ErrorResponse(ex.getType(), ex.getCode(), ex.getMessage()));
-    }
-
-    private static HttpStatus clientStatus(ErrorCode code) {
-        if (code.isNotFound()) {
-            return HttpStatus.NOT_FOUND;
-        }
-        if (code.isConflict()) {
-            return HttpStatus.CONFLICT;
-        }
-        return HttpStatus.BAD_REQUEST;
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

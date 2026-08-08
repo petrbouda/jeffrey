@@ -20,7 +20,6 @@ package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.microscope.core.configuration.ApplicationStartedListener;
 import cafe.jeffrey.microscope.core.configuration.SettingsApplicationListener;
-import cafe.jeffrey.microscope.core.recovery.MicroscopeStartupGuard;
 import cafe.jeffrey.shared.common.JeffreyVersion;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
@@ -40,10 +39,14 @@ import org.springframework.web.servlet.resource.PathResourceResolver;
 public class MicroscopeApplication implements WebMvcConfigurer {
 
     static void main(String[] args) {
-        if (args.length > 0 && args[0].equals("--version")) {
-            JeffreyVersion.print();
+        if (args.length == 0) {
+            runApplication(args);
         } else {
-            runApplication(MicroscopeStartupGuard.guard(args));
+            if (args[0].equals("--version")) {
+                JeffreyVersion.print();
+            } else {
+                runApplication(args);
+            }
         }
     }
 

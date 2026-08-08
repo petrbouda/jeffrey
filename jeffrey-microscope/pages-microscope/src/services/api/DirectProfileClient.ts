@@ -58,19 +58,4 @@ export default class DirectProfileClient extends BasePlatformClient {
   async getById(profileId: string): Promise<ProfileWithContext> {
     return super.get<ProfileWithContext>(`/${profileId}`);
   }
-
-  /**
-   * Deletes an outdated profile and re-analyzes its original recording. The replacement
-   * profile appears in the profile list with the regular "analyzing" state.
-   */
-  async recreate(profileId: string): Promise<void> {
-    return super.post<void>(`/${profileId}/recreate`);
-  }
-
-  /**
-   * Deletes a profile by ID.
-   */
-  async deleteById(profileId: string): Promise<void> {
-    return super.del<void>(`/${profileId}`);
-  }
 }

@@ -30,8 +30,7 @@ const headings = [
   { id: 'platform-database', text: 'Platform Database', level: 2 },
   { id: 'profile-databases', text: 'Per-Profile Databases', level: 2 },
   { id: 'write-once-read-many', text: 'Write-Once-Read-Many', level: 2 },
-  { id: 'directory-layout', text: 'Directory Layout', level: 2 },
-  { id: 'upgrades-recovery', text: 'Upgrades & Recovery Mode', level: 2 }
+  { id: 'directory-layout', text: 'Directory Layout', level: 2 }
 ];
 
 onMounted(() => {
@@ -220,14 +219,6 @@ onMounted(() => {
       <DocsCallout type="tip">
         Override the home directory with <code>jeffrey.microscope.home.dir</code> in <code>application.properties</code> or via the <code>JEFFREY_MICROSCOPE_HOME_DIR</code> environment variable.
       </DocsCallout>
-
-      <h2 id="upgrades-recovery">Upgrades &amp; Recovery Mode</h2>
-      <p>After an update, the data in your home folder may have been created by an older Jeffrey version and can no longer be used. Microscope detects this at startup and, instead of failing, serves a recovery page on its regular port (default <code>http://localhost:8080</code>) with two options:</p>
-      <ul>
-        <li><strong>Start fresh</strong> — permanently removes the current data folder and starts again with empty data.</li>
-        <li><strong>Use another folder</strong> — keeps the current folder untouched and points Jeffrey at a new home folder for this start. To make the change permanent, launch Jeffrey with <code>jeffrey.microscope.home.dir</code> pointing at the new folder — otherwise the recovery page appears again on the next start.</li>
-      </ul>
-      <p>Individual profiles analyzed by an older version are detected when opened: the profile page offers recreating the profile from its original recording (or deleting it when the recording no longer exists).</p>
     </div>
 
     <DocsNavFooter />

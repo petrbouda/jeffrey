@@ -26,12 +26,10 @@ module cafe.jeffrey.shared.persistence {
     requires transitive spring.jdbc;
     requires spring.tx;
     requires tools.jackson.databind;
-    requires flyway.core;
 
     exports cafe.jeffrey.shared.persistence;
     exports cafe.jeffrey.shared.persistence.client;
     exports cafe.jeffrey.shared.persistence.metrics;
-    exports cafe.jeffrey.shared.persistence.schema;
 
     uses java.sql.Driver;
 }

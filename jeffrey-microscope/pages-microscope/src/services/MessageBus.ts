@@ -29,7 +29,6 @@ export default class MessageBus {
   // The AI provider changed. Applied by the backend immediately, but open profile pages cached their
   // feature list on mount, so they re-fetch it on this event instead of waiting for a reload.
   static AI_SETTINGS_CHANGED = 'ai-settings-changed';
-  static PROFILE_SCHEMA_OUTDATED = 'profile-schema-outdated';
 
   static emit(type: string, content: any) {
     this.INSTANCE.emit(type, content);
