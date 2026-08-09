@@ -62,6 +62,11 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
             ORDER BY seconds
             """;
 
+    // The search pattern is a regular expression tested against the composed `class#method` frame
+    // name — the same contract as the client-side flamegraph highlight (RegExp over the frame title,
+    // built as `className#methodName` by FrameNameBuilder) and SearchingTimeseriesBuilder. A dotted
+    // search like `JsonReader.<init>` therefore matches `JsonReader#<init>` via the `.` wildcard.
+    // concat_ws skips NULL columns, so class-less native frames still match on the method alone.
     //language=SQL
     private static final String SIMPLE_SEARCH = """
             WITH relevant_events AS (
@@ -87,8 +92,7 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
             matching_frame_hashes AS (
                 SELECT LIST(DISTINCT f.frame_hash) AS matched_hashes
                 FROM frames f
-                WHERE (f.class_name LIKE '%' || :search_pattern || '%'
-                         OR f.method_name LIKE '%' || :search_pattern || '%')
+                WHERE regexp_matches(concat_ws('#', f.class_name, f.method_name), :search_pattern)
                     AND EXISTS (
                         SELECT 1
                         FROM relevant_stacktraces rs

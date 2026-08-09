@@ -26,6 +26,7 @@ import FrameColorResolver from '@/services/flamegraphs/FrameColorResolver';
 import FrameType from '@/services/flamegraphs/FrameType';
 import { parseUnknownFrame, type ParsedFrameName } from '@/services/flamegraphs/FrameNameParser';
 import ideConfigStore from '@/stores/ideConfigStore';
+import { escapeAttr, escapeHtml } from '@shared/services/HtmlEscape';
 
 export default abstract class FlamegraphTooltip {
   private static readonly COMPILATION_TYPES: {
@@ -163,14 +164,16 @@ export default abstract class FlamegraphTooltip {
       parsed = parseUnknownFrame(frame.title);
     }
 
+    // Frame names come out of the recording and go through innerHTML, so they must be escaped —
+    // otherwise method names like `<init>`/`<clinit>` are parsed as HTML tags and disappear.
     let titleHtml: string;
     if (parsed && parsed.pkg) {
-      titleHtml = `<div style="font-size:12px;color:#0b1727"><span style="font-weight:700">${parsed.className}</span><span style="font-style:italic">${parsed.separator}${parsed.methodName}</span></div>
-                    <div style="font-size:11px;color:#748194;margin-top:1px">${parsed.pkg}</div>`;
+      titleHtml = `<div style="font-size:12px;color:#0b1727"><span style="font-weight:700">${escapeHtml(parsed.className)}</span><span style="font-style:italic">${parsed.separator}${escapeHtml(parsed.methodName)}</span></div>
+                    <div style="font-size:11px;color:#748194;margin-top:1px">${escapeHtml(parsed.pkg)}</div>`;
     } else if (parsed) {
-      titleHtml = `<div style="font-size:12px;color:#0b1727"><span style="font-weight:700">${parsed.className}</span><span style="font-style:italic">${parsed.separator}${parsed.methodName}</span></div>`;
+      titleHtml = `<div style="font-size:12px;color:#0b1727"><span style="font-weight:700">${escapeHtml(parsed.className)}</span><span style="font-style:italic">${parsed.separator}${escapeHtml(parsed.methodName)}</span></div>`;
     } else {
-      titleHtml = `<div style="font-weight:700;font-size:12px;color:#0b1727">${frame.title}</div>`;
+      titleHtml = `<div style="font-weight:700;font-size:12px;color:#0b1727">${escapeHtml(frame.title)}</div>`;
     }
 
     // UNKNOWN conveys nothing useful (e.g. every pprof frame is UNKNOWN, as pprof carries no
@@ -200,9 +203,9 @@ export default abstract class FlamegraphTooltip {
     const fqn = parsed.packageName ? `${parsed.packageName}.${parsed.className}` : parsed.className;
     const method = `${parsed.className}.${parsed.methodName}`;
     const line = frame.position?.line ?? -1;
-    const fqnAttr = FlamegraphTooltip.escapeAttr(fqn);
-    const methodAttr = FlamegraphTooltip.escapeAttr(method);
-    const titleAttr = FlamegraphTooltip.escapeAttr(parsed.className);
+    const fqnAttr = escapeAttr(fqn);
+    const methodAttr = escapeAttr(method);
+    const titleAttr = escapeAttr(parsed.className);
     const dataAttrs = `data-fqn="${fqnAttr}" data-method="${methodAttr}" data-line="${line}" data-title="${titleAttr}"`;
     // In JFR Profiler Plugin mode the buttons start disabled and are enabled asynchronously once the
     // IDE confirms it contains the class (see Tooltip.applyIdeGate). In Jeffrey Plugin mode they are
@@ -217,14 +220,6 @@ export default abstract class FlamegraphTooltip {
                 <i class="bi bi-file-earmark-code"></i> View Source
             </button>
         </div>`;
-  }
-
-  private static escapeAttr(value: string): string {
-    return value
-      .replace(/&/g, '&amp;')
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
   }
 
   static format_samples(value: number, base: number) {
