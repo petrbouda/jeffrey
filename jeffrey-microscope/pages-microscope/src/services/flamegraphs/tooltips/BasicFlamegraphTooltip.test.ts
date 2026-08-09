@@ -46,6 +46,18 @@ function javaFrame(): Frame {
   return frame;
 }
 
+function constructorFrame(): Frame {
+  return new Frame(
+    0,
+    3043,
+    'com.google.gson.stream.JsonReader.<init>',
+    'JIT_COMPILED',
+    0,
+    0,
+    3043
+  );
+}
+
 function nativeFrame(): Frame {
   return new Frame(
     0,
@@ -140,5 +152,35 @@ describe('BasicFlamegraphTooltip — IDE jump button', () => {
     expect(html).toContain('data-ide-action="open"');
     expect(html).toContain('data-ide-gated="true"');
     expect(html).toContain('disabled');
+  });
+});
+
+describe('BasicFlamegraphTooltip — header escaping', () => {
+  beforeEach(() => {
+    isEnabledMock.mockReset();
+    isJfrProfilerModeMock.mockReset();
+    isJfrProfilerModeMock.mockReturnValue(false);
+  });
+
+  it('escapes constructor method names so <init> survives innerHTML parsing', () => {
+    isEnabledMock.mockReturnValue(false);
+    const tooltip = new BasicFlamegraphTooltip('jdk.ObjectAllocationSample', false);
+
+    const html = tooltip.generate(constructorFrame(), 27000, 0);
+
+    expect(html).toContain('&lt;init&gt;');
+    expect(html).not.toContain('.<init>');
+    expect(html).toContain('JsonReader');
+    expect(html).toContain('com.google.gson.stream');
+  });
+
+  it('escapes constructor method names in the IDE jump data attributes', () => {
+    isEnabledMock.mockReturnValue(true);
+    const tooltip = new BasicFlamegraphTooltip('jdk.ObjectAllocationSample', false);
+
+    const html = tooltip.generate(constructorFrame(), 27000, 0);
+
+    expect(html).toContain('data-method="JsonReader.&lt;init&gt;"');
+    expect(html).toContain('data-fqn="com.google.gson.stream.JsonReader"');
   });
 });
