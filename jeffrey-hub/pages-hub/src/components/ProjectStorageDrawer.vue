@@ -147,7 +147,7 @@ const barWidth = (sizeBytes: number) => {
   top: 0;
   right: 0;
   bottom: 0;
-  width: 480px;
+  width: 560px;
   max-width: 92vw;
   background: white;
   border-left: 1px solid var(--color-border);
