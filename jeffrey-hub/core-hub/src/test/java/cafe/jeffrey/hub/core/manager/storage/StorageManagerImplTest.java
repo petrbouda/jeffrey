@@ -29,13 +29,16 @@ import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverview.FileTypeUsage;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview.ProjectStorage;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverview.StoredFile;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
+import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
-import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics.FileTypeStats;
+import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
+import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
@@ -54,6 +57,7 @@ import static org.mockito.Mockito.when;
 class StorageManagerImplTest {
 
     private static final Instant CREATED_AT = Instant.parse("2026-04-01T10:00:00Z");
+    private static final Instant LAST_ACTIVITY = Instant.parse("2026-04-02T15:30:00Z");
 
     @TempDir
     Path homeDir;
@@ -126,31 +130,17 @@ class StorageManagerImplTest {
     class ProjectAggregation {
 
         @Test
-        void collectsPerProjectStatisticsAcrossWorkspaces() {
-            WorkspaceInfo workspaceInfo = new WorkspaceInfo(
-                    "ws-1", "ws-1", "repo-1", "production",
-                    null, null, CREATED_AT, WorkspaceStatus.AVAILABLE, 1);
-            ProjectInfo projectInfo = new ProjectInfo(
-                    "prj-1", "origin-1", "order-service", "Order Service", "default",
-                    "ws-1", CREATED_AT, CREATED_AT, Map.of(), null);
-
-            RepositoryStatistics stats = RepositoryStatistics.fromCategoryMap(
-                    2, RecordingStatus.ACTIVE, CREATED_AT.toEpochMilli(), 1000L, 12, 600L,
-                    Map.of(
-                            RepositoryStatistics.StatsCategory.JFR, new FileTypeStats(6, 700L),
-                            RepositoryStatistics.StatsCategory.HEAP_DUMP, new FileTypeStats(1, 200L),
-                            RepositoryStatistics.StatsCategory.LOG, new FileTypeStats(2, 40L),
-                            RepositoryStatistics.StatsCategory.APP_LOG, new FileTypeStats(1, 30L),
-                            RepositoryStatistics.StatsCategory.ERROR_LOG, new FileTypeStats(1, 20L),
-                            RepositoryStatistics.StatsCategory.OTHER, new FileTypeStats(1, 10L)));
-
-            doReturn(List.of(workspaceManager)).when(workspacesManager).findAll();
-            when(workspaceManager.localInfo()).thenReturn(workspaceInfo);
-            when(workspaceManager.projectsManager()).thenReturn(projectsManager);
-            doReturn(List.of(projectManager)).when(projectsManager).findAll();
-            when(projectManager.info()).thenReturn(projectInfo);
-            when(projectManager.repositoryManager()).thenReturn(repositoryManager);
-            when(repositoryManager.calculateRepositoryStatistics()).thenReturn(stats);
+        void collectsPerFileTypeStatisticsAcrossSessions() {
+            mockSingleProject(List.of(
+                    session("session-1", List.of(
+                            file("recording-1.jfr", SupportedRecordingFile.JFR, 700L, CREATED_AT),
+                            file("recording-2.jfr.lz4", SupportedRecordingFile.JFR_LZ4, 300L, CREATED_AT),
+                            file("heapdump.hprof.gz", SupportedRecordingFile.HEAP_DUMP_GZ, 200L, CREATED_AT))),
+                    session("session-2", List.of(
+                            file("recording-3.jfr", SupportedRecordingFile.JFR, 500L, LAST_ACTIVITY),
+                            file("service-jvm.log", SupportedRecordingFile.JVM_LOG, 40L, CREATED_AT),
+                            file("service-app.log", SupportedRecordingFile.APP_LOG, 30L, CREATED_AT),
+                            file("cpu.pprof", SupportedRecordingFile.PPROF, 10L, CREATED_AT)))));
 
             StorageOverview overview = storageManager.overview();
 
@@ -161,12 +151,81 @@ class StorageManagerImplTest {
             assertThat(project.projectId()).isEqualTo("prj-1");
             assertThat(project.projectName()).isEqualTo("order-service");
             assertThat(project.projectLabel()).isEqualTo("Order Service");
-            assertThat(project.totalSizeBytes()).isEqualTo(1000L);
-            assertThat(project.totalFiles()).isEqualTo(12);
-            assertThat(project.jfrSizeBytes()).isEqualTo(700L);
-            assertThat(project.heapDumpSizeBytes()).isEqualTo(200L);
-            assertThat(project.logSizeBytes()).isEqualTo(90L);
-            assertThat(project.otherSizeBytes()).isEqualTo(10L);
+            assertThat(project.totalSizeBytes()).isEqualTo(1780L);
+            assertThat(project.totalFiles()).isEqualTo(7);
+            assertThat(project.lastActivityTimeMillis()).isEqualTo(LAST_ACTIVITY.toEpochMilli());
+
+            // Sorted by size, JFR aggregated across both sessions
+            assertThat(project.fileTypes()).containsExactly(
+                    new FileTypeUsage(SupportedRecordingFile.JFR, 1200L, 2),
+                    new FileTypeUsage(SupportedRecordingFile.JFR_LZ4, 300L, 1),
+                    new FileTypeUsage(SupportedRecordingFile.HEAP_DUMP_GZ, 200L, 1),
+                    new FileTypeUsage(SupportedRecordingFile.JVM_LOG, 40L, 1),
+                    new FileTypeUsage(SupportedRecordingFile.APP_LOG, 30L, 1),
+                    new FileTypeUsage(SupportedRecordingFile.PPROF, 10L, 1));
+
+            assertThat(project.largestFiles()).containsExactly(
+                    new StoredFile("recording-1.jfr", 700L),
+                    new StoredFile("recording-3.jfr", 500L),
+                    new StoredFile("recording-2.jfr.lz4", 300L));
+        }
+
+        @Test
+        void reportsEmptyBreakdownForProjectWithoutSessions() {
+            mockSingleProject(List.of());
+
+            StorageOverview overview = storageManager.overview();
+
+            assertThat(overview.projects()).hasSize(1);
+            ProjectStorage project = overview.projects().getFirst();
+            assertThat(project.totalSizeBytes()).isZero();
+            assertThat(project.totalFiles()).isZero();
+            assertThat(project.lastActivityTimeMillis()).isZero();
+            assertThat(project.fileTypes()).isEmpty();
+            assertThat(project.largestFiles()).isEmpty();
+        }
+
+        @Test
+        void countsFilesWithUnknownSizeAsZeroBytes() {
+            mockSingleProject(List.of(
+                    session("session-1", List.of(
+                            file("recording-1.jfr", SupportedRecordingFile.JFR, 700L, CREATED_AT),
+                            file("recording-2.jfr", SupportedRecordingFile.JFR, null, CREATED_AT)))));
+
+            StorageOverview overview = storageManager.overview();
+
+            ProjectStorage project = overview.projects().getFirst();
+            assertThat(project.totalSizeBytes()).isEqualTo(700L);
+            assertThat(project.totalFiles()).isEqualTo(2);
+            assertThat(project.fileTypes()).containsExactly(
+                    new FileTypeUsage(SupportedRecordingFile.JFR, 700L, 2));
+        }
+
+        private void mockSingleProject(List<RecordingSession> sessions) {
+            WorkspaceInfo workspaceInfo = new WorkspaceInfo(
+                    "ws-1", "ws-1", "repo-1", "production",
+                    null, null, CREATED_AT, WorkspaceStatus.AVAILABLE, 1);
+            ProjectInfo projectInfo = new ProjectInfo(
+                    "prj-1", "origin-1", "order-service", "Order Service", "default",
+                    "ws-1", CREATED_AT, CREATED_AT, Map.of(), null);
+
+            doReturn(List.of(workspaceManager)).when(workspacesManager).findAll();
+            when(workspaceManager.localInfo()).thenReturn(workspaceInfo);
+            when(workspaceManager.projectsManager()).thenReturn(projectsManager);
+            doReturn(List.of(projectManager)).when(projectsManager).findAll();
+            when(projectManager.info()).thenReturn(projectInfo);
+            when(projectManager.repositoryManager()).thenReturn(repositoryManager);
+            when(repositoryManager.listRecordingSessions(true)).thenReturn(sessions);
+        }
+
+        private RecordingSession session(String id, List<RepositoryFile> files) {
+            return new RecordingSession(
+                    id, id, "instance-1", CREATED_AT, null,
+                    RecordingStatus.FINISHED, null, null, files, false);
+        }
+
+        private RepositoryFile file(String name, SupportedRecordingFile fileType, Long size, Instant createdAt) {
+            return new RepositoryFile(name, name, createdAt, size, fileType, RecordingStatus.FINISHED, null);
         }
     }
 }

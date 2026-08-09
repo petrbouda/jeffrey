@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.hub.core.manager.storage;
 
+import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+
 import java.util.List;
 
 /**
@@ -44,8 +46,9 @@ public record StorageOverview(
     }
 
     /**
-     * Storage used by a single project's recording repository, broken down by file category.
-     * Log bytes aggregate JVM, application, and error logs.
+     * Storage used by a single project's recording repository, broken down by every
+     * {@link SupportedRecordingFile} type present in it. Types with no stored files
+     * are omitted from {@code fileTypes}.
      */
     public record ProjectStorage(
             String workspaceId,
@@ -55,9 +58,20 @@ public record StorageOverview(
             String projectLabel,
             long totalSizeBytes,
             int totalFiles,
-            long jfrSizeBytes,
-            long heapDumpSizeBytes,
-            long logSizeBytes,
-            long otherSizeBytes) {
+            long lastActivityTimeMillis,
+            List<FileTypeUsage> fileTypes,
+            List<StoredFile> largestFiles) {
+    }
+
+    /**
+     * Aggregated usage of a single supported file type within one project repository.
+     */
+    public record FileTypeUsage(SupportedRecordingFile fileType, long sizeBytes, int fileCount) {
+    }
+
+    /**
+     * A single stored file, used for the per-project largest-files listing.
+     */
+    public record StoredFile(String fileName, long sizeBytes) {
     }
 }

@@ -52,12 +52,18 @@ public record StorageOverviewResponse(
             String projectLabel,
             long totalSizeBytes,
             int totalFiles,
-            long jfrSizeBytes,
-            long heapDumpSizeBytes,
-            long logSizeBytes,
-            long otherSizeBytes) {
+            long lastActivityTimeMillis,
+            List<FileTypeUsageResponse> fileTypes,
+            List<StoredFileResponse> largestFiles) {
 
         public static ProjectStorageResponse from(StorageOverview.ProjectStorage project) {
+            List<FileTypeUsageResponse> fileTypes = project.fileTypes().stream()
+                    .map(FileTypeUsageResponse::from)
+                    .toList();
+            List<StoredFileResponse> largestFiles = project.largestFiles().stream()
+                    .map(StoredFileResponse::from)
+                    .toList();
+
             return new ProjectStorageResponse(
                     project.workspaceId(),
                     project.workspaceName(),
@@ -66,10 +72,27 @@ public record StorageOverviewResponse(
                     project.projectLabel(),
                     project.totalSizeBytes(),
                     project.totalFiles(),
-                    project.jfrSizeBytes(),
-                    project.heapDumpSizeBytes(),
-                    project.logSizeBytes(),
-                    project.otherSizeBytes());
+                    project.lastActivityTimeMillis(),
+                    fileTypes,
+                    largestFiles);
+        }
+    }
+
+    /**
+     * Usage of a single supported file type; {@code type} is the
+     * {@code SupportedRecordingFile} enum name (e.g. {@code JFR}, {@code HEAP_DUMP_GZ}).
+     */
+    public record FileTypeUsageResponse(String type, long sizeBytes, int fileCount) {
+
+        public static FileTypeUsageResponse from(StorageOverview.FileTypeUsage usage) {
+            return new FileTypeUsageResponse(usage.fileType().name(), usage.sizeBytes(), usage.fileCount());
+        }
+    }
+
+    public record StoredFileResponse(String fileName, long sizeBytes) {
+
+        public static StoredFileResponse from(StorageOverview.StoredFile file) {
+            return new StoredFileResponse(file.fileName(), file.sizeBytes());
         }
     }
 }
