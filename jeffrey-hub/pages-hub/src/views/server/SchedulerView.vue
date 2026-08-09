@@ -18,19 +18,7 @@
 
 <template>
     <div class="scheduler-view">
-        <div class="page-header">
-            <div class="header-left">
-                <img src="/jeffrey-icon.svg" alt="Jeffrey" class="header-logo">
-                <h4>Jeffrey Hub</h4>
-                <span v-if="version" class="version-badge">{{ version }}</span>
-            </div>
-            <nav class="header-nav">
-                <router-link to="/" class="nav-tab">Workspaces</router-link>
-                <router-link to="/scheduler" class="nav-tab">Scheduler</router-link>
-                <router-link to="/storage" class="nav-tab">Storage</router-link>
-                <router-link to="/api-docs" class="nav-tab">API Documentation</router-link>
-            </nav>
-        </div>
+        <HubPageHeader/>
 
         <div class="hint">
             <i class="bi bi-info-circle"></i>
@@ -145,17 +133,15 @@
 import { computed, onMounted, ref } from 'vue';
 import Badge from '@shared/components/Badge.vue';
 import type { Variant } from '@shared/types/ui';
+import HubPageHeader from '@/components/HubPageHeader.vue';
 import SchedulerClient from '@/services/api/SchedulerClient';
-import VersionClient from '@/services/api/VersionClient';
 import { type ExecutionLevel, formatPeriod, type JobView } from '@/services/api/model/JobView';
 
 const schedulerClient = new SchedulerClient();
-const versionClient = new VersionClient();
 
 const loading = ref(true);
 const error = ref<string | null>(null);
 const jobs = ref<JobView[]>([]);
-const version = ref<string>('');
 const activeFilter = ref<'ALL' | ExecutionLevel>('ALL');
 
 const filters: Array<{ value: 'ALL' | ExecutionLevel; label: string }> = [
@@ -282,10 +268,6 @@ const resolvedConfigText = computed(() => {
 });
 
 onMounted(async () => {
-    versionClient.getVersion()
-        .then(v => { version.value = v; })
-        .catch(err => console.error('Failed to load version:', err));
-
     try {
         jobs.value = await schedulerClient.jobs();
     } catch (e: any) {
@@ -302,55 +284,6 @@ onMounted(async () => {
     max-width: 1100px;
     margin: 0 auto;
     padding: 32px 24px;
-}
-
-.page-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 28px;
-}
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-.header-logo { width: 32px; height: 32px; }
-.header-left h4 {
-    margin: 0;
-    font-weight: 600;
-    color: var(--color-heading-dark);
-}
-.version-badge {
-    font-size: 0.72rem;
-    font-weight: 500;
-    color: var(--color-slate-muted);
-    background: var(--color-grey-bg);
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-variant-numeric: tabular-nums;
-}
-.header-nav {
-    display: flex;
-    gap: 2px;
-    background: var(--color-grey-bg);
-    border-radius: 8px;
-    padding: 3px;
-}
-.nav-tab {
-    padding: 6px 14px;
-    border-radius: 6px;
-    font-size: 0.78rem;
-    font-weight: 500;
-    color: var(--color-slate-muted);
-    text-decoration: none;
-    transition: all 0.15s ease;
-}
-.nav-tab:hover { color: var(--color-slate-text); }
-.nav-tab.router-link-active {
-    background: white;
-    color: var(--color-primary);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .hint {

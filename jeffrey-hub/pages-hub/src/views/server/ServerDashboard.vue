@@ -18,33 +18,7 @@
 
 <template>
   <div class="server-dashboard">
-    <!-- Header with logo and nav -->
-    <div class="page-header">
-      <div class="header-left">
-        <img src="/jeffrey-icon.svg" alt="Jeffrey" class="header-logo">
-        <h4>Jeffrey Hub</h4>
-        <span v-if="version" class="version-badge">{{ version }}</span>
-      </div>
-      <nav class="header-nav">
-        <router-link to="/" class="nav-tab">Workspaces</router-link>
-        <router-link to="/scheduler" class="nav-tab">Scheduler</router-link>
-        <router-link to="/storage" class="nav-tab">Storage</router-link>
-        <router-link to="/api-docs" class="nav-tab">API Documentation</router-link>
-      </nav>
-    </div>
-
-    <div v-if="!loading && workspaces.length > 0" class="search-container">
-      <i class="bi bi-search search-icon"></i>
-      <input
-          v-model="searchQuery"
-          type="text"
-          class="search-input"
-          placeholder="Filter projects..."
-      >
-      <button v-if="searchQuery" class="clear-btn" @click="searchQuery = ''">
-        <i class="bi bi-x-lg"></i>
-      </button>
-    </div>
+    <HubPageHeader/>
 
     <div v-if="loading" class="loading-state">
       <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
@@ -57,118 +31,433 @@
       <span class="empty-hint">{{ error }}</span>
     </div>
 
-    <div v-else-if="workspaces.length === 0" class="empty-state">
+    <div v-else-if="workspaceRows.length === 0" class="empty-state">
       <i class="bi bi-inbox"></i>
       <span>No workspaces registered</span>
       <span class="empty-hint">Workspaces are created automatically when applications connect</span>
     </div>
 
-    <div v-else class="workspaces-list">
-      <div v-for="ws in filteredWorkspaces" :key="ws.workspace.id" class="workspace-section">
-        <div class="workspace-header" @click="toggleWorkspace(ws.workspace.id)">
-          <i class="bi chevron-icon"
-             :class="isExpanded(ws.workspace.id) ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
-          <i class="bi bi-hdd-rack workspace-icon"></i>
-          <span class="workspace-name">{{ ws.workspace.name }}</span>
-          <span class="project-count">{{ ws.projects.length }}</span>
+    <div v-else class="dashboard-layout">
+      <!-- Workspace rail -->
+      <aside>
+        <div class="section-card total-card">
+          <div class="total-key">Hub total</div>
+          <div class="total-value">{{ formatBytes(totalUsedBytes) }}</div>
+          <div class="total-sub">
+            {{ totalProjects }} {{ totalProjects === 1 ? 'project' : 'projects' }}
+            · {{ totalFiles.toLocaleString() }} files
+            <template v-if="overview && overview.diskTotalBytes > 0">
+              · {{ formatBytes(overview.diskUsableBytes) }} free
+            </template>
+          </div>
+          <div v-if="overview && overview.diskTotalBytes > 0" class="volume-bar">
+            <div class="volume-jeffrey" :style="{ width: volumeJeffreyPct + '%' }"></div>
+            <div class="volume-others" :style="{ width: volumeOthersPct + '%' }"></div>
+          </div>
         </div>
 
-        <template v-if="isExpanded(ws.workspace.id)">
-          <div v-if="ws.projects.length === 0" class="no-projects">
-            No projects
-          </div>
-
-          <div v-else class="project-list">
-            <div
-                v-for="project in ws.projects"
-                :key="project.id"
-                class="project-row"
-                :class="{ 'project-active': isActive(project) }"
-            >
-              <span v-if="isActive(project)" class="active-dot"></span>
-              <span class="project-name">{{ displayName(project) }}</span>
+        <div class="section-card">
+          <div
+              v-for="row in workspaceRows"
+              :key="row.workspace.id"
+              class="workspace-item"
+              :class="{ selected: row.workspace.id === selectedWorkspaceId }"
+              @click="selectWorkspace(row.workspace.id)"
+          >
+            <div class="workspace-item-top">
+              <i class="bi bi-hdd-rack workspace-icon"></i>
+              <span class="workspace-name">{{ row.workspace.name }}</span>
+              <span class="project-count">{{ row.projects.length }}</span>
+            </div>
+            <div class="workspace-item-bottom">
+              <span class="mini-bar">
+                <span
+                    v-for="usage in row.groups"
+                    :key="usage.group.key"
+                    :style="{ width: miniBarWidth(row, usage), background: usage.group.color }"
+                ></span>
+              </span>
+              <span class="workspace-size">{{ formatBytes(row.totalSizeBytes) }}</span>
             </div>
           </div>
-        </template>
-      </div>
+        </div>
 
-      <div v-if="filteredWorkspaces.length === 0" class="empty-state">
-        <i class="bi bi-search"></i>
-        <span>No projects matching "{{ searchQuery }}"</span>
-      </div>
+        <div class="rail-legend">
+          <span v-for="group in STORAGE_GROUPS" :key="group.key" class="legend-item">
+            <span class="legend-swatch" :style="{ background: group.color }"></span>{{ group.label }}
+          </span>
+        </div>
+      </aside>
+
+      <!-- Workspace detail -->
+      <section v-if="selectedWorkspace">
+        <div class="section-card">
+          <div class="detail-head">
+            <span class="detail-name">{{ selectedWorkspace.workspace.name }}</span>
+            <span class="project-count">
+              {{ selectedWorkspace.projects.length }}
+              {{ selectedWorkspace.projects.length === 1 ? 'project' : 'projects' }}
+            </span>
+            <span class="detail-stats">
+              <span class="detail-stat">
+                <div class="stat-key">Size</div>
+                <div class="stat-value">{{ formatBytes(selectedWorkspace.totalSizeBytes) }}</div>
+              </span>
+              <span class="detail-stat">
+                <div class="stat-key">Files</div>
+                <div class="stat-value">{{ selectedWorkspace.totalFiles.toLocaleString() }}</div>
+              </span>
+              <span class="detail-stat">
+                <div class="stat-key">Of hub total</div>
+                <div class="stat-value">{{ shareOfHubPct(selectedWorkspace) }}</div>
+              </span>
+            </span>
+          </div>
+
+          <div v-if="selectedWorkspace.projects.length === 0" class="empty-state">
+            <i class="bi bi-hdd"></i>
+            <span>No projects in this workspace</span>
+            <span class="empty-hint">Projects appear when applications connect to this workspace</span>
+          </div>
+
+          <table v-else class="projects-table">
+            <thead>
+            <tr>
+              <th class="sortable" @click="sortBy('project')">
+                Project <span class="sort-arrow">{{ sortArrow('project') }}</span>
+              </th>
+              <th class="sortable text-end" @click="sortBy('size')">
+                Size <span class="sort-arrow">{{ sortArrow('size') }}</span>
+              </th>
+              <th class="sortable text-end" @click="sortBy('files')">
+                Files <span class="sort-arrow">{{ sortArrow('files') }}</span>
+              </th>
+              <th>Categories</th>
+              <th class="text-end">% of workspace</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr
+                v-for="row in sortedProjects"
+                :key="row.projectId"
+                class="project-row"
+                @click="openDrawer(row)"
+            >
+              <td>
+                <span class="project-cell">
+                  <span class="status-dot" :class="{ inactive: !row.active }"></span>
+                  <span class="project-name" :class="{ inactive: !row.active }">{{ row.name }}</span>
+                </span>
+              </td>
+              <td class="text-end size-cell">{{ formatBytes(row.totalSizeBytes) }}</td>
+              <td class="text-end files-cell">{{ row.totalFiles.toLocaleString() }}</td>
+              <td>
+                <span class="category-bar">
+                  <span
+                      v-for="usage in row.groups"
+                      :key="usage.group.key"
+                      :style="{ width: categoryWidth(row, usage), background: usage.group.color }"
+                  ></span>
+                </span>
+              </td>
+              <td>
+                <span class="share-cell">
+                  <span class="share-track">
+                    <span class="share-fill" :style="{ width: shareOfLargestPct(row) + '%' }"></span>
+                  </span>
+                  <span class="share-value">{{ shareOfWorkspacePct(row) }}</span>
+                </span>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="infra-note">
+          Infrastructure (outside projects):
+          database {{ formatBytes(overview?.databaseSizeBytes ?? 0) }}
+          · folder queue {{ formatBytes(overview?.queueSizeBytes ?? 0) }}
+          · temp {{ formatBytes(overview?.tempSizeBytes ?? 0) }}
+        </div>
+      </section>
     </div>
+
+    <ProjectStorageDrawer
+        v-if="drawerProject"
+        :project="drawerProject.storage"
+        :active="drawerProject.active"
+        :workspace-share="shareOfWorkspacePct(drawerProject)"
+        @close="drawerProject = null"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import FormattingService from '@shared/services/FormattingService';
+import HubPageHeader from '@/components/HubPageHeader.vue';
+import ProjectStorageDrawer from '@/components/ProjectStorageDrawer.vue';
+import StorageClient from '@/services/api/StorageClient';
 import WorkspaceClient from '@/services/api/WorkspaceClient';
 import WorkspaceProjectsClient from '@/services/api/WorkspaceProjectsClient';
-import VersionClient from '@/services/api/VersionClient';
+import RecordingStatus from '@/services/api/model/RecordingStatus';
 import type Workspace from '@/services/api/model/Workspace';
 import type Project from '@/services/api/model/Project';
 import ProjectModel from '@/services/api/model/Project';
+import type { ProjectStorage, StorageOverview } from '@/services/api/model/StorageOverview';
+import { groupUsages, STORAGE_GROUPS, type GroupUsage } from '@/services/storage/StorageFileTypes';
 
-interface WorkspaceWithProjects {
-  workspace: Workspace;
-  projects: Project[];
+type SortColumn = 'project' | 'size' | 'files';
+type SortDirection = 'asc' | 'desc';
+
+/** One project row in the detail table: the live project merged with its storage figures. */
+interface ProjectRow {
+  projectId: string;
+  name: string;
+  active: boolean;
+  totalSizeBytes: number;
+  totalFiles: number;
+  groups: GroupUsage[];
+  storage: ProjectStorage;
 }
 
+interface WorkspaceRow {
+  workspace: Workspace;
+  projects: ProjectRow[];
+  totalSizeBytes: number;
+  totalFiles: number;
+  groups: GroupUsage[];
+}
+
+const storageClient = new StorageClient();
 const workspaceClient = new WorkspaceClient();
-const versionClient = new VersionClient();
+
 const loading = ref(true);
 const error = ref<string | null>(null);
-const workspaces = ref<WorkspaceWithProjects[]>([]);
-const searchQuery = ref('');
-const expandedWorkspaces = ref(new Set<string>());
-const version = ref<string>('');
+const overview = ref<StorageOverview | null>(null);
+const workspaceRows = ref<WorkspaceRow[]>([]);
+const selectedWorkspaceId = ref<string | null>(null);
+const drawerProject = ref<ProjectRow | null>(null);
+const sortColumn = ref<SortColumn>('size');
+const sortDirection = ref<SortDirection>('desc');
 
-const displayName = (project: Project) => ProjectModel.displayName(project);
-const isActive = (project: Project) => project.status === 'ACTIVE';
-const isExpanded = (workspaceId: string) => expandedWorkspaces.value.has(workspaceId);
+const formatBytes = (bytes: number) => FormattingService.formatBytesShort(bytes);
 
-const toggleWorkspace = (workspaceId: string) => {
-  const updated = new Set(expandedWorkspaces.value);
-  if (updated.has(workspaceId)) {
-    updated.delete(workspaceId);
-  } else {
-    updated.add(workspaceId);
+/** Placeholder storage for a project the storage scan has no data for (nothing recorded yet). */
+const emptyStorage = (workspace: Workspace, project: Project): ProjectStorage => ({
+  workspaceId: workspace.id,
+  workspaceName: workspace.name,
+  projectId: project.id,
+  projectName: project.name,
+  projectLabel: project.label,
+  totalSizeBytes: 0,
+  totalFiles: 0,
+  lastActivityTimeMillis: 0,
+  fileTypes: [],
+  largestFiles: []
+});
+
+const toProjectRow = (storage: ProjectStorage, project: Project | undefined): ProjectRow => ({
+  projectId: storage.projectId,
+  name: project ? ProjectModel.displayName(project)
+      : (storage.projectLabel?.trim() ? storage.projectLabel : storage.projectName),
+  active: project?.status === RecordingStatus.ACTIVE,
+  totalSizeBytes: storage.totalSizeBytes,
+  totalFiles: storage.totalFiles,
+  groups: groupUsages(storage.fileTypes),
+  storage
+});
+
+const buildWorkspaceRow = (
+    workspace: Workspace,
+    projects: Project[],
+    storageByProjectId: Map<string, ProjectStorage>): WorkspaceRow => {
+
+  const projectById = new Map(projects.map(p => [p.id, p]));
+
+  // Projects known to the workspace, enriched with storage; storage-only rows
+  // (project deleted meanwhile) are still listed so sizes always add up
+  const rows: ProjectRow[] = projects.map(project => {
+    const storage = storageByProjectId.get(project.id) ?? emptyStorage(workspace, project);
+    return toProjectRow(storage, project);
+  });
+  for (const [projectId, storage] of storageByProjectId) {
+    if (storage.workspaceId === workspace.id && !projectById.has(projectId)) {
+      rows.push(toProjectRow(storage, undefined));
+    }
   }
-  expandedWorkspaces.value = updated;
+
+  const allFileTypes = rows.flatMap(row => row.storage.fileTypes);
+  return {
+    workspace,
+    projects: rows,
+    totalSizeBytes: rows.reduce((sum, row) => sum + row.totalSizeBytes, 0),
+    totalFiles: rows.reduce((sum, row) => sum + row.totalFiles, 0),
+    groups: groupUsages(allFileTypes)
+  };
 };
 
-const filteredWorkspaces = computed(() => {
-  const query = searchQuery.value.toLowerCase().trim();
-  if (!query) {
-    return workspaces.value;
-  }
-
-  return workspaces.value
-      .map(ws => ({
-        workspace: ws.workspace,
-        projects: ws.projects.filter(p =>
-            ProjectModel.displayName(p).toLowerCase().includes(query)
-        )
-      }))
-      .filter(ws => ws.projects.length > 0);
+const selectedWorkspace = computed(() => {
+  return workspaceRows.value.find(row => row.workspace.id === selectedWorkspaceId.value) ?? null;
 });
+
+const selectWorkspace = (workspaceId: string) => {
+  selectedWorkspaceId.value = workspaceId;
+  drawerProject.value = null;
+};
+
+const openDrawer = (row: ProjectRow) => {
+  drawerProject.value = row;
+};
+
+const projectsTotalBytes = computed(() => {
+  return workspaceRows.value.reduce((sum, row) => sum + row.totalSizeBytes, 0);
+});
+
+const totalUsedBytes = computed(() => {
+  if (!overview.value) {
+    return projectsTotalBytes.value;
+  }
+  return projectsTotalBytes.value
+      + overview.value.databaseSizeBytes
+      + overview.value.queueSizeBytes
+      + overview.value.tempSizeBytes;
+});
+
+const totalProjects = computed(() => {
+  return workspaceRows.value.reduce((sum, row) => sum + row.projects.length, 0);
+});
+
+const totalFiles = computed(() => {
+  return workspaceRows.value.reduce((sum, row) => sum + row.totalFiles, 0);
+});
+
+const volumeUsedBytes = computed(() => {
+  if (!overview.value) {
+    return 0;
+  }
+  return Math.max(0, overview.value.diskTotalBytes - overview.value.diskUsableBytes);
+});
+
+const volumeJeffreyPct = computed(() => {
+  if (!overview.value || overview.value.diskTotalBytes === 0) {
+    return 0;
+  }
+  return (totalUsedBytes.value / overview.value.diskTotalBytes) * 100;
+});
+
+const volumeOthersPct = computed(() => {
+  if (!overview.value || overview.value.diskTotalBytes === 0) {
+    return 0;
+  }
+  const othersBytes = Math.max(0, volumeUsedBytes.value - totalUsedBytes.value);
+  return (othersBytes / overview.value.diskTotalBytes) * 100;
+});
+
+const miniBarWidth = (row: WorkspaceRow, usage: GroupUsage) => {
+  if (row.totalSizeBytes === 0) {
+    return '0%';
+  }
+  return (usage.sizeBytes / row.totalSizeBytes * 100) + '%';
+};
+
+const categoryWidth = (row: ProjectRow, usage: GroupUsage) => {
+  if (row.totalSizeBytes === 0) {
+    return '0%';
+  }
+  return (usage.sizeBytes / row.totalSizeBytes * 100) + '%';
+};
+
+const shareOfHubPct = (row: WorkspaceRow) => {
+  if (projectsTotalBytes.value === 0) {
+    return FormattingService.formatPercentValue(0);
+  }
+  return FormattingService.formatPercentValue((row.totalSizeBytes / projectsTotalBytes.value) * 100);
+};
+
+const maxProjectBytes = computed(() => {
+  if (!selectedWorkspace.value) {
+    return 0;
+  }
+  return selectedWorkspace.value.projects.reduce((max, row) => Math.max(max, row.totalSizeBytes), 0);
+});
+
+const shareOfLargestPct = (row: ProjectRow) => {
+  if (maxProjectBytes.value === 0) {
+    return 0;
+  }
+  return (row.totalSizeBytes / maxProjectBytes.value) * 100;
+};
+
+const shareOfWorkspacePct = (row: ProjectRow) => {
+  const workspaceRow = workspaceRows.value.find(ws => ws.workspace.id === row.storage.workspaceId);
+  if (!workspaceRow || workspaceRow.totalSizeBytes === 0) {
+    return FormattingService.formatPercentValue(0);
+  }
+  return FormattingService.formatPercentValue((row.totalSizeBytes / workspaceRow.totalSizeBytes) * 100);
+};
+
+const sortedProjects = computed(() => {
+  if (!selectedWorkspace.value) {
+    return [];
+  }
+  const direction = sortDirection.value === 'asc' ? 1 : -1;
+  return [...selectedWorkspace.value.projects].sort((a, b) => {
+    switch (sortColumn.value) {
+      case 'project':
+        return direction * a.name.localeCompare(b.name);
+      case 'files':
+        return direction * (a.totalFiles - b.totalFiles);
+      default:
+        return direction * (a.totalSizeBytes - b.totalSizeBytes);
+    }
+  });
+});
+
+const sortBy = (column: SortColumn) => {
+  if (sortColumn.value === column) {
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortColumn.value = column;
+    sortDirection.value = column === 'project' ? 'asc' : 'desc';
+  }
+};
+
+const sortArrow = (column: SortColumn) => {
+  if (sortColumn.value !== column) {
+    return '';
+  }
+  return sortDirection.value === 'asc' ? '▲' : '▼';
+};
 
 const loadDashboard = async () => {
   try {
-    const allWorkspaces = await workspaceClient.list();
+    const [workspaces, storageOverview] = await Promise.all([
+      workspaceClient.list(),
+      storageClient.overview()
+    ]);
+    overview.value = storageOverview;
+
+    const storageByProjectId = new Map(
+        storageOverview.projects.map(project => [project.projectId, project]));
 
     // Fetch the project lists of all workspaces concurrently — a serial per-workspace
     // round-trip makes the dashboard load time grow linearly with the workspace count
-    workspaces.value = await Promise.all(
-        allWorkspaces.map(async (ws): Promise<WorkspaceWithProjects> => {
-          const projectsClient = new WorkspaceProjectsClient(ws.id);
+    workspaceRows.value = await Promise.all(
+        workspaces.map(async (workspace): Promise<WorkspaceRow> => {
+          const projectsClient = new WorkspaceProjectsClient(workspace.id);
           try {
-            return { workspace: ws, projects: await projectsClient.list() };
+            const projects = await projectsClient.list();
+            return buildWorkspaceRow(workspace, projects, storageByProjectId);
           } catch {
-            return { workspace: ws, projects: [] };
+            return buildWorkspaceRow(workspace, [], storageByProjectId);
           }
         })
     );
+
+    // Preselect the first workspace that has projects, falling back to the first one
+    const withProjects = workspaceRows.value.find(row => row.projects.length > 0);
+    selectedWorkspaceId.value = (withProjects ?? workspaceRows.value[0])?.workspace.id ?? null;
     error.value = null;
   } catch (e) {
     console.error('Failed to load dashboard:', e);
@@ -180,136 +469,14 @@ const loadDashboard = async () => {
 
 onMounted(() => {
   loadDashboard();
-  versionClient.getVersion()
-      .then(v => { version.value = v; })
-      .catch(err => console.error('Failed to load version:', err));
 });
 </script>
 
 <style scoped>
 .server-dashboard {
-  max-width: 1100px;
+  max-width: 1240px;
   margin: 0 auto;
   padding: 32px 24px;
-}
-
-/* Header (shared style with GrpcApiDocs) */
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 28px;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.header-logo {
-  width: 32px;
-  height: 32px;
-}
-
-.header-left h4 {
-  margin: 0;
-  font-weight: 600;
-  color: var(--color-heading-dark);
-}
-
-.version-badge {
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--color-slate-muted);
-  background: var(--color-grey-bg);
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-variant-numeric: tabular-nums;
-}
-
-.header-nav {
-  display: flex;
-  gap: 2px;
-  background: var(--color-grey-bg);
-  border-radius: 8px;
-  padding: 3px;
-}
-
-.nav-tab {
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: var(--color-slate-muted);
-  text-decoration: none;
-  transition: all 0.15s ease;
-}
-
-.nav-tab:hover {
-  color: var(--color-slate-text);
-}
-
-.nav-tab.router-link-active {
-  background: white;
-  color: var(--color-primary);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-}
-
-/* Search */
-.search-container {
-  position: relative;
-  margin-bottom: 20px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--color-text-light);
-  font-size: 0.85rem;
-  pointer-events: none;
-}
-
-.search-input {
-  width: 100%;
-  height: 42px;
-  padding: 0 36px 0 38px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  font-size: 0.88rem;
-  color: var(--color-heading-dark);
-  background: white;
-  outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.search-input::placeholder {
-  color: var(--color-text-light);
-}
-
-.search-input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(94, 100, 255, 0.1);
-}
-
-.clear-btn {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: var(--color-text-light);
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-}
-
-.clear-btn:hover {
-  color: var(--color-slate-muted);
 }
 
 /* Loading / Empty */
@@ -332,87 +499,270 @@ onMounted(() => {
   color: var(--color-muted-separator);
 }
 
-/* Workspaces */
-.workspaces-list {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.workspace-section {
+.section-card {
   background: white;
   border: 1px solid var(--color-border);
   border-radius: 10px;
   overflow: hidden;
 }
 
-.workspace-header {
+/* Layout */
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Rail: hub total */
+.total-card {
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.total-key {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-light);
+  margin-bottom: 6px;
+}
+
+.total-value {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--color-heading-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.total-sub {
+  font-size: 0.75rem;
+  color: var(--color-slate-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.volume-bar {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--color-grey-bg);
+  margin-top: 9px;
+}
+
+.volume-jeffrey {
+  background: var(--color-primary);
+}
+
+.volume-others {
+  background: var(--color-slate-light);
+}
+
+/* Rail: workspace list */
+.workspace-item {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-grey-bg);
+  user-select: none;
+}
+
+.workspace-item:last-child {
+  border-bottom: none;
+}
+
+.workspace-item:hover {
+  background: var(--color-light);
+}
+
+.workspace-item.selected {
+  background: var(--color-primary-lighter);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.workspace-item-top {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--color-grey-bg);
-  cursor: pointer;
-  user-select: none;
-  transition: background-color 0.15s ease;
-}
-
-.workspace-header:hover {
-  background-color: var(--color-neutral-bg);
-}
-
-.chevron-icon {
-  font-size: 0.75rem;
-  color: var(--color-text-light);
-  transition: transform 0.15s ease;
+  gap: 9px;
 }
 
 .workspace-icon {
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: var(--color-primary);
 }
 
 .workspace-name {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   color: var(--color-heading-dark);
 }
 
 .project-count {
   margin-left: auto;
-  font-size: 0.75rem;
+  font-size: 0.73rem;
   font-weight: 600;
   color: var(--color-primary);
-  background: rgba(94, 100, 255, 0.08);
+  background: var(--color-primary-light);
   padding: 2px 8px;
   border-radius: 10px;
 }
 
-.no-projects {
-  padding: 20px 18px;
-  font-size: 0.85rem;
-  color: var(--color-text-light);
-}
-
-.project-list {
-  padding: 6px 0;
-}
-
-.project-row {
+.workspace-item-bottom {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 18px;
+}
+
+.mini-bar {
+  display: flex;
+  gap: 1px;
+  flex: 1;
+  height: 8px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--color-grey-bg);
+}
+
+.mini-bar span {
+  display: block;
+  height: 100%;
+}
+
+.workspace-size {
+  font-size: 0.76rem;
   color: var(--color-slate-muted);
-  font-size: 0.9rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
-.project-row.project-active {
+/* Rail: legend */
+.rail-legend {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 12px 4px 0;
+  font-size: 0.73rem;
+  color: var(--color-slate-muted);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* Detail: header */
+.detail-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--color-grey-bg);
+  flex-wrap: wrap;
+}
+
+.detail-name {
+  font-size: 1.02rem;
+  font-weight: 600;
   color: var(--color-heading-dark);
-  font-weight: 500;
 }
 
-.active-dot {
+.detail-stats {
+  margin-left: auto;
+  display: flex;
+  gap: 22px;
+}
+
+.stat-key {
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-light);
+}
+
+.stat-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-heading-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Detail: table */
+.projects-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.projects-table thead th {
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-light);
+  padding: 10px 18px;
+  background: var(--color-light);
+  border-bottom: 1px solid var(--color-grey-bg);
+  white-space: nowrap;
+}
+
+.projects-table thead th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sort-arrow {
+  color: var(--color-primary);
+  font-size: 0.6rem;
+}
+
+.projects-table tbody td {
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--color-grey-bg);
+  font-size: 0.82rem;
+  color: var(--color-heading-dark);
+  vertical-align: middle;
+}
+
+.projects-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.project-row {
+  cursor: pointer;
+}
+
+.project-row:hover td {
+  background: var(--color-light);
+}
+
+.project-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
@@ -420,9 +770,81 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+.status-dot.inactive {
+  background: var(--color-slate-light);
+}
+
 .project-name {
-  white-space: nowrap;
+  font-weight: 600;
+}
+
+.project-name.inactive {
+  color: var(--color-slate-muted);
+  font-weight: 400;
+}
+
+.size-cell {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.files-cell {
+  color: var(--color-slate-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.category-bar {
+  display: flex;
+  gap: 1px;
+  width: 130px;
+  height: 8px;
+  border-radius: 3px;
   overflow: hidden;
-  text-overflow: ellipsis;
+  background: var(--color-grey-bg);
+}
+
+.category-bar span {
+  display: block;
+  height: 100%;
+}
+
+.share-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.share-track {
+  width: 70px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--color-grey-bg);
+  overflow: hidden;
+  display: inline-block;
+}
+
+.share-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-primary);
+}
+
+.share-value {
+  color: var(--color-slate-muted);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  min-width: 44px;
+  text-align: right;
+}
+
+/* Infrastructure footnote */
+.infra-note {
+  margin: 10px 4px 0;
+  font-size: 0.74rem;
+  color: var(--color-slate-muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 </style>

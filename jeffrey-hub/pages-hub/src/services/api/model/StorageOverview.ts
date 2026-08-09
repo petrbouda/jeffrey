@@ -1,20 +1,14 @@
-/*
- * Jeffrey
- * Copyright (C) 2026 Petr Bouda
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+export interface FileTypeUsage {
+    /** SupportedRecordingFile enum name, e.g. JFR, HEAP_DUMP_GZ */
+    type: string;
+    sizeBytes: number;
+    fileCount: number;
+}
+
+export interface StoredFile {
+    fileName: string;
+    sizeBytes: number;
+}
 
 export interface ProjectStorage {
     workspaceId: string;
@@ -24,10 +18,10 @@ export interface ProjectStorage {
     projectLabel: string | null;
     totalSizeBytes: number;
     totalFiles: number;
-    jfrSizeBytes: number;
-    heapDumpSizeBytes: number;
-    logSizeBytes: number;
-    otherSizeBytes: number;
+    // UTC epoch millis — format with FormattingService, never by parsing date strings
+    lastActivityTimeMillis: number;
+    fileTypes: FileTypeUsage[];
+    largestFiles: StoredFile[];
 }
 
 export interface StorageOverview {
