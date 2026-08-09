@@ -42,8 +42,8 @@ class PlaceholdersTest {
             Placeholders placeholders = env(Map.of("SF_CLUSTER", "blue", "SF_ENV", "uat"));
 
             assertEquals(
-                    "cluster=blue,env=uat,namespace=vogon-data",
-                    placeholders.resolve("cluster=<<ENV:SF_CLUSTER>>,env=<<ENV:SF_ENV>>,namespace=vogon-data"));
+                    "cluster=blue,env=uat,namespace=test-namespace",
+                    placeholders.resolve("cluster=<<ENV:SF_CLUSTER>>,env=<<ENV:SF_ENV>>,namespace=test-namespace"));
         }
 
         @Test

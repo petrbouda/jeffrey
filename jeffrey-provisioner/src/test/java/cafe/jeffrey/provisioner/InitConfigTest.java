@@ -730,10 +730,10 @@ class InitConfigTest {
                     "SF_CLUSTER", "blue",
                     "SF_ENV", "uat",
                     "JEFFREY_ATTRIBUTES",
-                    "cluster=<<ENV:SF_CLUSTER>>,env=<<ENV:SF_ENV>>,namespace=vogon-data")));
+                    "cluster=<<ENV:SF_CLUSTER>>,env=<<ENV:SF_ENV>>,namespace=test-namespace")));
 
             assertEquals(
-                    Map.of("cluster", "blue", "env", "uat", "namespace", "vogon-data"),
+                    Map.of("cluster", "blue", "env", "uat", "namespace", "test-namespace"),
                     config.getAttributes());
         }
 
