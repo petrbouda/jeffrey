@@ -23,6 +23,7 @@ import cafe.jeffrey.hub.core.appinitializer.ApplicationInitializer;
 import cafe.jeffrey.hub.core.appinitializer.DefaultWorkspaceInitializer;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.scheduler.*;
 import cafe.jeffrey.hub.core.scheduler.job.*;
@@ -180,6 +181,13 @@ public class GlobalJobsConfiguration {
                 platformRepositories.newProjectsRepository(),
                 clock,
                 schedulerJobsProperties.forType(JobType.DELETED_PROJECTS_CLEANER));
+    }
+
+    @Bean
+    public StorageOverviewRefresherJob storageOverviewRefresherJob(StorageOverviewCache storageOverviewCache) {
+        return new StorageOverviewRefresherJob(
+                storageOverviewCache,
+                schedulerJobsProperties.forType(JobType.STORAGE_OVERVIEW_REFRESHER));
     }
 
     @Bean

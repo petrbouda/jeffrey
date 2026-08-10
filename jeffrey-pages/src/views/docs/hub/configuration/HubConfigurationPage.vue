@@ -239,6 +239,16 @@ onMounted(() => {
             <td>Purges soft-deleted projects. Doubles as the window in which a deleted project can be restored.</td>
           </tr>
           <tr>
+            <td><code>storage-overview-refresher</code></td>
+            <td><code>5m</code></td>
+            <td>—</td>
+            <td>
+              Recomputes the storage overview shown on the Workspaces dashboard into an in-memory
+              cache. The first tick runs at startup; the dashboard serves the cached snapshot and
+              offers a manual refresh.
+            </td>
+          </tr>
+          <tr>
             <td><code>projects-synchronizer</code></td>
             <td><code>30s</code></td>
             <td>—</td>

@@ -37,7 +37,18 @@
       <span class="empty-hint">Workspaces are created automatically when applications connect</span>
     </div>
 
-    <div v-else class="dashboard-layout">
+    <template v-else>
+    <div class="snapshot-strip">
+      <i class="bi bi-clock-history"></i>
+      <span>Storage computed {{ storageComputedAgo }}</span>
+      <button class="btn-refresh" :disabled="refreshing" @click="refreshStorage">
+        <span v-if="refreshing" class="spinner-border spinner-border-sm" role="status"></span>
+        <i v-else class="bi bi-arrow-clockwise"></i>
+        <span>Refresh</span>
+      </button>
+    </div>
+
+    <div class="dashboard-layout">
       <!-- Workspace rail -->
       <aside>
         <div class="section-card total-card">
@@ -181,6 +192,7 @@
         </div>
       </section>
     </div>
+    </template>
 
     <ProjectStorageDrawer
         v-if="drawerProject"
@@ -193,7 +205,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
 import HubPageHeader from '@/components/HubPageHeader.vue';
 import ProjectStorageDrawer from '@/components/ProjectStorageDrawer.vue';
@@ -229,11 +241,17 @@ interface WorkspaceRow {
   groups: GroupUsage[];
 }
 
+/** How often the "computed X ago" label re-evaluates while the page stays open. */
+const RELATIVE_TIME_REFRESH_MS = 30_000;
+
 const storageClient = new StorageClient();
 const workspaceClient = new WorkspaceClient();
 
 const loading = ref(true);
 const error = ref<string | null>(null);
+const refreshing = ref(false);
+const relativeTimeTick = ref(0);
+let relativeTimeTimer: number | null = null;
 const overview = ref<StorageOverview | null>(null);
 const workspaceRows = ref<WorkspaceRow[]>([]);
 const selectedWorkspaceId = ref<string | null>(null);
@@ -242,6 +260,12 @@ const sortColumn = ref<SortColumn>('size');
 const sortDirection = ref<SortDirection>('desc');
 
 const formatBytes = (bytes: number) => FormattingService.formatBytesShort(bytes);
+
+const storageComputedAgo = computed(() => {
+  // The tick dependency re-evaluates the label periodically so it ages in place
+  relativeTimeTick.value;
+  return FormattingService.formatRelativeTime(overview.value?.computedAtMillis);
+});
 
 /** Placeholder storage for a project the storage scan has no data for (nothing recorded yet). */
 const emptyStorage = (workspace: Workspace, project: Project): ProjectStorage => ({
@@ -430,34 +454,41 @@ const sortArrow = (column: SortColumn) => {
   return sortDirection.value === 'asc' ? '▲' : '▼';
 };
 
+const applyOverview = async (workspaces: Workspace[], storageOverview: StorageOverview) => {
+  overview.value = storageOverview;
+
+  const storageByProjectId = new Map(
+      storageOverview.projects.map(project => [project.projectId, project]));
+
+  // Fetch the project lists of all workspaces concurrently — a serial per-workspace
+  // round-trip makes the dashboard load time grow linearly with the workspace count
+  workspaceRows.value = await Promise.all(
+      workspaces.map(async (workspace): Promise<WorkspaceRow> => {
+        const projectsClient = new WorkspaceProjectsClient(workspace.id);
+        try {
+          const projects = await projectsClient.list();
+          return buildWorkspaceRow(workspace, projects, storageByProjectId);
+        } catch {
+          return buildWorkspaceRow(workspace, [], storageByProjectId);
+        }
+      })
+  );
+
+  // Preselect the first workspace that has projects, falling back to the first one,
+  // but keep the current selection when it survived the reload
+  if (!workspaceRows.value.some(row => row.workspace.id === selectedWorkspaceId.value)) {
+    const withProjects = workspaceRows.value.find(row => row.projects.length > 0);
+    selectedWorkspaceId.value = (withProjects ?? workspaceRows.value[0])?.workspace.id ?? null;
+  }
+};
+
 const loadDashboard = async () => {
   try {
     const [workspaces, storageOverview] = await Promise.all([
       workspaceClient.list(),
       storageClient.overview()
     ]);
-    overview.value = storageOverview;
-
-    const storageByProjectId = new Map(
-        storageOverview.projects.map(project => [project.projectId, project]));
-
-    // Fetch the project lists of all workspaces concurrently — a serial per-workspace
-    // round-trip makes the dashboard load time grow linearly with the workspace count
-    workspaceRows.value = await Promise.all(
-        workspaces.map(async (workspace): Promise<WorkspaceRow> => {
-          const projectsClient = new WorkspaceProjectsClient(workspace.id);
-          try {
-            const projects = await projectsClient.list();
-            return buildWorkspaceRow(workspace, projects, storageByProjectId);
-          } catch {
-            return buildWorkspaceRow(workspace, [], storageByProjectId);
-          }
-        })
-    );
-
-    // Preselect the first workspace that has projects, falling back to the first one
-    const withProjects = workspaceRows.value.find(row => row.projects.length > 0);
-    selectedWorkspaceId.value = (withProjects ?? workspaceRows.value[0])?.workspace.id ?? null;
+    await applyOverview(workspaces, storageOverview);
     error.value = null;
   } catch (e) {
     console.error('Failed to load dashboard:', e);
@@ -467,8 +498,36 @@ const loadDashboard = async () => {
   }
 };
 
+const refreshStorage = async () => {
+  if (refreshing.value) {
+    return;
+  }
+  refreshing.value = true;
+  try {
+    const [workspaces, storageOverview] = await Promise.all([
+      workspaceClient.list(),
+      storageClient.refresh()
+    ]);
+    await applyOverview(workspaces, storageOverview);
+    error.value = null;
+  } catch (e) {
+    console.error('Failed to refresh storage overview:', e);
+  } finally {
+    refreshing.value = false;
+  }
+};
+
 onMounted(() => {
   loadDashboard();
+  relativeTimeTimer = window.setInterval(() => {
+    relativeTimeTick.value++;
+  }, RELATIVE_TIME_REFRESH_MS);
+});
+
+onUnmounted(() => {
+  if (relativeTimeTimer !== null) {
+    window.clearInterval(relativeTimeTimer);
+  }
 });
 </script>
 
@@ -504,6 +563,55 @@ onMounted(() => {
   border: 1px solid var(--color-border);
   border-radius: 10px;
   overflow: hidden;
+}
+
+/* Snapshot strip */
+.snapshot-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  margin-bottom: 14px;
+  font-size: 0.78rem;
+  color: var(--color-slate-muted);
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.snapshot-strip > i {
+  color: var(--color-primary);
+}
+
+.btn-refresh {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-slate-text);
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.btn-refresh:hover:not(:disabled) {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.btn-refresh .spinner-border {
+  width: 12px;
+  height: 12px;
+  border-width: 2px;
 }
 
 /* Layout */

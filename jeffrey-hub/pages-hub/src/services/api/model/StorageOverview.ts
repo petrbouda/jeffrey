@@ -25,6 +25,8 @@ export interface ProjectStorage {
 }
 
 export interface StorageOverview {
+    // UTC epoch millis of when the snapshot was computed by the refresher job
+    computedAtMillis: number;
     diskTotalBytes: number;
     diskUsableBytes: number;
     databaseSizeBytes: number;

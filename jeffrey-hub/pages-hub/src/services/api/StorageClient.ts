@@ -27,4 +27,9 @@ export default class StorageClient extends BasePlatformClient {
     overview(): Promise<StorageOverview> {
         return this.get<StorageOverview>();
     }
+
+    /** Forces an immediate recomputation of the cached overview and returns the fresh snapshot. */
+    refresh(): Promise<StorageOverview> {
+        return this.post<StorageOverview>('/refresh');
+    }
 }
