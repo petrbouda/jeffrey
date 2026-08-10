@@ -147,4 +147,7 @@ message InstanceSessionInfo {
   optional int64 finished_at = 4;
   // Whether this session is currently active (streaming events).
   bool is_active = 5;
+  // Whether this session failed: finished without producing any data (zero bytes),
+  // typically a prematurely killed process (OOM kill, container healthcheck restart loop).
+  bool failed = 6;
 }

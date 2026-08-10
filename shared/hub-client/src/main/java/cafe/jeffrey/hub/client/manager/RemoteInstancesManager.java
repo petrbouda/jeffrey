@@ -92,13 +92,14 @@ public class RemoteInstancesManager {
 
     private static ProjectInstanceSessionInfo toProjectInstanceSessionInfo(InstanceSessionResponse response) {
         return ProjectInstanceSessionInfo.notRetained(
-                response.id(),
-                response.repositoryId(),
-                null,
-                0,
-                null,
-                null,
-                InstantUtils.fromEpochMilli(response.createdAt()),
-                InstantUtils.fromEpochMilli(response.finishedAt()));
+                        response.id(),
+                        response.repositoryId(),
+                        null,
+                        0,
+                        null,
+                        null,
+                        InstantUtils.fromEpochMilli(response.createdAt()),
+                        InstantUtils.fromEpochMilli(response.finishedAt()))
+                .withFailed(response.failed());
     }
 }

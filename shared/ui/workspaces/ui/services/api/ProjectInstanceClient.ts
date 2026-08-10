@@ -100,7 +100,8 @@ export default class ProjectInstanceClient extends BasePlatformClient {
       data.createdAt,
       data.duration ?? 0,
       data.finishedAt ?? undefined,
-      data.isActive
+      data.isActive,
+      data.failed ?? false
     );
   }
 }

@@ -30,10 +30,14 @@ public record ProjectInstanceSessionInfo(
         Instant originCreatedAt,
         Instant createdAt,
         Instant finishedAt,
-        boolean retained) {
+        boolean retained,
+        boolean failed) {
 
     /**
      * Creates a session that is not retained — the state every session starts in.
+     * The failed flag starts false: it is a derived property (finished with zero bytes
+     * on disk), computed against repository storage and populated only when session
+     * info is reconstructed from a hub response — persisted rows always carry false.
      */
     public static ProjectInstanceSessionInfo notRetained(
             String sessionId,
@@ -47,6 +51,15 @@ public record ProjectInstanceSessionInfo(
 
         return new ProjectInstanceSessionInfo(
                 sessionId, repositoryId, instanceId, order,
-                relativeSessionPath, originCreatedAt, createdAt, finishedAt, false);
+                relativeSessionPath, originCreatedAt, createdAt, finishedAt, false, false);
+    }
+
+    /**
+     * Copy of this session info with the derived failed flag set.
+     */
+    public ProjectInstanceSessionInfo withFailed(boolean failed) {
+        return new ProjectInstanceSessionInfo(
+                sessionId, repositoryId, instanceId, order,
+                relativeSessionPath, originCreatedAt, createdAt, finishedAt, retained, failed);
     }
 }

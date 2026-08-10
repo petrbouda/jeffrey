@@ -144,7 +144,8 @@ public class InstancesClient {
                 proto.getCreatedAt(),
                 proto.hasFinishedAt() ? proto.getFinishedAt() : null,
                 proto.getIsActive(),
-                proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null);
+                proto.hasFinishedAt() ? proto.getFinishedAt() - proto.getCreatedAt() : null,
+                proto.getFailed());
     }
 
 }
