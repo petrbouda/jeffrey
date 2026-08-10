@@ -23,6 +23,8 @@ export default class ProjectInstanceSession {
     public createdAt: number,
     public duration: number,
     public finishedAt?: number,
-    public isActive?: boolean
+    public isActive?: boolean,
+    /** Finished without producing any data (zero bytes) — e.g. a crash-looped container. */
+    public failed?: boolean
   ) {}
 }

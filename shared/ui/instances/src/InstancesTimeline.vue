@@ -30,6 +30,10 @@
             <span class="legend-sw active-light"></span>
             adjacent active
           </span>
+          <span v-if="totalFailedSessions > 0" class="legend-chip">
+            <span class="legend-sw failed-block-sw"></span>
+            failed (0 B)
+          </span>
         </span>
         <span v-if="!loading" class="count-chip ms-auto">
           <i class="bi bi-box"></i>
@@ -38,6 +42,10 @@
           <span class="count-chip-sep">·</span>
           <strong>{{ totalSessions }}</strong>
           {{ totalSessions === 1 ? 'session' : 'sessions' }}
+          <template v-if="totalFailedSessions > 0">
+            <span class="count-chip-sep">·</span>
+            <span class="count-chip-failed"><strong>{{ totalFailedSessions }}</strong> failed</span>
+          </template>
         </span>
       </div>
 
@@ -67,19 +75,25 @@
                 class="bi rail-chevron"
                 :class="expandedIds.has(instance.id) ? 'bi-chevron-down' : 'bi-chevron-right'"
               ></i>
-              <router-link :to="generateInstanceUrl(instance.id)" class="rail-name" @click.stop>
+              <span class="rail-name">
                 <span class="rail-name-text">{{ instance.instanceName }}</span>
-                <i class="bi bi-box-arrow-up-right rail-name-icon"></i>
-              </router-link>
-              <div class="rail-meta">
-                <span
-                  ><i class="bi bi-clock me-1"></i
-                  >{{ FormattingService.formatDurationInMillis2Units(instance.duration) }}</span
+              </span>
+              <div class="rail-chips">
+                <router-link
+                  :to="generateInstanceUrl(instance.id)"
+                  class="rail-chip rail-chip-nav"
+                  title="Open Session Detail"
+                  @click.stop
                 >
-                <span
-                  ><i class="bi bi-layers me-1"></i>{{ instance.sessionCount }}
-                  {{ instance.sessionCount === 1 ? 'session' : 'sessions' }}</span
-                >
+                  <i class="bi bi-layers"></i>
+                  {{ instance.sessionCount }}
+                  {{ instance.sessionCount === 1 ? 'session' : 'sessions' }}
+                  <i class="bi bi-arrow-up-right rail-chip-nav-icon"></i>
+                </router-link>
+                <span class="rail-chip">
+                  <i class="bi bi-clock"></i>
+                  {{ FormattingService.formatDurationInMillis2Units(instance.duration) }}
+                </span>
               </div>
             </div>
 
@@ -100,7 +114,7 @@
                 <div class="lane-bg"></div>
                 <template v-if="instanceSessions.has(instance.id)">
                   <div
-                    v-for="(session, idx) in getSessionsForInstance(instance.id)"
+                    v-for="(session, idx) in getRealSessionsForInstance(instance.id)"
                     :key="session.id"
                     class="session-bar"
                     :class="[
@@ -113,6 +127,19 @@
                     @mouseleave.stop="hideTooltip"
                     @click.stop="toggleSessionBar(instance.id, session)"
                   ></div>
+                  <!-- Consecutive failed (zero-byte) sessions merged into one crash-loop block -->
+                  <div
+                    v-for="block in getFailedBlocksForInstance(instance.id)"
+                    :key="block.key"
+                    class="failed-loop-block"
+                    :style="getFailedBlockStyle(block)"
+                    @mouseenter.stop="showFailedBlockTooltip($event, block, instance.id)"
+                    @mousemove.stop="updateTooltipPosition($event)"
+                    @mouseleave.stop="hideTooltip"
+                    @click.stop
+                  >
+                    <span class="failed-loop-count">✕ {{ block.sessions.length }}</span>
+                  </div>
                 </template>
               </div>
             </div>
@@ -472,6 +499,52 @@
           </div>
         </div>
       </Teleport>
+
+      <!-- Failed crash-loop block tooltip (teleported to body) -->
+      <Teleport to="body">
+        <div
+          v-if="hoveredFailedBlock"
+          class="timeline-tooltip-container"
+          :style="{ left: tooltipPosition.x + 'px', top: tooltipPosition.y + 'px' }"
+          @mouseenter="cancelHideTooltip"
+          @mouseleave="hideTooltip"
+        >
+          <div class="timeline-tooltip-header">
+            <span class="timeline-tooltip-hostname">Failed Sessions</span>
+            <Badge
+              :value="`✕ ${hoveredFailedBlock.block.sessions.length}`"
+              size="xxs"
+              variant="red"
+            />
+          </div>
+          <div class="timeline-tooltip-body">
+            <div class="timeline-tooltip-row">
+              <span class="timeline-tooltip-label">First failure</span>
+              <span class="timeline-tooltip-value">
+                {{ FormattingService.formatRelativeTime(hoveredFailedBlock.block.startAt) }}
+                <span class="timeline-tooltip-utc">{{
+                  FormattingService.formatTimestampUTC(hoveredFailedBlock.block.startAt)
+                }}</span>
+              </span>
+            </div>
+            <div class="timeline-tooltip-row">
+              <span class="timeline-tooltip-label">Last failure</span>
+              <span class="timeline-tooltip-value">
+                {{ FormattingService.formatRelativeTime(hoveredFailedBlock.block.endAt) }}
+                <span class="timeline-tooltip-utc">{{
+                  FormattingService.formatTimestampUTC(hoveredFailedBlock.block.endAt)
+                }}</span>
+              </span>
+            </div>
+            <div class="timeline-tooltip-row">
+              <span class="timeline-tooltip-label">Sessions</span>
+              <span class="timeline-tooltip-value">
+                {{ hoveredFailedBlock.block.sessions.length }} finished with no data recorded (0 B)
+              </span>
+            </div>
+          </div>
+        </div>
+      </Teleport>
     </MainCard>
   </div>
 </template>
@@ -490,6 +563,7 @@ import ProjectInstanceSession from '@workspaces/services/api/model/ProjectInstan
 import ProjectInstanceSessionDetail from '@workspaces/services/api/model/ProjectInstanceSessionDetail';
 import FormattingService from '@shared/services/FormattingService';
 import { useNavigation } from '@/composables/useNavigation';
+import { splitTimelineSessions, type FailedSessionBlock } from './timelineFailedBlocks';
 import '@shared/styles/shared-components.css';
 
 const {
@@ -531,7 +605,25 @@ const totalSessions = computed(() =>
   instances.value.reduce((sum, i) => sum + (i.sessionCount ?? 0), 0)
 );
 
+// Failed (finished, zero-byte) sessions render as merged crash-loop blocks instead of bars
+const timelineSplits = computed(() => {
+  const splits = new Map<string, ReturnType<typeof splitTimelineSessions>>();
+  for (const [instanceId, sessions] of instanceSessions.value) {
+    splits.set(instanceId, splitTimelineSessions(sessions));
+  }
+  return splits;
+});
+
+const totalFailedSessions = computed(() => {
+  let count = 0;
+  for (const sessions of instanceSessions.value.values()) {
+    count += sessions.filter(session => session.failed).length;
+  }
+  return count;
+});
+
 const hoveredSession = ref<{ session: ProjectInstanceSession; instanceId: string } | null>(null);
+const hoveredFailedBlock = ref<{ block: FailedSessionBlock; instanceId: string } | null>(null);
 const tooltipPosition = ref<{ x: number; y: number }>({ x: 0, y: 0 });
 let tooltipHideTimeout: number | null = null;
 
@@ -578,6 +670,22 @@ function getSessionBarStyle(session: ProjectInstanceSession): Record<string, str
   };
 }
 
+function getFailedBlockStyle(block: FailedSessionBlock): Record<string, string> {
+  const now = Date.now();
+  const rangeMs = getRangeMs();
+
+  const startPercent = Math.max(0, Math.min(((now - block.startAt) / rangeMs) * 100, 100));
+  const endPercent = Math.max(0, Math.min(((now - block.endAt) / rangeMs) * 100, 100));
+
+  const left = endPercent;
+  const width = Math.max(startPercent - endPercent, 0.3);
+
+  return {
+    left: `${left}%`,
+    width: `${Math.min(width, 100 - left)}%`
+  };
+}
+
 function getRangeMs(): number {
   switch (selectedRange.value) {
     case '1h':
@@ -597,6 +705,14 @@ function getRangeMs(): number {
 
 function getSessionsForInstance(instanceId: string): ProjectInstanceSession[] {
   return instanceSessions.value.get(instanceId) ?? [];
+}
+
+function getRealSessionsForInstance(instanceId: string): ProjectInstanceSession[] {
+  return timelineSplits.value.get(instanceId)?.realSessions ?? [];
+}
+
+function getFailedBlocksForInstance(instanceId: string): FailedSessionBlock[] {
+  return timelineSplits.value.get(instanceId)?.failedBlocks ?? [];
 }
 
 function statusKey(status: ProjectInstanceStatus): string {
@@ -1049,6 +1165,14 @@ function showSessionTooltip(
 ) {
   cancelHideTooltip();
   hoveredSession.value = { session, instanceId };
+  hoveredFailedBlock.value = null;
+  updateTooltipPosition(event);
+}
+
+function showFailedBlockTooltip(event: MouseEvent, block: FailedSessionBlock, instanceId: string) {
+  cancelHideTooltip();
+  hoveredFailedBlock.value = { block, instanceId };
+  hoveredSession.value = null;
   updateTooltipPosition(event);
 }
 
@@ -1059,6 +1183,7 @@ function updateTooltipPosition(event: MouseEvent) {
 function hideTooltip() {
   tooltipHideTimeout = window.setTimeout(() => {
     hoveredSession.value = null;
+    hoveredFailedBlock.value = null;
   }, 150);
 }
 
@@ -1171,37 +1296,51 @@ onMounted(async () => {
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--color-dark);
-  text-decoration: none;
   line-height: 1.35;
   margin-bottom: 8px;
-  transition: color var(--transition-fast);
 }
 .rail-name-text {
   word-break: break-all;
   min-width: 0;
 }
-.rail-name-icon {
-  font-size: 0.72rem;
-  color: var(--color-text-light);
-  flex-shrink: 0;
-  transition: color var(--transition-fast);
-}
-.rail-name:hover {
-  color: var(--color-primary);
-}
-.rail-name:hover .rail-name-text {
-  text-decoration: underline;
-}
-.rail-name:hover .rail-name-icon {
-  color: var(--color-primary);
-}
 
-.rail-meta {
+/* Quick-access chips: the sessions chip is the entry point to Session Detail */
+.rail-chips {
   display: flex;
-  gap: 12px;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
+  gap: 6px;
   margin-top: 2px;
+  flex-wrap: wrap;
+}
+.rail-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.rail-chip .bi {
+  font-size: 0.7rem;
+}
+.rail-chip-nav {
+  color: var(--color-primary);
+  border-color: rgba(94, 100, 255, 0.35);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.rail-chip-nav:hover {
+  background: rgba(94, 100, 255, 0.08);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.rail-chip-nav-icon {
+  flex-shrink: 0;
 }
 
 /* ======================================================================
@@ -1286,6 +1425,44 @@ onMounted(async () => {
   }
 }
 
+/* Crash-loop block: consecutive failed (zero-byte) sessions merged into one hatched range */
+.failed-loop-block {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: var(--radius-sm);
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(230, 55, 87, 0.28) 0 4px,
+    rgba(230, 55, 87, 0.08) 4px 8px
+  );
+  border: 1px dashed rgba(230, 55, 87, 0.5);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: default;
+  z-index: 1;
+  transition: filter var(--transition-fast);
+}
+.failed-loop-block:hover {
+  filter: brightness(1.05);
+  z-index: 2;
+}
+.failed-loop-count {
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-danger);
+  background: var(--color-bg-card);
+  border: 1px solid rgba(230, 55, 87, 0.4);
+  border-radius: 8px;
+  padding: 1px 6px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 /* Shared timeline legend (inline with toolbar) */
 .timeline-legend {
   display: inline-flex;
@@ -1317,6 +1494,13 @@ onMounted(async () => {
 }
 .legend-sw.active-light {
   background: var(--color-amber);
+}
+.legend-sw.failed-block-sw {
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(230, 55, 87, 0.55) 0 3px,
+    rgba(230, 55, 87, 0.15) 3px 6px
+  );
 }
 
 /* Detail cards grid — reused by both the instance and session drawers.
@@ -1726,6 +1910,10 @@ onMounted(async () => {
 .count-chip-sep {
   color: var(--color-text-light);
   margin: 0 2px;
+}
+.count-chip-failed,
+.count-chip-failed strong {
+  color: var(--color-danger);
 }
 </style>
 
