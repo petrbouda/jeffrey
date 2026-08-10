@@ -37,22 +37,25 @@
       <span class="empty-hint">Workspaces are created automatically when applications connect</span>
     </div>
 
-    <template v-else>
-    <div class="snapshot-strip">
-      <i class="bi bi-clock-history"></i>
-      <span>Storage computed {{ storageComputedAgo }}</span>
-      <button class="btn-refresh" :disabled="refreshing" @click="refreshStorage">
-        <span v-if="refreshing" class="spinner-border spinner-border-sm" role="status"></span>
-        <i v-else class="bi bi-arrow-clockwise"></i>
-        <span>Refresh</span>
-      </button>
-    </div>
-
-    <div class="dashboard-layout">
+    <div v-else class="dashboard-layout">
       <!-- Workspace rail -->
       <aside>
         <div class="section-card total-card">
-          <div class="total-key">Hub total</div>
+          <div class="total-key">
+            Hub total
+            <span class="total-refresh">
+              <span class="total-ago">{{ storageComputedAgo }}</span>
+              <button
+                  class="btn-refresh-icon"
+                  :disabled="refreshing"
+                  :title="'Storage computed ' + storageComputedAgo + ' — refresh now'"
+                  @click="refreshStorage"
+              >
+                <span v-if="refreshing" class="spinner-border spinner-border-sm" role="status"></span>
+                <i v-else class="bi bi-arrow-clockwise"></i>
+              </button>
+            </span>
+          </div>
           <div class="total-value">{{ formatBytes(totalUsedBytes) }}</div>
           <div class="total-sub">
             {{ totalProjects }} {{ totalProjects === 1 ? 'project' : 'projects' }}
@@ -192,7 +195,6 @@
         </div>
       </section>
     </div>
-    </template>
 
     <ProjectStorageDrawer
         v-if="drawerProject"
@@ -565,50 +567,48 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-/* Snapshot strip */
-.snapshot-strip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 16px;
-  margin-bottom: 14px;
-  font-size: 0.78rem;
-  color: var(--color-slate-muted);
-  background: white;
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-}
-
-.snapshot-strip > i {
-  color: var(--color-primary);
-}
-
-.btn-refresh {
+/* Storage refresh affordance inside the Hub-total card */
+.total-refresh {
   margin-left: auto;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  gap: 8px;
+}
+
+.total-ago {
+  font-size: 0.73rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--color-slate-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.btn-refresh-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  font-size: 0.8rem;
   color: var(--color-slate-text);
   background: white;
   border: 1px solid var(--color-border);
-  border-radius: 7px;
+  border-radius: var(--radius-base);
   cursor: pointer;
 }
 
-.btn-refresh:hover:not(:disabled) {
+.btn-refresh-icon:hover:not(:disabled) {
   color: var(--color-primary);
   border-color: var(--color-primary);
 }
 
-.btn-refresh:disabled {
+.btn-refresh-icon:disabled {
   opacity: 0.6;
   cursor: default;
 }
 
-.btn-refresh .spinner-border {
+.btn-refresh-icon .spinner-border {
   width: 12px;
   height: 12px;
   border-width: 2px;
@@ -635,6 +635,8 @@ onUnmounted(() => {
 }
 
 .total-key {
+  display: flex;
+  align-items: center;
   font-size: 0.68rem;
   font-weight: 600;
   text-transform: uppercase;
