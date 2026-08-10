@@ -56,8 +56,9 @@ export default defineConfig({
   },
   test: {
     // The app's own tests plus the shared UI modules' — shared/ui has no test runner of its own, so
-    // its specs run here, next to the only environment configured to resolve them.
-    include: ['src/**/*.{test,spec}.ts', '../../shared/ui/**/src/**/*.{test,spec}.ts'],
+    // its specs run here, next to the only environment configured to resolve them. The glob stays
+    // module-root-agnostic because the shared modules disagree on it (common uses src/, workspaces ui/).
+    include: ['src/**/*.{test,spec}.ts', '../../shared/ui/**/*.{test,spec}.ts'],
     globals: true,
     // jsdom rather than node: the markdown renderer sanitizes against a real DOM, and its tests assert
     // that a hostile attribute is stripped — not merely escaped, which is what a string check would

@@ -16,6 +16,11 @@ import SectionHeaderBar from '@shared/components/SectionHeaderBar.vue';
 import type { Variant } from '@shared/types/ui';
 import FormattingService from '@shared/services/FormattingService.ts';
 import TimelineBar from '@shared/components/TimelineBar.vue';
+import {
+  buildDisplayEntries,
+  isFailedSession,
+  type FailedSessionGroup
+} from '@workspaces/services/sessionGrouping.ts';
 
 interface Props {
   sessions: RecordingSession[];
@@ -52,6 +57,7 @@ const selectedRepositoryFile = ref<{ [sessionId: string]: { [sourceId: string]: 
 const visibleFilesCount = ref<{ [key: string]: number }>({});
 const expandedTypePanels = ref<{ [key: string]: boolean }>({});
 const expandedRotatedGroups = ref<{ [key: string]: boolean }>({});
+const expandedFailedGroups = ref<{ [key: string]: boolean }>({});
 
 // Delete dialog state
 const deleteSessionDialog = ref(false);
@@ -142,6 +148,32 @@ const sortedSessions = computed(() => {
   });
 });
 
+// Consecutive failed (finished, zero-size) sessions collapse into group entries
+const displayEntries = computed(() => buildDisplayEntries(sortedSessions.value));
+
+const failedSessionsCount = computed(() => {
+  return props.sessions.filter(isFailedSession).length;
+});
+
+const headerBarText = computed(() => {
+  const base = `${props.headerText} (${props.sessions.length})`;
+  if (failedSessionsCount.value === 0) {
+    return base;
+  }
+  return `${base} · ${failedSessionsCount.value} failed`;
+});
+
+const failedGroupSummary = (group: FailedSessionGroup): string => {
+  const count = group.sessions.length;
+  const label = count === 1 ? 'failed session' : 'failed sessions';
+  const from = FormattingService.formatTimestamp(group.firstCreatedAt);
+  const to = FormattingService.formatTimestamp(group.lastCreatedAt);
+  if (count === 1) {
+    return `1 ${label} · 0 B · ${to}`;
+  }
+  return `${count} ${label} · 0 B · ${from} → ${to}`;
+};
+
 // --- Sorting ---
 const getSortedRecordings = (session: RecordingSession) => {
   const getSortPriority = (file: RepositoryFile): number => {
@@ -167,7 +199,9 @@ const getSortedRecordings = (session: RecordingSession) => {
 
 // --- Session expand/collapse ---
 const initializeExpandedState = () => {
-  const firstSessionId = sortedSessions.value.length > 0 ? sortedSessions.value[0].id : null;
+  // Auto-expand the newest session that actually produced data — a failed
+  // (finished, zero-size) session never auto-expands, it starts collapsed in its group
+  const firstSessionId = sortedSessions.value.find(session => !isFailedSession(session))?.id ?? null;
 
   props.sessions.forEach(session => {
     expandedSessions.value[session.id] =
@@ -198,6 +232,10 @@ watch(
   { immediate: true }
 );
 
+const toggleFailedGroup = (groupKey: string) => {
+  expandedFailedGroups.value[groupKey] = !expandedFailedGroups.value[groupKey];
+};
+
 const toggleSession = (sessionId: string) => {
   expandedSessions.value[sessionId] = !expandedSessions.value[sessionId];
 
@@ -217,16 +255,28 @@ const getSourcesCount = (session: RecordingSession): number => {
 };
 
 const getSessionIconClass = (session: RecordingSession) => {
-  if (session.status === RecordingStatus.ACTIVE) return 'session-icon-active';
-  if (session.status === RecordingStatus.FINISHED) return 'session-icon-finished';
-  if (session.status === RecordingStatus.UNKNOWN) return 'session-icon-unknown';
+  if (session.status === RecordingStatus.ACTIVE) {
+    return 'session-icon-active';
+  }
+  if (session.status === RecordingStatus.FINISHED) {
+    return 'session-icon-finished';
+  }
+  if (session.status === RecordingStatus.UNKNOWN) {
+    return 'session-icon-unknown';
+  }
   return 'session-icon-unknown';
 };
 
 const getSessionStatusClass = (session: RecordingSession) => {
-  if (session.status === RecordingStatus.ACTIVE) return 'session-active';
-  if (session.status === RecordingStatus.FINISHED) return 'session-finished';
-  if (session.status === RecordingStatus.UNKNOWN) return 'session-unknown';
+  if (session.status === RecordingStatus.ACTIVE) {
+    return 'session-active';
+  }
+  if (session.status === RecordingStatus.FINISHED) {
+    return 'session-finished';
+  }
+  if (session.status === RecordingStatus.UNKNOWN) {
+    return 'session-unknown';
+  }
   return `status-unknown session-${String(session.status).toLowerCase()}`;
 };
 
@@ -717,13 +767,79 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
 <template>
   <!-- Recording Sessions Header Bar -->
   <div class="col-12" v-if="sessions.length > 0">
-    <SectionHeaderBar :text="`${headerText} (${sessions.length})`" />
+    <SectionHeaderBar :text="headerBarText" />
   </div>
 
   <!-- Recording Sessions List -->
   <div class="col-12" v-if="sessions.length > 0">
-    <div v-for="session in sortedSessions" :key="session.id" class="mb-3">
-      <!-- Session header -->
+    <template
+      v-for="entry in displayEntries"
+      :key="entry.type === 'session' ? entry.session.id : entry.key"
+    >
+      <!-- Collapsed failed sessions (finished with zero bytes — e.g. a crash-looped container) -->
+      <div v-if="entry.type === 'failedGroup'" class="mb-3">
+        <div
+          class="failed-band rounded"
+          role="button"
+          :aria-expanded="expandedFailedGroups[entry.key] === true"
+          @click="toggleFailedGroup(entry.key)"
+        >
+          <i
+            class="bi failed-band-chevron"
+            :class="expandedFailedGroups[entry.key] ? 'bi-chevron-down' : 'bi-chevron-right'"
+          ></i>
+          <i class="bi bi-exclamation-triangle-fill failed-band-warn"></i>
+          <span class="failed-band-text">{{ failedGroupSummary(entry) }}</span>
+          <Badge value="no data recorded" variant="grey" size="xxs" :uppercase="false" class="ms-auto" />
+        </div>
+
+        <div v-if="expandedFailedGroups[entry.key]" class="failed-members">
+          <div v-for="failed in entry.sessions" :key="failed.id" class="failed-member">
+            <div class="failed-member-info">
+              <Badge value="Failed" variant="grey" size="xxs" />
+              <span class="failed-member-id">{{ failed.id }}</span>
+            </div>
+            <div class="failed-member-meta">
+              <span>{{ FormattingService.formatTimestamp(failed.createdAt) }}</span>
+              <span>{{ FormattingService.formatDurationMillisCompact(failed.duration) }}</span>
+              <span>0 B</span>
+              <button
+                class="pin-toggle"
+                :class="{ on: failed.retained }"
+                type="button"
+                :disabled="pinningSessions[failed.id]"
+                :title="
+                  failed.retained
+                    ? 'Pinned — exempt from automatic cleanup. Click to release.'
+                    : 'Pin this session so retention never removes it'
+                "
+                :aria-pressed="failed.retained"
+                @click.stop="togglePinned(failed)"
+              >
+                <i class="bi" :class="failed.retained ? 'bi-pin-angle-fill' : 'bi-pin-angle'"></i>
+              </button>
+              <button
+                class="btn btn-sm btn-outline-danger"
+                type="button"
+                :disabled="failed.retained"
+                :title="
+                  failed.retained
+                    ? 'Pinned sessions cannot be deleted — release it first'
+                    : 'Delete Session'
+                "
+                @click.stop="deleteAll(failed.id)"
+              >
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Regular session (the single-element v-for keeps the block's `session` alias intact) -->
+      <template v-else>
+        <div v-for="session in [entry.session]" :key="session.id" class="mb-3">
+          <!-- Session header -->
       <div
         class="folder-row rounded"
         :class="[getSessionStatusClass(session), { 'session-retained': session.retained }]"
@@ -1216,7 +1332,9 @@ const getSourceStatusWrapperClass = (source: RepositoryFile, sessionId: string) 
           </button>
         </div>
       </div>
-    </div>
+        </div>
+      </template>
+    </template>
   </div>
 
   <!-- Delete Session Confirmation Modal -->
@@ -1395,6 +1513,83 @@ code {
 
 .folder-row.session-unknown {
   border-left: 3px solid var(--color-purple);
+}
+
+/* Failed sessions — finished with zero bytes (prematurely killed process) */
+.failed-band {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border: 1px dashed var(--color-grey-muted);
+  background-color: rgba(108, 117, 125, 0.05);
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.failed-band:hover {
+  background-color: rgba(108, 117, 125, 0.1);
+  border-color: var(--color-text-muted);
+}
+
+.failed-band-chevron {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+.failed-band-warn {
+  color: var(--color-amber-highlight);
+}
+
+.failed-band-text {
+  font-weight: 500;
+}
+
+.failed-members {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0 2px 26px;
+}
+
+.failed-member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-grey-muted);
+  border-radius: var(--radius-sm);
+  background-color: rgba(108, 117, 125, 0.04);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.failed-member-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.failed-member-id {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.failed-member-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  white-space: nowrap;
 }
 
 /* Rotation group styles */

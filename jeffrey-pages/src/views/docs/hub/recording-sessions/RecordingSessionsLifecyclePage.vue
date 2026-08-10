@@ -107,6 +107,9 @@ onMounted(() => {
           <strong>Automatic recovery:</strong> When the application restarts after a crash, Jeffrey detects the new session and transitions the instance back to Active status. The crashed session's artifacts (heap dump, error logs) remain available for analysis.
         </DocsCallout>
 
+        <h3>Failed Sessions (No Data Recorded)</h3>
+        <p>A process that is killed before it writes any data — an OOM kill without a heap dump, or a container restarted by a failing healthcheck — leaves behind a <strong>failed session</strong>: finished with zero bytes. A crash-looping container can produce dozens of them in a row. The instance detail view collapses consecutive failed sessions into a single band showing their count and time range; expanding it reveals the individual sessions, which can still be pinned or deleted. Failed sessions are also invisible to the Session Cleaner's keep-newest protection (see <a href="#session-cleanup">Session Cleanup</a>), so a burst of failed sessions never causes the last real session to be reclaimed.</p>
+
         <h2 id="session-detection">Session Detection</h2>
         <p>Jeffrey automatically detects when a recording session has finished using a <strong>heartbeat-based</strong> mechanism. The Jeffrey Agent emits periodic liveness signals that the platform monitors to determine session state.</p>
 
@@ -164,7 +167,7 @@ onMounted(() => {
         <h2 id="session-cleanup">Session Cleanup</h2>
         <p>Old sessions are reclaimed automatically by several Jeffrey Hub scheduler jobs, each covering a different granularity:</p>
         <ul>
-          <li><strong>Instance Session Cleaner</strong> - Deletes whole finished sessions older than the retention window (7 days by default). The newest session of an instance that is still running is always kept.</li>
+          <li><strong>Instance Session Cleaner</strong> - Deletes whole finished sessions older than the retention window (7 days by default). The newest session of an instance that is still running is always kept — with one refinement: failed sessions (finished with zero bytes, e.g. a crash-looped container) never count as "the newest session", so the newest session that actually produced data keeps the protection instead.</li>
           <li><strong>Instance Recording Cleaner</strong> - Trims finished chunks inside the <em>live</em> session (3 days by default), so a long-running JVM cannot grow one session without bound. The chunk currently being written is never removed.</li>
           <li><strong>Storage Quota Cleaner</strong> - Caps total disk per project (20 GB by default). Age alone cannot bound disk usage, so when a project exceeds its budget this job reclaims oldest-first: whole finished sessions, then finished chunks in the live session.</li>
           <li><strong>Orphaned Session Cleaner</strong> - Removes session directories left on disk with no matching database row, after a grace period long enough to rule out a synchronizer backlog.</li>
