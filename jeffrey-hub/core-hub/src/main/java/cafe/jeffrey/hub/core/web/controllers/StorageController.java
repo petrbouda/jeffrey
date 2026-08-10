@@ -18,38 +18,37 @@
 
 package cafe.jeffrey.hub.core.web.controllers;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import cafe.jeffrey.hub.core.manager.storage.StorageManager;
-import cafe.jeffrey.hub.core.manager.storage.StorageOverview;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.resources.response.StorageOverviewResponse;
-import cafe.jeffrey.shared.common.measure.Elapsed;
-import cafe.jeffrey.shared.common.measure.Measuring;
 
 /**
- * Read-only view of the hub's on-disk storage usage. Sizes are computed from the
- * filesystem on every request; there is no cached or persisted state behind this endpoint.
+ * Read-only view of the hub's on-disk storage usage, served from
+ * {@link StorageOverviewCache}. The cache is recomputed periodically by the
+ * {@code StorageOverviewRefresherJob} (first tick at startup), so responses are
+ * instant but may be up to one job period stale; {@code computedAtMillis} carries
+ * the snapshot's age and {@code POST /refresh} forces an immediate recomputation.
  */
 @RestController
 @RequestMapping("/api/internal/storage")
 public class StorageController {
 
-    private static final Logger LOG = LoggerFactory.getLogger(StorageController.class);
+    private final StorageOverviewCache storageOverviewCache;
 
-    private final StorageManager storageManager;
-
-    public StorageController(StorageManager storageManager) {
-        this.storageManager = storageManager;
+    public StorageController(StorageOverviewCache storageOverviewCache) {
+        this.storageOverviewCache = storageOverviewCache;
     }
 
     @GetMapping
     public StorageOverviewResponse overview() {
-        Elapsed<StorageOverview> overview = Measuring.s(storageManager::overview);
-        LOG.debug("Computed storage overview: projects={} duration_ms={}",
-                overview.entity().projects().size(), overview.duration().toMillis());
-        return StorageOverviewResponse.from(overview.entity());
+        return StorageOverviewResponse.from(storageOverviewCache.get());
+    }
+
+    @PostMapping("/refresh")
+    public StorageOverviewResponse refresh() {
+        return StorageOverviewResponse.from(storageOverviewCache.refresh());
     }
 }

@@ -173,6 +173,7 @@ const displayNames: Record<string, string> = {
     WORKSPACE_EVENTS_CLEANER: 'Workspace Events Cleaner',
     TEMP_DIRECTORY_CLEANER: 'Temp Directory Cleaner',
     DELETED_PROJECTS_CLEANER: 'Deleted Projects Cleaner',
+    STORAGE_OVERVIEW_REFRESHER: 'Storage Overview Refresher',
     PROJECTS_SYNCHRONIZER: 'Projects Synchronizer',
     PROFILER_SETTINGS_SYNCHRONIZER: 'Profiler Settings Synchronizer',
     PROJECT_INSTANCE_SESSION_CLEANER: 'Instance Session Cleaner',
@@ -194,6 +195,8 @@ const descriptions: Record<string, string> = {
         'Sweeps the server temp directory, removing scratch entries (JFR merges, compression staging, replay windows) left behind by operations that crashed before cleaning up after themselves.',
     DELETED_PROJECTS_CLEANER:
         'Permanently purges soft-deleted project rows once their retention window has passed. Until then the project can still be restored, so this retention doubles as the restore window.',
+    STORAGE_OVERVIEW_REFRESHER:
+        'Recomputes the storage overview shown on the Workspaces dashboard into an in-memory cache. The scan walks every project repository on disk, so the dashboard serves the cached snapshot; figures may be up to one period stale. The first tick runs at startup.',
     PROJECTS_SYNCHRONIZER:
         'Drains the workspace event queue per workspace and applies project create / delete and session lifecycle events, keeping the server’s project list in sync with what each workspace reports.',
     PROFILER_SETTINGS_SYNCHRONIZER:
@@ -220,6 +223,7 @@ const icons: Record<string, [string, string]> = {
     WORKSPACE_EVENTS_CLEANER: ['bi-eraser', 'job-icon-broom'],
     TEMP_DIRECTORY_CLEANER: ['bi-eraser', 'job-icon-broom'],
     DELETED_PROJECTS_CLEANER: ['bi-trash', 'job-icon-trash'],
+    STORAGE_OVERVIEW_REFRESHER: ['bi-hdd-stack', 'job-icon-sync'],
     PROJECTS_SYNCHRONIZER: ['bi-arrow-repeat', 'job-icon-sync'],
     PROFILER_SETTINGS_SYNCHRONIZER: ['bi-cpu', 'job-icon-cpu'],
     PROJECT_INSTANCE_SESSION_CLEANER: ['bi-trash', 'job-icon-trash'],

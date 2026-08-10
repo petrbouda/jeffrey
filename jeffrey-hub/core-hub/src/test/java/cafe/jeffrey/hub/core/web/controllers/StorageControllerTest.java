@@ -23,15 +23,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-import cafe.jeffrey.hub.core.manager.storage.StorageManager;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview.DiskSpace;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview.FileTypeUsage;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview.InfrastructureUsage;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview.ProjectStorage;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview.StoredFile;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache.CachedOverview;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,11 +43,13 @@ import static cafe.jeffrey.hub.core.web.MockMvcSupport.mockMvcTesterFor;
 @ExtendWith(MockitoExtension.class)
 class StorageControllerTest {
 
+    private static final Instant COMPUTED_AT = Instant.parse("2026-08-10T10:00:00Z");
+
     @Mock
-    StorageManager storageManager;
+    StorageOverviewCache storageOverviewCache;
 
     @Test
-    void returnsStorageOverview() {
+    void returnsCachedStorageOverview() {
         StorageOverview overview = new StorageOverview(
                 new DiskSpace(512_000_000_000L, 387_000_000_000L),
                 new InfrastructureUsage(2_900_000_000L, 214_000_000L, 1_300_000_000L),
@@ -61,13 +65,14 @@ class StorageControllerTest {
                         List.of(
                                 new StoredFile("heapdump-01.hprof.gz", 4_000_000_000L),
                                 new StoredFile("recording-01.jfr", 900_000_000L)))));
-        when(storageManager.overview()).thenReturn(overview);
+        when(storageOverviewCache.get()).thenReturn(new CachedOverview(overview, COMPUTED_AT));
 
-        MockMvcTester mvc = mockMvcTesterFor(new StorageController(storageManager));
+        MockMvcTester mvc = mockMvcTesterFor(new StorageController(storageOverviewCache));
 
         assertThat(mvc.get().uri("/api/internal/storage"))
                 .hasStatusOk()
                 .bodyJson()
+                .hasPathSatisfying("$.computedAtMillis", v -> assertThat(v).asNumber().isEqualTo(COMPUTED_AT.toEpochMilli()))
                 .hasPathSatisfying("$.diskTotalBytes", v -> assertThat(v).asNumber().isEqualTo(512_000_000_000L))
                 .hasPathSatisfying("$.diskUsableBytes", v -> assertThat(v).asNumber().isEqualTo(387_000_000_000L))
                 .hasPathSatisfying("$.databaseSizeBytes", v -> assertThat(v).asNumber().isEqualTo(2_900_000_000L))
@@ -92,14 +97,32 @@ class StorageControllerTest {
                 DiskSpace.UNKNOWN,
                 new InfrastructureUsage(0L, 0L, 0L),
                 List.of());
-        when(storageManager.overview()).thenReturn(overview);
+        when(storageOverviewCache.get()).thenReturn(new CachedOverview(overview, COMPUTED_AT));
 
-        MockMvcTester mvc = mockMvcTesterFor(new StorageController(storageManager));
+        MockMvcTester mvc = mockMvcTesterFor(new StorageController(storageOverviewCache));
 
         assertThat(mvc.get().uri("/api/internal/storage"))
                 .hasStatusOk()
                 .bodyJson()
                 .hasPathSatisfying("$.diskTotalBytes", v -> assertThat(v).asNumber().isEqualTo(0))
                 .hasPathSatisfying("$.projects", v -> assertThat(v).asList().isEmpty());
+    }
+
+    @Test
+    void refreshRecomputesAndReturnsFreshOverview() {
+        Instant refreshedAt = COMPUTED_AT.plusSeconds(90);
+        StorageOverview overview = new StorageOverview(
+                new DiskSpace(512_000_000_000L, 350_000_000_000L),
+                new InfrastructureUsage(3_000_000_000L, 220_000_000L, 900_000_000L),
+                List.of());
+        when(storageOverviewCache.refresh()).thenReturn(new CachedOverview(overview, refreshedAt));
+
+        MockMvcTester mvc = mockMvcTesterFor(new StorageController(storageOverviewCache));
+
+        assertThat(mvc.post().uri("/api/internal/storage/refresh"))
+                .hasStatusOk()
+                .bodyJson()
+                .hasPathSatisfying("$.computedAtMillis", v -> assertThat(v).asNumber().isEqualTo(refreshedAt.toEpochMilli()))
+                .hasPathSatisfying("$.diskUsableBytes", v -> assertThat(v).asNumber().isEqualTo(350_000_000_000L));
     }
 }

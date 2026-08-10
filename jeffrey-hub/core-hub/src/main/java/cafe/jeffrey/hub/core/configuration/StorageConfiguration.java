@@ -23,7 +23,10 @@ import org.springframework.context.annotation.Configuration;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.manager.storage.StorageManager;
 import cafe.jeffrey.hub.core.manager.storage.StorageManagerImpl;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
+
+import java.time.Clock;
 
 @Configuration
 public class StorageConfiguration {
@@ -31,5 +34,10 @@ public class StorageConfiguration {
     @Bean
     public StorageManager storageManager(WorkspacesManager workspacesManager, HubJeffreyDirs jeffreyDirs) {
         return new StorageManagerImpl(workspacesManager, jeffreyDirs);
+    }
+
+    @Bean
+    public StorageOverviewCache storageOverviewCache(StorageManager storageManager, Clock clock) {
+        return new StorageOverviewCache(storageManager, clock);
     }
 }

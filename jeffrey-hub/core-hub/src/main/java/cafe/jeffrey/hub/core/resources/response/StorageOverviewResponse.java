@@ -19,10 +19,12 @@
 package cafe.jeffrey.hub.core.resources.response;
 
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache.CachedOverview;
 
 import java.util.List;
 
 public record StorageOverviewResponse(
+        long computedAtMillis,
         long diskTotalBytes,
         long diskUsableBytes,
         long databaseSizeBytes,
@@ -30,12 +32,14 @@ public record StorageOverviewResponse(
         long tempSizeBytes,
         List<ProjectStorageResponse> projects) {
 
-    public static StorageOverviewResponse from(StorageOverview overview) {
+    public static StorageOverviewResponse from(CachedOverview cached) {
+        StorageOverview overview = cached.overview();
         List<ProjectStorageResponse> projects = overview.projects().stream()
                 .map(ProjectStorageResponse::from)
                 .toList();
 
         return new StorageOverviewResponse(
+                cached.computedAt().toEpochMilli(),
                 overview.disk().totalBytes(),
                 overview.disk().usableBytes(),
                 overview.infrastructure().databaseBytes(),
