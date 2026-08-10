@@ -82,7 +82,8 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
 
         // Group finished sessions by instance. Retained sessions are pinned evidence
         // (a manual pin, or an auto-pin from a detected JVM crash) and never expire.
-        Map<String, List<RecordingSession>> sessionsByInstance = repositoryStorage.listSessions(false).stream()
+        // Files must be loaded (listSessions(true)) so isFailedEmpty() sees real sizes.
+        Map<String, List<RecordingSession>> sessionsByInstance = repositoryStorage.listSessions(true).stream()
                 .filter(session -> session.finishedAt() != null)
                 .filter(session -> !session.retained())
                 .collect(Collectors.groupingBy(RecordingSession::instanceId));
@@ -99,14 +100,26 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
             boolean isFinished = instanceOpt.isPresent()
                     && instanceOpt.get().status() == ProjectInstanceStatus.FINISHED;
 
+            // Protection slot: the newest session that actually produced data. Failed/empty
+            // sessions (finished with zero bytes, e.g. a crash-looped container) never consume
+            // the keep-newest protection, so a real session followed by a burst of failed
+            // sessions stays protected.
+            int protectedIndex = -1;
+            for (int i = 0; i < sessions.size(); i++) {
+                if (!sessions.get(i).isFailedEmpty()) {
+                    protectedIndex = i;
+                    break;
+                }
+            }
+
             for (int i = 0; i < sessions.size(); i++) {
                 RecordingSession session = sessions.get(i);
                 if (!currentTime.isAfter(session.createdAt().plus(duration))) {
                     continue;
                 }
 
-                // Keep latest session for non-FINISHED instances (skip(1) per instance)
-                if (i == 0 && !isFinished) {
+                // Keep the newest non-empty session for non-FINISHED instances
+                if (i == protectedIndex && !isFinished) {
                     continue;
                 }
 

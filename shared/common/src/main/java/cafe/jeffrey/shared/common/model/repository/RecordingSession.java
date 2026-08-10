@@ -47,5 +47,15 @@ public record RecordingSession(
                 .mapToLong(Long::longValue)
                 .sum();
     }
+
+    /**
+     * A finished session that produced no data at all — typically a prematurely killed
+     * process (OOM kill, container healthcheck restart loop). Only meaningful when the
+     * session was loaded WITH files (listSessions(true)) — a session loaded without
+     * files always reports zero size and would be misclassified as failed.
+     */
+    public boolean isFailedEmpty() {
+        return finishedAt != null && totalSizeBytes() == 0L;
+    }
 }
 
