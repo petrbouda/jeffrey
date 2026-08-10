@@ -75,23 +75,25 @@
                 class="bi rail-chevron"
                 :class="expandedIds.has(instance.id) ? 'bi-chevron-down' : 'bi-chevron-right'"
               ></i>
-              <router-link :to="generateInstanceUrl(instance.id)" class="rail-name" @click.stop>
+              <span class="rail-name">
                 <span class="rail-name-text">{{ instance.instanceName }}</span>
-                <i class="bi bi-box-arrow-up-right rail-name-icon"></i>
-              </router-link>
-              <div class="rail-meta">
-                <span
-                  ><i class="bi bi-clock me-1"></i
-                  >{{ FormattingService.formatDurationInMillis2Units(instance.duration) }}</span
+              </span>
+              <div class="rail-chips">
+                <router-link
+                  :to="generateInstanceUrl(instance.id)"
+                  class="rail-chip rail-chip-nav"
+                  title="Open Session Detail"
+                  @click.stop
                 >
-                <span
-                  ><i class="bi bi-layers me-1"></i>{{ instance.sessionCount }}
-                  {{ instance.sessionCount === 1 ? 'session' : 'sessions' }}</span
-                >
-                <span v-if="failedCountForInstance(instance.id) > 0" class="rail-meta-failed"
-                  ><i class="bi bi-exclamation-triangle me-1"></i
-                  >{{ failedCountForInstance(instance.id) }} failed</span
-                >
+                  <i class="bi bi-layers"></i>
+                  {{ instance.sessionCount }}
+                  {{ instance.sessionCount === 1 ? 'session' : 'sessions' }}
+                  <i class="bi bi-arrow-up-right rail-chip-nav-icon"></i>
+                </router-link>
+                <span class="rail-chip">
+                  <i class="bi bi-clock"></i>
+                  {{ FormattingService.formatDurationInMillis2Units(instance.duration) }}
+                </span>
               </div>
             </div>
 
@@ -713,13 +715,6 @@ function getFailedBlocksForInstance(instanceId: string): FailedSessionBlock[] {
   return timelineSplits.value.get(instanceId)?.failedBlocks ?? [];
 }
 
-function failedCountForInstance(instanceId: string): number {
-  return getFailedBlocksForInstance(instanceId).reduce(
-    (sum, block) => sum + block.sessions.length,
-    0
-  );
-}
-
 function statusKey(status: ProjectInstanceStatus): string {
   return status.toLowerCase();
 }
@@ -1301,37 +1296,51 @@ onMounted(async () => {
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--color-dark);
-  text-decoration: none;
   line-height: 1.35;
   margin-bottom: 8px;
-  transition: color var(--transition-fast);
 }
 .rail-name-text {
   word-break: break-all;
   min-width: 0;
 }
-.rail-name-icon {
-  font-size: 0.72rem;
-  color: var(--color-text-light);
-  flex-shrink: 0;
-  transition: color var(--transition-fast);
-}
-.rail-name:hover {
-  color: var(--color-primary);
-}
-.rail-name:hover .rail-name-text {
-  text-decoration: underline;
-}
-.rail-name:hover .rail-name-icon {
-  color: var(--color-primary);
-}
 
-.rail-meta {
+/* Quick-access chips: the sessions chip is the entry point to Session Detail */
+.rail-chips {
   display: flex;
-  gap: 12px;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
+  gap: 6px;
   margin-top: 2px;
+  flex-wrap: wrap;
+}
+.rail-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.rail-chip .bi {
+  font-size: 0.7rem;
+}
+.rail-chip-nav {
+  color: var(--color-primary);
+  border-color: rgba(94, 100, 255, 0.35);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.rail-chip-nav:hover {
+  background: rgba(94, 100, 255, 0.08);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.rail-chip-nav-icon {
+  flex-shrink: 0;
 }
 
 /* ======================================================================
@@ -1904,9 +1913,6 @@ onMounted(async () => {
 }
 .count-chip-failed,
 .count-chip-failed strong {
-  color: var(--color-danger);
-}
-.rail-meta-failed {
   color: var(--color-danger);
 }
 </style>
