@@ -50,6 +50,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -73,6 +74,7 @@ class ProjectInstanceSessionCleanerJobTest {
     private static final Duration PAST_RETENTION = RETENTION.plus(Duration.ofDays(1));
     private static final long MB = 1024L * 1024L;
     private static final String INSTANCE_ID = "inst-1";
+    private static final int MAX_SESSIONS = 10;
 
     @Mock
     WorkspacesManager workspacesManager;
@@ -112,7 +114,7 @@ class ProjectInstanceSessionCleanerJobTest {
         when(instanceRepository.find(INSTANCE_ID)).thenReturn(Optional.of(instance(ProjectInstanceStatus.ACTIVE)));
 
         ProjectInstanceSessionCleanerJobDescriptor descriptor =
-                new ProjectInstanceSessionCleanerJobDescriptor(RETENTION.toDays(), ChronoUnit.DAYS);
+                new ProjectInstanceSessionCleanerJobDescriptor(RETENTION.toDays(), ChronoUnit.DAYS, MAX_SESSIONS);
 
         job = new ProjectInstanceSessionCleanerJob(
                 workspacesManager,
@@ -125,16 +127,24 @@ class ProjectInstanceSessionCleanerJobTest {
     }
 
     private void execute() {
+        execute(MAX_SESSIONS);
+    }
+
+    private void execute(int maxSessions) {
         job.executeOnRepository(
                 projectManager,
                 storage,
-                new ProjectInstanceSessionCleanerJobDescriptor(RETENTION.toDays(), ChronoUnit.DAYS),
+                new ProjectInstanceSessionCleanerJobDescriptor(RETENTION.toDays(), ChronoUnit.DAYS, maxSessions),
                 JobContext.EMPTY);
     }
 
     private static ProjectInstanceInfo instance(ProjectInstanceStatus status) {
+        return instance(INSTANCE_ID, status);
+    }
+
+    private static ProjectInstanceInfo instance(String instanceId, ProjectInstanceStatus status) {
         return new ProjectInstanceInfo(
-                INSTANCE_ID, "proj-1", "my-instance", status, NOW.minus(Duration.ofDays(30)),
+                instanceId, "proj-1", "my-instance", status, NOW.minus(Duration.ofDays(30)),
                 null, null, null, 3, null);
     }
 
@@ -154,12 +164,24 @@ class ProjectInstanceSessionCleanerJobTest {
         return session(id, createdAt, createdAt.plusSeconds(5), false);
     }
 
+    /** A still-running session — zero bytes so far, no finish timestamp. */
+    private static RecordingSession activeSession(String id, Instant createdAt) {
+        return session(id, createdAt, null, false);
+    }
+
     private static RecordingSession session(
             String id, Instant createdAt, Instant finishedAt, boolean retained, RepositoryFile... files) {
 
+        return session(id, INSTANCE_ID, createdAt, finishedAt, retained, files);
+    }
+
+    private static RecordingSession session(
+            String id, String instanceId, Instant createdAt, Instant finishedAt, boolean retained,
+            RepositoryFile... files) {
+
         RecordingStatus status = finishedAt != null ? RecordingStatus.FINISHED : RecordingStatus.ACTIVE;
         return new RecordingSession(
-                id, id, INSTANCE_ID, createdAt, finishedAt, status, null, null, List.of(files), retained);
+                id, id, instanceId, createdAt, finishedAt, status, null, null, List.of(files), retained);
     }
 
     private List<String> deletedSessionIds() {
@@ -300,13 +322,206 @@ class ProjectInstanceSessionCleanerJobTest {
     }
 
     @Nested
+    class MaxSessionsCap {
+
+        private final List<RecordingSession> sessions = new ArrayList<>();
+        private int ageHours = 0;
+
+        /** Appends a real session one hour older than the previous one — far inside the age window. */
+        private void real(String id) {
+            sessions.add(realSession(id, NOW.minus(Duration.ofHours(++ageHours))));
+        }
+
+        /** Appends a failed-empty session one hour older than the previous one. */
+        private void empty(String id) {
+            sessions.add(emptySession(id, NOW.minus(Duration.ofHours(++ageHours))));
+        }
+
+        @Test
+        void consecutiveFailedRunsCollapseIntoOneLogicalSession() {
+            // 3 real + 5 crashed + 3 real + 5 crashed + 2 real = 3+1+3+1+2 = 10 logical sessions
+            real("real-1");
+            real("real-2");
+            real("real-3");
+            empty("empty-1");
+            empty("empty-2");
+            empty("empty-3");
+            empty("empty-4");
+            empty("empty-5");
+            real("real-4");
+            real("real-5");
+            real("real-6");
+            empty("empty-6");
+            empty("empty-7");
+            empty("empty-8");
+            empty("empty-9");
+            empty("empty-10");
+            real("real-7");
+            real("real-8");
+
+            when(storage.listSessions(true)).thenReturn(sessions);
+
+            execute(10);
+
+            verify(repositoryManager, never()).deleteRecordingSession(anyString(), any());
+        }
+
+        @Test
+        void deletesOldestLogicalSessionsBeyondTheCap() {
+            // The 10-unit layout above plus a crash-loop run and a real session behind it
+            real("real-1");
+            real("real-2");
+            real("real-3");
+            empty("empty-1");
+            empty("empty-2");
+            empty("empty-3");
+            empty("empty-4");
+            empty("empty-5");
+            real("real-4");
+            real("real-5");
+            real("real-6");
+            empty("empty-6");
+            empty("empty-7");
+            empty("empty-8");
+            empty("empty-9");
+            empty("empty-10");
+            real("real-7");
+            real("real-8");
+            empty("old-empty-1");
+            empty("old-empty-2");
+            real("old-real");
+
+            when(storage.listSessions(true)).thenReturn(sessions);
+
+            execute(10);
+
+            // Both physical sessions of the over-cap crash-loop unit go, plus the over-cap real one
+            assertEquals(List.of("old-empty-1", "old-empty-2", "old-real"), deletedSessionIds());
+        }
+
+        @Test
+        void capDeletesSessionsYoungerThanTheAgeWindow() {
+            real("real-1");
+            real("real-2");
+            real("real-3");
+            real("real-4");
+
+            when(storage.listSessions(true)).thenReturn(sessions);
+
+            execute(3);
+
+            assertEquals(List.of("real-4"), deletedSessionIds());
+        }
+
+        @Test
+        void activeSessionOccupiesASlotButIsNeverDeleted() {
+            sessions.add(activeSession("live", NOW.minus(Duration.ofMinutes(30))));
+            real("real-1");
+            real("real-2");
+            real("real-3");
+
+            when(storage.listSessions(true)).thenReturn(sessions);
+
+            execute(3);
+
+            // The live session takes unit 0, pushing the oldest real session over the cap
+            assertEquals(List.of("real-3"), deletedSessionIds());
+        }
+
+        @Test
+        void overCapActiveSessionIsNeverDeleted() {
+            real("real-1");
+            sessions.add(activeSession("stale-live", NOW.minus(Duration.ofHours(5))));
+
+            when(storage.listSessions(true)).thenReturn(sessions);
+
+            execute(1);
+
+            verify(repositoryManager, never()).deleteRecordingSession(anyString(), any());
+        }
+
+        @Test
+        void retainedSessionsAreInvisibleToTheCap() {
+            empty("empty-1");
+            Instant pinnedAt = NOW.minus(Duration.ofHours(++ageHours));
+            sessions.add(session("pinned", pinnedAt, pinnedAt.plusSeconds(60), true,
+                    recording("pinned-file", pinnedAt, 10 * MB)));
+            empty("empty-2");
+            real("real-1");
+            real("real-2");
+
+            when(storage.listSessions(true)).thenReturn(sessions);
+
+            execute(2);
+
+            // The pinned session consumes no slot and no longer splits the crash-loop run:
+            // units are [empty-1, empty-2], [real-1], [real-2] — only real-2 is over the cap
+            assertEquals(List.of("real-2"), deletedSessionIds());
+        }
+
+        @Test
+        void keepNewestProtectionBeatsTheCapForLiveInstances() {
+            sessions.add(activeSession("live", NOW.minus(Duration.ofMinutes(30))));
+            empty("empty-1");
+            real("real-1");
+            empty("empty-2");
+
+            when(storage.listSessions(true)).thenReturn(sessions);
+
+            execute(2);
+
+            // real-1 is over the cap but is the newest finished session with data — protected
+            assertEquals(List.of("empty-2"), deletedSessionIds());
+        }
+
+        @Test
+        void noProtectionFromTheCapForFinishedInstances() {
+            when(instanceRepository.find(INSTANCE_ID))
+                    .thenReturn(Optional.of(instance(ProjectInstanceStatus.FINISHED)));
+
+            sessions.add(activeSession("live", NOW.minus(Duration.ofMinutes(30))));
+            empty("empty-1");
+            real("real-1");
+            empty("empty-2");
+
+            when(storage.listSessions(true)).thenReturn(sessions);
+
+            execute(2);
+
+            assertEquals(List.of("real-1", "empty-2"), deletedSessionIds());
+        }
+
+        @Test
+        void capAppliesPerInstanceIndependently() {
+            when(instanceRepository.find("inst-2"))
+                    .thenReturn(Optional.of(instance("inst-2", ProjectInstanceStatus.ACTIVE)));
+
+            real("real-1");
+            real("real-2");
+            real("real-3");
+            for (int i = 1; i <= 3; i++) {
+                Instant createdAt = NOW.minus(Duration.ofHours(++ageHours));
+                sessions.add(session("other-real-" + i, "inst-2", createdAt, createdAt.plusSeconds(60), false,
+                        recording("other-file-" + i, createdAt, 10 * MB)));
+            }
+
+            when(storage.listSessions(true)).thenReturn(sessions);
+
+            execute(4);
+
+            // 6 sessions in total, but each instance holds only 3 logical sessions — under the cap
+            verify(repositoryManager, never()).deleteRecordingSession(anyString(), any());
+        }
+    }
+
+    @Nested
     class DegenerateInput {
 
         @Test
         void toleratesEmptyRepository() {
             when(storage.listSessions(true)).thenReturn(List.of());
 
-            assertDoesNotThrow(ProjectInstanceSessionCleanerJobTest.this::execute);
+            assertDoesNotThrow(() -> execute());
             verify(repositoryManager, never()).deleteRecordingSession(anyString(), any());
         }
 

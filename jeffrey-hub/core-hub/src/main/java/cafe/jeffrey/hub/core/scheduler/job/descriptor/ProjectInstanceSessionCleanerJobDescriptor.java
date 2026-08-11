@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -24,19 +24,34 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 
+/**
+ * Retention rules for finished instance sessions: an age window ({@code duration} +
+ * {@code timeUnit}) and a per-instance cap of {@code maxSessions} logical sessions.
+ * A logical session is either a single session that produced data or a consecutive
+ * run of failed-empty sessions (a crash loop), which counts as one.
+ */
 public record ProjectInstanceSessionCleanerJobDescriptor(
         long duration,
-        ChronoUnit timeUnit
+        ChronoUnit timeUnit,
+        int maxSessions
 ) implements JobDescriptor<ProjectInstanceSessionCleanerJobDescriptor> {
 
     private static final String PARAM_DURATION = "duration";
     private static final String PARAM_TIME_UNIT = "time-unit";
+    private static final String PARAM_MAX_SESSIONS = "max-sessions";
+
+    public ProjectInstanceSessionCleanerJobDescriptor {
+        if (maxSessions <= 0) {
+            throw new IllegalArgumentException(PARAM_MAX_SESSIONS + " must be positive: " + maxSessions);
+        }
+    }
 
     @Override
     public Map<String, String> params() {
         return Map.of(
                 PARAM_DURATION, String.valueOf(duration),
-                PARAM_TIME_UNIT, timeUnit.toString());
+                PARAM_TIME_UNIT, timeUnit.toString(),
+                PARAM_MAX_SESSIONS, Integer.toString(maxSessions));
     }
 
     @Override
@@ -51,6 +66,7 @@ public record ProjectInstanceSessionCleanerJobDescriptor(
     public static ProjectInstanceSessionCleanerJobDescriptor of(Map<String, String> params) {
         return new ProjectInstanceSessionCleanerJobDescriptor(
                 JobDescriptorUtils.resolveLong(params, PARAM_DURATION),
-                JobDescriptorUtils.resolveChronoUnit(params, PARAM_TIME_UNIT));
+                JobDescriptorUtils.resolveChronoUnit(params, PARAM_TIME_UNIT),
+                JobDescriptorUtils.resolveInt(params, PARAM_MAX_SESSIONS));
     }
 }

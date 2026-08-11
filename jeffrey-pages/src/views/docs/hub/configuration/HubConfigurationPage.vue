@@ -263,8 +263,14 @@ onMounted(() => {
           <tr>
             <td><code>project-instance-session-cleaner</code></td>
             <td><code>1h</code></td>
-            <td><code>duration=7</code> / <code>time-unit=Days</code></td>
-            <td>Deletes finished sessions past the retention window</td>
+            <td><code>duration=7</code> / <code>time-unit=Days</code> / <code>max-sessions=10</code></td>
+            <td>
+              Deletes finished sessions past the retention window, and caps each instance at
+              <code>max-sessions</code> logical sessions — a consecutive run of failed (0-byte)
+              sessions counts as one, the live session occupies a slot, retained sessions are
+              exempt. Oldest logical sessions beyond the cap are deleted even before the
+              retention window expires.
+            </td>
           </tr>
           <tr>
             <td><code>project-instance-recording-cleaner</code></td>

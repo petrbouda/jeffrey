@@ -202,7 +202,7 @@ const descriptions: Record<string, string> = {
     PROFILER_SETTINGS_SYNCHRONIZER:
         'Resolves the effective profiler settings (global → workspace → project) for every workspace and uploads them to the remote workspace, pruning legacy versions to the configured max-versions cap.',
     PROJECT_INSTANCE_SESSION_CLEANER:
-        'Removes Project Instance Sessions older than the configured duration. Once a session is removed, all associated Recordings and Additional Files (HeapDump, PerfCounters, ...) are removed as well.',
+        'Removes Project Instance Sessions older than the configured duration, and caps each instance at max-sessions logical sessions — a consecutive run of failed (0-byte) sessions counts as one, the live session occupies a slot, retained sessions are exempt. Oldest logical sessions beyond the cap are removed even before the age window expires. Once a session is removed, all associated Recordings and Additional Files (HeapDump, PerfCounters, ...) are removed as well.',
     PROJECT_INSTANCE_RECORDING_CLEANER:
         'Removes only Recordings in the active (latest) Project Instance Session. It does not remove recordings in older sessions — it just ensures that rolling recordings in the latest session are bounded by age.',
     PROJECT_STORAGE_QUOTA_CLEANER:
