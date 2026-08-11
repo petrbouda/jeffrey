@@ -76,15 +76,17 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
         String projectName = manager.info().name();
         LOG.debug("Cleaning the project instance sessions: project='{}'", projectName);
         Duration duration = jobDescriptor.toDuration();
+        int maxSessions = jobDescriptor.maxSessions();
 
         Instant currentTime = clock.instant();
         ProjectInstanceRepository instanceRepo = platformRepositories.newProjectInstanceRepository(projectId);
 
-        // Group finished sessions by instance. Retained sessions are pinned evidence
-        // (a manual pin, or an auto-pin from a detected JVM crash) and never expire.
+        // Group ALL non-retained sessions by instance — the still-active session must occupy
+        // a slot of the max-sessions cap, so it stays in the list and is excluded only at
+        // deletion time. Retained sessions are pinned evidence (a manual pin, or an auto-pin
+        // from a detected JVM crash): they never expire and never consume a cap slot.
         // Files must be loaded (listSessions(true)) so isFailedEmpty() sees real sizes.
         Map<String, List<RecordingSession>> sessionsByInstance = repositoryStorage.listSessions(true).stream()
-                .filter(session -> session.finishedAt() != null)
                 .filter(session -> !session.retained())
                 .collect(Collectors.groupingBy(RecordingSession::instanceId));
 
@@ -92,38 +94,45 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
 
         for (var entry : sessionsByInstance.entrySet()) {
             String instanceId = entry.getKey();
-            List<RecordingSession> sessions = entry.getValue().stream()
-                    .sorted(Comparator.comparing(RecordingSession::createdAt).reversed())
-                    .toList();
+            InstanceSessionUnits units = InstanceSessionUnits.of(entry.getValue());
 
             Optional<ProjectInstanceInfo> instanceOpt = instanceRepo.find(instanceId);
             boolean isFinished = instanceOpt.isPresent()
                     && instanceOpt.get().status() == ProjectInstanceStatus.FINISHED;
 
-            // Protection slot: the newest session that actually produced data. Failed/empty
-            // sessions (finished with zero bytes, e.g. a crash-looped container) never consume
-            // the keep-newest protection, so a real session followed by a burst of failed
-            // sessions stays protected.
-            int protectedIndex = -1;
-            for (int i = 0; i < sessions.size(); i++) {
-                if (!sessions.get(i).isFailedEmpty()) {
-                    protectedIndex = i;
-                    break;
-                }
-            }
+            // Protection slot: the newest FINISHED session that actually produced data.
+            // Failed/empty sessions (finished with zero bytes, e.g. a crash-looped container)
+            // never consume the keep-newest protection, and the active session must not claim
+            // it either — it is already safe, and letting it win would silently un-protect
+            // the newest real finished session.
+            String protectedSessionId = units.sessionsNewestFirst().stream()
+                    .filter(session -> session.finishedAt() != null)
+                    .filter(session -> !session.isFailedEmpty())
+                    .map(RecordingSession::id)
+                    .findFirst()
+                    .orElse(null);
 
-            for (int i = 0; i < sessions.size(); i++) {
-                RecordingSession session = sessions.get(i);
-                if (!currentTime.isAfter(session.createdAt().plus(duration))) {
-                    continue;
-                }
+            // Two independent rules in one pass: the age window, and the per-instance cap of
+            // logical sessions (a consecutive crash-loop run counts as one unit). Sessions in
+            // units beyond the cap are deleted even before their age window expires.
+            List<List<RecordingSession>> unitList = units.units();
+            for (int unitIndex = 0; unitIndex < unitList.size(); unitIndex++) {
+                boolean overCap = unitIndex >= maxSessions;
+                for (RecordingSession session : unitList.get(unitIndex)) {
+                    if (session.finishedAt() == null) {
+                        continue;
+                    }
 
-                // Keep the newest non-empty session for non-FINISHED instances
-                if (i == protectedIndex && !isFinished) {
-                    continue;
-                }
+                    // Keep the newest non-empty session for non-FINISHED instances
+                    if (!isFinished && session.id().equals(protectedSessionId)) {
+                        continue;
+                    }
 
-                candidatesForDeletion.add(session);
+                    boolean ageExpired = currentTime.isAfter(session.createdAt().plus(duration));
+                    if (ageExpired || overCap) {
+                        candidatesForDeletion.add(session);
+                    }
+                }
             }
         }
 
