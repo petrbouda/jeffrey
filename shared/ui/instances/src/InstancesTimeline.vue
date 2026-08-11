@@ -94,15 +94,31 @@
                 {{ instance.sessionCount === 1 ? 'session' : 'sessions' }}
                 <i class="bi bi-arrow-up-right head-chip-nav-icon"></i>
               </router-link>
-              <span class="head-chip">
-                <i class="bi bi-clock"></i>
-                {{ FormattingService.formatDurationInMillis2Units(instance.duration) }}
-              </span>
               <i
                 class="bi head-chevron"
                 :class="expandedIds.has(instance.id) ? 'bi-chevron-down' : 'bi-chevron-right'"
               ></i>
             </div>
+          </div>
+
+          <!-- Meta strip: the single home of the instance's time data (started → finished
+               · duration), so neither the header chips nor the overview panel repeat it. -->
+          <div class="instance-meta-strip" @click="toggleExpand(instance.id)">
+            <span class="meta-k">Started</span>
+            <span class="meta-v">{{ FormattingService.formatTimestampUTC(instance.createdAt) }}</span>
+            <span class="meta-sep">→</span>
+            <template v-if="instanceEnd(instance)">
+              <span class="meta-k">Finished</span>
+              <span class="meta-v">{{
+                FormattingService.formatTimestampUTC(instanceEnd(instance))
+              }}</span>
+            </template>
+            <span v-else class="meta-v meta-running">Running</span>
+            <span class="meta-sep">·</span>
+            <span class="meta-k">Duration</span>
+            <span class="meta-v">{{
+              FormattingService.formatDurationInMillis2Units(instance.duration)
+            }}</span>
           </div>
 
           <!-- Full-width timeline body -->
@@ -153,37 +169,18 @@
           </div>
 
           <!-- Instance overview panel: opens when the header or timeline body is clicked.
-               Uses the same drawer shell as the session drawer below; only one can be
-               open per card. -->
-          <div v-if="expandedIds.has(instance.id)" class="inline-drawer">
-            <div class="inline-drawer-head">
-              <i class="bi bi-box inline-drawer-icon"></i>
-              <span class="inline-drawer-label">Instance</span>
-              <span class="inline-drawer-id mono">{{ instance.instanceName }}</span>
-              <Badge
-                :value="statusBadgeLabel(instance.status)"
-                :variant="statusBadgeVariant(instance.status)"
-                size="xxs"
-              />
-              <span class="inline-drawer-meta">
-                {{ FormattingService.formatTimestampUTC(instance.createdAt) }}
-                →
-                <template v-if="instanceEnd(instance)">
-                  {{ FormattingService.formatTimestampUTC(instanceEnd(instance)) }}
-                </template>
-                <template v-else>Running</template>
-                <span class="inline-drawer-meta-sep">·</span>
-                {{ FormattingService.formatDurationInMillis2Units(instance.duration) }}
-              </span>
-              <button
-                type="button"
-                class="inline-drawer-close"
-                aria-label="Close instance detail"
-                @click="closeInstanceDrawer(instance.id)"
-              >
-                <i class="bi bi-x-lg"></i>
-              </button>
-            </div>
+               Headless — the card header and the meta strip above already identify the
+               instance, so only a floating close button remains. Uses the same drawer
+               shell as the session drawer below; only one can be open per card. -->
+          <div v-if="expandedIds.has(instance.id)" class="inline-drawer inline-drawer--headless">
+            <button
+              type="button"
+              class="inline-drawer-close inline-drawer-close--floating"
+              aria-label="Close instance detail"
+              @click="closeInstanceDrawer(instance.id)"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
 
             <div class="inline-drawer-body">
               <LoadingState
@@ -196,35 +193,6 @@
                     <span class="detail-card-title">Overview</span>
                   </div>
                   <div class="detail-card-body">
-                    <div class="kv">
-                      <span class="k">started</span
-                      ><span class="v mono">{{
-                        FormattingService.formatTimestampUTC(
-                          instanceDetails.get(instance.id)!.instance.createdAt
-                        )
-                      }}</span>
-                    </div>
-                    <div class="kv">
-                      <span class="k">finished</span>
-                      <span
-                        v-if="instanceEnd(instanceDetails.get(instance.id)!.instance)"
-                        class="v mono"
-                        >{{
-                          FormattingService.formatTimestampUTC(
-                            instanceEnd(instanceDetails.get(instance.id)!.instance)
-                          )
-                        }}</span
-                      >
-                      <span v-else class="v running">Running...</span>
-                    </div>
-                    <div class="kv">
-                      <span class="k">duration</span
-                      ><span class="v mono">{{
-                        FormattingService.formatDurationInMillis2Units(
-                          instanceDetails.get(instance.id)!.instance.duration
-                        )
-                      }}</span>
-                    </div>
                     <div class="kv">
                       <span class="k">sessions</span
                       ><span class="v mono">{{
@@ -1347,6 +1315,62 @@ onMounted(async () => {
 }
 
 /* ======================================================================
+   Meta strip: started → finished · duration, between header and timeline
+   ====================================================================== */
+.instance-meta-strip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  padding: 4px 16px;
+  border-bottom: 1px solid var(--color-border);
+  border-left: 3px solid transparent;
+  font-family: var(--font-family-monospace);
+  font-size: 0.66rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+.instance-card.pending .instance-meta-strip {
+  background-color: rgba(59, 130, 246, 0.03);
+  border-left-color: var(--color-blue-500);
+}
+.instance-card.active .instance-meta-strip {
+  background-color: rgba(245, 158, 11, 0.03);
+  border-left-color: var(--color-amber);
+}
+.instance-card.finished .instance-meta-strip {
+  background-color: rgba(16, 185, 129, 0.02);
+  border-left-color: var(--color-success);
+}
+.instance-card.expired .instance-meta-strip {
+  background-color: rgba(156, 163, 175, 0.02);
+  border-left-color: var(--color-text-light);
+}
+.instance-meta-strip:hover {
+  background-color: var(--color-bg-hover);
+}
+.meta-k {
+  font-family: inherit;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+}
+.meta-v {
+  white-space: nowrap;
+}
+.meta-running {
+  color: var(--color-amber);
+  font-weight: 600;
+}
+.meta-sep {
+  color: var(--color-text-light);
+  margin: 0 2px;
+}
+
+/* ======================================================================
    Full-width timeline body
    ====================================================================== */
 .instance-card-body {
@@ -1805,6 +1829,16 @@ onMounted(async () => {
 .inline-drawer-close:hover {
   background: var(--color-light);
   color: var(--color-dark);
+}
+/* Headless drawer: no repeated instance identity, just a floating close button */
+.inline-drawer--headless {
+  position: relative;
+}
+.inline-drawer-close--floating {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
 }
 
 .session-status-dot {
