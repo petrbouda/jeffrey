@@ -94,15 +94,31 @@
                 {{ instance.sessionCount === 1 ? 'session' : 'sessions' }}
                 <i class="bi bi-arrow-up-right head-chip-nav-icon"></i>
               </router-link>
-              <span class="head-chip">
-                <i class="bi bi-clock"></i>
-                {{ FormattingService.formatDurationInMillis2Units(instance.duration) }}
-              </span>
               <i
                 class="bi head-chevron"
                 :class="expandedIds.has(instance.id) ? 'bi-chevron-down' : 'bi-chevron-right'"
               ></i>
             </div>
+          </div>
+
+          <!-- Meta strip: the single home of the instance's time data (started → finished
+               · duration), so neither the header chips nor the overview panel repeat it. -->
+          <div class="instance-meta-strip" @click="toggleExpand(instance.id)">
+            <span class="meta-k">Started</span>
+            <span class="meta-v">{{ FormattingService.formatTimestampUTC(instance.createdAt) }}</span>
+            <span class="meta-sep">→</span>
+            <template v-if="instanceEnd(instance)">
+              <span class="meta-k">Finished</span>
+              <span class="meta-v">{{
+                FormattingService.formatTimestampUTC(instanceEnd(instance))
+              }}</span>
+            </template>
+            <span v-else class="meta-v meta-running">Running</span>
+            <span class="meta-sep">·</span>
+            <span class="meta-k">Duration</span>
+            <span class="meta-v">{{
+              FormattingService.formatDurationInMillis2Units(instance.duration)
+            }}</span>
           </div>
 
           <!-- Full-width timeline body -->
@@ -153,37 +169,18 @@
           </div>
 
           <!-- Instance overview panel: opens when the header or timeline body is clicked.
-               Uses the same drawer shell as the session drawer below; only one can be
-               open per card. -->
-          <div v-if="expandedIds.has(instance.id)" class="inline-drawer">
-            <div class="inline-drawer-head">
-              <i class="bi bi-box inline-drawer-icon"></i>
-              <span class="inline-drawer-label">Instance</span>
-              <span class="inline-drawer-id mono">{{ instance.instanceName }}</span>
-              <Badge
-                :value="statusBadgeLabel(instance.status)"
-                :variant="statusBadgeVariant(instance.status)"
-                size="xxs"
-              />
-              <span class="inline-drawer-meta">
-                {{ FormattingService.formatTimestampUTC(instance.createdAt) }}
-                →
-                <template v-if="instanceEnd(instance)">
-                  {{ FormattingService.formatTimestampUTC(instanceEnd(instance)) }}
-                </template>
-                <template v-else>Running</template>
-                <span class="inline-drawer-meta-sep">·</span>
-                {{ FormattingService.formatDurationInMillis2Units(instance.duration) }}
-              </span>
-              <button
-                type="button"
-                class="inline-drawer-close"
-                aria-label="Close instance detail"
-                @click="closeInstanceDrawer(instance.id)"
-              >
-                <i class="bi bi-x-lg"></i>
-              </button>
-            </div>
+               Headless — the card header and the meta strip above already identify the
+               instance, so only a floating close button remains. Uses the same drawer
+               shell as the session drawer below; only one can be open per card. -->
+          <div v-if="expandedIds.has(instance.id)" class="inline-drawer inline-drawer--headless">
+            <button
+              type="button"
+              class="inline-drawer-close inline-drawer-close--floating"
+              aria-label="Close instance detail"
+              @click="closeInstanceDrawer(instance.id)"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
 
             <div class="inline-drawer-body">
               <LoadingState
@@ -196,35 +193,6 @@
                     <span class="detail-card-title">Overview</span>
                   </div>
                   <div class="detail-card-body">
-                    <div class="kv">
-                      <span class="k">started</span
-                      ><span class="v mono">{{
-                        FormattingService.formatTimestampUTC(
-                          instanceDetails.get(instance.id)!.instance.createdAt
-                        )
-                      }}</span>
-                    </div>
-                    <div class="kv">
-                      <span class="k">finished</span>
-                      <span
-                        v-if="instanceEnd(instanceDetails.get(instance.id)!.instance)"
-                        class="v mono"
-                        >{{
-                          FormattingService.formatTimestampUTC(
-                            instanceEnd(instanceDetails.get(instance.id)!.instance)
-                          )
-                        }}</span
-                      >
-                      <span v-else class="v running">Running...</span>
-                    </div>
-                    <div class="kv">
-                      <span class="k">duration</span
-                      ><span class="v mono">{{
-                        FormattingService.formatDurationInMillis2Units(
-                          instanceDetails.get(instance.id)!.instance.duration
-                        )
-                      }}</span>
-                    </div>
                     <div class="kv">
                       <span class="k">sessions</span
                       ><span class="v mono">{{
@@ -289,6 +257,18 @@
                     >
                       <i class="bi bi-play-circle"></i> Replay Stream
                     </router-link>
+                    <button
+                      v-if="downloadableSummary(session.id)"
+                      type="button"
+                      class="drawer-action drawer-action--download"
+                      title="Download all recordings (merged) and artifacts"
+                      @click.stop="downloadSession(session.id)"
+                    >
+                      <i class="bi bi-download"></i> Download
+                      <span class="drawer-action-hint">
+                        · {{ downloadableSummary(session.id) }}
+                      </span>
+                    </button>
                   </div>
                   <span class="inline-drawer-meta">
                     {{ FormattingService.formatTimestampUTC(session.createdAt) }}
@@ -565,6 +545,10 @@ import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import Badge from '@shared/components/Badge.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import ProjectInstanceClient from '@workspaces/services/api/ProjectInstanceClient';
+import ProjectRepositoryClient from '@workspaces/services/api/ProjectRepositoryClient';
+import RecordingSession from '@workspaces/services/api/model/RecordingSession';
+import { downloadAssistantStore } from '@workspaces/stores/assistants/downloadAssistantStore';
+import { ToastService } from '@shared/services/ToastService';
 import ProjectInstance, { type ProjectInstanceStatus } from '@workspaces/services/api/model/ProjectInstance';
 import ProjectInstanceDetail from '@workspaces/services/api/model/ProjectInstanceDetail';
 import ProjectInstanceSession from '@workspaces/services/api/model/ProjectInstanceSession';
@@ -608,6 +592,15 @@ const instanceClient = new ProjectInstanceClient(
   workspaceId.value!,
   projectId.value!
 );
+const repositoryClient = new ProjectRepositoryClient(
+  hubId.value,
+  workspaceId.value!,
+  projectId.value!
+);
+
+// Repository sessions keyed by session id: the drawer's Download action needs the
+// session's files (ids + sizes), which the timeline session model does not carry.
+const repositorySessions = ref<Map<string, RecordingSession>>(new Map());
 
 const totalSessions = computed(() =>
   instances.value.reduce((sum, i) => sum + (i.sessionCount ?? 0), 0)
@@ -1166,6 +1159,65 @@ function closeSessionDrawer(instanceId: string): void {
   activeSessionByInstance.value = next;
 }
 
+async function loadRepositorySessions(): Promise<void> {
+  try {
+    const sessions = await repositoryClient.listRecordingSessions();
+    repositorySessions.value = new Map(sessions.map(session => [session.id, session]));
+  } catch (error) {
+    // The Download action simply stays hidden when repository data is unavailable
+    repositorySessions.value = new Map();
+  }
+}
+
+/**
+ * Summary of what the Download action will fetch ("2 files · 1.71 MiB"), or null when
+ * the session has no downloadable recording data — then the action is not rendered,
+ * mirroring the sessions list's "no recording data available" rule.
+ */
+function downloadableSummary(sessionId: string): string | null {
+  const repositorySession = repositorySessions.value.get(sessionId);
+  if (!repositorySession) {
+    return null;
+  }
+  const hasRecordingData = repositorySession.files.some(file => file.isRecording && file.size > 0);
+  if (!hasRecordingData) {
+    return null;
+  }
+  const files = repositorySession.files.filter(file => file.size > 0);
+  const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+  const fileLabel = files.length === 1 ? 'file' : 'files';
+  return `${files.length} ${fileLabel} · ${FormattingService.formatBytes(totalSize)}`;
+}
+
+/**
+ * Downloads all recordings (merged) and artifacts of the session — the same flow as
+ * the Download button in the sessions list: the Download Assistant fetches every file
+ * of the session from the remote workspace.
+ */
+async function downloadSession(sessionId: string): Promise<void> {
+  const repositorySession = repositorySessions.value.get(sessionId);
+  if (!repositorySession) {
+    ToastService.error('Download', 'Session not found in the repository');
+    return;
+  }
+
+  try {
+    const fileIds = repositorySession.files.map(file => file.id);
+    await downloadAssistantStore.startDownload(
+      hubId.value,
+      workspaceId.value!,
+      projectId.value!,
+      sessionId,
+      fileIds,
+      async () => {
+        await loadRepositorySessions();
+      }
+    );
+  } catch (error: any) {
+    ToastService.error('Download', error.message || 'Failed to download recording session');
+  }
+}
+
 function showSessionTooltip(
   event: MouseEvent,
   session: ProjectInstanceSession,
@@ -1203,7 +1255,11 @@ function cancelHideTooltip() {
 }
 
 onMounted(async () => {
-  instances.value = await instanceClient.list(true);
+  const [loadedInstances] = await Promise.all([
+    instanceClient.list(true),
+    loadRepositorySessions()
+  ]);
+  instances.value = loadedInstances;
   instanceSessions.value = new Map(
     instances.value.map(instance => [instance.id, instance.sessions ?? []])
   );
@@ -1344,6 +1400,62 @@ onMounted(async () => {
   color: var(--color-text-muted);
   flex-shrink: 0;
   transition: transform var(--transition-fast);
+}
+
+/* ======================================================================
+   Meta strip: started → finished · duration, between header and timeline
+   ====================================================================== */
+.instance-meta-strip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  padding: 4px 16px;
+  border-bottom: 1px solid var(--color-border);
+  border-left: 3px solid transparent;
+  font-family: var(--font-family-monospace);
+  font-size: 0.66rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+.instance-card.pending .instance-meta-strip {
+  background-color: rgba(59, 130, 246, 0.03);
+  border-left-color: var(--color-blue-500);
+}
+.instance-card.active .instance-meta-strip {
+  background-color: rgba(245, 158, 11, 0.03);
+  border-left-color: var(--color-amber);
+}
+.instance-card.finished .instance-meta-strip {
+  background-color: rgba(16, 185, 129, 0.02);
+  border-left-color: var(--color-success);
+}
+.instance-card.expired .instance-meta-strip {
+  background-color: rgba(156, 163, 175, 0.02);
+  border-left-color: var(--color-text-light);
+}
+.instance-meta-strip:hover {
+  background-color: var(--color-bg-hover);
+}
+.meta-k {
+  font-family: inherit;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+}
+.meta-v {
+  white-space: nowrap;
+}
+.meta-running {
+  color: var(--color-amber);
+  font-weight: 600;
+}
+.meta-sep {
+  color: var(--color-text-light);
+  margin: 0 2px;
 }
 
 /* ======================================================================
@@ -1806,6 +1918,16 @@ onMounted(async () => {
   background: var(--color-light);
   color: var(--color-dark);
 }
+/* Headless drawer: no repeated instance identity, just a floating close button */
+.inline-drawer--headless {
+  position: relative;
+}
+.inline-drawer-close--floating {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+}
 
 .session-status-dot {
   width: 8px;
@@ -1865,6 +1987,22 @@ onMounted(async () => {
   background: var(--color-violet);
   color: var(--color-white);
   border-color: var(--color-violet);
+}
+.drawer-action--download {
+  background: var(--color-primary-bg);
+  color: var(--color-primary-hover);
+  border-color: var(--color-primary-border-light);
+  cursor: pointer;
+}
+.drawer-action--download:hover {
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-color: var(--color-primary);
+}
+/* The "· 2 files · 1.71 MiB" summary inside the Download pill */
+.drawer-action-hint {
+  font-weight: 500;
+  opacity: 0.75;
 }
 
 .inline-drawer-body {
