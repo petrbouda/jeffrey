@@ -58,95 +58,103 @@
         description="No application instances found for this project."
       />
 
-      <div v-else class="swim-card">
+      <div v-else class="card-stack">
         <div
           v-for="instance in instances"
           :key="instance.id"
-          class="swim-row-group"
-          :class="{
-            expanded: expandedIds.has(instance.id),
-            'has-open-session': activeSessionByInstance.has(instance.id)
-          }"
+          class="instance-card"
+          :class="[
+            statusKey(instance.status),
+            {
+              expanded: expandedIds.has(instance.id),
+              'has-open-session': activeSessionByInstance.has(instance.id)
+            }
+          ]"
         >
-          <div class="swim-row" @click="toggleExpand(instance.id)">
-            <!-- Left rail (status shown via background) -->
-            <div class="rail" :class="statusKey(instance.status)">
+          <!-- Status-tinted card header: icon, name, status badge, quick-access chips -->
+          <div class="instance-card-head" @click="toggleExpand(instance.id)">
+            <span class="head-iconbox">
+              <i class="bi bi-box"></i>
+            </span>
+            <span class="head-name">{{ instance.instanceName }}</span>
+            <Badge
+              :value="statusBadgeLabel(instance.status)"
+              :variant="statusBadgeVariant(instance.status)"
+              size="xxs"
+            />
+            <div class="head-chips">
+              <router-link
+                :to="generateInstanceUrl(instance.id)"
+                class="head-chip head-chip-nav"
+                title="Open Session Detail"
+                @click.stop
+              >
+                <i class="bi bi-layers"></i>
+                {{ instance.sessionCount }}
+                {{ instance.sessionCount === 1 ? 'session' : 'sessions' }}
+                <i class="bi bi-arrow-up-right head-chip-nav-icon"></i>
+              </router-link>
+              <span class="head-chip">
+                <i class="bi bi-clock"></i>
+                {{ FormattingService.formatDurationInMillis2Units(instance.duration) }}
+              </span>
               <i
-                class="bi rail-chevron"
+                class="bi head-chevron"
                 :class="expandedIds.has(instance.id) ? 'bi-chevron-down' : 'bi-chevron-right'"
               ></i>
-              <span class="rail-name">
-                <span class="rail-name-text">{{ instance.instanceName }}</span>
-              </span>
-              <div class="rail-chips">
-                <router-link
-                  :to="generateInstanceUrl(instance.id)"
-                  class="rail-chip rail-chip-nav"
-                  title="Open Session Detail"
-                  @click.stop
-                >
-                  <i class="bi bi-layers"></i>
-                  {{ instance.sessionCount }}
-                  {{ instance.sessionCount === 1 ? 'session' : 'sessions' }}
-                  <i class="bi bi-arrow-up-right rail-chip-nav-icon"></i>
-                </router-link>
-                <span class="rail-chip">
-                  <i class="bi bi-clock"></i>
-                  {{ FormattingService.formatDurationInMillis2Units(instance.duration) }}
-                </span>
-              </div>
-            </div>
-
-            <!-- Swim lanes -->
-            <div class="track-wrap" @click.stop="toggleExpand(instance.id)">
-              <div class="time-axis">
-                <span
-                  v-for="(tick, idx) in timelineTicks"
-                  :key="tick"
-                  class="axis-tick"
-                  :style="{ left: axisTickLeft(idx) }"
-                  >{{ tick }}</span
-                >
-              </div>
-
-              <!-- Sessions lane -->
-              <div class="lane lane-sessions">
-                <div class="lane-bg"></div>
-                <template v-if="instanceSessions.has(instance.id)">
-                  <div
-                    v-for="(session, idx) in getRealSessionsForInstance(instance.id)"
-                    :key="session.id"
-                    class="session-bar"
-                    :class="[
-                      sessionBarClass(session, idx),
-                      { selected: activeSessionByInstance.get(instance.id) === session.id }
-                    ]"
-                    :style="getSessionBarStyle(session)"
-                    @mouseenter.stop="showSessionTooltip($event, session, instance.id)"
-                    @mousemove.stop="updateTooltipPosition($event)"
-                    @mouseleave.stop="hideTooltip"
-                    @click.stop="toggleSessionBar(instance.id, session)"
-                  ></div>
-                  <!-- Consecutive failed (zero-byte) sessions merged into one crash-loop block -->
-                  <div
-                    v-for="block in getFailedBlocksForInstance(instance.id)"
-                    :key="block.key"
-                    class="failed-loop-block"
-                    :style="getFailedBlockStyle(block)"
-                    @mouseenter.stop="showFailedBlockTooltip($event, block, instance.id)"
-                    @mousemove.stop="updateTooltipPosition($event)"
-                    @mouseleave.stop="hideTooltip"
-                    @click.stop
-                  >
-                    <span class="failed-loop-count">✕ {{ block.sessions.length }}</span>
-                  </div>
-                </template>
-              </div>
             </div>
           </div>
 
-          <!-- Instance overview panel: opens when the row is clicked. Uses the same
-               drawer shell as the session drawer below; only one can be open per row. -->
+          <!-- Full-width timeline body -->
+          <div class="instance-card-body" @click="toggleExpand(instance.id)">
+            <div class="time-axis">
+              <span
+                v-for="(tick, idx) in timelineTicks"
+                :key="tick"
+                class="axis-tick"
+                :style="{ left: axisTickLeft(idx) }"
+                >{{ tick }}</span
+              >
+            </div>
+
+            <!-- Sessions lane -->
+            <div class="lane lane-sessions">
+              <div class="lane-bg"></div>
+              <template v-if="instanceSessions.has(instance.id)">
+                <div
+                  v-for="(session, idx) in getRealSessionsForInstance(instance.id)"
+                  :key="session.id"
+                  class="session-bar"
+                  :class="[
+                    sessionBarClass(session, idx),
+                    { selected: activeSessionByInstance.get(instance.id) === session.id }
+                  ]"
+                  :style="getSessionBarStyle(session)"
+                  @mouseenter.stop="showSessionTooltip($event, session, instance.id)"
+                  @mousemove.stop="updateTooltipPosition($event)"
+                  @mouseleave.stop="hideTooltip"
+                  @click.stop="toggleSessionBar(instance.id, session)"
+                ></div>
+                <!-- Consecutive failed (zero-byte) sessions merged into one crash-loop block -->
+                <div
+                  v-for="block in getFailedBlocksForInstance(instance.id)"
+                  :key="block.key"
+                  class="failed-loop-block"
+                  :style="getFailedBlockStyle(block)"
+                  @mouseenter.stop="showFailedBlockTooltip($event, block, instance.id)"
+                  @mousemove.stop="updateTooltipPosition($event)"
+                  @mouseleave.stop="hideTooltip"
+                  @click.stop
+                >
+                  <span class="failed-loop-count">✕ {{ block.sessions.length }}</span>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <!-- Instance overview panel: opens when the header or timeline body is clicked.
+               Uses the same drawer shell as the session drawer below; only one can be
+               open per card. -->
           <div v-if="expandedIds.has(instance.id)" class="inline-drawer">
             <div class="inline-drawer-head">
               <i class="bi bi-box inline-drawer-icon"></i>
@@ -1205,113 +1213,101 @@ onMounted(async () => {
 
 <style scoped>
 /* ======================================================================
-   Swim card (outer container holding all instance rows)
+   Card stack (one card per instance, separated by whitespace)
    ====================================================================== */
-.swim-card {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--color-bg-card);
+.card-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.swim-row-group {
-  border-bottom: 1px solid var(--color-border);
-}
-.swim-row-group:last-child {
-  border-bottom: none;
+.instance-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
 /* ======================================================================
-   Two-column row: left rail + swim lanes
+   Card header (instance metadata, status-tinted with a left accent)
    ====================================================================== */
-.swim-row {
-  display: grid;
-  grid-template-columns: 260px 1fr;
+.instance-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-border);
+  border-left: 3px solid transparent;
   cursor: pointer;
   transition: background-color var(--transition-fast);
 }
-.swim-row:hover {
-  background-color: var(--color-bg-hover);
-}
-.swim-row-group.expanded .swim-row {
-  background-color: var(--color-bg-hover);
-}
 
-/* ======================================================================
-   Left rail (instance metadata)
-   ====================================================================== */
-.rail {
-  position: relative;
-  padding: 16px 36px 16px 20px;
-  border-right: 1px solid var(--color-border);
-  border-left: 3px solid transparent;
-  min-width: 0;
-  transition: background-color var(--transition-fast);
-}
-
-.rail.pending {
+.instance-card.pending .instance-card-head {
   background-color: rgba(59, 130, 246, 0.06);
   border-left-color: var(--color-blue-500);
 }
-.rail.active {
+.instance-card.active .instance-card-head {
   background-color: rgba(245, 158, 11, 0.06);
   border-left-color: var(--color-amber);
 }
-.rail.finished {
+.instance-card.finished .instance-card-head {
   background-color: rgba(16, 185, 129, 0.04);
   border-left-color: var(--color-success);
 }
-.rail.expired {
+.instance-card.expired .instance-card-head {
   background-color: rgba(156, 163, 175, 0.04);
   border-left-color: var(--color-text-light);
 }
 
-.swim-row:hover .rail.pending {
+.instance-card.pending .instance-card-head:hover {
   background-color: rgba(59, 130, 246, 0.12);
 }
-.swim-row:hover .rail.active {
+.instance-card.active .instance-card-head:hover {
   background-color: rgba(245, 158, 11, 0.12);
 }
-.swim-row:hover .rail.finished {
+.instance-card.finished .instance-card-head:hover {
   background-color: rgba(16, 185, 129, 0.1);
 }
-.swim-row:hover .rail.expired {
+.instance-card.expired .instance-card-head:hover {
   background-color: rgba(156, 163, 175, 0.1);
 }
 
-.rail-chevron {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-  transition: transform var(--transition-fast);
-}
-
-.rail-name {
+.head-iconbox {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  max-width: 100%;
+  justify-content: center;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+
+.head-name {
+  font-family: var(--font-family-monospace);
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--color-dark);
   line-height: 1.35;
-  margin-bottom: 8px;
-}
-.rail-name-text {
   word-break: break-all;
   min-width: 0;
 }
 
 /* Quick-access chips: the sessions chip is the entry point to Session Detail */
-.rail-chips {
+.head-chips {
+  margin-left: auto;
   display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 6px;
-  margin-top: 2px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
-.rail-chip {
+.head-chip {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -1324,31 +1320,43 @@ onMounted(async () => {
   color: var(--color-text-muted);
   white-space: nowrap;
 }
-.rail-chip .bi {
+.head-chip .bi {
   font-size: 0.7rem;
 }
-.rail-chip-nav {
+.head-chip-nav {
   color: var(--color-primary);
   border-color: rgba(94, 100, 255, 0.35);
   text-decoration: none;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
-.rail-chip-nav:hover {
+.head-chip-nav:hover {
   background: rgba(94, 100, 255, 0.08);
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
-.rail-chip-nav-icon {
+.head-chip-nav-icon {
   flex-shrink: 0;
+}
+.head-chevron {
+  margin-left: 4px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
 }
 
 /* ======================================================================
-   Swim lanes track area
+   Full-width timeline body
    ====================================================================== */
-.track-wrap {
-  padding: 12px 20px 14px;
+.instance-card-body {
+  padding: 10px 16px 14px;
   min-width: 0;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+.instance-card-body:hover {
+  background-color: var(--color-bg-hover);
 }
 
 .time-axis {
@@ -1714,13 +1722,11 @@ onMounted(async () => {
 }
 
 /* ======================================================================
-   Session drawer — opens inline beneath the row when a session bar is
-   clicked in the timeline lane above. One drawer per instance at a time.
+   Session drawer — opens inline beneath the timeline body when a session
+   bar is clicked. One drawer per instance card at a time.
    ====================================================================== */
-.swim-row-group.has-open-session {
-  background-color: var(--color-bg-hover);
-}
-.swim-row-group.has-open-session .swim-row {
+.instance-card.expanded .instance-card-body,
+.instance-card.has-open-session .instance-card-body {
   background-color: var(--color-bg-hover);
 }
 
