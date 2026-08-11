@@ -14,41 +14,58 @@
         v-if="candidates.length === 0"
         title="No leak candidates recorded"
         icon="bi-bug"
-        action-label="Enable the old-object sampler, then re-record and re-import"
         :command="leakEnableCommand"
       >
         <p>
           Leak candidates come from <code>jdk.OldObjectSample</code> — JFR's built-in old-object
           sampler. It tags a fraction of allocations and reports the ones still alive at dump time,
-          surfacing long-lived objects (and the sites that allocated them) as potential leaks.
-        </p>
-        <p>
-          The event is <strong>disabled</strong> in the lean <code>default</code> config and
-          <strong>enabled</strong> in <code>profile</code>. Crucially, the allocation
-          <strong>stack trace is off by default</strong> and only on under <code>profile</code> —
-          without it a candidate is just a class name, with no allocation site to chase. Record
-          with the <code>profile</code> config (or enable the event explicitly) and keep
-          <code>stackTrace=true</code> so the leak sites are usable.
+          surfacing long-lived objects (and the sites that allocated them) as potential leaks. The
+          event is <strong>disabled</strong> in the lean <code>default</code> config. Re-record with
+          the command below, then re-import the <code>.jfr</code>:
         </p>
 
         <template #action>
-          <p>
-            <strong>A — inline, no extra file.</strong> Use the copyable command above: it records
-            with the bundled <code>profile</code> config and sets
-            <code>jdk.OldObjectSample#enabled=true</code> with
-            <code>stackTrace=true</code> so survivors carry their allocation stacks.
-          </p>
-          <p>
-            <strong>B — a reusable <code>.jfc</code> overlay.</strong> Save this as
-            <code>leak.jfc</code> and record with
-            <code>settings=profile,settings=leak.jfc</code>:
-          </p>
-          <pre class="jfc-block">{{ leakJfcSnippet }}</pre>
-          <p>
-            Re-import the <code>.jfr</code> afterwards. The <code>cutoff</code> of <code>0 ns</code>
-            keeps every surviving sample; raise it to keep only objects that have outlived a minimum
-            age.
-          </p>
+          <table class="settings-table">
+            <thead>
+              <tr>
+                <th>Setting</th>
+                <th>What it does</th>
+                <th>Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>#enabled=true</code></td>
+                <td>Turns the old-object sampler on — without it this page stays empty.</td>
+                <td><Badge value="Low" variant="success" size="xs" /></td>
+              </tr>
+              <tr>
+                <td><code>#stackTrace=true</code></td>
+                <td>
+                  Records the allocation stack for each sample; otherwise a candidate is just a
+                  class name with no allocation site to chase.
+                </td>
+                <td><Badge value="Low" variant="success" size="xs" /></td>
+              </tr>
+              <tr>
+                <td><code>path-to-gc-roots=true</code></td>
+                <td>
+                  At dump time, walks the heap and attaches the reference chain from a GC root to
+                  each surviving sample — shows <em>who holds the leak alive</em>. A recording/dump
+                  option, not an event setting; it cannot be set in a <code>.jfc</code>.
+                </td>
+                <td><Badge value="Dump pause" variant="warning" size="xs" /></td>
+              </tr>
+              <tr>
+                <td><code>cutoff=0 ns</code></td>
+                <td>
+                  Keeps every surviving sample; raise it to keep only objects that have outlived a
+                  minimum age (set in a <code>.jfc</code> overlay).
+                </td>
+                <td><Badge value="Low" variant="success" size="xs" /></td>
+              </tr>
+            </tbody>
+          </table>
         </template>
       </DisabledEventsNotice>
 
@@ -62,129 +79,154 @@
         <div v-show="activeTab === 'candidates'">
           <DataTable>
             <template #toolbar>
-          <TableToolbar v-model="candidatesView.query" search-placeholder="Filter classes...">
-            <span class="toolbar-info">Leak candidates</span>
-            <template #filters>
-              <Badge key-label="Total" :value="candidatesView.matchCount" variant="secondary" size="s" borderless />
+              <TableToolbar v-model="candidatesView.query" search-placeholder="Filter classes...">
+                <span class="toolbar-info">Leak candidates</span>
+                <template #filters>
+                  <Badge
+                    key-label="Total"
+                    :value="candidatesView.matchCount"
+                    variant="secondary"
+                    size="s"
+                    borderless
+                  />
+                </template>
+              </TableToolbar>
             </template>
-          </TableToolbar>
-        </template>
-        <thead>
-          <tr>
-            <th class="rank-col">#</th>
-            <th>Leaked Class</th>
-            <th class="text-end">Size</th>
-            <th class="text-end">Age</th>
-            <th class="text-end">Array Elements</th>
-            <th class="text-end">Heap at Sample</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(candidate, index) in candidatesView.visible" :key="index">
-            <td class="text-muted">{{ index + 1 }}</td>
-            <td class="class-cell" :title="candidate.className ?? ''">
-              <ClassNameDisplay v-if="candidate.className" :class-name="candidate.className" />
-              <span v-else class="text-muted">—</span>
-            </td>
-            <td class="text-end">{{ FormattingService.formatBytes(candidate.objectSizeBytes) }}</td>
-            <td class="text-end">{{ FormattingService.formatDuration2Units(candidate.objectAgeNanos) }}</td>
-            <td class="text-end">
-              {{ candidate.arrayElements > 0 ? FormattingService.formatNumber(candidate.arrayElements) : '—' }}
-            </td>
-            <td class="text-end">{{ FormattingService.formatBytes(candidate.lastKnownHeapUsageBytes) }}</td>
-          </tr>
-        </tbody>
-        <template #footer>
-          <TableShowMore
-            :shown="candidatesView.visible.length"
-            :match-count="candidatesView.matchCount"
-            :total="candidatesView.total"
-            :expanded="candidatesView.expanded"
-            :page-size="candidatesView.pageSize"
-            @toggle="candidatesView.toggle"
-          />
-        </template>
+            <thead>
+              <tr>
+                <th class="rank-col">#</th>
+                <th>Leaked Class</th>
+                <th class="text-end">Size</th>
+                <th class="text-end">Age</th>
+                <th class="text-end">Array Elements</th>
+                <th class="text-end">Heap at Sample</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(candidate, index) in candidatesView.visible" :key="index">
+                <td class="text-muted">{{ index + 1 }}</td>
+                <td class="class-cell" :title="candidate.className ?? ''">
+                  <ClassNameDisplay v-if="candidate.className" :class-name="candidate.className" />
+                  <span v-else class="text-muted">—</span>
+                </td>
+                <td class="text-end">
+                  {{ FormattingService.formatBytes(candidate.objectSizeBytes) }}
+                </td>
+                <td class="text-end">
+                  {{ FormattingService.formatDuration2Units(candidate.objectAgeNanos) }}
+                </td>
+                <td class="text-end">
+                  {{
+                    candidate.arrayElements > 0
+                      ? FormattingService.formatNumber(candidate.arrayElements)
+                      : '—'
+                  }}
+                </td>
+                <td class="text-end">
+                  {{ FormattingService.formatBytes(candidate.lastKnownHeapUsageBytes) }}
+                </td>
+              </tr>
+            </tbody>
+            <template #footer>
+              <TableShowMore
+                :shown="candidatesView.visible.length"
+                :match-count="candidatesView.matchCount"
+                :total="candidatesView.total"
+                :expanded="candidatesView.expanded"
+                :page-size="candidatesView.pageSize"
+                @toggle="candidatesView.toggle"
+              />
+            </template>
           </DataTable>
         </div>
 
         <!-- How It Works Tab -->
         <div v-show="activeTab === 'about'">
-        <AboutPanel
-          icon="bi-question-circle"
-          title="Understanding Leak Candidates"
-          subtitle="How JFR's old-object sampler finds objects that should have been collected"
-        >
-          <AboutCallout variant="intro">
-            <p>
-              JFR has a built-in, low-overhead leak detector: the <strong>old-object sampler</strong>.
-              Rather than dumping the whole heap, it tags a small sample of allocations and watches
-              which ones <em>keep surviving</em> garbage collections. The objects still alive at the end
-              of the recording — especially old, large ones — are your leak suspects, complete with the
-              stack trace that allocated them.
-            </p>
-          </AboutCallout>
+          <AboutPanel
+            icon="bi-question-circle"
+            title="Understanding Leak Candidates"
+            subtitle="How JFR's old-object sampler finds objects that should have been collected"
+          >
+            <AboutCallout variant="intro">
+              <p>
+                JFR has a built-in, low-overhead leak detector: the
+                <strong>old-object sampler</strong>. Rather than dumping the whole heap, it tags a
+                small sample of allocations and watches which ones <em>keep surviving</em> garbage
+                collections. The objects still alive at the end of the recording — especially old,
+                large ones — are your leak suspects, complete with the stack trace that allocated
+                them.
+              </p>
+            </AboutCallout>
 
-          <AboutSection icon="bi-gear" title="How the Old-Object Sampler Works">
-            <FeatureGrid>
-              <FeatureCard icon="bi-tag" variant="info" title="1. Sample at allocation">
-                A fraction of allocations are tagged and placed in a fixed-size queue, along with their
-                allocation stack trace and timestamp. Sampling keeps the overhead tiny.
-              </FeatureCard>
-              <FeatureCard icon="bi-arrow-repeat" variant="warning" title="2. Track across GCs">
-                Each surviving GC, the sampler checks which tagged objects are still reachable. An object
-                that outlives many collections is, by definition, long-lived — and possibly leaked.
-              </FeatureCard>
-              <FeatureCard icon="bi-flag" variant="danger" title="3. Report survivors">
-                At dump time the still-live samples are emitted with their size, age, array length and the
-                heap usage when sampled — the rows in this table.
-              </FeatureCard>
-              <FeatureCard icon="bi-dice-5" variant="purple" title="Statistical, not exhaustive">
-                Because it samples, absence here doesn't prove no leak, and one row represents a class of
-                similar objects. It points you at <em>what</em> to investigate, not an exact inventory.
-              </FeatureCard>
-            </FeatureGrid>
-          </AboutSection>
+            <AboutSection icon="bi-gear" title="How the Old-Object Sampler Works">
+              <FeatureGrid>
+                <FeatureCard icon="bi-tag" variant="info" title="1. Sample at allocation">
+                  A fraction of allocations are tagged and placed in a fixed-size queue, along with
+                  their allocation stack trace and timestamp. Sampling keeps the overhead tiny.
+                </FeatureCard>
+                <FeatureCard icon="bi-arrow-repeat" variant="warning" title="2. Track across GCs">
+                  Each surviving GC, the sampler checks which tagged objects are still reachable. An
+                  object that outlives many collections is, by definition, long-lived — and possibly
+                  leaked.
+                </FeatureCard>
+                <FeatureCard icon="bi-flag" variant="danger" title="3. Report survivors">
+                  At dump time the still-live samples are emitted with their size, age, array length
+                  and the heap usage when sampled — the rows in this table.
+                </FeatureCard>
+                <FeatureCard icon="bi-dice-5" variant="purple" title="Statistical, not exhaustive">
+                  Because it samples, absence here doesn't prove no leak, and one row represents a
+                  class of similar objects. It points you at <em>what</em> to investigate, not an
+                  exact inventory.
+                </FeatureCard>
+              </FeatureGrid>
+            </AboutSection>
 
-          <AboutSection icon="bi-table" title="Reading the Columns">
-            <FeatureGrid>
-              <FeatureCard icon="bi-rulers" variant="primary" title="Size">
-                Shallow size of the sampled object. Large entries (big arrays, caches) are the
-                highest-impact leaks.
-              </FeatureCard>
-              <FeatureCard icon="bi-clock-history" variant="warning" title="Age">
-                How long the object has been alive. The older a sampled object, the more suspicious — a
-                true leak only grows older.
-              </FeatureCard>
-              <FeatureCard icon="bi-list-ol" variant="info" title="Array Elements">
-                For arrays, the element count — an ever-growing backing array (a list/map that's never
-                cleared) is a textbook leak.
-              </FeatureCard>
-              <FeatureCard icon="bi-graph-up" variant="neutral" title="Heap at Sample">
-                Heap usage when the object was sampled — context for whether it appeared under memory
-                pressure.
-              </FeatureCard>
-            </FeatureGrid>
-          </AboutSection>
+            <AboutSection icon="bi-table" title="Reading the Columns">
+              <FeatureGrid>
+                <FeatureCard icon="bi-rulers" variant="primary" title="Size">
+                  Shallow size of the sampled object. Large entries (big arrays, caches) are the
+                  highest-impact leaks.
+                </FeatureCard>
+                <FeatureCard icon="bi-clock-history" variant="warning" title="Age">
+                  How long the object has been alive. The older a sampled object, the more
+                  suspicious — a true leak only grows older.
+                </FeatureCard>
+                <FeatureCard icon="bi-list-ol" variant="info" title="Array Elements">
+                  For arrays, the element count — an ever-growing backing array (a list/map that's
+                  never cleared) is a textbook leak.
+                </FeatureCard>
+                <FeatureCard icon="bi-graph-up" variant="neutral" title="Heap at Sample">
+                  Heap usage when the object was sampled — context for whether it appeared under
+                  memory pressure.
+                </FeatureCard>
+              </FeatureGrid>
+            </AboutSection>
 
-          <AboutCallout variant="tip" title="Confirming a leak" icon="bi-lightbulb-fill">
-            A class with many old, growing instances here is the signature. To find <em>what holds them
-            alive</em>, take a heap dump and use the dominator tree / GC-root paths on the Heap Dump
-            pages — the old-object sampler tells you the suspect; the dump tells you the retainer.
-          </AboutCallout>
+            <AboutCallout variant="tip" title="Confirming a leak" icon="bi-lightbulb-fill">
+              A class with many old, growing instances here is the signature. To find
+              <em>what holds them alive</em>, take a heap dump and use the dominator tree / GC-root
+              paths on the Heap Dump pages — the old-object sampler tells you the suspect; the dump
+              tells you the retainer.
+            </AboutCallout>
 
-          <AboutSection icon="bi-broadcast" title="How JFR Emits This">
-            <p>
-              <code>jdk.OldObjectSample</code> carries the leaked object's type, <code>objectSize</code>,
-              <code>objectAge</code>, <code>arrayElements</code> and <code>lastKnownHeapUsage</code>, plus
-              the allocation stack and (when resolvable) a path to a GC root.
-            </p>
-            <p>
-              It's <strong>off by default</strong> because tracking surviving samples adds some cost.
-              Enable it with the <code>profile</code> settings (which set an old-object queue) or
-              <code>+jdk.OldObjectSample#enabled=true</code> — otherwise this page shows an empty state.
-            </p>
-          </AboutSection>
-        </AboutPanel>
+            <AboutSection icon="bi-broadcast" title="How JFR Emits This">
+              <p>
+                <code>jdk.OldObjectSample</code> carries the leaked object's type,
+                <code>objectSize</code>, <code>objectAge</code>, <code>arrayElements</code> and
+                <code>lastKnownHeapUsage</code>, plus the allocation stack and (when resolvable) a
+                path to a GC root.
+              </p>
+              <p>
+                It's <strong>off by default</strong> because tracking surviving samples adds some
+                cost. Enable it with the <code>profile</code> settings (which set an old-object
+                queue) or <code>+jdk.OldObjectSample#enabled=true</code> — otherwise this page shows
+                an empty state. The GC-root reference chains are only computed when the recording is
+                dumped with <code>path-to-gc-roots=true</code> — a recording/dump option (also
+                available as <code>jcmd &lt;pid&gt; JFR.dump path-to-gc-roots=true</code>), at the
+                cost of a dump pause proportional to the live set.
+              </p>
+            </AboutSection>
+          </AboutPanel>
         </div>
       </template>
     </div>
@@ -220,16 +262,7 @@ import { useTableView } from '@/composables/useTableView';
 const route = useRoute();
 
 const leakEnableCommand =
-  'java -XX:StartFlightRecording=settings=profile,jdk.OldObjectSample#enabled=true,jdk.OldObjectSample#stackTrace=true,filename=app.jfr,dumponexit=true -jar app.jar';
-
-const leakJfcSnippet = `<?xml version="1.0" encoding="UTF-8"?>
-<configuration version="2.0">
-  <event name="jdk.OldObjectSample">
-    <setting name="enabled">true</setting>
-    <setting name="stackTrace">true</setting>
-    <setting name="cutoff">0 ns</setting>
-  </event>
-</configuration>`;
+  'java -XX:StartFlightRecording=settings=profile,path-to-gc-roots=true,jdk.OldObjectSample#enabled=true,jdk.OldObjectSample#stackTrace=true,filename=app.jfr,dumponexit=true -jar app.jar';
 
 const loading = ref(true);
 const error = ref(false);
@@ -249,7 +282,7 @@ const tabs = computed<TabBarItem[]>(() => [
 ]);
 
 const candidatesView = useTableView<LeakCandidate>(candidates, {
-  searchableText: (c) => c.className ?? ''
+  searchableText: c => c.className ?? ''
 });
 
 const metricsData = computed(() => {
@@ -327,17 +360,47 @@ onMounted(async () => {
   max-width: 520px;
 }
 
-.jfc-block {
-  margin: 8px 0 12px;
-  padding: 12px 14px;
+.settings-table {
+  width: 100%;
+  margin-top: 4px;
+  border-collapse: separate;
+  border-spacing: 0;
   background: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  font-size: 0.78rem;
-  line-height: 1.5;
+  overflow: hidden;
+  font-size: 0.79rem;
+}
+
+.settings-table th {
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--color-text-muted);
+  background: var(--color-light);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.settings-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--color-border-light);
+  vertical-align: top;
   color: var(--color-text);
-  overflow-x: auto;
-  white-space: pre;
+  line-height: 1.55;
+}
+
+.settings-table tr:last-child td {
+  border-bottom: none;
+}
+
+.settings-table td:first-child code {
+  white-space: nowrap;
+}
+
+.settings-table td:last-child {
+  white-space: nowrap;
 }
 </style>
