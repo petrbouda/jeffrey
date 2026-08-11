@@ -257,6 +257,18 @@
                     >
                       <i class="bi bi-play-circle"></i> Replay Stream
                     </router-link>
+                    <button
+                      v-if="downloadableSummary(session.id)"
+                      type="button"
+                      class="drawer-action drawer-action--download"
+                      title="Download all recordings (merged) and artifacts"
+                      @click.stop="downloadSession(session.id)"
+                    >
+                      <i class="bi bi-download"></i> Download
+                      <span class="drawer-action-hint">
+                        · {{ downloadableSummary(session.id) }}
+                      </span>
+                    </button>
                   </div>
                   <span class="inline-drawer-meta">
                     {{ FormattingService.formatTimestampUTC(session.createdAt) }}
@@ -533,6 +545,10 @@ import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import Badge from '@shared/components/Badge.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import ProjectInstanceClient from '@workspaces/services/api/ProjectInstanceClient';
+import ProjectRepositoryClient from '@workspaces/services/api/ProjectRepositoryClient';
+import RecordingSession from '@workspaces/services/api/model/RecordingSession';
+import { downloadAssistantStore } from '@workspaces/stores/assistants/downloadAssistantStore';
+import { ToastService } from '@shared/services/ToastService';
 import ProjectInstance, { type ProjectInstanceStatus } from '@workspaces/services/api/model/ProjectInstance';
 import ProjectInstanceDetail from '@workspaces/services/api/model/ProjectInstanceDetail';
 import ProjectInstanceSession from '@workspaces/services/api/model/ProjectInstanceSession';
@@ -576,6 +592,15 @@ const instanceClient = new ProjectInstanceClient(
   workspaceId.value!,
   projectId.value!
 );
+const repositoryClient = new ProjectRepositoryClient(
+  hubId.value,
+  workspaceId.value!,
+  projectId.value!
+);
+
+// Repository sessions keyed by session id: the drawer's Download action needs the
+// session's files (ids + sizes), which the timeline session model does not carry.
+const repositorySessions = ref<Map<string, RecordingSession>>(new Map());
 
 const totalSessions = computed(() =>
   instances.value.reduce((sum, i) => sum + (i.sessionCount ?? 0), 0)
@@ -1134,6 +1159,65 @@ function closeSessionDrawer(instanceId: string): void {
   activeSessionByInstance.value = next;
 }
 
+async function loadRepositorySessions(): Promise<void> {
+  try {
+    const sessions = await repositoryClient.listRecordingSessions();
+    repositorySessions.value = new Map(sessions.map(session => [session.id, session]));
+  } catch (error) {
+    // The Download action simply stays hidden when repository data is unavailable
+    repositorySessions.value = new Map();
+  }
+}
+
+/**
+ * Summary of what the Download action will fetch ("2 files · 1.71 MiB"), or null when
+ * the session has no downloadable recording data — then the action is not rendered,
+ * mirroring the sessions list's "no recording data available" rule.
+ */
+function downloadableSummary(sessionId: string): string | null {
+  const repositorySession = repositorySessions.value.get(sessionId);
+  if (!repositorySession) {
+    return null;
+  }
+  const hasRecordingData = repositorySession.files.some(file => file.isRecording && file.size > 0);
+  if (!hasRecordingData) {
+    return null;
+  }
+  const files = repositorySession.files.filter(file => file.size > 0);
+  const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+  const fileLabel = files.length === 1 ? 'file' : 'files';
+  return `${files.length} ${fileLabel} · ${FormattingService.formatBytes(totalSize)}`;
+}
+
+/**
+ * Downloads all recordings (merged) and artifacts of the session — the same flow as
+ * the Download button in the sessions list: the Download Assistant fetches every file
+ * of the session from the remote workspace.
+ */
+async function downloadSession(sessionId: string): Promise<void> {
+  const repositorySession = repositorySessions.value.get(sessionId);
+  if (!repositorySession) {
+    ToastService.error('Download', 'Session not found in the repository');
+    return;
+  }
+
+  try {
+    const fileIds = repositorySession.files.map(file => file.id);
+    await downloadAssistantStore.startDownload(
+      hubId.value,
+      workspaceId.value!,
+      projectId.value!,
+      sessionId,
+      fileIds,
+      async () => {
+        await loadRepositorySessions();
+      }
+    );
+  } catch (error: any) {
+    ToastService.error('Download', error.message || 'Failed to download recording session');
+  }
+}
+
 function showSessionTooltip(
   event: MouseEvent,
   session: ProjectInstanceSession,
@@ -1171,7 +1255,11 @@ function cancelHideTooltip() {
 }
 
 onMounted(async () => {
-  instances.value = await instanceClient.list(true);
+  const [loadedInstances] = await Promise.all([
+    instanceClient.list(true),
+    loadRepositorySessions()
+  ]);
+  instances.value = loadedInstances;
   instanceSessions.value = new Map(
     instances.value.map(instance => [instance.id, instance.sessions ?? []])
   );
@@ -1899,6 +1987,22 @@ onMounted(async () => {
   background: var(--color-violet);
   color: var(--color-white);
   border-color: var(--color-violet);
+}
+.drawer-action--download {
+  background: var(--color-primary-bg);
+  color: var(--color-primary-hover);
+  border-color: var(--color-primary-border-light);
+  cursor: pointer;
+}
+.drawer-action--download:hover {
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-color: var(--color-primary);
+}
+/* The "· 2 files · 1.71 MiB" summary inside the Download pill */
+.drawer-action-hint {
+  font-weight: 500;
+  opacity: 0.75;
 }
 
 .inline-drawer-body {
