@@ -269,6 +269,26 @@
                         · {{ downloadableSummary(session.id) }}
                       </span>
                     </button>
+                    <button
+                      v-if="repositorySessions.has(session.id)"
+                      type="button"
+                      class="drawer-action drawer-action--pin"
+                      :class="{ on: isSessionRetained(session.id) }"
+                      :disabled="pinningSessions.has(session.id)"
+                      :aria-pressed="isSessionRetained(session.id)"
+                      :title="
+                        isSessionRetained(session.id)
+                          ? 'Pinned — exempt from automatic cleanup. Click to release.'
+                          : 'Pin this session so retention never removes it'
+                      "
+                      @click.stop="togglePinned(session.id)"
+                    >
+                      <i
+                        class="bi"
+                        :class="isSessionRetained(session.id) ? 'bi-pin-angle-fill' : 'bi-pin-angle'"
+                      ></i>
+                      {{ isSessionRetained(session.id) ? 'Pinned' : 'Pin' }}
+                    </button>
                   </div>
                   <span class="inline-drawer-meta">
                     {{ FormattingService.formatTimestampUTC(session.createdAt) }}
@@ -1218,6 +1238,50 @@ async function downloadSession(sessionId: string): Promise<void> {
   }
 }
 
+// Session ids with a retention request in flight — their pin pill is disabled meanwhile
+const pinningSessions = ref<Set<string>>(new Set());
+
+function isSessionRetained(sessionId: string): boolean {
+  return repositorySessions.value.get(sessionId)?.retained ?? false;
+}
+
+/**
+ * Toggles retention for a session — the same rule as the sessions list's pin: a
+ * retained session is exempt from every retention job on the hub, so releasing one
+ * hands it back to normal expiry.
+ */
+async function togglePinned(sessionId: string): Promise<void> {
+  const repositorySession = repositorySessions.value.get(sessionId);
+  if (!repositorySession) {
+    return;
+  }
+
+  const next = !repositorySession.retained;
+  pinningSessions.value = new Set(pinningSessions.value).add(sessionId);
+
+  try {
+    await repositoryClient.setSessionRetained(sessionId, next);
+    // Reflect immediately rather than waiting for a refresh round-trip
+    repositorySession.retained = next;
+    repositorySessions.value = new Map(repositorySessions.value);
+    ToastService.success(
+      next ? 'Session pinned' : 'Session released',
+      next
+        ? 'This session is now exempt from retention and will not be cleaned up automatically.'
+        : 'This session will expire normally again.'
+    );
+  } catch (error: any) {
+    ToastService.error(
+      next ? 'Session pinned' : 'Session released',
+      error.message || 'Failed to update the retention state of the session'
+    );
+  } finally {
+    const updated = new Set(pinningSessions.value);
+    updated.delete(sessionId);
+    pinningSessions.value = updated;
+  }
+}
+
 function showSessionTooltip(
   event: MouseEvent,
   session: ProjectInstanceSession,
@@ -2003,6 +2067,26 @@ onMounted(async () => {
 .drawer-action-hint {
   font-weight: 500;
   opacity: 0.75;
+}
+/* Pin pill: quiet neutral at rest, amber fill while the session is retained */
+.drawer-action--pin {
+  background: var(--color-bg-card);
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+  cursor: pointer;
+}
+.drawer-action--pin:hover:not(:disabled) {
+  color: var(--color-amber-text);
+  border-color: var(--color-amber-border);
+}
+.drawer-action--pin.on {
+  background: var(--color-amber-light);
+  color: var(--color-amber-text);
+  border-color: var(--color-amber-border);
+}
+.drawer-action--pin:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .inline-drawer-body {
