@@ -18,6 +18,29 @@
 
 export type ExecutionLevel = 'GLOBAL' | 'WORKSPACE' | 'PROJECT';
 
+/**
+ * All job types served by the scheduler, mirroring the backend {@code JobType} enum
+ * (same order). The scheduler UI types its display-metadata maps as
+ * {@code Record<JobTypeName, ...>} so the compiler forces a name/description/icon
+ * for every declared job type — extend this union when a new enum constant is added.
+ */
+export type JobTypeName =
+    | 'WORKSPACE_EVENTS_REPLICATOR'
+    | 'WORKSPACE_EVENTS_CLEANER'
+    | 'TEMP_DIRECTORY_CLEANER'
+    | 'DELETED_PROJECTS_CLEANER'
+    | 'STORAGE_OVERVIEW_REFRESHER'
+    | 'PROJECTS_SYNCHRONIZER'
+    | 'PROFILER_SETTINGS_SYNCHRONIZER'
+    | 'PROJECT_INSTANCE_SESSION_CLEANER'
+    | 'PROJECT_INSTANCE_RECORDING_CLEANER'
+    | 'PROJECT_STORAGE_QUOTA_CLEANER'
+    | 'ORPHANED_SESSION_CLEANER'
+    | 'EXPIRED_INSTANCE_CLEANER'
+    | 'REPOSITORY_JFR_COMPRESSION'
+    | 'SESSION_FINISHED_DETECTOR'
+    | 'SESSION_FILE_DETECTOR';
+
 export interface JobView {
     jobType: string;
     executionLevel: ExecutionLevel;

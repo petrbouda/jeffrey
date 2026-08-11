@@ -135,7 +135,7 @@ import Badge from '@shared/components/Badge.vue';
 import type { Variant } from '@shared/types/ui';
 import HubPageHeader from '@/components/HubPageHeader.vue';
 import SchedulerClient from '@/services/api/SchedulerClient';
-import { type ExecutionLevel, formatPeriod, type JobView } from '@/services/api/model/JobView';
+import { type ExecutionLevel, formatPeriod, type JobTypeName, type JobView } from '@/services/api/model/JobView';
 
 const schedulerClient = new SchedulerClient();
 
@@ -168,7 +168,7 @@ const filteredJobs = computed(() => {
 
 const hasParams = (params: Record<string, string>) => params && Object.keys(params).length > 0;
 
-const displayNames: Record<string, string> = {
+const displayNames: Record<JobTypeName, string> = {
     WORKSPACE_EVENTS_REPLICATOR: 'Workspace Events Replicator',
     WORKSPACE_EVENTS_CLEANER: 'Workspace Events Cleaner',
     TEMP_DIRECTORY_CLEANER: 'Temp Directory Cleaner',
@@ -182,11 +182,12 @@ const displayNames: Record<string, string> = {
     ORPHANED_SESSION_CLEANER: 'Orphaned Session Cleaner',
     EXPIRED_INSTANCE_CLEANER: 'Expired Instance Cleaner',
     REPOSITORY_JFR_COMPRESSION: 'JFR Compression',
-    SESSION_FINISHED_DETECTOR: 'Session Finished Detector'
+    SESSION_FINISHED_DETECTOR: 'Session Finished Detector',
+    SESSION_FILE_DETECTOR: 'Session File Detector'
 };
-const displayNameFor = (jobType: string) => displayNames[jobType] || jobType;
+const displayNameFor = (jobType: string) => displayNames[jobType as JobTypeName] || jobType;
 
-const descriptions: Record<string, string> = {
+const descriptions: Record<JobTypeName, string> = {
     WORKSPACE_EVENTS_REPLICATOR:
         'Polls the shared workspace event folder for files written by the CLI and replicates them into the persistent queue. Events are not processed here — they are picked up by Projects Synchronizer.',
     WORKSPACE_EVENTS_CLEANER:
@@ -214,11 +215,13 @@ const descriptions: Record<string, string> = {
     REPOSITORY_JFR_COMPRESSION:
         'Compresses finished JFR recording files using LZ4 compression to save storage space. Processes the active and latest finished sessions on each tick.',
     SESSION_FINISHED_DETECTOR:
-        'Detects when repository sessions become finished using a heartbeat-based strategy and emits SESSION_FINISHED workspace events so downstream consumers can react.'
+        'Detects when repository sessions become finished using a heartbeat-based strategy and emits SESSION_FINISHED workspace events so downstream consumers can react.',
+    SESSION_FILE_DETECTOR:
+        'Announces finished recording chunks and artifact files (heap dumps, perf counters, ...) as workspace events, so clients can react to each file instead of waiting for the whole session to finish. Stateless: every candidate is re-offered each tick and the event queue deduplicates repeats; only files younger than max-file-age are considered, and artifacts must be unchanged for the settle threshold before being announced.'
 };
-const descriptionFor = (jobType: string) => descriptions[jobType] || '';
+const descriptionFor = (jobType: string) => descriptions[jobType as JobTypeName] || '';
 
-const icons: Record<string, [string, string]> = {
+const icons: Record<JobTypeName, [string, string]> = {
     WORKSPACE_EVENTS_REPLICATOR: ['bi-broadcast', 'job-icon-bell'],
     WORKSPACE_EVENTS_CLEANER: ['bi-eraser', 'job-icon-broom'],
     TEMP_DIRECTORY_CLEANER: ['bi-eraser', 'job-icon-broom'],
@@ -232,10 +235,11 @@ const icons: Record<string, [string, string]> = {
     ORPHANED_SESSION_CLEANER: ['bi-folder-x', 'job-icon-broom'],
     EXPIRED_INSTANCE_CLEANER: ['bi-trash', 'job-icon-trash'],
     REPOSITORY_JFR_COMPRESSION: ['bi-file-zip', 'job-icon-zip'],
-    SESSION_FINISHED_DETECTOR: ['bi-check-circle', 'job-icon-check']
+    SESSION_FINISHED_DETECTOR: ['bi-check-circle', 'job-icon-check'],
+    SESSION_FILE_DETECTOR: ['bi-file-earmark-check', 'job-icon-bell']
 };
-const iconFor = (jobType: string) => icons[jobType]?.[0] || 'bi-gear';
-const iconClass = (jobType: string) => icons[jobType]?.[1] || 'job-icon-default';
+const iconFor = (jobType: string) => icons[jobType as JobTypeName]?.[0] || 'bi-gear';
+const iconClass = (jobType: string) => icons[jobType as JobTypeName]?.[1] || 'job-icon-default';
 
 const levelLabels: Record<ExecutionLevel, string> = {
     GLOBAL: 'Global',
