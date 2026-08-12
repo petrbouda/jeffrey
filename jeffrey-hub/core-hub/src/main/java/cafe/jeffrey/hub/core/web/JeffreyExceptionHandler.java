@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
@@ -29,7 +30,8 @@ import cafe.jeffrey.shared.common.exception.ErrorResponse;
 import cafe.jeffrey.shared.common.exception.ErrorType;
 
 /**
- * Maps any uncaught exception to a JSON {@link ErrorResponse} with HTTP 500.
+ * Maps exceptions to a JSON {@link ErrorResponse}: a status a controller chose deliberately is
+ * preserved, anything else becomes HTTP 500.
  * Picked up by Spring MVC's {@code ExceptionHandlerExceptionResolver} via
  * {@link ControllerAdvice}.
  */
@@ -37,6 +39,22 @@ import cafe.jeffrey.shared.common.exception.ErrorType;
 public class JeffreyExceptionHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(JeffreyExceptionHandler.class);
+
+    /**
+     * Preserves a status a controller chose deliberately. Without this the catch-all below would
+     * turn every {@code ResponseStatusException} into a 500 and tell the client the server broke
+     * when it was the request that was wrong.
+     */
+    @ExceptionHandler(ErrorResponseException.class)
+    public ResponseEntity<ErrorResponse> handleStatus(ErrorResponseException ex) {
+        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+        LOG.warn("Request rejected: status={} message={}", status.value(), ex.getMessage());
+        return ResponseEntity.status(status)
+                .body(new ErrorResponse(
+                        status.is4xxClientError() ? ErrorType.CLIENT : ErrorType.INTERNAL,
+                        ErrorCode.UNKNOWN_ERROR_RESPONSE,
+                        ex.getMessage()));
+    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneric(Exception ex) {

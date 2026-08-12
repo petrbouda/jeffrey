@@ -22,7 +22,7 @@
 
         <div class="hint">
             <i class="bi bi-info-circle"></i>
-            <span>Read-only view. To change a job's settings, edit <code>application.properties</code> and restart the server.</span>
+            <span>Job settings are read-only — edit <code>application.properties</code> and restart the server to change them. Jobs that support it can be run on demand from the Run column.</span>
         </div>
 
         <div v-if="loading" class="loading-state">
@@ -60,6 +60,7 @@
                         <th style="width: 9%">Period</th>
                         <th>Parameters</th>
                         <th style="width: 12%">Status</th>
+                        <th style="width: 92px" class="run-header">Run</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -109,6 +110,30 @@
                                 icon="bi bi-pause-circle"
                                 :uppercase="false"
                             />
+                        </td>
+                        <td class="run-cell">
+                            <button
+                                v-if="job.manualTriggerSupported"
+                                class="btn-run"
+                                :class="{ ran: lastRun(job.jobType) }"
+                                :disabled="isRunning(job.jobType)"
+                                :title="runTitle(job)"
+                                @click="runJob(job.jobType)"
+                            >
+                                <span v-if="isRunning(job.jobType)" class="spinner-border spinner-border-sm" role="status"></span>
+                                <i v-else-if="lastRun(job.jobType)" class="bi bi-check-lg"></i>
+                                <i v-else class="bi bi-play-fill"></i>
+                            </button>
+                            <span
+                                v-else
+                                class="btn-run unsupported"
+                                title="This job cannot be run manually"
+                                aria-hidden="true"
+                            >
+                                <i class="bi bi-play-fill"></i>
+                            </span>
+                            <div v-if="lastRun(job.jobType)" class="run-summary">{{ lastRun(job.jobType) }}</div>
+                            <div v-else-if="runError(job.jobType)" class="run-summary failed">{{ runError(job.jobType) }}</div>
                         </td>
                     </tr>
                     </tbody>
@@ -168,6 +193,53 @@ const filteredJobs = computed(() => {
 
 const hasParams = (params: Record<string, string>) => params && Object.keys(params).length > 0;
 
+/**
+ * Manual runs are transient by design: the result lives in the row that produced it until the
+ * page is left. Nothing is persisted server-side, so there is no history to show here.
+ */
+const RESULT_VISIBLE_MS = 20_000;
+
+const running = ref<Set<string>>(new Set());
+const results = ref<Record<string, string>>({});
+const failures = ref<Record<string, string>>({});
+
+const isRunning = (jobType: string) => running.value.has(jobType);
+const lastRun = (jobType: string) => results.value[jobType];
+const runError = (jobType: string) => failures.value[jobType];
+
+const runTitle = (job: JobView) => {
+  if (isRunning(job.jobType)) {
+    return 'Running…';
+  }
+  return `Run ${displayNameFor(job.jobType)} now`;
+};
+
+const runJob = async (jobType: string) => {
+  if (isRunning(jobType)) {
+    return;
+  }
+
+  running.value = new Set(running.value).add(jobType);
+  delete results.value[jobType];
+  delete failures.value[jobType];
+
+  try {
+    const result = await schedulerClient.run(jobType);
+    results.value = { ...results.value, [jobType]: result.summary };
+    window.setTimeout(() => {
+      const { [jobType]: _removed, ...rest } = results.value;
+      results.value = rest;
+    }, RESULT_VISIBLE_MS);
+  } catch (e) {
+    console.error('Failed to run job:', e);
+    failures.value = { ...failures.value, [jobType]: 'Run failed' };
+  } finally {
+    const next = new Set(running.value);
+    next.delete(jobType);
+    running.value = next;
+  }
+};
+
 const displayNames: Record<JobTypeName, string> = {
     WORKSPACE_RECONCILER: 'Workspace Reconciler',
     TEMP_DIRECTORY_CLEANER: 'Temp Directory Cleaner',
@@ -185,7 +257,7 @@ const displayNameFor = (jobType: string) => displayNames[jobType as JobTypeName]
 
 const descriptions: Record<JobTypeName, string> = {
     WORKSPACE_RECONCILER:
-        'Materializes new projects, instances and sessions from the entries the provisioner writes into each workspace\'s .pending index, reading only the subtrees it announced. Strictly additive: removing directories from the volume never deletes server state — only retention jobs and user actions delete.',
+        'Materializes new projects, instances and sessions from the entries the provisioner writes into each workspace\'s .pending index, reading only the subtrees it announced. Run it manually to walk every workspace tree in full — that is what finds trees the index never named, after an upgrade or a restored volume. Strictly additive either way: removing directories from the volume never deletes server state.',
     TEMP_DIRECTORY_CLEANER:
         'Sweeps the server temp directory, removing scratch entries (JFR merges, compression staging, replay windows) left behind by operations that crashed before cleaning up after themselves.',
     DELETED_PROJECTS_CLEANER:
@@ -456,6 +528,71 @@ onMounted(async () => {
     font-size: 0.78rem;
     color: var(--color-heading-dark);
     font-weight: 500;
+}
+
+/* Manual run control — rendered for every job so the column reads as a property of all of
+   them, disabled where the job declares no manual run. */
+.run-header {
+    text-align: center;
+}
+
+.run-cell {
+    text-align: center;
+    white-space: nowrap;
+}
+
+.btn-run {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--color-border-row);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-primary);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.btn-run:hover:not(:disabled):not(.unsupported) {
+    background: var(--color-primary-light);
+    border-color: var(--color-primary);
+}
+
+.btn-run:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.btn-run:disabled {
+    cursor: default;
+    color: var(--color-text-light);
+}
+
+.btn-run.ran {
+    color: var(--color-success);
+    border-color: var(--color-success-light);
+    background: var(--color-success-light);
+}
+
+.btn-run.unsupported {
+    color: var(--color-border-row);
+    border-color: transparent;
+    cursor: default;
+}
+
+.run-summary {
+    margin-top: 4px;
+    font-size: 0.68rem;
+    line-height: 1.25;
+    color: var(--color-success);
+    white-space: normal;
+}
+
+.run-summary.failed {
+    color: var(--color-red-text);
 }
 
 .config-source {

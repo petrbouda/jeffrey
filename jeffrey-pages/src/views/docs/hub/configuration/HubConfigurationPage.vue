@@ -340,8 +340,9 @@ onMounted(() => {
       <h2 id="workspace-discovery">Workspace Discovery</h2>
       <p>
         How the server learns about projects, instances and sessions the provisioner wrote to the
-        shared volume. Steady-state discovery reads each workspace's <code>.pending</code> index;
-        see <a href="#job-scheduler">Job Scheduler</a> for the period that governs its latency.
+        shared volume. Discovery reads each workspace's <code>.pending</code> index; see
+        <a href="#job-scheduler">Job Scheduler</a> for the period that governs its latency, and
+        for the manual full scan that finds trees the index never named.
       </p>
 
       <table>
@@ -360,17 +361,6 @@ onMounted(() => {
               Create a workspace automatically for a directory on the volume that announces work
               but has no workspace registered yet. The default workspace is never auto-created
               this way, and a directory that announces nothing never becomes a workspace.
-            </td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.hub.workspaces.bootstrap-scan-on-startup</code></td>
-            <td><code>true</code></td>
-            <td>
-              Reconcile every known workspace tree once at startup, in addition to the ongoing
-              index-driven discovery. This is what picks up trees provisioned by an older CLI,
-              restored from a snapshot, or written while the server was down — none of which
-              leave an index entry behind. Set to <code>false</code> for strictly index-driven
-              discovery; the scan runs only at startup and costs nothing afterwards.
             </td>
           </tr>
         </tbody>

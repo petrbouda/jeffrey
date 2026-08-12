@@ -24,6 +24,7 @@ import cafe.jeffrey.shared.common.model.job.JobType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Produces the current view of all configured scheduler jobs by joining
@@ -33,9 +34,11 @@ import java.util.List;
 public class JobRegistry {
 
     private final SchedulerJobsProperties schedulerJobsProperties;
+    private final Set<JobType> manuallyTriggerable;
 
-    public JobRegistry(SchedulerJobsProperties schedulerJobsProperties) {
+    public JobRegistry(SchedulerJobsProperties schedulerJobsProperties, Set<JobType> manuallyTriggerable) {
         this.schedulerJobsProperties = schedulerJobsProperties;
+        this.manuallyTriggerable = manuallyTriggerable;
     }
 
     public List<JobInfo> all() {
@@ -47,7 +50,8 @@ public class JobRegistry {
                     jobType.executionLevel(),
                     config.period(),
                     config.params(),
-                    config.enabled()));
+                    config.enabled(),
+                    manuallyTriggerable.contains(jobType)));
         }
         return result;
     }

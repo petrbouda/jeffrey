@@ -18,31 +18,58 @@
 
 package cafe.jeffrey.hub.core.web.controllers;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import cafe.jeffrey.hub.core.scheduler.JobRegistry;
+import cafe.jeffrey.hub.core.scheduler.ManualJobRunner;
 import cafe.jeffrey.shared.common.model.job.JobInfo;
+import cafe.jeffrey.shared.common.model.job.JobType;
 
 import java.util.List;
 
 /**
- * Read-only view of all scheduler jobs configured on this server. The list is
- * resolved from {@code application.properties} at startup; to change a job's
- * settings edit the properties file and restart the server.
+ * The scheduler's jobs: a read-only view of how each one is configured, plus the on-demand run
+ * for those that offer one. Job settings themselves are resolved from
+ * {@code application.properties} at startup and can only be changed by editing that file and
+ * restarting the server.
  */
 @RestController
 @RequestMapping("/api/internal/scheduler")
 public class SchedulerController {
 
     private final JobRegistry jobRegistry;
+    private final ManualJobRunner manualJobRunner;
 
-    public SchedulerController(JobRegistry jobRegistry) {
+    public SchedulerController(JobRegistry jobRegistry, ManualJobRunner manualJobRunner) {
         this.jobRegistry = jobRegistry;
+        this.manualJobRunner = manualJobRunner;
     }
 
     @GetMapping("/jobs")
     public List<JobInfo> jobs() {
         return jobRegistry.all();
+    }
+
+    /**
+     * Runs a job on demand and reports what it did. Synchronous: manual runs are expected to
+     * finish in seconds, and the caller wants the outcome rather than a job id to poll.
+     *
+     * <p>The job type is resolved here rather than bound as an enum so that an unknown name and a
+     * job that offers no manual run answer the same way — from the client's side both mean there
+     * is no such run to request.</p>
+     */
+    @PostMapping("/jobs/{jobType}/run")
+    public ManualJobRunner.Result run(@PathVariable("jobType") String jobType) {
+        try {
+            return manualJobRunner.run(JobType.valueOf(jobType));
+        } catch (IllegalArgumentException | ManualJobRunner.ManualRunNotSupportedException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "No job that can be run manually: " + jobType, e);
+        }
     }
 }

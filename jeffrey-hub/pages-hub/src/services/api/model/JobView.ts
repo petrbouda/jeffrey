@@ -43,6 +43,22 @@ export interface JobView {
     period: string;
     params: Record<string, string>;
     enabled: boolean;
+    /**
+     * Whether this job can be run on demand. A capability the job itself declares, so the table
+     * renders a Run control from this flag alone and never needs to know which jobs those are.
+     */
+    manualTriggerSupported: boolean;
+}
+
+/**
+ * Outcome of a manual run. {@code summary} is written by the job and shown verbatim — the UI
+ * does not interpret it, which is what keeps the trigger generic across jobs.
+ */
+export interface JobRunResult {
+    jobType: string;
+    startedAt: string;
+    durationMs: number;
+    summary: string;
 }
 
 /**

@@ -20,8 +20,11 @@ package cafe.jeffrey.hub.core.scheduler.job;
 
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverview;
 import cafe.jeffrey.hub.core.scheduler.Job;
 import cafe.jeffrey.hub.core.scheduler.JobContext;
+import cafe.jeffrey.hub.core.scheduler.ManuallyTriggerable;
+import cafe.jeffrey.shared.common.BytesUtils;
 import cafe.jeffrey.shared.common.model.job.JobType;
 
 import java.time.Duration;
@@ -32,7 +35,7 @@ import java.time.Duration;
  * repository on each request. The scheduler fires the first tick immediately at startup,
  * which populates the cache before the dashboard is typically opened.
  */
-public class StorageOverviewRefresherJob implements Job {
+public class StorageOverviewRefresherJob implements Job, ManuallyTriggerable {
 
     private final StorageOverviewCache storageOverviewCache;
     private final Duration period;
@@ -45,6 +48,23 @@ public class StorageOverviewRefresherJob implements Job {
     @Override
     public void execute(JobContext context) {
         storageOverviewCache.refresh();
+    }
+
+    /**
+     * Recomputes the overview immediately rather than waiting out the period — the figures are a
+     * filesystem walk, so they go stale as soon as anything is written or reclaimed.
+     */
+    @Override
+    public String runManually() {
+        StorageOverview overview = storageOverviewCache.refresh().overview();
+
+        int projects = overview.projects().size();
+        long usedBytes = overview.projects().stream()
+                .mapToLong(StorageOverview.ProjectStorage::totalSizeBytes)
+                .sum();
+
+        return BytesUtils.format(usedBytes)
+                + " across " + projects + (projects == 1 ? " project" : " projects");
     }
 
     @Override

@@ -26,6 +26,7 @@ import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.scheduler.Job;
 import cafe.jeffrey.hub.core.scheduler.JobContext;
+import cafe.jeffrey.hub.core.scheduler.ManuallyTriggerable;
 import cafe.jeffrey.hub.core.workspace.reconcile.WorkspaceReconciler;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.model.job.JobType;
@@ -61,7 +62,7 @@ import java.util.Optional;
  * race their materializations. A failed workspace is logged and skipped; its entries survive and
  * the workspace converges on a later tick.</p>
  */
-public class WorkspaceReconcilerJob implements Job {
+public class WorkspaceReconcilerJob implements Job, ManuallyTriggerable {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceReconcilerJob.class);
 
@@ -109,6 +110,38 @@ public class WorkspaceReconcilerJob implements Job {
         if (materialized > 0) {
             LOG.info("Workspace reconciliation materialized new entities: count={}", materialized);
         }
+    }
+
+    /**
+     * Walks every workspace tree in full, ignoring the pending index entirely.
+     *
+     * <p>The index only names what was announced while a hub was running to consume it. A tree
+     * provisioned by an older CLI, restored from a snapshot, or written while this hub was down has
+     * declarations on disk that nothing will announce again — this is what finds them. It is
+     * create-only like every other path here, so running it when nothing is missing changes
+     * nothing.</p>
+     */
+    @Override
+    public String runManually() {
+        int materialized = 0;
+        int scanned = 0;
+        for (Path workspaceDir : WorkspaceReconciler.childDirectories(jeffreyDirs.workspaces())) {
+            Optional<WorkspaceManager> workspaceOpt = workspacesManager.findByReferenceId(
+                    workspaceDir.getFileName().toString());
+            if (workspaceOpt.isEmpty()) {
+                // Auto-creating a workspace is a decision for an announced path, never for
+                // whatever happens to be sitting on the volume
+                continue;
+            }
+            scanned++;
+            materialized += reconciler.reconcile(workspaceOpt.get().projectsManager(), workspaceDir);
+        }
+
+        if (materialized == 0) {
+            return "Nothing new in " + scanned + (scanned == 1 ? " workspace" : " workspaces");
+        }
+        return materialized + (materialized == 1 ? " entity" : " entities")
+                + " from " + scanned + (scanned == 1 ? " workspace" : " workspaces");
     }
 
     private int reconcileWorkspaceDirectory(Path workspaceDir) {

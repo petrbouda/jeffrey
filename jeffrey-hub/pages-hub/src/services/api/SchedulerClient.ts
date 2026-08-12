@@ -17,7 +17,7 @@
  */
 
 import BasePlatformClient from '@shared/services/api/BasePlatformClient';
-import type { JobView } from '@/services/api/model/JobView';
+import type { JobRunResult, JobView } from '@/services/api/model/JobView';
 
 export default class SchedulerClient extends BasePlatformClient {
     constructor() {
@@ -26,5 +26,9 @@ export default class SchedulerClient extends BasePlatformClient {
 
     jobs(): Promise<JobView[]> {
         return this.get<JobView[]>('/jobs');
+    }
+
+    run(jobType: string): Promise<JobRunResult> {
+        return this.post<JobRunResult>(`/jobs/${jobType}/run`);
     }
 }

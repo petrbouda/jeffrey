@@ -21,7 +21,6 @@ package cafe.jeffrey.hub.core.configuration;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.appinitializer.ApplicationInitializer;
 import cafe.jeffrey.hub.core.appinitializer.DefaultWorkspaceInitializer;
-import cafe.jeffrey.hub.core.appinitializer.WorkspaceBootstrapScanInitializer;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
@@ -95,16 +94,6 @@ public class GlobalJobsConfiguration {
     public DefaultWorkspaceInitializer defaultWorkspaceInitializer(
             DefaultWorkspaceProperties defaultWorkspaceProperties) {
         return new DefaultWorkspaceInitializer(workspacesManager, defaultWorkspaceProperties);
-    }
-
-    @Bean
-    public WorkspaceBootstrapScanInitializer workspaceBootstrapScanInitializer(
-            WorkspaceReconciler workspaceReconciler,
-            HubJeffreyDirs jeffreyDirs,
-            @Value("${jeffrey.hub.workspaces.bootstrap-scan-on-startup:true}") boolean bootstrapScanEnabled) {
-
-        return new WorkspaceBootstrapScanInitializer(
-                workspacesManager, workspaceReconciler, jeffreyDirs, bootstrapScanEnabled);
     }
 
     @Bean
@@ -183,8 +172,13 @@ public class GlobalJobsConfiguration {
     }
 
     @Bean
-    public JobRegistry jobRegistry() {
-        return new JobRegistry(schedulerJobsProperties);
+    public ManualJobRunner manualJobRunner(List<Job> jobs, Clock clock) {
+        return new ManualJobRunner(jobs, clock);
+    }
+
+    @Bean
+    public JobRegistry jobRegistry(ManualJobRunner manualJobRunner) {
+        return new JobRegistry(schedulerJobsProperties, manualJobRunner.supportedTypes());
     }
 
 }

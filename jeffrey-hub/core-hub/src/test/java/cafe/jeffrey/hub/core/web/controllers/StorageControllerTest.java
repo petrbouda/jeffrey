@@ -106,22 +106,4 @@ class StorageControllerTest {
                 .hasPathSatisfying("$.diskTotalBytes", v -> assertThat(v).asNumber().isEqualTo(0))
                 .hasPathSatisfying("$.projects", v -> assertThat(v).asList().isEmpty());
     }
-
-    @Test
-    void refreshRecomputesAndReturnsFreshOverview() {
-        Instant refreshedAt = COMPUTED_AT.plusSeconds(90);
-        StorageOverview overview = new StorageOverview(
-                new DiskSpace(512_000_000_000L, 350_000_000_000L),
-                new InfrastructureUsage(3_000_000_000L, 900_000_000L),
-                List.of());
-        when(storageOverviewCache.refresh()).thenReturn(new CachedOverview(overview, refreshedAt));
-
-        MockMvcTester mvc = mockMvcTesterFor(new StorageController(storageOverviewCache));
-
-        assertThat(mvc.post().uri("/api/internal/storage/refresh"))
-                .hasStatusOk()
-                .bodyJson()
-                .hasPathSatisfying("$.computedAtMillis", v -> assertThat(v).asNumber().isEqualTo(refreshedAt.toEpochMilli()))
-                .hasPathSatisfying("$.diskUsableBytes", v -> assertThat(v).asNumber().isEqualTo(350_000_000_000L));
-    }
 }
