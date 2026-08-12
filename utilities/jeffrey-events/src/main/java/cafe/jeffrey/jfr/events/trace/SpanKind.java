@@ -19,8 +19,13 @@
 package cafe.jeffrey.jfr.events.trace;
 
 /**
- * What role a span plays in the operation it describes. Mirrors the OpenTelemetry span-kind
- * vocabulary so the concept reads the same to anyone who has used a tracer before.
+ * What role a span plays in the operation it describes — in practice, whether the time it covers
+ * was the process's own work or time spent waiting on something else.
+ * <p>
+ * The names are OpenTelemetry's, so the concept reads the same to anyone who has used a tracer
+ * before, but the set is deliberately smaller. OpenTelemetry also defines {@code PRODUCER} and
+ * {@code CONSUMER}, whose purpose is to pair a span in one process with its counterpart in
+ * another; a trace assembled from a single JVM recording has no such counterpart to pair with.
  */
 public enum SpanKind {
 
@@ -34,11 +39,5 @@ public enum SpanKind {
     SERVER,
 
     /** Issuing an outbound request and waiting for its response, e.g. an HTTP call or a SQL query. */
-    CLIENT,
-
-    /** Publishing a message that is handled asynchronously. */
-    PRODUCER,
-
-    /** Consuming a message published elsewhere. */
-    CONSUMER
+    CLIENT
 }

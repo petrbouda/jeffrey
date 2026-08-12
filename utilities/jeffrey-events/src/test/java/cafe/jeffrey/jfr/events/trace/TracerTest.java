@@ -253,7 +253,7 @@ class TracerTest {
                 SpanContext carried = Tracer.call("submit", SpanKind.SERVER,
                         () -> Tracer.current().orElseThrow());
                 runOnAnotherThread(() ->
-                        Tracer.continueIn(carried, "handle", SpanKind.CONSUMER, () -> null));
+                        Tracer.continueIn(carried, "handle", SpanKind.INTERNAL, () -> null));
             });
 
             RecordedEvent submit = spans.get("submit");
