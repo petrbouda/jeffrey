@@ -36,6 +36,7 @@ package cafe.jeffrey.provider.profile.api;
  * @param durationNanos            span duration
  * @param threadHash               identity hash of the thread the span was committed on — the join
  *                                 key for pairing the span with the other events on that thread
+ * @param threadName               name of that thread, when the recording knew it
  * @param eventType                which event produced the span, e.g. {@code jeffrey.TraceSpan}
  */
 public record TraceSpanRecord(
@@ -51,5 +52,6 @@ public record TraceSpanRecord(
         long startEpochMillis,
         long durationNanos,
         long threadHash,
+        String threadName,
         String eventType) {
 }

@@ -75,6 +75,14 @@ public abstract class Exceptions {
         return new RemoteJeffreyUnavailableException(uri, cause);
     }
 
+    /**
+     * A 404 for a resource that has no error code of its own — a trace, a span, anything addressed
+     * by an id inside a profile rather than by a top-level entity id.
+     */
+    public static JeffreyClientException resourceNotFound(String message) {
+        return new JeffreyClientException(ErrorCode.RESOURCE_NOT_FOUND, message);
+    }
+
     public static JeffreyClientException invalidRequest(String message) {
         return new JeffreyClientException(ErrorCode.INVALID_REQUEST, message);
     }

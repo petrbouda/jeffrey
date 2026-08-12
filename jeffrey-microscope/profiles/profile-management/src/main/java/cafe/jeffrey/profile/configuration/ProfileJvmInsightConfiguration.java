@@ -54,6 +54,7 @@ import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.provider.profile.api.SpanRepository;
+import cafe.jeffrey.provider.profile.api.TraceRepository;
 
 import javax.sql.DataSource;
 import java.time.Clock;
@@ -91,7 +92,8 @@ public class ProfileJvmInsightConfiguration {
             AllocationManager.Factory allocationFactory,
             LeakCandidatesManager.Factory leakCandidatesFactory,
             SecurityManager.Factory securityFactory,
-            SpanManager.Factory spanFactory) {
+            SpanManager.Factory spanFactory,
+            TraceManager.Factory traceFactory) {
 
         return new JvmInsightFactories(
                 gcFactory,
@@ -113,7 +115,8 @@ public class ProfileJvmInsightConfiguration {
                 allocationFactory,
                 leakCandidatesFactory,
                 securityFactory,
-                spanFactory);
+                spanFactory,
+                traceFactory);
     }
 
     @Bean
@@ -364,6 +367,19 @@ public class ProfileJvmInsightConfiguration {
             DataSource profileDb = databaseManagerResolver.open(profileInfo);
             SpanRepository repository = profileRepositories.newSpanRepository(profileDb);
             return new SpanManagerImpl(repository);
+        };
+    }
+
+    /**
+     * Creates the trace manager over the trace tables derived from the profile's events during
+     * initialization.
+     */
+    @Bean
+    public TraceManager.Factory traceManagerFactory() {
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            TraceRepository repository = profileRepositories.newTraceRepository(profileDb);
+            return new TraceManagerImpl(repository);
         };
     }
 }

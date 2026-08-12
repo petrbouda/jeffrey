@@ -141,7 +141,12 @@ public class AsyncProfilerSpansController {
         return pm.flamegraphManager().generate(params);
     }
 
-    private static GraphParameters mapToSpanGraphParameters(
+    /**
+     * Shared with {@link TracesController}: a span-scoped flamegraph is the same graph however the
+     * spans were selected, so the mapping from options plus intervals to {@code GraphParameters}
+     * lives in one place.
+     */
+    static GraphParameters mapToSpanGraphParameters(
             ProfileInfo profileInfo, SpanFlamegraphOptions request, List<SpanInterval> intervals) {
         // Full-profile range so the timeseries can bucket over the whole timeline; the span intervals
         // (not the time range) are what scope the samples, so a null range would NPE the timeseries init.

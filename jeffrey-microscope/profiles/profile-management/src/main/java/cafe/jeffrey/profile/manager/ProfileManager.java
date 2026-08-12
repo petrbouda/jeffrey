@@ -107,6 +107,8 @@ public interface ProfileManager {
 
     SpanManager spanManager();
 
+    TraceManager traceManager();
+
     ProfileFeaturesManager featuresManager();
 
     ProfileToolsManager toolsManager();

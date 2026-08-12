@@ -176,22 +176,24 @@ public class JdbcTraceRepository implements TraceRepository {
     //language=SQL
     private static final String SPANS_OF_TRACE = """
             SELECT
-                trace_id,
-                span_id,
-                parent_span_id,
-                name,
-                kind,
-                status,
-                error_type,
-                CAST(attributes AS VARCHAR)             AS attributes,
-                start_timestamp_from_beginning          AS start_ms,
-                EPOCH_MS(start_timestamp)               AS start_epoch_ms,
-                duration                                AS duration_ns,
-                COALESCE(thread_hash, 0)                AS thread_hash,
-                event_type
-            FROM trace_spans
-            WHERE trace_id = :trace_id
-            ORDER BY start_timestamp
+                s.trace_id                              AS trace_id,
+                s.span_id                               AS span_id,
+                s.parent_span_id                        AS parent_span_id,
+                s.name                                  AS name,
+                s.kind                                  AS kind,
+                s.status                                AS status,
+                s.error_type                            AS error_type,
+                CAST(s.attributes AS VARCHAR)           AS attributes,
+                s.start_timestamp_from_beginning        AS start_ms,
+                EPOCH_MS(s.start_timestamp)             AS start_epoch_ms,
+                s.duration                              AS duration_ns,
+                COALESCE(s.thread_hash, 0)              AS thread_hash,
+                t.name                                  AS thread_name,
+                s.event_type                            AS event_type
+            FROM trace_spans s
+            LEFT JOIN threads t ON s.thread_hash = t.thread_hash
+            WHERE s.trace_id = :trace_id
+            ORDER BY s.start_timestamp
             """;
 
     //language=SQL
@@ -268,6 +270,7 @@ public class JdbcTraceRepository implements TraceRepository {
                         rs.getLong("start_epoch_ms"),
                         rs.getLong("duration_ns"),
                         rs.getLong("thread_hash"),
+                        rs.getString("thread_name"),
                         rs.getString("event_type")));
     }
 
