@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.profile.ai.claudecode.mcp;
 
+import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import cafe.jeffrey.shared.common.Json;
@@ -67,6 +69,7 @@ public final class ReflectiveToolset {
 
     /**
      * Invoke a tool by its MCP name with the supplied JSON arguments and return its textual result.
+     * The invocation is recorded as a JFR span named after the tool.
      *
      * @throws IllegalArgumentException if the tool name is unknown
      */
@@ -75,16 +78,23 @@ public final class ReflectiveToolset {
         if (method == null) {
             throw new IllegalArgumentException("Unknown tool: " + toolName);
         }
-        Object[] args = bindArguments(method, arguments);
-        try {
-            Object result = method.invoke(target, args);
-            return result == null ? "" : result.toString();
-        } catch (IllegalAccessException e) {
-            throw new IllegalStateException("Failed to invoke tool: " + toolName, e);
-        } catch (InvocationTargetException e) {
-            Throwable cause = e.getCause() != null ? e.getCause() : e;
-            throw new IllegalStateException("Tool execution failed: " + cause.getMessage(), cause);
-        }
+        // One span per tool invocation. The tool name is the span name: it comes from a fixed set of
+        // @Tool-annotated methods, so it stays low-cardinality however often the model calls it. This
+        // is what separates time spent in the model from time spent in our own queries when a
+        // tool-assisted answer is slow. The span wraps the reflective call *and* its exception
+        // translation, so a failed tool is recorded with the exception this method actually throws.
+        return Tracer.call(toolName, SpanKind.INTERNAL, () -> {
+            Object[] args = bindArguments(method, arguments);
+            try {
+                Object result = method.invoke(target, args);
+                return result == null ? "" : result.toString();
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException("Failed to invoke tool: " + toolName, e);
+            } catch (InvocationTargetException e) {
+                Throwable cause = e.getCause() != null ? e.getCause() : e;
+                throw new IllegalStateException("Tool execution failed: " + cause.getMessage(), cause);
+            }
+        });
     }
 
     private void index() {

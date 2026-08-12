@@ -23,6 +23,7 @@ import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.shared.common.span.Spans;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +60,18 @@ import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
 public final class HprofIndex {
 
     private static final Logger LOG = LoggerFactory.getLogger(HprofIndex.class);
+
+    /** Sub-phase ids of the index build; shared by the progress listener, the timings and the spans. */
+    private static final String PHASE_WALK_TOP_LEVEL = "walk_top_level";
+    private static final String PHASE_WRITE_STACK_TRACES = "write_stack_traces";
+    private static final String PHASE_DROP_INDEXES = "drop_indexes";
+    private static final String PHASE_WALK_CLASS_DUMPS = "walk_class_dumps";
+    private static final String PHASE_WALK_PASS_B = "walk_pass_b";
+    private static final String PHASE_APPLY_SHALLOW_CORRECTION = "apply_shallow_correction";
+    private static final String PHASE_WRITE_STRING_CONTENT = "write_string_content";
+    private static final String PHASE_WRITE_METADATA = "write_metadata";
+    private static final String PHASE_CREATE_INDEXES = "create_indexes";
+    private static final String PHASE_CHECKPOINT = "checkpoint";
 
     /**
      * Bumped when the on-disk schema or extraction semantics change.
@@ -238,30 +251,30 @@ public final class HprofIndex {
         boolean compressedOops = (idSize == 8) && (file.size() < COMPRESSED_OOPS_HEAP_LIMIT);
         InstanceLayout layout = InstanceLayout.from(idSize, compressedOops);
 
-        listener.onSubPhaseStarted("walk_top_level");
-        Elapsed<TopLevelData> topE = measureSql(() -> HprofTopLevelWalk.walk(file, client));
+        listener.onSubPhaseStarted(PHASE_WALK_TOP_LEVEL);
+        Elapsed<TopLevelData> topE = measureSql(PHASE_WALK_TOP_LEVEL, () -> HprofTopLevelWalk.walk(file, client));
         TopLevelData top = topE.entity();
-        emit(subPhases, listener, "walk_top_level", topE.duration().toMillis(),
+        emit(subPhases, listener, PHASE_WALK_TOP_LEVEL, topE.duration().toMillis(),
                 top.stringCount + " strings");
 
-        listener.onSubPhaseStarted("write_stack_traces");
-        Duration stackTracesD = measureSqlVoid(() -> HprofStackTraceWriter.write(client, top));
-        emit(subPhases, listener, "write_stack_traces", stackTracesD.toMillis(),
+        listener.onSubPhaseStarted(PHASE_WRITE_STACK_TRACES);
+        Duration stackTracesD = measureSqlVoid(PHASE_WRITE_STACK_TRACES, () -> HprofStackTraceWriter.write(client, top));
+        emit(subPhases, listener, PHASE_WRITE_STACK_TRACES, stackTracesD.toMillis(),
                 top.stackFrames.size() + " frames");
 
         // Drop every non-PK index before the bulk writes so per-row writes
         // skip the per-insert ART-tree updates. Recreated in bulk at the end,
         // which DuckDB executes far faster than 30 M incremental inserts.
-        listener.onSubPhaseStarted("drop_indexes");
-        Duration dropIndexesD = measureSqlVoid(() -> HprofNonPkIndexes.dropAll(client));
-        emit(subPhases, listener, "drop_indexes", dropIndexesD.toMillis(), null);
+        listener.onSubPhaseStarted(PHASE_DROP_INDEXES);
+        Duration dropIndexesD = measureSqlVoid(PHASE_DROP_INDEXES, () -> HprofNonPkIndexes.dropAll(client));
+        emit(subPhases, listener, PHASE_DROP_INDEXES, dropIndexesD.toMillis(), null);
 
         // Pass A — sequential, class-dumps only. Produces the read-only
         // ClassDumpIndex that Pass B and downstream phases share.
-        listener.onSubPhaseStarted("walk_class_dumps");
-        Elapsed<ClassDumpIndex> classesE = measureSql(() -> HprofClassDumpWalker.walk(file, client, top));
+        listener.onSubPhaseStarted(PHASE_WALK_CLASS_DUMPS);
+        Elapsed<ClassDumpIndex> classesE = measureSql(PHASE_WALK_CLASS_DUMPS, () -> HprofClassDumpWalker.walk(file, client, top));
         ClassDumpIndex classes = classesE.entity();
-        emit(subPhases, listener, "walk_class_dumps", classesE.duration().toMillis(),
+        emit(subPhases, listener, PHASE_WALK_CLASS_DUMPS, classesE.duration().toMillis(),
                 classes.classCount() + " classes");
 
         // Pass B — parallel fused walk. N virtual-thread workers each take a
@@ -274,8 +287,8 @@ public final class HprofIndex {
         // Fusing walkInstancesAndRoots + walkRegionsForRefs into one walk per
         // worker visits every region exactly once instead of twice — a free
         // win on top of the parallelism.
-        listener.onSubPhaseStarted("walk_pass_b");
-        Elapsed<PassBOutput> passBE = measureSql(() ->
+        listener.onSubPhaseStarted(PHASE_WALK_PASS_B);
+        Elapsed<PassBOutput> passBE = measureSql(PHASE_WALK_PASS_B, () ->
                 HprofPassBWalker.walk(file, client, top, classes, idSize, layout,
                         stagingDir, options.walkWorkers()));
         PassBOutput passB = passBE.entity();
@@ -283,7 +296,7 @@ public final class HprofIndex {
         boolean truncated = ParseWarning.anyError(top.warnings)
                 || ParseWarning.anyError(classes.warnings())
                 || ParseWarning.anyError(passB.warnings());
-        emit(subPhases, listener, "walk_pass_b", passBE.duration().toMillis(),
+        emit(subPhases, listener, PHASE_WALK_PASS_B, passBE.duration().toMillis(),
                 passB.instanceCount() + " inst, "
                         + passB.outboundRefCount() + " edges, "
                         + options.walkWorkers() + " workers");
@@ -292,24 +305,24 @@ public final class HprofIndex {
         // OOP, no alignment). Correct them now that the full class hierarchy is
         // known: subtract the compressed-oops over-count and round each instance
         // up to the JVM allocation boundary.
-        listener.onSubPhaseStarted("apply_shallow_correction");
-        Duration shallowCorrD = measureSqlVoid(() ->
+        listener.onSubPhaseStarted(PHASE_APPLY_SHALLOW_CORRECTION);
+        Duration shallowCorrD = measureSqlVoid(PHASE_APPLY_SHALLOW_CORRECTION, () ->
                 HprofShallowSizeCorrector.apply(client, classes.byId(), layout));
-        emit(subPhases, listener, "apply_shallow_correction", shallowCorrD.toMillis(), null);
+        emit(subPhases, listener, PHASE_APPLY_SHALLOW_CORRECTION, shallowCorrD.toMillis(), null);
 
         // Materialise decoded java.lang.String content so OQL string predicates
         // push down to DuckDB varchar functions instead of decoding per-instance.
-        listener.onSubPhaseStarted("write_string_content");
-        Elapsed<Long> stringContentE = measureSql(() ->
+        listener.onSubPhaseStarted(PHASE_WRITE_STRING_CONTENT);
+        Elapsed<Long> stringContentE = measureSql(PHASE_WRITE_STRING_CONTENT, () ->
                 HprofStringContentWriter.write(client, file, top, classes, passB.primArrInfo(), idSize,
                         options.stringContentThreshold(), stagingDir, options.walkWorkers()));
         long stringContentCount = stringContentE.entity();
-        emit(subPhases, listener, "write_string_content", stringContentE.duration().toMillis(),
+        emit(subPhases, listener, PHASE_WRITE_STRING_CONTENT, stringContentE.duration().toMillis(),
                 stringContentCount + " strings");
 
-        listener.onSubPhaseStarted("write_metadata");
+        listener.onSubPhaseStarted(PHASE_WRITE_METADATA);
         long totalRecordCount = top.recordCount + passB.subRecordCount();
-        Duration metadataD = measureSqlVoid(() -> {
+        Duration metadataD = measureSqlVoid(PHASE_WRITE_METADATA, () -> {
             HprofMetadataWriter.writeMetadata(client, file, clock, top, totalRecordCount,
                     passB.instanceCount(), classes.classCount(),
                     passB.gcRootCount(), passB.outboundRefCount(),
@@ -318,7 +331,7 @@ public final class HprofIndex {
             HprofMetadataWriter.writeWarnings(client, classes.warnings());
             HprofMetadataWriter.writeWarnings(client, passB.warnings());
         });
-        emit(subPhases, listener, "write_metadata", metadataD.toMillis(), null);
+        emit(subPhases, listener, PHASE_WRITE_METADATA, metadataD.toMillis(), null);
 
         // Recreate the indexes we dropped at the start. Bulk index creation
         // over populated tables is dramatically faster than per-row inserts
@@ -327,18 +340,18 @@ public final class HprofIndex {
         // different tables, so they parallelise cleanly across separate
         // connections to the same DuckDB file (DuckDB serialises ART writes
         // only within a single table).
-        listener.onSubPhaseStarted("create_indexes");
-        Duration createIndexesD = measureSqlVoid(() ->
+        listener.onSubPhaseStarted(PHASE_CREATE_INDEXES);
+        Duration createIndexesD = measureSqlVoid(PHASE_CREATE_INDEXES, () ->
                 HprofNonPkIndexes.createAll(client, db.path(), options.walkWorkers()));
-        emit(subPhases, listener, "create_indexes", createIndexesD.toMillis(), null);
+        emit(subPhases, listener, PHASE_CREATE_INDEXES, createIndexesD.toMillis(), null);
 
         // Force a checkpoint so all WAL contents land in the main DB file.
         // Without this, opening the file in read-only mode (HeapView) fails because
         // read-only connections cannot replay an outstanding WAL.
-        listener.onSubPhaseStarted("checkpoint");
-        Duration checkpointD = measureSqlVoid(() ->
+        listener.onSubPhaseStarted(PHASE_CHECKPOINT);
+        Duration checkpointD = measureSqlVoid(PHASE_CHECKPOINT, () ->
                 client.execute(HeapDumpStatement.CHECKPOINT, "CHECKPOINT"));
-        emit(subPhases, listener, "checkpoint", checkpointD.toMillis(), null);
+        emit(subPhases, listener, PHASE_CHECKPOINT, checkpointD.toMillis(), null);
 
         return new IndexResult(
                 top.stringCount,
@@ -370,24 +383,24 @@ public final class HprofIndex {
      * {@link Measuring#s} adapter for phases that throw {@link SQLException} or
      * {@link IOException}. Mirrors the same helper in {@link cafe.jeffrey.profile.heapdump.persistence.DominatorTreeBuilder}.
      */
-    private static <T> Elapsed<T> measureSql(SqlSupplier<T> body) {
-        return Measuring.s(() -> {
+    private static <T> Elapsed<T> measureSql(String phase, SqlSupplier<T> body) {
+        return Tracer.call(phase, () -> Measuring.s(() -> {
             try {
                 return body.get();
             } catch (SQLException | IOException e) {
                 throw new RuntimeException(e);
             }
-        });
+        }));
     }
 
-    private static Duration measureSqlVoid(SqlRunnable body) {
-        return Measuring.r(() -> {
+    private static Duration measureSqlVoid(String phase, SqlRunnable body) {
+        return Tracer.call(phase, () -> Measuring.r(() -> {
             try {
                 body.run();
             } catch (SQLException | IOException e) {
                 throw new RuntimeException(e);
             }
-        });
+        }));
     }
 
     @FunctionalInterface

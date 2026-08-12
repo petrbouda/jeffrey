@@ -24,6 +24,7 @@ module cafe.jeffrey.microscope.profile.flamegraph {
     requires transitive com.google.protobuf;
     requires tools.jackson.databind;
     requires org.slf4j;
+    requires cafe.jeffrey.jfr.events;
 
     exports cafe.jeffrey.flamegraph;
     exports cafe.jeffrey.flamegraph.ai;

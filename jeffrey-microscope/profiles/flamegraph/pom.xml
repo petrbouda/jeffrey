@@ -30,6 +30,11 @@
     <artifactId>flamegraph</artifactId>
 
     <dependencies>
+        <!-- Tracer: flamegraph/timeseries generation and their DB queries are recorded as spans -->
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-events</artifactId>
+        </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>

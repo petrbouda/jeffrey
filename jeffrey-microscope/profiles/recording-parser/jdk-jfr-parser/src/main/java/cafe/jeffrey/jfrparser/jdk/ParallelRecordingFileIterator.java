@@ -18,6 +18,9 @@
 
 package cafe.jeffrey.jfrparser.jdk;
 
+import cafe.jeffrey.jfr.events.trace.SpanContext;
+import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.shared.common.Schedulers;
 
 import java.nio.file.Path;
@@ -35,6 +38,8 @@ import java.util.function.Function;
  * @param <RESULT>  collected result of all recording files
  */
 public class ParallelRecordingFileIterator<PARTIAL, RESULT> implements RecordingFileIterator<PARTIAL, RESULT> {
+
+    private static final String SPAN_CHUNK_PARSE = "chunk.parse";
 
     private final List<Path> recordings;
     private final Function<Path, RecordingFileIterator<PARTIAL, PARTIAL>> singleFileIterator;
@@ -61,8 +66,12 @@ public class ParallelRecordingFileIterator<PARTIAL, RESULT> implements Recording
     }
 
     private List<PARTIAL> _iterate(Collector<PARTIAL, ?> collector) {
+        // Captured before the fork: the workers run on a shared pool, which ScopedValue does not
+        // reach, so without this each file would parse under a trace of its own rather than under
+        // the parse that spawned it.
+        SpanContext parent = Tracer.current().orElse(null);
         List<CompletableFuture<PARTIAL>> futures = recordings.stream()
-                .map(future -> asyncExecution(future, collector))
+                .map(future -> asyncExecution(parent, future, collector))
                 .toList();
 
         CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
@@ -74,11 +83,14 @@ public class ParallelRecordingFileIterator<PARTIAL, RESULT> implements Recording
     }
 
     private CompletableFuture<PARTIAL> asyncExecution(
+            SpanContext parent,
             Path recording,
             Collector<PARTIAL, ?> collector) {
 
         return CompletableFuture.supplyAsync(
-                () -> singleFileIterator.apply(recording).partialCollect(collector), Schedulers.sharedBulkParallel());
+                () -> Tracer.continueIn(parent, SPAN_CHUNK_PARSE, SpanKind.INTERNAL,
+                        () -> singleFileIterator.apply(recording).partialCollect(collector)),
+                Schedulers.sharedBulkParallel());
     }
 
     private PARTIAL partialCombination(List<PARTIAL> partials, Collector<PARTIAL, ?> collector) {

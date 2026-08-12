@@ -31,6 +31,11 @@
     <description>Profile-specific common utilities: analysis, event types, settings, tree structures</description>
 
     <dependencies>
+        <!-- Tracer + trace span events: PipelineRun/PipelineRunRegistry emit spans per pipeline stage -->
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-events</artifactId>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>common</artifactId>

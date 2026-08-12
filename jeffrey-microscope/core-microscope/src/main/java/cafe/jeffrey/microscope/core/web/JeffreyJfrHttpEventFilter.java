@@ -19,6 +19,7 @@
 package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.jfr.events.http.HttpServerExchangeEvent;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,6 +44,10 @@ import java.io.IOException;
  * so a self-profiling recording shows what the server was doing while serving each request. Requests
  * not handled by a controller method (static assets, unmapped paths) are skipped to keep the span tag
  * low-cardinality.
+ * <p>
+ * The request is also the root of a trace: {@link Tracer#inSpanOf} stamps the exchange event with a
+ * fresh trace and span id and publishes that context for the duration of the chain, so any
+ * {@code Tracer} call made while serving the request is recorded as a child of it.
  */
 public class JeffreyJfrHttpEventFilter extends OncePerRequestFilter {
 
@@ -63,7 +68,23 @@ public class JeffreyJfrHttpEventFilter extends OncePerRequestFilter {
             }
             event.begin();
             try {
-                filterChain.doFilter(request, response);
+                // Opens the root span of the request's trace. The exchange event *is* that span --
+                // it already describes the same interval -- so no separate trace-span event is
+                // emitted; the exchange just gets stamped with the ids. Anything traced further
+                // down the call stack is recorded as a child of this request.
+                try {
+                    Tracer.inSpanOf(event, () -> {
+                        filterChain.doFilter(request, response);
+                        return null;
+                    });
+                } catch (IOException | ServletException | RuntimeException e) {
+                    // Tracer infers one thrown type, which widens to Exception for a body that throws
+                    // both IOException and ServletException. Narrow it back to what this filter
+                    // declares; the trailing catch is unreachable in practice.
+                    throw e;
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
             } finally {
                 event.end();
                 if (event.shouldCommit()) {

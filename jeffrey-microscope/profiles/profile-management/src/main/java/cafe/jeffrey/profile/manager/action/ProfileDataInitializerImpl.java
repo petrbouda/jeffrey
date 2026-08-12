@@ -20,6 +20,9 @@ package cafe.jeffrey.profile.manager.action;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import cafe.jeffrey.jfr.events.trace.SpanContext;
+import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -32,6 +35,10 @@ import java.util.function.Function;
 public class ProfileDataInitializerImpl implements ProfileDataInitializer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfileDataInitializerImpl.class);
+
+    private static final String SPAN_EVENT_VIEWER = "eventviewer.tree";
+    private static final String SPAN_GUARDIAN = "guardian.results";
+    private static final String SPAN_THREAD_VIEWER = "threads.rows";
 
     private final boolean blocking;
     private final boolean concurrent;
@@ -60,29 +67,39 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
 
         ExecutorService executor = this.concurrent ? Schedulers.sharedParallel() : Schedulers.sharedSingle();
 
+        // ScopedValue does not cross an executor boundary, so the enclosing span is captured here and
+        // re-established inside each task. Without this the three views below would each start their
+        // own trace instead of appearing under the initialization that asked for them.
+        SpanContext parent = Tracer.current().orElse(null);
+
         // Create and cache data for EventViewer
         var viewerFuture = CompletableFuture
-                .runAsync(() -> {
+                .runAsync(() -> Tracer.continueIn(parent, SPAN_EVENT_VIEWER, SpanKind.INTERNAL, () -> {
                     profileManager.eventViewerManager().eventTypesTree();
                     LOG.info("Event Viewer has been initialized: profile_id={} profile_name={}",
                             profileInfo.id(), profileInfo.name());
-                }, executor)
+                    return null;
+                }), executor)
                 .exceptionally(toException("EventViewer", profileInfo));
 
         // Create Guardian results
-        var guardianFuture = CompletableFuture.runAsync(() -> {
+        var guardianFuture = CompletableFuture
+                .runAsync(() -> Tracer.continueIn(parent, SPAN_GUARDIAN, SpanKind.INTERNAL, () -> {
                     profileManager.guardianManager().guardResults();
                     LOG.info("Guardian Results has been generated: profile_id={} profile_name={}",
                             profileInfo.id(), profileInfo.name());
-                }, executor)
+                    return null;
+                }), executor)
                 .exceptionally(toException("Guardian", profileInfo));
 
         // Create Thread View
-        var threadsFuture = CompletableFuture.runAsync(() -> {
+        var threadsFuture = CompletableFuture
+                .runAsync(() -> Tracer.continueIn(parent, SPAN_THREAD_VIEWER, SpanKind.INTERNAL, () -> {
                     profileManager.threadManager().threadRows();
                     LOG.info("Thread Viewer has been generated: profile_id={} profile_name={}",
                             profileInfo.id(), profileInfo.name());
-                }, executor)
+                    return null;
+                }), executor)
                 .exceptionally(toException("ThreadViewer", profileInfo));
 
         if (blocking) {

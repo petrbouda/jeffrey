@@ -19,6 +19,7 @@ module cafe.jeffrey.microscope.profile.parser.jdk {
     requires transitive cafe.jeffrey.microscope.profile.parser.api;
     requires transitive cafe.jeffrey.shared.common;
     requires jdk.jfr;
+    requires cafe.jeffrey.jfr.events;
 
     exports cafe.jeffrey.jfrparser.jdk;
 }

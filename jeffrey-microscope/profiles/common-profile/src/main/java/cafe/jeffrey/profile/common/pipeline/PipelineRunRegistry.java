@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.profile.common.pipeline;
 
+import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
 import org.slf4j.Logger;
@@ -189,7 +191,10 @@ public final class PipelineRunRegistry<K> {
         }
 
         try {
-            request.work().accept(run);
+            // The root span of this run's trace. Stages opened by PipelineRun.runStage nest under it.
+            // Scoped to the work itself rather than the whole method so the span measures execution,
+            // not the time spent queueing for a slot above.
+            Tracer.run(definition.pipelineId(), SpanKind.INTERNAL, () -> request.work().accept(run));
             run.complete();
             LOG.info("Pipeline run completed: pipeline_id={} key={} duration_in_ms={}",
                     definition.pipelineId(), request.key(),
