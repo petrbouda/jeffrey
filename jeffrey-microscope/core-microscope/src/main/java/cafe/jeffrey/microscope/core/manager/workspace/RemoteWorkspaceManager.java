@@ -27,8 +27,6 @@ import cafe.jeffrey.hub.client.ProfilerClient;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.recording.ProjectRecordingInitializer;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.shared.common.model.hub.HubInfo;
 import cafe.jeffrey.microscope.persistence.api.WorkspaceRepository;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
@@ -37,7 +35,6 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 public class RemoteWorkspaceManager implements WorkspaceManager {
 

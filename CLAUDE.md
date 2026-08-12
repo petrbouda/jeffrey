@@ -51,7 +51,8 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 │  Common utilities, persistence abstractions, test infrastructure │
 │  gRPC proto definitions, storage, SQL builder                    │
 │  Modules: common, persistence, test, hub-api, sql-builder,   │
-│           recording-storage-api, filesystem-recording-storage    │
+│           pending-index, recording-storage-api,                  │
+│           filesystem-recording-storage                           │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -89,6 +90,7 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `test` — Test infrastructure (`@DuckDBTest` annotation, test utilities)
 - `hub-api` — gRPC proto files at `src/main/proto/jeffrey/api/v1/`
 - `sql-builder` — SQL query building utilities
+- `pending-index` — filesystem index the provisioner writes and the hub reads to discover new work
 - `recording-storage-api` — Storage interfaces
 - `filesystem-recording-storage` — Filesystem storage implementation
 
@@ -185,6 +187,7 @@ jeffrey/
 │   ├── hub-api/                    # gRPC proto definitions
 │   │   └── src/main/proto/jeffrey/api/v1/  # Proto files
 │   ├── sql-builder/                   # SQL query building
+│   ├── pending-index/                 # CLI→hub discovery index
 │   ├── recording-storage-api/         # Storage interfaces
 │   └── filesystem-recording-storage/  # Filesystem storage implementation
 ├── jeffrey-provisioner/               # Provisioner tool (GraalVM Native Image)

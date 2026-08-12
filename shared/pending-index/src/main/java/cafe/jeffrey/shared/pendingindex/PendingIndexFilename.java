@@ -19,12 +19,11 @@
 package cafe.jeffrey.shared.pendingindex;
 
 import java.time.Clock;
-import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Generates and parses pending index filenames.
+ * Generates pending index filenames.
  * <p>
  * Format: {@code <yyyyMMddHHmmssSSS>_<id>}
  * <p>
@@ -39,8 +38,6 @@ public abstract class PendingIndexFilename {
     private static final DateTimeFormatter TIMESTAMP_FORMATTER =
             DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS").withZone(ZoneOffset.UTC);
 
-    private static final int TIMESTAMP_LENGTH = 17;
-
     /**
      * Generates a sortable, collision-free filename.
      *
@@ -51,16 +48,5 @@ public abstract class PendingIndexFilename {
     public static String generate(Clock clock, String id) {
         String timestamp = TIMESTAMP_FORMATTER.format(clock.instant());
         return timestamp + "_" + id;
-    }
-
-    /**
-     * Parses the UTC timestamp from a pending index filename.
-     *
-     * @param filename the filename (e.g. {@code 20260220153045123_019505a1})
-     * @return the instant represented by the timestamp prefix
-     */
-    public static Instant parseTimestamp(String filename) {
-        String timestamp = filename.substring(0, TIMESTAMP_LENGTH);
-        return TIMESTAMP_FORMATTER.parse(timestamp, Instant::from);
     }
 }

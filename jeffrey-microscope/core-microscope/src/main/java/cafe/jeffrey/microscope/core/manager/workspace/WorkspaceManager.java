@@ -22,8 +22,6 @@ import cafe.jeffrey.hub.client.ProfilerClient;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
-import java.util.List;
-import java.util.Set;
 import java.util.Optional;
 
 public interface WorkspaceManager {

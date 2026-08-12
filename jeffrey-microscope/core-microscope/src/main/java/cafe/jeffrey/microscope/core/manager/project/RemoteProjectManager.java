@@ -29,8 +29,6 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.recordings.core.OriginContext;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
 import cafe.jeffrey.recordings.core.RemoteRecordingsDownloadManager;
-import cafe.jeffrey.microscope.core.recording.ProjectRecordingInitializer;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 
 public class RemoteProjectManager implements ProjectManager {

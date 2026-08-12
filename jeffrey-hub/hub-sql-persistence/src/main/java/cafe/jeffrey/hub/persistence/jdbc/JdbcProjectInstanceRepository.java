@@ -31,7 +31,6 @@ import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
-import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;

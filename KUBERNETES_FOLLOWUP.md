@@ -28,10 +28,10 @@ was hardened. Key landmarks in the code:
 
 | Area | Where |
 |---|---|
-| Shared on-disk layout contract | `shared/common/.../JeffreyLayout.java` (single source for `workspaces/`, `.events/`, `streaming-repo/`, marker filenames, `.settings` contract) |
+| Shared on-disk layout contract | `shared/common/.../JeffreyLayout.java` (single source for `workspaces/`, `.pending/`, `streaming-repo/`, marker filenames, `.settings` contract) |
 | Clean-exit marker | Agent writes `<session>/.heartbeat/finished` on shutdown (`jeffrey-agent/.../HeartbeatProducer.java`); `SessionFinisher.tryFinishFromHeartbeat` checks it before heartbeat staleness |
 | Scheduler | `PeriodicalScheduler` — fixed-delay, split executors (`Job.ExecutorGroup`: GLOBAL single thread vs PROJECT_FAN_OUT pool, `jeffrey.hub.scheduler.fan-out-pool-size`) |
-| Workspace auto-create (filesystem path) | `WorkspaceEventsReplicatorJob`, opt-in `jeffrey.hub.workspaces.auto-create` |
+| Workspace auto-create (filesystem path) | `WorkspaceReconcilerJob`, opt-in `jeffrey.hub.workspaces.auto-create` |
 | Settings provenance + id keying | `ProfilerSettingsResolver.ResolvedProfilerSettings` (source stamped into `.session-info.json`); `ProfilerSettings.projectSettingsById` keyed by origin project id, name map kept for back-compat |
 
 ## Design of the removed Kubernetes implementation

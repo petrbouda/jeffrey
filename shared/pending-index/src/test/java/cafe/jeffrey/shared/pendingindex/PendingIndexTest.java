@@ -221,19 +221,5 @@ class PendingIndexTest {
 
             assertNotEquals(first, second);
         }
-
-        @Test
-        void parseTimestampExtractsTheInstant() {
-            Instant parsed = PendingIndexFilename.parseTimestamp("20260220153045123_aaaaaaaa");
-
-            assertEquals(FIXED_INSTANT, parsed);
-        }
-
-        @Test
-        void generateAndParseRoundTrip() {
-            String filename = PendingIndexFilename.generate(FIXED_CLOCK, "aaaaaaaa");
-
-            assertEquals(FIXED_INSTANT, PendingIndexFilename.parseTimestamp(filename));
-        }
     }
 }

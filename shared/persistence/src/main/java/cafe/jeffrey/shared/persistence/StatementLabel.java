@@ -212,8 +212,6 @@ public enum StatementLabel {
      * {@link GroupLabel#EXTERNAL_WORKSPACES}
      */
     FIND_ALL_EXTERNAL_WORKSPACE_PROJECTS,
-    FIND_ALL_EXTERNAL_WORKSPACE_EVENTS,
-    DELETE_EXTERNAL_WORKSPACE_EVENTS_BY_IDS,
 
     /**
      * {@link GroupLabel#PROFILER}

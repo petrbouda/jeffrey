@@ -34,7 +34,6 @@ import cafe.jeffrey.shared.common.model.job.JobType;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 
 /**
  * Deletes dead instances: EXPIRED instances past their retention period, and abandoned

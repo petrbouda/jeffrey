@@ -33,6 +33,7 @@ const headings = [
   { id: 'logging', text: 'Logging', level: 2 },
   { id: 'job-scheduler', text: 'Job Scheduler', level: 2 },
   { id: 'storage', text: 'Project/Recording Storage', level: 2 },
+  { id: 'workspace-discovery', text: 'Workspace Discovery', level: 2 },
   { id: 'live-workspace', text: 'Server Collection Mode', level: 2 },
   { id: 'profiler', text: 'Profiler Agent Settings', level: 2 },
   { id: 'database', text: 'Database Persistence', level: 2 },
@@ -332,6 +333,45 @@ onMounted(() => {
             <td><code>jeffrey.project.recording-storage.path</code></td>
             <td><code>${jeffrey.hub.home.dir}/recordings</code></td>
             <td>Directory for storing JFR recordings</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="workspace-discovery">Workspace Discovery</h2>
+      <p>
+        How the server learns about projects, instances and sessions the provisioner wrote to the
+        shared volume. Steady-state discovery reads each workspace's <code>.pending</code> index;
+        see <a href="#job-scheduler">Job Scheduler</a> for the period that governs its latency.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>jeffrey.hub.workspaces.auto-create</code></td>
+            <td><code>false</code></td>
+            <td>
+              Create a workspace automatically for a directory on the volume that announces work
+              but has no workspace registered yet. The default workspace is never auto-created
+              this way, and a directory that announces nothing never becomes a workspace.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.hub.workspaces.bootstrap-scan-on-startup</code></td>
+            <td><code>true</code></td>
+            <td>
+              Reconcile every known workspace tree once at startup, in addition to the ongoing
+              index-driven discovery. This is what picks up trees provisioned by an older CLI,
+              restored from a snapshot, or written while the server was down — none of which
+              leave an index entry behind. Set to <code>false</code> for strictly index-driven
+              discovery; the scan runs only at startup and costs nothing afterwards.
+            </td>
           </tr>
         </tbody>
       </table>
