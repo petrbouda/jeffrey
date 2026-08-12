@@ -216,7 +216,7 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><code>workspace-reconciler</code></td>
-            <td><code>30s</code></td>
+            <td><code>5s</code></td>
             <td>—</td>
             <td>
               Scans the workspace directory tree and materializes new projects, instances and

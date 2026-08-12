@@ -111,7 +111,11 @@ class WorkspaceReconcilerIntegrationTest {
 
     private Fixture fixture(DataSource dataSource, Path tempDir) {
         var provider = new DatabaseClientProvider(dataSource);
-        var platformRepositories = new JdbcHubPlatformRepositories(provider, FIXED_CLOCK);
+        return fixture(dataSource, tempDir, new JdbcHubPlatformRepositories(provider, FIXED_CLOCK));
+    }
+
+    private Fixture fixture(
+            DataSource dataSource, Path tempDir, JdbcHubPlatformRepositories platformRepositories) {
 
         when(fileHeartbeatReader.readFinishedMarker(any())).thenReturn(Optional.empty());
         when(fileHeartbeatReader.readLastHeartbeat(any())).thenReturn(Optional.empty());
@@ -123,11 +127,14 @@ class WorkspaceReconcilerIntegrationTest {
 
         // Manager layer is mocked but delegates persistence to the real repositories, so
         // materializations land in (and are diffed against) the real database
+        // Resolved before stubbing: on a spied platformRepositories these calls inside a
+        // when(...) expression would read as unfinished stubbing
         ProjectRepositoryRepository repoRepo = platformRepositories.newProjectRepositoryRepository(PROJECT_ID);
+        var instanceRepo = platformRepositories.newProjectInstanceRepository(PROJECT_ID);
+
         when(projectManager.info()).thenReturn(PROJECT_INFO);
         when(projectManager.repositoryManager()).thenReturn(repositoryManager);
-        when(projectManager.projectInstanceRepository())
-                .thenReturn(platformRepositories.newProjectInstanceRepository(PROJECT_ID));
+        when(projectManager.projectInstanceRepository()).thenReturn(instanceRepo);
         when(repositoryManager.info()).thenReturn(Optional.of(REPO_INFO));
         doAnswer(invocation -> {
             repoRepo.createSession(invocation.getArgument(0));
@@ -162,10 +169,14 @@ class WorkspaceReconcilerIntegrationTest {
     }
 
     private static Path declareInstance(Path projectDir) {
-        Path instanceDir = createDir(projectDir.resolve(INSTANCE_ID));
+        return declareInstance(projectDir, INSTANCE_ID);
+    }
+
+    private static Path declareInstance(Path projectDir, String instanceId) {
+        Path instanceDir = createDir(projectDir.resolve(instanceId));
         RemoteProjectInstance marker = new RemoteProjectInstance(
-                INSTANCE_ID, ORIGIN_PROJECT_ID, WORKSPACE_ID,
-                Instant.parse("2025-06-15T10:30:00Z").toEpochMilli(), INSTANCE_ID);
+                instanceId, ORIGIN_PROJECT_ID, WORKSPACE_ID,
+                Instant.parse("2025-06-15T10:30:00Z").toEpochMilli(), instanceId);
         write(instanceDir.resolve(".instance-info.json"), Json.toString(marker));
         return instanceDir;
     }
@@ -333,6 +344,68 @@ class WorkspaceReconcilerIntegrationTest {
                     repoRepo.findSessionById("session-003").orElseThrow().finishedAt());
             assertNull(repoRepo.findSessionById("session-004").orElseThrow().finishedAt(),
                     "The new session itself stays unfinished");
+        }
+    }
+
+    /**
+     * The scan runs on a short period, so its cost must not grow with the size of the tree.
+     * What the database already knows is read once per project; instances and sessions the
+     * database has confirmed are recognized without a query and without opening their markers.
+     */
+    @Nested
+    class ScanCost {
+
+        @Test
+        void knownEntities_areReadPerProject_notPerInstance(
+                DataSource dataSource, @TempDir Path tempDir) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-and-project.sql");
+            insertRepositoryRow(dataSource);
+
+            var provider = new DatabaseClientProvider(dataSource);
+            var spiedRepositories = spy(new JdbcHubPlatformRepositories(provider, FIXED_CLOCK));
+            Fixture fixture = fixture(dataSource, tempDir, spiedRepositories);
+
+            Path wsDir = workspaceDir(tempDir);
+            Path projectDir = declareProject(wsDir);
+            declareInstance(projectDir, "inst-001");
+            declareInstance(projectDir, "inst-002");
+            declareInstance(projectDir, "inst-003");
+
+            when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID))
+                    .thenReturn(Optional.of(projectManager));
+
+            fixture.reconciler().reconcile(projectsManager, wsDir);
+
+            verify(spiedRepositories, never()).findSessionsByInstanceId(anyString());
+        }
+
+        @Test
+        void knownInstance_isRecognizedWithoutItsMarker(
+                DataSource dataSource, @TempDir Path tempDir) throws SQLException, IOException {
+            TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-and-project.sql");
+            insertRepositoryRow(dataSource);
+            Fixture fixture = fixture(dataSource, tempDir);
+
+            Path wsDir = workspaceDir(tempDir);
+            Path projectDir = declareProject(wsDir);
+            Path instanceDir = declareInstance(projectDir);
+
+            when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID))
+                    .thenReturn(Optional.of(projectManager));
+
+            fixture.reconciler().reconcile(projectsManager, wsDir);
+
+            var instanceRepo = fixture.platformRepositories().newProjectInstanceRepository(PROJECT_ID);
+            assertTrue(instanceRepo.find(INSTANCE_ID).isPresent());
+
+            // The marker is gone, but the row is the authority: the instance stays known and the
+            // scan neither fails nor re-materializes it
+            assertTrue(Files.deleteIfExists(instanceDir.resolve(".instance-info.json")));
+
+            int secondRun = fixture.reconciler().reconcile(projectsManager, wsDir);
+
+            assertEquals(0, secondRun);
+            assertTrue(instanceRepo.find(INSTANCE_ID).isPresent());
         }
     }
 

@@ -48,6 +48,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -140,15 +141,38 @@ public class WorkspaceReconciler {
             transactionOperations.executeWithoutResult(_ -> materializeRepository(projectManager, marker));
         }
 
+        KnownEntities known = readKnownEntities(projectManager);
+
         for (Path instanceDir : childDirectories(projectDir)) {
-            Optional<RemoteProjectInstance> instanceMarker =
-                    readMarker(instanceDir, JeffreyLayout.INSTANCE_INFO_FILE, RemoteProjectInstance.class);
-            if (instanceMarker.isEmpty()) {
-                continue;
-            }
-            materialized += reconcileInstance(projectManager, instanceDir, instanceMarker.get());
+            materialized += reconcileInstance(projectManager, instanceDir, known);
         }
         return materialized;
+    }
+
+    /**
+     * Reads everything the database already knows about this project in two queries, so the
+     * per-instance lookups drop out of the scan entirely: cost stays flat in the number of
+     * instances and sessions, which is what makes a short scan period affordable.
+     *
+     * <p>These sets are a purely <em>negative</em> index — "definitely already known". They are
+     * never used to decide that something exists that the database has not confirmed; the
+     * natural-key guards on the insert paths remain the actual safety net.</p>
+     */
+    private KnownEntities readKnownEntities(ProjectManager projectManager) {
+        Set<String> instanceIds = projectManager.projectInstanceRepository().findAll().stream()
+                .map(ProjectInstanceInfo::id)
+                .collect(Collectors.toSet());
+
+        // Resolved through project_instances, exactly like the per-instance query it replaces —
+        // not through the repositories table, so a project whose repository row is missing still
+        // reports its sessions instead of silently re-materializing all of them
+        Map<String, Set<String>> sessionIdsByInstance =
+                platformRepositories.findSessionsByProjectId(projectManager.info().id()).stream()
+                        .collect(Collectors.groupingBy(
+                                ProjectInstanceSessionInfo::instanceId,
+                                Collectors.mapping(ProjectInstanceSessionInfo::sessionId, Collectors.toSet())));
+
+        return new KnownEntities(instanceIds, sessionIdsByInstance);
     }
 
     private ProjectManager materializeProject(ProjectsManager projectsManager, RemoteProject marker) {
@@ -181,18 +205,35 @@ public class WorkspaceReconciler {
         LOG.info("Repository created for project: project_id={}", projectManager.info().id());
     }
 
-    private int reconcileInstance(ProjectManager projectManager, Path instanceDir, RemoteProjectInstance marker) {
+    /**
+     * The instance directory is named by its instance id, so an already-known instance is
+     * recognized from the directory name alone — its marker file is never opened.
+     */
+    private int reconcileInstance(ProjectManager projectManager, Path instanceDir, KnownEntities known) {
 
         int materialized = 0;
-        String instanceId = marker.instanceId();
+        String instanceId = instanceDir.getFileName().toString();
 
-        if (projectManager.projectInstanceRepository().find(instanceId).isEmpty()) {
-            transactionOperations.executeWithoutResult(_ ->
-                    materializeInstance(projectManager, marker));
-            materialized++;
+        if (!known.instanceIds().contains(instanceId)) {
+            Optional<RemoteProjectInstance> instanceMarker =
+                    readMarker(instanceDir, JeffreyLayout.INSTANCE_INFO_FILE, RemoteProjectInstance.class);
+            if (instanceMarker.isEmpty()) {
+                return 0;
+            }
+
+            RemoteProjectInstance marker = instanceMarker.get();
+            // The marker is authoritative for the id; the directory name only pre-filters, so a
+            // tree whose directory names drifted from the ids cannot re-create the same instance
+            // on every scan
+            if (!known.instanceIds().contains(marker.instanceId())) {
+                transactionOperations.executeWithoutResult(_ ->
+                        materializeInstance(projectManager, marker));
+                materialized++;
+            }
+            instanceId = marker.instanceId();
         }
 
-        materialized += reconcileSessions(projectManager, instanceDir, instanceId);
+        materialized += reconcileSessions(projectManager, instanceDir, instanceId, known);
         return materialized;
     }
 
@@ -217,11 +258,10 @@ public class WorkspaceReconciler {
         JfrMessageEmitter.instanceCreated(marker.instanceId(), projectManager.info().name(), projectManager.info().id());
     }
 
-    private int reconcileSessions(ProjectManager projectManager, Path instanceDir, String instanceId) {
+    private int reconcileSessions(
+            ProjectManager projectManager, Path instanceDir, String instanceId, KnownEntities known) {
 
-        Set<String> knownSessionIds = platformRepositories.findSessionsByInstanceId(instanceId).stream()
-                .map(ProjectInstanceSessionInfo::sessionId)
-                .collect(Collectors.toSet());
+        Set<String> knownSessionIds = known.sessionIdsByInstance().getOrDefault(instanceId, Set.of());
 
         // Oldest-first so force-finishing prior unfinished sessions sees the same order the
         // sessions were originally created in
@@ -326,6 +366,17 @@ public class WorkspaceReconciler {
             LOG.warn("Skipping unreadable marker file (may be partially written): file={}", markerFile);
             return Optional.empty();
         }
+    }
+
+    /**
+     * What the database already knows about one project, read once per project per scan.
+     *
+     * @param instanceIds          ids of every instance row of the project
+     * @param sessionIdsByInstance session ids of the project, grouped by instance id
+     */
+    private record KnownEntities(
+            Set<String> instanceIds,
+            Map<String, Set<String>> sessionIdsByInstance) {
     }
 
     public static List<Path> childDirectories(Path parent) {
