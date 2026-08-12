@@ -18,11 +18,12 @@
 
 package cafe.jeffrey.jfr.events.http;
 
+import cafe.jeffrey.jfr.events.trace.AbstractTracedEvent;
 import jdk.jfr.*;
 
 @Category({"Application", "HTTP"})
 @StackTrace(false)
-public abstract class AbstractHttpExchangeEvent extends Event {
+public abstract class AbstractHttpExchangeEvent extends AbstractTracedEvent {
 
     @Label("Remote Address")
     public String remoteHost;

@@ -18,11 +18,11 @@
 
 package cafe.jeffrey.jfr.events.jdbc.statement;
 
+import cafe.jeffrey.jfr.events.trace.AbstractTracedEvent;
 import jdk.jfr.Description;
-import jdk.jfr.Event;
 import jdk.jfr.Label;
 
-public abstract class JdbcBaseEvent extends Event {
+public abstract class JdbcBaseEvent extends AbstractTracedEvent {
 
     @Label("SQL Query")
     @Description("The SQL statement executed by the JDBC statement")

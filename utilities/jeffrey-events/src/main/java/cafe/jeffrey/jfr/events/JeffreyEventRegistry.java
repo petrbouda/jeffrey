@@ -26,6 +26,7 @@ import cafe.jeffrey.jfr.events.jdbc.pool.*;
 import cafe.jeffrey.jfr.events.jdbc.statement.*;
 import cafe.jeffrey.jfr.events.message.AlertEvent;
 import cafe.jeffrey.jfr.events.message.MessageEvent;
+import cafe.jeffrey.jfr.events.trace.TraceSpanEvent;
 import jdk.jfr.Event;
 
 import java.util.List;
@@ -49,7 +50,8 @@ public abstract class JeffreyEventRegistry {
             PooledJdbcConnectionBorrowedEvent.class,
             PooledJdbcConnectionCreatedEvent.class,
             AcquiringPooledJdbcConnectionTimeoutEvent.class,
-            JdbcPoolStatisticsEvent.class
+            JdbcPoolStatisticsEvent.class,
+            TraceSpanEvent.class
     );
 
     private JeffreyEventRegistry() {
