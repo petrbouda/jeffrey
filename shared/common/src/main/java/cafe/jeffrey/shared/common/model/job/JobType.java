@@ -20,7 +20,6 @@ package cafe.jeffrey.shared.common.model.job;
 
 public enum JobType {
     WORKSPACE_RECONCILER(ExecutionLevel.GLOBAL),
-    WORKSPACE_EVENTS_CLEANER(ExecutionLevel.GLOBAL),
     TEMP_DIRECTORY_CLEANER(ExecutionLevel.GLOBAL),
     DELETED_PROJECTS_CLEANER(ExecutionLevel.GLOBAL),
     STORAGE_OVERVIEW_REFRESHER(ExecutionLevel.GLOBAL),
@@ -30,8 +29,7 @@ public enum JobType {
     PROJECT_STORAGE_QUOTA_CLEANER(ExecutionLevel.PROJECT),
     EXPIRED_INSTANCE_CLEANER(ExecutionLevel.PROJECT),
     REPOSITORY_JFR_COMPRESSION(ExecutionLevel.PROJECT),
-    SESSION_FINISHED_DETECTOR(ExecutionLevel.PROJECT),
-    SESSION_FILE_DETECTOR(ExecutionLevel.PROJECT);
+    SESSION_FINISHED_DETECTOR(ExecutionLevel.PROJECT);
 
     /**
      * Where a job runs in the server's three-level execution model:

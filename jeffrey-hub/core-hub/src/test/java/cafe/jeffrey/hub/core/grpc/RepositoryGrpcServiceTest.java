@@ -286,9 +286,7 @@ class RepositoryGrpcServiceTest {
                             .build());
 
             assertNotNull(response);
-            verify(repoManager).deleteRecordingSession(
-                    SESSION_ID,
-                    cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator.MANUAL);
+            verify(repoManager).deleteRecordingSession(SESSION_ID);
         }
 
         @Test

@@ -28,17 +28,13 @@ import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
-import cafe.jeffrey.hub.core.project.repository.SessionFinishEventEmitter;
 import cafe.jeffrey.hub.core.scheduler.job.*;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ExpiredInstanceCleanerJobDescriptor;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectInstanceRecordingCleanerJobDescriptor;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectInstanceSessionCleanerJobDescriptor;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectStorageQuotaCleanerJobDescriptor;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.SessionFileDetectorProjectJobDescriptor;
 import cafe.jeffrey.hub.core.streaming.FileHeartbeatReader;
 import cafe.jeffrey.hub.core.streaming.SessionFinisher;
-import cafe.jeffrey.hub.core.workspace.WorkspaceEventPublisher;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.shared.common.model.job.JobType;
 
@@ -56,7 +52,6 @@ public class ProjectJobsConfiguration {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectJobsConfiguration.class);
 
-    private static final String WORKSPACE_EVENTS_RETENTION_PARAM = "queue-events-retention";
 
     private final RepositoryStorage.Factory repositoryStorageFactory;
     private final WorkspacesManager workspacesManager;
@@ -134,31 +129,12 @@ public class ProjectJobsConfiguration {
     }
 
     @Bean
-    public SessionFinishEventEmitter sessionFinishEventEmitter(
-            Clock clock,
-            WorkspaceEventPublisher workspaceEventPublisher) {
-
-        return new SessionFinishEventEmitter(clock, workspaceEventPublisher);
-    }
-
-    @Bean
-    public InstanceLifecycleEventEmitter instanceLifecycleEventEmitter(
-            Clock clock,
-            WorkspaceEventPublisher workspaceEventPublisher) {
-
-        return new InstanceLifecycleEventEmitter(clock, workspaceEventPublisher);
-    }
-
-    @Bean
     public SessionFinisher sessionFinisher(
             Clock clock,
-            SessionFinishEventEmitter sessionFinishEventEmitter,
-            InstanceLifecycleEventEmitter instanceLifecycleEventEmitter,
             FileHeartbeatReader fileHeartbeatReader,
             HubPlatformRepositories platformRepositories) {
 
-        return new SessionFinisher(clock, sessionFinishEventEmitter, instanceLifecycleEventEmitter,
-                fileHeartbeatReader, platformRepositories);
+        return new SessionFinisher(clock, fileHeartbeatReader, platformRepositories);
     }
 
     @Bean
@@ -180,49 +156,4 @@ public class ProjectJobsConfiguration {
                 sessionFinisher);
     }
 
-    @Bean
-    public SessionFileDetectorProjectJob sessionFileDetectorProjectJob(
-            Clock clock,
-            WorkspaceEventPublisher workspaceEventPublisher) {
-
-        JobConfig config = schedulerJobsProperties.forType(JobType.SESSION_FILE_DETECTOR);
-        SessionFileDetectorProjectJobDescriptor descriptor =
-                SessionFileDetectorProjectJobDescriptor.of(config.params());
-
-        verifyFileAgeStaysWithinEventRetention(descriptor);
-
-        return new SessionFileDetectorProjectJob(
-                workspacesManager,
-                repositoryStorageFactory,
-                descriptor,
-                config.period(),
-                clock,
-                workspaceEventPublisher);
-    }
-
-    /**
-     * The file detector is stateless and leans on the event queue's dedup index for idempotency,
-     * which only holds while the dedup row still exists. Once {@code max-file-age} reaches
-     * {@code queue-events-retention}, a file can outlive its own dedup row and gets announced
-     * again — silently, as duplicate events rather than an error. The two properties live in
-     * different job configs, so nothing else would catch the mistake.
-     */
-    private void verifyFileAgeStaysWithinEventRetention(SessionFileDetectorProjectJobDescriptor descriptor) {
-        JobConfig cleanerConfig = schedulerJobsProperties.forType(JobType.WORKSPACE_EVENTS_CLEANER);
-        Duration eventRetention;
-        try {
-            eventRetention = cleanerConfig.durationParam(WORKSPACE_EVENTS_RETENTION_PARAM);
-        } catch (IllegalArgumentException e) {
-            LOG.warn("Cannot verify session-file-detector max-file-age against workspace event retention: reason={}",
-                    e.getMessage());
-            return;
-        }
-
-        if (descriptor.maxFileAge().compareTo(eventRetention) >= 0) {
-            LOG.error("Session file detector max-file-age must stay well below workspace event retention, "
-                            + "otherwise files outlive their deduplication rows and are announced twice: "
-                            + "max_file_age={} queue_events_retention={}",
-                    descriptor.maxFileAge(), eventRetention);
-        }
-    }
 }

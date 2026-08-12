@@ -122,12 +122,11 @@ class WorkspaceReconcilerJobTest {
         void knownWorkspace_isReconciled() {
             Path wsDir = workspaceDir(KNOWN_REF_ID);
             when(workspacesManager.findByReferenceId(KNOWN_REF_ID)).thenReturn(Optional.of(workspaceManager));
-            when(workspaceManager.localInfo()).thenReturn(WORKSPACE_INFO);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
             job(false).execute(JobContext.EMPTY);
 
-            verify(reconciler).reconcile(WORKSPACE_INFO, projectsManager, wsDir);
+            verify(reconciler).reconcile(projectsManager, wsDir);
         }
 
         @Test
@@ -149,13 +148,12 @@ class WorkspaceReconcilerJobTest {
                     .thenReturn(Optional.empty())
                     .thenReturn(Optional.of(workspaceManager));
             when(workspacesManager.create(any())).thenReturn(WORKSPACE_INFO);
-            when(workspaceManager.localInfo()).thenReturn(WORKSPACE_INFO);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
             job(true).execute(JobContext.EMPTY);
 
             verify(workspacesManager).create(any());
-            verify(reconciler).reconcile(WORKSPACE_INFO, projectsManager, wsDir);
+            verify(reconciler).reconcile(projectsManager, wsDir);
         }
 
         @Test
@@ -187,14 +185,13 @@ class WorkspaceReconcilerJobTest {
             Path healthy = workspaceDir(KNOWN_REF_ID);
             var failingManager = mock(WorkspaceManager.class);
             when(workspacesManager.findByReferenceId("aaa-failing")).thenReturn(Optional.of(failingManager));
-            when(failingManager.localInfo()).thenThrow(new RuntimeException("boom"));
+            when(failingManager.projectsManager()).thenThrow(new RuntimeException("boom"));
             when(workspacesManager.findByReferenceId(KNOWN_REF_ID)).thenReturn(Optional.of(workspaceManager));
-            when(workspaceManager.localInfo()).thenReturn(WORKSPACE_INFO);
             when(workspaceManager.projectsManager()).thenReturn(projectsManager);
 
             job(false).execute(JobContext.EMPTY);
 
-            verify(reconciler).reconcile(eq(WORKSPACE_INFO), eq(projectsManager), eq(healthy));
+            verify(reconciler).reconcile(eq(projectsManager), eq(healthy));
         }
     }
 }

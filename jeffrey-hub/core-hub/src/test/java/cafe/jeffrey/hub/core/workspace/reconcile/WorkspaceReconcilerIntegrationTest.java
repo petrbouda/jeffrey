@@ -33,14 +33,9 @@ import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
-import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
-import cafe.jeffrey.hub.core.project.repository.SessionFinishEventEmitter;
 import cafe.jeffrey.hub.core.streaming.FileHeartbeatReader;
 import cafe.jeffrey.hub.core.streaming.SessionFinisher;
-import cafe.jeffrey.hub.core.workspace.AuditWorkspaceEventPublisher;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
-import cafe.jeffrey.hub.persistence.api.WorkspaceEventLogRepository;
-import cafe.jeffrey.hub.persistence.api.WorkspaceEventLogRepository.WorkspaceEventQuery;
 import cafe.jeffrey.hub.persistence.jdbc.JdbcHubPlatformRepositories;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.CreateProject;
@@ -52,9 +47,6 @@ import cafe.jeffrey.shared.common.model.RepositoryType;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventType;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
 import cafe.jeffrey.test.TestUtils;
@@ -100,10 +92,6 @@ class WorkspaceReconcilerIntegrationTest {
     private static final RepositoryInfo REPO_INFO = new RepositoryInfo(
             "repo-001", RepositoryType.ASYNC_PROFILER, "/workspaces", "ws-001", "proj-001");
 
-    private static final WorkspaceInfo WORKSPACE_INFO = new WorkspaceInfo(
-            WORKSPACE_ID, WORKSPACE_ID, null, "Test Workspace", null, null,
-            Instant.parse("2025-01-01T10:00:00Z"), null, 0);
-
     @Mock
     ProjectsManager projectsManager;
 
@@ -118,23 +106,18 @@ class WorkspaceReconcilerIntegrationTest {
 
     private record Fixture(
             WorkspaceReconciler reconciler,
-            JdbcHubPlatformRepositories platformRepositories,
-            WorkspaceEventLogRepository eventLog) {
+            JdbcHubPlatformRepositories platformRepositories) {
     }
 
     private Fixture fixture(DataSource dataSource, Path tempDir) {
         var provider = new DatabaseClientProvider(dataSource);
         var platformRepositories = new JdbcHubPlatformRepositories(provider, FIXED_CLOCK);
-        WorkspaceEventLogRepository eventLog = platformRepositories.newWorkspaceEventLogRepository();
-        var publisher = new AuditWorkspaceEventPublisher(eventLog);
 
         when(fileHeartbeatReader.readFinishedMarker(any())).thenReturn(Optional.empty());
         when(fileHeartbeatReader.readLastHeartbeat(any())).thenReturn(Optional.empty());
 
         var sessionFinisher = new SessionFinisher(
                 FIXED_CLOCK,
-                new SessionFinishEventEmitter(FIXED_CLOCK, publisher),
-                new InstanceLifecycleEventEmitter(FIXED_CLOCK, publisher),
                 fileHeartbeatReader,
                 platformRepositories);
 
@@ -156,10 +139,9 @@ class WorkspaceReconcilerIntegrationTest {
                 new HubJeffreyDirs(tempDir),
                 platformRepositories,
                 sessionFinisher,
-                publisher,
                 new TransactionTemplate(new DataSourceTransactionManager(dataSource)));
 
-        return new Fixture(reconciler, platformRepositories, eventLog);
+        return new Fixture(reconciler, platformRepositories);
     }
 
     // ---------- On-disk declaration helpers ----------
@@ -212,10 +194,6 @@ class WorkspaceReconcilerIntegrationTest {
         }
     }
 
-    private static List<WorkspaceEvent> eventsOfType(Fixture fixture, WorkspaceEventType type) {
-        return fixture.eventLog().findLatest(new WorkspaceEventQuery(WORKSPACE_ID, type, Set.of(), 100));
-    }
-
     /**
      * The mocked {@code repositoryManager.info()} reports a repository, bypassing the
      * reconciler's own repository-repair path — insert the row it claims to exist, since
@@ -250,7 +228,7 @@ class WorkspaceReconcilerIntegrationTest {
                     .thenReturn(Optional.empty());
             when(projectsManager.create(any())).thenReturn(projectManager);
 
-            int materialized = fixture.reconciler().reconcile(WORKSPACE_INFO, projectsManager, wsDir);
+            int materialized = fixture.reconciler().reconcile(projectsManager, wsDir);
 
             assertEquals(3, materialized);
 
@@ -267,14 +245,10 @@ class WorkspaceReconcilerIntegrationTest {
 
             var repoRepo = fixture.platformRepositories().newProjectRepositoryRepository(PROJECT_ID);
             assertTrue(repoRepo.findSessionById("session-100").isPresent());
-
-            assertEquals(1, eventsOfType(fixture, WorkspaceEventType.PROJECT_CREATED).size());
-            assertEquals(1, eventsOfType(fixture, WorkspaceEventType.PROJECT_INSTANCE_CREATED).size());
-            assertEquals(1, eventsOfType(fixture, WorkspaceEventType.PROJECT_INSTANCE_SESSION_CREATED).size());
         }
 
         @Test
-        void rescanIsANoOp_noDuplicateEntitiesOrAuditRows(
+        void rescanIsANoOp_noDuplicateEntities(
                 DataSource dataSource, @TempDir Path tempDir) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-and-project.sql");
             Fixture fixture = fixture(dataSource, tempDir);
@@ -289,14 +263,11 @@ class WorkspaceReconcilerIntegrationTest {
                     .thenReturn(Optional.of(projectManager));
             when(projectsManager.create(any())).thenReturn(projectManager);
 
-            fixture.reconciler().reconcile(WORKSPACE_INFO, projectsManager, wsDir);
-            long afterFirst = fixture.eventLog().count(WORKSPACE_ID);
+            fixture.reconciler().reconcile(projectsManager, wsDir);
 
-            int secondRun = fixture.reconciler().reconcile(WORKSPACE_INFO, projectsManager, wsDir);
+            int secondRun = fixture.reconciler().reconcile(projectsManager, wsDir);
 
             assertEquals(0, secondRun, "Everything is already known — nothing to materialize");
-            assertEquals(afterFirst, fixture.eventLog().count(WORKSPACE_ID),
-                    "A re-scan must not append audit rows");
             verify(projectsManager, times(1)).create(any());
             verify(repositoryManager, times(1)).createSession(any(ProjectInstanceSessionInfo.class));
         }
@@ -317,7 +288,7 @@ class WorkspaceReconcilerIntegrationTest {
             when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID))
                     .thenReturn(Optional.of(projectManager));
 
-            fixture.reconciler().reconcile(WORKSPACE_INFO, projectsManager, wsDir);
+            fixture.reconciler().reconcile(projectsManager, wsDir);
 
             var repoRepo = fixture.platformRepositories().newProjectRepositoryRepository(PROJECT_ID);
             assertTrue(repoRepo.findSessionById("session-100").isEmpty(),
@@ -325,7 +296,7 @@ class WorkspaceReconcilerIntegrationTest {
 
             // The provisioner finishes the write — the next scan converges
             declareSession(instanceDir, "session-100", Instant.parse("2025-06-15T11:00:00Z"), 1);
-            fixture.reconciler().reconcile(WORKSPACE_INFO, projectsManager, wsDir);
+            fixture.reconciler().reconcile(projectsManager, wsDir);
 
             assertTrue(repoRepo.findSessionById("session-100").isPresent());
         }
@@ -349,7 +320,7 @@ class WorkspaceReconcilerIntegrationTest {
             when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID))
                     .thenReturn(Optional.of(projectManager));
 
-            fixture.reconciler().reconcile(WORKSPACE_INFO, projectsManager, wsDir);
+            fixture.reconciler().reconcile(projectsManager, wsDir);
 
             var repoRepo = fixture.platformRepositories().newProjectRepositoryRepository(PROJECT_ID);
             // Each unfinished session's fallback finished_at is the NEXT session's originCreatedAt;
@@ -380,10 +351,9 @@ class WorkspaceReconcilerIntegrationTest {
             when(projectsManager.findByOriginProjectId(ORIGIN_PROJECT_ID))
                     .thenReturn(Optional.of(projectManager));
 
-            int materialized = fixture.reconciler().reconcile(WORKSPACE_INFO, projectsManager, wsDir);
+            int materialized = fixture.reconciler().reconcile(projectsManager, wsDir);
 
             assertEquals(0, materialized);
-            assertEquals(0, fixture.eventLog().count(WORKSPACE_ID), "No audit rows for a no-op scan");
 
             // Hub state is untouched: rows, statuses, sessions all survive the empty disk
             var instanceRepo = fixture.platformRepositories().newProjectInstanceRepository(PROJECT_ID);

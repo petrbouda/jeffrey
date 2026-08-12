@@ -29,7 +29,6 @@ import cafe.jeffrey.hub.core.scheduler.*;
 import cafe.jeffrey.hub.core.scheduler.job.*;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProfilerSettingsSynchronizerJobDescriptor;
 import cafe.jeffrey.hub.core.streaming.SessionFinisher;
-import cafe.jeffrey.hub.core.workspace.WorkspaceEventPublisher;
 import cafe.jeffrey.hub.core.workspace.reconcile.WorkspaceReconciler;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.shared.common.model.job.JobType;
@@ -103,7 +102,6 @@ public class GlobalJobsConfiguration {
             HubJeffreyDirs jeffreyDirs,
             HubPlatformRepositories platformRepositories,
             SessionFinisher sessionFinisher,
-            WorkspaceEventPublisher workspaceEventPublisher,
             TransactionOperations hubTransactionOperations) {
 
         return new WorkspaceReconciler(
@@ -111,7 +109,6 @@ public class GlobalJobsConfiguration {
                 jeffreyDirs,
                 platformRepositories,
                 sessionFinisher,
-                workspaceEventPublisher,
                 hubTransactionOperations);
     }
 
@@ -145,17 +142,6 @@ public class GlobalJobsConfiguration {
                 workspacesManager,
                 ProfilerSettingsSynchronizerJobDescriptor.of(config.params()),
                 platformRepositories);
-    }
-
-    @Bean
-    public WorkspaceEventsCleanerJob workspaceEventsCleanerJob(
-            HubPlatformRepositories platformRepositories,
-            Clock clock) {
-
-        return new WorkspaceEventsCleanerJob(
-                platformRepositories.newWorkspaceEventLogRepository(),
-                clock,
-                schedulerJobsProperties.forType(JobType.WORKSPACE_EVENTS_CLEANER));
     }
 
     @Bean

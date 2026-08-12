@@ -23,20 +23,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
-import cafe.jeffrey.hub.core.project.repository.SessionFinishEventEmitter;
 import cafe.jeffrey.hub.persistence.jdbc.JdbcHubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.jdbc.JdbcProjectRepositoryRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
-import cafe.jeffrey.hub.core.workspace.AuditWorkspaceEventPublisher;
-import cafe.jeffrey.hub.persistence.api.WorkspaceEventLogRepository;
-import cafe.jeffrey.hub.persistence.api.WorkspaceEventLogRepository.WorkspaceEventQuery;
-import cafe.jeffrey.hub.persistence.jdbc.JdbcWorkspaceEventLogRepository;
 import cafe.jeffrey.test.DuckDBTest;
 import cafe.jeffrey.test.MutableClock;
 import cafe.jeffrey.test.TestUtils;
@@ -46,8 +38,6 @@ import java.nio.file.Path;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
-import java.util.Set;
 import java.util.Map;
 import java.util.Optional;
 
@@ -81,18 +71,9 @@ class SessionFinisherIntegrationTest {
         return new JdbcHubPlatformRepositories(provider, clock);
     }
 
-    /**
-     * Selects only the session-finished events. Finishing a session's last unfinished sibling also
-     * announces the instance transition, so the audit log legitimately holds more than one event.
-     */
-    private static List<WorkspaceEvent> sessionFinishedEvents(WorkspaceEventLogRepository eventLog) {
-        return eventLog.findLatest(new WorkspaceEventQuery(
-                WORKSPACE_ID, WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED, Set.of(), 100));
-    }
-
-    private static WorkspaceEventLogRepository createEventLog(MutableClock clock, DataSource dataSource) {
-        var provider = new DatabaseClientProvider(dataSource);
-        return new JdbcWorkspaceEventLogRepository(provider, clock);
+    private static SessionFinisher createFinisher(
+            MutableClock clock, FileHeartbeatReader fileHeartbeatReader, DataSource dataSource) {
+        return new SessionFinisher(clock, fileHeartbeatReader, createHubPlatformRepositories(clock, dataSource));
     }
 
     @Nested
@@ -106,11 +87,7 @@ class SessionFinisherIntegrationTest {
             TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
             var clock = new MutableClock(NOW);
             var repository = createRepository(clock, dataSource);
-            var eventLog = createEventLog(clock, dataSource);
-            var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-            var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
+            var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
 
             ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
             Instant finishedAt = Instant.parse("2025-06-15T11:50:00Z");
@@ -119,34 +96,6 @@ class SessionFinisherIntegrationTest {
 
             ProjectInstanceSessionInfo updated = repository.findSessionById(SESSION_ID).orElseThrow();
             assertEquals(finishedAt, updated.finishedAt());
-        }
-
-        @Test
-        void emitsSessionFinishedEvent_toQueue(DataSource dataSource) throws SQLException {
-            TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
-            var clock = new MutableClock(NOW);
-            var repository = createRepository(clock, dataSource);
-            var eventLog = createEventLog(clock, dataSource);
-            var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-            var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
-
-            ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
-            Instant finishedAt = Instant.parse("2025-06-15T11:50:00Z");
-
-            finisher.markFinished(repository, PROJECT_INFO, sessionInfo, finishedAt);
-
-            List<WorkspaceEvent> sessionFinished = sessionFinishedEvents(eventLog);
-            assertEquals(1, sessionFinished.size());
-
-            WorkspaceEvent event = sessionFinished.getFirst();
-            assertAll(
-                    () -> assertEquals(PROJECT_ID, event.projectId()),
-                    () -> assertEquals(WORKSPACE_ID, event.workspaceRefId()),
-                    () -> assertEquals(WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED, event.eventType()),
-                    () -> assertEquals(SESSION_ID, event.originEventId())
-            );
         }
     }
 
@@ -161,11 +110,7 @@ class SessionFinisherIntegrationTest {
             TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
             var clock = new MutableClock(NOW);
             var repository = createRepository(clock, dataSource);
-            var eventLog = createEventLog(clock, dataSource);
-            var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-            var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
+            var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
 
             Instant heartbeatTimestamp = Instant.parse("2025-06-15T11:30:00Z");
             when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
@@ -185,11 +130,7 @@ class SessionFinisherIntegrationTest {
             TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
             var clock = new MutableClock(NOW);
             var repository = createRepository(clock, dataSource);
-            var eventLog = createEventLog(clock, dataSource);
-            var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-            var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
+            var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
 
             Instant markerTimestamp = Instant.parse("2025-06-15T11:35:00Z");
             when(fileHeartbeatReader.readFinishedMarker(SESSION_PATH))
@@ -209,11 +150,7 @@ class SessionFinisherIntegrationTest {
             TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
             var clock = new MutableClock(NOW);
             var repository = createRepository(clock, dataSource);
-            var eventLog = createEventLog(clock, dataSource);
-            var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-            var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
+            var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
 
             when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
                     .thenReturn(Optional.empty());
@@ -242,11 +179,7 @@ class SessionFinisherIntegrationTest {
                 TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
                 var clock = new MutableClock(NOW);
                 var repository = createRepository(clock, dataSource);
-                var eventLog = createEventLog(clock, dataSource);
-                var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-                var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-                var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-                var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
+                var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
 
                 // Heartbeat file returns a stale heartbeat: 10 minutes before NOW, threshold is 5 minutes
                 Instant staleHeartbeat = NOW.minus(Duration.ofMinutes(10));
@@ -269,11 +202,7 @@ class SessionFinisherIntegrationTest {
                 TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
                 var clock = new MutableClock(NOW);
                 var repository = createRepository(clock, dataSource);
-                var eventLog = createEventLog(clock, dataSource);
-                var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-                var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-                var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-                var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
+                var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
 
                 // Heartbeat file returns a fresh heartbeat: 2 minutes before NOW, threshold is 5 minutes
                 Instant freshHeartbeat = NOW.minus(Duration.ofMinutes(2));
@@ -300,11 +229,7 @@ class SessionFinisherIntegrationTest {
                 TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
                 var clock = new MutableClock(NOW);
                 var repository = createRepository(clock, dataSource);
-                var eventLog = createEventLog(clock, dataSource);
-                var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-                var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-                var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-                var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
+                var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
 
                 // Heartbeat file does not exist
                 when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
@@ -334,11 +259,7 @@ class SessionFinisherIntegrationTest {
                 // Use a large threshold (5 hours) so that NOW (08:00 + 4h = 12:00) is within the window.
                 var clock = new MutableClock(NOW);
                 var repository = createRepository(clock, dataSource);
-                var eventLog = createEventLog(clock, dataSource);
-                var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-                var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-                var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-                var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
+                var finisher = createFinisher(clock, fileHeartbeatReader, dataSource);
 
                 // No heartbeat file
                 when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
@@ -357,71 +278,6 @@ class SessionFinisherIntegrationTest {
                 ProjectInstanceSessionInfo updated = repository.findSessionById(SESSION_ID).orElseThrow();
                 assertNull(updated.finishedAt());
             }
-        }
-    }
-
-    @Nested
-    class EventEmission {
-
-        @Mock
-        FileHeartbeatReader fileHeartbeatReader;
-
-        @Test
-        void emitsSessionFinished_toWorkspaceQueue(DataSource dataSource) throws SQLException {
-            TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
-            var clock = new MutableClock(NOW);
-            var repository = createRepository(clock, dataSource);
-            var eventLog = createEventLog(clock, dataSource);
-            var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-            var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
-
-            // Heartbeat file returns a stale heartbeat so tryFinishFromHeartbeat marks it finished and emits event
-            Instant staleHeartbeat = NOW.minus(Duration.ofMinutes(10));
-            when(fileHeartbeatReader.readLastHeartbeat(SESSION_PATH))
-                    .thenReturn(Optional.of(staleHeartbeat));
-
-            ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
-
-            boolean result = finisher.tryFinishFromHeartbeat(
-                    repository, PROJECT_INFO, sessionInfo, SESSION_PATH, HEARTBEAT_THRESHOLD, NOW);
-
-            assertTrue(result);
-
-            List<WorkspaceEvent> sessionFinished = sessionFinishedEvents(eventLog);
-            assertEquals(1, sessionFinished.size());
-            assertEquals(WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED, sessionFinished.getFirst().eventType());
-        }
-
-        @Test
-        void eventContains_correctProjectAndSessionIds(DataSource dataSource) throws SQLException {
-            TestUtils.executeSql(dataSource, "sql/session-finisher/insert-project-with-unfinished-session.sql");
-            var clock = new MutableClock(NOW);
-            var repository = createRepository(clock, dataSource);
-            var eventLog = createEventLog(clock, dataSource);
-            var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
-            var platformRepositories = createHubPlatformRepositories(clock, dataSource);
-            var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
-
-            ProjectInstanceSessionInfo sessionInfo = repository.findSessionById(SESSION_ID).orElseThrow();
-            Instant finishedAt = Instant.parse("2025-06-15T11:50:00Z");
-
-            finisher.markFinished(repository, PROJECT_INFO, sessionInfo, finishedAt);
-
-            List<WorkspaceEvent> sessionFinished = sessionFinishedEvents(eventLog);
-            assertEquals(1, sessionFinished.size());
-
-            WorkspaceEvent event = sessionFinished.getFirst();
-            assertAll(
-                    () -> assertEquals(PROJECT_ID, event.projectId()),
-                    () -> assertEquals(WORKSPACE_ID, event.workspaceRefId()),
-                    () -> assertEquals(SESSION_ID, event.originEventId()),
-                    () -> assertEquals(WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED, event.eventType()),
-                    () -> assertEquals(NOW, event.originCreatedAt()),
-                    () -> assertEquals(NOW, event.createdAt())
-            );
         }
     }
 }

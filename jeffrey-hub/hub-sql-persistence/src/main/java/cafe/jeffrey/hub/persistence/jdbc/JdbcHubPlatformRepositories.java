@@ -129,11 +129,6 @@ public class JdbcHubPlatformRepositories implements HubPlatformRepositories {
     }
 
     @Override
-    public WorkspaceEventLogRepository newWorkspaceEventLogRepository() {
-        return new JdbcWorkspaceEventLogRepository(databaseClientProvider, clock);
-    }
-
-    @Override
     public Optional<SessionWithRepository> findSessionWithRepositoryById(String sessionId) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("session_id", sessionId);

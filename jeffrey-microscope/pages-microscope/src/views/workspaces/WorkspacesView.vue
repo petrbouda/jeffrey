@@ -22,8 +22,6 @@
     :extra-tabs="EXTRA_TABS"
     :initial-hub-id="initialHubId"
     :initial-workspace-id="initialWorkspaceId"
-    @refresh-tab="onRefreshTab"
-    @tab-change="onTabChange"
   >
     <template #project="{ project, hubId, workspaceId, restore }">
       <ProjectCard
@@ -35,32 +33,6 @@
       />
     </template>
 
-    <template #header-controls="{ activeTabId }">
-      <template v-if="activeTabId === 'events'">
-        <Badge
-          key-label="Events"
-          :value="eventsCount"
-          variant="secondary"
-          size="s"
-          :uppercase="false"
-          :borderless="true"
-        />
-        <div class="search">
-          <i class="bi bi-search"></i>
-          <input v-model="eventSearchQuery" type="text" placeholder="Search events…" />
-        </div>
-      </template>
-    </template>
-
-    <template #tab-events="{ hubId, workspaceId }">
-      <WorkspaceEventLog
-        ref="eventLogRef"
-        :hub-id="hubId"
-        :workspace-id="workspaceId"
-        :search-query="eventSearchQuery"
-        @update:count="eventsCount = $event"
-      />
-    </template>
 
     <template #tab-settings="{ hubId, workspaceId, workspaceName }">
       <WorkspaceProfilerSettings
@@ -80,15 +52,12 @@ import ProjectCard from '@shared/components/projects/ProjectCard.vue';
 import { useNavigation } from '@/composables/useNavigation';
 
 const { navigateToProject } = useNavigation();
-import Badge from '@shared/components/Badge.vue';
-import WorkspaceEventLog from '@/components/workspace/WorkspaceEventLog.vue';
 import WorkspaceProfilerSettings from '@/components/workspace/WorkspaceProfilerSettings.vue';
 
 const HERO =
   'Microscope analyzes profiles served by Jeffrey servers. Add a hub to browse its workspaces and projects.';
 
 const EXTRA_TABS = [
-  { id: 'events', label: 'Event Log', icon: 'bi-list-ul', refreshable: true },
   { id: 'settings', label: 'Profiler Settings', icon: 'bi-gear', refreshable: false }
 ];
 
@@ -102,21 +71,6 @@ const queryParam = (key: string): string | null => {
 const initialHubId = computed(() => queryParam('hubId'));
 const initialWorkspaceId = computed(() => queryParam('workspaceId'));
 
-const eventSearchQuery = ref('');
-const eventsCount = ref(0);
-const eventLogRef = ref<InstanceType<typeof WorkspaceEventLog> | null>(null);
-
-const onRefreshTab = (tabId: string) => {
-  if (tabId === 'events') {
-    eventLogRef.value?.refresh();
-  }
-};
-
-const onTabChange = (tabId: string) => {
-  if (tabId === 'projects') {
-    eventSearchQuery.value = '';
-  }
-};
 </script>
 
 <style scoped>

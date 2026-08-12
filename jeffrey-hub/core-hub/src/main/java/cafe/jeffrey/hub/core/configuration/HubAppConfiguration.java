@@ -29,7 +29,6 @@ import cafe.jeffrey.hub.core.manager.project.HubProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.project.repository.AsprofFileRepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
-import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.file.AsprofFileInfoProcessor;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptorFactory;
@@ -37,7 +36,6 @@ import cafe.jeffrey.hub.core.streaming.FileHeartbeatReader;
 import cafe.jeffrey.hub.core.streaming.LiveStreamingManager;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
 import cafe.jeffrey.hub.core.web.WebInfrastructureConfig;
-import cafe.jeffrey.hub.core.workspace.WorkspaceEventPublisher;
 import cafe.jeffrey.hub.persistence.api.HubPersistenceProvider;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.jdbc.DuckDBHubPersistenceProvider;
@@ -160,18 +158,14 @@ public class HubAppConfiguration {
             Clock applicationClock,
             RepositoryStorage.Factory repositoryStorageFactory,
             HubPlatformRepositories platformRepositories,
-            WorkspaceEventPublisher workspaceEventPublisher,
             InstanceEnvironmentParser instanceEnvironmentParser,
-            InstanceLifecycleEventEmitter instanceLifecycleEventEmitter,
             TransactionOperations hubTransactionOperations) {
         return projectInfo -> new HubProjectManager(
                 applicationClock,
                 projectInfo,
                 platformRepositories,
                 repositoryStorageFactory.apply(projectInfo),
-                workspaceEventPublisher,
                 instanceEnvironmentParser,
-                instanceLifecycleEventEmitter,
                 hubTransactionOperations);
     }
 
@@ -185,9 +179,7 @@ public class HubAppConfiguration {
             Clock applicationClock,
             RepositoryStorage.Factory repositoryStorageFactory,
             HubPlatformRepositories platformRepositories,
-            WorkspaceEventPublisher workspaceEventPublisher,
             InstanceEnvironmentParser instanceEnvironmentParser,
-            InstanceLifecycleEventEmitter instanceLifecycleEventEmitter,
             TransactionOperations hubTransactionOperations) {
         return projectInfo -> new RepositoryManagerImpl(
                 applicationClock,
@@ -195,9 +187,7 @@ public class HubAppConfiguration {
                 platformRepositories.newProjectRepositoryRepository(projectInfo.id()),
                 platformRepositories.newProjectInstanceRepository(projectInfo.id()),
                 repositoryStorageFactory.apply(projectInfo),
-                workspaceEventPublisher,
                 instanceEnvironmentParser,
-                instanceLifecycleEventEmitter,
                 hubTransactionOperations);
     }
 

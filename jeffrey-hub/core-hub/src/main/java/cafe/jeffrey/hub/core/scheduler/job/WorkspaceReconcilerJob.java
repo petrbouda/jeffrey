@@ -114,8 +114,7 @@ public class WorkspaceReconcilerJob implements Job {
             return 0;
         }
 
-        return reconciler.reconcile(
-                workspaceManager.localInfo(), workspaceManager.projectsManager(), workspaceDir);
+        return reconciler.reconcile(workspaceManager.projectsManager(), workspaceDir);
     }
 
     /**

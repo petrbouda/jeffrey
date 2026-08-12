@@ -170,7 +170,6 @@ const hasParams = (params: Record<string, string>) => params && Object.keys(para
 
 const displayNames: Record<JobTypeName, string> = {
     WORKSPACE_RECONCILER: 'Workspace Reconciler',
-    WORKSPACE_EVENTS_CLEANER: 'Workspace Events Cleaner',
     TEMP_DIRECTORY_CLEANER: 'Temp Directory Cleaner',
     DELETED_PROJECTS_CLEANER: 'Deleted Projects Cleaner',
     STORAGE_OVERVIEW_REFRESHER: 'Storage Overview Refresher',
@@ -180,16 +179,13 @@ const displayNames: Record<JobTypeName, string> = {
     PROJECT_STORAGE_QUOTA_CLEANER: 'Storage Quota Cleaner',
     EXPIRED_INSTANCE_CLEANER: 'Expired Instance Cleaner',
     REPOSITORY_JFR_COMPRESSION: 'JFR Compression',
-    SESSION_FINISHED_DETECTOR: 'Session Finished Detector',
-    SESSION_FILE_DETECTOR: 'Session File Detector'
+    SESSION_FINISHED_DETECTOR: 'Session Finished Detector'
 };
 const displayNameFor = (jobType: string) => displayNames[jobType as JobTypeName] || jobType;
 
 const descriptions: Record<JobTypeName, string> = {
     WORKSPACE_RECONCILER:
         'Scans the workspace directory tree and materializes new projects, instances and sessions from the marker files written by the provisioner. Strictly additive: removing directories from the volume never deletes server state — only retention jobs and user actions delete.',
-    WORKSPACE_EVENTS_CLEANER:
-        'Trims the workspace event log (the audit table behind the Activity feed), deleting entries older than the configured retention window so storage stays bounded.',
     TEMP_DIRECTORY_CLEANER:
         'Sweeps the server temp directory, removing scratch entries (JFR merges, compression staging, replay windows) left behind by operations that crashed before cleaning up after themselves.',
     DELETED_PROJECTS_CLEANER:
@@ -209,15 +205,12 @@ const descriptions: Record<JobTypeName, string> = {
     REPOSITORY_JFR_COMPRESSION:
         'Compresses finished JFR recording files using LZ4 compression to save storage space. Processes the active and latest finished sessions on each tick.',
     SESSION_FINISHED_DETECTOR:
-        'Detects when repository sessions become finished using a heartbeat-based strategy and emits SESSION_FINISHED workspace events so downstream consumers can react.',
-    SESSION_FILE_DETECTOR:
-        'Announces finished recording chunks and artifact files (heap dumps, perf counters, ...) as workspace events, so clients can react to each file instead of waiting for the whole session to finish. Stateless: every candidate is re-offered each tick and the event queue deduplicates repeats; only files younger than max-file-age are considered, and artifacts must be unchanged for the settle threshold before being announced.'
+        'Detects when repository sessions become finished using a heartbeat-based strategy and marks them (and their instances) FINISHED in the database.'
 };
 const descriptionFor = (jobType: string) => descriptions[jobType as JobTypeName] || '';
 
 const icons: Record<JobTypeName, [string, string]> = {
     WORKSPACE_RECONCILER: ['bi-folder-symlink', 'job-icon-sync'],
-    WORKSPACE_EVENTS_CLEANER: ['bi-eraser', 'job-icon-broom'],
     TEMP_DIRECTORY_CLEANER: ['bi-eraser', 'job-icon-broom'],
     DELETED_PROJECTS_CLEANER: ['bi-trash', 'job-icon-trash'],
     STORAGE_OVERVIEW_REFRESHER: ['bi-hdd-stack', 'job-icon-sync'],
@@ -227,8 +220,7 @@ const icons: Record<JobTypeName, [string, string]> = {
     PROJECT_STORAGE_QUOTA_CLEANER: ['bi-hdd', 'job-icon-trash'],
     EXPIRED_INSTANCE_CLEANER: ['bi-trash', 'job-icon-trash'],
     REPOSITORY_JFR_COMPRESSION: ['bi-file-zip', 'job-icon-zip'],
-    SESSION_FINISHED_DETECTOR: ['bi-check-circle', 'job-icon-check'],
-    SESSION_FILE_DETECTOR: ['bi-file-earmark-check', 'job-icon-bell']
+    SESSION_FINISHED_DETECTOR: ['bi-check-circle', 'job-icon-check']
 };
 const iconFor = (jobType: string) => icons[jobType as JobTypeName]?.[0] || 'bi-gear';
 const iconClass = (jobType: string) => icons[jobType as JobTypeName]?.[1] || 'job-icon-default';

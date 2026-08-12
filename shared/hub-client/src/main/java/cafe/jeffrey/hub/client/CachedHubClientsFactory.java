@@ -80,7 +80,6 @@ public class CachedHubClientsFactory implements HubClients.Factory, Closeable {
                 new ProfilerClient(connection),
                 new InstancesClient(connection),
                 new ProjectsClient(connection),
-                new WorkspaceEventsClient(connection),
                 new EventStreamingClient(connection));
 
         return new CachedEntry(connection, clients);

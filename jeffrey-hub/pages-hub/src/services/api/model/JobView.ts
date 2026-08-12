@@ -26,7 +26,6 @@ export type ExecutionLevel = 'GLOBAL' | 'WORKSPACE' | 'PROJECT';
  */
 export type JobTypeName =
     | 'WORKSPACE_RECONCILER'
-    | 'WORKSPACE_EVENTS_CLEANER'
     | 'TEMP_DIRECTORY_CLEANER'
     | 'DELETED_PROJECTS_CLEANER'
     | 'STORAGE_OVERVIEW_REFRESHER'
@@ -36,8 +35,7 @@ export type JobTypeName =
     | 'PROJECT_STORAGE_QUOTA_CLEANER'
     | 'EXPIRED_INSTANCE_CLEANER'
     | 'REPOSITORY_JFR_COMPRESSION'
-    | 'SESSION_FINISHED_DETECTOR'
-    | 'SESSION_FILE_DETECTOR';
+    | 'SESSION_FINISHED_DETECTOR';
 
 export interface JobView {
     jobType: string;

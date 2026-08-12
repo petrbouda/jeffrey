@@ -85,8 +85,7 @@ public record StubDataset(List<Workspace> workspaces) {
             String name,
             String referenceId,
             Instant createdAt,
-            List<Project> projects,
-            List<Event> events) {
+            List<Project> projects) {
     }
 
     public record Project(
@@ -137,18 +136,6 @@ public record StubDataset(List<Workspace> workspaces) {
             long size,
             FileKind kind,
             RecState status) {
-    }
-
-    public record Event(
-            long eventId,
-            String originEventId,
-            String projectId,
-            String workspaceRefId,
-            String eventType,
-            String content,
-            Instant originCreatedAt,
-            Instant createdAt,
-            String createdBy) {
     }
 
     /** Recording/session lifecycle state. */

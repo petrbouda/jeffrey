@@ -34,7 +34,6 @@ const headings = [
   { id: 'jvm-crash-detection', text: 'JVM Crash Detection', level: 3 },
   { id: 'heartbeat-recovery', text: 'Heartbeat Recovery', level: 3 },
   { id: 'session-cleanup', text: 'Session Cleanup', level: 2 },
-  { id: 'lifecycle-events', text: 'Lifecycle Events', level: 2 }
 ];
 
 onMounted(() => {
@@ -170,24 +169,9 @@ onMounted(() => {
           <li><strong>Instance Session Cleaner</strong> - Deletes whole finished sessions older than the retention window (7 days by default). The newest session of an instance that is still running is always kept — with one refinement: failed sessions (finished with zero bytes, e.g. a crash-looped container) never count as "the newest session", so the newest session that actually produced data keeps the protection instead.</li>
           <li><strong>Instance Recording Cleaner</strong> - Trims finished chunks inside the <em>live</em> session (3 days by default), so a long-running JVM cannot grow one session without bound. The chunk currently being written is never removed.</li>
           <li><strong>Storage Quota Cleaner</strong> - Caps total disk per project (20 GB by default). Age alone cannot bound disk usage, so when a project exceeds its budget this job reclaims oldest-first: whole finished sessions, then finished chunks in the live session.</li>
-          <li><strong>Orphaned Session Cleaner</strong> - Removes session directories left on disk with no matching database row, after a grace period long enough to rule out a synchronizer backlog.</li>
           <li><strong>Expired Instance Cleaner</strong> - Deletes instances (including their directories on disk) once they have been EXPIRED past their retention (14 days by default).</li>
           <li><strong>JFR Compression</strong> - Compresses finished JFR files to save storage space.</li>
-          <li><strong>Session File Detector</strong> - Announces finished recording chunks and artifact files as workspace events, so clients can react to each file as it lands rather than waiting for the session to close.</li>
         </ul>
-
-        <h2 id="lifecycle-events">Lifecycle Events</h2>
-        <p>
-          Instance transitions are published to the workspace event log: <code>PROJECT_INSTANCE_FINISHED</code>
-          when an instance's last unfinished session closes, and <code>PROJECT_INSTANCE_EXPIRED</code> when its
-          sessions are reclaimed or its last session is deleted. Both are announcements only — the database
-          transition happens first and nothing consumes these events.
-        </p>
-        <DocsCallout type="info" title="Reactivated instances">
-          An expired instance that starts streaming again returns to ACTIVE. Because each event is keyed by
-          instance id, that instance's <em>second</em> finish or expiry is deduplicated away. The events are
-          best read as "this instance reached a terminal state" rather than as a count of transitions.
-        </DocsCallout>
 
         <h2 id="retained-sessions">Retained Sessions</h2>
         <p>

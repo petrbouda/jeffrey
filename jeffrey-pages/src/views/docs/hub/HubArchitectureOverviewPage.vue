@@ -181,7 +181,6 @@ onMounted(() => {
         <div class="service-chip"><i class="bi bi-cloud-download"></i> Recording Download</div>
         <div class="service-chip"><i class="bi bi-archive"></i> Repository</div>
         <div class="service-chip"><i class="bi bi-broadcast"></i> Event Streaming</div>
-        <div class="service-chip"><i class="bi bi-list-ul"></i> Workspace Events</div>
         <div class="service-chip"><i class="bi bi-sliders"></i> Profiler Settings</div>
       </div>
 

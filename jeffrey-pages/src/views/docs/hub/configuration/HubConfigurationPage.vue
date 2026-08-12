@@ -225,12 +225,6 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>workspace-events-cleaner</code></td>
-            <td><code>5m</code></td>
-            <td><code>queue-events-retention=31d</code></td>
-            <td>Trims the workspace event log (the audit table behind the Activity feed)</td>
-          </tr>
-          <tr>
             <td><code>temp-directory-cleaner</code></td>
             <td><code>5m</code></td>
             <td><code>retention=30m</code></td>
@@ -300,32 +294,8 @@ onMounted(() => {
             <td>—</td>
             <td>Marks sessions finished from heartbeat staleness</td>
           </tr>
-          <tr>
-            <td><code>session-file-detector</code></td>
-            <td><code>30s</code></td>
-            <td>
-              <code>max-file-age=7d</code> / <code>artifact-settle-threshold=10s</code> /
-              <code>max-events-per-tick=500</code>
-            </td>
-            <td>Announces finished recording and artifact files as workspace events</td>
-          </tr>
         </tbody>
       </table>
-
-      <h3>max-file-age must stay below event retention</h3>
-      <p>
-        <code>session-file-detector</code> holds no state of its own. It re-offers every candidate
-        file on each tick and relies on the event queue's deduplication index to swallow the
-        repeats — which only works while the deduplication row still exists.
-      </p>
-      <p>
-        Those rows are deleted at
-        <code>workspace-events-cleaner.params.queue-events-retention</code> (default
-        <code>31d</code>). If <code>max-file-age</code> ever reaches that value, a file can outlive
-        its own row and is announced a second time. The default <code>7d</code> leaves a wide
-        margin, but raising it — or lowering event retention — means checking both values together.
-        The hub logs an <code>ERROR</code> at startup when they cross.
-      </p>
 
       <h2 id="storage">Project/Recording Storage</h2>
       <p>File system storage locations for recordings and repository data.</p>

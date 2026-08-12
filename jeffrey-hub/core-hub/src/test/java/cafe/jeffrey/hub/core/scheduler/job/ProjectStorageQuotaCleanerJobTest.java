@@ -29,7 +29,6 @@ import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -129,7 +128,7 @@ class ProjectStorageQuotaCleanerJobTest {
 
             execute();
 
-            verify(repositoryManager, never()).deleteRecordingSession(anyString(), any());
+            verify(repositoryManager, never()).deleteRecordingSession(anyString());
             verify(storage, never()).deleteRepositoryFiles(anyString(), any());
         }
     }
@@ -152,7 +151,7 @@ class ProjectStorageQuotaCleanerJobTest {
             // 180MB total against a 100MB budget: dropping the two oldest brings it to 60MB
             ArgumentCaptor<String> deleted = ArgumentCaptor.forClass(String.class);
             verify(repositoryManager, org.mockito.Mockito.times(2))
-                    .deleteRecordingSession(deleted.capture(), eq(WorkspaceEventCreator.PROJECT_STORAGE_QUOTA_CLEANER_JOB));
+                    .deleteRecordingSession(deleted.capture());
 
             assertEquals(List.of("oldest", "middle"), deleted.getAllValues());
         }
@@ -167,8 +166,8 @@ class ProjectStorageQuotaCleanerJobTest {
 
             execute();
 
-            verify(repositoryManager).deleteRecordingSession(eq("oldest"), any());
-            verify(repositoryManager, never()).deleteRecordingSession(eq("newest"), any());
+            verify(repositoryManager).deleteRecordingSession("oldest");
+            verify(repositoryManager, never()).deleteRecordingSession("newest");
         }
 
         @Test
@@ -181,8 +180,8 @@ class ProjectStorageQuotaCleanerJobTest {
 
             execute();
 
-            verify(repositoryManager, never()).deleteRecordingSession(eq("pinned"), any());
-            verify(repositoryManager).deleteRecordingSession(eq("normal"), any());
+            verify(repositoryManager, never()).deleteRecordingSession("pinned");
+            verify(repositoryManager).deleteRecordingSession("normal");
         }
 
         @Test
@@ -244,7 +243,7 @@ class ProjectStorageQuotaCleanerJobTest {
 
             // A file whose size could not be determined must count as zero, not blow up the sweep
             org.junit.jupiter.api.Assertions.assertDoesNotThrow(this::run);
-            verify(repositoryManager, never()).deleteRecordingSession(anyString(), any());
+            verify(repositoryManager, never()).deleteRecordingSession(anyString());
         }
 
         private void run() {

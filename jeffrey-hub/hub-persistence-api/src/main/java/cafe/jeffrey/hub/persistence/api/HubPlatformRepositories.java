@@ -45,8 +45,6 @@ public interface HubPlatformRepositories {
 
     ProjectInstanceRepository newProjectInstanceRepository(String projectId);
 
-    WorkspaceEventLogRepository newWorkspaceEventLogRepository();
-
     /**
      * Resolves a session by id alone, returning both the session and its parent
      * repository in a single query. Used by flows that only have a session id and

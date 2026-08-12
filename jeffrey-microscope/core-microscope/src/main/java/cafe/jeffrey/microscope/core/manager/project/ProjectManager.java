@@ -24,7 +24,6 @@ import cafe.jeffrey.microscope.core.manager.EventStreamingManager;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import cafe.jeffrey.microscope.core.manager.ProfilerSettingsManager;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
@@ -63,7 +62,7 @@ public interface ProjectManager {
 
     void restore();
 
-    void delete(WorkspaceEventCreator createdBy);
+    void delete();
 
     /**
      * Returns the event streaming manager for subscribing to live JFR events

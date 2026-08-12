@@ -89,7 +89,6 @@ class StubServicesInProcessTest {
                 .addService(new StubInstanceService(dataset))
                 .addService(new StubRepositoryService(dataset))
                 .addService(new StubRecordingDownloadService(dataset))
-                .addService(new StubWorkspaceEventsService(dataset))
                 .addService(new StubProfilerSettingsService())
                 .build()
                 .start();

@@ -19,7 +19,6 @@
 package cafe.jeffrey.microscope.core.manager.workspace;
 
 import cafe.jeffrey.hub.client.ProfilerClient;
-import cafe.jeffrey.microscope.core.web.dto.response.WorkspaceEventsResponse;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
@@ -54,26 +53,6 @@ public interface WorkspaceManager {
      */
     default Optional<ProfilerClient> profilerClient() {
         return Optional.empty();
-    }
-
-    /**
-     * Returns the latest workspace events for this workspace, capped at {@code limit},
-     * along with the unfiltered total count. Only remote workspaces produce events;
-     * local workspaces return an empty payload.
-     *
-     * @param limit maximum number of events to return
-     */
-    default WorkspaceEventsResponse events(int limit) {
-        return events(limit, Set.of());
-    }
-
-    /**
-     * Latest events, narrowed to the given projects. An empty set means every project.
-     *
-     * @param limit maximum number of events to return
-     */
-    default WorkspaceEventsResponse events(int limit, Set<String> projectIds) {
-        return new WorkspaceEventsResponse(List.of(), 0L, limit);
     }
 
     /**

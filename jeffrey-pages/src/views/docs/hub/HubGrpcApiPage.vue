@@ -347,25 +347,6 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- WorkspaceEventsService -->
-          <div class="endpoint-group">
-            <div class="group-header">
-              <i class="bi bi-journal-text"></i>
-              <h4>WorkspaceEventsService</h4>
-            </div>
-            <div class="group-body">
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>GetWorkspaceEvents</code>
-                </div>
-                <p>
-                  Get events for a workspace, optionally filtered by event type and by
-                  <code>project_ids</code>
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
 
         <h2 id="use-case">Use Case</h2>

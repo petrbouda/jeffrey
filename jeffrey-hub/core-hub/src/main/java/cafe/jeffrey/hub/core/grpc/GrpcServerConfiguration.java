@@ -31,7 +31,6 @@ import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.streaming.LiveStreamingManager;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
-import cafe.jeffrey.hub.persistence.api.WorkspaceEventLogRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 
 import java.time.Clock;
@@ -104,11 +103,6 @@ public class GrpcServerConfiguration {
     @Bean
     public BindableService recordingDownloadGrpcService(GrpcLookups grpcLookups) {
         return new RecordingDownloadGrpcService(grpcLookups);
-    }
-
-    @Bean
-    public BindableService workspaceEventsGrpcService(WorkspaceEventLogRepository workspaceEventLogRepository) {
-        return new WorkspaceEventsGrpcService(workspaceEventLogRepository);
     }
 
     @Bean

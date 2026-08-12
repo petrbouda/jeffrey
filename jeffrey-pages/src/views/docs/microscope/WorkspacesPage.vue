@@ -178,18 +178,13 @@ onMounted(() => {
 
       <h2 id="tabs">Per-Workspace Tabs</h2>
       <p>
-        Once you pick a workspace, the right pane exposes three tabs:
+        Once you pick a workspace, the right pane exposes two tabs:
       </p>
       <ul>
         <li>
           <strong><router-link to="/docs/microscope/projects">Projects</router-link></strong> —
           the list of projects in the workspace, with drill-down into instances, sessions,
           recordings, and the repository.
-        </li>
-        <li>
-          <strong><router-link to="/docs/microscope/event-log">Event Log</router-link></strong> —
-          a chronological audit trail of project, instance, and session events for this
-          workspace.
         </li>
         <li>
           <strong><router-link to="/docs/microscope/profiler-settings">Profiler Settings</router-link></strong> —

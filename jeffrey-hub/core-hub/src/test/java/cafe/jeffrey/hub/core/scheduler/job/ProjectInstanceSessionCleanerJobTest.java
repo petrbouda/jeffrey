@@ -33,7 +33,6 @@ import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -182,7 +181,7 @@ class ProjectInstanceSessionCleanerJobTest {
     private List<String> deletedSessionIds() {
         ArgumentCaptor<String> deleted = ArgumentCaptor.forClass(String.class);
         verify(repositoryManager, org.mockito.Mockito.atLeast(0))
-                .deleteRecordingSession(deleted.capture(), eq(WorkspaceEventCreator.PROJECT_INSTANCE_SESSION_CLEANER_JOB));
+                .deleteRecordingSession(deleted.capture());
         return deleted.getAllValues();
     }
 
@@ -285,7 +284,7 @@ class ProjectInstanceSessionCleanerJobTest {
 
             execute();
 
-            verify(repositoryManager, never()).deleteRecordingSession(anyString(), any());
+            verify(repositoryManager, never()).deleteRecordingSession(anyString());
         }
     }
 
@@ -301,7 +300,7 @@ class ProjectInstanceSessionCleanerJobTest {
 
             execute();
 
-            verify(repositoryManager, never()).deleteRecordingSession(anyString(), any());
+            verify(repositoryManager, never()).deleteRecordingSession(anyString());
         }
 
         @Test
@@ -312,7 +311,7 @@ class ProjectInstanceSessionCleanerJobTest {
 
             execute();
 
-            verify(repositoryManager, never()).deleteRecordingSession(anyString(), any());
+            verify(repositoryManager, never()).deleteRecordingSession(anyString());
         }
     }
 
@@ -358,7 +357,7 @@ class ProjectInstanceSessionCleanerJobTest {
 
             execute(10);
 
-            verify(repositoryManager, never()).deleteRecordingSession(anyString(), any());
+            verify(repositoryManager, never()).deleteRecordingSession(anyString());
         }
 
         @Test
@@ -432,7 +431,7 @@ class ProjectInstanceSessionCleanerJobTest {
 
             execute(1);
 
-            verify(repositoryManager, never()).deleteRecordingSession(anyString(), any());
+            verify(repositoryManager, never()).deleteRecordingSession(anyString());
         }
 
         @Test
@@ -505,7 +504,7 @@ class ProjectInstanceSessionCleanerJobTest {
             execute(4);
 
             // 6 sessions in total, but each instance holds only 3 logical sessions — under the cap
-            verify(repositoryManager, never()).deleteRecordingSession(anyString(), any());
+            verify(repositoryManager, never()).deleteRecordingSession(anyString());
         }
     }
 
@@ -517,7 +516,7 @@ class ProjectInstanceSessionCleanerJobTest {
             when(storage.listSessions(true)).thenReturn(List.of());
 
             assertDoesNotThrow(() -> execute());
-            verify(repositoryManager, never()).deleteRecordingSession(anyString(), any());
+            verify(repositoryManager, never()).deleteRecordingSession(anyString());
         }
 
         @Test

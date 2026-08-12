@@ -137,31 +137,3 @@ CREATE TABLE IF NOT EXISTS profiler_settings
     agent_settings  VARCHAR NOT NULL,
     UNIQUE (workspace_id, project_id)
 );
-
---
--- WORKSPACE EVENT LOG (append-only audit of workspace changes; feeds the Activity feed)
---
-
-CREATE SEQUENCE IF NOT EXISTS workspace_events_seq START 1;
-
-CREATE TABLE IF NOT EXISTS workspace_events
-(
-    event_id          BIGINT DEFAULT nextval('workspace_events_seq') PRIMARY KEY,
-    workspace_id      VARCHAR NOT NULL,
-    workspace_ref_id  VARCHAR,
-    project_id        VARCHAR,
-    origin_event_id   VARCHAR NOT NULL,
-    event_type        VARCHAR NOT NULL,
-    content           VARCHAR,
-    origin_created_at TIMESTAMPTZ,
-    created_at        TIMESTAMPTZ NOT NULL,
-    created_by        VARCHAR,
-    -- Set only by producers that re-announce the same fact every tick (file announcements);
-    -- NULL for one-shot facts, and NULLs never collide with each other
-    dedup_key         VARCHAR
-);
-
-CREATE INDEX IF NOT EXISTS idx_workspace_events_workspace ON workspace_events(workspace_id, event_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_workspace_events_dedup ON workspace_events(workspace_id, dedup_key);
-CREATE INDEX IF NOT EXISTS idx_workspace_events_created_at ON workspace_events(created_at);
-

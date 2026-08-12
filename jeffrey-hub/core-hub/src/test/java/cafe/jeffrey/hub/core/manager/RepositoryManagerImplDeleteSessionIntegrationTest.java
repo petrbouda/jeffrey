@@ -26,17 +26,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
-import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.workspace.AuditWorkspaceEventPublisher;
-import cafe.jeffrey.hub.persistence.api.WorkspaceEventLogRepository;
-import cafe.jeffrey.hub.persistence.api.WorkspaceEventLogRepository.WorkspaceEventQuery;
 import cafe.jeffrey.hub.persistence.jdbc.JdbcHubPlatformRepositories;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
 import cafe.jeffrey.test.TestUtils;
@@ -46,18 +39,16 @@ import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
  * Session deletion is executed directly (no event round-trip): one transaction covers the
- * database delete, the instance expiring/EXPIRED transitions and the audit rows, with the
- * storage removal last — still inside the transaction so a storage failure rolls everything
- * back and the next retention tick retries.
+ * database delete and the instance expiring/EXPIRED transitions, with the storage removal
+ * last — still inside the transaction so a storage failure rolls everything back and the
+ * next retention tick retries.
  */
 @DuckDBTest(migration = "classpath:db/migration/server")
 @ExtendWith(MockitoExtension.class)
@@ -80,15 +71,12 @@ class RepositoryManagerImplDeleteSessionIntegrationTest {
 
     private record Fixture(
             RepositoryManagerImpl manager,
-            JdbcHubPlatformRepositories platformRepositories,
-            WorkspaceEventLogRepository eventLog) {
+            JdbcHubPlatformRepositories platformRepositories) {
     }
 
     private Fixture fixture(DataSource dataSource) {
         var provider = new DatabaseClientProvider(dataSource);
         var platformRepositories = new JdbcHubPlatformRepositories(provider, FIXED_CLOCK);
-        WorkspaceEventLogRepository eventLog = platformRepositories.newWorkspaceEventLogRepository();
-        var publisher = new AuditWorkspaceEventPublisher(eventLog);
 
         var manager = new RepositoryManagerImpl(
                 FIXED_CLOCK,
@@ -96,50 +84,38 @@ class RepositoryManagerImplDeleteSessionIntegrationTest {
                 platformRepositories.newProjectRepositoryRepository(PROJECT_ID),
                 platformRepositories.newProjectInstanceRepository(PROJECT_ID),
                 repositoryStorage,
-                publisher,
                 mock(InstanceEnvironmentParser.class),
-                new InstanceLifecycleEventEmitter(FIXED_CLOCK, publisher),
                 new TransactionTemplate(new DataSourceTransactionManager(dataSource)));
 
-        return new Fixture(manager, platformRepositories, eventLog);
-    }
-
-    private static List<WorkspaceEvent> eventsOfType(Fixture fixture, WorkspaceEventType type) {
-        return fixture.eventLog().findLatest(
-                new WorkspaceEventQuery(WORKSPACE_ID, type, Set.of(), 100));
+        return new Fixture(manager, platformRepositories);
     }
 
     @Nested
     class HappyPath {
 
         @Test
-        void deletesSessionFromDatabaseAndStorage_andWritesAuditRow(DataSource dataSource) throws SQLException {
+        void deletesSessionFromDatabaseAndStorage(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-instance-and-sessions.sql");
             Fixture fixture = fixture(dataSource);
 
             var repoRepository = fixture.platformRepositories().newProjectRepositoryRepository(PROJECT_ID);
             assertTrue(repoRepository.findSessionById(SESSION_ID).isPresent());
 
-            fixture.manager().deleteRecordingSession(SESSION_ID, WorkspaceEventCreator.MANUAL);
+            fixture.manager().deleteRecordingSession(SESSION_ID);
 
             assertTrue(repoRepository.findSessionById(SESSION_ID).isEmpty());
             verify(repositoryStorage).deleteSession(SESSION_ID);
-
-            List<WorkspaceEvent> deleted = eventsOfType(fixture, WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED);
-            assertEquals(1, deleted.size());
-            assertEquals(SESSION_ID, deleted.getFirst().originEventId());
         }
 
         @Test
-        void missingSession_isNoOp_withoutAuditRowOrStorageCall(DataSource dataSource) throws SQLException {
+        void missingSession_isNoOp_withoutStorageCall(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-instance-and-sessions.sql");
             Fixture fixture = fixture(dataSource);
 
             assertDoesNotThrow(() ->
-                    fixture.manager().deleteRecordingSession("unknown-session", WorkspaceEventCreator.MANUAL));
+                    fixture.manager().deleteRecordingSession("unknown-session"));
 
             verify(repositoryStorage, never()).deleteSession(anyString());
-            assertEquals(0, fixture.eventLog().count(WORKSPACE_ID));
         }
     }
 
@@ -154,7 +130,7 @@ class RepositoryManagerImplDeleteSessionIntegrationTest {
             var instanceRepo = fixture.platformRepositories().newProjectInstanceRepository(PROJECT_ID);
             assertEquals(ProjectInstanceStatus.FINISHED, instanceRepo.find(INSTANCE_ID).orElseThrow().status());
 
-            fixture.manager().deleteRecordingSession(SESSION_ID, WorkspaceEventCreator.PROJECT_INSTANCE_SESSION_CLEANER_JOB);
+            fixture.manager().deleteRecordingSession(SESSION_ID);
 
             var instance = instanceRepo.find(INSTANCE_ID).orElseThrow();
             assertEquals(ProjectInstanceStatus.EXPIRED, instance.status());
@@ -170,7 +146,7 @@ class RepositoryManagerImplDeleteSessionIntegrationTest {
             var instanceRepo = fixture.platformRepositories().newProjectInstanceRepository(PROJECT_ID);
             assertEquals(ProjectInstanceStatus.ACTIVE, instanceRepo.find(INSTANCE_ID).orElseThrow().status());
 
-            fixture.manager().deleteRecordingSession(SESSION_ID, WorkspaceEventCreator.MANUAL);
+            fixture.manager().deleteRecordingSession(SESSION_ID);
 
             var instance = instanceRepo.find(INSTANCE_ID).orElseThrow();
             assertEquals(ProjectInstanceStatus.ACTIVE, instance.status());
@@ -179,19 +155,17 @@ class RepositoryManagerImplDeleteSessionIntegrationTest {
         }
 
         @Test
-        void lastSessionDeleted_emitsSingleInstanceExpiredAuditRow(DataSource dataSource) throws SQLException {
+        void deletingTheSameSessionTwice_isIdempotent(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-finished-instance-with-session.sql");
             Fixture fixture = fixture(dataSource);
 
-            fixture.manager().deleteRecordingSession(SESSION_ID, WorkspaceEventCreator.PROJECT_INSTANCE_SESSION_CLEANER_JOB);
+            fixture.manager().deleteRecordingSession(SESSION_ID);
             // Deleting the same session again is a no-op: the row is gone, so the transition
-            // cannot re-fire — the direct-execution path is the single emission point
-            fixture.manager().deleteRecordingSession(SESSION_ID, WorkspaceEventCreator.PROJECT_INSTANCE_SESSION_CLEANER_JOB);
+            // cannot re-fire
+            assertDoesNotThrow(() -> fixture.manager().deleteRecordingSession(SESSION_ID));
 
-            List<WorkspaceEvent> expired = eventsOfType(fixture, WorkspaceEventType.PROJECT_INSTANCE_EXPIRED);
-            assertEquals(1, expired.size());
-            assertEquals(INSTANCE_ID, expired.getFirst().originEventId());
-            assertEquals(1, eventsOfType(fixture, WorkspaceEventType.PROJECT_INSTANCE_SESSION_DELETED).size());
+            var instanceRepo = fixture.platformRepositories().newProjectInstanceRepository(PROJECT_ID);
+            assertEquals(ProjectInstanceStatus.EXPIRED, instanceRepo.find(INSTANCE_ID).orElseThrow().status());
         }
     }
 
@@ -199,7 +173,7 @@ class RepositoryManagerImplDeleteSessionIntegrationTest {
     class TransactionalRollback {
 
         @Test
-        void storageFailure_rollsBackRowAndAuditRows(DataSource dataSource) throws SQLException {
+        void storageFailure_rollsBackTheRowAndTransitions(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-finished-instance-with-session.sql");
             Fixture fixture = fixture(dataSource);
 
@@ -207,17 +181,15 @@ class RepositoryManagerImplDeleteSessionIntegrationTest {
                     .when(repositoryStorage).deleteSession(SESSION_ID);
 
             assertThrows(RuntimeException.class, () ->
-                    fixture.manager().deleteRecordingSession(SESSION_ID, WorkspaceEventCreator.MANUAL));
+                    fixture.manager().deleteRecordingSession(SESSION_ID));
 
-            // The transaction rolled back: the session row, the instance status and the audit
-            // log are untouched, so the next retention tick retries the whole deletion
+            // The transaction rolled back: the session row and the instance status are
+            // untouched, so the next retention tick retries the whole deletion
             var repoRepository = fixture.platformRepositories().newProjectRepositoryRepository(PROJECT_ID);
             assertTrue(repoRepository.findSessionById(SESSION_ID).isPresent());
 
             var instanceRepo = fixture.platformRepositories().newProjectInstanceRepository(PROJECT_ID);
             assertEquals(ProjectInstanceStatus.FINISHED, instanceRepo.find(INSTANCE_ID).orElseThrow().status());
-
-            assertEquals(0, fixture.eventLog().count(WORKSPACE_ID));
         }
     }
 }

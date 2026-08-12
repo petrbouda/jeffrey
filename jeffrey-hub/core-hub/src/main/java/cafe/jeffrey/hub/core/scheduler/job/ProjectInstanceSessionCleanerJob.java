@@ -32,7 +32,6 @@ import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.shared.common.model.job.JobType;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -136,7 +135,7 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
         // the instance expiring/EXPIRED transition — no post-processing needed here
         candidatesForDeletion.forEach(session ->
                 manager.repositoryManager()
-                        .deleteRecordingSession(session.id(), WorkspaceEventCreator.PROJECT_INSTANCE_SESSION_CLEANER_JOB));
+                        .deleteRecordingSession(session.id()));
 
         if (!candidatesForDeletion.isEmpty()) {
             JfrMessageEmitter.sessionsCleaned(projectName, candidatesForDeletion.size());

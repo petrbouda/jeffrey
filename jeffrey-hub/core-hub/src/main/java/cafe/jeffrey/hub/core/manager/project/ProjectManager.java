@@ -24,7 +24,6 @@ import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.util.function.Function;
 
@@ -59,5 +58,5 @@ public interface ProjectManager {
 
     void restore();
 
-    void delete(WorkspaceEventCreator createdBy);
+    void delete();
 }

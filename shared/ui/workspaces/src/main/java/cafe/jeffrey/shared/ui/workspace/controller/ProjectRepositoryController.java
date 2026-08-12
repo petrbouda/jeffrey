@@ -37,7 +37,6 @@ import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
 import cafe.jeffrey.hub.client.manager.RepositoryManager;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import cafe.jeffrey.shared.ui.workspace.bridge.RemoteProjectAccess;
 import cafe.jeffrey.shared.ui.workspace.request.SelectedRecordingsRequest;
 import cafe.jeffrey.shared.ui.workspace.request.SessionRetainedRequest;
@@ -108,7 +107,7 @@ public class ProjectRepositoryController {
             @PathVariable("sessionId") String sessionId) {
         LOG.debug("Deleting repository session: sessionId={}", sessionId);
         RepositoryManager mgr = projectAccess.repositoryManager(hubId, workspaceId, projectId);
-        mgr.deleteRecordingSession(sessionId, WorkspaceEventCreator.MANUAL);
+        mgr.deleteRecordingSession(sessionId);
     }
 
     @PostMapping("/sessions/{sessionId}/retained")

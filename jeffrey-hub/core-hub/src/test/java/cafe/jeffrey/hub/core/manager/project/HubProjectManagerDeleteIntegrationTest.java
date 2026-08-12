@@ -26,16 +26,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
-import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.workspace.AuditWorkspaceEventPublisher;
-import cafe.jeffrey.hub.persistence.api.WorkspaceEventLogRepository;
-import cafe.jeffrey.hub.persistence.api.WorkspaceEventLogRepository.WorkspaceEventQuery;
 import cafe.jeffrey.hub.persistence.jdbc.JdbcHubPlatformRepositories;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
 import cafe.jeffrey.test.TestUtils;
@@ -45,17 +38,15 @@ import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Project deletion is executed directly: the SQL cascade and the audit event commit in one
- * transaction; the project's directory is removed afterwards (best-effort) — removing the
- * on-disk declaration is what stops the workspace reconciler from re-creating the project.
+ * Project deletion is executed directly: the SQL cascade commits first; the project's
+ * directory is removed afterwards (best-effort) — removing the on-disk declaration is what
+ * stops the workspace reconciler from re-creating the project.
  */
 @DuckDBTest(migration = "classpath:db/migration/server")
 @ExtendWith(MockitoExtension.class)
@@ -76,49 +67,39 @@ class HubProjectManagerDeleteIntegrationTest {
 
     private record Fixture(
             HubProjectManager manager,
-            JdbcHubPlatformRepositories platformRepositories,
-            WorkspaceEventLogRepository eventLog) {
+            JdbcHubPlatformRepositories platformRepositories) {
     }
 
     private Fixture fixture(DataSource dataSource) {
         var provider = new DatabaseClientProvider(dataSource);
         var platformRepositories = new JdbcHubPlatformRepositories(provider, FIXED_CLOCK);
-        WorkspaceEventLogRepository eventLog = platformRepositories.newWorkspaceEventLogRepository();
-        var publisher = new AuditWorkspaceEventPublisher(eventLog);
 
         var manager = new HubProjectManager(
                 FIXED_CLOCK,
                 PROJECT_INFO,
                 platformRepositories,
                 repositoryStorage,
-                publisher,
                 mock(InstanceEnvironmentParser.class),
-                new InstanceLifecycleEventEmitter(FIXED_CLOCK, publisher),
                 new TransactionTemplate(new DataSourceTransactionManager(dataSource)));
 
-        return new Fixture(manager, platformRepositories, eventLog);
+        return new Fixture(manager, platformRepositories);
     }
 
     @Nested
     class HappyPath {
 
         @Test
-        void deletesProjectRow_removesDirectory_andWritesAuditRow(DataSource dataSource) throws SQLException {
+        void deletesProjectRow_andRemovesDirectory(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/consumer/insert-workspace-project-instance-and-sessions.sql");
             Fixture fixture = fixture(dataSource);
 
             var projectRepo = fixture.platformRepositories().newProjectRepository(PROJECT_ID);
             assertTrue(projectRepo.find().isPresent());
 
-            fixture.manager().delete(WorkspaceEventCreator.MANUAL);
+            fixture.manager().delete();
 
             assertTrue(projectRepo.find().isEmpty());
             verify(repositoryStorage).deleteProjectDirectory();
-
-            List<WorkspaceEvent> deleted = fixture.eventLog().findLatest(
-                    new WorkspaceEventQuery(WORKSPACE_ID, WorkspaceEventType.PROJECT_DELETED, Set.of(), 10));
-            assertEquals(1, deleted.size());
-            assertEquals(PROJECT_ID, deleted.getFirst().originEventId());
         }
     }
 
@@ -133,13 +114,12 @@ class HubProjectManagerDeleteIntegrationTest {
             doThrow(new RuntimeException("Storage unavailable"))
                     .when(repositoryStorage).deleteProjectDirectory();
 
-            assertDoesNotThrow(() -> fixture.manager().delete(WorkspaceEventCreator.MANUAL));
+            assertDoesNotThrow(() -> fixture.manager().delete());
 
             // Directory removal is best-effort AFTER the commit: leftover files are cheaper
             // than a permanently stuck project delete
             var projectRepo = fixture.platformRepositories().newProjectRepository(PROJECT_ID);
             assertTrue(projectRepo.find().isEmpty());
-            assertEquals(1, fixture.eventLog().count(WORKSPACE_ID));
         }
     }
 }

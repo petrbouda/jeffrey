@@ -24,10 +24,7 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
 import cafe.jeffrey.hub.core.project.repository.MergedRecording;
 import cafe.jeffrey.hub.core.jfr.JfrMessageEmitter;
-import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.workspace.WorkspaceEventConverter;
-import cafe.jeffrey.hub.core.workspace.WorkspaceEventPublisher;
 import cafe.jeffrey.shared.common.model.repository.InstanceStats;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics.FileTypeStats;
@@ -44,8 +41,6 @@ import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
 import org.springframework.transaction.support.TransactionOperations;
@@ -69,9 +64,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
     private final ProjectRepositoryRepository repository;
     private final ProjectInstanceRepository instanceRepository;
     private final RepositoryStorage repositoryStorage;
-    private final WorkspaceEventPublisher workspaceEventPublisher;
     private final InstanceEnvironmentParser environmentParser;
-    private final InstanceLifecycleEventEmitter instanceLifecycleEventEmitter;
     private final TransactionOperations transactionOperations;
 
     public RepositoryManagerImpl(
@@ -80,9 +73,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
             ProjectRepositoryRepository repository,
             ProjectInstanceRepository instanceRepository,
             RepositoryStorage repositoryStorage,
-            WorkspaceEventPublisher workspaceEventPublisher,
             InstanceEnvironmentParser environmentParser,
-            InstanceLifecycleEventEmitter instanceLifecycleEventEmitter,
             TransactionOperations transactionOperations) {
 
         this.clock = clock;
@@ -90,9 +81,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
         this.repository = repository;
         this.instanceRepository = instanceRepository;
         this.repositoryStorage = repositoryStorage;
-        this.workspaceEventPublisher = workspaceEventPublisher;
         this.environmentParser = environmentParser;
-        this.instanceLifecycleEventEmitter = instanceLifecycleEventEmitter;
         this.transactionOperations = transactionOperations;
     }
 
@@ -222,14 +211,14 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     /**
      * Deletes a recording session directly: the database row, the instance expiring/expired
-     * transitions, the audit event and the on-disk session directory — all inside one
-     * transaction. The storage removal runs LAST and still inside the transaction: file
-     * deletion cannot be rolled back, so every database write must have succeeded before the
-     * irreversible side effect happens; a storage failure rolls the row back and the next
-     * retention tick retries the whole deletion.
+     * transitions and the on-disk session directory — all inside one transaction. The storage
+     * removal runs LAST and still inside the transaction: file deletion cannot be rolled back,
+     * so every database write must have succeeded before the irreversible side effect happens;
+     * a storage failure rolls the row back and the next retention tick retries the whole
+     * deletion.
      */
     @Override
-    public void deleteRecordingSession(String recordingSessionId, WorkspaceEventCreator createdBy) {
+    public void deleteRecordingSession(String recordingSessionId) {
         LOG.debug("Deleting recording session: sessionId={}", recordingSessionId);
 
         Instant now = clock.instant();
@@ -243,11 +232,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
             String instanceId = sessionOpt.get().instanceId();
 
             repository.deleteSession(recordingSessionId);
-            transitionInstanceAfterSessionDelete(instanceId, now, createdBy);
-
-            WorkspaceEvent workspaceEvent = WorkspaceEventConverter.sessionDeleted(
-                    now, projectInfo.workspaceId(), projectInfo.id(), recordingSessionId, createdBy);
-            workspaceEventPublisher.publishBatch(projectInfo.workspaceId(), List.of(workspaceEvent));
+            transitionInstanceAfterSessionDelete(instanceId, now);
 
             repositoryStorage.deleteSession(recordingSessionId);
             return true;
@@ -263,7 +248,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
      * Marks the instance as expiring on its first session deletion, and EXPIRED once its last
      * session is gone — the single place this transition happens for session deletions.
      */
-    private void transitionInstanceAfterSessionDelete(String instanceId, Instant now, WorkspaceEventCreator createdBy) {
+    private void transitionInstanceAfterSessionDelete(String instanceId, Instant now) {
         Optional<ProjectInstanceInfo> instanceOpt = instanceRepository.find(instanceId);
         if (instanceOpt.isEmpty()) {
             return;
@@ -279,7 +264,6 @@ public class RepositoryManagerImpl implements RepositoryManager {
             instanceRepository.updateStatusAndExpiredAt(instanceId, ProjectInstanceStatus.EXPIRED, now);
             LOG.info("Instance marked as EXPIRED (last session deleted): instanceId={} projectId={}",
                     instanceId, projectInfo.id());
-            instanceLifecycleEventEmitter.emitInstanceExpired(projectInfo, instanceId, now, createdBy);
         }
     }
 

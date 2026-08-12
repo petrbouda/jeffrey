@@ -36,7 +36,3 @@ VALUES
     (NULL, 'proj-001', 'project-settings'),
     ('ws-002', NULL, 'other-workspace-settings');
 
-INSERT INTO workspace_events (workspace_id, workspace_ref_id, project_id, origin_event_id, event_type, content, created_at, created_by)
-VALUES
-    ('ws-001', 'ws-001', 'proj-001', 'evt-1', 'PROJECT_CREATED', '{}', '2025-01-01T13:00:00Z', 'TEST'),
-    ('ws-002', 'ws-002', 'proj-101', 'evt-2', 'PROJECT_CREATED', '{}', '2025-01-01T13:00:00Z', 'TEST');

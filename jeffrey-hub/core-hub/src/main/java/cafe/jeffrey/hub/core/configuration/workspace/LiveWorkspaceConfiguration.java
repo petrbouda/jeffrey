@@ -26,10 +26,7 @@ import cafe.jeffrey.hub.core.manager.workspace.LiveWorkspacesManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.LiveWorkspaceManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.workspace.AuditWorkspaceEventPublisher;
-import cafe.jeffrey.hub.core.workspace.WorkspaceEventPublisher;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.hub.persistence.api.WorkspaceEventLogRepository;
 import cafe.jeffrey.hub.persistence.api.WorkspaceRepository;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 
@@ -39,16 +36,6 @@ import java.time.Clock;
 public class LiveWorkspaceConfiguration {
 
     public static final String LIVE_WORKSPACE_TYPE = "LIVE_WORKSPACE_FACTORY_TYPE";
-
-    @Bean
-    public WorkspaceEventLogRepository workspaceEventLogRepository(HubPlatformRepositories platformRepositories) {
-        return platformRepositories.newWorkspaceEventLogRepository();
-    }
-
-    @Bean
-    public WorkspaceEventPublisher workspaceEventPublisher(WorkspaceEventLogRepository workspaceEventLogRepository) {
-        return new AuditWorkspaceEventPublisher(workspaceEventLogRepository);
-    }
 
     @Bean(LIVE_WORKSPACE_TYPE)
     public WorkspaceManager.Factory workspaceManagerFactory(

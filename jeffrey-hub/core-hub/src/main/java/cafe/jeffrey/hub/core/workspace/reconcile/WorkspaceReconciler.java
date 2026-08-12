@@ -27,8 +27,6 @@ import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
 import cafe.jeffrey.hub.core.streaming.SessionFinisher;
 import cafe.jeffrey.hub.core.streaming.SessionPaths;
-import cafe.jeffrey.hub.core.workspace.WorkspaceEventConverter;
-import cafe.jeffrey.hub.core.workspace.WorkspaceEventPublisher;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.JeffreyLayout;
@@ -42,9 +40,6 @@ import cafe.jeffrey.shared.common.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -71,8 +66,8 @@ import java.util.stream.Stream;
  * user-initiated deletes — and those also remove the on-disk declaration, precisely so
  * this reconciler does not re-create what the hub removed.</p>
  *
- * <p>Each materialization runs in its own transaction together with its audit event, so a
- * crash mid-scan leaves nothing half-created; the next scan converges. Idempotency comes
+ * <p>Each materialization runs in its own transaction, so a crash mid-scan leaves nothing
+ * half-created; the next scan converges. Idempotency comes
  * from natural keys (origin project id, instance id, session id), never from dedup. A
  * half-written marker fails JSON parsing, skips the subtree with a WARN and is retried on
  * the next tick.</p>
@@ -85,7 +80,6 @@ public class WorkspaceReconciler {
     private final HubJeffreyDirs jeffreyDirs;
     private final HubPlatformRepositories platformRepositories;
     private final SessionFinisher sessionFinisher;
-    private final WorkspaceEventPublisher workspaceEventPublisher;
     private final TransactionOperations transactionOperations;
 
     public WorkspaceReconciler(
@@ -93,14 +87,12 @@ public class WorkspaceReconciler {
             HubJeffreyDirs jeffreyDirs,
             HubPlatformRepositories platformRepositories,
             SessionFinisher sessionFinisher,
-            WorkspaceEventPublisher workspaceEventPublisher,
             TransactionOperations transactionOperations) {
 
         this.clock = clock;
         this.jeffreyDirs = jeffreyDirs;
         this.platformRepositories = platformRepositories;
         this.sessionFinisher = sessionFinisher;
-        this.workspaceEventPublisher = workspaceEventPublisher;
         this.transactionOperations = transactionOperations;
     }
 
@@ -108,7 +100,7 @@ public class WorkspaceReconciler {
      * Reconciles one workspace directory into the given workspace. Returns the number of
      * entities materialized (projects + instances + sessions).
      */
-    public int reconcile(WorkspaceInfo workspaceInfo, ProjectsManager projectsManager, Path workspaceDir) {
+    public int reconcile(ProjectsManager projectsManager, Path workspaceDir) {
         int materialized = 0;
         for (Path projectDir : childDirectories(workspaceDir)) {
             Optional<RemoteProject> projectMarker =
@@ -118,7 +110,7 @@ public class WorkspaceReconciler {
             }
 
             try {
-                materialized += reconcileProject(workspaceInfo, projectsManager, projectDir, projectMarker.get());
+                materialized += reconcileProject(projectsManager, projectDir, projectMarker.get());
             } catch (Exception e) {
                 // One broken project must not stop the rest of the workspace; this subtree
                 // is retried on the next scan
@@ -128,8 +120,7 @@ public class WorkspaceReconciler {
         return materialized;
     }
 
-    private int reconcileProject(
-            WorkspaceInfo workspaceInfo, ProjectsManager projectsManager, Path projectDir, RemoteProject marker) {
+    private int reconcileProject(ProjectsManager projectsManager, Path projectDir, RemoteProject marker) {
 
         int materialized = 0;
         Optional<ProjectManager> existing = projectsManager.findByOriginProjectId(marker.projectId());
@@ -139,7 +130,7 @@ public class WorkspaceReconciler {
             projectManager = existing.get();
         } else {
             projectManager = transactionOperations.execute(_ ->
-                    materializeProject(workspaceInfo, projectsManager, marker));
+                    materializeProject(projectsManager, marker));
             materialized++;
         }
 
@@ -155,13 +146,12 @@ public class WorkspaceReconciler {
             if (instanceMarker.isEmpty()) {
                 continue;
             }
-            materialized += reconcileInstance(workspaceInfo, projectManager, instanceDir, instanceMarker.get());
+            materialized += reconcileInstance(projectManager, instanceDir, instanceMarker.get());
         }
         return materialized;
     }
 
-    private ProjectManager materializeProject(
-            WorkspaceInfo workspaceInfo, ProjectsManager projectsManager, RemoteProject marker) {
+    private ProjectManager materializeProject(ProjectsManager projectsManager, RemoteProject marker) {
 
         CreateProject createProject = new CreateProject(
                 marker.projectId(),
@@ -172,8 +162,6 @@ public class WorkspaceReconciler {
                 marker.attributes());
 
         ProjectManager projectManager = projectsManager.create(createProject);
-        publishAudit(workspaceInfo, WorkspaceEventConverter.projectCreated(
-                clock.instant(), marker, workspaceInfo, WorkspaceEventCreator.WORKSPACE_RECONCILER_JOB));
 
         LOG.info("Project materialized from workspace directory: project_id={} origin_project_id={} name={}",
                 projectManager.info().id(), marker.projectId(), marker.projectName());
@@ -193,24 +181,22 @@ public class WorkspaceReconciler {
         LOG.info("Repository created for project: project_id={}", projectManager.info().id());
     }
 
-    private int reconcileInstance(
-            WorkspaceInfo workspaceInfo, ProjectManager projectManager, Path instanceDir, RemoteProjectInstance marker) {
+    private int reconcileInstance(ProjectManager projectManager, Path instanceDir, RemoteProjectInstance marker) {
 
         int materialized = 0;
         String instanceId = marker.instanceId();
 
         if (projectManager.projectInstanceRepository().find(instanceId).isEmpty()) {
             transactionOperations.executeWithoutResult(_ ->
-                    materializeInstance(workspaceInfo, projectManager, marker));
+                    materializeInstance(projectManager, marker));
             materialized++;
         }
 
-        materialized += reconcileSessions(workspaceInfo, projectManager, instanceDir, instanceId);
+        materialized += reconcileSessions(projectManager, instanceDir, instanceId);
         return materialized;
     }
 
-    private void materializeInstance(
-            WorkspaceInfo workspaceInfo, ProjectManager projectManager, RemoteProjectInstance marker) {
+    private void materializeInstance(ProjectManager projectManager, RemoteProjectInstance marker) {
 
         ProjectInstanceInfo instanceInfo = new ProjectInstanceInfo(
                 marker.instanceId(),
@@ -225,16 +211,13 @@ public class WorkspaceReconciler {
                 null); // activeSessionId — calculated dynamically
 
         projectManager.projectInstanceRepository().insert(instanceInfo);
-        publishAudit(workspaceInfo, WorkspaceEventConverter.instanceCreated(
-                clock.instant(), marker, workspaceInfo, WorkspaceEventCreator.WORKSPACE_RECONCILER_JOB));
 
         LOG.info("Instance materialized from workspace directory: instance_id={} project_id={}",
                 marker.instanceId(), projectManager.info().id());
         JfrMessageEmitter.instanceCreated(marker.instanceId(), projectManager.info().name(), projectManager.info().id());
     }
 
-    private int reconcileSessions(
-            WorkspaceInfo workspaceInfo, ProjectManager projectManager, Path instanceDir, String instanceId) {
+    private int reconcileSessions(ProjectManager projectManager, Path instanceDir, String instanceId) {
 
         Set<String> knownSessionIds = platformRepositories.findSessionsByInstanceId(instanceId).stream()
                 .map(ProjectInstanceSessionInfo::sessionId)
@@ -252,13 +235,12 @@ public class WorkspaceReconciler {
 
         for (RemoteProjectInstanceSession session : newSessions) {
             transactionOperations.executeWithoutResult(_ ->
-                    materializeSession(workspaceInfo, projectManager, session));
+                    materializeSession(projectManager, session));
         }
         return newSessions.size();
     }
 
-    private void materializeSession(
-            WorkspaceInfo workspaceInfo, ProjectManager projectManager, RemoteProjectInstanceSession marker) {
+    private void materializeSession(ProjectManager projectManager, RemoteProjectInstanceSession marker) {
 
         ProjectInfo projectInfo = projectManager.info();
         Optional<RepositoryInfo> repositoryInfo = projectManager.repositoryManager().info();
@@ -295,9 +277,6 @@ public class WorkspaceReconciler {
         // Transition instance to ACTIVE (handles PENDING→ACTIVE, FINISHED→ACTIVE, EXPIRED→ACTIVE)
         projectManager.projectInstanceRepository().updateStatus(marker.instanceId(), ProjectInstanceStatus.ACTIVE);
 
-        publishAudit(workspaceInfo, WorkspaceEventConverter.sessionCreated(
-                clock.instant(), marker, workspaceInfo, WorkspaceEventCreator.WORKSPACE_RECONCILER_JOB));
-
         LOG.info("Session materialized from workspace directory: project_id={} instance_id={} session_id={}",
                 projectInfo.id(), marker.instanceId(), marker.sessionId());
         JfrMessageEmitter.sessionCreated(marker.sessionId(), marker.instanceId(), marker.order(), projectInfo.id());
@@ -333,10 +312,6 @@ public class WorkspaceReconciler {
         }
 
         return unfinished.size();
-    }
-
-    private void publishAudit(WorkspaceInfo workspaceInfo, WorkspaceEvent event) {
-        workspaceEventPublisher.publish(workspaceInfo.id(), event);
     }
 
     private static <T> Optional<T> readMarker(Path directory, String markerFileName, Class<T> type) {
