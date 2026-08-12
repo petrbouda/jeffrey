@@ -177,6 +177,24 @@ onMounted(() => {
         UI is a read-only view of what the server resolved.
       </p>
 
+      <h3>Tuning discovery latency</h3>
+      <p>
+        The <code>workspace-reconciler</code> period is how long a newly provisioned project, instance
+        or session waits before the server picks it up. A tick over a workspace that announced nothing
+        costs one directory listing and no queries, so a short period is cheap:
+      </p>
+      <pre><code>jeffrey.hub.scheduler.jobs.workspace-reconciler.period=5s</code></pre>
+      <p>
+        The same key works as an environment variable, in the dash-free form Spring's relaxed binding
+        produces:
+      </p>
+      <pre><code>JEFFREY_HUB_SCHEDULER_JOBS_WORKSPACERECONCILER_PERIOD=500ms</code></pre>
+      <p>
+        Values accept the usual duration notation (<code>500ms</code>, <code>2s</code>,
+        <code>5m</code>, <code>1h</code>, or ISO-8601 such as <code>PT2S</code>). Every job's period
+        is tunable the same way — substitute its own key from the tables below.
+      </p>
+
       <h3>Global settings</h3>
 
       <table>
@@ -216,7 +234,7 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><code>workspace-reconciler</code></td>
-            <td><code>2s</code></td>
+            <td><code>5s</code></td>
             <td>—</td>
             <td>
               Materializes new projects, instances and sessions from the entries the provisioner
