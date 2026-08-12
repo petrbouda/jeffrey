@@ -26,7 +26,6 @@ package cafe.jeffrey.shared.common;
  *
  * <pre>
  * &lt;workspaces&gt;/
- *   .events/                              CLI-to-hub folder queue
  *   &lt;workspace-ref-id&gt;/
  *     .settings/settings-&lt;timestamp&gt;.json hub-pushed profiler settings
  *     &lt;project-name&gt;/
