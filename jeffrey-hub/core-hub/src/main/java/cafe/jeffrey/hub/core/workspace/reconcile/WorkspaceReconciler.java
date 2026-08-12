@@ -98,27 +98,53 @@ public class WorkspaceReconciler {
     }
 
     /**
-     * Reconciles one workspace directory into the given workspace. Returns the number of
-     * entities materialized (projects + instances + sessions).
+     * Reconciles every project directory of one workspace. Used by the startup bootstrap, where
+     * nothing has announced what changed and the whole tree has to be examined.
      */
     public int reconcile(ProjectsManager projectsManager, Path workspaceDir) {
         int materialized = 0;
         for (Path projectDir : childDirectories(workspaceDir)) {
-            Optional<RemoteProject> projectMarker =
-                    readMarker(projectDir, JeffreyLayout.PROJECT_INFO_FILE, RemoteProject.class);
-            if (projectMarker.isEmpty()) {
-                continue;
-            }
-
-            try {
-                materialized += reconcileProject(projectsManager, projectDir, projectMarker.get());
-            } catch (Exception e) {
-                // One broken project must not stop the rest of the workspace; this subtree
-                // is retried on the next scan
-                LOG.warn("Failed to reconcile project directory, skipping subtree: project_dir={}", projectDir, e);
-            }
+            materialized += reconcileProjectDirectory(projectsManager, projectDir).materialized();
         }
         return materialized;
+    }
+
+    /**
+     * Reconciles a single project directory.
+     *
+     * <p>{@link Result#declarationSeen()} reports whether the directory actually held a readable
+     * {@code .project-info.json}. A caller driven by the pending index uses it to decide whether
+     * the entry may be removed: a hint whose declaration is not readable yet — the provisioner
+     * writes the marker first, but a reader can still arrive mid-write — must be kept and
+     * retried rather than consumed.</p>
+     */
+    public Result reconcileProjectDirectory(ProjectsManager projectsManager, Path projectDir) {
+        Optional<RemoteProject> projectMarker =
+                readMarker(projectDir, JeffreyLayout.PROJECT_INFO_FILE, RemoteProject.class);
+        if (projectMarker.isEmpty()) {
+            return Result.NOTHING_DECLARED;
+        }
+
+        try {
+            return new Result(reconcileProject(projectsManager, projectDir, projectMarker.get()), true);
+        } catch (Exception e) {
+            // One broken project must not stop the rest of the workspace; this subtree
+            // is retried on the next scan
+            LOG.warn("Failed to reconcile project directory, skipping subtree: project_dir={}", projectDir, e);
+            return Result.NOTHING_DECLARED;
+        }
+    }
+
+    /**
+     * Outcome of reconciling one project directory.
+     *
+     * @param materialized    number of entities created (project + instances + sessions)
+     * @param declarationSeen whether the project declared itself with a readable marker and its
+     *                        subtree was processed without error
+     */
+    public record Result(int materialized, boolean declarationSeen) {
+
+        static final Result NOTHING_DECLARED = new Result(0, false);
     }
 
     private int reconcileProject(ProjectsManager projectsManager, Path projectDir, RemoteProject marker) {

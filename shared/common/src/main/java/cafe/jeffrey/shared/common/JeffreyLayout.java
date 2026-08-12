@@ -27,6 +27,7 @@ package cafe.jeffrey.shared.common;
  * <pre>
  * &lt;workspaces&gt;/
  *   &lt;workspace-ref-id&gt;/
+ *     .pending/&lt;timestamp&gt;_&lt;uuid&gt;         provisioner-declared work for the hub to look at
  *     .settings/settings-&lt;timestamp&gt;.json hub-pushed profiler settings
  *     &lt;project-name&gt;/
  *       .project-info.json
@@ -50,6 +51,13 @@ public abstract class JeffreyLayout {
 
     /** Directory inside a session directory holding the JFR streaming repository */
     public static final String STREAMING_REPO_DIR = "streaming-repo";
+
+    /**
+     * Directory under a workspace dir where the provisioner names project subtrees the hub
+     * should reconcile. Entries point at a path relative to the workspace directory; they are
+     * hints, never a description of an entity — the marker files remain the only description.
+     */
+    public static final String PENDING_DIR = ".pending";
 
     /** Directory under a workspace dir holding hub-pushed profiler settings files */
     public static final String SETTINGS_DIR = ".settings";

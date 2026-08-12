@@ -216,12 +216,13 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><code>workspace-reconciler</code></td>
-            <td><code>5s</code></td>
+            <td><code>2s</code></td>
             <td>—</td>
             <td>
-              Scans the workspace directory tree and materializes new projects, instances and
-              sessions from the provisioner's marker files. Create-only: removing directories
-              from the volume never deletes hub state.
+              Materializes new projects, instances and sessions from the entries the provisioner
+              writes into each workspace's <code>.pending</code> index. A workspace that announced
+              nothing costs one directory listing and no queries. Create-only: removing
+              directories from the volume never deletes hub state.
             </td>
           </tr>
           <tr>

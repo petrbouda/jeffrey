@@ -72,7 +72,7 @@ public class InitExecutor {
         Path workspacePath = createDirectories(workspacesPath.resolve(config.getWorkspaceRefId()));
         LOG.debug("Directories created: workspacesPath={} workspacePath={}", workspacesPath, workspacePath);
 
-        FileSystemRepository repository = new FileSystemRepository(CLOCK);
+        FileSystemRepository repository = new FileSystemRepository(CLOCK, workspacePath);
 
         String projectId;
         Path projectPath = workspacePath.resolve(config.getProjectName());

@@ -26,6 +26,7 @@ import cafe.jeffrey.shared.common.model.RepositoryType;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
+import cafe.jeffrey.shared.pendingindex.PendingIndex;
 
 import java.io.IOException;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -47,9 +48,22 @@ public class FileSystemRepository {
     private static final String SESSION_INFO_FILENAME = JeffreyLayout.SESSION_INFO_FILE;
 
     private final Clock clock;
+    private final Path workspacePath;
+    private final PendingIndex pendingIndex;
 
-    public FileSystemRepository(Clock clock) {
+    public FileSystemRepository(Clock clock, Path workspacePath) {
         this.clock = clock;
+        this.workspacePath = workspacePath;
+        this.pendingIndex = new PendingIndex(workspacePath.resolve(JeffreyLayout.PENDING_DIR), clock);
+    }
+
+    /**
+     * Names a freshly declared subtree for the hub to reconcile. Always called <em>after</em>
+     * the marker write it refers to: the hub keeps a hint whose declaration it cannot read yet
+     * and retries, so a hint can never outrun the state it points at.
+     */
+    private void announce(String entityId, Path declaredPath) {
+        pendingIndex.add(entityId, workspacePath.relativize(declaredPath).toString());
     }
 
     public void addProject(
@@ -77,6 +91,7 @@ public class FileSystemRepository {
 
             Path projectInfoFile = projectPath.resolve(PROJECT_INFO_FILENAME);
             writeAtomically(projectInfoFile, Json.toString(project));
+            announce(projectId, projectPath);
         } catch (IOException e) {
             throw new RuntimeException("Failed to write project info for project: " + projectId, e);
         }
@@ -98,6 +113,7 @@ public class FileSystemRepository {
 
             Path instanceInfoFile = instancePath.resolve(INSTANCE_INFO_FILENAME);
             writeAtomically(instanceInfoFile, Json.toString(instance));
+            announce(instanceId, instancePath);
         } catch (IOException e) {
             throw new RuntimeException("Failed to write instance info for instance: " + instanceId + " in project: " + projectId, e);
         }
@@ -142,6 +158,7 @@ public class FileSystemRepository {
 
             Path sessionInfoFile = sessionPath.resolve(SESSION_INFO_FILENAME);
             writeAtomically(sessionInfoFile, Json.toString(session));
+            announce(sessionId, sessionPath);
         } catch (IOException e) {
             throw new RuntimeException("Failed to write session info for session: " + sessionId + " in project: " + projectId, e);
         }

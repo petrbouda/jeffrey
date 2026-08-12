@@ -21,6 +21,7 @@ package cafe.jeffrey.hub.core.configuration;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.appinitializer.ApplicationInitializer;
 import cafe.jeffrey.hub.core.appinitializer.DefaultWorkspaceInitializer;
+import cafe.jeffrey.hub.core.appinitializer.WorkspaceBootstrapScanInitializer;
 import cafe.jeffrey.hub.core.configuration.properties.DefaultWorkspaceProperties;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
@@ -97,6 +98,16 @@ public class GlobalJobsConfiguration {
     }
 
     @Bean
+    public WorkspaceBootstrapScanInitializer workspaceBootstrapScanInitializer(
+            WorkspaceReconciler workspaceReconciler,
+            HubJeffreyDirs jeffreyDirs,
+            @Value("${jeffrey.hub.workspaces.bootstrap-scan-on-startup:true}") boolean bootstrapScanEnabled) {
+
+        return new WorkspaceBootstrapScanInitializer(
+                workspacesManager, workspaceReconciler, jeffreyDirs, bootstrapScanEnabled);
+    }
+
+    @Bean
     public WorkspaceReconciler workspaceReconciler(
             Clock clock,
             HubJeffreyDirs jeffreyDirs,
@@ -117,6 +128,7 @@ public class GlobalJobsConfiguration {
             WorkspaceReconciler workspaceReconciler,
             HubJeffreyDirs jeffreyDirs,
             DefaultWorkspaceProperties defaultWorkspaceProperties,
+            Clock clock,
             @Value("${jeffrey.hub.workspaces.auto-create:false}") boolean autoCreateWorkspaces) {
 
         return new WorkspaceReconcilerJob(
@@ -125,6 +137,7 @@ public class GlobalJobsConfiguration {
                 jeffreyDirs,
                 defaultWorkspaceProperties,
                 autoCreateWorkspaces,
+                clock,
                 schedulerJobsProperties.forType(JobType.WORKSPACE_RECONCILER).period());
     }
 

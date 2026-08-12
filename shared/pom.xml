@@ -37,6 +37,7 @@
         <module>hub-api</module>
         <module>test</module>
         <module>sql-builder</module>
+        <module>pending-index</module>
         <module>recording-storage-api</module>
         <module>filesystem-recording-storage</module>
         <module>hub-client</module>

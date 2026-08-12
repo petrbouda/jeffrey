@@ -185,7 +185,7 @@ const displayNameFor = (jobType: string) => displayNames[jobType as JobTypeName]
 
 const descriptions: Record<JobTypeName, string> = {
     WORKSPACE_RECONCILER:
-        'Scans the workspace directory tree and materializes new projects, instances and sessions from the marker files written by the provisioner. Strictly additive: removing directories from the volume never deletes server state — only retention jobs and user actions delete.',
+        'Materializes new projects, instances and sessions from the entries the provisioner writes into each workspace\'s .pending index, reading only the subtrees it announced. Strictly additive: removing directories from the volume never deletes server state — only retention jobs and user actions delete.',
     TEMP_DIRECTORY_CLEANER:
         'Sweeps the server temp directory, removing scratch entries (JFR merges, compression staging, replay windows) left behind by operations that crashed before cleaning up after themselves.',
     DELETED_PROJECTS_CLEANER:

@@ -30,31 +30,51 @@ import cafe.jeffrey.hub.core.workspace.reconcile.WorkspaceReconciler;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.model.job.JobType;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.shared.pendingindex.PendingIndex;
+import cafe.jeffrey.shared.pendingindex.PendingIndexEntry;
+import cafe.jeffrey.shared.pendingindex.PendingIndexEntryParser;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
- * Discovers new projects, instances and sessions by scanning the workspace directory tree
- * and diffing the on-disk declarations (marker files written by the provisioner) against
- * the database. Replaces the former CLI event-file pipeline
- * (folder queue → persistent queue → consumers) with a single create-only scan.
+ * Discovers new projects, instances and sessions from what the provisioner announced in each
+ * workspace's pending index ({@link JeffreyLayout#PENDING_DIR}). An empty index means the
+ * workspace is untouched since the last tick, and the job does no further I/O and issues no
+ * queries for it — which is what lets the tick run often.
  *
- * <p>Assumes a single hub instance owns the database — two hubs scanning the same volume
- * would race their materializations. A failed workspace is logged and skipped; the scan of
- * the remaining workspaces continues and the failed one converges on a later tick.</p>
+ * <p>An index entry is a <em>pointer</em>: it names a path relative to the workspace directory.
+ * Whatever depth it points at, the project subtree owning it is reconciled, so the marker files
+ * remain the only description of an entity and the index can never disagree with them.</p>
+ *
+ * <p>An entry is removed only once its project reconciled successfully <em>and</em> declared
+ * itself with a readable marker. The provisioner writes the marker before the hint, so a hint
+ * read mid-write is kept and retried rather than consumed.</p>
+ *
+ * <p>Assumes a single hub instance owns the database — two hubs consuming the same index would
+ * race their materializations. A failed workspace is logged and skipped; its entries survive and
+ * the workspace converges on a later tick.</p>
  */
 public class WorkspaceReconcilerJob implements Job {
 
     private static final Logger LOG = LoggerFactory.getLogger(WorkspaceReconcilerJob.class);
+
+    /** Entries are plain relative paths; blank content is a not-yet-readable entry. */
+    private static final PendingIndexEntryParser<String> RELATIVE_PATH =
+            (_, content) -> Optional.of(content.trim()).filter(path -> !path.isEmpty());
 
     private final WorkspacesManager workspacesManager;
     private final WorkspaceReconciler reconciler;
     private final HubJeffreyDirs jeffreyDirs;
     private final DefaultWorkspaceProperties defaultWorkspaceProperties;
     private final boolean autoCreateWorkspaces;
+    private final Clock clock;
     private final Duration period;
 
     public WorkspaceReconcilerJob(
@@ -63,6 +83,7 @@ public class WorkspaceReconcilerJob implements Job {
             HubJeffreyDirs jeffreyDirs,
             DefaultWorkspaceProperties defaultWorkspaceProperties,
             boolean autoCreateWorkspaces,
+            Clock clock,
             Duration period) {
 
         this.workspacesManager = workspacesManager;
@@ -70,6 +91,7 @@ public class WorkspaceReconcilerJob implements Job {
         this.jeffreyDirs = jeffreyDirs;
         this.defaultWorkspaceProperties = defaultWorkspaceProperties;
         this.autoCreateWorkspaces = autoCreateWorkspaces;
+        this.clock = clock;
         this.period = period;
     }
 
@@ -90,40 +112,89 @@ public class WorkspaceReconcilerJob implements Job {
     }
 
     private int reconcileWorkspaceDirectory(Path workspaceDir) {
-        String referenceId = workspaceDir.getFileName().toString();
-        Optional<WorkspaceManager> workspaceOpt = workspacesManager.findByReferenceId(referenceId);
-
-        WorkspaceManager workspaceManager;
-        if (workspaceOpt.isPresent()) {
-            workspaceManager = workspaceOpt.get();
-        } else if (referenceId.equals(defaultWorkspaceProperties.getReferenceId())) {
-            // The default workspace is owned by DefaultWorkspaceInitializer — never auto-create it here
-            LOG.error("Default workspace missing, skipping its directory: reference_id={}", referenceId);
-            return 0;
-        } else if (autoCreateWorkspaces && containsProjectDeclaration(workspaceDir)) {
-            WorkspaceInfo created = workspacesManager.create(
-                    WorkspacesManager.CreateWorkspaceRequest.builder()
-                            .referenceId(referenceId)
-                            .name(referenceId)
-                            .build());
-            LOG.info("Auto-created workspace for discovered directory: reference_id={} workspace_id={}",
-                    referenceId, created.id());
-            workspaceManager = workspacesManager.findByReferenceId(referenceId).orElseThrow();
-        } else {
-            LOG.debug("Workspace not registered, skipping directory: reference_id={}", referenceId);
+        PendingIndex pendingIndex = pendingIndex(workspaceDir);
+        List<PendingIndexEntry<String>> entries = pendingIndex.list(RELATIVE_PATH);
+        if (entries.isEmpty()) {
             return 0;
         }
 
-        return reconciler.reconcile(workspaceManager.projectsManager(), workspaceDir);
+        Optional<WorkspaceManager> workspaceOpt = resolveWorkspace(workspaceDir);
+        if (workspaceOpt.isEmpty()) {
+            return 0;
+        }
+
+        int materialized = 0;
+        for (Map.Entry<String, List<PendingIndexEntry<String>>> announced
+                : groupByProjectName(entries).entrySet()) {
+
+            Path projectDir = workspaceDir.resolve(announced.getKey());
+            WorkspaceReconciler.Result result = reconciler.reconcileProjectDirectory(
+                    workspaceOpt.get().projectsManager(), projectDir);
+
+            if (result.declarationSeen()) {
+                announced.getValue().forEach(entry -> pendingIndex.remove(entry.filePath()));
+            } else {
+                LOG.debug("Keeping pending entries, project declaration not readable yet: project_dir={}",
+                        projectDir);
+            }
+            materialized += result.materialized();
+        }
+        return materialized;
     }
 
     /**
-     * A stray directory under {@code workspaces/} must not become a workspace — only one
-     * that actually declares at least one project.
+     * Groups entries by the project directory they point at — the first path segment. Several
+     * entries for one project (its instances and sessions) reconcile that project once, and are
+     * then removed together.
      */
-    private static boolean containsProjectDeclaration(Path workspaceDir) {
-        return WorkspaceReconciler.childDirectories(workspaceDir).stream()
-                .anyMatch(projectDir -> Files.isRegularFile(projectDir.resolve(JeffreyLayout.PROJECT_INFO_FILE)));
+    private static Map<String, List<PendingIndexEntry<String>>> groupByProjectName(
+            List<PendingIndexEntry<String>> entries) {
+
+        Map<String, List<PendingIndexEntry<String>>> byProject = new LinkedHashMap<>();
+        for (PendingIndexEntry<String> entry : entries) {
+            Path announced = Path.of(entry.parsed()).normalize();
+            if (announced.getNameCount() == 0 || announced.startsWith("..")) {
+                LOG.warn("Ignoring pending entry that does not name a project: entry={} content={}",
+                        entry.filename(), entry.parsed());
+                continue;
+            }
+            byProject.computeIfAbsent(announced.getName(0).toString(), _ -> new ArrayList<>()).add(entry);
+        }
+        return byProject;
+    }
+
+    private Optional<WorkspaceManager> resolveWorkspace(Path workspaceDir) {
+        String referenceId = workspaceDir.getFileName().toString();
+        Optional<WorkspaceManager> workspaceOpt = workspacesManager.findByReferenceId(referenceId);
+        if (workspaceOpt.isPresent()) {
+            return workspaceOpt;
+        }
+
+        if (referenceId.equals(defaultWorkspaceProperties.getReferenceId())) {
+            // The default workspace is owned by DefaultWorkspaceInitializer — never auto-create it here
+            LOG.error("Default workspace missing, skipping its directory: reference_id={}", referenceId);
+            return Optional.empty();
+        }
+
+        if (!autoCreateWorkspaces) {
+            LOG.debug("Workspace not registered, skipping directory: reference_id={}", referenceId);
+            return Optional.empty();
+        }
+
+        // Pending entries are what makes a directory a workspace with content — a stray
+        // directory under workspaces/ announces nothing and never becomes one
+        WorkspaceInfo created = workspacesManager.create(
+                WorkspacesManager.CreateWorkspaceRequest.builder()
+                        .referenceId(referenceId)
+                        .name(referenceId)
+                        .build());
+        LOG.info("Auto-created workspace for announced directory: reference_id={} workspace_id={}",
+                referenceId, created.id());
+        return workspacesManager.findByReferenceId(referenceId);
+    }
+
+    private PendingIndex pendingIndex(Path workspaceDir) {
+        return new PendingIndex(workspaceDir.resolve(JeffreyLayout.PENDING_DIR), clock);
     }
 
     @Override
