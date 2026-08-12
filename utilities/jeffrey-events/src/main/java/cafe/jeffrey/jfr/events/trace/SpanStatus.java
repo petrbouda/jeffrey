@@ -16,38 +16,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.jfr.events.grpc;
+package cafe.jeffrey.jfr.events.trace;
 
-import cafe.jeffrey.jfr.events.trace.AbstractTracedEvent;
-import jdk.jfr.*;
+/**
+ * How a span finished. {@link #UNSET} is the default: an operation that completed without the
+ * instrumentation expressing an opinion is not the same as one explicitly declared successful.
+ */
+public enum SpanStatus {
 
-@Category({"Application", "gRPC"})
-@StackTrace(false)
-public abstract class AbstractGrpcExchangeEvent extends AbstractTracedEvent {
+    /** The instrumentation did not record an outcome. */
+    UNSET,
 
-    @Label("Service Name")
-    public String service;
+    /** The operation completed as intended. */
+    OK,
 
-    @Label("Method Name")
-    public String method;
-
-    @Label("Remote Address")
-    public String remoteHost;
-
-    @Label("Remote Port")
-    public int remotePort;
-
-    @Label("Status Code")
-    public String status;
-
-    @Label("Authority")
-    public String authority;
-
-    @Label("Request Size")
-    @DataAmount
-    public long requestSize;
-
-    @Label("Response Size")
-    @DataAmount
-    public long responseSize;
+    /** The operation failed. The failure is described by the span's error type. */
+    ERROR
 }
