@@ -183,3 +183,59 @@ CREATE TABLE IF NOT EXISTS pipeline_runs
     completed_at     TIMESTAMPTZ NOT NULL,
     PRIMARY KEY (pipeline_id, scope_id)
 );
+
+--
+-- TRACE SPANS TABLE
+-- Spans arrive in `events` like any other JFR event, with their identity in the JSON `fields`.
+-- Deriving them into typed columns once, after parsing, keeps every trace query off JSON
+-- extraction: assembling a tree, listing the slowest traces and aggregating per operation all
+-- run against BIGINTs instead of re-parsing `fields` per row, per query.
+--
+-- Every traced event type feeds this one table, which is what makes an HTTP request show its JDBC
+-- statements as native children: they are rows here just like a hand-written span is.
+--
+-- `parent_span_id` is NULL for a root span (the wire encoding uses 0 for "absent", normalised here
+-- so SQL null-semantics apply). `attributes` keeps the source event's whole `fields` object, so a
+-- span carries everything its originating event knew without this table having to model it.
+--
+CREATE TABLE IF NOT EXISTS trace_spans
+(
+    trace_id                       BIGINT      NOT NULL,
+    span_id                        BIGINT      NOT NULL,
+    parent_span_id                 BIGINT,
+    name                           VARCHAR     NOT NULL,
+    kind                           VARCHAR,
+    status                         VARCHAR,
+    error_type                     VARCHAR,
+    attributes                     JSON,
+    start_timestamp                TIMESTAMPTZ NOT NULL,
+    -- Same zero point as events.start_timestamp_from_beginning, so a trace can be lined up
+    -- against the recording's other views without converting.
+    start_timestamp_from_beginning BIGINT      NOT NULL,
+    duration                       BIGINT      NOT NULL,
+    thread_hash                    BIGINT,
+    -- Which event produced this span: jeffrey.TraceSpan, jeffrey.HttpServerExchange, ...
+    event_type                     VARCHAR     NOT NULL
+);
+
+--
+-- TRACES TABLE
+-- One row per trace, so the trace list is a single scan of a small table rather than an
+-- aggregation over every span. Derived from trace_spans immediately after it is filled.
+--
+-- The root is the earliest span without a parent; a trace whose real root went unrecorded (below
+-- the event threshold, say) still gets one, because the ordering falls back to the earliest span.
+-- Duration spans the whole trace rather than the root's own duration, which is the same number
+-- whenever the root encloses its children and the more honest one when it does not.
+--
+CREATE TABLE IF NOT EXISTS traces
+(
+    trace_id                       BIGINT      NOT NULL PRIMARY KEY,
+    root_name                      VARCHAR,
+    root_kind                      VARCHAR,
+    start_timestamp                TIMESTAMPTZ NOT NULL,
+    start_timestamp_from_beginning BIGINT      NOT NULL,
+    duration                       BIGINT      NOT NULL,
+    span_count                     INTEGER     NOT NULL,
+    error_count                    INTEGER     NOT NULL
+);

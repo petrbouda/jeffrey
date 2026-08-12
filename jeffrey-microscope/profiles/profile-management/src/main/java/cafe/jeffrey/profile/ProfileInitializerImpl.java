@@ -28,6 +28,7 @@ import cafe.jeffrey.provider.profile.api.RecordingEventParser;
 import cafe.jeffrey.provider.profile.api.RecordingEventParserResolver;
 import cafe.jeffrey.provider.profile.api.ProfileInfoRepository;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
+import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.measure.Measuring;
 import cafe.jeffrey.jfr.events.trace.SpanKind;
@@ -56,6 +57,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
     private static final String SPAN_RECORDING_PARSE = "recording.parse";
     private static final String SPAN_EVENTS_FLUSH = "events.flush";
     private static final String SPAN_DATA_INIT = "profile.data-init";
+    private static final String SPAN_TRACES_DERIVE = "traces.derive";
     private static final String SPAN_ADDITIONAL_FILES = "additional-files.process";
     private static final String SPAN_EVENTS_RECLUSTER = "events.recluster";
     private static final String SPAN_WAL_CHECKPOINT = "db.wal-checkpoint";
@@ -128,6 +130,13 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                 RecordingEventParser recordingEventParser = recordingEventParserResolver.resolve(profileInfo.eventSource());
                 Tracer.run(SPAN_RECORDING_PARSE, () -> recordingEventParser.start(eventWriter, recordingPath));
                 Tracer.run(SPAN_EVENTS_FLUSH, eventWriter::onComplete);
+
+                // Lift the spans hiding in `events` into the typed trace tables, once, while the
+                // events are freshly written and before anything can ask for a trace.
+                Tracer.run(SPAN_TRACES_DERIVE, () -> {
+                    TraceRepository traceRepository = profileRepositories.newTraceRepository(dataSource);
+                    traceRepository.derive();
+                });
 
                 ProfileManager profileManager = profileManagerFactory.apply(profileInfo);
 
