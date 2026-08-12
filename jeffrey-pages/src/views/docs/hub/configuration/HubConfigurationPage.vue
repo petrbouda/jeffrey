@@ -178,6 +178,27 @@ onMounted(() => {
         UI is a read-only view of what the server resolved.
       </p>
 
+      <h3>Running a job on demand</h3>
+      <p>
+        Some jobs can also be run by hand from the <strong>Run</strong> column on the Scheduler page.
+        Whether a job offers this is a property of the job itself, not a setting — jobs that do not
+        show a disabled control. The run is synchronous and reports what it did when it finishes.
+      </p>
+      <p>Two jobs offer it today:</p>
+      <ul>
+        <li>
+          <code>workspace-reconciler</code> — walks <em>every</em> workspace tree in full, rather
+          than reading the <code>.pending</code> index as its scheduled tick does. This is the only
+          full scan the server performs, and the only way to pick up trees the index never named:
+          those provisioned by an older CLI, restored from a snapshot, or written while the server
+          was down. It is create-only, so running it when nothing is missing changes nothing.
+        </li>
+        <li>
+          <code>storage-overview-refresher</code> — recomputes the storage figures immediately
+          instead of waiting out its period.
+        </li>
+      </ul>
+
       <h3>Tuning discovery latency</h3>
       <p>
         The <code>workspace-reconciler</code> period is how long a newly provisioned project, instance
