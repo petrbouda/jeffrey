@@ -298,6 +298,42 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
     }
 
     @Override
+    public void deleteInstanceDirectory(String instanceId) {
+        RepositoryInfo repositoryInfo = repositoryInfo();
+        Path instancePath = resolveWorkspacePath(repositoryInfo)
+                .resolve(repositoryInfo.relativeProjectPath())
+                .resolve(instanceId);
+
+        if (!Files.isDirectory(instancePath)) {
+            return;
+        }
+
+        FileSystemUtils.removeDirectory(instancePath);
+        LOG.info("Deleted instance directory: {}", instancePath);
+    }
+
+    @Override
+    public void deleteProjectDirectory() {
+        // getAll() instead of repositoryInfo(): a project without a repository has no
+        // directory to delete and must not fail the surrounding delete flow
+        List<RepositoryInfo> repositoryInfos = projectRepositoryRepository.getAll();
+        if (repositoryInfos.isEmpty()) {
+            return;
+        }
+
+        RepositoryInfo repositoryInfo = repositoryInfos.getFirst();
+        Path projectPath = resolveWorkspacePath(repositoryInfo)
+                .resolve(repositoryInfo.relativeProjectPath());
+
+        if (!Files.isDirectory(projectPath)) {
+            return;
+        }
+
+        FileSystemUtils.removeDirectory(projectPath);
+        LOG.info("Deleted project directory: {}", projectPath);
+    }
+
+    @Override
     public RepositoryType type() {
         return RepositoryType.ASYNC_PROFILER;
     }

@@ -18,140 +18,69 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
-import cafe.jeffrey.shared.folderqueue.FolderQueue;
-import cafe.jeffrey.shared.persistentqueue.DuckDBPersistentQueue;
-import cafe.jeffrey.shared.persistentqueue.EventSerializer;
+import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.hub.core.scheduler.JobContext;
+import cafe.jeffrey.hub.persistence.api.WorkspaceEventLogRepository;
+import cafe.jeffrey.hub.persistence.api.WorkspaceEventLogRepository.WorkspaceEventQuery;
+import cafe.jeffrey.hub.persistence.jdbc.JdbcWorkspaceEventLogRepository;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
+import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventType;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
-import cafe.jeffrey.test.TestUtils;
 
 import javax.sql.DataSource;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DuckDBTest(migration = "classpath:db/migration/server")
 class WorkspaceEventsCleanerJobTest {
 
-    // Fixed time: 2025-06-30. Old data is from 2025-05-01/05-05 (>31 days), recent from 2025-06-25 (<31 days)
-    private static final Instant FIXED_TIME = Instant.parse("2025-06-30T12:00:00Z");
-    private static final Clock FIXED_CLOCK = Clock.fixed(FIXED_TIME, ZoneOffset.UTC);
+    private static final String WORKSPACE_ID = "ws-001";
+    private static final Instant NOW = Instant.parse("2026-02-20T12:00:00Z");
+    private static final Clock FIXED_CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
     private static final Duration RETENTION = Duration.ofDays(31);
-    private static final Duration PERIOD = Duration.ofDays(1);
 
-    @TempDir
-    Path queueDir;
-
-    private WorkspaceEventsCleanerJob createJob(DataSource dataSource) {
-        var provider = new DatabaseClientProvider(dataSource);
-
-        var queue = new DuckDBPersistentQueue<>(provider, "test-queue",
-                new EventSerializer<String>() {
-                    @Override
-                    public String serialize(String event) {
-                        return event;
-                    }
-
-                    @Override
-                    public String deserialize(String payload) {
-                        return payload;
-                    }
-
-                    @Override
-                    public String dedupKey(String event) {
-                        return null;
-                    }
-                }, FIXED_CLOCK);
-
-        JobConfig config = new JobConfig(true, PERIOD, Map.of(
-                "queue-events-retention", "31d",
-                "processed-files-retention", "31d"));
-
-        return new WorkspaceEventsCleanerJob(
-                queue,
-                new FolderQueue(queueDir, FIXED_CLOCK),
-                FIXED_CLOCK,
-                config);
+    private static WorkspaceEventLogRepository eventLog(DataSource dataSource) {
+        return new JdbcWorkspaceEventLogRepository(new DatabaseClientProvider(dataSource), FIXED_CLOCK);
     }
 
-    private static long countRows(DataSource dataSource, String table) {
-        var jdbc = new NamedParameterJdbcTemplate(dataSource);
-        Long count = jdbc.queryForObject("SELECT COUNT(*) FROM " + table, Map.of(), Long.class);
-        return count != null ? count : 0;
+    private static WorkspaceEventsCleanerJob job(WorkspaceEventLogRepository eventLog) {
+        var config = new SchedulerJobsProperties.JobConfig(
+                true, Duration.ofMinutes(5), Map.of("queue-events-retention", "31d"));
+        return new WorkspaceEventsCleanerJob(eventLog, FIXED_CLOCK, config);
     }
 
-    @Nested
-    class DeletesOldQueueEvents {
-
-        @Test
-        void deletesEventsOlderThanRetentionPeriod(DataSource dataSource) throws SQLException {
-            TestUtils.executeSql(dataSource, "sql/retention/insert-test-data.sql");
-
-            assertEquals(3, countRows(dataSource, "persistent_queue_events"));
-
-            createJob(dataSource).execute(JobContext.EMPTY);
-
-            assertEquals(1, countRows(dataSource, "persistent_queue_events"));
-        }
+    private static WorkspaceEvent eventAt(String originEventId, Instant createdAt) {
+        return new WorkspaceEvent(null, originEventId, "proj-1", "ref-1",
+                WorkspaceEventType.PROJECT_CREATED, "{}", createdAt, createdAt, "TEST");
     }
 
-    @Nested
-    class KeepsRecentData {
+    @Test
+    void deletesOnlyEventsPastRetention(DataSource dataSource) {
+        WorkspaceEventLogRepository eventLog = eventLog(dataSource);
+        eventLog.append(WORKSPACE_ID, eventAt("old", NOW.minus(RETENTION).minus(Duration.ofDays(1))), null);
+        eventLog.append(WORKSPACE_ID, eventAt("recent", NOW.minus(Duration.ofDays(1))), null);
 
-        @Test
-        void keepsAllDataWithinRetentionPeriod(DataSource dataSource) throws SQLException {
-            TestUtils.executeSql(dataSource, "sql/retention/insert-recent-data-only.sql");
+        job(eventLog).execute(JobContext.EMPTY);
 
-            assertEquals(2, countRows(dataSource, "persistent_queue_events"));
-
-            createJob(dataSource).execute(JobContext.EMPTY);
-
-            assertEquals(2, countRows(dataSource, "persistent_queue_events"));
-        }
+        var remaining = eventLog.findLatest(new WorkspaceEventQuery(WORKSPACE_ID, null, Set.of(), 10));
+        assertEquals(1, remaining.size());
+        assertEquals("recent", remaining.getFirst().originEventId());
     }
 
-    @Nested
-    class EmptyTables {
+    @Test
+    void emptyLogIsANoOp(DataSource dataSource) {
+        WorkspaceEventLogRepository eventLog = eventLog(dataSource);
 
-        @Test
-        void handlesEmptyTablesWithoutErrors(DataSource dataSource) {
-            createJob(dataSource).execute(JobContext.EMPTY);
+        job(eventLog).execute(JobContext.EMPTY);
 
-            assertEquals(0, countRows(dataSource, "persistent_queue_events"));
-        }
-    }
-
-    @Nested
-    class CleansProcessedFolderQueueFiles {
-
-        @Test
-        void deletesProcessedFilesOlderThanRetention(DataSource dataSource) throws IOException {
-            Path processedDir = Files.createDirectories(queueDir.resolve(".processed"));
-            // Timestamps encoded in the filenames: 2025-05-01 is beyond the 31-day retention
-            // (relative to the fixed 2025-06-30 clock), 2025-06-25 is within it
-            Path oldFile = Files.createFile(processedDir.resolve("20250501100000000_aaaaaaaa.json"));
-            Path recentFile = Files.createFile(processedDir.resolve("20250625100000000_bbbbbbbb.json"));
-
-            createJob(dataSource).execute(JobContext.EMPTY);
-
-            assertFalse(Files.exists(oldFile), "Replicated event file beyond retention should be deleted");
-            assertTrue(Files.exists(recentFile), "Recent processed file must be kept");
-        }
+        assertEquals(0, eventLog.count(WORKSPACE_ID));
     }
 }

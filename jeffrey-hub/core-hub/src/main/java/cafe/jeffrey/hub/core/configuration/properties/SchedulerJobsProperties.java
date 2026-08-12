@@ -35,7 +35,7 @@ import java.util.Map;
  * any field by redeclaring the same key.
  * <p>
  * Property keys use the lower-kebab-case form of {@link JobType} (for example
- * {@code projects-synchronizer} for {@code PROJECTS_SYNCHRONIZER}).
+ * {@code workspace-reconciler} for {@code WORKSPACE_RECONCILER}).
  */
 @ConfigurationProperties("jeffrey.hub.scheduler")
 public class SchedulerJobsProperties {

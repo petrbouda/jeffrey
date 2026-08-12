@@ -169,17 +169,15 @@ const filteredJobs = computed(() => {
 const hasParams = (params: Record<string, string>) => params && Object.keys(params).length > 0;
 
 const displayNames: Record<JobTypeName, string> = {
-    WORKSPACE_EVENTS_REPLICATOR: 'Workspace Events Replicator',
+    WORKSPACE_RECONCILER: 'Workspace Reconciler',
     WORKSPACE_EVENTS_CLEANER: 'Workspace Events Cleaner',
     TEMP_DIRECTORY_CLEANER: 'Temp Directory Cleaner',
     DELETED_PROJECTS_CLEANER: 'Deleted Projects Cleaner',
     STORAGE_OVERVIEW_REFRESHER: 'Storage Overview Refresher',
-    PROJECTS_SYNCHRONIZER: 'Projects Synchronizer',
     PROFILER_SETTINGS_SYNCHRONIZER: 'Profiler Settings Synchronizer',
     PROJECT_INSTANCE_SESSION_CLEANER: 'Instance Session Cleaner',
     PROJECT_INSTANCE_RECORDING_CLEANER: 'Instance Recording Cleaner',
     PROJECT_STORAGE_QUOTA_CLEANER: 'Storage Quota Cleaner',
-    ORPHANED_SESSION_CLEANER: 'Orphaned Session Cleaner',
     EXPIRED_INSTANCE_CLEANER: 'Expired Instance Cleaner',
     REPOSITORY_JFR_COMPRESSION: 'JFR Compression',
     SESSION_FINISHED_DETECTOR: 'Session Finished Detector',
@@ -188,18 +186,16 @@ const displayNames: Record<JobTypeName, string> = {
 const displayNameFor = (jobType: string) => displayNames[jobType as JobTypeName] || jobType;
 
 const descriptions: Record<JobTypeName, string> = {
-    WORKSPACE_EVENTS_REPLICATOR:
-        'Polls the shared workspace event folder for files written by the CLI and replicates them into the persistent queue. Events are not processed here — they are picked up by Projects Synchronizer.',
+    WORKSPACE_RECONCILER:
+        'Scans the workspace directory tree and materializes new projects, instances and sessions from the marker files written by the provisioner. Strictly additive: removing directories from the volume never deletes server state — only retention jobs and user actions delete.',
     WORKSPACE_EVENTS_CLEANER:
-        'Trims the workspace events persistent queue, deleting entries older than the configured retention window so storage stays bounded.',
+        'Trims the workspace event log (the audit table behind the Activity feed), deleting entries older than the configured retention window so storage stays bounded.',
     TEMP_DIRECTORY_CLEANER:
         'Sweeps the server temp directory, removing scratch entries (JFR merges, compression staging, replay windows) left behind by operations that crashed before cleaning up after themselves.',
     DELETED_PROJECTS_CLEANER:
         'Permanently purges soft-deleted project rows once their retention window has passed. Until then the project can still be restored, so this retention doubles as the restore window.',
     STORAGE_OVERVIEW_REFRESHER:
         'Recomputes the storage overview shown on the Workspaces dashboard into an in-memory cache. The scan walks every project repository on disk, so the dashboard serves the cached snapshot; figures may be up to one period stale. The first tick runs at startup.',
-    PROJECTS_SYNCHRONIZER:
-        'Drains the workspace event queue per workspace and applies project create / delete and session lifecycle events, keeping the server’s project list in sync with what each workspace reports.',
     PROFILER_SETTINGS_SYNCHRONIZER:
         'Resolves the effective profiler settings (global → workspace → project) for every workspace and uploads them to the remote workspace, pruning legacy versions to the configured max-versions cap.',
     PROJECT_INSTANCE_SESSION_CLEANER:
@@ -208,10 +204,8 @@ const descriptions: Record<JobTypeName, string> = {
         'Removes only Recordings in the active (latest) Project Instance Session. It does not remove recordings in older sessions — it just ensures that rolling recordings in the latest session are bounded by age.',
     PROJECT_STORAGE_QUOTA_CLEANER:
         'Caps how much disk a single project may occupy. Age-based retention cannot bound disk usage on its own — a high-throughput service fills the volume long before anything ages out. Reclaims oldest-first: whole finished sessions, then finished chunks inside the live session. Retained sessions and the chunk currently being written are never touched.',
-    ORPHANED_SESSION_CLEANER:
-        'Removes session directories that exist on disk but have no database row — left behind when a session creation event was dropped or a crash happened before it was published. Only acts on directories older than the grace period, so a synchronizer backlog is not mistaken for an orphan.',
     EXPIRED_INSTANCE_CLEANER:
-        'Removes expired instance metadata after the configured retention period. Instances transition to EXPIRED when all their sessions are cleaned up, and this job permanently deletes those rows.',
+        'Removes expired instance metadata after the configured retention period, including the instance directory on disk so the reconciler does not re-discover it. Instances transition to EXPIRED when all their sessions are cleaned up.',
     REPOSITORY_JFR_COMPRESSION:
         'Compresses finished JFR recording files using LZ4 compression to save storage space. Processes the active and latest finished sessions on each tick.',
     SESSION_FINISHED_DETECTOR:
@@ -222,17 +216,15 @@ const descriptions: Record<JobTypeName, string> = {
 const descriptionFor = (jobType: string) => descriptions[jobType as JobTypeName] || '';
 
 const icons: Record<JobTypeName, [string, string]> = {
-    WORKSPACE_EVENTS_REPLICATOR: ['bi-broadcast', 'job-icon-bell'],
+    WORKSPACE_RECONCILER: ['bi-folder-symlink', 'job-icon-sync'],
     WORKSPACE_EVENTS_CLEANER: ['bi-eraser', 'job-icon-broom'],
     TEMP_DIRECTORY_CLEANER: ['bi-eraser', 'job-icon-broom'],
     DELETED_PROJECTS_CLEANER: ['bi-trash', 'job-icon-trash'],
     STORAGE_OVERVIEW_REFRESHER: ['bi-hdd-stack', 'job-icon-sync'],
-    PROJECTS_SYNCHRONIZER: ['bi-arrow-repeat', 'job-icon-sync'],
     PROFILER_SETTINGS_SYNCHRONIZER: ['bi-cpu', 'job-icon-cpu'],
     PROJECT_INSTANCE_SESSION_CLEANER: ['bi-trash', 'job-icon-trash'],
     PROJECT_INSTANCE_RECORDING_CLEANER: ['bi-trash', 'job-icon-trash'],
     PROJECT_STORAGE_QUOTA_CLEANER: ['bi-hdd', 'job-icon-trash'],
-    ORPHANED_SESSION_CLEANER: ['bi-folder-x', 'job-icon-broom'],
     EXPIRED_INSTANCE_CLEANER: ['bi-trash', 'job-icon-trash'],
     REPOSITORY_JFR_COMPRESSION: ['bi-file-zip', 'job-icon-zip'],
     SESSION_FINISHED_DETECTOR: ['bi-check-circle', 'job-icon-check'],

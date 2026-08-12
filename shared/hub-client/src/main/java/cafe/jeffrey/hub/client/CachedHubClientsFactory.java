@@ -69,7 +69,6 @@ public class CachedHubClientsFactory implements HubClients.Factory, Closeable {
      */
     private static void closeStreams(CachedEntry entry) {
         entry.clients().eventStreaming().close();
-        entry.clients().workspaceEvents().close();
     }
 
     private CachedEntry createEntry(HubAddress address) {

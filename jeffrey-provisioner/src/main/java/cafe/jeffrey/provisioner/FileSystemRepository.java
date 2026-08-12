@@ -28,7 +28,9 @@ import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
 
 import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.List;
@@ -74,7 +76,7 @@ public class FileSystemRepository {
                     attributes);
 
             Path projectInfoFile = projectPath.resolve(PROJECT_INFO_FILENAME);
-            Files.writeString(projectInfoFile, Json.toString(project));
+            writeAtomically(projectInfoFile, Json.toString(project));
         } catch (IOException e) {
             throw new RuntimeException("Failed to write project info for project: " + projectId, e);
         }
@@ -95,7 +97,7 @@ public class FileSystemRepository {
                     instanceId);
 
             Path instanceInfoFile = instancePath.resolve(INSTANCE_INFO_FILENAME);
-            Files.writeString(instanceInfoFile, Json.toString(instance));
+            writeAtomically(instanceInfoFile, Json.toString(instance));
         } catch (IOException e) {
             throw new RuntimeException("Failed to write instance info for instance: " + instanceId + " in project: " + projectId, e);
         }
@@ -139,7 +141,7 @@ public class FileSystemRepository {
                     resolvedSettings.command());
 
             Path sessionInfoFile = sessionPath.resolve(SESSION_INFO_FILENAME);
-            Files.writeString(sessionInfoFile, Json.toString(session));
+            writeAtomically(sessionInfoFile, Json.toString(session));
         } catch (IOException e) {
             throw new RuntimeException("Failed to write session info for session: " + sessionId + " in project: " + projectId, e);
         }
@@ -180,5 +182,20 @@ public class FileSystemRepository {
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * Marker files are the hub's discovery input: the reconciler must never observe a
+     * half-written file, so the content lands in a temp file first and is moved into
+     * place atomically (with a plain move fallback for filesystems without atomic move).
+     */
+    private static void writeAtomically(Path target, String content) throws IOException {
+        Path temp = target.resolveSibling(target.getFileName() + ".tmp");
+        Files.writeString(temp, content);
+        try {
+            Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 }

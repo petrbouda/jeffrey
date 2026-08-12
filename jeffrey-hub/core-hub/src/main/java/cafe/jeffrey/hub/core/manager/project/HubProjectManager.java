@@ -20,14 +20,15 @@ package cafe.jeffrey.hub.core.manager.project;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectFactory;
+import org.springframework.transaction.support.TransactionOperations;
+import cafe.jeffrey.hub.core.jfr.JfrMessageEmitter;
 import cafe.jeffrey.hub.core.manager.LiveProfilerSettingsManager;
 import cafe.jeffrey.hub.core.manager.ProfilerSettingsManager;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.RepositoryManagerImpl;
 import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
+import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.scheduler.SchedulerTrigger;
 import cafe.jeffrey.hub.core.workspace.WorkspaceEventConverter;
 import cafe.jeffrey.hub.core.workspace.WorkspaceEventPublisher;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
@@ -40,6 +41,7 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -56,27 +58,30 @@ public class HubProjectManager implements ProjectManager {
     private final RepositoryStorage repositoryStorage;
     private final WorkspaceEventPublisher workspaceEventPublisher;
     private final Clock clock;
-    private final ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger;
     private final InstanceEnvironmentParser instanceEnvironmentParser;
+    private final InstanceLifecycleEventEmitter instanceLifecycleEventEmitter;
+    private final TransactionOperations transactionOperations;
 
     public HubProjectManager(
             Clock clock,
             ProjectInfo projectInfo,
-            ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger,
             HubPlatformRepositories platformRepositories,
             RepositoryStorage repositoryStorage,
             WorkspaceEventPublisher workspaceEventPublisher,
-            InstanceEnvironmentParser instanceEnvironmentParser) {
+            InstanceEnvironmentParser instanceEnvironmentParser,
+            InstanceLifecycleEventEmitter instanceLifecycleEventEmitter,
+            TransactionOperations transactionOperations) {
 
         this.clock = clock;
         String projectId = projectInfo.id();
-        this.projectsSynchronizerTrigger = projectsSynchronizerTrigger;
         this.projectInfo = projectInfo;
         this.projectRepository = platformRepositories.newProjectRepository(projectId);
         this.platformRepositories = platformRepositories;
         this.repositoryStorage = repositoryStorage;
         this.workspaceEventPublisher = workspaceEventPublisher;
         this.instanceEnvironmentParser = instanceEnvironmentParser;
+        this.instanceLifecycleEventEmitter = instanceLifecycleEventEmitter;
+        this.transactionOperations = transactionOperations;
     }
 
     @Override
@@ -89,11 +94,13 @@ public class HubProjectManager implements ProjectManager {
         return new RepositoryManagerImpl(
                 clock,
                 projectInfo,
-                projectsSynchronizerTrigger.getObject(),
                 platformRepositories.newProjectRepositoryRepository(projectInfo.id()),
+                platformRepositories.newProjectInstanceRepository(projectInfo.id()),
                 repositoryStorage,
                 workspaceEventPublisher,
-                instanceEnvironmentParser);
+                instanceEnvironmentParser,
+                instanceLifecycleEventEmitter,
+                transactionOperations);
     }
 
     @Override
@@ -137,17 +144,34 @@ public class HubProjectManager implements ProjectManager {
         LOG.info("Restored project: projectId={}", projectInfo.id());
     }
 
+    /**
+     * Deletes the project directly: the SQL cascade and the audit event commit together,
+     * then the project's directory tree is removed from the workspace volume. The directory
+     * removal is what makes the deletion final — the workspace reconciler re-creates any
+     * project whose on-disk declaration still exists. It runs after the commit and
+     * best-effort: leftover files are cheaper than a permanently stuck project delete.
+     */
     @Override
     public void delete(WorkspaceEventCreator createdBy) {
         LOG.debug("Deleting project: projectId={}", info().id());
 
-        WorkspaceEvent workspaceEvent = WorkspaceEventConverter.projectDeleted(
-                clock.instant(),
-                projectInfo.workspaceId(),
-                projectInfo.id(),
-                createdBy);
+        Instant now = clock.instant();
+        transactionOperations.executeWithoutResult(_ -> {
+            // SQL cascade deletes all project metadata (instances, sessions, schedulers, etc.)
+            projectRepository.delete();
 
-        workspaceEventPublisher.publishBatch(projectInfo.workspaceId(), List.of(workspaceEvent));
-        projectsSynchronizerTrigger.getObject().execute();
+            WorkspaceEvent workspaceEvent = WorkspaceEventConverter.projectDeleted(
+                    now, projectInfo.workspaceId(), projectInfo.id(), createdBy);
+            workspaceEventPublisher.publishBatch(projectInfo.workspaceId(), List.of(workspaceEvent));
+        });
+
+        try {
+            repositoryStorage.deleteProjectDirectory();
+        } catch (Exception e) {
+            LOG.warn("Failed to delete project directory: projectId={}", projectInfo.id(), e);
+        }
+
+        LOG.info("Deleted project: projectId={}", projectInfo.id());
+        JfrMessageEmitter.projectDeleted(projectInfo.id());
     }
 }

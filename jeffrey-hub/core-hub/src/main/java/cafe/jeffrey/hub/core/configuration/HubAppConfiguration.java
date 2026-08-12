@@ -29,9 +29,9 @@ import cafe.jeffrey.hub.core.manager.project.HubProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.project.repository.AsprofFileRepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
+import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.file.AsprofFileInfoProcessor;
-import cafe.jeffrey.hub.core.scheduler.SchedulerTrigger;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptorFactory;
 import cafe.jeffrey.hub.core.streaming.FileHeartbeatReader;
 import cafe.jeffrey.hub.core.streaming.LiveStreamingManager;
@@ -47,7 +47,6 @@ import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -56,6 +55,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.support.TransactionOperations;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -78,7 +80,6 @@ public class HubAppConfiguration {
     private static final Logger LOG = LoggerFactory.getLogger(HubAppConfiguration.class);
 
     public static final String GLOBAL_SCHEDULER = "GLOBAL_SCHEDULER";
-    public static final String PROJECTS_SYNCHRONIZER_TRIGGER = "PROJECTS_SYNCHRONIZER_TRIGGER";
 
     @Bean
     public Clock applicationClock() {
@@ -117,6 +118,16 @@ public class HubAppConfiguration {
         return serverPersistenceProvider.databaseClientProvider();
     }
 
+    /**
+     * Shared transaction boundary over the single hub DataSource. Repositories built from
+     * {@link DatabaseClientProvider} acquire connections through Spring's
+     * {@code DataSourceUtils}, so their statements participate in transactions started here.
+     */
+    @Bean
+    public TransactionOperations hubTransactionOperations(DatabaseClientProvider databaseClientProvider) {
+        return new TransactionTemplate(new DataSourceTransactionManager(databaseClientProvider.dataSource()));
+    }
+
     @Bean
     public HubJeffreyDirs jeffreyDir(
             @Value("${jeffrey.hub.home.dir:${user.home}/.jeffrey}") String homeDir,
@@ -147,20 +158,21 @@ public class HubAppConfiguration {
     @Bean
     public ProjectManager.Factory projectManagerFactory(
             Clock applicationClock,
-            @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER)
-            ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger,
             RepositoryStorage.Factory repositoryStorageFactory,
             HubPlatformRepositories platformRepositories,
             WorkspaceEventPublisher workspaceEventPublisher,
-            InstanceEnvironmentParser instanceEnvironmentParser) {
+            InstanceEnvironmentParser instanceEnvironmentParser,
+            InstanceLifecycleEventEmitter instanceLifecycleEventEmitter,
+            TransactionOperations hubTransactionOperations) {
         return projectInfo -> new HubProjectManager(
                 applicationClock,
                 projectInfo,
-                projectsSynchronizerTrigger,
                 platformRepositories,
                 repositoryStorageFactory.apply(projectInfo),
                 workspaceEventPublisher,
-                instanceEnvironmentParser);
+                instanceEnvironmentParser,
+                instanceLifecycleEventEmitter,
+                hubTransactionOperations);
     }
 
     @Bean
@@ -171,20 +183,22 @@ public class HubAppConfiguration {
     @Bean
     public RepositoryManager.Factory repositoryManagerFactory(
             Clock applicationClock,
-            @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER)
-            ObjectFactory<SchedulerTrigger> projectsSynchronizerTrigger,
             RepositoryStorage.Factory repositoryStorageFactory,
             HubPlatformRepositories platformRepositories,
             WorkspaceEventPublisher workspaceEventPublisher,
-            InstanceEnvironmentParser instanceEnvironmentParser) {
+            InstanceEnvironmentParser instanceEnvironmentParser,
+            InstanceLifecycleEventEmitter instanceLifecycleEventEmitter,
+            TransactionOperations hubTransactionOperations) {
         return projectInfo -> new RepositoryManagerImpl(
                 applicationClock,
                 projectInfo,
-                projectsSynchronizerTrigger.getObject(),
                 platformRepositories.newProjectRepositoryRepository(projectInfo.id()),
+                platformRepositories.newProjectInstanceRepository(projectInfo.id()),
                 repositoryStorageFactory.apply(projectInfo),
                 workspaceEventPublisher,
-                instanceEnvironmentParser);
+                instanceEnvironmentParser,
+                instanceLifecycleEventEmitter,
+                hubTransactionOperations);
     }
 
     @Bean

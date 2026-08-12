@@ -215,16 +215,20 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>workspace-events-replicator</code></td>
-            <td><code>5s</code></td>
+            <td><code>workspace-reconciler</code></td>
+            <td><code>30s</code></td>
             <td>—</td>
-            <td>Replicates CLI-written event files into the persistent queue</td>
+            <td>
+              Scans the workspace directory tree and materializes new projects, instances and
+              sessions from the provisioner's marker files. Create-only: removing directories
+              from the volume never deletes hub state.
+            </td>
           </tr>
           <tr>
             <td><code>workspace-events-cleaner</code></td>
             <td><code>5m</code></td>
-            <td><code>queue-events-retention=31d</code><br><code>processed-files-retention=10m</code></td>
-            <td>Trims the event queue and already-replicated CLI event files</td>
+            <td><code>queue-events-retention=31d</code></td>
+            <td>Trims the workspace event log (the audit table behind the Activity feed)</td>
           </tr>
           <tr>
             <td><code>temp-directory-cleaner</code></td>
@@ -247,12 +251,6 @@ onMounted(() => {
               cache. The first tick runs at startup; the dashboard serves the cached snapshot and
               offers a manual refresh.
             </td>
-          </tr>
-          <tr>
-            <td><code>projects-synchronizer</code></td>
-            <td><code>30s</code></td>
-            <td>—</td>
-            <td>Applies queued workspace events per workspace</td>
           </tr>
           <tr>
             <td><code>profiler-settings-synchronizer</code></td>
@@ -285,16 +283,10 @@ onMounted(() => {
             <td>Caps total disk per project, reclaiming oldest-first</td>
           </tr>
           <tr>
-            <td><code>orphaned-session-cleaner</code></td>
-            <td><code>1h</code></td>
-            <td><code>duration=24</code> / <code>time-unit=Hours</code></td>
-            <td>Removes session directories that have no database row</td>
-          </tr>
-          <tr>
             <td><code>expired-instance-cleaner</code></td>
             <td><code>1h</code></td>
             <td><code>duration=14</code> / <code>time-unit=Days</code></td>
-            <td>Deletes EXPIRED instance rows and abandoned PENDING instances</td>
+            <td>Deletes EXPIRED instances and abandoned PENDING instances, including their directories on disk</td>
           </tr>
           <tr>
             <td><code>repository-jfr-compression</code></td>

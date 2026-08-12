@@ -30,7 +30,7 @@ const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'event-types', text: 'Event Types', level: 2 },
   { id: 'file-events', text: 'Recording and Artifact File Events', level: 2 },
-  { id: 'live-updates', text: 'Live Updates', level: 2 },
+  { id: 'refreshing', text: 'Refreshing', level: 2 },
   { id: 'project-scope', text: 'Per-Project Activity', level: 2 },
   { id: 'filtering', text: 'Filtering and Search', level: 2 }
 ];
@@ -153,28 +153,20 @@ onMounted(() => {
           than a live file inventory.
         </p>
 
-        <h2 id="live-updates">Live Updates</h2>
+        <h2 id="refreshing">Refreshing</h2>
 
         <p>
-          The event log opens a live stream after its initial load, so new events appear without a
-          refresh. An indicator next to the toolbar shows whether the stream is
-          <strong>Live</strong>, <strong>Reconnecting</strong>, or <strong>Paused</strong>.
-        </p>
-
-        <p>
-          Each delivery carries the highest event offset the hub has read. If the connection drops,
-          the client reconnects with backoff and resumes from that offset, so no event is missed
-          and none is shown twice. Events already on screen from the initial load are de-duplicated
-          against the stream's catch-up phase.
+          The event log loads a snapshot of the latest events and refreshes on demand — use the
+          tab's refresh button to pull in anything that happened since the last load. Events are
+          read from the hub's append-only event log, ordered newest first.
         </p>
 
         <h2 id="project-scope">Per-Project Activity</h2>
 
         <p>
           The same feed is available scoped to a single project, on the project's
-          <strong>Activity</strong> tab. Both the history load and the live stream are filtered on
-          the hub, so a project view on a busy workspace does not receive — or discard — every other
-          project's events.
+          <strong>Activity</strong> tab. The load is filtered on the hub, so a project view on a
+          busy workspace does not receive — or discard — every other project's events.
         </p>
 
         <p>

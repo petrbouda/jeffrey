@@ -52,7 +52,7 @@ class StorageControllerTest {
     void returnsCachedStorageOverview() {
         StorageOverview overview = new StorageOverview(
                 new DiskSpace(512_000_000_000L, 387_000_000_000L),
-                new InfrastructureUsage(2_900_000_000L, 214_000_000L, 1_300_000_000L),
+                new InfrastructureUsage(2_900_000_000L, 1_300_000_000L),
                 List.of(new ProjectStorage(
                         "ws-1", "production",
                         "prj-1", "order-service", null,
@@ -76,7 +76,6 @@ class StorageControllerTest {
                 .hasPathSatisfying("$.diskTotalBytes", v -> assertThat(v).asNumber().isEqualTo(512_000_000_000L))
                 .hasPathSatisfying("$.diskUsableBytes", v -> assertThat(v).asNumber().isEqualTo(387_000_000_000L))
                 .hasPathSatisfying("$.databaseSizeBytes", v -> assertThat(v).asNumber().isEqualTo(2_900_000_000L))
-                .hasPathSatisfying("$.queueSizeBytes", v -> assertThat(v).asNumber().isEqualTo(214_000_000))
                 .hasPathSatisfying("$.tempSizeBytes", v -> assertThat(v).asNumber().isEqualTo(1_300_000_000))
                 .hasPathSatisfying("$.projects[0].workspaceName", v -> assertThat(v).asString().isEqualTo("production"))
                 .hasPathSatisfying("$.projects[0].projectName", v -> assertThat(v).asString().isEqualTo("order-service"))
@@ -95,7 +94,7 @@ class StorageControllerTest {
     void returnsEmptyProjectsWhenNothingIsStored() {
         StorageOverview overview = new StorageOverview(
                 DiskSpace.UNKNOWN,
-                new InfrastructureUsage(0L, 0L, 0L),
+                new InfrastructureUsage(0L, 0L),
                 List.of());
         when(storageOverviewCache.get()).thenReturn(new CachedOverview(overview, COMPUTED_AT));
 
@@ -113,7 +112,7 @@ class StorageControllerTest {
         Instant refreshedAt = COMPUTED_AT.plusSeconds(90);
         StorageOverview overview = new StorageOverview(
                 new DiskSpace(512_000_000_000L, 350_000_000_000L),
-                new InfrastructureUsage(3_000_000_000L, 220_000_000L, 900_000_000L),
+                new InfrastructureUsage(3_000_000_000L, 900_000_000L),
                 List.of());
         when(storageOverviewCache.refresh()).thenReturn(new CachedOverview(overview, refreshedAt));
 

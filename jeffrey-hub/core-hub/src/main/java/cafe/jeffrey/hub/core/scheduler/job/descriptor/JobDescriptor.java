@@ -24,13 +24,11 @@ import java.util.Map;
 
 public sealed interface JobDescriptor<T extends JobDescriptor<T>>
         permits ProfilerSettingsSynchronizerJobDescriptor,
-        ProjectsSynchronizerJobDescriptor,
         ProjectInstanceRecordingCleanerJobDescriptor,
         ProjectInstanceSessionCleanerJobDescriptor,
         ProjectStorageQuotaCleanerJobDescriptor,
-        OrphanedSessionCleanerJobDescriptor,
         ExpiredInstanceCleanerJobDescriptor,
-        WorkspaceEventsReplicatorJobDescriptor,
+        WorkspaceReconcilerJobDescriptor,
         RepositoryCompressionProjectJobDescriptor,
         SessionFinishedDetectorProjectJobDescriptor,
         SessionFileDetectorProjectJobDescriptor {

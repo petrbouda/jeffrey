@@ -23,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.jfr.JfrMessageEmitter;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectInstanceSessionCleanerJobDescriptor;
@@ -48,7 +47,6 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
     private final Duration period;
     private final Clock clock;
     private final HubPlatformRepositories platformRepositories;
-    private final InstanceLifecycleEventEmitter instanceLifecycleEventEmitter;
 
     public ProjectInstanceSessionCleanerJob(
             WorkspacesManager workspacesManager,
@@ -56,13 +54,11 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
             ProjectInstanceSessionCleanerJobDescriptor jobDescriptor,
             Duration period,
             Clock clock,
-            HubPlatformRepositories platformRepositories,
-            InstanceLifecycleEventEmitter instanceLifecycleEventEmitter) {
+            HubPlatformRepositories platformRepositories) {
         super(workspacesManager, remoteRepositoryManagerFactory, jobDescriptor);
         this.period = period;
         this.clock = clock;
         this.platformRepositories = platformRepositories;
-        this.instanceLifecycleEventEmitter = instanceLifecycleEventEmitter;
     }
 
     @Override
@@ -136,40 +132,14 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
             }
         }
 
-        candidatesForDeletion.forEach(session -> {
-            manager.repositoryManager()
-                    .deleteRecordingSession(session.id(), WorkspaceEventCreator.PROJECT_INSTANCE_SESSION_CLEANER_JOB);
-            LOG.info("Deleted recording from the project instance session: project='{}' session={}", projectName, session.id());
-        });
+        // deleteRecordingSession removes the row, the directory and the audit event, and owns
+        // the instance expiring/EXPIRED transition — no post-processing needed here
+        candidatesForDeletion.forEach(session ->
+                manager.repositoryManager()
+                        .deleteRecordingSession(session.id(), WorkspaceEventCreator.PROJECT_INSTANCE_SESSION_CLEANER_JOB));
 
         if (!candidatesForDeletion.isEmpty()) {
             JfrMessageEmitter.sessionsCleaned(projectName, candidatesForDeletion.size());
-
-            // Set expiring_at on affected instances (first session deletion)
-            Set<String> affectedInstanceIds = candidatesForDeletion.stream()
-                    .map(RecordingSession::instanceId)
-                    .collect(Collectors.toSet());
-
-            for (String instanceId : affectedInstanceIds) {
-                Optional<ProjectInstanceInfo> instanceOpt = instanceRepo.find(instanceId);
-                if (instanceOpt.isPresent()) {
-                    ProjectInstanceInfo instance = instanceOpt.get();
-                    if (instance.expiringAt() == null) {
-                        instanceRepo.setExpiringAt(instanceId, currentTime);
-                    }
-
-                    // Check if instance has 0 remaining sessions → EXPIRED
-                    if (instance.status() == ProjectInstanceStatus.FINISHED
-                            && instance.sessionCount() == 0) {
-                        instanceRepo.updateStatusAndExpiredAt(instanceId, ProjectInstanceStatus.EXPIRED, currentTime);
-                        LOG.info("Instance marked as EXPIRED (last session deleted): instanceId={} projectId={}",
-                                instanceId, projectId);
-                        instanceLifecycleEventEmitter.emitInstanceExpired(
-                                manager.info(), instanceId, currentTime,
-                                WorkspaceEventCreator.PROJECT_INSTANCE_SESSION_CLEANER_JOB);
-                    }
-                }
-            }
         }
     }
 

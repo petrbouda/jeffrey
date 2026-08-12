@@ -190,7 +190,6 @@
         <div class="infra-note">
           Infrastructure (outside projects):
           database {{ formatBytes(overview?.databaseSizeBytes ?? 0) }}
-          · folder queue {{ formatBytes(overview?.queueSizeBytes ?? 0) }}
           · temp {{ formatBytes(overview?.tempSizeBytes ?? 0) }}
         </div>
       </section>
@@ -346,7 +345,6 @@ const totalUsedBytes = computed(() => {
   }
   return projectsTotalBytes.value
       + overview.value.databaseSizeBytes
-      + overview.value.queueSizeBytes
       + overview.value.tempSizeBytes;
 });
 

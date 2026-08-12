@@ -26,10 +26,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
 import cafe.jeffrey.hub.core.project.repository.SessionFinishEventEmitter;
-import cafe.jeffrey.shared.persistentqueue.DuckDBPersistentQueue;
-import cafe.jeffrey.shared.persistentqueue.QueueEntry;
-import cafe.jeffrey.hub.core.workspace.QueueWorkspaceEventPublisher;
-import cafe.jeffrey.hub.core.workspace.WorkspaceEventSerializer;
+import cafe.jeffrey.hub.core.workspace.AuditWorkspaceEventPublisher;
+import cafe.jeffrey.hub.persistence.api.WorkspaceEventLogRepository;
+import cafe.jeffrey.hub.persistence.api.WorkspaceEventLogRepository.WorkspaceEventQuery;
+import cafe.jeffrey.hub.persistence.jdbc.JdbcWorkspaceEventLogRepository;
 import cafe.jeffrey.hub.persistence.jdbc.JdbcHubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.jdbc.JdbcProjectInstanceRepository;
 import cafe.jeffrey.hub.persistence.jdbc.JdbcProjectRepositoryRepository;
@@ -53,6 +53,7 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -87,18 +88,16 @@ class HeartbeatToSessionFinishIntegrationTest {
 
     /**
      * Selects only the session-finished events. Finishing the instance's last unfinished session
-     * also announces the instance transition, so the queue holds more than one event by design.
+     * also announces the instance transition, so the audit log holds more than one event by design.
      */
-    private static List<WorkspaceEvent> sessionFinishedEvents(DuckDBPersistentQueue<WorkspaceEvent> queue) {
-        return queue.poll(WORKSPACE_ID, "test-consumer").stream()
-                .map(QueueEntry::payload)
-                .filter(event -> event.eventType() == WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED)
-                .toList();
+    private static List<WorkspaceEvent> sessionFinishedEvents(WorkspaceEventLogRepository eventLog) {
+        return eventLog.findLatest(new WorkspaceEventQuery(
+                WORKSPACE_ID, WorkspaceEventType.PROJECT_INSTANCE_SESSION_FINISHED, Set.of(), 100));
     }
 
-    private static DuckDBPersistentQueue<WorkspaceEvent> createQueue(MutableClock clock, DataSource dataSource) {
+    private static WorkspaceEventLogRepository createEventLog(MutableClock clock, DataSource dataSource) {
         var provider = new DatabaseClientProvider(dataSource);
-        return new DuckDBPersistentQueue<>(provider, "workspace-events", new WorkspaceEventSerializer(), clock);
+        return new JdbcWorkspaceEventLogRepository(provider, clock);
     }
 
     private static HubPlatformRepositories createHubPlatformRepositories(MutableClock clock, DataSource dataSource) {
@@ -130,9 +129,9 @@ class HeartbeatToSessionFinishIntegrationTest {
 
             var clock = new MutableClock(NOW);
             var repoRepo = createRepoRepository(clock, dataSource);
-            var queue = createQueue(clock, dataSource);
-            var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
-            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var eventLog = createEventLog(clock, dataSource);
+            var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
+            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
             var fileHeartbeatReader = new FileHeartbeatReader();
             var platformRepositories = createHubPlatformRepositories(clock, dataSource);
             var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
@@ -158,8 +157,8 @@ class HeartbeatToSessionFinishIntegrationTest {
             ProjectInstanceSessionInfo finishedSession = repoRepo.findSessionById(SESSION_ID).orElseThrow();
             assertEquals(heartbeatTime, finishedSession.finishedAt());
 
-            // Step 6: Verify SESSION_FINISHED event in queue
-            List<WorkspaceEvent> sessionFinished = sessionFinishedEvents(queue);
+            // Step 6: Verify SESSION_FINISHED event in the audit log
+            List<WorkspaceEvent> sessionFinished = sessionFinishedEvents(eventLog);
             assertEquals(1, sessionFinished.size());
 
             WorkspaceEvent event = sessionFinished.getFirst();
@@ -183,9 +182,9 @@ class HeartbeatToSessionFinishIntegrationTest {
 
             var clock = new MutableClock(NOW);
             var repoRepo = createRepoRepository(clock, dataSource);
-            var queue = createQueue(clock, dataSource);
-            var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
-            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var eventLog = createEventLog(clock, dataSource);
+            var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
+            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
             var fileHeartbeatReader = new FileHeartbeatReader();
             var platformRepositories = createHubPlatformRepositories(clock, dataSource);
             var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
@@ -218,9 +217,9 @@ class HeartbeatToSessionFinishIntegrationTest {
 
             var clock = new MutableClock(NOW);
             var repoRepo = createRepoRepository(clock, dataSource);
-            var queue = createQueue(clock, dataSource);
-            var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
-            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var eventLog = createEventLog(clock, dataSource);
+            var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
+            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
             var fileHeartbeatReader = new FileHeartbeatReader();
             var platformRepositories = createHubPlatformRepositories(clock, dataSource);
             var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
@@ -249,9 +248,9 @@ class HeartbeatToSessionFinishIntegrationTest {
             var clock = new MutableClock(NOW);
             var repoRepo = createRepoRepository(clock, dataSource);
             var instanceRepo = createInstanceRepository(dataSource);
-            var queue = createQueue(clock, dataSource);
-            var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
-            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var eventLog = createEventLog(clock, dataSource);
+            var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
+            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
             var fileHeartbeatReader = new FileHeartbeatReader();
             var platformRepositories = createHubPlatformRepositories(clock, dataSource);
             var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
@@ -298,9 +297,9 @@ class HeartbeatToSessionFinishIntegrationTest {
             var clock = new MutableClock(NOW);
             var repoRepo = createRepoRepository(clock, dataSource);
             var instanceRepo = createInstanceRepository(dataSource);
-            var queue = createQueue(clock, dataSource);
-            var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
-            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var eventLog = createEventLog(clock, dataSource);
+            var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
+            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
             var fileHeartbeatReader = new FileHeartbeatReader();
             var platformRepositories = createHubPlatformRepositories(clock, dataSource);
             var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
@@ -353,9 +352,9 @@ class HeartbeatToSessionFinishIntegrationTest {
 
             var clock = new MutableClock(NOW);
             var repoRepo = createRepoRepository(clock, dataSource);
-            var queue = createQueue(clock, dataSource);
-            var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
-            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var eventLog = createEventLog(clock, dataSource);
+            var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
+            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
             var fileHeartbeatReader = new FileHeartbeatReader();
             var platformRepositories = createHubPlatformRepositories(clock, dataSource);
             var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
@@ -386,9 +385,9 @@ class HeartbeatToSessionFinishIntegrationTest {
 
             var clock = new MutableClock(NOW);
             var repoRepo = createRepoRepository(clock, dataSource);
-            var queue = createQueue(clock, dataSource);
-            var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
-            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var eventLog = createEventLog(clock, dataSource);
+            var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
+            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
             var fileHeartbeatReader = new FileHeartbeatReader();
             var platformRepositories = createHubPlatformRepositories(clock, dataSource);
             var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
@@ -422,9 +421,9 @@ class HeartbeatToSessionFinishIntegrationTest {
 
             var clock = new MutableClock(NOW);
             var repoRepo = createRepoRepository(clock, dataSource);
-            var queue = createQueue(clock, dataSource);
-            var emitter = new SessionFinishEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
-            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new QueueWorkspaceEventPublisher(queue));
+            var eventLog = createEventLog(clock, dataSource);
+            var emitter = new SessionFinishEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
+            var lifecycleEmitter = new InstanceLifecycleEventEmitter(clock, new AuditWorkspaceEventPublisher(eventLog));
             var fileHeartbeatReader = new FileHeartbeatReader();
             var platformRepositories = createHubPlatformRepositories(clock, dataSource);
             var finisher = new SessionFinisher(clock, emitter, lifecycleEmitter, fileHeartbeatReader, platformRepositories);
@@ -458,8 +457,8 @@ class HeartbeatToSessionFinishIntegrationTest {
             ProjectInstanceSessionInfo finishedSession = repoRepo.findSessionById(SESSION_ID).orElseThrow();
             assertEquals(heartbeatTime, finishedSession.finishedAt());
 
-            // Step 7: Poll queue and verify SESSION_FINISHED event
-            List<WorkspaceEvent> sessionFinished = sessionFinishedEvents(queue);
+            // Step 7: Read the audit log and verify SESSION_FINISHED event
+            List<WorkspaceEvent> sessionFinished = sessionFinishedEvents(eventLog);
             assertEquals(1, sessionFinished.size());
 
             WorkspaceEvent event = sessionFinished.getFirst();

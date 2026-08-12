@@ -21,8 +21,9 @@ service ProjectService {
   // lookups resolve without enumerating the whole workspace.
   rpc GetProject(GetProjectRequest) returns (GetProjectResponse);
 
-  // Deletes a project by publishing a PROJECT_DELETED workspace event.
-  // The actual deletion is processed asynchronously by the event pipeline.
+  // Deletes a project synchronously: the database cascade, the audit event and the
+  // removal of the project's directory on the workspace volume happen before the
+  // response is returned.
   rpc DeleteProject(DeleteProjectRequest) returns (DeleteProjectResponse);
 
   // Restores a previously soft-deleted project, clearing the deleted_at

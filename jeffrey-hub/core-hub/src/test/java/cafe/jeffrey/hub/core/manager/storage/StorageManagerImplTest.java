@@ -100,7 +100,6 @@ class StorageManagerImplTest {
             StorageOverview overview = storageManager.overview();
 
             assertThat(overview.infrastructure().databaseBytes()).isEqualTo(120L);
-            assertThat(overview.infrastructure().queueBytes()).isEqualTo(30L);
             assertThat(overview.infrastructure().tempBytes()).isEqualTo(40L);
         }
 
@@ -111,7 +110,6 @@ class StorageManagerImplTest {
             StorageOverview overview = storageManager.overview();
 
             assertThat(overview.infrastructure().databaseBytes()).isZero();
-            assertThat(overview.infrastructure().queueBytes()).isZero();
             assertThat(overview.infrastructure().tempBytes()).isZero();
             assertThat(overview.projects()).isEmpty();
         }

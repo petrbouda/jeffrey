@@ -28,7 +28,6 @@ import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
-import cafe.jeffrey.shared.folderqueue.FolderQueue;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -70,10 +69,6 @@ public class InitExecutor {
             throw new RuntimeException("Cannot create parent directories: " + workspacesPath);
         }
 
-        Path eventsDir = workspacesPath.resolve(JeffreyLayout.EVENTS_DIR);
-        FolderQueue folderQueue = new FolderQueue(eventsDir, CLOCK);
-        EventPublisher eventPublisher = new EventPublisher(folderQueue, CLOCK);
-
         Path workspacePath = createDirectories(workspacesPath.resolve(config.getWorkspaceRefId()));
         LOG.debug("Directories created: workspacesPath={} workspacePath={}", workspacesPath, workspacePath);
 
@@ -98,12 +93,6 @@ public class InitExecutor {
                     config.resolveRepositoryType(),
                     config.getAttributes(),
                     projectPath);
-
-            eventPublisher.publishProjectCreated(
-                    projectId, config.getWorkspaceRefId(),
-                    config.getProjectName(), config.getProjectLabel(),
-                    config.getWorkspacesDir(), config.resolveRepositoryType(),
-                    config.getAttributes());
         }
 
         // Create instance folder (from config, HOSTNAME env var, or generated UUID)
@@ -117,9 +106,6 @@ public class InitExecutor {
                     projectId,
                     config.getWorkspaceRefId(),
                     instancePath);
-
-            eventPublisher.publishInstanceCreated(
-                    instanceId, projectId, config.getWorkspaceRefId());
         }
 
         String sessionId = IDGenerator.generate();
@@ -186,10 +172,6 @@ public class InitExecutor {
                 order,
                 newSessionPath,
                 resolvedSettings);
-
-        eventPublisher.publishSessionCreated(
-                sessionId, projectId, config.getWorkspaceRefId(),
-                instanceId, order);
 
         if (config.getEnvFilePath() != null || config.isPrintEnv()) {
             String envContent = new EnvFileBuilder().build(new EnvFileBuilder.Context(

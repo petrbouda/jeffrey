@@ -23,8 +23,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
 import cafe.jeffrey.hub.core.project.repository.MergedRecording;
+import cafe.jeffrey.hub.core.jfr.JfrMessageEmitter;
+import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.scheduler.SchedulerTrigger;
 import cafe.jeffrey.hub.core.workspace.WorkspaceEventConverter;
 import cafe.jeffrey.hub.core.workspace.WorkspaceEventPublisher;
 import cafe.jeffrey.shared.common.model.repository.InstanceStats;
@@ -32,8 +33,11 @@ import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics.FileTypeStats;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics.StatsCategory;
 import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
+import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
+import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
+import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatus;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.repository.FileCategory;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
@@ -44,6 +48,7 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
+import org.springframework.transaction.support.TransactionOperations;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -61,28 +66,34 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
     private final Clock clock;
     private final ProjectInfo projectInfo;
-    private final SchedulerTrigger projectsSynchronizerTrigger;
     private final ProjectRepositoryRepository repository;
+    private final ProjectInstanceRepository instanceRepository;
     private final RepositoryStorage repositoryStorage;
     private final WorkspaceEventPublisher workspaceEventPublisher;
     private final InstanceEnvironmentParser environmentParser;
+    private final InstanceLifecycleEventEmitter instanceLifecycleEventEmitter;
+    private final TransactionOperations transactionOperations;
 
     public RepositoryManagerImpl(
             Clock clock,
             ProjectInfo projectInfo,
-            SchedulerTrigger projectsSynchronizerTrigger,
             ProjectRepositoryRepository repository,
+            ProjectInstanceRepository instanceRepository,
             RepositoryStorage repositoryStorage,
             WorkspaceEventPublisher workspaceEventPublisher,
-            InstanceEnvironmentParser environmentParser) {
+            InstanceEnvironmentParser environmentParser,
+            InstanceLifecycleEventEmitter instanceLifecycleEventEmitter,
+            TransactionOperations transactionOperations) {
 
         this.clock = clock;
         this.projectInfo = projectInfo;
-        this.projectsSynchronizerTrigger = projectsSynchronizerTrigger;
         this.repository = repository;
+        this.instanceRepository = instanceRepository;
         this.repositoryStorage = repositoryStorage;
         this.workspaceEventPublisher = workspaceEventPublisher;
         this.environmentParser = environmentParser;
+        this.instanceLifecycleEventEmitter = instanceLifecycleEventEmitter;
+        this.transactionOperations = transactionOperations;
     }
 
     @Override
@@ -209,20 +220,67 @@ public class RepositoryManagerImpl implements RepositoryManager {
                 .findFirst();
     }
 
+    /**
+     * Deletes a recording session directly: the database row, the instance expiring/expired
+     * transitions, the audit event and the on-disk session directory — all inside one
+     * transaction. The storage removal runs LAST and still inside the transaction: file
+     * deletion cannot be rolled back, so every database write must have succeeded before the
+     * irreversible side effect happens; a storage failure rolls the row back and the next
+     * retention tick retries the whole deletion.
+     */
     @Override
     public void deleteRecordingSession(String recordingSessionId, WorkspaceEventCreator createdBy) {
         LOG.debug("Deleting recording session: sessionId={}", recordingSessionId);
-        WorkspaceEvent workspaceEvent = WorkspaceEventConverter.sessionDeleted(
-                clock.instant(),
-                projectInfo.workspaceId(),
-                projectInfo.id(),
-                recordingSessionId,
-                createdBy);
 
-        workspaceEventPublisher.publishBatch(projectInfo.workspaceId(), List.of(workspaceEvent));
+        Instant now = clock.instant();
+        boolean deleted = Boolean.TRUE.equals(transactionOperations.execute(_ -> {
+            Optional<ProjectInstanceSessionInfo> sessionOpt = repository.findSessionById(recordingSessionId);
+            if (sessionOpt.isEmpty()) {
+                LOG.warn("Recording session not found, nothing to delete: sessionId={} projectId={}",
+                        recordingSessionId, projectInfo.id());
+                return false;
+            }
+            String instanceId = sessionOpt.get().instanceId();
 
-        // Trigger event synchronization
-        projectsSynchronizerTrigger.execute();
+            repository.deleteSession(recordingSessionId);
+            transitionInstanceAfterSessionDelete(instanceId, now, createdBy);
+
+            WorkspaceEvent workspaceEvent = WorkspaceEventConverter.sessionDeleted(
+                    now, projectInfo.workspaceId(), projectInfo.id(), recordingSessionId, createdBy);
+            workspaceEventPublisher.publishBatch(projectInfo.workspaceId(), List.of(workspaceEvent));
+
+            repositoryStorage.deleteSession(recordingSessionId);
+            return true;
+        }));
+
+        if (deleted) {
+            LOG.info("Deleted recording session: sessionId={} projectId={}", recordingSessionId, projectInfo.id());
+            JfrMessageEmitter.sessionDeleted(recordingSessionId, projectInfo.id());
+        }
+    }
+
+    /**
+     * Marks the instance as expiring on its first session deletion, and EXPIRED once its last
+     * session is gone — the single place this transition happens for session deletions.
+     */
+    private void transitionInstanceAfterSessionDelete(String instanceId, Instant now, WorkspaceEventCreator createdBy) {
+        Optional<ProjectInstanceInfo> instanceOpt = instanceRepository.find(instanceId);
+        if (instanceOpt.isEmpty()) {
+            return;
+        }
+        ProjectInstanceInfo instance = instanceOpt.get();
+
+        if (instance.expiringAt() == null) {
+            instanceRepository.setExpiringAt(instanceId, now);
+        }
+
+        List<ProjectInstanceSessionInfo> remainingSessions = instanceRepository.findSessions(instanceId);
+        if (remainingSessions.isEmpty() && instance.status() == ProjectInstanceStatus.FINISHED) {
+            instanceRepository.updateStatusAndExpiredAt(instanceId, ProjectInstanceStatus.EXPIRED, now);
+            LOG.info("Instance marked as EXPIRED (last session deleted): instanceId={} projectId={}",
+                    instanceId, projectInfo.id());
+            instanceLifecycleEventEmitter.emitInstanceExpired(projectInfo, instanceId, now, createdBy);
+        }
     }
 
     @Override

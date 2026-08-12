@@ -28,7 +28,6 @@ public record StorageOverviewResponse(
         long diskTotalBytes,
         long diskUsableBytes,
         long databaseSizeBytes,
-        long queueSizeBytes,
         long tempSizeBytes,
         List<ProjectStorageResponse> projects) {
 
@@ -43,7 +42,6 @@ public record StorageOverviewResponse(
                 overview.disk().totalBytes(),
                 overview.disk().usableBytes(),
                 overview.infrastructure().databaseBytes(),
-                overview.infrastructure().queueBytes(),
                 overview.infrastructure().tempBytes(),
                 projects);
     }

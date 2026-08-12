@@ -29,7 +29,6 @@ import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.recording.ProjectRecordingInitializer;
 import cafe.jeffrey.hub.client.WorkspaceEventsClient;
-import cafe.jeffrey.hub.client.WorkspaceEventsStreamCallbacks;
 import cafe.jeffrey.microscope.core.web.dto.response.WorkspaceEventsResponse;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.shared.common.model.hub.HubInfo;
@@ -109,14 +108,6 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
         WorkspaceEventsClient.WorkspaceEventsResult result =
                 remoteClients.workspaceEvents().getEvents(workspaceInfo.id(), limit, projectIds);
         return new WorkspaceEventsResponse(result.events(), result.totalCount(), limit);
-    }
-
-    @Override
-    public WorkspaceEventsClient.WorkspaceEventsSubscription streamEvents(
-            WorkspaceEventsClient.WorkspaceEventsSubscribeRequest request,
-            WorkspaceEventsStreamCallbacks callbacks) {
-
-        return remoteClients.workspaceEvents().streamEvents(workspaceInfo.id(), request, callbacks);
     }
 
     @Override

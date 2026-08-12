@@ -23,16 +23,16 @@ import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.SessionFileDetectorProjectJobDescriptor;
-import cafe.jeffrey.hub.core.workspace.QueueWorkspaceEventPublisher;
-import cafe.jeffrey.hub.core.workspace.WorkspaceEventSerializer;
+import cafe.jeffrey.hub.core.workspace.AuditWorkspaceEventPublisher;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import cafe.jeffrey.shared.persistentqueue.DuckDBPersistentQueue;
-import cafe.jeffrey.shared.persistentqueue.QueueEntry;
+import cafe.jeffrey.hub.persistence.api.WorkspaceEventLogRepository;
+import cafe.jeffrey.hub.persistence.api.WorkspaceEventLogRepository.WorkspaceEventQuery;
+import cafe.jeffrey.hub.persistence.jdbc.JdbcWorkspaceEventLogRepository;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
 import org.junit.jupiter.api.Nested;
@@ -51,6 +51,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -61,8 +62,8 @@ import static org.mockito.Mockito.when;
 
 /**
  * Proves the scanner's central claim end to end: it is stateless, re-offers every candidate on
- * every tick, and the event queue's unique dedup index is what keeps that from producing duplicate
- * events. A mocked publisher cannot show this — only a real queue can.
+ * every tick, and the audit log's unique dedup index is what keeps that from producing duplicate
+ * rows. A mocked publisher cannot show this — only a real table can.
  */
 @DuckDBTest(migration = "classpath:db/migration/server")
 class SessionFileDetectorProjectJobIntegrationTest {
@@ -76,8 +77,6 @@ class SessionFileDetectorProjectJobIntegrationTest {
     private static final String WORKSPACE_ID = "ws-1";
     private static final String SESSION_ID = "session-1";
     private static final String INSTANCE_ID = "inst-1";
-    private static final String QUEUE_NAME = "workspace_events";
-    private static final String CONSUMER_ID = "test-consumer";
 
     private static final SessionFileDetectorProjectJobDescriptor DESCRIPTOR =
             new SessionFileDetectorProjectJobDescriptor(MAX_FILE_AGE, SETTLE_THRESHOLD, 500);
@@ -86,18 +85,18 @@ class SessionFileDetectorProjectJobIntegrationTest {
             SessionFileDetectorProjectJob job,
             ProjectManager projectManager,
             RepositoryStorage storage,
-            DuckDBPersistentQueue<WorkspaceEvent> queue) {
+            WorkspaceEventLogRepository eventLog) {
 
         void tick() {
             job.executeOnRepository(projectManager, storage, DESCRIPTOR, JobContext.EMPTY);
         }
 
-        List<QueueEntry<WorkspaceEvent>> drain() {
-            return queue.poll(WORKSPACE_ID, CONSUMER_ID);
+        List<WorkspaceEvent> allEvents() {
+            return eventLog.findLatest(new WorkspaceEventQuery(WORKSPACE_ID, null, Set.of(), 100));
         }
 
         long totalEvents() {
-            return queue.count(WORKSPACE_ID);
+            return eventLog.count(WORKSPACE_ID);
         }
     }
 
@@ -114,9 +113,8 @@ class SessionFileDetectorProjectJobIntegrationTest {
 
     private static Fixture fixture(DataSource dataSource, Path sessionDir, List<RepositoryFile> files) {
         var provider = new DatabaseClientProvider(dataSource);
-        var queue = new DuckDBPersistentQueue<WorkspaceEvent>(
-                provider, QUEUE_NAME, new WorkspaceEventSerializer(), FIXED_CLOCK);
-        var publisher = new QueueWorkspaceEventPublisher(queue);
+        var eventLog = new JdbcWorkspaceEventLogRepository(provider, FIXED_CLOCK);
+        var publisher = new AuditWorkspaceEventPublisher(eventLog);
 
         ProjectInfo projectInfo = new ProjectInfo(
                 "proj-1", null, "my-project", null, null, WORKSPACE_ID, NOW, NOW, Map.of(), null);
@@ -142,7 +140,7 @@ class SessionFileDetectorProjectJobIntegrationTest {
                 mock(WorkspacesManager.class), storageFactory, DESCRIPTOR,
                 Duration.ofSeconds(30), FIXED_CLOCK, publisher);
 
-        return new Fixture(job, projectManager, storage, queue);
+        return new Fixture(job, projectManager, storage, eventLog);
     }
 
     private static RepositoryFile recording(Path dir, String id, Instant createdAt) {
@@ -215,17 +213,17 @@ class SessionFileDetectorProjectJobIntegrationTest {
         }
 
         @Test
-        void announcedEventsAreReadableFromTheQueue(DataSource dataSource, @TempDir Path sessionDir) {
+        void announcedEventsAreReadableFromTheAuditLog(DataSource dataSource, @TempDir Path sessionDir) {
             var fixture = fixture(dataSource, sessionDir, List.of(
                     recording(sessionDir, "chunk-1", NOW.minusSeconds(500))));
 
             fixture.tick();
-            List<QueueEntry<WorkspaceEvent>> entries = fixture.drain();
+            List<WorkspaceEvent> events = fixture.allEvents();
 
             assertAll(
-                    () -> assertEquals(1, entries.size()),
-                    () -> assertEquals("chunk-1", entries.getFirst().payload().originEventId()),
-                    () -> assertEquals(WORKSPACE_ID, entries.getFirst().payload().workspaceRefId()));
+                    () -> assertEquals(1, events.size()),
+                    () -> assertEquals("chunk-1", events.getFirst().originEventId()),
+                    () -> assertEquals(WORKSPACE_ID, events.getFirst().workspaceRefId()));
         }
     }
 }

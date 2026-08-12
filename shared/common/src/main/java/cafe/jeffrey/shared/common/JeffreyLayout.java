@@ -48,8 +48,6 @@ public abstract class JeffreyLayout {
     /** Directory under the Jeffrey home that holds all workspaces */
     public static final String WORKSPACES_DIR = "workspaces";
 
-    /** Folder-queue directory under the workspaces dir for CLI-to-hub events */
-    public static final String EVENTS_DIR = ".events";
 
     /** Directory inside a session directory holding the JFR streaming repository */
     public static final String STREAMING_REPO_DIR = "streaming-repo";

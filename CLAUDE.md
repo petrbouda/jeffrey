@@ -37,11 +37,11 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 │                     JEFFREY-SERVER (remote)                       │
 │  HubApplication — multi-workspace server with scheduling      │
 │                                                                  │
-│  ┌──────────────┐  ┌──────────────────┐  ┌──────────────────┐  │
-│  │  core-hub  │  │  pages-hub     │  │  shared/          │  │
-│  │  gRPC services│  │  Minimal Vue 3    │  │  persistent-queue │  │
-│  │  scheduler    │  │  UI               │  │                   │  │
-│  └──────────────┘  └──────────────────┘  └──────────────────┘  │
+│  ┌──────────────┐  ┌──────────────────┐                        │
+│  │  core-hub  │  │  pages-hub     │                        │
+│  │  gRPC services│  │  Minimal Vue 3    │                        │
+│  │  scheduler    │  │  UI               │                        │
+│  └──────────────┘  └──────────────────┘                        │
 │                                                                  │
 │  Persistence: hub-sql-persistence (server DB)                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -51,8 +51,7 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 │  Common utilities, persistence abstractions, test infrastructure │
 │  gRPC proto definitions, storage, SQL builder                    │
 │  Modules: common, persistence, test, hub-api, sql-builder,   │
-│           recording-storage-api, filesystem-recording-storage,   │
-│           folder-queue, persistent-queue                         │
+│           recording-storage-api, filesystem-recording-storage    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -83,7 +82,6 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `hub-persistence-api` — Persistence interfaces for server domain
 - `hub-sql-persistence` — DuckDB persistence for server (workspaces, projects, scheduling)
 - `pages-hub` — Minimal Vue 3 frontend
-- `shared/persistent-queue` — Server-specific persistent queue
 
 **shared** (`shared/`):
 - `common` — Shared utilities and models
@@ -93,8 +91,6 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `sql-builder` — SQL query building utilities
 - `recording-storage-api` — Storage interfaces
 - `filesystem-recording-storage` — Filesystem storage implementation
-- `folder-queue` — File-based queue implementation
-- `persistent-queue` — Durable event queue
 
 ## Technology Stack
 
@@ -181,9 +177,7 @@ jeffrey/
 │   │       └── streaming/             # JFR streaming
 │   ├── hub-persistence-api/        # Server persistence interfaces
 │   ├── hub-sql-persistence/        # Server DuckDB persistence
-│   ├── pages-hub/                  # Minimal Vue 3 frontend
-│   └── shared/                        # Server-specific shared modules
-│       └── persistent-queue/          # Server persistent queue
+│   └── pages-hub/                  # Minimal Vue 3 frontend
 ├── shared/                            # Shared modules (used by both deployments)
 │   ├── common/                        # Common utilities and models
 │   ├── persistence/                   # Common persistence abstractions
@@ -192,9 +186,7 @@ jeffrey/
 │   │   └── src/main/proto/jeffrey/api/v1/  # Proto files
 │   ├── sql-builder/                   # SQL query building
 │   ├── recording-storage-api/         # Storage interfaces
-│   ├── filesystem-recording-storage/  # Filesystem storage implementation
-│   ├── folder-queue/                  # File-based queue
-│   └── persistent-queue/             # Durable event queue
+│   └── filesystem-recording-storage/  # Filesystem storage implementation
 ├── jeffrey-provisioner/               # Provisioner tool (GraalVM Native Image)
 ├── jeffrey-agent/                     # Agent module
 ├── jeffrey-pages/                     # Documentation site

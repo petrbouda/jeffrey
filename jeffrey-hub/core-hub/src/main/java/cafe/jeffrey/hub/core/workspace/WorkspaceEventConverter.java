@@ -14,7 +14,6 @@ import cafe.jeffrey.shared.common.model.repository.RemoteProject;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
 import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
-import cafe.jeffrey.shared.common.model.workspace.CLIWorkspaceEvent;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventType;
@@ -23,24 +22,6 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 import java.time.Instant;
 
 public abstract class WorkspaceEventConverter {
-
-    /**
-     * Converts a CLI wire-format event into the internal {@link WorkspaceEvent},
-     * supplying the queue-infrastructure {@code createdAt} timestamp that the CLI
-     * cannot meaningfully provide.
-     */
-    public static WorkspaceEvent fromCLIEvent(CLIWorkspaceEvent message, Instant createdAt) {
-        return new WorkspaceEvent(
-                null,
-                message.originEventId(),
-                message.projectId(),
-                message.workspaceRefId(),
-                message.eventType(),
-                message.content(),
-                message.originCreatedAt(),
-                createdAt,
-                message.createdBy());
-    }
 
     public static WorkspaceEvent projectCreated(
             Instant currentInstant,

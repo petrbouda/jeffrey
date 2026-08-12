@@ -21,7 +21,6 @@ package cafe.jeffrey.hub.core.scheduler.job;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.scheduler.JobContext;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectInstanceSessionCleanerJobDescriptor;
@@ -97,9 +96,6 @@ class ProjectInstanceSessionCleanerJobTest {
     @Mock
     ProjectInstanceRepository instanceRepository;
 
-    @Mock
-    InstanceLifecycleEventEmitter instanceLifecycleEventEmitter;
-
     private ProjectInstanceSessionCleanerJob job;
 
     @BeforeEach
@@ -122,8 +118,7 @@ class ProjectInstanceSessionCleanerJobTest {
                 descriptor,
                 Duration.ofHours(1),
                 Clock.fixed(NOW, ZoneOffset.UTC),
-                platformRepositories,
-                instanceLifecycleEventEmitter);
+                platformRepositories);
     }
 
     private void execute() {

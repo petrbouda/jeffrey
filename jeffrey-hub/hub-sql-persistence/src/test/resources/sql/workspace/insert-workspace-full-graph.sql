@@ -36,12 +36,7 @@ VALUES
     (NULL, 'proj-001', 'project-settings'),
     ('ws-002', NULL, 'other-workspace-settings');
 
-INSERT INTO persistent_queue_events (queue_name, scope_id, dedup_key, payload, created_at)
+INSERT INTO workspace_events (workspace_id, workspace_ref_id, project_id, origin_event_id, event_type, content, created_at, created_by)
 VALUES
-    ('workspace-events', 'ws-001', 'dedup-1', '{}', '2025-01-01T13:00:00Z'),
-    ('workspace-events', 'ws-002', 'dedup-2', '{}', '2025-01-01T13:00:00Z');
-
-INSERT INTO persistent_queue_consumers (consumer_id, queue_name, scope_id, last_offset, created_at)
-VALUES
-    ('consumer-1', 'workspace-events', 'ws-001', 0, '2025-01-01T13:00:00Z'),
-    ('consumer-1', 'workspace-events', 'ws-002', 0, '2025-01-01T13:00:00Z');
+    ('ws-001', 'ws-001', 'proj-001', 'evt-1', 'PROJECT_CREATED', '{}', '2025-01-01T13:00:00Z', 'TEST'),
+    ('ws-002', 'ws-002', 'proj-101', 'evt-2', 'PROJECT_CREATED', '{}', '2025-01-01T13:00:00Z', 'TEST');

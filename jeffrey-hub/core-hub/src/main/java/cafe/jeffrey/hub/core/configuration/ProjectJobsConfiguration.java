@@ -32,7 +32,6 @@ import cafe.jeffrey.hub.core.project.repository.InstanceLifecycleEventEmitter;
 import cafe.jeffrey.hub.core.project.repository.SessionFinishEventEmitter;
 import cafe.jeffrey.hub.core.scheduler.job.*;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ExpiredInstanceCleanerJobDescriptor;
-import cafe.jeffrey.hub.core.scheduler.job.descriptor.OrphanedSessionCleanerJobDescriptor;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectInstanceRecordingCleanerJobDescriptor;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectInstanceSessionCleanerJobDescriptor;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProjectStorageQuotaCleanerJobDescriptor;
@@ -76,8 +75,7 @@ public class ProjectJobsConfiguration {
     @Bean
     public ProjectInstanceSessionCleanerJob projectInstanceSessionCleanerJob(
             Clock clock,
-            HubPlatformRepositories platformRepositories,
-            InstanceLifecycleEventEmitter instanceLifecycleEventEmitter) {
+            HubPlatformRepositories platformRepositories) {
         SchedulerJobsProperties.JobConfig config =
                 schedulerJobsProperties.forType(JobType.PROJECT_INSTANCE_SESSION_CLEANER);
         return new ProjectInstanceSessionCleanerJob(
@@ -86,8 +84,7 @@ public class ProjectJobsConfiguration {
                 ProjectInstanceSessionCleanerJobDescriptor.of(config.params()),
                 config.period(),
                 clock,
-                platformRepositories,
-                instanceLifecycleEventEmitter);
+                platformRepositories);
     }
 
     @Bean
@@ -114,18 +111,6 @@ public class ProjectJobsConfiguration {
     }
 
     @Bean
-    public OrphanedSessionCleanerJob orphanedSessionCleanerJob(Clock clock) {
-        SchedulerJobsProperties.JobConfig config =
-                schedulerJobsProperties.forType(JobType.ORPHANED_SESSION_CLEANER);
-        return new OrphanedSessionCleanerJob(
-                workspacesManager,
-                repositoryStorageFactory,
-                OrphanedSessionCleanerJobDescriptor.of(config.params()),
-                config.period(),
-                clock);
-    }
-
-    @Bean
     public RepositoryCompressionProjectJob repositoryCompressionProjectJob() {
         return new RepositoryCompressionProjectJob(
                 workspacesManager,
@@ -141,6 +126,7 @@ public class ProjectJobsConfiguration {
                 schedulerJobsProperties.forType(JobType.EXPIRED_INSTANCE_CLEANER);
         return new ExpiredInstanceCleanerJob(
                 workspacesManager,
+                repositoryStorageFactory,
                 ExpiredInstanceCleanerJobDescriptor.of(config.params()),
                 config.period(),
                 clock,
