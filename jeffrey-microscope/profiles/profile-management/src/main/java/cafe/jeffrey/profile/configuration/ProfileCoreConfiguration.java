@@ -194,7 +194,8 @@ public class ProfileCoreConfiguration {
             return new ProfileFeaturesManagerImpl(
                     profileRepositories.newEventRepository(profileDb),
                     profileRepositories.newEventTypeRepository(profileDb),
-                    profileRepositories.newProfileCacheRepository(profileDb));
+                    profileRepositories.newProfileCacheRepository(profileDb),
+                    profileRepositories.newTraceRepository(profileDb));
         };
     }
 

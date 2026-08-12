@@ -29,6 +29,8 @@ import cafe.jeffrey.profile.feature.checker.PerfCounterDashboardFeatureChecker;
 import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
+import cafe.jeffrey.profile.feature.checker.TracesFeatureChecker;
+import cafe.jeffrey.provider.profile.api.TraceRepository;
 
 import java.util.List;
 import java.util.Map;
@@ -43,7 +45,8 @@ public class ProfileFeaturesManagerImpl implements ProfileFeaturesManager {
     public ProfileFeaturesManagerImpl(
             ProfileEventRepository eventRepository,
             ProfileEventTypeRepository eventTypeRepository,
-            ProfileCacheRepository cacheRepository) {
+            ProfileCacheRepository cacheRepository,
+            TraceRepository traceRepository) {
 
         this.eventTypeRepository = eventTypeRepository;
         this.featureChecks = List.of(
@@ -53,10 +56,11 @@ public class ProfileFeaturesManagerImpl implements ProfileFeaturesManager {
                 FeatureCheckers.GRPC_CLIENT_DASHBOARD,
                 FeatureCheckers.JDBC_STATEMENTS_DASHBOARD,
                 FeatureCheckers.JDBC_POOL_DASHBOARD,
-                FeatureCheckers.TRACING_DASHBOARD,
+                FeatureCheckers.METHOD_TRACING_DASHBOARD,
                 FeatureCheckers.ASYNC_PROFILER_SPANS,
                 new ContainerDashboardFeatureChecker(eventRepository),
-                new PerfCounterDashboardFeatureChecker(cacheRepository));
+                new PerfCounterDashboardFeatureChecker(cacheRepository),
+                new TracesFeatureChecker(traceRepository));
     }
 
     @Override

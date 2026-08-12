@@ -391,8 +391,9 @@ const getFeatureTypeForMenuItem = (menuItem: string): FeatureType | null => {
     'jdbc-statements': FeatureType.JDBC_STATEMENTS_DASHBOARD,
     'jdbc-pool': FeatureType.JDBC_POOL_DASHBOARD,
     'performance-counters': FeatureType.PERF_COUNTERS_DASHBOARD,
-    'method-tracing': FeatureType.TRACING_DASHBOARD,
+    'method-tracing': FeatureType.METHOD_TRACING_DASHBOARD,
     'async-profiler': FeatureType.ASYNC_PROFILER_SPANS,
+    traces: FeatureType.TRACES,
     'ai-analysis': FeatureType.AI_ANALYSIS,
     'heap-dump': FeatureType.HEAP_DUMP,
     subsecond: FeatureType.SUBSECOND
