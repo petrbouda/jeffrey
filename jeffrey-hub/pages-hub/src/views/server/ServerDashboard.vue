@@ -44,16 +44,7 @@
           <div class="total-key">
             Hub total
             <span class="total-refresh">
-              <span class="total-ago">{{ storageComputedAgo }}</span>
-              <button
-                  class="btn-refresh-icon"
-                  :disabled="refreshing"
-                  :title="'Storage computed ' + storageComputedAgo + ' — refresh now'"
-                  @click="refreshStorage"
-              >
-                <span v-if="refreshing" class="spinner-border spinner-border-sm" role="status"></span>
-                <i v-else class="bi bi-arrow-clockwise"></i>
-              </button>
+              <span class="total-ago" :title="'Recompute from the Scheduler page'">{{ storageComputedAgo }}</span>
             </span>
           </div>
           <div class="total-value">{{ formatBytes(totalUsedBytes) }}</div>
@@ -190,7 +181,6 @@
         <div class="infra-note">
           Infrastructure (outside projects):
           database {{ formatBytes(overview?.databaseSizeBytes ?? 0) }}
-          · folder queue {{ formatBytes(overview?.queueSizeBytes ?? 0) }}
           · temp {{ formatBytes(overview?.tempSizeBytes ?? 0) }}
         </div>
       </section>
@@ -251,7 +241,6 @@ const workspaceClient = new WorkspaceClient();
 
 const loading = ref(true);
 const error = ref<string | null>(null);
-const refreshing = ref(false);
 const relativeTimeTick = ref(0);
 let relativeTimeTimer: number | null = null;
 const overview = ref<StorageOverview | null>(null);
@@ -346,7 +335,6 @@ const totalUsedBytes = computed(() => {
   }
   return projectsTotalBytes.value
       + overview.value.databaseSizeBytes
-      + overview.value.queueSizeBytes
       + overview.value.tempSizeBytes;
 });
 
@@ -500,25 +488,6 @@ const loadDashboard = async () => {
   }
 };
 
-const refreshStorage = async () => {
-  if (refreshing.value) {
-    return;
-  }
-  refreshing.value = true;
-  try {
-    const [workspaces, storageOverview] = await Promise.all([
-      workspaceClient.list(),
-      storageClient.refresh()
-    ]);
-    await applyOverview(workspaces, storageOverview);
-    error.value = null;
-  } catch (e) {
-    console.error('Failed to refresh storage overview:', e);
-  } finally {
-    refreshing.value = false;
-  }
-};
-
 onMounted(() => {
   loadDashboard();
   relativeTimeTimer = window.setInterval(() => {
@@ -567,7 +536,7 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-/* Storage refresh affordance inside the Hub-total card */
+/* Age of the cached storage snapshot, shown inside the Hub-total card */
 .total-refresh {
   margin-left: auto;
   display: inline-flex;
@@ -582,36 +551,6 @@ onUnmounted(() => {
   letter-spacing: normal;
   color: var(--color-slate-muted);
   font-variant-numeric: tabular-nums;
-}
-
-.btn-refresh-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  font-size: 0.8rem;
-  color: var(--color-slate-text);
-  background: white;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-base);
-  cursor: pointer;
-}
-
-.btn-refresh-icon:hover:not(:disabled) {
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.btn-refresh-icon:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.btn-refresh-icon .spinner-border {
-  width: 12px;
-  height: 12px;
-  border-width: 2px;
 }
 
 /* Layout */

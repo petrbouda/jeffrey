@@ -346,11 +346,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope/WorkspacesPage.vue')
       },
       {
-        path: 'microscope/event-log',
-        name: 'DocsEventLog',
-        component: () => import('@/views/docs/microscope/EventLogPage.vue')
-      },
-      {
         path: 'microscope/profiler-settings',
         name: 'DocsMicroscopeProfilerSettings',
         component: () => import('@/views/docs/microscope/MicroscopeProfilerSettingsPage.vue')
@@ -555,7 +550,6 @@ const routes: RouteRecordRaw[] = [
       { path: 'goals/overview', redirect: '/docs/getting-started/introduction' },
       { path: 'platform/workspaces', redirect: '/docs/microscope/workspaces' },
       { path: 'platform/recordings', redirect: '/docs/microscope/recordings' },
-      { path: 'platform/event-log', redirect: '/docs/microscope/event-log' },
       { path: 'platform/projects', redirect: '/docs/microscope/projects' },
       { path: 'platform/projects/profiles', redirect: '/docs/microscope/profiles' },
       { path: 'platform/projects/recordings', redirect: '/docs/microscope/recordings' },

@@ -27,7 +27,6 @@ import cafe.jeffrey.hub.core.manager.project.ProjectManager.DetailedProjectInfo;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.util.List;
 import java.util.Optional;
@@ -90,7 +89,7 @@ public class ProjectGrpcService extends ProjectServiceGrpc.ProjectServiceImplBas
     public void deleteProject(DeleteProjectRequest request, StreamObserver<DeleteProjectResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
             ProjectManager project = lookups.projectManager(request.getProjectId());
-            project.delete(WorkspaceEventCreator.MANUAL);
+            project.delete();
 
             LOG.debug("Deleted project via gRPC: projectId={}", request.getProjectId());
 

@@ -25,11 +25,16 @@ import java.util.Map;
  * Read-only view of a configured scheduler job, resolved from
  * {@code application.properties} at startup. There is exactly one
  * {@code JobInfo} per {@link JobType}.
+ *
+ * @param manualTriggerSupported whether an operator may run this job on demand. A capability of
+ *                               the job itself, not a setting — the UI renders a control from
+ *                               this flag alone and so never needs to know which jobs they are.
  */
 public record JobInfo(
         JobType jobType,
         JobType.ExecutionLevel executionLevel,
         Duration period,
         Map<String, String> params,
-        boolean enabled) {
+        boolean enabled,
+        boolean manualTriggerSupported) {
 }

@@ -33,8 +33,6 @@ import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.streaming.LiveStreamingManager;
 import cafe.jeffrey.hub.core.streaming.ReplayStreamingManager;
-import cafe.jeffrey.hub.core.workspace.WorkspaceEventReader;
-import cafe.jeffrey.hub.core.workspace.WorkspaceEventStreamingManager;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 
 import java.lang.reflect.Method;
@@ -52,7 +50,7 @@ import static org.mockito.Mockito.mock;
  * Guards the Spring gRPC migration wiring. Spring gRPC's auto-configuration registers every
  * {@link BindableService} bean with the server and applies every {@link GlobalServerInterceptor}
  * bean to all services. This test verifies the contract this project is responsible for: that
- * {@link GrpcServerConfiguration} declares exactly the eight Jeffrey services as
+ * {@link GrpcServerConfiguration} declares exactly the seven Jeffrey services as
  * {@code BindableService} beans, and that the JFR interceptor is declared as a global interceptor.
  * If a service {@code @Bean} is dropped or the interceptor stops being global, this fails.
  */
@@ -65,7 +63,6 @@ class GrpcServerConfigurationTest {
             ProfilerSettingsGrpcService.class,
             RepositoryGrpcService.class,
             RecordingDownloadGrpcService.class,
-            WorkspaceEventsGrpcService.class,
             EventStreamingGrpcService.class);
 
     @Test
@@ -112,16 +109,6 @@ class GrpcServerConfigurationTest {
         @Bean
         public WorkspacesManager workspacesManager() {
             return mock(WorkspacesManager.class);
-        }
-
-        @Bean
-        public WorkspaceEventReader workspaceEventReader() {
-            return mock(WorkspaceEventReader.class);
-        }
-
-        @Bean
-        public WorkspaceEventStreamingManager workspaceEventStreamingManager() {
-            return mock(WorkspaceEventStreamingManager.class);
         }
 
         @Bean

@@ -31,7 +31,6 @@ import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
-import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -127,19 +126,6 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
     //language=SQL
     private static final String DELETE_INSTANCE = """
             DELETE FROM project_instances WHERE instance_id = :instance_id""";
-
-    /**
-     * An abandoned PENDING instance has no sessions — the session-created consumer would
-     * have transitioned it to ACTIVE otherwise. The session guard is defensive against
-     * out-of-order event processing.
-     */
-    //language=SQL
-    private static final String DELETE_STALE_PENDING_INSTANCES = """
-            DELETE FROM project_instances
-            WHERE project_id = :project_id AND status = :status AND started_at < :started_before
-              AND NOT EXISTS (
-                  SELECT 1 FROM project_instance_sessions s
-                  WHERE s.instance_id = project_instances.instance_id)""";
 
     private final String projectId;
     private final DatabaseClient databaseClient;
@@ -300,17 +286,6 @@ public class JdbcProjectInstanceRepository implements ProjectInstanceRepository 
                 .addValue("instance_id", instanceId);
 
         databaseClient.delete(StatementLabel.DELETE_PROJECT_INSTANCE, DELETE_INSTANCE, paramSource);
-    }
-
-    @Override
-    public int deleteStalePendingInstances(Instant startedBefore) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId)
-                .addValue("status", ProjectInstanceStatus.PENDING.name())
-                .addValue("started_before", startedBefore.atOffset(ZoneOffset.UTC));
-
-        return databaseClient.delete(
-                StatementLabel.DELETE_STALE_PENDING_INSTANCES, DELETE_STALE_PENDING_INSTANCES, paramSource);
     }
 
     private static RowMapper<ProjectInstanceInfo> projectInstanceInfoMapper() {

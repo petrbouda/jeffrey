@@ -34,7 +34,6 @@ import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics.FileTypeStats;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -286,9 +285,7 @@ class RepositoryGrpcServiceTest {
                             .build());
 
             assertNotNull(response);
-            verify(repoManager).deleteRecordingSession(
-                    SESSION_ID,
-                    cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator.MANUAL);
+            verify(repoManager).deleteRecordingSession(SESSION_ID);
         }
 
         @Test

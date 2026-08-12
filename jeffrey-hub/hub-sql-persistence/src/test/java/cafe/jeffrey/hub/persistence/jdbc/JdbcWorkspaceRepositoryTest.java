@@ -70,8 +70,6 @@ class JdbcWorkspaceRepositoryTest {
             assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM project_instances WHERE project_id = 'proj-001'"));
             assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM project_instance_sessions WHERE repository_id = 'repo-001'"));
             assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM profiler_settings WHERE workspace_id = 'ws-001' OR project_id = 'proj-001'"));
-            assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM persistent_queue_events WHERE scope_id = 'ws-001'"));
-            assertEquals(0, countRows(dataSource, "SELECT COUNT(*) FROM persistent_queue_consumers WHERE scope_id = 'ws-001'"));
 
             // The sibling workspace and global settings must remain untouched
             assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM workspaces WHERE workspace_id = 'ws-002'"));
@@ -81,8 +79,6 @@ class JdbcWorkspaceRepositoryTest {
             assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM project_instance_sessions WHERE repository_id = 'repo-101'"));
             assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM profiler_settings WHERE workspace_id IS NULL AND project_id IS NULL"));
             assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM profiler_settings WHERE workspace_id = 'ws-002'"));
-            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM persistent_queue_events WHERE scope_id = 'ws-002'"));
-            assertEquals(1, countRows(dataSource, "SELECT COUNT(*) FROM persistent_queue_consumers WHERE scope_id = 'ws-002'"));
         }
 
         @Test

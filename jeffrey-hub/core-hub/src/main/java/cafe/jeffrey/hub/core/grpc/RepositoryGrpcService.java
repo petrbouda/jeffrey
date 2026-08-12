@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.util.List;
 
@@ -107,7 +106,7 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
     public void deleteSession(DeleteSessionRequest request, StreamObserver<DeleteSessionResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
             RepositoryManager repoManager = lookups.repositoryManagerForSession(request.getSessionId());
-            repoManager.deleteRecordingSession(request.getSessionId(), WorkspaceEventCreator.MANUAL);
+            repoManager.deleteRecordingSession(request.getSessionId());
 
             LOG.debug("Deleted session via gRPC: sessionId={}", request.getSessionId());
 

@@ -31,7 +31,6 @@ import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.persistence.api.ProjectRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -165,7 +164,7 @@ class ProjectGrpcServiceTest {
             stub.deleteProject(DeleteProjectRequest.newBuilder()
                     .setProjectId(PROJECT_ID).build());
 
-            verify(projectManager).delete(WorkspaceEventCreator.MANUAL);
+            verify(projectManager).delete();
         }
 
         @Test

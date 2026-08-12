@@ -31,7 +31,6 @@ public record HubClients(
         ProfilerClient profiler,
         InstancesClient instances,
         ProjectsClient projects,
-        WorkspaceEventsClient workspaceEvents,
         EventStreamingClient eventStreaming
 ) {
 

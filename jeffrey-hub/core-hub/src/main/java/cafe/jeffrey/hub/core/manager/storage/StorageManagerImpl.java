@@ -145,9 +145,8 @@ public class StorageManagerImpl implements StorageManager {
     private InfrastructureUsage infrastructureUsage() {
         long databaseBytes = fileSizeIfExists(jeffreyDirs.homeDir().resolve(DATABASE_FILE_NAME))
                 + fileSizeIfExists(jeffreyDirs.homeDir().resolve(DATABASE_WAL_FILE_NAME));
-        long queueBytes = FileSystemUtils.directorySize(jeffreyDirs.workspaceEvents());
         long tempBytes = FileSystemUtils.directorySize(jeffreyDirs.temp());
-        return new InfrastructureUsage(databaseBytes, queueBytes, tempBytes);
+        return new InfrastructureUsage(databaseBytes, tempBytes);
     }
 
     private DiskSpace diskSpace() {

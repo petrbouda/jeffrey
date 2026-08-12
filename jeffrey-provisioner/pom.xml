@@ -32,6 +32,10 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>pending-index</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>common</artifactId>
             <exclusions>
                 <exclusion>
@@ -39,10 +43,6 @@
                     <artifactId>lz4-java</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>folder-queue</artifactId>
         </dependency>
         <dependency>
             <groupId>info.picocli</groupId>

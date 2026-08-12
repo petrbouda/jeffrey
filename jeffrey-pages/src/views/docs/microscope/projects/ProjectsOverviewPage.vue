@@ -28,7 +28,6 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'what-are-projects', text: 'What are Projects?', level: 2 },
   { id: 'project-page', text: 'The Project Page', level: 2 },
-  { id: 'project-activity', text: 'Activity', level: 2 },
   { id: 'project-settings', text: 'Project Settings', level: 2 },
   { id: 'creating-projects', text: 'Creating Projects', level: 2 }
 ];
@@ -76,11 +75,6 @@ onMounted(() => {
           <h4>Instances</h4>
           <p>JVM processes connected to the project, with status, storage, and file-type breakdown.</p>
         </router-link>
-        <a href="#project-activity" class="tab-card">
-          <div class="tab-icon"><i class="bi bi-activity"></i></div>
-          <h4>Activity</h4>
-          <p>Searchable log of what happened to the project — recordings arriving, sessions starting and ending.</p>
-        </a>
         <router-link to="/docs/microscope/projects/event-streaming#live-stream" class="tab-card">
           <div class="tab-icon"><i class="bi bi-broadcast"></i></div>
           <h4>Live Stream</h4>
@@ -110,9 +104,6 @@ onMounted(() => {
         Repository totals (storage size, file count, biggest session) are now a stat card on the
         <router-link to="/docs/microscope/projects/instances">Instances</router-link> tab.
       </DocsCallout>
-
-      <h2 id="project-activity">Activity</h2>
-      <p>The <strong>Activity</strong> tab is the project's event log: what arrived and when, newest first — recordings appearing, sessions starting and finishing. A search box narrows the list, and the tab header carries the entry count. Use it to answer "did that recording ever land?" without opening the Instances tab.</p>
 
       <h2 id="project-settings">Project Settings</h2>
       <p>The <strong>Settings</strong> tab is intentionally minimal. It exposes two things:</p>

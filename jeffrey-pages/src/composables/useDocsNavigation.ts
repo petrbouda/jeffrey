@@ -150,7 +150,6 @@ export const microscopeNavigation: DocSection[] = [
           { title: 'Profiler Settings', to: '/docs/microscope/projects/profiler-settings' }
         ]
       },
-      { title: 'Event Log', to: '/docs/microscope/event-log' },
       { title: 'Profiler Settings', to: '/docs/microscope/profiler-settings' }
     ]
   },

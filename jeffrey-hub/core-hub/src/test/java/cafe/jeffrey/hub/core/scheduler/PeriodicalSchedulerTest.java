@@ -49,7 +49,7 @@ class PeriodicalSchedulerTest {
     }
 
     private static Job testJob(Runnable action, Duration period) {
-        return testJob(action, period, JobType.PROJECTS_SYNCHRONIZER, Job.ExecutorGroup.GLOBAL);
+        return testJob(action, period, JobType.WORKSPACE_RECONCILER, Job.ExecutorGroup.GLOBAL);
     }
 
     private static Job fanOutTestJob(Runnable action, Duration period) {

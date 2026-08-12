@@ -19,7 +19,6 @@
 package cafe.jeffrey.hub.core.web.controllers;
 
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
@@ -29,8 +28,9 @@ import cafe.jeffrey.hub.core.resources.response.StorageOverviewResponse;
  * Read-only view of the hub's on-disk storage usage, served from
  * {@link StorageOverviewCache}. The cache is recomputed periodically by the
  * {@code StorageOverviewRefresherJob} (first tick at startup), so responses are
- * instant but may be up to one job period stale; {@code computedAtMillis} carries
- * the snapshot's age and {@code POST /refresh} forces an immediate recomputation.
+ * instant but may be up to one job period stale; {@code computedAtMillis} carries the
+ * snapshot's age. To recompute on demand, run the refresher job from the Scheduler page —
+ * manual runs are a generic scheduler capability rather than a per-endpoint one.
  */
 @RestController
 @RequestMapping("/api/internal/storage")
@@ -45,10 +45,5 @@ public class StorageController {
     @GetMapping
     public StorageOverviewResponse overview() {
         return StorageOverviewResponse.from(storageOverviewCache.get());
-    }
-
-    @PostMapping("/refresh")
-    public StorageOverviewResponse refresh() {
-        return StorageOverviewResponse.from(storageOverviewCache.refresh());
     }
 }

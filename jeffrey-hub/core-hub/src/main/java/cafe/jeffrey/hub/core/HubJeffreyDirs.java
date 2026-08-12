@@ -77,8 +77,4 @@ public class HubJeffreyDirs implements TempDirFactory {
     public Path libs() {
         return homeDir.resolve(LIBS_DIR);
     }
-
-    public Path workspaceEvents() {
-        return workspaces().resolve(JeffreyLayout.EVENTS_DIR);
-    }
 }

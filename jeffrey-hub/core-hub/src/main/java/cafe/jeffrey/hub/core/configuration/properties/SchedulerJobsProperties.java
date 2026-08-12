@@ -20,12 +20,15 @@ package cafe.jeffrey.hub.core.configuration.properties;
 
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.JobDescriptorUtils;
 import cafe.jeffrey.shared.common.model.job.JobType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Resolves scheduler job configuration from the Spring {@code Environment}.
@@ -35,10 +38,14 @@ import java.util.Map;
  * any field by redeclaring the same key.
  * <p>
  * Property keys use the lower-kebab-case form of {@link JobType} (for example
- * {@code projects-synchronizer} for {@code PROJECTS_SYNCHRONIZER}).
+ * {@code workspace-reconciler} for {@code WORKSPACE_RECONCILER}).
  */
 @ConfigurationProperties("jeffrey.hub.scheduler")
 public class SchedulerJobsProperties {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SchedulerJobsProperties.class);
+
+    private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^a-zA-Z0-9]");
 
     private static final int DEFAULT_FAN_OUT_POOL_SIZE = 2;
 
@@ -64,11 +71,40 @@ public class SchedulerJobsProperties {
     }
 
     public JobConfig forType(JobType jobType) {
-        JobConfig config = jobs.get(toKey(jobType));
+        JobConfig config = findConfig(jobType);
         if (config == null) {
+            LOG.warn("No scheduler configuration found for job, it stays disabled: job={} expected_key={}",
+                    jobType, toKey(jobType));
             return new JobConfig(false, Duration.ofMinutes(1), Map.of());
         }
         return config;
+    }
+
+    /**
+     * Resolves a job's configuration tolerantly of how the property source spelled the map key.
+     * The canonical key is lower-kebab-case, but environment variables cannot carry a dash:
+     * Spring's relaxed binding turns {@code JEFFREY_HUB_SCHEDULER_JOBS_WORKSPACERECONCILER_PERIOD}
+     * into the key {@code workspacereconciler}. Matching on the canonical key alone would miss
+     * that and silently fall back to a disabled job — the operator's attempt to tune a period
+     * would switch the job off instead.
+     */
+    private JobConfig findConfig(JobType jobType) {
+        JobConfig exact = jobs.get(toKey(jobType));
+        if (exact != null) {
+            return exact;
+        }
+
+        String normalized = normalize(jobType.name());
+        return jobs.entrySet().stream()
+                .filter(entry -> normalize(entry.getKey()).equals(normalized))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /** Reduces a key to letters and digits, so dashes, underscores and casing stop mattering. */
+    private static String normalize(String key) {
+        return NON_ALPHANUMERIC.matcher(key).replaceAll("").toLowerCase(Locale.ROOT);
     }
 
     public static String toKey(JobType jobType) {

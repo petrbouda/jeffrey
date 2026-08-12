@@ -31,28 +31,22 @@ public record JobDescriptorFactory() {
 
     public <T extends JobDescriptor<T>> T create(JobType jobType, Map<String, String> params) {
         return (T) switch (jobType) {
-            case PROJECTS_SYNCHRONIZER ->
-                    new ProjectsSynchronizerJobDescriptor();
             case PROJECT_INSTANCE_SESSION_CLEANER ->
                     ProjectInstanceSessionCleanerJobDescriptor.of(params);
             case PROJECT_INSTANCE_RECORDING_CLEANER ->
                     ProjectInstanceRecordingCleanerJobDescriptor.of(params);
             case PROJECT_STORAGE_QUOTA_CLEANER ->
                     ProjectStorageQuotaCleanerJobDescriptor.of(params);
-            case ORPHANED_SESSION_CLEANER ->
-                    OrphanedSessionCleanerJobDescriptor.of(params);
             case EXPIRED_INSTANCE_CLEANER ->
                     ExpiredInstanceCleanerJobDescriptor.of(params);
-            case WORKSPACE_EVENTS_REPLICATOR ->
-                    new WorkspaceEventsReplicatorJobDescriptor();
+            case WORKSPACE_RECONCILER ->
+                    new WorkspaceReconcilerJobDescriptor();
             case PROFILER_SETTINGS_SYNCHRONIZER ->
                     ProfilerSettingsSynchronizerJobDescriptor.of(params);
             case REPOSITORY_JFR_COMPRESSION ->
                     new RepositoryCompressionProjectJobDescriptor();
             case SESSION_FINISHED_DETECTOR ->
                     new SessionFinishedDetectorProjectJobDescriptor();
-            case SESSION_FILE_DETECTOR ->
-                    SessionFileDetectorProjectJobDescriptor.of(params);
             default -> throw new IllegalArgumentException("Unsupported job type: " + jobType);
         };
     }

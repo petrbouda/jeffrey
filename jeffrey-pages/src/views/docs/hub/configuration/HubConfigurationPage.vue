@@ -33,6 +33,7 @@ const headings = [
   { id: 'logging', text: 'Logging', level: 2 },
   { id: 'job-scheduler', text: 'Job Scheduler', level: 2 },
   { id: 'storage', text: 'Project/Recording Storage', level: 2 },
+  { id: 'workspace-discovery', text: 'Workspace Discovery', level: 2 },
   { id: 'live-workspace', text: 'Server Collection Mode', level: 2 },
   { id: 'profiler', text: 'Profiler Agent Settings', level: 2 },
   { id: 'database', text: 'Database Persistence', level: 2 },
@@ -177,6 +178,45 @@ onMounted(() => {
         UI is a read-only view of what the server resolved.
       </p>
 
+      <h3>Running a job on demand</h3>
+      <p>
+        Some jobs can also be run by hand from the <strong>Run</strong> column on the Scheduler page.
+        Whether a job offers this is a property of the job itself, not a setting — jobs that do not
+        show a disabled control. The run is synchronous and reports what it did when it finishes.
+      </p>
+      <p>Two jobs offer it today:</p>
+      <ul>
+        <li>
+          <code>workspace-reconciler</code> — walks <em>every</em> workspace tree in full, rather
+          than reading the <code>.pending</code> index as its scheduled tick does. This is the only
+          full scan the server performs, and the only way to pick up trees the index never named:
+          those provisioned by an older CLI, restored from a snapshot, or written while the server
+          was down. It is create-only, so running it when nothing is missing changes nothing.
+        </li>
+        <li>
+          <code>storage-overview-refresher</code> — recomputes the storage figures immediately
+          instead of waiting out its period.
+        </li>
+      </ul>
+
+      <h3>Tuning discovery latency</h3>
+      <p>
+        The <code>workspace-reconciler</code> period is how long a newly provisioned project, instance
+        or session waits before the server picks it up. A tick over a workspace that announced nothing
+        costs one directory listing and no queries, so a short period is cheap:
+      </p>
+      <pre><code>jeffrey.hub.scheduler.jobs.workspace-reconciler.period=5s</code></pre>
+      <p>
+        The same key works as an environment variable, in the dash-free form Spring's relaxed binding
+        produces:
+      </p>
+      <pre><code>JEFFREY_HUB_SCHEDULER_JOBS_WORKSPACERECONCILER_PERIOD=500ms</code></pre>
+      <p>
+        Values accept the usual duration notation (<code>500ms</code>, <code>2s</code>,
+        <code>5m</code>, <code>1h</code>, or ISO-8601 such as <code>PT2S</code>). Every job's period
+        is tunable the same way — substitute its own key from the tables below.
+      </p>
+
       <h3>Global settings</h3>
 
       <table>
@@ -215,16 +255,15 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>workspace-events-replicator</code></td>
+            <td><code>workspace-reconciler</code></td>
             <td><code>5s</code></td>
             <td>—</td>
-            <td>Replicates CLI-written event files into the persistent queue</td>
-          </tr>
-          <tr>
-            <td><code>workspace-events-cleaner</code></td>
-            <td><code>5m</code></td>
-            <td><code>queue-events-retention=31d</code><br><code>processed-files-retention=10m</code></td>
-            <td>Trims the event queue and already-replicated CLI event files</td>
+            <td>
+              Materializes new projects, instances and sessions from the entries the provisioner
+              writes into each workspace's <code>.pending</code> index. A workspace that announced
+              nothing costs one directory listing and no queries. Create-only: removing
+              directories from the volume never deletes hub state.
+            </td>
           </tr>
           <tr>
             <td><code>temp-directory-cleaner</code></td>
@@ -247,12 +286,6 @@ onMounted(() => {
               cache. The first tick runs at startup; the dashboard serves the cached snapshot and
               offers a manual refresh.
             </td>
-          </tr>
-          <tr>
-            <td><code>projects-synchronizer</code></td>
-            <td><code>30s</code></td>
-            <td>—</td>
-            <td>Applies queued workspace events per workspace</td>
           </tr>
           <tr>
             <td><code>profiler-settings-synchronizer</code></td>
@@ -285,16 +318,10 @@ onMounted(() => {
             <td>Caps total disk per project, reclaiming oldest-first</td>
           </tr>
           <tr>
-            <td><code>orphaned-session-cleaner</code></td>
-            <td><code>1h</code></td>
-            <td><code>duration=24</code> / <code>time-unit=Hours</code></td>
-            <td>Removes session directories that have no database row</td>
-          </tr>
-          <tr>
             <td><code>expired-instance-cleaner</code></td>
             <td><code>1h</code></td>
             <td><code>duration=14</code> / <code>time-unit=Days</code></td>
-            <td>Deletes EXPIRED instance rows and abandoned PENDING instances</td>
+            <td>Deletes EXPIRED instances and abandoned PENDING instances, including their directories on disk</td>
           </tr>
           <tr>
             <td><code>repository-jfr-compression</code></td>
@@ -308,32 +335,8 @@ onMounted(() => {
             <td>—</td>
             <td>Marks sessions finished from heartbeat staleness</td>
           </tr>
-          <tr>
-            <td><code>session-file-detector</code></td>
-            <td><code>30s</code></td>
-            <td>
-              <code>max-file-age=7d</code> / <code>artifact-settle-threshold=10s</code> /
-              <code>max-events-per-tick=500</code>
-            </td>
-            <td>Announces finished recording and artifact files as workspace events</td>
-          </tr>
         </tbody>
       </table>
-
-      <h3>max-file-age must stay below event retention</h3>
-      <p>
-        <code>session-file-detector</code> holds no state of its own. It re-offers every candidate
-        file on each tick and relies on the event queue's deduplication index to swallow the
-        repeats — which only works while the deduplication row still exists.
-      </p>
-      <p>
-        Those rows are deleted at
-        <code>workspace-events-cleaner.params.queue-events-retention</code> (default
-        <code>31d</code>). If <code>max-file-age</code> ever reaches that value, a file can outlive
-        its own row and is announced a second time. The default <code>7d</code> leaves a wide
-        margin, but raising it — or lowering event retention — means checking both values together.
-        The hub logs an <code>ERROR</code> at startup when they cross.
-      </p>
 
       <h2 id="storage">Project/Recording Storage</h2>
       <p>File system storage locations for recordings and repository data.</p>
@@ -351,6 +354,35 @@ onMounted(() => {
             <td><code>jeffrey.project.recording-storage.path</code></td>
             <td><code>${jeffrey.hub.home.dir}/recordings</code></td>
             <td>Directory for storing JFR recordings</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="workspace-discovery">Workspace Discovery</h2>
+      <p>
+        How the server learns about projects, instances and sessions the provisioner wrote to the
+        shared volume. Discovery reads each workspace's <code>.pending</code> index; see
+        <a href="#job-scheduler">Job Scheduler</a> for the period that governs its latency, and
+        for the manual full scan that finds trees the index never named.
+      </p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>jeffrey.hub.workspaces.auto-create</code></td>
+            <td><code>false</code></td>
+            <td>
+              Create a workspace automatically for a directory on the volume that announces work
+              but has no workspace registered yet. The default workspace is never auto-created
+              this way, and a directory that announces nothing never becomes a workspace.
+            </td>
           </tr>
         </tbody>
       </table>

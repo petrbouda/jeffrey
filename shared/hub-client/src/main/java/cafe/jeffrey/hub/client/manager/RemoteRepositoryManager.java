@@ -29,7 +29,6 @@ import cafe.jeffrey.shared.common.model.repository.FileCategory;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -100,7 +99,7 @@ public class RemoteRepositoryManager implements RepositoryManager {
     }
 
     @Override
-    public void deleteRecordingSession(String recordingSessionId, WorkspaceEventCreator createdBy) {
+    public void deleteRecordingSession(String recordingSessionId) {
         repositoryClient.deleteSession(recordingSessionId);
     }
 

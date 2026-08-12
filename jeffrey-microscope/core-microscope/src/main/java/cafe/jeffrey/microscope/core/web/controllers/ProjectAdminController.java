@@ -27,7 +27,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 /**
  * Microscope-only WorkspaceBrowser endpoints: deleting and restoring a project. The analyst is
@@ -52,7 +51,7 @@ public class ProjectAdminController {
             @PathVariable("projectId") String projectId) {
         ProjectManager pm = resolver.resolve(hubId, workspaceId, projectId).projectManager();
         LOG.debug("Deleting project: projectId={}", pm.info().id());
-        pm.delete(WorkspaceEventCreator.MANUAL);
+        pm.delete();
     }
 
     @PostMapping("/restore")

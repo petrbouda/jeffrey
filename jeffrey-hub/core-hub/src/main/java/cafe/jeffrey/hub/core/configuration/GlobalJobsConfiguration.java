@@ -28,28 +28,21 @@ import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.scheduler.*;
 import cafe.jeffrey.hub.core.scheduler.job.*;
 import cafe.jeffrey.hub.core.scheduler.job.descriptor.ProfilerSettingsSynchronizerJobDescriptor;
-import cafe.jeffrey.hub.core.workspace.consumer.WorkspaceEventConsumer;
+import cafe.jeffrey.hub.core.streaming.SessionFinisher;
+import cafe.jeffrey.hub.core.workspace.reconcile.WorkspaceReconciler;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.shared.common.model.job.JobType;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEvent;
-import cafe.jeffrey.shared.folderqueue.FolderQueue;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
-import cafe.jeffrey.shared.persistentqueue.PersistentQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.support.TransactionOperations;
 
 import java.time.Clock;
 import java.util.List;
 
 import static cafe.jeffrey.hub.core.configuration.HubAppConfiguration.GLOBAL_SCHEDULER;
-import static cafe.jeffrey.hub.core.configuration.HubAppConfiguration.PROJECTS_SYNCHRONIZER_TRIGGER;
 
 /**
  * Configuration for all background scheduler jobs. Job configuration (enabled
@@ -104,38 +97,39 @@ public class GlobalJobsConfiguration {
     }
 
     @Bean
-    public ProjectsSynchronizerJob projectsSynchronizerJob(
-            List<WorkspaceEventConsumer> consumers,
-            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
-            DatabaseClientProvider databaseClientProvider) {
+    public WorkspaceReconciler workspaceReconciler(
+            Clock clock,
+            HubJeffreyDirs jeffreyDirs,
+            HubPlatformRepositories platformRepositories,
+            SessionFinisher sessionFinisher,
+            TransactionOperations hubTransactionOperations) {
 
-        return new ProjectsSynchronizerJob(
-                consumers,
-                workspaceEventQueue,
-                new TransactionTemplate(new DataSourceTransactionManager(databaseClientProvider.dataSource())),
-                workspacesManager,
-                schedulerJobsProperties.forType(JobType.PROJECTS_SYNCHRONIZER).period());
+        return new WorkspaceReconciler(
+                clock,
+                jeffreyDirs,
+                platformRepositories,
+                sessionFinisher,
+                hubTransactionOperations);
     }
 
     @Bean
-    public WorkspaceEventsReplicatorJob workspaceEventsReplicatorJob(
-            Clock clock,
+    public WorkspaceReconcilerJob workspaceReconcilerJob(
+            WorkspaceReconciler workspaceReconciler,
             HubJeffreyDirs jeffreyDirs,
-            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
             DefaultWorkspaceProperties defaultWorkspaceProperties,
-            @Qualifier(PROJECTS_SYNCHRONIZER_TRIGGER) SchedulerTrigger projectsSynchronizerTrigger,
+            Clock clock,
             @Value("${jeffrey.hub.workspaces.auto-create:false}") boolean autoCreateWorkspaces) {
 
-        return new WorkspaceEventsReplicatorJob(
+        return new WorkspaceReconcilerJob(
                 workspacesManager,
-                schedulerJobsProperties.forType(JobType.WORKSPACE_EVENTS_REPLICATOR).period(),
-                clock,
-                new FolderQueue(jeffreyDirs.workspaceEvents(), clock),
-                workspaceEventQueue,
-                projectsSynchronizerTrigger,
+                workspaceReconciler,
+                jeffreyDirs,
                 defaultWorkspaceProperties,
-                autoCreateWorkspaces);
+                autoCreateWorkspaces,
+                clock,
+                schedulerJobsProperties.forType(JobType.WORKSPACE_RECONCILER).period());
     }
+
 
     @Bean
     public ProfilerSettingsSynchronizerJob profilerSettingsSynchronizerJob(
@@ -150,19 +144,6 @@ public class GlobalJobsConfiguration {
                 workspacesManager,
                 ProfilerSettingsSynchronizerJobDescriptor.of(config.params()),
                 platformRepositories);
-    }
-
-    @Bean
-    public WorkspaceEventsCleanerJob workspaceEventsCleanerJob(
-            PersistentQueue<WorkspaceEvent> workspaceEventQueue,
-            HubJeffreyDirs jeffreyDirs,
-            Clock clock) {
-
-        return new WorkspaceEventsCleanerJob(
-                workspaceEventQueue,
-                new FolderQueue(jeffreyDirs.workspaceEvents(), clock),
-                clock,
-                schedulerJobsProperties.forType(JobType.WORKSPACE_EVENTS_CLEANER));
     }
 
     @Bean
@@ -191,14 +172,13 @@ public class GlobalJobsConfiguration {
     }
 
     @Bean
-    public JobRegistry jobRegistry() {
-        return new JobRegistry(schedulerJobsProperties);
+    public ManualJobRunner manualJobRunner(List<Job> jobs, Clock clock) {
+        return new ManualJobRunner(jobs, clock);
     }
 
-    @Bean(PROJECTS_SYNCHRONIZER_TRIGGER)
-    public SchedulerTrigger projectsSynchronizerTrigger(
-            @Qualifier(GLOBAL_SCHEDULER) ObjectFactory<Scheduler> scheduler,
-            ProjectsSynchronizerJob projectsSynchronizerJob) {
-        return new SchedulerTriggerImpl(scheduler, projectsSynchronizerJob);
+    @Bean
+    public JobRegistry jobRegistry(ManualJobRunner manualJobRunner) {
+        return new JobRegistry(schedulerJobsProperties, manualJobRunner.supportedTypes());
     }
+
 }

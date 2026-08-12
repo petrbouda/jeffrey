@@ -33,12 +33,11 @@
 
     <modules>
         <module>common</module>
-        <module>folder-queue</module>
         <module>persistence</module>
-        <module>persistent-queue</module>
         <module>hub-api</module>
         <module>test</module>
         <module>sql-builder</module>
+        <module>pending-index</module>
         <module>recording-storage-api</module>
         <module>filesystem-recording-storage</module>
         <module>hub-client</module>
@@ -55,17 +54,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>folder-queue</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>persistence</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>persistent-queue</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

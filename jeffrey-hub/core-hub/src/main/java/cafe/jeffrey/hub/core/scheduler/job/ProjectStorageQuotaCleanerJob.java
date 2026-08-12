@@ -27,7 +27,6 @@ import cafe.jeffrey.shared.common.model.job.JobType;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,7 +129,7 @@ public class ProjectStorageQuotaCleanerJob extends RepositoryProjectJob<ProjectS
                 break;
             }
             manager.repositoryManager()
-                    .deleteRecordingSession(session.id(), WorkspaceEventCreator.PROJECT_STORAGE_QUOTA_CLEANER_JOB);
+                    .deleteRecordingSession(session.id());
             projected -= session.totalSizeBytes();
 
             LOG.info("Deleted session to reclaim storage: project='{}' session={} freed_bytes={}",

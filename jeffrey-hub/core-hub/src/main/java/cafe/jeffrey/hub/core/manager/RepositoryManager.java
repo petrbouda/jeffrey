@@ -23,7 +23,6 @@ import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 import cafe.jeffrey.shared.common.model.repository.InstanceStats;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
@@ -122,7 +121,7 @@ public interface RepositoryManager {
 
     Optional<RepositoryInfo> info();
 
-    void deleteRecordingSession(String recordingSessionId, WorkspaceEventCreator createdBy);
+    void deleteRecordingSession(String recordingSessionId);
 
     void deleteFilesInSession(String recordingSessionId, List<String> fileIds);
 

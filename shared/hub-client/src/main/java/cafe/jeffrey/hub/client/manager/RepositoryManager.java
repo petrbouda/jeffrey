@@ -21,7 +21,6 @@ package cafe.jeffrey.hub.client.manager;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
-import cafe.jeffrey.shared.common.model.workspace.WorkspaceEventCreator;
 
 import java.util.List;
 
@@ -31,7 +30,7 @@ public interface RepositoryManager {
 
     RepositoryStatistics calculateRepositoryStatistics();
 
-    void deleteRecordingSession(String recordingSessionId, WorkspaceEventCreator createdBy);
+    void deleteRecordingSession(String recordingSessionId);
 
     void deleteFilesInSession(String recordingSessionId, List<String> fileIds);
 

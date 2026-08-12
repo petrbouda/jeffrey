@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.hub.stub.data;
 
-import cafe.jeffrey.hub.stub.data.StubDataset.Event;
 import cafe.jeffrey.hub.stub.data.StubDataset.File;
 import cafe.jeffrey.hub.stub.data.StubDataset.FileKind;
 import cafe.jeffrey.hub.stub.data.StubDataset.InstState;
@@ -45,9 +44,6 @@ import java.util.concurrent.atomic.AtomicLong;
 public class StubDataFactory {
 
     private static final long MEGABYTE = 1024L * 1024L;
-    private static final String EVENT_PROJECT_CREATED = "PROJECT_CREATED";
-    private static final String EVENT_SESSION_STARTED = "SESSION_STARTED";
-    private static final String EVENT_SESSION_FINISHED = "SESSION_FINISHED";
     private static final String CREATED_BY_PROVISIONER = "jeffrey-provisioner";
     private static final String CREATED_BY_SYSTEM = "system";
 
@@ -80,7 +76,7 @@ public class StubDataFactory {
 
         List<Project> projects = List.of(checkout, inventory);
         return new Workspace(workspaceId, "Production", referenceId,
-                minus(now, Duration.ofDays(45)), projects, eventsFor(referenceId, projects, now));
+                minus(now, Duration.ofDays(45)), projects);
     }
 
     private Workspace stagingWorkspace(Instant now) {
@@ -92,7 +88,7 @@ public class StubDataFactory {
 
         List<Project> projects = List.of(gateway);
         return new Workspace(workspaceId, "Staging", referenceId,
-                minus(now, Duration.ofDays(20)), projects, eventsFor(referenceId, projects, now));
+                minus(now, Duration.ofDays(20)), projects);
     }
 
     private Workspace developmentWorkspace(Instant now) {
@@ -109,7 +105,7 @@ public class StubDataFactory {
 
         List<Project> projects = List.of(sandbox, deleted);
         return new Workspace(workspaceId, "Development", referenceId,
-                minus(now, Duration.ofDays(60)), projects, eventsFor(referenceId, projects, now));
+                minus(now, Duration.ofDays(60)), projects);
     }
 
     private Project project(String workspaceId, String id, String name, String namespace,
@@ -176,37 +172,6 @@ public class StubDataFactory {
 
     private File file(String sessionId, String name, Instant createdAt, long size, FileKind kind, RecState status) {
         return new File("file-" + sessionId + "-" + name, name, createdAt, size, kind, status);
-    }
-
-    private List<Event> eventsFor(String workspaceRefId, List<Project> projects, Instant now) {
-        List<Event> events = new ArrayList<>();
-        for (Project project : projects) {
-            events.add(event(project.id(), workspaceRefId, EVENT_PROJECT_CREATED,
-                    "{\"projectName\":\"" + project.name() + "\"}",
-                    project.createdAt(), CREATED_BY_PROVISIONER));
-            for (Instance instance : project.instances()) {
-                for (Session session : instance.sessions()) {
-                    events.add(event(project.id(), workspaceRefId, EVENT_SESSION_STARTED,
-                            "{\"sessionId\":\"" + session.id() + "\"}",
-                            session.createdAt(), CREATED_BY_SYSTEM));
-                    if (session.finishedAt() != null) {
-                        events.add(event(project.id(), workspaceRefId, EVENT_SESSION_FINISHED,
-                                "{\"sessionId\":\"" + session.id() + "\"}",
-                                session.finishedAt(), CREATED_BY_SYSTEM));
-                    }
-                }
-            }
-        }
-        // Latest first by created_at, matching the real server contract.
-        events.sort((left, right) -> right.createdAt().compareTo(left.createdAt()));
-        return List.copyOf(events);
-    }
-
-    private Event event(String projectId, String workspaceRefId, String type, String content,
-                        Instant occurredAt, String createdBy) {
-        long id = eventSequence.getAndIncrement();
-        return new Event(id, "origin-evt-" + id, projectId, workspaceRefId, type, content,
-                occurredAt, occurredAt, createdBy);
     }
 
     private static Instant minus(Instant now, Duration duration) {

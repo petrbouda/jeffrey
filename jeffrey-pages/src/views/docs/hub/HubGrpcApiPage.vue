@@ -347,40 +347,6 @@ onMounted(() => {
             </div>
           </div>
 
-          <!-- WorkspaceEventsService -->
-          <div class="endpoint-group">
-            <div class="group-header">
-              <i class="bi bi-journal-text"></i>
-              <h4>WorkspaceEventsService</h4>
-            </div>
-            <div class="group-body">
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>GetWorkspaceEvents</code>
-                </div>
-                <p>
-                  Get events for a workspace, optionally filtered by event type and by
-                  <code>project_ids</code>
-                </p>
-              </div>
-              <div class="endpoint-item">
-                <div class="endpoint-line">
-                  <span class="method rpc">RPC</span>
-                  <code>StreamWorkspaceEvents</code>
-                  <span class="badge-stream">server streaming</span>
-                </div>
-                <p>
-                  Subscribe to a workspace's events. Replays everything above
-                  <code>from_offset</code> (exclusive), then tails until the client disconnects.
-                  Filter with <code>event_types</code> and <code>project_ids</code> — each is empty
-                  for "everything", and the two combine as AND. Each batch carries
-                  <code>last_offset</code>, which advances past filtered-out events so a client
-                  watching one project of a busy workspace can resume without rescanning the rest.
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
 
         <h2 id="use-case">Use Case</h2>

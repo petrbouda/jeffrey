@@ -30,7 +30,6 @@ export interface StorageOverview {
     diskTotalBytes: number;
     diskUsableBytes: number;
     databaseSizeBytes: number;
-    queueSizeBytes: number;
     tempSizeBytes: number;
     projects: ProjectStorage[];
 }

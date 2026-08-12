@@ -42,7 +42,6 @@ module cafe.jeffrey.shared.common {
     exports cafe.jeffrey.shared.common.model.repository.matcher;
     exports cafe.jeffrey.shared.common.model.time;
     exports cafe.jeffrey.shared.common.model.workspace;
-    exports cafe.jeffrey.shared.common.model.workspace.event;
     exports cafe.jeffrey.shared.common.serde;
     exports cafe.jeffrey.shared.common.settings;
 }

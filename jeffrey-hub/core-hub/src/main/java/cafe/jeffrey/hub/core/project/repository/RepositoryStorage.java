@@ -100,6 +100,23 @@ public interface RepositoryStorage {
     void deleteSession(String sessionId);
 
     /**
+     * Deletes an instance's directory (including its marker file) from the repository.
+     * Removing the on-disk declaration is what makes an instance deletion final: the
+     * workspace reconciler re-creates any instance whose directory still exists.
+     *
+     * @param instanceId the unique identifier of the instance whose directory to delete
+     */
+    void deleteInstanceDirectory(String instanceId);
+
+    /**
+     * Deletes the whole project directory (including its marker file) from the repository.
+     * Removing the on-disk declaration is what makes a project deletion final: the
+     * workspace reconciler re-creates any project whose directory still exists. A no-op
+     * when the project has no repository or the directory is already gone.
+     */
+    void deleteProjectDirectory();
+
+    /**
      * Lists every session directory physically present under this project's repository
      * path, regardless of whether the database knows about it.
      * <p>

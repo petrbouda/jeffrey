@@ -25,21 +25,17 @@ export type ExecutionLevel = 'GLOBAL' | 'WORKSPACE' | 'PROJECT';
  * for every declared job type — extend this union when a new enum constant is added.
  */
 export type JobTypeName =
-    | 'WORKSPACE_EVENTS_REPLICATOR'
-    | 'WORKSPACE_EVENTS_CLEANER'
+    | 'WORKSPACE_RECONCILER'
     | 'TEMP_DIRECTORY_CLEANER'
     | 'DELETED_PROJECTS_CLEANER'
     | 'STORAGE_OVERVIEW_REFRESHER'
-    | 'PROJECTS_SYNCHRONIZER'
     | 'PROFILER_SETTINGS_SYNCHRONIZER'
     | 'PROJECT_INSTANCE_SESSION_CLEANER'
     | 'PROJECT_INSTANCE_RECORDING_CLEANER'
     | 'PROJECT_STORAGE_QUOTA_CLEANER'
-    | 'ORPHANED_SESSION_CLEANER'
     | 'EXPIRED_INSTANCE_CLEANER'
     | 'REPOSITORY_JFR_COMPRESSION'
-    | 'SESSION_FINISHED_DETECTOR'
-    | 'SESSION_FILE_DETECTOR';
+    | 'SESSION_FINISHED_DETECTOR';
 
 export interface JobView {
     jobType: string;
@@ -47,6 +43,22 @@ export interface JobView {
     period: string;
     params: Record<string, string>;
     enabled: boolean;
+    /**
+     * Whether this job can be run on demand. A capability the job itself declares, so the table
+     * renders a Run control from this flag alone and never needs to know which jobs those are.
+     */
+    manualTriggerSupported: boolean;
+}
+
+/**
+ * Outcome of a manual run. {@code summary} is written by the job and shown verbatim — the UI
+ * does not interpret it, which is what keeps the trigger generic across jobs.
+ */
+export interface JobRunResult {
+    jobType: string;
+    startedAt: string;
+    durationMs: number;
+    summary: string;
 }
 
 /**
