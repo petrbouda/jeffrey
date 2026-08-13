@@ -21,6 +21,10 @@
 #     sudo ./run-microscope-profiled.sh
 # (Use EVENT=itimer to sample CPU without perf — then no kernel changes and no sudo are required.)
 #
+# That tuning is Linux-only: the sysctls do not exist elsewhere, and on macOS async-profiler samples
+# event=cpu without perf_events (falling back to wall-clock sampling). So on macOS event=cpu is left
+# as-is and the script runs as your normal user — no sudo, no kernel changes.
+#
 # NOTE: with sudo the JVM runs as root and uses root's home for Jeffrey data; your own ~/.jeffrey is
 # left untouched. Pass EVENT=itimer to run as your normal user instead.
 #
@@ -76,6 +80,8 @@ done
 set -- "${REST[@]+"${REST[@]}"}"
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Linux vs Darwin: decides whether the perf_event kernel tuning below applies at all.
+OS_NAME="$(uname -s)"
 
 # Home of the user who invoked the script. Under sudo that is the original user rather than root,
 # which is what an unquoted '~' expands to at the prompt (the shell expands it before sudo elevates).
@@ -145,18 +151,25 @@ if [[ ! -f "${JAR}" ]]; then
 fi
 
 # perf_events CPU sampling requires relaxed kernel limits → set them automatically (needs root).
+# Linux-only: those sysctls exist nowhere else, and on macOS async-profiler samples event=cpu without
+# perf_events (wall-clock fallback), so there is nothing to relax and no reason to demand root.
 # Not needed at all when the profiler agent is disabled.
 if [[ "${NO_PROFILER}" -eq 0 && "${EVENT}" == "cpu" ]]; then
-    if [[ "${EUID}" -ne 0 ]]; then
-        echo "error: event=cpu sets kernel perf limits and must be run with sudo:" >&2
-        echo "       sudo ${BASH_SOURCE[0]}" >&2
-        echo "       (or run without sudo using software sampling: EVENT=itimer ${BASH_SOURCE[0]})" >&2
-        exit 1
+    if [[ "${OS_NAME}" == "Linux" ]]; then
+        if [[ "${EUID}" -ne 0 ]]; then
+            echo "error: event=cpu sets kernel perf limits and must be run with sudo:" >&2
+            echo "       sudo ${BASH_SOURCE[0]}" >&2
+            echo "       (or run without sudo using software sampling: EVENT=itimer ${BASH_SOURCE[0]})" >&2
+            exit 1
+        fi
+        echo "Relaxing kernel perf limits for perf_events CPU sampling:"
+        sysctl -w kernel.perf_event_paranoid=1
+        sysctl -w kernel.kptr_restrict=0
+        echo
+    else
+        echo "Skipping kernel perf tuning on ${OS_NAME}: event=cpu samples without perf_events there."
+        echo
     fi
-    echo "Relaxing kernel perf limits for perf_events CPU sampling:"
-    sysctl -w kernel.perf_event_paranoid=1
-    sysctl -w kernel.kptr_restrict=0
-    echo
 fi
 
 # Resolve the java binary. sudo resets PATH (dropping SDKMAN), so fall back to JAVA_HOME, then the
