@@ -18,6 +18,9 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
+import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.SpanStatus;
+import cafe.jeffrey.provider.profile.api.TraceEventRecord;
 import cafe.jeffrey.provider.profile.api.TraceOperationRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
@@ -48,6 +51,8 @@ class JdbcTraceRepositoryTest {
     private static final long SLOW_TRACE = Long.MAX_VALUE;
     private static final long FAST_TRACE = Long.MIN_VALUE;
     private static final long NEGATIVE_SPAN_ID = -8113938001533374712L;
+    /** 2025-01-15T10:00:00Z, the fixture's origin, as epoch millis. */
+    private static final long EPOCH_10_00_00 = 1736935200000L;
 
     private static JdbcTraceRepository derived(DataSource dataSource) throws SQLException {
         TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
@@ -152,6 +157,30 @@ class JdbcTraceRepositoryTest {
     }
 
     @Nested
+    @DisplayName("Contract with the event API")
+    class EventApiContract {
+
+        @Test
+        @DisplayName("the status the derivation writes is the status the instrumentation emits")
+        void statusNamesMatchTheEnum() {
+            // The derivation SQL spells these out as literals for readability. They are the same
+            // values Tracer writes into the event, so a rename on either side has to be a rename on
+            // both -- this is the guard that makes that visible rather than silent.
+            assertEquals("OK", SpanStatus.OK.name());
+            assertEquals("ERROR", SpanStatus.ERROR.name());
+            assertEquals("UNSET", SpanStatus.UNSET.name());
+        }
+
+        @Test
+        @DisplayName("the kinds the derivation assigns are the kinds the instrumentation emits")
+        void kindNamesMatchTheEnum() {
+            assertEquals("SERVER", SpanKind.SERVER.name());
+            assertEquals("CLIENT", SpanKind.CLIENT.name());
+            assertEquals("INTERNAL", SpanKind.INTERNAL.name());
+        }
+    }
+
+    @Nested
     @DisplayName("Reads")
     class Reads {
 
@@ -227,6 +256,33 @@ class JdbcTraceRepositoryTest {
         @DisplayName("an unknown trace id yields no spans rather than failing")
         void unknownTraceIsEmpty(DataSource dataSource) throws SQLException {
             assertTrue(derived(dataSource).spansOf(42L).isEmpty());
+        }
+
+        @Test
+        @DisplayName("the drill-down shows JVM activity, not the spans themselves")
+        void eventsInSpanExcludeSpans(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = derived(dataSource);
+
+            // The window of the root HTTP span on thread 3001, which also carries a JDBC span and
+            // an execution sample.
+            List<TraceEventRecord> events = repository.eventsInSpan(
+                    3001, EPOCH_10_00_00, EPOCH_10_00_00 + 120);
+
+            assertTrue(events.stream().noneMatch(event -> event.eventType().startsWith("jeffrey.")),
+                    "an event that is itself a span belongs in the waterfall, not inside a span");
+            assertEquals(List.of("jdk.ExecutionSample"),
+                    events.stream().map(TraceEventRecord::eventType).toList());
+        }
+
+        @Test
+        @DisplayName("the drill-down is scoped to the span's own thread and window")
+        void eventsInSpanAreScoped(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = derived(dataSource);
+
+            // A different thread has no events of its own in the fixture.
+            assertTrue(repository.eventsInSpan(3002, EPOCH_10_00_00, EPOCH_10_00_00 + 120).isEmpty());
+            // A window before anything happened is empty too.
+            assertTrue(repository.eventsInSpan(3001, EPOCH_10_00_00 - 500, EPOCH_10_00_00 - 1).isEmpty());
         }
     }
 }

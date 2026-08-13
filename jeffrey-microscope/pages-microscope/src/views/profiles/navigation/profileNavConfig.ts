@@ -218,7 +218,10 @@ export const technologiesNav: Record<string, TechnologyNav> = {
     icon: 'bi-diagram-3',
     groups: [
       {
-        items: [item('Traces', 'bi-diagram-3', '/technologies/traces')]
+        items: [
+          item('Traces', 'bi-diagram-3', '/technologies/traces'),
+          item('Operations', 'bi-bar-chart-steps', '/technologies/traces/operations')
+        ]
       }
     ]
   }

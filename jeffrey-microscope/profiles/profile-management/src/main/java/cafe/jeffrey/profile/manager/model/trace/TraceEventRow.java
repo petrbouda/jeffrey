@@ -15,20 +15,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module cafe.jeffrey.microscope.profile.guardian {
-    requires transitive cafe.jeffrey.microscope.profile.frame.ir;
-    requires transitive cafe.jeffrey.microscope.profile.persistence.api;
-    requires cafe.jeffrey.shared.common;
-    requires spring.boot;
-    requires org.slf4j;
-    requires tools.jackson.databind;
-    requires cafe.jeffrey.jfr.events;
 
-    exports cafe.jeffrey.profile.guardian;
-    exports cafe.jeffrey.profile.guardian.definition;
-    exports cafe.jeffrey.profile.guardian.guard;
-    exports cafe.jeffrey.profile.guardian.matcher;
-    exports cafe.jeffrey.profile.guardian.preconditions;
-    exports cafe.jeffrey.profile.guardian.prereq;
-    exports cafe.jeffrey.profile.guardian.traverse;
+package cafe.jeffrey.profile.manager.model.trace;
+
+/**
+ * One JFR event that occurred inside a span — the "what was the JVM doing in here" breakdown.
+ *
+ * @param eventType        the JFR event type, e.g. {@code jdk.ExecutionSample}
+ * @param startEpochMillis when it occurred, absolute UTC epoch millis
+ * @param durationNanos    its duration, or 0 for an instantaneous event
+ * @param fields           the event's own fields, as a JSON object string
+ */
+public record TraceEventRow(
+        String eventType,
+        long startEpochMillis,
+        long durationNanos,
+        String fields) {
 }

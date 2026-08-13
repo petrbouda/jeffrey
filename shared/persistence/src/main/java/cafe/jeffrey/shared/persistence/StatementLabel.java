@@ -90,6 +90,7 @@ public enum StatementLabel {
     TRACE_SPANS,
     TRACE_OPERATIONS,
     TRACES_EXIST,
+    TRACE_SPAN_EVENTS,
 
     /**
      * {@link GroupLabel#ALLOCATING_THREADS}

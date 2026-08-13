@@ -30,6 +30,11 @@
     <artifactId>profile-guardian</artifactId>
 
     <dependencies>
+        <!-- Tracer: each event type's guard evaluation is recorded as a span -->
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-events</artifactId>
+        </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>

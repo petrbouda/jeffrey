@@ -21,11 +21,13 @@ package cafe.jeffrey.microscope.core.web.controllers.profile;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.model.span.SpanEventRow;
+import cafe.jeffrey.profile.model.FlamegraphPanel;
+import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.profile.panel.PanelContext;
+import cafe.jeffrey.profile.manager.model.trace.TraceEventRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
-import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
 import cafe.jeffrey.profile.resources.request.GenerateTraceSpanFlamegraphRequest;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.SpanInterval;
@@ -47,6 +49,11 @@ import java.util.List;
  * <p>
  * Trace and span ids travel as 16-char hex strings, because a 64-bit id exceeds JavaScript's safe
  * integer range and would be silently rounded as a JSON number.
+ * <p>
+ * Kept independent of the async-profiler span feature. {@code profiler.Span} is a flat, per-thread
+ * latency interval selected by tag; a trace span is a node in a tree. They answer different
+ * questions and share only the interval-scoped flamegraph machinery, which lives in
+ * {@link SpanScopedGraphParameters} so neither feature depends on the other.
  */
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}/traces")
@@ -58,9 +65,11 @@ public class TracesController {
     private static final String DEFAULT_OPERATIONS_LIMIT = "100";
 
     private final ProfileManagerResolver resolver;
+    private final JfrFlamegraphPanelProvider panelProvider;
 
-    public TracesController(ProfileManagerResolver resolver) {
+    public TracesController(ProfileManagerResolver resolver, JfrFlamegraphPanelProvider panelProvider) {
         this.resolver = resolver;
+        this.panelProvider = panelProvider;
     }
 
     @GetMapping
@@ -95,18 +104,37 @@ public class TracesController {
      * question for a (thread, window) pair.
      */
     @GetMapping("/{traceId}/spans/{spanId}/events")
-    public List<SpanEventRow> spanEvents(
+    public List<TraceEventRow> spanEvents(
             @PathVariable("profileId") String profileId,
             @PathVariable("traceId") String traceId,
             @PathVariable("spanId") String spanId) {
         LOG.debug("Listing events inside a span: profileId={} trace_id={} span_id={}",
                 profileId, traceId, spanId);
-        ProfileManager profileManager = resolver.resolve(profileId);
-        TraceSpanRow span = findSpan(profileManager, traceId, spanId);
+        return resolver.resolve(profileId).traceManager()
+                .eventsInSpan(parseId(traceId), parseId(spanId));
+    }
 
-        long from = span.startEpochMillis();
-        long to = from + span.durationNanos() / 1_000_000L;
-        return profileManager.spanManager().spanEvents(Long.parseLong(span.threadHash()), from, to);
+    /**
+     * The flamegraph cards available for one span — which event types actually recorded anything
+     * inside it, with the real counts, so the drill-down offers only graphs that exist.
+     */
+    @GetMapping("/{traceId}/spans/{spanId}/panels")
+    public List<FlamegraphPanel> spanPanels(
+            @PathVariable("profileId") String profileId,
+            @PathVariable("traceId") String traceId,
+            @PathVariable("spanId") String spanId,
+            @RequestParam(value = "selfOnly", defaultValue = "false") boolean selfOnly) {
+        LOG.debug("Building span-scoped flamegraph panels: profileId={} trace_id={} span_id={} self_only={}",
+                profileId, traceId, spanId, selfOnly);
+        ProfileManager profileManager = resolver.resolve(profileId);
+
+        List<SpanInterval> intervals = profileManager.traceManager()
+                .spanIntervals(parseId(traceId), parseId(spanId), selfOnly);
+        if (intervals.isEmpty()) {
+            return List.of();
+        }
+        return panelProvider.panels(
+                profileManager.flamegraphManager().eventSummaries(intervals), PanelContext.PRIMARY);
     }
 
     /**
@@ -130,19 +158,8 @@ public class TracesController {
             throw Exceptions.resourceNotFound("Span has no samples to show: " + spanId);
         }
 
-        GraphParameters params = AsyncProfilerSpansController.mapToSpanGraphParameters(
-                profileManager.info(), request, intervals);
+        GraphParameters params = SpanScopedGraphParameters.of(profileManager.info(), request, intervals);
         return profileManager.flamegraphManager().generate(params);
-    }
-
-    private static TraceSpanRow findSpan(ProfileManager profileManager, String traceId, String spanId) {
-        return profileManager.traceManager()
-                .trace(parseId(traceId))
-                .orElseThrow(() -> Exceptions.resourceNotFound("Trace not found: " + traceId))
-                .spans().stream()
-                .filter(span -> span.spanId().equals(spanId))
-                .findFirst()
-                .orElseThrow(() -> Exceptions.resourceNotFound("Span not found: " + spanId));
     }
 
     /**

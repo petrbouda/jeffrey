@@ -67,8 +67,8 @@ describe('profileNavConfig', () => {
   it('collects a sane number of nav items', () => {
     // 7 Overview (incl. Dashboards) + 19 JVM (incl. GC/JIT submenu parents + children)
     // + 16 Application (incl. Memory Issues submenu) + 4 Visualization + 17 HeapDump
-    // + 4 Tools + 4 Advisor + 35 Technologies (34 + Traces)
-    expect(allItems.length).toBe(106);
+    // + 4 Tools + 4 Advisor + 36 Technologies (34 + Traces + Operations)
+    expect(allItems.length).toBe(107);
   });
 
   it('every item has a label and a bootstrap icon', () => {

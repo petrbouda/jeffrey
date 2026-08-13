@@ -18,10 +18,12 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
+import cafe.jeffrey.provider.profile.api.TraceEventRecord;
 import cafe.jeffrey.provider.profile.api.TraceOperationRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
+import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
@@ -44,21 +46,27 @@ import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_TRACES;
 public class JdbcTraceRepository implements TraceRepository {
 
     /**
-     * Every event type that can carry trace identity. Rendered into the derivation query as a list
-     * literal; adding a newly traced event type is a one-line change here.
+     * Every event type that can carry trace identity, and therefore every type that becomes a span.
+     * Adding a newly traced event type is a one-line change here.
+     * <p>
+     * The same list is what the drill-down excludes: an event that is itself a span belongs in the
+     * waterfall, not in the list of what happened inside one.
      */
     private static final List<String> TRACED_EVENT_TYPES = List.of(
-            "jeffrey.TraceSpan",
-            "jeffrey.HttpServerExchange",
-            "jeffrey.HttpClientExchange",
-            "jeffrey.GrpcServerExchange",
-            "jeffrey.GrpcClientExchange",
-            "jeffrey.JdbcQuery",
-            "jeffrey.JdbcInsert",
-            "jeffrey.JdbcUpdate",
-            "jeffrey.JdbcDelete",
-            "jeffrey.JdbcExecute",
-            "jeffrey.JdbcStream");
+            EventTypeName.TRACE_SPAN,
+            EventTypeName.HTTP_SERVER_EXCHANGE,
+            EventTypeName.HTTP_CLIENT_EXCHANGE,
+            EventTypeName.GRPC_SERVER_EXCHANGE,
+            EventTypeName.GRPC_CLIENT_EXCHANGE,
+            EventTypeName.JDBC_QUERY,
+            EventTypeName.JDBC_INSERT,
+            EventTypeName.JDBC_UPDATE,
+            EventTypeName.JDBC_DELETE,
+            EventTypeName.JDBC_EXECUTE,
+            EventTypeName.JDBC_STREAM);
+
+    /** Guards the drill-down against returning more rows than a drawer can show. */
+    private static final int SPAN_EVENTS_LIMIT = 5000;
 
     /*
      * The span's name and kind depend on which event produced it: a hand-written span names itself,
@@ -213,6 +221,27 @@ public class JdbcTraceRepository implements TraceRepository {
             LIMIT :limit
             """;
 
+    /*
+     * What ran on the span's thread while it was open. The bounds compare the raw start_timestamp
+     * against epoch-micros literals so the predicate stays sargable, replicating the millisecond
+     * floor of `EPOCH_MS(ts) BETWEEN :from AND :to` without a per-row conversion.
+     */
+    //language=SQL
+    private static final String EVENTS_IN_SPAN = """
+            SELECT
+                e.event_type                AS event_type,
+                EPOCH_MS(e.start_timestamp) AS start_epoch_ms,
+                COALESCE(e.duration, 0)     AS duration_ns,
+                CAST(e.fields AS VARCHAR)   AS fields
+            FROM events e
+            WHERE e.thread_hash = :thread_hash
+                AND e.event_type NOT IN (%s)
+                AND e.start_timestamp >= make_timestamptz(:from_ms * 1000)
+                AND e.start_timestamp < make_timestamptz((:to_ms + 1) * 1000)
+            ORDER BY e.start_timestamp
+            LIMIT :limit
+            """;
+
     private final DatabaseClient databaseClient;
 
     public JdbcTraceRepository(DatabaseClientProvider databaseClientProvider) {
@@ -291,6 +320,25 @@ public class JdbcTraceRepository implements TraceRepository {
                         rs.getLong("p50_ns"),
                         rs.getLong("p95_ns"),
                         rs.getLong("max_ns")));
+    }
+
+    @Override
+    public List<TraceEventRecord> eventsInSpan(long threadHash, long fromEpochMillis, long toEpochMillis) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("thread_hash", threadHash)
+                .addValue("from_ms", fromEpochMillis)
+                .addValue("to_ms", toEpochMillis)
+                .addValue("limit", SPAN_EVENTS_LIMIT);
+
+        return databaseClient.query(
+                StatementLabel.TRACE_SPAN_EVENTS,
+                EVENTS_IN_SPAN.formatted(tracedEventTypeList()),
+                params,
+                (rs, _) -> new TraceEventRecord(
+                        rs.getString("event_type"),
+                        rs.getLong("start_epoch_ms"),
+                        rs.getLong("duration_ns"),
+                        rs.getString("fields")));
     }
 
     /**

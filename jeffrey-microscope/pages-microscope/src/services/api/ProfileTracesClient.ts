@@ -17,12 +17,13 @@
  */
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
+import FlamegraphPanel from '@/services/api/model/FlamegraphPanel';
 import type {
   TraceDetail,
+  TraceEventRow,
   TraceOperationRow,
   TraceRow
 } from '@/services/api/model/trace/TraceModels';
-import type { SpanEventRow } from '@/services/api/model/span/SpanModels';
 
 export default class ProfileTracesClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -44,8 +45,20 @@ export default class ProfileTracesClient extends BaseProfileClient {
     );
   }
 
-  /** The events that ran on the span's thread while it was open. */
-  public getSpanEvents(traceId: string, spanId: string): Promise<SpanEventRow[]> {
-    return this.get<SpanEventRow[]>(`/${traceId}/spans/${spanId}/events`);
+  /** What the JVM was doing on the span's thread while it was open. */
+  public getSpanEvents(traceId: string, spanId: string): Promise<TraceEventRow[]> {
+    return this.get<TraceEventRow[]>(`/${traceId}/spans/${spanId}/events`);
+  }
+
+  /**
+   * Which event types actually recorded samples inside the span, with their real counts, so the
+   * drill-down offers only flamegraphs that exist.
+   */
+  public getSpanPanels(
+    traceId: string,
+    spanId: string,
+    selfOnly: boolean
+  ): Promise<FlamegraphPanel[]> {
+    return this.get<FlamegraphPanel[]>(`/${traceId}/spans/${spanId}/panels`, { selfOnly });
   }
 }

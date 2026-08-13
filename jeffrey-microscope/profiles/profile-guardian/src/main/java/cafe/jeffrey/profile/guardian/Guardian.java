@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.profile.guardian;
 
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import tools.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +58,8 @@ import java.util.stream.Collectors;
 public class Guardian {
 
     private static final Logger LOG = LoggerFactory.getLogger(Guardian.class);
+    /** Span-name prefix; the event type follows, e.g. {@code guardian.jdk.ExecutionSample}. */
+    private static final String GUARDIAN_SPAN_PREFIX = "guardian.";
 
     private static final String PREREQUISITES_GROUP = "Prerequisites";
 
@@ -122,7 +125,14 @@ public class Guardian {
                 .collect(Collectors.groupingBy(GuardDefinition::eventType, LinkedHashMap::new, Collectors.toList()));
 
         for (Map.Entry<String, List<GuardDefinition>> entry : byEventType.entrySet()) {
-            results.addAll(evaluateEventType(entry.getKey(), entry.getValue(), samplesByEventType, preconditions));
+            // One span per event type rather than per guard: the cost here is building the frame
+            // tree and traversing it once, which every guard for that type shares. Individual
+            // guards are visitors over that tree, so timing them separately would measure noise.
+            // The event type is part of the name because the set of types is bounded, and a
+            // waterfall of identically-named children could not be told apart without clicking.
+            String spanName = GUARDIAN_SPAN_PREFIX + entry.getKey();
+            results.addAll(Tracer.call(spanName, () ->
+                    evaluateEventType(entry.getKey(), entry.getValue(), samplesByEventType, preconditions)));
         }
 
         return results;

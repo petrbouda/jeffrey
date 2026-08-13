@@ -124,7 +124,7 @@ public class AsyncProfilerSpansController {
                 profileId, request.tag(), request.eventType());
         ProfileManager pm = resolver.resolve(profileId);
         List<SpanInterval> intervals = pm.spanManager().tagIntervals(request.tag());
-        GraphParameters params = mapToSpanGraphParameters(pm.info(), request, intervals);
+        GraphParameters params = SpanScopedGraphParameters.of(pm.info(), request, intervals);
         return pm.flamegraphManager().generate(params);
     }
 
@@ -137,37 +137,10 @@ public class AsyncProfilerSpansController {
         ProfileManager pm = resolver.resolve(profileId);
         List<SpanInterval> intervals = List.of(
                 new SpanInterval(request.threadHash(), request.fromMillis(), request.toMillis()));
-        GraphParameters params = mapToSpanGraphParameters(pm.info(), request, intervals);
+        GraphParameters params = SpanScopedGraphParameters.of(pm.info(), request, intervals);
         return pm.flamegraphManager().generate(params);
     }
 
-    /**
-     * Shared with {@link TracesController}: a span-scoped flamegraph is the same graph however the
-     * spans were selected, so the mapping from options plus intervals to {@code GraphParameters}
-     * lives in one place.
-     */
-    static GraphParameters mapToSpanGraphParameters(
-            ProfileInfo profileInfo, SpanFlamegraphOptions request, List<SpanInterval> intervals) {
-        // Full-profile range so the timeseries can bucket over the whole timeline; the span intervals
-        // (not the time range) are what scope the samples, so a null range would NPE the timeseries init.
-        ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
-                profileInfo.profilingStartedAt(), profileInfo.profilingFinishedAt());
-        RelativeTimeRange fullRange = UndefinedTimeRange.INSTANCE.toRelativeTimeRange(primaryStartEnd);
-
-        return GraphParameters.builder()
-                .withEventType(request.eventType())
-                .withTimeRange(fullRange)
-                .withThreadMode(request.useThreadMode())
-                .withUseWeight(request.useWeight())
-                .withExcludeNonJavaSamples(request.excludeNonJavaSamples())
-                .withExcludeIdleSamples(request.excludeIdleSamples())
-                .withOnlyUnsafeAllocationSamples(request.onlyUnsafeAllocationSamples())
-                .withParseLocation(true)
-                .withGraphType(GraphType.PRIMARY)
-                .withGraphComponents(request.components())
-                .withSpanIntervals(intervals)
-                .build();
-    }
 
     private SpanManager mgr(String profileId) {
         return resolver.resolve(profileId).spanManager();

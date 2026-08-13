@@ -19,6 +19,7 @@
 package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TraceEventRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
@@ -81,6 +82,7 @@ public class TraceManagerImpl implements TraceManager {
         if (target == null) {
             return List.of();
         }
+
         if (!selfOnly) {
             return List.of(intervalOf(target));
         }
@@ -100,6 +102,27 @@ public class TraceManagerImpl implements TraceManager {
                         operation.p95Nanos(),
                         operation.maxNanos()))
                 .toList();
+    }
+
+    @Override
+    public List<TraceEventRow> eventsInSpan(long traceId, long spanId) {
+        return spanOf(traceId, spanId)
+                .map(span -> traceRepository
+                        .eventsInSpan(span.threadHash(), span.startEpochMillis(), endMillisOf(span))
+                        .stream()
+                        .map(event -> new TraceEventRow(
+                                event.eventType(),
+                                event.startEpochMillis(),
+                                event.durationNanos(),
+                                event.fields()))
+                        .toList())
+                .orElseGet(List::of);
+    }
+
+    private Optional<TraceSpanRecord> spanOf(long traceId, long spanId) {
+        return traceRepository.spansOf(traceId).stream()
+                .filter(span -> span.spanId() == spanId)
+                .findFirst();
     }
 
     /**

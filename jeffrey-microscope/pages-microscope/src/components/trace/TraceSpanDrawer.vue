@@ -72,13 +72,22 @@
       </DrawerSection>
     </div>
 
+    <div v-else-if="activeTab === 'flamegraph'" class="drawer-body">
+      <TraceSpanFlamegraphs
+        :profile-id="profileId"
+        :trace-id="traceId"
+        :span-id="span.spanId"
+        :span-name="span.name"
+      />
+    </div>
+
     <div v-else class="drawer-body">
       <LoadingState v-if="eventsLoading" message="Loading events..." />
       <ErrorState v-else-if="eventsError" :message="eventsError" @retry="loadEvents" />
       <EmptyState
         v-else-if="events.length === 0"
         title="Nothing recorded"
-        message="No other events landed on this thread while the span was open."
+        message="Nothing else ran on this thread while the span was open."
         icon="bi-inbox"
       />
       <table v-else class="events-table">
@@ -108,11 +117,11 @@ import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import DrawerSection from '@shared/components/drawer/DrawerSection.vue';
+import TraceSpanFlamegraphs from '@/components/trace/TraceSpanFlamegraphs.vue';
 import InfoRow from '@shared/components/drawer/InfoRow.vue';
 import FormattingService from '@shared/services/FormattingService';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
-import type { TraceSpanRow } from '@/services/api/model/trace/TraceModels';
-import type { SpanEventRow } from '@/services/api/model/span/SpanModels';
+import type { TraceEventRow, TraceSpanRow } from '@/services/api/model/trace/TraceModels';
 
 const props = defineProps<{
   profileId: string;
@@ -120,15 +129,16 @@ const props = defineProps<{
   span: TraceSpanRow;
 }>();
 
-type TabId = 'attributes' | 'events';
+type TabId = 'attributes' | 'events' | 'flamegraph';
 
 const tabs: { id: TabId; label: string }[] = [
   { id: 'attributes', label: 'Attributes' },
-  { id: 'events', label: 'Events in span' }
+  { id: 'events', label: 'Events in span' },
+  { id: 'flamegraph', label: 'Flamegraph' }
 ];
 
 const activeTab = ref<TabId>('attributes');
-const events = ref<SpanEventRow[]>([]);
+const events = ref<TraceEventRow[]>([]);
 const eventsLoading = ref(false);
 const eventsError = ref<string | null>(null);
 

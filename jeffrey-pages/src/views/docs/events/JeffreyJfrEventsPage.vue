@@ -26,6 +26,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'event-types', text: 'Event Types', level: 2 },
+  { id: 'trace-context', text: 'Trace Context', level: 2 },
   { id: 'integration', text: 'Integration', level: 2 }
 ];
 
@@ -87,7 +88,27 @@ onMounted(() => {
               <p>Monitor connection pool activity including connection acquisition time, pool utilization, and timeouts. Detect pool exhaustion issues.</p>
             </div>
           </div>
+          <div class="event-card">
+            <div class="event-icon"><i class="bi bi-bezier2"></i></div>
+            <div class="event-content">
+              <h4>Trace Spans</h4>
+              <p>Hand-written spans opened through the <code>Tracer</code> API — a name, a kind, a status and optional JSON attributes, nested automatically through <code>ScopedValue</code>. Emitted as <code>jeffrey.TraceSpan</code> and assembled by Jeffrey into a trace tree.</p>
+            </div>
+          </div>
         </div>
+
+        <h2 id="trace-context">Trace Context</h2>
+        <p>The HTTP, gRPC and database events above extend a shared base that carries three trace-identity fields — <code>traceId</code>, <code>spanId</code> and <code>parentSpanId</code>, all 64-bit longs where <code>0</code> means absent. The library never populates them itself; the instrumentation does, either with <code>Tracer.stamp(event)</code> before <code>begin()</code> or by wrapping the emission in <code>Tracer.inSpanOf(...)</code>.</p>
+
+        <p>Once populated, those events become spans in their own right and are assembled into the same tree as <code>jeffrey.TraceSpan</code> — which is what makes a request's SQL statements appear as its children with neither side knowing about the other. The trace and span ids are also annotated <code>@Contextual</code>, so <code>jfr print</code> and JMC show them alongside the surrounding events even outside Jeffrey.</p>
+
+        <DocsCallout type="warning">
+          <strong>Tracing requires Java 25.</strong> The <code>Tracer</code> API is built on <code>ScopedValue</code> (JEP&nbsp;506) and <code>jdk.jfr.Contextual</code>, both finalized in Java&nbsp;25. The event definitions themselves remain usable on older releases from an earlier version of the library.
+        </DocsCallout>
+
+        <p class="docs-read-more">
+          <router-link to="/docs/microscope/profiles/traces">Read the Traces &amp; Spans reference &rarr;</router-link>
+        </p>
 
         <h2 id="integration">Integration</h2>
         <p>Add Jeffrey Events to your project and instrument your code to emit events:</p>
@@ -97,7 +118,7 @@ onMounted(() => {
           <pre><code>&lt;dependency&gt;
     &lt;groupId&gt;cafe.jeffrey-analyst&lt;/groupId&gt;
     &lt;artifactId&gt;jeffrey-events&lt;/artifactId&gt;
-    &lt;version&gt;0.2.3&lt;/version&gt;
+    &lt;version&gt;0.12.0&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
         </div>
       </div>
