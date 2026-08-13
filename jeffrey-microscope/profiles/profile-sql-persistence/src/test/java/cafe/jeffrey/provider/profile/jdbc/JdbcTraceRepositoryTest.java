@@ -291,6 +291,25 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
+        @DisplayName("the traces of an operation exclude other types and honour the limit")
+        void listsTracesOfOneOperation(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = derived(dataSource);
+
+            List<TraceSummaryRecord> traces = repository
+                    .tracesOfOperation("POST /api/internal/profiles/{profileId}/flamegraph", 10);
+
+            assertEquals(1, traces.size());
+            assertEquals(SLOW_TRACE, traces.getFirst().traceId());
+            assertEquals(120 * MS, traces.getFirst().durationNanos());
+            assertEquals(4, traces.getFirst().spanCount());
+
+            assertTrue(repository.tracesOfOperation("flamegraph.generate", 10).isEmpty(),
+                    "a nested span name roots no trace");
+            assertTrue(repository.tracesOfOperation("GET /api/internal/health", 0).isEmpty(),
+                    "a zero limit returns nothing rather than everything");
+        }
+
+        @Test
         @DisplayName("the overview totals the whole profile, counting failed traces and spans apart")
         void summarisesTheProfile(DataSource dataSource) throws SQLException {
             TraceOverviewRecord overview = derived(dataSource).overview();

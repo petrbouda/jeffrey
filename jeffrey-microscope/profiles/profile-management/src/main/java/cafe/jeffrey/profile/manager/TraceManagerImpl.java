@@ -66,6 +66,13 @@ public class TraceManagerImpl implements TraceManager {
     }
 
     @Override
+    public List<TraceRow> tracesOfOperation(String rootName, int limit) {
+        return traceRepository.tracesOfOperation(rootName, limit).stream()
+                .map(TraceManagerImpl::toRow)
+                .toList();
+    }
+
+    @Override
     public TraceOverview overview() {
         TraceOverviewRecord overview = traceRepository.overview();
         return new TraceOverview(

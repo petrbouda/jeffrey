@@ -51,6 +51,18 @@ public interface TraceRepository {
     List<TraceSummaryRecord> slowestTraces(int limit);
 
     /**
+     * Lists the traces of one type — every trace whose root span carries {@code rootName} — in the
+     * order they ran.
+     * <p>
+     * Chronological rather than slowest-first because the caller plots them over time as well as
+     * ranking them; ranking a list it already holds is cheaper than a second query.
+     *
+     * @param rootName the trace type, as listed by {@link #operations(int)}
+     * @param limit    maximum number of traces to return
+     */
+    List<TraceSummaryRecord> tracesOfOperation(String rootName, int limit);
+
+    /**
      * Profile-wide trace totals and latency percentiles, for the summary the trace list opens with.
      * <p>
      * Aggregated in SQL rather than over {@link #slowestTraces(int)} because that list is capped:

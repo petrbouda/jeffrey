@@ -64,6 +64,7 @@ public class TracesController {
 
     private static final String DEFAULT_TRACES_LIMIT = "100";
     private static final String DEFAULT_OPERATIONS_LIMIT = "100";
+    private static final String DEFAULT_OPERATION_TRACES_LIMIT = "1000";
 
     private final ProfileManagerResolver resolver;
     private final JfrFlamegraphPanelProvider panelProvider;
@@ -97,6 +98,22 @@ public class TracesController {
             @RequestParam(value = "limit", defaultValue = DEFAULT_OPERATIONS_LIMIT) int limit) {
         LOG.debug("Aggregating trace operations: profileId={} limit={}", profileId, limit);
         return resolver.resolve(profileId).traceManager().operations(limit);
+    }
+
+    /**
+     * The traces of one type. Feeds both the timeline and the slowest list of the operation
+     * drill-down, which is why it is ordered by time rather than by duration.
+     * <p>
+     * The name travels as a query parameter, not a path segment: operation names contain slashes
+     * and braces ({@code GET /api/internal/profiles/{profileId}/heap/instances}).
+     */
+    @GetMapping("/operation/traces")
+    public List<TraceRow> operationTraces(
+            @PathVariable("profileId") String profileId,
+            @RequestParam("name") String name,
+            @RequestParam(value = "limit", defaultValue = DEFAULT_OPERATION_TRACES_LIMIT) int limit) {
+        LOG.debug("Listing traces of an operation: profileId={} name={} limit={}", profileId, name, limit);
+        return resolver.resolve(profileId).traceManager().tracesOfOperation(name, limit);
     }
 
     @GetMapping("/{traceId}")

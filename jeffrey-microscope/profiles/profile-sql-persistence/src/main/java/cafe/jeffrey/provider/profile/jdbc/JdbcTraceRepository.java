@@ -222,6 +222,23 @@ public class JdbcTraceRepository implements TraceRepository {
             """;
 
     //language=SQL
+    private static final String TRACES_OF_OPERATION = """
+            SELECT
+                trace_id,
+                root_name,
+                root_kind,
+                start_timestamp_from_beginning          AS start_ms,
+                EPOCH_MS(start_timestamp)               AS start_epoch_ms,
+                duration                                AS duration_ns,
+                span_count,
+                error_count
+            FROM traces
+            WHERE root_name = :root_name
+            ORDER BY start_timestamp
+            LIMIT :limit
+            """;
+
+    //language=SQL
     private static final String SPANS_OF_TRACE = """
             SELECT
                 s.trace_id                              AS trace_id,
@@ -340,6 +357,27 @@ public class JdbcTraceRepository implements TraceRepository {
         return databaseClient.query(
                 StatementLabel.LIST_TRACES,
                 SLOWEST_TRACES,
+                params,
+                (rs, _) -> new TraceSummaryRecord(
+                        rs.getLong("trace_id"),
+                        rs.getString("root_name"),
+                        rs.getString("root_kind"),
+                        rs.getLong("start_ms"),
+                        rs.getLong("start_epoch_ms"),
+                        rs.getLong("duration_ns"),
+                        rs.getInt("span_count"),
+                        rs.getInt("error_count")));
+    }
+
+    @Override
+    public List<TraceSummaryRecord> tracesOfOperation(String rootName, int limit) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("root_name", rootName)
+                .addValue("limit", limit);
+
+        return databaseClient.query(
+                StatementLabel.TRACE_OPERATION_TRACES,
+                TRACES_OF_OPERATION,
                 params,
                 (rs, _) -> new TraceSummaryRecord(
                         rs.getLong("trace_id"),

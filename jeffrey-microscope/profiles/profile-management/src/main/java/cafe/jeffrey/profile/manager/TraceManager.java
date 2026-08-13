@@ -47,6 +47,13 @@ public interface TraceManager {
     List<TraceRow> slowestTraces(int limit);
 
     /**
+     * @param rootName the trace type to list
+     * @param limit    maximum number of traces to return
+     * @return the traces of one type, in the order they ran
+     */
+    List<TraceRow> tracesOfOperation(String rootName, int limit);
+
+    /**
      * @return profile-wide trace totals and latency percentiles, describing the whole recording
      *         rather than the capped list {@link #slowestTraces(int)} returns
      */
