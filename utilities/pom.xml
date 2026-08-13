@@ -31,11 +31,15 @@
     <packaging>pom</packaging>
 
     <!--
-        Reactor-only aggregator for standalone libraries published to Maven Central with
-        their own groupId (cafe.jeffrey-analyst). Listing them here means `mvn clean verify`
-        from the monorepo root exercises them too; their own <parent> references and
-        release profiles stay independent so each library keeps its own coordinate, license,
-        and publishing pipeline.
+        Aggregator for standalone libraries published to Maven Central with their own groupId
+        (cafe.jeffrey-analyst). Listing them here means `mvn clean verify` from the monorepo root
+        exercises them too; their own <parent> references and release profiles stay independent so
+        each library keeps its own coordinate, license, and publishing pipeline.
+
+        jeffrey-events is also *consumed* by the monorepo rather than merely built alongside it:
+        the root pom pins jeffrey-events.version to this module's 1.0-SNAPSHOT so the events the
+        application records and the events the parser reads come from one source. Editing an event
+        type here therefore changes the application; releasing the library is a separate act.
     -->
     <modules>
         <module>jeffrey-events</module>

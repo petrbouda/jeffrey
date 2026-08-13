@@ -192,7 +192,7 @@ if (event.isEnabled()) {
 
       <ul>
         <li><strong>Attributes</strong> — the span's identity, timing, thread, status and error type, plus any JSON attributes the instrumentation attached.</li>
-        <li><strong>Events in span</strong> — the JVM events that occurred on that thread inside the span's window: CPU samples, allocations, monitor blocking, GC. Other spans are excluded, so this is JVM activity rather than a restatement of the tree you are already looking at.</li>
+        <li><strong>Events in span</strong> — opens the JVM events that occurred on that thread inside the span's window: CPU samples, allocations, monitor blocking, GC. Other spans are excluded, so this is JVM activity rather than a restatement of the tree you are already looking at. It takes over the view, because it is a timeline: one lane per event type over the span's window, a mini-map you can drag to zoom into part of it, and a per-type breakdown that both filters the lane and offers the flamegraph for that type. The same component serves the async-profiler span drill-down, so the two read identically.</li>
         <li><strong>Flamegraph</strong> — the flamegraph of what ran inside the span, in either <strong>Inclusive</strong> or <strong>Self</strong> mode.</li>
       </ul>
 

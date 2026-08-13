@@ -26,6 +26,7 @@
     >
       <i v-if="chip.icon" class="bi" :class="'bi-' + chip.icon"></i>
       {{ chip.text }}
+      <span v-if="chip.marker" class="meta-chip-marker">{{ chip.marker }}</span>
     </span>
   </div>
 </template>
@@ -47,6 +48,12 @@ export interface MetaChip {
    * `default`, a chip is quiet on purpose — a row where everything is emphasised emphasises nothing.
    */
   tone?: 'default' | 'strong' | 'danger';
+  /**
+   * A short qualifier on the thing the chip names, rendered inside it — `virtual` on a thread, say.
+   * Separate from `text` because it qualifies rather than identifies: it is styled apart so the eye
+   * still reads the name first.
+   */
+  marker?: string;
 }
 
 defineProps<{
@@ -77,6 +84,15 @@ defineProps<{
 .meta-chip-strong {
   color: var(--color-primary);
   font-weight: 700;
+}
+
+.meta-chip-marker {
+  margin-left: 0.3rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-purple);
 }
 
 .meta-chip-danger {

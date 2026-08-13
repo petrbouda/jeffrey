@@ -45,6 +45,37 @@
         The flamegraph replaces the bars rather than opening over them: the drill-down already lives
         in a fullscreen modal, and stacking a second one would trap the reader behind two dialogs.
       -->
+      <div v-else-if="mode === 'events'" class="ts-fg-view">
+        <div class="ts-fg-bar">
+          <button type="button" class="ts-fg-back" @click="backToSpans">
+            <i class="bi bi-arrow-left"></i> Back to spans
+          </button>
+          <span class="ts-fg-active">
+            <i class="bi bi-list-ul"></i> {{ selected?.name }}
+            <span class="ts-fg-scope">events on {{ selected?.threadName ?? 'this thread' }}</span>
+          </span>
+        </div>
+
+        <LoadingState v-if="eventsLoading" message="Loading events..." />
+
+        <ErrorState v-else-if="eventsError" :message="eventsError" @retry="loadEvents" />
+
+        <EmptyState
+          v-else-if="spanEvents.length === 0"
+          title="Nothing recorded"
+          message="Nothing else ran on this thread while the span was open."
+          icon="bi-inbox"
+        />
+
+        <EventWindowTimeline
+          v-else-if="selected"
+          :events="spanEvents"
+          :window-start-millis="selected.startEpochMillis"
+          :window-millis="spanWindowMillis"
+          @flamegraph="openFlamegraphForType"
+        />
+      </div>
+
       <div v-else-if="mode === 'flamegraph'" class="ts-fg-view">
         <div class="ts-fg-bar">
           <button type="button" class="ts-fg-back" @click="backToSpans">
@@ -83,6 +114,7 @@
           :trace-id="traceId"
           :span="selected"
           @view-flamegraph="openFlamegraph"
+          @view-events="openEvents"
         />
       </div>
     </div>
@@ -102,6 +134,7 @@ import FormattingService from '@shared/services/FormattingService';
 
 import TraceWaterfall from '@/components/trace/TraceWaterfall.vue';
 import TraceSpanDrawer from '@/components/trace/TraceSpanDrawer.vue';
+import EventWindowTimeline from '@/components/events/EventWindowTimeline.vue';
 import type { TraceSpanFlamegraphRequest } from '@/components/trace/TraceSpanFlamegraphs.vue';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 
@@ -112,9 +145,14 @@ import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import OnlyFlamegraphGraphUpdater from '@/services/flamegraphs/updater/OnlyFlamegraphGraphUpdater';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
-import type { TraceDetail, TraceSpanRow } from '@/services/api/model/trace/TraceModels';
+import type {
+  TraceDetail,
+  TraceEventRow,
+  TraceSpanRow
+} from '@/services/api/model/trace/TraceModels';
 
 const TRACE_FG_SCROLL_ID = 'trace-fg-scroll';
+const NANOS_PER_MILLI = 1_000_000;
 const MODAL_INIT_DELAY_MS = 200;
 
 const props = defineProps<{
@@ -132,7 +170,10 @@ const selected = ref<TraceSpanRow | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 
-const mode = ref<'spans' | 'flamegraph'>('spans');
+const mode = ref<'spans' | 'events' | 'flamegraph'>('spans');
+const spanEvents = ref<TraceEventRow[]>([]);
+const eventsLoading = ref(false);
+const eventsError = ref<string | null>(null);
 const activeEventType = ref('');
 const activeUseWeight = ref(false);
 const activeSelfOnly = ref(false);
@@ -169,6 +210,53 @@ const chips = computed<MetaChip[]>(() => {
   result.push({ icon: 'hash', text: trace.traceId });
   return result;
 });
+
+const spanWindowMillis = computed(() =>
+  Math.max(1, Math.round((selected.value?.durationNanos ?? 0) / NANOS_PER_MILLI))
+);
+
+async function loadEvents(): Promise<void> {
+  const span = selected.value;
+  if (!span) {
+    return;
+  }
+  eventsLoading.value = true;
+  eventsError.value = null;
+  try {
+    spanEvents.value = await new ProfileTracesClient(props.profileId).getSpanEvents(
+      props.traceId,
+      span.spanId
+    );
+  } catch {
+    spanEvents.value = [];
+    eventsError.value = 'Failed to load the events recorded inside this span.';
+  } finally {
+    eventsLoading.value = false;
+  }
+}
+
+function openEvents(): void {
+  mode.value = 'events';
+  loadEvents();
+}
+
+/**
+ * A flamegraph asked for from the event timeline, which shows the span's whole window — so the
+ * graph is scoped inclusively to match what the reader was just looking at.
+ */
+function openFlamegraphForType(eventType: string): void {
+  openFlamegraph({
+    payload: {
+      eventType,
+      useWeight: false,
+      useThreadMode: false,
+      excludeNonJavaSamples: false,
+      excludeIdleSamples: false,
+      onlyUnsafeAllocationSamples: false
+    },
+    selfOnly: false
+  });
+}
 
 function select(span: TraceSpanRow): void {
   // Clicking the selected row again closes the drawer, giving the waterfall the full width back.
@@ -227,6 +315,8 @@ async function load(): Promise<void> {
   error.value = null;
   selected.value = null;
   mode.value = 'spans';
+  spanEvents.value = [];
+  eventsError.value = null;
   try {
     detail.value = await new ProfileTracesClient(props.profileId).getTrace(props.traceId);
   } catch {
