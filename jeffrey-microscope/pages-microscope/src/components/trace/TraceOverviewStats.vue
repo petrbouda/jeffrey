@@ -44,7 +44,12 @@ const metrics = computed(() => {
       variant: 'info' as const,
       breakdown: [
         { label: 'Spans', value: FormattingService.formatNumber(overview.totalSpans) },
-        { label: 'Failed', value: FormattingService.formatNumber(overview.errorTraces) }
+        {
+          label: 'Failed',
+          value: FormattingService.formatNumber(overview.errorTraces),
+          // Failures painted in the tile's success green read as "all good" at a glance.
+          color: overview.errorTraces > 0 ? 'var(--color-danger)' : undefined
+        }
       ]
     },
     {
