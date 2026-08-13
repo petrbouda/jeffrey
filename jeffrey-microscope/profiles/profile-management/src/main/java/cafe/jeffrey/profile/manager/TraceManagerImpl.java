@@ -114,6 +114,7 @@ public class TraceManagerImpl implements TraceManager {
                         operation.kind(),
                         operation.count(),
                         operation.errorCount(),
+                        operation.spanCount(),
                         operation.totalNanos(),
                         operation.p50Nanos(),
                         operation.p95Nanos(),

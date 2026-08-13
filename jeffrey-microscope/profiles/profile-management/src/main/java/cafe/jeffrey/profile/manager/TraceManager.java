@@ -76,7 +76,7 @@ public interface TraceManager {
 
     /**
      * @param limit maximum number of operations to return, ranked by total time
-     * @return latency aggregated by operation name across every trace
+     * @return traces aggregated by root name — one row per trace type — across the whole profile
      */
     List<TraceOperationRow> operations(int limit);
 

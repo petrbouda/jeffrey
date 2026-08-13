@@ -19,14 +19,18 @@
 package cafe.jeffrey.profile.manager.model.trace;
 
 /**
- * Latency of one operation name across every trace — the "which operation is generally slow" view,
- * as opposed to "which single trace was slow".
+ * Latency of one trace type across the profile — the aggregate view that answers "which kind of
+ * request is generally slow", as opposed to "which single trace was slow".
+ * <p>
+ * A trace type is identified by its root span's name. Nested spans are not types of their own: they
+ * are explored through the trace's span tree, not through this list.
  */
 public record TraceOperationRow(
         String name,
         String kind,
         long count,
         long errorCount,
+        long spanCount,
         long totalNanos,
         long p50Nanos,
         long p95Nanos,

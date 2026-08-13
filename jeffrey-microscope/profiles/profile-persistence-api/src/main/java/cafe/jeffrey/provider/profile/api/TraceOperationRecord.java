@@ -19,23 +19,28 @@
 package cafe.jeffrey.provider.profile.api;
 
 /**
- * Latency of one operation name across every trace in the profile — the aggregate view that answers
- * "which operation is generally slow", as opposed to "which single trace was slow".
+ * Latency of one trace type across the profile — the aggregate view that answers "which kind of
+ * request is generally slow", as opposed to "which single trace was slow".
+ * <p>
+ * A trace type is identified by its root span's name. Nested spans are not types of their own: they
+ * are explored through the trace's span tree, not through this list.
  *
- * @param name           the operation name
- * @param kind           {@code SERVER}, {@code CLIENT} or {@code INTERNAL}
- * @param count          how many spans carried this name
- * @param errorCount     how many of them ended in an error
- * @param totalNanos     summed duration, for ranking by total time rather than by average
- * @param p50Nanos       median duration
- * @param p95Nanos       95th percentile duration
- * @param maxNanos       slowest occurrence
+ * @param name       the root operation name the traces share
+ * @param kind       {@code SERVER}, {@code CLIENT} or {@code INTERNAL}
+ * @param count      how many traces of this type the profile holds
+ * @param errorCount how many of them contain at least one failed span
+ * @param spanCount  spans across all of them, which separates a one-span type from a deep one
+ * @param totalNanos summed trace duration, for ranking by total time rather than by average
+ * @param p50Nanos   median trace duration
+ * @param p95Nanos   95th percentile trace duration
+ * @param maxNanos   slowest trace of the type
  */
 public record TraceOperationRecord(
         String name,
         String kind,
         long count,
         long errorCount,
+        long spanCount,
         long totalNanos,
         long p50Nanos,
         long p95Nanos,

@@ -65,7 +65,7 @@ public interface TraceRepository {
     List<TraceSpanRecord> spansOf(long traceId);
 
     /**
-     * Aggregates span latency by operation name across the whole profile.
+     * Aggregates traces by root name — one row per trace type — across the whole profile.
      *
      * @param limit maximum number of operations to return, ranked by total time
      */

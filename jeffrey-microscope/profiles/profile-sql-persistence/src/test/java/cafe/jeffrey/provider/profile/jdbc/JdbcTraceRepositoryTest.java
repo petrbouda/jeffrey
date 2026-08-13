@@ -263,19 +263,31 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
-        @DisplayName("operations aggregate latency by name across traces")
+        @DisplayName("operations aggregate traces by root name, ignoring nested spans")
         void aggregatesOperations(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
             Map<String, TraceOperationRecord> byName = repository.operations(10).stream()
                     .collect(Collectors.toMap(TraceOperationRecord::name, Function.identity()));
 
-            TraceOperationRecord slowest = byName.get("POST /api/internal/profiles/{profileId}/flamegraph");
-            assertEquals(1, slowest.count());
-            assertEquals(120 * MS, slowest.totalNanos());
-            assertEquals(120 * MS, slowest.maxNanos());
+            assertEquals(2, byName.size(), "one row per trace type, not per span name");
+            assertFalse(byName.containsKey("flamegraph.generate"),
+                    "a nested span is not a trace type and must not be listed");
+            assertFalse(byName.containsKey("listSpans"),
+                    "a nested span is not a trace type and must not be listed");
 
-            assertEquals(1, byName.get("flamegraph.generate").errorCount());
+            TraceOperationRecord slowest = byName.get("POST /api/internal/profiles/{profileId}/flamegraph");
+            assertEquals(1, slowest.count(), "one trace of this type");
+            assertEquals(4, slowest.spanCount(),
+                    "the root, its two JDBC statements and the hand-written span");
+            assertEquals(120 * MS, slowest.totalNanos(), "the whole trace, not the root span alone");
+            assertEquals(120 * MS, slowest.maxNanos());
+            assertEquals(1, slowest.errorCount(), "the trace contains a failed span");
+
+            TraceOperationRecord health = byName.get("GET /api/internal/health");
+            assertEquals(1, health.count());
+            assertEquals(1, health.spanCount());
+            assertEquals(5 * MS, health.totalNanos());
         }
 
         @Test

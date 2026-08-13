@@ -266,19 +266,28 @@ public class JdbcTraceRepository implements TraceRepository {
             FROM traces
             """;
 
+    /*
+     * One row per trace type, keyed by the root span's name. Aggregated over `traces` rather than
+     * `trace_spans` because an operation is a kind of trace: grouping spans would list names that
+     * only ever appear nested, which no trace can be opened at.
+     *
+     * Grouped by name alone with ANY_VALUE(kind) rather than by (name, kind): a name that somehow
+     * carried two kinds would otherwise split into two rows the UI cannot tell apart.
+     */
     //language=SQL
     private static final String OPERATIONS = """
             SELECT
-                name,
-                ANY_VALUE(kind)                                     AS kind,
+                root_name                                           AS name,
+                ANY_VALUE(root_kind)                                AS kind,
                 COUNT(*)                                            AS count,
-                COUNT(*) FILTER (WHERE status = 'ERROR')            AS error_count,
+                COUNT(*) FILTER (WHERE error_count > 0)             AS error_count,
+                SUM(span_count)                                     AS span_count,
                 SUM(duration)                                       AS total_ns,
                 CAST(QUANTILE_CONT(duration, 0.5) AS BIGINT)        AS p50_ns,
                 CAST(QUANTILE_CONT(duration, 0.95) AS BIGINT)       AS p95_ns,
                 MAX(duration)                                       AS max_ns
-            FROM trace_spans
-            GROUP BY name
+            FROM traces
+            GROUP BY root_name
             ORDER BY total_ns DESC
             LIMIT :limit
             """;
@@ -399,6 +408,7 @@ public class JdbcTraceRepository implements TraceRepository {
                         rs.getString("kind"),
                         rs.getLong("count"),
                         rs.getLong("error_count"),
+                        rs.getLong("span_count"),
                         rs.getLong("total_ns"),
                         rs.getLong("p50_ns"),
                         rs.getLong("p95_ns"),
