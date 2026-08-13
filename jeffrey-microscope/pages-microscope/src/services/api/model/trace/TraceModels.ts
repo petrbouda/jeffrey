@@ -64,6 +64,22 @@ export interface TraceDetail {
   spans: TraceSpanRow[];
 }
 
+/**
+ * Profile-wide totals for the summary above the trace list. Covers the whole recording, unlike the
+ * capped list underneath it -- traces and spans are counted apart because they fail apart.
+ */
+export interface TraceOverview {
+  totalTraces: number;
+  totalSpans: number;
+  errorTraces: number;
+  errorSpans: number;
+  avgNanos: number;
+  p95Nanos: number;
+  p99Nanos: number;
+  maxNanos: number;
+  distinctOperations: number;
+}
+
 export interface TraceOperationRow {
   name: string;
   kind: SpanKind;

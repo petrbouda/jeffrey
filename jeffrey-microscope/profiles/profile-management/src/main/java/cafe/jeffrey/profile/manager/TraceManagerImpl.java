@@ -21,8 +21,10 @@ package cafe.jeffrey.profile.manager;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceEventRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
+import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
@@ -61,6 +63,21 @@ public class TraceManagerImpl implements TraceManager {
         return traceRepository.slowestTraces(limit).stream()
                 .map(TraceManagerImpl::toRow)
                 .toList();
+    }
+
+    @Override
+    public TraceOverview overview() {
+        TraceOverviewRecord overview = traceRepository.overview();
+        return new TraceOverview(
+                overview.totalTraces(),
+                overview.totalSpans(),
+                overview.errorTraces(),
+                overview.errorSpans(),
+                overview.avgNanos(),
+                overview.p95Nanos(),
+                overview.p99Nanos(),
+                overview.maxNanos(),
+                overview.distinctOperations());
     }
 
     @Override
@@ -203,14 +220,15 @@ public class TraceManagerImpl implements TraceManager {
     }
 
     /**
-     * The span's own time: its duration minus what its children accounted for. Overlapping children
-     * are merged first so concurrent work is not subtracted twice, and the result is floored at zero
-     * because a parent that hands off to another thread can legitimately be shorter than its
-     * children.
+     * The span's own time: its duration minus what its children accounted for. Only children that
+     * ran on the span's own thread are subtracted — work handed to another thread runs beside the
+     * parent rather than instead of it — and overlapping children are merged first so concurrent
+     * work is not subtracted twice. The result is still floored at zero, because millisecond
+     * rounding can make merged children marginally longer than the parent.
      */
     private static long selfDurationOf(TraceSpanRecord span, List<TraceSpanRecord> children) {
         long covered = 0;
-        for (long[] window : mergedWindows(children)) {
+        for (long[] window : mergedWindows(sameThreadAs(span, children))) {
             covered += window[1] - window[0];
         }
         return Math.max(0, span.durationNanos() - covered * NANOS_PER_MILLI);
@@ -219,6 +237,15 @@ public class TraceManagerImpl implements TraceManager {
     /**
      * The span's window with its children's windows cut out, so a flamegraph scoped to it shows only
      * the samples taken while the span was doing its own work.
+     * <p>
+     * The cut is half-open on both sides: a child occupies {@code [childFrom, childTo]} and the
+     * sample filter matches inclusively, so the surrounding segments have to stop one millisecond
+     * short of it. Cutting at the child's own bounds would leave a sample landing on the child's
+     * first or last millisecond counted in the child <em>and</em> in the parent's self time.
+     * <p>
+     * Only same-thread children are cut out, for the reason given in
+     * {@link #selfDurationOf(TraceSpanRecord, List)}: a child on another thread never occupied this
+     * thread's window, so punching a hole for it would drop the parent's own samples.
      */
     private static List<SpanInterval> selfIntervals(TraceSpanRecord span, List<TraceSpanRecord> children) {
         long from = span.startEpochMillis();
@@ -226,18 +253,28 @@ public class TraceManagerImpl implements TraceManager {
 
         List<SpanInterval> intervals = new ArrayList<>();
         long cursor = from;
-        for (long[] window : mergedWindows(children)) {
+        for (long[] window : mergedWindows(sameThreadAs(span, children))) {
             long childFrom = Math.max(window[0], from);
             long childTo = Math.min(window[1], to);
             if (childFrom > cursor) {
-                intervals.add(new SpanInterval(span.threadHash(), cursor, childFrom));
+                intervals.add(new SpanInterval(span.threadHash(), cursor, childFrom - 1));
             }
-            cursor = Math.max(cursor, childTo);
+            cursor = Math.max(cursor, childTo + 1);
         }
-        if (cursor < to) {
+        if (cursor <= to) {
             intervals.add(new SpanInterval(span.threadHash(), cursor, to));
         }
         return intervals;
+    }
+
+    /**
+     * The children that shared the span's thread, which are the only ones whose windows overlap the
+     * parent's in a way that hides the parent's own work.
+     */
+    private static List<TraceSpanRecord> sameThreadAs(TraceSpanRecord span, List<TraceSpanRecord> children) {
+        return children.stream()
+                .filter(child -> child.threadHash() == span.threadHash())
+                .toList();
     }
 
     /**

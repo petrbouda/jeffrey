@@ -31,18 +31,7 @@
       </div>
     </div>
 
-    <div class="drawer-tabs">
-      <button
-        v-for="tab in tabs"
-        :key="tab.id"
-        type="button"
-        class="drawer-tab"
-        :class="{ active: activeTab === tab.id }"
-        @click="activeTab = tab.id"
-      >
-        {{ tab.label }}
-      </button>
-    </div>
+    <TabBar v-model="activeTab" :tabs="tabs" />
 
     <div v-if="activeTab === 'attributes'" class="drawer-body">
       <DrawerSection label="Timing" icon="bi-clock">
@@ -77,51 +66,37 @@
         :profile-id="profileId"
         :trace-id="traceId"
         :span-id="span.spanId"
-        :span-name="span.name"
+        @view="$emit('viewFlamegraph', $event)"
       />
     </div>
 
+    <!--
+      A launcher rather than a list: the timeline needs the whole dialog to be readable, and a
+      second, weaker rendering of the same events here would only disagree with it.
+    -->
     <div v-else class="drawer-body">
-      <LoadingState v-if="eventsLoading" message="Loading events..." />
-      <ErrorState v-else-if="eventsError" :message="eventsError" @retry="loadEvents" />
-      <EmptyState
-        v-else-if="events.length === 0"
-        title="Nothing recorded"
-        message="Nothing else ran on this thread while the span was open."
-        icon="bi-inbox"
-      />
-      <table v-else class="events-table">
-        <thead>
-          <tr>
-            <th>Event</th>
-            <th class="numeric">Duration</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(event, index) in events" :key="index">
-            <td>{{ event.eventType }}</td>
-            <td class="numeric">
-              {{ FormattingService.formatDuration2Units(event.durationNanos) }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <p class="events-hint">
+        Everything the JVM did on <strong>{{ span.threadName ?? 'this thread' }}</strong> while the
+        span was open — samples, allocations, monitor waits — on one timeline.
+      </p>
+      <button type="button" class="events-open" @click="$emit('viewEvents')">
+        <i class="bi bi-list-ul"></i> Open event timeline
+      </button>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import Badge from '@shared/components/Badge.vue';
-import LoadingState from '@shared/components/LoadingState.vue';
-import ErrorState from '@shared/components/ErrorState.vue';
-import EmptyState from '@shared/components/EmptyState.vue';
 import DrawerSection from '@shared/components/drawer/DrawerSection.vue';
+import TabBar from '@shared/components/TabBar.vue';
+import type { TabBarItem } from '@shared/components/TabBar.vue';
 import TraceSpanFlamegraphs from '@/components/trace/TraceSpanFlamegraphs.vue';
+import type { TraceSpanFlamegraphRequest } from '@/components/trace/TraceSpanFlamegraphs.vue';
 import InfoRow from '@shared/components/drawer/InfoRow.vue';
 import FormattingService from '@shared/services/FormattingService';
-import ProfileTracesClient from '@/services/api/ProfileTracesClient';
-import type { TraceEventRow, TraceSpanRow } from '@/services/api/model/trace/TraceModels';
+import type { TraceSpanRow } from '@/services/api/model/trace/TraceModels';
 
 const props = defineProps<{
   profileId: string;
@@ -129,18 +104,18 @@ const props = defineProps<{
   span: TraceSpanRow;
 }>();
 
-type TabId = 'attributes' | 'events' | 'flamegraph';
+defineEmits<{
+  (event: 'viewFlamegraph', request: TraceSpanFlamegraphRequest): void;
+  (event: 'viewEvents'): void;
+}>();
 
-const tabs: { id: TabId; label: string }[] = [
-  { id: 'attributes', label: 'Attributes' },
-  { id: 'events', label: 'Events in span' },
-  { id: 'flamegraph', label: 'Flamegraph' }
+const tabs: TabBarItem[] = [
+  { id: 'attributes', label: 'Attributes', icon: 'braces' },
+  { id: 'events', label: 'Events in span', icon: 'list-ul' },
+  { id: 'flamegraph', label: 'Flamegraph', icon: 'fire' }
 ];
 
-const activeTab = ref<TabId>('attributes');
-const events = ref<TraceEventRow[]>([]);
-const eventsLoading = ref(false);
-const eventsError = ref<string | null>(null);
+const activeTab = ref('attributes');
 
 const kindVariant = computed(() => {
   if (props.span.kind === 'SERVER') {
@@ -178,31 +153,6 @@ const attributes = computed<{ key: string; value: string }[]>(() => {
     .filter(([key, value]) => !HIDDEN_ATTRIBUTES.has(key) && value !== null && value !== '')
     .map(([key, value]) => ({ key, value: String(value) }));
 });
-
-async function loadEvents(): Promise<void> {
-  eventsLoading.value = true;
-  eventsError.value = null;
-  try {
-    const client = new ProfileTracesClient(props.profileId);
-    events.value = await client.getSpanEvents(props.traceId, props.span.spanId);
-  } catch {
-    eventsError.value = 'Failed to load the events recorded inside this span.';
-  } finally {
-    eventsLoading.value = false;
-  }
-}
-
-// Events are fetched only when the tab is opened, and re-fetched when the selection moves to a
-// different span while the tab stays open.
-watch(
-  () => [activeTab.value, props.span.spanId] as const,
-  ([tab]) => {
-    if (tab === 'events') {
-      loadEvents();
-    }
-  },
-  { immediate: true }
-);
 </script>
 
 <style scoped>
@@ -222,7 +172,7 @@ watch(
 
 .drawer-title {
   font-weight: 500;
-  color: var(--color-heading);
+  color: var(--color-dark);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -235,68 +185,42 @@ watch(
   flex-wrap: wrap;
 }
 
-.drawer-tabs {
-  display: flex;
-  gap: 0.15rem;
-  padding: 0 0.5rem;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg-card);
-}
-
-.drawer-tab {
-  padding: 0.45rem 0.6rem;
-  font: inherit;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.drawer-tab.active {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
-  font-weight: 500;
-}
-
-.drawer-tab:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
-}
-
 .drawer-body {
   padding: 0.7rem 0.9rem;
   overflow-y: auto;
 }
 
-.events-table {
-  width: 100%;
-  border-collapse: collapse;
+.events-hint {
   font-size: var(--font-size-sm);
-}
-
-.events-table th {
-  text-align: left;
-  font-size: var(--font-size-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--color-text-muted);
-  padding: 0.3rem 0.25rem;
-  border-bottom: 1px solid var(--color-border);
+  margin: 0 0 0.7rem;
+  line-height: 1.5;
 }
 
-.events-table td {
-  padding: 0.3rem 0.25rem;
-  border-bottom: 1px solid var(--color-border-row);
-  color: var(--color-text);
+.events-hint strong {
+  color: var(--color-dark);
+  font-weight: 500;
 }
 
-.numeric {
-  text-align: right;
-  font-family: var(--font-family-monospace);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+.events-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  justify-content: center;
+  padding: 0.4rem 0.6rem;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-white);
+  background: var(--color-primary);
+  border: 0;
+  border-radius: var(--radius-base);
+  cursor: pointer;
+}
+
+.events-open:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 </style>

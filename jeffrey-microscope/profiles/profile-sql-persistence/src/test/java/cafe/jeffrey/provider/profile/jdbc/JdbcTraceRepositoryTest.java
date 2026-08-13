@@ -22,6 +22,7 @@ import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import cafe.jeffrey.provider.profile.api.TraceEventRecord;
 import cafe.jeffrey.provider.profile.api.TraceOperationRecord;
+import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
@@ -240,6 +241,35 @@ class JdbcTraceRepositoryTest {
             assertEquals(120 * MS, slowest.maxNanos());
 
             assertEquals(1, byName.get("flamegraph.generate").errorCount());
+        }
+
+        @Test
+        @DisplayName("the overview totals the whole profile, counting failed traces and spans apart")
+        void summarisesTheProfile(DataSource dataSource) throws SQLException {
+            TraceOverviewRecord overview = derived(dataSource).overview();
+
+            assertEquals(2, overview.totalTraces());
+            assertEquals(4, overview.totalSpans());
+            assertEquals(2, overview.errorTraces(), "both traces contain a failed span");
+            assertEquals(2, overview.errorSpans(), "one failed span in each");
+            assertEquals(4, overview.distinctOperations(), "distinct span names, not root names");
+            assertEquals(120 * MS, overview.maxNanos());
+            assertEquals(62_500_000L, overview.avgNanos(), "the mean of 120ms and 5ms");
+            assertTrue(overview.avgNanos() <= overview.p95Nanos()
+                            && overview.p95Nanos() <= overview.p99Nanos()
+                            && overview.p99Nanos() <= overview.maxNanos(),
+                    "percentiles sit between the mean and the slowest trace");
+        }
+
+        @Test
+        @DisplayName("an untraced profile reports zeros, not the nulls its aggregates produce")
+        void overviewOfAnUntracedProfileIsZeroed(DataSource dataSource) {
+            JdbcTraceRepository empty = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            empty.derive();
+
+            // SUM, MAX and QUANTILE_CONT over no rows are all SQL NULL, which getLong would flatten
+            // to 0 silently -- asserted here so the COALESCEs cannot be dropped unnoticed.
+            assertEquals(new TraceOverviewRecord(0, 0, 0, 0, 0, 0, 0, 0, 0), empty.overview());
         }
 
         @Test

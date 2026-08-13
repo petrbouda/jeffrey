@@ -296,7 +296,8 @@ class TracerTest {
 
     /**
      * Records {@code body} into a real JFR recording and returns the emitted spans keyed by name.
-     * The threshold is dropped to zero because the test spans do no work.
+     * The threshold is pinned to zero rather than left to the recording's configuration, so the
+     * test spans — which do no work — are emitted whatever the enclosing JFR settings say.
      */
     private static Map<String, RecordedEvent> recordSpans(Runnable body) throws IOException {
         Path dump = Files.createTempFile("tracer-test", ".jfr");

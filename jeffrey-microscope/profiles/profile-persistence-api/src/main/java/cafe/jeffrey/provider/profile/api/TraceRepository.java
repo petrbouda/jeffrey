@@ -51,6 +51,14 @@ public interface TraceRepository {
     List<TraceSummaryRecord> slowestTraces(int limit);
 
     /**
+     * Profile-wide trace totals and latency percentiles, for the summary the trace list opens with.
+     * <p>
+     * Aggregated in SQL rather than over {@link #slowestTraces(int)} because that list is capped:
+     * summing a truncated list would quietly report a fraction of the profile as the whole of it.
+     */
+    TraceOverviewRecord overview();
+
+    /**
      * Returns every span of one trace, ordered by start time. The tree is assembled above this
      * layer; the ordering here is what makes that assembly deterministic.
      */

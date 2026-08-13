@@ -27,6 +27,7 @@ import cafe.jeffrey.profile.panel.PanelContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceEventRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.resources.request.GenerateTraceSpanFlamegraphRequest;
 import cafe.jeffrey.shared.common.exception.Exceptions;
@@ -78,6 +79,16 @@ public class TracesController {
             @RequestParam(value = "limit", defaultValue = DEFAULT_TRACES_LIMIT) int limit) {
         LOG.debug("Listing slowest traces: profileId={} limit={}", profileId, limit);
         return resolver.resolve(profileId).traceManager().slowestTraces(limit);
+    }
+
+    /**
+     * Profile-wide totals for the summary above the trace list. Mapped before {@code /{traceId}} so
+     * the literal path is the obvious one to read, not merely the one Spring happens to prefer.
+     */
+    @GetMapping("/overview")
+    public TraceOverview overview(@PathVariable("profileId") String profileId) {
+        LOG.debug("Reading trace overview: profileId={}", profileId);
+        return resolver.resolve(profileId).traceManager().overview();
     }
 
     @GetMapping("/operations")

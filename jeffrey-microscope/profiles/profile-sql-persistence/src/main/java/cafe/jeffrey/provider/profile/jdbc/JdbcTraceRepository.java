@@ -20,6 +20,7 @@ package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.provider.profile.api.TraceEventRecord;
 import cafe.jeffrey.provider.profile.api.TraceOperationRecord;
+import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
@@ -204,6 +205,28 @@ public class JdbcTraceRepository implements TraceRepository {
             ORDER BY s.start_timestamp
             """;
 
+    /*
+     * One row of profile-wide totals. Every aggregate is COALESCEd because an untraced profile
+     * leaves `traces` empty, where SUM, MAX and QUANTILE_CONT all return SQL NULL rather than zero.
+     *
+     * Operations are counted off `trace_spans`, not `traces`: the Operations view ranks every span
+     * name, so counting root names here would report a smaller number than that view lists.
+     */
+    //language=SQL
+    private static final String OVERVIEW = """
+            SELECT
+                COUNT(*)                                                    AS total_traces,
+                COALESCE(SUM(span_count), 0)                                AS total_spans,
+                COUNT(*) FILTER (WHERE error_count > 0)                     AS error_traces,
+                COALESCE(SUM(error_count), 0)                               AS error_spans,
+                COALESCE(CAST(AVG(duration) AS BIGINT), 0)                  AS avg_ns,
+                COALESCE(CAST(QUANTILE_CONT(duration, 0.95) AS BIGINT), 0)  AS p95_ns,
+                COALESCE(CAST(QUANTILE_CONT(duration, 0.99) AS BIGINT), 0)  AS p99_ns,
+                COALESCE(MAX(duration), 0)                                  AS max_ns,
+                (SELECT COUNT(DISTINCT name) FROM trace_spans)              AS distinct_operations
+            FROM traces
+            """;
+
     //language=SQL
     private static final String OPERATIONS = """
             SELECT
@@ -301,6 +324,25 @@ public class JdbcTraceRepository implements TraceRepository {
                         rs.getLong("thread_hash"),
                         rs.getString("thread_name"),
                         rs.getString("event_type")));
+    }
+
+    @Override
+    public TraceOverviewRecord overview() {
+        return databaseClient.querySingle(
+                        StatementLabel.TRACE_OVERVIEW,
+                        OVERVIEW,
+                        new MapSqlParameterSource(),
+                        (rs, _) -> new TraceOverviewRecord(
+                                rs.getLong("total_traces"),
+                                rs.getLong("total_spans"),
+                                rs.getLong("error_traces"),
+                                rs.getLong("error_spans"),
+                                rs.getLong("avg_ns"),
+                                rs.getLong("p95_ns"),
+                                rs.getLong("p99_ns"),
+                                rs.getLong("max_ns"),
+                                rs.getInt("distinct_operations")))
+                .orElse(TraceOverviewRecord.EMPTY);
     }
 
     @Override

@@ -178,11 +178,11 @@ if (event.isEnabled()) {
 
       <h2 id="trace-list">Trace List</h2>
 
-      <p>The Traces page lists every trace root, sorted by duration by default — the "which runs were slow" view. Each row shows the root operation name and kind, when it started, how long it took, how many spans it contains and how many of them failed. Filter by operation name to narrow to one endpoint or job.</p>
+      <p>The Traces page opens with two tiles — how many traces and spans the profile holds, how many failed, and the P95 / P99 / slowest trace duration — over a list of trace roots ranked by duration, the "which runs were slow" view. Each row carries the root operation name, a duration bar scaled to the slowest trace in the profile, the kind, the failure count when there is one, the span count, the start time and the trace id. The gutter beside a failed trace turns red, so a bad run is visible before anything is read. The list shows the fifty slowest; the Operations view is where you narrow to one endpoint or job.</p>
 
       <h2 id="waterfall">Waterfall</h2>
 
-      <p>Opening a trace gives it its own URL and renders the span tree as a waterfall: indented operation names on the left, proportional duration bars on the right, positioned against the trace's own window. Sub-pixel spans are clamped to a minimum width so a 200&nbsp;µs span inside a 2&nbsp;s trace stays clickable.</p>
+      <p>Opening a trace renders its span tree as a waterfall filling a full-screen view: indented operation names on the left, proportional duration bars on the right, positioned against the trace's own window. The trace id is kept in the URL as <code>?trace=</code> while the view is open, so a trace can still be linked to and returned to. Sub-pixel spans are clamped to a minimum width so a 200&nbsp;µs span inside a 2&nbsp;s trace stays clickable.</p>
 
       <p>Each bar is split into <strong>self</strong> and <strong>child</strong> segments — the part of the span's duration not covered by any child, and the part that is. A parent whose bar is almost entirely child time is a pass-through; one that is mostly self time is where the work actually happened, and is the bar worth opening.</p>
 
@@ -192,21 +192,27 @@ if (event.isEnabled()) {
 
       <ul>
         <li><strong>Attributes</strong> — the span's identity, timing, thread, status and error type, plus any JSON attributes the instrumentation attached.</li>
-        <li><strong>Events in span</strong> — the JVM events that occurred on that thread inside the span's window: CPU samples, allocations, monitor blocking, GC. Other spans are excluded, so this is JVM activity rather than a restatement of the tree you are already looking at.</li>
+        <li><strong>Events in span</strong> — opens the JVM events that occurred on that thread inside the span's window: CPU samples, allocations, monitor blocking, GC. Other spans are excluded, so this is JVM activity rather than a restatement of the tree you are already looking at. It takes over the view, because it is a timeline: one lane per event type over the span's window, a mini-map you can drag to zoom into part of it, and a per-type breakdown that both filters the lane and offers the flamegraph for that type. The same component serves the async-profiler span drill-down, so the two read identically.</li>
         <li><strong>Flamegraph</strong> — the flamegraph of what ran inside the span, in either <strong>Inclusive</strong> or <strong>Self</strong> mode.</li>
       </ul>
 
       <DocsCallout type="tip">
-        <strong>Inclusive vs Self.</strong> Inclusive is the span's whole window. Self subtracts every child's window from it and merges what is left, so the flamegraph shows only the work this span did on its own — the answer to "the parent is slow but its children are not, so what is it doing?". Both come from the same interval primitive, so neither costs more than the other.
+        <strong>Inclusive vs Self.</strong> Inclusive is the span's whole window. Self subtracts the windows of the children that ran <em>on the same thread</em> and merges what is left, so the flamegraph shows only the work this span did on its own — the answer to "the parent is slow but its children are not, so what is it doing?". A child forked onto another thread is not subtracted: the parent's thread was busy with its own work the whole time it ran. Both scopes come from the same interval primitive, so neither costs more than the other.
+      </DocsCallout>
+
+      <DocsCallout type="info">
+        <strong>How a sample is attributed to a span.</strong> Nothing stamps a span id onto a sample. A span is a <code>(thread, window)</code> pair, and the flamegraph is every sample whose thread matches and whose timestamp falls inside — the same mechanism the async-profiler Spans feature uses, on the same clock, because <code>jfrsync</code> writes both the JVM's events and the profiler's samples into one recording. Two consequences worth knowing: the window's edges are millisecond-floored, and a span shorter than the sampling interval may enclose no sample at all.
       </DocsCallout>
 
       <h2 id="operations">Operations</h2>
 
-      <p>The trace list answers "which run was slow". The Operations view answers "which operation is slow <em>in general</em>": one row per operation name, with call count, error count, total time, and p50 / p95 / max drawn on a shared rail. A wide p50-to-p95 gap reads as a shape rather than a pair of numbers, which is what distinguishes an operation that is uniformly slow from one that is usually fast and occasionally terrible.</p>
+      <p>The trace list answers "which run was slow". The Operations view answers "which operation is slow <em>in general</em>": one card per operation name, with call count, error count, total time, and p50 / p95 / max drawn on a rail shared by every card and scaled to the slowest span in the profile. A wide p50-to-p95 gap reads as a shape rather than a pair of numbers, which is what distinguishes an operation that is uniformly slow from one that is usually fast and occasionally terrible. Sort by total, P95, max, call count or errors; click a card to see the traces rooted at that operation.</p>
+
+      <p>Operations aggregates <em>every</em> span by name, while the trace list is keyed by root name — so an operation that only ever runs as a child, a JDBC statement say, has no traces of its own and says so when you click it.</p>
 
       <h2 id="volume-control">Controlling Span Volume</h2>
 
-      <p>A busy application can emit far more spans than it emits async-profiler spans, and every one of them lands in the JFR chunk. Two levers on the event type keep that in hand, both configurable from a JFR settings file without touching the application:</p>
+      <p>A busy application can emit far more spans than it emits async-profiler spans, and every one of them lands in the JFR chunk. <code>jeffrey.TraceSpan</code> sets neither lever by default — every span is recorded, however short — because how much span volume is acceptable is a property of the application, not of the event. Both levers are configurable from a JFR settings file without touching the application:</p>
 
       <table>
         <thead>
@@ -218,7 +224,7 @@ if (event.isEnabled()) {
         <tbody>
           <tr>
             <td><code>threshold</code></td>
-            <td>Drops spans shorter than the given duration. <code>jeffrey.TraceSpan</code> ships with a conservative <strong>1&nbsp;ms</strong> default, so trivial spans cost nothing. Note that dropping a parent leaves its children as orphans, which the tree assembly promotes to roots.</td>
+            <td>Drops spans shorter than the given duration — <code>threshold=1ms</code> is a reasonable starting point when the volume needs cutting. It costs more than it appears to: dropping a parent leaves its children as orphans, which the tree assembly promotes to roots, and dropping a child moves its samples into the parent's <strong>self</strong> time, since a window that was never recorded cannot be subtracted.</td>
           </tr>
           <tr>
             <td><code>throttle</code></td>

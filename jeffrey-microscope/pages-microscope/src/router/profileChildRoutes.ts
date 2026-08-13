@@ -572,14 +572,6 @@ const technologyRoutes = [
     meta: { layout: 'profile' }
   },
   {
-    // A trace gets its own URL so one can be linked to and returned to, which a modal could not do.
-    // Declared after the fixed child paths above so 'operations' is not read as a trace id.
-    path: 'technologies/traces/:traceId',
-    name: 'profile-trace-detail',
-    component: () => import('@/views/profiles/detail/technologies/ProfileTraceDetail.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
     path: 'technologies/grpc/overview',
     name: 'profile-technologies-grpc-overview',
     component: () => import('@/views/profiles/detail/technologies/ProfileGrpcOverview.vue'),
