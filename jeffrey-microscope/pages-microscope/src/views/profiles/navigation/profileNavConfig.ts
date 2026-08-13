@@ -218,9 +218,11 @@ export const technologiesNav: Record<string, TechnologyNav> = {
     icon: 'bi-diagram-3',
     groups: [
       {
+        // Aggregated list first, then the instance list — mirroring `async-profiler`
+        // ("Spans by Tag" then "Slowest Spans") so both features open the same way.
         items: [
-          item('Traces', 'bi-diagram-3', '/technologies/traces'),
-          item('Operations', 'bi-bar-chart-steps', '/technologies/traces/operations')
+          item('Operations', 'bi-bar-chart-steps', '/technologies/traces/operations'),
+          item('Slowest Traces', 'bi-hourglass-split', '/technologies/traces')
         ]
       }
     ]
@@ -554,4 +556,33 @@ export function getModeForPath(path: string): ProfileMode {
     return 'Application';
   }
   return 'JVM';
+}
+
+/**
+ * Which technology's sub-menu the sidebar shows for a route. The returned key must exist in
+ * `technologiesNav` — a missing branch is what makes a technology render an empty rail.
+ * Single source of truth shared by `ProfileDetail.vue`.
+ */
+export function getTechnologyForPath(path: string, mode?: string): string | null {
+  if (path.includes('/technologies/http/')) {
+    return mode === 'client' ? 'http-client' : 'http-server';
+  }
+  if (path.includes('/technologies/grpc/')) {
+    return mode === 'client' ? 'grpc-client' : 'grpc-server';
+  }
+  if (path.includes('/technologies/jdbc')) {
+    return 'jdbc';
+  }
+  if (path.includes('/technologies/method-tracing/')) {
+    return 'method-tracing';
+  }
+  if (path.includes('/technologies/async-profiler/')) {
+    return 'async-profiler';
+  }
+  // Slash-free (like jdbc) so the bare `/technologies/traces` matches too, not just
+  // `/technologies/traces/operations`. Cannot collide with method-tracing (`tracing` != `traces`).
+  if (path.includes('/technologies/traces')) {
+    return 'traces';
+  }
+  return null;
 }

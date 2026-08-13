@@ -50,7 +50,13 @@
         icon="bi-diagram-2"
       />
 
-      <TraceSlowestList v-else :traces="filtered" @row-click="openTrace" />
+      <TraceSlowestList
+        v-else
+        :traces="filtered"
+        :total="listTotal"
+        :note="listNote"
+        @row-click="openTrace"
+      />
 
       <TraceSpansModal
         v-model:show="spansShow"
@@ -83,6 +89,9 @@ const props = defineProps<{ disabledFeatures: FeatureType[] }>();
 const route = useRoute();
 const router = useRouter();
 
+/** Mirrors TracesController's DEFAULT_TRACES_LIMIT, which caps what `getTraces()` returns. */
+const TRACE_FETCH_LIMIT = 100;
+
 const traces = ref<TraceRow[]>([]);
 const overview = ref<TraceOverview | null>(null);
 const loading = ref(true);
@@ -103,6 +112,29 @@ const filtered = computed(() => {
     return traces.value;
   }
   return traces.value.filter(trace => trace.rootName === operationFilter.value);
+});
+
+/**
+ * The profile-wide count, so the header agrees with the overview card instead of reporting the
+ * fetch cap as if it were the total. Left undefined for a per-operation subset, which is not
+ * measured against the profile total.
+ */
+const listTotal = computed<number | undefined>(() => {
+  if (operationFilter.value !== '' || !overview.value) {
+    return undefined;
+  }
+  return overview.value.totalTraces;
+});
+
+/**
+ * With the true total shown, the header would otherwise imply every trace is reachable. The
+ * backend returns the slowest `TRACE_FETCH_LIMIT`, so say so when it actually withheld some.
+ */
+const listNote = computed<string | undefined>(() => {
+  if (listTotal.value === undefined || listTotal.value <= TRACE_FETCH_LIMIT) {
+    return undefined;
+  }
+  return `slowest ${TRACE_FETCH_LIMIT} fetched · sorted by duration`;
 });
 
 function openTrace(trace: TraceRow): void {
@@ -171,8 +203,6 @@ onMounted(() => {
 
 <style scoped>
 .dashboard-container {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  padding: 0;
 }
 </style>

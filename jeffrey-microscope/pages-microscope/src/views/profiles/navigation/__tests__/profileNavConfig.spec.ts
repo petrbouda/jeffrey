@@ -3,6 +3,7 @@ import { createMemoryHistory, createRouter } from 'vue-router';
 import { profileChildRoutes } from '@/router/profileChildRoutes';
 import {
   getModeForPath,
+  getTechnologyForPath,
   ProfileNavItem,
   profileNavSections,
   technologiesNav
@@ -96,6 +97,18 @@ describe('profileNavConfig', () => {
         matchedLeaf?.name,
         `${origin} / ${item.label}: ${pathWithoutQuery} matched no named leaf route`
       ).toBeTruthy();
+    }
+  });
+
+  // Guards the whole class of bug where a technology's sub-menu exists in `technologiesNav`
+  // but `getTechnologyForPath` has no branch for it, so the sidebar renders an empty rail.
+  it('every technology in the nav is reachable from its own first page', () => {
+    for (const [key, tech] of Object.entries(technologiesNav)) {
+      const first = tech.groups[0].items[0];
+      const [path, query] = first.path!(SAMPLE_PROFILE_ID).split('?');
+      const mode = new URLSearchParams(query ?? '').get('mode') ?? undefined;
+
+      expect(getTechnologyForPath(path, mode), `${key} / ${first.label}`).toBe(key);
     }
   });
 

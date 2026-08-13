@@ -101,7 +101,7 @@ const technologies = [
       'Requests and background jobs broken into nested spans, with the JVM activity inside each one',
     icon: 'bi-diagram-3',
     colorClass: 'color-spans',
-    route: `/profiles/${profileId}/technologies/traces`,
+    route: `/profiles/${profileId}/technologies/traces/operations`,
     featureType: FeatureType.TRACES
   },
   {
