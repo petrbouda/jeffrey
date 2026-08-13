@@ -24,7 +24,7 @@
       <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
 
       <div v-show="activeTab === 'flames'">
-        <TraceOperationFlamegraphs :profile-id="profileId" :name="name" />
+        <TraceOperationFlamegraphs v-if="traces.length > 0" :profile-id="profileId" :name="name" />
       </div>
 
       <div v-show="activeTab === 'timeline'">
@@ -42,7 +42,7 @@
 
       <div v-show="activeTab === 'slowest'">
         <TraceSlowestList
-          :traces="slowest"
+          :traces="traces"
           :total="traces.length"
           :note="capNote"
           @row-click="openTrace"
@@ -114,11 +114,6 @@ const buckets = computed(() =>
 
 const primaryData = computed<number[][]>(() => buckets.value.map((b) => [b.mid, b.maxDuration]));
 const secondaryData = computed<number[][]>(() => buckets.value.map((b) => [b.mid, b.count]));
-
-/** The list ranks by duration; the fetch is chronological so the timeline stays unbiased. */
-const slowest = computed<TraceRow[]>(() =>
-  [...traces.value].sort((a, b) => b.durationNanos - a.durationNanos)
-);
 
 // Silence about a cap reads as "this is all of them", which it would not be.
 const capNote = computed<string | undefined>(() => {
