@@ -24,6 +24,11 @@
 # NOTE: with sudo the JVM runs as root and uses root's home for Jeffrey data; your own ~/.jeffrey is
 # left untouched. Pass EVENT=itimer to run as your normal user instead.
 #
+# Pass --asprof <path> (or --asprof=<path>, or ASPROF=<path> in the environment) to point at the
+# async-profiler library to load. The path may be the libasyncProfiler.so itself, or a directory
+# containing it (either directly or under lib/ or build/lib/, as in an async-profiler checkout or a
+# released distribution). The flag wins over the ASPROF environment variable.
+#
 # Pass --clean to wipe the Jeffrey data dir (${HOME}/.jeffrey-microscope — with sudo that is
 # /root/.jeffrey-microscope) before launch, so the run starts from clean data. All other arguments
 # are forwarded to the application.
@@ -40,11 +45,28 @@ set -euo pipefail
 # to the jar.
 CLEAN=0
 NO_PROFILER="${NO_PROFILER:-0}"
+ASPROF_ARG=""
 REST=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --clean)       CLEAN=1; shift ;;
         --no-profiler) NO_PROFILER=1; shift ;;
+        --asprof)
+            if [[ $# -lt 2 || -z "$2" ]]; then
+                echo "error: --asprof requires a path to libasyncProfiler.so (or a directory containing it)" >&2
+                exit 1
+            fi
+            ASPROF_ARG="$2"
+            shift 2
+            ;;
+        --asprof=*)
+            ASPROF_ARG="${1#--asprof=}"
+            if [[ -z "${ASPROF_ARG}" ]]; then
+                echo "error: --asprof requires a path to libasyncProfiler.so (or a directory containing it)" >&2
+                exit 1
+            fi
+            shift
+            ;;
         *)             REST+=("$1"); shift ;;
     esac
 done
@@ -52,7 +74,23 @@ set -- "${REST[@]+"${REST[@]}"}"
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-ASPROF="${ASPROF:-/home/pbouda/IdeaProjects/async-profiler/build/lib/libasyncProfiler.so}"
+ASPROF_LIB_NAME="libasyncProfiler.so"
+ASPROF_DEFAULT="/home/pbouda/IdeaProjects/async-profiler/build/lib/${ASPROF_LIB_NAME}"
+# --asprof wins over the ASPROF env var, which wins over the built-in default.
+ASPROF="${ASPROF_ARG:-${ASPROF:-${ASPROF_DEFAULT}}}"
+# Accept a directory as well as the .so itself: an async-profiler checkout (build/lib/), a released
+# distribution (lib/), or a directory holding the library directly.
+if [[ -d "${ASPROF}" ]]; then
+    for asprof_candidate in \
+        "${ASPROF}/${ASPROF_LIB_NAME}" \
+        "${ASPROF}/lib/${ASPROF_LIB_NAME}" \
+        "${ASPROF}/build/lib/${ASPROF_LIB_NAME}"; do
+        if [[ -f "${asprof_candidate}" ]]; then
+            ASPROF="${asprof_candidate}"
+            break
+        fi
+    done
+fi
 EVENT="${EVENT:-cpu}"
 JAR="${REPO_DIR}/build/build-microscope/target/microscope.jar"
 # Jeffrey data dir, derived from $HOME exactly as the JVM derives user.home (so --clean wipes the
@@ -63,8 +101,11 @@ DATA_DIR="${HOME}/.jeffrey-microscope"
 AGENT_OPTS_BASE="start,event=${EVENT},wall,alloc,lock,file=${REPO_DIR}/jeffrey-%t.jfr"
 
 if [[ "${NO_PROFILER}" -eq 0 && ! -f "${ASPROF}" ]]; then
-    echo "error: libasyncProfiler.so not found at ${ASPROF}" >&2
-    echo "       build it: (cd /home/pbouda/IdeaProjects/async-profiler && make build/lib/libasyncProfiler.so)" >&2
+    echo "error: ${ASPROF_LIB_NAME} not found at ${ASPROF}" >&2
+    echo "       point at it: ${BASH_SOURCE[0]} --asprof /path/to/${ASPROF_LIB_NAME}" >&2
+    echo "                    (a directory containing it, or its lib/ or build/lib/, also works)" >&2
+    echo "       or set:      ASPROF=/path/to/${ASPROF_LIB_NAME} ${BASH_SOURCE[0]}" >&2
+    echo "       build it:    (cd /home/pbouda/IdeaProjects/async-profiler && make build/lib/${ASPROF_LIB_NAME})" >&2
     exit 1
 fi
 if [[ ! -f "${JAR}" ]]; then
