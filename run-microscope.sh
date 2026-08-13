@@ -25,9 +25,10 @@
 # left untouched. Pass EVENT=itimer to run as your normal user instead.
 #
 # Pass --asprof <path> (or --asprof=<path>, or ASPROF=<path> in the environment) to point at the
-# async-profiler library to load. The path may be the libasyncProfiler.so itself, or a directory
-# containing it (either directly or under lib/ or build/lib/, as in an async-profiler checkout or a
-# released distribution). The flag wins over the ASPROF environment variable.
+# async-profiler library to load. The path may be the library itself, or a directory containing it
+# (either directly or under lib/ or build/lib/, as in an async-profiler checkout or a released
+# distribution) — a directory is scanned for both libasyncProfiler.so and the macOS
+# libasyncProfiler.dylib. The flag wins over the ASPROF environment variable.
 #
 # Pass --clean to wipe the Jeffrey data dir (${HOME}/.jeffrey-microscope — with sudo that is
 # /root/.jeffrey-microscope) before launch, so the run starts from clean data. All other arguments
@@ -75,20 +76,21 @@ set -- "${REST[@]+"${REST[@]}"}"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ASPROF_LIB_NAME="libasyncProfiler.so"
+# macOS builds ship a .dylib instead, so a directory is scanned for both names.
+ASPROF_LIB_NAMES=("${ASPROF_LIB_NAME}" "libasyncProfiler.dylib")
 ASPROF_DEFAULT="/home/pbouda/IdeaProjects/async-profiler/build/lib/${ASPROF_LIB_NAME}"
 # --asprof wins over the ASPROF env var, which wins over the built-in default.
 ASPROF="${ASPROF_ARG:-${ASPROF:-${ASPROF_DEFAULT}}}"
-# Accept a directory as well as the .so itself: an async-profiler checkout (build/lib/), a released
-# distribution (lib/), or a directory holding the library directly.
+# Accept a directory as well as the library itself: an async-profiler checkout (build/lib/), a
+# released distribution (lib/), or a directory holding the library directly.
 if [[ -d "${ASPROF}" ]]; then
-    for asprof_candidate in \
-        "${ASPROF}/${ASPROF_LIB_NAME}" \
-        "${ASPROF}/lib/${ASPROF_LIB_NAME}" \
-        "${ASPROF}/build/lib/${ASPROF_LIB_NAME}"; do
-        if [[ -f "${asprof_candidate}" ]]; then
-            ASPROF="${asprof_candidate}"
-            break
-        fi
+    for asprof_dir in "${ASPROF}" "${ASPROF}/lib" "${ASPROF}/build/lib"; do
+        for asprof_lib_name in "${ASPROF_LIB_NAMES[@]}"; do
+            if [[ -f "${asprof_dir}/${asprof_lib_name}" ]]; then
+                ASPROF="${asprof_dir}/${asprof_lib_name}"
+                break 2
+            fi
+        done
     done
 fi
 EVENT="${EVENT:-cpu}"
@@ -101,7 +103,7 @@ DATA_DIR="${HOME}/.jeffrey-microscope"
 AGENT_OPTS_BASE="start,event=${EVENT},wall,alloc,lock,file=${REPO_DIR}/jeffrey-%t.jfr"
 
 if [[ "${NO_PROFILER}" -eq 0 && ! -f "${ASPROF}" ]]; then
-    echo "error: ${ASPROF_LIB_NAME} not found at ${ASPROF}" >&2
+    echo "error: ${ASPROF_LIB_NAME} (or .dylib) not found at ${ASPROF}" >&2
     echo "       point at it: ${BASH_SOURCE[0]} --asprof /path/to/${ASPROF_LIB_NAME}" >&2
     echo "                    (a directory containing it, or its lib/ or build/lib/, also works)" >&2
     echo "       or set:      ASPROF=/path/to/${ASPROF_LIB_NAME} ${BASH_SOURCE[0]}" >&2
