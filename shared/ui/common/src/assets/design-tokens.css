@@ -263,6 +263,22 @@
   --color-brown-text: #5d4037;
   --color-brown-border: #a1887f;
 
+  /*
+   * StatsTable metric tiles: icon tile background and glyph/breakdown colour per variant.
+   * A Google-palette scheme of its own, deliberately distinct from --color-primary/-info, which
+   * is why these are their own tokens rather than aliases onto the semantic palette.
+   */
+  --color-stat-highlight: #4285f4;
+  --color-stat-highlight-bg: #f5f8ff;
+  --color-stat-danger: #ea4335;
+  --color-stat-danger-bg: #fff8f0;
+  --color-stat-warning: #fbbc05;
+  --color-stat-warning-bg: #fffbf0;
+  --color-stat-info: #34a853;
+  --color-stat-info-bg: #f0fdf4;
+  --color-stat-success: #28a745;
+  --color-stat-success-bg: #f0fdf4;
+
   /* Neutral / light-dark palette */
   --color-neutral-lightest: #fafafa;
   --color-neutral-text: rgba(76, 61, 61, 0.63);

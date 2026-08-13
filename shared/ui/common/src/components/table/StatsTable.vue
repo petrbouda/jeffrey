@@ -1,3 +1,21 @@
+<!--
+  ~ Jeffrey
+  ~ Copyright (C) 2026 Petr Bouda
+  ~
+  ~ This program is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU Affero General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU Affero General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU Affero General Public License
+  ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
 <template>
   <div class="stats-table-container">
     <div class="stats-table">
@@ -9,10 +27,7 @@
         @click="onRowClick(index, metric)"
       >
         <!-- Icon Column -->
-        <div
-          class="stats-icon"
-          :style="{ background: getIconBg(metric.variant), color: getIconColor(metric.variant) }"
-        >
+        <div class="stats-icon">
           <i :class="['bi', `bi-${metric.icon}`]"></i>
         </div>
 
@@ -29,10 +44,8 @@
         <div v-if="metric.breakdown && metric.breakdown.length > 0" class="stats-breakdown">
           <div v-for="(item, i) in metric.breakdown" :key="i" class="breakdown-item">
             <span class="breakdown-label">{{ item.label }}</span>
-            <span
-              class="breakdown-value"
-              :style="{ color: item.color || getVariantColor(metric.variant) }"
-            >
+            <!-- The variant colour comes from CSS; an explicit per-item colour still wins. -->
+            <span class="breakdown-value" :style="item.color ? { color: item.color } : undefined">
               {{ item.value }}
             </span>
           </div>
@@ -72,51 +85,13 @@ const onRowClick = (index: number, metric: Metric): void => {
     emit('metric-click', index, metric);
   }
 };
-
-const getIconBg = (variant?: string): string => {
-  switch (variant) {
-    case 'highlight':
-      return '#f5f8ff';
-    case 'danger':
-      return '#fff8f0';
-    case 'warning':
-      return '#fffbf0';
-    case 'info':
-      return '#f0fdf4';
-    case 'success':
-      return '#f0fdf4';
-    default:
-      return '#f5f8ff';
-  }
-};
-
-const getIconColor = (variant?: string): string => {
-  switch (variant) {
-    case 'highlight':
-      return '#4285F4';
-    case 'danger':
-      return '#EA4335';
-    case 'warning':
-      return '#FBBC05';
-    case 'info':
-      return '#34A853';
-    case 'success':
-      return '#28a745';
-    default:
-      return '#4285F4';
-  }
-};
-
-const getVariantColor = (variant?: string): string => {
-  return getIconColor(variant);
-};
 </script>
 
 <style scoped>
 .stats-table-container {
   background: var(--color-white);
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .stats-table {
@@ -180,9 +155,38 @@ const getVariantColor = (variant?: string): string => {
   justify-content: center;
   width: 34px;
   height: 34px;
-  border-radius: 10%;
+  /* Was `10%`, i.e. 3.4px at this 34px tile; --radius-sm (4px) is the nearest token. */
+  border-radius: var(--radius-sm);
   font-size: 1.05rem;
   flex-shrink: 0;
+  /* Variant classes below override these; an absent variant keeps the highlight scheme. */
+  background: var(--color-stat-highlight-bg);
+  color: var(--color-stat-highlight);
+}
+
+.stats-row.highlight .stats-icon {
+  background: var(--color-stat-highlight-bg);
+  color: var(--color-stat-highlight);
+}
+
+.stats-row.danger .stats-icon {
+  background: var(--color-stat-danger-bg);
+  color: var(--color-stat-danger);
+}
+
+.stats-row.warning .stats-icon {
+  background: var(--color-stat-warning-bg);
+  color: var(--color-stat-warning);
+}
+
+.stats-row.info .stats-icon {
+  background: var(--color-stat-info-bg);
+  color: var(--color-stat-info);
+}
+
+.stats-row.success .stats-icon {
+  background: var(--color-stat-success-bg);
+  color: var(--color-stat-success);
 }
 
 /* Metric Info Column */
@@ -243,6 +247,27 @@ const getVariantColor = (variant?: string): string => {
   font-weight: 700;
   line-height: 1.1;
   text-align: right;
+  color: var(--color-stat-highlight);
+}
+
+.stats-row.highlight .breakdown-value {
+  color: var(--color-stat-highlight);
+}
+
+.stats-row.danger .breakdown-value {
+  color: var(--color-stat-danger);
+}
+
+.stats-row.warning .breakdown-value {
+  color: var(--color-stat-warning);
+}
+
+.stats-row.info .breakdown-value {
+  color: var(--color-stat-info);
+}
+
+.stats-row.success .breakdown-value {
+  color: var(--color-stat-success);
 }
 
 /* Responsive adjustments */
