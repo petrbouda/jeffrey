@@ -221,7 +221,7 @@ export const technologiesNav: Record<string, TechnologyNav> = {
         // Aggregated list first, then the instance list — mirroring `async-profiler`
         // ("Spans by Tag" then "Slowest Spans") so both features open the same way.
         items: [
-          item('Operations', 'bi-bar-chart-steps', '/technologies/traces/operations'),
+          item('Trace Operations', 'bi-bar-chart-steps', '/technologies/traces/operations'),
           item('Slowest Traces', 'bi-hourglass-split', '/technologies/traces')
         ]
       }
