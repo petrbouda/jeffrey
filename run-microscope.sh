@@ -4,6 +4,8 @@
 # also contains the application's own profiler.Span events (http.*, flamegraph.generate, ai.*.call, ...).
 #
 # Events: cpu + wall + alloc + lock, merged with the JVM's JFR (jfrsync=profile) into one .jfr.
+# On macOS the event is already sampled by the wall-clock engine, so 'wall' is dropped there (the
+# agent rejects the combination) and you get cpu + alloc + lock.
 # Output: jeffrey-<timestamp>.jfr in the repo root (%t = async-profiler timestamp placeholder).
 #
 # Method tracing: async-profiler instruments a curated set of Jeffrey's own per-operation methods
@@ -134,7 +136,16 @@ JAR="${REPO_DIR}/build/build-microscope/target/microscope.jar"
 DATA_DIR="${HOME}/.jeffrey-microscope"
 # jfrsync points at a custom .jfc (generated below from the JDK profile with virtual-thread events
 # enabled), so the VT events are merged straight into async-profiler's jeffrey-%t.jfr output.
-AGENT_OPTS_BASE="start,event=${EVENT},wall,alloc,lock,file=${REPO_DIR}/jeffrey-%t.jfr"
+# Engines layered on top of the sampling event. macOS samples the event with async-profiler's own
+# wall-clock engine, so asking for 'wall' as well collides with it and the agent refuses to start
+# ("Cannot start wall clock with the selected event") — leave wall out there. alloc and lock are
+# fine on both platforms.
+if [[ "${OS_NAME}" == "Linux" ]]; then
+    AGENT_ENGINES="wall,alloc,lock"
+else
+    AGENT_ENGINES="alloc,lock"
+fi
+AGENT_OPTS_BASE="start,event=${EVENT},${AGENT_ENGINES},file=${REPO_DIR}/jeffrey-%t.jfr"
 
 if [[ "${NO_PROFILER}" -eq 0 && ! -f "${ASPROF}" ]]; then
     echo "error: ${ASPROF_LIB_NAME} (or .dylib) not found at ${ASPROF}" >&2
