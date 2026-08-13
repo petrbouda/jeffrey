@@ -206,20 +206,20 @@ if (event.isEnabled()) {
 
       <h2 id="operations">Trace Operations</h2>
 
-      <p>The trace list answers "which run was slow". Trace Operations answers "which <em>kind</em> of run is slow, across every time it ran": one card per <strong>trace type</strong> — every trace in the profile rooted at the same operation name, grouped from the <code>traces</code> table and keyed by the root span's name. Each card carries call count, error count, total time, and p50 / p95 / max drawn on a rail shared by every card and scaled to the slowest span in the profile. A wide p50-to-p95 gap reads as a shape rather than a pair of numbers, which is what distinguishes an operation that is uniformly slow from one that is usually fast and occasionally terrible. Sort by total, P95, max, call count or errors.</p>
+      <p>The trace list answers "which run was slow". Trace Operations answers "which <em>kind</em> of run is slow, across every time it ran": one card per <strong>trace type</strong> — every trace in the profile rooted at the same operation name, grouped from the <code>traces</code> table and keyed by the root span's name. Each card leads with the call count, then Total / P50 / P95 / Max badges, and — on the right — the root kind and an error-count badge when the type has failures. Sort by total, P95, max, call count or errors.</p>
 
       <DocsCallout type="info">
         <strong>Where did the nested spans go?</strong> This list used to be every span name in the profile — including names, like <code>chunk.parse</code> or <code>dominator</code>, that only ever occur nested inside another span and are never a trace root. Grouping by root name instead of span name dropped one reference profile's list from 105 rows to 36. A nested span is not lost: open the trace it belongs to and find it in the <a href="#waterfall">waterfall</a>, alongside every other span in that trace's tree.
       </DocsCallout>
 
-      <p>The two tiles above the list — operation count with total traces and errors, and the slowest operation with the profile's total trace time and worst P95 — come from a SQL aggregate over the whole profile, not from summing the list below it, so they stay correct even when the list itself is capped.</p>
+      <p>The two tiles above the list are not scoped alike. <strong>Operations</strong> — the operation count, plus total traces and errors underneath — reads a SQL aggregate over the whole profile, uncapped. <strong>Slowest Operation</strong> is mixed: its <em>Total</em> sub-value is the same profile-wide aggregate, but the headline duration and the <em>Worst P95</em> beside it are the highest max and P95 found among the operation rows the page actually fetched (capped at 100) — there is no profile-wide aggregate that can answer "what is the slowest single operation", only one that sums or maxes across all spans at once. On a profile with more than 100 trace types, that headline can undercount.</p>
 
       <p>Clicking a card opens a drill-down for that operation, with the selection kept in the URL as <code>?operation=</code> so it can be linked to directly. It has three tabs, matching the layout of the async-profiler Spans drill-down:</p>
 
       <ul>
         <li><strong>Flamegraphs</strong> — every execution, wall-clock and allocation sample taken while a trace of this type was running, covering exactly the windows those traces ran in and no more.</li>
         <li><strong>Metrics Timeline</strong> — the slowest trace of this type and the trace count, bucketed over time.</li>
-        <li><strong>Slowest Traces</strong> — the same unfiltered ranked list as the <a href="#trace-list">Trace List</a> above, scoped to this operation's traces; opening a row shows that trace's waterfall. It lists up to 1,000 traces of the type — more than the profile-wide trace list's fifty — with a note on the page when that cap is reached.</li>
+        <li><strong>Slowest Traces</strong> — the same unfiltered ranked list as the <a href="#trace-list">Trace List</a> above, scoped to this operation's traces; opening a row shows that trace's waterfall. Like that list, it displays the 50 longest at a time. What the larger, 1,000-trace fetch behind it buys is not more rows on screen: it feeds the "Showing 50 of&nbsp;…" count, scales the duration bars against the true slowest of the type rather than just the 50 shown, and is the pool the cap note is counting against once a type reaches it.</li>
       </ul>
 
       <p>A stale or hand-edited <code>?operation=</code> value that names no trace root in this profile shows an empty state rather than a blank drill-down.</p>
