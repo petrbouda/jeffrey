@@ -82,7 +82,8 @@ Replace the whole `aggregatesOperations` test in `JdbcTraceRepositoryTest` (insi
 
             TraceOperationRecord slowest = byName.get("POST /api/internal/profiles/{profileId}/flamegraph");
             assertEquals(1, slowest.count(), "one trace of this type");
-            assertEquals(3, slowest.spanCount(), "root plus its two children");
+            assertEquals(4, slowest.spanCount(),
+                    "the root, its two JDBC statements and the hand-written span");
             assertEquals(120 * MS, slowest.totalNanos(), "the whole trace, not the root span alone");
             assertEquals(120 * MS, slowest.maxNanos());
             assertEquals(1, slowest.errorCount(), "the trace contains a failed span");
@@ -341,7 +342,7 @@ Add to the same `@Nested` class as `aggregatesOperations`:
             assertEquals(1, traces.size());
             assertEquals(SLOW_TRACE, traces.getFirst().traceId());
             assertEquals(120 * MS, traces.getFirst().durationNanos());
-            assertEquals(3, traces.getFirst().spanCount());
+            assertEquals(4, traces.getFirst().spanCount());
 
             assertTrue(repository.tracesOfOperation("flamegraph.generate", 10).isEmpty(),
                     "a nested span name roots no trace");
