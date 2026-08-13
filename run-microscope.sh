@@ -28,7 +28,9 @@
 # async-profiler library to load. The path may be the library itself, or a directory containing it
 # (either directly or under lib/ or build/lib/, as in an async-profiler checkout or a released
 # distribution) — a directory is scanned for both libasyncProfiler.so and the macOS
-# libasyncProfiler.dylib. The flag wins over the ASPROF environment variable.
+# libasyncProfiler.dylib. The flag wins over the ASPROF environment variable. A leading '~' is
+# expanded even in the forms the shell leaves alone (--asprof=~/dir, or a quoted path), and under
+# sudo it resolves to the invoking user's home, not root's.
 #
 # Pass --clean to wipe the Jeffrey data dir (${HOME}/.jeffrey-microscope — with sudo that is
 # /root/.jeffrey-microscope) before launch, so the run starts from clean data. All other arguments
@@ -75,12 +77,38 @@ set -- "${REST[@]+"${REST[@]}"}"
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Home of the user who invoked the script. Under sudo that is the original user rather than root,
+# which is what an unquoted '~' expands to at the prompt (the shell expands it before sudo elevates).
+invoking_home() {
+    if [[ -n "${SUDO_USER:-}" ]]; then
+        local sudo_home
+        sudo_home="$(getent passwd "${SUDO_USER}" | cut -d: -f6)"
+        if [[ -n "${sudo_home}" ]]; then
+            echo "${sudo_home}"
+            return
+        fi
+    fi
+    echo "${HOME}"
+}
+
+# Expand a leading '~' the way the shell would. The shell only does it for an unquoted tilde at the
+# start of a word, so '--asprof=~/dir' and any quoted path reach us verbatim; this makes every form
+# resolve to the same place. Only '~' and '~/...' are handled — '~otheruser/...' is left alone.
+expand_tilde() {
+    local path="$1"
+    case "${path}" in
+        "~")   invoking_home ;;
+        "~/"*) echo "$(invoking_home)${path#\~}" ;;
+        *)     echo "${path}" ;;
+    esac
+}
+
 ASPROF_LIB_NAME="libasyncProfiler.so"
 # macOS builds ship a .dylib instead, so a directory is scanned for both names.
 ASPROF_LIB_NAMES=("${ASPROF_LIB_NAME}" "libasyncProfiler.dylib")
 ASPROF_DEFAULT="/home/pbouda/IdeaProjects/async-profiler/build/lib/${ASPROF_LIB_NAME}"
 # --asprof wins over the ASPROF env var, which wins over the built-in default.
-ASPROF="${ASPROF_ARG:-${ASPROF:-${ASPROF_DEFAULT}}}"
+ASPROF="$(expand_tilde "${ASPROF_ARG:-${ASPROF:-${ASPROF_DEFAULT}}}")"
 # Accept a directory as well as the library itself: an async-profiler checkout (build/lib/), a
 # released distribution (lib/), or a directory holding the library directly.
 if [[ -d "${ASPROF}" ]]; then
@@ -138,9 +166,10 @@ if [[ -z "${JAVA_BIN}" && -n "${JAVA_HOME:-}" && -x "${JAVA_HOME}/bin/java" ]]; 
     JAVA_BIN="${JAVA_HOME}/bin/java"
 fi
 if [[ -z "${JAVA_BIN}" && -n "${SUDO_USER:-}" ]]; then
-    user_home="$(getent passwd "${SUDO_USER}" | cut -d: -f6)"
-    candidate="${user_home}/.sdkman/candidates/java/current/bin/java"
-    [[ -x "${candidate}" ]] && JAVA_BIN="${candidate}"
+    candidate="$(invoking_home)/.sdkman/candidates/java/current/bin/java"
+    if [[ -x "${candidate}" ]]; then
+        JAVA_BIN="${candidate}"
+    fi
 fi
 if [[ -z "${JAVA_BIN}" ]] && command -v java >/dev/null 2>&1; then
     JAVA_BIN="$(command -v java)"
