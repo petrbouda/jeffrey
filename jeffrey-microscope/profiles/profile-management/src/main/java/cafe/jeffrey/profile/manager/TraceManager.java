@@ -19,6 +19,7 @@
 package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TraceEventRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -71,4 +72,12 @@ public interface TraceManager {
      * @return latency aggregated by operation name across every trace
      */
     List<TraceOperationRow> operations(int limit);
+
+    /**
+     * What the JVM was doing on the span's thread while it was open. Events that are themselves
+     * spans are left out — they are the tree the waterfall already draws.
+     *
+     * @return the events, or empty when the span does not exist
+     */
+    List<TraceEventRow> eventsInSpan(long traceId, long spanId);
 }

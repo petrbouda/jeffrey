@@ -216,6 +216,9 @@ public record Type(String code, boolean calculated) {
     // Async-profiler events
     public static final Type SPAN = new Type(EventTypeName.SPAN);
 
+    // Tracing events
+    public static final Type TRACE_SPAN = new Type(EventTypeName.TRACE_SPAN);
+
     // Container events
     public static final Type CONTAINER_CONFIGURATION = new Type(EventTypeName.CONTAINER_CONFIGURATION);
     public static final Type CONTAINER_CPU_THROTTLING = new Type(EventTypeName.CONTAINER_CPU_THROTTLING);
@@ -381,6 +384,7 @@ public record Type(String code, boolean calculated) {
                 CONTAINER_MEMORY_USAGE,
                 CONTAINER_IO_USAGE,
                 SPAN,
+                TRACE_SPAN,
                 APP_INFORMATION
         ).collect(Collectors.toMap(Type::code, Function.identity()));
     }

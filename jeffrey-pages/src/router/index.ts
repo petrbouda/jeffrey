@@ -339,6 +339,11 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsProfilesLeakCandidates',
         component: () => import('@/views/docs/microscope/profiles/ProfileLeakCandidatesPage.vue')
       },
+      {
+        path: 'microscope/profiles/traces',
+        name: 'DocsProfilesTraces',
+        component: () => import('@/views/docs/microscope/profiles/ProfileTracesPage.vue')
+      },
       // Workspaces & Event Log
       {
         path: 'microscope/workspaces',

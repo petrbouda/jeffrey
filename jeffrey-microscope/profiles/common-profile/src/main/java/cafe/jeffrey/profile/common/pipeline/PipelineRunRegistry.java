@@ -19,7 +19,10 @@
 package cafe.jeffrey.profile.common.pipeline;
 
 import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.SpanStatus;
+import cafe.jeffrey.jfr.events.trace.TraceSpanEvent;
 import cafe.jeffrey.jfr.events.trace.Tracer;
+import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
 import org.slf4j.Logger;
@@ -27,6 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.util.Map;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -190,16 +194,31 @@ public final class PipelineRunRegistry<K> {
             return;
         }
 
+        // The root span of this run's trace. Stages opened by PipelineRun.runStage nest under it.
+        // The event is built here rather than left to Tracer.run because a pipeline knows things a
+        // generic span does not: which profile the run was for, and whether it actually succeeded.
+        TraceSpanEvent span = new TraceSpanEvent();
+        span.name = definition.pipelineId();
+        span.kind = SpanKind.INTERNAL.name();
+        span.begin();
+
         try {
-            // The root span of this run's trace. Stages opened by PipelineRun.runStage nest under it.
             // Scoped to the work itself rather than the whole method so the span measures execution,
             // not the time spent queueing for a slot above.
-            Tracer.run(definition.pipelineId(), SpanKind.INTERNAL, () -> request.work().accept(run));
+            Tracer.inSpanOf(span, () -> {
+                request.work().accept(run);
+                return null;
+            });
             run.complete();
+            // OK rather than UNSET: a pipeline reaching complete() is a success the code observed,
+            // not merely the absence of a thrown exception.
+            span.status = SpanStatus.OK.name();
             LOG.info("Pipeline run completed: pipeline_id={} key={} duration_in_ms={}",
                     definition.pipelineId(), request.key(),
                     Duration.between(run.startedAt(), clock.instant()).toMillis());
         } catch (Throwable e) {
+            span.status = SpanStatus.ERROR.name();
+            span.errorType = e.getClass().getName();
             // Errors are marked too — otherwise an OutOfMemoryError would leave the run RUNNING and
             // its key blocked forever. They still propagate after the finally block runs.
             run.fail(errorCodeOf(e), e.getMessage());
@@ -211,6 +230,16 @@ public final class PipelineRunRegistry<K> {
                 throw error;
             }
         } finally {
+            span.end();
+            if (span.shouldCommit()) {
+                // What this run was for. The key identifies the profile and the scope the pipeline's
+                // unit of work -- the event type for an advisor batch, empty for a once-per-profile
+                // run -- which is what tells two runs of the same pipeline apart in the trace list.
+                span.attributes = Json.toString(Map.of(
+                        "key", String.valueOf(request.key()),
+                        "scopeId", request.scopeId()));
+                span.commit();
+            }
             tracked.worker = null;
             // Absorb a cancellation interrupt that landed after the work returned, so storing the
             // terminal result below is not sabotaged by a flag meant for the work.

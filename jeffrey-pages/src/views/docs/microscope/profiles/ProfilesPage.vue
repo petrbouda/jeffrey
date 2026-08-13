@@ -274,6 +274,11 @@ const folderStructure = `$JEFFREY_HOME/
 
       <div class="docs-grid docs-grid-2">
         <DocsFeatureCard
+          icon="bi bi-bezier2"
+          title="Traces &amp; Spans"
+          description="Nested breakdown of one unit of work — a trace list, a waterfall of the span tree with split self/child bars, per-operation latency spread, and the flamegraph of what the JVM did inside a single span."
+        />
+        <DocsFeatureCard
           icon="bi bi-globe"
           title="HTTP Server & Client"
           description="Inbound and outbound HTTP analysis — overview, timeseries, distribution, slowest requests, and per-endpoint drill-down."
@@ -299,6 +304,10 @@ const folderStructure = `$JEFFREY_HOME/
           description="Span-level latency from async-profiler spans — overview by tag with total, average, P95 and max duration, slowest spans ranked by duration, per-span CPU / Wall-Clock / Allocation flame graphs, and the events that ran during a span."
         />
       </div>
+
+      <p class="docs-read-more">
+        <router-link to="/docs/microscope/profiles/traces">Read the Traces &amp; Spans reference &rarr;</router-link>
+      </p>
 
       <h2 id="heap-dump-analysis">Heap Dump Analysis</h2>
       <p>Memory analysis from heap dump snapshots (.hprof files). Requires a heap dump to be associated with the profile.</p>

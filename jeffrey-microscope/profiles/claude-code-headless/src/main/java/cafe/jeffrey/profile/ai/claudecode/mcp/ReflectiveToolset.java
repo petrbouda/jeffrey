@@ -19,6 +19,8 @@
 package cafe.jeffrey.profile.ai.claudecode.mcp;
 
 import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.SpanStatus;
+import cafe.jeffrey.jfr.events.trace.TraceSpanEvent;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -45,6 +47,9 @@ import java.util.Map;
  * the project's compiler configuration).
  */
 public final class ReflectiveToolset {
+
+    /** Attribute recording how many characters a tool handed back to the model. */
+    private static final String RESULT_CHARS_ATTRIBUTE = "resultChars";
 
     private static final String JSON_TYPE_OBJECT = "object";
     private static final String JSON_TYPE_STRING = "string";
@@ -83,18 +88,43 @@ public final class ReflectiveToolset {
         // is what separates time spent in the model from time spent in our own queries when a
         // tool-assisted answer is slow. The span wraps the reflective call *and* its exception
         // translation, so a failed tool is recorded with the exception this method actually throws.
-        return Tracer.call(toolName, SpanKind.INTERNAL, () -> {
-            Object[] args = bindArguments(method, arguments);
-            try {
-                Object result = method.invoke(target, args);
-                return result == null ? "" : result.toString();
-            } catch (IllegalAccessException e) {
-                throw new IllegalStateException("Failed to invoke tool: " + toolName, e);
-            } catch (InvocationTargetException e) {
-                Throwable cause = e.getCause() != null ? e.getCause() : e;
-                throw new IllegalStateException("Tool execution failed: " + cause.getMessage(), cause);
+        TraceSpanEvent span = new TraceSpanEvent();
+        span.name = toolName;
+        span.kind = SpanKind.INTERNAL.name();
+        span.begin();
+
+        String result = null;
+        try {
+            result = Tracer.inSpanOf(span, () -> {
+                Object[] args = bindArguments(method, arguments);
+                try {
+                    Object value = method.invoke(target, args);
+                    return value == null ? "" : value.toString();
+                } catch (IllegalAccessException e) {
+                    throw new IllegalStateException("Failed to invoke tool: " + toolName, e);
+                } catch (InvocationTargetException e) {
+                    Throwable cause = e.getCause() != null ? e.getCause() : e;
+                    throw new IllegalStateException("Tool execution failed: " + cause.getMessage(), cause);
+                }
+            });
+            // A tool that returned a result did its job; the outcome is observed, not assumed.
+            span.status = SpanStatus.OK.name();
+            return result;
+        } catch (RuntimeException e) {
+            span.status = SpanStatus.ERROR.name();
+            span.errorType = e.getClass().getName();
+            throw e;
+        } finally {
+            span.end();
+            if (span.shouldCommit()) {
+                // How much the tool handed back. Everything a tool returns is pasted into the
+                // model's context and paid for on the next round trip, so the size of the answer is
+                // as interesting as the time it took to produce -- and invisible from the duration.
+                span.attributes = Json.toString(
+                        Map.of(RESULT_CHARS_ATTRIBUTE, result == null ? 0 : result.length()));
+                span.commit();
             }
-        });
+        }
     }
 
     private void index() {

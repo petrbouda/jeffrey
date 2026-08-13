@@ -205,8 +205,12 @@ public abstract class EventTypeName {
     public static final String GRPC_SERVER_EXCHANGE = "jeffrey.GrpcServerExchange";
     public static final String GRPC_CLIENT_EXCHANGE = "jeffrey.GrpcClientExchange";
 
-    // Async-profiler events
+    // Async-profiler events. Flat, per-thread latency intervals tagged with a label -- unrelated to
+    // TRACE_SPAN below, which is Jeffrey's own nested tracing span.
     public static final String SPAN = "profiler.Span";
+
+    // Tracing events
+    public static final String TRACE_SPAN = "jeffrey.TraceSpan";
 
     // Streaming events
     public static final String MESSAGE = "jeffrey.Message";

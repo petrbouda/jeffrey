@@ -62,4 +62,18 @@ public interface TraceRepository {
      * @param limit maximum number of operations to return, ranked by total time
      */
     List<TraceOperationRecord> operations(int limit);
+
+    /**
+     * Returns what the JVM was doing on a span's thread while the span was open — CPU samples,
+     * allocations, lock contention and the rest.
+     * <p>
+     * Events that are themselves spans are excluded, so the drill-down shows JVM activity rather
+     * than repeating the tree the waterfall already draws.
+     *
+     * @param threadHash      identity hash of the span's thread; used rather than the OS id so the
+     *                        lookup also resolves for virtual threads
+     * @param fromEpochMillis window start, inclusive
+     * @param toEpochMillis   window end, inclusive
+     */
+    List<TraceEventRecord> eventsInSpan(long threadHash, long fromEpochMillis, long toEpochMillis);
 }

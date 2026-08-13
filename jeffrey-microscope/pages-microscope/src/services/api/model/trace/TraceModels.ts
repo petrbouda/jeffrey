@@ -74,3 +74,17 @@ export interface TraceOperationRow {
   p95Nanos: number;
   maxNanos: number;
 }
+
+/**
+ * One JFR event that occurred inside a span -- what the JVM was doing while it was open.
+ *
+ * Distinct from the async-profiler span drill-down's row type. That feature answers the same shape
+ * of question for `profiler.Span`, and the two are kept apart so neither constrains the other.
+ */
+export interface TraceEventRow {
+  eventType: string;
+  startEpochMillis: number;
+  durationNanos: number;
+  /** The event's own fields, as a JSON object string. */
+  fields: string | null;
+}

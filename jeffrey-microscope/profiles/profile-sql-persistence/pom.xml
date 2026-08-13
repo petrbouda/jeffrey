@@ -30,6 +30,13 @@
     <artifactId>profile-sql-persistence</artifactId>
 
     <dependencies>
+        <!-- Test-only: pins the status/kind literals in the derivation SQL to the enums the
+             instrumentation emits, so a rename on one side cannot silently diverge from the other -->
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-events</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>profile-persistence-api</artifactId>

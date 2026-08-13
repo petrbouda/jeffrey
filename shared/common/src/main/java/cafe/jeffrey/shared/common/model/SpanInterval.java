@@ -19,11 +19,15 @@
 package cafe.jeffrey.shared.common.model;
 
 /**
- * A single async-profiler span instance reduced to what is needed to scope samples to it: the
- * identity hash of the thread the span ran on plus its absolute time window. Scoping a flamegraph
- * to a span tag means OR-ing the windows of all its spans — a sample belongs to the span only if it
- * was taken on {@code threadHash} between {@code fromEpochMillis} and {@code toEpochMillis}.
+ * An interval of work reduced to what is needed to scope samples to it: the identity hash of the
+ * thread it ran on plus its absolute time window. A sample belongs to the interval only if it was
+ * taken on {@code threadHash} between {@code fromEpochMillis} and {@code toEpochMillis}.
  * {@code thread_hash} is used (not the OS id) so the match works for virtual threads too.
+ * <p>
+ * Deliberately neutral about what produced the interval. Both span features feed it: an
+ * async-profiler tag contributes one interval per {@code profiler.Span} it covers, and a trace span
+ * contributes its own window, or that window minus its children's when scoped to self time. This is
+ * the one thing the two share — the SQL predicate that turns a window into a sample filter.
  */
 public record SpanInterval(long threadHash, long fromEpochMillis, long toEpochMillis) {
 

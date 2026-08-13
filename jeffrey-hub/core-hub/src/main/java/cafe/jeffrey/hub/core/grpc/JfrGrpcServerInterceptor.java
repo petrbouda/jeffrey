@@ -19,6 +19,7 @@
 package cafe.jeffrey.hub.core.grpc;
 
 import cafe.jeffrey.jfr.events.grpc.GrpcServerExchangeEvent;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import com.google.protobuf.MessageLite;
 import io.grpc.*;
 
@@ -29,6 +30,17 @@ import java.net.SocketAddress;
  * gRPC server interceptor that emits {@link GrpcServerExchangeEvent} JFR events
  * for every incoming gRPC call, capturing service/method names, remote peer info,
  * status codes, and request/response sizes.
+ * <p>
+ * The exchange is also the root of a trace: it is an inbound call, so nothing encloses it. The
+ * event carries the trace identity itself rather than a separate span event being emitted for the
+ * same interval.
+ * <p>
+ * <b>Scope of the binding.</b> A gRPC call is not a single block of work — the handler runs from
+ * listener callbacks after this method has returned, on a thread this interceptor does not control.
+ * The published context therefore covers only the synchronous setup below, so work performed later
+ * in the call is <em>not</em> nested under this span. The call still appears in the trace list with
+ * its own identity, which is what makes it addressable at all; nesting the handler's work needs a
+ * way to re-enter an existing span that the tracing API does not currently offer.
  */
 public class JfrGrpcServerInterceptor implements ServerInterceptor {
 
@@ -44,6 +56,9 @@ public class JfrGrpcServerInterceptor implements ServerInterceptor {
         }
 
         event.begin();
+        // Stamps a fresh trace and span id onto the exchange; see the note on the class javadoc
+        // about how far the published context reaches.
+        Tracer.inSpanOf(event, () -> null);
 
         MethodDescriptor<ReqT, RespT> methodDescriptor = call.getMethodDescriptor();
         event.service = methodDescriptor.getServiceName();
