@@ -332,6 +332,7 @@ import ProfileSidebar from '@/components/profile/ProfileSidebar.vue';
 import {
   DifferentialType,
   getModeForPath,
+  getTechnologyForPath,
   ProfileMode
 } from '@/views/profiles/navigation/profileNavConfig';
 const route = useRoute();
@@ -410,26 +411,9 @@ const isFeatureDisabled = (menuItem: string): boolean => {
 const isTechnologiesHub = computed(() => route.name === 'profile-technologies-hub');
 
 // Determine which technology is active based on the current route
-const activeTechnology = computed<string | null>(() => {
-  const path = route.path;
-  const mode = route.query.mode as string | undefined;
-  if (path.includes('/technologies/http/')) {
-    return mode === 'client' ? 'http-client' : 'http-server';
-  }
-  if (path.includes('/technologies/grpc/')) {
-    return mode === 'client' ? 'grpc-client' : 'grpc-server';
-  }
-  if (path.includes('/technologies/jdbc')) {
-    return 'jdbc';
-  }
-  if (path.includes('/technologies/method-tracing/')) {
-    return 'method-tracing';
-  }
-  if (path.includes('/technologies/async-profiler/')) {
-    return 'async-profiler';
-  }
-  return null;
-});
+const activeTechnology = computed<string | null>(() =>
+  getTechnologyForPath(route.path, route.query.mode as string | undefined)
+);
 
 // Mode is derived from the current route path (single source of truth in profileNavConfig)
 // so refresh preserves the active section.
