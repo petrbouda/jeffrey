@@ -27,10 +27,11 @@ import { computed } from 'vue';
 import StatsTable from '@shared/components/table/StatsTable.vue';
 import FormattingService from '@shared/services/FormattingService';
 import { operationTotals } from '@/services/trace/traceOperationMetrics';
-import type { TraceOperationRow } from '@/services/api/model/trace/TraceModels';
+import type { TraceOperationRow, TraceOverview } from '@/services/api/model/trace/TraceModels';
 
 const props = defineProps<{
   operations: TraceOperationRow[];
+  overview: TraceOverview;
 }>();
 
 const totals = computed(() => operationTotals(props.operations));
@@ -39,11 +40,11 @@ const metrics = computed(() => [
   {
     icon: 'bar-chart-steps',
     title: 'Operations',
-    value: FormattingService.formatNumber(totals.value.operations),
+    value: FormattingService.formatNumber(props.overview.distinctOperations),
     variant: 'info' as const,
     breakdown: [
-      { label: 'Calls', value: FormattingService.formatNumber(totals.value.calls) },
-      { label: 'Errors', value: FormattingService.formatNumber(totals.value.errors) }
+      { label: 'Traces', value: FormattingService.formatNumber(props.overview.totalTraces) },
+      { label: 'Errors', value: FormattingService.formatNumber(props.overview.errorTraces) }
     ]
   },
   {
@@ -52,7 +53,7 @@ const metrics = computed(() => [
     value: FormattingService.formatDuration2Units(totals.value.slowestNanos),
     variant: 'highlight' as const,
     breakdown: [
-      { label: 'Total', value: FormattingService.formatDuration2Units(totals.value.totalNanos) },
+      { label: 'Total', value: FormattingService.formatDuration2Units(props.overview.totalNanos) },
       {
         label: 'Worst P95',
         value: FormattingService.formatDuration2Units(totals.value.worstP95Nanos)

@@ -19,17 +19,13 @@
 import type { TraceOperationRow } from '@/services/api/model/trace/TraceModels';
 
 /**
- * The totals shown above the operation list.
+ * The per-operation extremes shown above the operation list.
  *
- * Reduced from exactly the rows the list renders, rather than fetched separately: the list is
- * capped at the slowest operations, and a profile-wide total sitting on top of a capped list would
- * describe a different set of operations than the one underneath it.
+ * Reduced from the rows the list renders, because they describe *an operation* — the profile-wide
+ * overview cannot express "the slowest single operation". The profile totals beside them come from
+ * the overview instead, which is uncapped.
  */
 export interface TraceOperationTotals {
-  operations: number;
-  calls: number;
-  errors: number;
-  totalNanos: number;
   worstP95Nanos: number;
   slowestNanos: number;
 }
@@ -37,13 +33,9 @@ export interface TraceOperationTotals {
 export function operationTotals(operations: TraceOperationRow[]): TraceOperationTotals {
   return operations.reduce<TraceOperationTotals>(
     (totals, operation) => ({
-      operations: totals.operations + 1,
-      calls: totals.calls + operation.count,
-      errors: totals.errors + operation.errorCount,
-      totalNanos: totals.totalNanos + operation.totalNanos,
       worstP95Nanos: Math.max(totals.worstP95Nanos, operation.p95Nanos),
       slowestNanos: Math.max(totals.slowestNanos, operation.maxNanos)
     }),
-    { operations: 0, calls: 0, errors: 0, totalNanos: 0, worstP95Nanos: 0, slowestNanos: 0 }
+    { worstP95Nanos: 0, slowestNanos: 0 }
   );
 }

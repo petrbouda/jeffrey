@@ -37,10 +37,6 @@ function operation(overrides: Partial<TraceOperationRow>): TraceOperationRow {
 describe('operationTotals', () => {
   it('reports zeros for a profile with no operations', () => {
     expect(operationTotals([])).toEqual({
-      operations: 0,
-      calls: 0,
-      errors: 0,
-      totalNanos: 0,
       worstP95Nanos: 0,
       slowestNanos: 0
     });
@@ -52,10 +48,6 @@ describe('operationTotals', () => {
     ]);
 
     expect(totals).toEqual({
-      operations: 1,
-      calls: 12,
-      errors: 2,
-      totalNanos: 900,
       worstP95Nanos: 120,
       slowestNanos: 300
     });
@@ -67,20 +59,7 @@ describe('operationTotals', () => {
       operation({ count: 5, errorCount: 0, totalNanos: 250, p95Nanos: 400, maxNanos: 410 })
     ]);
 
-    expect(totals.calls).toBe(15);
-    expect(totals.errors).toBe(1);
-    expect(totals.totalNanos).toBe(750);
     expect(totals.worstP95Nanos).toBe(400);
     expect(totals.slowestNanos).toBe(410);
-  });
-
-  it('counts errors independently of calls, so a quiet failing operation still shows', () => {
-    const totals = operationTotals([
-      operation({ count: 1000, errorCount: 0 }),
-      operation({ count: 3, errorCount: 3 })
-    ]);
-
-    expect(totals.calls).toBe(1003);
-    expect(totals.errors).toBe(3);
   });
 });

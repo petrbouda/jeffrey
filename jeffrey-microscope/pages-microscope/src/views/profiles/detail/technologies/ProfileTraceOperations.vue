@@ -32,8 +32,25 @@
     />
 
     <div v-else class="dashboard-container">
-      <TraceOperationStats :operations="operations" />
-      <TraceOperationList :operations="operations" @operation-click="openTraces" />
+      <template v-if="selectedOperation === ''">
+        <TraceOperationStats v-if="overview" :operations="operations" :overview="overview" />
+        <TraceOperationList :operations="operations" @operation-click="openOperation" />
+      </template>
+
+      <template v-else>
+        <DetailBreadcrumb root-label="Trace Operations" icon="bi-bar-chart-steps" @back="clearSelection">
+          {{ selectedOperation }}
+        </DetailBreadcrumb>
+
+        <EmptyState
+          v-if="!isKnownOperation"
+          title="Unknown Operation"
+          message="No trace in this profile is rooted at that operation."
+          icon="bi-bar-chart-steps"
+        />
+
+        <TraceOperationDetail v-else :profile-id="profileId" :name="selectedOperation" />
+      </template>
     </div>
   </div>
 </template>
@@ -45,11 +62,13 @@ import { useRoute, useRouter } from 'vue-router';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
+import DetailBreadcrumb from '@shared/components/DetailBreadcrumb.vue';
 import TracesDisabledFeatureAlert from '@/components/alerts/TracesDisabledFeatureAlert.vue';
 import TraceOperationStats from '@/components/trace/TraceOperationStats.vue';
 import TraceOperationList from '@/components/trace/TraceOperationList.vue';
+import TraceOperationDetail from '@/components/trace/TraceOperationDetail.vue';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
-import type { TraceOperationRow } from '@/services/api/model/trace/TraceModels';
+import type { TraceOperationRow, TraceOverview } from '@/services/api/model/trace/TraceModels';
 import FeatureType from '@/services/api/model/FeatureType';
 
 const props = defineProps<{ disabledFeatures: FeatureType[] }>();
@@ -58,6 +77,7 @@ const route = useRoute();
 const router = useRouter();
 
 const operations = ref<TraceOperationRow[]>([]);
+const overview = ref<TraceOverview | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
 
@@ -65,24 +85,34 @@ const profileId = computed(() => route.params.profileId as string);
 
 const featureDisabled = computed(() => props.disabledFeatures.includes(FeatureType.TRACES));
 
-/**
- * This view answers "which operation is slow in general"; the traces rooted at one answer "which
- * run was slow". Rather than growing a second list here, the click hands the question to the view
- * that already owns it.
- */
-function openTraces(name: string): void {
-  router.push({
-    name: 'profile-traces',
-    params: { profileId: profileId.value },
-    query: { operation: name }
-  });
+/** The selection lives in the URL so the detail is linkable and Back steps out of it, not off it. */
+const selectedOperation = computed(() => (route.query.operation as string) ?? '');
+
+const isKnownOperation = computed(() =>
+  operations.value.some(operation => operation.name === selectedOperation.value)
+);
+
+function openOperation(name: string): void {
+  router.push({ query: { ...route.query, operation: name } });
+}
+
+function clearSelection(): void {
+  const query = { ...route.query };
+  delete query.operation;
+  router.push({ query });
 }
 
 async function loadData(): Promise<void> {
   loading.value = true;
   error.value = null;
   try {
-    operations.value = await new ProfileTracesClient(profileId.value).getOperations();
+    const client = new ProfileTracesClient(profileId.value);
+    const [operationRows, overviewData] = await Promise.all([
+      client.getOperations(),
+      client.getOverview()
+    ]);
+    operations.value = operationRows;
+    overview.value = overviewData;
   } catch {
     error.value = 'Failed to load the trace operations for this profile.';
   } finally {

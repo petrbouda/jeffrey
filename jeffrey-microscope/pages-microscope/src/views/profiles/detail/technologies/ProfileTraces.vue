@@ -32,31 +32,9 @@
     />
 
     <div v-else class="dashboard-container">
-      <DetailBreadcrumb
-        v-if="operationFilter"
-        root-label="Traces"
-        icon="bi-diagram-3"
-        @back="clearOperation"
-      >
-        {{ operationFilter }}
-      </DetailBreadcrumb>
-
       <TraceOverviewStats v-if="overview" :overview="overview" />
 
-      <EmptyState
-        v-if="filtered.length === 0"
-        title="Not a root operation"
-        message="No trace starts with this operation — it only ever appears as a child span."
-        icon="bi-diagram-2"
-      />
-
-      <TraceSlowestList
-        v-else
-        :traces="filtered"
-        :total="listTotal"
-        :note="listNote"
-        @row-click="openTrace"
-      />
+      <TraceSlowestList :traces="traces" @row-click="openTrace" />
 
       <TraceSpansModal
         v-model:show="spansShow"
@@ -75,7 +53,6 @@ import { useRoute, useRouter } from 'vue-router';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
-import DetailBreadcrumb from '@shared/components/DetailBreadcrumb.vue';
 import TracesDisabledFeatureAlert from '@/components/alerts/TracesDisabledFeatureAlert.vue';
 import TraceOverviewStats from '@/components/trace/TraceOverviewStats.vue';
 import TraceSlowestList from '@/components/trace/TraceSlowestList.vue';
@@ -89,9 +66,6 @@ const props = defineProps<{ disabledFeatures: FeatureType[] }>();
 const route = useRoute();
 const router = useRouter();
 
-/** Mirrors TracesController's DEFAULT_TRACES_LIMIT, which caps what `getTraces()` returns. */
-const TRACE_FETCH_LIMIT = 100;
-
 const traces = ref<TraceRow[]>([]);
 const overview = ref<TraceOverview | null>(null);
 const loading = ref(true);
@@ -104,51 +78,12 @@ const profileId = computed(() => route.params.profileId as string);
 
 const featureDisabled = computed(() => props.disabledFeatures.includes(FeatureType.TRACES));
 
-/** Set by the Operations view, which links here rather than growing a drill-down of its own. */
-const operationFilter = computed(() => (route.query.operation as string) ?? '');
-
-const filtered = computed(() => {
-  if (operationFilter.value === '') {
-    return traces.value;
-  }
-  return traces.value.filter(trace => trace.rootName === operationFilter.value);
-});
-
-/**
- * The profile-wide count, so the header agrees with the overview card instead of reporting the
- * fetch cap as if it were the total. Left undefined for a per-operation subset, which is not
- * measured against the profile total.
- */
-const listTotal = computed<number | undefined>(() => {
-  if (operationFilter.value !== '' || !overview.value) {
-    return undefined;
-  }
-  return overview.value.totalTraces;
-});
-
-/**
- * With the true total shown, the header would otherwise imply every trace is reachable. The
- * backend returns the slowest `TRACE_FETCH_LIMIT`, so say so when it actually withheld some.
- */
-const listNote = computed<string | undefined>(() => {
-  if (listTotal.value === undefined || listTotal.value <= TRACE_FETCH_LIMIT) {
-    return undefined;
-  }
-  return `slowest ${TRACE_FETCH_LIMIT} fetched · sorted by duration`;
-});
-
 function openTrace(trace: TraceRow): void {
   selectedTrace.value = trace;
   spansShow.value = true;
   // The id lives in the URL while the modal is open, so a trace can still be linked to and returned
   // to -- the one thing the routed detail page gave that a modal on its own would not.
   router.replace({ query: { ...route.query, trace: trace.traceId } });
-}
-
-function clearOperation(): void {
-  const query = { ...route.query };
-  delete query.operation;
-  router.replace({ query });
 }
 
 // Closing the modal takes the trace back out of the URL, so a reload does not reopen it.
