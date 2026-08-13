@@ -34,7 +34,7 @@ const headings = [
   { id: 'trace-list', text: 'Trace List', level: 2 },
   { id: 'waterfall', text: 'Waterfall', level: 2 },
   { id: 'span-drill-down', text: 'Span Drill-Down', level: 2 },
-  { id: 'operations', text: 'Operations', level: 2 },
+  { id: 'operations', text: 'Trace Operations', level: 2 },
   { id: 'volume-control', text: 'Controlling Span Volume', level: 2 },
   { id: 'limits', text: 'Limits', level: 2 }
 ];
@@ -178,7 +178,7 @@ if (event.isEnabled()) {
 
       <h2 id="trace-list">Trace List</h2>
 
-      <p>The Traces page opens with two tiles — how many traces and spans the profile holds, how many failed, and the P95 / P99 / slowest trace duration — over a list of trace roots ranked by duration, the "which runs were slow" view. Each row carries the root operation name, a duration bar scaled to the slowest trace in the profile, the kind, the failure count when there is one, the span count, the start time and the trace id. The gutter beside a failed trace turns red, so a bad run is visible before anything is read. The list shows the fifty slowest; the Operations view is where you narrow to one endpoint or job.</p>
+      <p>The Traces page opens with two tiles — how many traces and spans the profile holds, how many failed, and the P95 / P99 / slowest trace duration — over a list of trace roots ranked by duration, the "which runs were slow" view. Each row carries the root operation name, a duration bar scaled to the slowest trace in the profile, the kind, the failure count when there is one, the span count, the start time and the trace id. The gutter beside a failed trace turns red, so a bad run is visible before anything is read. The list shows the fifty slowest; <a href="#operations">Trace Operations</a> is where you narrow to one endpoint or job.</p>
 
       <h2 id="waterfall">Waterfall</h2>
 
@@ -204,11 +204,25 @@ if (event.isEnabled()) {
         <strong>How a sample is attributed to a span.</strong> Nothing stamps a span id onto a sample. A span is a <code>(thread, window)</code> pair, and the flamegraph is every sample whose thread matches and whose timestamp falls inside — the same mechanism the async-profiler Spans feature uses, on the same clock, because <code>jfrsync</code> writes both the JVM's events and the profiler's samples into one recording. Two consequences worth knowing: the window's edges are millisecond-floored, and a span shorter than the sampling interval may enclose no sample at all.
       </DocsCallout>
 
-      <h2 id="operations">Operations</h2>
+      <h2 id="operations">Trace Operations</h2>
 
-      <p>The trace list answers "which run was slow". The Operations view answers "which operation is slow <em>in general</em>": one card per operation name, with call count, error count, total time, and p50 / p95 / max drawn on a rail shared by every card and scaled to the slowest span in the profile. A wide p50-to-p95 gap reads as a shape rather than a pair of numbers, which is what distinguishes an operation that is uniformly slow from one that is usually fast and occasionally terrible. Sort by total, P95, max, call count or errors; click a card to see the traces rooted at that operation.</p>
+      <p>The trace list answers "which run was slow". Trace Operations answers "which <em>kind</em> of run is slow, across every time it ran": one card per <strong>trace type</strong> — every trace in the profile rooted at the same operation name, grouped from the <code>traces</code> table and keyed by the root span's name. Each card carries call count, error count, total time, and p50 / p95 / max drawn on a rail shared by every card and scaled to the slowest span in the profile. A wide p50-to-p95 gap reads as a shape rather than a pair of numbers, which is what distinguishes an operation that is uniformly slow from one that is usually fast and occasionally terrible. Sort by total, P95, max, call count or errors.</p>
 
-      <p>Operations aggregates <em>every</em> span by name, while the trace list is keyed by root name — so an operation that only ever runs as a child, a JDBC statement say, has no traces of its own and says so when you click it.</p>
+      <DocsCallout type="info">
+        <strong>Where did the nested spans go?</strong> This list used to be every span name in the profile — including names, like <code>chunk.parse</code> or <code>dominator</code>, that only ever occur nested inside another span and are never a trace root. Grouping by root name instead of span name dropped one reference profile's list from 105 rows to 36. A nested span is not lost: open the trace it belongs to and find it in the <a href="#waterfall">waterfall</a>, alongside every other span in that trace's tree.
+      </DocsCallout>
+
+      <p>The two tiles above the list — operation count with total traces and errors, and the slowest operation with the profile's total trace time and worst P95 — come from a SQL aggregate over the whole profile, not from summing the list below it, so they stay correct even when the list itself is capped.</p>
+
+      <p>Clicking a card opens a drill-down for that operation, with the selection kept in the URL as <code>?operation=</code> so it can be linked to directly. It has three tabs, matching the layout of the async-profiler Spans drill-down:</p>
+
+      <ul>
+        <li><strong>Flamegraphs</strong> — every execution, wall-clock and allocation sample taken while a trace of this type was running, covering exactly the windows those traces ran in and no more.</li>
+        <li><strong>Metrics Timeline</strong> — the slowest trace of this type and the trace count, bucketed over time.</li>
+        <li><strong>Slowest Traces</strong> — the same unfiltered ranked list as the <a href="#trace-list">Trace List</a> above, scoped to this operation's traces; opening a row shows that trace's waterfall. It lists up to 1,000 traces of the type — more than the profile-wide trace list's fifty — with a note on the page when that cap is reached.</li>
+      </ul>
+
+      <p>A stale or hand-edited <code>?operation=</code> value that names no trace root in this profile shows an empty state rather than a blank drill-down.</p>
 
       <h2 id="volume-control">Controlling Span Volume</h2>
 
