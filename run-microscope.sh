@@ -219,8 +219,13 @@ if [[ ! -f "${PROFILE_JFC}" ]]; then
     echo "error: profile.jfc not found at ${PROFILE_JFC}" >&2
     exit 1
 fi
-VT_JFC="$(mktemp "${TMPDIR:-/tmp}/jeffrey-asprof-vt.XXXXXX.jfc")"
-trap 'rm -f "${VT_JFC}"' EXIT
+# Held in a temp directory rather than a temp file: BSD/macOS mktemp only substitutes Xs at the very
+# end of the template, so a "...XXXXXX.jfc" file template fails there ("mkstemp failed ... File
+# exists"). A directory template keeps the Xs trailing, and the .jfc name inside it stays fixed.
+TMP_ROOT="${TMPDIR:-/tmp}"
+VT_JFC_DIR="$(mktemp -d "${TMP_ROOT%/}/jeffrey-asprof-vt.XXXXXX")"
+trap 'rm -rf "${VT_JFC_DIR}"' EXIT
+VT_JFC="${VT_JFC_DIR}/profile-vt.jfc"
 awk '
     /<event name="jdk\.VirtualThreadStart">/        { ev = "enable" }
     /<event name="jdk\.VirtualThreadEnd">/          { ev = "enable" }
