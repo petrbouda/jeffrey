@@ -51,6 +51,22 @@ export default class ProfileTracesClient extends BaseProfileClient {
     );
   }
 
+  /**
+   * The traces of one type, chronologically. One call feeds both the timeline and the slowest list
+   * of the operation drill-down.
+   */
+  public getOperationTraces(name: string, limit?: number): Promise<TraceRow[]> {
+    return this.get<TraceRow[]>(
+      '/operation/traces',
+      limit === undefined ? { name } : { name, limit }
+    );
+  }
+
+  /** Which event types recorded samples inside the traces of one type, with their real counts. */
+  public getOperationPanels(name: string): Promise<FlamegraphPanel[]> {
+    return this.get<FlamegraphPanel[]>('/operation/panels', { name });
+  }
+
   /** What the JVM was doing on the span's thread while it was open. */
   public getSpanEvents(traceId: string, spanId: string): Promise<TraceEventRow[]> {
     return this.get<TraceEventRow[]>(`/${traceId}/spans/${spanId}/events`);

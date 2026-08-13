@@ -77,6 +77,7 @@ export interface TraceOverview {
   p95Nanos: number;
   p99Nanos: number;
   maxNanos: number;
+  totalNanos: number;
   distinctOperations: number;
 }
 
@@ -85,6 +86,7 @@ export interface TraceOperationRow {
   kind: SpanKind;
   count: number;
   errorCount: number;
+  spanCount: number;
   totalNanos: number;
   p50Nanos: number;
   p95Nanos: number;
