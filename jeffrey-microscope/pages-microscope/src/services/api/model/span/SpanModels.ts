@@ -58,6 +58,13 @@ export interface SpanSlowestRow {
   tag: string;
 }
 
+/**
+ * What a slowest-span list renders: either a per-tag row (`SpanDetailRow`, already scoped to a
+ * tag so it carries none) or a cross-tag row (`SpanSlowestRow`). The tag chip is only rendered
+ * when present.
+ */
+export type SlowestSpanRow = SpanDetailRow & { tag?: string };
+
 export interface SpanEventRow {
   eventType: string;
   startEpochMillis: number;

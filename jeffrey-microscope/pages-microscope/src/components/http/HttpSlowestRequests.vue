@@ -74,7 +74,7 @@
 import { computed } from 'vue';
 import FormattingService from '@shared/services/FormattingService.ts';
 import Badge from '@shared/components/Badge.vue';
-import SlowestCountHeader from '@/components/SlowestCountHeader.vue';
+import SlowestCountHeader from '@shared/components/SlowestCountHeader.vue';
 import type { Variant } from '@shared/types/ui';
 
 interface SlowRequest {

@@ -61,17 +61,11 @@ import SpanOverviewStats from '@/components/span/SpanOverviewStats.vue';
 import SpanSlowestList from '@/components/span/SpanSlowestList.vue';
 import SpanEventsModal from '@/components/span/SpanEventsModal.vue';
 import ProfileAsyncProfilerClient from '@/services/api/ProfileAsyncProfilerClient';
-import type { SpanOverview, SpanSlowestRow } from '@/services/api/model/span/SpanModels';
-
-// Matches the row payload emitted by SpanSlowestList (tag optional).
-interface ClickedSpan {
-  startEpochMillis: number;
-  durationNanos: number;
-  threadHash: string;
-  threadName: string;
-  isVirtual: boolean;
-  tag?: string;
-}
+import type {
+  SlowestSpanRow,
+  SpanOverview,
+  SpanSlowestRow
+} from '@/services/api/model/span/SpanModels';
 
 const route = useRoute();
 const profileId = route.params.profileId as string;
@@ -82,9 +76,9 @@ const overview = ref<SpanOverview | null>(null);
 const slowestSpans = ref<SpanSlowestRow[]>([]);
 
 const eventsShow = ref(false);
-const selected = ref<ClickedSpan | null>(null);
+const selected = ref<SlowestSpanRow | null>(null);
 
-function openEvents(span: ClickedSpan) {
+function openEvents(span: SlowestSpanRow) {
   selected.value = span;
   eventsShow.value = true;
 }

@@ -56,3 +56,15 @@ export type Variant =
   | 'status-blocked'
   | 'status-deleted'
   | 'status-unknown';
+
+/**
+ * Left-gutter colour of a {@link SlowestRowList} row. A subset of {@link Variant} plus the
+ * unmarked default, so callers translate their own domain (span kind, outcome, ...) into a
+ * neutral vocabulary the shared list understands.
+ */
+export type SlowestRowAccent =
+  | Extract<Variant, 'primary' | 'info' | 'secondary' | 'success' | 'warning' | 'danger'>
+  | 'neutral';
+
+/** Time-bar treatment of a {@link SlowestRowList} row: the brand ramp, or the failure ramp. */
+export type SlowestRowTone = 'default' | 'danger';
