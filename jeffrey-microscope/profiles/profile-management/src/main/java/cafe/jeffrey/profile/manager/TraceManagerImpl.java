@@ -36,6 +36,7 @@ import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Map;
@@ -112,6 +113,23 @@ public class TraceManagerImpl implements TraceManager {
             return List.of(intervalOf(target));
         }
         return selfIntervals(target, childrenOf(spans, spanId));
+    }
+
+    @Override
+    public List<SpanInterval> operationIntervals(String rootName) {
+        Map<ThreadWindow, long[]> windows = new LinkedHashMap<>();
+        for (TraceSpanRecord span : traceRepository.spansOfOperation(rootName)) {
+            ThreadWindow key = new ThreadWindow(span.traceId(), span.threadHash());
+            long[] window = {span.startEpochMillis(), endMillisOf(span)};
+            windows.merge(key, window, (existing, candidate) -> new long[]{
+                    Math.min(existing[0], candidate[0]),
+                    Math.max(existing[1], candidate[1])});
+        }
+
+        return windows.entrySet().stream()
+                .map(entry -> new SpanInterval(
+                        entry.getKey().threadHash(), entry.getValue()[0], entry.getValue()[1]))
+                .toList();
     }
 
     @Override
@@ -396,5 +414,9 @@ public class TraceManagerImpl implements TraceManager {
 
     /** A span queued for emission, with the position the tree gives it. */
     private record Placement(TraceSpanRecord span, int depth, Long parentSpanId) {
+    }
+
+    /** Identifies one thread's stretch of one trace — the unit an operation's intervals reduce to. */
+    private record ThreadWindow(long traceId, long threadHash) {
     }
 }

@@ -29,6 +29,7 @@ import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
+import cafe.jeffrey.profile.resources.request.GenerateTraceOperationFlamegraphRequest;
 import cafe.jeffrey.profile.resources.request.GenerateTraceSpanFlamegraphRequest;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.SpanInterval;
@@ -184,6 +185,46 @@ public class TracesController {
                 .spanIntervals(parseId(traceId), parseId(spanId), request.selfOnly());
         if (intervals.isEmpty()) {
             throw Exceptions.resourceNotFound("Span has no samples to show: " + spanId);
+        }
+
+        GraphParameters params = SpanScopedGraphParameters.of(profileManager.info(), request, intervals);
+        return profileManager.flamegraphManager().generate(params);
+    }
+
+    /**
+     * Which event types recorded samples inside the traces of one type, with their real counts, so
+     * the drill-down offers only flamegraphs that exist.
+     */
+    @GetMapping("/operation/panels")
+    public List<FlamegraphPanel> operationPanels(
+            @PathVariable("profileId") String profileId,
+            @RequestParam("name") String name) {
+        LOG.debug("Building operation-scoped flamegraph panels: profileId={} name={}", profileId, name);
+        ProfileManager profileManager = resolver.resolve(profileId);
+
+        List<SpanInterval> intervals = profileManager.traceManager().operationIntervals(name);
+        if (intervals.isEmpty()) {
+            return List.of();
+        }
+        return panelProvider.panels(
+                profileManager.flamegraphManager().eventSummaries(intervals), PanelContext.PRIMARY);
+    }
+
+    /**
+     * A flamegraph of the samples taken while any trace of one type was running — "what does this
+     * kind of request spend its time on", as opposed to the single-span graph next door.
+     */
+    @PostMapping(value = "/operation/flamegraph", produces = FlamegraphController.PROTOBUF_MEDIA_TYPE)
+    public byte[] operationFlamegraph(
+            @PathVariable("profileId") String profileId,
+            @RequestBody GenerateTraceOperationFlamegraphRequest request) {
+        LOG.debug("Generating operation flamegraph: profileId={} name={} eventType={}",
+                profileId, request.name(), request.eventType());
+        ProfileManager profileManager = resolver.resolve(profileId);
+
+        List<SpanInterval> intervals = profileManager.traceManager().operationIntervals(request.name());
+        if (intervals.isEmpty()) {
+            throw Exceptions.resourceNotFound("Operation has no samples to show: " + request.name());
         }
 
         GraphParameters params = SpanScopedGraphParameters.of(profileManager.info(), request, intervals);

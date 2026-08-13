@@ -77,6 +77,14 @@ public interface TraceRepository {
     List<TraceSpanRecord> spansOf(long traceId);
 
     /**
+     * Returns every span of every trace of one type, so the caller can reduce them to the windows a
+     * flamegraph is scoped to. Ordered by start time, which is what makes the reduction stable.
+     *
+     * @param rootName the trace type, as listed by {@link #operations(int)}
+     */
+    List<TraceSpanRecord> spansOfOperation(String rootName);
+
+    /**
      * Aggregates traces by root name — one row per trace type — across the whole profile.
      *
      * @param limit maximum number of operations to return, ranked by total time

@@ -360,4 +360,42 @@ class TraceManagerImplTest {
 
         assertEquals(Optional.empty(), new TraceManagerImpl(traceRepository).trace(TRACE));
     }
+
+    @Nested
+    @DisplayName("Operation intervals")
+    class OperationIntervals {
+
+        private static final String OPERATION = "POST /orders";
+
+        @Test
+        @DisplayName("one interval per thread, spanning that thread's work in the trace")
+        void groupsByThread() {
+            when(traceRepository.spansOfOperation(OPERATION)).thenReturn(List.of(
+                    span(1, null, "root", 0, 100),
+                    span(2, 1L, "child", 10, 20),
+                    spanOnThread(3, 1L, "async", 60, 20, OTHER_THREAD)));
+
+            List<SpanInterval> intervals = new TraceManagerImpl(traceRepository)
+                    .operationIntervals(OPERATION);
+
+            assertEquals(2, intervals.size(), "the two threads the trace touched");
+            SpanInterval main = intervals.stream()
+                    .filter(interval -> interval.threadHash() == THREAD).findFirst().orElseThrow();
+            assertEquals(0, main.fromEpochMillis());
+            assertEquals(100, main.toEpochMillis(), "the root's window covers its same-thread child");
+
+            SpanInterval other = intervals.stream()
+                    .filter(interval -> interval.threadHash() == OTHER_THREAD).findFirst().orElseThrow();
+            assertEquals(60, other.fromEpochMillis());
+            assertEquals(80, other.toEpochMillis());
+        }
+
+        @Test
+        @DisplayName("an operation with no spans yields no intervals rather than a null window")
+        void handlesAnUnknownOperation() {
+            when(traceRepository.spansOfOperation("nope")).thenReturn(List.of());
+
+            assertTrue(new TraceManagerImpl(traceRepository).operationIntervals("nope").isEmpty());
+        }
+    }
 }

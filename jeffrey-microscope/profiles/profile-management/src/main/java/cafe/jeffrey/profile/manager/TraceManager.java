@@ -82,6 +82,19 @@ public interface TraceManager {
     List<SpanInterval> spanIntervals(long traceId, long spanId, boolean selfOnly);
 
     /**
+     * Reduces every trace of one type to the {@code (thread, window)} intervals a flamegraph can be
+     * scoped to, so the graph shows exactly the samples taken while traces of that type were running.
+     * <p>
+     * One interval per {@code (trace, thread)}: a trace's window bounds all of its spans, and
+     * splitting by thread is what keeps a concurrently-running thread's samples out of the graph
+     * when a trace hands work off.
+     *
+     * @param rootName the trace type to scope to
+     * @return the intervals, or empty when no trace has that root name
+     */
+    List<SpanInterval> operationIntervals(String rootName);
+
+    /**
      * @param limit maximum number of operations to return, ranked by total time
      * @return traces aggregated by root name — one row per trace type — across the whole profile
      */

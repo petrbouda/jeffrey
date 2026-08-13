@@ -28,6 +28,7 @@ import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.sql.ResultSet;
@@ -261,6 +262,30 @@ public class JdbcTraceRepository implements TraceRepository {
             ORDER BY s.start_timestamp
             """;
 
+    //language=SQL
+    private static final String SPANS_OF_OPERATION = """
+            SELECT
+                s.trace_id                              AS trace_id,
+                s.span_id                               AS span_id,
+                s.parent_span_id                        AS parent_span_id,
+                s.name                                  AS name,
+                s.kind                                  AS kind,
+                s.status                                AS status,
+                s.error_type                            AS error_type,
+                CAST(s.attributes AS VARCHAR)           AS attributes,
+                s.start_timestamp_from_beginning        AS start_ms,
+                EPOCH_MS(s.start_timestamp)             AS start_epoch_ms,
+                s.duration                              AS duration_ns,
+                COALESCE(s.thread_hash, 0)              AS thread_hash,
+                th.name                                 AS thread_name,
+                s.event_type                            AS event_type
+            FROM trace_spans s
+            JOIN traces t ON t.trace_id = s.trace_id
+            LEFT JOIN threads th ON s.thread_hash = th.thread_hash
+            WHERE t.root_name = :root_name
+            ORDER BY s.start_timestamp
+            """;
+
     /*
      * One row of profile-wide totals. Every aggregate is COALESCEd because an untraced profile
      * leaves `traces` empty, where SUM, MAX and QUANTILE_CONT all return SQL NULL rather than zero.
@@ -398,21 +423,40 @@ public class JdbcTraceRepository implements TraceRepository {
                 StatementLabel.TRACE_SPANS,
                 SPANS_OF_TRACE,
                 params,
-                (rs, _) -> new TraceSpanRecord(
-                        rs.getLong("trace_id"),
-                        rs.getLong("span_id"),
-                        nullableLong(rs, "parent_span_id"),
-                        rs.getString("name"),
-                        rs.getString("kind"),
-                        rs.getString("status"),
-                        rs.getString("error_type"),
-                        rs.getString("attributes"),
-                        rs.getLong("start_ms"),
-                        rs.getLong("start_epoch_ms"),
-                        rs.getLong("duration_ns"),
-                        rs.getLong("thread_hash"),
-                        rs.getString("thread_name"),
-                        rs.getString("event_type")));
+                traceSpanMapper());
+    }
+
+    @Override
+    public List<TraceSpanRecord> spansOfOperation(String rootName) {
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("root_name", rootName);
+
+        return databaseClient.query(
+                StatementLabel.TRACE_OPERATION_SPANS,
+                SPANS_OF_OPERATION,
+                params,
+                traceSpanMapper());
+    }
+
+    /**
+     * The fourteen-column projection shared by {@link #spansOf(long)} and
+     * {@link #spansOfOperation(String)} — same columns, different {@code WHERE} clause.
+     */
+    private static RowMapper<TraceSpanRecord> traceSpanMapper() {
+        return (rs, _) -> new TraceSpanRecord(
+                rs.getLong("trace_id"),
+                rs.getLong("span_id"),
+                nullableLong(rs, "parent_span_id"),
+                rs.getString("name"),
+                rs.getString("kind"),
+                rs.getString("status"),
+                rs.getString("error_type"),
+                rs.getString("attributes"),
+                rs.getLong("start_ms"),
+                rs.getLong("start_epoch_ms"),
+                rs.getLong("duration_ns"),
+                rs.getLong("thread_hash"),
+                rs.getString("thread_name"),
+                rs.getString("event_type"));
     }
 
     @Override
