@@ -26,9 +26,15 @@ import cafe.jeffrey.frameir.FrameBuilder;
 import cafe.jeffrey.frameir.FrameBuilderResolver;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.shared.common.span.Spans;
 
 public class FlamegraphDataProvider {
+
+    private static final String SPAN_GENERATE = "flamegraph.generate";
+    private static final String SPAN_QUERY = "flamegraph.query";
+    private static final String SPAN_MARSHALLING = "flamegraph.marshalling";
+
 
     private final ProfileEventStreamRepository eventStreamRepository;
     private final FrameBuilder frameBuilder;
@@ -87,17 +93,17 @@ public class FlamegraphDataProvider {
         long generateSpan = Spans.start();
         Frame frame;
         try {
-            frame = provideFrame();
+            frame = Tracer.call(SPAN_GENERATE, this::provideFrame);
         } finally {
-            Spans.end(generateSpan, "flamegraph.generate");
+            Spans.end(generateSpan, SPAN_GENERATE);
         }
 
         FlameGraphProtoBuilder protoBuilder = resolveFlamegraphProtoBuilder(graphParameters, minFrameThresholdPct);
         long marshallingSpan = Spans.start();
         try {
-            return protoBuilder.build(frame);
+            return Tracer.call(SPAN_MARSHALLING, () -> protoBuilder.build(frame));
         } finally {
-            Spans.end(marshallingSpan, "flamegraph.marshalling");
+            Spans.end(marshallingSpan, SPAN_MARSHALLING);
         }
     }
 
@@ -117,7 +123,10 @@ public class FlamegraphDataProvider {
                 .withWeight(graphParameters.useWeight())
                 .withSpanIntervals(graphParameters.spanIntervals());
 
-        Frame frame = eventStreamRepository.flamegraphStreamer(configurer, frameBuilder);
+        // The query is its own span so a slow flamegraph can be attributed: time under
+        // flamegraph.query is DuckDB, the remainder of flamegraph.generate is frame building.
+        Frame frame = Tracer.call(SPAN_QUERY,
+                () -> eventStreamRepository.flamegraphStreamer(configurer, frameBuilder));
 
         if (graphParameters.markers() != null) {
             graphParameters.markers().forEach(frame::applyMarker);

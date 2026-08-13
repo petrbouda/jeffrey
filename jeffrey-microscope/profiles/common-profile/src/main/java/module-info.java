@@ -19,6 +19,7 @@ module cafe.jeffrey.microscope.profile.common {
     requires transitive cafe.jeffrey.shared.common;
     requires transitive tools.jackson.databind;
     requires org.slf4j;
+    requires cafe.jeffrey.jfr.events;
 
     exports cafe.jeffrey.profile.common.analysis;
     exports cafe.jeffrey.profile.common.analysis.marker;

@@ -224,6 +224,11 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
+    public TraceManager traceManager() {
+        return registry.jvmInsight().trace().apply(profileInfo);
+    }
+
+    @Override
     public ProfileFeaturesManager featuresManager() {
         return registry.features().apply(profileInfo);
     }

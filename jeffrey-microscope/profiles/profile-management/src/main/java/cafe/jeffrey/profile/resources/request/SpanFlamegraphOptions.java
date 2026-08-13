@@ -23,12 +23,14 @@ import cafe.jeffrey.profile.common.config.GraphComponents;
 
 /**
  * The rendering options common to every span-scoped flamegraph request, independent of how the spans are
- * selected. {@link GenerateSpanFlamegraphRequest} picks them by tag and {@link GenerateSingleSpanFlamegraphRequest}
- * by a single interval, but both produce the same {@code GraphParameters} from these fields — so they share one
- * mapper instead of duplicating it. Records satisfy these accessors for free.
+ * selected. {@link GenerateSpanFlamegraphRequest} picks them by tag, {@link GenerateSingleSpanFlamegraphRequest}
+ * by a single interval and {@link GenerateTraceSpanFlamegraphRequest} by a span of a trace, but all three
+ * produce the same {@code GraphParameters} from these fields — so they share one mapper instead of
+ * duplicating it. Records satisfy these accessors for free.
  */
 public sealed interface SpanFlamegraphOptions
-        permits GenerateSpanFlamegraphRequest, GenerateSingleSpanFlamegraphRequest {
+        permits GenerateSpanFlamegraphRequest, GenerateSingleSpanFlamegraphRequest,
+                GenerateTraceSpanFlamegraphRequest {
 
     Type eventType();
 

@@ -84,6 +84,12 @@ public enum StatementLabel {
     LOAD_FRAMES_CACHE,
     LIST_SPANS,
     SPAN_EVENTS,
+    DERIVE_TRACE_SPANS,
+    DERIVE_TRACES,
+    LIST_TRACES,
+    TRACE_SPANS,
+    TRACE_OPERATIONS,
+    TRACES_EXIST,
 
     /**
      * {@link GroupLabel#ALLOCATING_THREADS}

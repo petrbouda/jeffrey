@@ -35,6 +35,7 @@ import cafe.jeffrey.profile.manager.memory.HeapMemoryManager;
 import cafe.jeffrey.profile.manager.JITCompilationManager;
 import cafe.jeffrey.profile.manager.JITDeoptimizationManager;
 import cafe.jeffrey.profile.manager.SpanManager;
+import cafe.jeffrey.profile.manager.TraceManager;
 import cafe.jeffrey.profile.manager.thread.ThreadManager;
 import cafe.jeffrey.profile.manager.thread.VirtualThreadManager;
 import cafe.jeffrey.profile.manager.VmOperationManager;
@@ -59,5 +60,6 @@ public record JvmInsightFactories(
         AllocationManager.Factory allocation,
         LeakCandidatesManager.Factory leakCandidates,
         SecurityManager.Factory security,
-        SpanManager.Factory span) {
+        SpanManager.Factory span,
+        TraceManager.Factory trace) {
 }

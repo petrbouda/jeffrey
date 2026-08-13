@@ -103,6 +103,14 @@ public interface ProfileRepositories {
     SpanRepository newSpanRepository(DataSource dataSource);
 
     /**
+     * Creates a trace repository for the traces derived from the profile's events.
+     *
+     * @param dataSource the profile database connection
+     * @return a new trace repository for the profile
+     */
+    TraceRepository newTraceRepository(DataSource dataSource);
+
+    /**
      * Creates an advisor repository for the AI recommendation artifacts stored alongside the profile.
      *
      * @param dataSource the profile database connection

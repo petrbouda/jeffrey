@@ -133,7 +133,7 @@ const profileId = route.params.profileId as string;
 
 // Check if tracing dashboard is disabled
 const isTracingDisabled = computed(() => {
-  return props.disabledFeatures.includes(FeatureType.TRACING_DASHBOARD);
+  return props.disabledFeatures.includes(FeatureType.METHOD_TRACING_DASHBOARD);
 });
 
 // State

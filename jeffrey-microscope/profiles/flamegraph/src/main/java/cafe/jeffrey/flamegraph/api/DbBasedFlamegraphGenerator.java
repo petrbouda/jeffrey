@@ -30,6 +30,9 @@ import cafe.jeffrey.flamegraph.provider.FlamegraphDataProvider;
 import cafe.jeffrey.flamegraph.provider.TimeseriesDataProvider;
 import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
+import cafe.jeffrey.jfr.events.trace.SpanContext;
+import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.shared.common.span.Spans;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
@@ -38,6 +41,11 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public class DbBasedFlamegraphGenerator implements GraphGenerator {
+
+    private static final String SPAN_FLAMEGRAPH_BRANCH = "flamegraph.branch";
+    private static final String SPAN_TIMESERIES_BRANCH = "timeseries.branch";
+    private static final String SPAN_MARSHALLING = "graph.marshalling";
+
 
     private final ProfileEventStreamRepository eventRepository;
     private final double minFrameThresholdPct;
@@ -54,11 +62,18 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
 
     @Override
     public byte[] generate(GraphParameters params) {
+        // Both branches run on a shared pool, where ScopedValue does not reach. The enclosing span is
+        // captured here and re-established inside each task so the two halves of a graph request stay
+        // under the request that asked for them instead of starting traces of their own.
+        SpanContext parent = Tracer.current().orElse(null);
+
         CompletableFuture<cafe.jeffrey.flamegraph.proto.FlamegraphData> flameFuture;
         if (GraphComponents.isFlamegraphCompatible(params.graphComponents())) {
             FlamegraphDataProvider flamegraphProvider = FlamegraphDataProvider.primary(eventRepository, params);
             flameFuture = CompletableFuture.supplyAsync(
-                    () -> flamegraphProvider.provideProto(minFrameThresholdPct), Schedulers.sharedParallel());
+                    () -> Tracer.continueIn(parent, SPAN_FLAMEGRAPH_BRANCH, SpanKind.INTERNAL,
+                            () -> flamegraphProvider.provideProto(minFrameThresholdPct)),
+                    Schedulers.sharedParallel());
         } else {
             flameFuture = CompletableFuture.completedFuture(null);
         }
@@ -66,7 +81,10 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
         CompletableFuture<TimeseriesData> timeseriesFuture;
         if (GraphComponents.isTimeseriesCompatible(params.graphComponents())) {
             TimeseriesDataProvider timeseriesProvider = new TimeseriesDataProvider(eventRepository, params);
-            timeseriesFuture = CompletableFuture.supplyAsync(timeseriesProvider::provide, Schedulers.sharedParallel());
+            timeseriesFuture = CompletableFuture.supplyAsync(
+                    () -> Tracer.continueIn(parent, SPAN_TIMESERIES_BRANCH, SpanKind.INTERNAL,
+                            timeseriesProvider::provide),
+                    Schedulers.sharedParallel());
         } else {
             timeseriesFuture = CompletableFuture.completedFuture(null);
         }
@@ -75,22 +93,29 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
 
         long marshallingSpan = Spans.start();
         try {
-            cafe.jeffrey.flamegraph.proto.GraphData.Builder graphBuilder = cafe.jeffrey.flamegraph.proto.GraphData.newBuilder();
-
-            cafe.jeffrey.flamegraph.proto.FlamegraphData flamegraphData = flameFuture.join();
-            if (flamegraphData != null) {
-                graphBuilder.setFlamegraph(flamegraphData);
-            }
-
-            TimeseriesData timeseriesData = timeseriesFuture.join();
-            if (timeseriesData != null) {
-                graphBuilder.setTimeseries(convertTimeseries(timeseriesData));
-            }
-
-            return graphBuilder.build().toByteArray();
+            return Tracer.call(SPAN_MARSHALLING, () -> marshal(flameFuture, timeseriesFuture));
         } finally {
-            Spans.end(marshallingSpan, "graph.marshalling");
+            Spans.end(marshallingSpan, SPAN_MARSHALLING);
         }
+    }
+
+    private byte[] marshal(
+            CompletableFuture<cafe.jeffrey.flamegraph.proto.FlamegraphData> flameFuture,
+            CompletableFuture<TimeseriesData> timeseriesFuture) {
+
+        cafe.jeffrey.flamegraph.proto.GraphData.Builder graphBuilder = cafe.jeffrey.flamegraph.proto.GraphData.newBuilder();
+
+        cafe.jeffrey.flamegraph.proto.FlamegraphData flamegraphData = flameFuture.join();
+        if (flamegraphData != null) {
+            graphBuilder.setFlamegraph(flamegraphData);
+        }
+
+        TimeseriesData timeseriesData = timeseriesFuture.join();
+        if (timeseriesData != null) {
+            graphBuilder.setTimeseries(convertTimeseries(timeseriesData));
+        }
+
+        return graphBuilder.build().toByteArray();
     }
 
     /**

@@ -95,6 +95,16 @@ interface TechnologyCard {
 
 const technologies = [
   {
+    id: 'traces',
+    name: 'Traces',
+    description:
+      'Requests and background jobs broken into nested spans, with the JVM activity inside each one',
+    icon: 'bi-diagram-3',
+    colorClass: 'color-spans',
+    route: `/profiles/${profileId}/technologies/traces`,
+    featureType: FeatureType.TRACES
+  },
+  {
     id: 'async-profiler',
     name: 'Async-Profiler Spans',
     description: 'Span-level latency intervals from async-profiler — by-tag breakdown and slowest spans',
@@ -155,7 +165,7 @@ const technologies = [
     icon: 'bi-speedometer2',
     colorClass: 'color-tracing',
     route: `/profiles/${profileId}/technologies/method-tracing/timeseries`,
-    featureType: FeatureType.TRACING_DASHBOARD
+    featureType: FeatureType.METHOD_TRACING_DASHBOARD
   }
 ];
 

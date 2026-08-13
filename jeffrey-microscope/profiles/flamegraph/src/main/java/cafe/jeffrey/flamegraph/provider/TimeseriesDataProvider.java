@@ -21,6 +21,7 @@ package cafe.jeffrey.flamegraph.provider;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.shared.common.span.Spans;
 import cafe.jeffrey.timeseries.TimeseriesData;
 import cafe.jeffrey.timeseries.TimeseriesResolver;
@@ -28,6 +29,9 @@ import cafe.jeffrey.timeseries.TimeseriesSearchBuilder;
 import cafe.jeffrey.timeseries.TimeseriesType;
 
 public class TimeseriesDataProvider {
+
+    private static final String SPAN_GENERATE = "timeseries.generate";
+    private static final String SPAN_QUERY = "timeseries.query";
 
     private final ProfileEventStreamRepository eventStreamRepository;
     private final TimeseriesType timeseriesType;
@@ -42,27 +46,39 @@ public class TimeseriesDataProvider {
     public TimeseriesData provide() {
         long generateSpan = Spans.start();
         try {
-            EventQueryConfigurer configurer = new EventQueryConfigurer()
-                    .withEventType(graphParameters.eventType())
-                    .withTimeRange(graphParameters.timeRange())
-                    .filterStacktraceTypes(graphParameters.stacktraceTypes())
-                    .filterStacktraceTags(graphParameters.stacktraceTags())
-                    .withThreads(graphParameters.threadMode())
-                    .withWeight(graphParameters.useWeight())
-                    .withSearchPattern(graphParameters.searchPattern())
-                    .withSpecifiedThreads(graphParameters.threads())
-                    .withSpanIntervals(graphParameters.spanIntervals());
-
-            if (timeseriesType == TimeseriesType.SIMPLE) {
-                return eventStreamRepository.timeseriesStreamer(configurer, TimeseriesResolver.resolve(graphParameters));
-            } else if (timeseriesType == TimeseriesType.SEARCHING) {
-                TimeseriesSearchBuilder builder = new TimeseriesSearchBuilder(graphParameters.timeRange());
-                return eventStreamRepository.timeseriesSearchingStreamer(configurer, builder);
-            } else {
-                return eventStreamRepository.frameBasedTimeseriesStreamer(configurer, TimeseriesResolver.resolve(graphParameters));
-            }
+            return Tracer.call(SPAN_GENERATE, this::query);
         } finally {
-            Spans.end(generateSpan, "timeseries.generate");
+            Spans.end(generateSpan, SPAN_GENERATE);
+        }
+    }
+
+    /**
+     * Builds the query and runs it. Split out of {@link #provide()} so the DuckDB call sits in its
+     * own span: time under {@code timeseries.query} is the database, the remainder of
+     * {@code timeseries.generate} is everything else.
+     */
+    private TimeseriesData query() {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(graphParameters.eventType())
+                .withTimeRange(graphParameters.timeRange())
+                .filterStacktraceTypes(graphParameters.stacktraceTypes())
+                .filterStacktraceTags(graphParameters.stacktraceTags())
+                .withThreads(graphParameters.threadMode())
+                .withWeight(graphParameters.useWeight())
+                .withSearchPattern(graphParameters.searchPattern())
+                .withSpecifiedThreads(graphParameters.threads())
+                .withSpanIntervals(graphParameters.spanIntervals());
+
+        if (timeseriesType == TimeseriesType.SIMPLE) {
+            return Tracer.call(SPAN_QUERY, () ->
+                    eventStreamRepository.timeseriesStreamer(configurer, TimeseriesResolver.resolve(graphParameters)));
+        } else if (timeseriesType == TimeseriesType.SEARCHING) {
+            TimeseriesSearchBuilder builder = new TimeseriesSearchBuilder(graphParameters.timeRange());
+            return Tracer.call(SPAN_QUERY, () ->
+                    eventStreamRepository.timeseriesSearchingStreamer(configurer, builder));
+        } else {
+            return Tracer.call(SPAN_QUERY, () ->
+                    eventStreamRepository.frameBasedTimeseriesStreamer(configurer, TimeseriesResolver.resolve(graphParameters)));
         }
     }
 }

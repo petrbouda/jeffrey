@@ -19,6 +19,7 @@
 package cafe.jeffrey.shared.persistence.client;
 
 import cafe.jeffrey.jfr.events.jdbc.statement.*;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import tools.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
@@ -64,6 +65,7 @@ public class DatabaseClient {
 
     public int insert(StatementLabel statement, String sql, SqlParameterSource paramSource) {
         JdbcInsertEvent event = new JdbcInsertEvent(statement.name().toLowerCase(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
 
         int rows = 0;
@@ -87,6 +89,7 @@ public class DatabaseClient {
 
     public int insertWithLob(StatementLabel statement, String sql, SqlParameterSource paramSource) {
         JdbcInsertEvent event = new JdbcInsertEvent(statement.name().toLowerCase(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
 
         int rows = 0;
@@ -111,6 +114,7 @@ public class DatabaseClient {
 
     public long batchInsert(StatementLabel statement, String sql, SqlParameterSource[] paramSources) {
         JdbcInsertEvent event = new JdbcInsertEvent(statement.name().toLowerCase(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
 
         long rowsSum = 0;
@@ -137,6 +141,7 @@ public class DatabaseClient {
 
     public int update(StatementLabel statement, String sql, SqlParameterSource paramSource) {
         JdbcUpdateEvent event = new JdbcUpdateEvent(statement.name().toLowerCase(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
 
         int rows = 0;
@@ -160,6 +165,7 @@ public class DatabaseClient {
 
     public int delete(StatementLabel statement, String sql, SqlParameterSource paramSource) {
         JdbcDeleteEvent event = new JdbcDeleteEvent(statement.name().toLowerCase(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
 
         int rows = 0;
@@ -212,6 +218,7 @@ public class DatabaseClient {
 
     public int delete(StatementLabel statement, String sql) {
         JdbcDeleteEvent event = new JdbcDeleteEvent(statement.name().toLowerCase(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
 
         int rows = 0;
@@ -234,6 +241,7 @@ public class DatabaseClient {
 
     public void execute(StatementLabel statement, String sql) {
         JdbcExecuteEvent event = new JdbcExecuteEvent(statement.name().toLowerCase(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
 
         try {
@@ -252,6 +260,7 @@ public class DatabaseClient {
 
     public <T> List<T> query(StatementLabel statement, String sql, RowMapper<T> rowMapper) {
         JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
 
         List<T> list = null;
@@ -278,6 +287,7 @@ public class DatabaseClient {
         CountingRowCallbackHandler handler = new CountingRowCallbackHandler(callbackHandler);
 
         JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
 
         List<T> list = null;
@@ -302,6 +312,7 @@ public class DatabaseClient {
             StatementLabel statement, String sql, SqlParameterSource paramSource, RowMapper<T> rowMapper) {
 
         JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
 
         List<T> list = null;
@@ -325,6 +336,7 @@ public class DatabaseClient {
 
     public long queryLong(StatementLabel statement, String sql, SqlParameterSource paramSource) {
         JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
 
         Long longValue = null;
@@ -354,6 +366,7 @@ public class DatabaseClient {
 
     public boolean queryExists(StatementLabel statement, String sql, SqlParameterSource paramSource) {
         JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
 
         boolean exists = false;
@@ -386,6 +399,7 @@ public class DatabaseClient {
 
         JdbcStreamEvent event = new JdbcStreamEvent(statement.name().toLowerCase(), groupLabel);
         event.sql = sql;
+        Tracer.stamp(event);
         event.begin();
 
         long rows = 0;

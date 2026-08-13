@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.profile.common.pipeline;
 
+import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
 
@@ -95,11 +97,18 @@ public final class PipelineRun {
     /**
      * Runs one stage, timing it and marking it failed if it throws. The exception propagates: a stage
      * that fails ends the run, and the caller decides what that means.
+     *
+     * <p>Each stage is also recorded as a JFR span named after the stage id, nested under the run's
+     * root span (opened by the registry that drives this run). Stages execute sequentially on the
+     * single pipeline thread, so the spans nest by themselves — no context hand-off is needed.</p>
      */
     public void runStage(String id, StageWork work) {
         beginStage(id);
         try {
-            Elapsed<List<SubPhaseTiming>> elapsed = Measuring.s(work::run);
+            // The span sits inside the timing and inside the failure handling below, so a stage that
+            // throws is recorded as an errored span *and* marked FAILED exactly as before.
+            Elapsed<List<SubPhaseTiming>> elapsed =
+                    Measuring.s(() -> Tracer.call(id, SpanKind.INTERNAL, work::run));
             completeStage(id, elapsed.duration().toMillis(), elapsed.entity());
         } catch (RuntimeException e) {
             updateStage(id, StageStatus.FAILED, null, null);

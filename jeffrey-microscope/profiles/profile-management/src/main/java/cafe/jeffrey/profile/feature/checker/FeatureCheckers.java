@@ -58,8 +58,12 @@ public abstract class FeatureCheckers {
     public static final FeatureChecker JDBC_POOL_DASHBOARD =
             new SamplesFeatureChecker(FeatureType.JDBC_POOL_DASHBOARD, JDBC_POOL_TYPES);
 
-    public static final FeatureChecker TRACING_DASHBOARD =
-            new SamplesFeatureChecker(FeatureType.TRACING_DASHBOARD, Type.METHOD_TRACE);
+    /**
+     * JDK method timing and tracing (JEP 520), not distributed tracing — see
+     * {@link TracesFeatureChecker} for the Traces section.
+     */
+    public static final FeatureChecker METHOD_TRACING_DASHBOARD =
+            new SamplesFeatureChecker(FeatureType.METHOD_TRACING_DASHBOARD, Type.METHOD_TRACE);
 
     public static final FeatureChecker ASYNC_PROFILER_SPANS =
             new SamplesFeatureChecker(FeatureType.ASYNC_PROFILER_SPANS, Type.SPAN);
