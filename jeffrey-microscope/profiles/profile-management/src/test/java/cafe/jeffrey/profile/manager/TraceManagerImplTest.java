@@ -127,6 +127,20 @@ class TraceManagerImplTest {
         }
 
         @Test
+        @DisplayName("rows sharing a span id place one of them instead of failing")
+        void survivesRepeatedSpanIds() {
+            // Derivation is what guarantees ids are unique, so this cannot arise from spans the
+            // repository builds today. It did once -- every JDBC statement carried its enclosing
+            // span's id -- and the trace detail must render rather than fail if it ever does again.
+            List<TraceSpanRow> spans = spansOf(List.of(
+                    span(1, null, "root", 0, 100),
+                    span(2, 1L, "twin", 10, 20),
+                    span(2, 1L, "twin", 40, 20)));
+
+            assertEquals(List.of("root", "twin"), spans.stream().map(TraceSpanRow::name).toList());
+        }
+
+        @Test
         @DisplayName("ids and thread hash cross the wire as strings")
         void rendersIdsAsHex() {
             TraceSpanRow root = spansOf(List.of(span(255, null, "root", 0, 10))).getFirst();

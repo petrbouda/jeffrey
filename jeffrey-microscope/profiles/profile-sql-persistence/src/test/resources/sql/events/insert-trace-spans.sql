@@ -1,9 +1,14 @@
 -- Fixture for JdbcTraceRepositoryTest.
 --
--- One trace representing an HTTP request that issued a JDBC query and ran a hand-written span that
--- failed, plus rows that must NOT become spans: an untraced JDBC statement (all ids 0) and an
--- unrelated event type. Ids are deliberately extreme -- Long.MIN_VALUE, Long.MAX_VALUE and a
--- negative span id -- so the JSON-to-BIGINT round trip is exercised at its boundaries.
+-- One trace representing an HTTP request that issued two JDBC statements and ran a hand-written
+-- span that failed, plus rows that must NOT become spans: an untraced JDBC statement (all ids 0)
+-- and an unrelated event type. Ids are deliberately extreme -- Long.MIN_VALUE, Long.MAX_VALUE and
+-- a negative span id -- so the JSON-to-BIGINT round trip is exercised at its boundaries.
+--
+-- The two event shapes are recorded differently, and the fixture keeps them apart. An exchange or
+-- a hand-written span opens a span of its own (Tracer.inSpanOf), so its spanId is its own. A JDBC
+-- statement is only stamped with whatever span is in progress (Tracer.stamp), so its spanId is the
+-- *enclosing* span's -- which is why both statements below carry span 111, the HTTP exchange's.
 
 INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
 VALUES
@@ -17,16 +22,19 @@ VALUES
     (3001, 'http-nio-exec-1', 51, 21, false),
     (3002, 'pool-1-thread-1', 52, 22, false);
 
--- Durations in nanoseconds. Trace 9223372036854775807 is Long.MAX_VALUE; the failing span carries a
--- negative span id, which must survive the round trip with its sign.
+-- Durations in nanoseconds. Trace 9223372036854775807 is Long.MAX_VALUE; the hand-written span
+-- carries a negative span id, which must survive the round trip with its sign.
 INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     ('jeffrey.HttpServerExchange', '2025-01-15T10:00:00.000Z',   0, 120000000, 1, NULL, NULL, NULL, 3001,
      '{"traceId":9223372036854775807,"spanId":111,"parentSpanId":0,"method":"POST","uri":"/api/internal/profiles/{profileId}/flamegraph","status":200}'),
     ('jeffrey.JdbcQuery',          '2025-01-15T10:00:00.010Z',  10,  40000000, 1, NULL, NULL, NULL, 3001,
-     '{"traceId":9223372036854775807,"spanId":-8113938001533374712,"parentSpanId":111,"name":"listSpans","group":"PROFILE_EVENTS","isSuccess":true}'),
+     '{"traceId":9223372036854775807,"spanId":111,"parentSpanId":0,"name":"listSpans","group":"PROFILE_EVENTS","isSuccess":true}'),
+    -- A second statement stamped with the very same span: the two must still become two spans.
+    ('jeffrey.JdbcQuery',          '2025-01-15T10:00:00.020Z',  20,   5000000, 1, NULL, NULL, NULL, 3001,
+     '{"traceId":9223372036854775807,"spanId":111,"parentSpanId":0,"name":"countSpans","group":"PROFILE_EVENTS","isSuccess":true}'),
     ('jeffrey.TraceSpan',          '2025-01-15T10:00:00.060Z',  60,  20000000, 1, NULL, NULL, NULL, 3002,
-     '{"traceId":9223372036854775807,"spanId":333,"parentSpanId":111,"name":"flamegraph.generate","kind":"INTERNAL","status":"ERROR","errorType":"java.lang.IllegalStateException"}'),
+     '{"traceId":9223372036854775807,"spanId":-8113938001533374712,"parentSpanId":111,"name":"flamegraph.generate","kind":"INTERNAL","status":"ERROR","errorType":"java.lang.IllegalStateException"}'),
     -- A second, faster trace, so ordering by duration has something to order.
     ('jeffrey.HttpServerExchange', '2025-01-15T10:00:01.000Z', 1000,  5000000, 1, NULL, NULL, NULL, 3001,
      '{"traceId":-9223372036854775808,"spanId":222,"parentSpanId":0,"method":"GET","uri":"/api/internal/health","status":500}'),

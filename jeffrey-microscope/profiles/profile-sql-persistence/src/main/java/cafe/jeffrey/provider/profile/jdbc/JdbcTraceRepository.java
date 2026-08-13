@@ -34,6 +34,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_TRACES;
 
@@ -47,24 +48,39 @@ import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_TRACES;
 public class JdbcTraceRepository implements TraceRepository {
 
     /**
-     * Every event type that can carry trace identity, and therefore every type that becomes a span.
-     * Adding a newly traced event type is a one-line change here.
-     * <p>
-     * The same list is what the drill-down excludes: an event that is itself a span belongs in the
-     * waterfall, not in the list of what happened inside one.
+     * Event types recorded through a span of their own — {@code Tracer.inSpanOf} opens a
+     * {@code SpanContext} for them, so the {@code spanId} they carry is their own identity.
      */
-    private static final List<String> TRACED_EVENT_TYPES = List.of(
+    private static final List<String> SPAN_OWNING_EVENT_TYPES = List.of(
             EventTypeName.TRACE_SPAN,
             EventTypeName.HTTP_SERVER_EXCHANGE,
             EventTypeName.HTTP_CLIENT_EXCHANGE,
             EventTypeName.GRPC_SERVER_EXCHANGE,
-            EventTypeName.GRPC_CLIENT_EXCHANGE,
+            EventTypeName.GRPC_CLIENT_EXCHANGE);
+
+    /**
+     * Event types that only get stamped with whatever span is in progress ({@code Tracer.stamp}).
+     * The {@code spanId} they carry is their <em>enclosing</em> span's, not theirs, so the
+     * derivation gives each one an id of its own and parents it to the span it was stamped with.
+     */
+    private static final List<String> STAMPED_EVENT_TYPES = List.of(
             EventTypeName.JDBC_QUERY,
             EventTypeName.JDBC_INSERT,
             EventTypeName.JDBC_UPDATE,
             EventTypeName.JDBC_DELETE,
             EventTypeName.JDBC_EXECUTE,
             EventTypeName.JDBC_STREAM);
+
+    /**
+     * Every event type that can carry trace identity, and therefore every type that becomes a span.
+     * Adding a newly traced event type is a one-line change to whichever list above matches how the
+     * instrumentation records it.
+     * <p>
+     * The same list is what the drill-down excludes: an event that is itself a span belongs in the
+     * waterfall, not in the list of what happened inside one.
+     */
+    private static final List<String> TRACED_EVENT_TYPES =
+            Stream.concat(SPAN_OWNING_EVENT_TYPES.stream(), STAMPED_EVENT_TYPES.stream()).toList();
 
     /** Guards the drill-down against returning more rows than a drawer can show. */
     private static final int SPAN_EVENTS_LIMIT = 5000;
@@ -75,16 +91,42 @@ public class JdbcTraceRepository implements TraceRepository {
      * CLIENT span by construction. Deriving that here means the rest of the stack -- and the UI --
      * sees one uniform span shape whatever the source event was.
      *
+     * Identity depends on how the event was recorded, which is the difference between the two type
+     * lists above. An event that opened its own span keeps the ids it recorded. A stamped event
+     * carries the enclosing span's ids -- every statement issued inside one span would otherwise
+     * derive to that same span id, and a span id has to identify exactly one span -- so it is given
+     * a synthetic id and hangs off the span it was stamped with. The synthetic id is a hash rather
+     * than the ordinal itself, so it is spread across the range like a recorded id and reads as one
+     * in the UI; shifting right keeps it inside BIGINT.
+     *
      * The two identity predicates at the end drop events that were never part of a trace: their id
      * fields are 0, the wire encoding for "absent".
      */
     //language=SQL
     private static final String DERIVE_TRACE_SPANS = """
             INSERT INTO trace_spans
+            WITH traced AS (
+                SELECT
+                    e.*,
+                    e.event_type IN (%s)                                                AS owns_span,
+                    json_extract_string(e.fields, '$.spanId')::BIGINT                   AS stamped_span_id,
+                    NULLIF(json_extract_string(e.fields, '$.parentSpanId')::BIGINT, 0)  AS stamped_parent_span_id,
+                    ROW_NUMBER() OVER (ORDER BY e.start_timestamp, e.event_type, e.thread_hash) AS ordinal
+                FROM events e
+                WHERE e.event_type IN (%s)
+                  AND COALESCE(json_extract_string(e.fields, '$.traceId')::BIGINT, 0) <> 0
+                  AND COALESCE(json_extract_string(e.fields, '$.spanId')::BIGINT, 0) <> 0
+            )
             SELECT
                 json_extract_string(e.fields, '$.traceId')::BIGINT                  AS trace_id,
-                json_extract_string(e.fields, '$.spanId')::BIGINT                   AS span_id,
-                NULLIF(json_extract_string(e.fields, '$.parentSpanId')::BIGINT, 0)  AS parent_span_id,
+                CASE
+                    WHEN e.owns_span THEN e.stamped_span_id
+                    ELSE CAST(hash(e.ordinal) >> 1 AS BIGINT)
+                END                                                                 AS span_id,
+                CASE
+                    WHEN e.owns_span THEN e.stamped_parent_span_id
+                    ELSE e.stamped_span_id
+                END                                                                 AS parent_span_id,
                 CASE e.event_type
                     WHEN 'jeffrey.TraceSpan' THEN json_extract_string(e.fields, '$.name')
                     WHEN 'jeffrey.HttpServerExchange' THEN
@@ -121,10 +163,7 @@ public class JdbcTraceRepository implements TraceRepository {
                 COALESCE(e.duration, 0)                                             AS duration,
                 e.thread_hash                                                       AS thread_hash,
                 e.event_type                                                        AS event_type
-            FROM events e
-            WHERE e.event_type IN (%s)
-              AND COALESCE(json_extract_string(e.fields, '$.traceId')::BIGINT, 0) <> 0
-              AND COALESCE(json_extract_string(e.fields, '$.spanId')::BIGINT, 0) <> 0
+            FROM traced e
             """;
 
     /*
@@ -273,7 +312,9 @@ public class JdbcTraceRepository implements TraceRepository {
 
     @Override
     public void derive() {
-        databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, DERIVE_TRACE_SPANS.formatted(tracedEventTypeList()));
+        databaseClient.execute(
+                StatementLabel.DERIVE_TRACE_SPANS,
+                DERIVE_TRACE_SPANS.formatted(quoted(SPAN_OWNING_EVENT_TYPES), quoted(TRACED_EVENT_TYPES)));
         databaseClient.execute(StatementLabel.DERIVE_TRACES, DERIVE_TRACES);
     }
 
@@ -374,7 +415,7 @@ public class JdbcTraceRepository implements TraceRepository {
 
         return databaseClient.query(
                 StatementLabel.TRACE_SPAN_EVENTS,
-                EVENTS_IN_SPAN.formatted(tracedEventTypeList()),
+                EVENTS_IN_SPAN.formatted(quoted(TRACED_EVENT_TYPES)),
                 params,
                 (rs, _) -> new TraceEventRecord(
                         rs.getString("event_type"),
@@ -392,8 +433,9 @@ public class JdbcTraceRepository implements TraceRepository {
         return rs.wasNull() ? null : value;
     }
 
-    private static String tracedEventTypeList() {
-        return TRACED_EVENT_TYPES.stream()
+    /** The event types as a SQL {@code IN} list. They are constants, never user input. */
+    private static String quoted(List<String> eventTypes) {
+        return eventTypes.stream()
                 .map(type -> "'" + type + "'")
                 .collect(Collectors.joining(", "));
     }

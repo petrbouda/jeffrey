@@ -52,6 +52,8 @@ class JdbcTraceRepositoryTest {
     private static final long SLOW_TRACE = Long.MAX_VALUE;
     private static final long FAST_TRACE = Long.MIN_VALUE;
     private static final long NEGATIVE_SPAN_ID = -8113938001533374712L;
+    /** The HTTP exchange the whole slow trace hangs off, and the span both statements are stamped with. */
+    private static final long ROOT_SPAN_ID = 111L;
     /** 2025-01-15T10:00:00Z, the fixture's origin, as epoch millis. */
     private static final long EPOCH_10_00_00 = 1736935200000L;
 
@@ -73,11 +75,44 @@ class JdbcTraceRepositoryTest {
 
             List<TraceSpanRecord> spans = repository.spansOf(SLOW_TRACE);
 
-            // The HTTP exchange, the JDBC query and the hand-written span -- but neither the
+            // The HTTP exchange, the two JDBC queries and the hand-written span -- but neither the
             // untraced JDBC row nor the execution sample.
-            assertEquals(3, spans.size());
+            assertEquals(4, spans.size());
             assertTrue(spans.stream().noneMatch(span -> "untraced".equals(span.name())));
             assertTrue(spans.stream().noneMatch(span -> span.eventType().startsWith("jdk.")));
+        }
+
+        @Test
+        @DisplayName("a stamped event becomes a span of its own, under the span it was stamped with")
+        void givesStampedEventsTheirOwnIdentity(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = derived(dataSource);
+
+            List<TraceSpanRecord> spans = repository.spansOf(SLOW_TRACE);
+            Map<String, TraceSpanRecord> byName = spans.stream()
+                    .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
+
+            // Both statements were stamped with span 111 -- the exchange's own id, not theirs. A
+            // span id has to identify one span, so each statement is given one and hangs off 111.
+            assertEquals(spans.size(), spans.stream().map(TraceSpanRecord::spanId).distinct().count(),
+                    "every derived span needs an id of its own");
+            assertEquals(ROOT_SPAN_ID, byName.get("listSpans").parentSpanId());
+            assertEquals(ROOT_SPAN_ID, byName.get("countSpans").parentSpanId());
+            assertTrue(spans.stream()
+                            .filter(span -> span.eventType().startsWith("jeffrey.Jdbc"))
+                            .noneMatch(span -> span.spanId() == ROOT_SPAN_ID),
+                    "a stamped event must not claim the id of the span that was in progress");
+        }
+
+        @Test
+        @DisplayName("an event that owns its span keeps the id it recorded")
+        void keepsRecordedIdsOfSpanOwningEvents(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = derived(dataSource);
+
+            Map<String, TraceSpanRecord> byName = repository.spansOf(SLOW_TRACE).stream()
+                    .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
+
+            assertEquals(ROOT_SPAN_ID, byName.get("POST /api/internal/profiles/{profileId}/flamegraph").spanId());
+            assertEquals(NEGATIVE_SPAN_ID, byName.get("flamegraph.generate").spanId());
         }
 
         @Test
@@ -198,7 +233,7 @@ class JdbcTraceRepositoryTest {
             assertEquals("POST /api/internal/profiles/{profileId}/flamegraph", slowest.rootName());
             assertEquals("SERVER", slowest.rootKind());
             assertEquals(120 * MS, slowest.durationNanos());
-            assertEquals(3, slowest.spanCount());
+            assertEquals(4, slowest.spanCount());
             assertEquals(1, slowest.errorCount());
             assertEquals(0, slowest.startMillisFromBeginning());
 
@@ -220,10 +255,10 @@ class JdbcTraceRepositoryTest {
 
             List<TraceSpanRecord> spans = repository.spansOf(SLOW_TRACE);
 
-            assertEquals(List.of(0L, 10L, 60L),
+            assertEquals(List.of(0L, 10L, 20L, 60L),
                     spans.stream().map(TraceSpanRecord::startMillisFromBeginning).toList());
             assertEquals(3001, spans.get(0).threadHash());
-            assertEquals(3002, spans.get(2).threadHash(),
+            assertEquals(3002, spans.get(3).threadHash(),
                     "the span committed on the pool thread keeps that thread's identity");
         }
 
@@ -249,10 +284,10 @@ class JdbcTraceRepositoryTest {
             TraceOverviewRecord overview = derived(dataSource).overview();
 
             assertEquals(2, overview.totalTraces());
-            assertEquals(4, overview.totalSpans());
+            assertEquals(5, overview.totalSpans());
             assertEquals(2, overview.errorTraces(), "both traces contain a failed span");
             assertEquals(2, overview.errorSpans(), "one failed span in each");
-            assertEquals(4, overview.distinctOperations(), "distinct span names, not root names");
+            assertEquals(5, overview.distinctOperations(), "distinct span names, not root names");
             assertEquals(120 * MS, overview.maxNanos());
             assertEquals(62_500_000L, overview.avgNanos(), "the mean of 120ms and 5ms");
             assertTrue(overview.avgNanos() <= overview.p95Nanos()

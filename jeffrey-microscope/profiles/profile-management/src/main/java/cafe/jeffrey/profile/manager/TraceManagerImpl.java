@@ -151,7 +151,11 @@ public class TraceManagerImpl implements TraceManager {
      * root, and its dangling parent id is dropped so the tree the UI receives is self-consistent.
      * A parent cycle, which cannot arise from correct instrumentation, leaves its members
      * unreachable from any root; rather than dropping them, the traversal breaks into the earliest
-     * one and carries on until every span has been placed.
+     * one and carries on until every id has been placed.
+     * <p>
+     * Rows sharing an id are the one shape that does lose a span: a span id identifies a span, and
+     * the derivation is what guarantees it. Only the first row of an id is drawn, and the trace
+     * still renders.
      */
     private static List<TraceSpanRow> assemble(List<TraceSpanRecord> spans) {
         Set<Long> known = new HashSet<>();
@@ -177,14 +181,17 @@ public class TraceManagerImpl implements TraceManager {
         Set<Long> visited = new HashSet<>();
         traverse(roots, childrenByParent, visited, ordered);
 
-        // Whatever is left belongs to a parent cycle. Break in at the earliest unplaced span and
-        // keep going, so a malformed trace renders as a flatter tree instead of an empty one.
-        while (visited.size() < spans.size()) {
-            TraceSpanRecord unplaced = spans.stream()
-                    .filter(span -> !visited.contains(span.spanId()))
-                    .min(Comparator.comparingLong(TraceSpanRecord::startEpochMillis))
-                    .orElseThrow();
-            traverse(List.of(unplaced), childrenByParent, visited, ordered);
+        // Whatever is left belongs to a parent cycle. Breaking in at each still-unplaced span, in
+        // start order, renders a malformed trace as a flatter tree instead of an empty one. The
+        // pass is driven by the spans themselves rather than by a count of what has been placed:
+        // ids the derivation should have made unique may not be, and a trace must not fail to
+        // render over it.
+        List<TraceSpanRecord> byStart = new ArrayList<>(spans);
+        byStart.sort(Comparator.comparingLong(TraceSpanRecord::startEpochMillis));
+        for (TraceSpanRecord span : byStart) {
+            if (!visited.contains(span.spanId())) {
+                traverse(List.of(span), childrenByParent, visited, ordered);
+            }
         }
         return ordered;
     }
