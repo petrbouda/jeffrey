@@ -68,6 +68,7 @@ import SpanEventsModal from '@/components/span/SpanEventsModal.vue';
 import SpanTagFlamegraphs from '@/components/span/SpanTagFlamegraphs.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileAsyncProfilerClient from '@/services/api/ProfileAsyncProfilerClient';
+import { timelineBuckets } from '@/services/trace/traceTimelineBuckets';
 import type { TabBarItem } from '@shared/components/TabBar.vue';
 import type { SpanDetailRow } from '@/services/api/model/span/SpanModels';
 
@@ -98,43 +99,14 @@ const tabs: TabBarItem[] = [
   { id: 'slowest', label: 'Slowest Spans', icon: 'hourglass-split' }
 ];
 
-interface Bucket {
-  mid: number;
-  maxDuration: number;
-  count: number;
-}
-
-const buckets = computed<Bucket[]>(() => {
-  const items = spans.value;
-  if (items.length === 0) {
-    return [];
-  }
-  let min = Infinity;
-  let max = -Infinity;
-  for (const span of items) {
-    if (span.startEpochMillis < min) {
-      min = span.startEpochMillis;
-    }
-    if (span.startEpochMillis > max) {
-      max = span.startEpochMillis;
-    }
-  }
-  const span = Math.max(1, max - min);
-  const width = Math.max(1, Math.ceil(span / TIMELINE_BUCKETS));
-  const result: Bucket[] = [];
-  for (let i = 0; i < TIMELINE_BUCKETS; i++) {
-    result.push({ mid: min + i * width + width / 2, maxDuration: 0, count: 0 });
-  }
-  for (const s of items) {
-    const index = Math.min(TIMELINE_BUCKETS - 1, Math.floor((s.startEpochMillis - min) / width));
-    const bucket = result[index];
-    bucket.count++;
-    if (s.durationNanos > bucket.maxDuration) {
-      bucket.maxDuration = s.durationNanos;
-    }
-  }
-  return result;
-});
+const buckets = computed(() =>
+  timelineBuckets(
+    spans.value,
+    span => span.startEpochMillis,
+    span => span.durationNanos,
+    TIMELINE_BUCKETS
+  )
+);
 
 const primaryData = computed<number[][]>(() => buckets.value.map(b => [b.mid, b.maxDuration]));
 const secondaryData = computed<number[][]>(() => buckets.value.map(b => [b.mid, b.count]));
