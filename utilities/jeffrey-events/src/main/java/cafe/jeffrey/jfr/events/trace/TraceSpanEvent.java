@@ -23,7 +23,6 @@ import jdk.jfr.Description;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
 import jdk.jfr.StackTrace;
-import jdk.jfr.Threshold;
 
 /**
  * One span in a trace: a named interval of work, linked to its parent by
@@ -32,9 +31,11 @@ import jdk.jfr.Threshold;
  * JFR supplies the parts that would otherwise have to be recorded by hand — the start timestamp,
  * the duration and the thread — so the event only has to carry what makes the interval meaningful.
  * <p>
- * The default {@link Threshold} keeps trivially short spans out of the recording. It can be lowered
- * or removed per recording through the usual JFR configuration
- * ({@code -XX:StartFlightRecording:cafe.jeffrey.jfr.events.trace.TraceSpanEvent#threshold=0ms}).
+ * Every span is recorded, however short. A duration threshold is a decision about one application's
+ * span volume, not something this event should make on its behalf: dropping short spans orphans
+ * their children and moves their samples into the parent's self time. Set one explicitly per
+ * recording when the volume calls for it, through the usual JFR configuration
+ * ({@code -XX:StartFlightRecording:cafe.jeffrey.jfr.events.trace.TraceSpanEvent#threshold=1ms}).
  *
  * @see Tracer
  */
@@ -43,7 +44,6 @@ import jdk.jfr.Threshold;
 @Description("A single named interval of work within a trace")
 @Category({"Application", "Tracing"})
 @StackTrace(false)
-@Threshold("1 ms")
 public class TraceSpanEvent extends AbstractTracedEvent {
 
     public static final String NAME = "jeffrey.TraceSpan";

@@ -31,18 +31,7 @@
       </div>
     </div>
 
-    <div class="drawer-tabs">
-      <button
-        v-for="tab in tabs"
-        :key="tab.id"
-        type="button"
-        class="drawer-tab"
-        :class="{ active: activeTab === tab.id }"
-        @click="activeTab = tab.id"
-      >
-        {{ tab.label }}
-      </button>
-    </div>
+    <TabBar v-model="activeTab" :tabs="tabs" />
 
     <div v-if="activeTab === 'attributes'" class="drawer-body">
       <DrawerSection label="Timing" icon="bi-clock">
@@ -77,7 +66,7 @@
         :profile-id="profileId"
         :trace-id="traceId"
         :span-id="span.spanId"
-        :span-name="span.name"
+        @view="$emit('viewFlamegraph', $event)"
       />
     </div>
 
@@ -117,7 +106,10 @@ import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import DrawerSection from '@shared/components/drawer/DrawerSection.vue';
+import TabBar from '@shared/components/TabBar.vue';
+import type { TabBarItem } from '@shared/components/TabBar.vue';
 import TraceSpanFlamegraphs from '@/components/trace/TraceSpanFlamegraphs.vue';
+import type { TraceSpanFlamegraphRequest } from '@/components/trace/TraceSpanFlamegraphs.vue';
 import InfoRow from '@shared/components/drawer/InfoRow.vue';
 import FormattingService from '@shared/services/FormattingService';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
@@ -129,15 +121,15 @@ const props = defineProps<{
   span: TraceSpanRow;
 }>();
 
-type TabId = 'attributes' | 'events' | 'flamegraph';
+defineEmits<{ (event: 'viewFlamegraph', request: TraceSpanFlamegraphRequest): void }>();
 
-const tabs: { id: TabId; label: string }[] = [
-  { id: 'attributes', label: 'Attributes' },
-  { id: 'events', label: 'Events in span' },
-  { id: 'flamegraph', label: 'Flamegraph' }
+const tabs: TabBarItem[] = [
+  { id: 'attributes', label: 'Attributes', icon: 'braces' },
+  { id: 'events', label: 'Events in span', icon: 'list-ul' },
+  { id: 'flamegraph', label: 'Flamegraph', icon: 'fire' }
 ];
 
-const activeTab = ref<TabId>('attributes');
+const activeTab = ref('attributes');
 const events = ref<TraceEventRow[]>([]);
 const eventsLoading = ref(false);
 const eventsError = ref<string | null>(null);
@@ -222,7 +214,7 @@ watch(
 
 .drawer-title {
   font-weight: 500;
-  color: var(--color-heading);
+  color: var(--color-dark);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -233,37 +225,6 @@ watch(
   gap: 0.3rem;
   margin-top: 0.35rem;
   flex-wrap: wrap;
-}
-
-.drawer-tabs {
-  display: flex;
-  gap: 0.15rem;
-  padding: 0 0.5rem;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg-card);
-}
-
-.drawer-tab {
-  padding: 0.45rem 0.6rem;
-  font: inherit;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-muted);
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.drawer-tab.active {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
-  font-weight: 500;
-}
-
-.drawer-tab:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
 }
 
 .drawer-body {

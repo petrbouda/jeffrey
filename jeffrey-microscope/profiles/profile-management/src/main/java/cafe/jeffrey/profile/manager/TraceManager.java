@@ -21,6 +21,7 @@ package cafe.jeffrey.profile.manager;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceEventRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.SpanInterval;
@@ -44,6 +45,12 @@ public interface TraceManager {
      * @return traces ordered by duration descending — the slowest requests first
      */
     List<TraceRow> slowestTraces(int limit);
+
+    /**
+     * @return profile-wide trace totals and latency percentiles, describing the whole recording
+     *         rather than the capped list {@link #slowestTraces(int)} returns
+     */
+    TraceOverview overview();
 
     /**
      * Assembles one trace into the order the waterfall draws it: depth-first from each root,

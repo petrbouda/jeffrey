@@ -89,6 +89,7 @@ public enum StatementLabel {
     LIST_TRACES,
     TRACE_SPANS,
     TRACE_OPERATIONS,
+    TRACE_OVERVIEW,
     TRACES_EXIST,
     TRACE_SPAN_EVENTS,
 

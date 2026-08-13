@@ -121,9 +121,11 @@ function tooltip(span: TraceSpanRow): string {
 </script>
 
 <style scoped>
+/* The panel treatment the Spans views use, so the bars read as one surface rather than as a table. */
 .waterfall {
   display: flex;
   flex-direction: column;
+  background: var(--color-bg-card);
 }
 
 .wf-head,
@@ -135,9 +137,7 @@ function tooltip(span: TraceSpanRow): string {
 }
 
 .wf-head {
-  padding: 0.45rem 1rem;
-  background: var(--color-bg-hover);
-  border-bottom: 1px solid var(--color-border);
+  padding: 0.55rem 1rem 0.4rem;
   font-size: var(--font-size-xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -155,7 +155,7 @@ function tooltip(span: TraceSpanRow): string {
   width: 100%;
   padding: 0.28rem 1rem;
   border: 0;
-  border-bottom: 1px solid var(--color-border-row);
+  border-bottom: 1px solid var(--color-border-light);
   background: transparent;
   font-family: inherit;
   font-size: var(--font-size-sm);
@@ -210,7 +210,7 @@ function tooltip(span: TraceSpanRow): string {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--color-heading);
+  color: var(--color-dark);
 }
 
 /* The track a bar is positioned inside, by percentage of the trace window. */
@@ -290,10 +290,11 @@ function tooltip(span: TraceSpanRow): string {
   display: flex;
   gap: 0.9rem;
   flex-wrap: wrap;
-  font-size: var(--font-size-xs);
+  font-size: 0.62rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   color: var(--color-text-muted);
   padding: 0.6rem 1rem;
-  border-top: 1px solid var(--color-border-light);
 }
 
 .wf-legend span {

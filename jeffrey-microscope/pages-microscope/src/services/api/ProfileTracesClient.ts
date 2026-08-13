@@ -22,6 +22,7 @@ import type {
   TraceDetail,
   TraceEventRow,
   TraceOperationRow,
+  TraceOverview,
   TraceRow
 } from '@/services/api/model/trace/TraceModels';
 
@@ -32,6 +33,11 @@ export default class ProfileTracesClient extends BaseProfileClient {
 
   public getTraces(limit?: number): Promise<TraceRow[]> {
     return this.get<TraceRow[]>('', limit === undefined ? undefined : { limit });
+  }
+
+  /** Profile-wide totals, which the capped trace list cannot be summed into. */
+  public getOverview(): Promise<TraceOverview> {
+    return this.get<TraceOverview>('/overview');
   }
 
   public getTrace(traceId: string): Promise<TraceDetail> {

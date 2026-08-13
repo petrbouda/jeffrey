@@ -32,84 +32,50 @@
     />
 
     <div v-else class="dashboard-container">
-      <DataTable>
-        <template #toolbar>
-          <TableToolbar v-model="query" search-placeholder="Filter operations...">
-            <span class="toolbar-info">Traces</span>
-            <template #filters>
-              <Badge key-label="Total" :value="filtered.length" variant="secondary" size="s" borderless />
-            </template>
-          </TableToolbar>
-        </template>
-        <thead>
-          <tr>
-            <th>Root operation</th>
-            <th>Kind</th>
-            <th class="numeric">Duration</th>
-            <th class="distribution-column">Relative</th>
-            <th class="numeric">Spans</th>
-            <th>Status</th>
-            <th class="numeric">Start</th>
-            <th>Trace id</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="trace in visible" :key="trace.traceId" class="clickable" @click="open(trace)">
-            <td class="operation">{{ trace.rootName }}</td>
-            <td><Badge :variant="kindVariant(trace.rootKind)" size="xs" :value="trace.rootKind" /></td>
-            <td class="numeric">{{ FormattingService.formatDuration2Units(trace.durationNanos) }}</td>
-            <td class="distribution-column">
-              <!-- Relative to the slowest trace, so the spread reads without comparing digits. -->
-              <div
-                class="relative-bar"
-                :class="{ 'has-error': trace.errorCount > 0 }"
-                :style="{ width: relativeWidth(trace) }"
-              ></div>
-            </td>
-            <td class="numeric">{{ trace.spanCount }}</td>
-            <td>
-              <Badge
-                v-if="trace.errorCount > 0"
-                variant="danger"
-                size="xs"
-                :value="`${trace.errorCount} error`"
-              />
-              <Badge v-else variant="success" size="xs" value="ok" />
-            </td>
-            <td class="numeric">
-              {{ FormattingService.formatDuration2Units(trace.startMillisFromBeginning * 1_000_000) }}
-            </td>
-            <td class="trace-id">{{ trace.traceId }}</td>
-          </tr>
-        </tbody>
-        <template #footer>
-          <TableShowMore
-            v-if="filtered.length > visibleCount"
-            :shown="visible.length"
-            :total="filtered.length"
-            @show-more="visibleCount += PAGE_SIZE"
-          />
-        </template>
-      </DataTable>
+      <DetailBreadcrumb
+        v-if="operationFilter"
+        root-label="Traces"
+        icon="bi-diagram-3"
+        @back="clearOperation"
+      >
+        {{ operationFilter }}
+      </DetailBreadcrumb>
+
+      <TraceOverviewStats v-if="overview" :overview="overview" />
+
+      <EmptyState
+        v-if="filtered.length === 0"
+        title="Not a root operation"
+        message="No trace starts with this operation — it only ever appears as a child span."
+        icon="bi-diagram-2"
+      />
+
+      <TraceSlowestList v-else :traces="filtered" @row-click="openTrace" />
+
+      <TraceSpansModal
+        v-model:show="spansShow"
+        :profile-id="profileId"
+        :trace-id="selectedTrace?.traceId ?? ''"
+        :root-name="selectedTrace?.rootName ?? ''"
+      />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
-import Badge from '@shared/components/Badge.vue';
-import DataTable from '@shared/components/table/DataTable.vue';
-import TableToolbar from '@shared/components/table/TableToolbar.vue';
-import TableShowMore from '@shared/components/table/TableShowMore.vue';
-import FormattingService from '@shared/services/FormattingService';
+import DetailBreadcrumb from '@shared/components/DetailBreadcrumb.vue';
 import TracesDisabledFeatureAlert from '@/components/alerts/TracesDisabledFeatureAlert.vue';
+import TraceOverviewStats from '@/components/trace/TraceOverviewStats.vue';
+import TraceSlowestList from '@/components/trace/TraceSlowestList.vue';
+import TraceSpansModal from '@/components/trace/TraceSpansModal.vue';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
-import type { SpanKind, TraceRow } from '@/services/api/model/trace/TraceModels';
+import type { TraceOverview, TraceRow } from '@/services/api/model/trace/TraceModels';
 import FeatureType from '@/services/api/model/FeatureType';
 
 const props = defineProps<{ disabledFeatures: FeatureType[] }>();
@@ -117,57 +83,76 @@ const props = defineProps<{ disabledFeatures: FeatureType[] }>();
 const route = useRoute();
 const router = useRouter();
 
-const PAGE_SIZE = 50;
-
 const traces = ref<TraceRow[]>([]);
+const overview = ref<TraceOverview | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
-const query = ref('');
-const visibleCount = ref(PAGE_SIZE);
+
+const selectedTrace = ref<TraceRow | null>(null);
+const spansShow = ref(false);
 
 const profileId = computed(() => route.params.profileId as string);
 
 const featureDisabled = computed(() => props.disabledFeatures.includes(FeatureType.TRACES));
 
+/** Set by the Operations view, which links here rather than growing a drill-down of its own. */
+const operationFilter = computed(() => (route.query.operation as string) ?? '');
+
 const filtered = computed(() => {
-  const needle = query.value.trim().toLowerCase();
-  if (needle === '') {
+  if (operationFilter.value === '') {
     return traces.value;
   }
-  return traces.value.filter((trace) => trace.rootName.toLowerCase().includes(needle));
+  return traces.value.filter(trace => trace.rootName === operationFilter.value);
 });
 
-const visible = computed(() => filtered.value.slice(0, visibleCount.value));
+function openTrace(trace: TraceRow): void {
+  selectedTrace.value = trace;
+  spansShow.value = true;
+  // The id lives in the URL while the modal is open, so a trace can still be linked to and returned
+  // to -- the one thing the routed detail page gave that a modal on its own would not.
+  router.replace({ query: { ...route.query, trace: trace.traceId } });
+}
 
-// The list arrives slowest-first, so the first row is the maximum.
-const slowestNanos = computed(() => traces.value[0]?.durationNanos ?? 0);
+function clearOperation(): void {
+  const query = { ...route.query };
+  delete query.operation;
+  router.replace({ query });
+}
 
-function relativeWidth(trace: TraceRow): string {
-  if (slowestNanos.value <= 0) {
-    return '100%';
+// Closing the modal takes the trace back out of the URL, so a reload does not reopen it.
+watch(spansShow, open => {
+  if (!open && route.query.trace) {
+    const query = { ...route.query };
+    delete query.trace;
+    router.replace({ query });
   }
-  return Math.max((trace.durationNanos / slowestNanos.value) * 100, 1) + '%';
-}
+});
 
-function kindVariant(kind: SpanKind): string {
-  if (kind === 'SERVER') {
-    return 'primary';
+/**
+ * Reopens the trace named in the URL. A bookmark can point at a trace outside the list's cap, in
+ * which case the row is unknown here and the modal fetches everything it shows anyway.
+ */
+watch([() => route.query.trace, traces], ([traceId]) => {
+  if (!traceId) {
+    spansShow.value = false;
+    return;
   }
-  return kind === 'CLIENT' ? 'info' : 'secondary';
-}
-
-function open(trace: TraceRow): void {
-  router.push({
-    name: 'profile-trace-detail',
-    params: { profileId: profileId.value, traceId: trace.traceId }
-  });
-}
+  const id = traceId as string;
+  selectedTrace.value = traces.value.find(trace => trace.traceId === id) ?? null;
+  spansShow.value = true;
+});
 
 async function loadData(): Promise<void> {
   loading.value = true;
   error.value = null;
   try {
-    traces.value = await new ProfileTracesClient(profileId.value).getTraces();
+    const client = new ProfileTracesClient(profileId.value);
+    const [loadedOverview, loadedTraces] = await Promise.all([
+      client.getOverview(),
+      client.getTraces()
+    ]);
+    overview.value = loadedOverview;
+    traces.value = loadedTraces;
   } catch {
     error.value = 'Failed to load the traces for this profile.';
   } finally {
@@ -189,47 +174,5 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-}
-
-.toolbar-info {
-  font-weight: 500;
-  color: var(--color-heading);
-}
-
-.clickable {
-  cursor: pointer;
-}
-
-.operation {
-  font-weight: 500;
-  color: var(--color-heading);
-}
-
-.numeric {
-  text-align: right;
-  font-family: var(--font-family-monospace);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.trace-id {
-  font-family: var(--font-family-monospace);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-light);
-}
-
-.distribution-column {
-  width: 9rem;
-}
-
-.relative-bar {
-  height: 0.4rem;
-  border-radius: var(--radius-xs);
-  background: var(--flamegraph-color-blue);
-  min-width: 2px;
-}
-
-.relative-bar.has-error {
-  background: var(--flamegraph-color-red);
 }
 </style>

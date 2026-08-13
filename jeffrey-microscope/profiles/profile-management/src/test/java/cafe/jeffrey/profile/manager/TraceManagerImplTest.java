@@ -19,7 +19,9 @@
 package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
+import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.shared.common.model.SpanInterval;
@@ -43,6 +45,8 @@ class TraceManagerImplTest {
 
     private static final long TRACE = 7L;
     private static final long MS = 1_000_000L;
+    private static final long THREAD = 900L;
+    private static final long OTHER_THREAD = 901L;
 
     @Mock
     TraceRepository traceRepository;
@@ -53,9 +57,14 @@ class TraceManagerImplTest {
      */
     private static TraceSpanRecord span(long spanId, Long parentSpanId, String name,
             long startMillis, long durationMs) {
+        return spanOnThread(spanId, parentSpanId, name, startMillis, durationMs, THREAD);
+    }
+
+    private static TraceSpanRecord spanOnThread(long spanId, Long parentSpanId, String name,
+            long startMillis, long durationMs, long threadHash) {
         return new TraceSpanRecord(
                 TRACE, spanId, parentSpanId, name, "INTERNAL", "UNSET", null, "{}",
-                startMillis, startMillis, durationMs * MS, 900L, "worker", "jeffrey.TraceSpan");
+                startMillis, startMillis, durationMs * MS, threadHash, "worker", "jeffrey.TraceSpan");
     }
 
     private TraceManagerImpl managerOf(List<TraceSpanRecord> spans) {
@@ -158,12 +167,23 @@ class TraceManagerImplTest {
         @Test
         @DisplayName("never goes negative when a child outlives its parent")
         void clampsAtZero() {
-            // Legitimate when the parent hands work to another thread and returns first.
+            // Malformed but recorded: the child's window is longer than the parent's own.
             List<TraceSpanRow> spans = spansOf(List.of(
                     span(1, null, "root", 0, 10),
                     span(2, 1L, "outlives", 0, 50)));
 
             assertEquals(0, spans.getFirst().selfDurationNanos());
+        }
+
+        @Test
+        @DisplayName("a child on another thread is not subtracted from the parent's own time")
+        void ignoresChildrenOnOtherThreads() {
+            // Tracer.continueIn forks the work: the parent thread kept working the whole time.
+            List<TraceSpanRow> spans = spansOf(List.of(
+                    span(1, null, "root", 0, 100),
+                    spanOnThread(2, 1L, "forked", 10, 30, OTHER_THREAD)));
+
+            assertEquals(100 * MS, spans.getFirst().selfDurationNanos());
         }
     }
 
@@ -196,9 +216,60 @@ class TraceManagerImplTest {
 
             assertEquals(2, intervals.size(), "before the child and after it");
             assertEquals(100, intervals.get(0).fromEpochMillis());
-            assertEquals(120, intervals.get(0).toEpochMillis());
-            assertEquals(130, intervals.get(1).fromEpochMillis());
+            assertEquals(119, intervals.get(0).toEpochMillis(),
+                    "stops a millisecond short of the child, which the sample filter matches inclusively");
+            assertEquals(131, intervals.get(1).fromEpochMillis(),
+                    "resumes a millisecond after the child, for the same reason");
             assertEquals(150, intervals.get(1).toEpochMillis());
+        }
+
+        @Test
+        @DisplayName("the millisecond a child starts and ends on belongs to the child alone")
+        void childBoundsAreNotSharedWithTheParent() {
+            TraceManagerImpl manager = managerOf(List.of(
+                    span(1, null, "root", 100, 50),
+                    span(2, 1L, "child", 120, 10)));
+
+            List<SpanInterval> parent = manager.spanIntervals(TRACE, 1, true);
+            SpanInterval child = manager.spanIntervals(TRACE, 2, false).getFirst();
+
+            assertTrue(parent.stream().noneMatch(interval ->
+                            covers(interval, child.fromEpochMillis()) || covers(interval, child.toEpochMillis())),
+                    "a sample on either boundary would otherwise be counted in both graphs");
+        }
+
+        @Test
+        @DisplayName("a child ending one millisecond early leaves that millisecond to the parent")
+        void keepsTheLastUncoveredMillisecond() {
+            TraceManagerImpl manager = managerOf(List.of(
+                    span(1, null, "root", 100, 50),
+                    span(2, 1L, "child", 100, 49)));
+
+            assertEquals(List.of(new SpanInterval(THREAD, 150, 150)),
+                    manager.spanIntervals(TRACE, 1, true));
+        }
+
+        @Test
+        @DisplayName("a child running to the parent's end yields no trailing interval")
+        void doesNotBuildAnInvertedInterval() {
+            TraceManagerImpl manager = managerOf(List.of(
+                    span(1, null, "root", 100, 50),
+                    span(2, 1L, "child", 140, 10)));
+
+            assertEquals(List.of(new SpanInterval(THREAD, 100, 139)),
+                    manager.spanIntervals(TRACE, 1, true));
+        }
+
+        @Test
+        @DisplayName("a child on another thread never punches a hole in the parent's window")
+        void ignoresChildrenOnOtherThreads() {
+            TraceManagerImpl manager = managerOf(List.of(
+                    span(1, null, "root", 100, 50),
+                    spanOnThread(2, 1L, "forked", 120, 10, OTHER_THREAD)));
+
+            assertEquals(List.of(new SpanInterval(THREAD, 100, 150)),
+                    manager.spanIntervals(TRACE, 1, true),
+                    "the parent's thread was busy with its own work the whole time");
         }
 
         @Test
@@ -206,7 +277,7 @@ class TraceManagerImplTest {
         void leafSelfIsWholeWindow() {
             TraceManagerImpl manager = managerOf(List.of(span(1, null, "leaf", 100, 50)));
 
-            assertEquals(List.of(new SpanInterval(900L, 100, 150)),
+            assertEquals(List.of(new SpanInterval(THREAD, 100, 150)),
                     manager.spanIntervals(TRACE, 1, true));
         }
 
@@ -220,11 +291,49 @@ class TraceManagerImplTest {
             assertTrue(manager.spanIntervals(TRACE, 1, true).isEmpty());
         }
 
+        private static boolean covers(SpanInterval interval, long epochMillis) {
+            return epochMillis >= interval.fromEpochMillis() && epochMillis <= interval.toEpochMillis();
+        }
+
         @Test
         @DisplayName("an unknown span yields no intervals rather than failing")
         void unknownSpanIsEmpty() {
             assertTrue(managerOf(List.of(span(1, null, "root", 0, 10)))
                     .spanIntervals(TRACE, 404, false).isEmpty());
+        }
+    }
+
+    @Nested
+    @DisplayName("Overview")
+    class Overview {
+
+        @Test
+        @DisplayName("passes the repository's totals through unchanged")
+        void mapsTheRecord() {
+            when(traceRepository.overview())
+                    .thenReturn(new TraceOverviewRecord(12, 340, 3, 5, 40 * MS, 90 * MS, 110 * MS, 120 * MS, 8));
+
+            TraceOverview overview = new TraceManagerImpl(traceRepository).overview();
+
+            assertEquals(12, overview.totalTraces());
+            assertEquals(340, overview.totalSpans());
+            assertEquals(3, overview.errorTraces());
+            assertEquals(5, overview.errorSpans(),
+                    "failed spans are counted apart from the traces carrying them");
+            assertEquals(40 * MS, overview.avgNanos());
+            assertEquals(90 * MS, overview.p95Nanos());
+            assertEquals(110 * MS, overview.p99Nanos());
+            assertEquals(120 * MS, overview.maxNanos());
+            assertEquals(8, overview.distinctOperations());
+        }
+
+        @Test
+        @DisplayName("an untraced profile reports zeros rather than failing")
+        void untracedProfileIsZeroed() {
+            when(traceRepository.overview()).thenReturn(TraceOverviewRecord.EMPTY);
+
+            assertEquals(new TraceOverview(0, 0, 0, 0, 0, 0, 0, 0, 0),
+                    new TraceManagerImpl(traceRepository).overview());
         }
     }
 
