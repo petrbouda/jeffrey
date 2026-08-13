@@ -299,7 +299,8 @@ class JdbcTraceRepositoryTest {
             assertEquals(5, overview.totalSpans());
             assertEquals(2, overview.errorTraces(), "both traces contain a failed span");
             assertEquals(2, overview.errorSpans(), "one failed span in each");
-            assertEquals(5, overview.distinctOperations(), "distinct span names, not root names");
+            assertEquals(2, overview.distinctOperations(), "distinct trace types, not span names");
+            assertEquals(125 * MS, overview.totalNanos(), "120ms plus 5ms");
             assertEquals(120 * MS, overview.maxNanos());
             assertEquals(62_500_000L, overview.avgNanos(), "the mean of 120ms and 5ms");
             assertTrue(overview.avgNanos() <= overview.p95Nanos()
@@ -316,7 +317,7 @@ class JdbcTraceRepositoryTest {
 
             // SUM, MAX and QUANTILE_CONT over no rows are all SQL NULL, which getLong would flatten
             // to 0 silently -- asserted here so the COALESCEs cannot be dropped unnoticed.
-            assertEquals(new TraceOverviewRecord(0, 0, 0, 0, 0, 0, 0, 0, 0), empty.overview());
+            assertEquals(new TraceOverviewRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), empty.overview());
         }
 
         @Test

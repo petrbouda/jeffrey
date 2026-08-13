@@ -77,6 +77,7 @@ public class TraceManagerImpl implements TraceManager {
                 overview.p95Nanos(),
                 overview.p99Nanos(),
                 overview.maxNanos(),
+                overview.totalNanos(),
                 overview.distinctOperations());
     }
 

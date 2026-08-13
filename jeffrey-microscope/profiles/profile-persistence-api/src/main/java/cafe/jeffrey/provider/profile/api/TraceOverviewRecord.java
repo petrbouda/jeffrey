@@ -33,7 +33,8 @@ package cafe.jeffrey.provider.profile.api;
  * @param p95Nanos           95th percentile trace duration
  * @param p99Nanos           99th percentile trace duration
  * @param maxNanos           slowest trace
- * @param distinctOperations distinct span names, matching what the Operations view ranks
+ * @param totalNanos         summed trace duration across the profile
+ * @param distinctOperations distinct trace types, matching what the Trace Operations view ranks
  */
 public record TraceOverviewRecord(
         long totalTraces,
@@ -44,8 +45,10 @@ public record TraceOverviewRecord(
         long p95Nanos,
         long p99Nanos,
         long maxNanos,
+        long totalNanos,
         int distinctOperations) {
 
     /** What an untraced profile reports: every counter zero rather than a null-riddled row. */
-    public static final TraceOverviewRecord EMPTY = new TraceOverviewRecord(0, 0, 0, 0, 0, 0, 0, 0, 0);
+    public static final TraceOverviewRecord EMPTY =
+            new TraceOverviewRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }

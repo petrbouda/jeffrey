@@ -248,8 +248,8 @@ public class JdbcTraceRepository implements TraceRepository {
      * One row of profile-wide totals. Every aggregate is COALESCEd because an untraced profile
      * leaves `traces` empty, where SUM, MAX and QUANTILE_CONT all return SQL NULL rather than zero.
      *
-     * Operations are counted off `trace_spans`, not `traces`: the Operations view ranks every span
-     * name, so counting root names here would report a smaller number than that view lists.
+     * Both the total and the distinct count are taken off `traces`, keyed by root_name, so this
+     * agrees with the Trace Operations view: an operation is a trace type, not a span name.
      */
     //language=SQL
     private static final String OVERVIEW = """
@@ -262,7 +262,8 @@ public class JdbcTraceRepository implements TraceRepository {
                 COALESCE(CAST(QUANTILE_CONT(duration, 0.95) AS BIGINT), 0)  AS p95_ns,
                 COALESCE(CAST(QUANTILE_CONT(duration, 0.99) AS BIGINT), 0)  AS p99_ns,
                 COALESCE(MAX(duration), 0)                                  AS max_ns,
-                (SELECT COUNT(DISTINCT name) FROM trace_spans)              AS distinct_operations
+                COALESCE(SUM(duration), 0)                                  AS total_ns,
+                COUNT(DISTINCT root_name)                                   AS distinct_operations
             FROM traces
             """;
 
@@ -391,6 +392,7 @@ public class JdbcTraceRepository implements TraceRepository {
                                 rs.getLong("p95_ns"),
                                 rs.getLong("p99_ns"),
                                 rs.getLong("max_ns"),
+                                rs.getLong("total_ns"),
                                 rs.getInt("distinct_operations")))
                 .orElse(TraceOverviewRecord.EMPTY);
     }

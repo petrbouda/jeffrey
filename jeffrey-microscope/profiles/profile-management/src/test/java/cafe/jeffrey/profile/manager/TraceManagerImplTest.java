@@ -325,7 +325,8 @@ class TraceManagerImplTest {
         @DisplayName("passes the repository's totals through unchanged")
         void mapsTheRecord() {
             when(traceRepository.overview())
-                    .thenReturn(new TraceOverviewRecord(12, 340, 3, 5, 40 * MS, 90 * MS, 110 * MS, 120 * MS, 8));
+                    .thenReturn(new TraceOverviewRecord(
+                            12, 340, 3, 5, 40 * MS, 90 * MS, 110 * MS, 120 * MS, 4500 * MS, 8));
 
             TraceOverview overview = new TraceManagerImpl(traceRepository).overview();
 
@@ -338,6 +339,7 @@ class TraceManagerImplTest {
             assertEquals(90 * MS, overview.p95Nanos());
             assertEquals(110 * MS, overview.p99Nanos());
             assertEquals(120 * MS, overview.maxNanos());
+            assertEquals(4500 * MS, overview.totalNanos());
             assertEquals(8, overview.distinctOperations());
         }
 
@@ -346,7 +348,7 @@ class TraceManagerImplTest {
         void untracedProfileIsZeroed() {
             when(traceRepository.overview()).thenReturn(TraceOverviewRecord.EMPTY);
 
-            assertEquals(new TraceOverview(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            assertEquals(new TraceOverview(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
                     new TraceManagerImpl(traceRepository).overview());
         }
     }
