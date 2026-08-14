@@ -116,7 +116,7 @@ public class AsyncProfilerSpansController {
         return panelProvider.panels(pm.flamegraphManager().eventSummaries(intervals), PanelContext.PRIMARY);
     }
 
-    @PostMapping(value = "/spans/flamegraph", produces = FlamegraphController.PROTOBUF_MEDIA_TYPE)
+    @PostMapping(value = "/spans/flamegraph", produces = ProfileMediaTypes.PROTOBUF)
     public byte[] spanFlamegraph(
             @PathVariable("profileId") String profileId,
             @RequestBody GenerateSpanFlamegraphRequest request) {
@@ -128,7 +128,7 @@ public class AsyncProfilerSpansController {
         return pm.flamegraphManager().generate(params);
     }
 
-    @PostMapping(value = "/spans/single/flamegraph", produces = FlamegraphController.PROTOBUF_MEDIA_TYPE)
+    @PostMapping(value = "/spans/single/flamegraph", produces = ProfileMediaTypes.PROTOBUF)
     public byte[] singleSpanFlamegraph(
             @PathVariable("profileId") String profileId,
             @RequestBody GenerateSingleSpanFlamegraphRequest request) {

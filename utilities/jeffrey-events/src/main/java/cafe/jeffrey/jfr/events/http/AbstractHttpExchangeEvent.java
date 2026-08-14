@@ -19,11 +19,27 @@
 package cafe.jeffrey.jfr.events.http;
 
 import cafe.jeffrey.jfr.events.trace.AbstractTracedEvent;
+import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import jdk.jfr.*;
 
+/**
+ * The half of an HTTP exchange that is the same on both sides of the wire, and the span shape both
+ * derive the same way: named by the method and the matched URI template, failed from the response
+ * status.
+ */
 @Category({"Application", "HTTP"})
 @StackTrace(false)
 public abstract class AbstractHttpExchangeEvent extends AbstractTracedEvent {
+
+    /**
+     * The lowest status counted as a failure. 4xx is the client's fault rather than the server's,
+     * but it is still an exchange that did not deliver what was asked for, and a trace that hides
+     * that is a trace nobody can debug a 404 storm from.
+     */
+    private static final int FIRST_ERROR_STATUS = 400;
+
+    private static final String URI_SEPARATOR = " ";
 
     @Label("Remote Address")
     public String remoteHost;
@@ -41,7 +57,7 @@ public abstract class AbstractHttpExchangeEvent extends AbstractTracedEvent {
     public String mediaType;
 
     @Label("Response Status")
-    public int status;
+    public int statusCode;
 
     @Label("Query Parameters")
     public String queryParams;
@@ -56,4 +72,16 @@ public abstract class AbstractHttpExchangeEvent extends AbstractTracedEvent {
     @Label("Response Body Length")
     @DataAmount
     public long responseLength;
+
+    protected AbstractHttpExchangeEvent(SpanKind kind) {
+        this.kind = kind.name();
+    }
+
+    @Override
+    protected void describeSpan() {
+        name = method + URI_SEPARATOR + uri;
+        if (statusCode >= FIRST_ERROR_STATUS) {
+            status = SpanStatus.ERROR.name();
+        }
+    }
 }

@@ -1046,7 +1046,7 @@
     "method" : "Method Name",
     "remoteHost" : "Remote Address",
     "remotePort" : "Remote Port",
-    "status" : "Status Code",
+    "statusCode" : "Status Code",
     "authority" : "Authority",
     "requestSize" : "Request Size",
     "responseSize" : "Response Size"
@@ -1059,7 +1059,7 @@
     "method" : "Method Name",
     "remoteHost" : "Remote Address",
     "remotePort" : "Remote Port",
-    "status" : "Status Code",
+    "statusCode" : "Status Code",
     "authority" : "Authority",
     "requestSize" : "Request Size",
     "responseSize" : "Response Size"

@@ -37,6 +37,9 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
 
     public static final String UNKNOWN = "<unknown>";
 
+    /** {@code SpanStatus.ERROR}, as the recording spells it — the module reads JSON, not the enum. */
+    private static final String ERROR_STATUS = "ERROR";
+
     private static class GroupBuilder {
         private final String name;
         private final Histogram executionHisto = new Histogram(3);
@@ -133,7 +136,9 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
         String params = jsonFields.path("params").asString(null);
         long executionTime = record.duration().toNanos();
         long processedRows = jsonFields.path("rows").asLong(0);
-        boolean isSuccess = jsonFields.path("isSuccess").asBoolean(false);
+        // A statement reports failure the way every instrumented event does now, through the span
+        // status it recorded. Anything that is not an explicit error ran.
+        boolean isSuccess = !ERROR_STATUS.equals(jsonFields.path("status").asString(""));
         boolean isBatch = jsonFields.path("isBatch").asBoolean(false);
         boolean isLob = jsonFields.path("isLob").asBoolean(false);
 

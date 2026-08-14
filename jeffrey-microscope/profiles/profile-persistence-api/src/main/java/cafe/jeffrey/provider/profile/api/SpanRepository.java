@@ -45,5 +45,5 @@ public interface SpanRepository {
      * @param toEpochMillis   window end (inclusive), absolute UTC epoch millis
      * @return the matching events, ordered by start time ascending
      */
-    List<SpanEventRecord> eventsForThread(long threadHash, long fromEpochMillis, long toEpochMillis);
+    List<ThreadWindowEventRecord> eventsForThread(long threadHash, long fromEpochMillis, long toEpochMillis);
 }

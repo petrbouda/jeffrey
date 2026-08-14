@@ -18,18 +18,34 @@
 
 package cafe.jeffrey.profile.resources.request;
 
+import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.profile.common.config.GraphComponents;
 
 /**
  * Request for a flamegraph scoped to every trace of one type. Carries no time range or thread — the
- * backend derives both from the traces of {@code name}, so the graph contains only the samples those
+ * backend derives both from the traces of that type, so the graph contains only the samples those
  * traces cover.
+ * <p>
+ * The trace type takes three fields, not just the name: an inbound {@code GET /orders} and an
+ * outbound call to the same path share a name, and a graph scoped to only the name would mix them.
  *
- * @param name the trace type, identified by its root span's operation name
+ * @param name                the root span's operation name
+ * @param kind                the role the root played, a {@code SpanKind} name such as {@code SERVER}
+ * @param rootEventType       the event type that opened the trace, e.g. {@code jeffrey.HttpServerExchange};
+ *                            named apart from {@link #eventType()}, which selects the samples to draw
+ * @param eventType           which recorded event the flamegraph is built from
+ * @param useThreadMode       split the graph by thread
+ * @param useWeight           weight frames by the event's value rather than by sample count
+ * @param excludeNonJavaSamples   drop samples with no Java frames
+ * @param excludeIdleSamples      drop samples taken while the thread was parked
+ * @param onlyUnsafeAllocationSamples  keep only allocations made through {@code Unsafe}
+ * @param components          which parts of the graph to build
  */
 public record GenerateTraceOperationFlamegraphRequest(
         String name,
+        String kind,
+        String rootEventType,
         Type eventType,
         boolean useThreadMode,
         Boolean useWeight,
@@ -37,4 +53,9 @@ public record GenerateTraceOperationFlamegraphRequest(
         boolean excludeIdleSamples,
         boolean onlyUnsafeAllocationSamples,
         GraphComponents components) implements SpanFlamegraphOptions {
+
+    /** The trace type this graph is scoped to. */
+    public TraceOperationId operationId() {
+        return new TraceOperationId(name, kind, rootEventType);
+    }
 }

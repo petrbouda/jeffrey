@@ -23,6 +23,12 @@ import Profile from '@/services/api/model/Profile';
  * Profile with workspace and project context.
  * This is what we receive from the new /profiles/{profileId} endpoint.
  */
+/** Where a recording starts on the wall clock, and how long it lasted. */
+export interface RecordingWindow {
+  startEpochMillis: number;
+  durationMillis: number;
+}
+
 export interface ProfileWithContext extends Profile {
   hubId: string;
   workspaceId: string;
@@ -47,6 +53,23 @@ const workspaceId = computed(() => currentProfile.value?.workspaceId ?? '');
 const hubId = computed(() => currentProfile.value?.hubId ?? '');
 const profileName = computed(() => currentProfile.value?.name ?? '');
 const isLoaded = computed(() => currentProfile.value !== null);
+
+/**
+ * The recording's own timeline: where its zero is, and how long it ran.
+ * <p>
+ * What every relative-time view needs — a chart drawn over the recording rather than over whatever
+ * subset of it the page happens to hold. Null until the profile is loaded, or when the recording
+ * never reported its bounds.
+ */
+const recordingWindow = computed<RecordingWindow | null>(() => {
+  const profile = currentProfile.value;
+  const startEpochMillis = profile?.profilingStartedAt;
+  const endEpochMillis = profile?.profilingFinishedAt;
+  if (startEpochMillis == null || endEpochMillis == null || endEpochMillis <= startEpochMillis) {
+    return null;
+  }
+  return { startEpochMillis, durationMillis: endEpochMillis - startEpochMillis };
+});
 
 /**
  * Sets the current profile with its workspace and project context.
@@ -96,6 +119,7 @@ export const profileStore = {
   hubId,
   profileName,
   isLoaded,
+  recordingWindow,
 
   // Actions
   setProfile,

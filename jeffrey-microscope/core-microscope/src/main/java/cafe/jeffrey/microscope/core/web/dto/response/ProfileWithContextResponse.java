@@ -20,6 +20,9 @@ package cafe.jeffrey.microscope.core.web.dto.response;
 
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 
+/**
+ * @param createdAt epoch millis
+ */
 public record ProfileWithContextResponse(
         String id,
         String name,
@@ -27,7 +30,7 @@ public record ProfileWithContextResponse(
         String projectName,
         String workspaceId,
         String workspaceName,
-        String createdAt,
+        long createdAt,
         RecordingEventSource eventSource,
         boolean enabled,
         boolean modified,

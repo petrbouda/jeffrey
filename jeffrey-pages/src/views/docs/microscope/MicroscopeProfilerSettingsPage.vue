@@ -189,7 +189,7 @@ onMounted(() => {
           <div class="feature-icon"><i class="bi bi-cpu"></i></div>
           <div class="feature-content">
             <h4>CPU Profiling</h4>
-            <p>Sample thread stack traces at regular intervals to find CPU-intensive methods and performance bottlenecks</p>
+            <p>Sample thread stack traces at regular intervals to find CPU-intensive methods and performance bottlenecks. <code>ctimer</code> and <code>itimer</code> attribute every sample to the carrier thread, so spans that ran on a virtual thread get no flamegraph — drop <code>event=</code> to let the JVM's own sampler attribute to virtual threads instead</p>
           </div>
         </div>
         <div class="feature-card">

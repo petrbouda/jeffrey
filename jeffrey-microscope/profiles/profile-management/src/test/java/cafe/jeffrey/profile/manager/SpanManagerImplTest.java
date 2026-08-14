@@ -23,7 +23,7 @@ import cafe.jeffrey.profile.manager.model.span.SpanEventRow;
 import cafe.jeffrey.profile.manager.model.span.SpanOverview;
 import cafe.jeffrey.profile.manager.model.span.SpanSlowestRow;
 import cafe.jeffrey.profile.manager.model.span.SpanTagStat;
-import cafe.jeffrey.provider.profile.api.SpanEventRecord;
+import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
 import cafe.jeffrey.provider.profile.api.SpanRecord;
 import cafe.jeffrey.provider.profile.api.SpanRepository;
 import cafe.jeffrey.shared.common.model.SpanInterval;
@@ -50,12 +50,12 @@ class SpanManagerImplTest {
         return new SpanManagerImpl(new StubSpanRepository(List.of(spans), List.of()));
     }
 
-    private static SpanManager managerWithEvents(List<SpanEventRecord> events) {
+    private static SpanManager managerWithEvents(List<ThreadWindowEventRecord> events) {
         return new SpanManagerImpl(new StubSpanRepository(List.of(), events));
     }
 
     /** Minimal repository stub (SpanRepository is no longer single-method). */
-    private record StubSpanRepository(List<SpanRecord> spans, List<SpanEventRecord> events)
+    private record StubSpanRepository(List<SpanRecord> spans, List<ThreadWindowEventRecord> events)
             implements SpanRepository {
         @Override
         public List<SpanRecord> listSpans() {
@@ -63,7 +63,7 @@ class SpanManagerImplTest {
         }
 
         @Override
-        public List<SpanEventRecord> eventsForThread(long threadHash, long fromEpochMillis, long toEpochMillis) {
+        public List<ThreadWindowEventRecord> eventsForThread(long threadHash, long fromEpochMillis, long toEpochMillis) {
             return events;
         }
     }
@@ -234,8 +234,8 @@ class SpanManagerImplTest {
         @Test
         void mapsRepositoryEventsToRows() {
             List<SpanEventRow> rows = managerWithEvents(List.of(
-                    new SpanEventRecord("jdk.ExecutionSample", 1_000, 0, null),
-                    new SpanEventRecord("jdk.JavaMonitorEnter", 1_050, 3 * MS, "{\"monitorClass\":\"X\"}")))
+                    new ThreadWindowEventRecord("jdk.ExecutionSample", 1_000, 0, null),
+                    new ThreadWindowEventRecord("jdk.JavaMonitorEnter", 1_050, 3 * MS, "{\"monitorClass\":\"X\"}")))
                     .spanEvents(41, 0, 5_000);
 
             assertEquals(2, rows.size());

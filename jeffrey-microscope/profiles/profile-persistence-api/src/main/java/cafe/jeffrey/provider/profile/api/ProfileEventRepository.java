@@ -42,6 +42,12 @@ public interface ProfileEventRepository {
      */
     EventDurationStats durationStatsByType(Type type);
 
+    /**
+     * How many {@code jdk.CPUTimeSample} events the profile holds and how many the JVM reported as
+     * dropped. Returns {@link CpuTimeSampleLoss#EMPTY} when the CPU-time sampler was not used.
+     */
+    CpuTimeSampleLoss cpuTimeSampleLoss();
+
     boolean containsEventType(Type type);
 
     /**

@@ -16,20 +16,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.provider.profile.api;
+package cafe.jeffrey.microscope.core.web.controllers.profile;
 
 /**
- * A JFR event that occurred on a span's thread within the span's time window — used to drill from a
- * span into "what else was happening" (the {@code @Contextual} correlation).
- *
- * @param eventType        JFR event type code (e.g. {@code jdk.ExecutionSample})
- * @param startEpochMillis absolute UTC epoch-millis start
- * @param durationNanos    duration in nanoseconds (0 for instant events)
- * @param fields           the event's JSON fields as a string (may be {@code null})
+ * Media types shared by the profile controllers.
+ * <p>
+ * Here rather than on whichever controller happened to declare one first: four controllers produce
+ * protobuf, and three of them were importing the constant from the fourth, which reads as a
+ * dependency between endpoints that have nothing to do with each other.
  */
-public record SpanEventRecord(
-        String eventType,
-        long startEpochMillis,
-        long durationNanos,
-        String fields) {
+public final class ProfileMediaTypes {
+
+    /**
+     * Flamegraphs are sent as protobuf rather than JSON: a graph is a deep tree of small nodes, and
+     * the binary encoding is what keeps a large one inside a single response.
+     */
+    public static final String PROTOBUF = "application/x-protobuf";
+
+    private ProfileMediaTypes() {
+    }
 }

@@ -22,10 +22,12 @@ import cafe.jeffrey.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.profile.manager.EventViewerManager;
 import cafe.jeffrey.profile.manager.FlagsManager;
 import cafe.jeffrey.profile.manager.GuardianManager;
+import cafe.jeffrey.profile.manager.SamplerHealthManager;
 
 public record AnalysisFactories(
         GuardianManager.Factory guardian,
         AutoAnalysisManager.Factory autoAnalysis,
         EventViewerManager.Factory eventViewer,
-        FlagsManager.Factory flags) {
+        FlagsManager.Factory flags,
+        SamplerHealthManager.Factory samplerHealth) {
 }

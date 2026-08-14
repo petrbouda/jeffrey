@@ -28,8 +28,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
+import cafe.jeffrey.microscope.core.web.dto.response.ProfileDetailResponse;
 import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.shared.common.model.ProfileInfo;
 
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}")
@@ -44,19 +44,19 @@ public class ProfileController {
     }
 
     @GetMapping
-    public ProfileInfo getProfileInfo(@PathVariable("profileId") String profileId) {
+    public ProfileDetailResponse getProfileInfo(@PathVariable("profileId") String profileId) {
         ProfileManager pm = resolver.resolve(profileId);
         LOG.debug("Fetching profile info: profileId={}", pm.info().id());
-        return pm.info();
+        return ProfileDetailResponse.from(pm.info());
     }
 
     @PutMapping
-    public ProfileInfo updateProfile(
+    public ProfileDetailResponse updateProfile(
             @PathVariable("profileId") String profileId,
             @RequestBody UpdateProfile updateProfile) {
         ProfileManager pm = resolver.resolve(profileId);
         LOG.debug("Updating profile: profileId={} name={}", pm.info().id(), updateProfile.name());
-        return pm.updateName(updateProfile.name());
+        return ProfileDetailResponse.from(pm.updateName(updateProfile.name()));
     }
 
     @DeleteMapping

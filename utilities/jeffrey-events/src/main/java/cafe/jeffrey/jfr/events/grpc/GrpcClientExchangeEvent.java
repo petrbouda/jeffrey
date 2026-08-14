@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.jfr.events.grpc;
 
+import cafe.jeffrey.jfr.events.trace.SpanKind;
 import jdk.jfr.Description;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
@@ -28,4 +29,8 @@ import jdk.jfr.Name;
 public class GrpcClientExchangeEvent extends AbstractGrpcExchangeEvent {
 
     public static final String NAME = "jeffrey.GrpcClientExchange";
+
+    public GrpcClientExchangeEvent() {
+        super(SpanKind.CLIENT);
+    }
 }

@@ -27,7 +27,7 @@
     <EmptyState
       v-else-if="traces.length === 0"
       title="No Traces"
-      message="No trace-carrying events were recorded in this profile."
+      description="No trace-carrying events were recorded in this profile."
       icon="bi-diagram-3"
     />
 
@@ -159,8 +159,3 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.dashboard-container {
-  padding: 0;
-}
-</style>

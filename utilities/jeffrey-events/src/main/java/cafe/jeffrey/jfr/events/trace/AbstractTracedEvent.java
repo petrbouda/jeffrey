@@ -19,12 +19,24 @@
 package cafe.jeffrey.jfr.events.trace;
 
 import jdk.jfr.Contextual;
+import jdk.jfr.Description;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
 
 /**
- * Trace identity carried by every event that can take part in a trace.
+ * The shape of a span, carried by every event that can take part in a trace.
  * <p>
+ * An event that extends this <em>is</em> a span once it carries trace identity — there is nothing
+ * left for a consumer to interpret. That is deliberate: the alternative is a reader that knows how
+ * each event type spells its name, its kind and its outcome, which has to be edited every time an
+ * event type is instrumented and silently omits the new one until someone does. Here the event
+ * describes itself, and everything downstream reads one uniform shape.
+ * <p>
+ * What stays type-specific is presentation, not structure: a JDBC statement's SQL and row count are
+ * its own declared fields, and it is the UI that chooses to draw them differently from an HTTP
+ * exchange's URI.
+ *
+ * <h2>Identity</h2>
  * The ids are plain {@code long}s rather than strings on purpose: JFR varint-encodes integral
  * fields, while every distinct string value enters the per-chunk constant pool. Trace and span ids
  * are the highest-cardinality values an event can carry, so encoding them as strings is the single
@@ -55,4 +67,48 @@ public abstract class AbstractTracedEvent extends Event {
 
     @Label("Parent Span Id")
     public long parentSpanId;
+
+    @Label("Name")
+    @Description("Operation name; must be a stable, low-cardinality label")
+    public String name;
+
+    @Label("Kind")
+    public String kind = SpanKind.INTERNAL.name();
+
+    @Label("Status")
+    public String status = SpanStatus.UNSET.name();
+
+    @Label("Error Type")
+    @Description("Class name of the exception that ended the span, when it ended in an error")
+    public String errorType;
+
+    @Label("Attributes")
+    @Description("Operation-specific detail, encoded as a JSON object")
+    public String attributes;
+
+    /**
+     * Fills in the span shape from the event's own fields, called once immediately before the event
+     * is committed.
+     * <p>
+     * This is the hook an instrumented event overrides to say how it names itself and how its own
+     * notion of success maps onto {@link SpanStatus} — an HTTP exchange is named by its method and
+     * matched URI template and fails at status 400, a gRPC call is named by service and method and
+     * fails at anything but {@code OK}. Doing it here rather than at the emitting call site means an
+     * event type answers for its own span shape in one place.
+     * <p>
+     * Events whose fields are already the span shape — a hand-written {@link TraceSpanEvent}, a JDBC
+     * statement named after the statement it runs — leave this alone.
+     */
+    protected void describeSpan() {
+    }
+
+    /**
+     * Describes the span and commits the event, which is how every instrumented event should be
+     * committed. Pairing {@link #describeSpan()} with {@link #commit()} by hand works too, but is
+     * one more thing for an emitter to forget.
+     */
+    public final void commitSpan() {
+        describeSpan();
+        commit();
+    }
 }

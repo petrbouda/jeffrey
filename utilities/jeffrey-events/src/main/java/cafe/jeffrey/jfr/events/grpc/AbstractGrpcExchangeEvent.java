@@ -19,11 +19,22 @@
 package cafe.jeffrey.jfr.events.grpc;
 
 import cafe.jeffrey.jfr.events.trace.AbstractTracedEvent;
+import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import jdk.jfr.*;
 
+/**
+ * The half of a gRPC call that is the same on both sides of the wire, and the span shape both derive
+ * the same way: named by the fully qualified method, failed by anything but {@code OK}.
+ */
 @Category({"Application", "gRPC"})
 @StackTrace(false)
 public abstract class AbstractGrpcExchangeEvent extends AbstractTracedEvent {
+
+    /** gRPC's own name for "the call succeeded"; every other code is a failed call. */
+    private static final String OK_STATUS_CODE = "OK";
+
+    private static final String METHOD_SEPARATOR = "/";
 
     @Label("Service Name")
     public String service;
@@ -38,7 +49,7 @@ public abstract class AbstractGrpcExchangeEvent extends AbstractTracedEvent {
     public int remotePort;
 
     @Label("Status Code")
-    public String status;
+    public String statusCode;
 
     @Label("Authority")
     public String authority;
@@ -50,4 +61,14 @@ public abstract class AbstractGrpcExchangeEvent extends AbstractTracedEvent {
     @Label("Response Size")
     @DataAmount
     public long responseSize;
+
+    protected AbstractGrpcExchangeEvent(SpanKind kind) {
+        this.kind = kind.name();
+    }
+
+    @Override
+    protected void describeSpan() {
+        name = service + METHOD_SEPARATOR + method;
+        status = OK_STATUS_CODE.equals(statusCode) ? SpanStatus.OK.name() : SpanStatus.ERROR.name();
+    }
 }

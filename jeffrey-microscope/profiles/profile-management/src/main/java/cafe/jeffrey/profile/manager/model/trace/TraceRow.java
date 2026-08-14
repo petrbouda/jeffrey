@@ -29,9 +29,11 @@ public record TraceRow(
         String traceId,
         String rootName,
         String rootKind,
+        String rootEventType,
         long startMillisFromBeginning,
         long startEpochMillis,
         long durationNanos,
         int spanCount,
-        int errorCount) {
+        int errorCount,
+        boolean hasPlatformSpan) {
 }

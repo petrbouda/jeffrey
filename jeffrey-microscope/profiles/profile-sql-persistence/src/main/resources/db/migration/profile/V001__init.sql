@@ -192,11 +192,12 @@ CREATE TABLE IF NOT EXISTS pipeline_runs
 -- run against BIGINTs instead of re-parsing `fields` per row, per query.
 --
 -- Every traced event type feeds this one table, which is what makes an HTTP request show its JDBC
--- statements as native children: they are rows here just like a hand-written span is.
+-- statements as native children: they are rows here just like a hand-written span is. The events
+-- record the whole span shape themselves -- name, kind, status and their own span id -- so the
+-- derivation copies rather than interprets, and no event type is named anywhere in it.
 --
 -- `parent_span_id` is NULL for a root span (the wire encoding uses 0 for "absent", normalised here
--- so SQL null-semantics apply). `attributes` keeps the source event's whole `fields` object, so a
--- span carries everything its originating event knew without this table having to model it.
+-- so SQL null-semantics apply).
 --
 CREATE TABLE IF NOT EXISTS trace_spans
 (
@@ -207,7 +208,6 @@ CREATE TABLE IF NOT EXISTS trace_spans
     kind                           VARCHAR,
     status                         VARCHAR,
     error_type                     VARCHAR,
-    attributes                     JSON,
     start_timestamp                TIMESTAMPTZ NOT NULL,
     -- Same zero point as events.start_timestamp_from_beginning, so a trace can be lined up
     -- against the recording's other views without converting.
@@ -215,7 +215,16 @@ CREATE TABLE IF NOT EXISTS trace_spans
     duration                       BIGINT      NOT NULL,
     thread_hash                    BIGINT,
     -- Which event produced this span: jeffrey.TraceSpan, jeffrey.HttpServerExchange, ...
-    event_type                     VARCHAR     NOT NULL
+    event_type                     VARCHAR     NOT NULL,
+    -- What the span attached to itself: AbstractTracedEvent.attributes, an open JSON map whose keys
+    -- are whatever the developer passed. Any traced event can carry one; in practice a hand-written
+    -- span is what usually does.
+    attributes                     VARCHAR,
+    -- What the event declared beyond the span shape, as a JSON object: a statement's sql, params and
+    -- rows, an exchange's uri, method and status code. These are schema, not attributes -- each is a
+    -- labelled field of its event type -- so they are kept apart from the map above. Null for an
+    -- event that declares nothing of its own, a hand-written span being the usual case.
+    event_fields                   VARCHAR
 );
 
 --
@@ -231,11 +240,38 @@ CREATE TABLE IF NOT EXISTS trace_spans
 CREATE TABLE IF NOT EXISTS traces
 (
     trace_id                       BIGINT      NOT NULL PRIMARY KEY,
-    root_name                      VARCHAR,
-    root_kind                      VARCHAR,
+    -- The three together are the trace's *type*, which is what the Trace Operations view groups on.
+    -- Not the name alone: an inbound `GET /a` and an outbound call to the same path share a name and
+    -- are not the same operation. All three are NOT NULL because the derivation COALESCEs each one
+    -- from a NOT NULL source, and a nullable grouping key would make `<>` comparisons against it
+    -- silently drop every row.
+    root_name                      VARCHAR     NOT NULL,
+    root_kind                      VARCHAR     NOT NULL,
+    -- Which instrumentation opened the trace: jeffrey.HttpServerExchange for an inbound request,
+    -- jeffrey.TraceSpan for a hand-written one, and so on. The name alone does not say -- a
+    -- hand-written span can be named like a request -- and it is what tells a reader whether an
+    -- operation came from a framework filter or from a Tracer call in their own code.
+    root_event_type                VARCHAR     NOT NULL,
+    -- Which span the three above were taken from. Lets a query exclude the trace's own root by
+    -- identity rather than by name -- an operation that calls itself has nested spans named exactly
+    -- like its root, and excluding by name dropped every one of them.
+    root_span_id                   BIGINT      NOT NULL,
     start_timestamp                TIMESTAMPTZ NOT NULL,
     start_timestamp_from_beginning BIGINT      NOT NULL,
     duration                       BIGINT      NOT NULL,
     span_count                     INTEGER     NOT NULL,
-    error_count                    INTEGER     NOT NULL
+    error_count                    INTEGER     NOT NULL,
+    -- Whether any span of this trace ran on a platform thread, and therefore whether a flamegraph
+    -- can be drawn for it at all: the profiler attributes samples to the carrier, never to the
+    -- virtual thread. Stored rather than recomputed per query -- it is a pure function of the
+    -- trace's spans, and as a correlated EXISTS it was evaluated for every candidate trace before
+    -- the LIMIT. A span whose thread did not resolve counts as *not* platform: an unresolved thread
+    -- cannot promise samples, and claiming otherwise offers a flamegraph that comes back empty.
+    has_platform_span              BOOLEAN     NOT NULL
 );
+
+-- Unlike `events`, these two are small, written once by the derivation and then read interactively
+-- by every trace query, so the ingest-cost argument against ART indexes above does not apply here.
+CREATE INDEX IF NOT EXISTS trace_spans_trace_id_idx ON trace_spans (trace_id);
+CREATE INDEX IF NOT EXISTS trace_spans_thread_hash_idx ON trace_spans (thread_hash);
+CREATE INDEX IF NOT EXISTS traces_operation_idx ON traces (root_name, root_kind, root_event_type);

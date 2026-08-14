@@ -20,6 +20,15 @@
   <div>
     <LoadingState v-if="!loaded" message="Loading flamegraph events..." />
 
+    <!-- A failed fetch is not an empty operation, and must not be drawn as one. -->
+    <ErrorState v-else-if="error" :message="error" />
+
+    <!--
+      An operation that never left its virtual threads is not "no data recorded" — the samples exist
+      and belong to the carrier. Saying which of the two it is saves the reader the investigation.
+    -->
+    <VirtualThreadFlamegraphNotice v-else-if="!hasEvents && virtualThreadOnly" scope="operation" />
+
     <EmptyState
       v-else-if="!hasEvents"
       icon="bi-fire"
@@ -38,50 +47,26 @@
       @view="openFlamegraph"
     />
 
-    <!-- Flamegraph Modal with timeseries (mirrors ProfileEventTypes.vue) -->
-    <GenericModal
+    <FlamegraphExplorerModal
+      v-model:show="showDialog"
       modal-id="traceOperationFlamegraphModal"
-      :show="showDialog"
-      size="fullscreen"
-      :show-footer="false"
-      @update:show="showDialog = $event"
-    >
-      <template #header>
-        <h5 class="modal-title"><i class="bi bi-fire me-2"></i>{{ activeTitle }} — {{ name }}</h5>
-        <button type="button" class="btn-close" @click="showDialog = false" aria-label="Close" />
-      </template>
-      <div id="scrollable-wrapper" style="padding: 0.75rem" v-if="showDialog">
-        <TimeSeriesChart
-          :graph-updater="graphUpdater"
-          :primary-axis-type="
-            TimeseriesEventAxeFormatter.resolveAxisFormatter(activeUseWeight, activeEventType)
-          "
-          :visible-minutes="60"
-          :zoom-enabled="true"
-          time-unit="seconds"
-        />
-        <FlamegraphComponent
-          :with-timeseries="true"
-          :use-weight="activeUseWeight"
-          :use-guardian="null"
-          scrollableWrapperClass="scrollable-wrapper"
-          :flamegraph-tooltip="flamegraphTooltip"
-          :graph-updater="graphUpdater"
-          @loaded="onFlamegraphLoaded"
-        />
-      </div>
-    </GenericModal>
+      :scope-label="operation.name"
+      :event-type="activeEventType"
+      :use-weight="activeUseWeight"
+      :graph-updater="graphUpdater"
+      :flamegraph-tooltip="flamegraphTooltip"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, shallowRef } from 'vue';
 
 import LoadingState from '@shared/components/LoadingState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
-import GenericModal from '@shared/components/GenericModal.vue';
-import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
-import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
+import VirtualThreadFlamegraphNotice from '@/components/trace/VirtualThreadFlamegraphNotice.vue';
+import FlamegraphExplorerModal from '@/components/FlamegraphExplorerModal.vue';
 import FlamegraphCardGrid from '@/components/FlamegraphCardGrid.vue';
 import type { FlamegraphCardViewPayload } from '@/components/FlamegraphCard.vue';
 
@@ -92,34 +77,36 @@ import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import FullGraphUpdater from '@/services/flamegraphs/updater/FullGraphUpdater';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
-import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAxeFormatter';
 import { useFlamegraphPanels } from '@/composables/useFlamegraphPanels';
+import type { TraceOperationId } from '@/services/api/model/trace/TraceModels';
 
 const MODAL_INIT_DELAY_MS = 200;
 
 const props = defineProps<{
   profileId: string;
-  name: string;
+  operation: TraceOperationId;
+  /** Every span of every trace of this operation ran on a virtual thread, so no sample can match. */
+  virtualThreadOnly?: boolean;
 }>();
 
 // Operation-scoped panels so the cards show the real per-operation counts (matching the
 // flamegraph), not the profile-wide totals.
-const { loaded, panels } = useFlamegraphPanels(GraphType.PRIMARY, () =>
-  new ProfileTracesClient(props.profileId).getOperationPanels(props.name)
+const { loaded, error, panels } = useFlamegraphPanels(GraphType.PRIMARY, () =>
+  new ProfileTracesClient(props.profileId).getOperationPanels(props.operation)
 );
 
 const hasEvents = computed(() => panels.value.some(panel => panel.event.primary.samples > 0));
 
 // Flamegraph modal state
 const showDialog = ref(false);
-const activeTitle = ref('');
 const activeEventType = ref('');
 const activeUseWeight = ref(false);
-let flamegraphTooltip: FlamegraphTooltip;
-let graphUpdater: GraphUpdater;
+// shallowRef, not ref: these are stateful objects holding the graph's data and its callbacks, and
+// deep reactivity over them buys nothing while proxying every node the flamegraph touches.
+const flamegraphTooltip = shallowRef<FlamegraphTooltip | null>(null);
+const graphUpdater = shallowRef<GraphUpdater | null>(null);
 
 function openFlamegraph(payload: FlamegraphCardViewPayload) {
-  activeTitle.value = payload.eventType;
   activeEventType.value = payload.eventType;
   activeUseWeight.value = payload.useWeight;
 
@@ -127,7 +114,7 @@ function openFlamegraph(payload: FlamegraphCardViewPayload) {
   // range or thread filter is sent.
   const client = new TraceOperationFlamegraphClient(
     props.profileId,
-    props.name,
+    props.operation,
     payload.eventType,
     payload.useThreadMode,
     payload.useWeight,
@@ -136,25 +123,17 @@ function openFlamegraph(payload: FlamegraphCardViewPayload) {
     payload.onlyUnsafeAllocationSamples
   );
 
-  graphUpdater = new FullGraphUpdater(client, false);
-  flamegraphTooltip = FlamegraphTooltipFactory.create(payload.eventType, payload.useWeight, false);
+  graphUpdater.value = new FullGraphUpdater(client, false);
+  flamegraphTooltip.value =
+    FlamegraphTooltipFactory.create(payload.eventType, payload.useWeight, false);
 
   showDialog.value = true;
 
   // Delay so the modal (flamegraph + timeseries) is rendered and callbacks registered.
   setTimeout(() => {
-    graphUpdater.initialize();
+    graphUpdater.value?.initialize();
   }, MODAL_INIT_DELAY_MS);
 }
 
-function onFlamegraphLoaded() {
-  scrollToTop();
-}
 
-function scrollToTop() {
-  const wrapper = document.getElementById('scrollable-wrapper');
-  if (wrapper) {
-    wrapper.scrollTop = 0;
-  }
-}
 </script>

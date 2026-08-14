@@ -123,32 +123,16 @@ public final class Tracer {
     }
 
     /**
-     * Opens a span for {@code body} without emitting a {@link TraceSpanEvent}, for instrumentation
-     * whose <em>own</em> event already describes the interval — an HTTP exchange, a gRPC call, a
-     * JDBC statement. Emitting a trace span alongside such an event would record the same interval
-     * twice.
+     * Opens a span for {@code body} without emitting a {@link TraceSpanEvent} and without attaching
+     * it to an event, for a scope that only needs to exist so the work underneath it hangs together.
      * <p>
-     * The caller stamps its own event with {@link #stamp(AbstractTracedEvent)} from inside
-     * {@code body}, and anything nested inside it is parented correctly for free:
-     *
-     * <pre>{@code
-     * Tracer.inSpan(() -> {
-     *     event.begin();
-     *     try {
-     *         chain.doFilter(request, response);
-     *     } finally {
-     *         event.end();
-     *         if (event.shouldCommit()) {
-     *             Tracer.stamp(event);
-     *             event.commit();
-     *         }
-     *     }
-     *     return null;
-     * });
-     * }</pre>
+     * Instrumentation whose <em>own</em> event already describes the interval — an HTTP exchange, a
+     * gRPC call — wants {@link #inSpanOf} instead, which makes that event the span. Pairing this
+     * method with {@link #stamp} does something different: the stamped event becomes a child of the
+     * span opened here rather than the span itself.
      * <p>
-     * Unlike {@link #call}, this always establishes a binding: whether the interval is recorded is
-     * the caller's event's decision, not this method's.
+     * Unlike {@link #call}, this always establishes a binding: whether an interval is recorded at
+     * all is the caller's event's decision, not this method's.
      */
     public static <R, X extends Throwable> R inSpan(ScopedValue.CallableOp<? extends R, X> body) throws X {
         Objects.requireNonNull(body, "body must not be null");
@@ -156,9 +140,10 @@ public final class Tracer {
     }
 
     /**
-     * Opens a span for {@code body} and stamps it onto {@code event} — the whole of the
-     * "my own event is the span" pattern in one call, and the form to prefer over pairing
-     * {@link #inSpan} with {@link #stamp} by hand.
+     * Opens a span and makes {@code event} that span, for instrumentation whose own event already
+     * describes the interval — an HTTP exchange, a gRPC call. Emitting a {@link TraceSpanEvent}
+     * alongside such an event would record the same interval twice, so none is emitted; the event
+     * carries the ids, and everything traced inside {@code body} nests underneath it.
      * <p>
      * The ids are stamped when the span opens, not when the event commits: they are known up front,
      * and the {@link ScopedValue} binding is gone by the time a caller's {@code finally} block runs,
@@ -174,8 +159,8 @@ public final class Tracer {
      * } finally {
      *     event.end();
      *     if (event.shouldCommit()) {
-     *         event.status = response.getStatus();
-     *         event.commit();
+     *         event.statusCode = response.getStatus();
+     *         event.commitSpan();
      *     }
      * }
      * }</pre>
@@ -185,25 +170,34 @@ public final class Tracer {
 
         Objects.requireNonNull(event, "event must not be null");
         Objects.requireNonNull(body, "body must not be null");
-        return inSpan(() -> {
-            stamp(event);
-            return body.call();
-        });
+
+        SpanContext context = newSpanContext();
+        stampSelf(event, context);
+        return ScopedValue.where(CURRENT, context).call(body);
     }
 
     /**
-     * Copies the span currently in progress onto {@code event}, so the event takes its place in the
-     * trace. Does nothing when no span is in progress, leaving the event's ids at {@code 0} — the
-     * encoding for "not part of a trace".
+     * Gives {@code event} a span of its own, nested inside the span currently in progress, so the
+     * event takes its place in the trace. Does nothing when no span is in progress, leaving the
+     * event's ids at {@code 0} — the encoding for "not part of a trace".
+     * <p>
+     * A span of its own, rather than a copy of the enclosing one: every statement issued inside one
+     * span would otherwise carry that same span id, and a span id has to identify exactly one span.
+     * Nothing is bound to the minted id, which is what makes a stamped event a leaf — the work it
+     * describes is the event itself, not a scope other spans nest inside.
      */
     public static void stamp(AbstractTracedEvent event) {
         Objects.requireNonNull(event, "event must not be null");
         if (CURRENT.isBound()) {
-            stamp(event, CURRENT.get());
+            stampSelf(event, CURRENT.get().child(ThreadLocalRandom.current()));
         }
     }
 
-    private static void stamp(AbstractTracedEvent event, SpanContext context) {
+    /**
+     * Stamps the event with a context as its own, for a span the event <em>is</em> rather than one
+     * it hangs off.
+     */
+    private static void stampSelf(AbstractTracedEvent event, SpanContext context) {
         event.traceId = context.traceId();
         event.spanId = context.spanId();
         event.parentSpanId = context.parentSpanId();
@@ -223,11 +217,17 @@ public final class Tracer {
         Objects.requireNonNull(kind, "kind must not be null");
         Objects.requireNonNull(body, "body must not be null");
 
+        SpanContext context = childOf(parent);
+
         TraceSpanEvent event = new TraceSpanEvent();
         if (!event.isEnabled()) {
-            return body.call();
+            // Still bind, unlike call(): the caller handed us a context precisely because this thread
+            // has none, so returning without one would drop the forked work out of the trace and
+            // no-op every stamp underneath it. There is nothing to fall back on here, which is not
+            // true of call(), where an enclosing binding survives.
+            return ScopedValue.where(CURRENT, context).call(body);
         }
-        return record(event, name, kind, childOf(parent), body);
+        return record(event, name, kind, context, body);
     }
 
     /**
@@ -260,7 +260,7 @@ public final class Tracer {
         } finally {
             event.end();
             if (event.shouldCommit()) {
-                stamp(event, context);
+                stampSelf(event, context);
                 event.name = name;
                 event.kind = kind.name();
                 if (failure == null) {

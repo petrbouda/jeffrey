@@ -25,7 +25,7 @@
     <EmptyState
       v-else-if="stats.length === 0"
       title="No Spans"
-      message="No async-profiler spans were recorded in this profile."
+      description="No async-profiler spans were recorded in this profile."
       icon="bi-bounding-box"
     />
 
@@ -107,8 +107,3 @@ onMounted(() => {
 });
 </script>
 
-<style scoped>
-.dashboard-container {
-  padding: 0;
-}
-</style>

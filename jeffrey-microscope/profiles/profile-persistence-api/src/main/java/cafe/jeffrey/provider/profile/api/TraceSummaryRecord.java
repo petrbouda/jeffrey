@@ -25,19 +25,26 @@ package cafe.jeffrey.provider.profile.api;
  * @param traceId                    identifies the trace; rendered as 16-char hex in the UI
  * @param rootName                   operation name of the trace's root span
  * @param rootKind                   {@code SERVER}, {@code CLIENT} or {@code INTERNAL}
+ * @param rootEventType              the event type that opened the trace, e.g.
+ *                                   {@code jeffrey.HttpServerExchange} — which instrumentation it
+ *                                   came from, something the name alone does not say
  * @param startMillisFromBeginning   trace start, in milliseconds relative to the recording's start
  * @param startEpochMillis           trace start as an absolute UTC epoch-millis timestamp
  * @param durationNanos              wall time from the first span's start to the last span's end
  * @param spanCount                  how many spans the trace contains
  * @param errorCount                 how many of them ended in an error
+ * @param hasPlatformSpan            whether any of its spans ran on a platform thread, which is what
+ *                                   decides whether a sample can ever be attributed to this trace
  */
 public record TraceSummaryRecord(
         long traceId,
         String rootName,
         String rootKind,
+        String rootEventType,
         long startMillisFromBeginning,
         long startEpochMillis,
         long durationNanos,
         int spanCount,
-        int errorCount) {
+        int errorCount,
+        boolean hasPlatformSpan) {
 }

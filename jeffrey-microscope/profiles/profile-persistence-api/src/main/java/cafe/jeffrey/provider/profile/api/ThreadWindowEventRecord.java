@@ -19,19 +19,20 @@
 package cafe.jeffrey.provider.profile.api;
 
 /**
- * One JFR event that occurred inside a span's window — what the JVM was actually doing while the
- * span was open.
+ * One JFR event that occurred on a given thread inside a given time window — what the JVM was doing
+ * while something else was running there.
  * <p>
- * Deliberately its own record rather than a reuse of the async-profiler span drill-down: that one
- * answers the same shape of question for {@code profiler.Span}, and the two concepts are kept
- * apart so neither has to accommodate the other.
+ * Shared by the trace drill-down and the async-profiler span drill-down. Those two remain separate
+ * features answering separate questions, and that separation is deliberate; but "what ran on this
+ * thread between these two instants" is not two questions. It had been two identical records, two
+ * near-identical queries and two mappers, which is two places to fix whenever the answer changes.
  *
  * @param eventType        the JFR event type, e.g. {@code jdk.ExecutionSample}
  * @param startEpochMillis when it occurred, absolute UTC epoch millis
  * @param durationNanos    its duration, or 0 for an instantaneous event
  * @param fields           the event's own fields, as a JSON object string
  */
-public record TraceEventRecord(
+public record ThreadWindowEventRecord(
         String eventType,
         long startEpochMillis,
         long durationNanos,

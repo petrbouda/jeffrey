@@ -37,7 +37,7 @@
       <EmptyState
         v-else-if="!detail || detail.spans.length === 0"
         title="No spans"
-        message="This trace has no spans left to draw."
+        description="This trace has no spans left to draw."
         icon="bi-inboxes"
       />
 
@@ -47,8 +47,8 @@
       -->
       <div v-else-if="mode === 'events'" class="ts-fg-view">
         <div class="ts-fg-bar">
-          <button type="button" class="ts-fg-back" @click="backToSpans">
-            <i class="bi bi-arrow-left"></i> Back to spans
+          <button type="button" class="ts-fg-back" @click="goBack">
+            <i class="bi bi-arrow-left"></i> {{ backLabel }}
           </button>
           <span class="ts-fg-active">
             <i class="bi bi-list-ul"></i> {{ selected?.name }}
@@ -63,14 +63,14 @@
         <EmptyState
           v-else-if="spanEvents.length === 0"
           title="Nothing recorded"
-          message="Nothing else ran on this thread while the span was open."
+          description="Nothing else ran on this thread while the span was open."
           icon="bi-inbox"
         />
 
         <EventWindowTimeline
           v-else-if="selected"
           :events="spanEvents"
-          :window-start-millis="selected.startEpochMillis"
+          :window-start-millis="spanWindowStartMillis"
           :window-millis="spanWindowMillis"
           @flamegraph="openFlamegraphForType"
         />
@@ -78,8 +78,8 @@
 
       <div v-else-if="mode === 'flamegraph'" class="ts-fg-view">
         <div class="ts-fg-bar">
-          <button type="button" class="ts-fg-back" @click="backToSpans">
-            <i class="bi bi-arrow-left"></i> Back to spans
+          <button type="button" class="ts-fg-back" @click="goBack">
+            <i class="bi bi-arrow-left"></i> {{ backLabel }}
           </button>
           <span class="ts-fg-active">
             <i class="bi bi-fire"></i> {{ activeEventType }}
@@ -99,23 +99,41 @@
         </div>
       </div>
 
-      <div v-else class="trace-body" :class="{ 'with-drawer': selected !== null }">
+      <!--
+        The flamegraph chooser gets the dialog to itself: it is a grid of cards, which is wider than
+        a row of the waterfall can hold, and the reader has already decided which span they are on.
+      -->
+      <div v-else-if="mode === 'flamegraph-picker' && selected" class="ts-fg-view">
+        <div class="ts-fg-bar">
+          <button type="button" class="ts-fg-back" @click="goBack">
+            <i class="bi bi-arrow-left"></i> {{ backLabel }}
+          </button>
+          <span class="ts-fg-active">
+            <i class="bi bi-fire"></i> {{ selected.name }}
+            <span class="ts-fg-scope">pick an event type</span>
+          </span>
+        </div>
+
+        <TraceSpanFlamegraphs
+          :profile-id="profileId"
+          :trace-id="traceId"
+          :span-id="selected.spanId"
+          :virtual-thread="selected.isVirtual"
+          @view="openFlamegraph"
+        />
+      </div>
+
+      <div v-else class="trace-body">
         <div class="waterfall-pane">
           <TraceWaterfall
             :spans="detail.spans"
             :selected-span-id="selected?.spanId ?? null"
+            :event-fields="detail.eventFields ?? {}"
             @select="select"
+            @view-events="openEvents"
+            @view-flamegraph="openFlamegraphPicker"
           />
         </div>
-
-        <TraceSpanDrawer
-          v-if="selected"
-          :profile-id="profileId"
-          :trace-id="traceId"
-          :span="selected"
-          @view-flamegraph="openFlamegraph"
-          @view-events="openEvents"
-        />
       </div>
     </div>
   </GenericModal>
@@ -133,7 +151,7 @@ import type { MetaChip } from '@shared/components/MetaChips.vue';
 import FormattingService from '@shared/services/FormattingService';
 
 import TraceWaterfall from '@/components/trace/TraceWaterfall.vue';
-import TraceSpanDrawer from '@/components/trace/TraceSpanDrawer.vue';
+import TraceSpanFlamegraphs from '@/components/trace/TraceSpanFlamegraphs.vue';
 import EventWindowTimeline from '@/components/events/EventWindowTimeline.vue';
 import type { TraceSpanFlamegraphRequest } from '@/components/trace/TraceSpanFlamegraphs.vue';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
@@ -141,6 +159,7 @@ import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
 import TraceSpanFlamegraphClient from '@/services/api/TraceSpanFlamegraphClient';
 import { errorLabel } from '@/services/trace/traceLabels';
+import { ceilNanosToMillis, floorToMillis } from '@/services/trace/timeUnits';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import OnlyFlamegraphGraphUpdater from '@/services/flamegraphs/updater/OnlyFlamegraphGraphUpdater';
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
@@ -152,7 +171,6 @@ import type {
 } from '@/services/api/model/trace/TraceModels';
 
 const TRACE_FG_SCROLL_ID = 'trace-fg-scroll';
-const NANOS_PER_MILLI = 1_000_000;
 const MODAL_INIT_DELAY_MS = 200;
 
 const props = defineProps<{
@@ -170,10 +188,12 @@ const selected = ref<TraceSpanRow | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 
-const mode = ref<'spans' | 'events' | 'flamegraph'>('spans');
+const mode = ref<'spans' | 'events' | 'flamegraph-picker' | 'flamegraph'>('spans');
 const spanEvents = ref<TraceEventRow[]>([]);
 const eventsLoading = ref(false);
 const eventsError = ref<string | null>(null);
+/** Which view the graph was opened from, so its back button can return there. */
+const flamegraphOrigin = ref<'events' | 'flamegraph-picker'>('flamegraph-picker');
 const activeEventType = ref('');
 const activeUseWeight = ref(false);
 const activeSelfOnly = ref(false);
@@ -211,8 +231,21 @@ const chips = computed<MetaChip[]>(() => {
   return result;
 });
 
+/*
+ * Ceiled, not rounded. The start below is floored to the millisecond the span's events were filed
+ * under, so rounding the length down could end the window before the span did and drop its last
+ * events; widening by under a millisecond cannot do the same kind of harm.
+ */
 const spanWindowMillis = computed(() =>
-  Math.max(1, Math.round((selected.value?.durationNanos ?? 0) / NANOS_PER_MILLI))
+  Math.max(1, ceilNanosToMillis(selected.value?.durationNanos ?? 0))
+);
+
+/**
+ * The event timeline is drawn against the events table, whose timestamps are millisecond-resolution,
+ * so the span's microsecond start is floored to the millisecond its events were filed under.
+ */
+const spanWindowStartMillis = computed(() =>
+  floorToMillis(selected.value?.startEpochMicros ?? 0)
 );
 
 async function loadEvents(): Promise<void> {
@@ -258,10 +291,25 @@ function openFlamegraphForType(eventType: string): void {
   });
 }
 
+/**
+ * Clicking the open row again closes it, leaving the waterfall on its own. Nothing is scrolled into
+ * view: the detail opens directly under the row that was clicked, which is already where the reader
+ * is looking.
+ */
 function select(span: TraceSpanRow): void {
-  // Clicking the selected row again closes the drawer, giving the waterfall the full width back.
   selected.value = selected.value?.spanId === span.spanId ? null : span;
 }
+
+function openFlamegraphPicker(): void {
+  mode.value = 'flamegraph-picker';
+}
+
+const backLabel = computed(() => {
+  if (mode.value !== 'flamegraph') {
+    return 'Back to spans';
+  }
+  return flamegraphOrigin.value === 'events' ? 'Back to events' : 'Back to event types';
+});
 
 function openFlamegraph(request: TraceSpanFlamegraphRequest): void {
   const span = selected.value;
@@ -269,6 +317,7 @@ function openFlamegraph(request: TraceSpanFlamegraphRequest): void {
     return;
   }
 
+  flamegraphOrigin.value = mode.value === 'events' ? 'events' : 'flamegraph-picker';
   activeEventType.value = request.payload.eventType;
   activeUseWeight.value = request.payload.useWeight;
   activeSelfOnly.value = request.selfOnly;
@@ -284,7 +333,8 @@ function openFlamegraph(request: TraceSpanFlamegraphRequest): void {
     request.payload.useWeight
   );
 
-  graphUpdater = new OnlyFlamegraphGraphUpdater(client);
+  // Initialized below, once the swapped-in view has rendered and registered its callbacks.
+  graphUpdater = new OnlyFlamegraphGraphUpdater(client, false);
   flamegraphTooltip = FlamegraphTooltipFactory.create(
     request.payload.eventType,
     request.payload.useWeight,
@@ -299,8 +349,12 @@ function openFlamegraph(request: TraceSpanFlamegraphRequest): void {
   }, MODAL_INIT_DELAY_MS);
 }
 
-function backToSpans(): void {
-  mode.value = 'spans';
+/**
+ * The graph can be reached from the event timeline or from the event-type chooser, so its back
+ * button returns to whichever it was rather than dropping the reader all the way out to the bars.
+ */
+function goBack(): void {
+  mode.value = mode.value === 'flamegraph' ? flamegraphOrigin.value : 'spans';
 }
 
 function scrollToTop(): void {
@@ -346,29 +400,24 @@ watch(
   gap: 0.75rem;
 }
 
+/*
+ * The span panel sits under the waterfall rather than beside it: the bars are the widest thing in
+ * the dialog, and a side panel took its width from them -- the one dimension a waterfall cannot
+ * spare, since every bar is positioned against the trace's full duration.
+ */
 .trace-body {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-card);
   overflow: hidden;
 }
 
-.trace-body.with-drawer {
-  grid-template-columns: 1fr 20rem;
-}
-
 /* The waterfall scrolls on its own so a wide trace never scrolls the modal sideways. */
 .waterfall-pane {
   overflow-x: auto;
   min-width: 0;
-}
-
-@media (max-width: 900px) {
-  .trace-body.with-drawer {
-    grid-template-columns: 1fr;
-  }
 }
 
 .ts-fg-view {

@@ -36,7 +36,7 @@
       <EmptyState
         v-else-if="events.length === 0"
         title="No events"
-        message="No JFR events were recorded on this thread during the span window."
+        description="No JFR events were recorded on this thread during the span window."
         icon="bi-inboxes"
       />
 

@@ -667,8 +667,10 @@ const handleSecondaryProfileSelected = async (profile: Profile, projectId: strin
       projectId: projectId,
       name: profile.name,
       createdAt: profile.createdAt,
-      profilingStartedAt: new Date().toISOString(), // Default value
-      profilingFinishedAt: new Date().toISOString(), // Default value
+      // The list payload the baseline was picked from carries no recording bounds; nothing reads
+      // them off the stored baseline, so leave them absent rather than invent a value.
+      profilingStartedAt: null,
+      profilingFinishedAt: null,
       enabled: profile.enabled
     };
     SecondaryProfileService.update(profileInfo, profileId);

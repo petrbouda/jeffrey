@@ -18,7 +18,10 @@
 
 package cafe.jeffrey.jfr.events.trace;
 
+import cafe.jeffrey.jfr.events.grpc.GrpcServerExchangeEvent;
+import cafe.jeffrey.jfr.events.http.HttpClientExchangeEvent;
 import cafe.jeffrey.jfr.events.http.HttpServerExchangeEvent;
+import cafe.jeffrey.jfr.events.jdbc.statement.JdbcQueryEvent;
 import jdk.jfr.Recording;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
@@ -84,9 +87,9 @@ class TracerTest {
     class OwnEventAsSpan {
 
         @Test
-        @DisplayName("stamp copies the current span onto the event")
+        @DisplayName("stamp gives the event a span of its own, under the one in progress")
         void stampFillsTheEvent() {
-            HttpServerExchangeEvent event = new HttpServerExchangeEvent();
+            JdbcQueryEvent event = new JdbcQueryEvent("listSpans", "profile");
 
             SpanContext context = Tracer.inSpan(() -> {
                 Tracer.stamp(event);
@@ -94,8 +97,26 @@ class TracerTest {
             });
 
             assertEquals(context.traceId(), event.traceId);
-            assertEquals(context.spanId(), event.spanId);
-            assertEquals(context.parentSpanId(), event.parentSpanId);
+            assertNotEquals(0, event.spanId);
+            assertNotEquals(context.spanId(), event.spanId, "a span id has to identify exactly one span");
+            assertEquals(context.spanId(), event.parentSpanId);
+        }
+
+        @Test
+        @DisplayName("two events stamped with the same span still get an id each")
+        void stampedEventsDoNotShareAnId() {
+            JdbcQueryEvent first = new JdbcQueryEvent("listSpans", "profile");
+            JdbcQueryEvent second = new JdbcQueryEvent("countSpans", "profile");
+
+            Tracer.inSpan(() -> {
+                Tracer.stamp(first);
+                Tracer.stamp(second);
+                return null;
+            });
+
+            assertEquals(first.traceId, second.traceId);
+            assertEquals(first.parentSpanId, second.parentSpanId);
+            assertNotEquals(first.spanId, second.spanId);
         }
 
         @Test
@@ -141,10 +162,10 @@ class TracerTest {
         @Test
         @DisplayName("inSpan opens a binding even though it emits no trace span event of its own")
         void inSpanBindsWithoutEmitting() throws IOException {
-            HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
+            JdbcQueryEvent statement = new JdbcQueryEvent("listSpans", "profile");
 
             Map<String, RecordedEvent> spans = recordSpans(() -> Tracer.inSpan(() -> {
-                Tracer.stamp(exchange);
+                Tracer.stamp(statement);
                 Tracer.run("query", SpanKind.CLIENT, () -> {
                 });
                 return null;
@@ -152,9 +173,106 @@ class TracerTest {
 
             assertEquals(1, spans.size(), "inSpan must not emit a span event of its own");
             RecordedEvent query = spans.get("query");
-            assertEquals(exchange.traceId, query.getLong("traceId"));
-            assertEquals(exchange.spanId, query.getLong("parentSpanId"),
-                    "the enclosing exchange is the parent of the work it triggered");
+            assertEquals(statement.traceId, query.getLong("traceId"));
+            assertEquals(statement.parentSpanId, query.getLong("parentSpanId"),
+                    "both hang off the span inSpan opened - a stamped event is a leaf, not a scope");
+        }
+    }
+
+    @Nested
+    @DisplayName("The span shape an event describes for itself")
+    class SpanShape {
+
+        @Test
+        @DisplayName("an HTTP exchange is named by method and URI, and 4xx upwards is a failure")
+        void httpExchangeDescribesItself() {
+            HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
+            exchange.method = "GET";
+            exchange.uri = "/api/internal/profiles/{profileId}";
+            exchange.statusCode = 503;
+
+            exchange.commitSpan();
+
+            assertEquals("GET /api/internal/profiles/{profileId}", exchange.name);
+            assertEquals(SpanKind.SERVER.name(), exchange.kind);
+            assertEquals(SpanStatus.ERROR.name(), exchange.status);
+        }
+
+        @Test
+        @DisplayName("an HTTP exchange that answered leaves the status unset rather than claiming OK")
+        void successfulHttpExchangeIsUnset() {
+            HttpClientExchangeEvent exchange = new HttpClientExchangeEvent();
+            exchange.method = "POST";
+            exchange.uri = "/api/v1/upload";
+            exchange.statusCode = 201;
+
+            exchange.commitSpan();
+
+            assertEquals(SpanKind.CLIENT.name(), exchange.kind);
+            assertEquals(SpanStatus.UNSET.name(), exchange.status);
+        }
+
+        @Test
+        @DisplayName("a gRPC call is named by service and method, and anything but OK is a failure")
+        void grpcExchangeDescribesItself() {
+            GrpcServerExchangeEvent ok = new GrpcServerExchangeEvent();
+            ok.service = "jeffrey.api.v1.WorkspaceService";
+            ok.method = "List";
+            ok.statusCode = "OK";
+
+            GrpcServerExchangeEvent failed = new GrpcServerExchangeEvent();
+            failed.service = "jeffrey.api.v1.WorkspaceService";
+            failed.method = "List";
+            failed.statusCode = "UNAVAILABLE";
+
+            ok.commitSpan();
+            failed.commitSpan();
+
+            assertEquals("jeffrey.api.v1.WorkspaceService/List", ok.name);
+            assertEquals(SpanKind.SERVER.name(), ok.kind);
+            assertEquals(SpanStatus.OK.name(), ok.status);
+            assertEquals(SpanStatus.ERROR.name(), failed.status);
+        }
+
+        @Test
+        @DisplayName("a statement is a client span named after itself, failed by what it threw")
+        void statementDescribesItself() {
+            JdbcQueryEvent statement = new JdbcQueryEvent("listSpans", "profile");
+
+            assertEquals("listSpans", statement.name);
+            assertEquals(SpanKind.CLIENT.name(), statement.kind);
+            assertEquals(SpanStatus.UNSET.name(), statement.status);
+
+            statement.failed(new IllegalStateException("connection reset"));
+
+            assertEquals(SpanStatus.ERROR.name(), statement.status);
+            assertEquals(IllegalStateException.class.getName(), statement.errorType);
+        }
+
+        @Test
+        @DisplayName("committing through the base type still reaches the instrumented event")
+        void commitSpanReachesTheInstrumentedCommit() throws IOException {
+            HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
+
+            List<RecordedEvent> recorded = recordEvents(HttpServerExchangeEvent.NAME, () -> {
+                exchange.begin();
+                Tracer.inSpanOf(exchange, () -> null);
+                exchange.end();
+                exchange.method = "GET";
+                exchange.uri = "/api/internal/health";
+                exchange.statusCode = 200;
+                // Deliberately through the base type: JFR instruments the concrete subclass, and
+                // commitSpan() lives on the abstract one, so this is what proves the dispatch works.
+                AbstractTracedEvent asTracedEvent = exchange;
+                asTracedEvent.commitSpan();
+            });
+
+            assertEquals(1, recorded.size());
+            RecordedEvent event = recorded.getFirst();
+            assertEquals("GET /api/internal/health", event.getString("name"));
+            assertEquals(SpanKind.SERVER.name(), event.getString("kind"));
+            assertEquals(SpanStatus.UNSET.name(), event.getString("status"));
+            assertEquals(exchange.spanId, event.getLong("spanId"));
         }
     }
 
@@ -174,6 +292,19 @@ class TracerTest {
         @DisplayName("no span context is published")
         void noContextIsBound() {
             Tracer.run("noop", SpanKind.INTERNAL, () -> assertTrue(Tracer.current().isEmpty()));
+        }
+
+        @Test
+        @DisplayName("continueIn still binds, so work across a thread boundary stays in the trace")
+        void continueInBindsEvenWithNothingToEmit() {
+            SpanContext carried = SpanContext.root(new java.util.Random(42));
+
+            SpanContext bound = Tracer.continueIn(carried, "handle", SpanKind.INTERNAL,
+                    () -> Tracer.current().orElseThrow(
+                            () -> new AssertionError("continueIn was handed a context and must bind it")));
+
+            assertEquals(carried.traceId(), bound.traceId());
+            assertEquals(carried.spanId(), bound.parentSpanId());
         }
     }
 
@@ -300,18 +431,23 @@ class TracerTest {
      * test spans — which do no work — are emitted whatever the enclosing JFR settings say.
      */
     private static Map<String, RecordedEvent> recordSpans(Runnable body) throws IOException {
+        return recordEvents(TraceSpanEvent.NAME, body).stream()
+                .collect(Collectors.toMap(event -> event.getString("name"), Function.identity()));
+    }
+
+    /** The same, for an event type that is a span without being a {@link TraceSpanEvent}. */
+    private static List<RecordedEvent> recordEvents(String eventType, Runnable body) throws IOException {
         Path dump = Files.createTempFile("tracer-test", ".jfr");
         try (Recording recording = new Recording()) {
-            recording.enable(TraceSpanEvent.NAME).withThreshold(Duration.ZERO);
+            recording.enable(eventType).withThreshold(Duration.ZERO);
             recording.start();
             body.run();
             recording.stop();
             recording.dump(dump);
 
-            List<RecordedEvent> events = RecordingFile.readAllEvents(dump);
-            return events.stream()
-                    .filter(event -> event.getEventType().getName().equals(TraceSpanEvent.NAME))
-                    .collect(Collectors.toMap(event -> event.getString("name"), Function.identity()));
+            return RecordingFile.readAllEvents(dump).stream()
+                    .filter(event -> event.getEventType().getName().equals(eventType))
+                    .toList();
         } finally {
             Files.deleteIfExists(dump);
         }

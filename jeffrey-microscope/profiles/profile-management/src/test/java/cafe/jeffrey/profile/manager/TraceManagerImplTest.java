@@ -20,10 +20,12 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
+import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
+import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -38,6 +40,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,6 +49,8 @@ class TraceManagerImplTest {
     private static final long TRACE = 7L;
     private static final long OTHER_TRACE = 8L;
     private static final long MS = 1_000_000L;
+    private static final long US = 1_000L;
+    private static final long MICROS_PER_MILLI = 1_000L;
     private static final long THREAD = 900L;
     private static final long OTHER_THREAD = 901L;
 
@@ -63,21 +68,43 @@ class TraceManagerImplTest {
 
     private static TraceSpanRecord spanOnThread(long spanId, Long parentSpanId, String name,
             long startMillis, long durationMs, long threadHash) {
+        return microSpan(TRACE, spanId, parentSpanId, name,
+                startMillis * MICROS_PER_MILLI, durationMs * MS, threadHash);
+    }
+
+    /**
+     * A span given directly in the units the manager works in, for the cases whole milliseconds
+     * cannot express: spans shorter than a millisecond, and spans a fraction of one apart.
+     *
+     * @param startMicros   start as absolute epoch micros
+     * @param durationMicros duration in microseconds, converted to the nanos the record stores
+     */
+    private static TraceSpanRecord spanMicros(long spanId, Long parentSpanId, String name,
+            long startMicros, long durationMicros) {
+        return microSpan(TRACE, spanId, parentSpanId, name, startMicros, durationMicros * US, THREAD);
+    }
+
+    private static TraceSpanRecord microSpan(long traceId, long spanId, Long parentSpanId, String name,
+            long startMicros, long durationNanos, long threadHash) {
         return new TraceSpanRecord(
-                TRACE, spanId, parentSpanId, name, "INTERNAL", "UNSET", null, "{}",
-                startMillis, startMillis, durationMs * MS, threadHash, "worker", "jeffrey.TraceSpan");
+                traceId, spanId, parentSpanId, name, "INTERNAL", "UNSET", null,
+                startMicros / MICROS_PER_MILLI, startMicros, durationNanos, threadHash, "worker",
+                false, "jeffrey.TraceSpan", null, null);
     }
 
     /** Like {@link #span}, but for a caller building spans from more than one trace. */
     private static TraceSpanRecord spanOnTrace(long traceId, long spanId, Long parentSpanId, String name,
             long startMillis, long durationMs) {
-        return new TraceSpanRecord(
-                traceId, spanId, parentSpanId, name, "INTERNAL", "UNSET", null, "{}",
-                startMillis, startMillis, durationMs * MS, THREAD, "worker", "jeffrey.TraceSpan");
+        return microSpan(traceId, spanId, parentSpanId, name,
+                startMillis * MICROS_PER_MILLI, durationMs * MS, THREAD);
     }
 
     private TraceManagerImpl managerOf(List<TraceSpanRecord> spans) {
         when(traceRepository.spansOf(TRACE)).thenReturn(spans);
+        // The header comes from the traces table rather than being recomputed from these spans, so a
+        // manager test has to supply it. Its values do not matter to the tree assembly under test.
+        lenient().when(traceRepository.summaryOf(TRACE)).thenReturn(Optional.of(new TraceSummaryRecord(
+                TRACE, "root", "INTERNAL", "jeffrey.TraceSpan", 0, 0, 0, spans.size(), 0, true)));
         return new TraceManagerImpl(traceRepository);
     }
 
@@ -208,6 +235,53 @@ class TraceManagerImplTest {
 
             assertEquals(100 * MS, spans.getFirst().selfDurationNanos());
         }
+
+        @Test
+        @DisplayName("a child shorter than a millisecond still costs its parent that time")
+        void subtractsSubMillisecondChildren() {
+            // Rounding each child's window to whole milliseconds made every sub-millisecond call
+            // cost nothing, handing the parent back time its children had spent. A handful of short
+            // queries under one request is the ordinary case, not a corner one.
+            List<TraceSpanRow> spans = spansOf(List.of(
+                    spanMicros(1, null, "root", 0, 4_000),
+                    spanMicros(2, 1L, "a", 500, 600),
+                    spanMicros(3, 1L, "b", 2_000, 400)));
+
+            assertEquals(3_000 * US, spans.getFirst().selfDurationNanos());
+        }
+
+        @Test
+        @DisplayName("a child outliving its parent costs it only the stretch the two shared")
+        void clipsChildrenToTheParentWindow() {
+            List<TraceSpanRow> spans = spansOf(List.of(
+                    spanMicros(1, null, "root", 0, 1_000),
+                    spanMicros(2, 1L, "overruns", 600, 900)));
+
+            assertEquals(600 * US, spans.getFirst().selfDurationNanos(),
+                    "the child covered 600..1000, not 600..1500, so 600us stayed the parent's own");
+        }
+    }
+
+    @Nested
+    @DisplayName("Span placement")
+    class SpanPlacement {
+
+        @Test
+        @DisplayName("spans a fraction of a millisecond apart keep distinct starts")
+        void keepsSubMillisecondStartsApart() {
+            // These two children floor to the same millisecond. Handing the waterfall that floor is
+            // what drew two sequential calls on one thread as overlapping bars.
+            List<TraceSpanRow> spans = spansOf(List.of(
+                    spanMicros(1, null, "root", 0, 2_000),
+                    spanMicros(2, 1L, "first", 1_030, 310),
+                    spanMicros(3, 1L, "second", 1_950, 40)));
+
+            assertEquals(List.of(0L, 1_030L, 1_950L),
+                    spans.stream().map(TraceSpanRow::startEpochMicros).toList());
+        }
+
+        // The trace header is no longer rebuilt from these spans — it is the stored `traces` row —
+        // so the duration's precision is pinned in JdbcTraceRepositoryTest against real DuckDB.
     }
 
     @Nested
@@ -370,58 +444,6 @@ class TraceManagerImplTest {
         assertEquals(Optional.empty(), new TraceManagerImpl(traceRepository).trace(TRACE));
     }
 
-    @Nested
-    @DisplayName("Operation intervals")
-    class OperationIntervals {
-
-        private static final String OPERATION = "POST /orders";
-
-        @Test
-        @DisplayName("one interval per thread, spanning that thread's work in the trace")
-        void groupsByThread() {
-            when(traceRepository.spansOfOperation(OPERATION)).thenReturn(List.of(
-                    span(1, null, "root", 0, 100),
-                    span(2, 1L, "child", 10, 20),
-                    spanOnThread(3, 1L, "async", 60, 20, OTHER_THREAD)));
-
-            List<SpanInterval> intervals = new TraceManagerImpl(traceRepository)
-                    .operationIntervals(OPERATION);
-
-            assertEquals(2, intervals.size(), "the two threads the trace touched");
-            SpanInterval main = intervals.stream()
-                    .filter(interval -> interval.threadHash() == THREAD).findFirst().orElseThrow();
-            assertEquals(0, main.fromEpochMillis());
-            assertEquals(100, main.toEpochMillis(), "the root's window covers its same-thread child");
-
-            SpanInterval other = intervals.stream()
-                    .filter(interval -> interval.threadHash() == OTHER_THREAD).findFirst().orElseThrow();
-            assertEquals(60, other.fromEpochMillis());
-            assertEquals(80, other.toEpochMillis());
-        }
-
-        @Test
-        @DisplayName("two traces of the same operation on the same thread stay separate intervals")
-        void doesNotMergeAcrossTraces() {
-            // Keying only by threadHash would merge these into one window spanning the idle gap
-            // between the traces (100..200), pulling unrelated samples into the flamegraph.
-            when(traceRepository.spansOfOperation(OPERATION)).thenReturn(List.of(
-                    spanOnTrace(TRACE, 1, null, "root", 0, 100),
-                    spanOnTrace(OTHER_TRACE, 1, null, "root", 200, 100)));
-
-            List<SpanInterval> intervals = new TraceManagerImpl(traceRepository)
-                    .operationIntervals(OPERATION);
-
-            assertEquals(2, intervals.size(), "one interval per trace, not merged across the gap");
-            assertTrue(intervals.contains(new SpanInterval(THREAD, 0, 100)));
-            assertTrue(intervals.contains(new SpanInterval(THREAD, 200, 300)));
-        }
-
-        @Test
-        @DisplayName("an operation with no spans yields no intervals rather than a null window")
-        void handlesAnUnknownOperation() {
-            when(traceRepository.spansOfOperation("nope")).thenReturn(List.of());
-
-            assertTrue(new TraceManagerImpl(traceRepository).operationIntervals("nope").isEmpty());
-        }
-    }
+    // Operation intervals are reduced in SQL now, not here, so what used to be asserted against a
+    // mocked span list is asserted against real DuckDB in JdbcTraceRepositoryTest.OperationIntervals.
 }

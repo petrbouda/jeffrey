@@ -32,7 +32,7 @@
       <EmptyState
         v-else-if="!slowestData || slowestData.slowestTraces.length === 0"
         title="No Slow Traces"
-        message="No slow method traces were recorded in this profile."
+        description="No slow method traces were recorded in this profile."
         icon="bi-hourglass-split"
       />
 
@@ -203,9 +203,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.dashboard-container {
-  padding: 0;
-}
 
 .method-cell {
   line-height: 1.4;

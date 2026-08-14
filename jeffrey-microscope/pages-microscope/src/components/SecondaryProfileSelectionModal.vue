@@ -124,7 +124,7 @@
                   </span>
                 </div>
                 <div class="profile-card-meta">
-                  <span>{{ FormattingService.formatDate(profile.createdAt) }}</span>
+                  <span>{{ FormattingService.formatDateFromMillis(profile.createdAt) }}</span>
                   <span class="meta-separator"></span>
                   <span>{{
                     FormattingService.formatDurationInMillis2Units(profile.durationInMillis)
@@ -276,7 +276,7 @@ const sortedGroups = computed<RecordingGroup[]>(() => {
     let max = 0;
     for (const p of allProfiles.value) {
       if (p.groupId === groupId) {
-        const t = Number(p.createdAt) || 0;
+        const t = p.createdAt ?? 0;
         if (t > max) {
           max = t;
         }

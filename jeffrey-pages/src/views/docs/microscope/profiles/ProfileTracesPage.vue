@@ -62,6 +62,14 @@ Tracer.run("order.checkout", SpanKind.SERVER, () -> {
 // Value-returning form; the body may throw a checked exception.
 Order order = Tracer.call("order.load", SpanKind.INTERNAL, () -> repository.load(id));`;
 
+const virtualThreadExample = `POST /api/internal/recordings/…   tomcat-handler-53  virtual   4173ms    0 samples
+  profile.initialize              tomcat-handler-53  virtual   4102ms    0
+    recording.parse               tomcat-handler-53  virtual   2797ms    0
+      chunk.parse                 bulk-parallel      platform  2730ms  153
+      chunk.parse                 bulk-parallel      platform  2571ms  140
+    profile.data-init             tomcat-handler-53  virtual    933ms    0
+      guardian.results            parallel           platform   932ms   63`;
+
 const fanOutExample = `// ScopedValue does not propagate through a plain executor, so the parent
 // context is captured before the fork and re-established inside the task.
 SpanContext parent = Tracer.current().orElse(null);
@@ -71,15 +79,17 @@ executor.submit(() -> Tracer.continueIn(parent, "chunk.parse", SpanKind.INTERNAL
     return null;
 }));`;
 
-const stampExample = `HttpServerExchangeEvent event = new HttpServerExchangeEvent();
+const stampExample = `JdbcQueryEvent event = new JdbcQueryEvent("listSpans", "profile");
 if (event.isEnabled()) {
-    // Copies traceId / spanId / parentSpanId from the span in progress.
+    // Gives the statement a span of its own, under the span in progress.
     Tracer.stamp(event);
-    event.method = request.getMethod();
-    event.uri = request.getRequestURI();
     event.begin();
-    // ... handle the request ...
-    event.commit();
+    // ... run the statement ...
+    event.end();
+    event.sql = sql;
+    event.rows = rows;
+    // Derives the span shape from the event's own fields, then commits.
+    event.commitSpan();
 }`;
 </script>
 
@@ -158,22 +168,22 @@ if (event.isEnabled()) {
 
       <DocsCodeBlock :code="fanOutExample" language="java" />
 
-      <h2 id="auto-instrumented">Events That Already Carry Trace Identity</h2>
+      <h2 id="auto-instrumented">Every Instrumented Event Is a Span</h2>
 
-      <p>The HTTP, gRPC and JDBC events in <code>jeffrey-events</code> extend a shared base that carries <code>traceId</code>, <code>spanId</code> and <code>parentSpanId</code>. They become spans as soon as those fields are populated — call <code>Tracer.stamp</code> before <code>begin()</code>, or wrap the emission in <code>Tracer.inSpanOf</code>, which stamps and nests in one step:</p>
+      <p>The HTTP, gRPC and JDBC events in <code>jeffrey-events</code> extend <code>AbstractTracedEvent</code>, which carries the whole span shape — <code>traceId</code>, <code>spanId</code>, <code>parentSpanId</code>, plus the <code>name</code>, <code>kind</code>, <code>status</code>, <code>errorType</code> and <code>attributes</code> a <code>jeffrey.TraceSpan</code> carries. An event that has them <em>is</em> a span; there is nothing for Jeffrey to work out from the event type.</p>
+
+      <p>Two calls populate them. <code>Tracer.stamp</code> gives the event a span of its own nested inside the span in progress — the form for a leaf, like a statement. <code>Tracer.inSpanOf</code> makes the event <em>be</em> the span it opens, so anything traced underneath nests inside it — the form for an entry point, like an inbound request. Committing through <code>commitSpan()</code> lets the event derive its own name and status first:</p>
 
       <DocsCodeBlock :code="stampExample" language="java" />
 
-      <p>The derivation treats these event types as spans alongside <code>jeffrey.TraceSpan</code>:</p>
-
-      <ul>
-        <li><code>jeffrey.HttpServerExchange</code>, <code>jeffrey.HttpClientExchange</code></li>
-        <li><code>jeffrey.GrpcServerExchange</code>, <code>jeffrey.GrpcClientExchange</code></li>
-        <li><code>jeffrey.JdbcQuery</code>, <code>jeffrey.JdbcInsert</code>, <code>jeffrey.JdbcUpdate</code>, <code>jeffrey.JdbcDelete</code>, <code>jeffrey.JdbcExecute</code>, <code>jeffrey.JdbcStream</code></li>
-      </ul>
+      <p>Each event type answers for its own span shape once, in its own class: an HTTP exchange names itself by method and matched URI template and fails from 400 upwards, a gRPC call names itself by service and method and fails on anything but <code>OK</code>, a statement takes its label and fails on what it threw.</p>
 
       <DocsCallout type="tip">
-        Stamping the ids costs three zero-defaulted longs on an event you were already emitting — a varint-encoded zero is close to free, so events from an untraced code path are no larger than before. An older recording whose HTTP events carry no ids simply produces no traces; the section stays hidden rather than showing empty roots.
+        The derivation names no event type at all. It treats an event as a span when the recording's own metadata says it declares a <code>spanId</code> field, so instrumentation written outside Jeffrey takes part in traces with no change to Jeffrey — extend <code>AbstractTracedEvent</code> and stamp.
+      </DocsCallout>
+
+      <DocsCallout type="tip">
+        The identity costs three zero-defaulted longs on an event you were already emitting — a varint-encoded zero is close to free, so events from an untraced code path are barely larger than before. An older recording whose events carry no ids simply produces no traces; the section stays hidden rather than showing empty roots.
       </DocsCallout>
 
       <h2 id="trace-list">Trace List</h2>
@@ -188,7 +198,7 @@ if (event.isEnabled()) {
 
       <h2 id="span-drill-down">Span Drill-Down</h2>
 
-      <p>Selecting a span opens a drawer with three tabs:</p>
+      <p>Selecting a span expands its detail inline, underneath the row, rather than in a drawer beside it — the waterfall stays visible, so the span keeps the context of the tree it sits in. The detail shows:</p>
 
       <ul>
         <li><strong>Attributes</strong> — the span's identity, timing, thread, status and error type, plus any JSON attributes the instrumentation attached.</li>
@@ -204,9 +214,19 @@ if (event.isEnabled()) {
         <strong>How a sample is attributed to a span.</strong> Nothing stamps a span id onto a sample. A span is a <code>(thread, window)</code> pair, and the flamegraph is every sample whose thread matches and whose timestamp falls inside — the same mechanism the async-profiler Spans feature uses, on the same clock, because <code>jfrsync</code> writes both the JVM's events and the profiler's samples into one recording. Two consequences worth knowing: the window's edges are millisecond-floored, and a span shorter than the sampling interval may enclose no sample at all.
       </DocsCallout>
 
+      <h3 id="virtual-threads">Spans on virtual threads have no flamegraph</h3>
+
+      <p>The third consequence deserves its own heading, because it decides whether the Flamegraph tab appears at all. Here is one real trace — a recording upload, then the parse it triggers — with the thread each span ran on and the samples that matched it:</p>
+
+      <DocsCodeBlock :code="virtualThreadExample" language="text" />
+
+      <p>The request's own spans record 4.1&nbsp;s of real work and match <strong>zero</strong> samples. Its forked children match immediately, from the same recording, in the same window. Nothing is missing: the difference is attribution. Async-profiler's CPU engine — <code>event=ctimer</code>, Jeffrey's default — names the <strong>carrier</strong> thread a virtual thread is mounted on, never the virtual thread itself, so a span on one can never match. Measured on that recording: with <code>event=ctimer</code>, 0 of 2,646 samples land on a virtual thread; drop it and the JVM's own sampler puts 487 of 992 on <code>tomcat-handler-1</code>.</p>
+
+      <p>So a flamegraph appears exactly where the work left the request thread. On a span or an operation that stayed on a virtual thread Jeffrey keeps the tab and explains the emptiness there, with this same worked example — an unexplained empty graph reads as a bug, and this is not one. Two ways to get flamegraphs for request-thread work: fork the work you care about onto a pool thread with <router-link to="#instrumenting">continueIn</router-link>, which is what <code>chunk.parse</code> above does, or drop <code>event=</code> from the <router-link to="/docs/microscope/profiler-settings">agent settings</router-link> and let the JVM sample CPU itself — at the cost of async-profiler's better engine. Allocation and wall-clock samples are attributed to the carrier either way.</p>
+
       <h2 id="operations">Trace Operations</h2>
 
-      <p>The trace list answers "which run was slow". Trace Operations answers "which <em>kind</em> of run is slow, across every time it ran": one card per <strong>trace type</strong> — every trace in the profile rooted at the same operation name, grouped from the <code>traces</code> table and keyed by the root span's name. Each card leads with the call count, then Total / P50 / P95 / Max badges, and — on the right — the root kind and an error-count badge when the type has failures. Sort by total, P95, max, call count or errors.</p>
+      <p>The trace list answers "which run was slow". Trace Operations answers "which <em>kind</em> of run is slow, across every time it ran": one card per <strong>trace type</strong>, grouped from the <code>traces</code> table. A trace type is keyed by all three of the root span's name, its kind and the event type that opened it — not by the name alone: an inbound <code>GET /orders</code> and an outbound call to the same path are named identically by the same convention, and they are not the same operation. Each card leads with the call count, then Spans / Total / P50 / P95 / Max badges; the name row carries the event type and the kind, and an error-count badge sits on the right when the type has failures. Sort by total, P95, max, call count or errors.</p>
 
       <DocsCallout type="info">
         <strong>Where did the nested spans go?</strong> This list used to be every span name in the profile — including names, like <code>chunk.parse</code> or <code>dominator</code>, that only ever occur nested inside another span and are never a trace root. Grouping by root name instead of span name dropped one reference profile's list from 105 rows to 36. A nested span is not lost: open the trace it belongs to and find it in the <a href="#waterfall">waterfall</a>, alongside every other span in that trace's tree.
@@ -214,15 +234,16 @@ if (event.isEnabled()) {
 
       <p>The two tiles above the list are not scoped alike. <strong>Operations</strong> — the operation count, plus total traces and errors underneath — reads a SQL aggregate over the whole profile, uncapped. <strong>Slowest Operation</strong> is mixed: its <em>Total</em> sub-value is the same profile-wide aggregate, but the headline duration and the <em>Worst P95</em> beside it are the highest max and P95 found among the operation rows the page actually fetched (capped at 100) — there is no profile-wide aggregate that can answer "what is the slowest single operation", only one that sums or maxes across all spans at once. On a profile with more than 100 trace types, that headline can undercount.</p>
 
-      <p>Clicking a card opens a drill-down for that operation, with the selection kept in the URL as <code>?operation=</code> so it can be linked to directly. It has three tabs, matching the layout of the async-profiler Spans drill-down:</p>
+      <p>Clicking a card opens a drill-down for that operation. The selection is kept in the URL — <code>?operation=</code> with <code>&amp;kind=</code> and <code>&amp;eventType=</code> alongside it, since all three identify the type — so it can be linked to directly. It has four tabs:</p>
 
       <ul>
-        <li><strong>Flamegraphs</strong> — every execution, wall-clock and allocation sample taken while a trace of this type was running, covering exactly the windows those traces ran in and no more.</li>
+        <li><strong>Summary</strong> — the tab it opens on. Call count, latency percentiles, total time and the share of all trace time it accounts for, read from the same profile-wide aggregate the card above shows, so the two never disagree. Underneath: a latency histogram, the platform/virtual thread split, where the operation's time goes span by span, and its slowest runs. The histogram, the thread split and the concurrency figure are drawn from the fetched traces, which are capped — the card says so when they are.</li>
+        <li><strong>Flamegraphs</strong> — every execution, wall-clock and allocation sample taken while a trace of this type was running, covering exactly the windows those traces ran in and no more. The scope is every span of every trace of the type, nested ones included. When all of them ran on virtual threads the tab stays and explains why it is empty, rather than vanishing — see <a href="#virtual-threads">Spans on virtual threads</a>.</li>
         <li><strong>Metrics Timeline</strong> — the slowest trace of this type and the trace count, bucketed over time.</li>
         <li><strong>Slowest Traces</strong> — the same unfiltered ranked list as the <a href="#trace-list">Trace List</a> above, scoped to this operation's traces; opening a row shows that trace's waterfall. Like that list, it displays the 50 longest at a time. What the larger, 1,000-trace fetch behind it buys is not more rows on screen: it feeds the "Showing 50 of&nbsp;…" count, scales the duration bars against the true slowest of the type rather than just the 50 shown, and is the pool the cap note is counting against once a type reaches it.</li>
       </ul>
 
-      <p>A stale or hand-edited <code>?operation=</code> value that names no trace root in this profile shows an empty state rather than a blank drill-down.</p>
+      <p>A stale or hand-edited operation in the URL is not rejected — the drill-down opens and its own panels come back empty. The list above is capped, so a link into an operation past the cap is a valid link, and refusing it would have broken more than it caught.</p>
 
       <h2 id="volume-control">Controlling Span Volume</h2>
 

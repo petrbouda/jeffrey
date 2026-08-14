@@ -63,6 +63,8 @@ public interface ProfileManager {
 
     FlagsManager flagsManager();
 
+    SamplerHealthManager samplerHealthManager();
+
     ThreadManager threadManager();
 
     JITCompilationManager jitCompilationManager();

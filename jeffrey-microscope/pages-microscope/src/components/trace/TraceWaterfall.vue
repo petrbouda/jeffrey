@@ -27,34 +27,54 @@
       <span class="wf-duration">Duration</span>
     </div>
 
-    <button
-      v-for="span in spans"
-      :key="span.spanId"
-      type="button"
-      class="wf-row"
-      :class="{ selected: span.spanId === selectedSpanId }"
-      @click="$emit('select', span)"
-    >
-      <span class="wf-name">
-        <span class="wf-indent" :style="{ width: indentRem(span.depth) + 'rem' }"></span>
-        <span class="wf-kind" :class="kindClass(span)"></span>
-        <span class="wf-label" :title="span.name">{{ span.name }}</span>
-        <Badge v-if="span.status === 'ERROR'" variant="danger" size="xs" value="error" />
-      </span>
-
-      <span class="wf-track">
-        <span
-          class="wf-bar"
-          :class="barClass(span)"
-          :style="barStyle(span)"
-          :title="tooltip(span)"
-        >
-          <span class="wf-self" :style="{ width: bar(span).selfPercent + '%' }"></span>
+    <template v-for="span in spans" :key="span.spanId">
+      <button
+        type="button"
+        class="wf-row"
+        :class="{ selected: span.spanId === selectedSpanId }"
+        :aria-expanded="span.spanId === selectedSpanId"
+        @click="$emit('select', span)"
+      >
+        <span class="wf-name">
+          <span class="wf-indent" :style="{ width: indentRem(span.depth) + 'rem' }"></span>
+          <span class="wf-kind" :class="kindClass(span)"></span>
+          <span class="wf-label" :title="span.name">{{ span.name }}</span>
+          <Badge v-if="span.status === 'ERROR'" variant="danger" size="xs" value="error" />
         </span>
-      </span>
 
-      <span class="wf-duration">{{ FormattingService.formatDuration2Units(span.durationNanos) }}</span>
-    </button>
+        <span class="wf-track">
+          <span
+            class="wf-bar"
+            :class="barClass(span)"
+            :style="barStyle(span)"
+            :title="tooltip(span)"
+          >
+            <span
+              v-for="(segment, index) in bar(span).selfSegments"
+              :key="index"
+              class="wf-self"
+              :style="{ left: segment.leftPercent + '%', width: segment.widthPercent + '%' }"
+            ></span>
+          </span>
+        </span>
+
+        <span class="wf-duration">{{ FormattingService.formatDuration2Units(span.durationNanos) }}</span>
+      </button>
+
+      <!--
+        The detail belongs to the row above it, so it is drawn as the next row rather than in a panel
+        under the waterfall: on a trace of twenty-odd spans, a panel at the bottom scrolls the bar
+        that was clicked out of view, which is the one thing the reader is comparing against.
+      -->
+      <TraceSpanInlineDetail
+        v-if="span.spanId === selectedSpanId"
+        :span="span"
+        :fields="eventFields[span.eventType] ?? []"
+        :child-count="childCounts.get(span.spanId) ?? 0"
+        @view-events="$emit('viewEvents')"
+        @view-flamegraph="$emit('viewFlamegraph')"
+      />
+    </template>
 
     <div class="wf-legend">
       <span><i class="swatch swatch-self"></i> self time</span>
@@ -67,29 +87,55 @@
 </template>
 
 <script setup lang="ts">
+import { NANOS_PER_MICRO } from '@/services/trace/timeUnits';
 import { computed } from 'vue';
 import Badge from '@shared/components/Badge.vue';
 import FormattingService from '@shared/services/FormattingService';
-import type { TraceSpanRow } from '@/services/api/model/trace/TraceModels';
-import { indentRem, spanBar, traceWindow } from '@/services/trace/TraceWaterfallLayout';
+import TraceSpanInlineDetail from '@/components/trace/TraceSpanInlineDetail.vue';
+import type { EventFieldRow, TraceSpanRow } from '@/services/api/model/trace/TraceModels';
+import type { SpanBar } from '@/services/trace/TraceWaterfallLayout';
+import { indentRem, traceWindow, waterfallBars } from '@/services/trace/TraceWaterfallLayout';
 
 const props = defineProps<{
   spans: TraceSpanRow[];
   selectedSpanId?: string | null;
+  /** Field metadata per event type, so an opened span can label and format what its event recorded. */
+  eventFields: Record<string, EventFieldRow[]>;
 }>();
 
-defineEmits<{ (event: 'select', span: TraceSpanRow): void }>();
+defineEmits<{
+  (event: 'select', span: TraceSpanRow): void;
+  (event: 'viewEvents'): void;
+  (event: 'viewFlamegraph'): void;
+}>();
 
-const NANOS_PER_MILLI = 1_000_000;
 
-const window = computed(() => traceWindow(props.spans));
+/** A span with no geometry cannot happen for a span that is being drawn, but must not throw. */
+const EMPTY_BAR: SpanBar = { leftPercent: 0, widthPercent: 0, selfSegments: [] };
 
-const windowNanos = computed(
-  () => (window.value.endMillis - window.value.startMillis) * NANOS_PER_MILLI
-);
+const windowNanos = computed(() => {
+  const window = traceWindow(props.spans);
+  return (window.endMicros - window.startMicros) * NANOS_PER_MICRO;
+});
 
-function bar(span: TraceSpanRow) {
-  return spanBar(span, window.value);
+// Every bar at once: a bar's solid stretches depend on the span's children, so laying them out
+// row by row would rescan the whole trace per row.
+const bars = computed(() => waterfallBars(props.spans));
+
+// Counted here rather than in the panel, which only ever sees one span: the tree's shape lives in
+// this flat list, and counting it once beats scanning every row each time one is opened.
+const childCounts = computed(() => {
+  const counts = new Map<string, number>();
+  for (const span of props.spans) {
+    if (span.parentSpanId !== null) {
+      counts.set(span.parentSpanId, (counts.get(span.parentSpanId) ?? 0) + 1);
+    }
+  }
+  return counts;
+});
+
+function bar(span: TraceSpanRow): SpanBar {
+  return bars.value.get(span.spanId) ?? EMPTY_BAR;
 }
 
 function barStyle(span: TraceSpanRow) {
@@ -237,13 +283,14 @@ function tooltip(span: TraceSpanRow): string {
 }
 
 /*
- * The pale body is the whole span; the solid head is its own work. Reading the two together
- * answers "where did this span's time go" without opening it.
+ * The pale body is the whole span; the solid stretches are the span's own work, drawn where it
+ * actually happened rather than gathered into a block at the front. The gaps between them are its
+ * children, so the row reads as an alternation instead of as two things running at once.
  */
 .wf-self {
-  display: block;
+  position: absolute;
+  top: 0;
   height: 100%;
-  border-radius: var(--radius-xs) 0 0 var(--radius-xs);
 }
 
 .bar-server {

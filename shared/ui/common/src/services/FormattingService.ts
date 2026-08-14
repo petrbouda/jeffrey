@@ -244,13 +244,26 @@ export default class FormattingService {
     });
   }
 
-  static formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  /**
+   * Formats an epoch-millis timestamp as a short local date with the time of day,
+   * e.g. "Jan 5, 02:32 PM" — the form used on cards and detail rows.
+   */
+  static formatDateFromMillis(millis: number): string {
+    return new Date(millis).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
+  }
+
+  /**
+   * Same output as {@link formatDateFromMillis}, for the few endpoints that still send a date
+   * string instead of epoch millis (projects, settings). Prefer the millis variant — parsing here
+   * keeps the remaining string payloads from growing their own parse call at each site.
+   */
+  static formatDate(dateString: string): string {
+    return FormattingService.formatDateFromMillis(Date.parse(dateString));
   }
 
   static formatDateTime(date: Date): string {

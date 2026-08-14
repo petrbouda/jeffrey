@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
-import cafe.jeffrey.provider.profile.api.SpanEventRecord;
+import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
 import cafe.jeffrey.provider.profile.api.SpanRecord;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
@@ -85,7 +85,7 @@ class JdbcSpanRepositoryTest {
         long to = Instant.parse("2026-01-01T00:00:05.000Z").toEpochMilli();
 
         // thread_hash 3001 = the 'worker' platform thread.
-        List<SpanEventRecord> events = repository.eventsForThread(3001, from, to);
+        List<ThreadWindowEventRecord> events = repository.eventsForThread(3001, from, to);
 
         // 2 samples + 1 monitor; excludes the span, the out-of-window sample, the other thread,
         // and the virtual thread.
@@ -107,7 +107,7 @@ class JdbcSpanRepositoryTest {
 
         // thread_hash 3003 = the 'vt-worker' VIRTUAL thread (os_id NULL). Matching by thread_hash
         // resolves it; an os_id-based query never could. This is the regression guard for the fix.
-        List<SpanEventRecord> events = repository.eventsForThread(3003, from, to);
+        List<ThreadWindowEventRecord> events = repository.eventsForThread(3003, from, to);
 
         assertEquals(1, events.size());
         assertEquals("jdk.ExecutionSample", events.get(0).eventType());

@@ -16,14 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/** All timestamps are epoch millis. */
 export default class ProfileInfo {
   constructor(
     public id: string,
     public name: string,
     public projectId: string,
-    public createdAt: string,
-    public profilingStartedAt: string,
-    public profilingFinishedAt: string,
+    public createdAt: number,
+    public profilingStartedAt: number | null,
+    public profilingFinishedAt: number | null,
     public enabled: boolean
   ) {}
 }

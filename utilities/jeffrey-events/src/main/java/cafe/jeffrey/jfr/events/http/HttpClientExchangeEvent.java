@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.jfr.events.http;
 
+import cafe.jeffrey.jfr.events.trace.SpanKind;
 import jdk.jfr.Description;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
@@ -28,4 +29,8 @@ import jdk.jfr.Name;
 public class HttpClientExchangeEvent extends AbstractHttpExchangeEvent {
 
     public static final String NAME = "jeffrey.HttpClientExchange";
+
+    public HttpClientExchangeEvent() {
+        super(SpanKind.CLIENT);
+    }
 }

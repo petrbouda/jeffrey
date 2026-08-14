@@ -32,7 +32,7 @@
       <EmptyState
         v-else-if="!overviewData || overviewData.header.totalInvocations === 0"
         title="No Method Tracing Data"
-        message="No method tracing events were recorded in this profile."
+        description="No method tracing events were recorded in this profile."
         icon="bi-speedometer2"
       />
 
@@ -164,8 +164,3 @@ function getShortMethodName(className: string, methodName: string): string {
 }
 </script>
 
-<style scoped>
-.dashboard-container {
-  padding: 0;
-}
-</style>

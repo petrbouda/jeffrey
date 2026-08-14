@@ -45,6 +45,12 @@ export function useFlamegraphPanels(
   async function loadPanels() {
     const profileId = route.params.profileId as string;
 
+    // Back to loading on every call, not just the first. A reload — switching a flamegraph's scope,
+    // say — otherwise left the previous scope's panels on screen, with their counts, looking like a
+    // settled answer for the scope the user had just moved to.
+    loaded.value = false;
+    error.value = null;
+
     try {
       let data: FlamegraphPanel[];
 

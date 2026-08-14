@@ -92,18 +92,24 @@ onMounted(() => {
             <div class="event-icon"><i class="bi bi-bezier2"></i></div>
             <div class="event-content">
               <h4>Trace Spans</h4>
-              <p>Hand-written spans opened through the <code>Tracer</code> API — a name, a kind, a status and optional JSON attributes, nested automatically through <code>ScopedValue</code>. Emitted as <code>jeffrey.TraceSpan</code> and assembled by Jeffrey into a trace tree.</p>
+              <p>Hand-written spans opened through the <code>Tracer</code> API — a name, a kind, a status and optional JSON attributes, nested automatically through <code>ScopedValue</code>. Emitted as <code>jeffrey.TraceSpan</code> and assembled by Jeffrey into a trace tree. The event declares no fields of its own: they all live on the traced base below, which is what makes an instrumented event a span too.</p>
             </div>
           </div>
         </div>
 
-        <h2 id="trace-context">Trace Context</h2>
-        <p>The HTTP, gRPC and database events above extend a shared base that carries three trace-identity fields — <code>traceId</code>, <code>spanId</code> and <code>parentSpanId</code>, all 64-bit longs where <code>0</code> means absent. The library never populates them itself; the instrumentation does, either with <code>Tracer.stamp(event)</code> before <code>begin()</code> or by wrapping the emission in <code>Tracer.inSpanOf(...)</code>.</p>
+        <h2 id="trace-context">The Span Shape</h2>
+        <p>The HTTP, gRPC and database events above extend <code>AbstractTracedEvent</code>, which carries the whole shape of a span: three identity fields — <code>traceId</code>, <code>spanId</code> and <code>parentSpanId</code>, 64-bit longs where <code>0</code> means absent — and the <code>name</code>, <code>kind</code>, <code>status</code>, <code>errorType</code> and <code>attributes</code> that describe it. The library never populates the ids itself; the instrumentation does, either with <code>Tracer.stamp(event)</code>, which gives the event a span of its own under the one in progress, or with <code>Tracer.inSpanOf(...)</code>, which makes the event <em>be</em> the span it opens.</p>
 
-        <p>Once populated, those events become spans in their own right and are assembled into the same tree as <code>jeffrey.TraceSpan</code> — which is what makes a request's SQL statements appear as its children with neither side knowing about the other. The trace and span ids are also annotated <code>@Contextual</code>, so <code>jfr print</code> and JMC show them alongside the surrounding events even outside Jeffrey.</p>
+        <p>An event fills in the rest for itself when it is committed through <code>commitSpan()</code>: an exchange is named by its method and matched URI template and fails from HTTP 400 upwards, a gRPC call is named by service and method and fails on anything but <code>OK</code>. So an instrumented event is a span with nothing left to interpret, and lands in the same tree as <code>jeffrey.TraceSpan</code> — which is what makes a request's SQL statements appear as its children with neither side knowing about the other. The trace and span ids are also annotated <code>@Contextual</code>, so <code>jfr print</code> and JMC show them alongside the surrounding events even outside Jeffrey.</p>
+
+        <p>Jeffrey recognises a span by that shape rather than by a list of event types: any event declaring a <code>spanId</code> field takes part in traces, including instrumentation written outside Jeffrey.</p>
 
         <DocsCallout type="warning">
           <strong>Tracing requires Java 25.</strong> The <code>Tracer</code> API is built on <code>ScopedValue</code> (JEP&nbsp;506) and <code>jdk.jfr.Contextual</code>, both finalized in Java&nbsp;25. The event definitions themselves remain usable on older releases from an earlier version of the library.
+        </DocsCallout>
+
+        <DocsCallout type="warning">
+          <strong>Recordings made before the span shape existed read differently.</strong> Giving every traced event a <code>status</code> of its own — <code>UNSET</code>, <code>OK</code> or <code>ERROR</code> — collided with the field HTTP and gRPC exchanges already used for their response code, so that one was renamed to <code>statusCode</code>, and <code>JdbcBaseEvent.isSuccess</code> was replaced by the span status. A recording produced by an earlier version of the library still carries the old field names, and Jeffrey reads the new ones: HTTP and gRPC status codes file under <code>0</code>, every database statement reads as successful, and an HTTP exchange's numeric code is taken for a span status, so its trace reports no errors. The traces themselves are unaffected — identity, naming and nesting all still work. Re-record with the current library for accurate HTTP and JDBC status data.
         </DocsCallout>
 
         <p class="docs-read-more">

@@ -473,7 +473,7 @@ onMounted(() => {
             v-if="!hasTimeseries"
             icon="bi-check-circle"
             title="No throttling recorded"
-            message="No CFS period was throttled during this recording."
+            description="No CFS period was throttled during this recording."
           />
           <div v-else class="chart-container mb-4">
             <TimeSeriesChart
@@ -495,7 +495,7 @@ onMounted(() => {
             v-if="filteredWindows.length === 0"
             icon="bi-check-circle"
             :title="windows.length === 0 ? 'No throttled windows' : 'No windows in the selected range'"
-            :message="
+            :description="
               windows.length === 0
                 ? 'The container never hit its CPU quota during this recording.'
                 : 'Brush a wider range on the chart, or clear the selection.'
@@ -567,13 +567,13 @@ onMounted(() => {
             v-if="windows.length === 0"
             icon="bi-check-circle"
             title="No throttled windows to inspect"
-            message="The container never hit its CPU quota during this recording."
+            description="The container never hit its CPU quota during this recording."
           />
           <EmptyState
             v-else-if="!cpuEventType"
             icon="bi-cpu"
             title="No CPU samples in this recording"
-            message="The sub-second heatmap needs jdk.ExecutionSample / jdk.CPUTimeSample / profiler.WallClockSample events."
+            description="The sub-second heatmap needs jdk.ExecutionSample / jdk.CPUTimeSample / profiler.WallClockSample events."
           />
           <template v-else>
             <!-- Rank toggle (top-3), or a back-bar when pinned to an Overview-selected interval -->
@@ -681,7 +681,7 @@ onMounted(() => {
             v-if="!cpuEventType"
             icon="bi-cpu"
             title="No CPU samples in this recording"
-            message="The sub-second heatmap needs jdk.ExecutionSample / jdk.CPUTimeSample / profiler.WallClockSample events."
+            description="The sub-second heatmap needs jdk.ExecutionSample / jdk.CPUTimeSample / profiler.WallClockSample events."
           />
           <template v-else>
             <!-- Timeseries metric: throttled periods (default) or throttled time -->

@@ -20,7 +20,7 @@
         />
         <Badge
           key-label="Created"
-          :value="FormattingService.formatDate(profile.createdAt)"
+          :value="FormattingService.formatDateFromMillis(profile.createdAt)"
           variant="light"
         />
         <Badge v-if="jvmVersion" key-label="JVM" :value="jvmVersion" variant="light" />
@@ -204,15 +204,10 @@ const MILLIS_PER_SECOND = 1000;
 const recordingDurationMillis = computed<number | null>(() => {
   const startedAt = props.profile.profilingStartedAt;
   const finishedAt = props.profile.profilingFinishedAt;
-  if (!startedAt || !finishedAt) {
+  if (startedAt == null || finishedAt == null || finishedAt <= startedAt) {
     return null;
   }
-  const startMillis = Date.parse(startedAt);
-  const endMillis = Date.parse(finishedAt);
-  if (!Number.isFinite(startMillis) || !Number.isFinite(endMillis) || endMillis <= startMillis) {
-    return null;
-  }
-  return endMillis - startMillis;
+  return finishedAt - startedAt;
 });
 
 const recordingDuration = computed<string | null>(() => {

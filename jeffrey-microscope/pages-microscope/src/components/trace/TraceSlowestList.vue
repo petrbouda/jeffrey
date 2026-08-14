@@ -31,12 +31,12 @@
     @row-click="(trace: TraceRow) => emit('rowClick', trace)"
   >
     <template #details="{ item }">
-      <Badge
-        :value="item.rootKind"
-        :variant="kindTone(item.rootKind)"
-        size="s"
-        icon="bi bi-diagram-2"
-      />
+      <!-- Not uppercased: the event type is a type name, and jeffrey.HttpServerExchange is how the
+           recording, jfr print and JMC all spell it. -->
+      <Badge :value="item.rootEventType" variant="secondary" size="s" borderless :uppercase="false" />
+      <!-- Same treatment as the Trace Operations list: borderless and unadorned, so the pair reads
+           identically wherever a trace root is described. -->
+      <Badge :value="item.rootKind" :variant="spanKindVariant(item.rootKind)" size="s" borderless />
       <Badge
         v-if="item.errorCount > 0"
         :value="errorLabel(item.errorCount)"
@@ -46,8 +46,8 @@
         :uppercase="false"
       />
       <DetailChip icon="bi bi-bounding-box">{{ item.spanCount }} spans</DetailChip>
-      <DetailChip icon="bi bi-clock">
-        {{ FormattingService.formatTimestamp(item.startEpochMillis) }}
+      <DetailChip icon="bi bi-clock" :title="startedTitle(item.startMillisFromBeginning)">
+        {{ startedAt(item.startMillisFromBeginning) }}
       </DetailChip>
       <!-- The id is the one thing here worth copying out, so it keeps the monospace treatment. -->
       <DetailChip icon="bi bi-hash" mono>{{ item.traceId }}</DetailChip>
@@ -61,8 +61,8 @@ import Badge from '@shared/components/Badge.vue';
 import DetailChip from '@shared/components/DetailChip.vue';
 import SlowestRowList from '@shared/components/SlowestRowList.vue';
 import type { SlowestRowAccent, SlowestRowTone } from '@shared/types/ui';
-import { errorLabel } from '@/services/trace/traceLabels';
-import type { SpanKind, TraceRow } from '@/services/api/model/trace/TraceModels';
+import { errorLabel, spanKindVariant } from '@/services/trace/traceLabels';
+import type { TraceRow } from '@/services/api/model/trace/TraceModels';
 
 defineProps<{
   traces: TraceRow[];
@@ -75,14 +75,16 @@ const emit = defineEmits<{
   rowClick: [trace: TraceRow];
 }>();
 
-/** Assignable to both Badge's `Variant` and SlowestRowList's `SlowestRowAccent`. */
-type KindTone = 'primary' | 'info' | 'secondary';
+/**
+ * Where the trace sits in the recording, which is the only reading of "when" that lines up with the
+ * waterfall, the timeline and the flamegraphs. An absolute instant lines up with nothing.
+ */
+function startedAt(millisFromBeginning: number): string {
+  return `${FormattingService.formatDurationInMillis2Units(millisFromBeginning)} in`;
+}
 
-function kindTone(kind: SpanKind): KindTone {
-  if (kind === 'SERVER') {
-    return 'primary';
-  }
-  return kind === 'CLIENT' ? 'info' : 'secondary';
+function startedTitle(millisFromBeginning: number): string {
+  return `${FormattingService.formatDurationInMillis2Units(millisFromBeginning)} into the recording`;
 }
 
 // A failure outranks the kind: it is the thing worth spotting from the gutter alone.
@@ -90,7 +92,7 @@ function accent(trace: TraceRow): SlowestRowAccent {
   if (trace.errorCount > 0) {
     return 'danger';
   }
-  return kindTone(trace.rootKind);
+  return spanKindVariant(trace.rootKind);
 }
 
 function tone(trace: TraceRow): SlowestRowTone {

@@ -39,7 +39,6 @@ import cafe.jeffrey.shared.common.GraphType;
 
 import java.util.List;
 
-import static cafe.jeffrey.microscope.core.web.controllers.profile.FlamegraphController.PROTOBUF_MEDIA_TYPE;
 import static cafe.jeffrey.microscope.core.web.controllers.profile.FlamegraphController.mapToGenerateRequest;
 
 @RestController
@@ -59,7 +58,7 @@ public class DifferentialFlamegraphController {
         this.panelProvider = panelProvider;
     }
 
-    @PostMapping(produces = PROTOBUF_MEDIA_TYPE)
+    @PostMapping(produces = ProfileMediaTypes.PROTOBUF)
     public byte[] generate(
             @PathVariable("primaryProfileId") String primaryProfileId,
             @PathVariable("secondaryProfileId") String secondaryProfileId,

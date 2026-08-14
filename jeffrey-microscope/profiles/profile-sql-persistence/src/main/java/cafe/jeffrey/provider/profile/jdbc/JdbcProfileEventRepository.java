@@ -97,6 +97,24 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
             WHERE event_type = (:code) AND duration IS NOT NULL
             """;
 
+    /**
+     * The JSON field on {@code jdk.CPUTimeSamplesLost} that says how many samples that one event
+     * stands for — a loss event is not a single lost sample.
+     */
+    private static final String LOST_SAMPLES_FIELD = "$.lostSamples";
+
+    //language=SQL
+    private static final String CPU_TIME_SAMPLE_LOSS = """
+            SELECT
+                COALESCE(SUM(CASE WHEN event_type = (:sample_code) THEN 1 ELSE 0 END), 0) AS captured_samples,
+                COALESCE(SUM(CASE WHEN event_type = (:lost_code)
+                    THEN COALESCE(TRY_CAST(json_extract_string(fields, :lost_samples_field) AS BIGINT), 0)
+                    ELSE 0 END), 0) AS lost_samples,
+                COALESCE(SUM(CASE WHEN event_type = (:lost_code) THEN 1 ELSE 0 END), 0) AS loss_events
+            FROM events
+            WHERE event_type IN ((:sample_code), (:lost_code))
+            """;
+
     private static final Set<String> FLAG_EVENT_TYPES = Set.of(
             EventTypeName.BOOLEAN_FLAG,
             EventTypeName.INT_FLAG,
@@ -244,6 +262,24 @@ public class JdbcProfileEventRepository implements ProfileEventRepository {
                         rs.getLong("max_duration_ns"),
                         rs.getLong("p99_duration_ns"))
         ).orElse(EventDurationStats.EMPTY);
+    }
+
+    @Override
+    public CpuTimeSampleLoss cpuTimeSampleLoss() {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("sample_code", Type.CPU_TIME_SAMPLE.code())
+                .addValue("lost_code", Type.CPU_TIME_SAMPLES_LOST.code())
+                .addValue("lost_samples_field", LOST_SAMPLES_FIELD);
+
+        return databaseClient.querySingle(
+                StatementLabel.CPU_TIME_SAMPLE_LOSS,
+                CPU_TIME_SAMPLE_LOSS,
+                params,
+                (rs, _) -> new CpuTimeSampleLoss(
+                        rs.getLong("captured_samples"),
+                        rs.getLong("lost_samples"),
+                        rs.getLong("loss_events"))
+        ).orElse(CpuTimeSampleLoss.EMPTY);
     }
 
     @Override

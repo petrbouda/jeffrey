@@ -49,7 +49,6 @@ import java.util.List;
 @RequestMapping("/api/internal/profiles/{profileId}/flamegraph")
 public class FlamegraphController {
 
-    public static final String PROTOBUF_MEDIA_TYPE = "application/x-protobuf";
     public static final String MARKDOWN_MEDIA_TYPE = "text/markdown";
 
     private static final Logger LOG = LoggerFactory.getLogger(FlamegraphController.class);
@@ -62,7 +61,7 @@ public class FlamegraphController {
         this.panelProvider = panelProvider;
     }
 
-    @PostMapping(produces = PROTOBUF_MEDIA_TYPE)
+    @PostMapping(produces = ProfileMediaTypes.PROTOBUF)
     public byte[] generate(
             @PathVariable("profileId") String profileId,
             @RequestBody GenerateFlamegraphRequest request) {

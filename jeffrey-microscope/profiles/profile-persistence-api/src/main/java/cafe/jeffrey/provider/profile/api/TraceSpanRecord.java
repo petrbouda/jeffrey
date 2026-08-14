@@ -30,14 +30,31 @@ package cafe.jeffrey.provider.profile.api;
  * @param kind                     {@code SERVER}, {@code CLIENT} or {@code INTERNAL}
  * @param status                   {@code OK}, {@code ERROR} or {@code UNSET}
  * @param errorType                class name of the failure, when the span ended in one
- * @param attributes               the originating event's fields, as a JSON object string
  * @param startMillisFromBeginning span start, in milliseconds relative to the recording's start
- * @param startEpochMillis         span start as an absolute UTC epoch-millis timestamp
+ * @param startEpochMicros         span start as an absolute UTC epoch-micros timestamp. Microseconds
+ *                                 rather than milliseconds because a span is routinely shorter than
+ *                                 a millisecond: at millisecond resolution two spans that ran one
+ *                                 after the other collapse onto the same instant, and the waterfall
+ *                                 then draws sequential work as if it overlapped. Microseconds are
+ *                                 also the most the stored timestamp carries, and stay inside
+ *                                 JavaScript's safe-integer range where epoch nanos would not
  * @param durationNanos            span duration
  * @param threadHash               identity hash of the thread the span was committed on — the join
  *                                 key for pairing the span with the other events on that thread
  * @param threadName               name of that thread, when the recording knew it
+ * @param isVirtual                whether that thread was a virtual thread
  * @param eventType                which event produced the span, e.g. {@code jeffrey.TraceSpan}
+ * @param attributes               what the span attached to itself — the open JSON map from
+ *                                 {@code AbstractTracedEvent.attributes}, whose keys are whatever
+ *                                 the developer passed. Any traced event can carry one; in practice
+ *                                 a hand-written span is what usually does
+ * @param eventFields              what the event declared beyond the span shape, as a JSON object —
+ *                                 a statement's {@code sql}, {@code params} and {@code rows}, an
+ *                                 exchange's {@code uri} and {@code statusCode}. These are schema
+ *                                 rather than attributes: each is a labelled field of its event
+ *                                 type, known in advance, which is why they are kept apart from the
+ *                                 map above. {@code null} for an event that declares nothing of its
+ *                                 own, a hand-written span being the usual case
  */
 public record TraceSpanRecord(
         long traceId,
@@ -47,11 +64,13 @@ public record TraceSpanRecord(
         String kind,
         String status,
         String errorType,
-        String attributes,
         long startMillisFromBeginning,
-        long startEpochMillis,
+        long startEpochMicros,
         long durationNanos,
         long threadHash,
         String threadName,
-        String eventType) {
+        boolean isVirtual,
+        String eventType,
+        String attributes,
+        String eventFields) {
 }

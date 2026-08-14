@@ -24,6 +24,7 @@ function operation(overrides: Partial<TraceOperationRow>): TraceOperationRow {
   return {
     name: 'op',
     kind: 'INTERNAL',
+    eventType: 'jeffrey.TraceSpan',
     count: 0,
     errorCount: 0,
     spanCount: 0,

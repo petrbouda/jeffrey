@@ -200,7 +200,7 @@ public class GrpcOverviewEventBuilder implements RecordBuilder<GenericRecord, Gr
         long startTime = record.startTimestamp().toEpochMilli();
         long responseTime = record.duration().toNanos();
         String method = jsonFields.path("method").asString("");
-        String status = jsonFields.path("status").asString("");
+        String status = jsonFields.path("statusCode").asString("");
         String remoteHost = jsonFields.path("remoteHost").asString("");
         int remotePort = jsonFields.path("remotePort").asInt(-1);
         long requestSize = jsonFields.path("requestSize").asLong(-1);

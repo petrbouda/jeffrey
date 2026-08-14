@@ -31,9 +31,11 @@ package cafe.jeffrey.profile.manager.model.trace;
  * @param kind                     {@code SERVER}, {@code CLIENT} or {@code INTERNAL}
  * @param status                   {@code OK}, {@code ERROR} or {@code UNSET}
  * @param errorType                class name of the failure, when the span ended in one
- * @param attributes               the originating event's fields, as a JSON object string
  * @param startMillisFromBeginning span start relative to the recording's start
- * @param startEpochMillis         span start as absolute UTC epoch millis
+ * @param startEpochMicros         span start as absolute UTC epoch micros — the resolution the
+ *                                 waterfall positions bars against, since a span is routinely
+ *                                 shorter than a millisecond and sequential spans would otherwise
+ *                                 share a start and draw as if they overlapped
  * @param durationNanos            total time the span covers
  * @param selfDurationNanos        that time minus what its children covered — where the span's own
  *                                 work actually went
@@ -41,7 +43,14 @@ package cafe.jeffrey.profile.manager.model.trace;
  * @param threadHash               thread the span was committed on, as a string for the same
  *                                 safe-integer reason as the ids
  * @param threadName               human-readable name of that thread, when known
+ * @param isVirtual                whether that thread was a virtual thread; a span on one cannot be
+ *                                 matched to samples, which the profiler attributes to the carrier
  * @param eventType                which event produced the span
+ * @param attributes               the span's operation-specific detail as a JSON object string, or
+ *                                 {@code null} when it recorded none — a statement's SQL and row
+ *                                 count, an exchange's URI and status, a hand-written span's own
+ *                                 attributes. Passed through as text rather than parsed: the keys
+ *                                 differ per event type, and the UI renders them generically
  */
 public record TraceSpanRow(
         String spanId,
@@ -50,13 +59,15 @@ public record TraceSpanRow(
         String kind,
         String status,
         String errorType,
-        String attributes,
         long startMillisFromBeginning,
-        long startEpochMillis,
+        long startEpochMicros,
         long durationNanos,
         long selfDurationNanos,
         int depth,
         String threadHash,
         String threadName,
-        String eventType) {
+        boolean isVirtual,
+        String eventType,
+        String attributes,
+        String eventFields) {
 }

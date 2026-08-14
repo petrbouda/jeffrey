@@ -89,19 +89,18 @@ public final class HeapDumpDatabaseClient {
 
     public void execute(HeapDumpStatement stmt, String sql) {
         JdbcExecuteEvent event = new JdbcExecuteEvent(stmt.label(), groupLabel);
-        event.isSuccess = true;
         event.begin();
 
         try (Statement s = connection.createStatement()) {
             s.execute(sql);
             event.end();
         } catch (SQLException e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw new RuntimeException("Heap-dump execute failed: " + stmt + ": " + e.getMessage(), e);
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
-                event.commit();
+                event.commitSpan();
             }
         }
     }
@@ -121,7 +120,6 @@ public final class HeapDumpDatabaseClient {
 
     private int runInsert(HeapDumpStatement stmt, String sql, Object[] params) {
         JdbcInsertEvent event = new JdbcInsertEvent(stmt.label(), groupLabel);
-        event.isSuccess = true;
         event.begin();
         int rows = 0;
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -129,14 +127,14 @@ public final class HeapDumpDatabaseClient {
             rows = ps.executeUpdate();
             event.end();
         } catch (SQLException e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw new RuntimeException("Heap-dump insert failed: " + stmt + ": " + e.getMessage(), e);
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramsToJson(params);
-                event.commit();
+                event.commitSpan();
             }
         }
         return rows;
@@ -144,7 +142,6 @@ public final class HeapDumpDatabaseClient {
 
     private int runUpdate(HeapDumpStatement stmt, String sql, Object[] params) {
         JdbcUpdateEvent event = new JdbcUpdateEvent(stmt.label(), groupLabel);
-        event.isSuccess = true;
         event.begin();
         int rows = 0;
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -152,14 +149,14 @@ public final class HeapDumpDatabaseClient {
             rows = ps.executeUpdate();
             event.end();
         } catch (SQLException e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw new RuntimeException("Heap-dump update failed: " + stmt + ": " + e.getMessage(), e);
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramsToJson(params);
-                event.commit();
+                event.commitSpan();
             }
         }
         return rows;
@@ -167,7 +164,6 @@ public final class HeapDumpDatabaseClient {
 
     private int runDelete(HeapDumpStatement stmt, String sql, Object[] params) {
         JdbcDeleteEvent event = new JdbcDeleteEvent(stmt.label(), groupLabel);
-        event.isSuccess = true;
         event.begin();
         int rows = 0;
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -175,14 +171,14 @@ public final class HeapDumpDatabaseClient {
             rows = ps.executeUpdate();
             event.end();
         } catch (SQLException e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw new RuntimeException("Heap-dump delete failed: " + stmt + ": " + e.getMessage(), e);
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramsToJson(params);
-                event.commit();
+                event.commitSpan();
             }
         }
         return rows;
@@ -192,7 +188,6 @@ public final class HeapDumpDatabaseClient {
 
     public void withAppender(HeapDumpStatement stmt, String tableName, AppenderBody body) {
         JdbcInsertEvent event = new JdbcInsertEvent(stmt.label(), groupLabel);
-        event.isSuccess = true;
         event.isBatch = true;
         event.begin();
         long rows = 0;
@@ -200,13 +195,13 @@ public final class HeapDumpDatabaseClient {
             rows = body.write(app);
             event.end();
         } catch (SQLException e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw new RuntimeException("Heap-dump appender failed: " + stmt + " on " + tableName + ": " + e.getMessage(), e);
         } finally {
             if (event.shouldCommit()) {
                 event.sql = APPENDER_SQL_PREFIX + tableName;
                 event.rows = rows;
-                event.commit();
+                event.commitSpan();
             }
         }
     }
@@ -220,7 +215,6 @@ public final class HeapDumpDatabaseClient {
     public void withAppenderPair(
             HeapDumpStatement stmt, String primaryTable, String secondaryTable, AppenderPairBody body) {
         JdbcInsertEvent event = new JdbcInsertEvent(stmt.label(), groupLabel);
-        event.isSuccess = true;
         event.isBatch = true;
         event.begin();
         long rows = 0;
@@ -229,13 +223,13 @@ public final class HeapDumpDatabaseClient {
             rows = body.write(primary, secondary);
             event.end();
         } catch (SQLException e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw new RuntimeException("Heap-dump dual-appender failed: " + stmt + ": " + e.getMessage(), e);
         } finally {
             if (event.shouldCommit()) {
                 event.sql = APPENDER_SQL_PREFIX + primaryTable + " + " + secondaryTable;
                 event.rows = rows;
-                event.commit();
+                event.commitSpan();
             }
         }
     }
@@ -254,7 +248,6 @@ public final class HeapDumpDatabaseClient {
         String sql = "INSERT INTO " + table
                 + " SELECT * FROM read_parquet('" + parquetGlob + "')";
         JdbcInsertEvent event = new JdbcInsertEvent(stmt.label(), groupLabel);
-        event.isSuccess = true;
         event.isBatch = true;
         event.begin();
         long rows = 0;
@@ -266,13 +259,13 @@ public final class HeapDumpDatabaseClient {
             }
             event.end();
         } catch (SQLException e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw new RuntimeException("Heap-dump bulk-load failed: " + stmt + " on " + table + ": " + e.getMessage(), e);
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = rows;
-                event.commit();
+                event.commitSpan();
             }
         }
         return rows;
@@ -282,7 +275,6 @@ public final class HeapDumpDatabaseClient {
 
     public <T> Optional<T> queryScalar(HeapDumpStatement stmt, String sql, RowMapper<T> mapper, Object... params) {
         JdbcQueryEvent event = new JdbcQueryEvent(stmt.label(), groupLabel);
-        event.isSuccess = true;
         event.begin();
         Optional<T> result = Optional.empty();
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -294,14 +286,14 @@ public final class HeapDumpDatabaseClient {
             }
             event.end();
         } catch (SQLException e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw new RuntimeException("Heap-dump scalar query failed: " + stmt + ": " + e.getMessage(), e);
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = result.isPresent() ? 1 : 0;
                 event.params = paramsToJson(params);
-                event.commit();
+                event.commitSpan();
             }
         }
         return result;
@@ -309,7 +301,6 @@ public final class HeapDumpDatabaseClient {
 
     public <T> List<T> queryList(HeapDumpStatement stmt, String sql, RowMapper<T> mapper, Object... params) {
         JdbcQueryEvent event = new JdbcQueryEvent(stmt.label(), groupLabel);
-        event.isSuccess = true;
         event.begin();
         List<T> out = new ArrayList<>();
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -321,14 +312,14 @@ public final class HeapDumpDatabaseClient {
             }
             event.end();
         } catch (SQLException e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw new RuntimeException("Heap-dump list query failed: " + stmt + ": " + e.getMessage(), e);
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = out.size();
                 event.params = paramsToJson(params);
-                event.commit();
+                event.commitSpan();
             }
         }
         return out;
@@ -336,7 +327,6 @@ public final class HeapDumpDatabaseClient {
 
     public long queryLong(HeapDumpStatement stmt, String sql, Object... params) {
         JdbcQueryEvent event = new JdbcQueryEvent(stmt.label(), groupLabel);
-        event.isSuccess = true;
         event.begin();
         long value = 0L;
         boolean present = false;
@@ -350,14 +340,14 @@ public final class HeapDumpDatabaseClient {
             }
             event.end();
         } catch (SQLException e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw new RuntimeException("Heap-dump long query failed: " + stmt + ": " + e.getMessage(), e);
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = present ? 1 : 0;
                 event.params = paramsToJson(params);
-                event.commit();
+                event.commitSpan();
             }
         }
         return value;
@@ -377,7 +367,6 @@ public final class HeapDumpDatabaseClient {
      */
     public void rawStream(HeapDumpStatement stmt, String sql, RawStreamBody body, Object... params) {
         JdbcStreamEvent event = new JdbcStreamEvent(stmt.label(), groupLabel);
-        event.isSuccess = true;
         event.sql = sql;
         event.params = paramsToJson(params);
         event.begin();
@@ -389,12 +378,12 @@ public final class HeapDumpDatabaseClient {
             }
             event.end();
         } catch (SQLException e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw new RuntimeException("Heap-dump raw-stream failed: " + stmt + ": " + e.getMessage(), e);
         } finally {
             if (event.shouldCommit()) {
                 event.rows = rows;
-                event.commit();
+                event.commitSpan();
             }
         }
     }
@@ -411,7 +400,6 @@ public final class HeapDumpDatabaseClient {
      */
     public <T> Stream<T> queryStream(HeapDumpStatement stmt, String sql, RowMapper<T> mapper, Object... params) {
         JdbcStreamEvent event = new JdbcStreamEvent(stmt.label(), groupLabel);
-        event.isSuccess = true;
         event.sql = sql;
         event.params = paramsToJson(params);
         event.begin();
@@ -425,10 +413,10 @@ public final class HeapDumpDatabaseClient {
         } catch (SQLException e) {
             closeQuietly(rs);
             closeQuietly(ps);
-            event.isSuccess = false;
+            event.failed(e);
             event.end();
             if (event.shouldCommit()) {
-                event.commit();
+                event.commitSpan();
             }
             throw new RuntimeException("Heap-dump stream query failed: " + stmt + ": " + e.getMessage(), e);
         }
@@ -448,7 +436,7 @@ public final class HeapDumpDatabaseClient {
                     action.accept(mapper.map(capturedRs));
                     return true;
                 } catch (SQLException e) {
-                    event.isSuccess = false;
+                    event.failed(e);
                     throw new RuntimeException(e);
                 }
             }
@@ -460,7 +448,7 @@ public final class HeapDumpDatabaseClient {
             event.end();
             if (event.shouldCommit()) {
                 event.rows = rowCount.longValue();
-                event.commit();
+                event.commitSpan();
             }
         });
     }

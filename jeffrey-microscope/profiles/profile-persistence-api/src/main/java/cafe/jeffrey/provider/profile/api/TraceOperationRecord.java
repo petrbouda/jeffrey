@@ -27,6 +27,9 @@ package cafe.jeffrey.provider.profile.api;
  *
  * @param name       the root operation name the traces share
  * @param kind       {@code SERVER}, {@code CLIENT} or {@code INTERNAL}
+ * @param eventType  the event type that opened the trace, e.g. {@code jeffrey.HttpServerExchange} —
+ *                   which instrumentation produced the operation, something the name alone does not
+ *                   say
  * @param count      how many traces of this type the profile holds
  * @param errorCount how many of them contain at least one failed span
  * @param spanCount  spans across all of them, which separates a one-span type from a deep one
@@ -38,6 +41,7 @@ package cafe.jeffrey.provider.profile.api;
 public record TraceOperationRecord(
         String name,
         String kind,
+        String eventType,
         long count,
         long errorCount,
         long spanCount,

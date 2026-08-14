@@ -21,8 +21,10 @@ package cafe.jeffrey.profile.manager;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceEventRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
+import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 
@@ -47,11 +49,11 @@ public interface TraceManager {
     List<TraceRow> slowestTraces(int limit);
 
     /**
-     * @param rootName the trace type to list
-     * @param limit    maximum number of traces to return
+     * @param operation the trace type to list
+     * @param limit     maximum number of traces to return
      * @return the traces of one type, in the order they ran
      */
-    List<TraceRow> tracesOfOperation(String rootName, int limit);
+    List<TraceRow> tracesOfOperation(TraceOperationId operation, int limit);
 
     /**
      * @return profile-wide trace totals and latency percentiles, describing the whole recording
@@ -89,16 +91,25 @@ public interface TraceManager {
      * splitting by thread is what keeps a concurrently-running thread's samples out of the graph
      * when a trace hands work off.
      *
-     * @param rootName the trace type to scope to
-     * @return the intervals, or empty when no trace has that root name
+     * @param operation the trace type to scope to
+     * @return the intervals, or empty when no trace is of that type
      */
-    List<SpanInterval> operationIntervals(String rootName);
+    List<SpanInterval> operationIntervals(TraceOperationId operation);
 
     /**
      * @param limit maximum number of operations to return, ranked by total time
-     * @return traces aggregated by root name — one row per trace type — across the whole profile
+     * @return traces aggregated by type — one row per {@link TraceOperationId} — across the profile
      */
     List<TraceOperationRow> operations(int limit);
+
+    /**
+     * What one operation's summary needs beyond the traces the caller already has: its span
+     * breakdown and its thread split.
+     *
+     * @param operation the trace type
+     * @param spanLimit maximum number of span names to return, ranked by total time
+     */
+    TraceOperationSummary operationSummary(TraceOperationId operation, int spanLimit);
 
     /**
      * What the JVM was doing on the span's thread while it was open. Events that are themselves

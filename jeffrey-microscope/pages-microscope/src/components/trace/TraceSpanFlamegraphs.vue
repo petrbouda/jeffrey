@@ -23,7 +23,13 @@
       distinction is the difference between "this span took 400 ms" and "this span spent 400 ms in
       code it owns", so it changes both the cards and the graph and is chosen before either loads.
     -->
-    <div class="scope-toggle" role="group" aria-label="Flamegraph scope">
+    <!--
+      Offered whenever there is something to scope, rather than whenever the span sits on a platform
+      thread. Those are not the same test: a recording made with `jdk.CPUTimeSample` names the
+      virtual thread and walks its continuation stack, so a virtual-thread span can carry samples —
+      and hiding the choice there withheld a working control from spans that had a graph to scope.
+    -->
+    <div v-if="hasEvents" class="scope-toggle" role="group" aria-label="Flamegraph scope">
       <button
         type="button"
         :class="{ active: !selfOnly }"
@@ -43,6 +49,11 @@
     </div>
 
     <LoadingState v-if="!loaded" message="Loading flamegraph events..." />
+
+    <!-- A failed fetch is not an empty span, and must not be drawn as one. -->
+    <ErrorState v-else-if="error" :message="error" />
+
+    <VirtualThreadFlamegraphNotice v-else-if="!hasEvents && virtualThread" scope="span" />
 
     <EmptyState
       v-else-if="!hasEvents"
@@ -73,6 +84,8 @@ import { computed, ref, watch } from 'vue';
 
 import LoadingState from '@shared/components/LoadingState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
+import VirtualThreadFlamegraphNotice from '@/components/trace/VirtualThreadFlamegraphNotice.vue';
 import FlamegraphCardGrid from '@/components/FlamegraphCardGrid.vue';
 import type { FlamegraphCardViewPayload } from '@/components/FlamegraphCard.vue';
 
@@ -90,6 +103,8 @@ const props = defineProps<{
   profileId: string;
   traceId: string;
   spanId: string;
+  /** The span ran on a virtual thread, so the profiler attributed its samples to the carrier. */
+  virtualThread?: boolean;
 }>();
 
 // The graph itself is rendered by whoever hosts this component: the drill-down already lives in a
@@ -100,7 +115,7 @@ const selfOnly = ref(false);
 
 // Panels are scoped to the span, so the cards show what actually landed inside it rather than the
 // profile-wide totals. Re-fetched when the scope changes, because self-only covers less time.
-const { loaded, panels, reload } = useFlamegraphPanels(GraphType.PRIMARY, () =>
+const { loaded, error, panels, reload } = useFlamegraphPanels(GraphType.PRIMARY, () =>
   new ProfileTracesClient(props.profileId).getSpanPanels(
     props.traceId,
     props.spanId,

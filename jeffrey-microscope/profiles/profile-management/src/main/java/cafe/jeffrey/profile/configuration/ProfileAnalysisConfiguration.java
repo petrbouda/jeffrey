@@ -36,6 +36,8 @@ import cafe.jeffrey.profile.manager.GuardianManagerImpl;
 import cafe.jeffrey.profile.manager.JvmFlagDescriptionProvider;
 import cafe.jeffrey.profile.manager.ProfileConfigurationManager;
 import cafe.jeffrey.profile.manager.ProfileConfigurationManagerImpl;
+import cafe.jeffrey.profile.manager.SamplerHealthManager;
+import cafe.jeffrey.profile.manager.SamplerHealthManagerImpl;
 import cafe.jeffrey.profile.manager.registry.AnalysisFactories;
 import cafe.jeffrey.profile.settings.ActiveSettingsProvider;
 import cafe.jeffrey.profile.settings.CachedActiveSettingsProvider;
@@ -73,13 +75,15 @@ public class ProfileAnalysisConfiguration {
             GuardianManager.Factory guardianFactory,
             AutoAnalysisManager.Factory autoAnalysisFactory,
             EventViewerManager.Factory eventViewerFactory,
-            FlagsManager.Factory flagsFactory) {
+            FlagsManager.Factory flagsFactory,
+            SamplerHealthManager.Factory samplerHealthFactory) {
 
         return new AnalysisFactories(
                 guardianFactory,
                 autoAnalysisFactory,
                 eventViewerFactory,
-                flagsFactory);
+                flagsFactory,
+                samplerHealthFactory);
     }
 
     @Bean
@@ -162,6 +166,14 @@ public class ProfileAnalysisConfiguration {
             return new FlagsManagerImpl(
                     profileRepositories.newEventRepository(profileDb),
                     descriptionProvider);
+        };
+    }
+
+    @Bean
+    public SamplerHealthManager.Factory samplerHealthManager() {
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            return new SamplerHealthManagerImpl(profileRepositories.newEventRepository(profileDb));
         };
     }
 

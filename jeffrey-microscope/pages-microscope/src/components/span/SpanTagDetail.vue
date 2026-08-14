@@ -30,6 +30,7 @@
           primary-title="Span Duration"
           :secondary-data="secondaryData"
           secondary-title="Spans"
+          time-unit="milliseconds"
           :visible-minutes="60"
           :independentSecondaryAxis="true"
           :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
@@ -68,6 +69,7 @@ import SpanEventsModal from '@/components/span/SpanEventsModal.vue';
 import SpanTagFlamegraphs from '@/components/span/SpanTagFlamegraphs.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileAsyncProfilerClient from '@/services/api/ProfileAsyncProfilerClient';
+import { profileStore } from '@/stores/profileStore';
 import { timelineBuckets } from '@/services/trace/traceTimelineBuckets';
 import type { TabBarItem } from '@shared/components/TabBar.vue';
 import type { SpanDetailRow } from '@/services/api/model/span/SpanModels';
@@ -99,12 +101,24 @@ const tabs: TabBarItem[] = [
   { id: 'slowest', label: 'Slowest Spans', icon: 'hourglass-split' }
 ];
 
+/*
+ * Same treatment as the trace operation timeline: relative to the recording's start, and spanning
+ * the whole recording. A span carries only an absolute start, so it is rebased here.
+ */
+const recordingSpan = computed(() => {
+  const window = profileStore.recordingWindow.value;
+  return window === null ? undefined : { from: 0, to: window.durationMillis };
+});
+
+const recordingStart = computed(() => profileStore.recordingWindow.value?.startEpochMillis ?? 0);
+
 const buckets = computed(() =>
   timelineBuckets(
     spans.value,
-    span => span.startEpochMillis,
+    span => span.startEpochMillis - recordingStart.value,
     span => span.durationNanos,
-    TIMELINE_BUCKETS
+    TIMELINE_BUCKETS,
+    recordingSpan.value
   )
 );
 
@@ -128,8 +142,3 @@ watch(() => props.tag, load);
 onMounted(load);
 </script>
 
-<style scoped>
-.dashboard-container {
-  padding: 0;
-}
-</style>

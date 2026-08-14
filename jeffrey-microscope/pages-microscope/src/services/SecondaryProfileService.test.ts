@@ -49,9 +49,9 @@ function baseline(id: string): ProfileInfo {
     id,
     projectId: 'project-1',
     name: `${id}.jfr`,
-    createdAt: '2026-01-01T00:00:00Z',
-    profilingStartedAt: '2026-01-01T00:00:00Z',
-    profilingFinishedAt: '2026-01-01T01:00:00Z',
+    createdAt: Date.UTC(2026, 0, 1),
+    profilingStartedAt: Date.UTC(2026, 0, 1),
+    profilingFinishedAt: Date.UTC(2026, 0, 1, 1),
     enabled: true
   } as ProfileInfo;
 }

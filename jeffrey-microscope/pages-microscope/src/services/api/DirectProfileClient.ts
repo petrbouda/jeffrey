@@ -29,7 +29,8 @@ export interface ProfileListResponse {
   projectName: string;
   workspaceId: string;
   workspaceName: string;
-  createdAt: string;
+  /** Epoch millis. */
+  createdAt: number;
   eventSource: string;
   enabled: boolean;
   durationInMillis: number;

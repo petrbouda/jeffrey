@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
-import cafe.jeffrey.provider.profile.api.SpanEventRecord;
+import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
 import cafe.jeffrey.provider.profile.api.SpanRecord;
 import cafe.jeffrey.provider.profile.api.SpanRepository;
 import cafe.jeffrey.shared.persistence.StatementLabel;
@@ -40,8 +40,8 @@ import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_EVENTS;
  */
 public class JdbcSpanRepository implements SpanRepository {
 
+    /** The async-profiler event this feature is built on, and the one the drill-down leaves out. */
     private static final String SPAN_EVENT_TYPE = "profiler.Span";
-    private static final int SPAN_EVENTS_LIMIT = 5000;
 
     //language=SQL
     private static final String LIST_SPANS = """
@@ -61,27 +61,9 @@ public class JdbcSpanRepository implements SpanRepository {
             ORDER BY e.start_timestamp
             """;
 
-    /*
-     * The window bounds compare the raw start_timestamp against epoch-micros literals so the
-     * predicate stays sargable (no per-row EPOCH_MS). The bounds replicate the millisecond-floor
-     * semantics of `EPOCH_MS(ts) BETWEEN :from_ms AND :to_ms`: floor(ts) >= from <=> ts >= from,
-     * and floor(ts) <= to <=> ts < to + 1ms.
-     */
-    //language=SQL
-    private static final String EVENTS_FOR_THREAD = """
-            SELECT
-                e.event_type                AS event_type,
-                EPOCH_MS(e.start_timestamp) AS start_epoch_ms,
-                COALESCE(e.duration, 0)     AS duration_ns,
-                CAST(e.fields AS VARCHAR)   AS fields
-            FROM events e
-            WHERE e.thread_hash = :thread_hash
-                AND e.event_type <> :span_event_type
-                AND e.start_timestamp >= make_timestamptz(:from_ms * 1000)
-                AND e.start_timestamp < make_timestamptz((:to_ms + 1) * 1000)
-            ORDER BY e.start_timestamp
-            LIMIT :limit
-            """;
+    /** What ran on the span's thread while it was open, minus the span events themselves. */
+    private static final String EVENTS_FOR_THREAD =
+            ThreadWindowEvents.excluding("e.event_type <> :span_event_type");
 
     private final DatabaseClient databaseClient;
 
@@ -111,22 +93,17 @@ public class JdbcSpanRepository implements SpanRepository {
     }
 
     @Override
-    public List<SpanEventRecord> eventsForThread(long threadHash, long fromEpochMillis, long toEpochMillis) {
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("thread_hash", threadHash)
-                .addValue("span_event_type", SPAN_EVENT_TYPE)
-                .addValue("from_ms", fromEpochMillis)
-                .addValue("to_ms", toEpochMillis)
-                .addValue("limit", SPAN_EVENTS_LIMIT);
+    public List<ThreadWindowEventRecord> eventsForThread(
+            long threadHash, long fromEpochMillis, long toEpochMillis) {
+
+        MapSqlParameterSource params = ThreadWindowEvents
+                .params(threadHash, fromEpochMillis, toEpochMillis)
+                .addValue("span_event_type", SPAN_EVENT_TYPE);
 
         return databaseClient.query(
                 StatementLabel.SPAN_EVENTS,
                 EVENTS_FOR_THREAD,
                 params,
-                (rs, _) -> new SpanEventRecord(
-                        rs.getString("event_type"),
-                        rs.getLong("start_epoch_ms"),
-                        rs.getLong("duration_ns"),
-                        rs.getString("fields")));
+                ThreadWindowEvents.mapper());
     }
 }

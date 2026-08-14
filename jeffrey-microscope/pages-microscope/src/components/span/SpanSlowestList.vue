@@ -36,8 +36,8 @@
         :uppercase="false"
         class="span-tag-badge"
       />
-      <DetailChip icon="bi bi-clock">
-        {{ FormattingService.formatTimestamp(item.startEpochMillis) }}
+      <DetailChip icon="bi bi-clock" :title="startedTitle(item.startEpochMillis)">
+        {{ startedAt(item.startEpochMillis) }}
       </DetailChip>
     </template>
   </SlowestRowList>
@@ -48,6 +48,7 @@ import FormattingService from '@shared/services/FormattingService';
 import Badge from '@shared/components/Badge.vue';
 import DetailChip from '@shared/components/DetailChip.vue';
 import SlowestRowList from '@shared/components/SlowestRowList.vue';
+import { profileStore } from '@/stores/profileStore';
 import type { SlowestSpanRow } from '@/services/api/model/span/SpanModels';
 
 defineProps<{
@@ -57,6 +58,29 @@ defineProps<{
 const emit = defineEmits<{
   rowClick: [span: SlowestSpanRow];
 }>();
+
+/**
+ * Where the span sits in the recording, the same reading the waterfall and the timelines use. A span
+ * carries only an absolute start, so it is rebased here; without the recording's bounds there is no
+ * zero to count from, and the absolute instant is the honest answer.
+ */
+function startedAt(startEpochMillis: number): string {
+  const window = profileStore.recordingWindow.value;
+  if (window === null) {
+    return FormattingService.formatTimestamp(startEpochMillis);
+  }
+  const offset = startEpochMillis - window.startEpochMillis;
+  return `${FormattingService.formatDurationInMillis2Units(offset)} in`;
+}
+
+function startedTitle(startEpochMillis: number): string {
+  const window = profileStore.recordingWindow.value;
+  if (window === null) {
+    return 'The recording did not report when it started';
+  }
+  const offset = startEpochMillis - window.startEpochMillis;
+  return `${FormattingService.formatDurationInMillis2Units(offset)} into the recording`;
+}
 </script>
 
 <style scoped>

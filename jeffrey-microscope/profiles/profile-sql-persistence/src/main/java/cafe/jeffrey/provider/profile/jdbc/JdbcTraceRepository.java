@@ -18,13 +18,17 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
-import cafe.jeffrey.provider.profile.api.TraceEventRecord;
+import cafe.jeffrey.provider.profile.api.EventFieldRecord;
+import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
+import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationRecord;
+import cafe.jeffrey.provider.profile.api.TraceOperationSpanRecord;
+import cafe.jeffrey.provider.profile.api.TraceOperationThreadsRecord;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
-import cafe.jeffrey.shared.common.model.EventTypeName;
+import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
@@ -34,8 +38,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.Optional;
 
 import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_TRACES;
 
@@ -49,196 +52,204 @@ import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_TRACES;
 public class JdbcTraceRepository implements TraceRepository {
 
     /**
-     * Event types recorded through a span of their own — {@code Tracer.inSpanOf} opens a
-     * {@code SpanContext} for them, so the {@code spanId} they carry is their own identity.
-     */
-    private static final List<String> SPAN_OWNING_EVENT_TYPES = List.of(
-            EventTypeName.TRACE_SPAN,
-            EventTypeName.HTTP_SERVER_EXCHANGE,
-            EventTypeName.HTTP_CLIENT_EXCHANGE,
-            EventTypeName.GRPC_SERVER_EXCHANGE,
-            EventTypeName.GRPC_CLIENT_EXCHANGE);
-
-    /**
-     * Event types that only get stamped with whatever span is in progress ({@code Tracer.stamp}).
-     * The {@code spanId} they carry is their <em>enclosing</em> span's, not theirs, so the
-     * derivation gives each one an id of its own and parents it to the span it was stamped with.
-     */
-    private static final List<String> STAMPED_EVENT_TYPES = List.of(
-            EventTypeName.JDBC_QUERY,
-            EventTypeName.JDBC_INSERT,
-            EventTypeName.JDBC_UPDATE,
-            EventTypeName.JDBC_DELETE,
-            EventTypeName.JDBC_EXECUTE,
-            EventTypeName.JDBC_STREAM);
-
-    /**
-     * Every event type that can carry trace identity, and therefore every type that becomes a span.
-     * Adding a newly traced event type is a one-line change to whichever list above matches how the
-     * instrumentation records it.
+     * The event types that become spans, read out of the recording's own metadata rather than from a
+     * list kept here: a type is a span if it declares a {@code spanId} field, which is exactly what
+     * extending {@code AbstractTracedEvent} gives an event.
      * <p>
-     * The same list is what the drill-down excludes: an event that is itself a span belongs in the
+     * That is the whole of this class's knowledge about instrumented event types, and it names none
+     * of them. An event type instrumented after this was written — including one declared outside
+     * Jeffrey — takes part in traces with no change here, where a hard-coded list would have left it
+     * silently missing from the Traces page until someone noticed.
+     * <p>
+     * The same set is what the drill-down excludes: an event that is itself a span belongs in the
      * waterfall, not in the list of what happened inside one.
      */
-    private static final List<String> TRACED_EVENT_TYPES =
-            Stream.concat(SPAN_OWNING_EVENT_TYPES.stream(), STAMPED_EVENT_TYPES.stream()).toList();
+    //language=SQL
+    private static final String SPAN_EVENT_TYPES = """
+            SELECT name FROM event_types
+            WHERE list_contains(json_extract_string(columns, '$[*].field'), 'spanId')""";
 
-    /** Guards the drill-down against returning more rows than a drawer can show. */
-    private static final int SPAN_EVENTS_LIMIT = 5000;
+
+    /**
+     * Crossing from the microseconds a span is measured in into the milliseconds the events table is
+     * keyed on. Flooring rather than rounding is what puts the bound on the millisecond a sample
+     * taken at that instant was filed under.
+     */
+    private static final long MICROS_PER_MILLI = 1_000L;
+
+    /**
+     * The keys every traced event carries as plumbing rather than as detail: the columns JFR fills in
+     * and the span already has fields of its own for, plus the span shape the derivation has consumed
+     * by the time it builds this. What is left is the event's own declared fields — a statement's SQL
+     * and row count, an exchange's URI and status code.
+     * <p>
+     * Merging a patch of nulls is how DuckDB deletes keys, which keeps this one expression for every
+     * event type. Projecting the keys per type instead would need editing each time an instrumented
+     * event gains a field, and would silently drop the new one until someone did.
+     * <p>
+     * A hand-written span declares nothing beyond the span shape, so it strips down to an empty
+     * object — which is why the projection nulls that out rather than storing an empty object.
+     */
+    private static final String PLUMBING_FIELDS = """
+            {"startTime":null,"duration":null,"eventThread":null,\
+            "traceId":null,"spanId":null,"parentSpanId":null,\
+            "name":null,"kind":null,"status":null,"errorType":null,"attributes":null}""";
 
     /*
-     * The span's name and kind depend on which event produced it: a hand-written span names itself,
-     * while an HTTP exchange is named by its method and matched URI template and is a SERVER or
-     * CLIENT span by construction. Deriving that here means the rest of the stack -- and the UI --
-     * sees one uniform span shape whatever the source event was.
+     * A flat projection, because there is nothing left to work out: the event recorded its own name,
+     * kind, status and identity, so every column here is read straight out of the JSON. What used to
+     * be four CASE ladders and a synthetic span id now lives in the event classes, where an HTTP
+     * exchange decides once and for all that it is named by its method and URI and fails at 400.
      *
-     * Identity depends on how the event was recorded, which is the difference between the two type
-     * lists above. An event that opened its own span keeps the ids it recorded. A stamped event
-     * carries the enclosing span's ids -- every statement issued inside one span would otherwise
-     * derive to that same span id, and a span id has to identify exactly one span -- so it is given
-     * a synthetic id and hangs off the span it was stamped with. The synthetic id is a hash rather
-     * than the ordinal itself, so it is spread across the range like a recorded id and reads as one
-     * in the UI; shifting right keeps it inside BIGINT.
+     * The COALESCEs cover an event that carries trace identity without the rest of the shape -- an
+     * older recording, or third-party instrumentation that stamped only the ids. It gets its event
+     * type for a name and the neutral kind and status rather than dropping out of the trace.
      *
-     * The two identity predicates at the end drop events that were never part of a trace: their id
-     * fields are 0, the wire encoding for "absent".
+     * The ids are pulled out once in the CTE, which the filter then reuses by name, so each is read
+     * out of the JSON a single time. The two predicates drop events that were never part of a
+     * trace: their id fields are 0, the wire encoding for "absent".
      */
     //language=SQL
     private static final String DERIVE_TRACE_SPANS = """
-            INSERT INTO trace_spans
-            WITH traced AS (
+            INSERT INTO trace_spans (
+                trace_id, span_id, parent_span_id, name, kind, status, error_type,
+                start_timestamp, start_timestamp_from_beginning, duration, thread_hash,
+                event_type, attributes, event_fields)
+            WITH spans AS (
                 SELECT
                     e.*,
-                    e.event_type IN (%s)                                                AS owns_span,
-                    json_extract_string(e.fields, '$.spanId')::BIGINT                   AS stamped_span_id,
-                    NULLIF(json_extract_string(e.fields, '$.parentSpanId')::BIGINT, 0)  AS stamped_parent_span_id,
-                    ROW_NUMBER() OVER (ORDER BY e.start_timestamp, e.event_type, e.thread_hash) AS ordinal
+                    json_extract_string(e.fields, '$.traceId')::BIGINT                  AS trace_id,
+                    json_extract_string(e.fields, '$.spanId')::BIGINT                   AS span_id,
+                    NULLIF(json_extract_string(e.fields, '$.parentSpanId')::BIGINT, 0)  AS parent_span_id
                 FROM events e
                 WHERE e.event_type IN (%s)
-                  AND COALESCE(json_extract_string(e.fields, '$.traceId')::BIGINT, 0) <> 0
-                  AND COALESCE(json_extract_string(e.fields, '$.spanId')::BIGINT, 0) <> 0
+                  AND COALESCE(trace_id, 0) <> 0
+                  AND COALESCE(span_id, 0) <> 0
             )
             SELECT
-                json_extract_string(e.fields, '$.traceId')::BIGINT                  AS trace_id,
-                CASE
-                    WHEN e.owns_span THEN e.stamped_span_id
-                    ELSE CAST(hash(e.ordinal) >> 1 AS BIGINT)
-                END                                                                 AS span_id,
-                CASE
-                    WHEN e.owns_span THEN e.stamped_parent_span_id
-                    ELSE e.stamped_span_id
-                END                                                                 AS parent_span_id,
-                CASE e.event_type
-                    WHEN 'jeffrey.TraceSpan' THEN json_extract_string(e.fields, '$.name')
-                    WHEN 'jeffrey.HttpServerExchange' THEN
-                        json_extract_string(e.fields, '$.method') || ' ' || json_extract_string(e.fields, '$.uri')
-                    WHEN 'jeffrey.HttpClientExchange' THEN
-                        json_extract_string(e.fields, '$.method') || ' ' || json_extract_string(e.fields, '$.uri')
-                    WHEN 'jeffrey.GrpcServerExchange' THEN
-                        json_extract_string(e.fields, '$.service') || '/' || json_extract_string(e.fields, '$.method')
-                    WHEN 'jeffrey.GrpcClientExchange' THEN
-                        json_extract_string(e.fields, '$.service') || '/' || json_extract_string(e.fields, '$.method')
-                    ELSE COALESCE(json_extract_string(e.fields, '$.name'), e.event_type)
-                END                                                                 AS name,
-                CASE e.event_type
-                    WHEN 'jeffrey.TraceSpan' THEN COALESCE(json_extract_string(e.fields, '$.kind'), 'INTERNAL')
-                    WHEN 'jeffrey.HttpServerExchange' THEN 'SERVER'
-                    WHEN 'jeffrey.GrpcServerExchange' THEN 'SERVER'
-                    ELSE 'CLIENT'
-                END                                                                 AS kind,
-                CASE
-                    WHEN e.event_type = 'jeffrey.TraceSpan'
-                        THEN COALESCE(json_extract_string(e.fields, '$.status'), 'UNSET')
-                    WHEN e.event_type IN ('jeffrey.HttpServerExchange', 'jeffrey.HttpClientExchange')
-                        THEN CASE WHEN TRY_CAST(json_extract_string(e.fields, '$.status') AS BIGINT) >= 400
-                                  THEN 'ERROR' ELSE 'UNSET' END
-                    WHEN e.event_type IN ('jeffrey.GrpcServerExchange', 'jeffrey.GrpcClientExchange')
-                        THEN CASE WHEN json_extract_string(e.fields, '$.status') = 'OK' THEN 'OK' ELSE 'ERROR' END
-                    WHEN json_extract_string(e.fields, '$.isSuccess') = 'false' THEN 'ERROR'
-                    ELSE 'UNSET'
-                END                                                                 AS status,
-                json_extract_string(e.fields, '$.errorType')                        AS error_type,
-                e.fields                                                            AS attributes,
-                e.start_timestamp                                                   AS start_timestamp,
-                COALESCE(e.start_timestamp_from_beginning, 0)                       AS start_timestamp_from_beginning,
-                COALESCE(e.duration, 0)                                             AS duration,
-                e.thread_hash                                                       AS thread_hash,
-                e.event_type                                                        AS event_type
-            FROM traced e
+                trace_id                                                        AS trace_id,
+                span_id                                                         AS span_id,
+                parent_span_id                                                  AS parent_span_id,
+                COALESCE(json_extract_string(fields, '$.name'), event_type)     AS name,
+                COALESCE(json_extract_string(fields, '$.kind'), 'INTERNAL')     AS kind,
+                COALESCE(json_extract_string(fields, '$.status'), 'UNSET')      AS status,
+                json_extract_string(fields, '$.errorType')                      AS error_type,
+                start_timestamp                                                 AS start_timestamp,
+                COALESCE(start_timestamp_from_beginning, 0)                     AS start_timestamp_from_beginning,
+                COALESCE(duration, 0)                                           AS duration,
+                thread_hash                                                     AS thread_hash,
+                event_type                                                      AS event_type,
+                json_extract_string(fields, '$.attributes')                     AS attributes,
+                NULLIF(CAST(json_merge_patch(fields, '%s') AS VARCHAR), '{}')   AS event_fields
+            FROM spans
             """;
 
     /*
      * The root is the earliest span without a parent. The ordering falls back to the earliest span
      * of any kind, so a trace whose real root went unrecorded -- below the event threshold, or
-     * simply not instrumented -- still gets a name instead of dropping out of the list.
+     * simply not instrumented -- still gets a name instead of dropping out of the list. `span_id`
+     * breaks the remaining tie: two parentless spans starting in the same microsecond would
+     * otherwise pick an arbitrary root, and the root's name is the trace's *operation*, so an
+     * arbitrary choice there is an arbitrary answer to "what kind of request was this".
      *
      * Duration spans the whole trace rather than reusing the root's own duration: the same number
      * whenever the root encloses its children, and the more honest one when it does not.
+     *
+     * `has_platform_span` is settled here, once, rather than by a correlated EXISTS per query.
+     * `th.is_virtual = FALSE` is TRUE only for a thread that resolved *and* is a platform thread;
+     * an unresolved thread yields NULL, which BOOL_OR skips, so a trace nobody could place ends up
+     * FALSE -- it cannot promise samples, and offering a flamegraph for it produces an empty one.
      */
     //language=SQL
     private static final String DERIVE_TRACES = """
-            INSERT INTO traces
+            INSERT INTO traces (
+                trace_id, root_name, root_kind, root_event_type, root_span_id, start_timestamp,
+                start_timestamp_from_beginning, duration, span_count, error_count, has_platform_span)
             WITH roots AS (
-                SELECT trace_id, name, kind,
+                SELECT trace_id, name, kind, event_type, span_id,
                        ROW_NUMBER() OVER (PARTITION BY trace_id
-                                          ORDER BY (parent_span_id IS NOT NULL), start_timestamp) AS rn
+                                          ORDER BY (parent_span_id IS NOT NULL),
+                                                   start_timestamp,
+                                                   span_id) AS rn
                 FROM trace_spans
             ),
             aggregated AS (
-                SELECT trace_id,
-                       MIN(start_timestamp)                                                AS start_timestamp,
-                       MIN(start_timestamp_from_beginning)                                 AS start_ms,
-                       MAX(epoch_ns(start_timestamp) + duration)
-                           - MIN(epoch_ns(start_timestamp))                                AS duration,
+                SELECT s.trace_id                                                          AS trace_id,
+                       MIN(s.start_timestamp)                                              AS start_timestamp,
+                       MIN(s.start_timestamp_from_beginning)                               AS start_ms,
+                       MAX(epoch_ns(s.start_timestamp) + s.duration)
+                           - MIN(epoch_ns(s.start_timestamp))                              AS duration,
                        COUNT(*)                                                            AS span_count,
-                       COUNT(*) FILTER (WHERE status = 'ERROR')                            AS error_count
-                FROM trace_spans
-                GROUP BY trace_id
+                       COUNT(*) FILTER (WHERE s.status = 'ERROR')                          AS error_count,
+                       COALESCE(BOOL_OR(th.is_virtual = FALSE), FALSE)                     AS has_platform_span
+                FROM trace_spans s
+                LEFT JOIN threads th ON th.thread_hash = s.thread_hash
+                GROUP BY s.trace_id
             )
-            SELECT a.trace_id, r.name, r.kind, a.start_timestamp, a.start_ms,
-                   a.duration, a.span_count::INTEGER, a.error_count::INTEGER
+            SELECT a.trace_id, r.name, r.kind, r.event_type, r.span_id, a.start_timestamp, a.start_ms,
+                   a.duration, a.span_count::INTEGER, a.error_count::INTEGER, a.has_platform_span
             FROM aggregated a
             JOIN roots r ON r.trace_id = a.trace_id AND r.rn = 1
             """;
+
+    //language=SQL
+    private static final String DELETE_TRACE_SPANS = "DELETE FROM trace_spans";
+
+    //language=SQL
+    private static final String DELETE_TRACES = "DELETE FROM traces";
 
     //language=SQL
     private static final String TRACES_EXIST = """
             SELECT COUNT(*) FROM (SELECT 1 FROM traces LIMIT 1) probe
             """;
 
+    /**
+     * Matches one trace type. All three columns, never the name alone — see {@link TraceOperationId}
+     * for why, and note that any query filtering on less than this silently re-merges what
+     * {@link #OPERATIONS} just separated.
+     */
     //language=SQL
-    private static final String SLOWEST_TRACES = """
+    private static final String OPERATION_PREDICATE =
+            "root_name = :root_name AND root_kind = :root_kind AND root_event_type = :root_event_type";
+
+    /*
+     * The trace header, in the one shape every list and detail reads it in. The three call sites
+     * differ only in how they narrow and order it, which is what `%s` carries — they were three
+     * copies of these ten columns, and a column added to one of them went missing from the others.
+     */
+    //language=SQL
+    private static final String TRACE_SUMMARIES = """
             SELECT
                 trace_id,
                 root_name,
                 root_kind,
+                root_event_type,
                 start_timestamp_from_beginning          AS start_ms,
                 EPOCH_MS(start_timestamp)               AS start_epoch_ms,
                 duration                                AS duration_ns,
                 span_count,
-                error_count
+                error_count,
+                has_platform_span
             FROM traces
+            %s
+            """;
+
+    private static final String SLOWEST_TRACES = TRACE_SUMMARIES.formatted("""
             ORDER BY duration DESC
-            LIMIT :limit
-            """;
+                LIMIT :limit""");
 
-    //language=SQL
-    private static final String TRACES_OF_OPERATION = """
-            SELECT
-                trace_id,
-                root_name,
-                root_kind,
-                start_timestamp_from_beginning          AS start_ms,
-                EPOCH_MS(start_timestamp)               AS start_epoch_ms,
-                duration                                AS duration_ns,
-                span_count,
-                error_count
-            FROM traces
-            WHERE root_name = :root_name
-            ORDER BY start_timestamp
-            LIMIT :limit
-            """;
+    private static final String TRACES_OF_OPERATION = TRACE_SUMMARIES.formatted("""
+            WHERE %s
+                ORDER BY start_timestamp
+                LIMIT :limit""".formatted(OPERATION_PREDICATE));
 
+    private static final String TRACE_BY_ID = TRACE_SUMMARIES.formatted("WHERE trace_id = :trace_id");
+
+    /*
+     * The start is projected as EPOCH_US, not EPOCH_MS: a span is routinely shorter than a
+     * millisecond, so flooring its start to one puts sequential spans on the same instant and the
+     * waterfall then draws them overlapping. Microseconds are all the stored timestamp carries.
+     */
     //language=SQL
     private static final String SPANS_OF_TRACE = """
             SELECT
@@ -246,45 +257,48 @@ public class JdbcTraceRepository implements TraceRepository {
                 s.span_id                               AS span_id,
                 s.parent_span_id                        AS parent_span_id,
                 s.name                                  AS name,
-                s.kind                                  AS kind,
                 s.status                                AS status,
+                s.kind                                  AS kind,
                 s.error_type                            AS error_type,
-                CAST(s.attributes AS VARCHAR)           AS attributes,
                 s.start_timestamp_from_beginning        AS start_ms,
-                EPOCH_MS(s.start_timestamp)             AS start_epoch_ms,
+                EPOCH_US(s.start_timestamp)             AS start_epoch_us,
                 s.duration                              AS duration_ns,
                 COALESCE(s.thread_hash, 0)              AS thread_hash,
                 t.name                                  AS thread_name,
-                s.event_type                            AS event_type
+                COALESCE(t.is_virtual, FALSE)           AS is_virtual,
+                s.event_type                            AS event_type,
+                s.attributes                            AS attributes,
+                s.event_fields                          AS event_fields
             FROM trace_spans s
             LEFT JOIN threads t ON s.thread_hash = t.thread_hash
             WHERE s.trace_id = :trace_id
             ORDER BY s.start_timestamp
             """;
 
+    /*
+     * The window each of an operation's traces occupied on each thread, which is all the span-scoped
+     * flamegraph needs from it.
+     *
+     * Reduced here rather than in Java: this used to fetch every span of every trace of the type --
+     * unbounded, on the hot path of both the panel list and the flamegraph -- only for the manager to
+     * collapse them to one interval per (trace, thread) and drop the rest. A hot operation
+     * materialised hundreds of thousands of span records, each holding up to three strings, per
+     * request. The group-by returns what survives that reduction and nothing else.
+     *
+     * The bounds stay in microseconds, the resolution the stored timestamp carries; crossing into
+     * the events table's millisecond domain happens in one place in the manager, not here.
+     */
     //language=SQL
-    private static final String SPANS_OF_OPERATION = """
+    private static final String OPERATION_INTERVALS = """
             SELECT
-                s.trace_id                              AS trace_id,
-                s.span_id                               AS span_id,
-                s.parent_span_id                        AS parent_span_id,
-                s.name                                  AS name,
-                s.kind                                  AS kind,
-                s.status                                AS status,
-                s.error_type                            AS error_type,
-                CAST(s.attributes AS VARCHAR)           AS attributes,
-                s.start_timestamp_from_beginning        AS start_ms,
-                EPOCH_MS(s.start_timestamp)             AS start_epoch_ms,
-                s.duration                              AS duration_ns,
-                COALESCE(s.thread_hash, 0)              AS thread_hash,
-                th.name                                 AS thread_name,
-                s.event_type                            AS event_type
+                COALESCE(s.thread_hash, 0)                              AS thread_hash,
+                MIN(EPOCH_US(s.start_timestamp))                        AS from_epoch_us,
+                MAX(EPOCH_US(s.start_timestamp) + s.duration // 1000)   AS to_epoch_us
             FROM trace_spans s
             JOIN traces t ON t.trace_id = s.trace_id
-            LEFT JOIN threads th ON s.thread_hash = th.thread_hash
-            WHERE t.root_name = :root_name
-            ORDER BY s.start_timestamp
-            """;
+            WHERE %s
+            GROUP BY s.trace_id, COALESCE(s.thread_hash, 0)
+            """.formatted(OPERATION_PREDICATE);
 
     /*
      * One row of profile-wide totals. Every aggregate is COALESCEd because an untraced profile
@@ -305,7 +319,9 @@ public class JdbcTraceRepository implements TraceRepository {
                 COALESCE(CAST(QUANTILE_CONT(duration, 0.99) AS BIGINT), 0)  AS p99_ns,
                 COALESCE(MAX(duration), 0)                                  AS max_ns,
                 COALESCE(SUM(duration), 0)                                  AS total_ns,
-                COUNT(DISTINCT root_name)                                   AS distinct_operations
+                (SELECT COUNT(*) FROM (
+                    SELECT DISTINCT root_name, root_kind, root_event_type FROM traces
+                ))                                                          AS distinct_operations
             FROM traces
             """;
 
@@ -314,14 +330,18 @@ public class JdbcTraceRepository implements TraceRepository {
      * `trace_spans` because an operation is a kind of trace: grouping spans would list names that
      * only ever appear nested, which no trace can be opened at.
      *
-     * Grouped by name alone with ANY_VALUE(kind) rather than by (name, kind): a name that somehow
-     * carried two kinds would otherwise split into two rows the UI cannot tell apart.
+     * Grouped by the whole trace type rather than by the name with ANY_VALUE over the rest. An
+     * inbound `GET /orders` and an outbound call to the same path are named identically by the same
+     * convention; grouped by name they collapsed into one row whose kind and event-type badges were
+     * whichever value the aggregate happened to sample, and whose count and percentiles mixed two
+     * unrelated populations.
      */
     //language=SQL
     private static final String OPERATIONS = """
             SELECT
                 root_name                                           AS name,
-                ANY_VALUE(root_kind)                                AS kind,
+                root_kind                                           AS kind,
+                root_event_type                                     AS event_type,
                 COUNT(*)                                            AS count,
                 COUNT(*) FILTER (WHERE error_count > 0)             AS error_count,
                 SUM(span_count)                                     AS span_count,
@@ -330,30 +350,95 @@ public class JdbcTraceRepository implements TraceRepository {
                 CAST(QUANTILE_CONT(duration, 0.95) AS BIGINT)       AS p95_ns,
                 MAX(duration)                                       AS max_ns
             FROM traces
-            GROUP BY root_name
+            GROUP BY root_name, root_kind, root_event_type
             ORDER BY total_ns DESC
             LIMIT :limit
             """;
 
     /*
-     * What ran on the span's thread while it was open. The bounds compare the raw start_timestamp
-     * against epoch-micros literals so the predicate stays sargable, replicating the millisecond
-     * floor of `EPOCH_MS(ts) BETWEEN :from AND :to` without a per-row conversion.
+     * Where an operation spends its time, one row per span name across every trace of the type.
+     *
+     * Inclusive by construction: a parent's duration contains its children's, so the rows sum past
+     * the operation's own total. Self time would need the same interval merge the waterfall does
+     * per trace, which is not a group-by; the UI labels the column for what it is.
+     *
+     * The trace's own root is excluded by span id, not by name. By name, an operation that calls
+     * itself -- a handler that recurses, a retry that re-enters the same path -- matched every one
+     * of its nested occurrences too and dropped them all, so the breakdown of the one operation most
+     * worth breaking down came back missing its own recursion.
      */
     //language=SQL
-    private static final String EVENTS_IN_SPAN = """
+    private static final String SPAN_BREAKDOWN_OF_OPERATION = """
             SELECT
-                e.event_type                AS event_type,
-                EPOCH_MS(e.start_timestamp) AS start_epoch_ms,
-                COALESCE(e.duration, 0)     AS duration_ns,
-                CAST(e.fields AS VARCHAR)   AS fields
-            FROM events e
-            WHERE e.thread_hash = :thread_hash
-                AND e.event_type NOT IN (%s)
-                AND e.start_timestamp >= make_timestamptz(:from_ms * 1000)
-                AND e.start_timestamp < make_timestamptz((:to_ms + 1) * 1000)
-            ORDER BY e.start_timestamp
+                s.name                                              AS name,
+                COUNT(*)                                            AS occurrences,
+                COUNT(DISTINCT s.trace_id)                          AS trace_count,
+                SUM(s.duration)                                     AS total_ns,
+                CAST(QUANTILE_CONT(s.duration, 0.5) AS BIGINT)      AS p50_ns,
+                MAX(s.duration)                                     AS max_ns
+            FROM trace_spans s
+            JOIN traces t ON t.trace_id = s.trace_id
+            WHERE %s
+              AND s.span_id <> t.root_span_id
+            GROUP BY s.name
+            ORDER BY total_ns DESC
             LIMIT :limit
+            """.formatted(OPERATION_PREDICATE);
+
+    /*
+     * The platform/virtual split of an operation's spans, which decides whether any of its work can
+     * carry a flamegraph at all -- samples are attributed to the carrier, never the virtual thread.
+     *
+     * Three buckets, not two: a span whose thread did not resolve is neither, and folding it into
+     * the platform count -- which `NOT COALESCE(is_virtual, FALSE)` did -- turned "we do not know"
+     * into "samples are available here" and promised a flamegraph that comes back empty. The same
+     * convention as `traces.has_platform_span`.
+     */
+    //language=SQL
+    private static final String THREADS_OF_OPERATION = """
+            SELECT
+                COUNT(DISTINCT s.thread_hash)                       AS distinct_threads,
+                COUNT(*) FILTER (WHERE th.is_virtual = FALSE)       AS platform_spans,
+                COUNT(*) FILTER (WHERE th.is_virtual = TRUE)        AS virtual_spans,
+                COUNT(*) FILTER (WHERE th.is_virtual IS NULL)       AS unknown_spans
+            FROM trace_spans s
+            JOIN traces t ON t.trace_id = s.trace_id
+            LEFT JOIN threads th ON th.thread_hash = s.thread_hash
+            WHERE %s
+            """.formatted(OPERATION_PREDICATE);
+
+    /**
+     * What ran on the span's thread while it was open, minus the events that are themselves spans —
+     * those belong in the waterfall, not in the list of what happened inside one.
+     * <p>
+     * NOT EXISTS rather than NOT IN: a NOT IN whose subquery yields a single NULL matches nothing at
+     * all, so the drill-down would return zero events rather than fail. {@code event_types.name} is
+     * NOT NULL today, which is the only reason that never happened.
+     */
+    private static final String EVENTS_IN_SPAN = ThreadWindowEvents.excluding(
+            "NOT EXISTS (SELECT 1 FROM (%s) span_types WHERE span_types.name = e.event_type)"
+                    .formatted(SPAN_EVENT_TYPES));
+
+    /*
+     * How the recording described each field of an event type. `columns` is a JSON array the parser
+     * copied out of the recording's metadata, so unnesting it here means the label, description and
+     * content type reach the UI without anyone hand-maintaining a table of them.
+     *
+     * The content type is JFR's own formatting annotation -- jdk.jfr.DataAmount, jdk.jfr.Timespan
+     * and so on -- which is what lets a byte count render as a byte count for every event type at
+     * once, including ones instrumented after this query was written.
+     */
+    //language=SQL
+    private static final String EVENT_FIELDS = """
+            SELECT
+                et.name                                        AS event_type,
+                json_extract_string(f.value, '$.field')        AS field,
+                json_extract_string(f.value, '$.header')       AS label,
+                json_extract_string(f.value, '$.description')  AS description,
+                json_extract_string(f.value, '$.type')         AS content_type
+            FROM event_types et,
+                 UNNEST(CAST(json_extract(et.columns, '$[*]') AS JSON[])) AS f(value)
+            WHERE et.name IN (:event_types)
             """;
 
     private final DatabaseClient databaseClient;
@@ -364,9 +449,17 @@ public class JdbcTraceRepository implements TraceRepository {
 
     @Override
     public void derive() {
+        // Both tables are wholly a function of `events`, so deriving twice must land where deriving
+        // once did. Without this a re-run doubled every span and then failed on the traces primary
+        // key, leaving the profile with spans that no trace header accounts for.
+        databaseClient.execute(StatementLabel.DERIVE_TRACES, DELETE_TRACES);
+        databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, DELETE_TRACE_SPANS);
+
+        // Two placeholders, in the order they appear: which event types are spans, and the keys
+        // stripped out to leave the event's own declared fields.
         databaseClient.execute(
                 StatementLabel.DERIVE_TRACE_SPANS,
-                DERIVE_TRACE_SPANS.formatted(quoted(SPAN_OWNING_EVENT_TYPES), quoted(TRACED_EVENT_TYPES)));
+                DERIVE_TRACE_SPANS.formatted(SPAN_EVENT_TYPES, PLUMBING_FIELDS));
         databaseClient.execute(StatementLabel.DERIVE_TRACES, DERIVE_TRACES);
     }
 
@@ -383,36 +476,29 @@ public class JdbcTraceRepository implements TraceRepository {
                 StatementLabel.LIST_TRACES,
                 SLOWEST_TRACES,
                 params,
-                (rs, _) -> new TraceSummaryRecord(
-                        rs.getLong("trace_id"),
-                        rs.getString("root_name"),
-                        rs.getString("root_kind"),
-                        rs.getLong("start_ms"),
-                        rs.getLong("start_epoch_ms"),
-                        rs.getLong("duration_ns"),
-                        rs.getInt("span_count"),
-                        rs.getInt("error_count")));
+                traceSummaryMapper());
     }
 
     @Override
-    public List<TraceSummaryRecord> tracesOfOperation(String rootName, int limit) {
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("root_name", rootName)
-                .addValue("limit", limit);
+    public List<TraceSummaryRecord> tracesOfOperation(TraceOperationId operation, int limit) {
+        MapSqlParameterSource params = operationParams(operation).addValue("limit", limit);
 
         return databaseClient.query(
                 StatementLabel.TRACE_OPERATION_TRACES,
                 TRACES_OF_OPERATION,
                 params,
-                (rs, _) -> new TraceSummaryRecord(
-                        rs.getLong("trace_id"),
-                        rs.getString("root_name"),
-                        rs.getString("root_kind"),
-                        rs.getLong("start_ms"),
-                        rs.getLong("start_epoch_ms"),
-                        rs.getLong("duration_ns"),
-                        rs.getInt("span_count"),
-                        rs.getInt("error_count")));
+                traceSummaryMapper());
+    }
+
+    @Override
+    public Optional<TraceSummaryRecord> summaryOf(long traceId) {
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("trace_id", traceId);
+
+        return databaseClient.querySingle(
+                StatementLabel.LIST_TRACES,
+                TRACE_BY_ID,
+                params,
+                traceSummaryMapper());
     }
 
     @Override
@@ -427,20 +513,40 @@ public class JdbcTraceRepository implements TraceRepository {
     }
 
     @Override
-    public List<TraceSpanRecord> spansOfOperation(String rootName) {
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("root_name", rootName);
-
+    public List<SpanInterval> operationIntervals(TraceOperationId operation) {
         return databaseClient.query(
                 StatementLabel.TRACE_OPERATION_SPANS,
-                SPANS_OF_OPERATION,
-                params,
-                traceSpanMapper());
+                OPERATION_INTERVALS,
+                operationParams(operation),
+                (rs, _) -> new SpanInterval(
+                        rs.getLong("thread_hash"),
+                        Math.floorDiv(rs.getLong("from_epoch_us"), MICROS_PER_MILLI),
+                        Math.floorDiv(rs.getLong("to_epoch_us"), MICROS_PER_MILLI)));
     }
 
-    /**
-     * The fourteen-column projection shared by {@link #spansOf(long)} and
-     * {@link #spansOfOperation(String)} — same columns, different {@code WHERE} clause.
-     */
+    private static MapSqlParameterSource operationParams(TraceOperationId operation) {
+        return new MapSqlParameterSource()
+                .addValue("root_name", operation.name())
+                .addValue("root_kind", operation.kind())
+                .addValue("root_event_type", operation.eventType());
+    }
+
+    /** The projection shared by every read of a trace header — same columns, different narrowing. */
+    private static RowMapper<TraceSummaryRecord> traceSummaryMapper() {
+        return (rs, _) -> new TraceSummaryRecord(
+                rs.getLong("trace_id"),
+                rs.getString("root_name"),
+                rs.getString("root_kind"),
+                rs.getString("root_event_type"),
+                rs.getLong("start_ms"),
+                rs.getLong("start_epoch_ms"),
+                rs.getLong("duration_ns"),
+                rs.getInt("span_count"),
+                rs.getInt("error_count"),
+                rs.getBoolean("has_platform_span"));
+    }
+
+    /** The projection every span read shares — same columns, different {@code WHERE} clause. */
     private static RowMapper<TraceSpanRecord> traceSpanMapper() {
         return (rs, _) -> new TraceSpanRecord(
                 rs.getLong("trace_id"),
@@ -450,13 +556,15 @@ public class JdbcTraceRepository implements TraceRepository {
                 rs.getString("kind"),
                 rs.getString("status"),
                 rs.getString("error_type"),
-                rs.getString("attributes"),
                 rs.getLong("start_ms"),
-                rs.getLong("start_epoch_ms"),
+                rs.getLong("start_epoch_us"),
                 rs.getLong("duration_ns"),
                 rs.getLong("thread_hash"),
                 rs.getString("thread_name"),
-                rs.getString("event_type"));
+                rs.getBoolean("is_virtual"),
+                rs.getString("event_type"),
+                rs.getString("attributes"),
+                rs.getString("event_fields"));
     }
 
     @Override
@@ -490,6 +598,7 @@ public class JdbcTraceRepository implements TraceRepository {
                 (rs, _) -> new TraceOperationRecord(
                         rs.getString("name"),
                         rs.getString("kind"),
+                        rs.getString("event_type"),
                         rs.getLong("count"),
                         rs.getLong("error_count"),
                         rs.getLong("span_count"),
@@ -500,22 +609,65 @@ public class JdbcTraceRepository implements TraceRepository {
     }
 
     @Override
-    public List<TraceEventRecord> eventsInSpan(long threadHash, long fromEpochMillis, long toEpochMillis) {
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("thread_hash", threadHash)
-                .addValue("from_ms", fromEpochMillis)
-                .addValue("to_ms", toEpochMillis)
-                .addValue("limit", SPAN_EVENTS_LIMIT);
+    public List<TraceOperationSpanRecord> spanBreakdownOfOperation(TraceOperationId operation, int limit) {
+        MapSqlParameterSource params = operationParams(operation).addValue("limit", limit);
 
         return databaseClient.query(
-                StatementLabel.TRACE_SPAN_EVENTS,
-                EVENTS_IN_SPAN.formatted(quoted(TRACED_EVENT_TYPES)),
+                StatementLabel.TRACE_OPERATION_SPAN_BREAKDOWN,
+                SPAN_BREAKDOWN_OF_OPERATION,
                 params,
-                (rs, _) -> new TraceEventRecord(
+                (rs, _) -> new TraceOperationSpanRecord(
+                        rs.getString("name"),
+                        rs.getLong("occurrences"),
+                        rs.getLong("trace_count"),
+                        rs.getLong("total_ns"),
+                        rs.getLong("p50_ns"),
+                        rs.getLong("max_ns")));
+    }
+
+    @Override
+    public TraceOperationThreadsRecord threadsOfOperation(TraceOperationId operation) {
+        return databaseClient.querySingle(
+                        StatementLabel.TRACE_OPERATION_THREADS,
+                        THREADS_OF_OPERATION,
+                        operationParams(operation),
+                        (rs, _) -> new TraceOperationThreadsRecord(
+                                rs.getLong("distinct_threads"),
+                                rs.getLong("platform_spans"),
+                                rs.getLong("virtual_spans"),
+                                rs.getLong("unknown_spans")))
+                .orElse(TraceOperationThreadsRecord.EMPTY);
+    }
+
+    @Override
+    public List<ThreadWindowEventRecord> eventsInSpan(long threadHash, long fromEpochMillis, long toEpochMillis) {
+        return databaseClient.query(
+                StatementLabel.TRACE_SPAN_EVENTS,
+                EVENTS_IN_SPAN,
+                ThreadWindowEvents.params(threadHash, fromEpochMillis, toEpochMillis),
+                ThreadWindowEvents.mapper());
+    }
+
+    @Override
+    public List<EventFieldRecord> eventFieldsOf(List<String> eventTypes) {
+        // An empty IN list is a SQL syntax error in DuckDB, and there is nothing to describe anyway.
+        if (eventTypes.isEmpty()) {
+            return List.of();
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("event_types", eventTypes);
+
+        return databaseClient.query(
+                StatementLabel.TRACE_EVENT_FIELDS,
+                EVENT_FIELDS,
+                params,
+                (rs, _) -> new EventFieldRecord(
                         rs.getString("event_type"),
-                        rs.getLong("start_epoch_ms"),
-                        rs.getLong("duration_ns"),
-                        rs.getString("fields")));
+                        rs.getString("field"),
+                        rs.getString("label"),
+                        rs.getString("description"),
+                        rs.getString("content_type")));
     }
 
     /**
@@ -525,12 +677,5 @@ public class JdbcTraceRepository implements TraceRepository {
     private static Long nullableLong(ResultSet rs, String column) throws SQLException {
         long value = rs.getLong(column);
         return rs.wasNull() ? null : value;
-    }
-
-    /** The event types as a SQL {@code IN} list. They are constants, never user input. */
-    private static String quoted(List<String> eventTypes) {
-        return eventTypes.stream()
-                .map(type -> "'" + type + "'")
-                .collect(Collectors.joining(", "));
     }
 }

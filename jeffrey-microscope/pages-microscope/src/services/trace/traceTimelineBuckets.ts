@@ -23,36 +23,48 @@ export interface TimelineBucket {
   count: number;
 }
 
+/** The stretch of time a timeline covers, in the same unit as the items' starts. */
+export interface TimelineWindow {
+  from: number;
+  to: number;
+}
+
 /**
- * Buckets timestamped items into a fixed number of equal columns spanning the observed range.
+ * Buckets timestamped items into a fixed number of equal columns.
  *
  * Shared by the async-profiler tag detail and the trace operation detail: both plot "how slow was
  * the worst one, and how many were there" over time, and differ only in what they are counting.
  *
  * @param items        the items to bucket; an empty list produces no buckets at all
- * @param startMillis  reads an item's start as UTC epoch millis
+ * @param startMillis  reads an item's start, in whatever unit {@code window} is expressed in
  * @param durationNanos reads an item's duration in nanoseconds
  * @param bucketCount  how many columns to produce
+ * @param window       the stretch to span. Pass the recording's own window so a burst of activity
+ *                     is drawn where it happened rather than filling the chart; omit it to fall
+ *                     back to the range the items themselves cover.
  */
 export function timelineBuckets<T>(
   items: T[],
   startMillis: (item: T) => number,
   durationNanos: (item: T) => number,
-  bucketCount: number
+  bucketCount: number,
+  window?: TimelineWindow
 ): TimelineBucket[] {
   if (items.length === 0) {
     return [];
   }
 
-  let min = Infinity;
-  let max = -Infinity;
-  for (const item of items) {
-    const start = startMillis(item);
-    if (start < min) {
-      min = start;
-    }
-    if (start > max) {
-      max = start;
+  let min = window ? window.from : Infinity;
+  let max = window ? window.to : -Infinity;
+  if (!window) {
+    for (const item of items) {
+      const start = startMillis(item);
+      if (start < min) {
+        min = start;
+      }
+      if (start > max) {
+        max = start;
+      }
     }
   }
 
@@ -65,7 +77,10 @@ export function timelineBuckets<T>(
   }
 
   for (const item of items) {
-    const index = Math.min(bucketCount - 1, Math.floor((startMillis(item) - min) / width));
+    // Clamped at both ends: with an explicit window an item can sit outside it, and dropping it
+    // would make the counts disagree with the list the same page shows.
+    const offset = Math.floor((startMillis(item) - min) / width);
+    const index = Math.min(bucketCount - 1, Math.max(0, offset));
     const bucket = buckets[index];
     bucket.count++;
     const duration = durationNanos(item);

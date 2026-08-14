@@ -114,6 +114,11 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
+    public SamplerHealthManager samplerHealthManager() {
+        return registry.analysis().samplerHealth().apply(profileInfo);
+    }
+
+    @Override
     public ThreadManager threadManager() {
         return registry.jvmInsight().thread().apply(profileInfo);
     }

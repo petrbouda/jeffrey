@@ -30,7 +30,6 @@ import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
 import cafe.jeffrey.microscope.core.web.dto.response.ProfileWithContextResponse;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.workspace.WorkspaceInfo;
 
@@ -74,7 +73,7 @@ public class ProfilesController {
         }
 
         var result = allProfiles.stream()
-                .sorted(Comparator.comparing(ProfileWithContextResponse::createdAt).reversed())
+                .sorted(Comparator.comparingLong(ProfileWithContextResponse::createdAt).reversed())
                 .toList();
         LOG.debug("Listed all profiles on server: hub_id={} count={}", hubId, result.size());
         return result;
@@ -92,7 +91,7 @@ public class ProfilesController {
                 projectName,
                 profileInfo.workspaceId(),
                 workspaceName,
-                InstantUtils.formatInstant(profileInfo.createdAt()),
+                profileInfo.createdAt().toEpochMilli(),
                 profileInfo.eventSource(),
                 profileInfo.enabled(),
                 profileInfo.modified(),

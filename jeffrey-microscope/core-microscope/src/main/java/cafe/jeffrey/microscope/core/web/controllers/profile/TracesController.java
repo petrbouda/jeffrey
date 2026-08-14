@@ -28,9 +28,12 @@ import cafe.jeffrey.profile.manager.model.trace.TraceEventRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
+import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.resources.request.GenerateTraceOperationFlamegraphRequest;
 import cafe.jeffrey.profile.resources.request.GenerateTraceSpanFlamegraphRequest;
+import cafe.jeffrey.profile.resources.request.SpanFlamegraphOptions;
+import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 import org.slf4j.Logger;
@@ -66,6 +69,10 @@ public class TracesController {
     private static final String DEFAULT_TRACES_LIMIT = "100";
     private static final String DEFAULT_OPERATIONS_LIMIT = "100";
     private static final String DEFAULT_OPERATION_TRACES_LIMIT = "1000";
+    /** Enough span names to see where the time goes; the tail of a long list is never read. */
+    private static final String DEFAULT_OPERATION_SPANS_LIMIT = "20";
+    /** The most rows any of these lists can usefully render, and the ceiling a caller cannot raise. */
+    private static final int MAX_LIMIT = 10_000;
 
     private final ProfileManagerResolver resolver;
     private final JfrFlamegraphPanelProvider panelProvider;
@@ -79,17 +86,18 @@ public class TracesController {
     public List<TraceRow> traces(
             @PathVariable("profileId") String profileId,
             @RequestParam(value = "limit", defaultValue = DEFAULT_TRACES_LIMIT) int limit) {
-        LOG.debug("Listing slowest traces: profileId={} limit={}", profileId, limit);
-        return resolver.resolve(profileId).traceManager().slowestTraces(limit);
+        LOG.debug("Listing slowest traces: profile_id={} limit={}", profileId, limit);
+        return resolver.resolve(profileId).traceManager().slowestTraces(boundedLimit(limit));
     }
 
     /**
-     * Profile-wide totals for the summary above the trace list. Mapped before {@code /{traceId}} so
-     * the literal path is the obvious one to read, not merely the one Spring happens to prefer.
+     * Profile-wide totals for the summary above the trace list. Spring prefers the literal path over
+     * the {@code /{traceId}} template regardless of declaration order; the two are grouped here for
+     * a reader, not for the dispatcher.
      */
     @GetMapping("/overview")
     public TraceOverview overview(@PathVariable("profileId") String profileId) {
-        LOG.debug("Reading trace overview: profileId={}", profileId);
+        LOG.debug("Reading trace overview: profile_id={}", profileId);
         return resolver.resolve(profileId).traceManager().overview();
     }
 
@@ -97,8 +105,8 @@ public class TracesController {
     public List<TraceOperationRow> operations(
             @PathVariable("profileId") String profileId,
             @RequestParam(value = "limit", defaultValue = DEFAULT_OPERATIONS_LIMIT) int limit) {
-        LOG.debug("Aggregating trace operations: profileId={} limit={}", profileId, limit);
-        return resolver.resolve(profileId).traceManager().operations(limit);
+        LOG.debug("Aggregating trace operations: profile_id={} limit={}", profileId, limit);
+        return resolver.resolve(profileId).traceManager().operations(boundedLimit(limit));
     }
 
     /**
@@ -112,16 +120,38 @@ public class TracesController {
     public List<TraceRow> operationTraces(
             @PathVariable("profileId") String profileId,
             @RequestParam("name") String name,
+            @RequestParam("kind") String kind,
+            @RequestParam("eventType") String eventType,
             @RequestParam(value = "limit", defaultValue = DEFAULT_OPERATION_TRACES_LIMIT) int limit) {
-        LOG.debug("Listing traces of an operation: profileId={} name={} limit={}", profileId, name, limit);
-        return resolver.resolve(profileId).traceManager().tracesOfOperation(name, limit);
+        LOG.debug("Listing traces of an operation: profile_id={} name={} kind={} event_type={} limit={}",
+                profileId, name, kind, eventType, limit);
+        return resolver.resolve(profileId).traceManager()
+                .tracesOfOperation(new TraceOperationId(name, kind, eventType), boundedLimit(limit));
+    }
+
+    /**
+     * The parts of an operation's summary that cannot be worked out from the trace list: its span
+     * breakdown and its thread split. Everything else on that page is arithmetic over the traces
+     * the caller already fetched, so it is not repeated here.
+     */
+    @GetMapping("/operation/summary")
+    public TraceOperationSummary operationSummary(
+            @PathVariable("profileId") String profileId,
+            @RequestParam("name") String name,
+            @RequestParam("kind") String kind,
+            @RequestParam("eventType") String eventType,
+            @RequestParam(value = "spanLimit", defaultValue = DEFAULT_OPERATION_SPANS_LIMIT) int spanLimit) {
+        LOG.debug("Summarising an operation: profile_id={} name={} kind={} event_type={} span_limit={}",
+                profileId, name, kind, eventType, spanLimit);
+        return resolver.resolve(profileId).traceManager()
+                .operationSummary(new TraceOperationId(name, kind, eventType), boundedLimit(spanLimit));
     }
 
     @GetMapping("/{traceId}")
     public TraceDetail trace(
             @PathVariable("profileId") String profileId,
             @PathVariable("traceId") String traceId) {
-        LOG.debug("Loading trace: profileId={} trace_id={}", profileId, traceId);
+        LOG.debug("Loading trace: profile_id={} trace_id={}", profileId, traceId);
         return resolver.resolve(profileId).traceManager()
                 .trace(parseId(traceId))
                 .orElseThrow(() -> Exceptions.resourceNotFound("Trace not found: " + traceId));
@@ -137,7 +167,7 @@ public class TracesController {
             @PathVariable("profileId") String profileId,
             @PathVariable("traceId") String traceId,
             @PathVariable("spanId") String spanId) {
-        LOG.debug("Listing events inside a span: profileId={} trace_id={} span_id={}",
+        LOG.debug("Listing events inside a span: profile_id={} trace_id={} span_id={}",
                 profileId, traceId, spanId);
         return resolver.resolve(profileId).traceManager()
                 .eventsInSpan(parseId(traceId), parseId(spanId));
@@ -153,17 +183,12 @@ public class TracesController {
             @PathVariable("traceId") String traceId,
             @PathVariable("spanId") String spanId,
             @RequestParam(value = "selfOnly", defaultValue = "false") boolean selfOnly) {
-        LOG.debug("Building span-scoped flamegraph panels: profileId={} trace_id={} span_id={} self_only={}",
+        LOG.debug("Building span-scoped flamegraph panels: profile_id={} trace_id={} span_id={} self_only={}",
                 profileId, traceId, spanId, selfOnly);
         ProfileManager profileManager = resolver.resolve(profileId);
 
-        List<SpanInterval> intervals = profileManager.traceManager()
-                .spanIntervals(parseId(traceId), parseId(spanId), selfOnly);
-        if (intervals.isEmpty()) {
-            return List.of();
-        }
-        return panelProvider.panels(
-                profileManager.flamegraphManager().eventSummaries(intervals), PanelContext.PRIMARY);
+        return panelsFor(profileManager, profileManager.traceManager()
+                .spanIntervals(parseId(traceId), parseId(spanId), selfOnly));
     }
 
     /**
@@ -171,24 +196,20 @@ public class TracesController {
      * traces in the same recording as the profile.
      */
     @PostMapping(value = "/{traceId}/spans/{spanId}/flamegraph",
-            produces = FlamegraphController.PROTOBUF_MEDIA_TYPE)
+            produces = ProfileMediaTypes.PROTOBUF)
     public byte[] spanFlamegraph(
             @PathVariable("profileId") String profileId,
             @PathVariable("traceId") String traceId,
             @PathVariable("spanId") String spanId,
             @RequestBody GenerateTraceSpanFlamegraphRequest request) {
-        LOG.debug("Generating span flamegraph: profileId={} trace_id={} span_id={} self_only={}",
+        LOG.debug("Generating span flamegraph: profile_id={} trace_id={} span_id={} self_only={}",
                 profileId, traceId, spanId, request.selfOnly());
         ProfileManager profileManager = resolver.resolve(profileId);
 
         List<SpanInterval> intervals = profileManager.traceManager()
                 .spanIntervals(parseId(traceId), parseId(spanId), request.selfOnly());
-        if (intervals.isEmpty()) {
-            throw Exceptions.resourceNotFound("Span has no samples to show: " + spanId);
-        }
-
-        GraphParameters params = SpanScopedGraphParameters.of(profileManager.info(), request, intervals);
-        return profileManager.flamegraphManager().generate(params);
+        return flamegraphFor(profileManager, request, intervals,
+                "Span has no samples to show: " + spanId);
     }
 
     /**
@@ -198,11 +219,40 @@ public class TracesController {
     @GetMapping("/operation/panels")
     public List<FlamegraphPanel> operationPanels(
             @PathVariable("profileId") String profileId,
-            @RequestParam("name") String name) {
-        LOG.debug("Building operation-scoped flamegraph panels: profileId={} name={}", profileId, name);
+            @RequestParam("name") String name,
+            @RequestParam("kind") String kind,
+            @RequestParam("eventType") String eventType) {
+        LOG.debug("Building operation-scoped flamegraph panels: profile_id={} name={} kind={} event_type={}",
+                profileId, name, kind, eventType);
         ProfileManager profileManager = resolver.resolve(profileId);
 
-        List<SpanInterval> intervals = profileManager.traceManager().operationIntervals(name);
+        return panelsFor(profileManager, profileManager.traceManager()
+                .operationIntervals(new TraceOperationId(name, kind, eventType)));
+    }
+
+    /**
+     * A flamegraph of the samples taken while any trace of one type was running — "what does this
+     * kind of request spend its time on", as opposed to the single-span graph next door.
+     */
+    @PostMapping(value = "/operation/flamegraph", produces = ProfileMediaTypes.PROTOBUF)
+    public byte[] operationFlamegraph(
+            @PathVariable("profileId") String profileId,
+            @RequestBody GenerateTraceOperationFlamegraphRequest request) {
+        LOG.debug("Generating operation flamegraph: profile_id={} name={} kind={} event_type={}",
+                profileId, request.name(), request.kind(), request.rootEventType());
+        ProfileManager profileManager = resolver.resolve(profileId);
+
+        List<SpanInterval> intervals = profileManager.traceManager()
+                .operationIntervals(request.operationId());
+        return flamegraphFor(profileManager, request, intervals,
+                "Operation has no samples to show: " + request.name());
+    }
+
+    /**
+     * The flamegraph cards for a set of intervals, or none when the scope covers nothing. A scope
+     * with no intervals is a normal answer here — the caller is asking what is available.
+     */
+    private List<FlamegraphPanel> panelsFor(ProfileManager profileManager, List<SpanInterval> intervals) {
         if (intervals.isEmpty()) {
             return List.of();
         }
@@ -211,24 +261,31 @@ public class TracesController {
     }
 
     /**
-     * A flamegraph of the samples taken while any trace of one type was running — "what does this
-     * kind of request spend its time on", as opposed to the single-span graph next door.
+     * A flamegraph over a set of intervals. Unlike {@link #panelsFor}, an empty scope is a 404: the
+     * caller asked for a specific graph, and there is no such graph to send.
      */
-    @PostMapping(value = "/operation/flamegraph", produces = FlamegraphController.PROTOBUF_MEDIA_TYPE)
-    public byte[] operationFlamegraph(
-            @PathVariable("profileId") String profileId,
-            @RequestBody GenerateTraceOperationFlamegraphRequest request) {
-        LOG.debug("Generating operation flamegraph: profileId={} name={} eventType={}",
-                profileId, request.name(), request.eventType());
-        ProfileManager profileManager = resolver.resolve(profileId);
+    private static byte[] flamegraphFor(
+            ProfileManager profileManager,
+            SpanFlamegraphOptions request,
+            List<SpanInterval> intervals,
+            String notFoundMessage) {
 
-        List<SpanInterval> intervals = profileManager.traceManager().operationIntervals(request.name());
         if (intervals.isEmpty()) {
-            throw Exceptions.resourceNotFound("Operation has no samples to show: " + request.name());
+            throw Exceptions.resourceNotFound(notFoundMessage);
         }
-
         GraphParameters params = SpanScopedGraphParameters.of(profileManager.info(), request, intervals);
         return profileManager.flamegraphManager().generate(params);
+    }
+
+    /**
+     * Keeps a caller-supplied row cap inside what the page can use. A limit is a page size, not a
+     * request for the whole table: {@code ?limit=100000000} was previously passed to SQL verbatim.
+     */
+    private static int boundedLimit(int limit) {
+        if (limit < 1) {
+            return 1;
+        }
+        return Math.min(limit, MAX_LIMIT);
     }
 
     /**

@@ -152,7 +152,7 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
         String host = jsonFields.path("remoteHost").asString("");
         int port = jsonFields.path("remotePort").asInt(-1);
         String method = jsonFields.path("method").asString("");
-        String statusStr = jsonFields.path("status").asString("0");
+        String statusStr = jsonFields.path("statusCode").asString("0");
         int status = parseStatusCode(statusStr);
         long requestLength = jsonFields.path("requestLength").asLong(-1);
         long responseLength = jsonFields.path("responseLength").asLong(-1);

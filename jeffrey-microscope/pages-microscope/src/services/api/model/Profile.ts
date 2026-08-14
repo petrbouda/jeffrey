@@ -20,16 +20,16 @@ import RecordingEventSource from '@workspaces/services/api/model/RecordingEventS
 export default class Profile {
   public deleting: boolean = false;
 
-  // Present on the raw API payload of GET /profiles/{profileId} (ISO timestamps).
-  public profilingStartedAt?: string;
-  public profilingFinishedAt?: string;
+  // Present on the raw API payload of GET /profiles/{profileId} (epoch millis).
+  public profilingStartedAt?: number;
+  public profilingFinishedAt?: number;
 
   constructor(
     public id: string,
     public projectId: string,
     public workspaceId: string,
     public name: string,
-    public createdAt: string,
+    public createdAt: number,
     public eventSource: RecordingEventSource,
     public enabled: boolean,
     public modified: boolean,

@@ -21,10 +21,23 @@ import FlamegraphPanel from '@/services/api/model/FlamegraphPanel';
 import type {
   TraceDetail,
   TraceEventRow,
+  TraceOperationId,
   TraceOperationRow,
+  TraceOperationSummary,
   TraceOverview,
   TraceRow
 } from '@/services/api/model/trace/TraceModels';
+
+/**
+ * A trace type as query parameters. All three travel together — narrowing on the name alone would
+ * merge an inbound call with an outbound one of the same name.
+ *
+ * They are query parameters rather than path segments because operation names contain slashes and
+ * braces (`GET /api/internal/profiles/{profileId}/heap/instances`).
+ */
+function operationParams(operation: TraceOperationId): Record<string, string> {
+  return { name: operation.name, kind: operation.kind, eventType: operation.eventType };
+}
 
 export default class ProfileTracesClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -55,16 +68,24 @@ export default class ProfileTracesClient extends BaseProfileClient {
    * The traces of one type, chronologically. One call feeds both the timeline and the slowest list
    * of the operation drill-down.
    */
-  public getOperationTraces(name: string, limit?: number): Promise<TraceRow[]> {
-    return this.get<TraceRow[]>(
-      '/operation/traces',
-      limit === undefined ? { name } : { name, limit }
-    );
+  public getOperationTraces(operation: TraceOperationId, limit?: number): Promise<TraceRow[]> {
+    return this.get<TraceRow[]>('/operation/traces', {
+      ...operationParams(operation),
+      ...(limit === undefined ? {} : { limit })
+    });
+  }
+
+  /**
+   * The span breakdown and thread split of one operation — the parts of its summary that are not
+   * arithmetic over the trace list the caller already has.
+   */
+  public getOperationSummary(operation: TraceOperationId): Promise<TraceOperationSummary> {
+    return this.get<TraceOperationSummary>('/operation/summary', operationParams(operation));
   }
 
   /** Which event types recorded samples inside the traces of one type, with their real counts. */
-  public getOperationPanels(name: string): Promise<FlamegraphPanel[]> {
-    return this.get<FlamegraphPanel[]>('/operation/panels', { name });
+  public getOperationPanels(operation: TraceOperationId): Promise<FlamegraphPanel[]> {
+    return this.get<FlamegraphPanel[]>('/operation/panels', operationParams(operation));
   }
 
   /** What the JVM was doing on the span's thread while it was open. */

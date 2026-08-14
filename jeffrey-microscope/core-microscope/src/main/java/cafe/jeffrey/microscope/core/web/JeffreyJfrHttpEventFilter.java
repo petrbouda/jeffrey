@@ -53,6 +53,9 @@ public class JeffreyJfrHttpEventFilter extends OncePerRequestFilter {
 
     private static final String HTTP_SPAN_TAG_PREFIX = "http.";
 
+    /** Stands in for the URI of a request that matched no handler — see {@link #resolveTemplateUri}. */
+    private static final String UNMATCHED_URI = "<unmatched>";
+
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
@@ -97,8 +100,8 @@ public class JeffreyJfrHttpEventFilter extends OncePerRequestFilter {
                     event.pathParams = Json.toString(extractPathParameters(request));
                     event.requestLength = parseLong(request.getHeader("Content-Length"));
                     event.responseLength = parseLong(response.getHeader("Content-Length"));
-                    event.status = response.getStatus();
-                    event.commit();
+                    event.statusCode = response.getStatus();
+                    event.commitSpan();
                 }
             }
         } finally {
@@ -118,13 +121,24 @@ public class JeffreyJfrHttpEventFilter extends OncePerRequestFilter {
         // the tag low-cardinality. start() returned a token only; skipping end() emits nothing.
     }
 
+    /**
+     * The matched handler pattern, which is what keeps the span name low-cardinality — one operation
+     * per endpoint rather than one per distinct path.
+     * <p>
+     * A request that matched no handler — a static asset, a 404 — falls back to a fixed placeholder
+     * rather than to its raw URI. The name becomes {@code traces.root_name}, i.e. the identity of a
+     * whole trace type, so the raw URI produced one "operation" per asset and per mistyped path,
+     * against the stable-and-low-cardinality contract {@code AbstractTracedEvent.name} states. The
+     * async-profiler span below does the same thing by skipping such requests outright; the exchange
+     * still records them, so it names them together instead.
+     */
     private static String resolveTemplateUri(HttpServletRequest request) {
         Object pattern = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
         if (pattern instanceof String s && !s.isEmpty()) {
             String contextPath = request.getContextPath();
             return (contextPath == null || contextPath.isEmpty()) ? s : contextPath + s;
         }
-        return request.getRequestURI();
+        return UNMATCHED_URI;
     }
 
     @SuppressWarnings("unchecked")

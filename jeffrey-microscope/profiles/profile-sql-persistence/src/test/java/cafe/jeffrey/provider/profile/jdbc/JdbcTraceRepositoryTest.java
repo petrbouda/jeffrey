@@ -20,11 +20,15 @@ package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.SpanStatus;
-import cafe.jeffrey.provider.profile.api.TraceEventRecord;
+import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
+import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationRecord;
+import cafe.jeffrey.provider.profile.api.TraceOperationSpanRecord;
+import cafe.jeffrey.provider.profile.api.TraceOperationThreadsRecord;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
+import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
 import cafe.jeffrey.test.TestUtils;
@@ -49,13 +53,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class JdbcTraceRepositoryTest {
 
     private static final long MS = 1_000_000L;
+    private static final long US_PER_MS = 1_000L;
     private static final long SLOW_TRACE = Long.MAX_VALUE;
     private static final long FAST_TRACE = Long.MIN_VALUE;
     private static final long NEGATIVE_SPAN_ID = -8113938001533374712L;
-    /** The HTTP exchange the whole slow trace hangs off, and the span both statements are stamped with. */
+    /** The HTTP exchange the whole slow trace hangs off, and the parent of both statements. */
     private static final long ROOT_SPAN_ID = 111L;
+    /** The span of an event that carries trace ids but none of the rest of the span shape. */
+    private static final long BARE_SPAN_ID = 444L;
     /** 2025-01-15T10:00:00Z, the fixture's origin, as epoch millis. */
     private static final long EPOCH_10_00_00 = 1736935200000L;
+
+    private static final String HTTP_SERVER_EXCHANGE = "jeffrey.HttpServerExchange";
+
+    private static final TraceOperationId FLAMEGRAPH_OPERATION = operation(
+            "POST /api/internal/profiles/{profileId}/flamegraph", "SERVER", HTTP_SERVER_EXCHANGE);
+    private static final TraceOperationId HEALTH_OPERATION =
+            operation("GET /api/internal/health", "SERVER", HTTP_SERVER_EXCHANGE);
+
+    private static TraceOperationId operation(String name, String kind, String eventType) {
+        return new TraceOperationId(name, kind, eventType);
+    }
 
     private static JdbcTraceRepository derived(DataSource dataSource) throws SQLException {
         TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
@@ -65,8 +83,159 @@ class JdbcTraceRepositoryTest {
     }
 
     @Nested
+    @DisplayName("Operation identity")
+    class OperationIdentity {
+
+        private static final TraceOperationId INBOUND_HEALTH = HEALTH_OPERATION;
+        private static final TraceOperationId OUTBOUND_HEALTH =
+                operation("GET /api/internal/health", "CLIENT", "jeffrey.HttpClientExchange");
+        private static final TraceOperationId ORDERS =
+                operation("POST /orders", "SERVER", HTTP_SERVER_EXCHANGE);
+
+        private JdbcTraceRepository withBothDirections(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-operation-identity-traces.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+            return repository;
+        }
+
+        @Test
+        @DisplayName("an inbound and an outbound call of the same name are two operations")
+        void sameNameDifferentDirection(DataSource dataSource) throws SQLException {
+            List<TraceOperationRecord> health = withBothDirections(dataSource).operations(100).stream()
+                    .filter(row -> "GET /api/internal/health".equals(row.name()))
+                    .toList();
+
+            assertEquals(2, health.size(), "grouping by name alone merged these into one row");
+            assertEquals(List.of("CLIENT", "SERVER"),
+                    health.stream().map(TraceOperationRecord::kind).sorted().toList());
+            assertTrue(health.stream().allMatch(row -> row.count() == 1),
+                    "neither row may absorb the other's traces");
+        }
+
+        @Test
+        @DisplayName("drilling into one direction does not pick up the other's traces")
+        void drillDownIsScopedToOneDirection(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withBothDirections(dataSource);
+
+            List<TraceSummaryRecord> inbound = repository.tracesOfOperation(INBOUND_HEALTH, 100);
+            List<TraceSummaryRecord> outbound = repository.tracesOfOperation(OUTBOUND_HEALTH, 100);
+
+            assertEquals(List.of(FAST_TRACE), inbound.stream().map(TraceSummaryRecord::traceId).toList());
+            assertEquals(List.of(1001L), outbound.stream().map(TraceSummaryRecord::traceId).toList());
+        }
+
+        @Test
+        @DisplayName("an operation that calls itself keeps its nested occurrences in the breakdown")
+        void recursionSurvivesTheBreakdown(DataSource dataSource) throws SQLException {
+            // Excluding the root by name matched the nested span too and dropped it entirely, so the
+            // breakdown of a recursive handler hid the recursion that made it worth opening.
+            List<TraceOperationSpanRecord> spans =
+                    withBothDirections(dataSource).spanBreakdownOfOperation(ORDERS, 10);
+
+            TraceOperationSpanRecord nested = spans.stream()
+                    .filter(span -> "POST /orders".equals(span.name()))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("the nested self-call must be listed"));
+            assertEquals(1, nested.occurrences(), "the root itself is still excluded");
+            assertEquals(50 * MS, nested.totalNanos());
+
+            assertTrue(spans.stream().anyMatch(span -> "orders.persist".equals(span.name())));
+        }
+    }
+
+    @Nested
+    @DisplayName("Operation intervals")
+    class OperationIntervals {
+
+        @Test
+        @DisplayName("one interval per thread the operation's traces touched")
+        void groupsByThread(DataSource dataSource) throws SQLException {
+            // The slow trace runs on the virtual request thread and forks one span onto the pool.
+            List<SpanInterval> intervals = derived(dataSource).operationIntervals(FLAMEGRAPH_OPERATION);
+
+            assertEquals(2, intervals.size(), "the two threads the trace touched");
+
+            SpanInterval request = intervals.stream()
+                    .filter(interval -> interval.threadHash() == 3001L).findFirst().orElseThrow();
+            assertEquals(EPOCH_10_00_00, request.fromEpochMillis());
+            assertEquals(EPOCH_10_00_00 + 120, request.toEpochMillis(),
+                    "the exchange's own window bounds the statements inside it");
+
+            SpanInterval forked = intervals.stream()
+                    .filter(interval -> interval.threadHash() == 3002L).findFirst().orElseThrow();
+            assertEquals(EPOCH_10_00_00 + 60, forked.fromEpochMillis());
+            assertEquals(EPOCH_10_00_00 + 80, forked.toEpochMillis());
+        }
+
+        @Test
+        @DisplayName("an operation nobody ran scopes to nothing rather than to everything")
+        void unknownOperationHasNoIntervals(DataSource dataSource) throws SQLException {
+            assertTrue(derived(dataSource)
+                    .operationIntervals(operation("GET /nope", "SERVER", HTTP_SERVER_EXCHANGE))
+                    .isEmpty());
+        }
+    }
+
+    @Nested
     @DisplayName("Derivation")
     class Derivation {
+
+        @Test
+        @DisplayName("deriving twice lands where deriving once did")
+        void derivationIsIdempotent(DataSource dataSource) throws SQLException {
+            // A re-import used to double every span and then fail on the traces primary key, leaving
+            // spans behind that no trace header accounted for.
+            JdbcTraceRepository repository = derived(dataSource);
+            List<TraceSpanRecord> once = repository.spansOf(SLOW_TRACE);
+            TraceOverviewRecord overviewOnce = repository.overview();
+
+            repository.derive();
+
+            assertEquals(once, repository.spansOf(SLOW_TRACE));
+            assertEquals(overviewOnce, repository.overview());
+        }
+
+        @Test
+        @DisplayName("a trace's duration keeps the nanoseconds its spans were recorded with")
+        void durationKeepsNanosecondPrecision(DataSource dataSource) throws SQLException {
+            // The exchange starts at .000 and the last span ends 80ms750us in, so a derivation that
+            // rounded to whole milliseconds anywhere would report a different number here.
+            TraceSummaryRecord slow = derived(dataSource).summaryOf(SLOW_TRACE).orElseThrow();
+
+            assertEquals(120 * MS, slow.durationNanos());
+        }
+
+        @Test
+        @DisplayName("a trace is flagged for flamegraphs only when a span of it ran on a platform thread")
+        void flagsPlatformSpans(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = derived(dataSource);
+
+            assertTrue(repository.summaryOf(SLOW_TRACE).orElseThrow().hasPlatformSpan(),
+                    "one span forked onto the pool thread");
+            assertFalse(repository.summaryOf(FAST_TRACE).orElseThrow().hasPlatformSpan(),
+                    "the fast trace never left the virtual request thread");
+        }
+
+        @Test
+        @DisplayName("a span whose thread did not resolve is not counted as platform")
+        void unresolvedThreadIsNotPlatform(DataSource dataSource) throws SQLException {
+            // `threads` has no row for this hash, so nothing says a sample could be attributed to it.
+            // Counting the unknown as platform promised a flamegraph that comes back empty.
+            TestUtils.executeSql(dataSource, "sql/events/insert-unresolved-thread-trace.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+
+            assertTrue(repository.slowestTraces(100).stream().noneMatch(TraceSummaryRecord::hasPlatformSpan),
+                    "an unresolved thread cannot promise samples");
+
+            TraceOperationThreadsRecord threads = repository.threadsOfOperation(
+                    operation("orphan.work", "INTERNAL", "jeffrey.TraceSpan"));
+            assertEquals(0, threads.platformSpans());
+            assertEquals(0, threads.virtualSpans());
+            assertEquals(1, threads.unknownSpans(), "counted as unknown, not folded into either side");
+        }
 
         @Test
         @DisplayName("lifts every traced event type into spans and leaves the rest behind")
@@ -83,36 +252,40 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
-        @DisplayName("a stamped event becomes a span of its own, under the span it was stamped with")
-        void givesStampedEventsTheirOwnIdentity(DataSource dataSource) throws SQLException {
+        @DisplayName("every span keeps the identity its event recorded")
+        void keepsRecordedIdentity(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
             List<TraceSpanRecord> spans = repository.spansOf(SLOW_TRACE);
             Map<String, TraceSpanRecord> byName = spans.stream()
                     .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
 
-            // Both statements were stamped with span 111 -- the exchange's own id, not theirs. A
-            // span id has to identify one span, so each statement is given one and hangs off 111.
-            assertEquals(spans.size(), spans.stream().map(TraceSpanRecord::spanId).distinct().count(),
-                    "every derived span needs an id of its own");
+            // Nothing is invented here any more: Tracer minted a span id per event, so the
+            // derivation reads all three ids straight out of the JSON.
+            assertEquals(ROOT_SPAN_ID, byName.get("POST /api/internal/profiles/{profileId}/flamegraph").spanId());
+            assertEquals(NEGATIVE_SPAN_ID, byName.get("flamegraph.generate").spanId());
             assertEquals(ROOT_SPAN_ID, byName.get("listSpans").parentSpanId());
             assertEquals(ROOT_SPAN_ID, byName.get("countSpans").parentSpanId());
-            assertTrue(spans.stream()
-                            .filter(span -> span.eventType().startsWith("jeffrey.Jdbc"))
-                            .noneMatch(span -> span.spanId() == ROOT_SPAN_ID),
-                    "a stamped event must not claim the id of the span that was in progress");
+            assertEquals(spans.size(), spans.stream().map(TraceSpanRecord::spanId).distinct().count(),
+                    "a span id has to identify exactly one span");
         }
 
         @Test
-        @DisplayName("an event that owns its span keeps the id it recorded")
-        void keepsRecordedIdsOfSpanOwningEvents(DataSource dataSource) throws SQLException {
+        @DisplayName("a span carries whether its thread was virtual")
+        void reportsVirtualThreads(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
             Map<String, TraceSpanRecord> byName = repository.spansOf(SLOW_TRACE).stream()
                     .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
 
-            assertEquals(ROOT_SPAN_ID, byName.get("POST /api/internal/profiles/{profileId}/flamegraph").spanId());
-            assertEquals(NEGATIVE_SPAN_ID, byName.get("flamegraph.generate").spanId());
+            // Samples are attributed to the carrier, so this is what decides whether a span can have
+            // a flamegraph at all -- the UI hides the tab rather than opening an empty one.
+            assertTrue(byName.get("POST /api/internal/profiles/{profileId}/flamegraph").isVirtual(),
+                    "the request ran on a virtual thread");
+            assertTrue(byName.get("listSpans").isVirtual(),
+                    "a statement issued on the request's thread inherits it");
+            assertFalse(byName.get("flamegraph.generate").isVirtual(),
+                    "the forked span ran on a platform pool thread");
         }
 
         @Test
@@ -144,24 +317,101 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
-        @DisplayName("names and kinds are derived from whichever event produced the span")
-        void derivesNameAndKindPerEventType(DataSource dataSource) throws SQLException {
+        @DisplayName("names and kinds come from the event, whatever type it is")
+        void readsNameAndKindFromTheEvent(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
             Map<String, TraceSpanRecord> byName = repository.spansOf(SLOW_TRACE).stream()
                     .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
 
-            // An HTTP exchange is named by method + matched template, and is a SERVER span.
+            // Three event types, one uniform shape: the exchange had already folded its method and
+            // matched template into the name, the statement its label, the hand-written span its own.
             assertEquals("SERVER", byName.get("POST /api/internal/profiles/{profileId}/flamegraph").kind());
-            // A JDBC statement takes its statement name and is a CLIENT span.
             assertEquals("CLIENT", byName.get("listSpans").kind());
-            // A hand-written span names and classifies itself.
             assertEquals("INTERNAL", byName.get("flamegraph.generate").kind());
         }
 
         @Test
-        @DisplayName("failure is recognised per event type")
-        void derivesStatus(DataSource dataSource) throws SQLException {
+        @DisplayName("a hand-written span's attributes are unwrapped from the field that carries them")
+        void unwrapsHandWrittenAttributes(DataSource dataSource) throws SQLException {
+            // TraceSpanEvent.attributes is itself a JSON object encoded as a string, so it is taken
+            // out whole rather than merged with the event's own columns.
+            Map<String, TraceSpanRecord> byName = derived(dataSource).spansOf(SLOW_TRACE).stream()
+                    .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
+
+            assertEquals("{\"eventType\":\"jdk.ExecutionSample\",\"depth\":7}",
+                    byName.get("flamegraph.generate").attributes());
+        }
+
+        @Test
+        @DisplayName("an instrumented event's own fields become the span's event fields")
+        void derivesEventFieldsFromTheEvent(DataSource dataSource) throws SQLException {
+            // A statement attaches no attribute map; what makes it worth reading is the SQL and the
+            // row count, which are declared fields of the event itself.
+            Map<String, TraceSpanRecord> byName = derived(dataSource).spansOf(SLOW_TRACE).stream()
+                    .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
+
+            String attributes = byName.get("listSpans").eventFields();
+
+            assertTrue(attributes.contains("\"sql\":\"SELECT * FROM spans\""), attributes);
+            assertTrue(attributes.contains("\"rows\":42"), attributes);
+            assertTrue(attributes.contains("\"group\":\"PROFILE_EVENTS\""), attributes);
+        }
+
+        @Test
+        @DisplayName("the plumbing every traced event carries is stripped out of the event fields")
+        void stripsPlumbingFromEventFields(DataSource dataSource) throws SQLException {
+            // Ids, JFR's own columns and the name the span already carries are not detail about the
+            // operation, and repeating them would bury the two or three keys that are.
+            Map<String, TraceSpanRecord> byName = derived(dataSource).spansOf(SLOW_TRACE).stream()
+                    .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
+
+            String attributes = byName.get("listSpans").eventFields();
+
+            assertFalse(attributes.contains("traceId"), attributes);
+            assertFalse(attributes.contains("spanId"), attributes);
+            assertFalse(attributes.contains("parentSpanId"), attributes);
+            assertFalse(attributes.contains("startTime"), attributes);
+            assertFalse(attributes.contains("duration"), attributes);
+            assertFalse(attributes.contains("\"name\""), attributes);
+        }
+
+        @Test
+        @DisplayName("an exchange keeps the parts of its name that are also detail")
+        void keepsExchangeDetailInEventFields(DataSource dataSource) throws SQLException {
+            // The span's name is built from method and URI, but both stay in the attributes: the
+            // name is for scanning the waterfall, the attributes for reading one span closely.
+            TraceSpanRecord exchange = derived(dataSource).spansOf(FAST_TRACE).getFirst();
+
+            assertTrue(exchange.eventFields().contains("\"statusCode\":500"), exchange.eventFields());
+            assertTrue(exchange.eventFields().contains("\"method\":\"GET\""), exchange.eventFields());
+            assertTrue(exchange.eventFields().contains("\"uri\":\"/api/internal/health\""),
+                    exchange.eventFields());
+        }
+
+        @Test
+        @DisplayName("attributes and event fields are never both set on one span")
+        void keepsTheTwoKindsOfDetailApart(DataSource dataSource) throws SQLException {
+            // They are different kinds of thing and no event carries both: an attribute map is what
+            // a hand-written span attached to itself, event fields are its event type's schema.
+            // Merging them into one column is what made a statement's `sql` look hand-attached.
+            Map<String, TraceSpanRecord> byName = derived(dataSource).spansOf(SLOW_TRACE).stream()
+                    .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
+
+            TraceSpanRecord handWritten = byName.get("flamegraph.generate");
+            assertNotNull(handWritten.attributes());
+            assertNull(handWritten.eventFields(),
+                    "jeffrey.TraceSpan declares no fields the span row does not already carry");
+
+            TraceSpanRecord statement = byName.get("listSpans");
+            assertNotNull(statement.eventFields());
+            assertNull(statement.attributes(),
+                    "a statement has no attribute map to attach one to");
+        }
+
+        @Test
+        @DisplayName("the status each event recorded is what the trace counts as a failure")
+        void countsRecordedFailures(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
             Map<String, TraceSpanRecord> byName = repository.spansOf(SLOW_TRACE).stream()
@@ -172,29 +422,45 @@ class JdbcTraceRepositoryTest {
             assertEquals("java.lang.IllegalStateException", failed.errorType());
             assertEquals("UNSET", byName.get("listSpans").status());
 
-            // HTTP 500 is an error even though the exchange itself carries no status field.
+            // The failing exchange decided it had failed when it committed -- HTTP 500, in its case.
             TraceSummaryRecord fast = repository.slowestTraces(10).stream()
                     .filter(trace -> trace.traceId() == FAST_TRACE).findFirst().orElseThrow();
             assertEquals(1, fast.errorCount());
         }
 
         @Test
-        @DisplayName("the originating event's fields are kept as the span's attributes")
-        void keepsAttributes(DataSource dataSource) throws SQLException {
-            JdbcTraceRepository repository = derived(dataSource);
+        @DisplayName("an event carrying ids but no span shape still lands in the trace")
+        void fallsBackForAnIncompleteShape(DataSource dataSource) throws SQLException {
+            // Third-party instrumentation that stamped only the ids, or a recording older than the
+            // span shape. Dropping it would lose a real part of the trace, so it takes its event
+            // type for a name and the neutral kind and status.
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-bare-traced-event.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
 
-            TraceSpanRecord jdbc = repository.spansOf(SLOW_TRACE).stream()
-                    .filter(span -> "listSpans".equals(span.name())).findFirst().orElseThrow();
+            TraceSpanRecord bare = repository.spansOf(SLOW_TRACE).stream()
+                    .filter(span -> span.spanId() == BARE_SPAN_ID)
+                    .findFirst()
+                    .orElseThrow();
 
-            assertNotNull(jdbc.attributes());
-            assertTrue(jdbc.attributes().contains("PROFILE_EVENTS"),
-                    "the span should carry everything its source event knew");
+            assertEquals("jeffrey.ThirdPartyEvent", bare.name());
+            assertEquals("INTERNAL", bare.kind());
+            assertEquals("UNSET", bare.status());
         }
     }
 
     @Nested
     @DisplayName("Contract with the event API")
     class EventApiContract {
+
+        @Test
+        @DisplayName("the kinds the derivation assigns are the kinds the instrumentation emits")
+        void kindNamesMatchTheEnum() {
+            assertEquals("SERVER", SpanKind.SERVER.name());
+            assertEquals("CLIENT", SpanKind.CLIENT.name());
+            assertEquals("INTERNAL", SpanKind.INTERNAL.name());
+        }
 
         @Test
         @DisplayName("the status the derivation writes is the status the instrumentation emits")
@@ -205,14 +471,6 @@ class JdbcTraceRepositoryTest {
             assertEquals("OK", SpanStatus.OK.name());
             assertEquals("ERROR", SpanStatus.ERROR.name());
             assertEquals("UNSET", SpanStatus.UNSET.name());
-        }
-
-        @Test
-        @DisplayName("the kinds the derivation assigns are the kinds the instrumentation emits")
-        void kindNamesMatchTheEnum() {
-            assertEquals("SERVER", SpanKind.SERVER.name());
-            assertEquals("CLIENT", SpanKind.CLIENT.name());
-            assertEquals("INTERNAL", SpanKind.INTERNAL.name());
         }
     }
 
@@ -241,6 +499,18 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
+        @DisplayName("a trace reports whether any of its spans could carry samples")
+        void reportsWhetherSamplesCanBeAttributed(DataSource dataSource) throws SQLException {
+            Map<Long, TraceSummaryRecord> byTraceId = derived(dataSource).slowestTraces(10).stream()
+                    .collect(Collectors.toMap(TraceSummaryRecord::traceId, Function.identity()));
+
+            assertTrue(byTraceId.get(SLOW_TRACE).hasPlatformSpan(),
+                    "its hand-written span ran on a platform thread");
+            assertFalse(byTraceId.get(FAST_TRACE).hasPlatformSpan(),
+                    "it never left the request's virtual thread");
+        }
+
+        @Test
         @DisplayName("the limit is honoured")
         void honoursLimit(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
@@ -260,6 +530,21 @@ class JdbcTraceRepositoryTest {
             assertEquals(3001, spans.get(0).threadHash());
             assertEquals(3002, spans.get(3).threadHash(),
                     "the span committed on the pool thread keeps that thread's identity");
+        }
+
+        @Test
+        @DisplayName("a span's start keeps the microseconds it was recorded with")
+        void spanStartsAreMicrosecondResolution(DataSource dataSource) throws SQLException {
+            // Flooring the start to a millisecond puts spans that ran within one of each other on
+            // the same instant, and the waterfall then draws sequential work as if it overlapped.
+            JdbcTraceRepository repository = derived(dataSource);
+
+            TraceSpanRecord forked = repository.spansOf(SLOW_TRACE).stream()
+                    .filter(span -> "flamegraph.generate".equals(span.name()))
+                    .findFirst()
+                    .orElseThrow();
+
+            assertEquals(EPOCH_10_00_00 * US_PER_MS + 60_750, forked.startEpochMicros());
         }
 
         @Test
@@ -291,21 +576,36 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
+        @DisplayName("an operation reports the instrumentation that opened it")
+        void reportsTheRootEventType(DataSource dataSource) throws SQLException {
+            // The root's event type, not any nested span's: the slow trace's spans come from three
+            // event types, and the one that matters is the type a trace of this kind starts at.
+            JdbcTraceRepository repository = derived(dataSource);
+
+            Map<String, TraceOperationRecord> byName = repository.operations(10).stream()
+                    .collect(Collectors.toMap(TraceOperationRecord::name, Function.identity()));
+
+            assertEquals("jeffrey.HttpServerExchange",
+                    byName.get("POST /api/internal/profiles/{profileId}/flamegraph").eventType());
+            assertEquals("jeffrey.HttpServerExchange", byName.get("GET /api/internal/health").eventType());
+        }
+
+        @Test
         @DisplayName("the traces of an operation exclude other types and honour the limit")
         void listsTracesOfOneOperation(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
-            List<TraceSummaryRecord> traces = repository
-                    .tracesOfOperation("POST /api/internal/profiles/{profileId}/flamegraph", 10);
+            List<TraceSummaryRecord> traces = repository.tracesOfOperation(FLAMEGRAPH_OPERATION, 10);
 
             assertEquals(1, traces.size());
             assertEquals(SLOW_TRACE, traces.getFirst().traceId());
             assertEquals(120 * MS, traces.getFirst().durationNanos());
             assertEquals(4, traces.getFirst().spanCount());
 
-            assertTrue(repository.tracesOfOperation("flamegraph.generate", 10).isEmpty(),
+            assertTrue(repository.tracesOfOperation(
+                            operation("flamegraph.generate", "INTERNAL", "jeffrey.TraceSpan"), 10).isEmpty(),
                     "a nested span name roots no trace");
-            assertTrue(repository.tracesOfOperation("GET /api/internal/health", 0).isEmpty(),
+            assertTrue(repository.tracesOfOperation(HEALTH_OPERATION, 0).isEmpty(),
                     "a zero limit returns nothing rather than everything");
         }
 
@@ -350,9 +650,76 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
+        @DisplayName("the span breakdown ranks an operation's spans by total time, excluding its root")
+        void breaksAnOperationDownBySpanName(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = derived(dataSource);
+
+            List<TraceOperationSpanRecord> spans =
+                    repository.spanBreakdownOfOperation(FLAMEGRAPH_OPERATION, 10);
+
+            // The root is what the operation *is*; repeating it as its own biggest child would say
+            // nothing and would always top the list.
+            assertTrue(spans.stream().noneMatch(span ->
+                            "POST /api/internal/profiles/{profileId}/flamegraph".equals(span.name())),
+                    "the root span is not part of its own breakdown");
+            assertEquals(List.of("listSpans", "flamegraph.generate", "countSpans"),
+                    spans.stream().map(TraceOperationSpanRecord::name).toList(),
+                    "ranked by total time");
+
+            TraceOperationSpanRecord slowest = spans.getFirst();
+            assertEquals(1, slowest.occurrences());
+            assertEquals(1, slowest.traceCount());
+            assertEquals(40 * MS, slowest.totalNanos());
+            assertEquals(40 * MS, slowest.maxNanos());
+        }
+
+        @Test
+        @DisplayName("the thread split counts the spans a sample could be attributed to")
+        void splitsAnOperationsSpansByThreadKind(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = derived(dataSource);
+
+            TraceOperationThreadsRecord threads = repository.threadsOfOperation(FLAMEGRAPH_OPERATION);
+
+            // Three spans on the virtual request thread, one forked onto the platform pool thread.
+            assertEquals(2, threads.distinctThreads());
+            assertEquals(1, threads.platformSpans());
+            assertEquals(3, threads.virtualSpans());
+        }
+
+        @Test
+        @DisplayName("an operation nobody ran summarises to nothing rather than failing")
+        void unknownOperationIsEmpty(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = derived(dataSource);
+
+            TraceOperationId unknown = operation("GET /nope", "SERVER", "jeffrey.HttpServerExchange");
+
+            assertTrue(repository.spanBreakdownOfOperation(unknown, 10).isEmpty());
+            assertEquals(TraceOperationThreadsRecord.EMPTY, repository.threadsOfOperation(unknown));
+        }
+
+        @Test
         @DisplayName("an unknown trace id yields no spans rather than failing")
         void unknownTraceIsEmpty(DataSource dataSource) throws SQLException {
             assertTrue(derived(dataSource).spansOf(42L).isEmpty());
+        }
+
+        @Test
+        @DisplayName("a trace header reads the same whether it comes from a list or from its own id")
+        void headerIsTheSameFromEitherRead(DataSource dataSource) throws SQLException {
+            // The detail used to rebuild this from the spans, in microseconds, and so disagreed with
+            // the list about the duration of the very trace the user had just clicked.
+            JdbcTraceRepository repository = derived(dataSource);
+
+            TraceSummaryRecord fromList = repository.slowestTraces(10).stream()
+                    .filter(trace -> trace.traceId() == SLOW_TRACE).findFirst().orElseThrow();
+
+            assertEquals(fromList, repository.summaryOf(SLOW_TRACE).orElseThrow());
+        }
+
+        @Test
+        @DisplayName("an unknown trace id has no header rather than an empty one")
+        void unknownTraceHasNoHeader(DataSource dataSource) throws SQLException {
+            assertTrue(derived(dataSource).summaryOf(42L).isEmpty());
         }
 
         @Test
@@ -362,13 +729,13 @@ class JdbcTraceRepositoryTest {
 
             // The window of the root HTTP span on thread 3001, which also carries a JDBC span and
             // an execution sample.
-            List<TraceEventRecord> events = repository.eventsInSpan(
+            List<ThreadWindowEventRecord> events = repository.eventsInSpan(
                     3001, EPOCH_10_00_00, EPOCH_10_00_00 + 120);
 
             assertTrue(events.stream().noneMatch(event -> event.eventType().startsWith("jeffrey.")),
                     "an event that is itself a span belongs in the waterfall, not inside a span");
             assertEquals(List.of("jdk.ExecutionSample"),
-                    events.stream().map(TraceEventRecord::eventType).toList());
+                    events.stream().map(ThreadWindowEventRecord::eventType).toList());
         }
 
         @Test

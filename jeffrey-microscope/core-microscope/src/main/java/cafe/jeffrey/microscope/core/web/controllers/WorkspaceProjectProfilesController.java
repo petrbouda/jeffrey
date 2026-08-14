@@ -70,7 +70,7 @@ public class WorkspaceProjectProfilesController {
                                 profileInfo.id(),
                                 profileInfo.name(),
                                 projectInfo.id(),
-                                profileInfo.createdAt());
+                                profileInfo.createdAt().toEpochMilli());
                     })
                     .toList();
 

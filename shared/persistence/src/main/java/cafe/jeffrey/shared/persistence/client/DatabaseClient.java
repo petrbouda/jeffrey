@@ -73,14 +73,14 @@ public class DatabaseClient {
             rows = delegate.update(sql, paramSource);
             event.end();
         } catch (Exception e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw e;
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramSourceToJson(paramSource);
-                event.commit();
+                event.commitSpan();
             }
         }
 
@@ -97,7 +97,7 @@ public class DatabaseClient {
             rows = delegate.update(sql, paramSource);
             event.end();
         } catch (Exception e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw e;
         } finally {
             if (event.shouldCommit()) {
@@ -105,7 +105,7 @@ public class DatabaseClient {
                 event.rows = rows;
                 event.isLob = true;
                 event.params = paramSourceToJson(paramSource);
-                event.commit();
+                event.commitSpan();
             }
         }
 
@@ -123,7 +123,7 @@ public class DatabaseClient {
             event.end();
             rowsSum = sumRows(rows);
         } catch (Exception e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw e;
         } finally {
             if (event.shouldCommit()) {
@@ -132,7 +132,7 @@ public class DatabaseClient {
                 // Don't populate `params` and `sql` in batch processing
                 // event.sql = sql;
                 // event.params = paramSourceToString(paramSource);
-                event.commit();
+                event.commitSpan();
             }
         }
 
@@ -149,14 +149,14 @@ public class DatabaseClient {
             rows = delegate.update(sql, paramSource);
             event.end();
         } catch (Exception e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw e;
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramSourceToJson(paramSource);
-                event.commit();
+                event.commitSpan();
             }
         }
 
@@ -173,14 +173,14 @@ public class DatabaseClient {
             rows = delegate.update(sql, paramSource);
             event.end();
         } catch (Exception e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw e;
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramSourceToJson(paramSource);
-                event.commit();
+                event.commitSpan();
             }
         }
 
@@ -226,13 +226,13 @@ public class DatabaseClient {
             rows = delegate.getJdbcOperations().update(sql);
             event.end();
         } catch (Exception e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw e;
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = rows;
-                event.commit();
+                event.commitSpan();
             }
         }
 
@@ -248,12 +248,12 @@ public class DatabaseClient {
             delegate.getJdbcOperations().execute(sql);
             event.end();
         } catch (Exception e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw e;
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
-                event.commit();
+                event.commitSpan();
             }
         }
     }
@@ -268,13 +268,13 @@ public class DatabaseClient {
             list = delegate.query(sql, rowMapper);
             event.end();
         } catch (Exception e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw e;
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = list != null ? list.size() : 0;
-                event.commit();
+                event.commitSpan();
             }
         }
 
@@ -295,13 +295,13 @@ public class DatabaseClient {
             delegate.query(sql, paramSource, handler);
             event.end();
         } catch (Exception e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw e;
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = handler.getRowCount();
-                event.commit();
+                event.commitSpan();
             }
         }
 
@@ -320,14 +320,14 @@ public class DatabaseClient {
             list = delegate.query(sql, paramSource, rowMapper);
             event.end();
         } catch (Exception e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw e;
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = list != null ? list.size() : 0;
                 event.params = paramSourceToJson(paramSource);
-                event.commit();
+                event.commitSpan();
             }
         }
 
@@ -344,14 +344,14 @@ public class DatabaseClient {
             longValue = delegate.queryForObject(sql, paramSource, long.class);
             event.end();
         } catch (Exception e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw e;
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = longValue != null ? 1 : 0;
                 event.params = paramSourceToJson(paramSource);
-                event.commit();
+                event.commitSpan();
             }
         }
         return longValue;
@@ -375,14 +375,14 @@ public class DatabaseClient {
             exists = count != null && count > 0;
             event.end();
         } catch (Exception e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw e;
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = exists ? 1 : 0;
                 event.params = paramSourceToJson(paramSource);
-                event.commit();
+                event.commitSpan();
             }
         }
 
@@ -415,7 +415,7 @@ public class DatabaseClient {
                 samples = sc.samples();
             }
         } catch (Exception e) {
-            event.isSuccess = false;
+            event.failed(e);
             throw e;
         } finally {
             event.end();
@@ -423,7 +423,7 @@ public class DatabaseClient {
                 event.rows = rows;
                 event.samples = samples;
                 event.params = paramSourceToJson(paramSource);
-                event.commit();
+                event.commitSpan();
             }
         }
     }

@@ -51,7 +51,7 @@ class HttpOverviewEventBuilderTest {
         ObjectNode fields = MAPPER.createObjectNode();
         fields.put("uri", uri);
         fields.put("method", method);
-        fields.put("status", status);
+        fields.put("statusCode", status);
         fields.put("requestLength", requestLength);
         fields.put("responseLength", responseLength);
         fields.put("remoteHost", "localhost");

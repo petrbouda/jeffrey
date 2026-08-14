@@ -18,12 +18,19 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.profile.manager.model.trace.EventFieldRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceEventRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceOperationSpanRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
+import cafe.jeffrey.profile.manager.model.trace.TraceOperationThreads;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
+import cafe.jeffrey.provider.profile.api.EventFieldRecord;
+import cafe.jeffrey.provider.profile.api.TraceOperationId;
+import cafe.jeffrey.provider.profile.api.TraceOperationThreadsRecord;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
@@ -36,22 +43,29 @@ import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Turns the flat span rows the repository returns into the tree the waterfall draws.
  * <p>
  * The assembly lives here rather than in SQL or in the browser because the same interval arithmetic
  * feeds the span-scoped flamegraph, which has to run server-side anyway.
+ * <p>
+ * Span arithmetic runs in microseconds, the resolution the stored timestamp carries. Milliseconds
+ * are too coarse for it: a span is routinely shorter than one, so rounding its bounds to a
+ * millisecond makes sub-millisecond children cost their parent nothing and puts spans that ran one
+ * after the other on the same instant. The two places that genuinely are millisecond domains — the
+ * sample filter behind {@link SpanInterval} and the event drill-down, both of which run on the
+ * events table's millisecond timeline — convert at their own boundary and nowhere earlier.
  */
 public class TraceManagerImpl implements TraceManager {
 
-    private static final long NANOS_PER_MILLI = 1_000_000L;
+    private static final long NANOS_PER_MICRO = 1_000L;
+    private static final long MICROS_PER_MILLI = 1_000L;
 
     private final TraceRepository traceRepository;
 
@@ -67,8 +81,8 @@ public class TraceManagerImpl implements TraceManager {
     }
 
     @Override
-    public List<TraceRow> tracesOfOperation(String rootName, int limit) {
-        return traceRepository.tracesOfOperation(rootName, limit).stream()
+    public List<TraceRow> tracesOfOperation(TraceOperationId operation, int limit) {
+        return traceRepository.tracesOfOperation(operation, limit).stream()
                 .map(TraceManagerImpl::toRow)
                 .toList();
     }
@@ -95,7 +109,36 @@ public class TraceManagerImpl implements TraceManager {
         if (spans.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(new TraceDetail(summaryOf(traceId, spans), assemble(spans)));
+        // The stored header rather than one rebuilt from the spans: the derivation already settled
+        // the root and the duration in nanoseconds, and recomputing them here from microsecond-
+        // truncated span bounds made the same trace report one duration in the list and a shorter
+        // one in its own detail.
+        return traceRepository.summaryOf(traceId)
+                .map(summary -> new TraceDetail(toRow(summary), assemble(spans), eventFieldsOf(spans)));
+    }
+
+    /**
+     * The field metadata for the event types this trace's spans came from, grouped by type.
+     * <p>
+     * Looked up for the types actually present rather than for every traced type, so a trace of one
+     * HTTP request does not carry the schema of six JDBC events the UI will never draw.
+     */
+    private Map<String, List<EventFieldRow>> eventFieldsOf(List<TraceSpanRecord> spans) {
+        List<String> eventTypes = spans.stream()
+                .map(TraceSpanRecord::eventType)
+                .distinct()
+                .toList();
+
+        return traceRepository.eventFieldsOf(eventTypes).stream()
+                .collect(Collectors.groupingBy(
+                        EventFieldRecord::eventType,
+                        Collectors.mapping(
+                                field -> new EventFieldRow(
+                                        field.field(),
+                                        field.label(),
+                                        field.description(),
+                                        field.contentType()),
+                                Collectors.toList())));
     }
 
     @Override
@@ -116,20 +159,8 @@ public class TraceManagerImpl implements TraceManager {
     }
 
     @Override
-    public List<SpanInterval> operationIntervals(String rootName) {
-        Map<ThreadWindow, long[]> windows = new LinkedHashMap<>();
-        for (TraceSpanRecord span : traceRepository.spansOfOperation(rootName)) {
-            ThreadWindow key = new ThreadWindow(span.traceId(), span.threadHash());
-            long[] window = {span.startEpochMillis(), endMillisOf(span)};
-            windows.merge(key, window, (existing, candidate) -> new long[]{
-                    Math.min(existing[0], candidate[0]),
-                    Math.max(existing[1], candidate[1])});
-        }
-
-        return windows.entrySet().stream()
-                .map(entry -> new SpanInterval(
-                        entry.getKey().threadHash(), entry.getValue()[0], entry.getValue()[1]))
-                .toList();
+    public List<SpanInterval> operationIntervals(TraceOperationId operation) {
+        return traceRepository.operationIntervals(operation);
     }
 
     @Override
@@ -138,6 +169,7 @@ public class TraceManagerImpl implements TraceManager {
                 .map(operation -> new TraceOperationRow(
                         operation.name(),
                         operation.kind(),
+                        operation.eventType(),
                         operation.count(),
                         operation.errorCount(),
                         operation.spanCount(),
@@ -149,10 +181,33 @@ public class TraceManagerImpl implements TraceManager {
     }
 
     @Override
+    public TraceOperationSummary operationSummary(TraceOperationId operation, int spanLimit) {
+        List<TraceOperationSpanRow> spans = traceRepository.spanBreakdownOfOperation(operation, spanLimit).stream()
+                .map(span -> new TraceOperationSpanRow(
+                        span.name(),
+                        span.occurrences(),
+                        span.traceCount(),
+                        span.totalNanos(),
+                        span.p50Nanos(),
+                        span.maxNanos()))
+                .toList();
+
+        TraceOperationThreadsRecord threads = traceRepository.threadsOfOperation(operation);
+        return new TraceOperationSummary(
+                spans,
+                new TraceOperationThreads(
+                        threads.distinctThreads(),
+                        threads.platformSpans(),
+                        threads.virtualSpans(),
+                        threads.unknownSpans()));
+    }
+
+    @Override
     public List<TraceEventRow> eventsInSpan(long traceId, long spanId) {
         return spanOf(traceId, spanId)
                 .map(span -> traceRepository
-                        .eventsInSpan(span.threadHash(), span.startEpochMillis(), endMillisOf(span))
+                        .eventsInSpan(span.threadHash(),
+                                toMillis(span.startEpochMicros()), toMillis(endMicrosOf(span)))
                         .stream()
                         .map(event -> new TraceEventRow(
                                 event.eventType(),
@@ -200,9 +255,9 @@ public class TraceManagerImpl implements TraceManager {
                 childrenByParent.computeIfAbsent(parentId, _ -> new ArrayList<>()).add(span);
             }
         }
-        roots.sort(Comparator.comparingLong(TraceSpanRecord::startEpochMillis));
+        roots.sort(Comparator.comparingLong(TraceSpanRecord::startEpochMicros));
         childrenByParent.values()
-                .forEach(children -> children.sort(Comparator.comparingLong(TraceSpanRecord::startEpochMillis)));
+                .forEach(children -> children.sort(Comparator.comparingLong(TraceSpanRecord::startEpochMicros)));
 
         List<TraceSpanRow> ordered = new ArrayList<>(spans.size());
         Set<Long> visited = new HashSet<>();
@@ -214,7 +269,7 @@ public class TraceManagerImpl implements TraceManager {
         // ids the derivation should have made unique may not be, and a trace must not fail to
         // render over it.
         List<TraceSpanRecord> byStart = new ArrayList<>(spans);
-        byStart.sort(Comparator.comparingLong(TraceSpanRecord::startEpochMillis));
+        byStart.sort(Comparator.comparingLong(TraceSpanRecord::startEpochMicros));
         for (TraceSpanRecord span : byStart) {
             if (!visited.contains(span.spanId())) {
                 traverse(List.of(span), childrenByParent, visited, ordered);
@@ -257,15 +312,18 @@ public class TraceManagerImpl implements TraceManager {
      * The span's own time: its duration minus what its children accounted for. Only children that
      * ran on the span's own thread are subtracted — work handed to another thread runs beside the
      * parent rather than instead of it — and overlapping children are merged first so concurrent
-     * work is not subtracted twice. The result is still floored at zero, because millisecond
-     * rounding can make merged children marginally longer than the parent.
+     * work is not subtracted twice.
+     * <p>
+     * Children are clipped to the parent's own window, so a child that was recorded as outliving its
+     * parent costs it only the stretch the two actually shared. The result is still floored at zero,
+     * because microsecond rounding can make merged children marginally longer than the parent.
      */
     private static long selfDurationOf(TraceSpanRecord span, List<TraceSpanRecord> children) {
         long covered = 0;
-        for (long[] window : mergedWindows(sameThreadAs(span, children))) {
+        for (long[] window : clippedChildWindows(span, children)) {
             covered += window[1] - window[0];
         }
-        return Math.max(0, span.durationNanos() - covered * NANOS_PER_MILLI);
+        return Math.max(0, span.durationNanos() - covered * NANOS_PER_MICRO);
     }
 
     /**
@@ -282,14 +340,14 @@ public class TraceManagerImpl implements TraceManager {
      * thread's window, so punching a hole for it would drop the parent's own samples.
      */
     private static List<SpanInterval> selfIntervals(TraceSpanRecord span, List<TraceSpanRecord> children) {
-        long from = span.startEpochMillis();
-        long to = endMillisOf(span);
+        long from = toMillis(span.startEpochMicros());
+        long to = toMillis(endMicrosOf(span));
 
         List<SpanInterval> intervals = new ArrayList<>();
         long cursor = from;
-        for (long[] window : mergedWindows(sameThreadAs(span, children))) {
-            long childFrom = Math.max(window[0], from);
-            long childTo = Math.min(window[1], to);
+        for (long[] window : clippedChildWindows(span, children)) {
+            long childFrom = toMillis(window[0]);
+            long childTo = toMillis(window[1]);
             if (childFrom > cursor) {
                 intervals.add(new SpanInterval(span.threadHash(), cursor, childFrom - 1));
             }
@@ -312,11 +370,21 @@ public class TraceManagerImpl implements TraceManager {
     }
 
     /**
-     * Children reduced to non-overlapping {@code [from, to]} millisecond windows, ordered by start.
+     * The stretches of the span's window that its children occupied: same-thread children clipped to
+     * the parent's own bounds and reduced to non-overlapping {@code [from, to]} microsecond windows,
+     * ordered by start. What is left over between them is the parent's own work — which is what both
+     * {@link #selfDurationOf} and {@link #selfIntervals} are asking for, in their own units.
      */
-    private static List<long[]> mergedWindows(List<TraceSpanRecord> children) {
-        List<long[]> windows = children.stream()
-                .map(child -> new long[]{child.startEpochMillis(), endMillisOf(child)})
+    private static List<long[]> clippedChildWindows(
+            TraceSpanRecord span, List<TraceSpanRecord> children) {
+
+        long from = span.startEpochMicros();
+        long to = endMicrosOf(span);
+
+        List<long[]> windows = sameThreadAs(span, children).stream()
+                .map(child -> new long[]{
+                        clamp(child.startEpochMicros(), from, to),
+                        clamp(endMicrosOf(child), from, to)})
                 .sorted(Comparator.comparingLong(window -> window[0]))
                 .collect(Collectors.toCollection(ArrayList::new));
 
@@ -331,6 +399,10 @@ public class TraceManagerImpl implements TraceManager {
         return merged;
     }
 
+    private static long clamp(long value, long min, long max) {
+        return Math.min(Math.max(value, min), max);
+    }
+
     private static List<TraceSpanRecord> childrenOf(List<TraceSpanRecord> spans, long spanId) {
         return spans.stream()
                 .filter(span -> span.parentSpanId() != null && span.parentSpanId() == spanId)
@@ -338,37 +410,20 @@ public class TraceManagerImpl implements TraceManager {
     }
 
     private static SpanInterval intervalOf(TraceSpanRecord span) {
-        return new SpanInterval(span.threadHash(), span.startEpochMillis(), endMillisOf(span));
+        return new SpanInterval(
+                span.threadHash(), toMillis(span.startEpochMicros()), toMillis(endMicrosOf(span)));
     }
 
-    private static long endMillisOf(TraceSpanRecord span) {
-        return span.startEpochMillis() + span.durationNanos() / NANOS_PER_MILLI;
+    private static long endMicrosOf(TraceSpanRecord span) {
+        return span.startEpochMicros() + span.durationNanos() / NANOS_PER_MICRO;
     }
 
     /**
-     * Rebuilds the trace's summary from the spans already in hand, rather than reading the traces
-     * table a second time for a row the caller is about to render anyway.
+     * Crosses into the millisecond domain the events table is keyed on. Flooring rather than rounding
+     * is what makes the bound land on the millisecond a sample taken at that instant was filed under.
      */
-    private static TraceRow summaryOf(long traceId, List<TraceSpanRecord> spans) {
-        TraceSpanRecord root = spans.stream()
-                .min(Comparator
-                        .comparing((TraceSpanRecord span) -> span.parentSpanId() != null)
-                        .thenComparingLong(TraceSpanRecord::startEpochMillis))
-                .orElseThrow();
-
-        long start = spans.stream().mapToLong(TraceSpanRecord::startEpochMillis).min().orElse(0);
-        long end = spans.stream().mapToLong(TraceManagerImpl::endMillisOf).max().orElse(start);
-        long errors = spans.stream().filter(span -> "ERROR".equals(span.status())).count();
-
-        return new TraceRow(
-                toHex(traceId),
-                root.name(),
-                root.kind(),
-                spans.stream().mapToLong(TraceSpanRecord::startMillisFromBeginning).min().orElse(0),
-                start,
-                (end - start) * NANOS_PER_MILLI,
-                spans.size(),
-                (int) errors);
+    private static long toMillis(long micros) {
+        return Math.floorDiv(micros, MICROS_PER_MILLI);
     }
 
     private static TraceRow toRow(TraceSummaryRecord trace) {
@@ -376,11 +431,13 @@ public class TraceManagerImpl implements TraceManager {
                 toHex(trace.traceId()),
                 trace.rootName(),
                 trace.rootKind(),
+                trace.rootEventType(),
                 trace.startMillisFromBeginning(),
                 trace.startEpochMillis(),
                 trace.durationNanos(),
                 trace.spanCount(),
-                trace.errorCount());
+                trace.errorCount(),
+                trace.hasPlatformSpan());
     }
 
     private static TraceSpanRow toRow(
@@ -393,15 +450,17 @@ public class TraceManagerImpl implements TraceManager {
                 span.kind(),
                 span.status(),
                 span.errorType(),
-                span.attributes(),
                 span.startMillisFromBeginning(),
-                span.startEpochMillis(),
+                span.startEpochMicros(),
                 span.durationNanos(),
                 selfDurationNanos,
                 depth,
                 Long.toString(span.threadHash()),
                 span.threadName(),
-                span.eventType());
+                span.isVirtual(),
+                span.eventType(),
+                span.attributes(),
+                span.eventFields());
     }
 
     /**
@@ -414,9 +473,5 @@ public class TraceManagerImpl implements TraceManager {
 
     /** A span queued for emission, with the position the tree gives it. */
     private record Placement(TraceSpanRecord span, int depth, Long parentSpanId) {
-    }
-
-    /** Identifies one thread's stretch of one trace — the unit an operation's intervals reduce to. */
-    private record ThreadWindow(long traceId, long threadHash) {
     }
 }

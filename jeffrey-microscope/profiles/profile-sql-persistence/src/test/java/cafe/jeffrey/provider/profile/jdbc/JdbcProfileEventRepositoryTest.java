@@ -329,4 +329,54 @@ class JdbcProfileEventRepositoryTest {
             assertEquals(0, stats.count());
         }
     }
+
+    @Nested
+    class CpuTimeSampleLossMethod {
+
+        @Test
+        void sumsLostSamplesRatherThanCountingLossEvents(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-cpu-time-sample-loss.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
+
+            CpuTimeSampleLoss loss = repository.cpuTimeSampleLoss();
+
+            assertEquals(4, loss.capturedSamples());
+            assertEquals(8, loss.lostSamples(), "Fixture drops 2 + 5 + 1 samples across 3 loss events");
+            assertEquals(3, loss.lossEvents());
+        }
+
+        @Test
+        void ignoresOtherSamplersEvents(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-cpu-time-sample-loss.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
+
+            CpuTimeSampleLoss loss = repository.cpuTimeSampleLoss();
+
+            // The fixture also holds 2 jdk.ExecutionSample rows.
+            assertEquals(4, loss.capturedSamples(),
+                    "Only jdk.CPUTimeSample events count as captured CPU-time samples");
+        }
+
+        @Test
+        void returnsEmptyWhenSamplerNotUsed(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
+
+            assertEquals(CpuTimeSampleLoss.EMPTY, repository.cpuTimeSampleLoss());
+        }
+
+        @Test
+        void reportsNoLossWhenEverySampleSurvived(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventRepository repository = new JdbcProfileEventRepository(SQL_FORMATTER, provider);
+
+            CpuTimeSampleLoss loss = repository.cpuTimeSampleLoss();
+
+            assertEquals(0, loss.lostSamples());
+            assertEquals(0, loss.lossEvents());
+        }
+    }
 }

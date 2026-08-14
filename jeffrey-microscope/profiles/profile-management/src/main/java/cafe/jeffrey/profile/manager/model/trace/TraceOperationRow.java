@@ -24,10 +24,14 @@ package cafe.jeffrey.profile.manager.model.trace;
  * <p>
  * A trace type is identified by its root span's name. Nested spans are not types of their own: they
  * are explored through the trace's span tree, not through this list.
+ * <p>
+ * {@code eventType} is the event that opened the trace — which instrumentation the operation came
+ * from, something the name alone does not say.
  */
 public record TraceOperationRow(
         String name,
         String kind,
+        String eventType,
         long count,
         long errorCount,
         long spanCount,

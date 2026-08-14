@@ -87,4 +87,45 @@ describe('timelineBuckets', () => {
     expect(mids).toEqual([...mids].sort((a, b) => a - b));
     expect(mids[0]).toBeGreaterThanOrEqual(0);
   });
+
+  it('spans the given window rather than the range the items cover', () => {
+    // Four traces in the first second of a ten-second recording: they belong at the left edge, not
+    // spread across the whole chart.
+    const buckets = timelineBuckets<Item>(
+      [
+        { start: 100, duration: 5 },
+        { start: 200, duration: 9 },
+        { start: 300, duration: 7 },
+        { start: 900, duration: 3 }
+      ],
+      start,
+      duration,
+      10,
+      { from: 0, to: 10_000 }
+    );
+
+    expect(buckets).toHaveLength(10);
+    expect(buckets[0].count).toBe(4);
+    expect(buckets[0].maxDuration).toBe(9);
+    expect(buckets.slice(1).every(bucket => bucket.count === 0)).toBe(true);
+    // Mid of the first of ten 1000ms columns.
+    expect(buckets[0].mid).toBe(500);
+    expect(buckets[9].mid).toBe(9500);
+  });
+
+  it('keeps an item that falls outside the window instead of dropping it', () => {
+    const buckets = timelineBuckets<Item>(
+      [
+        { start: -50, duration: 4 },
+        { start: 10_500, duration: 8 }
+      ],
+      start,
+      duration,
+      4,
+      { from: 0, to: 10_000 }
+    );
+
+    expect(buckets[0].count).toBe(1);
+    expect(buckets[3].count).toBe(1);
+  });
 });

@@ -21,6 +21,7 @@ import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import type { AiExportContext } from '@/components/FlamegraphComponent.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
+import CpuTimeSampleLossAlert from '@/components/alerts/CpuTimeSampleLossAlert.vue';
 import { computed, onBeforeMount, ref } from 'vue';
 import SecondaryProfileService from '@/services/SecondaryProfileService';
 import GraphType from '@/services/flamegraphs/GraphType';
@@ -53,6 +54,7 @@ let flamegraphTooltip: FlamegraphTooltip;
 let graphUpdater: GraphUpdater;
 
 // Reactive refs for template-bound values - initialized in onBeforeMount when route is resolved
+const profileId = ref<string>('');
 const eventType = ref<string>('');
 const useWeight = ref(false);
 const isDifferential = ref(false);
@@ -80,6 +82,7 @@ onBeforeMount(() => {
   const isDifferentialValue = queryParams.graphMode === GraphType.DIFFERENTIAL;
 
   // Set reactive refs for template
+  profileId.value = route.params.profileId as string;
   eventType.value = eventTypeValue;
   useWeight.value = useWeightValue;
   isPrimary.value = isPrimaryValue;
@@ -133,6 +136,7 @@ onBeforeMount(() => {
 
 <template>
   <div style="padding-left: 5px; padding-right: 5px">
+    <CpuTimeSampleLossAlert v-if="profileId" :profile-id="profileId" :event-type="eventType" />
     <SearchBarComponent :graph-updater="graphUpdater" :with-timeseries="showTimeseries" />
     <TimeSeriesChart
       v-if="showTimeseries"

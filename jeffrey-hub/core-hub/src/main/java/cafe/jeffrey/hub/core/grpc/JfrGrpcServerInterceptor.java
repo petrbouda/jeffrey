@@ -74,10 +74,10 @@ public class JfrGrpcServerInterceptor implements ServerInterceptor {
         ServerCall<ReqT, RespT> wrappedCall = new ForwardingServerCall.SimpleForwardingServerCall<>(call) {
             @Override
             public void close(Status status, Metadata trailers) {
-                event.status = status.getCode().name();
+                event.statusCode = status.getCode().name();
                 event.end();
                 if (event.shouldCommit()) {
-                    event.commit();
+                    event.commitSpan();
                 }
                 super.close(status, trailers);
             }

@@ -19,12 +19,31 @@
 <template>
   <div class="dashboard-container">
     <LoadingState v-if="loading" message="Loading operation details..." />
+    <ErrorState v-else-if="error" :message="error" />
 
     <template v-else>
       <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
 
+      <div v-show="activeTab === 'summary'">
+        <TraceOperationSummary
+          :profile-id="profileId"
+          :operation="operation"
+          :totals="totals"
+          :traces="traces"
+          :truncated="truncated"
+          :overview="overview"
+          @open-trace="openTrace"
+          @show-all-traces="activeTab = 'slowest'"
+        />
+      </div>
+
       <div v-show="activeTab === 'flames'">
-        <TraceOperationFlamegraphs v-if="traces.length > 0" :profile-id="profileId" :name="name" />
+        <TraceOperationFlamegraphs
+          v-if="flamesOpened && traces.length > 0"
+          :profile-id="profileId"
+          :operation="operation"
+          :virtual-thread-only="!samplesAreReachable"
+        />
       </div>
 
       <div v-show="activeTab === 'timeline'">
@@ -33,6 +52,7 @@
           primary-title="Trace Duration"
           :secondary-data="secondaryData"
           secondary-title="Traces"
+          time-unit="milliseconds"
           :visible-minutes="60"
           :independentSecondaryAxis="true"
           :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
@@ -47,14 +67,19 @@
           :note="capNote"
           @row-click="openTrace"
         />
-
-        <TraceSpansModal
-          v-model:show="spansShow"
-          :profile-id="profileId"
-          :trace-id="selectedTrace?.traceId ?? ''"
-          :root-name="selectedTrace?.rootName ?? ''"
-        />
       </div>
+
+      <!--
+        A sibling of the tab panels, not a child of one: the Summary tab opens the waterfall too, and
+        GenericModal renders in place rather than teleporting. Nested inside a hidden `v-show` it
+        would mount invisibly, lock body scroll, and put its own dismiss handlers out of reach.
+      -->
+      <TraceSpansModal
+        v-model:show="spansShow"
+        :profile-id="profileId"
+        :trace-id="selectedTrace?.traceId ?? ''"
+        :root-name="selectedTrace?.rootName ?? ''"
+      />
     </template>
   </div>
 </template>
@@ -62,17 +87,25 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 
+import ErrorState from '@shared/components/ErrorState.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import TabBar from '@shared/components/TabBar.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import TraceSlowestList from '@/components/trace/TraceSlowestList.vue';
+import TraceOperationSummary from '@/components/trace/TraceOperationSummary.vue';
 import TraceSpansModal from '@/components/trace/TraceSpansModal.vue';
 import TraceOperationFlamegraphs from '@/components/trace/TraceOperationFlamegraphs.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
+import { profileStore } from '@/stores/profileStore';
 import { timelineBuckets } from '@/services/trace/traceTimelineBuckets';
 import type { TabBarItem } from '@shared/components/TabBar.vue';
-import type { TraceRow } from '@/services/api/model/trace/TraceModels';
+import type {
+  TraceOperationId,
+  TraceOperationRow,
+  TraceOverview,
+  TraceRow
+} from '@/services/api/model/trace/TraceModels';
 
 const TIMELINE_BUCKETS = 40;
 /** Matches the backend's default; a type with more traces than this is summarised, not listed. */
@@ -80,12 +113,43 @@ const TRACE_LIMIT = 1000;
 
 const props = defineProps<{
   profileId: string;
-  name: string;
+  operation: TraceOperationId;
+  /**
+   * The operation's row from the list, whose aggregates are computed over *every* trace of the type.
+   * The trace list below is capped, so the summary reads its headline numbers from here rather than
+   * folding a truncated sample — those two answers disagreed for any operation past the cap.
+   *
+   * Null for a deep link into an operation the capped list did not contain.
+   */
+  totals: TraceOperationRow | null;
+  /** Profile-wide totals, already fetched by the page above — not requested a second time here. */
+  overview: TraceOverview | null;
 }>();
 
 const loading = ref(true);
+const error = ref<string | null>(null);
 const traces = ref<TraceRow[]>([]);
-const activeTab = ref('flames');
+const truncated = ref(false);
+
+// Null before the profile loads, and for a recording that never reported its bounds; the buckets
+// then fall back to the range the traces themselves cover.
+const recordingSpan = computed(() => {
+  const window = profileStore.recordingWindow.value;
+  return window === null ? undefined : { from: 0, to: window.durationMillis };
+});
+const activeTab = ref('summary');
+
+/*
+ * The Flamegraphs tab fetches its panels on mount, and it is the only tab that fetches anything the
+ * drill-down does not already have. Mounted on first visit rather than up front, and left mounted
+ * afterwards so returning to it does not re-query.
+ */
+const flamesOpened = ref(false);
+watch(activeTab, tab => {
+  if (tab === 'flames') {
+    flamesOpened.value = true;
+  }
+});
 
 // The waterfall is opened here rather than by navigating to Slowest Traces: that page resolves a
 // trace from its own capped list, which need not contain this operation's traces.
@@ -97,18 +161,35 @@ function openTrace(trace: TraceRow): void {
   spansShow.value = true;
 }
 
+/*
+ * Whether a sample can be attributed to this operation at all. A span is matched to samples by
+ * (thread, window) and the profiler attributes them to the carrier, so an operation that never left
+ * its virtual threads has nothing to draw — the tab stays and explains that, rather than vanishing.
+ */
+const samplesAreReachable = computed(() =>
+  traces.value.some(trace => trace.hasPlatformSpan)
+);
+
 const tabs: TabBarItem[] = [
+  { id: 'summary', label: 'Summary', icon: 'grid-1x2' },
   { id: 'flames', label: 'Flamegraphs', icon: 'fire' },
   { id: 'timeline', label: 'Metrics Timeline', icon: 'graph-up' },
   { id: 'slowest', label: 'Slowest Traces', icon: 'hourglass-split' }
 ];
 
+/*
+ * Plotted against the recording's own clock, like every other timeline in the profile: the x values
+ * are milliseconds from the recording's start, and the chart spans the whole recording rather than
+ * the minute this operation happens to occupy. A burst then reads as a burst, in the place it
+ * happened, instead of being stretched to fill the axis.
+ */
 const buckets = computed(() =>
   timelineBuckets(
     traces.value,
-    (trace) => trace.startEpochMillis,
+    (trace) => trace.startMillisFromBeginning,
     (trace) => trace.durationNanos,
-    TIMELINE_BUCKETS
+    TIMELINE_BUCKETS,
+    recordingSpan.value
   )
 );
 
@@ -117,34 +198,50 @@ const secondaryData = computed<number[][]>(() => buckets.value.map((b) => [b.mid
 
 // Silence about a cap reads as "this is all of them", which it would not be.
 const capNote = computed<string | undefined>(() => {
-  if (traces.value.length < TRACE_LIMIT) {
+  if (!truncated.value) {
     return undefined;
   }
   return `First ${TRACE_LIMIT} traces of this operation`;
 });
 
+/*
+ * Guards against an out-of-order response. Each load claims a number; a response whose number is no
+ * longer the current one is discarded rather than assigned, so a slow earlier request cannot land
+ * on top of the answer the reader is actually looking at.
+ */
+let loadGeneration = 0;
+
 async function load(): Promise<void> {
+  const generation = ++loadGeneration;
   loading.value = true;
+  error.value = null;
   try {
-    traces.value = await new ProfileTracesClient(props.profileId).getOperationTraces(
-      props.name,
-      TRACE_LIMIT
-    );
+    const client = new ProfileTracesClient(props.profileId);
+    // One past the cap, so a full page can be told apart from a page that merely filled it: an
+    // operation with exactly TRACE_LIMIT traces must not claim it was truncated.
+    const operationTraces = await client.getOperationTraces(props.operation, TRACE_LIMIT + 1);
+    if (generation !== loadGeneration) {
+      return;
+    }
+    truncated.value = operationTraces.length > TRACE_LIMIT;
+    traces.value = truncated.value ? operationTraces.slice(0, TRACE_LIMIT) : operationTraces;
   } catch (e: unknown) {
+    if (generation !== loadGeneration) {
+      return;
+    }
     console.error('Failed to load traces for operation:', e);
+    error.value = 'Failed to load this operation.';
     traces.value = [];
+    truncated.value = false;
   } finally {
-    loading.value = false;
+    if (generation === loadGeneration) {
+      loading.value = false;
+    }
   }
 }
 
-watch(() => props.name, load);
-
+// No watch on `props.name`: the parent keys this component on the selected operation, so a different
+// operation remounts it. `useFlamegraphPanels` only fetches on mount, which is why the key is there.
 onMounted(load);
 </script>
 
-<style scoped>
-.dashboard-container {
-  padding: 0;
-}
-</style>

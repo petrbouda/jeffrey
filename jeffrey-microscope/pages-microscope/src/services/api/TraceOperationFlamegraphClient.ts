@@ -19,14 +19,18 @@
 import GlobalVars from '@/services/GlobalVars';
 import RemoteFlamegraphClient from '@/services/api/RemoteFlamegraphClient';
 import GraphComponents from '@/services/api/model/GraphComponents';
+import type { TraceOperationId } from '@/services/api/model/trace/TraceModels';
 
 /**
  * Flamegraph client scoped to one trace type. Sends no time range or thread — the backend derives
- * the scope from the traces carrying this root name, so the result contains only the samples those
- * traces cover. The `timeRange`/`search` arguments of the `FlamegraphClient` contract are ignored.
+ * the scope from the traces of that type, so the result contains only the samples those traces
+ * cover. The `timeRange`/`search` arguments of the `FlamegraphClient` contract are ignored.
+ *
+ * The scope is the whole operation identity, not just its name: an inbound `GET /orders` and an
+ * outbound call to the same path would otherwise be drawn into one graph.
  */
 export default class TraceOperationFlamegraphClient extends RemoteFlamegraphClient {
-  private readonly name: string;
+  private readonly operation: TraceOperationId;
   private readonly eventType: string;
   private readonly useThreadMode: boolean;
   private readonly useWeight: boolean | null;
@@ -36,7 +40,7 @@ export default class TraceOperationFlamegraphClient extends RemoteFlamegraphClie
 
   constructor(
     profileId: string,
-    name: string,
+    operation: TraceOperationId,
     eventType: string,
     useThreadMode: boolean,
     useWeight: boolean | null,
@@ -45,7 +49,7 @@ export default class TraceOperationFlamegraphClient extends RemoteFlamegraphClie
     onlyUnsafeAllocationSamples: boolean
   ) {
     super(GlobalVars.internalUrl + '/profiles/' + profileId + '/traces/operation/flamegraph');
-    this.name = name;
+    this.operation = operation;
     this.eventType = eventType;
     this.useThreadMode = useThreadMode;
     this.useWeight = useWeight;
@@ -57,7 +61,10 @@ export default class TraceOperationFlamegraphClient extends RemoteFlamegraphClie
   // The operation scope fully defines the data — timeRange/search of the contract are ignored.
   protected bothContent(components: GraphComponents): Record<string, unknown> {
     return {
-      name: this.name,
+      name: this.operation.name,
+      kind: this.operation.kind,
+      // Named apart from `eventType`, which selects the samples to draw rather than the trace type.
+      rootEventType: this.operation.eventType,
       eventType: this.eventType,
       useWeight: this.useWeight,
       useThreadMode: this.useThreadMode,

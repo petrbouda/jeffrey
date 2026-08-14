@@ -18,7 +18,10 @@
 
 package cafe.jeffrey.provider.profile.api;
 
+import cafe.jeffrey.shared.common.model.SpanInterval;
+
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Reads the traces derived from a profile's events.
@@ -51,16 +54,40 @@ public interface TraceRepository {
     List<TraceSummaryRecord> slowestTraces(int limit);
 
     /**
-     * Lists the traces of one type — every trace whose root span carries {@code rootName} — in the
-     * order they ran.
+     * Lists the traces of one type, in the order they ran.
      * <p>
      * Chronological rather than slowest-first because the caller plots them over time as well as
      * ranking them; ranking a list it already holds is cheaper than a second query.
      *
-     * @param rootName the trace type, as listed by {@link #operations(int)}
-     * @param limit    maximum number of traces to return
+     * @param operation the trace type, as listed by {@link #operations(int)}
+     * @param limit     maximum number of traces to return
      */
-    List<TraceSummaryRecord> tracesOfOperation(String rootName, int limit);
+    List<TraceSummaryRecord> tracesOfOperation(TraceOperationId operation, int limit);
+
+    /**
+     * Returns one trace's header — the same row the lists show, so a trace's duration reads the same
+     * in the list it was opened from and in the detail it opens into.
+     *
+     * @return empty when no trace carries that id
+     */
+    Optional<TraceSummaryRecord> summaryOf(long traceId);
+
+    /**
+     * Where one operation spends its time: one row per span name, across every trace of the type,
+     * ranked by total time. Times are inclusive — a parent contains its children. The trace's own
+     * root span is excluded, by identity rather than by name, so an operation that calls itself
+     * keeps its nested occurrences.
+     *
+     * @param operation the trace type
+     * @param limit     maximum number of span names to return
+     */
+    List<TraceOperationSpanRecord> spanBreakdownOfOperation(TraceOperationId operation, int limit);
+
+    /**
+     * How one operation's spans are spread across threads, and how many of them ran somewhere a
+     * sample could be attributed to.
+     */
+    TraceOperationThreadsRecord threadsOfOperation(TraceOperationId operation);
 
     /**
      * Profile-wide trace totals and latency percentiles, for the summary the trace list opens with.
@@ -77,15 +104,18 @@ public interface TraceRepository {
     List<TraceSpanRecord> spansOf(long traceId);
 
     /**
-     * Returns every span of every trace of one type, so the caller can reduce them to the windows a
-     * flamegraph is scoped to. Ordered by start time, which is what makes the reduction stable.
+     * The windows one operation occupied, one per {@code (trace, thread)} — what a flamegraph scoped
+     * to a whole trace type is built from.
+     * <p>
+     * Reduced in SQL rather than by fetching every span and collapsing them here: the spans of a hot
+     * operation are unbounded and all but these bounds are discarded.
      *
-     * @param rootName the trace type, as listed by {@link #operations(int)}
+     * @param operation the trace type, as listed by {@link #operations(int)}
      */
-    List<TraceSpanRecord> spansOfOperation(String rootName);
+    List<SpanInterval> operationIntervals(TraceOperationId operation);
 
     /**
-     * Aggregates traces by root name — one row per trace type — across the whole profile.
+     * Aggregates traces by type — one row per {@link TraceOperationId} — across the whole profile.
      *
      * @param limit maximum number of operations to return, ranked by total time
      */
@@ -103,5 +133,17 @@ public interface TraceRepository {
      * @param fromEpochMillis window start, inclusive
      * @param toEpochMillis   window end, inclusive
      */
-    List<TraceEventRecord> eventsInSpan(long threadHash, long fromEpochMillis, long toEpochMillis);
+    List<ThreadWindowEventRecord> eventsInSpan(long threadHash, long fromEpochMillis, long toEpochMillis);
+
+    /**
+     * How the recording described the fields of the given event types — the label, description and
+     * content type JFR recorded for each.
+     * <p>
+     * Read once per trace rather than per span: a trace's spans come from a handful of event types,
+     * and every span of a type shares its schema.
+     *
+     * @param eventTypes the types to describe; an empty list yields an empty result rather than
+     *                   describing every event type in the recording
+     */
+    List<EventFieldRecord> eventFieldsOf(List<String> eventTypes);
 }

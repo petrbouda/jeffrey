@@ -18,7 +18,8 @@
 
 package cafe.jeffrey.microscope.core.web.dto.response;
 
-import java.time.Instant;
-
-public record ProfileInfoResponse(String id, String name, String projectId, Instant createdAt) {
+/**
+ * @param createdAt epoch millis
+ */
+public record ProfileInfoResponse(String id, String name, String projectId, long createdAt) {
 }

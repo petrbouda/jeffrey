@@ -56,7 +56,7 @@
       <EmptyState
         v-else-if="!data || data.items.length === 0"
         title="No Cumulated Data"
-        message="No method tracing events were recorded in this profile."
+        description="No method tracing events were recorded in this profile."
         icon="bi-layers"
       />
 
