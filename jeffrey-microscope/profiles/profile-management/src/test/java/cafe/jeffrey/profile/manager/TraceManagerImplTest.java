@@ -64,7 +64,7 @@ class TraceManagerImplTest {
     private static TraceSpanRecord spanOnThread(long spanId, Long parentSpanId, String name,
             long startMillis, long durationMs, long threadHash) {
         return new TraceSpanRecord(
-                TRACE, spanId, parentSpanId, name, "INTERNAL", "UNSET", null,
+                TRACE, spanId, parentSpanId, name, "INTERNAL", "UNSET", null, "{}",
                 startMillis, startMillis, durationMs * MS, threadHash, "worker", "jeffrey.TraceSpan");
     }
 
@@ -72,7 +72,7 @@ class TraceManagerImplTest {
     private static TraceSpanRecord spanOnTrace(long traceId, long spanId, Long parentSpanId, String name,
             long startMillis, long durationMs) {
         return new TraceSpanRecord(
-                traceId, spanId, parentSpanId, name, "INTERNAL", "UNSET", null,
+                traceId, spanId, parentSpanId, name, "INTERNAL", "UNSET", null, "{}",
                 startMillis, startMillis, durationMs * MS, THREAD, "worker", "jeffrey.TraceSpan");
     }
 
