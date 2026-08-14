@@ -37,10 +37,10 @@ import jdk.jfr.StackTrace;
  * {@link Tracer#reenter} lambda, so it cannot straddle a thread by construction — which is what
  * makes it a trustworthy join key for "what was the JVM doing while this span was running".
  * <p>
- * Emitted only by {@link Tracer#reenter}. {@link Tracer#call}, {@link Tracer#inSpan} and
- * {@link Tracer#inSpanOf} are thread-confined already — their span <em>is</em> its own single scope
- * — so emitting one there would record the same interval twice. Instrumentation that never
- * re-enters therefore pays nothing for this event type existing.
+ * Emitted only by {@link Tracer#reenter}. {@link Tracer#call} and {@link Tracer#inSpanOf} are
+ * thread-confined already — their span <em>is</em> its own single scope — so emitting one there
+ * would record the same interval twice. Instrumentation that never re-enters therefore pays nothing
+ * for this event type existing.
  *
  * <h2>Why the field is not called {@code spanId}</h2>
  * The derivation discovers which event types are spans structurally, by looking for a declared

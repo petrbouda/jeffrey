@@ -80,6 +80,20 @@ class TracerTest {
             assertEquals(root.spanId(), child.parentSpanId());
             assertFalse(child.isRoot());
         }
+
+        @Test
+        @DisplayName("the no-arg forms draw from the calling thread's random and behave the same")
+        void noArgFormsBehaveTheSame() {
+            SpanContext root = SpanContext.root();
+            SpanContext child = root.child();
+
+            assertNotEquals(0, root.traceId());
+            assertNotEquals(0, root.spanId());
+            assertTrue(root.isRoot());
+            assertEquals(root.traceId(), child.traceId());
+            assertEquals(root.spanId(), child.parentSpanId());
+            assertNotEquals(root.spanId(), child.spanId());
+        }
     }
 
     @Nested
@@ -91,7 +105,7 @@ class TracerTest {
         void stampFillsTheEvent() {
             JdbcQueryEvent event = new JdbcQueryEvent("listSpans", "profile");
 
-            SpanContext context = Tracer.inSpan(() -> {
+            SpanContext context = Tracer.continueIn(null, "scope", SpanKind.INTERNAL, () -> {
                 Tracer.stamp(event);
                 return Tracer.current().orElseThrow();
             });
@@ -108,10 +122,9 @@ class TracerTest {
             JdbcQueryEvent first = new JdbcQueryEvent("listSpans", "profile");
             JdbcQueryEvent second = new JdbcQueryEvent("countSpans", "profile");
 
-            Tracer.inSpan(() -> {
+            Tracer.continueIn(null, "scope", SpanKind.INTERNAL, () -> {
                 Tracer.stamp(first);
                 Tracer.stamp(second);
-                return null;
             });
 
             assertEquals(first.traceId, second.traceId);
@@ -136,11 +149,12 @@ class TracerTest {
         }
 
         @Test
-        @DisplayName("the binding is gone once inSpan returns, so stamping afterwards is a no-op")
+        @DisplayName("the binding is gone once the span closes, so stamping afterwards is a no-op")
         void stampingAfterTheSpanClosesDoesNothing() {
             HttpServerExchangeEvent event = new HttpServerExchangeEvent();
 
-            Tracer.inSpan(() -> null);
+            Tracer.continueIn(null, "scope", SpanKind.INTERNAL, () -> {
+            });
             Tracer.stamp(event);
 
             assertEquals(0, event.traceId,
@@ -160,22 +174,21 @@ class TracerTest {
         }
 
         @Test
-        @DisplayName("inSpan opens a binding even though it emits no trace span event of its own")
-        void inSpanBindsWithoutEmitting() throws IOException {
+        @DisplayName("a stamped event and a nested span inside one scope share that scope as parent")
+        void stampedEventAndNestedSpanShareTheParent() throws IOException {
+            HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
             JdbcQueryEvent statement = new JdbcQueryEvent("listSpans", "profile");
 
-            Map<String, RecordedEvent> spans = recordSpans(() -> Tracer.inSpan(() -> {
+            Map<String, RecordedEvent> spans = recordSpans(() -> Tracer.inSpanOf(exchange, () -> {
                 Tracer.stamp(statement);
                 Tracer.run("query", SpanKind.CLIENT, () -> {
                 });
-                return null;
             }));
 
-            assertEquals(1, spans.size(), "inSpan must not emit a span event of its own");
             RecordedEvent query = spans.get("query");
             assertEquals(statement.traceId, query.getLong("traceId"));
             assertEquals(statement.parentSpanId, query.getLong("parentSpanId"),
-                    "both hang off the span inSpan opened - a stamped event is a leaf, not a scope");
+                    "both hang off the exchange's span - a stamped event is a leaf, not a scope");
         }
     }
 
@@ -503,7 +516,6 @@ class TracerTest {
             List<RecordedEvent> scopes = recordEvents(TraceScopeEvent.NAME, () -> {
                 Tracer.run("checkout", SpanKind.SERVER, () -> {
                 });
-                Tracer.inSpan(() -> null);
                 Tracer.inSpanOf(new HttpServerExchangeEvent(), () -> null);
                 Tracer.continueIn(SpanContext.root(new java.util.Random(42)), "handle",
                         SpanKind.INTERNAL, () -> null);
@@ -532,6 +544,100 @@ class TracerTest {
                     () -> new AssertionError("reenter was handed a context and must bind it")));
 
             assertEquals(opened, bound);
+        }
+    }
+
+    @Nested
+    @DisplayName("Forking work to an executor")
+    class Forking {
+
+        @Test
+        @DisplayName("fork captures the span at wrap time and reparents the task under it")
+        void forkCapturesAtWrapTime() throws IOException {
+            Map<String, RecordedEvent> spans = recordSpans(() -> {
+                Runnable task = Tracer.call("submit", SpanKind.SERVER,
+                        () -> Tracer.fork("handle", SpanKind.INTERNAL, () -> {
+                        }));
+                // Run only after the submitting span has closed, the way an executor would.
+                runOnAnotherThread(() -> {
+                    task.run();
+                    return null;
+                });
+            });
+
+            RecordedEvent submit = spans.get("submit");
+            RecordedEvent handle = spans.get("handle");
+            assertEquals(submit.getLong("traceId"), handle.getLong("traceId"));
+            assertEquals(submit.getLong("spanId"), handle.getLong("parentSpanId"));
+        }
+
+        @Test
+        @DisplayName("the supplier form returns the body's value and stays in the trace")
+        void forkSupplierReturnsTheValue() throws IOException {
+            Object result = new Object();
+
+            Map<String, RecordedEvent> spans = recordSpans(() -> {
+                var task = Tracer.call("submit", SpanKind.SERVER,
+                        () -> Tracer.fork("handle", SpanKind.INTERNAL, () -> result));
+                runOnAnotherThread(() -> {
+                    assertSame(result, task.get());
+                    return null;
+                });
+            });
+
+            assertEquals(spans.get("submit").getLong("spanId"), spans.get("handle").getLong("parentSpanId"));
+        }
+
+        @Test
+        @DisplayName("fork outside any span starts a fresh trace, like continueIn with a null parent")
+        void forkOutsideASpanStartsAFreshTrace() {
+            Runnable task = Tracer.fork("handle", SpanKind.INTERNAL,
+                    () -> assertTrue(Tracer.current().orElseThrow().isRoot()));
+
+            runOnAnotherThread(() -> {
+                task.run();
+                return null;
+            });
+        }
+    }
+
+    @Nested
+    @DisplayName("Runnable forms")
+    class RunnableForms {
+
+        @Test
+        @DisplayName("reenter's runnable form binds the same span")
+        void reenterRunnableBindsTheSameSpan() {
+            SpanContext opened = SpanContext.root(new java.util.Random(42));
+
+            Tracer.reenter(opened, () -> assertEquals(opened, Tracer.current().orElseThrow()));
+        }
+
+        @Test
+        @DisplayName("inSpanOf's runnable form stamps the event and parents nested work under it")
+        void inSpanOfRunnableStampsAndParents() throws IOException {
+            HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
+
+            Map<String, RecordedEvent> spans = recordSpans(() -> Tracer.inSpanOf(exchange, () ->
+                    Tracer.run("query", SpanKind.CLIENT, () -> {
+                    })));
+
+            assertNotEquals(0, exchange.traceId);
+            assertEquals(exchange.spanId, spans.get("query").getLong("parentSpanId"));
+        }
+
+        @Test
+        @DisplayName("continueIn's runnable form records a child of the given parent")
+        void continueInRunnableReparents() throws IOException {
+            SpanContext carried = SpanContext.root(new java.util.Random(42));
+
+            Map<String, RecordedEvent> spans = recordSpans(() ->
+                    Tracer.continueIn(carried, "handle", SpanKind.INTERNAL, () -> {
+                    }));
+
+            RecordedEvent handle = spans.get("handle");
+            assertEquals(carried.traceId(), handle.getLong("traceId"));
+            assertEquals(carried.spanId(), handle.getLong("parentSpanId"));
         }
     }
 

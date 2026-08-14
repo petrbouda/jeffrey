@@ -205,10 +205,7 @@ public final class PipelineRunRegistry<K> {
         try {
             // Scoped to the work itself rather than the whole method so the span measures execution,
             // not the time spent queueing for a slot above.
-            Tracer.inSpanOf(span, () -> {
-                request.work().accept(run);
-                return null;
-            });
+            Tracer.inSpanOf(span, () -> request.work().accept(run));
             run.complete();
             // OK rather than UNSET: a pipeline reaching complete() is a success the code observed,
             // not merely the absence of a thrown exception.

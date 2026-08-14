@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.jfr.events.trace;
 
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.random.RandomGenerator;
 
 /**
@@ -38,14 +39,32 @@ import java.util.random.RandomGenerator;
 public record SpanContext(long traceId, long spanId, long parentSpanId) {
 
     /**
-     * Starts a new trace: a fresh trace id, a fresh span id, and no parent.
+     * Starts a new trace: a fresh trace id, a fresh span id, and no parent. Ids are drawn from the
+     * calling thread's {@link ThreadLocalRandom}.
+     */
+    public static SpanContext root() {
+        return root(ThreadLocalRandom.current());
+    }
+
+    /**
+     * The form of {@link #root()} that takes the generator explicitly, for tests that need
+     * deterministic ids.
      */
     public static SpanContext root(RandomGenerator random) {
         return new SpanContext(nonZero(random), nonZero(random), 0);
     }
 
     /**
-     * Derives a child of this span — same trace, new span id, parented to this one.
+     * Derives a child of this span — same trace, new span id, parented to this one. The id is drawn
+     * from the calling thread's {@link ThreadLocalRandom}.
+     */
+    public SpanContext child() {
+        return child(ThreadLocalRandom.current());
+    }
+
+    /**
+     * The form of {@link #child()} that takes the generator explicitly, for tests that need
+     * deterministic ids.
      */
     public SpanContext child(RandomGenerator random) {
         return new SpanContext(traceId, nonZero(random), spanId);
