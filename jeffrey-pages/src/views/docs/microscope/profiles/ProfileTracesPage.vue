@@ -190,6 +190,10 @@ if (event.isEnabled()) {
 
       <p>Each re-entry emits a <code>jeffrey.TraceScope</code> event recording which thread the span ran on and for how long. That is what the drill-down and the span-scoped flamegraph read: a re-entered span can be committed on a thread it barely ran on, and the scopes are the only record of where the work actually happened. Spans that are never re-entered emit none — <code>call</code>, <code>inSpan</code> and <code>inSpanOf</code> are thread-confined already, so their span is its own single scope and existing instrumentation pays nothing.</p>
 
+      <p class="docs-read-more">
+        <router-link to="/docs/microscope/profiles/traces/api">Full Tracer API reference &rarr;</router-link>
+      </p>
+
       <h2 id="auto-instrumented">Every Instrumented Event Is a Span</h2>
 
       <p>The HTTP, gRPC and JDBC events in <code>jeffrey-events</code> extend <code>AbstractTracedEvent</code>, which carries the whole span shape — <code>traceId</code>, <code>spanId</code>, <code>parentSpanId</code>, plus the <code>name</code>, <code>kind</code>, <code>status</code>, <code>errorType</code> and <code>attributes</code> a <code>jeffrey.TraceSpan</code> carries. An event that has them <em>is</em> a span; there is nothing for Jeffrey to work out from the event type.</p>
