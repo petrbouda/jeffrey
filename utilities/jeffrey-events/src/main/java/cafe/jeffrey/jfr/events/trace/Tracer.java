@@ -20,8 +20,7 @@ package cafe.jeffrey.jfr.events.trace;
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.random.RandomGenerator;
+import java.util.function.Supplier;
 
 /**
  * Records nested spans into the JFR recording.
@@ -54,8 +53,9 @@ import java.util.random.RandomGenerator;
  *       emits a {@link TraceScopeEvent} per activation so the threads the span really ran on are
  *       recorded even though its own event can only name one.</li>
  *   <li><b>{@link ScopedValue} propagates to child threads only through structured concurrency.</b>
- *       Work submitted to a plain executor does not inherit the current span; pass the
- *       {@link SpanContext} explicitly and re-establish it with {@link #continueIn}.</li>
+ *       Work submitted to a plain executor does not inherit the current span; wrap the task with
+ *       {@link #fork}, or pass the {@link SpanContext} explicitly and re-establish it with
+ *       {@link #continueIn}.</li>
  *   <li><b>Span names must be stable and low-cardinality.</b> Every distinct name enters the JFR
  *       per-chunk string pool, so a name built from a request id or a user id inflates the
  *       recording. Name the operation, not the instance of it.</li>
@@ -125,23 +125,6 @@ public final class Tracer {
     }
 
     /**
-     * Opens a span for {@code body} without emitting a {@link TraceSpanEvent} and without attaching
-     * it to an event, for a scope that only needs to exist so the work underneath it hangs together.
-     * <p>
-     * Instrumentation whose <em>own</em> event already describes the interval — an HTTP exchange, a
-     * gRPC call — wants {@link #inSpanOf} instead, which makes that event the span. Pairing this
-     * method with {@link #stamp} does something different: the stamped event becomes a child of the
-     * span opened here rather than the span itself.
-     * <p>
-     * Unlike {@link #call}, this always establishes a binding: whether an interval is recorded at
-     * all is the caller's event's decision, not this method's.
-     */
-    public static <R, X extends Throwable> R inSpan(ScopedValue.CallableOp<? extends R, X> body) throws X {
-        Objects.requireNonNull(body, "body must not be null");
-        return ScopedValue.where(CURRENT, newSpanContext()).call(body);
-    }
-
-    /**
      * Opens a span and makes {@code event} that span, for instrumentation whose own event already
      * describes the interval — an HTTP exchange, a gRPC call. Emitting a {@link TraceSpanEvent}
      * alongside such an event would record the same interval twice, so none is emitted; the event
@@ -179,6 +162,18 @@ public final class Tracer {
     }
 
     /**
+     * The {@link Runnable} form of {@link #inSpanOf(AbstractTracedEvent, ScopedValue.CallableOp)},
+     * for a body with no result and no checked exception.
+     */
+    public static void inSpanOf(AbstractTracedEvent event, Runnable body) {
+        Objects.requireNonNull(body, "body must not be null");
+        inSpanOf(event, () -> {
+            body.run();
+            return null;
+        });
+    }
+
+    /**
      * Opens a span on {@code event} and hands back its context <em>without</em> binding it, for
      * instrumentation that cannot wrap its work in a lambda.
      * <p>
@@ -204,8 +199,7 @@ public final class Tracer {
      * <p>
      * Distinct from {@link #continueIn}, which mints a <em>child</em> and emits a span event for it:
      * this rebinds the very same span, because a protocol's callbacks are not separate operations,
-     * they are the same operation arriving in pieces. Distinct from {@link #inSpan}, which opens a
-     * new span rather than resuming one.
+     * they are the same operation arriving in pieces.
      * <p>
      * Each re-entry emits a {@link TraceScopeEvent} recording which thread the span ran on and for
      * how long. That is not bookkeeping for its own sake: once a span is re-entered it can be closed
@@ -248,6 +242,18 @@ public final class Tracer {
     }
 
     /**
+     * The {@link Runnable} form of {@link #reenter(SpanContext, ScopedValue.CallableOp)}, for a
+     * callback with no result and no checked exception.
+     */
+    public static void reenter(SpanContext context, Runnable body) {
+        Objects.requireNonNull(body, "body must not be null");
+        reenter(context, () -> {
+            body.run();
+            return null;
+        });
+    }
+
+    /**
      * Gives {@code event} a span of its own, nested inside the span currently in progress, so the
      * event takes its place in the trace. Does nothing when no span is in progress, leaving the
      * event's ids at {@code 0} — the encoding for "not part of a trace".
@@ -260,7 +266,7 @@ public final class Tracer {
     public static void stamp(AbstractTracedEvent event) {
         Objects.requireNonNull(event, "event must not be null");
         if (CURRENT.isBound()) {
-            stampSelf(event, CURRENT.get().child(ThreadLocalRandom.current()));
+            stampSelf(event, CURRENT.get().child());
         }
     }
 
@@ -302,6 +308,87 @@ public final class Tracer {
     }
 
     /**
+     * The form of {@link #continueIn(SpanContext, String, SpanKind, ScopedValue.CallableOp)} with
+     * kind {@link SpanKind#INTERNAL} — forked work is in-process work unless declared otherwise.
+     */
+    public static <R, X extends Throwable> R continueIn(
+            SpanContext parent, String name, ScopedValue.CallableOp<? extends R, X> body) throws X {
+        return continueIn(parent, name, SpanKind.INTERNAL, body);
+    }
+
+    /**
+     * The {@link Runnable} form of
+     * {@link #continueIn(SpanContext, String, SpanKind, ScopedValue.CallableOp)}, for a task with no
+     * result and no checked exception.
+     */
+    public static void continueIn(SpanContext parent, String name, SpanKind kind, Runnable body) {
+        Objects.requireNonNull(body, "body must not be null");
+        continueIn(parent, name, kind, () -> {
+            body.run();
+            return null;
+        });
+    }
+
+    /**
+     * The {@link Runnable} form of {@link #continueIn(SpanContext, String, SpanKind, Runnable)},
+     * with kind {@link SpanKind#INTERNAL}.
+     */
+    public static void continueIn(SpanContext parent, String name, Runnable body) {
+        continueIn(parent, name, SpanKind.INTERNAL, body);
+    }
+
+    /**
+     * Wraps {@code body} so that, wherever it eventually runs, it is recorded as a child of the span
+     * in progress <em>here</em> — the packaged form of capturing {@link #current} before an executor
+     * hand-off and re-establishing it inside the task with {@link #continueIn}.
+     * <p>
+     * The capture happens when this method is called, not when the task runs, so wrap on the thread
+     * whose span the work belongs to and submit the result. Called outside any span, the task starts
+     * a fresh trace — the same fallback {@link #continueIn} has for a {@code null} parent.
+     *
+     * <pre>{@code
+     * CompletableFuture.runAsync(
+     *         Tracer.fork("chunk.parse", () -> parseChunk(file)),
+     *         executor);
+     * }</pre>
+     */
+    public static Runnable fork(String name, SpanKind kind, Runnable body) {
+        Objects.requireNonNull(name, "name must not be null");
+        Objects.requireNonNull(kind, "kind must not be null");
+        Objects.requireNonNull(body, "body must not be null");
+
+        SpanContext parent = CURRENT.isBound() ? CURRENT.get() : null;
+        return () -> continueIn(parent, name, kind, body);
+    }
+
+    /**
+     * The form of {@link #fork(String, SpanKind, Runnable)} with kind {@link SpanKind#INTERNAL}.
+     */
+    public static Runnable fork(String name, Runnable body) {
+        return fork(name, SpanKind.INTERNAL, body);
+    }
+
+    /**
+     * The value-returning form of {@link #fork(String, SpanKind, Runnable)}, shaped as a
+     * {@link Supplier} so it hands straight to {@code CompletableFuture.supplyAsync}.
+     */
+    public static <T> Supplier<T> fork(String name, SpanKind kind, Supplier<T> body) {
+        Objects.requireNonNull(name, "name must not be null");
+        Objects.requireNonNull(kind, "kind must not be null");
+        Objects.requireNonNull(body, "body must not be null");
+
+        SpanContext parent = CURRENT.isBound() ? CURRENT.get() : null;
+        return () -> continueIn(parent, name, kind, body::get);
+    }
+
+    /**
+     * The form of {@link #fork(String, SpanKind, Supplier)} with kind {@link SpanKind#INTERNAL}.
+     */
+    public static <T> Supplier<T> fork(String name, Supplier<T> body) {
+        return fork(name, SpanKind.INTERNAL, body);
+    }
+
+    /**
      * Derives the context for a span about to start on this thread: a child of whatever is bound,
      * or a fresh root when nothing is.
      */
@@ -310,8 +397,7 @@ public final class Tracer {
     }
 
     private static SpanContext childOf(SpanContext parent) {
-        RandomGenerator random = ThreadLocalRandom.current();
-        return parent == null ? SpanContext.root(random) : parent.child(random);
+        return parent == null ? SpanContext.root() : parent.child();
     }
 
     private static <R, X extends Throwable> R record(

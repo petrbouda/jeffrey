@@ -30,8 +30,6 @@ import cafe.jeffrey.flamegraph.provider.FlamegraphDataProvider;
 import cafe.jeffrey.flamegraph.provider.TimeseriesDataProvider;
 import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
-import cafe.jeffrey.jfr.events.trace.SpanContext;
-import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.shared.common.span.Spans;
 import cafe.jeffrey.timeseries.SingleSerie;
@@ -62,16 +60,14 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
 
     @Override
     public byte[] generate(GraphParameters params) {
-        // Both branches run on a shared pool, where ScopedValue does not reach. The enclosing span is
-        // captured here and re-established inside each task so the two halves of a graph request stay
-        // under the request that asked for them instead of starting traces of their own.
-        SpanContext parent = Tracer.current().orElse(null);
-
+        // Both branches run on a shared pool, where ScopedValue does not reach. fork captures the
+        // enclosing span here and re-establishes it inside each task so the two halves of a graph
+        // request stay under the request that asked for them instead of starting traces of their own.
         CompletableFuture<cafe.jeffrey.flamegraph.proto.FlamegraphData> flameFuture;
         if (GraphComponents.isFlamegraphCompatible(params.graphComponents())) {
             FlamegraphDataProvider flamegraphProvider = FlamegraphDataProvider.primary(eventRepository, params);
             flameFuture = CompletableFuture.supplyAsync(
-                    () -> Tracer.continueIn(parent, SPAN_FLAMEGRAPH_BRANCH, SpanKind.INTERNAL,
+                    Tracer.fork(SPAN_FLAMEGRAPH_BRANCH,
                             () -> flamegraphProvider.provideProto(minFrameThresholdPct)),
                     Schedulers.sharedParallel());
         } else {
@@ -82,7 +78,7 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
         if (GraphComponents.isTimeseriesCompatible(params.graphComponents())) {
             TimeseriesDataProvider timeseriesProvider = new TimeseriesDataProvider(eventRepository, params);
             timeseriesFuture = CompletableFuture.supplyAsync(
-                    () -> Tracer.continueIn(parent, SPAN_TIMESERIES_BRANCH, SpanKind.INTERNAL,
+                    Tracer.fork(SPAN_TIMESERIES_BRANCH,
                             timeseriesProvider::provide),
                     Schedulers.sharedParallel());
         } else {

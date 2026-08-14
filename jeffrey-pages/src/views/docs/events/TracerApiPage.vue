@@ -35,9 +35,9 @@ const headings = [
   { id: 'api-current', text: 'current', level: 3 },
   { id: 'api-stamp', text: 'stamp', level: 3 },
   { id: 'api-inspanof', text: 'inSpanOf', level: 3 },
-  { id: 'api-inspan', text: 'inSpan', level: 3 },
   { id: 'api-openspanof-reenter', text: 'openSpanOf / reenter', level: 3 },
   { id: 'api-continuein', text: 'continueIn', level: 3 },
+  { id: 'api-fork', text: 'fork', level: 3 },
   { id: 'semantics', text: 'Semantics at a Glance', level: 2 },
   { id: 'choosing', text: 'Choosing the Right Method', level: 2 },
   { id: 'composed-tree', text: 'A Complete Tree', level: 2 },
@@ -62,9 +62,11 @@ const quickStartTree = `trace 5f3a90c2…                                      e
    └─ payment.charge     CLIENT                      jeffrey.TraceSpan`;
 
 const spanContextShape = `public record SpanContext(long traceId, long spanId, long parentSpanId) {
-    public static SpanContext root(RandomGenerator random) { … }   // fresh trace, no parent
-    public SpanContext child(RandomGenerator random) { … }         // same trace, new span id, parented here
+    public static SpanContext root() { … }        // fresh trace, no parent
+    public SpanContext child() { … }              // same trace, new span id, parented here
     public boolean isRoot() { return parentSpanId == 0; }
+
+    // Forms taking a RandomGenerator explicitly exist for tests that need deterministic ids.
 }`;
 
 const runCallSignatures = `// Runnable forms — for side-effecting work
@@ -110,9 +112,10 @@ const callErrorExample = `IllegalStateException thrown = assertThrows(IllegalSta
 
 const currentSignature = `static Optional<SpanContext> current()
 
-// Typical use: capture the context before forking to an executor
+// Typical use: capture the context when the hand-off site and the wrapping
+// site are not the same place — otherwise prefer fork, which captures for you
 SpanContext parent = Tracer.current().orElse(null);
-executor.submit(() -> Tracer.continueIn(parent, "chunk.parse", SpanKind.INTERNAL, () -> { … }));`;
+request.attachTraceContext(parent);   // continueIn(parent, …) runs elsewhere, later`;
 
 const stampExample = `// From DatabaseClient — every SQL statement becomes a leaf span
 JdbcInsertEvent event = new JdbcInsertEvent("insert_recording", "microscope");
@@ -161,22 +164,6 @@ const inSpanOfTree = `trace 2b7fe410…
 No jeffrey.TraceSpan is emitted for the root — the exchange event carries
 the ids itself. Emitting one would record the same interval twice.`;
 
-const inSpanExample = `// A scope that exists only so the work underneath it hangs together
-Tracer.inSpan(() -> {
-    Tracer.stamp(first);      // both stamped events become children
-    Tracer.stamp(second);     // of the span opened here
-    return null;
-});`;
-
-const inSpanTree = `trace 77a1bc09…
-└─ (span with an id, but no event ever records it)
-   ├─ listSpans    JdbcQueryEvent   leaf
-   └─ countSpans   JdbcQueryEvent   leaf
-
-In the assembled tree the unrecorded parent does not exist, so both
-children are promoted to roots of the trace. They still share one
-trace id — the grouping survives, the extra level does not.`;
-
 const openReenterExample = `// From JfrGrpcServerInterceptor — a gRPC call runs from listener callbacks
 // long after the interceptor returned, on threads it does not control.
 GrpcServerExchangeEvent event = new GrpcServerExchangeEvent();
@@ -185,11 +172,8 @@ SpanContext span = Tracer.openSpanOf(event);   // stamps the event, binds NOTHIN
 
 return new SimpleForwardingServerCallListener<>(listener) {
     @Override
-    public void onHalfClose() {                // where a unary handler actually runs
-        Tracer.reenter(span, () -> {           // resumes the SAME span, not a child
-            super.onHalfClose();
-            return null;
-        });
+    public void onHalfClose() {                          // where a unary handler actually runs
+        Tracer.reenter(span, () -> super.onHalfClose()); // resumes the SAME span, not a child
     }
     // onMessage / onCancel / onComplete / onReady wrapped the same way
 };`;
@@ -203,17 +187,26 @@ but the only honest record of where the span actually ran:
    jeffrey.TraceScope  scopedSpanId=<root>  thread=grpc-default-executor-0   (onMessage)
    jeffrey.TraceScope  scopedSpanId=<root>  thread=grpc-default-executor-2   (onHalfClose)`;
 
-const continueInExample = `// From ParallelRecordingFileIterator — per-chunk parsing forked to a pool.
-// ScopedValue does not propagate through a plain executor, so the parent
-// context is captured before the fork and re-established inside the task.
+const continueInExample = `// The manual form: capture the context on the submitting thread,
+// re-establish it inside the task. fork (below) packages this pattern.
 SpanContext parent = Tracer.current().orElse(null);
 
-for (Path chunk : chunks) {
-    executor.submit(() -> Tracer.continueIn(parent, "chunk.parse", SpanKind.INTERNAL, () -> {
-        parseChunk(chunk);
-        return null;
-    }));
-}`;
+executor.submit(() ->
+    Tracer.continueIn(parent, "chunk.parse", SpanKind.INTERNAL, () -> parseChunk(chunk)));`;
+
+const forkExample = `// From ParallelRecordingFileIterator — per-chunk parsing forked to a pool.
+// fork captures the enclosing span HERE, on the submitting thread, and
+// continueIn runs inside the task when the pool eventually executes it.
+return CompletableFuture.supplyAsync(
+        Tracer.fork("chunk.parse",
+                () -> singleFileIterator.apply(recording).partialCollect(collector)),
+        Schedulers.sharedBulkParallel());
+
+// From ProfileDataInitializerImpl — the Runnable form
+CompletableFuture.runAsync(
+        Tracer.fork("guardian.results",
+                () -> profileManager.guardianManager().guardResults()),
+        executor);`;
 
 const continueInTree = `trace 9d02f7c3…
 └─ POST /api/internal/recordings   SERVER              (request thread)
@@ -232,14 +225,14 @@ const composedTree = `trace a3f9c1d4…                                         
       ├─ profile-info.insert              INTERNAL     jeffrey.TraceSpan         ← run
       │  └─ insert_profile                CLIENT       JdbcInsertEvent           ← stamp
       ├─ recording.parse                  INTERNAL     jeffrey.TraceSpan         ← run
-      │  ├─ chunk.parse                   INTERNAL     jeffrey.TraceSpan         ← continueIn (pool)
-      │  └─ chunk.parse                   INTERNAL     jeffrey.TraceSpan         ← continueIn (pool)
+      │  ├─ chunk.parse                   INTERNAL     jeffrey.TraceSpan         ← fork (pool)
+      │  └─ chunk.parse                   INTERNAL     jeffrey.TraceSpan         ← fork (pool)
       ├─ events.flush                     INTERNAL     jeffrey.TraceSpan         ← run
       │  └─ insert_events                 CLIENT       JdbcInsertEvent           ← stamp
       └─ profile.data-init                INTERNAL     jeffrey.TraceSpan         ← run
-         ├─ eventviewer.tree              INTERNAL     jeffrey.TraceSpan         ← continueIn (pool)
-         ├─ guardian.results              INTERNAL     jeffrey.TraceSpan         ← continueIn (pool)
-         └─ threads.rows                  INTERNAL     jeffrey.TraceSpan         ← continueIn (pool)`;
+         ├─ eventviewer.tree              INTERNAL     jeffrey.TraceSpan         ← fork (pool)
+         ├─ guardian.results              INTERNAL     jeffrey.TraceSpan         ← fork (pool)
+         └─ threads.rows                  INTERNAL     jeffrey.TraceSpan         ← fork (pool)`;
 </script>
 
 <template>
@@ -331,7 +324,7 @@ const composedTree = `trace a3f9c1d4…                                         
 
       <DocsCodeBlock :code="currentSignature" language="java" />
 
-      <p>Returns the <code>SpanContext</code> bound on this thread, or empty when none is. Its main job is capturing the parent before work is handed to an executor, since <code>ScopedValue</code> does not cross that boundary on its own — see <a href="#api-continuein">continueIn</a>.</p>
+      <p>Returns the <code>SpanContext</code> bound on this thread, or empty when none is. Its job is capturing the parent when work will continue somewhere <code>ScopedValue</code> cannot reach — for the common executor case <a href="#api-fork">fork</a> does the capture itself, so reach for <code>current()</code> when the captured context has to travel further than the wrapping site, paired with <a href="#api-continuein">continueIn</a>.</p>
 
       <h3 id="api-stamp">stamp — make an event a leaf of the current span</h3>
 
@@ -347,7 +340,8 @@ const composedTree = `trace a3f9c1d4…                                         
 
       <h3 id="api-inspanof">inSpanOf — the event is the span</h3>
 
-      <p><code>static &lt;R, X&gt; R inSpanOf(AbstractTracedEvent event, ScopedValue.CallableOp&lt;R, X&gt; body) throws X</code></p>
+      <p><code>static &lt;R, X&gt; R inSpanOf(AbstractTracedEvent event, ScopedValue.CallableOp&lt;R, X&gt; body) throws X</code><br>
+      <code>static void inSpanOf(AbstractTracedEvent event, Runnable body)</code></p>
 
       <p>For instrumentation whose <em>own</em> event already describes the interval — an HTTP exchange, a gRPC call, a pipeline run. Emitting a <code>jeffrey.TraceSpan</code> alongside such an event would record the same interval twice, so none is emitted: the event carries the ids, and everything traced inside the body nests underneath it. The ids are stamped when the span opens, not when the event commits — they are known up front, and the binding is gone by the time a caller's <code>finally</code> block runs, so stamping there would silently do nothing.</p>
 
@@ -357,20 +351,11 @@ const composedTree = `trace a3f9c1d4…                                         
 
       <p>Unlike <code>call</code>, this always establishes the binding, even with nothing recording: whether an interval is recorded at all is the caller's event's decision, not this method's.</p>
 
-      <h3 id="api-inspan">inSpan — a scope without an event</h3>
-
-      <p><code>static &lt;R, X&gt; R inSpan(ScopedValue.CallableOp&lt;R, X&gt; body) throws X</code></p>
-
-      <p>Opens a span for the body without emitting anything and without attaching it to an event — a scope that only needs to exist so the work underneath it hangs together. Pairing it with <code>stamp</code> is deliberately different from <code>inSpanOf</code>: the stamped event becomes a <em>child</em> of the span opened here, rather than being the span itself.</p>
-
-      <DocsCodeBlock :code="inSpanExample" language="java" />
-
-      <DocsCodeBlock :code="inSpanTree" language="text" />
-
       <h3 id="api-openspanof-reenter">openSpanOf / reenter — a span the work arrives back into</h3>
 
       <p><code>static SpanContext openSpanOf(AbstractTracedEvent event)</code><br>
-      <code>static &lt;R, X&gt; R reenter(SpanContext context, ScopedValue.CallableOp&lt;R, X&gt; body) throws X</code></p>
+      <code>static &lt;R, X&gt; R reenter(SpanContext context, ScopedValue.CallableOp&lt;R, X&gt; body) throws X</code><br>
+      <code>static void reenter(SpanContext context, Runnable body)</code></p>
 
       <p>For instrumentation that cannot wrap its work in one lambda. A callback-driven protocol is the case this pair exists for: a gRPC call runs from listener callbacks long after the interceptor that started it has returned, on threads it does not control, so there is no single block for <code>inSpanOf</code> to enclose. <code>openSpanOf</code> stamps the event and hands back the context <em>without binding anything</em>; the caller keeps it and re-establishes it per callback with <code>reenter</code>.</p>
 
@@ -384,13 +369,31 @@ const composedTree = `trace a3f9c1d4…                                         
 
       <h3 id="api-continuein">continueIn — carry a trace across an executor</h3>
 
-      <p><code>static &lt;R, X&gt; R continueIn(SpanContext parent, String name, SpanKind kind, ScopedValue.CallableOp&lt;R, X&gt; body) throws X</code></p>
+      <p><code>static &lt;R, X&gt; R continueIn(SpanContext parent, String name, SpanKind kind, ScopedValue.CallableOp&lt;R, X&gt; body) throws X</code><br>
+      <code>static void continueIn(SpanContext parent, String name, SpanKind kind, Runnable body)</code><br>
+      Kind-less forms of both default to <code>SpanKind.INTERNAL</code>, like <code>run</code> and <code>call</code>.</p>
 
       <p><code>ScopedValue</code> propagates to child threads only through structured concurrency; work submitted to a plain executor does not inherit the current span. <code>continueIn</code> is the bridge: it records a span whose parent is the <em>given</em> context rather than whatever the receiving thread has bound, so the forked work stays in the trace. It mints a <strong>child</strong> and emits a <code>jeffrey.TraceSpan</code> for it — the receiving thread is doing a separate piece of work, which is exactly what distinguishes it from <code>reenter</code>. Pass <code>null</code> to start a fresh trace.</p>
 
       <DocsCodeBlock :code="continueInExample" language="java" />
 
       <DocsCodeBlock :code="continueInTree" language="text" />
+
+      <p>The capture-and-continue two-step above is packaged by <a href="#api-fork">fork</a>; <code>continueIn</code> remains the primitive for when the context arrives from somewhere other than the wrapping site — stored on a request object, or handed over by a protocol.</p>
+
+      <h3 id="api-fork">fork — wrap a task for an executor</h3>
+
+      <p><code>static Runnable fork(String name, SpanKind kind, Runnable body)</code><br>
+      <code>static &lt;T&gt; Supplier&lt;T&gt; fork(String name, SpanKind kind, Supplier&lt;T&gt; body)</code><br>
+      Kind-less forms of both default to <code>SpanKind.INTERNAL</code> — forked work is in-process work unless declared otherwise.</p>
+
+      <p>The packaged form of the executor pattern: <code>fork</code> captures the span in progress <em>when it is called</em> and returns a task that, wherever it eventually runs, records its work as a child of that span via <code>continueIn</code>. Wrap on the thread whose span the work belongs to, submit the result. The <code>Supplier</code> form hands straight to <code>CompletableFuture.supplyAsync</code>; called outside any span, the task starts a fresh trace.</p>
+
+      <p>This exists because the manual two-step had a silent failure mode: forgetting the capture didn't break anything visibly — the forked work just fell out of the trace and became a root of its own. With <code>fork</code> the capture cannot be forgotten, because it <em>is</em> the wrap.</p>
+
+      <DocsCodeBlock :code="forkExample" language="java" />
+
+      <p>The resulting tree is exactly the one shown for <code>continueIn</code> above — <code>fork</code> is that call, made later, with the capture already done.</p>
 
       <h2 id="semantics">Semantics at a Glance</h2>
 
@@ -429,12 +432,6 @@ const composedTree = `trace a3f9c1d4…                                         
             <td>Still binds: recording is the event's decision</td>
           </tr>
           <tr>
-            <td><code>inSpan</code></td>
-            <td>Nothing</td>
-            <td>Yes — always</td>
-            <td>Still binds</td>
-          </tr>
-          <tr>
             <td><code>openSpanOf</code></td>
             <td>Nothing (fills the event's ids)</td>
             <td>No — deliberately</td>
@@ -451,6 +448,12 @@ const composedTree = `trace a3f9c1d4…                                         
             <td><code>jeffrey.TraceSpan</code></td>
             <td>Yes — child of the given parent</td>
             <td>Still binds; no event. The handed-over context is the only link, so dropping it would orphan every stamp underneath</td>
+          </tr>
+          <tr>
+            <td><code>fork</code></td>
+            <td><code>jeffrey.TraceSpan</code> (via <code>continueIn</code>, when the task runs)</td>
+            <td>Captures at wrap time; binds inside the task</td>
+            <td>Same as <code>continueIn</code>: the task still binds, no event</td>
           </tr>
         </tbody>
       </table>
@@ -479,22 +482,22 @@ const composedTree = `trace a3f9c1d4…                                         
           </tr>
           <tr>
             <td>Work handed to a plain executor — a separate operation on the receiving thread</td>
-            <td><code>Tracer.current()</code> before the fork + <code>continueIn</code> inside the task</td>
+            <td><code>fork</code> around the task, on the submitting thread</td>
+          </tr>
+          <tr>
+            <td>The parent context comes from somewhere other than the submitting site — stored, or handed over by a protocol</td>
+            <td><code>continueIn</code> with that context</td>
           </tr>
           <tr>
             <td>One operation arriving in pieces — a protocol's callbacks</td>
             <td><code>openSpanOf</code> once + <code>reenter</code> per callback</td>
-          </tr>
-          <tr>
-            <td>A grouping scope with no interval of its own</td>
-            <td><code>inSpan</code></td>
           </tr>
         </tbody>
       </table>
 
       <h2 id="composed-tree">A Complete Tree</h2>
 
-      <p>Jeffrey's own recording-upload flow composes almost every method on this page. An HTTP request roots the trace through <code>inSpanOf</code>, the pipeline stages are <code>call</code>/<code>run</code> spans, chunk parsing and profile-data branches fork through <code>continueIn</code>, and every SQL statement along the way is a <code>stamp</code>ed leaf:</p>
+      <p>Jeffrey's own recording-upload flow composes almost every method on this page. An HTTP request roots the trace through <code>inSpanOf</code>, the pipeline stages are <code>call</code>/<code>run</code> spans, chunk parsing and profile-data branches are handed to pools with <code>fork</code>, and every SQL statement along the way is a <code>stamp</code>ed leaf:</p>
 
       <DocsCodeBlock :code="composedTree" language="text" />
 
@@ -535,17 +538,17 @@ const composedTree = `trace a3f9c1d4…                                         
           </tr>
           <tr>
             <td><code>ParallelRecordingFileIterator</code></td>
-            <td><code>current</code> + <code>continueIn</code></td>
+            <td><code>fork</code></td>
             <td>Per-chunk JFR parsing forked to a worker pool</td>
           </tr>
           <tr>
             <td><code>ProfileDataInitializerImpl</code></td>
-            <td><code>current</code> + <code>continueIn</code></td>
+            <td><code>fork</code></td>
             <td>Parallel initialization branches: event viewer, guardian, thread viewer</td>
           </tr>
           <tr>
             <td><code>DbBasedFlamegraphGenerator</code></td>
-            <td><code>current</code> + <code>continueIn</code> + <code>call</code></td>
+            <td><code>fork</code> + <code>call</code></td>
             <td>Flamegraph and timeseries generated as parallel branches of one request</td>
           </tr>
           <tr>

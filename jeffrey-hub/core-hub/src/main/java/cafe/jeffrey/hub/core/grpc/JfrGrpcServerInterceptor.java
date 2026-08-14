@@ -88,7 +88,6 @@ public class JfrGrpcServerInterceptor implements ServerInterceptor {
                         event.commitSpan();
                     }
                     super.close(status, trailers);
-                    return null;
                 });
             }
 
@@ -99,7 +98,6 @@ public class JfrGrpcServerInterceptor implements ServerInterceptor {
                         event.responseSize += proto.getSerializedSize();
                     }
                     super.sendMessage(message);
-                    return null;
                 });
             }
         };
@@ -114,7 +112,6 @@ public class JfrGrpcServerInterceptor implements ServerInterceptor {
                         event.requestSize += proto.getSerializedSize();
                     }
                     super.onMessage(message);
-                    return null;
                 });
             }
 
@@ -123,7 +120,6 @@ public class JfrGrpcServerInterceptor implements ServerInterceptor {
             public void onHalfClose() {
                 Tracer.reenter(span, () -> {
                     super.onHalfClose();
-                    return null;
                 });
             }
 
@@ -131,7 +127,6 @@ public class JfrGrpcServerInterceptor implements ServerInterceptor {
             public void onCancel() {
                 Tracer.reenter(span, () -> {
                     super.onCancel();
-                    return null;
                 });
             }
 
@@ -139,7 +134,6 @@ public class JfrGrpcServerInterceptor implements ServerInterceptor {
             public void onComplete() {
                 Tracer.reenter(span, () -> {
                     super.onComplete();
-                    return null;
                 });
             }
 
@@ -147,7 +141,6 @@ public class JfrGrpcServerInterceptor implements ServerInterceptor {
             public void onReady() {
                 Tracer.reenter(span, () -> {
                     super.onReady();
-                    return null;
                 });
             }
         };

@@ -70,14 +70,15 @@ const virtualThreadExample = `POST /api/internal/recordings/…   tomcat-handler
     profile.data-init             tomcat-handler-53  virtual    933ms    0
       guardian.results            parallel           platform   932ms   63`;
 
-const fanOutExample = `// ScopedValue does not propagate through a plain executor, so the parent
-// context is captured before the fork and re-established inside the task.
-SpanContext parent = Tracer.current().orElse(null);
+const fanOutExample = `// ScopedValue does not propagate through a plain executor. fork captures the
+// enclosing span here, on the submitting thread, and the task re-establishes
+// it wherever the pool eventually runs it. The kind defaults to INTERNAL.
+executor.submit(Tracer.fork("chunk.parse", () -> parseChunk(file)));
 
-executor.submit(() -> Tracer.continueIn(parent, "chunk.parse", SpanKind.INTERNAL, () -> {
-    parseChunk(file);
-    return null;
-}));`;
+// Supplier form for value-returning tasks:
+CompletableFuture.supplyAsync(
+    Tracer.fork("chunk.parse", () -> parseAndCollect(file)),
+    executor);`;
 
 const reenterExample = `// A gRPC call arrives in pieces, on threads the interceptor does not control,
 // so the span is opened without binding and resumed around every callback.
@@ -178,7 +179,7 @@ if (event.isEnabled()) {
 
       <h3>Crossing a thread boundary</h3>
 
-      <p><code>ScopedValue</code> propagates to child threads only through structured concurrency; work submitted to a plain executor does not inherit the current span. Capture the context before the fork and re-establish it with <code>continueIn</code>, which opens a <em>separate</em> child span on the receiving thread rather than carrying one across the boundary:</p>
+      <p><code>ScopedValue</code> propagates to child threads only through structured concurrency; work submitted to a plain executor does not inherit the current span. Wrap the task with <code>Tracer.fork</code>, which captures the current span when the task is wrapped and opens a <em>separate</em> child span on the receiving thread rather than carrying one across the boundary. (The underlying primitive, <code>continueIn</code>, remains available for when the captured context has to travel further than the wrapping site.)</p>
 
       <DocsCodeBlock :code="fanOutExample" language="java" />
 
@@ -188,7 +189,7 @@ if (event.isEnabled()) {
 
       <DocsCodeBlock :code="reenterExample" language="java" />
 
-      <p>Each re-entry emits a <code>jeffrey.TraceScope</code> event recording which thread the span ran on and for how long. That is what the drill-down and the span-scoped flamegraph read: a re-entered span can be committed on a thread it barely ran on, and the scopes are the only record of where the work actually happened. Spans that are never re-entered emit none — <code>call</code>, <code>inSpan</code> and <code>inSpanOf</code> are thread-confined already, so their span is its own single scope and existing instrumentation pays nothing.</p>
+      <p>Each re-entry emits a <code>jeffrey.TraceScope</code> event recording which thread the span ran on and for how long. That is what the drill-down and the span-scoped flamegraph read: a re-entered span can be committed on a thread it barely ran on, and the scopes are the only record of where the work actually happened. Spans that are never re-entered emit none — <code>call</code> and <code>inSpanOf</code> are thread-confined already, so their span is its own single scope and existing instrumentation pays nothing.</p>
 
       <h2 id="auto-instrumented">Every Instrumented Event Is a Span</h2>
 
