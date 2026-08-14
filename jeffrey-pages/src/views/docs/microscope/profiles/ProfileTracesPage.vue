@@ -72,12 +72,12 @@ const virtualThreadExample = `POST /api/internal/recordings/…   tomcat-handler
 
 const fanOutExample = `// ScopedValue does not propagate through a plain executor. fork captures the
 // enclosing span here, on the submitting thread, and the task re-establishes
-// it wherever the pool eventually runs it.
-executor.submit(Tracer.fork("chunk.parse", SpanKind.INTERNAL, () -> parseChunk(file)));
+// it wherever the pool eventually runs it. The kind defaults to INTERNAL.
+executor.submit(Tracer.fork("chunk.parse", () -> parseChunk(file)));
 
 // Supplier form for value-returning tasks:
 CompletableFuture.supplyAsync(
-    Tracer.fork("chunk.parse", SpanKind.INTERNAL, () -> parseAndCollect(file)),
+    Tracer.fork("chunk.parse", () -> parseAndCollect(file)),
     executor);`;
 
 const reenterExample = `// A gRPC call arrives in pieces, on threads the interceptor does not control,

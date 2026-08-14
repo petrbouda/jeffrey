@@ -20,7 +20,6 @@ package cafe.jeffrey.profile.manager.action;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.exception.Exceptions;
@@ -72,7 +71,7 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
 
         // Create and cache data for EventViewer
         var viewerFuture = CompletableFuture
-                .runAsync(Tracer.fork(SPAN_EVENT_VIEWER, SpanKind.INTERNAL, () -> {
+                .runAsync(Tracer.fork(SPAN_EVENT_VIEWER, () -> {
                     profileManager.eventViewerManager().eventTypesTree();
                     LOG.info("Event Viewer has been initialized: profile_id={} profile_name={}",
                             profileInfo.id(), profileInfo.name());
@@ -81,7 +80,7 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
 
         // Create Guardian results
         var guardianFuture = CompletableFuture
-                .runAsync(Tracer.fork(SPAN_GUARDIAN, SpanKind.INTERNAL, () -> {
+                .runAsync(Tracer.fork(SPAN_GUARDIAN, () -> {
                     profileManager.guardianManager().guardResults();
                     LOG.info("Guardian Results has been generated: profile_id={} profile_name={}",
                             profileInfo.id(), profileInfo.name());
@@ -90,7 +89,7 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
 
         // Create Thread View
         var threadsFuture = CompletableFuture
-                .runAsync(Tracer.fork(SPAN_THREAD_VIEWER, SpanKind.INTERNAL, () -> {
+                .runAsync(Tracer.fork(SPAN_THREAD_VIEWER, () -> {
                     profileManager.threadManager().threadRows();
                     LOG.info("Thread Viewer has been generated: profile_id={} profile_name={}",
                             profileInfo.id(), profileInfo.name());

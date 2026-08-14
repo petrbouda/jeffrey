@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.jfrparser.jdk;
 
-import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.shared.common.Schedulers;
 
@@ -82,7 +81,7 @@ public class ParallelRecordingFileIterator<PARTIAL, RESULT> implements Recording
         // shared pool, which ScopedValue does not reach, so without it each file would parse under
         // a trace of its own rather than under the parse that spawned it.
         return CompletableFuture.supplyAsync(
-                Tracer.fork(SPAN_CHUNK_PARSE, SpanKind.INTERNAL,
+                Tracer.fork(SPAN_CHUNK_PARSE,
                         () -> singleFileIterator.apply(recording).partialCollect(collector)),
                 Schedulers.sharedBulkParallel());
     }

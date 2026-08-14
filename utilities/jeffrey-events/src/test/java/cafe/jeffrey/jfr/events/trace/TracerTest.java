@@ -589,6 +589,21 @@ class TracerTest {
         }
 
         @Test
+        @DisplayName("the kind-less forms record INTERNAL, like run and call")
+        void kindLessFormsDefaultToInternal() throws IOException {
+            Map<String, RecordedEvent> spans = recordSpans(() -> {
+                Runnable task = Tracer.fork("handle", () -> {
+                });
+                task.run();
+                Tracer.continueIn(null, "carried", () -> {
+                });
+            });
+
+            assertEquals(SpanKind.INTERNAL.name(), spans.get("handle").getString("kind"));
+            assertEquals(SpanKind.INTERNAL.name(), spans.get("carried").getString("kind"));
+        }
+
+        @Test
         @DisplayName("fork outside any span starts a fresh trace, like continueIn with a null parent")
         void forkOutsideASpanStartsAFreshTrace() {
             Runnable task = Tracer.fork("handle", SpanKind.INTERNAL,

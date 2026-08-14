@@ -308,6 +308,15 @@ public final class Tracer {
     }
 
     /**
+     * The form of {@link #continueIn(SpanContext, String, SpanKind, ScopedValue.CallableOp)} with
+     * kind {@link SpanKind#INTERNAL} — forked work is in-process work unless declared otherwise.
+     */
+    public static <R, X extends Throwable> R continueIn(
+            SpanContext parent, String name, ScopedValue.CallableOp<? extends R, X> body) throws X {
+        return continueIn(parent, name, SpanKind.INTERNAL, body);
+    }
+
+    /**
      * The {@link Runnable} form of
      * {@link #continueIn(SpanContext, String, SpanKind, ScopedValue.CallableOp)}, for a task with no
      * result and no checked exception.
@@ -321,6 +330,14 @@ public final class Tracer {
     }
 
     /**
+     * The {@link Runnable} form of {@link #continueIn(SpanContext, String, SpanKind, Runnable)},
+     * with kind {@link SpanKind#INTERNAL}.
+     */
+    public static void continueIn(SpanContext parent, String name, Runnable body) {
+        continueIn(parent, name, SpanKind.INTERNAL, body);
+    }
+
+    /**
      * Wraps {@code body} so that, wherever it eventually runs, it is recorded as a child of the span
      * in progress <em>here</em> — the packaged form of capturing {@link #current} before an executor
      * hand-off and re-establishing it inside the task with {@link #continueIn}.
@@ -331,7 +348,7 @@ public final class Tracer {
      *
      * <pre>{@code
      * CompletableFuture.runAsync(
-     *         Tracer.fork("chunk.parse", SpanKind.INTERNAL, () -> parseChunk(file)),
+     *         Tracer.fork("chunk.parse", () -> parseChunk(file)),
      *         executor);
      * }</pre>
      */
@@ -345,6 +362,13 @@ public final class Tracer {
     }
 
     /**
+     * The form of {@link #fork(String, SpanKind, Runnable)} with kind {@link SpanKind#INTERNAL}.
+     */
+    public static Runnable fork(String name, Runnable body) {
+        return fork(name, SpanKind.INTERNAL, body);
+    }
+
+    /**
      * The value-returning form of {@link #fork(String, SpanKind, Runnable)}, shaped as a
      * {@link Supplier} so it hands straight to {@code CompletableFuture.supplyAsync}.
      */
@@ -355,6 +379,13 @@ public final class Tracer {
 
         SpanContext parent = CURRENT.isBound() ? CURRENT.get() : null;
         return () -> continueIn(parent, name, kind, body::get);
+    }
+
+    /**
+     * The form of {@link #fork(String, SpanKind, Supplier)} with kind {@link SpanKind#INTERNAL}.
+     */
+    public static <T> Supplier<T> fork(String name, Supplier<T> body) {
+        return fork(name, SpanKind.INTERNAL, body);
     }
 
     /**

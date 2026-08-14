@@ -198,13 +198,13 @@ const forkExample = `// From ParallelRecordingFileIterator — per-chunk parsing
 // fork captures the enclosing span HERE, on the submitting thread, and
 // continueIn runs inside the task when the pool eventually executes it.
 return CompletableFuture.supplyAsync(
-        Tracer.fork("chunk.parse", SpanKind.INTERNAL,
+        Tracer.fork("chunk.parse",
                 () -> singleFileIterator.apply(recording).partialCollect(collector)),
         Schedulers.sharedBulkParallel());
 
 // From ProfileDataInitializerImpl — the Runnable form
 CompletableFuture.runAsync(
-        Tracer.fork("guardian.results", SpanKind.INTERNAL,
+        Tracer.fork("guardian.results",
                 () -> profileManager.guardianManager().guardResults()),
         executor);`;
 
@@ -370,7 +370,8 @@ const composedTree = `trace a3f9c1d4…                                         
       <h3 id="api-continuein">continueIn — carry a trace across an executor</h3>
 
       <p><code>static &lt;R, X&gt; R continueIn(SpanContext parent, String name, SpanKind kind, ScopedValue.CallableOp&lt;R, X&gt; body) throws X</code><br>
-      <code>static void continueIn(SpanContext parent, String name, SpanKind kind, Runnable body)</code></p>
+      <code>static void continueIn(SpanContext parent, String name, SpanKind kind, Runnable body)</code><br>
+      Kind-less forms of both default to <code>SpanKind.INTERNAL</code>, like <code>run</code> and <code>call</code>.</p>
 
       <p><code>ScopedValue</code> propagates to child threads only through structured concurrency; work submitted to a plain executor does not inherit the current span. <code>continueIn</code> is the bridge: it records a span whose parent is the <em>given</em> context rather than whatever the receiving thread has bound, so the forked work stays in the trace. It mints a <strong>child</strong> and emits a <code>jeffrey.TraceSpan</code> for it — the receiving thread is doing a separate piece of work, which is exactly what distinguishes it from <code>reenter</code>. Pass <code>null</code> to start a fresh trace.</p>
 
@@ -383,7 +384,8 @@ const composedTree = `trace a3f9c1d4…                                         
       <h3 id="api-fork">fork — wrap a task for an executor</h3>
 
       <p><code>static Runnable fork(String name, SpanKind kind, Runnable body)</code><br>
-      <code>static &lt;T&gt; Supplier&lt;T&gt; fork(String name, SpanKind kind, Supplier&lt;T&gt; body)</code></p>
+      <code>static &lt;T&gt; Supplier&lt;T&gt; fork(String name, SpanKind kind, Supplier&lt;T&gt; body)</code><br>
+      Kind-less forms of both default to <code>SpanKind.INTERNAL</code> — forked work is in-process work unless declared otherwise.</p>
 
       <p>The packaged form of the executor pattern: <code>fork</code> captures the span in progress <em>when it is called</em> and returns a task that, wherever it eventually runs, records its work as a child of that span via <code>continueIn</code>. Wrap on the thread whose span the work belongs to, submit the result. The <code>Supplier</code> form hands straight to <code>CompletableFuture.supplyAsync</code>; called outside any span, the task starts a fresh trace.</p>
 

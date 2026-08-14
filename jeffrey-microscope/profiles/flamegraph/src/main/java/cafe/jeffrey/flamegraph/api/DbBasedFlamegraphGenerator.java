@@ -30,7 +30,6 @@ import cafe.jeffrey.flamegraph.provider.FlamegraphDataProvider;
 import cafe.jeffrey.flamegraph.provider.TimeseriesDataProvider;
 import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
-import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.shared.common.span.Spans;
 import cafe.jeffrey.timeseries.SingleSerie;
@@ -68,7 +67,7 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
         if (GraphComponents.isFlamegraphCompatible(params.graphComponents())) {
             FlamegraphDataProvider flamegraphProvider = FlamegraphDataProvider.primary(eventRepository, params);
             flameFuture = CompletableFuture.supplyAsync(
-                    Tracer.fork(SPAN_FLAMEGRAPH_BRANCH, SpanKind.INTERNAL,
+                    Tracer.fork(SPAN_FLAMEGRAPH_BRANCH,
                             () -> flamegraphProvider.provideProto(minFrameThresholdPct)),
                     Schedulers.sharedParallel());
         } else {
@@ -79,7 +78,7 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
         if (GraphComponents.isTimeseriesCompatible(params.graphComponents())) {
             TimeseriesDataProvider timeseriesProvider = new TimeseriesDataProvider(eventRepository, params);
             timeseriesFuture = CompletableFuture.supplyAsync(
-                    Tracer.fork(SPAN_TIMESERIES_BRANCH, SpanKind.INTERNAL,
+                    Tracer.fork(SPAN_TIMESERIES_BRANCH,
                             timeseriesProvider::provide),
                     Schedulers.sharedParallel());
         } else {
