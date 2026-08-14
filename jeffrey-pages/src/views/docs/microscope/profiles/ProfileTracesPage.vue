@@ -79,6 +79,20 @@ executor.submit(() -> Tracer.continueIn(parent, "chunk.parse", SpanKind.INTERNAL
     return null;
 }));`;
 
+const reenterExample = `// A gRPC call arrives in pieces, on threads the interceptor does not control,
+// so the span is opened without binding and resumed around every callback.
+SpanContext span = Tracer.openSpanOf(event);
+
+return new SimpleForwardingServerCallListener<>(listener) {
+    @Override
+    public void onHalfClose() {          // where a unary handler actually runs
+        Tracer.reenter(span, () -> {
+            super.onHalfClose();
+            return null;
+        });
+    }
+};`;
+
 const stampExample = `JdbcQueryEvent event = new JdbcQueryEvent("listSpans", "profile");
 if (event.isEnabled()) {
     // Gives the statement a span of its own, under the span in progress.
@@ -167,6 +181,14 @@ if (event.isEnabled()) {
       <p><code>ScopedValue</code> propagates to child threads only through structured concurrency; work submitted to a plain executor does not inherit the current span. Capture the context before the fork and re-establish it with <code>continueIn</code>, which opens a <em>separate</em> child span on the receiving thread rather than carrying one across the boundary:</p>
 
       <DocsCodeBlock :code="fanOutExample" language="java" />
+
+      <h3>Resuming a span the work arrives back into</h3>
+
+      <p><code>continueIn</code> is right when the receiving thread is doing a <em>separate</em> piece of work. A callback-driven protocol is not that: a gRPC call is one operation delivered in fragments, long after the interceptor that started it returned. <code>Tracer.openSpanOf</code> opens the span and hands back its context without binding anything, and <code>Tracer.reenter</code> resumes that same span — not a child of it — around each callback:</p>
+
+      <DocsCodeBlock :code="reenterExample" language="java" />
+
+      <p>Each re-entry emits a <code>jeffrey.TraceScope</code> event recording which thread the span ran on and for how long. That is what the drill-down and the span-scoped flamegraph read: a re-entered span can be committed on a thread it barely ran on, and the scopes are the only record of where the work actually happened. Spans that are never re-entered emit none — <code>call</code>, <code>inSpan</code> and <code>inSpanOf</code> are thread-confined already, so their span is its own single scope and existing instrumentation pays nothing.</p>
 
       <h2 id="auto-instrumented">Every Instrumented Event Is a Span</h2>
 
@@ -273,8 +295,7 @@ if (event.isEnabled()) {
       <h2 id="limits">Limits</h2>
 
       <ul>
-        <li><strong>A span must begin and end on the same thread.</strong> JFR attributes a duration event to the thread that <em>commits</em> it, so a span handed off mid-flight is recorded against the wrong thread — which also breaks the thread-plus-window correlation the drill-down relies on. <code>ScopedValue</code> plus the <code>continueIn</code> pattern keeps spans thread-confined in practice, so this is a sharp edge rather than an everyday problem.</li>
-        <li><strong>Work that outlives the lambda is not nested under it.</strong> Callback-driven instrumentation — a gRPC call whose real work runs from listener callbacks after the interceptor returns — records the exchange itself but cannot nest the work beneath it, because the span's binding closes when the lambda does.</li>
+        <li><strong>A span's own event names the thread that ended it.</strong> JFR attributes a duration event to the thread that <em>commits</em> it, so a span closed somewhere other than where it opened is filed against the closing thread. Re-entered spans emit a <code>jeffrey.TraceScope</code> event per activation — bounded by one lambda, so it cannot straddle a thread — and the drill-down reads those, which is what keeps the thread-plus-window correlation honest. The span row itself still shows the closing thread.</li>
         <li><strong>Background jobs are their own traces.</strong> A pipeline run forked onto its own thread appears as a separate root rather than a child of whatever request triggered it. That is deliberate — its lifetime is unrelated to the request — but worth remembering when reading the trace list.</li>
         <li><strong>Trace ids are 64-bit</strong>, not the 128-bit W3C shape. Ample for a single JVM that mints all of its own ids, and a deliberate trade: it means an application already running OpenTelemetry cannot hand Jeffrey its real <code>traceparent</code> and expect the ids to match what Jaeger or Datadog display.</li>
         <li><strong>The waterfall is sized for tens to hundreds of spans</strong> per trace, and has no zoom or pan. Deep traces render fine; traces of several thousand spans would want a different substrate.</li>

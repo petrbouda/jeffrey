@@ -176,6 +176,53 @@ class JdbcTraceRepositoryTest {
                     .operationIntervals(operation("GET /nope", "SERVER", HTTP_SERVER_EXCHANGE))
                     .isEmpty());
         }
+
+        /** The same trace, plus the scope events a re-entered span leaves behind. */
+        private JdbcTraceRepository withScopes(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-scopes.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+            return repository;
+        }
+
+        @Test
+        @DisplayName("a thread the span only ran on gets an interval of its own")
+        void scopesContributeTheirOwnThread(DataSource dataSource) throws SQLException {
+            // Span 111 is committed by the request thread, so without its scope events the callback
+            // thread is invisible and the flamegraph never samples it.
+            List<SpanInterval> intervals = withScopes(dataSource).operationIntervals(FLAMEGRAPH_OPERATION);
+
+            assertEquals(3, intervals.size(), "the request thread, the forked pool thread, and the callback thread");
+
+            SpanInterval callback = intervals.stream()
+                    .filter(interval -> interval.threadHash() == 3003L).findFirst()
+                    .orElseThrow(() -> new AssertionError("the re-entered thread must get an interval"));
+            assertEquals(EPOCH_10_00_00 + 90, callback.fromEpochMillis());
+            assertEquals(EPOCH_10_00_00 + 110, callback.toEpochMillis());
+        }
+
+        @Test
+        @DisplayName("a scope on the span's own thread does not widen that thread's window")
+        void scopeOnTheSameThreadChangesNothing(DataSource dataSource) throws SQLException {
+            List<SpanInterval> intervals = withScopes(dataSource).operationIntervals(FLAMEGRAPH_OPERATION);
+
+            SpanInterval request = intervals.stream()
+                    .filter(interval -> interval.threadHash() == 3001L).findFirst().orElseThrow();
+            assertEquals(EPOCH_10_00_00, request.fromEpochMillis());
+            assertEquals(EPOCH_10_00_00 + 120, request.toEpochMillis(),
+                    "the scope sits inside the exchange, so the exchange still bounds the thread");
+        }
+
+        @Test
+        @DisplayName("a scope belonging to another trace is not pulled in")
+        void scopesAreScopedToTheirOwnSpan(DataSource dataSource) throws SQLException {
+            // The scopes name span 111, which belongs to the flamegraph operation; the health check
+            // is a different trace and must not inherit the callback thread.
+            List<SpanInterval> health = withScopes(dataSource).operationIntervals(HEALTH_OPERATION);
+
+            assertTrue(health.stream().noneMatch(interval -> interval.threadHash() == 3003L));
+        }
     }
 
     @Nested

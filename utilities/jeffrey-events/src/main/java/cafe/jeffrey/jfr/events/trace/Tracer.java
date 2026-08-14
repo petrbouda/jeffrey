@@ -46,11 +46,13 @@ import java.util.random.RandomGenerator;
  *
  * <h2>Limits</h2>
  * <ul>
- *   <li><b>A span must begin and end on the same thread.</b> JFR attributes a duration event to the
- *       thread that commits it, so a span handed off mid-flight is recorded against the wrong
- *       thread — which in turn breaks the thread-plus-time-window correlation Jeffrey uses to show
- *       what the JVM was doing inside the span. Use {@link #continueIn} to open a <em>separate</em>
- *       child span on the receiving thread rather than carrying one across the boundary.</li>
+ *   <li><b>A span's own event names the thread that ended it.</b> JFR attributes a duration event to
+ *       the thread that commits it, so a span closed somewhere other than where it opened is filed
+ *       against the closing thread. For work that is a separate operation on the receiving thread,
+ *       prefer {@link #continueIn}, which opens a child span there and stays thread-confined. For
+ *       one operation arriving in pieces — a protocol's callbacks — use {@link #reenter}, which
+ *       emits a {@link TraceScopeEvent} per activation so the threads the span really ran on are
+ *       recorded even though its own event can only name one.</li>
  *   <li><b>{@link ScopedValue} propagates to child threads only through structured concurrency.</b>
  *       Work submitted to a plain executor does not inherit the current span; pass the
  *       {@link SpanContext} explicitly and re-establish it with {@link #continueIn}.</li>
@@ -171,9 +173,78 @@ public final class Tracer {
         Objects.requireNonNull(event, "event must not be null");
         Objects.requireNonNull(body, "body must not be null");
 
+        // Binds directly rather than going through reenter(): this opens the span, so it is already
+        // its own single scope, and a TraceScopeEvent here would record the same interval twice.
+        return ScopedValue.where(CURRENT, openSpanOf(event)).call(body);
+    }
+
+    /**
+     * Opens a span on {@code event} and hands back its context <em>without</em> binding it, for
+     * instrumentation that cannot wrap its work in a lambda.
+     * <p>
+     * A callback-driven protocol is the case this exists for: a gRPC call runs from listener
+     * callbacks long after the interceptor that started it has returned, so there is no single block
+     * for {@link #inSpanOf} to enclose. The caller stamps the event here, keeps the returned context,
+     * and re-establishes it per callback with {@link #reenter}.
+     * <p>
+     * Nothing is bound on the calling thread, so a caller that forgets to re-enter loses the nesting
+     * — not the span. The event still carries its identity and still appears in the trace.
+     */
+    public static SpanContext openSpanOf(AbstractTracedEvent event) {
+        Objects.requireNonNull(event, "event must not be null");
+
         SpanContext context = newSpanContext();
         stampSelf(event, context);
-        return ScopedValue.where(CURRENT, context).call(body);
+        return context;
+    }
+
+    /**
+     * Re-establishes an existing span on this thread for the duration of {@code body}, so work that
+     * belongs to a span already opened elsewhere nests underneath it.
+     * <p>
+     * Distinct from {@link #continueIn}, which mints a <em>child</em> and emits a span event for it:
+     * this rebinds the very same span, because a protocol's callbacks are not separate operations,
+     * they are the same operation arriving in pieces. Distinct from {@link #inSpan}, which opens a
+     * new span rather than resuming one.
+     * <p>
+     * Each re-entry emits a {@link TraceScopeEvent} recording which thread the span ran on and for
+     * how long. That is not bookkeeping for its own sake: once a span is re-entered it can be closed
+     * on a thread it never really ran on, and the scope events are then the only record of where the
+     * work actually happened.
+     *
+     * <pre>{@code
+     * SpanContext context = Tracer.openSpanOf(event);
+     * // ... later, on whatever thread the protocol calls back on:
+     * Tracer.reenter(context, () -> {
+     *     delegate().onMessage(message);
+     *     return null;
+     * });
+     * }</pre>
+     */
+    public static <R, X extends Throwable> R reenter(
+            SpanContext context, ScopedValue.CallableOp<? extends R, X> body) throws X {
+
+        Objects.requireNonNull(context, "context must not be null");
+        Objects.requireNonNull(body, "body must not be null");
+
+        TraceScopeEvent event = new TraceScopeEvent();
+        if (!event.isEnabled()) {
+            // Bind regardless, as continueIn does: the caller re-enters precisely because this thread
+            // has nothing bound, so skipping it would drop the work out of the trace entirely.
+            return ScopedValue.where(CURRENT, context).call(body);
+        }
+
+        event.begin();
+        try {
+            return ScopedValue.where(CURRENT, context).call(body);
+        } finally {
+            event.end();
+            if (event.shouldCommit()) {
+                event.traceId = context.traceId();
+                event.scopedSpanId = context.spanId();
+                event.commit();
+            }
+        }
     }
 
     /**

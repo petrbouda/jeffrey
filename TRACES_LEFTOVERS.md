@@ -3,43 +3,8 @@
 State as of the `feature/trace-operations` branch. Everything below was verified against the tree,
 not recalled.
 
-Two items remain open, both blocked on a `jeffrey-events` release. The rest of this file is the
-record of decisions taken with a stated trade-off, so they are not rediscovered later as surprises.
-
----
-
-## 1. `Tracer` cannot re-enter an existing span — blocks proper async instrumentation
-
-**The one real API gap**, and the reason gRPC nesting is partial.
-
-`Tracer` offers `inSpan` (mints a child), `inSpanOf` (mints a child and makes an event that span)
-and `continueIn` (mints a child of a carried context *and* emits an event). None can re-establish an
-*existing* `SpanContext` without creating a new span.
-
-This bites wherever work is not a single lambda:
-
-- **gRPC** (`JfrGrpcServerInterceptor`) — a call runs from listener callbacks after `interceptCall`
-  returns. The exchange is stamped and appears in the trace list, but work during the call is not
-  nested under it. Documented on the class and on the docs page.
-- Any future callback- or reactor-style instrumentation will hit the same wall.
-
-**Fix:** add something like `Tracer.reenter(SpanContext, body)` to `jeffrey-events` — bind without
-emitting. Small addition, but it needs a library release and a `<jeffrey-events.version>` bump, so
-it cannot be done from the monorepo alone.
-
-## 2. Cross-thread spans are misattributed
-
-JFR commits a duration event on the **ending** thread. A span that starts on one thread and ends on
-another is recorded against the wrong one, which also breaks the `thread_hash` join the drill-down
-uses. OpenTelemetry's own `jfr-events` contrib documents the same flaw.
-
-This is documented in the `Tracer` javadoc and on the docs page rather than solved. Solving it means
-adding an explicit start-thread field to the event and reworking the join — again a library change,
-and not a simple field addition, because the join key is derived during parsing rather than supplied
-by the application.
-
-In practice `ScopedValue` + the `continueIn` pattern keeps spans thread-confined, so this is a
-latent sharp edge rather than an active bug.
+One item remains open. The rest of this file is the record of decisions taken with a stated
+trade-off, so they are not rediscovered later as surprises.
 
 ---
 
@@ -71,6 +36,21 @@ Not bugs — decisions with a stated trade-off.
 
 ## Closed on this branch
 
+- ~~`Tracer` cannot re-enter an existing span~~ — `Tracer.openSpanOf` opens a span without binding
+  and `Tracer.reenter` resumes that same span (not a child) around any block, so a callback-driven
+  protocol nests its work. `JfrGrpcServerInterceptor` wraps every listener callback and forwarded
+  call method; for a unary call `onHalfClose` is the one that carries the handler. This was never
+  actually blocked on a release: the reactor builds `utilities/jeffrey-events` from source
+  (`<jeffrey-events.version>1.0-SNAPSHOT</jeffrey-events.version>`), so a release is only needed to
+  hand the API to third-party consumers.
+- ~~Cross-thread spans are misattributed~~ — solved the way OpenTelemetry's `jfr-events` contrib
+  solves it, with a second event type rather than a start-thread field. Each `reenter` emits a
+  `jeffrey.TraceScope` (`traceId` + `scopedSpanId`), bounded by one lambda and therefore
+  thread-confined by construction, and `operationIntervals` unions those windows with the spans'
+  own. A start-thread field was considered and declined: it fixes the label while leaving the
+  drill-down window pointing at a thread the work never ran on. The field is deliberately
+  `scopedSpanId`, not `spanId`, so the structural span discovery cannot mistake a scope for a span.
+  Spans that are never re-entered emit no scopes and are unaffected.
 - ~~Operations aggregated by span name~~ — they are grouped from `traces` by the whole trace type
   (root name + kind + event type), so an inbound and an outbound call of the same name stay apart.
 - ~~Stamped events shared their enclosing span's id~~ — `Tracer.stamp` now mints a child per event,

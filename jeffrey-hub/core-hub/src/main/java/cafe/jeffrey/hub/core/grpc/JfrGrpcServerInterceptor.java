@@ -19,6 +19,7 @@
 package cafe.jeffrey.hub.core.grpc;
 
 import cafe.jeffrey.jfr.events.grpc.GrpcServerExchangeEvent;
+import cafe.jeffrey.jfr.events.trace.SpanContext;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import com.google.protobuf.MessageLite;
 import io.grpc.*;
@@ -36,11 +37,15 @@ import java.net.SocketAddress;
  * same interval.
  * <p>
  * <b>Scope of the binding.</b> A gRPC call is not a single block of work — the handler runs from
- * listener callbacks after this method has returned, on a thread this interceptor does not control.
- * The published context therefore covers only the synchronous setup below, so work performed later
- * in the call is <em>not</em> nested under this span. The call still appears in the trace list with
- * its own identity, which is what makes it addressable at all; nesting the handler's work needs a
- * way to re-enter an existing span that the tracing API does not currently offer.
+ * listener callbacks after this method has returned, on threads this interceptor does not control.
+ * The span is therefore opened without binding, via {@link Tracer#openSpanOf}, and re-established
+ * with {@link Tracer#reenter} around every callback the call arrives in. Work the handler does
+ * nests under the exchange as a result, and each re-entry records which thread it ran on, which is
+ * what keeps the correlation honest when the call closes on a different thread than it opened on.
+ * <p>
+ * For a unary call the handler runs inside {@code onHalfClose}, so that is the callback that
+ * actually carries the service method; the others are wrapped because a streaming call spreads its
+ * work across all of them.
  */
 public class JfrGrpcServerInterceptor implements ServerInterceptor {
 
@@ -56,9 +61,9 @@ public class JfrGrpcServerInterceptor implements ServerInterceptor {
         }
 
         event.begin();
-        // Stamps a fresh trace and span id onto the exchange; see the note on the class javadoc
-        // about how far the published context reaches.
-        Tracer.inSpanOf(event, () -> null);
+        // Stamps a fresh trace and span id onto the exchange and keeps the context, because the work
+        // this span covers has not started yet and will not arrive on this thread.
+        SpanContext span = Tracer.openSpanOf(event);
 
         MethodDescriptor<ReqT, RespT> methodDescriptor = call.getMethodDescriptor();
         event.service = methodDescriptor.getServiceName();
@@ -74,20 +79,28 @@ public class JfrGrpcServerInterceptor implements ServerInterceptor {
         ServerCall<ReqT, RespT> wrappedCall = new ForwardingServerCall.SimpleForwardingServerCall<>(call) {
             @Override
             public void close(Status status, Metadata trailers) {
-                event.statusCode = status.getCode().name();
-                event.end();
-                if (event.shouldCommit()) {
-                    event.commitSpan();
-                }
-                super.close(status, trailers);
+                // The event is committed inside the scope rather than after it, so that anything the
+                // transport does on the way out still falls within the span it belongs to.
+                Tracer.reenter(span, () -> {
+                    event.statusCode = status.getCode().name();
+                    event.end();
+                    if (event.shouldCommit()) {
+                        event.commitSpan();
+                    }
+                    super.close(status, trailers);
+                    return null;
+                });
             }
 
             @Override
             public void sendMessage(RespT message) {
-                if (message instanceof MessageLite proto) {
-                    event.responseSize += proto.getSerializedSize();
-                }
-                super.sendMessage(message);
+                Tracer.reenter(span, () -> {
+                    if (message instanceof MessageLite proto) {
+                        event.responseSize += proto.getSerializedSize();
+                    }
+                    super.sendMessage(message);
+                    return null;
+                });
             }
         };
 
@@ -96,10 +109,46 @@ public class JfrGrpcServerInterceptor implements ServerInterceptor {
         return new ForwardingServerCallListener.SimpleForwardingServerCallListener<>(listener) {
             @Override
             public void onMessage(ReqT message) {
-                if (message instanceof MessageLite proto) {
-                    event.requestSize += proto.getSerializedSize();
-                }
-                super.onMessage(message);
+                Tracer.reenter(span, () -> {
+                    if (message instanceof MessageLite proto) {
+                        event.requestSize += proto.getSerializedSize();
+                    }
+                    super.onMessage(message);
+                    return null;
+                });
+            }
+
+            /** Where a unary handler actually runs, so this is the one that nests the service method. */
+            @Override
+            public void onHalfClose() {
+                Tracer.reenter(span, () -> {
+                    super.onHalfClose();
+                    return null;
+                });
+            }
+
+            @Override
+            public void onCancel() {
+                Tracer.reenter(span, () -> {
+                    super.onCancel();
+                    return null;
+                });
+            }
+
+            @Override
+            public void onComplete() {
+                Tracer.reenter(span, () -> {
+                    super.onComplete();
+                    return null;
+                });
+            }
+
+            @Override
+            public void onReady() {
+                Tracer.reenter(span, () -> {
+                    super.onReady();
+                    return null;
+                });
             }
         };
     }

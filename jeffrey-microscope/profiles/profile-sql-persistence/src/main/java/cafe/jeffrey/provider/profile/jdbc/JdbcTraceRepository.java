@@ -275,6 +275,20 @@ public class JdbcTraceRepository implements TraceRepository {
             ORDER BY s.start_timestamp
             """;
 
+    /**
+     * Which event types record a scope — a stretch of time one span was active on one thread.
+     * Discovered structurally, the same way {@link #SPAN_EVENT_TYPES} is, so third-party
+     * instrumentation that emits scopes takes part with no change here.
+     * <p>
+     * The marker is {@code scopedSpanId} rather than {@code spanId} precisely so that the two
+     * queries cannot claim the same event type: a scope is not a span and has no place in the
+     * waterfall.
+     */
+    //language=SQL
+    private static final String SCOPE_EVENT_TYPES = """
+            SELECT name FROM event_types
+            WHERE list_contains(json_extract_string(columns, '$[*].field'), 'scopedSpanId')""";
+
     /*
      * The window each of an operation's traces occupied on each thread, which is all the span-scoped
      * flamegraph needs from it.
@@ -287,18 +301,49 @@ public class JdbcTraceRepository implements TraceRepository {
      *
      * The bounds stay in microseconds, the resolution the stored timestamp carries; crossing into
      * the events table's millisecond domain happens in one place in the manager, not here.
+     *
+     * Scope events are unioned in rather than the span's own thread being trusted alone. A span is
+     * committed by the thread that *ends* it, so a re-entered span -- a gRPC call arriving in
+     * callbacks -- names one thread while having run on several, and sampling only that one thread
+     * produces an empty or misleading flamegraph. Each scope is bounded by a single re-entry lambda
+     * and therefore cannot straddle a thread, so a cross-thread span contributes one true window per
+     * thread it actually occupied. Spans that were never re-entered emit no scopes and are unchanged
+     * by this: their own row is already the only window they have.
      */
     //language=SQL
     private static final String OPERATION_INTERVALS = """
+            WITH matched AS (
+                SELECT s.trace_id, s.span_id, s.thread_hash, s.start_timestamp, s.duration
+                FROM trace_spans s
+                JOIN traces t ON t.trace_id = s.trace_id
+                WHERE %s
+            ),
+            windows AS (
+                SELECT
+                    trace_id,
+                    COALESCE(thread_hash, 0)                        AS thread_hash,
+                    EPOCH_US(start_timestamp)                       AS from_us,
+                    EPOCH_US(start_timestamp) + duration // 1000    AS to_us
+                FROM matched
+                UNION ALL
+                SELECT
+                    m.trace_id,
+                    COALESCE(e.thread_hash, 0)                                  AS thread_hash,
+                    EPOCH_US(e.start_timestamp)                                 AS from_us,
+                    EPOCH_US(e.start_timestamp) + COALESCE(e.duration, 0) // 1000 AS to_us
+                FROM events e
+                JOIN matched m
+                  ON m.trace_id = json_extract_string(e.fields, '$.traceId')::BIGINT
+                 AND m.span_id = json_extract_string(e.fields, '$.scopedSpanId')::BIGINT
+                WHERE e.event_type IN (%s)
+            )
             SELECT
-                COALESCE(s.thread_hash, 0)                              AS thread_hash,
-                MIN(EPOCH_US(s.start_timestamp))                        AS from_epoch_us,
-                MAX(EPOCH_US(s.start_timestamp) + s.duration // 1000)   AS to_epoch_us
-            FROM trace_spans s
-            JOIN traces t ON t.trace_id = s.trace_id
-            WHERE %s
-            GROUP BY s.trace_id, COALESCE(s.thread_hash, 0)
-            """.formatted(OPERATION_PREDICATE);
+                thread_hash             AS thread_hash,
+                MIN(from_us)            AS from_epoch_us,
+                MAX(to_us)              AS to_epoch_us
+            FROM windows
+            GROUP BY trace_id, thread_hash
+            """.formatted(OPERATION_PREDICATE, SCOPE_EVENT_TYPES);
 
     /*
      * One row of profile-wide totals. Every aggregate is COALESCEd because an untraced profile
@@ -408,16 +453,19 @@ public class JdbcTraceRepository implements TraceRepository {
             """.formatted(OPERATION_PREDICATE);
 
     /**
-     * What ran on the span's thread while it was open, minus the events that are themselves spans —
-     * those belong in the waterfall, not in the list of what happened inside one.
+     * What ran on the span's thread while it was open, minus the events that describe the trace
+     * itself — spans, which belong in the waterfall rather than in the list of what happened inside
+     * one, and scopes, which only say where a span was running and would read as noise beside a
+     * lock or an I/O event.
      * <p>
      * NOT EXISTS rather than NOT IN: a NOT IN whose subquery yields a single NULL matches nothing at
      * all, so the drill-down would return zero events rather than fail. {@code event_types.name} is
      * NOT NULL today, which is the only reason that never happened.
      */
-    private static final String EVENTS_IN_SPAN = ThreadWindowEvents.excluding(
-            "NOT EXISTS (SELECT 1 FROM (%s) span_types WHERE span_types.name = e.event_type)"
-                    .formatted(SPAN_EVENT_TYPES));
+    private static final String EVENTS_IN_SPAN = ThreadWindowEvents.excluding("""
+            NOT EXISTS (SELECT 1 FROM (%s) span_types WHERE span_types.name = e.event_type)
+            AND NOT EXISTS (SELECT 1 FROM (%s) scope_types WHERE scope_types.name = e.event_type)"""
+            .formatted(SPAN_EVENT_TYPES, SCOPE_EVENT_TYPES));
 
     /*
      * How the recording described each field of an event type. `columns` is a JSON array the parser

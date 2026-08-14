@@ -404,6 +404,137 @@ class TracerTest {
         }
     }
 
+    @Nested
+    @DisplayName("Re-entering a span the caller already opened")
+    class Reentering {
+
+        @Test
+        @DisplayName("openSpanOf stamps the event but binds nothing on the calling thread")
+        void openSpanOfStampsWithoutBinding() {
+            HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
+
+            SpanContext span = Tracer.openSpanOf(exchange);
+
+            assertEquals(span.traceId(), exchange.traceId);
+            assertEquals(span.spanId(), exchange.spanId);
+            assertTrue(Tracer.current().isEmpty(),
+                    "the work this span covers has not started yet and is not on this thread");
+        }
+
+        @Test
+        @DisplayName("re-entering resumes the same span rather than opening a child of it")
+        void reenterBindsTheSameSpan() {
+            SpanContext opened = SpanContext.root(new java.util.Random(42));
+
+            SpanContext bound = Tracer.reenter(opened, () -> Tracer.current().orElseThrow());
+
+            assertEquals(opened, bound, "a protocol's callbacks are the same operation, not children");
+        }
+
+        @Test
+        @DisplayName("work inside a re-entry nests under the span, even on another thread")
+        void reenteredWorkNestsUnderTheSpan() throws IOException {
+            HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
+
+            Map<String, RecordedEvent> spans = recordSpans(() -> {
+                SpanContext span = Tracer.openSpanOf(exchange);
+                runOnAnotherThread(() -> Tracer.reenter(span, () -> {
+                    Tracer.run("handle", SpanKind.INTERNAL, () -> {
+                    });
+                    return null;
+                }));
+            });
+
+            assertEquals(exchange.spanId, spans.get("handle").getLong("parentSpanId"));
+        }
+
+        @Test
+        @DisplayName("a stamped event under a re-entry hangs off the re-entered span")
+        void stampUnderAReentryParentsToTheSpan() {
+            HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
+            JdbcQueryEvent statement = new JdbcQueryEvent("listSpans", "profile");
+
+            SpanContext span = Tracer.openSpanOf(exchange);
+            Tracer.reenter(span, () -> {
+                Tracer.stamp(statement);
+                return null;
+            });
+
+            assertEquals(exchange.traceId, statement.traceId);
+            assertEquals(exchange.spanId, statement.parentSpanId);
+        }
+
+        @Test
+        @DisplayName("each re-entry records one scope, naming the span it resumed")
+        void eachReentryEmitsOneScope() throws IOException {
+            HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
+
+            List<RecordedEvent> scopes = recordEvents(TraceScopeEvent.NAME, () -> {
+                SpanContext span = Tracer.openSpanOf(exchange);
+                Tracer.reenter(span, () -> null);
+                runOnAnotherThread(() -> Tracer.reenter(span, () -> null));
+            });
+
+            assertEquals(2, scopes.size(), "one scope per activation, however many threads it took");
+            for (RecordedEvent scope : scopes) {
+                assertEquals(exchange.traceId, scope.getLong("traceId"));
+                assertEquals(exchange.spanId, scope.getLong("scopedSpanId"));
+            }
+        }
+
+        @Test
+        @DisplayName("the scope names the thread it ran on, not the one that opened the span")
+        void scopeNamesTheThreadItRanOn() throws IOException {
+            HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
+
+            List<RecordedEvent> scopes = recordEvents(TraceScopeEvent.NAME, () -> {
+                SpanContext span = Tracer.openSpanOf(exchange);
+                runOnAnotherThread(() -> Tracer.reenter(span, () -> null));
+            });
+
+            assertEquals(1, scopes.size());
+            assertNotEquals(Thread.currentThread().getName(), scopes.getFirst().getThread().getJavaName(),
+                    "this is the whole point: the span's own event could only ever name one thread");
+        }
+
+        @Test
+        @DisplayName("thread-confined spans emit no scope, so existing instrumentation pays nothing")
+        void confinedSpansEmitNoScope() throws IOException {
+            List<RecordedEvent> scopes = recordEvents(TraceScopeEvent.NAME, () -> {
+                Tracer.run("checkout", SpanKind.SERVER, () -> {
+                });
+                Tracer.inSpan(() -> null);
+                Tracer.inSpanOf(new HttpServerExchangeEvent(), () -> null);
+                Tracer.continueIn(SpanContext.root(new java.util.Random(42)), "handle",
+                        SpanKind.INTERNAL, () -> null);
+            });
+
+            assertTrue(scopes.isEmpty(), "their span is its own single scope; a second event would double it");
+        }
+
+        @Test
+        @DisplayName("re-entering emits no span event of its own")
+        void reenterEmitsNoSpanEvent() throws IOException {
+            Map<String, RecordedEvent> spans = recordSpans(() -> {
+                SpanContext span = Tracer.openSpanOf(new HttpServerExchangeEvent());
+                Tracer.reenter(span, () -> null);
+            });
+
+            assertTrue(spans.isEmpty(), "the span already exists - re-entering resumes it, it does not record it");
+        }
+
+        @Test
+        @DisplayName("with nothing recording the binding is still established")
+        void bindsEvenWithNothingToEmit() {
+            SpanContext opened = SpanContext.root(new java.util.Random(42));
+
+            SpanContext bound = Tracer.reenter(opened, () -> Tracer.current().orElseThrow(
+                    () -> new AssertionError("reenter was handed a context and must bind it")));
+
+            assertEquals(opened, bound);
+        }
+    }
+
     /**
      * Runs {@code body} on a fresh platform thread and waits for it, so a test can assert what a
      * plain executor hand-off does and does not carry.
