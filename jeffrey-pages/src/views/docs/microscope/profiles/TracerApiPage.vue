@@ -182,7 +182,7 @@ const errorExample = `Tracer.run("order.checkout", SpanKind.SERVER, () -> {
 const errorTree = `order.checkout       SERVER     12.9 ms   ERROR   java.lang.IllegalStateException
 └─ payment.charge    CLIENT     12.7 ms   ERROR   java.lang.IllegalStateException`;
 
-const idsTree = `traceId          spanId            parentSpanId       name
+const idsTree = `traceId           spanId            parentSpanId       name
 4f2a9c81b30e7d55  a1b2c3d4e5f60718  0000000000000000   order.checkout
 4f2a9c81b30e7d55  b2c3d4e5f6071829  a1b2c3d4e5f60718   inventory.reserve
 4f2a9c81b30e7d55  c3d4e5f607182a3b  a1b2c3d4e5f60718   payment.charge`;
