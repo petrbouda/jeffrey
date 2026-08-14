@@ -38,18 +38,24 @@
       </template>
 
       <template v-else>
-        <DetailBreadcrumb root-label="Trace Operations" icon="bi-bar-chart-steps" @back="clearSelection">
+        <DetailBreadcrumb
+          root-label="Trace Operations"
+          icon="bi-bar-chart-steps"
+          @back="clearSelection"
+        >
           {{ selectedOperation }}
         </DetailBreadcrumb>
 
-        <EmptyState
-          v-if="!isKnownOperation"
-          title="Unknown Operation"
-          message="No trace in this profile is rooted at that operation."
-          icon="bi-bar-chart-steps"
+        <!--
+          Keyed on the operation name: TraceOperationFlamegraphs' panel count loads only on mount
+          (useFlamegraphPanels), so a query-only change (browser back/forward between two deep
+          links) needs a fresh instance rather than a prop update to pick up the new panels.
+        -->
+        <TraceOperationDetail
+          :key="selectedOperation"
+          :profile-id="profileId"
+          :name="selectedOperation"
         />
-
-        <TraceOperationDetail v-else :profile-id="profileId" :name="selectedOperation" />
       </template>
     </div>
   </div>
@@ -87,10 +93,6 @@ const featureDisabled = computed(() => props.disabledFeatures.includes(FeatureTy
 
 /** The selection lives in the URL so the detail is linkable and Back steps out of it, not off it. */
 const selectedOperation = computed(() => (route.query.operation as string) ?? '');
-
-const isKnownOperation = computed(() =>
-  operations.value.some(operation => operation.name === selectedOperation.value)
-);
 
 function openOperation(name: string): void {
   router.push({ query: { ...route.query, operation: name } });

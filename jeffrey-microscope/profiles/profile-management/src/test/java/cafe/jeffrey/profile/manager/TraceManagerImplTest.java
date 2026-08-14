@@ -44,6 +44,7 @@ import static org.mockito.Mockito.when;
 class TraceManagerImplTest {
 
     private static final long TRACE = 7L;
+    private static final long OTHER_TRACE = 8L;
     private static final long MS = 1_000_000L;
     private static final long THREAD = 900L;
     private static final long OTHER_THREAD = 901L;
@@ -63,8 +64,16 @@ class TraceManagerImplTest {
     private static TraceSpanRecord spanOnThread(long spanId, Long parentSpanId, String name,
             long startMillis, long durationMs, long threadHash) {
         return new TraceSpanRecord(
-                TRACE, spanId, parentSpanId, name, "INTERNAL", "UNSET", null, "{}",
+                TRACE, spanId, parentSpanId, name, "INTERNAL", "UNSET", null,
                 startMillis, startMillis, durationMs * MS, threadHash, "worker", "jeffrey.TraceSpan");
+    }
+
+    /** Like {@link #span}, but for a caller building spans from more than one trace. */
+    private static TraceSpanRecord spanOnTrace(long traceId, long spanId, Long parentSpanId, String name,
+            long startMillis, long durationMs) {
+        return new TraceSpanRecord(
+                traceId, spanId, parentSpanId, name, "INTERNAL", "UNSET", null,
+                startMillis, startMillis, durationMs * MS, THREAD, "worker", "jeffrey.TraceSpan");
     }
 
     private TraceManagerImpl managerOf(List<TraceSpanRecord> spans) {
@@ -388,6 +397,23 @@ class TraceManagerImplTest {
                     .filter(interval -> interval.threadHash() == OTHER_THREAD).findFirst().orElseThrow();
             assertEquals(60, other.fromEpochMillis());
             assertEquals(80, other.toEpochMillis());
+        }
+
+        @Test
+        @DisplayName("two traces of the same operation on the same thread stay separate intervals")
+        void doesNotMergeAcrossTraces() {
+            // Keying only by threadHash would merge these into one window spanning the idle gap
+            // between the traces (100..200), pulling unrelated samples into the flamegraph.
+            when(traceRepository.spansOfOperation(OPERATION)).thenReturn(List.of(
+                    spanOnTrace(TRACE, 1, null, "root", 0, 100),
+                    spanOnTrace(OTHER_TRACE, 1, null, "root", 200, 100)));
+
+            List<SpanInterval> intervals = new TraceManagerImpl(traceRepository)
+                    .operationIntervals(OPERATION);
+
+            assertEquals(2, intervals.size(), "one interval per trace, not merged across the gap");
+            assertTrue(intervals.contains(new SpanInterval(THREAD, 0, 100)));
+            assertTrue(intervals.contains(new SpanInterval(THREAD, 200, 300)));
         }
 
         @Test

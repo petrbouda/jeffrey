@@ -108,7 +108,7 @@ const { loaded, panels } = useFlamegraphPanels(GraphType.PRIMARY, () =>
   new ProfileTracesClient(props.profileId).getOperationPanels(props.name)
 );
 
-const hasEvents = computed(() => panels.value.some((panel) => panel.event.primary.samples > 0));
+const hasEvents = computed(() => panels.value.some(panel => panel.event.primary.samples > 0));
 
 // Flamegraph modal state
 const showDialog = ref(false);

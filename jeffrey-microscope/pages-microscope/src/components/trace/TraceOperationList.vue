@@ -32,6 +32,13 @@
 
     <template #metrics="{ item }">
       <Badge
+        key-label="Spans"
+        :value="FormattingService.formatNumber(item.spanCount)"
+        variant="secondary"
+        size="s"
+        borderless
+      />
+      <Badge
         key-label="Total"
         :value="FormattingService.formatDuration2Units(item.totalNanos)"
         variant="info"

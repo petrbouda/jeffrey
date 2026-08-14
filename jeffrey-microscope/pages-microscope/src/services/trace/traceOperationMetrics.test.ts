@@ -26,6 +26,7 @@ function operation(overrides: Partial<TraceOperationRow>): TraceOperationRow {
     kind: 'INTERNAL',
     count: 0,
     errorCount: 0,
+    spanCount: 0,
     totalNanos: 0,
     p50Nanos: 0,
     p95Nanos: 0,
