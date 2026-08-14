@@ -160,7 +160,7 @@ if (event.isEnabled()) {
 
       <h2 id="instrumenting">Instrumenting an Application</h2>
 
-      <p>Tracing lives in the <router-link to="/docs/events/overview">Jeffrey Events</router-link> library, which is zero-dependency and published to Maven Central.</p>
+      <p>Tracing lives in the <router-link to="/docs/events/overview">Jeffrey Events</router-link> library, which is zero-dependency and published to Maven Central. This section covers the common patterns; the <router-link to="/docs/events/tracer">Tracer API reference</router-link> documents every method with the span tree it produces.</p>
 
       <DocsCodeBlock :code="mavenDependency" language="xml" />
 

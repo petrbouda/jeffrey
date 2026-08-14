@@ -113,6 +113,7 @@ onMounted(() => {
         </DocsCallout>
 
         <p class="docs-read-more">
+          <router-link to="/docs/events/tracer">Read the Tracer API reference &rarr;</router-link><br>
           <router-link to="/docs/microscope/profiles/traces">Read the Traces &amp; Spans reference &rarr;</router-link>
         </p>
 

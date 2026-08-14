@@ -509,6 +509,11 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsJeffreyEvents',
         component: () => import('@/views/docs/events/JeffreyJfrEventsPage.vue')
       },
+      {
+        path: 'events/tracer',
+        name: 'DocsTracerApi',
+        component: () => import('@/views/docs/events/TracerApiPage.vue')
+      },
 
       // ──── Jeffrey JIB (standalone product) ────
       {

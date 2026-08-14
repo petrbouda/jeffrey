@@ -168,7 +168,8 @@ export const microscopeNavigation: DocSection[] = [
     path: 'events',
     icon: 'bi-activity',
     children: [
-      { title: 'Overview', path: 'overview' }
+      { title: 'Overview', path: 'overview' },
+      { title: 'Tracer API', path: 'tracer' }
     ]
   },
   {
