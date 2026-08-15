@@ -191,7 +191,7 @@
           :span="span"
           :fields="eventFields[span.eventType] ?? []"
           :child-count="childCounts.get(span.spanId) ?? 0"
-          :trace-duration-nanos="windowNanos"
+          :trace-duration-nanos="traceDurationNanos ?? windowNanos"
           :waits="context?.spanWaits?.[span.spanId] ?? []"
           @view-events="$emit('viewEvents')"
           @view-flamegraph="$emit('viewFlamegraph')"
@@ -264,8 +264,19 @@ const props = withDefaults(
      * the waterfall must draw perfectly well without it and simply gain the bands when it lands.
      */
     context?: TraceContext | null;
+    /**
+     * Where the context request stands, so the toolbar never asserts "no pauses" about a JVM it has
+     * not heard from yet — a null context also means loading, and also means failed.
+     */
+    contextState?: 'loading' | 'ready' | 'failed';
+    /**
+     * The trace's recorded duration, for every "% of the trace" this component hands down. The
+     * span-derived window can differ from it (a child outliving its parent widens the window), and
+     * using both meant one span's share read as two different percentages in the same dialog.
+     */
+    traceDurationNanos?: number | null;
   }>(),
-  { selectedSpanId: null, context: null }
+  { selectedSpanId: null, context: null, contextState: 'ready', traceDurationNanos: null }
 );
 
 const emit = defineEmits<{
@@ -348,6 +359,14 @@ function toggleAllContext(): void {
 }
 
 const contextToggleTitle = computed(() => {
+  // The absent-categories claim is only true once the request has actually answered. Asserting it
+  // while loading or after a failure stated a fact about the JVM nobody had fetched.
+  if (props.contextState === 'loading') {
+    return 'Loading JVM context…';
+  }
+  if (props.contextState === 'failed') {
+    return 'JVM context could not be loaded';
+  }
   if (contextCategories.value.length === 0) {
     return 'No GC pauses or safepoints crossed this trace';
   }

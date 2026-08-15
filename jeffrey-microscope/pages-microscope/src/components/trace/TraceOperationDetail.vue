@@ -68,10 +68,18 @@
       </div>
 
       <div v-show="activeTab === 'slowest'">
+        <!--
+          server-ordered is load-bearing: the rows arrive slowest-first from the server, and without
+          it the shared list re-sorts and silently slices to its own default of 50 — a tab named
+          "Slowest Traces" quietly showing 5% of what was fetched. The denominator is the
+          operation's real call count, not the capped sample, so "Showing X / Total Y" tells the
+          truth for operations past the cap.
+        -->
         <TraceSlowestList
           :traces="traces"
-          :total="traces.length"
+          :total="totals?.count ?? traces.length"
           :note="capNote"
+          server-ordered
           @row-click="openTrace"
         />
       </div>

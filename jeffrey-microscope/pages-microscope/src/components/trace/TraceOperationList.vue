@@ -39,7 +39,13 @@
           print and JMC all spell it.
         -->
         <span class="operation-tags">
-          <Badge :value="item.eventType" variant="secondary" size="s" borderless :uppercase="false" />
+          <Badge
+            :value="item.eventType"
+            variant="secondary"
+            size="s"
+            borderless
+            :uppercase="false"
+          />
           <Badge :value="item.kind" :variant="spanKindVariant(item.kind)" size="s" borderless />
         </span>
       </div>
@@ -149,7 +155,6 @@ const sortOptions: MetricSortOption[] = [
   { key: 'COUNT', label: 'Count', compare: (a, b) => b.count - a.count },
   { key: 'ERRORS', label: 'Errors', compare: (a, b) => b.errorCount - a.errorCount }
 ];
-
 </script>
 
 <style scoped>

@@ -77,6 +77,8 @@
 
         <LoadingState v-if="listLoading && traces.length === 0" message="Loading traces..." />
 
+        <ErrorState v-else-if="listError" :message="listError" @retry="loadPage(0)" />
+
         <EmptyState
           v-else-if="traces.length === 0"
           title="No matching traces"
@@ -160,6 +162,12 @@ const timeline = ref<TraceTimelineBucket[]>([]);
 const overview = ref<TraceOverview | null>(null);
 const loading = ref(true);
 const listLoading = ref(false);
+/**
+ * Failures of the incremental list fetches stay inside the list region. They used to write the
+ * page-level `error`, so one failed "Load more" or filter refetch blanked the stats, the timeline
+ * and every row already on screen, replacing a page of good data with a whole-page error.
+ */
+const listError = ref<string | null>(null);
 const error = ref<string | null>(null);
 
 const search = ref('');
@@ -256,6 +264,7 @@ async function loadData(): Promise<void> {
  */
 async function loadPage(offset: number): Promise<void> {
   listLoading.value = true;
+  listError.value = null;
   try {
     const page = await new ProfileTracesClient(profileId.value).getTraces({
       search: search.value,
@@ -267,7 +276,7 @@ async function loadPage(offset: number): Promise<void> {
     traces.value = offset === 0 ? page.traces : [...traces.value, ...page.traces];
     totalMatching.value = page.totalMatching;
   } catch {
-    error.value = 'Failed to load the traces for this profile.';
+    listError.value = 'Failed to load the traces for this filter.';
   } finally {
     listLoading.value = false;
   }

@@ -80,14 +80,14 @@
               its own line rather than a third slice of a bar that is already fully accounted for.
             -->
             <p class="sd-crit" :class="{ off: span.criticalPathNanos === 0 }">
-              <i :class="span.criticalPathNanos > 0 ? 'bi bi-signpost-split-fill' : 'bi bi-signpost'"></i>
+              <i
+                :class="span.criticalPathNanos > 0 ? 'bi bi-signpost-split-fill' : 'bi bi-signpost'"
+              ></i>
               <span v-if="span.criticalPathNanos > 0">
                 <b>{{ FormattingService.formatDuration2Units(span.criticalPathNanos) }}</b>
                 on the critical path{{ criticalShareOfTrace }}
               </span>
-              <span v-else>
-                not on the critical path — it ran beside work that outlasted it
-              </span>
+              <span v-else> not on the critical path — it ran beside work that outlasted it </span>
             </p>
 
             <!--
@@ -105,7 +105,9 @@
 
             <p class="sd-foot">
               <span>{{ shape }}</span>
-              <span>started <b>{{ startedAt }}</b> into the recording</span>
+              <span
+                >started <b>{{ startedAt }}</b> into the recording</span
+              >
             </p>
           </div>
         </section>
@@ -206,7 +208,6 @@ import type { SpanDetailRow } from '@/services/trace/spanAttributes';
 import { spanDetail } from '@/services/trace/spanAttributes';
 import { indentRem } from '@/services/trace/TraceWaterfallLayout';
 
-
 /** Below this, a share rounds to 0% and the number itself says more than the percentage. */
 const MIN_REPORTED_PERCENT = 0.1;
 
@@ -239,7 +240,9 @@ defineEmits<{
   (event: 'viewFlamegraph'): void;
 }>();
 
-const detail = computed(() => spanDetail(props.span.attributes, props.span.eventFields, props.fields));
+const detail = computed(() =>
+  spanDetail(props.span.attributes, props.span.eventFields, props.fields)
+);
 
 /** A hand-written span has no event view: its own fields are already the span's. */
 const hasEventView = computed(
@@ -295,7 +298,7 @@ const startedAt = computed(() =>
 );
 
 /** Anything that came to nothing is dropped: a category with no time is not a finding. */
-const spanWaits = computed(() => (props.waits ?? []).filter((wait) => wait.totalNanos > 0));
+const spanWaits = computed(() => (props.waits ?? []).filter(wait => wait.totalNanos > 0));
 
 function waitTitle(wait: TraceContextSlice): string {
   const events = wait.occurrences === 1 ? '1 event' : `${wait.occurrences} events`;

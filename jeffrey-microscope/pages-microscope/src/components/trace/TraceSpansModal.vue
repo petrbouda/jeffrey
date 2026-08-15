@@ -148,6 +148,8 @@
             :selected-span-id="selected?.spanId ?? null"
             :event-fields="detail.eventFields ?? {}"
             :context="context"
+            :context-state="contextState"
+            :trace-duration-nanos="detail.trace.durationNanos"
             @select="select"
             @view-events="openEvents"
             @view-flamegraph="openFlamegraphPicker"
@@ -158,12 +160,30 @@
           Below the bars rather than beside them: it is the conclusion drawn from the trace above,
           and a reader reaches it after looking at the shape, not instead of doing so.
         -->
-        <section v-if="hasContextSummary" class="context-pane">
+        <!--
+          Always rendered, with words for each state. Vanishing entirely made three different facts
+          — still loading, request failed, and "the JVM genuinely never interrupted this trace" —
+          indistinguishable, and a reader who saw the panel on one trace had no way to learn why
+          another lacked it.
+        -->
+        <section class="context-pane">
           <header><i class="bi bi-question-circle"></i> Why was this trace slow?</header>
           <TraceWhySlowPanel
+            v-if="hasContextFindings"
             :slices="context?.summary ?? []"
             :trace-duration-nanos="detail.trace.durationNanos"
           />
+          <p v-else-if="contextState === 'loading'" class="context-note">
+            Attributing this trace's time to GC, locks and I/O…
+          </p>
+          <p v-else-if="contextState === 'failed'" class="context-note">
+            The JVM context could not be loaded, so nothing here says why this trace was slow.
+            <button type="button" class="context-retry" @click="loadContext">Try again</button>
+          </p>
+          <p v-else class="context-note">
+            No GC pauses, lock waits or I/O were attributed to this trace — its time was spent
+            running its own code.
+          </p>
         </section>
       </div>
     </div>
@@ -237,8 +257,15 @@ const activeSelfOnly = ref(false);
 /** Null until the second request lands, and after one that failed. The waterfall copes with both. */
 const context = ref<TraceContext | null>(null);
 
-/** Only worth a panel once something other than the residual is in it. */
-const hasContextSummary = computed(() =>
+/**
+ * Distinguished, because the three ways context can be absent are three different facts. A null
+ * context used to render identically for "still loading", "the request failed" and "the JVM never
+ * interrupted this trace" — and downstream text asserted the third while the first was true.
+ */
+const contextState = ref<'loading' | 'ready' | 'failed'>('loading');
+
+/** Whether anything beyond the residual was attributed — what decides the panel's wording. */
+const hasContextFindings = computed(() =>
   (context.value?.summary ?? []).some(
     slice => slice.category !== 'OWN_WORK' && slice.totalNanos > 0
   )
@@ -492,10 +519,18 @@ async function load(): Promise<void> {
   // pauses come from a scan of the events table rather than the derived span tables, and the bars
   // are worth reading before the context lands. A failure here leaves the waterfall intact --
   // context is an enrichment, and losing it must not turn a readable trace into an error page.
+  loadContext();
+}
+
+/** Its own function so the why-slow panel's failed state can offer a retry that refetches only this. */
+async function loadContext(): Promise<void> {
+  contextState.value = 'loading';
   try {
-    context.value = await client.getTraceContext(props.traceId);
+    context.value = await new ProfileTracesClient(props.profileId).getTraceContext(props.traceId);
+    contextState.value = 'ready';
   } catch {
     context.value = null;
+    contextState.value = 'failed';
   }
 }
 
@@ -517,6 +552,35 @@ watch(
   border: 1px solid var(--color-border);
   border-radius: var(--card-border-radius);
   background: var(--color-bg-card);
+}
+
+.context-note {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.context-retry {
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+.context-retry:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.context-retry:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
 }
 
 .context-pane > header {

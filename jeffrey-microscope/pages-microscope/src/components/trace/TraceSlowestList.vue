@@ -34,7 +34,13 @@
     <template #details="{ item }">
       <!-- Not uppercased: the event type is a type name, and jeffrey.HttpServerExchange is how the
            recording, jfr print and JMC all spell it. -->
-      <Badge :value="item.rootEventType" variant="secondary" size="s" borderless :uppercase="false" />
+      <Badge
+        :value="item.rootEventType"
+        variant="secondary"
+        size="s"
+        borderless
+        :uppercase="false"
+      />
       <!-- Same treatment as the Trace Operations list: borderless and unadorned, so the pair reads
            identically wherever a trace root is described. -->
       <Badge :value="item.rootKind" :variant="spanKindVariant(item.rootKind)" size="s" borderless />

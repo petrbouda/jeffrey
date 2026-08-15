@@ -53,7 +53,7 @@
               v-for="(bucket, index) in histogram.buckets"
               :key="index"
               class="histogram-bar"
-              :class="{ tail: bucket.to >= p95Nanos }"
+              :class="{ tail: bucket.to >= chartP95Nanos }"
               :style="{ height: barHeight(bucket.count) }"
               :title="bucketTitle(bucket)"
             >
@@ -66,9 +66,15 @@
             <span>{{ duration(histogram.to) }}</span>
           </div>
           <div class="histogram-marks">
-            <span>p50 <b>{{ duration(p50Nanos) }}</b></span>
-            <span>p95 <b>{{ duration(p95Nanos) }}</b></span>
-            <span>max <b>{{ duration(maxNanos) }}</b></span>
+            <span
+              >p50 <b>{{ duration(chartP50Nanos) }}</b></span
+            >
+            <span
+              >p95 <b>{{ duration(chartP95Nanos) }}</b></span
+            >
+            <span
+              >max <b>{{ duration(chartMaxNanos) }}</b></span
+            >
           </div>
         </div>
       </MainCard>
@@ -151,9 +157,16 @@
             -->
             <span class="span-detail">
               <span :title="spanReachTitle(span)">{{ spanReach(span) }}</span>
-              <span>p50 <b>{{ duration(spanMode === 'self' ? span.p50SelfNanos : span.p50Nanos) }}</b></span>
-              <span v-if="spanMode === 'total'">max <b>{{ duration(span.maxNanos) }}</b></span>
-              <span v-else :title="ownShareTitle(span)">own <b>{{ ownShare(span) }}</b></span>
+              <span
+                >p50
+                <b>{{ duration(spanMode === 'self' ? span.p50SelfNanos : span.p50Nanos) }}</b></span
+              >
+              <span v-if="spanMode === 'total'"
+                >max <b>{{ duration(span.maxNanos) }}</b></span
+              >
+              <span v-else :title="ownShareTitle(span)"
+                >own <b>{{ ownShare(span) }}</b></span
+              >
             </span>
           </div>
         </div>
@@ -204,7 +217,11 @@ import FormattingService from '@shared/services/FormattingService';
 
 import TraceSlowestList from '@/components/trace/TraceSlowestList.vue';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
-import { latencyHistogram, peakConcurrency, quantileNanos } from '@/services/trace/traceOperationStats';
+import {
+  latencyHistogram,
+  peakConcurrency,
+  quantileNanos
+} from '@/services/trace/traceOperationStats';
 import type {
   TraceOperationId,
   TraceOperationRow,
@@ -273,19 +290,41 @@ const durationsNanos = computed(() => props.traces.map(trace => trace.durationNa
  * So: numbers come from `totals`, shape comes from the sample, and the sample says it is one.
  */
 const p50Nanos = computed(() => props.totals?.p50Nanos ?? quantileNanos(durationsNanos.value, 0.5));
-const p95Nanos = computed(() => props.totals?.p95Nanos ?? quantileNanos(durationsNanos.value, 0.95));
-const maxNanos = computed(() =>
-  props.totals?.maxNanos ?? durationsNanos.value.reduce((max, nanos) => Math.max(max, nanos), 0)
+const p95Nanos = computed(
+  () => props.totals?.p95Nanos ?? quantileNanos(durationsNanos.value, 0.95)
 );
-const totalNanos = computed(() =>
-  props.totals?.totalNanos ?? durationsNanos.value.reduce((sum, nanos) => sum + nanos, 0)
+const maxNanos = computed(
+  () =>
+    props.totals?.maxNanos ?? durationsNanos.value.reduce((max, nanos) => Math.max(max, nanos), 0)
+);
+
+/*
+ * Marks printed under the histogram, always from the same population as its bars. The headline
+ * percentiles above prefer the operation-wide totals — correctly, they describe the population —
+ * but the histogram is built from the capped sample, and annotating a sample's chart with the
+ * population's percentiles let the "tail" highlight match every bar or none, and printed a max
+ * beyond the chart's own axis.
+ */
+const chartP50Nanos = computed(() =>
+  props.truncated ? quantileNanos(durationsNanos.value, 0.5) : p50Nanos.value
+);
+const chartP95Nanos = computed(() =>
+  props.truncated ? quantileNanos(durationsNanos.value, 0.95) : p95Nanos.value
+);
+const chartMaxNanos = computed(() =>
+  props.truncated
+    ? durationsNanos.value.reduce((max, nanos) => Math.max(max, nanos), 0)
+    : maxNanos.value
+);
+const totalNanos = computed(
+  () => props.totals?.totalNanos ?? durationsNanos.value.reduce((sum, nanos) => sum + nanos, 0)
 );
 const callCount = computed(() => props.totals?.count ?? props.traces.length);
-const spanCount = computed(() =>
-  props.totals?.spanCount ?? props.traces.reduce((sum, trace) => sum + trace.spanCount, 0)
+const spanCount = computed(
+  () => props.totals?.spanCount ?? props.traces.reduce((sum, trace) => sum + trace.spanCount, 0)
 );
-const failedTraces = computed(() =>
-  props.totals?.errorCount ?? props.traces.filter(trace => trace.errorCount > 0).length
+const failedTraces = computed(
+  () => props.totals?.errorCount ?? props.traces.filter(trace => trace.errorCount > 0).length
 );
 
 /** Says out loud that the panels below are drawn from a slice, so their shape is not over-read. */
@@ -331,12 +370,13 @@ const metrics = computed(() => [
     icon: 'stopwatch-fill',
     title: 'Total time',
     value: duration(totalNanos.value),
-    breakdown: shareOfProfile.value === null
-      ? []
-      : [
-          { label: 'Share of traces', value: `${shareOfProfile.value}%` },
-          { label: 'Of', value: duration(props.overview?.totalNanos ?? 0) }
-        ]
+    breakdown:
+      shareOfProfile.value === null
+        ? []
+        : [
+            { label: 'Share of traces', value: `${shareOfProfile.value}%` },
+            { label: 'Of', value: duration(props.overview?.totalNanos ?? 0) }
+          ]
   },
   {
     icon: 'arrow-left-right',
@@ -444,7 +484,7 @@ type SpanMode = 'total' | 'self';
 
 const SPAN_MODES: { key: SpanMode; label: string; title: string }[] = [
   { key: 'total', label: 'Inclusive', title: 'Time including everything the span called' },
-  { key: 'self', label: 'Self', title: "Time the span spent on its own work, children excluded" }
+  { key: 'self', label: 'Self', title: 'Time the span spent on its own work, children excluded' }
 ];
 
 const spanMode = ref<SpanMode>('total');

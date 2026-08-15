@@ -33,7 +33,7 @@
 
     <div v-else class="dashboard-container">
       <template v-if="selectedOperation === null">
-        <TraceOperationStats v-if="overview" :operations="operations" :overview="overview" />
+        <TraceOperationStats v-if="overview" :overview="overview" />
 
         <TableToolbar v-model="search" search-placeholder="Filter by operation name...">
           <template #filters>
@@ -48,7 +48,12 @@
           </template>
         </TableToolbar>
 
-        <LoadingState v-if="listLoading && operations.length === 0" message="Loading operations..." />
+        <LoadingState
+          v-if="listLoading && operations.length === 0"
+          message="Loading operations..."
+        />
+
+        <ErrorState v-else-if="listError" :message="listError" @retry="loadPage(0)" />
 
         <EmptyState
           v-else-if="operations.length === 0"
@@ -140,6 +145,12 @@ const totalMatching = ref(0);
 const overview = ref<TraceOverview | null>(null);
 const loading = ref(true);
 const listLoading = ref(false);
+/**
+ * Failures of the incremental list fetches stay inside the list region. They used to write the
+ * page-level `error`, so one failed "Load more" or filter refetch blanked the stats, the timeline
+ * and every row already on screen, replacing a page of good data with a whole-page error.
+ */
+const listError = ref<string | null>(null);
 const error = ref<string | null>(null);
 
 const search = ref('');
@@ -220,6 +231,7 @@ async function loadData(): Promise<void> {
 /** One page of the current filter; an offset of zero replaces the list, anything else appends. */
 async function loadPage(offset: number): Promise<void> {
   listLoading.value = true;
+  listError.value = null;
   try {
     const page = await new ProfileTracesClient(profileId.value).getOperations({
       search: search.value,
@@ -231,7 +243,7 @@ async function loadPage(offset: number): Promise<void> {
     operations.value = offset === 0 ? page.operations : [...operations.value, ...page.operations];
     totalMatching.value = page.totalMatching;
   } catch {
-    error.value = 'Failed to load the trace operations for this profile.';
+    listError.value = 'Failed to load the operations for this filter.';
   } finally {
     listLoading.value = false;
   }
