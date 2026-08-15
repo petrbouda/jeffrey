@@ -21,7 +21,10 @@ package cafe.jeffrey.profile.manager;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
+import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
+import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
@@ -446,4 +449,31 @@ class TraceManagerImplTest {
 
     // Operation intervals are reduced in SQL now, not here, so what used to be asserted against a
     // mocked span list is asserted against real DuckDB in JdbcTraceRepositoryTest.OperationIntervals.
+
+    @Nested
+    @DisplayName("Events in a span")
+    class EventsInSpan {
+
+        @Test
+        @DisplayName("a truncated window says so rather than passing the page off as complete")
+        void propagatesTruncation() {
+            when(traceRepository.spansOf(TRACE)).thenReturn(List.of(span(1, null, "root", 0, 100)));
+            when(traceRepository.eventsInSpan(THREAD, 0, 100)).thenReturn(new ThreadWindowEventsPage(
+                    List.of(new ThreadWindowEventRecord("jdk.ExecutionSample", 5, MS, "{}")), true));
+
+            TraceSpanEvents events = new TraceManagerImpl(traceRepository).eventsInSpan(TRACE, 1);
+
+            assertTrue(events.truncated(), "the flag is what the UI's notice hangs off");
+            assertEquals(1, events.events().size());
+            assertEquals("jdk.ExecutionSample", events.events().getFirst().eventType());
+        }
+
+        @Test
+        @DisplayName("an unknown span yields an empty page rather than failing")
+        void unknownSpanIsEmpty() {
+            when(traceRepository.spansOf(TRACE)).thenReturn(List.of());
+
+            assertEquals(TraceSpanEvents.EMPTY, new TraceManagerImpl(traceRepository).eventsInSpan(TRACE, 1));
+        }
+    }
 }

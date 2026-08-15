@@ -67,13 +67,19 @@
           icon="bi-inbox"
         />
 
-        <EventWindowTimeline
-          v-else-if="selected"
-          :events="spanEvents"
-          :window-start-millis="spanWindowStartMillis"
-          :window-millis="spanWindowMillis"
-          @flamegraph="openFlamegraphForType"
-        />
+        <template v-else-if="selected">
+          <div v-if="eventsTruncated" class="ts-truncated-note">
+            <i class="bi bi-info-circle"></i>
+            Showing the first {{ spanEvents.length }} events recorded in this window — the span held
+            more than the drill-down can list.
+          </div>
+          <EventWindowTimeline
+            :events="spanEvents"
+            :window-start-millis="spanWindowStartMillis"
+            :window-millis="spanWindowMillis"
+            @flamegraph="openFlamegraphForType"
+          />
+        </template>
       </div>
 
       <div v-else-if="mode === 'flamegraph'" class="ts-fg-view">
@@ -171,7 +177,6 @@ import type {
 } from '@/services/api/model/trace/TraceModels';
 
 const TRACE_FG_SCROLL_ID = 'trace-fg-scroll';
-const MODAL_INIT_DELAY_MS = 200;
 
 const props = defineProps<{
   show: boolean;
@@ -190,6 +195,7 @@ const error = ref<string | null>(null);
 
 const mode = ref<'spans' | 'events' | 'flamegraph-picker' | 'flamegraph'>('spans');
 const spanEvents = ref<TraceEventRow[]>([]);
+const eventsTruncated = ref(false);
 const eventsLoading = ref(false);
 const eventsError = ref<string | null>(null);
 /** Which view the graph was opened from, so its back button can return there. */
@@ -244,9 +250,7 @@ const spanWindowMillis = computed(() =>
  * The event timeline is drawn against the events table, whose timestamps are millisecond-resolution,
  * so the span's microsecond start is floored to the millisecond its events were filed under.
  */
-const spanWindowStartMillis = computed(() =>
-  floorToMillis(selected.value?.startEpochMicros ?? 0)
-);
+const spanWindowStartMillis = computed(() => floorToMillis(selected.value?.startEpochMicros ?? 0));
 
 async function loadEvents(): Promise<void> {
   const span = selected.value;
@@ -256,12 +260,15 @@ async function loadEvents(): Promise<void> {
   eventsLoading.value = true;
   eventsError.value = null;
   try {
-    spanEvents.value = await new ProfileTracesClient(props.profileId).getSpanEvents(
+    const page = await new ProfileTracesClient(props.profileId).getSpanEvents(
       props.traceId,
       span.spanId
     );
+    spanEvents.value = page.events;
+    eventsTruncated.value = page.truncated;
   } catch {
     spanEvents.value = [];
+    eventsTruncated.value = false;
     eventsError.value = 'Failed to load the events recorded inside this span.';
   } finally {
     eventsLoading.value = false;
@@ -346,7 +353,7 @@ function openFlamegraph(request: TraceSpanFlamegraphRequest): void {
   // Delay so the flamegraph is rendered and its callbacks are registered.
   setTimeout(() => {
     graphUpdater.initialize();
-  }, MODAL_INIT_DELAY_MS);
+  }, GraphUpdater.MODAL_INIT_DELAY_MS);
 }
 
 /**
@@ -370,6 +377,7 @@ async function load(): Promise<void> {
   selected.value = null;
   mode.value = 'spans';
   spanEvents.value = [];
+  eventsTruncated.value = false;
   eventsError.value = null;
   try {
     detail.value = await new ProfileTracesClient(props.profileId).getTrace(props.traceId);
@@ -470,5 +478,17 @@ watch(
 .ts-fg-scroll {
   max-height: calc(100vh - 220px);
   overflow: auto;
+}
+
+.ts-truncated-note {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  background: var(--color-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.6rem;
 }
 </style>

@@ -561,13 +561,13 @@ const technologyRoutes = [
   },
   {
     path: 'technologies/traces',
-    name: 'profile-traces',
+    name: 'profile-technologies-traces',
     component: () => import('@/views/profiles/detail/technologies/ProfileTraces.vue'),
     meta: { layout: 'profile' }
   },
   {
     path: 'technologies/traces/operations',
-    name: 'profile-trace-operations',
+    name: 'profile-technologies-traces-operations',
     component: () => import('@/views/profiles/detail/technologies/ProfileTraceOperations.vue'),
     meta: { layout: 'profile' }
   },

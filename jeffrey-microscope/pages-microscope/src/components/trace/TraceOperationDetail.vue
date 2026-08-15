@@ -19,7 +19,7 @@
 <template>
   <div class="dashboard-container">
     <LoadingState v-if="loading" message="Loading operation details..." />
-    <ErrorState v-else-if="error" :message="error" />
+    <ErrorState v-else-if="error" :message="error" @retry="load" />
 
     <template v-else>
       <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
@@ -54,7 +54,7 @@
           secondary-title="Traces"
           time-unit="milliseconds"
           :visible-minutes="60"
-          :independentSecondaryAxis="true"
+          :independent-secondary-axis="true"
           :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
           :secondary-axis-type="AxisFormatType.NUMBER"
         />
@@ -166,9 +166,7 @@ function openTrace(trace: TraceRow): void {
  * (thread, window) and the profiler attributes them to the carrier, so an operation that never left
  * its virtual threads has nothing to draw — the tab stays and explains that, rather than vanishing.
  */
-const samplesAreReachable = computed(() =>
-  traces.value.some(trace => trace.hasPlatformSpan)
-);
+const samplesAreReachable = computed(() => traces.value.some(trace => trace.hasPlatformSpan));
 
 const tabs: TabBarItem[] = [
   { id: 'summary', label: 'Summary', icon: 'grid-1x2' },
@@ -186,15 +184,15 @@ const tabs: TabBarItem[] = [
 const buckets = computed(() =>
   timelineBuckets(
     traces.value,
-    (trace) => trace.startMillisFromBeginning,
-    (trace) => trace.durationNanos,
+    trace => trace.startMillisFromBeginning,
+    trace => trace.durationNanos,
     TIMELINE_BUCKETS,
     recordingSpan.value
   )
 );
 
-const primaryData = computed<number[][]>(() => buckets.value.map((b) => [b.mid, b.maxDuration]));
-const secondaryData = computed<number[][]>(() => buckets.value.map((b) => [b.mid, b.count]));
+const primaryData = computed<number[][]>(() => buckets.value.map(b => [b.mid, b.maxDuration]));
+const secondaryData = computed<number[][]>(() => buckets.value.map(b => [b.mid, b.count]));
 
 // Silence about a cap reads as "this is all of them", which it would not be.
 const capNote = computed<string | undefined>(() => {
@@ -244,4 +242,3 @@ async function load(): Promise<void> {
 // operation remounts it. `useFlamegraphPanels` only fetches on mount, which is why the key is there.
 onMounted(load);
 </script>
-

@@ -21,6 +21,7 @@ package cafe.jeffrey.provider.profile.jdbc;
 import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
+import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationRecord;
 import cafe.jeffrey.provider.profile.api.TraceOperationSpanRecord;
@@ -38,6 +39,7 @@ import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -212,6 +214,35 @@ class JdbcTraceRepositoryTest {
             assertEquals(EPOCH_10_00_00, request.fromEpochMillis());
             assertEquals(EPOCH_10_00_00 + 120, request.toEpochMillis(),
                     "the scope sits inside the exchange, so the exchange still bounds the thread");
+        }
+
+        /** The same trace, plus a second, later stint of the slow trace on the pool thread. */
+        private JdbcTraceRepository withDisjointActivity(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-disjoint-thread-activity.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+            return repository;
+        }
+
+        @Test
+        @DisplayName("a thread active twice with a gap keeps two intervals rather than one spanning it")
+        void disjointActivityKeepsTheGap(DataSource dataSource) throws SQLException {
+            // Collapsing a thread to MIN/MAX handed the flamegraph one window across the idle gap,
+            // absorbing whatever unrelated work the thread did between its two stints on the trace.
+            List<SpanInterval> intervals =
+                    withDisjointActivity(dataSource).operationIntervals(FLAMEGRAPH_OPERATION);
+
+            List<SpanInterval> pool = intervals.stream()
+                    .filter(interval -> interval.threadHash() == 3002L)
+                    .sorted(Comparator.comparingLong(SpanInterval::fromEpochMillis))
+                    .toList();
+
+            assertEquals(2, pool.size(), "one interval per stint, not one spanning the gap");
+            assertEquals(EPOCH_10_00_00 + 60, pool.get(0).fromEpochMillis());
+            assertEquals(EPOCH_10_00_00 + 80, pool.get(0).toEpochMillis());
+            assertEquals(EPOCH_10_00_00 + 100, pool.get(1).fromEpochMillis());
+            assertEquals(EPOCH_10_00_00 + 110, pool.get(1).toEpochMillis());
         }
 
         @Test
@@ -476,6 +507,28 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
+        @DisplayName("rows claiming the same span id are deduped to the earliest occurrence")
+        void dedupesRepeatedSpanIds(DataSource dataSource) throws SQLException {
+            // A re-imported chunk or instrumentation that reused an id. Without the dedupe, both
+            // rows landed in trace_spans, span_count counted them both, and the waterfall drew one.
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-duplicate-span-events.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+
+            List<TraceSpanRecord> spans = repository.spansOf(SLOW_TRACE);
+
+            assertEquals(spans.size(), spans.stream().map(TraceSpanRecord::spanId).distinct().count(),
+                    "a span id has to identify exactly one span");
+            TraceSpanRecord kept = spans.stream()
+                    .filter(span -> span.spanId() == 112L).findFirst().orElseThrow();
+            assertEquals("listSpans", kept.name(),
+                    "the earliest occurrence wins, the row the waterfall would have drawn anyway");
+            assertEquals(spans.size(), repository.summaryOf(SLOW_TRACE).orElseThrow().spanCount(),
+                    "span_count must agree with the rows the waterfall draws");
+        }
+
+        @Test
         @DisplayName("an event carrying ids but no span shape still lands in the trace")
         void fallsBackForAnIncompleteShape(DataSource dataSource) throws SQLException {
             // Third-party instrumentation that stamped only the ids, or a recording older than the
@@ -563,6 +616,24 @@ class JdbcTraceRepositoryTest {
             JdbcTraceRepository repository = derived(dataSource);
 
             assertEquals(1, repository.slowestTraces(1).size());
+        }
+
+        @Test
+        @DisplayName("traces with the same duration are listed in a stable order")
+        void tiedDurationsOrderDeterministically(DataSource dataSource) throws SQLException {
+            // Ordering by duration alone leaves a tied row at the LIMIT boundary free to come and
+            // go between two identical requests; trace_id breaks the tie.
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-tied-duration-traces.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+
+            List<Long> ids = repository.slowestTraces(10).stream()
+                    .map(TraceSummaryRecord::traceId)
+                    .toList();
+
+            assertEquals(List.of(SLOW_TRACE, 7001L, 7002L, FAST_TRACE), ids,
+                    "the two 7ms traces fall back to trace_id order");
         }
 
         @Test
@@ -776,13 +847,15 @@ class JdbcTraceRepositoryTest {
 
             // The window of the root HTTP span on thread 3001, which also carries a JDBC span and
             // an execution sample.
-            List<ThreadWindowEventRecord> events = repository.eventsInSpan(
+            ThreadWindowEventsPage page = repository.eventsInSpan(
                     3001, EPOCH_10_00_00, EPOCH_10_00_00 + 120);
+            List<ThreadWindowEventRecord> events = page.events();
 
             assertTrue(events.stream().noneMatch(event -> event.eventType().startsWith("jeffrey.")),
                     "an event that is itself a span belongs in the waterfall, not inside a span");
             assertEquals(List.of("jdk.ExecutionSample"),
                     events.stream().map(ThreadWindowEventRecord::eventType).toList());
+            assertFalse(page.truncated(), "a handful of events is nowhere near the row cap");
         }
 
         @Test
@@ -791,9 +864,9 @@ class JdbcTraceRepositoryTest {
             JdbcTraceRepository repository = derived(dataSource);
 
             // A different thread has no events of its own in the fixture.
-            assertTrue(repository.eventsInSpan(3002, EPOCH_10_00_00, EPOCH_10_00_00 + 120).isEmpty());
+            assertTrue(repository.eventsInSpan(3002, EPOCH_10_00_00, EPOCH_10_00_00 + 120).events().isEmpty());
             // A window before anything happened is empty too.
-            assertTrue(repository.eventsInSpan(3001, EPOCH_10_00_00 - 500, EPOCH_10_00_00 - 1).isEmpty());
+            assertTrue(repository.eventsInSpan(3001, EPOCH_10_00_00 - 500, EPOCH_10_00_00 - 1).events().isEmpty());
         }
     }
 }

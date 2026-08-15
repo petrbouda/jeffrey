@@ -71,7 +71,7 @@ const props = defineProps<{ disabledFeatures: FeatureType[] }>();
 const route = useRoute();
 const router = useRouter();
 
-/** Mirrors TracesController's DEFAULT_TRACES_LIMIT, which caps what `getTraces()` returns. */
+/** Passed explicitly on the fetch, so the cap the header note reports is the cap actually used. */
 const TRACE_FETCH_LIMIT = 100;
 
 const traces = ref<TraceRow[]>([]);
@@ -139,7 +139,7 @@ async function loadData(): Promise<void> {
     const client = new ProfileTracesClient(profileId.value);
     const [loadedOverview, loadedTraces] = await Promise.all([
       client.getOverview(),
-      client.getTraces()
+      client.getTraces(TRACE_FETCH_LIMIT)
     ]);
     overview.value = loadedOverview;
     traces.value = loadedTraces;
@@ -158,4 +158,3 @@ onMounted(() => {
   }
 });
 </script>
-

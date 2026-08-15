@@ -27,8 +27,10 @@ import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationThreads;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
 import cafe.jeffrey.provider.profile.api.EventFieldRecord;
+import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationThreadsRecord;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
@@ -203,19 +205,23 @@ public class TraceManagerImpl implements TraceManager {
     }
 
     @Override
-    public List<TraceEventRow> eventsInSpan(long traceId, long spanId) {
+    public TraceSpanEvents eventsInSpan(long traceId, long spanId) {
         return spanOf(traceId, spanId)
-                .map(span -> traceRepository
-                        .eventsInSpan(span.threadHash(),
-                                toMillis(span.startEpochMicros()), toMillis(endMicrosOf(span)))
-                        .stream()
-                        .map(event -> new TraceEventRow(
-                                event.eventType(),
-                                event.startEpochMillis(),
-                                event.durationNanos(),
-                                event.fields()))
-                        .toList())
-                .orElseGet(List::of);
+                .map(span -> {
+                    ThreadWindowEventsPage page = traceRepository.eventsInSpan(
+                            span.threadHash(),
+                            toMillis(span.startEpochMicros()), toMillis(endMicrosOf(span)));
+
+                    List<TraceEventRow> events = page.events().stream()
+                            .map(event -> new TraceEventRow(
+                                    event.eventType(),
+                                    event.startEpochMillis(),
+                                    event.durationNanos(),
+                                    event.fields()))
+                            .toList();
+                    return new TraceSpanEvents(events, page.truncated());
+                })
+                .orElse(TraceSpanEvents.EMPTY);
     }
 
     private Optional<TraceSpanRecord> spanOf(long traceId, long spanId) {
@@ -236,8 +242,9 @@ public class TraceManagerImpl implements TraceManager {
      * one and carries on until every id has been placed.
      * <p>
      * Rows sharing an id are the one shape that does lose a span: a span id identifies a span, and
-     * the derivation is what guarantees it. Only the first row of an id is drawn, and the trace
-     * still renders.
+     * the derivation dedupes on it before the primary key enforces it. Only the first row of an id
+     * is drawn — a defence kept even though a well-formed database cannot produce the shape, because
+     * a trace must render whatever the database holds.
      */
     private static List<TraceSpanRow> assemble(List<TraceSpanRecord> spans) {
         Set<Long> known = new HashSet<>();

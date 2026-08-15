@@ -104,8 +104,8 @@ public interface TraceRepository {
     List<TraceSpanRecord> spansOf(long traceId);
 
     /**
-     * The windows one operation occupied, one per {@code (trace, thread)} — what a flamegraph scoped
-     * to a whole trace type is built from.
+     * The windows one operation occupied, merged per {@code (trace, thread)} with idle gaps
+     * preserved — what a flamegraph scoped to a whole trace type is built from.
      * <p>
      * Reduced in SQL rather than by fetching every span and collapsing them here: the spans of a hot
      * operation are unbounded and all but these bounds are discarded.
@@ -127,13 +127,16 @@ public interface TraceRepository {
      * <p>
      * Events that are themselves spans are excluded, so the drill-down shows JVM activity rather
      * than repeating the tree the waterfall already draws.
+     * <p>
+     * The result is a page: a busy window can hold more events than the drill-down's row cap, and
+     * the page says so rather than passing off the first rows as the whole window.
      *
      * @param threadHash      identity hash of the span's thread; used rather than the OS id so the
      *                        lookup also resolves for virtual threads
      * @param fromEpochMillis window start, inclusive
      * @param toEpochMillis   window end, inclusive
      */
-    List<ThreadWindowEventRecord> eventsInSpan(long threadHash, long fromEpochMillis, long toEpochMillis);
+    ThreadWindowEventsPage eventsInSpan(long threadHash, long fromEpochMillis, long toEpochMillis);
 
     /**
      * How the recording described the fields of the given event types — the label, description and

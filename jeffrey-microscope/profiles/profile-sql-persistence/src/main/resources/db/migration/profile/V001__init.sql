@@ -199,6 +199,10 @@ CREATE TABLE IF NOT EXISTS pipeline_runs
 -- `parent_span_id` is NULL for a root span (the wire encoding uses 0 for "absent", normalised here
 -- so SQL null-semantics apply).
 --
+-- The primary key states the invariant every read relies on: a span id identifies exactly one span
+-- of its trace. The derivation dedupes before inserting, so the key turns a future dedupe
+-- regression into a loud failure instead of a silent skew between span_count and the waterfall.
+--
 CREATE TABLE IF NOT EXISTS trace_spans
 (
     trace_id                       BIGINT      NOT NULL,
@@ -224,7 +228,8 @@ CREATE TABLE IF NOT EXISTS trace_spans
     -- rows, an exchange's uri, method and status code. These are schema, not attributes -- each is a
     -- labelled field of its event type -- so they are kept apart from the map above. Null for an
     -- event that declares nothing of its own, a hand-written span being the usual case.
-    event_fields                   VARCHAR
+    event_fields                   VARCHAR,
+    PRIMARY KEY (trace_id, span_id)
 );
 
 --
@@ -272,6 +277,8 @@ CREATE TABLE IF NOT EXISTS traces
 
 -- Unlike `events`, these two are small, written once by the derivation and then read interactively
 -- by every trace query, so the ingest-cost argument against ART indexes above does not apply here.
+-- The single-column index exists alongside the composite primary key because every trace read
+-- filters on trace_id alone, and the composite ART key is not a reliable substitute for a
+-- prefix-only lookup.
 CREATE INDEX IF NOT EXISTS trace_spans_trace_id_idx ON trace_spans (trace_id);
-CREATE INDEX IF NOT EXISTS trace_spans_thread_hash_idx ON trace_spans (thread_hash);
 CREATE INDEX IF NOT EXISTS traces_operation_idx ON traces (root_name, root_kind, root_event_type);

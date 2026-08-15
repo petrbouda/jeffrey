@@ -24,12 +24,12 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.model.FlamegraphPanel;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.PanelContext;
-import cafe.jeffrey.profile.manager.model.trace.TraceEventRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
 import cafe.jeffrey.profile.resources.request.GenerateTraceOperationFlamegraphRequest;
 import cafe.jeffrey.profile.resources.request.GenerateTraceSpanFlamegraphRequest;
 import cafe.jeffrey.profile.resources.request.SpanFlamegraphOptions;
@@ -163,7 +163,7 @@ public class TracesController {
      * question for a (thread, window) pair.
      */
     @GetMapping("/{traceId}/spans/{spanId}/events")
-    public List<TraceEventRow> spanEvents(
+    public TraceSpanEvents spanEvents(
             @PathVariable("profileId") String profileId,
             @PathVariable("traceId") String traceId,
             @PathVariable("spanId") String spanId) {
