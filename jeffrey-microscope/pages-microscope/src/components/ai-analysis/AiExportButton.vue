@@ -19,7 +19,7 @@
 <script setup lang="ts">
 import { ref, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAiExport, type AiExportSource } from '@/composables/useAiExport';
+import { clipboardAvailable, useAiExport, type AiExportSource } from '@/composables/useAiExport';
 
 const props = defineProps<{
   /**
@@ -42,8 +42,23 @@ const props = defineProps<{
 const router = useRouter();
 const { copyToClipboard, downloadAsFile } = useAiExport();
 
+/**
+ * On a plain-HTTP origin the Clipboard API does not exist, so "Copy for AI" is a promise the
+ * browser will not let this button keep. The primary action becomes the download, and the copy
+ * item stays visible but says why it is off — a control that vanishes teaches nothing.
+ */
+const canCopy = clipboardAvailable();
+
 const menuOpen = ref(false);
 const busy = ref(false);
+
+function onPrimary(): void {
+  if (canCopy) {
+    onCopy();
+  } else {
+    onDownload();
+  }
+}
 
 function toggleMenu() {
   if (props.disabled) {
@@ -128,9 +143,11 @@ function onOpenSettings() {
       :class="{ 'ai-export-disabled': disabled }"
       :title="disabled ? disabledTooltip : tooltip"
     >
-      <button type="button" class="ai-export-main" :disabled="disabled || busy" @click="onCopy">
-        <i class="bi bi-stars"></i>
-        <span>Copy for AI</span>
+      <button type="button" class="ai-export-main" :disabled="disabled || busy" @click="onPrimary">
+        <!-- The export is a server round trip, long enough to deserve a visible in-flight state. -->
+        <i class="bi" :class="busy ? 'bi-arrow-repeat ai-export-spin' : 'bi-stars'"></i>
+        <span v-if="busy">Exporting…</span>
+        <span v-else>{{ canCopy ? 'Copy for AI' : 'Export for AI' }}</span>
       </button>
       <button
         type="button"
@@ -146,9 +163,16 @@ function onOpenSettings() {
     </div>
 
     <div v-if="menuOpen" class="ai-export-menu" role="menu" @keydown.esc.stop="closeAndRefocus">
-      <button class="ai-export-menu-item" role="menuitem" @click="onCopy">
+      <button
+        class="ai-export-menu-item"
+        :class="{ 'ai-export-menu-off': !canCopy }"
+        role="menuitem"
+        :aria-disabled="!canCopy"
+        @click="canCopy && onCopy()"
+      >
         <i class="bi bi-clipboard"></i>
         <span>Copy to clipboard</span>
+        <span v-if="!canCopy" class="ai-export-menu-reason">needs HTTPS</span>
       </button>
       <button class="ai-export-menu-item" role="menuitem" @click="onDownload">
         <i class="bi bi-download"></i>
@@ -284,5 +308,31 @@ function onOpenSettings() {
   height: 1px;
   background: var(--color-border-light);
   margin: 4px 0;
+}
+
+.ai-export-menu-off {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.ai-export-menu-off:hover {
+  background: transparent;
+}
+
+/* The reason the item is off, said where the eye already is — title text hides on disabled controls. */
+.ai-export-menu-reason {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.ai-export-spin {
+  animation: ai-export-rotate 0.9s linear infinite;
+}
+
+@keyframes ai-export-rotate {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

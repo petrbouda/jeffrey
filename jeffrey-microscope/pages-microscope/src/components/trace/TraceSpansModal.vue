@@ -556,10 +556,13 @@ function buildAiExportSource(): AiExportSource | null {
   }
   const client = new TraceAiExportClient(props.profileId);
   const traceId = props.traceId;
+  // The name leads and the id follows, truncated: in a downloads folder the operation name is what
+  // a person scans for, and the id tail still tells two traces of the same operation apart.
+  const idTail = traceId.slice(0, 8);
   return {
     fetch: () => client.generateTrace(traceId),
     label: 'Trace',
-    filenameStem: `trace-${traceId}`
+    filenameStem: `trace-${detail.value.trace.rootName}-${idTail}`
   };
 }
 

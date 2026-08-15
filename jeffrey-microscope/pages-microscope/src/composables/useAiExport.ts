@@ -37,6 +37,16 @@ export interface AiExportSource {
   filenameStem: string;
 }
 
+/**
+ * Whether the Clipboard API exists here at all. It is undefined on plain-HTTP origins — which is
+ * how a self-hosted Jeffrey is typically served — so a copy attempt there cannot work, and the
+ * honest move is to offer the download up front rather than fail with a toast that blames the
+ * server for what is a browser rule (clipboard needs HTTPS or localhost).
+ */
+export function clipboardAvailable(): boolean {
+  return window.isSecureContext && navigator.clipboard !== undefined;
+}
+
 export function useAiExport() {
   async function copyToClipboard(source: AiExportSource): Promise<void> {
     try {
@@ -74,7 +84,10 @@ export function useAiExport() {
   return { copyToClipboard, downloadAsFile };
 }
 
-/** Sanitised and timestamped, so repeated exports of the same thing do not overwrite each other. */
+/**
+ * Sanitised and timestamped to the second, so repeated exports of the same thing do not overwrite
+ * each other — two exports in the same minute are the normal case when comparing a tweak.
+ */
 export function buildFilename(stem: string): string {
   const safeStem = stem.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 64);
   return `jeffrey-${safeStem}-${formatTimestamp(new Date())}.md`;
@@ -87,6 +100,7 @@ function formatTimestamp(d: Date): string {
     pad(d.getUTCMonth() + 1) +
     pad(d.getUTCDate()) +
     pad(d.getUTCHours()) +
-    pad(d.getUTCMinutes())
+    pad(d.getUTCMinutes()) +
+    pad(d.getUTCSeconds())
   );
 }
