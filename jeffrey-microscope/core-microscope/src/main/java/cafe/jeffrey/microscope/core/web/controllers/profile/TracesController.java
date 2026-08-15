@@ -19,16 +19,20 @@
 package cafe.jeffrey.microscope.core.web.controllers.profile;
 
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
+import cafe.jeffrey.profile.ai.trace.TraceAiMarkdownBuilder;
+import cafe.jeffrey.profile.ai.trace.TraceOperationAiMarkdownBuilder;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.manager.TraceManager;
+import cafe.jeffrey.profile.manager.model.trace.TraceContext;
+import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
+import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
+import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.model.FlamegraphPanel;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.PanelContext;
-import cafe.jeffrey.profile.manager.model.trace.TraceContext;
-import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
-import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
-import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
-import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
 import cafe.jeffrey.profile.manager.model.trace.TraceTimelineBucket;
@@ -80,6 +84,21 @@ public class TracesController {
     private static final String DEFAULT_OPERATION_SPANS_LIMIT = "20";
     /** The most rows any of these lists can usefully render, and the ceiling a caller cannot raise. */
     private static final int MAX_LIMIT = 10_000;
+    /**
+     * Markdown, because the export is a document rather than a payload.
+     * <p>
+     * The charset is explicit: both documents are prose containing em dashes and typographic
+     * punctuation, and a string converter that falls back to ISO-8859-1 turns every one of them into
+     * a replacement character. Stating UTF-8 costs nothing and removes the question.
+     */
+    private static final String MARKDOWN_MEDIA_TYPE = "text/markdown;charset=UTF-8";
+    /**
+     * How much of an operation an AI bundle carries. Wider than the UI's twenty, because a reader
+     * scrolls and a model does not, and narrow enough that the document still fits a chat window.
+     */
+    private static final int AI_EXPORT_SPANS_LIMIT = 40;
+    /** Exemplars to name at the end of an operation bundle, as candidates to export individually. */
+    private static final int AI_EXPORT_EXEMPLARS_LIMIT = 10;
     /** Slowest-first and busiest-first: what each list showed before it could be sorted at all. */
     private static final String DEFAULT_TRACE_SORT = "DURATION";
     private static final String DEFAULT_OPERATION_SORT = "TOTAL_TIME";
@@ -204,6 +223,55 @@ public class TracesController {
                 profileId, name, kind, eventType, spanLimit);
         return resolver.resolve(profileId).traceManager()
                 .operationSummary(new TraceOperationId(name, kind, eventType), boundedLimit(spanLimit));
+    }
+
+    /**
+     * One operation rendered as Markdown for an AI to read — percentiles, the span breakdown in both
+     * accountings, and slowest exemplars, with a preamble that defines every term it uses.
+     * <p>
+     * Placed before {@code /{traceId}} so the literal path is matched as one rather than being read
+     * as a trace id.
+     */
+    @GetMapping(value = "/operation/ai-export", produces = MARKDOWN_MEDIA_TYPE)
+    public String operationAiExport(
+            @PathVariable("profileId") String profileId,
+            @RequestParam("name") String name,
+            @RequestParam("kind") String kind,
+            @RequestParam("eventType") String eventType) {
+        LOG.debug("Exporting an operation for AI: profile_id={} name={} kind={} event_type={}",
+                profileId, name, kind, eventType);
+
+        TraceOperationId operationId = new TraceOperationId(name, kind, eventType);
+        TraceManager traceManager = resolver.resolve(profileId).traceManager();
+        TraceOperationRow operation = traceManager.operation(operationId)
+                .orElseThrow(() -> Exceptions.resourceNotFound("Operation not found: " + name));
+
+        return new TraceOperationAiMarkdownBuilder(
+                operation,
+                traceManager.operationSummary(operationId, AI_EXPORT_SPANS_LIMIT),
+                traceManager.tracesOfOperation(operationId, AI_EXPORT_EXEMPLARS_LIMIT))
+                .build();
+    }
+
+    /**
+     * One trace rendered as Markdown for an AI to read.
+     * <p>
+     * The context is fetched alongside the trace rather than left out: without the pauses and waits
+     * this is an ordinary tracing export, and the JVM's own events are the whole reason Jeffrey's
+     * version of this document is worth reading.
+     */
+    @GetMapping(value = "/{traceId}/ai-export", produces = MARKDOWN_MEDIA_TYPE)
+    public String traceAiExport(
+            @PathVariable("profileId") String profileId,
+            @PathVariable("traceId") String traceId) {
+        LOG.debug("Exporting a trace for AI: profile_id={} trace_id={}", profileId, traceId);
+
+        long id = parseId(traceId);
+        TraceManager traceManager = resolver.resolve(profileId).traceManager();
+        TraceDetail detail = traceManager.trace(id)
+                .orElseThrow(() -> Exceptions.resourceNotFound("Trace not found: " + traceId));
+
+        return new TraceAiMarkdownBuilder(detail, traceManager.context(id)).build();
     }
 
     @GetMapping("/{traceId}")

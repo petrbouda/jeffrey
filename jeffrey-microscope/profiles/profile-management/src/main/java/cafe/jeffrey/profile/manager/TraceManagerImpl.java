@@ -41,6 +41,7 @@ import cafe.jeffrey.provider.profile.api.TraceListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationPage;
+import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
 import cafe.jeffrey.provider.profile.api.TraceOperationThreadsRecord;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TracePage;
@@ -80,6 +81,12 @@ public class TraceManagerImpl implements TraceManager {
 
     private static final long NANOS_PER_MICRO = 1_000L;
     private static final long MICROS_PER_MILLI = 1_000L;
+    /**
+     * How far down the name-filtered list {@link #operation} will look before giving up. Reaching
+     * this would take ten thousand operations whose names all contain the one being asked for, which
+     * is not a shape a real application produces.
+     */
+    private static final int OPERATION_LOOKUP_LIMIT = 10_000;
 
     private final TraceRepository traceRepository;
 
@@ -307,6 +314,31 @@ public class TraceManagerImpl implements TraceManager {
                                 operation.maxNanos()))
                         .toList(),
                 page.totalMatching());
+    }
+
+    /**
+     * Finds one operation's aggregate row by narrowing the list to its name and then matching the
+     * whole identity, since a name alone is not one: an inbound and an outbound call can share it.
+     * <p>
+     * Built on the list read rather than on a query of its own, because the aggregation behind it is
+     * not trivial and having two of it is how the list and the detail come to disagree. The name
+     * filter does the narrowing in SQL; the exact match happens here.
+     */
+    @Override
+    public Optional<TraceOperationRow> operation(TraceOperationId operation) {
+        TraceOperationListQuery query = new TraceOperationListQuery(
+                operation.name(),
+                false,
+                TraceOperationSortField.TOTAL_TIME,
+                true,
+                OPERATION_LOOKUP_LIMIT,
+                0);
+
+        return operations(query).operations().stream()
+                .filter(row -> row.name().equals(operation.name())
+                        && row.kind().equals(operation.kind())
+                        && row.eventType().equals(operation.eventType()))
+                .findFirst();
     }
 
     @Override

@@ -29,10 +29,11 @@ import GuardMatched from '@/services/api/model/GuardMatched';
 import SettingsClient from '@/services/api/SettingsClient';
 import MessageBus from '@/services/MessageBus.ts';
 import LoadingIndicator from '@shared/components/LoadingIndicator.vue';
-import AiExportButton from '@/components/flamegraph/AiExportButton.vue';
+import AiExportButton from '@/components/ai-analysis/AiExportButton.vue';
 import DifferentialRootHeader from '@/components/DifferentialRootHeader.vue';
 import PrimaryRootHeader from '@/components/PrimaryRootHeader.vue';
-import type { AiExportInput } from '@/composables/useAiExport';
+import type { AiExportSource } from '@/composables/useAiExport';
+import FlamegraphAiExportClient from '@/services/api/FlamegraphAiExportClient';
 import type Frame from '@/services/api/model/Frame';
 
 export type AiExportGraphMode = 'PRIMARY' | 'DIFFERENTIAL';
@@ -78,20 +79,27 @@ const twoLineMode = ref(false);
 const differentialRootFrame = ref<Frame | null>(null);
 const primaryRootFrame = ref<Frame | null>(null);
 
-function buildAiExportInput(): AiExportInput | null {
+function buildAiExportSource(): AiExportSource | null {
   const ctx = props.aiExportContext;
   if (!ctx) {
     return null;
   }
+  // The filters in effect travel with the request, so the exported document describes the graph as
+  // it is on screen rather than the unfiltered one.
+  const client = new FlamegraphAiExportClient(ctx.profileId);
   return {
-    profileId: ctx.profileId,
-    eventType: ctx.eventType,
-    useWeight: ctx.useWeight,
-    useThreadMode: ctx.useThreadMode,
-    search: currentSearchValue,
-    excludeNonJavaSamples: ctx.excludeNonJavaSamples,
-    excludeIdleSamples: ctx.excludeIdleSamples,
-    onlyUnsafeAllocationSamples: ctx.onlyUnsafeAllocationSamples
+    fetch: () =>
+      client.generate({
+        eventType: ctx.eventType,
+        useWeight: ctx.useWeight,
+        useThreadMode: ctx.useThreadMode,
+        search: currentSearchValue,
+        excludeNonJavaSamples: ctx.excludeNonJavaSamples,
+        excludeIdleSamples: ctx.excludeIdleSamples,
+        onlyUnsafeAllocationSamples: ctx.onlyUnsafeAllocationSamples
+      }),
+    label: 'Flamegraph',
+    filenameStem: `flamegraph-${ctx.eventType.replace(/^[a-z]+\./, '').toLowerCase()}`
   };
 }
 
@@ -345,9 +353,11 @@ function search(value: string | null) {
     </div>
     <AiExportButton
       v-if="aiExportContext"
-      :build-input="buildAiExportInput"
+      :build-source="buildAiExportSource"
+      tooltip="Export flamegraph for AI analysis"
       :disabled="aiExportContext.graphMode === 'DIFFERENTIAL'"
       disabled-tooltip="Differential export coming soon"
+      show-settings
     />
   </div>
   <DifferentialRootHeader
@@ -366,16 +376,16 @@ function search(value: string | null) {
     :style="{ width: canvasWidth }"
     @reset="flamegraph?.resetZoom()"
   />
-  <canvas ref="flamegraphCanvas" id="flamegraphCanvas" :style="{ width: canvasWidth }"></canvas>
+  <canvas id="flamegraphCanvas" ref="flamegraphCanvas" :style="{ width: canvasWidth }"></canvas>
 
   <div
+    id="flamegraphTooltip"
     class="card p-2 border-1 bg-gray-50"
     style="visibility: hidden; position: absolute"
-    id="flamegraphTooltip"
   ></div>
 
   <!-- Bootstrap-styled Context Menu -->
-  <div class="dropdown-menu custom-context-menu" ref="contextMenu" id="flamegraphContextMenu">
+  <div id="flamegraphContextMenu" ref="contextMenu" class="dropdown-menu custom-context-menu">
     <button
       v-for="(item, index) in contextMenuItems"
       :key="index"

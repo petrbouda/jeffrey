@@ -19,12 +19,24 @@
 <script setup lang="ts">
 import { ref, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAiExport, type AiExportInput } from '@/composables/useAiExport';
+import { useAiExport, type AiExportSource } from '@/composables/useAiExport';
 
 const props = defineProps<{
-  buildInput: () => AiExportInput | null;
+  /**
+   * Describes what to export, resolved at click time rather than passed as a value: the thing being
+   * exported is usually still loading when the button mounts, and a host with nothing ready yet
+   * returns null instead of exporting an empty document.
+   */
+  buildSource: () => AiExportSource | null;
+  /** What the button says it will export, e.g. "Export this trace for AI analysis". */
+  tooltip: string;
   disabled?: boolean;
   disabledTooltip?: string;
+  /**
+   * Whether to offer the AI-export settings link. That page configures a flamegraph prune threshold,
+   * which means nothing to a trace, so the item is opt-in rather than always present.
+   */
+  showSettings?: boolean;
 }>();
 
 const router = useRouter();
@@ -67,13 +79,13 @@ async function onCopy() {
   if (props.disabled || busy.value) {
     return;
   }
-  const input = props.buildInput();
-  if (!input) {
+  const source = props.buildSource();
+  if (!source) {
     return;
   }
   busy.value = true;
   try {
-    await copyToClipboard(input);
+    await copyToClipboard(source);
   } finally {
     busy.value = false;
     closeMenu();
@@ -84,13 +96,13 @@ async function onDownload() {
   if (props.disabled || busy.value) {
     return;
   }
-  const input = props.buildInput();
-  if (!input) {
+  const source = props.buildSource();
+  if (!source) {
     return;
   }
   busy.value = true;
   try {
-    await downloadAsFile(input);
+    await downloadAsFile(source);
   } finally {
     busy.value = false;
     closeMenu();
@@ -108,7 +120,7 @@ function onOpenSettings() {
     <div
       class="ai-export-split"
       :class="{ 'ai-export-disabled': disabled }"
-      :title="disabled ? disabledTooltip : 'Export flamegraph for AI analysis'"
+      :title="disabled ? disabledTooltip : tooltip"
     >
       <button type="button" class="ai-export-main" :disabled="disabled || busy" @click="onCopy">
         <i class="bi bi-stars"></i>
@@ -135,8 +147,9 @@ function onOpenSettings() {
         <i class="bi bi-download"></i>
         <span>Download as .md</span>
       </button>
-      <div class="ai-export-menu-divider"></div>
+      <div v-if="showSettings" class="ai-export-menu-divider"></div>
       <button
+        v-if="showSettings"
         class="ai-export-menu-item ai-export-menu-secondary"
         role="menuitem"
         @click="onOpenSettings"

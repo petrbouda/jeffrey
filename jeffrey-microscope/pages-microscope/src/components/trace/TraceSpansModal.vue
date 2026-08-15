@@ -28,7 +28,19 @@
     @update:show="$emit('update:show', $event)"
   >
     <div v-if="show" class="trace-spans">
-      <MetaChips :chips="chips" />
+      <div class="trace-meta">
+        <MetaChips :chips="chips" />
+        <!--
+          Beside the trace's own facts rather than in the waterfall toolbar: it exports the whole
+          trace, not the view of it, so it should not sit among the controls that change that view.
+        -->
+        <AiExportButton
+          :build-source="buildAiExportSource"
+          tooltip="Export this trace for AI analysis"
+          :disabled="!detail"
+          disabled-tooltip="Waiting for the trace to load"
+        />
+      </div>
 
       <LoadingState v-if="loading" message="Loading trace..." />
 
@@ -147,9 +159,7 @@
           and a reader reaches it after looking at the shape, not instead of doing so.
         -->
         <section v-if="hasContextSummary" class="context-pane">
-          <header>
-            <i class="bi bi-question-circle"></i> Why was this trace slow?
-          </header>
+          <header><i class="bi bi-question-circle"></i> Why was this trace slow?</header>
           <TraceWhySlowPanel
             :slices="context?.summary ?? []"
             :trace-duration-nanos="detail.trace.durationNanos"
@@ -173,12 +183,15 @@ import FormattingService from '@shared/services/FormattingService';
 
 import TraceWaterfall from '@/components/trace/TraceWaterfall.vue';
 import TraceWhySlowPanel from '@/components/trace/TraceWhySlowPanel.vue';
+import AiExportButton from '@/components/ai-analysis/AiExportButton.vue';
 import TraceSpanFlamegraphs from '@/components/trace/TraceSpanFlamegraphs.vue';
 import EventWindowTimeline from '@/components/events/EventWindowTimeline.vue';
 import type { TraceSpanFlamegraphRequest } from '@/components/trace/TraceSpanFlamegraphs.vue';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
+import TraceAiExportClient from '@/services/api/TraceAiExportClient';
+import type { AiExportSource } from '@/composables/useAiExport';
 import TraceSpanFlamegraphClient from '@/services/api/TraceSpanFlamegraphClient';
 import { errorLabel } from '@/services/trace/traceLabels';
 import { ceilNanosToMillis, floorToMillis } from '@/services/trace/timeUnits';
@@ -227,7 +240,7 @@ const context = ref<TraceContext | null>(null);
 /** Only worth a panel once something other than the residual is in it. */
 const hasContextSummary = computed(() =>
   (context.value?.summary ?? []).some(
-    (slice) => slice.category !== 'OWN_WORK' && slice.totalNanos > 0
+    slice => slice.category !== 'OWN_WORK' && slice.totalNanos > 0
   )
 );
 let flamegraphTooltip: FlamegraphTooltip;
@@ -286,7 +299,10 @@ const topCriticalSpan = computed<TraceSpanRow | null>(() => {
   }
   let leader: TraceSpanRow | null = null;
   for (const span of spans) {
-    if (span.criticalPathNanos > 0 && (leader === null || span.criticalPathNanos > leader.criticalPathNanos)) {
+    if (
+      span.criticalPathNanos > 0 &&
+      (leader === null || span.criticalPathNanos > leader.criticalPathNanos)
+    ) {
       leader = span;
     }
   }
@@ -435,6 +451,23 @@ function scrollToTop(): void {
   }
 }
 
+/**
+ * Null until the trace is loaded, so the button cannot export a document describing nothing. The
+ * rendering happens on the server, so nothing here has to know what a bundle contains.
+ */
+function buildAiExportSource(): AiExportSource | null {
+  if (!detail.value) {
+    return null;
+  }
+  const client = new TraceAiExportClient(props.profileId);
+  const traceId = props.traceId;
+  return {
+    fetch: () => client.generateTrace(traceId),
+    label: 'Trace',
+    filenameStem: `trace-${traceId}`
+  };
+}
+
 async function load(): Promise<void> {
   loading.value = true;
   error.value = null;
@@ -495,6 +528,15 @@ watch(
   font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--color-dark);
+}
+
+/* The trace's own facts on the left, the action on the right. */
+.trace-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .trace-spans {

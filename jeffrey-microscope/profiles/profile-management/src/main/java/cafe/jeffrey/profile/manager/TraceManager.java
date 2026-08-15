@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceContext;
+import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
@@ -134,6 +135,16 @@ public interface TraceManager {
      * @param operation the trace type
      * @param spanLimit maximum number of span names to return, ranked by total time
      */
+    /**
+     * One operation's aggregate row — its counts and latency percentiles.
+     * <p>
+     * The identity is the whole triple rather than the name, since an inbound and an outbound call
+     * of the same name are different operations.
+     *
+     * @return empty when the profile has no such operation
+     */
+    Optional<TraceOperationRow> operation(TraceOperationId operation);
+
     TraceOperationSummary operationSummary(TraceOperationId operation, int spanLimit);
 
     /**
