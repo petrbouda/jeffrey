@@ -28,7 +28,7 @@ export default class ProjectSettingsClient extends BasePlatformClient {
     return super.post<void>('', { name });
   }
 
-  get(): Promise<SettingsResponse> {
+  fetch(): Promise<SettingsResponse> {
     return super.get<SettingsResponse>();
   }
 }

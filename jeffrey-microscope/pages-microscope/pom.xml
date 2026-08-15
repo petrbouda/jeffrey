@@ -54,6 +54,10 @@
                             <!-- <workingDirectory>/tmp</workingDirectory> -->
                             <arguments>
                                 <argument>install</argument>
+                                <!-- The build script type-checks via vue-tsc, a dev dependency; a
+                                     production-flavoured environment (NODE_ENV=production) would
+                                     otherwise prune it and silently skip the check. -->
+                                <argument>--include=dev</argument>
                             </arguments>
                         </configuration>
                     </execution>

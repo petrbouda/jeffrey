@@ -25,7 +25,7 @@ const metricsData = computed(() => {
         ? 'info'
         : header.errorCount > 0
           ? 'danger'
-          : 'warning') as const,
+          : 'warning') as 'info' | 'danger' | 'warning',
       breakdown: [
         {
           label: 'Success',

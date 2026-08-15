@@ -4,7 +4,7 @@ State as of the `claude/tracespan-feature-analysis-65d6c4` branch (with the unif
 `claude/unified-jvm-timeline`, PR #167). Everything below was verified against the tree, not
 recalled.
 
-Two items remain open. The rest of this file is the record of decisions taken with a stated
+One item remains open. The rest of this file is the record of decisions taken with a stated
 trade-off, so they are not rediscovered later as surprises.
 
 ---
@@ -20,12 +20,6 @@ recording. The unified timeline is where this bites hardest: scroll feel, the cr
 scrubbing, the wait underlay's legibility at 35% opacity and the density rendering are all
 interaction judgements no test can make. This needs a running instance, not a code change.
 
-### `vue-tsc` cannot gate CI yet
-
-`npm run typecheck` exists and is clean on every file this feature touched, but the app carries
-276 pre-existing errors elsewhere, so the check cannot fail the build until those are burned down.
-Until then a missing `.value` — the exact bug that once shipped a blank timeline — is only caught
-by someone remembering to run it.
 
 ## Deliberate omissions worth revisiting later
 
@@ -55,6 +49,14 @@ Not bugs — decisions with a stated trade-off.
 
 ## Closed on this branch
 
+- ~~`vue-tsc` could not gate the build~~ — the app-wide backlog (219 errors when the tool last
+  genuinely ran) is fixed to zero, `npm run build` is now `vue-tsc --noEmit && vite build`
+  (`build:only` skips the gate deliberately), and the Maven build installs dev dependencies
+  explicitly so a production-flavoured environment cannot silently prune the checker — the exact
+  failure mode that once made the check vacuous. The burn-down surfaced two real runtime bugs:
+  `hubId` was read by the live/replay stream templates but never declared (the session picker
+  could never render), and a skipped constructor argument in the secondary-profile modal stored a
+  profile's duration as its `modified` flag and its size as its duration.
 - ~~`@retry` listeners on `ErrorState` were inert~~ — the shared `ErrorState.vue` now declares the
   `retry` emit and renders a "Try again" button whenever a listener is actually wired
   (`useAttrs().onRetry`), so every error state in the trace views became recoverable at once and a

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import JITCompilerType from '@/services/compilation/model/JITCompilerType.ts';
+import JITCompilerType from '@/services/api/model/JITCompilerType.ts';
 
 export default class JITLongCompilation {
   constructor(

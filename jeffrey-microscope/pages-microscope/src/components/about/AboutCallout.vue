@@ -35,7 +35,7 @@
 <script setup lang="ts">
 withDefaults(
   defineProps<{
-    variant?: 'intro' | 'note' | 'tip';
+    variant?: 'intro' | 'note' | 'tip' | 'warning';
     title?: string;
     icon?: string;
   }>(),
@@ -86,6 +86,15 @@ withDefaults(
 .about-callout--tip {
   background: var(--color-info-light);
   border-left: 4px solid var(--color-info);
+}
+
+.about-callout--warning {
+  background: var(--color-warning-light);
+  border-left: 4px solid var(--color-warning);
+}
+
+.about-callout--warning .about-callout-title i {
+  color: var(--color-warning);
 }
 
 .about-callout--tip .about-callout-title i {

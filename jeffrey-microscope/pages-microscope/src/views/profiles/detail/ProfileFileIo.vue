@@ -21,7 +21,7 @@
         <MetricTileSwitch
           v-model="metric"
           :tiles="metricTiles"
-          aria-label="File I/O metric"
+          group-label="File I/O metric"
           class="mb-3"
         />
         <ChartDescription :shows="metricDescription.shows" :use-case="metricDescription.useCase" />

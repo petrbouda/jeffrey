@@ -449,8 +449,11 @@ const confirmSelection = () => {
       selectedProfile.value.workspaceId,
       selectedProfile.value.name,
       selectedProfile.value.createdAt,
-      selectedProfile.value.eventSource as any,
+      selectedProfile.value.eventSource as RecordingEventSource,
       selectedProfile.value.enabled,
+      // The list response carries no modified flag, and skipping the argument shifted every
+      // later one left — duration was being stored as `modified` and size as the duration.
+      false,
       selectedProfile.value.durationInMillis,
       selectedProfile.value.sizeInBytes
     );

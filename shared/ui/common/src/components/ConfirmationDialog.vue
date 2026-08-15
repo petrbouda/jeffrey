@@ -37,7 +37,7 @@ watch(
   newVal => {
     if (newVal) {
       nextTick(() => {
-        const modal = document.querySelector('.modal.d-block');
+        const modal = document.querySelector<HTMLElement>('.modal.d-block');
         if (modal) {
           modal.focus();
         }

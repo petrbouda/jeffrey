@@ -137,6 +137,7 @@ import DualPanel from '@shared/components/DualPanel.vue';
 import SearchInput from '@shared/components/form/SearchInput.vue';
 import FormattingService from '@shared/services/FormattingService';
 import ToastService from '@shared/services/ToastService';
+import type { Variant } from '@shared/types/ui';
 import ProfileToolsClient from '@/services/api/ProfileToolsClient';
 import type OtlpExportEventType from '@/services/api/model/OtlpExportEventType';
 import type OtlpExportSelection from '@/services/api/model/OtlpExportSelection';
@@ -181,14 +182,14 @@ const availableEvents = computed(() => {
 const availableTitle = computed(() => `Available · ${availableEvents.value.length}`);
 const selectedTitle = computed(() => `Selected for export · ${selected.value.length}`);
 
-const CATEGORY_VARIANTS: Record<string, string> = {
+const CATEGORY_VARIANTS: Record<string, Variant> = {
   CPU: 'blue',
   Wall: 'info',
   Allocation: 'teal',
   Blocking: 'purple'
 };
 
-function categoryVariant(event: OtlpExportEventType): string {
+function categoryVariant(event: OtlpExportEventType): Variant {
   return CATEGORY_VARIANTS[event.category] ?? 'primary';
 }
 

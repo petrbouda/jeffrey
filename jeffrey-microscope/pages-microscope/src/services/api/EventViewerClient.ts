@@ -17,9 +17,9 @@
  */
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
-import EventType from '@/services/viewer/model/EventType.ts';
-import EventFieldDescription from '@/services/viewer/model/EventFieldDescription.ts';
-import EventTypeDescription from '@/services/viewer/model/EventTypeDescription.ts';
+import EventType from '@/services/api/model/EventType.ts';
+import EventFieldDescription from '@/services/api/model/EventFieldDescription.ts';
+import EventTypeDescription from '@/services/api/model/EventTypeDescription.ts';
 
 export default class EventViewerClient extends BaseProfileClient {
   constructor(profileId: string) {

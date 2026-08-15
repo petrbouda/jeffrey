@@ -349,7 +349,7 @@ const metrics = computed(() => [
     icon: 'arrow-repeat',
     title: 'Calls',
     value: callCount.value,
-    variant: failedTraces.value > 0 ? 'danger' : undefined,
+    variant: failedTraces.value > 0 ? ('danger' as const) : undefined,
     breakdown: [
       { label: 'Spans', value: spanCount.value },
       { label: 'Failed', value: failedTraces.value }

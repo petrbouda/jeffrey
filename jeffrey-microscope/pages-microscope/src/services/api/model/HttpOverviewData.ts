@@ -16,11 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import HttpHeader from '@/services/profile/custom/http/HttpHeader.ts';
-import HttpUriInfo from '@/services/profile/custom/http/HttpUriInfo.ts';
-import HttpStatusStats from '@/services/profile/custom/http/HttpStatusStats.ts';
-import HttpMethodStats from '@/services/profile/custom/http/HttpMethodStats.ts';
-import HttpSlowRequest from '@/services/profile/custom/http/HttpSlowRequest.ts';
+import HttpHeader from '@/services/api/model/HttpHeader.ts';
+import HttpUriInfo from '@/services/api/model/HttpUriInfo.ts';
+import HttpStatusStats from '@/services/api/model/HttpStatusStats.ts';
+import HttpMethodStats from '@/services/api/model/HttpMethodStats.ts';
+import HttpSlowRequest from '@/services/api/model/HttpSlowRequest.ts';
 import Serie from '@/services/timeseries/model/Serie.ts';
 
 export default class HttpOverviewData {

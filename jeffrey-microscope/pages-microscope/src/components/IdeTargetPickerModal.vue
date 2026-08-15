@@ -61,7 +61,12 @@
       </label>
     </div>
 
-    <EmptyState v-if="store.instances.value.length === 0" description="No running IDE detected." />
+    <EmptyState
+      v-if="store.instances.value.length === 0"
+      icon="bi-plug"
+      title="No IDE found"
+      description="No running IDE detected."
+    />
 
     <template #footer>
       <button type="button" class="btn btn-outline-secondary btn-sm" @click="onCancel">Cancel</button>

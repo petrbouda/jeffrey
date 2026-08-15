@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ES2022",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
@@ -15,12 +15,20 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["vitest/globals"],
+    "types": ["vitest/globals", "chai"],
     "paths": {
       "@/*": ["./src/*"],
       "@shared/*": ["../../shared/ui/common/src/*"],
       "@workspaces/*": ["../../shared/ui/workspaces/ui/*"],
-      "@instances/*": ["../../shared/ui/instances/src/*"]
+      "@instances/*": ["../../shared/ui/instances/src/*"],
+      // bootstrap ships untyped; before the catch-all below, its specifier must land on the
+      // @types package rather than on the untyped dist bundle.
+      "bootstrap": ["./node_modules/@types/bootstrap"],
+      // The shared UI trees above live outside this package and have no node_modules of their
+      // own, so their bare imports (vue, axios, …) resolve at build time through Vite but not
+      // through tsc — which silently untyped every shared component. This catch-all points any
+      // bare specifier that would otherwise miss back at this package's node_modules.
+      "*": ["./node_modules/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "src/vite-env.d.ts"],

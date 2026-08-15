@@ -171,7 +171,10 @@
 
       <!-- About -->
       <div v-show="activeTab === 'about'">
-        <AboutPanel>
+        <AboutPanel
+          icon="bi-question-circle"
+          title="Understanding Native Library Loads"
+        >
           <AboutSection icon="bi-box-arrow-in-down" title="What Native Library Loads Tell You">
             <p>
               The JVM loads native dynamic libraries (<code>.so</code> / <code>.dll</code> /

@@ -107,7 +107,6 @@ const SOURCE_CLASSES: Record<GuardianEventTypeSource, string> = {
 const CUSTOM_KEY = '__custom__';
 
 const rootRef = ref<HTMLElement | null>(null);
-const inputRef = ref<HTMLInputElement | null>(null);
 const isOpen = ref(false);
 const query = ref('');
 const highlightedCode = ref<string | null>(null);

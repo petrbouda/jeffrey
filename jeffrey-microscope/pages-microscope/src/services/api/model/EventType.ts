@@ -1,4 +1,4 @@
-import EventTypeData from '@/services/viewer/model/EventTypeData.ts';
+import EventTypeData from '@/services/api/model/EventTypeData.ts';
 
 /**
  * Represents an event type in the viewer

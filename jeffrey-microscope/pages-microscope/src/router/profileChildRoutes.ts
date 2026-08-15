@@ -2,19 +2,22 @@
 // one flat child list under /profiles/:profileId — grouping is organizational only.
 // Imported by tests to verify the sidebar navigation config resolves to real routes.
 
+import type { RouteLocationGeneric } from 'vue-router';
+
 // Redirect factory for pages that moved to a new sub-path — keeps old bookmarks and
 // deep-links working.
+// Typed to the router's own redirect signature: a narrower hand-written param type made every
+// route array using this helper unassignable to RouteRecordRaw[].
 function redirectTo(targetSubPath: string) {
-  return (to: { params: { profileId: string } }) =>
-    `/profiles/${to.params.profileId}/${targetSubPath}`;
+  return (to: RouteLocationGeneric) =>
+    `/profiles/${String(to.params.profileId)}/${targetSubPath}`;
 }
 
 // Overview, analysis, and event browsing
 const analysisRoutes = [
   {
     path: '',
-    redirect: (to: { params: { profileId: string } }) =>
-      `/profiles/${to.params.profileId}/dashboard`
+    redirect: (to: RouteLocationGeneric) => `/profiles/${String(to.params.profileId)}/dashboard`
   },
   {
     path: 'dashboard',
