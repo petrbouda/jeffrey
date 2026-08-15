@@ -67,23 +67,27 @@
         </button>
       </div>
       <div class="ev-breakdown">
-        <div
-          v-for="b in breakdown"
-          :key="b.type"
-          class="ev-bd"
-          :class="{ 'ev-bd-off': !isTypeVisible(b.type) }"
-          role="button"
-          tabindex="0"
-          :title="isTypeVisible(b.type) ? `Hide ${b.type}` : `Show ${b.type}`"
-          @click="toggleType(b.type)"
-          @keydown.enter.prevent="toggleType(b.type)"
-        >
-          <span class="ev-dot" :style="{ background: `var(${b.color})` }"></span>
-          <span class="ev-bd-type">{{ b.type }}</span>
-          <span class="ev-bd-bar">
-            <i :style="{ width: b.pct + '%', background: `var(${b.color})` }"></i>
-          </span>
-          <span class="ev-bd-ct">{{ b.count }}</span>
+        <!--
+          The toggle is a real button and the flamegraph action its sibling, never its child: an
+          interactive control inside another is invalid markup that assistive tech cannot resolve,
+          and the old role="button" wrapper answered Enter but not Space.
+        -->
+        <div v-for="b in breakdown" :key="b.type" class="ev-bd">
+          <button
+            type="button"
+            class="ev-bd-toggle"
+            :class="{ 'ev-bd-off': !isTypeVisible(b.type) }"
+            :aria-pressed="isTypeVisible(b.type)"
+            :title="isTypeVisible(b.type) ? `Hide ${b.type}` : `Show ${b.type}`"
+            @click="toggleType(b.type)"
+          >
+            <span class="ev-dot" :style="{ background: `var(${b.color})` }"></span>
+            <span class="ev-bd-type">{{ b.type }}</span>
+            <span class="ev-bd-bar">
+              <i :style="{ width: b.pct + '%', background: `var(${b.color})` }"></i>
+            </span>
+            <span class="ev-bd-ct">{{ b.count }}</span>
+          </button>
           <button
             v-if="b.fg"
             type="button"
@@ -91,7 +95,6 @@
             :class="`ev-fg-${b.fg.tone}`"
             :title="`Open ${b.type} as a flamegraph for this span`"
             @click.stop="emit('flamegraph', b.type)"
-            @keydown.enter.stop
           >
             <i class="bi bi-fire"></i> Flamegraph
           </button>
@@ -587,8 +590,32 @@ onUnmounted(onBrushUp);
   background: var(--color-light);
 }
 
+/* The toggle inherits the row's typography; the row itself is no longer interactive. */
+.ev-bd-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ev-bd-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+  border-radius: var(--radius-sm);
+}
+
+/* Off is a struck-through label, matching the waterfall's category toggles — not colour alone. */
 .ev-bd-off {
-  opacity: 0.4;
+  opacity: 0.55;
+  text-decoration: line-through;
 }
 
 .ev-bd-type {

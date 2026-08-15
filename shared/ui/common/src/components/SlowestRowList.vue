@@ -34,11 +34,21 @@
       :note="note"
     />
     <div class="slowest-list">
+      <!--
+        Keyboard-operable: opening a row is these lists' primary action, and as a plain div it was
+        unreachable without a mouse. The click handler also stands down while the user is selecting
+        text — the ids on these rows exist to be copied, and finishing a drag-select used to open
+        the drill-down instead.
+      -->
       <div
         v-for="(item, index) in displayedItems"
         :key="itemKey(item, index)"
         class="slowest-row"
-        @click="emit('rowClick', item)"
+        role="button"
+        tabindex="0"
+        @click="onRowClick(item)"
+        @keydown.enter.prevent="emit('rowClick', item)"
+        @keydown.space.prevent="emit('rowClick', item)"
       >
         <!-- The gutter carries the outcome: a failed row is visible before anything is read. -->
         <div class="left-accent" :class="`accent-${rowAccent(item)}`"></div>
@@ -124,6 +134,15 @@ const emit = defineEmits<{
   rowClick: [item: T];
 }>();
 
+/** Swallows the click that ends a text selection, so copying an id does not open the row. */
+function onRowClick(item: T): void {
+  const selection = window.getSelection();
+  if (selection && !selection.isCollapsed) {
+    return;
+  }
+  emit('rowClick', item);
+}
+
 const displayedItems = computed(() => {
   if (props.serverOrdered) {
     return props.items;
@@ -175,6 +194,12 @@ function rowTone(item: T): SlowestRowTone {
   border-bottom: 1px solid var(--color-border-light);
   padding: 0.75rem 0;
   cursor: pointer;
+}
+
+.slowest-row:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
 }
 
 .slowest-row:last-child {

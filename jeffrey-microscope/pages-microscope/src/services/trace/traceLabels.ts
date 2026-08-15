@@ -31,15 +31,27 @@ import type { SpanKind, TraceOperationId } from '@/services/api/model/trace/Trac
  * a category says what went *wrong*, and reusing one ramp for both would make a client call look
  * like a problem. Values are design tokens rather than literals so both themes resolve.
  */
+/*
+ * The context ramp shares no hue with the span-kind pastels, the critical-path marker or the
+ * primary accent, because all of them appear in the same picture and a shared hue is a claimed
+ * relationship. The earlier ramp broke this four ways: SAFEPOINT wore the critical-path orange,
+ * PARKED the internal-kind grey, SOCKET_IO the client-kind cyan, FILE_IO the server-bar blue.
+ *
+ * Where a category also exists on the threads timeline, the hue family echoes it (socket reddish,
+ * file magenta) so the same wait reads the same way on both screens.
+ *
+ * The one deliberate share: OWN_WORK keeps the self-time green, because it is the same quantity —
+ * the trace's own code running — seen at trace scope instead of span scope.
+ */
 export const CONTEXT_CATEGORIES: Record<string, { label: string; color: string }> = {
   GC_PAUSE: { label: 'GC pause', color: 'var(--color-danger)' },
-  SAFEPOINT: { label: 'Safepoint', color: 'var(--color-warning)' },
+  SAFEPOINT: { label: 'Safepoint', color: 'var(--color-goldenrod)' },
   MONITOR_BLOCKED: { label: 'Lock wait', color: 'var(--flamegraph-color-purple)' },
   MONITOR_WAIT: { label: 'Object.wait', color: 'var(--flamegraph-color-pink)' },
-  PARKED: { label: 'Parked', color: 'var(--color-secondary)' },
+  PARKED: { label: 'Parked', color: 'var(--chart-series-3)' },
   SLEEPING: { label: 'Sleeping', color: 'var(--flamegraph-color-teal)' },
-  SOCKET_IO: { label: 'Socket I/O', color: 'var(--color-info)' },
-  FILE_IO: { label: 'File I/O', color: 'var(--flamegraph-color-blue)' },
+  SOCKET_IO: { label: 'Socket I/O', color: 'var(--chart-series-8)' },
+  FILE_IO: { label: 'File I/O', color: 'var(--chart-series-9)' },
   ALLOCATION_STALL: { label: 'Allocation stall', color: 'var(--flamegraph-color-orange)' },
   DEOPTIMIZATION: { label: 'Deoptimization', color: 'var(--flamegraph-color-peach)' },
   OWN_WORK: { label: 'Own work', color: 'var(--flamegraph-color-green)' }

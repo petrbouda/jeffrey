@@ -56,11 +56,16 @@
 
     <!-- Cards -->
     <div class="mcl-cards">
+      <!-- Keyboard-operable: opening a card is the list's primary action. -->
       <div
         v-for="item in displayedItems"
         :key="itemKey(item)"
         class="mcl-card"
+        role="button"
+        tabindex="0"
         @click="$emit('itemClick', item)"
+        @keydown.enter.prevent="$emit('itemClick', item)"
+        @keydown.space.prevent="$emit('itemClick', item)"
       >
         <!-- Left: Gradient count zone -->
         <div class="mcl-count">
@@ -186,6 +191,11 @@ const displayedItems = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.mcl-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
 }
 
 .mcl-card {

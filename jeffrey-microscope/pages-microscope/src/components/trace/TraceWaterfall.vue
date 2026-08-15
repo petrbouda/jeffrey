@@ -23,6 +23,7 @@
         type="button"
         class="wf-toggle"
         :class="{ active: criticalOnly }"
+        :aria-pressed="criticalOnly"
         :disabled="!hasOffPathSpans"
         :title="criticalOnlyTitle"
         @click="criticalOnly = !criticalOnly"
@@ -43,6 +44,7 @@
         type="button"
         class="wf-toggle"
         :class="{ active: contextCategories.length > 0 && !allContextHidden }"
+        :aria-pressed="contextCategories.length > 0 && !allContextHidden"
         :disabled="contextCategories.length === 0"
         :title="contextToggleTitle"
         @click="toggleAllContext"
@@ -50,6 +52,8 @@
         <i class="bi bi-cpu"></i> JVM context
       </button>
       <span class="wf-count">{{ rowCountLabel }}</span>
+      <!-- The only place the keyboard model is written down; without it, arrows are a secret. -->
+      <span class="wf-keys" aria-hidden="true">↑↓ move · ←→ fold · Enter open</span>
     </div>
 
     <!--
@@ -128,7 +132,9 @@
           :class="{ selected: span.spanId === selectedSpanId, critical: isCritical(span) }"
           :aria-expanded="span.spanId === selectedSpanId"
           :data-span-id="span.spanId"
+          :tabindex="rowTabindex(span)"
           @click="$emit('select', span)"
+          @focus="focusedSpanId = span.spanId"
           @keydown="onRowKeydown($event, span)"
         >
           <span class="wf-name">
@@ -212,9 +218,14 @@
     </div>
 
     <div class="wf-legend">
-      <span><i class="swatch swatch-self"></i> self time</span>
-      <span><i class="swatch swatch-children"></i> time in children</span>
+      <!--
+        One two-tone example instead of two single-hue entries: a bar's self time is solid and its
+        children washed *in the span's own kind colour*, so a lone green "self" swatch was only true
+        for internal spans. The example shows the relationship, which is what actually generalises.
+      -->
+      <span><i class="swatch swatch-selfchildren"></i> solid self · washed children</span>
       <span><i class="swatch swatch-critical"></i> on the critical path</span>
+      <span><i class="swatch swatch-error"></i> error span</span>
       <!--
         These entries filter rather than describe, so they are real buttons and are styled to look
         clickable — a legend where half the items respond to a click and all of them look alike
@@ -235,6 +246,7 @@
       <span><i class="swatch swatch-server"></i> server</span>
       <span><i class="swatch swatch-client"></i> client</span>
       <span><i class="swatch swatch-internal"></i> internal</span>
+      <!-- Kind dots (row markers) keep their own hues; the swatches above match the bars. -->
     </div>
   </div>
 </template>
@@ -284,7 +296,7 @@ const props = withDefaults(
   { selectedSpanId: null, context: null, contextState: 'ready', traceDurationNanos: null }
 );
 
-const emit = defineEmits<{
+defineEmits<{
   (event: 'select', span: TraceSpanRow): void;
   (event: 'viewEvents'): void;
   (event: 'viewFlamegraph'): void;
@@ -499,9 +511,8 @@ function twistTitle(span: TraceSpanRow): string {
 
 /**
  * Arrow-key navigation over the drawn rows. Left and right fold and unfold the way a tree widget is
- * expected to; up and down move the selection, which is also what opens the inline detail, so the
- * keyboard reaches everything the mouse does. The row is a button, so Enter and Space already
- * select through the click handler and are left alone.
+ * expected to; up and down move focus only, and Enter or Space (the row is a button) opens the
+ * inline detail, so reading down a trace does not mount a detail panel per row passed through.
  */
 function onRowKeydown(event: KeyboardEvent, span: TraceSpanRow): void {
   if (event.key === 'ArrowRight') {
@@ -518,6 +529,18 @@ function onRowKeydown(event: KeyboardEvent, span: TraceSpanRow): void {
     }
     return;
   }
+  // Arrows only move focus; Enter and Space (the row is a button) open the detail. Selecting on
+  // every arrow press force-mounted a detail panel per row passed through, which made the keyboard
+  // unusable for simply reading down a trace.
+  if (event.key === 'Home' || event.key === 'End') {
+    const target = event.key === 'Home' ? rows.value[0] : rows.value[rows.value.length - 1];
+    if (target !== undefined) {
+      event.preventDefault();
+      focusedSpanId.value = target.spanId;
+      focusRow(target.spanId);
+    }
+    return;
+  }
   if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
     return;
   }
@@ -528,14 +551,24 @@ function onRowKeydown(event: KeyboardEvent, span: TraceSpanRow): void {
     return;
   }
   event.preventDefault();
-  emit('select', next);
+  focusedSpanId.value = next.spanId;
   focusRow(next.spanId);
 }
 
 /**
- * Moves focus onto a row after the selection follows the keyboard. Deferred to the next frame
- * because selecting a row also mounts its detail panel, which re-renders the list the target row
- * lives in.
+ * The row that owns the list's single tab stop. One stop for the whole tree, moved by arrows: with
+ * every row a tab stop, crossing a 200-span trace to reach the legend cost 200 presses.
+ */
+const focusedSpanId = ref<string | null>(null);
+
+function rowTabindex(span: TraceSpanRow): number {
+  const focusTarget = focusedSpanId.value ?? rows.value[0]?.spanId;
+  return span.spanId === focusTarget ? 0 : -1;
+}
+
+/**
+ * Moves focus onto a row after the keyboard walks the tree. Deferred to the next frame because
+ * folding can re-render the list the target row lives in.
  */
 function focusRow(spanId: string): void {
   requestAnimationFrame(() => {
@@ -621,6 +654,13 @@ function tooltip(span: TraceSpanRow): string {
   cursor: default;
 }
 
+.wf-keys {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-light);
+  white-space: nowrap;
+}
+
 .wf-count {
   margin-left: auto;
   font-size: var(--font-size-xs);
@@ -699,7 +739,7 @@ function tooltip(span: TraceSpanRow): string {
   font-family: var(--font-family-monospace);
   font-size: 0.55rem;
   font-weight: 600;
-  color: var(--color-bg-card);
+  color: var(--color-dark);
   white-space: nowrap;
 }
 
@@ -988,12 +1028,17 @@ function tooltip(span: TraceSpanRow): string {
   display: inline-block;
 }
 
-.swatch-self {
-  background: var(--flamegraph-color-green);
+/* Half solid, half washed — the anatomy of every bar, in the server hue as the worked example. */
+.swatch-selfchildren {
+  background: linear-gradient(
+    to right,
+    var(--flamegraph-color-blue) 50%,
+    color-mix(in srgb, var(--flamegraph-color-blue) 35%, transparent) 50%
+  );
 }
 
-.swatch-children {
-  background: color-mix(in srgb, var(--flamegraph-color-green) 40%, transparent);
+.swatch-error {
+  background: var(--flamegraph-color-red);
 }
 
 /* Matches the row's left accent rather than a bar colour: the critical path marks rows, not spans. */
@@ -1001,15 +1046,16 @@ function tooltip(span: TraceSpanRow): string {
   background: var(--color-warning);
 }
 
+/* The bar wash itself, not the row-marker hue: a legend must show the colour it explains. */
 .swatch-server {
-  background: var(--color-primary);
+  background: color-mix(in srgb, var(--flamegraph-color-blue) 35%, transparent);
 }
 
 .swatch-client {
-  background: var(--color-info);
+  background: color-mix(in srgb, var(--flamegraph-color-cyan) 35%, transparent);
 }
 
 .swatch-internal {
-  background: var(--color-secondary);
+  background: color-mix(in srgb, var(--flamegraph-color-green) 40%, transparent);
 }
 </style>

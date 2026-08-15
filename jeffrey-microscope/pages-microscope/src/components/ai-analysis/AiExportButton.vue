@@ -57,6 +57,12 @@ function toggleMenu() {
   }
 }
 
+/** Escape closes the menu and hands focus back to the trigger, as a menu is expected to. */
+function closeAndRefocus() {
+  closeMenu();
+  wrapperRef.value?.querySelector<HTMLButtonElement>('.ai-export-chev')?.focus();
+}
+
 function closeMenu() {
   menuOpen.value = false;
   document.removeEventListener('click', handleOutsideClick);
@@ -132,13 +138,14 @@ function onOpenSettings() {
         :disabled="disabled || busy"
         :aria-expanded="menuOpen"
         aria-haspopup="menu"
+        aria-label="More export options"
         @click.stop="toggleMenu"
       >
         <i class="bi bi-chevron-down"></i>
       </button>
     </div>
 
-    <div v-if="menuOpen" class="ai-export-menu" role="menu">
+    <div v-if="menuOpen" class="ai-export-menu" role="menu" @keydown.esc.stop="closeAndRefocus">
       <button class="ai-export-menu-item" role="menuitem" @click="onCopy">
         <i class="bi bi-clipboard"></i>
         <span>Copy to clipboard</span>
