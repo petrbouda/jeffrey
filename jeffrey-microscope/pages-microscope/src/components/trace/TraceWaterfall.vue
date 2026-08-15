@@ -51,6 +51,20 @@
       >
         <i class="bi bi-cpu"></i> JVM context
       </button>
+      <!--
+        Only when there is an error to jump to: in a 200-span trace the one red badge can sit three
+        folds deep and two screens down, and "this trace failed" without a way to the failure is a
+        finding withheld.
+      -->
+      <button
+        v-if="firstErrorSpan"
+        type="button"
+        class="wf-toggle wf-error-jump"
+        title="Expand to and select the first failed span"
+        @click="jumpToFirstError"
+      >
+        <i class="bi bi-exclamation-triangle"></i> First error
+      </button>
       <span class="wf-count">{{ rowCountLabel }}</span>
       <!-- The only place the keyboard model is written down; without it, arrows are a secret. -->
       <span class="wf-keys" aria-hidden="true">↑↓ move · ←→ fold · Enter open</span>
@@ -164,6 +178,12 @@
             <span v-if="collapsed.has(span.spanId)" class="wf-folded">
               +{{ foldedCounts.get(span.spanId) ?? 0 }}
             </span>
+            <!-- A fold that swallows a failure must not look like a fold that swallows routine. -->
+            <i
+              v-if="collapsed.has(span.spanId) && (errorDescendantCounts.get(span.spanId) ?? 0) > 0"
+              class="wf-folded-error"
+              :title="hiddenErrorTitle(span)"
+            ></i>
           </span>
 
           <span class="wf-track">
@@ -296,7 +316,7 @@ const props = withDefaults(
   { selectedSpanId: null, context: null, contextState: 'ready', traceDurationNanos: null }
 );
 
-defineEmits<{
+const emit = defineEmits<{
   (event: 'select', span: TraceSpanRow): void;
   (event: 'viewEvents'): void;
   (event: 'viewFlamegraph'): void;
@@ -466,6 +486,64 @@ function showAllSpans(): void {
   collapsed.value = new Set();
 }
 
+/** In drawn order, so "first" means the first the reader would meet scrolling down. */
+const firstErrorSpan = computed(() => props.spans.find(span => span.status === 'ERROR') ?? null);
+
+/**
+ * How many failed spans each span's subtree holds, counted by walking each error's parent chain —
+ * one pass over the errors, which are few, rather than a subtree scan per parent row.
+ */
+const errorDescendantCounts = computed(() => {
+  const byId = new Map(props.spans.map(span => [span.spanId, span]));
+  const counts = new Map<string, number>();
+  for (const span of props.spans) {
+    if (span.status !== 'ERROR') {
+      continue;
+    }
+    let parentId = span.parentSpanId;
+    while (parentId !== null) {
+      counts.set(parentId, (counts.get(parentId) ?? 0) + 1);
+      parentId = byId.get(parentId)?.parentSpanId ?? null;
+    }
+  }
+  return counts;
+});
+
+function hiddenErrorTitle(span: TraceSpanRow): string {
+  const hidden = errorDescendantCounts.value.get(span.spanId) ?? 0;
+  return hidden === 1
+    ? 'This folded subtree hides 1 failed span'
+    : `This folded subtree hides ${hidden} failed spans`;
+}
+
+/**
+ * Expands whatever hides the first failed span, then focuses and opens it. Every filter that can
+ * conceal a row is undone only as far as needed: ancestors unfold, and the critical-path filter is
+ * lifted only when the error is off the path it shows.
+ */
+function jumpToFirstError(): void {
+  const target = firstErrorSpan.value;
+  if (!target) {
+    return;
+  }
+  const byId = new Map(props.spans.map(span => [span.spanId, span]));
+  const next = new Set(collapsed.value);
+  let parentId = target.parentSpanId;
+  while (parentId !== null) {
+    next.delete(parentId);
+    parentId = byId.get(parentId)?.parentSpanId ?? null;
+  }
+  collapsed.value = next;
+  if (criticalOnly.value && !isCritical(target)) {
+    criticalOnly.value = false;
+  }
+  focusedSpanId.value = target.spanId;
+  focusRow(target.spanId);
+  if (props.selectedSpanId !== target.spanId) {
+    emit('select', target);
+  }
+}
+
 /**
  * What a band says on hover. Clipping is called out because the number would otherwise be read as
  * the pause's whole length, when part of it happened outside the trace entirely.
@@ -604,7 +682,12 @@ function tooltip(span: TraceSpanRow): string {
   const critical = isCritical(span)
     ? `, ${FormattingService.formatDuration2Units(span.criticalPathNanos)} critical`
     : ', off the critical path';
-  return `${span.name} — ${total} total, ${self} self${critical}${thread}`;
+  // The absolute instant is what lines a span up against application logs — the one correlation
+  // the recording-relative offsets everywhere else cannot serve.
+  const startedMicros = span.startEpochMicros - traceWindow(props.spans).startMicros;
+  const offset = FormattingService.formatDuration2Units(startedMicros * NANOS_PER_MICRO);
+  const wallClock = FormattingService.formatTimestamp(Math.floor(span.startEpochMicros / 1_000));
+  return `${span.name} — ${total} total, ${self} self${critical}${thread}\nstarted ${offset} into the trace · ${wallClock}`;
 }
 </script>
 
@@ -863,6 +946,19 @@ function tooltip(span: TraceSpanRow): string {
   color: var(--color-text-muted);
   font-size: 0.6rem;
   font-variant-numeric: tabular-nums;
+}
+
+/* The dot that says a fold is hiding a failure — visible at a glance, explained on hover. */
+.wf-folded-error {
+  flex: none;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-danger);
+}
+
+.wf-error-jump {
+  color: var(--color-danger);
 }
 
 .wf-kind {

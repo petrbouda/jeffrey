@@ -130,6 +130,16 @@
                 <td class="sd-k">thread</td>
                 <td class="sd-v">{{ span.threadName ?? span.threadHash }}</td>
               </tr>
+              <!--
+                The one absolute instant in the panel, for lining the span up against application
+                logs — every other time here is relative to the recording or the trace on purpose.
+              -->
+              <tr>
+                <td class="sd-k">started (UTC)</td>
+                <td class="sd-v">
+                  {{ FormattingService.formatTimestamp(Math.floor(span.startEpochMicros / 1000)) }}
+                </td>
+              </tr>
               <tr>
                 <td class="sd-k">source event</td>
                 <td class="sd-v">{{ span.eventType }}</td>

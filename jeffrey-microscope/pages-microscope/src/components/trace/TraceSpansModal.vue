@@ -25,6 +25,7 @@
     size="fullscreen"
     modal-dialog-class="events-modal-dialog"
     :show-footer="false"
+    :backdrop-close="mode === 'spans'"
     @update:show="$emit('update:show', $event)"
   >
     <div v-if="show" class="trace-spans">
@@ -66,137 +67,143 @@
       <!--
         The flamegraph replaces the bars rather than opening over them: the drill-down already lives
         in a fullscreen modal, and stacking a second one would trap the reader behind two dialogs.
+
+        The drill-down views are v-if inside this v-else block, but the spans view at the bottom is
+        v-show: the waterfall holds fold, filter and overlay state the reader built up, and
+        unmounting it on every events/flamegraph visit handed them back a reset tree on return.
       -->
-      <div v-else-if="mode === 'events'" class="ts-fg-view">
-        <div class="ts-fg-bar">
-          <button type="button" class="ts-fg-back" @click="goBack">
-            <i class="bi bi-arrow-left"></i> {{ backLabel }}
-          </button>
-          <span class="ts-fg-active">
-            <i class="bi bi-list-ul"></i> {{ selected?.name }}
-            <span class="ts-fg-scope">events on {{ selected?.threadName ?? 'this thread' }}</span>
-          </span>
-        </div>
-
-        <LoadingState v-if="eventsLoading" message="Loading events..." />
-
-        <ErrorState v-else-if="eventsError" :message="eventsError" @retry="loadEvents" />
-
-        <EmptyState
-          v-else-if="spanEvents.length === 0"
-          title="Nothing recorded"
-          description="Nothing else ran on this thread while the span was open."
-          icon="bi-inbox"
-        />
-
-        <template v-else-if="selected">
-          <div v-if="eventsTruncated" class="ts-truncated-note">
-            <i class="bi bi-info-circle"></i>
-            Showing the first {{ spanEvents.length }} events recorded in this window — the span held
-            more than the drill-down can list.
+      <template v-else>
+        <div v-if="mode === 'events'" class="ts-fg-view">
+          <div class="ts-fg-bar">
+            <button type="button" class="ts-fg-back" @click="goBack">
+              <i class="bi bi-arrow-left"></i> {{ backLabel }}
+            </button>
+            <span class="ts-fg-active">
+              <i class="bi bi-list-ul"></i> {{ selected?.name }}
+              <span class="ts-fg-scope">events on {{ selected?.threadName ?? 'this thread' }}</span>
+            </span>
           </div>
-          <EventWindowTimeline
-            :events="spanEvents"
-            :window-start-millis="spanWindowStartMillis"
-            :window-millis="spanWindowMillis"
-            @flamegraph="openFlamegraphForType"
-          />
-        </template>
-      </div>
 
-      <div v-else-if="mode === 'flamegraph'" class="ts-fg-view">
-        <div class="ts-fg-bar">
-          <button type="button" class="ts-fg-back" @click="goBack">
-            <i class="bi bi-arrow-left"></i> {{ backLabel }}
-          </button>
-          <span class="ts-fg-active">
-            <i class="bi bi-fire"></i> {{ activeEventType }}
-            <span class="ts-fg-scope">{{ activeSelfOnly ? 'self only' : 'inclusive' }}</span>
-          </span>
-        </div>
-        <div :id="TRACE_FG_SCROLL_ID" class="ts-fg-scroll">
-          <FlamegraphComponent
-            :with-timeseries="false"
-            :use-weight="activeUseWeight"
-            :use-guardian="null"
-            :scrollable-wrapper-class="TRACE_FG_SCROLL_ID"
-            :flamegraph-tooltip="flamegraphTooltip"
-            :graph-updater="graphUpdater"
-            @loaded="scrollToTop"
-          />
-        </div>
-      </div>
+          <LoadingState v-if="eventsLoading" message="Loading events..." />
 
-      <!--
+          <ErrorState v-else-if="eventsError" :message="eventsError" @retry="loadEvents" />
+
+          <EmptyState
+            v-else-if="spanEvents.length === 0"
+            title="Nothing recorded"
+            description="Nothing else ran on this thread while the span was open."
+            icon="bi-inbox"
+          />
+
+          <template v-else-if="selected">
+            <div v-if="eventsTruncated" class="ts-truncated-note">
+              <i class="bi bi-info-circle"></i>
+              Showing the first {{ spanEvents.length }} events recorded in this window — the span
+              held more than the drill-down can list.
+            </div>
+            <EventWindowTimeline
+              :events="spanEvents"
+              :window-start-millis="spanWindowStartMillis"
+              :window-millis="spanWindowMillis"
+              @flamegraph="openFlamegraphForType"
+            />
+          </template>
+        </div>
+
+        <div v-else-if="mode === 'flamegraph'" class="ts-fg-view">
+          <div class="ts-fg-bar">
+            <button type="button" class="ts-fg-back" @click="goBack">
+              <i class="bi bi-arrow-left"></i> {{ backLabel }}
+            </button>
+            <span class="ts-fg-active">
+              <i class="bi bi-fire"></i> {{ activeEventType }}
+              <span class="ts-fg-scope">{{ activeSelfOnly ? 'self only' : 'inclusive' }}</span>
+            </span>
+          </div>
+          <div :id="TRACE_FG_SCROLL_ID" class="ts-fg-scroll">
+            <FlamegraphComponent
+              :with-timeseries="false"
+              :use-weight="activeUseWeight"
+              :use-guardian="null"
+              :scrollable-wrapper-class="TRACE_FG_SCROLL_ID"
+              :flamegraph-tooltip="flamegraphTooltip"
+              :graph-updater="graphUpdater"
+              @loaded="scrollToTop"
+            />
+          </div>
+        </div>
+
+        <!--
         The flamegraph chooser gets the dialog to itself: it is a grid of cards, which is wider than
         a row of the waterfall can hold, and the reader has already decided which span they are on.
       -->
-      <div v-else-if="mode === 'flamegraph-picker' && selected" class="ts-fg-view">
-        <div class="ts-fg-bar">
-          <button type="button" class="ts-fg-back" @click="goBack">
-            <i class="bi bi-arrow-left"></i> {{ backLabel }}
-          </button>
-          <span class="ts-fg-active">
-            <i class="bi bi-fire"></i> {{ selected.name }}
-            <span class="ts-fg-scope">pick an event type</span>
-          </span>
-        </div>
+        <div v-else-if="mode === 'flamegraph-picker' && selected" class="ts-fg-view">
+          <div class="ts-fg-bar">
+            <button type="button" class="ts-fg-back" @click="goBack">
+              <i class="bi bi-arrow-left"></i> {{ backLabel }}
+            </button>
+            <span class="ts-fg-active">
+              <i class="bi bi-fire"></i> {{ selected.name }}
+              <span class="ts-fg-scope">pick an event type</span>
+            </span>
+          </div>
 
-        <TraceSpanFlamegraphs
-          :profile-id="profileId"
-          :trace-id="traceId"
-          :span-id="selected.spanId"
-          :virtual-thread="selected.isVirtual"
-          @view="openFlamegraph"
-        />
-      </div>
-
-      <div v-else class="trace-body">
-        <div class="waterfall-pane">
-          <TraceWaterfall
-            :spans="detail.spans"
-            :selected-span-id="selected?.spanId ?? null"
-            :event-fields="detail.eventFields ?? {}"
-            :context="context"
-            :context-state="contextState"
-            :trace-duration-nanos="detail.trace.durationNanos"
-            @select="select"
-            @view-events="openEvents"
-            @view-flamegraph="openFlamegraphPicker"
+          <TraceSpanFlamegraphs
+            :profile-id="profileId"
+            :trace-id="traceId"
+            :span-id="selected.spanId"
+            :virtual-thread="selected.isVirtual"
+            @view="openFlamegraph"
           />
         </div>
 
-        <!--
+        <div v-show="mode === 'spans'" class="trace-body">
+          <div class="waterfall-pane">
+            <TraceWaterfall
+              :spans="detail.spans"
+              :selected-span-id="selected?.spanId ?? null"
+              :event-fields="detail.eventFields ?? {}"
+              :context="context"
+              :context-state="contextState"
+              :trace-duration-nanos="detail.trace.durationNanos"
+              @select="select"
+              @view-events="openEvents"
+              @view-flamegraph="openFlamegraphPicker"
+            />
+          </div>
+
+          <!--
           Below the bars rather than beside them: it is the conclusion drawn from the trace above,
           and a reader reaches it after looking at the shape, not instead of doing so.
         -->
-        <!--
+          <!--
           Always rendered, with words for each state. Vanishing entirely made three different facts
           — still loading, request failed, and "the JVM genuinely never interrupted this trace" —
           indistinguishable, and a reader who saw the panel on one trace had no way to learn why
           another lacked it.
         -->
-        <section class="context-pane">
-          <header><i class="bi bi-question-circle"></i> Why was this trace slow?</header>
-          <TraceWhySlowPanel
-            v-if="hasContextFindings"
-            :slices="context?.summary ?? []"
-            :trace-duration-nanos="detail.trace.durationNanos"
-            :profile-id="profileId"
-          />
-          <p v-else-if="contextState === 'loading'" class="context-note">
-            Attributing this trace's time to GC, locks and I/O…
-          </p>
-          <p v-else-if="contextState === 'failed'" class="context-note">
-            The JVM context could not be loaded, so nothing here says why this trace was slow.
-            <button type="button" class="context-retry" @click="loadContext">Try again</button>
-          </p>
-          <p v-else class="context-note">
-            No GC pauses, lock waits or I/O were attributed to this trace — its time was spent
-            running its own code.
-          </p>
-        </section>
-      </div>
+          <section class="context-pane">
+            <header><i class="bi bi-question-circle"></i> Why was this trace slow?</header>
+            <TraceWhySlowPanel
+              v-if="hasContextFindings"
+              :slices="context?.summary ?? []"
+              :trace-duration-nanos="detail.trace.durationNanos"
+              :profile-id="profileId"
+            />
+            <p v-else-if="contextState === 'loading'" class="context-note">
+              Attributing this trace's time to GC, locks and I/O…
+            </p>
+            <p v-else-if="contextState === 'failed'" class="context-note">
+              The JVM context could not be loaded, so nothing here says why this trace was slow.
+              <button type="button" class="context-retry" @click="loadContext">Try again</button>
+            </p>
+            <p v-else class="context-note">
+              No GC pauses, lock waits or I/O were attributed to this trace — its time was spent
+              running its own code.
+            </p>
+          </section>
+        </div>
+      </template>
     </div>
   </GenericModal>
 </template>
