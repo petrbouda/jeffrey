@@ -74,18 +74,26 @@ final class ThreadWindowEvents {
     }
 
     /**
-     * The bind parameters every caller supplies. The exclusion's own parameters, if it has any, are
-     * added by the caller on top of these.
+     * The bind parameters every caller supplies, capped at {@link #ROW_LIMIT}. The exclusion's own
+     * parameters, if it has any, are added by the caller on top of these.
      *
      * @param fromEpochMillis window start, inclusive
      * @param toEpochMillis   window end, inclusive
      */
     static MapSqlParameterSource params(long threadHash, long fromEpochMillis, long toEpochMillis) {
+        return params(threadHash, fromEpochMillis, toEpochMillis, ROW_LIMIT);
+    }
+
+    /**
+     * Same bind parameters with the caller's own row cap — what a caller binds when it wants to
+     * detect truncation by fetching one row past {@link #ROW_LIMIT}.
+     */
+    static MapSqlParameterSource params(long threadHash, long fromEpochMillis, long toEpochMillis, int limit) {
         return new MapSqlParameterSource()
                 .addValue("thread_hash", threadHash)
                 .addValue("from_ms", fromEpochMillis)
                 .addValue("to_ms", toEpochMillis)
-                .addValue("limit", ROW_LIMIT);
+                .addValue("limit", limit);
     }
 
     static RowMapper<ThreadWindowEventRecord> mapper() {

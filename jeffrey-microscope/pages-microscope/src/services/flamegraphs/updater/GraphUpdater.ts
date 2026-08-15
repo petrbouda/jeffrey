@@ -22,6 +22,13 @@ import TimeRange from '@/services/api/model/TimeRange';
 import FlamegraphClient from '@/services/api/FlamegraphClient';
 
 export default abstract class GraphUpdater {
+  /**
+   * How long a modal waits after swapping a flamegraph view in before calling initialize():
+   * the graph component has to render and register its callbacks here first. One constant for
+   * every modal-hosted flamegraph, so the timing cannot drift apart per view.
+   */
+  public static readonly MODAL_INIT_DELAY_MS = 200;
+
   protected flamegraphRegistered: boolean = false;
   protected timeseriesRegistered: boolean = false;
   protected httpClient: FlamegraphClient;

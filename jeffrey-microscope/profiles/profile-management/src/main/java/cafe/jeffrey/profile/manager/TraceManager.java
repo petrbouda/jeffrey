@@ -19,11 +19,11 @@
 package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
-import cafe.jeffrey.profile.manager.model.trace.TraceEventRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.SpanInterval;
@@ -87,9 +87,10 @@ public interface TraceManager {
      * Reduces every trace of one type to the {@code (thread, window)} intervals a flamegraph can be
      * scoped to, so the graph shows exactly the samples taken while traces of that type were running.
      * <p>
-     * One interval per {@code (trace, thread)}: a trace's window bounds all of its spans, and
-     * splitting by thread is what keeps a concurrently-running thread's samples out of the graph
-     * when a trace hands work off.
+     * Windows are merged per {@code (trace, thread)} with idle gaps preserved: splitting by thread
+     * is what keeps a concurrently-running thread's samples out of the graph when a trace hands
+     * work off, and preserving the gaps is what keeps out the unrelated work a thread did between
+     * two stints on the same trace.
      *
      * @param operation the trace type to scope to
      * @return the intervals, or empty when no trace is of that type
@@ -115,7 +116,8 @@ public interface TraceManager {
      * What the JVM was doing on the span's thread while it was open. Events that are themselves
      * spans are left out — they are the tree the waterfall already draws.
      *
-     * @return the events, or empty when the span does not exist
+     * @return a page of events — empty when the span does not exist — with a flag saying whether
+     *         the window held more than the row cap allowed
      */
-    List<TraceEventRow> eventsInSpan(long traceId, long spanId);
+    TraceSpanEvents eventsInSpan(long traceId, long spanId);
 }

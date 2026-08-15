@@ -170,6 +170,16 @@ export interface TraceEventRow {
 }
 
 /**
+ * A page of the events inside one span. A busy window can hold more events than the backend's row
+ * cap, and the flag is what lets the drill-down say "showing the first N events" instead of
+ * presenting a truncated list as the whole window.
+ */
+export interface TraceSpanEvents {
+  events: TraceEventRow[];
+  truncated: boolean;
+}
+
+/**
  * One span name in an operation's breakdown. Times are inclusive — a parent contains its children,
  * so the rows sum past the operation's own duration.
  */

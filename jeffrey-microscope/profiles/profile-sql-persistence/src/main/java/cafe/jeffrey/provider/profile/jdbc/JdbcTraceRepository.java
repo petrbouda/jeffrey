@@ -20,6 +20,7 @@ package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.provider.profile.api.EventFieldRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
+import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationRecord;
 import cafe.jeffrey.provider.profile.api.TraceOperationSpanRecord;
@@ -108,6 +109,12 @@ public class JdbcTraceRepository implements TraceRepository {
      * The ids are pulled out once in the CTE, which the filter then reuses by name, so each is read
      * out of the JSON a single time. The two predicates drop events that were never part of a
      * trace: their id fields are 0, the wire encoding for "absent".
+     *
+     * QUALIFY enforces the invariant the primary key states: one row per (trace_id, span_id). A
+     * duplicated event -- a re-imported chunk, third-party instrumentation reusing an id -- keeps
+     * its earliest occurrence, which is the row the waterfall would have drawn anyway, and because
+     * the dedupe happens before DERIVE_TRACES runs, span_count and error_count agree with the
+     * waterfall by construction instead of over-counting rows nobody renders.
      */
     //language=SQL
     private static final String DERIVE_TRACE_SPANS = """
@@ -142,6 +149,8 @@ public class JdbcTraceRepository implements TraceRepository {
                 json_extract_string(fields, '$.attributes')                     AS attributes,
                 NULLIF(CAST(json_merge_patch(fields, '%s') AS VARCHAR), '{}')   AS event_fields
             FROM spans
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY trace_id, span_id
+                                       ORDER BY start_timestamp, duration) = 1
             """;
 
     /*
@@ -153,7 +162,10 @@ public class JdbcTraceRepository implements TraceRepository {
      * arbitrary choice there is an arbitrary answer to "what kind of request was this".
      *
      * Duration spans the whole trace rather than reusing the root's own duration: the same number
-     * whenever the root encloses its children, and the more honest one when it does not.
+     * whenever the root encloses its children, and the more honest one when it does not. The value
+     * is nanosecond-valued but only microsecond-accurate at its endpoints: `s.duration` carries
+     * full nanoseconds, while `epoch_ns(start_timestamp)` scales up a microsecond-resolution
+     * TIMESTAMPTZ, whose sub-microsecond part was already gone.
      *
      * `has_platform_span` is settled here, once, rather than by a correlated EXISTS per query.
      * `th.is_virtual = FALSE` is TRUE only for a thread that resolved *and* is a platform thread;
@@ -234,13 +246,16 @@ public class JdbcTraceRepository implements TraceRepository {
             %s
             """;
 
+    // Both lists carry a trace_id tie-break: duration and start_timestamp can tie (the latter is
+    // only microsecond-accurate), and a tied row at the LIMIT boundary would otherwise come and go
+    // between two identical requests.
     private static final String SLOWEST_TRACES = TRACE_SUMMARIES.formatted("""
-            ORDER BY duration DESC
+            ORDER BY duration DESC, trace_id
                 LIMIT :limit""");
 
     private static final String TRACES_OF_OPERATION = TRACE_SUMMARIES.formatted("""
             WHERE %s
-                ORDER BY start_timestamp
+                ORDER BY start_timestamp, trace_id
                 LIMIT :limit""".formatted(OPERATION_PREDICATE));
 
     private static final String TRACE_BY_ID = TRACE_SUMMARIES.formatted("WHERE trace_id = :trace_id");
@@ -290,14 +305,22 @@ public class JdbcTraceRepository implements TraceRepository {
             WHERE list_contains(json_extract_string(columns, '$[*].field'), 'scopedSpanId')""";
 
     /*
-     * The window each of an operation's traces occupied on each thread, which is all the span-scoped
+     * The windows each of an operation's traces occupied on each thread, which is all the span-scoped
      * flamegraph needs from it.
      *
      * Reduced here rather than in Java: this used to fetch every span of every trace of the type --
      * unbounded, on the hot path of both the panel list and the flamegraph -- only for the manager to
-     * collapse them to one interval per (trace, thread) and drop the rest. A hot operation
-     * materialised hundreds of thousands of span records, each holding up to three strings, per
-     * request. The group-by returns what survives that reduction and nothing else.
+     * collapse them and drop the rest. A hot operation materialised hundreds of thousands of span
+     * records, each holding up to three strings, per request. The merge returns what survives that
+     * reduction and nothing else.
+     *
+     * Overlapping and touching windows are merged per (trace, thread), but gaps between them are
+     * preserved -- the gaps-and-islands pass below. A plain MIN/MAX per (trace, thread) was tried
+     * first and quietly over-approximated: a thread active early and again late in a trace got one
+     * window spanning its idle gap, and the operation flamegraph absorbed whatever unrelated work
+     * that thread did in between. The row count is one per contiguous busy stretch instead of one
+     * per (trace, thread) -- bounded by the operation's span and scope count, in practice close to
+     * the old cardinality.
      *
      * The bounds stay in microseconds, the resolution the stored timestamp carries; crossing into
      * the events table's millisecond domain happens in one place in the manager, not here.
@@ -336,13 +359,32 @@ public class JdbcTraceRepository implements TraceRepository {
                   ON m.trace_id = json_extract_string(e.fields, '$.traceId')::BIGINT
                  AND m.span_id = json_extract_string(e.fields, '$.scopedSpanId')::BIGINT
                 WHERE e.event_type IN (%s)
+            ),
+            numbered AS (
+                SELECT
+                    trace_id, thread_hash, from_us, to_us,
+                    CASE WHEN from_us > MAX(to_us) OVER (
+                             PARTITION BY trace_id, thread_hash
+                             ORDER BY from_us, to_us
+                             ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING)
+                         THEN 1 ELSE 0 END AS starts_island
+                FROM windows
+            ),
+            islands AS (
+                SELECT
+                    trace_id, thread_hash, from_us, to_us,
+                    SUM(starts_island) OVER (
+                        PARTITION BY trace_id, thread_hash
+                        ORDER BY from_us, to_us
+                        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS island
+                FROM numbered
             )
             SELECT
                 thread_hash             AS thread_hash,
                 MIN(from_us)            AS from_epoch_us,
                 MAX(to_us)              AS to_epoch_us
-            FROM windows
-            GROUP BY trace_id, thread_hash
+            FROM islands
+            GROUP BY trace_id, thread_hash, island
             """.formatted(OPERATION_PREDICATE, SCOPE_EVENT_TYPES);
 
     /*
@@ -396,7 +438,7 @@ public class JdbcTraceRepository implements TraceRepository {
                 MAX(duration)                                       AS max_ns
             FROM traces
             GROUP BY root_name, root_kind, root_event_type
-            ORDER BY total_ns DESC
+            ORDER BY total_ns DESC, root_name, root_kind, root_event_type
             LIMIT :limit
             """;
 
@@ -426,7 +468,7 @@ public class JdbcTraceRepository implements TraceRepository {
             WHERE %s
               AND s.span_id <> t.root_span_id
             GROUP BY s.name
-            ORDER BY total_ns DESC
+            ORDER BY total_ns DESC, name
             LIMIT :limit
             """.formatted(OPERATION_PREDICATE);
 
@@ -688,12 +730,20 @@ public class JdbcTraceRepository implements TraceRepository {
     }
 
     @Override
-    public List<ThreadWindowEventRecord> eventsInSpan(long threadHash, long fromEpochMillis, long toEpochMillis) {
-        return databaseClient.query(
+    public ThreadWindowEventsPage eventsInSpan(long threadHash, long fromEpochMillis, long toEpochMillis) {
+        // One row past the cap: an extra row means the window held more than the page carries, and
+        // saying so is the difference between a truncated list and a list passed off as complete.
+        List<ThreadWindowEventRecord> rows = databaseClient.query(
                 StatementLabel.TRACE_SPAN_EVENTS,
                 EVENTS_IN_SPAN,
-                ThreadWindowEvents.params(threadHash, fromEpochMillis, toEpochMillis),
+                ThreadWindowEvents.params(
+                        threadHash, fromEpochMillis, toEpochMillis, ThreadWindowEvents.ROW_LIMIT + 1),
                 ThreadWindowEvents.mapper());
+
+        if (rows.size() <= ThreadWindowEvents.ROW_LIMIT) {
+            return new ThreadWindowEventsPage(rows, false);
+        }
+        return new ThreadWindowEventsPage(List.copyOf(rows.subList(0, ThreadWindowEvents.ROW_LIMIT)), true);
     }
 
     @Override

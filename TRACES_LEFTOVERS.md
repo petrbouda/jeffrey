@@ -31,6 +31,10 @@ Not bugs — decisions with a stated trade-off.
 | **Old recordings misread HTTP/gRPC/JDBC status** | `status` → `statusCode` and the removal of `isSuccess` are breaking schema changes; fallbacks were considered and declined in favour of one shape | A user reports it on a recording worth keeping — the fallback is three one-line reads |
 | **P99 shown only when the trace sample is complete** | There is no server-side p99 column, and a p99 over the first 1,000 traces beside a p95 over all of them is two different questions in one row | A p99 aggregate is added to the `OPERATIONS` query |
 | **`TraceSpanInlineDetail` hand-rolls its key/value tables** | `@shared` `DrawerSection`/`InfoRow` fit the identity block but not the two data-driven tables, which need a label-side tooltip and a sub-key | Those shared components grow a richer label slot |
+| **Span drill-downs re-read `spansOf(traceId)` per request** | `trace()`, `spanIntervals()` and `eventsInSpan()` each fetch the trace's spans; they back separate HTTP requests against a small indexed table, and caching across requests is a design cost with no measured win | A profiled slow drill-down names this read as the cost |
+| **Scope events are joined via JSON extraction per query** | `OPERATION_INTERVALS` re-parses `fields` for `jeffrey.TraceScope` rows; the event-type filter keeps that set small, and only re-entered spans (gRPC server traffic today) emit scopes at all. A third derived table was judged more schema than the join is worth | Scope-emitting instrumentation broadens beyond gRPC |
+| **`@retry` listeners on `ErrorState` are inert** | The shared `ErrorState.vue` declares no `retry` emit and renders no retry button, so every `@retry` in the app is wiring to nothing. Trace views wire it anyway for the day the shared component grows the button — an `@shared` change, out of this feature's scope | `ErrorState` gains a retry button |
+| **Operation intervals are unbounded per busy stretch** | The gaps-and-islands merge returns one row per contiguous busy stretch per `(trace, thread)` rather than one per pair; a pathological operation of thousands of alternating disjoint spans would inflate the `UNNEST` list parameters behind the span-scoped flamegraph filter | A hot operation's flamegraph request measurably slows on the interval lists |
 
 ---
 
@@ -61,8 +65,10 @@ Not bugs — decisions with a stated trade-off.
   duration is the same number in the list and in the detail.
 - ~~`has_platform_span` computed per query, two ways~~ — one stored column, one convention: a span
   whose thread did not resolve is not counted as platform.
-- ~~`spansOfOperation` unbounded~~ — replaced by an interval aggregate that returns one row per
-  `(trace, thread)`.
+- ~~`spansOfOperation` unbounded~~ — replaced by an interval aggregate, later refined: windows are
+  merged per `(trace, thread)` with idle gaps preserved (gaps-and-islands), because a plain MIN/MAX
+  per pair handed the operation flamegraph one window spanning a thread's idle gap and absorbed
+  whatever unrelated work ran in it.
 - ~~`derive()` not idempotent~~ — both tables are cleared first, and a test runs it twice.
 - ~~Every virtual thread collapsed into one~~ — `EventThreadCleaner` no longer groups on a null
   `os_id`, which is what `trace_spans.thread_hash` depends on.

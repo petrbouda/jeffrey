@@ -105,7 +105,6 @@ import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAx
 import type { SpanEventRow } from '@/services/api/model/span/SpanModels';
 
 const NANOS_PER_MILLI = 1_000_000;
-const MODAL_INIT_DELAY_MS = 200;
 const SPAN_FG_SCROLL_ID = 'span-fg-scroll';
 
 const props = defineProps<{
@@ -203,7 +202,7 @@ function openFlamegraph(type: string): void {
 
   setTimeout(() => {
     graphUpdater.initialize();
-  }, MODAL_INIT_DELAY_MS);
+  }, GraphUpdater.MODAL_INIT_DELAY_MS);
 }
 
 function backToEvents(): void {

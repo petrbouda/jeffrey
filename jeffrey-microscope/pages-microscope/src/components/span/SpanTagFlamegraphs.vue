@@ -72,8 +72,6 @@ import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import { useFlamegraphPanels } from '@/composables/useFlamegraphPanels';
 
-const MODAL_INIT_DELAY_MS = 200;
-
 const props = defineProps<{
   profileId: string;
   tag: string;
@@ -85,7 +83,7 @@ const { loaded, error, panels } = useFlamegraphPanels(GraphType.PRIMARY, () =>
   new ProfileAsyncProfilerClient(props.profileId).getPanels(props.tag)
 );
 
-const hasEvents = computed(() => panels.value.some((panel) => panel.event.primary.samples > 0));
+const hasEvents = computed(() => panels.value.some(panel => panel.event.primary.samples > 0));
 
 // Flamegraph modal state
 const showDialog = ref(false);
@@ -114,16 +112,17 @@ function openFlamegraph(payload: FlamegraphCardViewPayload) {
   );
 
   graphUpdater.value = new FullGraphUpdater(client, false);
-  flamegraphTooltip.value =
-    FlamegraphTooltipFactory.create(payload.eventType, payload.useWeight, false);
+  flamegraphTooltip.value = FlamegraphTooltipFactory.create(
+    payload.eventType,
+    payload.useWeight,
+    false
+  );
 
   showDialog.value = true;
 
   // Delay so the modal (flamegraph + timeseries) is rendered and callbacks registered.
   setTimeout(() => {
     graphUpdater.value?.initialize();
-  }, MODAL_INIT_DELAY_MS);
+  }, GraphUpdater.MODAL_INIT_DELAY_MS);
 }
-
-
 </script>

@@ -20,12 +20,12 @@ import BaseProfileClient from '@/services/api/BaseProfileClient';
 import FlamegraphPanel from '@/services/api/model/FlamegraphPanel';
 import type {
   TraceDetail,
-  TraceEventRow,
   TraceOperationId,
   TraceOperationRow,
   TraceOperationSummary,
   TraceOverview,
-  TraceRow
+  TraceRow,
+  TraceSpanEvents
 } from '@/services/api/model/trace/TraceModels';
 
 /**
@@ -88,9 +88,12 @@ export default class ProfileTracesClient extends BaseProfileClient {
     return this.get<FlamegraphPanel[]>('/operation/panels', operationParams(operation));
   }
 
-  /** What the JVM was doing on the span's thread while it was open. */
-  public getSpanEvents(traceId: string, spanId: string): Promise<TraceEventRow[]> {
-    return this.get<TraceEventRow[]>(`/${traceId}/spans/${spanId}/events`);
+  /**
+   * What the JVM was doing on the span's thread while it was open — a page, with a flag saying
+   * whether the window held more events than the backend's row cap.
+   */
+  public getSpanEvents(traceId: string, spanId: string): Promise<TraceSpanEvents> {
+    return this.get<TraceSpanEvents>(`/${traceId}/spans/${spanId}/events`);
   }
 
   /**

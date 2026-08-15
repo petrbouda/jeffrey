@@ -80,8 +80,6 @@ import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/Flamegraph
 import { useFlamegraphPanels } from '@/composables/useFlamegraphPanels';
 import type { TraceOperationId } from '@/services/api/model/trace/TraceModels';
 
-const MODAL_INIT_DELAY_MS = 200;
-
 const props = defineProps<{
   profileId: string;
   operation: TraceOperationId;
@@ -124,16 +122,17 @@ function openFlamegraph(payload: FlamegraphCardViewPayload) {
   );
 
   graphUpdater.value = new FullGraphUpdater(client, false);
-  flamegraphTooltip.value =
-    FlamegraphTooltipFactory.create(payload.eventType, payload.useWeight, false);
+  flamegraphTooltip.value = FlamegraphTooltipFactory.create(
+    payload.eventType,
+    payload.useWeight,
+    false
+  );
 
   showDialog.value = true;
 
   // Delay so the modal (flamegraph + timeseries) is rendered and callbacks registered.
   setTimeout(() => {
     graphUpdater.value?.initialize();
-  }, MODAL_INIT_DELAY_MS);
+  }, GraphUpdater.MODAL_INIT_DELAY_MS);
 }
-
-
 </script>
