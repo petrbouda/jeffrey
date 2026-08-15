@@ -240,6 +240,7 @@ import TraceAiExportClient from '@/services/api/TraceAiExportClient';
 import type { AiExportSource } from '@/composables/useAiExport';
 import TraceSpanFlamegraphClient from '@/services/api/TraceSpanFlamegraphClient';
 import { errorLabel } from '@/services/trace/traceLabels';
+import { timelineWindowLink } from '@/services/timeline/timelineLink';
 import { ceilNanosToMillis, floorToMillis } from '@/services/trace/timeUnits';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import OnlyFlamegraphGraphUpdater from '@/services/flamegraphs/updater/OnlyFlamegraphGraphUpdater';
@@ -387,33 +388,13 @@ const operationLink = computed(() => {
   };
 });
 
-/** The trace's own share of window padding on each side, so it lands with context, not edge-to-edge. */
-const TIMELINE_PAD_RATIO = 0.15;
-/** At least this much padding, so a sub-millisecond trace still gets a readable window. */
-const TIMELINE_MIN_PAD_MICROS = 50_000;
-const MICROS_PER_MILLI = 1_000;
-const NANOS_PER_MICRO = 1_000;
-
-/**
- * The unified timeline zoomed to this trace's moment, padded so the reader sees what surrounded it.
- * The from/to params are the timeline's own deep-link contract.
- */
+/** The unified timeline zoomed to this trace's padded moment — the shared edge every view builds. */
 const timelineLink = computed(() => {
   const trace = detail.value?.trace;
   if (!trace) {
     return null;
   }
-  const startMicros = trace.startEpochMillis * MICROS_PER_MILLI;
-  const durationMicros = Math.max(1, Math.ceil(trace.durationNanos / NANOS_PER_MICRO));
-  const pad = Math.max(Math.ceil(durationMicros * TIMELINE_PAD_RATIO), TIMELINE_MIN_PAD_MICROS);
-  return {
-    name: 'profile-technologies-traces-timeline',
-    params: { profileId: props.profileId },
-    query: {
-      from: String(startMicros - pad),
-      to: String(startMicros + durationMicros + pad)
-    }
-  };
+  return timelineWindowLink(props.profileId, trace.startEpochMillis, trace.durationNanos);
 });
 
 function percentOfTrace(part: number, whole: number): string {

@@ -48,6 +48,13 @@
             ><i class="bi bi-arrow-down"></i>
             {{ FormattingService.formatBytes(call.responseSize) }}</span
           >
+          <template v-if="withTimelineLink">
+            <span class="detail-dot">&middot;</span>
+            <ShowOnTimelineLink
+              :start-epoch-millis="call.timestamp"
+              :duration-nanos="call.responseTime"
+            />
+          </template>
         </div>
       </div>
     </div>
@@ -58,6 +65,7 @@
 import { computed } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
 import Badge from '@shared/components/Badge.vue';
+import ShowOnTimelineLink from '@/components/timeline/ShowOnTimelineLink.vue';
 import type { Variant } from '@shared/types/ui';
 
 interface GrpcCall {
@@ -78,11 +86,17 @@ interface Props {
   calls: GrpcCall[];
   showTotalSize?: boolean;
   maxDisplayed?: number;
+  /**
+   * Opt-in per host: this table serves both the slowest and the largest calls, and the timeline
+   * edge means something on a duration ranking that it does not on a byte-size one.
+   */
+  withTimelineLink?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showTotalSize: false,
-  maxDisplayed: 20
+  maxDisplayed: 20,
+  withTimelineLink: false
 });
 
 const displayedCalls = computed(() => {

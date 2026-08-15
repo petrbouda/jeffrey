@@ -29,6 +29,7 @@
       icon="clock-history"
       :calls="calls"
       :max-displayed="maxDisplayed"
+      with-timeline-link
     />
   </div>
 </template>

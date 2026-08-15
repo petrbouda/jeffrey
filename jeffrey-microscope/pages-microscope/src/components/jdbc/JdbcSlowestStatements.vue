@@ -12,44 +12,50 @@
         class="slowest-row"
         @click="handleSqlButtonClick(statement)"
       >
-      <div class="left-accent" :class="getAccentClass(statement.operation)"></div>
-      <div class="row-content">
-        <div class="row-header">
-          <div class="row-header-left">
-            <JdbcOperationBadge :operation="statement.operation" size="s" borderless />
-            <div class="group-text" :title="statement.statementGroup">
-              {{ statement.statementGroup }}
+        <div class="left-accent" :class="getAccentClass(statement.operation)"></div>
+        <div class="row-content">
+          <div class="row-header">
+            <div class="row-header-left">
+              <JdbcOperationBadge :operation="statement.operation" size="s" borderless />
+              <div class="group-text" :title="statement.statementGroup">
+                {{ statement.statementGroup }}
+              </div>
+            </div>
+            <div class="time-bar-wrap">
+              <span class="time-bar-value">{{
+                FormattingService.formatDuration2Units(statement.executionTime)
+              }}</span>
+              <div class="time-bar-track">
+                <div
+                  class="time-bar-fill"
+                  :style="{ width: getTimePercentage(statement.executionTime) + '%' }"
+                ></div>
+              </div>
             </div>
           </div>
-          <div class="time-bar-wrap">
-            <span class="time-bar-value">{{
-              FormattingService.formatDuration2Units(statement.executionTime)
-            }}</span>
-            <div class="time-bar-track">
-              <div
-                class="time-bar-fill"
-                :style="{ width: getTimePercentage(statement.executionTime) + '%' }"
-              ></div>
-            </div>
-          </div>
-        </div>
-        <div class="row-details">
-          <span class="detail-chip"
-            ><i class="bi bi-clock"></i>
-            {{ FormattingService.formatTimestamp(statement.timestamp).replace('T', ' ') }}</span
-          >
-          <span class="detail-dot">&middot;</span>
-          <span class="detail-chip"
-            ><i class="bi bi-list-ol"></i>
-            {{ FormattingService.formatNumber(statement.rowsProcessed) }} rows</span
-          >
-          <template v-if="statement.isBatch || statement.isLob">
+          <div class="row-details">
+            <span class="detail-chip"
+              ><i class="bi bi-clock"></i>
+              {{ FormattingService.formatTimestamp(statement.timestamp).replace('T', ' ') }}</span
+            >
             <span class="detail-dot">&middot;</span>
-            <Badge v-if="statement.isBatch" value="BATCH" variant="blue" size="xs" />
-            <Badge v-if="statement.isLob" value="LOB" variant="yellow" size="xs" />
-          </template>
+            <span class="detail-chip"
+              ><i class="bi bi-list-ol"></i>
+              {{ FormattingService.formatNumber(statement.rowsProcessed) }} rows</span
+            >
+            <template v-if="statement.isBatch || statement.isLob">
+              <span class="detail-dot">&middot;</span>
+              <Badge v-if="statement.isBatch" value="BATCH" variant="blue" size="xs" />
+              <Badge v-if="statement.isLob" value="LOB" variant="yellow" size="xs" />
+            </template>
+            <span class="detail-dot">&middot;</span>
+            <!-- Stops its own clicks, so following it does not also open the row's SQL modal. -->
+            <ShowOnTimelineLink
+              :start-epoch-millis="statement.timestamp"
+              :duration-nanos="statement.executionTime"
+            />
+          </div>
         </div>
-      </div>
       </div>
     </div>
   </div>
@@ -58,6 +64,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import JdbcOperationBadge from '@/components/jdbc/JdbcOperationBadge.vue';
+import ShowOnTimelineLink from '@/components/timeline/ShowOnTimelineLink.vue';
 import Badge from '@shared/components/Badge.vue';
 import SlowestCountHeader from '@shared/components/SlowestCountHeader.vue';
 import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement.ts';

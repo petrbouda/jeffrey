@@ -39,6 +39,11 @@
       <DetailChip icon="bi bi-clock" :title="startedTitle(item.startEpochMillis)">
         {{ startedAt(item.startEpochMillis) }}
       </DetailChip>
+      <!-- Stops its own clicks — the row itself opens the span's events modal. -->
+      <ShowOnTimelineLink
+        :start-epoch-millis="item.startEpochMillis"
+        :duration-nanos="item.durationNanos"
+      />
     </template>
   </SlowestRowList>
 </template>
@@ -48,6 +53,7 @@ import FormattingService from '@shared/services/FormattingService';
 import Badge from '@shared/components/Badge.vue';
 import DetailChip from '@shared/components/DetailChip.vue';
 import SlowestRowList from '@shared/components/SlowestRowList.vue';
+import ShowOnTimelineLink from '@/components/timeline/ShowOnTimelineLink.vue';
 import { profileStore } from '@/stores/profileStore';
 import type { SlowestSpanRow } from '@/services/api/model/span/SpanModels';
 
