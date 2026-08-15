@@ -51,12 +51,17 @@ const MIN_LABEL_WIDTH_PX = 38;
 const ZOOM_SENSITIVITY = 0.0016;
 /** A pointer that moved less than this between down and up was a click, not a drag. */
 const DRAG_THRESHOLD_PX = 3;
+/** Forgiveness around a bar's drawn edges, so a 1.5 px minimum-width bar is genuinely clickable. */
+const HIT_SLOP_PX = 3;
+/** Gap between the cursor and the tooltip, on whichever side the tooltip ends up. */
+const TOOLTIP_OFFSET_PX = 14;
 
 export interface TimelineCanvasOptions {
   bounds: Viewport;
   viewport: Viewport;
   onViewportChanged: (view: Viewport) => void;
-  onSpanSelected: (traceId: string) => void;
+  /** The clicked span's name travels along so the opened modal can title itself. */
+  onSpanSelected: (traceId: string, spanName: string) => void;
 }
 
 /** What the pointer is over, for the tooltip and for the click. */
@@ -93,7 +98,14 @@ export default class TimelineCanvas {
   private rows: Row[] = [];
 
   private dragging = false;
+  /** Where the pan last read the pointer, for the per-event viewport shift. */
   private dragOriginX = 0;
+  /**
+   * Where the pointer went down, never reassigned during the drag. The click-vs-drag test must be
+   * cumulative: testing per-event deltas meant a slow, careful pan — the exact motion used to line
+   * a pause up with a thread — never exceeded the threshold and was treated as a click.
+   */
+  private dragStartX = 0;
   private dragMoved = false;
 
   constructor(host: HTMLElement, options: TimelineCanvasOptions) {
@@ -158,7 +170,10 @@ export default class TimelineCanvas {
     container.addEventListener('pointermove', this.onPointerMove);
     container.addEventListener('pointerup', this.onPointerUp);
     container.addEventListener('pointerleave', this.onPointerLeave);
+    container.addEventListener('pointercancel', this.onPointerCancel);
     container.style.cursor = 'grab';
+    // Without this the browser claims touch gestures for native scrolling and cancels the drag.
+    container.style.touchAction = 'none';
   }
 
   private readonly onWheel = (event: WheelEvent): void => {
@@ -178,6 +193,7 @@ export default class TimelineCanvas {
     this.dragging = true;
     this.dragMoved = false;
     this.dragOriginX = event.clientX;
+    this.dragStartX = event.clientX;
     this.stage.container().style.cursor = 'grabbing';
     this.stage.container().setPointerCapture(event.pointerId);
   };
@@ -185,7 +201,9 @@ export default class TimelineCanvas {
   private readonly onPointerMove = (event: PointerEvent): void => {
     if (this.dragging) {
       const delta = event.clientX - this.dragOriginX;
-      if (Math.abs(delta) > DRAG_THRESHOLD_PX) {
+      // Cumulative distance from pointer-down, not this event's delta: a pan is a pan however
+      // slowly it was made.
+      if (Math.abs(event.clientX - this.dragStartX) > DRAG_THRESHOLD_PX) {
         this.dragMoved = true;
       }
       this.dragOriginX = event.clientX;
@@ -207,11 +225,20 @@ export default class TimelineCanvas {
     }
     const hit = this.hitTest(this.localX(event), this.localY(event));
     if (hit?.type === 'span') {
-      this.options.onSpanSelected(hit.span.traceId);
+      this.options.onSpanSelected(hit.span.traceId, hit.span.name);
     }
   };
 
   private readonly onPointerLeave = (): void => {
+    this.tooltip.style.display = 'none';
+    // An interrupted drag (alt-tab, OS gesture) must not leave the canvas stuck in grabbing.
+    this.dragging = false;
+    this.stage.container().style.cursor = 'grab';
+  };
+
+  private readonly onPointerCancel = (): void => {
+    this.dragging = false;
+    this.stage.container().style.cursor = 'grab';
     this.tooltip.style.display = 'none';
   };
 
@@ -225,38 +252,81 @@ export default class TimelineCanvas {
 
   private showTooltip(event: PointerEvent): void {
     const hit = this.hitTest(this.localX(event), this.localY(event));
+    // The pointer is the affordance: over 3000 rectangles only spans are clickable, and nothing
+    // else tells the reader which kind they are on.
+    this.stage.container().style.cursor = hit?.type === 'span' ? 'pointer' : 'grab';
     if (!hit) {
       this.tooltip.style.display = 'none';
       return;
     }
-    this.tooltip.innerHTML = this.describe(hit);
+    this.tooltip.replaceChildren(...this.describe(hit));
     this.tooltip.style.display = 'block';
-    this.tooltip.style.left = `${event.clientX + 14}px`;
-    this.tooltip.style.top = `${event.clientY + 16}px`;
+    // Flip when the default placement would run off screen: the most recent spans sit at the right
+    // edge, which is exactly where a fixed right-of-cursor tooltip is clipped.
+    const width = this.tooltip.offsetWidth;
+    const height = this.tooltip.offsetHeight;
+    const left =
+      event.clientX + TOOLTIP_OFFSET_PX + width > window.innerWidth
+        ? event.clientX - width - TOOLTIP_OFFSET_PX
+        : event.clientX + TOOLTIP_OFFSET_PX;
+    const top =
+      event.clientY + TOOLTIP_OFFSET_PX + height > window.innerHeight
+        ? event.clientY - height - TOOLTIP_OFFSET_PX
+        : event.clientY + TOOLTIP_OFFSET_PX;
+    this.tooltip.style.left = `${Math.max(0, left)}px`;
+    this.tooltip.style.top = `${Math.max(0, top)}px`;
   }
 
-  private describe(hit: Hit): string {
+  /**
+   * Built as DOM nodes, never as an HTML string: span and thread names come straight from
+   * application instrumentation — URIs, SQL, gRPC methods — and routinely contain markup
+   * characters. Interpolating them into innerHTML rendered them wrong at best and executed them at
+   * worst.
+   */
+  private describe(hit: Hit): HTMLElement[] {
+    const line = (tag: 'b' | 'span', text: string): HTMLElement => {
+      const node = document.createElement(tag);
+      node.textContent = text;
+      return node;
+    };
+
     if (hit.type === 'span') {
       const duration = FormattingService.formatDuration2Units(hit.span.durationNanos);
       const error = hit.span.status === 'ERROR' ? ' · error' : '';
-      return (
-        `<b>${hit.span.name}</b>` +
-        `<span>${hit.track.threadName ?? 'unknown thread'} · ${hit.span.kind}${error}</span>` +
-        `<span>${duration} · click to open the trace</span>`
-      );
+      return [
+        line('b', hit.span.name),
+        line('span', `${hit.track.threadName ?? 'unknown thread'} · ${hit.span.kind}${error}`),
+        line('span', `${duration} · click to open the trace`)
+      ];
     }
-    return (
-      `<b>${pauseLabel(hit.category)} — ${hit.label}</b>` +
-      `<span>${FormattingService.formatDuration2Units(hit.durationNanos)}</span>` +
-      '<span>stopped every application thread</span>'
-    );
+    return [
+      line('b', `${pauseLabel(hit.category)} — ${hit.label}`),
+      line('span', FormattingService.formatDuration2Units(hit.durationNanos)),
+      line('span', 'stopped every application thread')
+    ];
+  }
+
+  /**
+   * Whether the pointer's plot-x lands on the interval as it was drawn.
+   *
+   * Tested in pixel space against the same {@link placeInterval} geometry the renderer used, with a
+   * small slop, never against the interval's true microsecond extent. Testing in time units undid
+   * the minimum-width floor: a 5 µs span in a 30 s window was drawn 1.5 px wide but hoverable only
+   * across its ~0.0002 px time footprint — visible and untouchable, the worst of both.
+   */
+  private hitsInterval(plotX: number, fromMicros: number, toMicros: number): boolean {
+    const placed = placeInterval(fromMicros, toMicros, this.view, this.plotWidth());
+    if (!placed) {
+      return false;
+    }
+    return plotX >= placed.x - HIT_SLOP_PX && plotX <= placed.x + placed.width + HIT_SLOP_PX;
   }
 
   private hitTest(x: number, y: number): Hit | null {
     if (x < M.gutterWidth || !this.data) {
       return null;
     }
-    const micros = microsAt(x - M.gutterWidth, this.view, this.plotWidth());
+    const plotX = x - M.gutterWidth;
 
     for (const row of this.rows) {
       if (y < row.y || y > row.y + row.height) {
@@ -266,8 +336,11 @@ export default class TimelineCanvas {
         const pause = this.data.pauses.find(
           p =>
             pauseLabel(p.category) === row.label &&
-            micros >= p.startEpochMicros &&
-            micros <= p.startEpochMicros + p.durationNanos / NANOS_PER_MICRO
+            this.hitsInterval(
+              plotX,
+              p.startEpochMicros,
+              p.startEpochMicros + p.durationNanos / NANOS_PER_MICRO
+            )
         );
         return pause
           ? {
@@ -289,8 +362,11 @@ export default class TimelineCanvas {
       const span = row.track.spans.find(
         s =>
           s.depth === lane &&
-          micros >= s.startEpochMicros &&
-          micros <= s.startEpochMicros + s.durationNanos / NANOS_PER_MICRO
+          this.hitsInterval(
+            plotX,
+            s.startEpochMicros,
+            s.startEpochMicros + s.durationNanos / NANOS_PER_MICRO
+          )
       );
       return span ? { type: 'span', span, track: row.track } : null;
     }

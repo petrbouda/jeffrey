@@ -42,35 +42,50 @@
         </MainCardHeader>
       </template>
 
-      <LoadingState v-if="loading && !timelineWindow" message="Loading timeline..." />
+      <p class="tl-hint">
+        <b>Scroll</b> to zoom at the cursor · <b>drag</b> to pan · <b>click a span</b> to open its
+        trace
+      </p>
 
-      <ErrorState v-else-if="error" :message="error" @retry="load" />
-
-      <EmptyState
-        v-else-if="timelineWindow && timelineWindow.tracks.length === 0 && !loading"
-        icon="bi-bar-chart-steps"
-        title="Nothing ran in this window"
-        description="No spans were recorded here. Zoom out, or pick a busier part of the recording."
-      />
-
-      <template v-else>
-        <p class="tl-hint">
-          <b>Scroll</b> to zoom at the cursor · <b>drag</b> to pan · <b>click a span</b> to open its
-          trace
-        </p>
+      <!--
+        The canvas host stays mounted through every state. The Konva stage is created once against
+        this element; putting it behind v-if meant one empty window or one failed fetch unmounted
+        it and the stage drew into a detached node for the rest of the session. The three states
+        overlay the canvas instead of replacing it, so "zoom out" remains something the reader can
+        actually do while reading the empty-state advice.
+      -->
+      <div class="tl-stage">
         <div ref="hostRef" class="tl-host"></div>
-        <div class="tl-legend">
-          <span v-for="entry in LEGEND" :key="entry.label">
-            <i :style="{ background: entry.color }"></i>{{ entry.label }}
-          </span>
+
+        <div v-if="loading && !timelineWindow" class="tl-overlay">
+          <LoadingState message="Loading timeline..." />
         </div>
-      </template>
+
+        <div v-else-if="error" class="tl-overlay">
+          <ErrorState :message="error" @retry="load" />
+        </div>
+
+        <div v-else-if="showEmpty" class="tl-overlay tl-overlay-passthrough">
+          <EmptyState
+            icon="bi-bar-chart-steps"
+            title="Nothing ran in this window"
+            description="No spans were recorded here. Zoom out, or pick a busier part of the recording."
+          />
+        </div>
+      </div>
+
+      <div class="tl-legend">
+        <span v-for="entry in LEGEND" :key="entry.label">
+          <i :style="{ background: entry.color }"></i>{{ entry.label }}
+        </span>
+      </div>
     </MainCard>
 
     <TraceSpansModal
       v-model:show="traceModalOpen"
       :profile-id="profileId"
       :trace-id="openTraceId"
+      :root-name="openTraceName"
     />
   </div>
 </template>
@@ -110,6 +125,7 @@ const error = ref<string | null>(null);
 const timelineWindow = shallowRef<TimelineWindow | null>(null);
 const traceModalOpen = ref(false);
 const openTraceId = ref('');
+const openTraceName = ref('');
 
 let canvas: TimelineCanvas | null = null;
 let client: ProfileTracesClient;
@@ -121,7 +137,9 @@ let inFlight = 0;
  * once here from the store's millis so nothing downstream has to think about units.
  */
 const bounds = computed<Viewport>(() => {
-  const recording = profileStore.recordingWindow;
+  // The store is a plain object of refs, so nothing unwraps for us. Reading the ref itself here
+  // (without .value) made this branch dead — a ComputedRef is always truthy — and every bound NaN.
+  const recording = profileStore.recordingWindow.value;
   if (!recording) {
     return { from: 0, to: 0 };
   }
@@ -133,6 +151,10 @@ const view = ref<Viewport>({ from: 0, to: 0 });
 
 const isFullView = computed(
   () => view.value.from <= bounds.value.from && view.value.to >= bounds.value.to
+);
+
+const showEmpty = computed(
+  () => !loading.value && timelineWindow.value !== null && timelineWindow.value.tracks.length === 0
 );
 
 /**
@@ -187,8 +209,12 @@ function resetView(): void {
   load();
 }
 
-function openTrace(traceId: string): void {
+function openTrace(traceId: string, spanName: string): void {
   openTraceId.value = traceId;
+  // The clicked span's name titles the modal. For a root span (the usual click target) that is
+  // exactly the trace's name; for a child it still names what the reader aimed at, which beats the
+  // generic "Spans in trace" the modal falls back to.
+  openTraceName.value = spanName;
   traceModalOpen.value = true;
 }
 
@@ -213,10 +239,13 @@ onBeforeUnmount(() => {
   canvas = null;
 });
 
-// A different profile is a different recording, so the viewport has to start over.
+// The viewport follows the recording's bounds, not the profile id: on a cold route the profile
+// resolves after this component mounts, so watching the id alone reset the view against the
+// previous profile's window (or against nothing at all) and the first fetch targeted the wrong
+// range. Watching the derived bounds re-seeds exactly when the real window is known.
 watch(
-  () => props.profileId,
-  profileId => {
+  () => [props.profileId, bounds.value.from, bounds.value.to] as const,
+  ([profileId]) => {
     client = new ProfileTracesClient(profileId);
     resetView();
   }
@@ -283,6 +312,11 @@ watch(
   font-weight: 600;
 }
 
+/* Positioning context for the state overlays, which sit on the canvas rather than replacing it. */
+.tl-stage {
+  position: relative;
+}
+
 .tl-host {
   width: 100%;
   height: 60vh;
@@ -291,6 +325,21 @@ watch(
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--color-bg-card);
+}
+
+.tl-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-bg-card) 82%, transparent);
+}
+
+/* The empty state advises "zoom out" — so the canvas underneath must stay operable through it. */
+.tl-overlay-passthrough {
+  pointer-events: none;
 }
 
 .tl-legend {
