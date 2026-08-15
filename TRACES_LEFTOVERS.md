@@ -1,27 +1,42 @@
 # Traces & Spans — leftovers
 
-State as of the `feature/trace-operations` branch. Everything below was verified against the tree,
-not recalled.
+State as of the `claude/tracespan-feature-analysis-65d6c4` branch (with the unified timeline on
+`claude/unified-jvm-timeline`, PR #167). Everything below was verified against the tree, not
+recalled.
 
-One item remains open. The rest of this file is the record of decisions taken with a stated
+Two items remain open. The rest of this file is the record of decisions taken with a stated
 trade-off, so they are not rediscovered later as surprises.
 
 ---
 
-## 3. Verification gap
+## Open
+
+### Verification gap
 
 **Nothing has been rendered in a browser against a real profile.** The Maven build, the frontend
-build and both test suites pass, and the derivation is exercised end to end against real JFR
+build and every test suite pass, and the derivation is exercised end to end against real JFR
 fixtures in DuckDB — but no screen of this feature has been looked at by a human against a real
-recording. This needs a running instance, not a code change.
+recording. The unified timeline is where this bites hardest: scroll feel, the crosshair, minimap
+scrubbing, the wait underlay's legibility at 35% opacity and the density rendering are all
+interaction judgements no test can make. This needs a running instance, not a code change.
 
-## 4. Deliberate omissions worth revisiting later
+### `vue-tsc` cannot gate CI yet
+
+`npm run typecheck` exists and is clean on every file this feature touched, but the app carries
+276 pre-existing errors elsewhere, so the check cannot fail the build until those are burned down.
+Until then a missing `.value` — the exact bug that once shipped a blank timeline — is only caught
+by someone remembering to run it.
+
+## Deliberate omissions worth revisiting later
 
 Not bugs — decisions with a stated trade-off.
 
 | Omission | Why | Revisit when |
 |---|---|---|
-| **No zoom/pan in the waterfall** | DOM/CSS substrate chosen for tens-to-hundreds of spans. Subtree folding and the critical-path filter now cover the density problem at those sizes | Real traces exceed a few thousand spans |
+| **No zoom/pan in the waterfall** | DOM/CSS substrate chosen for tens-to-hundreds of spans. Subtree folding, the critical-path filter and error navigation cover the density problem at those sizes, and the unified timeline is now where zoom/pan lives — the waterfall links to it with "Show on timeline" | Real traces exceed a few thousand spans |
+| **Timeline density columns are not hoverable** | A bucket is a count, not a span — there is nothing real to open, and a tooltip repeating the count adds little over the opacity. The cap notice names the remedy (zoom in) instead | The count-per-bucket proves to be something readers want to read off exactly |
+| **Timeline waits on span-less threads are dropped** | A track exists because work ran on it; a thread that only waited has no track to underlay. The whole-JVM idle picture is the threads timeline's job, and duplicating it here would double the row count for threads this view has nothing to say about | Readers ask where a thread "went" during a window and the answer is a wait on a track this view refused to draw |
+| **Timeline states have their own row cap and flag** | `statesTruncated` is separate from `truncated` because the spans being complete says nothing about the waits; both caps are stated in the UI and inside the AI export rather than silently absorbed | A real window regularly exceeds 4,000 wait events and the lower-bound totals start to mislead |
 | **The critical path assumes children block their parent** | True by construction on the parent's own thread, and the intended reading of a parent that hands work off and waits. A parent that forked a cross-thread child and never waited sees that child credited time it did not cost — the span tree alone cannot tell the two apart. The per-span context now says what a thread was *waiting* on, which narrows this but does not close it: a parent with no wait recorded was running, not joining | A thread's on-CPU state is derivable per span window, which is what settles it exactly |
 | **Context is attributed to the span an event starts in** | An event is charged to the innermost span open on its thread when it began. A wait that straddles a child's start is charged wholly to whichever span it started in rather than split between them — splitting would need the same interval arithmetic self time uses, per category | A straddling wait is seen to matter in practice |
 | **Pause overlap is bounded by a look-back** | `MAX_PAUSE_LOOKBACK_MILLIS` floors how far back the query will look for a pause still running at the window's start. Overlap is not sargable on the lower bound, so without a floor every context read scans the events table from the start of the recording | A pause longer than a minute needs to be drawn, which is a JVM in more trouble than this view diagnoses |
@@ -34,13 +49,25 @@ Not bugs — decisions with a stated trade-off.
 | **`TraceSpanInlineDetail` hand-rolls its key/value tables** | `@shared` `DrawerSection`/`InfoRow` fit the identity block but not the two data-driven tables, which need a label-side tooltip and a sub-key | Those shared components grow a richer label slot |
 | **Span drill-downs re-read `spansOf(traceId)` per request** | `trace()`, `spanIntervals()` and `eventsInSpan()` each fetch the trace's spans; they back separate HTTP requests against a small indexed table, and caching across requests is a design cost with no measured win | A profiled slow drill-down names this read as the cost |
 | **Scope events are joined via JSON extraction per query** | `OPERATION_INTERVALS` re-parses `fields` for `jeffrey.TraceScope` rows; the event-type filter keeps that set small, and only re-entered spans (gRPC server traffic today) emit scopes at all. A third derived table was judged more schema than the join is worth | Scope-emitting instrumentation broadens beyond gRPC |
-| **`@retry` listeners on `ErrorState` are inert** | The shared `ErrorState.vue` declares no `retry` emit and renders no retry button, so every `@retry` in the app is wiring to nothing. Trace views wire it anyway for the day the shared component grows the button — an `@shared` change, out of this feature's scope | `ErrorState` gains a retry button |
 | **Operation intervals are unbounded per busy stretch** | The gaps-and-islands merge returns one row per contiguous busy stretch per `(trace, thread)` rather than one per pair; a pathological operation of thousands of alternating disjoint spans would inflate the `UNNEST` list parameters behind the span-scoped flamegraph filter | A hot operation's flamegraph request measurably slows on the interval lists |
 
 ---
 
 ## Closed on this branch
 
+- ~~`@retry` listeners on `ErrorState` were inert~~ — the shared `ErrorState.vue` now declares the
+  `retry` emit and renders a "Try again" button whenever a listener is actually wired
+  (`useAttrs().onRetry`), so every error state in the trace views became recoverable at once and a
+  call site with no listener shows no dead button.
+- ~~Nothing said what the JVM was doing *around* a trace~~ — the unified timeline (PR #167) draws
+  every thread on one axis: spans per thread, pinned pause tracks, a per-thread wait underlay in
+  the same `TraceContextCategory` colours as the waterfall's stripes, density columns instead of a
+  biased sample when a window exceeds the span cap, keyboard and deep-link (`?from&to`, `?trace=`)
+  support, and its own AI export whose preamble states the cross-section rules.
+- ~~The trace and operation views were islands~~ — why-slow findings link to the views that explain
+  them (GC → Garbage Collection, locks → Blocking Operations, I/O → the I/O views), the waterfall
+  links to its operation and the operation back to a filtered trace list (`TraceListQuery` gained
+  the operation triple), and the slowest HTTP/JDBC/gRPC/span rows all link "Show on timeline".
 - ~~Self time is computed per read, and the operation breakdown cannot have it~~ — `trace_spans`
   carries a derived `self_duration`, filled once at derivation by the same gaps-and-islands merge
   `OPERATION_INTERVALS` uses. The Java computation is gone, so there is one definition of "self"
