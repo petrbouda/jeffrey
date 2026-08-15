@@ -21,6 +21,7 @@ package cafe.jeffrey.microscope.core.web.controllers.profile;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.TraceManager;
+import cafe.jeffrey.profile.manager.model.trace.TimelineWindow;
 import cafe.jeffrey.profile.manager.model.trace.TracesPage;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.provider.profile.api.TraceListQuery;
@@ -40,6 +41,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -137,5 +140,35 @@ class TracesControllerTest {
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");
+    }
+
+    @Test
+    void aBackwardsTimelineWindowIs400NotA500() {
+        // The controller throws IllegalArgumentException; JeffreyExceptionHandler maps it — the
+        // pair this test pins down, since a raw throw would surface as a 500.
+        MockMvcTester mvc = mockMvcTesterFor(new TracesController(resolver, panelProvider));
+
+        assertThat(mvc.get().uri(TRACES_URI + "/timeline/window")
+                .param("fromEpochMicros", "2000")
+                .param("toEpochMicros", "1000"))
+                .hasStatus(400);
+    }
+
+    @Test
+    void theTimelineAiExportIsMarkdownWithAnExplicitCharset() {
+        when(resolver.resolve(PROFILE)).thenReturn(profileManager);
+        when(profileManager.traceManager()).thenReturn(traceManager);
+        when(traceManager.timelineWindow(anyLong(), anyLong(), anyInt())).thenReturn(
+                new TimelineWindow(1_000, 2_000, List.of(), List.of(), false, false, 0));
+
+        MockMvcTester mvc = mockMvcTesterFor(new TracesController(resolver, panelProvider));
+
+        assertThat(mvc.get().uri(TRACES_URI + "/timeline/ai-export")
+                .param("fromEpochMicros", "1000")
+                .param("toEpochMicros", "2000"))
+                .hasStatusOk()
+                .hasContentType("text/markdown;charset=UTF-8")
+                .bodyText()
+                .contains("How to read this timeline window");
     }
 }

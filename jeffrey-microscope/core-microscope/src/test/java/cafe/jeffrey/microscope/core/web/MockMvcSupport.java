@@ -18,11 +18,13 @@
 
 package cafe.jeffrey.microscope.core.web;
 
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 /**
@@ -69,7 +71,13 @@ public final class MockMvcSupport {
         return MockMvcTester.of(
                 Arrays.asList(controllers),
                 builder -> builder
-                        .setMessageConverters(new JacksonJsonHttpMessageConverter((JsonMapper) Json.mapper()))
+                        // The String converter mirrors production wiring: without it an endpoint
+                        // returning a plain String (the Markdown AI exports) has no writer here
+                        // and 500s in the test while working in the real app. Declared after the
+                        // JSON converter so object-returning endpoints keep negotiating JSON first.
+                        .setMessageConverters(
+                                new JacksonJsonHttpMessageConverter((JsonMapper) Json.mapper()),
+                                new StringHttpMessageConverter(StandardCharsets.UTF_8))
                         .setControllerAdvice(new JeffreyExceptionHandler())
                         .build());
     }
