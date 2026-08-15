@@ -33,8 +33,10 @@ const headings = [
   { id: 'auto-instrumented', text: 'Events That Already Carry Trace Identity', level: 2 },
   { id: 'trace-list', text: 'Trace List', level: 2 },
   { id: 'waterfall', text: 'Waterfall', level: 2 },
+  { id: 'jvm-context', text: 'Why a Trace Was Slow', level: 2 },
   { id: 'span-drill-down', text: 'Span Drill-Down', level: 2 },
   { id: 'operations', text: 'Trace Operations', level: 2 },
+  { id: 'ai-export', text: 'AI Export', level: 2 },
   { id: 'volume-control', text: 'Controlling Span Volume', level: 2 },
   { id: 'limits', text: 'Limits', level: 2 }
 ];
@@ -211,13 +213,27 @@ if (event.isEnabled()) {
 
       <h2 id="trace-list">Trace List</h2>
 
-      <p>The Traces page opens with two tiles — how many traces and spans the profile holds, how many failed, and the P95 / P99 / slowest trace duration — over a list of trace roots ranked by duration, the "which runs were slow" view. Each row carries the root operation name, a duration bar scaled to the slowest trace in the profile, the kind, the failure count when there is one, the span count, the start time and the trace id. The gutter beside a failed trace turns red, so a bad run is visible before anything is read. The list shows the fifty slowest; <a href="#operations">Trace Operations</a> is where you narrow to one endpoint or job.</p>
+      <p>The Traces page opens with two tiles — how many traces and spans the profile holds, how many failed, and the P95 / P99 / slowest trace duration — over a list of trace roots ranked by duration, the "which runs were slow" view. Each row carries the root operation name, a duration bar scaled to the slowest trace in the profile, the kind, the failure count when there is one, the span count, the start time and the trace id. The gutter beside a failed trace turns red, so a bad run is visible before anything is read.</p>
+
+      <p>The list is searched, filtered, sorted and paged <strong>on the server</strong>: a name filter, an errors-only toggle, four sort orders (duration, most recent, span count, error count), fifty rows at a time with a "load more" continuation, and a density strip above showing where in the recording the traces landed. The filter travels in the URL, so "look at the failed traces" is a link rather than a set of instructions. <a href="#operations">Trace Operations</a> is where you narrow to one endpoint or job.</p>
 
       <h2 id="waterfall">Waterfall</h2>
 
       <p>Opening a trace renders its span tree as a waterfall filling a full-screen view: indented operation names on the left, proportional duration bars on the right, positioned against the trace's own window. The trace id is kept in the URL as <code>?trace=</code> while the view is open, so a trace can still be linked to and returned to. Sub-pixel spans are clamped to a minimum width so a 200&nbsp;µs span inside a 2&nbsp;s trace stays clickable.</p>
 
-      <p>Each bar is split into <strong>self</strong> and <strong>child</strong> segments — the part of the span's duration not covered by any child, and the part that is. A parent whose bar is almost entirely child time is a pass-through; one that is mostly self time is where the work actually happened, and is the bar worth opening.</p>
+      <p>Each bar is split into <strong>self</strong> and <strong>child</strong> segments — the part of the span's duration not covered by any child, and the part that is. A parent whose bar is almost entirely child time is a pass-through; one that is mostly self time is where the work actually happened, and is the bar worth opening. Self time is computed once, at derivation, by merging each span's same-thread child windows in SQL — so the waterfall, the operation breakdown and the exports all read the same number rather than three that could drift.</p>
+
+      <h2 id="jvm-context">Why a Trace Was Slow</h2>
+
+      <p>A span's bar says it took 200&nbsp;ms; it does not say whether that was 200&nbsp;ms of computing, of waiting on a lock, or of standing still inside a GC pause — three different problems wearing the same bar. The waterfall overlays the answer, and a panel beneath it sums it up.</p>
+
+      <p><strong>On the bars</strong>: stop-the-world pauses — GC pauses and safepoints — are drawn as vertical lanes across the whole waterfall, because they stopped every span they cross. What an individual span's thread was waiting on — lock acquisition, <code>Object.wait</code>, parking, sleeping, socket and file I/O, allocation stalls, deoptimizations — is drawn as stripes on that span's own bar. A toolbar toggle switches the whole overlay off, and each category can be hidden individually; the toggles reset per trace, so one trace's tuning does not silently reshape the next.</p>
+
+      <p><strong>Under the bars</strong>, the <em>"Why was this trace slow?"</em> panel ranks where the trace's wall-clock time went, category by category, with the remainder named as <strong>own work</strong> rather than left as an unexplained gap — a breakdown that only names the waiting invites the reader to assume the rest is mystery. Each category links out to the profile view that explains it: a GC finding leads to the Garbage Collection view, a lock finding to Blocking Operations, an I/O finding to the Socket or File I/O view. Selecting a span shows the same breakdown scoped to that one span.</p>
+
+      <DocsCallout type="info">
+        <strong>Overlap, not starts-inside.</strong> A pause is attributed to a trace when their windows <em>overlap</em>: a 40&nbsp;ms collection that began 5&nbsp;ms before a span started is exactly the pause that explains it, and a starts-inside match would miss it. GC pauses and safepoints are emitted on VM threads, so this matching is thread-agnostic; the thread-scoped categories are matched against the span's own thread. Because global pauses stop every thread at once, summing a trace's categories can legitimately exceed its duration when spans ran concurrently — the panel measures against the trace's own window instead.
+      </DocsCallout>
 
       <h2 id="span-drill-down">Span Drill-Down</h2>
 
@@ -255,7 +271,7 @@ if (event.isEnabled()) {
         <strong>Where did the nested spans go?</strong> This list used to be every span name in the profile — including names, like <code>chunk.parse</code> or <code>dominator</code>, that only ever occur nested inside another span and are never a trace root. Grouping by root name instead of span name dropped one reference profile's list from 105 rows to 36. A nested span is not lost: open the trace it belongs to and find it in the <a href="#waterfall">waterfall</a>, alongside every other span in that trace's tree.
       </DocsCallout>
 
-      <p>The two tiles above the list are not scoped alike. <strong>Operations</strong> — the operation count, plus total traces and errors underneath — reads a SQL aggregate over the whole profile, uncapped. <strong>Slowest Operation</strong> is mixed: its <em>Total</em> sub-value is the same profile-wide aggregate, but the headline duration and the <em>Worst P95</em> beside it are the highest max and P95 found among the operation rows the page actually fetched (capped at 100) — there is no profile-wide aggregate that can answer "what is the slowest single operation", only one that sums or maxes across all spans at once. On a profile with more than 100 trace types, that headline can undercount.</p>
+      <p>The tiles above the list all read the same profile-wide SQL aggregate, uncapped — the operation count with total traces and errors, and the slowest-trace / P99 durations. They deliberately do not fold the fetched rows, which are capped and re-cut by every filter: a tile that changed value when you sorted the list would be lying about the profile. The list itself is searched, filtered and paged on the server like the trace list, with the filter in the URL.</p>
 
       <p>Clicking a card opens a drill-down for that operation. The selection is kept in the URL — <code>?operation=</code> with <code>&amp;kind=</code> and <code>&amp;eventType=</code> alongside it, since all three identify the type — so it can be linked to directly. It has four tabs:</p>
 
@@ -267,6 +283,17 @@ if (event.isEnabled()) {
       </ul>
 
       <p>A stale or hand-edited operation in the URL is not rejected — the drill-down opens and its own panels come back empty. The list above is capped, so a link into an operation past the cap is a valid link, and refusing it would have broken more than it caught.</p>
+
+      <h2 id="ai-export">AI Export</h2>
+
+      <p>Both the trace waterfall and an operation's drill-down carry an export button that renders what you are looking at as a single Markdown document, built for handing to an AI assistant — paste it into Claude Code, or attach the downloaded file. The document is rendered <strong>server-side</strong>, and its value is less the numbers than the preamble: each bundle opens with a "how to read this" section stating the semantics an assistant would otherwise guess wrong.</p>
+
+      <ul>
+        <li><strong>Trace bundle</strong> — the span tree with self and inclusive times, the JVM context (pauses that crossed the trace, what each thread waited on), and the ranked why-slow summary. The preamble spells out that self time is an interval merge rather than a subtraction, and that the critical path assumes children block their parent.</li>
+        <li><strong>Operation bundle</strong> — the operation's profile-wide aggregates, its per-span time breakdown in both inclusive and self terms, and its slowest runs. The preamble states the invariant worth checking: inclusive sums <em>past</em> the total (spans nest), self sums <em>to</em> it.</li>
+      </ul>
+
+      <p>Anything truncated says so inside the document — a capped list is annotated rather than silently complete. <strong>Copy for AI</strong> uses the browser clipboard, which exists only on HTTPS or localhost origins; on a plain-HTTP deployment the button becomes <em>Export for AI</em> and downloads the file instead, with the copy item explaining why it is off. Filenames lead with the operation name and are timestamped to the second, so two exports of the same thing do not overwrite each other.</p>
 
       <h2 id="volume-control">Controlling Span Volume</h2>
 
