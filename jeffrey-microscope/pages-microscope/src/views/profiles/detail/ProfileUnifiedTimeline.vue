@@ -52,7 +52,7 @@
       <p class="tl-hint">
         <b>Ctrl+scroll</b> to zoom at the cursor · <b>scroll</b> to move through the threads ·
         <b>drag</b> to pan · <b>click a span</b> to open its trace · <b>click a pool header</b> to
-        fold it
+        fold it · keyboard: <b>←→</b> pan · <b>↑↓</b> scroll · <b>+−</b> zoom · <b>Home</b> fit all
       </p>
 
       <!--
@@ -483,6 +483,12 @@ watch(
   border-radius: var(--radius-md);
   overflow: hidden;
   background: var(--color-bg-card);
+}
+
+/* The canvas is a tab stop now; a focus a keyboard user cannot see is a focus they cannot use. */
+.tl-host:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
 }
 
 .tl-overlay {

@@ -59,6 +59,12 @@ const HIT_SLOP_PX = 3;
 const TOOLTIP_OFFSET_PX = 14;
 /** Extra rows of forgiveness above the minimap strip, which is only a few pixels tall. */
 const MINIMAP_HIT_SLOP_PX = 6;
+/** How much of the window one arrow press pans — a step, visibly a move, far from a jump. */
+const KEY_PAN_FRACTION = 0.1;
+/** One +/− press zooms by this factor, roughly three wheel notches. */
+const KEY_ZOOM_FACTOR = 0.8;
+/** One ↑/↓ press scrolls this many pixels of rows; PageUp/Down uses the stage height instead. */
+const KEY_SCROLL_PX = 48;
 
 export interface TimelineCanvasOptions {
   bounds: Viewport;
@@ -221,7 +227,63 @@ export default class TimelineCanvas {
     container.style.cursor = 'grab';
     // Without this the browser claims touch gestures for native scrolling and cancels the drag.
     container.style.touchAction = 'none';
+
+    // The canvas is an interactive surface, so it must be reachable and drivable without a
+    // pointer — before this, the whole view was invisible to the keyboard.
+    container.tabIndex = 0;
+    container.setAttribute('role', 'application');
+    container.setAttribute(
+      'aria-label',
+      'Unified timeline. Arrow keys pan and scroll, plus and minus zoom, Home fits the whole recording.'
+    );
+    container.addEventListener('keydown', this.onKeyDown);
   }
+
+  private readonly onKeyDown = (event: KeyboardEvent): void => {
+    const plot = this.plotWidth();
+    const windowMicros = this.view.to - this.view.from;
+    switch (event.key) {
+      case 'ArrowLeft':
+      case 'ArrowRight': {
+        const direction = event.key === 'ArrowLeft' ? 1 : -1;
+        const pixels = direction * plot * KEY_PAN_FRACTION;
+        this.view = panByPixels(this.view, pixels, plot, this.options.bounds);
+        break;
+      }
+      case '+':
+      case '=':
+      case '-': {
+        const factor = event.key === '-' ? 1 / KEY_ZOOM_FACTOR : KEY_ZOOM_FACTOR;
+        const centre = this.view.from + windowMicros / 2;
+        this.view = zoomAt(this.view, centre, factor, this.options.bounds);
+        break;
+      }
+      case 'ArrowUp':
+      case 'ArrowDown': {
+        const direction = event.key === 'ArrowUp' ? -1 : 1;
+        this.setScroll(this.scrollY + direction * KEY_SCROLL_PX);
+        event.preventDefault();
+        return;
+      }
+      case 'PageUp':
+      case 'PageDown': {
+        const direction = event.key === 'PageUp' ? -1 : 1;
+        this.setScroll(this.scrollY + direction * this.stage.height());
+        event.preventDefault();
+        return;
+      }
+      case 'Home': {
+        this.view = { ...this.options.bounds };
+        break;
+      }
+      default: {
+        return;
+      }
+    }
+    event.preventDefault();
+    this.draw();
+    this.options.onViewportChanged(this.view);
+  };
 
   /**
    * Perfetto's wheel contract, because it is the one deep-timeline readers already know: a bare
