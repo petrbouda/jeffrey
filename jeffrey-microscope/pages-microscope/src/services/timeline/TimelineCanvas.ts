@@ -89,7 +89,7 @@ export default class TimelineCanvas {
   private readonly stage: Konva.Stage;
   private readonly layer: Konva.Layer;
   private readonly tooltip: HTMLDivElement;
-  private readonly host: HTMLElement;
+  private readonly host: HTMLDivElement;
   private readonly options: TimelineCanvasOptions;
   private readonly resizeObserver: ResizeObserver;
 
@@ -108,7 +108,7 @@ export default class TimelineCanvas {
   private dragStartX = 0;
   private dragMoved = false;
 
-  constructor(host: HTMLElement, options: TimelineCanvasOptions) {
+  constructor(host: HTMLDivElement, options: TimelineCanvasOptions) {
     this.host = host;
     this.options = options;
     this.view = { ...options.viewport };
