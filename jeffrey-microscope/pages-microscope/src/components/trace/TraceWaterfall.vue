@@ -39,6 +39,16 @@
         <i :class="allCollapsed ? 'bi bi-arrows-expand' : 'bi bi-arrows-collapse'"></i>
         {{ allCollapsed ? 'Expand all' : 'Collapse all' }}
       </button>
+      <button
+        type="button"
+        class="wf-toggle"
+        :class="{ active: contextCategories.length > 0 && !allContextHidden }"
+        :disabled="contextCategories.length === 0"
+        :title="contextToggleTitle"
+        @click="toggleAllContext"
+      >
+        <i class="bi bi-cpu"></i> JVM context
+      </button>
       <span class="wf-count">{{ rowCountLabel }}</span>
     </div>
 
@@ -111,76 +121,82 @@
         <span></span>
       </div>
 
-    <template v-for="span in rows" :key="span.spanId">
-      <button
-        type="button"
-        class="wf-row"
-        :class="{ selected: span.spanId === selectedSpanId, critical: isCritical(span) }"
-        :aria-expanded="span.spanId === selectedSpanId"
-        :data-span-id="span.spanId"
-        @click="$emit('select', span)"
-        @keydown="onRowKeydown($event, span)"
-      >
-        <span class="wf-name">
-          <span class="wf-indent" :style="{ width: indentRem(span.depth) + 'rem' }"></span>
-          <!--
+      <template v-for="span in rows" :key="span.spanId">
+        <button
+          type="button"
+          class="wf-row"
+          :class="{ selected: span.spanId === selectedSpanId, critical: isCritical(span) }"
+          :aria-expanded="span.spanId === selectedSpanId"
+          :data-span-id="span.spanId"
+          @click="$emit('select', span)"
+          @keydown="onRowKeydown($event, span)"
+        >
+          <span class="wf-name">
+            <span class="wf-indent" :style="{ width: indentRem(span.depth) + 'rem' }"></span>
+            <!--
             The twistie is a span, not a nested button: the row itself is the button, and nesting one
             inside another is invalid markup that browsers resolve by dropping it. Clicks are stopped
             here so folding a subtree does not also select the row.
           -->
-          <span
-            v-if="parents.has(span.spanId)"
-            class="wf-twist"
-            role="presentation"
-            :title="twistTitle(span)"
-            @click.stop="toggleCollapsed(span.spanId)"
-          >
-            <i :class="collapsed.has(span.spanId) ? 'bi bi-caret-right-fill' : 'bi bi-caret-down-fill'"></i>
-          </span>
-          <span v-else class="wf-twist is-leaf"></span>
-          <span class="wf-kind" :class="kindClass(span)"></span>
-          <span class="wf-label" :title="span.name">{{ span.name }}</span>
-          <Badge v-if="span.status === 'ERROR'" variant="danger" size="xs" value="error" />
-          <span v-if="collapsed.has(span.spanId)" class="wf-folded">
-            +{{ foldedCounts.get(span.spanId) ?? 0 }}
-          </span>
-        </span>
-
-        <span class="wf-track">
-          <span
-            class="wf-bar"
-            :class="barClass(span)"
-            :style="barStyle(span)"
-            :title="tooltip(span)"
-          >
             <span
-              v-for="(segment, index) in bar(span).selfSegments"
-              :key="index"
-              class="wf-self"
-              :style="{ left: segment.leftPercent + '%', width: segment.widthPercent + '%' }"
-            ></span>
+              v-if="parents.has(span.spanId)"
+              class="wf-twist"
+              role="presentation"
+              :title="twistTitle(span)"
+              @click.stop="toggleCollapsed(span.spanId)"
+            >
+              <i
+                :class="
+                  collapsed.has(span.spanId) ? 'bi bi-caret-right-fill' : 'bi bi-caret-down-fill'
+                "
+              ></i>
+            </span>
+            <span v-else class="wf-twist is-leaf"></span>
+            <span class="wf-kind" :class="kindClass(span)"></span>
+            <span class="wf-label" :title="span.name">{{ span.name }}</span>
+            <Badge v-if="span.status === 'ERROR'" variant="danger" size="xs" value="error" />
+            <span v-if="collapsed.has(span.spanId)" class="wf-folded">
+              +{{ foldedCounts.get(span.spanId) ?? 0 }}
+            </span>
           </span>
-        </span>
 
-        <span class="wf-duration">{{ FormattingService.formatDuration2Units(span.durationNanos) }}</span>
-      </button>
+          <span class="wf-track">
+            <span
+              class="wf-bar"
+              :class="barClass(span)"
+              :style="barStyle(span)"
+              :title="tooltip(span)"
+            >
+              <span
+                v-for="(segment, index) in bar(span).selfSegments"
+                :key="index"
+                class="wf-self"
+                :style="{ left: segment.leftPercent + '%', width: segment.widthPercent + '%' }"
+              ></span>
+            </span>
+          </span>
 
-      <!--
+          <span class="wf-duration">{{
+            FormattingService.formatDuration2Units(span.durationNanos)
+          }}</span>
+        </button>
+
+        <!--
         The detail belongs to the row above it, so it is drawn as the next row rather than in a panel
         under the waterfall: on a trace of twenty-odd spans, a panel at the bottom scrolls the bar
         that was clicked out of view, which is the one thing the reader is comparing against.
       -->
-      <TraceSpanInlineDetail
-        v-if="span.spanId === selectedSpanId"
-        :span="span"
-        :fields="eventFields[span.eventType] ?? []"
-        :child-count="childCounts.get(span.spanId) ?? 0"
-        :trace-duration-nanos="windowNanos"
-        :waits="context?.spanWaits?.[span.spanId] ?? []"
-        @view-events="$emit('viewEvents')"
-        @view-flamegraph="$emit('viewFlamegraph')"
-      />
-    </template>
+        <TraceSpanInlineDetail
+          v-if="span.spanId === selectedSpanId"
+          :span="span"
+          :fields="eventFields[span.eventType] ?? []"
+          :child-count="childCounts.get(span.spanId) ?? 0"
+          :trace-duration-nanos="windowNanos"
+          :waits="context?.spanWaits?.[span.spanId] ?? []"
+          @view-events="$emit('viewEvents')"
+          @view-flamegraph="$emit('viewFlamegraph')"
+        />
+      </template>
 
       <EmptyState
         v-if="rows.length === 0"
@@ -194,10 +210,23 @@
       <span><i class="swatch swatch-self"></i> self time</span>
       <span><i class="swatch swatch-children"></i> time in children</span>
       <span><i class="swatch swatch-critical"></i> on the critical path</span>
-      <span v-for="lane in laneGroups" :key="lane.category">
-        <i class="swatch" :style="{ background: contextColor(lane.category) }"></i>
-        {{ contextLabel(lane.category) }}
-      </span>
+      <!--
+        These entries filter rather than describe, so they are real buttons and are styled to look
+        clickable — a legend where half the items respond to a click and all of them look alike
+        teaches the reader nothing until they try one.
+      -->
+      <button
+        v-for="category in contextCategories"
+        :key="category"
+        type="button"
+        class="legend-toggle"
+        :class="{ off: !isContextVisible(category) }"
+        :title="`${isContextVisible(category) ? 'Hide' : 'Show'} ${contextLabel(category)}`"
+        @click="toggleContextCategory(category)"
+      >
+        <i class="swatch" :style="{ background: contextColor(category) }"></i>
+        {{ contextLabel(category) }}
+      </button>
       <span><i class="swatch swatch-server"></i> server</span>
       <span><i class="swatch swatch-client"></i> client</span>
       <span><i class="swatch swatch-internal"></i> internal</span>
@@ -212,7 +241,11 @@ import Badge from '@shared/components/Badge.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import FormattingService from '@shared/services/FormattingService';
 import TraceSpanInlineDetail from '@/components/trace/TraceSpanInlineDetail.vue';
-import type { EventFieldRow, TraceContext, TraceSpanRow } from '@/services/api/model/trace/TraceModels';
+import type {
+  EventFieldRow,
+  TraceContext,
+  TraceSpanRow
+} from '@/services/api/model/trace/TraceModels';
 import type { SpanBar } from '@/services/trace/TraceWaterfallLayout';
 import { indentRem, traceWindow, waterfallBars } from '@/services/trace/TraceWaterfallLayout';
 import { descendantCounts, spansWithChildren, visibleSpans } from '@/services/trace/traceTree';
@@ -241,19 +274,22 @@ const emit = defineEmits<{
   (event: 'viewFlamegraph'): void;
 }>();
 
-
 /** A span with no geometry cannot happen for a span that is being drawn, but must not throw. */
 const EMPTY_BAR: SpanBar = { leftPercent: 0, widthPercent: 0, selfSegments: [] };
 
 const collapsed = ref<Set<string>>(new Set());
 const criticalOnly = ref(false);
+/** Context categories the reader has switched off, by name. Empty means everything is drawn. */
+const hiddenCategories = ref<Set<string>>(new Set());
 
-// A different trace is a different tree, so nothing folded in the last one still applies.
+// A different trace is a different tree, so nothing folded in the last one still applies -- and it
+// crossed different pauses, so carrying a hide over would drop bands nobody chose to drop.
 watch(
   () => props.spans,
   () => {
     collapsed.value = new Set();
     criticalOnly.value = false;
+    hiddenCategories.value = new Set();
   }
 );
 
@@ -264,11 +300,61 @@ const windowNanos = computed(() => {
 
 const parents = computed(() => spansWithChildren(props.spans));
 
-const bands = computed(() =>
+const allBands = computed(() =>
   contextBands(props.context?.pauses ?? [], traceWindow(props.spans))
 );
 
+/**
+ * Every category the trace recorded, hidden or not — the legend is driven from this rather than from
+ * what is currently drawn, or hiding a category would take away the control that brings it back.
+ */
+const contextCategories = computed(() => bandLanes(allBands.value).map(lane => lane.category));
+
+const bands = computed(() =>
+  allBands.value.filter(band => !hiddenCategories.value.has(band.category))
+);
+
 const laneGroups = computed(() => bandLanes(bands.value));
+
+/**
+ * Derived rather than kept as its own flag, the way {@link allCollapsed} is. A separate boolean would
+ * allow the state where the master reads "on" while every category is individually hidden — looking
+ * off and saying on.
+ */
+const allContextHidden = computed(
+  () => contextCategories.value.length > 0 && bands.value.length === 0
+);
+
+function isContextVisible(category: string): boolean {
+  return !hiddenCategories.value.has(category);
+}
+
+function toggleContextCategory(category: string): void {
+  const hidden = new Set(hiddenCategories.value);
+  if (hidden.has(category)) {
+    hidden.delete(category);
+  } else {
+    hidden.add(category);
+  }
+  hiddenCategories.value = hidden;
+}
+
+function toggleAllContext(): void {
+  if (allContextHidden.value) {
+    hiddenCategories.value = new Set();
+  } else {
+    hiddenCategories.value = new Set(contextCategories.value);
+  }
+}
+
+const contextToggleTitle = computed(() => {
+  if (contextCategories.value.length === 0) {
+    return 'No GC pauses or safepoints crossed this trace';
+  }
+  return allContextHidden.value
+    ? 'Show the GC pauses and safepoints that crossed this trace'
+    : 'Hide the pause bands drawn over the spans';
+});
 
 // Counted once for the whole trace, like the bars and the child counts below: every parent row asks
 // for this on each render, and answering per row would rescan the trace for each of them.
@@ -292,7 +378,7 @@ const rows = computed(() => {
  * critical path — correct, but it makes the toggle a no-op, so it is disabled rather than left to
  * look broken.
  */
-const hasOffPathSpans = computed(() => props.spans.some((span) => !isCritical(span)));
+const hasOffPathSpans = computed(() => props.spans.some(span => !isCritical(span)));
 
 const criticalOnlyTitle = computed(() => {
   if (!hasOffPathSpans.value) {
@@ -406,7 +492,7 @@ function onRowKeydown(event: KeyboardEvent, span: TraceSpanRow): void {
     return;
   }
 
-  const index = rows.value.findIndex((row) => row.spanId === span.spanId);
+  const index = rows.value.findIndex(row => row.spanId === span.spanId);
   const next = rows.value[index + (event.key === 'ArrowDown' ? 1 : -1)];
   if (next === undefined) {
     return;
@@ -824,6 +910,45 @@ function tooltip(span: TraceSpanRow): string {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
+}
+
+/*
+ * The filtering entries. Given a border and a hit area the descriptive swatches beside them do not
+ * have, so the two kinds are told apart before the click rather than by it.
+ */
+.legend-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.legend-toggle:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.legend-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+/* Switched off: the row stays legible as a control, and its swatch stops asserting a colour. */
+.legend-toggle.off {
+  color: var(--color-text-light);
+  text-decoration: line-through;
+}
+
+.legend-toggle.off .swatch {
+  opacity: 0.3;
 }
 
 .swatch {
