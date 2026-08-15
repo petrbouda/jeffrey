@@ -19,6 +19,7 @@
 package cafe.jeffrey.microscope.core.web.controllers.profile;
 
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
+import cafe.jeffrey.profile.ai.trace.TimelineWindowAiMarkdownBuilder;
 import cafe.jeffrey.profile.ai.trace.TraceAiMarkdownBuilder;
 import cafe.jeffrey.profile.ai.trace.TraceOperationAiMarkdownBuilder;
 import cafe.jeffrey.profile.common.config.GraphParameters;
@@ -100,6 +101,12 @@ public class TracesController {
     private static final int AI_EXPORT_SPANS_LIMIT = 40;
     /** Exemplars to name at the end of an operation bundle, as candidates to export individually. */
     private static final int AI_EXPORT_EXEMPLARS_LIMIT = 10;
+    /**
+     * Span cap for a timeline bundle, tighter than the canvas's: the builder lists only each
+     * thread's longest spans anyway, and past this the window flips to the honest density shape
+     * the builder also knows how to describe.
+     */
+    private static final int AI_EXPORT_TIMELINE_SPANS_LIMIT = 2_000;
     /**
      * Spans per timeline viewport. Enough that a normally busy window is drawn whole, and far fewer
      * than a canvas can usefully show — past this the reader is told the window was capped rather
@@ -277,6 +284,32 @@ public class TracesController {
         }
         return resolver.resolve(profileId).traceManager()
                 .timelineWindow(fromEpochMicros, toEpochMicros, boundedLimit(spanLimit));
+    }
+
+    /**
+     * One timeline window rendered as Markdown for an AI to read — the pauses, the busiest threads
+     * with their spans and waits, and a preamble stating the cross-section rules (pauses are global,
+     * waits are thread-scoped, a window is not a population).
+     * <p>
+     * Sits under the literal {@code /timeline} prefix like its sibling above, out of the
+     * {@code /{traceId}} template's reach.
+     */
+    @GetMapping(value = "/timeline/ai-export", produces = MARKDOWN_MEDIA_TYPE)
+    public String timelineAiExport(
+            @PathVariable("profileId") String profileId,
+            @RequestParam("fromEpochMicros") long fromEpochMicros,
+            @RequestParam("toEpochMicros") long toEpochMicros) {
+        LOG.debug("Generating a timeline AI export: profile_id={} from_us={} to_us={}",
+                profileId, fromEpochMicros, toEpochMicros);
+
+        if (toEpochMicros <= fromEpochMicros) {
+            throw new IllegalArgumentException(
+                    "The timeline window must end after it starts: from=" + fromEpochMicros
+                            + " to=" + toEpochMicros);
+        }
+        TimelineWindow window = resolver.resolve(profileId).traceManager()
+                .timelineWindow(fromEpochMicros, toEpochMicros, AI_EXPORT_TIMELINE_SPANS_LIMIT);
+        return new TimelineWindowAiMarkdownBuilder(window).build();
     }
 
     /**

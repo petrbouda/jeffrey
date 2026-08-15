@@ -50,6 +50,12 @@
               <button type="button" class="tl-btn" :disabled="isFullView" @click="resetView">
                 <i class="bi bi-arrows-angle-expand"></i> Fit all
               </button>
+              <AiExportButton
+                :build-source="buildAiExportSource"
+                tooltip="Export what is on screen — this window's pauses, threads and waits — for AI analysis"
+                :disabled="!timelineWindow"
+                disabled-tooltip="Waiting for the timeline to load"
+              />
             </div>
           </template>
         </MainCardHeader>
@@ -120,7 +126,10 @@ import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 
 import TraceSpansModal from '@/components/trace/TraceSpansModal.vue';
+import AiExportButton from '@/components/ai-analysis/AiExportButton.vue';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
+import TraceAiExportClient from '@/services/api/TraceAiExportClient';
+import type { AiExportSource } from '@/composables/useAiExport';
 import { profileStore } from '@/stores/profileStore';
 import TimelineCanvas from '@/services/timeline/TimelineCanvas';
 import { TIMELINE_LEGEND } from '@/services/timeline/timelineTheme';
@@ -289,6 +298,26 @@ function resetView(): void {
 
 function zoomIn(): void {
   canvas?.zoomIn();
+}
+
+/**
+ * Exports whatever window is on screen at click time — the source closes over the live viewport,
+ * so panning after opening the menu still exports what the reader is looking at. The filename
+ * carries the window's offsets in seconds, which is how a person tells two windows apart.
+ */
+function buildAiExportSource(): AiExportSource | null {
+  if (!timelineWindow.value) {
+    return null;
+  }
+  const from = view.value.from;
+  const to = view.value.to;
+  const fromSeconds = Math.round((from - bounds.value.from) / 1_000_000);
+  const toSeconds = Math.round((to - bounds.value.from) / 1_000_000);
+  return {
+    fetch: () => new TraceAiExportClient(props.profileId).generateTimelineWindow(from, to),
+    label: 'Timeline window',
+    filenameStem: `timeline-${fromSeconds}s-${toSeconds}s`
+  };
 }
 
 function openTrace(traceId: string, spanName: string): void {
