@@ -170,9 +170,21 @@ const listLoading = ref(false);
 const listError = ref<string | null>(null);
 const error = ref<string | null>(null);
 
-const search = ref('');
-const errorsOnly = ref(false);
-const sort = ref<TraceSortField>('DURATION');
+const SORT_FIELDS = new Set<string>(['DURATION', 'START', 'SPAN_COUNT', 'ERROR_COUNT']);
+const DEFAULT_SORT: TraceSortField = 'DURATION';
+
+/*
+ * The filter lives in the URL, so a filtered list is shareable — "look at the failed traces" is a
+ * link, not a set of instructions to reproduce. Seeded here, mirrored back by the watcher below.
+ */
+const initialQuery = route.query;
+const search = ref((initialQuery.q as string | undefined) ?? '');
+const errorsOnly = ref(initialQuery.errors === '1');
+const sort = ref<TraceSortField>(
+  SORT_FIELDS.has(initialQuery.sort as string)
+    ? (initialQuery.sort as TraceSortField)
+    : DEFAULT_SORT
+);
 
 const selectedTrace = ref<TraceRow | null>(null);
 const spansShow = ref(false);
@@ -212,8 +224,11 @@ function openTrace(trace: TraceRow): void {
   selectedTrace.value = trace;
   spansShow.value = true;
   // The id lives in the URL while the modal is open, so a trace can still be linked to and returned
-  // to -- the one thing the routed detail page gave that a modal on its own would not.
-  router.replace({ query: { ...route.query, trace: trace.traceId } });
+  // to -- the one thing the routed detail page gave that a modal on its own would not. Pushed, not
+  // replaced: opening a trace is a navigation, and Back is how a dialog is expected to close --
+  // the sibling operations page already pushes its drill-down, and Back behaving differently on
+  // two pages that look the same is a trap.
+  router.push({ query: { ...route.query, trace: trace.traceId } });
 }
 
 // Closing the modal takes the trace back out of the URL, so a reload does not reopen it.
@@ -293,9 +308,35 @@ function loadMore(): void {
  */
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 watch([search, errorsOnly, sort], () => {
+  syncFilterQuery();
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => loadPage(0), SEARCH_DEBOUNCE_MILLIS);
 });
+
+/**
+ * Mirrors the filter into the URL. Replaced, not pushed — a filter is view state, and Back should
+ * step out of the page, not backspace through a search term. Defaults are left out so an unfiltered
+ * link stays clean.
+ */
+function syncFilterQuery(): void {
+  const next = { ...route.query };
+  if (search.value) {
+    next.q = search.value;
+  } else {
+    delete next.q;
+  }
+  if (errorsOnly.value) {
+    next.errors = '1';
+  } else {
+    delete next.errors;
+  }
+  if (sort.value !== DEFAULT_SORT) {
+    next.sort = sort.value;
+  } else {
+    delete next.sort;
+  }
+  router.replace({ query: next });
+}
 
 onUnmounted(() => clearTimeout(searchTimer));
 

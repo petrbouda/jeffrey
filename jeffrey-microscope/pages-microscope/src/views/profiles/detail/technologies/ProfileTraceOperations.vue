@@ -153,9 +153,21 @@ const listLoading = ref(false);
 const listError = ref<string | null>(null);
 const error = ref<string | null>(null);
 
-const search = ref('');
-const errorsOnly = ref(false);
-const sortKey = ref<TraceOperationSortKey>('TOTAL_TIME');
+const SORT_KEYS = new Set<string>(['TOTAL_TIME', 'P95', 'P99', 'MAX', 'COUNT', 'ERRORS']);
+const DEFAULT_SORT: TraceOperationSortKey = 'TOTAL_TIME';
+
+/*
+ * The filter lives in the URL, so a filtered list is shareable — same contract as the sibling
+ * Slowest Traces page. Seeded here, mirrored back by the watcher below.
+ */
+const initialQuery = route.query;
+const search = ref((initialQuery.q as string | undefined) ?? '');
+const errorsOnly = ref(initialQuery.errors === '1');
+const sortKey = ref<TraceOperationSortKey>(
+  SORT_KEYS.has(initialQuery.sort as string)
+    ? (initialQuery.sort as TraceOperationSortKey)
+    : DEFAULT_SORT
+);
 
 /**
  * Whether the profile holds no traces at all, as opposed to none matching the filter — only the
@@ -197,9 +209,12 @@ const selectedTotals = computed<TraceOperationRow | null>(() => {
 });
 
 function openOperation(operation: TraceOperationRow): void {
+  // Any lingering ?tab= belongs to a previously viewed operation, not this one.
+  const query = { ...route.query };
+  delete query.tab;
   router.push({
     query: {
-      ...route.query,
+      ...query,
       operation: operation.name,
       kind: operation.kind,
       eventType: operation.eventType
@@ -212,6 +227,7 @@ function clearSelection(): void {
   delete query.operation;
   delete query.kind;
   delete query.eventType;
+  delete query.tab;
   router.push({ query });
 }
 
@@ -261,9 +277,35 @@ function changeSort(key: TraceOperationSortKey): void {
 // sharing one watcher keeps the refetch in a single place.
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 watch([search, errorsOnly, sortKey], () => {
+  syncFilterQuery();
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => loadPage(0), SEARCH_DEBOUNCE_MILLIS);
 });
+
+/**
+ * Mirrors the filter into the URL. Replaced, not pushed — a filter is view state, and Back should
+ * step out of the page, not backspace through a search term. Defaults are left out so an unfiltered
+ * link stays clean.
+ */
+function syncFilterQuery(): void {
+  const next = { ...route.query };
+  if (search.value) {
+    next.q = search.value;
+  } else {
+    delete next.q;
+  }
+  if (errorsOnly.value) {
+    next.errors = '1';
+  } else {
+    delete next.errors;
+  }
+  if (sortKey.value !== DEFAULT_SORT) {
+    next.sort = sortKey.value;
+  } else {
+    delete next.sort;
+  }
+  router.replace({ query: next });
+}
 
 onUnmounted(() => clearTimeout(searchTimer));
 

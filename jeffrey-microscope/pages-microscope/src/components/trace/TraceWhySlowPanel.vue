@@ -41,6 +41,20 @@
       <span class="why-value">{{ FormattingService.formatDuration2Units(slice.totalNanos) }}</span>
       <span class="why-percent">{{ percentOf(slice) }}</span>
       <span class="why-count">{{ occurrenceLabel(slice) }}</span>
+      <!--
+        The edge from the finding to the view that explains it: this panel says "800ms went to GC"
+        and stops, but the profile has a whole view about that GC. Without the link the reader is
+        told the culprit and left to find its page in the sidebar themselves.
+      -->
+      <router-link
+        v-if="explainingRoute(slice.category)"
+        class="why-goto"
+        :to="{ name: explainingRoute(slice.category)!, params: { profileId } }"
+        :title="`Open the view that explains ${contextLabel(slice.category)}`"
+      >
+        <i class="bi bi-box-arrow-up-right"></i>
+      </router-link>
+      <span v-else class="why-goto"></span>
     </div>
 
     <p class="why-foot">
@@ -53,7 +67,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
-import { contextColor, contextLabel } from '@/services/trace/traceLabels';
+import { contextColor, contextExplainingRoute, contextLabel } from '@/services/trace/traceLabels';
 import type { TraceContextSlice } from '@/services/api/model/trace/TraceModels';
 
 /** Below this a share rounds to 0%, where the duration itself says more than the percentage. */
@@ -63,7 +77,11 @@ const props = defineProps<{
   slices: TraceContextSlice[];
   /** The trace's end-to-end duration, which the percentages are taken against. */
   traceDurationNanos: number;
+  /** For the per-category links out to the views that explain the findings. */
+  profileId: string;
 }>();
+
+const explainingRoute = contextExplainingRoute;
 
 /**
  * Longest first, with anything that came to nothing dropped. A category the JVM recorded zero of is
@@ -116,9 +134,28 @@ function occurrenceLabel(slice: TraceContextSlice): string {
 
 .why-row {
   display: grid;
-  grid-template-columns: 8.5rem 1fr 5rem 3rem 5.5rem;
+  grid-template-columns: 8.5rem 1fr 5rem 3rem 5.5rem 1.2rem;
   align-items: center;
   gap: 0.6rem;
+}
+
+.why-goto {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+}
+
+a.why-goto:hover {
+  color: var(--color-primary);
+}
+
+a.why-goto:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+  border-radius: var(--radius-xs);
 }
 
 .why-name {

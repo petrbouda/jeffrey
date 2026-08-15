@@ -89,11 +89,13 @@
         GenericModal renders in place rather than teleporting. Nested inside a hidden `v-show` it
         would mount invisibly, lock body scroll, and put its own dismiss handlers out of reach.
       -->
+      <!-- No operation link in the modal here: it would point at this very page. -->
       <TraceSpansModal
         v-model:show="spansShow"
         :profile-id="profileId"
         :trace-id="selectedTrace?.traceId ?? ''"
         :root-name="selectedTrace?.rootName ?? ''"
+        :with-operation-link="false"
       />
     </template>
   </div>
@@ -173,7 +175,30 @@ const recordingSpan = computed(() => {
   const window = profileStore.recordingWindow.value;
   return window === null ? undefined : { from: 0, to: window.durationMillis };
 });
-const activeTab = ref('summary');
+const TAB_IDS = new Set(['summary', 'flames', 'timeline', 'slowest']);
+
+/**
+ * Seeded from the URL so a shared link lands on the tab its sender was looking at, not always on
+ * the summary. An unknown value falls back rather than rendering an empty pane.
+ */
+function initialTab(): string {
+  const tab = route.query.tab as string | undefined;
+  return tab !== undefined && TAB_IDS.has(tab) ? tab : 'summary';
+}
+
+const activeTab = ref(initialTab());
+
+// Replaced, not pushed: switching tabs is view state, and putting every switch in history would
+// make Back walk through tabs before it steps out of the operation.
+watch(activeTab, tab => {
+  const query = { ...route.query };
+  if (tab === 'summary') {
+    delete query.tab;
+  } else {
+    query.tab = tab;
+  }
+  router.replace({ query });
+});
 
 /*
  * The Flamegraphs tab fetches its panels on mount, and it is the only tab that fetches anything the
@@ -197,8 +222,9 @@ function openTrace(trace: TraceRow): void {
   spansShow.value = true;
   // The id joins the operation already in the URL, so a waterfall reached through an operation is
   // as linkable as one reached from the trace list -- it is the same modal either way, and it used
-  // to be shareable from only one of the two places it opens.
-  router.replace({ query: { ...route.query, trace: trace.traceId } });
+  // to be shareable from only one of the two places it opens. Pushed so Back closes the dialog,
+  // matching how the operation itself was entered.
+  router.push({ query: { ...route.query, trace: trace.traceId } });
 }
 
 // Closing takes the trace back out again, so returning to the link does not reopen it.

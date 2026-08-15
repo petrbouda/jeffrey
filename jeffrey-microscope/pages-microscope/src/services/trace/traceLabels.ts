@@ -57,6 +57,31 @@ export const CONTEXT_CATEGORIES: Record<string, { label: string; color: string }
   OWN_WORK: { label: 'Own work', color: 'var(--flamegraph-color-green)' }
 };
 
+/**
+ * The profile view that explains each category, as a route name. The why-slow panel names a culprit
+ * — "this trace lost 800ms to GC" — and every culprit has a whole view dedicated to it elsewhere in
+ * the profile; this is the edge between the finding and the place that explains it.
+ *
+ * OWN_WORK is deliberately absent: the trace's own code is explained by the trace itself.
+ */
+const CONTEXT_EXPLAINING_ROUTES: Record<string, string> = {
+  GC_PAUSE: 'profile-garbage-collection',
+  SAFEPOINT: 'profile-vm-operations',
+  MONITOR_BLOCKED: 'profile-blocking-operations',
+  MONITOR_WAIT: 'profile-blocking-operations',
+  PARKED: 'profile-threads-timeline',
+  SLEEPING: 'profile-threads-timeline',
+  SOCKET_IO: 'profile-socket-io',
+  FILE_IO: 'profile-file-io',
+  ALLOCATION_STALL: 'profile-allocations',
+  DEOPTIMIZATION: 'profile-jit-deoptimizations'
+};
+
+/** The route name of the view that explains a category, or null for one that has no such view. */
+export function contextExplainingRoute(category: string): string | null {
+  return CONTEXT_EXPLAINING_ROUTES[category] ?? null;
+}
+
 /** A category's display name, falling back to the raw name for one this build does not know. */
 export function contextLabel(category: string): string {
   return CONTEXT_CATEGORIES[category]?.label ?? category;

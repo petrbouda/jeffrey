@@ -30,16 +30,26 @@
     <div v-if="show" class="trace-spans">
       <div class="trace-meta">
         <MetaChips :chips="chips" />
-        <!--
-          Beside the trace's own facts rather than in the waterfall toolbar: it exports the whole
-          trace, not the view of it, so it should not sit among the controls that change that view.
-        -->
-        <AiExportButton
-          :build-source="buildAiExportSource"
-          tooltip="Export this trace for AI analysis"
-          :disabled="!detail"
-          disabled-tooltip="Waiting for the trace to load"
-        />
+        <div class="trace-actions">
+          <!--
+            The edge from one trace to all of its kind: this dialog answers "why was THIS one slow",
+            and the operation page answers "is it always like this" — the natural next question, and
+            previously unreachable from here without retyping the name into another page's filter.
+          -->
+          <router-link v-if="operationLink" class="trace-op-link" :to="operationLink">
+            <i class="bi bi-bar-chart-steps"></i> All {{ detail?.trace?.rootName }} traces
+          </router-link>
+          <!--
+            Beside the trace's own facts rather than in the waterfall toolbar: it exports the whole
+            trace, not the view of it, so it should not sit among the controls that change that view.
+          -->
+          <AiExportButton
+            :build-source="buildAiExportSource"
+            tooltip="Export this trace for AI analysis"
+            :disabled="!detail"
+            disabled-tooltip="Waiting for the trace to load"
+          />
+        </div>
       </div>
 
       <LoadingState v-if="loading" message="Loading trace..." />
@@ -172,6 +182,7 @@
             v-if="hasContextFindings"
             :slices="context?.summary ?? []"
             :trace-duration-nanos="detail.trace.durationNanos"
+            :profile-id="profileId"
           />
           <p v-else-if="contextState === 'loading'" class="context-note">
             Attributing this trace's time to GC, locks and I/O…
@@ -228,13 +239,21 @@ import type {
 
 const TRACE_FG_SCROLL_ID = 'trace-fg-scroll';
 
-const props = defineProps<{
-  show: boolean;
-  profileId: string;
-  traceId: string;
-  /** Known from the row that opened the modal, so the header reads right before the fetch lands. */
-  rootName: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    show: boolean;
+    profileId: string;
+    traceId: string;
+    /** Known from the row that opened the modal, so the header reads right before the fetch lands. */
+    rootName: string;
+    /**
+     * Off when the modal is opened from the operation's own detail page, where "all traces of this
+     * kind" is a link to exactly where the reader already stands.
+     */
+    withOperationLink?: boolean;
+  }>(),
+  { withOperationLink: true }
+);
 
 defineEmits<{ (event: 'update:show', value: boolean): void }>();
 
@@ -334,6 +353,23 @@ const topCriticalSpan = computed<TraceSpanRow | null>(() => {
     }
   }
   return leader;
+});
+
+/**
+ * The deep link to this trace's operation on the operations page, carrying the full identifying
+ * triple — the name alone would resolve an inbound and an outbound call of the same name to
+ * whichever came first. Null until the trace loads, since the triple comes from it.
+ */
+const operationLink = computed(() => {
+  const trace = detail.value?.trace;
+  if (!trace || !props.withOperationLink) {
+    return null;
+  }
+  return {
+    name: 'profile-technologies-traces-operations',
+    params: { profileId: props.profileId },
+    query: { operation: trace.rootName, kind: trace.rootKind, eventType: trace.rootEventType }
+  };
 });
 
 function percentOfTrace(part: number, whole: number): string {
@@ -626,13 +662,43 @@ watch(
   color: var(--color-dark);
 }
 
-/* The trace's own facts on the left, the action on the right. */
+/* The trace's own facts on the left, the actions on the right. */
 .trace-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+.trace-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.trace-op-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.trace-op-link:hover {
+  border-color: var(--color-primary);
+}
+
+.trace-op-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
 }
 
 .trace-spans {
