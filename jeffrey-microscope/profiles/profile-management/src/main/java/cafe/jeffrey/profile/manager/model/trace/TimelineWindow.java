@@ -37,5 +37,7 @@ public record TimelineWindow(
         long toEpochMicros,
         List<TracePause> pauses,
         List<TimelineTrack> tracks,
-        boolean truncated) {
+        boolean truncated,
+        /** Separate from {@code truncated}: the spans being complete says nothing about the states. */
+        boolean statesTruncated) {
 }

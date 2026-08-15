@@ -36,6 +36,7 @@ import cafe.jeffrey.provider.profile.api.TracePauseRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSortField;
 import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
+import cafe.jeffrey.provider.profile.api.TraceThreadStateRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.provider.profile.api.TraceTimelineBucketRecord;
@@ -376,6 +377,38 @@ public class JdbcTraceRepository implements TraceRepository {
               AND s.start_timestamp < make_timestamptz((:to_ms + 1) * 1000)
               AND EPOCH_US(s.start_timestamp) + s.duration // 1000 > :from_us
             ORDER BY COALESCE(s.thread_hash, 0), s.start_timestamp
+            LIMIT :limit
+            """;
+
+    /*
+     * The thread-scoped waits overlapping a window, for the timeline's per-thread underlay.
+     *
+     * Same predicate triad as SPANS_IN_WINDOW — a sargable floored lower bound so zone maps prune,
+     * an exclusive millisecond-floored upper bound, and overlap-not-starts-inside on the end — and
+     * the same two-list UNNEST mapping SPAN_CONTEXT uses, so the enum stays the single place an
+     * event type is tied to a category. The event-type filter is what keeps the scan on the
+     * (event_type, start_timestamp_from_beginning) clustering.
+     */
+    //language=SQL
+    private static final String STATES_IN_WINDOW = """
+            WITH mapping AS (
+                SELECT UNNEST([:state_event_types]) AS event_type,
+                       UNNEST([:state_categories])  AS category
+            )
+            SELECT
+                e.thread_hash                                       AS thread_hash,
+                m.category                                          AS category,
+                EPOCH_US(e.start_timestamp)                         AS from_epoch_us,
+                EPOCH_US(e.start_timestamp)
+                    + COALESCE(e.duration, 0) // 1000               AS to_epoch_us
+            FROM events e
+            JOIN mapping m ON m.event_type = e.event_type
+            WHERE e.event_type IN (:state_event_types)
+              AND e.thread_hash IS NOT NULL
+              AND e.start_timestamp >= make_timestamptz(:lookback_from_ms * 1000)
+              AND e.start_timestamp < make_timestamptz((:to_ms + 1) * 1000)
+              AND EPOCH_US(e.start_timestamp) + COALESCE(e.duration, 0) // 1000 > :from_us
+            ORDER BY e.thread_hash, e.start_timestamp
             LIMIT :limit
             """;
 
@@ -1204,25 +1237,62 @@ public class JdbcTraceRepository implements TraceRepository {
     }
 
     @Override
-    public List<TraceSpanContextRecord> spanContext(long traceId) {
-        // Zipped by position: the two lists are read as one mapping table, so the enum stays the
-        // single place an event type is tied to a category.
-        List<String> eventTypes = new ArrayList<>();
-        List<String> categories = new ArrayList<>();
-        for (TraceContextCategory category : TraceContextCategory.values()) {
-            if (category.scope() != TraceContextCategory.Scope.THREAD) {
-                continue;
+    public List<TraceThreadStateRecord> threadStatesInWindow(
+            long fromEpochMicros, long toEpochMicros, int limit) {
+        ThreadCategoryMapping mapping = ThreadCategoryMapping.build();
+
+        long toMillis = Math.floorDiv(toEpochMicros, MICROS_PER_MILLI_LONG);
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("state_event_types", mapping.eventTypes())
+                .addValue("state_categories", mapping.categories())
+                .addValue("from_us", fromEpochMicros)
+                .addValue("to_ms", toMillis)
+                // A wait can run long: the span look-back, not the shorter pause one, since a park
+                // held across the whole visible window is exactly what the underlay must show.
+                .addValue("lookback_from_ms",
+                        Math.floorDiv(fromEpochMicros, MICROS_PER_MILLI_LONG) - MAX_SPAN_LOOKBACK_MILLIS)
+                .addValue("limit", limit);
+
+        return databaseClient.query(
+                StatementLabel.TRACE_THREAD_STATES,
+                STATES_IN_WINDOW,
+                params,
+                (rs, _) -> new TraceThreadStateRecord(
+                        rs.getLong("thread_hash"),
+                        TraceContextCategory.valueOf(rs.getString("category")),
+                        rs.getLong("from_epoch_us"),
+                        rs.getLong("to_epoch_us")));
+    }
+
+    /**
+     * The thread-scoped categories flattened into two positional lists, read by SQL as one mapping
+     * table — so the enum stays the single place an event type is tied to a category.
+     */
+    private record ThreadCategoryMapping(List<String> eventTypes, List<String> categories) {
+
+        static ThreadCategoryMapping build() {
+            List<String> eventTypes = new ArrayList<>();
+            List<String> categories = new ArrayList<>();
+            for (TraceContextCategory category : TraceContextCategory.values()) {
+                if (category.scope() != TraceContextCategory.Scope.THREAD) {
+                    continue;
+                }
+                for (String eventType : category.eventTypes()) {
+                    eventTypes.add(eventType);
+                    categories.add(category.name());
+                }
             }
-            for (String eventType : category.eventTypes()) {
-                eventTypes.add(eventType);
-                categories.add(category.name());
-            }
+            return new ThreadCategoryMapping(List.copyOf(eventTypes), List.copyOf(categories));
         }
+    }
+
+    public List<TraceSpanContextRecord> spanContext(long traceId) {
+        ThreadCategoryMapping mapping = ThreadCategoryMapping.build();
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("trace_id", traceId)
-                .addValue("context_event_types", eventTypes)
-                .addValue("context_categories", categories);
+                .addValue("context_event_types", mapping.eventTypes())
+                .addValue("context_categories", mapping.categories());
 
         return databaseClient.query(
                 StatementLabel.TRACE_SPAN_CONTEXT,

@@ -28,10 +28,12 @@ import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
+import cafe.jeffrey.provider.profile.api.TraceContextCategory;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
+import cafe.jeffrey.provider.profile.api.TraceThreadStateRecord;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -336,6 +338,45 @@ class TraceManagerImplTest {
 
             assertTrue(window.tracks().isEmpty());
             assertFalse(window.truncated());
+            assertFalse(window.statesTruncated());
+        }
+
+        @Test
+        @DisplayName("attaches a thread's waits to that thread's track")
+        void attachesStatesToTheirTrack() {
+            lenient().when(traceRepository.threadStatesInWindow(anyLong(), anyLong(), anyInt()))
+                    .thenReturn(List.of(
+                            new TraceThreadStateRecord(
+                                    THREAD, TraceContextCategory.PARKED, 20, 40),
+                            new TraceThreadStateRecord(
+                                    OTHER_THREAD, TraceContextCategory.SOCKET_IO, 30, 35)));
+
+            TimelineWindow window = windowOf(List.of(
+                    onThread(1, "a", 0, 100, THREAD),
+                    onThread(2, "b", 10, 20, OTHER_THREAD)));
+
+            TimelineTrack first = window.tracks().stream()
+                    .filter(track -> track.spans().getFirst().name().equals("a"))
+                    .findFirst().orElseThrow();
+            assertEquals(1, first.states().size());
+            assertEquals("PARKED", first.states().getFirst().category());
+            assertEquals(20, first.states().getFirst().startEpochMicros());
+            assertEquals(20 * US, first.states().getFirst().durationNanos());
+        }
+
+        @Test
+        @DisplayName("drops a wait on a thread with no spans in the window")
+        void dropsStatesWithoutATrack() {
+            // A thread that only waited has no track to underlay; the whole-JVM idle picture is the
+            // threads timeline's job, not this view's.
+            lenient().when(traceRepository.threadStatesInWindow(anyLong(), anyLong(), anyInt()))
+                    .thenReturn(List.of(new TraceThreadStateRecord(
+                            OTHER_THREAD, TraceContextCategory.PARKED, 20, 40)));
+
+            TimelineWindow window = windowOf(List.of(onThread(1, "a", 0, 100, THREAD)));
+
+            assertEquals(1, window.tracks().size());
+            assertTrue(window.tracks().getFirst().states().isEmpty());
         }
     }
 

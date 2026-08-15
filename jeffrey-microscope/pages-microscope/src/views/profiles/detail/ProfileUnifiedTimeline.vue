@@ -38,6 +38,10 @@
                 <i class="bi bi-exclamation-triangle"></i> not all spans drawn —
                 <button type="button" class="tl-capped-zoom" @click="zoomIn">zoom in</button>
               </span>
+              <span v-else-if="timelineWindow?.statesTruncated" class="tl-capped">
+                <i class="bi bi-exclamation-triangle"></i> not all waits drawn —
+                <button type="button" class="tl-capped-zoom" @click="zoomIn">zoom in</button>
+              </span>
               <span v-if="updating" class="tl-updating">
                 <i class="bi bi-arrow-repeat"></i> updating…
               </span>
@@ -86,6 +90,11 @@
         <span v-for="entry in LEGEND" :key="entry.label">
           <i :style="{ background: entry.color }"></i>{{ entry.label }}
         </span>
+        <!-- Only the wait categories this window actually recorded — a legend of absent things
+             teaches the reader to look for what is not there. -->
+        <span v-for="entry in stateLegend" :key="entry.label" class="tl-legend-state">
+          <i :style="{ background: entry.color }"></i>{{ entry.label }} (wait)
+        </span>
       </div>
     </MainCard>
 
@@ -113,6 +122,7 @@ import ProfileTracesClient from '@/services/api/ProfileTracesClient';
 import { profileStore } from '@/stores/profileStore';
 import TimelineCanvas from '@/services/timeline/TimelineCanvas';
 import { TIMELINE_LEGEND } from '@/services/timeline/timelineTheme';
+import { contextColor, contextLabel } from '@/services/trace/traceLabels';
 import { clampViewport } from '@/services/timeline/TimelineViewport';
 
 import type { TimelineWindow } from '@/services/api/model/TimelineModels';
@@ -141,6 +151,20 @@ const openTraceName = ref('');
 
 /** A refresh of a window already on screen — shown as a corner cue, never as a blanking overlay. */
 const updating = computed(() => loading.value && timelineWindow.value !== null);
+
+/** Legend entries for the wait categories present in this window's underlay, in context colours. */
+const stateLegend = computed(() => {
+  const categories = new Set<string>();
+  for (const track of timelineWindow.value?.tracks ?? []) {
+    for (const state of track.states ?? []) {
+      categories.add(state.category);
+    }
+  }
+  return [...categories].sort().map(category => ({
+    label: contextLabel(category),
+    color: contextColor(category)
+  }));
+});
 
 let canvas: TimelineCanvas | null = null;
 let client: ProfileTracesClient;

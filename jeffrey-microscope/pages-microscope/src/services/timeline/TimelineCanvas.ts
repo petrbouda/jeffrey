@@ -77,7 +77,8 @@ export interface TimelineCanvasOptions {
 /** What the pointer is over, for the tooltip and for the click. */
 type Hit =
   | { type: 'span'; span: TimelineSpan; track: TimelineTrack }
-  | { type: 'pause'; category: string; label: string; fromMicros: number; durationNanos: number };
+  | { type: 'pause'; category: string; label: string; fromMicros: number; durationNanos: number }
+  | { type: 'state'; category: string; durationNanos: number };
 
 interface Row {
   kind: 'global' | 'group' | 'thread';
@@ -538,6 +539,13 @@ export default class TimelineCanvas {
         line('span', `${duration} · click to open the trace`)
       ];
     }
+    if (hit.type === 'state') {
+      return [
+        line('b', pauseLabel(hit.category)),
+        line('span', FormattingService.formatDuration2Units(hit.durationNanos)),
+        line('span', 'what this thread was waiting on')
+      ];
+    }
     return [
       line('b', `${pauseLabel(hit.category)} — ${hit.label}`),
       line('span', FormattingService.formatDuration2Units(hit.durationNanos)),
@@ -603,7 +611,17 @@ export default class TimelineCanvas {
         (contentY - row.y - M.threadRowHeight) / (M.spanLaneHeight + M.laneGap)
       );
       if (lane < 0) {
-        return null;
+        // The header strip, where the state underlay lives: a wait is hoverable there.
+        const state = row.track.states?.find(s =>
+          this.hitsInterval(
+            plotX,
+            s.startEpochMicros,
+            s.startEpochMicros + s.durationNanos / NANOS_PER_MICRO
+          )
+        );
+        return state
+          ? { type: 'state', category: state.category, durationNanos: state.durationNanos }
+          : null;
       }
       const span = row.track.spans.find(
         s =>
@@ -850,6 +868,31 @@ export default class TimelineCanvas {
   private drawThreadRow(target: Konva.Group, row: Row, track: TimelineTrack, plot: number): void {
     const errorColor = resolveToken('--color-danger', '#e63757');
     const labelColor = resolveToken('--color-dark', '#0b1727');
+
+    /*
+     * The state underlay, in the header strip above the span lanes: what the thread was waiting on,
+     * in the same category colours the waterfall's stripes use. This is what tells a blank gap with
+     * a park under it apart from a blank gap with nothing — two different diagnoses that used to be
+     * one absence of pixels.
+     */
+    for (const state of track.states ?? []) {
+      const stateTo = state.startEpochMicros + state.durationNanos / NANOS_PER_MICRO;
+      const statePlaced = placeInterval(state.startEpochMicros, stateTo, this.view, plot);
+      if (!statePlaced) {
+        continue;
+      }
+      target.add(
+        new Konva.Rect({
+          x: M.gutterWidth + statePlaced.x,
+          y: row.y + 2,
+          width: statePlaced.width,
+          height: M.threadRowHeight - 4,
+          fill: pauseColor(state.category),
+          opacity: 0.35,
+          cornerRadius: 1
+        })
+      );
+    }
 
     for (const span of track.spans) {
       const to = span.startEpochMicros + span.durationNanos / NANOS_PER_MICRO;

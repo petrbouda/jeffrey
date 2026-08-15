@@ -18,21 +18,16 @@
 
 package cafe.jeffrey.profile.manager.model.trace;
 
-import java.util.List;
-
 /**
- * One thread's row on the unified timeline, with the spans that ran on it inside the window.
+ * One stretch during which a track's thread was waiting rather than running — the timeline's
+ * underlay. What turns a blank gap from an unknown into a finding: a gap over a PARKED period and a
+ * gap over nothing are different diagnoses.
  *
- * @param threadHash the join key back to the threads table; {@code "0"} for a span whose thread did
- *                   not resolve, which is kept as its own track rather than dropped
- * @param laneCount  how many depth lanes the track needs — one more than the deepest span, or zero
- *                   when the thread has no spans, so the view can size the row before drawing it
+ * @param category         a thread-scoped {@code TraceContextCategory} name — the same vocabulary
+ *                         the waterfall's stripes and the why-slow panel speak, so one wait reads
+ *                         as one colour everywhere
+ * @param startEpochMicros when the wait began, absolute, matching {@link TimelineSpan}
+ * @param durationNanos    how long it lasted
  */
-public record TimelineTrack(
-        String threadHash,
-        String threadName,
-        boolean isVirtual,
-        int laneCount,
-        List<TimelineSpan> spans,
-        List<TimelineStatePeriod> states) {
+public record TimelineStatePeriod(String category, long startEpochMicros, long durationNanos) {
 }

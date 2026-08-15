@@ -33,6 +33,17 @@ export interface TimelineSpan {
   depth: number;
 }
 
+/**
+ * One stretch during which a track's thread was waiting rather than running — the underlay that
+ * turns a blank gap into a finding. The category names are the trace views' context vocabulary,
+ * so a park is the same colour here, on the waterfall and in the why-slow panel.
+ */
+export interface TimelineStatePeriod {
+  category: string;
+  startEpochMicros: number;
+  durationNanos: number;
+}
+
 /** One thread's row, with the spans that ran on it inside the window. */
 export interface TimelineTrack {
   threadHash: string;
@@ -41,6 +52,7 @@ export interface TimelineTrack {
   /** How many depth lanes the track needs, so the row can be sized before it is drawn. */
   laneCount: number;
   spans: TimelineSpan[];
+  states: TimelineStatePeriod[];
 }
 
 /**
@@ -54,4 +66,6 @@ export interface TimelineWindow {
   tracks: TimelineTrack[];
   /** Whether the span cap was hit. Surfaced, never silent. */
   truncated: boolean;
+  /** Whether the thread-state cap was hit — separate, since the spans being complete says nothing. */
+  statesTruncated: boolean;
 }

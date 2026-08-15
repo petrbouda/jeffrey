@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.trace.EventFieldRow;
 import cafe.jeffrey.profile.manager.model.trace.TimelineSpan;
+import cafe.jeffrey.profile.manager.model.trace.TimelineStatePeriod;
 import cafe.jeffrey.profile.manager.model.trace.TimelineTrack;
 import cafe.jeffrey.profile.manager.model.trace.TimelineWindow;
 import cafe.jeffrey.profile.manager.model.trace.TraceContext;
@@ -53,6 +54,7 @@ import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
+import cafe.jeffrey.provider.profile.api.TraceThreadStateRecord;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 
 import java.util.ArrayDeque;
@@ -91,6 +93,12 @@ public class TraceManagerImpl implements TraceManager {
      * is not a shape a real application produces.
      */
     private static final int OPERATION_LOOKUP_LIMIT = 10_000;
+    /**
+     * Row cap on the timeline's thread-state underlay, with its own truncation flag — the span cap
+     * ballpark, since both feed the same canvas. A busy window can hold far more short waits than
+     * spans, and an uncapped scan would make every pan pay for them.
+     */
+    private static final int TIMELINE_STATES_LIMIT = 4_000;
 
     private final TraceRepository traceRepository;
 
@@ -286,13 +294,23 @@ public class TraceManagerImpl implements TraceManager {
         List<TracePauseRecord> pauses = traceRepository.pausesInWindow(fromEpochMicros, toEpochMicros);
         List<TraceSpanRecord> spans = traceRepository.spansInWindow(
                 fromEpochMicros, toEpochMicros, spanLimit);
+        List<TraceThreadStateRecord> states = traceRepository.threadStatesInWindow(
+                fromEpochMicros, toEpochMicros, TIMELINE_STATES_LIMIT);
 
         Map<Long, List<TraceSpanRecord>> byThread = spans.stream()
                 .collect(Collectors.groupingBy(TraceSpanRecord::threadHash, LinkedHashMap::new,
                         Collectors.toList()));
 
-        List<TimelineTrack> tracks = byThread.values().stream()
-                .map(TraceManagerImpl::toTrack)
+        // States for threads with no spans in the window are dropped with the grouping below: a
+        // track exists because work ran on it, and a thread that only waited has no track to
+        // underlay. The whole-JVM idle picture is the threads timeline's job, not this view's.
+        Map<Long, List<TraceThreadStateRecord>> statesByThread = states.stream()
+                .collect(Collectors.groupingBy(TraceThreadStateRecord::threadHash));
+
+        List<TimelineTrack> tracks = byThread.entrySet().stream()
+                .map(entry -> toTrack(
+                        entry.getValue(),
+                        statesByThread.getOrDefault(entry.getKey(), List.of())))
                 .sorted(Comparator.comparing(TimelineTrack::threadName,
                         Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();
@@ -308,7 +326,8 @@ public class TraceManagerImpl implements TraceManager {
                                 pause.durationNanos()))
                         .toList(),
                 tracks,
-                spans.size() >= spanLimit);
+                spans.size() >= spanLimit,
+                states.size() >= TIMELINE_STATES_LIMIT);
     }
 
     /**
@@ -323,7 +342,8 @@ public class TraceManagerImpl implements TraceManager {
      * The spans arrive ordered by start, so a stack of the enclosing spans is enough — anything that
      * ended before this one began is popped, and whatever is left is what encloses it.
      */
-    private static TimelineTrack toTrack(List<TraceSpanRecord> threadSpans) {
+    private static TimelineTrack toTrack(
+            List<TraceSpanRecord> threadSpans, List<TraceThreadStateRecord> threadStates) {
         List<TimelineSpan> placed = new ArrayList<>(threadSpans.size());
         Deque<Long> openEnds = new ArrayDeque<>();
         int deepest = -1;
@@ -354,7 +374,13 @@ public class TraceManagerImpl implements TraceManager {
                 first.threadName(),
                 first.isVirtual(),
                 deepest + 1,
-                List.copyOf(placed));
+                List.copyOf(placed),
+                threadStates.stream()
+                        .map(state -> new TimelineStatePeriod(
+                                state.category().name(),
+                                state.fromEpochMicros(),
+                                state.durationNanos()))
+                        .toList());
     }
 
     @Override

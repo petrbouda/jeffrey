@@ -178,6 +178,19 @@ public interface TraceRepository {
     List<TraceSpanRecord> spansInWindow(long fromEpochMicros, long toEpochMicros, int limit);
 
     /**
+     * Every thread-scoped wait overlapping a window — parking, monitor blocking, sleeping, socket
+     * and file I/O — whichever thread it was recorded on.
+     * <p>
+     * The underlay under {@link #spansInWindow}: spans say what a thread was doing, these say why it
+     * was doing nothing. Same overlap semantics as the other window reads, because a park that began
+     * just before the window is exactly the one explaining the gap at its start.
+     *
+     * @param limit hard cap on rows; the caller is expected to say when it was hit rather than
+     *              quietly drawing a partial picture
+     */
+    List<TraceThreadStateRecord> threadStatesInWindow(long fromEpochMicros, long toEpochMicros, int limit);
+
+    /**
      * What each span of one trace spent waiting on — locks, parking, I/O — one row per
      * {@code (span, category)} that recorded anything.
      * <p>
