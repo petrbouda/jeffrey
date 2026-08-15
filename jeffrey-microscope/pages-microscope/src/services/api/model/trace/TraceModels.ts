@@ -226,14 +226,7 @@ export type TraceSortField = 'DURATION' | 'START' | 'SPAN_COUNT' | 'ERROR_COUNT'
 
 /** What an operation list can be ordered by; must match the backend's `TraceOperationSortField`. */
 export type TraceOperationSortField =
-  | 'TOTAL_TIME'
-  | 'P50'
-  | 'P95'
-  | 'P99'
-  | 'MAX'
-  | 'COUNT'
-  | 'ERRORS'
-  | 'NAME';
+  'TOTAL_TIME' | 'P50' | 'P95' | 'P99' | 'MAX' | 'COUNT' | 'ERRORS' | 'NAME';
 
 /**
  * How the trace list should be narrowed, ordered and paged. Every field is optional: what is left
@@ -244,6 +237,13 @@ export interface TraceListQuery {
   search?: string;
   errorsOnly?: boolean;
   minDurationNanos?: number;
+  /**
+   * Operation filter — exact match on the whole identifying triple, and only applied when all
+   * three are sent: a partial triple would re-merge operations the grouping keeps apart.
+   */
+  name?: string;
+  kind?: string;
+  eventType?: string;
   sort?: TraceSortField;
   /** Whether the sort column runs high-to-low. */
   desc?: boolean;

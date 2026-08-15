@@ -882,6 +882,12 @@ public class JdbcTraceRepository implements TraceRepository {
             predicates.add("duration >= :min_duration");
             params.addValue("min_duration", query.minDurationNanos());
         }
+        if (query.operation() != null) {
+            predicates.add(OPERATION_PREDICATE);
+            params.addValue("root_name", query.operation().name())
+                    .addValue("root_kind", query.operation().kind())
+                    .addValue("root_event_type", query.operation().eventType());
+        }
         return whereClause(predicates);
     }
 

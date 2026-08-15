@@ -23,6 +23,14 @@
 
     <template v-else>
       <div class="op-actions">
+        <!--
+          The reverse of the trace dialog's "All … traces" edge: from the aggregate view to the
+          filtered instance list, where the full search/sort/errors toolbar applies to just this
+          operation's traces.
+        -->
+        <router-link class="op-list-link" :to="traceListLink">
+          <i class="bi bi-diagram-3"></i> In trace list
+        </router-link>
         <AiExportButton
           :build-source="buildAiExportSource"
           tooltip="Export this operation for AI analysis"
@@ -160,6 +168,17 @@ function buildAiExportSource(): AiExportSource | null {
     filenameStem: `operation-${operation.name}`
   };
 }
+
+/** The Slowest Traces page narrowed to exactly this operation, via its operation-filter params. */
+const traceListLink = computed(() => ({
+  name: 'profile-technologies-traces',
+  params: { profileId: props.profileId },
+  query: {
+    operation: props.operation.name,
+    kind: props.operation.kind,
+    eventType: props.operation.eventType
+  }
+}));
 
 const route = useRoute();
 const router = useRouter();
@@ -332,3 +351,39 @@ async function load(): Promise<void> {
 // operation remounts it. `useFlamegraphPanels` only fetches on mount, which is why the key is there.
 onMounted(load);
 </script>
+
+<style scoped>
+/* The audit found this class styled nowhere — the actions rendered as an unaligned block. */
+.op-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Same affordance as the trace dialog's operation link, so the two edges read as a pair. */
+.op-list-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.op-list-link:hover {
+  border-color: var(--color-primary);
+}
+
+.op-list-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+</style>

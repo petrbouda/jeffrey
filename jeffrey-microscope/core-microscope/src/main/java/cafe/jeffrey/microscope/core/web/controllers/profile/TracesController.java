@@ -126,22 +126,39 @@ public class TracesController {
             @RequestParam(value = "search", required = false) String search,
             @RequestParam(value = "errorsOnly", defaultValue = "false") boolean errorsOnly,
             @RequestParam(value = "minDurationNanos", defaultValue = "0") long minDurationNanos,
+            @RequestParam(value = "name", required = false) String operationName,
+            @RequestParam(value = "kind", required = false) String operationKind,
+            @RequestParam(value = "eventType", required = false) String operationEventType,
             @RequestParam(value = "sort", defaultValue = DEFAULT_TRACE_SORT) TraceSortField sort,
             @RequestParam(value = "desc", defaultValue = "true") boolean descending,
             @RequestParam(value = "limit", defaultValue = DEFAULT_TRACES_LIMIT) int limit,
             @RequestParam(value = "offset", defaultValue = "0") int offset) {
-        LOG.debug("Listing traces: profile_id={} search={} errors_only={} sort={} limit={} offset={}",
-                profileId, search, errorsOnly, sort, limit, offset);
+        LOG.debug("Listing traces: profile_id={} search={} errors_only={} operation={} sort={} limit={} offset={}",
+                profileId, search, errorsOnly, operationName, sort, limit, offset);
 
         TraceListQuery query = new TraceListQuery(
                 search,
                 errorsOnly,
                 Math.max(0, minDurationNanos),
+                operationFilter(operationName, operationKind, operationEventType),
                 sort,
                 descending,
                 boundedLimit(limit),
                 boundedOffset(offset));
         return resolver.resolve(profileId).traceManager().traces(query);
+    }
+
+    /**
+     * The optional operation filter, present only when the caller sent the whole identifying triple
+     * — the same three params the {@code /operation/*} endpoints require. A partial triple would
+     * silently re-merge operations the grouping deliberately keeps apart, so it is treated as absent
+     * rather than half-applied.
+     */
+    private static TraceOperationId operationFilter(String name, String kind, String eventType) {
+        if (name == null || kind == null || eventType == null) {
+            return null;
+        }
+        return new TraceOperationId(name, kind, eventType);
     }
 
     /**

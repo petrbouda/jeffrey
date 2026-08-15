@@ -970,7 +970,7 @@ class JdbcTraceRepositoryTest {
         private static final String FLAMEGRAPH = "POST /api/internal/profiles/{profileId}/flamegraph";
 
         private static TraceListQuery search(String term) {
-            return new TraceListQuery(term, false, 0, TraceSortField.DURATION, true, 10, 0);
+            return new TraceListQuery(term, false, 0, null, TraceSortField.DURATION, true, 10, 0);
         }
 
         private static List<String> namesOf(TracePage page) {
@@ -1028,7 +1028,7 @@ class JdbcTraceRepositoryTest {
             // successful traces this filter has to leave out come from the mixed-outcome fixture.
             JdbcTraceRepository repository = withMixedOutcomes(dataSource);
             TraceListQuery query =
-                    new TraceListQuery(null, true, 0, TraceSortField.DURATION, true, 10, 0);
+                    new TraceListQuery(null, true, 0, null, TraceSortField.DURATION, true, 10, 0);
 
             TracePage page = repository.traces(query);
 
@@ -1042,7 +1042,7 @@ class JdbcTraceRepositoryTest {
         void filtersByDuration(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
             TraceListQuery query =
-                    new TraceListQuery(null, false, 10 * MS, TraceSortField.DURATION, true, 10, 0);
+                    new TraceListQuery(null, false, 10 * MS, null, TraceSortField.DURATION, true, 10, 0);
 
             assertEquals(List.of(FLAMEGRAPH), namesOf(repository.traces(query)),
                     "the 5ms health trace is below the floor");
@@ -1072,7 +1072,7 @@ class JdbcTraceRepositoryTest {
         void pagesByOffset(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
             TraceListQuery secondPage =
-                    new TraceListQuery(null, false, 0, TraceSortField.DURATION, true, 1, 1);
+                    new TraceListQuery(null, false, 0, null, TraceSortField.DURATION, true, 1, 1);
 
             TracePage page = repository.traces(secondPage);
 
@@ -1093,15 +1093,46 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
+        @DisplayName("an operation filter narrows to exactly that trace type")
+        void filtersByOperation(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = derived(dataSource);
+            TraceOperationId health =
+                    new TraceOperationId(HEALTH, "SERVER", "jeffrey.HttpServerExchange");
+            TraceListQuery query =
+                    new TraceListQuery(null, false, 0, health, TraceSortField.DURATION, true, 10, 0);
+
+            TracePage page = repository.traces(query);
+
+            assertEquals(List.of(HEALTH), namesOf(page));
+            assertEquals(1, page.totalMatching(), "the total narrows with the operation");
+        }
+
+        @Test
+        @DisplayName("an operation filter matches the whole triple, not the name alone")
+        void operationFilterNeedsTheWholeTriple(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = derived(dataSource);
+            // Right name, wrong kind: the same path as an outbound call would be, and must not match.
+            TraceOperationId wrongKind =
+                    new TraceOperationId(HEALTH, "CLIENT", "jeffrey.HttpServerExchange");
+            TraceListQuery query = new TraceListQuery(
+                    null, false, 0, wrongKind, TraceSortField.DURATION, true, 10, 0);
+
+            TracePage page = repository.traces(query);
+
+            assertTrue(page.traces().isEmpty());
+            assertEquals(0, page.totalMatching());
+        }
+
+        @Test
         @DisplayName("the sort column and direction are honoured")
         void sortsAsAsked(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
             assertEquals(List.of(HEALTH, FLAMEGRAPH), namesOf(repository.traces(
-                            new TraceListQuery(null, false, 0, TraceSortField.DURATION, false, 10, 0))),
+                            new TraceListQuery(null, false, 0, null, TraceSortField.DURATION, false, 10, 0))),
                     "ascending puts the fastest first");
             assertEquals(List.of(FLAMEGRAPH, HEALTH), namesOf(repository.traces(
-                            new TraceListQuery(null, false, 0, TraceSortField.START, false, 10, 0))),
+                            new TraceListQuery(null, false, 0, null, TraceSortField.START, false, 10, 0))),
                     "the slow trace starts at the recording's origin");
         }
 

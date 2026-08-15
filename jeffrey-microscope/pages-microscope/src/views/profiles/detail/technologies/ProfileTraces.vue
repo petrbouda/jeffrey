@@ -58,6 +58,22 @@
 
         <TableToolbar v-model="search" search-placeholder="Filter by operation name...">
           <template #filters>
+            <!--
+              The exact-operation filter has no control of its own on this page — it arrives from an
+              operation page's "in trace list" link — so the chip is how the reader learns the list
+              is narrowed, and the × is the way back to everything.
+            -->
+            <span v-if="operationFilter" class="op-filter-chip" :title="operationFilterTitle">
+              <i class="bi bi-bar-chart-steps"></i> {{ operationFilter.name }}
+              <button
+                type="button"
+                class="op-filter-clear"
+                title="Show every operation's traces"
+                @click="operationFilter = null"
+              >
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </span>
             <button
               type="button"
               class="btn btn-sm"
@@ -134,6 +150,8 @@ import TraceSpansModal from '@/components/trace/TraceSpansModal.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
 import type {
+  SpanKind,
+  TraceOperationId,
   TraceOverview,
   TraceRow,
   TraceSortField,
@@ -185,6 +203,30 @@ const sort = ref<TraceSortField>(
     ? (initialQuery.sort as TraceSortField)
     : DEFAULT_SORT
 );
+
+/**
+ * Narrows the list to one exact operation — the edge in from an operation's detail page. The whole
+ * triple travels or none of it does, since the name alone conflates an inbound and an outbound
+ * call of the same name.
+ */
+const operationFilter = ref<TraceOperationId | null>(readOperationFilter());
+
+function readOperationFilter(): TraceOperationId | null {
+  const name = initialQuery.operation as string | undefined;
+  const kind = initialQuery.kind as SpanKind | undefined;
+  const eventType = initialQuery.eventType as string | undefined;
+  if (!name || !kind || !eventType) {
+    return null;
+  }
+  return { name, kind, eventType };
+}
+
+const operationFilterTitle = computed(() => {
+  const operation = operationFilter.value;
+  return operation === null
+    ? ''
+    : `Only ${operation.kind} ${operation.name} traces (${operation.eventType})`;
+});
 
 const selectedTrace = ref<TraceRow | null>(null);
 const spansShow = ref(false);
@@ -284,6 +326,7 @@ async function loadPage(offset: number): Promise<void> {
     const page = await new ProfileTracesClient(profileId.value).getTraces({
       search: search.value,
       errorsOnly: errorsOnly.value,
+      ...(operationFilter.value ?? {}),
       sort: sort.value,
       limit: PAGE_SIZE,
       offset
@@ -307,7 +350,7 @@ function loadMore(): void {
  * next letter.
  */
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
-watch([search, errorsOnly, sort], () => {
+watch([search, errorsOnly, sort, operationFilter], () => {
   syncFilterQuery();
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => loadPage(0), SEARCH_DEBOUNCE_MILLIS);
@@ -335,6 +378,16 @@ function syncFilterQuery(): void {
   } else {
     delete next.sort;
   }
+  const operation = operationFilter.value;
+  if (operation !== null) {
+    next.operation = operation.name;
+    next.kind = operation.kind;
+    next.eventType = operation.eventType;
+  } else {
+    delete next.operation;
+    delete next.kind;
+    delete next.eventType;
+  }
   router.replace({ query: next });
 }
 
@@ -353,5 +406,45 @@ onMounted(() => {
 /* Narrow enough to sit beside the search box rather than crowding it off the toolbar. */
 .sort-select {
   width: auto;
+}
+
+/* The narrowed-to-one-operation state, worn where the other filters live. */
+.op-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 22rem;
+  padding: 0.25rem 0.35rem 0.25rem 0.6rem;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.op-filter-clear {
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  padding: 0.1rem;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: inherit;
+  font-size: 0.65rem;
+  cursor: pointer;
+}
+
+.op-filter-clear:hover {
+  background: var(--color-primary);
+  color: var(--color-white);
+}
+
+.op-filter-clear:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
 }
 </style>

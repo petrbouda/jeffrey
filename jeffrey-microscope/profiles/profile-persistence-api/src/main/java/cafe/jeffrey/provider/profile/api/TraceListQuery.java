@@ -32,6 +32,9 @@ import java.util.Objects;
  *                         {@code null} or blank matches everything
  * @param errorsOnly       keep only traces with at least one failed span
  * @param minDurationNanos keep only traces at least this long; {@code 0} keeps everything
+ * @param operation        keep only traces of exactly this operation — the full identifying triple,
+ *                         since a name alone conflates an inbound and an outbound call of the same
+ *                         name; {@code null} keeps every operation
  * @param sort             which column orders the result
  * @param descending       whether that column runs high-to-low
  * @param limit            how many rows to return; at least 1
@@ -41,6 +44,7 @@ public record TraceListQuery(
         String nameContains,
         boolean errorsOnly,
         long minDurationNanos,
+        TraceOperationId operation,
         TraceSortField sort,
         boolean descending,
         int limit,
@@ -62,7 +66,7 @@ public record TraceListQuery(
 
     /** The unfiltered slowest-first list the trace views opened with before filters existed. */
     public static TraceListQuery slowest(int limit) {
-        return new TraceListQuery(null, false, 0, TraceSortField.DURATION, true, limit, 0);
+        return new TraceListQuery(null, false, 0, null, TraceSortField.DURATION, true, limit, 0);
     }
 
     /**
