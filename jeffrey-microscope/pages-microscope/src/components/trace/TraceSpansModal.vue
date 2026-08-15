@@ -41,6 +41,14 @@
             <i class="bi bi-bar-chart-steps"></i> All {{ detail?.trace?.rootName }} traces
           </router-link>
           <!--
+            The same trace in its surroundings: the waterfall shows what the trace did, the unified
+            timeline shows what the JVM and every other thread did while it ran — the two halves of
+            "was it me or was it the machine".
+          -->
+          <router-link v-if="timelineLink" class="trace-op-link" :to="timelineLink">
+            <i class="bi bi-distribute-horizontal"></i> Show on timeline
+          </router-link>
+          <!--
             Beside the trace's own facts rather than in the waterfall toolbar: it exports the whole
             trace, not the view of it, so it should not sit among the controls that change that view.
           -->
@@ -376,6 +384,35 @@ const operationLink = computed(() => {
     name: 'profile-technologies-traces-operations',
     params: { profileId: props.profileId },
     query: { operation: trace.rootName, kind: trace.rootKind, eventType: trace.rootEventType }
+  };
+});
+
+/** The trace's own share of window padding on each side, so it lands with context, not edge-to-edge. */
+const TIMELINE_PAD_RATIO = 0.15;
+/** At least this much padding, so a sub-millisecond trace still gets a readable window. */
+const TIMELINE_MIN_PAD_MICROS = 50_000;
+const MICROS_PER_MILLI = 1_000;
+const NANOS_PER_MICRO = 1_000;
+
+/**
+ * The unified timeline zoomed to this trace's moment, padded so the reader sees what surrounded it.
+ * The from/to params are the timeline's own deep-link contract.
+ */
+const timelineLink = computed(() => {
+  const trace = detail.value?.trace;
+  if (!trace) {
+    return null;
+  }
+  const startMicros = trace.startEpochMillis * MICROS_PER_MILLI;
+  const durationMicros = Math.max(1, Math.ceil(trace.durationNanos / NANOS_PER_MICRO));
+  const pad = Math.max(Math.ceil(durationMicros * TIMELINE_PAD_RATIO), TIMELINE_MIN_PAD_MICROS);
+  return {
+    name: 'profile-technologies-traces-timeline',
+    params: { profileId: props.profileId },
+    query: {
+      from: String(startMicros - pad),
+      to: String(startMicros + durationMicros + pad)
+    }
   };
 });
 

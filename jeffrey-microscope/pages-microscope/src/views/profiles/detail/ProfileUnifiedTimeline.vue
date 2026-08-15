@@ -31,8 +31,15 @@
         <MainCardHeader icon="bi bi-bar-chart-steps" title="Unified timeline">
           <template #actions>
             <div class="tl-actions">
-              <span v-if="timelineWindow?.truncated" class="tl-capped" :title="CAPPED_TITLE">
-                <i class="bi bi-exclamation-triangle"></i> window capped
+              <!-- The remedy in visible words with the button that performs it, not in a title
+                   attribute nobody hovers: a capped window silently drawn as complete data is a
+                   biased sample wearing the costume of the whole truth. -->
+              <span v-if="timelineWindow?.truncated" class="tl-capped">
+                <i class="bi bi-exclamation-triangle"></i> not all spans drawn —
+                <button type="button" class="tl-capped-zoom" @click="zoomIn">zoom in</button>
+              </span>
+              <span v-if="updating" class="tl-updating">
+                <i class="bi bi-arrow-repeat"></i> updating…
               </span>
               <button type="button" class="tl-btn" :disabled="isFullView" @click="resetView">
                 <i class="bi bi-arrows-angle-expand"></i> Fit all
@@ -43,8 +50,9 @@
       </template>
 
       <p class="tl-hint">
-        <b>Scroll</b> to zoom at the cursor · <b>drag</b> to pan · <b>click a span</b> to open its
-        trace
+        <b>Ctrl+scroll</b> to zoom at the cursor · <b>scroll</b> to move through the threads ·
+        <b>drag</b> to pan · <b>click a span</b> to open its trace · <b>click a pool header</b> to
+        fold it
       </p>
 
       <!--
@@ -92,6 +100,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
@@ -111,13 +120,16 @@ import type { Viewport } from '@/services/timeline/TimelineViewport';
 
 /** The store speaks milliseconds; the timeline and the stored span bounds speak microseconds. */
 const MICROS_PER_MILLI = 1_000;
-const CAPPED_TITLE =
-  'More spans ran in this window than the timeline draws. Zoom in for a complete picture.';
 const LEGEND = TIMELINE_LEGEND;
 /** Refetch no faster than this while panning, so a drag is one request rather than sixty. */
 const REFETCH_DEBOUNCE_MS = 180;
+/** How long the viewport must hold still before it is written into the URL. */
+const URL_SYNC_DEBOUNCE_MS = 350;
 
 const props = defineProps<{ profileId: string }>();
+
+const route = useRoute();
+const router = useRouter();
 
 const hostRef = ref<HTMLDivElement | null>(null);
 const loading = ref(true);
@@ -126,6 +138,9 @@ const timelineWindow = shallowRef<TimelineWindow | null>(null);
 const traceModalOpen = ref(false);
 const openTraceId = ref('');
 const openTraceName = ref('');
+
+/** A refresh of a window already on screen — shown as a corner cue, never as a blanking overlay. */
+const updating = computed(() => loading.value && timelineWindow.value !== null);
 
 let canvas: TimelineCanvas | null = null;
 let client: ProfileTracesClient;
@@ -201,12 +216,53 @@ function onViewChanged(next: Viewport): void {
   // The canvas redraws itself from what it already has, so panning stays smooth while the newly
   // uncovered part of the window is still being fetched.
   scheduleLoad();
+  scheduleUrlSync();
 }
+
+/**
+ * The viewport mirrored into the URL once it holds still, so "look at this window" is a link. A
+ * replace, debounced: a pan emits dozens of viewports a second, and none of the intermediate ones
+ * is a place anyone means to return to. The full view carries no params — the default is clean.
+ */
+let urlSyncTimer: number | undefined;
+function scheduleUrlSync(): void {
+  window.clearTimeout(urlSyncTimer);
+  urlSyncTimer = window.setTimeout(() => {
+    const query = { ...route.query };
+    if (isFullView.value) {
+      delete query.from;
+      delete query.to;
+    } else {
+      query.from = String(Math.round(view.value.from));
+      query.to = String(Math.round(view.value.to));
+    }
+    router.replace({ query });
+  }, URL_SYNC_DEBOUNCE_MS);
+}
+
+/**
+ * The window a deep link asked for, read once at setup. Applied when the recording's bounds
+ * resolve — which on a cold route is after mount — and only the first time, so a later profile
+ * switch falls back to the full view rather than replaying a stale link.
+ */
+let pendingQueryView: Viewport | null = (() => {
+  const from = Number(route.query.from);
+  const to = Number(route.query.to);
+  if (!Number.isFinite(from) || !Number.isFinite(to) || to <= from) {
+    return null;
+  }
+  return { from, to };
+})();
 
 function resetView(): void {
   view.value = { ...bounds.value };
   canvas?.setViewport(view.value);
   load();
+  scheduleUrlSync();
+}
+
+function zoomIn(): void {
+  canvas?.zoomIn();
 }
 
 function openTrace(traceId: string, spanName: string): void {
@@ -216,11 +272,71 @@ function openTrace(traceId: string, spanName: string): void {
   // generic "Spans in trace" the modal falls back to.
   openTraceName.value = spanName;
   traceModalOpen.value = true;
+  // Same contract as the two sibling trace pages: the open trace lives in the URL, and Back
+  // closes the dialog.
+  router.push({ query: { ...route.query, trace: traceId } });
 }
+
+// Closing the modal takes the trace back out of the URL, so a reload does not reopen it.
+watch(traceModalOpen, open => {
+  if (!open && route.query.trace) {
+    const query = { ...route.query };
+    delete query.trace;
+    router.replace({ query });
+  }
+});
+
+// Reopens the trace named in the URL — a deep link or a Back/Forward step. The modal fetches
+// everything it draws from the id alone.
+watch(
+  () => route.query.trace,
+  traceId => {
+    if (!traceId) {
+      traceModalOpen.value = false;
+      return;
+    }
+    openTraceId.value = traceId as string;
+    traceModalOpen.value = true;
+  },
+  { immediate: true }
+);
+
+/**
+ * Follows ?from&to while the view is already mounted — the "Show on timeline" edge lands here as a
+ * query-only navigation, which remounts nothing. Guarded against our own URL sync: a window this
+ * view wrote back is by construction equal to the current viewport and is not re-applied.
+ */
+watch(
+  () => [route.query.from, route.query.to] as const,
+  ([fromRaw, toRaw]) => {
+    const from = Number(fromRaw);
+    const to = Number(toRaw);
+    if (!Number.isFinite(from) || !Number.isFinite(to) || to <= from) {
+      return;
+    }
+    if (Math.round(view.value.from) === from && Math.round(view.value.to) === to) {
+      return;
+    }
+    if (bounds.value.to <= bounds.value.from) {
+      // Bounds not resolved yet; remember the ask for the bounds watch to honour.
+      pendingQueryView = { from, to };
+      return;
+    }
+    view.value = clampViewport({ from, to }, bounds.value);
+    canvas?.setViewport(view.value);
+    load();
+  }
+);
 
 onMounted(() => {
   client = new ProfileTracesClient(props.profileId);
   view.value = clampViewport(bounds.value, bounds.value);
+  // On a warm navigation the bounds are already known and the watch below never fires, so a deep
+  // link's window has to be honoured here; on a cold route the watch picks it up instead.
+  if (pendingQueryView !== null && bounds.value.to > bounds.value.from) {
+    view.value = clampViewport(pendingQueryView, bounds.value);
+    pendingQueryView = null;
+  }
 
   if (hostRef.value) {
     canvas = new TimelineCanvas(hostRef.value, {
@@ -235,6 +351,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.clearTimeout(refetchTimer);
+  window.clearTimeout(urlSyncTimer);
   canvas?.destroy();
   canvas = null;
 });
@@ -247,6 +364,13 @@ watch(
   () => [props.profileId, bounds.value.from, bounds.value.to] as const,
   ([profileId]) => {
     client = new ProfileTracesClient(profileId);
+    if (pendingQueryView !== null && bounds.value.to > bounds.value.from) {
+      view.value = clampViewport(pendingQueryView, bounds.value);
+      pendingQueryView = null;
+      canvas?.setViewport(view.value);
+      load();
+      return;
+    }
     resetView();
   }
 );
@@ -299,6 +423,40 @@ watch(
   color: var(--color-warning);
   font-size: var(--font-size-xs);
   font-weight: 600;
+}
+
+.tl-capped-zoom {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.tl-capped-zoom:focus-visible {
+  outline: 2px solid var(--color-warning);
+  outline-offset: 1px;
+}
+
+/* The refresh of an already-drawn window, as a cue rather than an overlay that hides the picture. */
+.tl-updating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.tl-updating i {
+  animation: tl-rotate 0.9s linear infinite;
+}
+
+@keyframes tl-rotate {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .tl-hint {

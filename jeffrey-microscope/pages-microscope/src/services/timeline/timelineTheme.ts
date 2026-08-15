@@ -36,7 +36,8 @@ export const TIMELINE_METRICS = {
   spanLaneHeight: 8,
   laneGap: 1,
   trackGap: 1,
-  minimapHeight: 5
+  // Tall enough to be a click target: the minimap is navigable, not just an indicator.
+  minimapHeight: 8
 } as const;
 
 /** Span-kind fills, matching the waterfall so a bar means the same thing on both screens. */
@@ -50,12 +51,30 @@ export const SPAN_KIND_TOKENS: Record<string, string> = {
 
 const FALLBACK_SPAN_TOKEN = '--flamegraph-color-green';
 
+/**
+ * Resolved tokens, kept until {@link invalidatePalette}. `getComputedStyle` forces style
+ * recalculation, and the renderer used to call it per span per frame — thousands of forced recalcs
+ * on every pan. Tokens only change when the theme does, which is exactly when the cache is dropped.
+ */
+const tokenCache = new Map<string, string>();
+
 export function resolveToken(token: string, fallback: string): string {
   if (typeof document === 'undefined') {
     return fallback;
   }
+  const cached = tokenCache.get(token);
+  if (cached !== undefined) {
+    return cached;
+  }
   const value = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
-  return value.length > 0 ? value : fallback;
+  const resolved = value.length > 0 ? value : fallback;
+  tokenCache.set(token, resolved);
+  return resolved;
+}
+
+/** Dropped on a theme switch, so the next draw resolves the other theme's values. */
+export function invalidatePalette(): void {
+  tokenCache.clear();
 }
 
 export function spanKindColor(kind: string): string {
@@ -79,7 +98,7 @@ export function pauseLabel(category: string): string {
 /** Legend rows, resolved lazily so a theme switch repaints them correctly. */
 export const TIMELINE_LEGEND = [
   { label: 'GC pause', color: 'var(--color-danger)' },
-  { label: 'Safepoint', color: 'var(--color-warning)' },
+  { label: 'Safepoint', color: 'var(--color-goldenrod)' },
   { label: 'Server span', color: 'var(--flamegraph-color-blue)' },
   { label: 'Client span', color: 'var(--flamegraph-color-cyan)' },
   { label: 'Internal span', color: 'var(--flamegraph-color-green)' },
