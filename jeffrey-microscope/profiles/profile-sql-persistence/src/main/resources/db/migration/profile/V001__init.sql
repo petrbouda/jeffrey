@@ -217,6 +217,13 @@ CREATE TABLE IF NOT EXISTS trace_spans
     -- against the recording's other views without converting.
     start_timestamp_from_beginning BIGINT      NOT NULL,
     duration                       BIGINT      NOT NULL,
+    -- The span's own time: its duration minus the stretches its same-thread children covered,
+    -- merged so concurrent children are not subtracted twice and clipped to this span's own window.
+    -- Stored rather than computed per read because both readers need it and they must agree: the
+    -- waterfall asks per trace, where the interval merge is a walk over one tree, and the operation
+    -- breakdown asks across every trace of a type, where it is not a group-by at all. Deriving it
+    -- once leaves one definition of "self" for both.
+    self_duration                  BIGINT      NOT NULL,
     thread_hash                    BIGINT,
     -- Which event produced this span: jeffrey.TraceSpan, jeffrey.HttpServerExchange, ...
     event_type                     VARCHAR     NOT NULL,

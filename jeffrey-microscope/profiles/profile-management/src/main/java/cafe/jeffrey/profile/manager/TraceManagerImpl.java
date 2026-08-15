@@ -19,7 +19,10 @@
 package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.trace.EventFieldRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceContext;
+import cafe.jeffrey.profile.manager.model.trace.TraceContextSlice;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TracePause;
 import cafe.jeffrey.profile.manager.model.trace.TraceEventRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSpanRow;
@@ -42,6 +45,7 @@ import cafe.jeffrey.provider.profile.api.TraceOperationThreadsRecord;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TracePage;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
+import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.shared.common.model.SpanInterval;
@@ -52,6 +56,7 @@ import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -164,6 +169,103 @@ public class TraceManagerImpl implements TraceManager {
                                 Collectors.toList())));
     }
 
+    /**
+     * What the JVM was doing to this trace: the pauses that crossed it, what each span waited on,
+     * and the ranked summary of where its time went.
+     * <p>
+     * The trace's own window comes from its spans rather than from its header, so a pause is looked
+     * for over exactly the stretch the waterfall draws — a child that outlived its parent widens
+     * both, and the band would otherwise stop short of the bar it explains.
+     */
+    @Override
+    public TraceContext context(long traceId) {
+        List<TraceSpanRecord> spans = traceRepository.spansOf(traceId);
+        if (spans.isEmpty()) {
+            return TraceContext.EMPTY;
+        }
+
+        long from = Long.MAX_VALUE;
+        long to = Long.MIN_VALUE;
+        for (TraceSpanRecord span : spans) {
+            from = Math.min(from, span.startEpochMicros());
+            to = Math.max(to, endMicrosOf(span));
+        }
+
+        List<TracePause> pauses = traceRepository.pausesInWindow(from, to).stream()
+                .map(pause -> new TracePause(
+                        pause.category().name(),
+                        pause.label(),
+                        pause.fromEpochMicros(),
+                        pause.durationNanos()))
+                .toList();
+
+        List<TraceSpanContextRecord> waits = traceRepository.spanContext(traceId);
+        Map<String, List<TraceContextSlice>> spanWaits = waits.stream()
+                .collect(Collectors.groupingBy(
+                        wait -> toHex(wait.spanId()),
+                        Collectors.collectingAndThen(
+                                Collectors.toList(), TraceManagerImpl::toSlices)));
+
+        return new TraceContext(pauses, spanWaits, summarise(spans, pauses, waits, from, to));
+    }
+
+    private static List<TraceContextSlice> toSlices(List<TraceSpanContextRecord> waits) {
+        return waits.stream()
+                .map(wait -> new TraceContextSlice(
+                        wait.category().name(), wait.totalNanos(), wait.occurrences()))
+                .sorted(Comparator.comparingLong(TraceContextSlice::totalNanos).reversed())
+                .toList();
+    }
+
+    /**
+     * Where the trace's wall-clock time went, ranked, with the remainder named as the code's own
+     * work.
+     * <p>
+     * The denominator is the trace's own window, not the sum of its spans: spans nest, so summing
+     * them counts the same instant once per level of the tree and would put the total far past the
+     * time that actually elapsed.
+     * <p>
+     * Pauses are clipped to that window before being counted — a collection that began before the
+     * trace only cost it the stretch they shared — and the waiting is taken as recorded, since a
+     * thread waits on one thing at a time and the per-span rows are already disjoint. The residual
+     * is floored at zero: the two sources are measured independently, and a pause that overlapped a
+     * lock wait can in principle push the accounted total past the window.
+     */
+    private static List<TraceContextSlice> summarise(
+            List<TraceSpanRecord> spans,
+            List<TracePause> pauses,
+            List<TraceSpanContextRecord> waits,
+            long fromMicros,
+            long toMicros) {
+
+        Map<String, long[]> totals = new LinkedHashMap<>();
+        for (TracePause pause : pauses) {
+            long overlapMicros = Math.max(0,
+                    Math.min(toMicros, pause.startEpochMicros() + pause.durationNanos() / NANOS_PER_MICRO)
+                            - Math.max(fromMicros, pause.startEpochMicros()));
+            long[] slot = totals.computeIfAbsent(pause.category(), _ -> new long[2]);
+            slot[0] += overlapMicros * NANOS_PER_MICRO;
+            slot[1]++;
+        }
+        for (TraceSpanContextRecord wait : waits) {
+            long[] slot = totals.computeIfAbsent(wait.category().name(), _ -> new long[2]);
+            slot[0] += wait.totalNanos();
+            slot[1] += wait.occurrences();
+        }
+
+        List<TraceContextSlice> slices = new ArrayList<>(totals.entrySet().stream()
+                .map(entry -> new TraceContextSlice(
+                        entry.getKey(), entry.getValue()[0], entry.getValue()[1]))
+                .sorted(Comparator.comparingLong(TraceContextSlice::totalNanos).reversed())
+                .toList());
+
+        long windowNanos = (toMicros - fromMicros) * NANOS_PER_MICRO;
+        long accounted = slices.stream().mapToLong(TraceContextSlice::totalNanos).sum();
+        slices.add(new TraceContextSlice(
+                TraceContextSlice.OWN_WORK, Math.max(0, windowNanos - accounted), 0));
+        return List.copyOf(slices);
+    }
+
     @Override
     public List<SpanInterval> spanIntervals(long traceId, long spanId, boolean selfOnly) {
         List<TraceSpanRecord> spans = traceRepository.spansOf(traceId);
@@ -215,7 +317,9 @@ public class TraceManagerImpl implements TraceManager {
                         span.occurrences(),
                         span.traceCount(),
                         span.totalNanos(),
+                        span.selfNanos(),
                         span.p50Nanos(),
+                        span.p50SelfNanos(),
                         span.maxNanos()))
                 .toList();
 
@@ -336,7 +440,7 @@ public class TraceManagerImpl implements TraceManager {
             }
             List<TraceSpanRecord> children = childrenByParent.getOrDefault(span.spanId(), List.of());
             ordered.add(toRow(span, placement.depth(), placement.parentSpanId(),
-                    selfDurationOf(span, children), criticalNanosOf(span, criticalMicros)));
+                    criticalNanosOf(span, criticalMicros)));
             for (int i = children.size() - 1; i >= 0; i--) {
                 pending.push(new Placement(children.get(i), placement.depth() + 1, span.spanId()));
             }
@@ -455,24 +559,6 @@ public class TraceManagerImpl implements TraceManager {
     }
 
     /**
-     * The span's own time: its duration minus what its children accounted for. Only children that
-     * ran on the span's own thread are subtracted — work handed to another thread runs beside the
-     * parent rather than instead of it — and overlapping children are merged first so concurrent
-     * work is not subtracted twice.
-     * <p>
-     * Children are clipped to the parent's own window, so a child that was recorded as outliving its
-     * parent costs it only the stretch the two actually shared. The result is still floored at zero,
-     * because microsecond rounding can make merged children marginally longer than the parent.
-     */
-    private static long selfDurationOf(TraceSpanRecord span, List<TraceSpanRecord> children) {
-        long covered = 0;
-        for (long[] window : clippedChildWindows(span, children)) {
-            covered += window[1] - window[0];
-        }
-        return Math.max(0, span.durationNanos() - covered * NANOS_PER_MICRO);
-    }
-
-    /**
      * The span's window with its children's windows cut out, so a flamegraph scoped to it shows only
      * the samples taken while the span was doing its own work.
      * <p>
@@ -482,8 +568,8 @@ public class TraceManagerImpl implements TraceManager {
      * first or last millisecond counted in the child <em>and</em> in the parent's self time.
      * <p>
      * Only same-thread children are cut out, for the reason given in
-     * {@link #selfDurationOf(TraceSpanRecord, List)}: a child on another thread never occupied this
-     * thread's window, so punching a hole for it would drop the parent's own samples.
+     * the stored self time: a child on another thread never occupied this thread's window, so
+     * punching a hole for it would drop the parent's own samples.
      */
     private static List<SpanInterval> selfIntervals(TraceSpanRecord span, List<TraceSpanRecord> children) {
         long from = toMillis(span.startEpochMicros());
@@ -518,8 +604,12 @@ public class TraceManagerImpl implements TraceManager {
     /**
      * The stretches of the span's window that its children occupied: same-thread children clipped to
      * the parent's own bounds and reduced to non-overlapping {@code [from, to]} microsecond windows,
-     * ordered by start. What is left over between them is the parent's own work — which is what both
-     * {@link #selfDurationOf} and {@link #selfIntervals} are asking for, in their own units.
+     * ordered by start. What is left over between them is the parent's own work.
+     * <p>
+     * The same reduction the derivation runs in SQL to store {@code self_duration}, kept here
+     * because {@link #selfIntervals} needs the windows themselves rather than their total: a
+     * flamegraph has to know <em>which</em> stretches to exclude, not how many nanoseconds they came
+     * to. The two must stay in step — same same-thread rule, same clipping.
      */
     private static List<long[]> clippedChildWindows(
             TraceSpanRecord span, List<TraceSpanRecord> children) {
@@ -587,8 +677,7 @@ public class TraceManagerImpl implements TraceManager {
     }
 
     private static TraceSpanRow toRow(
-            TraceSpanRecord span, int depth, Long parentSpanId, long selfDurationNanos,
-            long criticalPathNanos) {
+            TraceSpanRecord span, int depth, Long parentSpanId, long criticalPathNanos) {
 
         return new TraceSpanRow(
                 toHex(span.spanId()),
@@ -600,7 +689,7 @@ public class TraceManagerImpl implements TraceManager {
                 span.startMillisFromBeginning(),
                 span.startEpochMicros(),
                 span.durationNanos(),
-                selfDurationNanos,
+                span.selfDurationNanos(),
                 criticalPathNanos,
                 depth,
                 Long.toString(span.threadHash()),

@@ -22,23 +22,30 @@ package cafe.jeffrey.provider.profile.api;
  * One span name, aggregated across every trace of an operation — the "where does this operation
  * spend its time" row.
  * <p>
- * Times are <em>inclusive</em>: a span contains its children, so the rows sum to more than the
- * operation's own duration. Self time would need the interval merge
- * {@code TraceManagerImpl.selfDurationOf} does per trace, which is not what a SQL aggregate can
- * answer cheaply; the reader is told which of the two they are looking at.
+ * Carries both readings of "time", because they answer different questions and routinely disagree.
+ * The <em>inclusive</em> one contains the span's children, so the rows sum past the operation's own
+ * duration; it says which part of the tree a request is inside. The <em>self</em> one contains only
+ * the span's own work, so the rows sum to the operation's time and can be ranked against each other;
+ * it says which code to go and look at. A span that merely wraps three slow queries tops the first
+ * list and barely registers on the second.
  *
- * @param name        the span name, as it appears in the waterfall
- * @param occurrences how many spans of this name the operation's traces contain in total
- * @param traceCount  how many of those traces contain at least one
- * @param totalNanos  summed duration across all of them
- * @param p50Nanos    median duration of a single occurrence
- * @param maxNanos    the slowest single occurrence
+ * @param name         the span name, as it appears in the waterfall
+ * @param occurrences  how many spans of this name the operation's traces contain in total
+ * @param traceCount   how many of those traces contain at least one
+ * @param totalNanos   summed inclusive duration across all of them
+ * @param selfNanos    summed self time — what the spans of this name actually spent on their own
+ *                     work, with their children's stretches taken out
+ * @param p50Nanos     median inclusive duration of a single occurrence
+ * @param p50SelfNanos median self time of a single occurrence
+ * @param maxNanos     the slowest single occurrence, inclusive
  */
 public record TraceOperationSpanRecord(
         String name,
         long occurrences,
         long traceCount,
         long totalNanos,
+        long selfNanos,
         long p50Nanos,
+        long p50SelfNanos,
         long maxNanos) {
 }

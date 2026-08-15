@@ -22,8 +22,9 @@ Not bugs — decisions with a stated trade-off.
 | Omission | Why | Revisit when |
 |---|---|---|
 | **No zoom/pan in the waterfall** | DOM/CSS substrate chosen for tens-to-hundreds of spans. Subtree folding and the critical-path filter now cover the density problem at those sizes | Real traces exceed a few thousand spans |
-| **The critical path assumes children block their parent** | True by construction on the parent's own thread, and the intended reading of a parent that hands work off and waits. A parent that forked a cross-thread child and never waited sees that child credited time it did not cost — the span tree alone cannot tell the two apart | Thread states are available to the waterfall, which is what settles it exactly |
-| **Self time is still per-trace only** | The operation's span breakdown is inclusive; a self-time column would need the same interval merge the waterfall does per trace, which is not a group-by | `trace_spans` carries a derived `self_duration`, computed once at derivation |
+| **The critical path assumes children block their parent** | True by construction on the parent's own thread, and the intended reading of a parent that hands work off and waits. A parent that forked a cross-thread child and never waited sees that child credited time it did not cost — the span tree alone cannot tell the two apart. The per-span context now says what a thread was *waiting* on, which narrows this but does not close it: a parent with no wait recorded was running, not joining | A thread's on-CPU state is derivable per span window, which is what settles it exactly |
+| **Context is attributed to the span an event starts in** | An event is charged to the innermost span open on its thread when it began. A wait that straddles a child's start is charged wholly to whichever span it started in rather than split between them — splitting would need the same interval arithmetic self time uses, per category | A straddling wait is seen to matter in practice |
+| **Pause overlap is bounded by a look-back** | `MAX_PAUSE_LOOKBACK_MILLIS` floors how far back the query will look for a pause still running at the window's start. Overlap is not sargable on the lower bound, so without a floor every context read scans the events table from the start of the recording | A pause longer than a minute needs to be drawn, which is a JVM in more trouble than this view diagnoses |
 | **64-bit trace ids** | Jeffrey mints every id in a single recording | Cross-process assembly or ingesting an external `traceparent` becomes a goal — this is a one-way door, widening is a format change |
 | **No threshold or throttle on `TraceSpanEvent`** | How much span volume is acceptable is a property of the application, not of the event; both levers are settable from a JFR settings file without touching code | Span volume proves too high in practice |
 | **Pipeline runs are their own traces** | `PipelineRunRegistry` forks to a virtual thread; a background job's lifetime is unrelated to the request | Users find the disconnection confusing in the trace list |
@@ -39,6 +40,22 @@ Not bugs — decisions with a stated trade-off.
 ---
 
 ## Closed on this branch
+
+- ~~Self time is computed per read, and the operation breakdown cannot have it~~ — `trace_spans`
+  carries a derived `self_duration`, filled once at derivation by the same gaps-and-islands merge
+  `OPERATION_INTERVALS` uses. The Java computation is gone, so there is one definition of "self"
+  rather than two that could drift, and `SPAN_BREAKDOWN_OF_OPERATION` can now aggregate it — the
+  "not expressible as a group-by" note was true of a group-by and not of the merge. The Top-spans
+  card toggles between inclusive and self, and the two rankings disagree, which is the point: a span
+  that only wraps three slow queries tops one list and barely registers on the other.
+- ~~Nothing says *why* a span was slow~~ — `GET /traces/{traceId}/context` returns the stop-the-world
+  pauses that crossed the trace, what each span's thread waited on, and a ranked summary whose
+  remainder is named as the code's own work. GC pauses and safepoints are emitted on VM threads, so
+  they needed a genuinely new kind of query: thread-agnostic, and matching on *overlap* rather than
+  on starting inside the window — a 40 ms collection that began 5 ms before a span is exactly the one
+  that explains it, and the existing starts-inside predicate missed it entirely.
+- ~~Event durations were drawn as instants~~ — the span drill-down's markers are as wide as the event
+  lasted, so a 90 ms lock wait no longer looks like the same 3 px tick as a 2 µs allocation.
 
 - ~~Critical path not computed~~ — `TraceManagerImpl` walks it backwards from the end of the trace,
   attributing each stretch to whatever was holding it open, and every span carries its own share as

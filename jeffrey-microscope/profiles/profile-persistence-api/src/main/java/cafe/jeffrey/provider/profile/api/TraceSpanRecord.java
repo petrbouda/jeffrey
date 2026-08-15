@@ -39,6 +39,11 @@ package cafe.jeffrey.provider.profile.api;
  *                                 also the most the stored timestamp carries, and stay inside
  *                                 JavaScript's safe-integer range where epoch nanos would not
  * @param durationNanos            span duration
+ * @param selfDurationNanos        that duration minus the stretches the span's same-thread children
+ *                                 covered — the time the span spent on its own work. Derived once
+ *                                 into the table rather than worked out per read, so the waterfall
+ *                                 and the operation breakdown cannot disagree about what "self"
+ *                                 means
  * @param threadHash               identity hash of the thread the span was committed on — the join
  *                                 key for pairing the span with the other events on that thread
  * @param threadName               name of that thread, when the recording knew it
@@ -67,6 +72,7 @@ public record TraceSpanRecord(
         long startMillisFromBeginning,
         long startEpochMicros,
         long durationNanos,
+        long selfDurationNanos,
         long threadHash,
         String threadName,
         boolean isVirtual,

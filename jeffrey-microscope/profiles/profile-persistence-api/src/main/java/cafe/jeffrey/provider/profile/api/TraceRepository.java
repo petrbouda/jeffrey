@@ -152,6 +152,29 @@ public interface TraceRepository {
     ThreadWindowEventsPage eventsInSpan(long threadHash, long fromEpochMillis, long toEpochMillis);
 
     /**
+     * The stop-the-world stretches overlapping a window — collection pauses and safepoints.
+     * <p>
+     * Thread-agnostic by necessity: these are emitted on a VM thread and halt every application
+     * thread, so a query matching a span's own thread hash finds none of them. Overlap rather than
+     * starts-inside, because a pause that began just before the window is exactly the one that
+     * explains it.
+     *
+     * @param fromEpochMicros window start, absolute
+     * @param toEpochMicros   window end, absolute
+     */
+    List<TracePauseRecord> pausesInWindow(long fromEpochMicros, long toEpochMicros);
+
+    /**
+     * What each span of one trace spent waiting on — locks, parking, I/O — one row per
+     * {@code (span, category)} that recorded anything.
+     * <p>
+     * One query for the whole trace rather than one per span: the drill-down already answers "what
+     * happened inside this span", and this answers "which spans were waiting, and on what", which is
+     * a question about the trace.
+     */
+    List<TraceSpanContextRecord> spanContext(long traceId);
+
+    /**
      * How the recording described the fields of the given event types — the label, description and
      * content type JFR recorded for each.
      * <p>

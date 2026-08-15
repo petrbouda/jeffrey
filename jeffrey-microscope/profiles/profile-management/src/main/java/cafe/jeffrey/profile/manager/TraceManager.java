@@ -19,6 +19,7 @@
 package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TraceContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
@@ -81,6 +82,17 @@ public interface TraceManager {
      * @return the trace, or empty when the profile has no such trace
      */
     Optional<TraceDetail> trace(long traceId);
+
+    /**
+     * What the JVM was doing to one trace: the stop-the-world pauses that crossed it, what each of
+     * its spans spent waiting on, and a ranked summary of where its wall-clock time went.
+     * <p>
+     * The question a waterfall cannot answer on its own — a 200 ms span looks the same whether it
+     * computed, waited on a lock, or was stopped by a collection.
+     *
+     * @return the context, or {@link TraceContext#EMPTY} when the profile has no such trace
+     */
+    TraceContext context(long traceId);
 
     /**
      * Reduces a span to the {@code (thread, window)} intervals a flamegraph can be scoped to, so

@@ -42,6 +42,37 @@
       <span class="wf-count">{{ rowCountLabel }}</span>
     </div>
 
+    <!--
+      One lane per kind of pause, above the spans. The lane reuses the row grid, so its track lines
+      up with the bars without either side knowing the other's measurements, and it is the lane
+      rather than the stripe that carries the labels and the hit targets: the stripe sits behind
+      rows that come and go as the detail panel opens.
+    -->
+    <div v-for="lane in laneGroups" :key="lane.category" class="wf-lane">
+      <span class="lane-label">
+        <i class="lane-dot" :style="{ background: contextColor(lane.category) }"></i>
+        {{ contextLabel(lane.category) }}
+      </span>
+      <span class="lane-track">
+        <span
+          v-for="(band, index) in lane.bands"
+          :key="index"
+          class="lane-band"
+          :style="{
+            left: band.leftPercent + '%',
+            width: band.widthPercent + '%',
+            background: contextColor(band.category)
+          }"
+          :title="bandTitle(band)"
+        >
+          <span v-if="band.widthPercent > 6" class="lane-band-text">
+            {{ FormattingService.formatDuration2Units(band.durationNanos) }}
+          </span>
+        </span>
+      </span>
+      <span class="wf-duration">{{ laneTotal(lane.bands) }}</span>
+    </div>
+
     <div class="wf-head">
       <span>Span</span>
       <span class="wf-scale">
@@ -50,6 +81,35 @@
       </span>
       <span class="wf-duration">Duration</span>
     </div>
+
+    <!--
+      The same intervals again, washed across the span rows so it is visible which spans a pause
+      actually crossed. Inert to the pointer and behind the bars: it is background, and the rows
+      underneath stay clickable.
+    -->
+    <div class="wf-rows">
+      <!--
+        Laid out with the row grid rather than at a measured offset, so the stripes track the name
+        and duration columns however those are sized, and stretched over the rows by a parent that
+        is exactly as tall as they are — no pixel arithmetic, and nothing to recompute when the
+        detail panel opens a row and makes the list taller.
+      -->
+      <div v-if="bands.length > 0" class="wf-stripes" aria-hidden="true">
+        <span></span>
+        <span class="wf-stripes-track">
+          <span
+            v-for="(band, index) in bands"
+            :key="index"
+            class="wf-stripe"
+            :style="{
+              left: band.leftPercent + '%',
+              width: band.widthPercent + '%',
+              '--stripe-color': contextColor(band.category)
+            }"
+          ></span>
+        </span>
+        <span></span>
+      </div>
 
     <template v-for="span in rows" :key="span.spanId">
       <button
@@ -116,22 +176,28 @@
         :fields="eventFields[span.eventType] ?? []"
         :child-count="childCounts.get(span.spanId) ?? 0"
         :trace-duration-nanos="windowNanos"
+        :waits="context?.spanWaits?.[span.spanId] ?? []"
         @view-events="$emit('viewEvents')"
         @view-flamegraph="$emit('viewFlamegraph')"
       />
     </template>
 
-    <EmptyState
-      v-if="rows.length === 0"
-      icon="bi-signpost-split"
-      title="No spans shown"
-      description="Every span is hidden by the current filter."
-    />
+      <EmptyState
+        v-if="rows.length === 0"
+        icon="bi-signpost-split"
+        title="No spans shown"
+        description="Every span is hidden by the current filter."
+      />
+    </div>
 
     <div class="wf-legend">
       <span><i class="swatch swatch-self"></i> self time</span>
       <span><i class="swatch swatch-children"></i> time in children</span>
       <span><i class="swatch swatch-critical"></i> on the critical path</span>
+      <span v-for="lane in laneGroups" :key="lane.category">
+        <i class="swatch" :style="{ background: contextColor(lane.category) }"></i>
+        {{ contextLabel(lane.category) }}
+      </span>
       <span><i class="swatch swatch-server"></i> server</span>
       <span><i class="swatch swatch-client"></i> client</span>
       <span><i class="swatch swatch-internal"></i> internal</span>
@@ -146,17 +212,28 @@ import Badge from '@shared/components/Badge.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import FormattingService from '@shared/services/FormattingService';
 import TraceSpanInlineDetail from '@/components/trace/TraceSpanInlineDetail.vue';
-import type { EventFieldRow, TraceSpanRow } from '@/services/api/model/trace/TraceModels';
+import type { EventFieldRow, TraceContext, TraceSpanRow } from '@/services/api/model/trace/TraceModels';
 import type { SpanBar } from '@/services/trace/TraceWaterfallLayout';
 import { indentRem, traceWindow, waterfallBars } from '@/services/trace/TraceWaterfallLayout';
 import { descendantCounts, spansWithChildren, visibleSpans } from '@/services/trace/traceTree';
+import type { ContextBand } from '@/services/trace/TraceContextBands';
+import { bandLanes, contextBands } from '@/services/trace/TraceContextBands';
+import { contextColor, contextLabel } from '@/services/trace/traceLabels';
 
-const props = defineProps<{
-  spans: TraceSpanRow[];
-  selectedSpanId?: string | null;
-  /** Field metadata per event type, so an opened span can label and format what its event recorded. */
-  eventFields: Record<string, EventFieldRow[]>;
-}>();
+const props = withDefaults(
+  defineProps<{
+    spans: TraceSpanRow[];
+    selectedSpanId?: string | null;
+    /** Field metadata per event type, so an opened span can label and format what its event recorded. */
+    eventFields: Record<string, EventFieldRow[]>;
+    /**
+     * What the JVM was doing to the trace. Arrives after the spans do — it is a slower query — so
+     * the waterfall must draw perfectly well without it and simply gain the bands when it lands.
+     */
+    context?: TraceContext | null;
+  }>(),
+  { selectedSpanId: null, context: null }
+);
 
 const emit = defineEmits<{
   (event: 'select', span: TraceSpanRow): void;
@@ -186,6 +263,12 @@ const windowNanos = computed(() => {
 });
 
 const parents = computed(() => spansWithChildren(props.spans));
+
+const bands = computed(() =>
+  contextBands(props.context?.pauses ?? [], traceWindow(props.spans))
+);
+
+const laneGroups = computed(() => bandLanes(bands.value));
 
 // Counted once for the whole trace, like the bars and the child counts below: every parent row asks
 // for this on each render, and answering per row would rescan the trace for each of them.
@@ -253,6 +336,31 @@ function bar(span: TraceSpanRow): SpanBar {
 
 function isCritical(span: TraceSpanRow): boolean {
   return span.criticalPathNanos > 0;
+}
+
+/**
+ * What a band says on hover. Clipping is called out because the number would otherwise be read as
+ * the pause's whole length, when part of it happened outside the trace entirely.
+ */
+function bandTitle(band: ContextBand): string {
+  const duration = FormattingService.formatDuration2Units(band.durationNanos);
+  const name = `${contextLabel(band.category)} · ${band.label} · ${duration}`;
+  if (band.clippedStart && band.clippedEnd) {
+    return `${name} — ran for the whole trace and beyond it at both ends`;
+  }
+  if (band.clippedStart) {
+    return `${name} — began before this trace did`;
+  }
+  if (band.clippedEnd) {
+    return `${name} — was still running when the trace ended`;
+  }
+  return name;
+}
+
+/** How much of the trace one lane's pauses came to, for the row's duration column. */
+function laneTotal(laneBands: ContextBand[]): string {
+  const nanos = laneBands.reduce((sum, band) => sum + band.durationNanos, 0);
+  return FormattingService.formatDuration2Units(nanos);
 }
 
 function toggleCollapsed(spanId: string): void {
@@ -405,11 +513,105 @@ function tooltip(span: TraceSpanRow): string {
 }
 
 .wf-head,
-.wf-row {
+.wf-row,
+.wf-lane,
+.wf-stripes {
   display: grid;
   grid-template-columns: 20rem 1fr 5.5rem;
   align-items: center;
   gap: 0.5rem;
+}
+
+/* The rows' own stacking context, so the stripe layer can stretch over exactly them. */
+.wf-rows {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.wf-lane {
+  padding: 0.15rem 1rem;
+  /* Matches the row's accent gutter so the lane track and the bar track share an origin. */
+  border-left: 2px solid transparent;
+}
+
+.lane-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.lane-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-xs);
+  flex: none;
+}
+
+.lane-track {
+  position: relative;
+  height: 0.9rem;
+}
+
+.lane-track::before {
+  content: '';
+  position: absolute;
+  inset: 0.42rem 0 auto 0;
+  height: 1px;
+  background: var(--color-border-light);
+}
+
+.lane-band {
+  position: absolute;
+  top: 0.08rem;
+  height: 0.72rem;
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.lane-band-text {
+  font-family: var(--font-family-monospace);
+  font-size: 0.55rem;
+  font-weight: 600;
+  color: var(--color-bg-card);
+  white-space: nowrap;
+}
+
+/*
+ * The wash behind the bars. Inert to the pointer so the rows above stay clickable, and behind them
+ * so it reads as ground rather than as another bar.
+ */
+.wf-stripes {
+  position: absolute;
+  inset: 0;
+  padding: 0 1rem;
+  border-left: 2px solid transparent;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wf-stripes-track {
+  position: relative;
+  height: 100%;
+}
+
+.wf-stripe {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--stripe-color) 9%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--stripe-color) 30%, transparent);
+  border-right: 1px solid color-mix(in srgb, var(--stripe-color) 30%, transparent);
 }
 
 .wf-head {
@@ -428,6 +630,9 @@ function tooltip(span: TraceSpanRow): string {
 }
 
 .wf-row {
+  /* Above the stripe wash, which is drawn behind the whole block of rows. */
+  position: relative;
+  z-index: 1;
   width: 100%;
   padding: 0.28rem 1rem;
   border: 0;

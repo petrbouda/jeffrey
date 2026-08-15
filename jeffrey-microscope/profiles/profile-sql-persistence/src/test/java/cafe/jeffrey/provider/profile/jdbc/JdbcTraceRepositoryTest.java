@@ -22,6 +22,7 @@ import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
+import cafe.jeffrey.provider.profile.api.TraceContextCategory;
 import cafe.jeffrey.provider.profile.api.TraceListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
@@ -31,7 +32,9 @@ import cafe.jeffrey.provider.profile.api.TraceOperationSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceOperationThreadsRecord;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TracePage;
+import cafe.jeffrey.provider.profile.api.TracePauseRecord;
 import cafe.jeffrey.provider.profile.api.TraceSortField;
+import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.provider.profile.api.TraceTimelineBucketRecord;
@@ -877,6 +880,89 @@ class JdbcTraceRepositoryTest {
     }
 
     @Nested
+    @DisplayName("Self duration")
+    class SelfDuration {
+
+        /** The base fixture plus one trace per rule the self-time derivation has to obey. */
+        private static Map<String, TraceSpanRecord> spansByName(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-self-duration-traces.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+
+            return java.util.stream.LongStream.rangeClosed(8001, 8005)
+                    .boxed()
+                    .flatMap(traceId -> repository.spansOf(traceId).stream())
+                    .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
+        }
+
+        @Test
+        @DisplayName("is the span's duration minus what its children covered")
+        void subtractsChildren(DataSource dataSource) throws SQLException {
+            Map<String, TraceSpanRecord> spans = spansByName(dataSource);
+
+            assertEquals(70 * MS, spans.get("sequential-parent").selfDurationNanos());
+            assertEquals(30 * MS, spans.get("sequential-child").selfDurationNanos(),
+                    "a leaf's self time is its whole duration");
+        }
+
+        @Test
+        @DisplayName("overlapping children are not subtracted twice")
+        void mergesOverlappingChildren(DataSource dataSource) throws SQLException {
+            // The two children cover 10..50ms together, i.e. 40ms, not 30 + 30.
+            assertEquals(60 * MS, spansByName(dataSource).get("overlap-parent").selfDurationNanos());
+        }
+
+        @Test
+        @DisplayName("a child on another thread is not subtracted from the parent's own time")
+        void ignoresChildrenOnOtherThreads(DataSource dataSource) throws SQLException {
+            // Tracer.continueIn forks the work: the parent thread kept working the whole time.
+            assertEquals(100 * MS, spansByName(dataSource).get("forking-parent").selfDurationNanos());
+        }
+
+        @Test
+        @DisplayName("a child outliving its parent costs it only the stretch the two shared")
+        void clipsChildrenToTheParentWindow(DataSource dataSource) throws SQLException {
+            Map<String, TraceSpanRecord> spans = spansByName(dataSource);
+
+            assertEquals(20 * MS, spans.get("overrun-parent").selfDurationNanos(),
+                    "the child covered 20..50ms of the parent, not 20..100ms");
+            assertEquals(80 * MS, spans.get("overrun-child").selfDurationNanos(),
+                    "the child itself has no children, so all of its time is its own");
+        }
+
+        @Test
+        @DisplayName("a child shorter than a millisecond still costs its parent that time")
+        void subtractsSubMillisecondChildren(DataSource dataSource) throws SQLException {
+            // Rounding each child's window to whole milliseconds made every sub-millisecond call
+            // cost nothing, handing the parent back time its children had spent. A handful of short
+            // queries under one request is the ordinary case, not a corner one.
+            assertEquals(3_000 * US_PER_MS, spansByName(dataSource).get("submilli-parent").selfDurationNanos());
+        }
+
+        @Test
+        @DisplayName("a span with no children keeps its whole duration")
+        void leavesChildlessSpansAlone(DataSource dataSource) throws SQLException {
+            Map<String, TraceSpanRecord> spans = spansByName(dataSource);
+
+            for (String leaf : List.of("sequential-child", "overlap-a", "overlap-b", "forked-child")) {
+                TraceSpanRecord span = spans.get(leaf);
+                assertEquals(span.durationNanos(), span.selfDurationNanos(), leaf + " has no children");
+            }
+        }
+
+        @Test
+        @DisplayName("never exceeds the span's own duration")
+        void neverExceedsTheDuration(DataSource dataSource) throws SQLException {
+            for (TraceSpanRecord span : spansByName(dataSource).values()) {
+                assertTrue(span.selfDurationNanos() >= 0, span.name() + " went negative");
+                assertTrue(span.selfDurationNanos() <= span.durationNanos(),
+                        span.name() + " claims more of its own time than it ran for");
+            }
+        }
+    }
+
+    @Nested
     @DisplayName("Filtering and paging")
     class Filtering {
 
@@ -1097,6 +1183,135 @@ class JdbcTraceRepositoryTest {
             assertEquals(List.of(HEALTH), repository.operations(secondPage).operations().stream()
                     .map(TraceOperationRecord::name).toList());
             assertEquals(2, repository.operations(secondPage).totalMatching());
+        }
+    }
+
+    @Nested
+    @DisplayName("JVM context")
+    class Context {
+
+        /** The span under test runs 10:10:00.000 .. 10:10:00.300, ten minutes into the fixture. */
+        private static final long SPAN_FROM_US = (EPOCH_10_00_00 + 600_000L) * US_PER_MS;
+        private static final long SPAN_TO_US = SPAN_FROM_US + 300L * US_PER_MS;
+        private static final long CONTEXT_TRACE = 9001L;
+
+        private static JdbcTraceRepository withContext(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-context.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+            return repository;
+        }
+
+        private static Map<TraceContextCategory, TraceSpanContextRecord> waitsByCategory(
+                JdbcTraceRepository repository) {
+
+            return repository.spanContext(CONTEXT_TRACE).stream()
+                    .collect(Collectors.toMap(TraceSpanContextRecord::category, Function.identity()));
+        }
+
+        @Test
+        @DisplayName("finds pauses recorded on a VM thread, not the span's own")
+        void findsGlobalPauses(DataSource dataSource) throws SQLException {
+            // The pauses live on thread 3003 while the span ran on 3001. A query that matched the
+            // span's thread -- which is what every other window read in this layer does -- would
+            // return nothing at all here.
+            List<TracePauseRecord> pauses = withContext(dataSource).pausesInWindow(SPAN_FROM_US, SPAN_TO_US);
+
+            assertEquals(2, pauses.size(), "the collection inside the span and the one overlapping its start");
+            assertTrue(pauses.stream().allMatch(p -> p.category() == TraceContextCategory.GC_PAUSE));
+        }
+
+        @Test
+        @DisplayName("includes a pause that began before the window and was still running")
+        void includesOverlappingPause(DataSource dataSource) throws SQLException {
+            // Starts-inside semantics miss this one: it began 30ms before the span and ran 10ms
+            // into it. It is exactly the pause worth drawing, so it must survive the filter.
+            List<TracePauseRecord> pauses = withContext(dataSource).pausesInWindow(SPAN_FROM_US, SPAN_TO_US);
+
+            assertTrue(pauses.stream().anyMatch(p -> p.fromEpochMicros() < SPAN_FROM_US),
+                    "a pause that started before the window still overlapped it");
+        }
+
+        @Test
+        @DisplayName("excludes a pause that fell entirely outside the window")
+        void excludesPausesOutsideTheWindow(DataSource dataSource) throws SQLException {
+            List<TracePauseRecord> pauses = withContext(dataSource).pausesInWindow(SPAN_FROM_US, SPAN_TO_US);
+
+            assertTrue(pauses.stream().noneMatch(p -> p.category() == TraceContextCategory.SAFEPOINT),
+                    "the safepoint ran 200ms after the span ended");
+        }
+
+        @Test
+        @DisplayName("a pause carries what it called itself")
+        void pausesAreLabelled(DataSource dataSource) throws SQLException {
+            List<TracePauseRecord> pauses = withContext(dataSource).pausesInWindow(SPAN_FROM_US, SPAN_TO_US);
+
+            assertTrue(pauses.stream().allMatch(p -> "G1 Young".equals(p.label())),
+                    "a band saying only 'something stopped the world' is not worth drawing");
+        }
+
+        @Test
+        @DisplayName("a pause reports the window it occupied")
+        void pausesCarryTheirBounds(DataSource dataSource) throws SQLException {
+            TracePauseRecord inside = withContext(dataSource).pausesInWindow(SPAN_FROM_US, SPAN_TO_US).stream()
+                    .filter(pause -> pause.fromEpochMicros() >= SPAN_FROM_US)
+                    .findFirst()
+                    .orElseThrow();
+
+            assertEquals(100 * MS, inside.durationNanos());
+            assertEquals(SPAN_FROM_US + 100 * US_PER_MS, inside.fromEpochMicros());
+        }
+
+        @Test
+        @DisplayName("per-span waiting is grouped by what the thread was waiting on")
+        void groupsSpanWaitsByCategory(DataSource dataSource) throws SQLException {
+            Map<TraceContextCategory, TraceSpanContextRecord> waits = waitsByCategory(withContext(dataSource));
+
+            assertEquals(30 * MS, waits.get(TraceContextCategory.MONITOR_BLOCKED).totalNanos());
+            assertEquals(20 * MS, waits.get(TraceContextCategory.PARKED).totalNanos());
+        }
+
+        @Test
+        @DisplayName("waiting on another thread is not attributed to the span")
+        void ignoresOtherThreads(DataSource dataSource) throws SQLException {
+            // A 90ms monitor wait on thread 3002 overlaps the span in time but not on its thread.
+            Map<TraceContextCategory, TraceSpanContextRecord> waits = waitsByCategory(withContext(dataSource));
+
+            assertEquals(30 * MS, waits.get(TraceContextCategory.MONITOR_BLOCKED).totalNanos(),
+                    "only the wait on the span's own thread counts");
+        }
+
+        @Test
+        @DisplayName("waiting after the span ended is not attributed to it")
+        void ignoresEventsOutsideTheSpan(DataSource dataSource) throws SQLException {
+            Map<TraceContextCategory, TraceSpanContextRecord> waits = waitsByCategory(withContext(dataSource));
+
+            assertEquals(20 * MS, waits.get(TraceContextCategory.PARKED).totalNanos(),
+                    "the 10ms park 600ms later is outside the span's window");
+        }
+
+        @Test
+        @DisplayName("counts the events behind a total")
+        void countsOccurrences(DataSource dataSource) throws SQLException {
+            // One long stall and a thousand short ones sum the same and are not the same problem.
+            Map<TraceContextCategory, TraceSpanContextRecord> waits = waitsByCategory(withContext(dataSource));
+
+            assertEquals(1, waits.get(TraceContextCategory.MONITOR_BLOCKED).occurrences());
+        }
+
+        @Test
+        @DisplayName("a trace whose spans never waited has no context rows")
+        void quietTraceHasNoWaits(DataSource dataSource) throws SQLException {
+            assertTrue(withContext(dataSource).spanContext(SLOW_TRACE).isEmpty(),
+                    "a span that only ever ran gets no row rather than a row of zeroes");
+        }
+
+        @Test
+        @DisplayName("a window with nothing in it comes back empty rather than failing")
+        void emptyWindow(DataSource dataSource) throws SQLException {
+            assertTrue(withContext(dataSource)
+                    .pausesInWindow(SPAN_FROM_US - 10_000_000L, SPAN_FROM_US - 9_000_000L).isEmpty());
         }
     }
 

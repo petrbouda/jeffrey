@@ -135,11 +135,26 @@
             :spans="detail.spans"
             :selected-span-id="selected?.spanId ?? null"
             :event-fields="detail.eventFields ?? {}"
+            :context="context"
             @select="select"
             @view-events="openEvents"
             @view-flamegraph="openFlamegraphPicker"
           />
         </div>
+
+        <!--
+          Below the bars rather than beside them: it is the conclusion drawn from the trace above,
+          and a reader reaches it after looking at the shape, not instead of doing so.
+        -->
+        <section v-if="hasContextSummary" class="context-pane">
+          <header>
+            <i class="bi bi-question-circle"></i> Why was this trace slow?
+          </header>
+          <TraceWhySlowPanel
+            :slices="context?.summary ?? []"
+            :trace-duration-nanos="detail.trace.durationNanos"
+          />
+        </section>
       </div>
     </div>
   </GenericModal>
@@ -157,6 +172,7 @@ import type { MetaChip } from '@shared/components/MetaChips.vue';
 import FormattingService from '@shared/services/FormattingService';
 
 import TraceWaterfall from '@/components/trace/TraceWaterfall.vue';
+import TraceWhySlowPanel from '@/components/trace/TraceWhySlowPanel.vue';
 import TraceSpanFlamegraphs from '@/components/trace/TraceSpanFlamegraphs.vue';
 import EventWindowTimeline from '@/components/events/EventWindowTimeline.vue';
 import type { TraceSpanFlamegraphRequest } from '@/components/trace/TraceSpanFlamegraphs.vue';
@@ -171,6 +187,7 @@ import OnlyFlamegraphGraphUpdater from '@/services/flamegraphs/updater/OnlyFlame
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import type {
+  TraceContext,
   TraceDetail,
   TraceEventRow,
   TraceSpanRow
@@ -203,6 +220,16 @@ const flamegraphOrigin = ref<'events' | 'flamegraph-picker'>('flamegraph-picker'
 const activeEventType = ref('');
 const activeUseWeight = ref(false);
 const activeSelfOnly = ref(false);
+
+/** Null until the second request lands, and after one that failed. The waterfall copes with both. */
+const context = ref<TraceContext | null>(null);
+
+/** Only worth a panel once something other than the residual is in it. */
+const hasContextSummary = computed(() =>
+  (context.value?.summary ?? []).some(
+    (slice) => slice.category !== 'OWN_WORK' && slice.totalNanos > 0
+  )
+);
 let flamegraphTooltip: FlamegraphTooltip;
 let graphUpdater: GraphUpdater;
 
@@ -413,16 +440,29 @@ async function load(): Promise<void> {
   error.value = null;
   selected.value = null;
   mode.value = 'spans';
+  context.value = null;
   spanEvents.value = [];
   eventsTruncated.value = false;
   eventsError.value = null;
+  const client = new ProfileTracesClient(props.profileId);
   try {
-    detail.value = await new ProfileTracesClient(props.profileId).getTrace(props.traceId);
+    detail.value = await client.getTrace(props.traceId);
   } catch {
     detail.value = null;
     error.value = 'Failed to load this trace.';
+    return;
   } finally {
     loading.value = false;
+  }
+
+  // Fetched after the waterfall is already on screen, and deliberately not awaited with it: the
+  // pauses come from a scan of the events table rather than the derived span tables, and the bars
+  // are worth reading before the context lands. A failure here leaves the waterfall intact --
+  // context is an enrichment, and losing it must not turn a readable trace into an error page.
+  try {
+    context.value = await client.getTraceContext(props.traceId);
+  } catch {
+    context.value = null;
   }
 }
 
@@ -439,6 +479,24 @@ watch(
 </script>
 
 <style scoped>
+/* The conclusion under the evidence, set apart so it reads as a summary rather than another row. */
+.context-pane {
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-border-radius);
+  background: var(--color-bg-card);
+}
+
+.context-pane > header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--color-border-light);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-dark);
+}
+
 .trace-spans {
   display: flex;
   flex-direction: column;

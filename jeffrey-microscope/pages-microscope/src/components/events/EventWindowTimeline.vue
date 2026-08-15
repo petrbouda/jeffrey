@@ -32,10 +32,11 @@
           class="ev-mk"
           :style="{
             left: mainLeft(ev.offset) + '%',
+            width: markerWidth(ev),
             top: rowTop(ev.eventType) + 'px',
             background: `var(${colorOf(ev.eventType)})`
           }"
-          :title="ev.eventType + ' · +' + compact(ev.offset)"
+          :title="markerTitle(ev)"
         ></span>
       </div>
       <div class="ev-axis">
@@ -184,6 +185,8 @@ const NANOS_PER_MILLI = 1_000_000;
 const MIN_WINDOW_MS = 50;
 const FIELDS_MAX = 80;
 const ROW_STEP = 16;
+/** Narrowest a marker may be drawn: an instantaneous event still has to be visible and clickable. */
+const MARKER_MIN_WIDTH_PX = 3;
 const AXIS_TICKS = 6;
 
 const props = defineProps<{
@@ -306,6 +309,31 @@ const brushStyle = computed(() => ({
   left: (viewS.value / props.windowMillis) * 100 + '%',
   width: ((viewE.value - viewS.value) / props.windowMillis) * 100 + '%'
 }));
+
+/**
+ * How wide an event is drawn: its real duration against the view, floored at the marker's own width.
+ *
+ * An event that lasted is a stretch of time, not an instant, and drawing a 90ms lock wait as the
+ * same 3px tick as a 2µs allocation hid the one thing the reader came for. The floor keeps a genuine
+ * instant visible and clickable, so the lane still reads as a series of marks rather than a bar
+ * chart with gaps.
+ */
+function markerWidth(event: OffsetEvent): string {
+  if (event.durationNanos <= 0) {
+    return `${MARKER_MIN_WIDTH_PX}px`;
+  }
+  const endOffset = event.offset + event.durationNanos / NANOS_PER_MILLI;
+  const widthPercent = mainLeft(endOffset) - mainLeft(event.offset);
+  return `max(${MARKER_MIN_WIDTH_PX}px, ${widthPercent}%)`;
+}
+
+function markerTitle(event: OffsetEvent): string {
+  const at = `${event.eventType} · +${compact(event.offset)}`;
+  if (event.durationNanos <= 0) {
+    return at;
+  }
+  return `${at} · ${FormattingService.formatDuration2Units(event.durationNanos)}`;
+}
 
 function mainLeft(offset: number): number {
   return positionPercent(offset, viewS.value, viewE.value);

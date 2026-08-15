@@ -21,6 +21,7 @@ package cafe.jeffrey.provider.profile.jdbc;
 import cafe.jeffrey.provider.profile.api.EventFieldRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
+import cafe.jeffrey.provider.profile.api.TraceContextCategory;
 import cafe.jeffrey.provider.profile.api.TraceListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
@@ -31,8 +32,10 @@ import cafe.jeffrey.provider.profile.api.TraceOperationSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceOperationThreadsRecord;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TracePage;
+import cafe.jeffrey.provider.profile.api.TracePauseRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSortField;
+import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.provider.profile.api.TraceTimelineBucketRecord;
@@ -128,8 +131,8 @@ public class JdbcTraceRepository implements TraceRepository {
     private static final String DERIVE_TRACE_SPANS = """
             INSERT INTO trace_spans (
                 trace_id, span_id, parent_span_id, name, kind, status, error_type,
-                start_timestamp, start_timestamp_from_beginning, duration, thread_hash,
-                event_type, attributes, event_fields)
+                start_timestamp, start_timestamp_from_beginning, duration, self_duration,
+                thread_hash, event_type, attributes, event_fields)
             WITH spans AS (
                 SELECT
                     e.*,
@@ -152,6 +155,10 @@ public class JdbcTraceRepository implements TraceRepository {
                 start_timestamp                                                 AS start_timestamp,
                 COALESCE(start_timestamp_from_beginning, 0)                     AS start_timestamp_from_beginning,
                 COALESCE(duration, 0)                                           AS duration,
+                -- Starts at the whole duration; SELF_DURATIONS then subtracts whatever the span's
+                -- same-thread children covered. A span with no such children is already correct
+                -- here, which is why that statement only has to touch the spans that have them.
+                COALESCE(duration, 0)                                           AS self_duration,
                 thread_hash                                                     AS thread_hash,
                 event_type                                                      AS event_type,
                 json_extract_string(fields, '$.attributes')                     AS attributes,
@@ -217,6 +224,90 @@ public class JdbcTraceRepository implements TraceRepository {
 
     //language=SQL
     private static final String DELETE_TRACES = "DELETE FROM traces";
+
+    /*
+     * Subtracts from each span the stretches its children were covering, leaving the span's own
+     * time. Runs once, after the spans are inserted, because a span's self time is a fact about its
+     * children and nothing knows them until they are all in the table.
+     *
+     * Only children on the parent's own thread are subtracted: work handed to another thread runs
+     * beside the parent rather than instead of it, so cutting it out would charge the parent for
+     * time it never lost. Threads are compared through COALESCE so two spans whose thread did not
+     * resolve count as the same unknown thread, matching how every read of this table treats a null
+     * thread hash.
+     *
+     * Children are clipped to the parent's own window first -- a child recorded as outliving its
+     * parent costs it only the stretch the two shared -- and then merged with the same
+     * gaps-and-islands pass OPERATION_INTERVALS uses, so two children running concurrently are
+     * subtracted once rather than twice. The result is floored at zero: microsecond rounding can
+     * make merged children marginally longer than the parent they ran inside.
+     *
+     * A span with no same-thread children is not touched at all; the insert already set its self
+     * time to its whole duration.
+     *
+     * One shape this reads differently from the tree the waterfall assembles: a parent cycle. The
+     * assembly breaks a cycle by promoting its earliest member to a root, whereas this join lets
+     * both members subtract each other. Correct instrumentation cannot emit one -- a span's parent
+     * is fixed before the span is committed -- and the derivation dedupes on span id before the
+     * primary key enforces it.
+     */
+    //language=SQL
+    private static final String SELF_DURATIONS = """
+            UPDATE trace_spans
+            SET self_duration = GREATEST(0, trace_spans.duration - covered.covered_us * 1000)
+            FROM (
+                WITH clipped AS (
+                    SELECT
+                        c.trace_id                                          AS trace_id,
+                        c.parent_span_id                                    AS span_id,
+                        GREATEST(EPOCH_US(c.start_timestamp),
+                                 EPOCH_US(p.start_timestamp))               AS from_us,
+                        LEAST(EPOCH_US(c.start_timestamp) + c.duration // 1000,
+                              EPOCH_US(p.start_timestamp) + p.duration // 1000) AS to_us
+                    FROM trace_spans c
+                    JOIN trace_spans p
+                      ON p.trace_id = c.trace_id
+                     AND p.span_id = c.parent_span_id
+                    WHERE c.parent_span_id IS NOT NULL
+                      AND COALESCE(c.thread_hash, 0) = COALESCE(p.thread_hash, 0)
+                ),
+                windows AS (
+                    SELECT * FROM clipped WHERE to_us > from_us
+                ),
+                numbered AS (
+                    SELECT
+                        trace_id, span_id, from_us, to_us,
+                        CASE WHEN from_us > MAX(to_us) OVER (
+                                 PARTITION BY trace_id, span_id
+                                 ORDER BY from_us, to_us
+                                 ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING)
+                             THEN 1 ELSE 0 END AS starts_island
+                    FROM windows
+                ),
+                islands AS (
+                    SELECT
+                        trace_id, span_id, from_us, to_us,
+                        SUM(starts_island) OVER (
+                            PARTITION BY trace_id, span_id
+                            ORDER BY from_us, to_us
+                            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS island
+                    FROM numbered
+                ),
+                merged AS (
+                    SELECT
+                        trace_id, span_id,
+                        MIN(from_us) AS from_us,
+                        MAX(to_us)   AS to_us
+                    FROM islands
+                    GROUP BY trace_id, span_id, island
+                )
+                SELECT trace_id, span_id, SUM(to_us - from_us) AS covered_us
+                FROM merged
+                GROUP BY trace_id, span_id
+            ) covered
+            WHERE trace_spans.trace_id = covered.trace_id
+              AND trace_spans.span_id = covered.span_id
+            """;
 
     //language=SQL
     private static final String TRACES_EXIST = """
@@ -298,6 +389,7 @@ public class JdbcTraceRepository implements TraceRepository {
                 s.start_timestamp_from_beginning        AS start_ms,
                 EPOCH_US(s.start_timestamp)             AS start_epoch_us,
                 s.duration                              AS duration_ns,
+                s.self_duration                         AS self_duration_ns,
                 COALESCE(s.thread_hash, 0)              AS thread_hash,
                 t.name                                  AS thread_name,
                 COALESCE(t.is_virtual, FALSE)           AS is_virtual,
@@ -526,9 +618,15 @@ public class JdbcTraceRepository implements TraceRepository {
     /*
      * Where an operation spends its time, one row per span name across every trace of the type.
      *
-     * Inclusive by construction: a parent's duration contains its children's, so the rows sum past
-     * the operation's own total. Self time would need the same interval merge the waterfall does
-     * per trace, which is not a group-by; the UI labels the column for what it is.
+     * Two totals, because they answer different questions. The inclusive one contains the span's
+     * children, so the rows sum past the operation's own duration -- it says which part of the tree
+     * a request is inside. The self one contains only the span's own work, so the rows sum to the
+     * operation's time and can be ranked against each other -- it says which code to go and look at.
+     * Ranking by the two routinely disagrees, which is the point of carrying both: a span that
+     * merely wraps three slow queries tops the inclusive list and barely registers on the self one.
+     *
+     * Self time is summed from the stored column rather than recomputed here: the interval merge it
+     * comes from runs once at derivation, where every span of a trace is in hand.
      *
      * The trace's own root is excluded by span id, not by name. By name, an operation that calls
      * itself -- a handler that recurses, a retry that re-enters the same path -- matched every one
@@ -542,7 +640,9 @@ public class JdbcTraceRepository implements TraceRepository {
                 COUNT(*)                                            AS occurrences,
                 COUNT(DISTINCT s.trace_id)                          AS trace_count,
                 SUM(s.duration)                                     AS total_ns,
+                SUM(s.self_duration)                                AS self_ns,
                 CAST(QUANTILE_CONT(s.duration, 0.5) AS BIGINT)      AS p50_ns,
+                CAST(QUANTILE_CONT(s.self_duration, 0.5) AS BIGINT) AS p50_self_ns,
                 MAX(s.duration)                                     AS max_ns
             FROM trace_spans s
             JOIN traces t ON t.trace_id = s.trace_id
@@ -612,6 +712,97 @@ public class JdbcTraceRepository implements TraceRepository {
             WHERE et.name IN (:event_types)
             """;
 
+    /**
+     * How far back a pause is allowed to have started before the window it is being looked for in.
+     * <p>
+     * Overlap is not sargable on the lower bound — "started before this instant and had not ended"
+     * cannot be answered from a start timestamp alone — so without a floor the query would scan the
+     * events table from the beginning of the recording. A pause longer than this is a JVM in far
+     * more trouble than a trace view is going to diagnose.
+     */
+    private static final long MAX_PAUSE_LOOKBACK_MILLIS = 60_000L;
+
+    private static final long MICROS_PER_MILLI_LONG = 1_000L;
+
+    /*
+     * The stop-the-world stretches overlapping a window, whichever thread recorded them.
+     *
+     * No thread predicate at all, which is the whole point: a collection pause and a safepoint are
+     * emitted on a VM thread and stop every application thread, so matching a span's own thread hash
+     * — what every other window query in this layer does — finds none of them, ever.
+     *
+     * Overlap, not starts-inside: a 40ms pause that began 5ms before the span is exactly the one
+     * worth drawing, and the starts-inside predicate the thread drill-down uses would miss it. The
+     * lower bound is floored by MAX_PAUSE_LOOKBACK_MILLIS so the scan still prunes on the same zone
+     * maps; the upper bound keeps the sargable form ThreadWindowEvents documents.
+     *
+     * A label is read out of the event's own fields, trying the names those event types use, so a
+     * band can say "G1 Young" or "RevokeBias" rather than only that something stopped the world.
+     */
+    //language=SQL
+    private static final String PAUSES_IN_WINDOW = """
+            SELECT
+                e.event_type                                        AS event_type,
+                COALESCE(
+                    json_extract_string(e.fields, '$.name'),
+                    json_extract_string(e.fields, '$.operation'),
+                    json_extract_string(e.fields, '$.cause'),
+                    e.event_type)                                   AS label,
+                EPOCH_US(e.start_timestamp)                         AS from_epoch_us,
+                EPOCH_US(e.start_timestamp)
+                    + COALESCE(e.duration, 0) // 1000                AS to_epoch_us
+            FROM events e
+            WHERE e.event_type IN (:pause_event_types)
+                AND e.start_timestamp >= make_timestamptz(:lookback_from_ms * 1000)
+                AND e.start_timestamp < make_timestamptz((:to_ms + 1) * 1000)
+                AND EPOCH_US(e.start_timestamp) + COALESCE(e.duration, 0) // 1000 > :from_us
+            ORDER BY e.start_timestamp
+            LIMIT :limit
+            """;
+
+    /*
+     * What each span of a trace spent waiting on, one row per (span, category) that recorded
+     * anything.
+     *
+     * Joined on the span's own thread and window, because these events are thread-scoped: a lock the
+     * request waited on was contended on the request's thread. Events are attributed to the span
+     * whose window they start in, and a nested span's waiting therefore lands on the child rather
+     * than being counted twice — which is what makes these totals comparable to self time.
+     *
+     * The category mapping arrives as a two-list UNNEST rather than a CASE ladder over event type
+     * names, so the enum stays the only place the mapping is written down.
+     */
+    //language=SQL
+    private static final String SPAN_CONTEXT = """
+            WITH mapping AS (
+                SELECT UNNEST([:context_event_types]) AS event_type,
+                       UNNEST([:context_categories])  AS category
+            ),
+            spans AS (
+                SELECT
+                    span_id,
+                    thread_hash,
+                    EPOCH_US(start_timestamp)                       AS from_us,
+                    EPOCH_US(start_timestamp) + duration // 1000    AS to_us
+                FROM trace_spans
+                WHERE trace_id = :trace_id
+                  AND thread_hash IS NOT NULL
+            )
+            SELECT
+                s.span_id                                           AS span_id,
+                m.category                                          AS category,
+                SUM(COALESCE(e.duration, 0))                        AS total_ns,
+                COUNT(*)                                            AS occurrences
+            FROM events e
+            JOIN mapping m ON m.event_type = e.event_type
+            JOIN spans s
+              ON s.thread_hash = e.thread_hash
+             AND EPOCH_US(e.start_timestamp) >= s.from_us
+             AND EPOCH_US(e.start_timestamp) <= s.to_us
+            WHERE e.event_type IN (:context_event_types)
+            GROUP BY s.span_id, m.category
+            """;
+
     private final DatabaseClient databaseClient;
 
     public JdbcTraceRepository(DatabaseClientProvider databaseClientProvider) {
@@ -631,6 +822,9 @@ public class JdbcTraceRepository implements TraceRepository {
         databaseClient.execute(
                 StatementLabel.DERIVE_TRACE_SPANS,
                 DERIVE_TRACE_SPANS.formatted(SPAN_EVENT_TYPES, PLUMBING_FIELDS));
+        // After the spans, before the headers: self time is a fact about a span's children, so
+        // every span has to be in the table before any of them can be resolved.
+        databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, SELF_DURATIONS);
         databaseClient.execute(StatementLabel.DERIVE_TRACES, DERIVE_TRACES);
     }
 
@@ -802,6 +996,7 @@ public class JdbcTraceRepository implements TraceRepository {
                 rs.getLong("start_ms"),
                 rs.getLong("start_epoch_us"),
                 rs.getLong("duration_ns"),
+                rs.getLong("self_duration_ns"),
                 rs.getLong("thread_hash"),
                 rs.getString("thread_name"),
                 rs.getBoolean("is_virtual"),
@@ -876,6 +1071,63 @@ public class JdbcTraceRepository implements TraceRepository {
     }
 
     @Override
+    public List<TracePauseRecord> pausesInWindow(long fromEpochMicros, long toEpochMicros) {
+        List<String> eventTypes = List.copyOf(
+                TraceContextCategory.eventTypesOf(TraceContextCategory.Scope.GLOBAL));
+
+        long toMillis = Math.floorDiv(toEpochMicros, MICROS_PER_MILLI_LONG);
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("pause_event_types", eventTypes)
+                .addValue("from_us", fromEpochMicros)
+                .addValue("to_ms", toMillis)
+                .addValue("lookback_from_ms",
+                        Math.floorDiv(fromEpochMicros, MICROS_PER_MILLI_LONG) - MAX_PAUSE_LOOKBACK_MILLIS)
+                .addValue("limit", ThreadWindowEvents.ROW_LIMIT);
+
+        return databaseClient.query(
+                StatementLabel.TRACE_PAUSES,
+                PAUSES_IN_WINDOW,
+                params,
+                (rs, _) -> new TracePauseRecord(
+                        TraceContextCategory.fromEventType(rs.getString("event_type")).orElseThrow(),
+                        rs.getString("label"),
+                        rs.getLong("from_epoch_us"),
+                        rs.getLong("to_epoch_us")));
+    }
+
+    @Override
+    public List<TraceSpanContextRecord> spanContext(long traceId) {
+        // Zipped by position: the two lists are read as one mapping table, so the enum stays the
+        // single place an event type is tied to a category.
+        List<String> eventTypes = new ArrayList<>();
+        List<String> categories = new ArrayList<>();
+        for (TraceContextCategory category : TraceContextCategory.values()) {
+            if (category.scope() != TraceContextCategory.Scope.THREAD) {
+                continue;
+            }
+            for (String eventType : category.eventTypes()) {
+                eventTypes.add(eventType);
+                categories.add(category.name());
+            }
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("trace_id", traceId)
+                .addValue("context_event_types", eventTypes)
+                .addValue("context_categories", categories);
+
+        return databaseClient.query(
+                StatementLabel.TRACE_SPAN_CONTEXT,
+                SPAN_CONTEXT,
+                params,
+                (rs, _) -> new TraceSpanContextRecord(
+                        rs.getLong("span_id"),
+                        TraceContextCategory.valueOf(rs.getString("category")),
+                        rs.getLong("total_ns"),
+                        rs.getLong("occurrences")));
+    }
+
+    @Override
     public List<TraceTimelineBucketRecord> timeline(int buckets) {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("buckets", buckets);
 
@@ -903,7 +1155,9 @@ public class JdbcTraceRepository implements TraceRepository {
                         rs.getLong("occurrences"),
                         rs.getLong("trace_count"),
                         rs.getLong("total_ns"),
+                        rs.getLong("self_ns"),
                         rs.getLong("p50_ns"),
+                        rs.getLong("p50_self_ns"),
                         rs.getLong("max_ns")));
     }
 

@@ -19,21 +19,29 @@
 package cafe.jeffrey.profile.manager.model.trace;
 
 /**
- * One span name in an operation's breakdown. Times are inclusive: a parent contains its children,
- * so these rows sum past the operation's own duration.
+ * One span name in an operation's breakdown, carrying both readings of its time.
+ * <p>
+ * Inclusive times contain the span's children, so those rows sum past the operation's own duration
+ * and answer "which part of the tree is this request in". Self times contain only the span's own
+ * work, so those rows sum to the operation's time and answer "which code should I go and look at".
+ * The two rankings routinely disagree, which is why the breakdown offers both.
  *
- * @param name        span name, as the waterfall shows it
- * @param occurrences how many spans of this name the operation's traces contain
- * @param traceCount  how many traces contain at least one
- * @param totalNanos  summed duration across all of them
- * @param p50Nanos    median duration of one occurrence
- * @param maxNanos    the slowest single occurrence
+ * @param name         span name, as the waterfall shows it
+ * @param occurrences  how many spans of this name the operation's traces contain
+ * @param traceCount   how many traces contain at least one
+ * @param totalNanos   summed inclusive duration across all of them
+ * @param selfNanos    summed self time across all of them
+ * @param p50Nanos     median inclusive duration of one occurrence
+ * @param p50SelfNanos median self time of one occurrence
+ * @param maxNanos     the slowest single occurrence, inclusive
  */
 public record TraceOperationSpanRow(
         String name,
         long occurrences,
         long traceCount,
         long totalNanos,
+        long selfNanos,
         long p50Nanos,
+        long p50SelfNanos,
         long maxNanos) {
 }

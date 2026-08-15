@@ -99,6 +99,8 @@ public enum StatementLabel {
     TRACE_OVERVIEW,
     TRACES_EXIST,
     TRACE_SPAN_EVENTS,
+    TRACE_PAUSES,
+    TRACE_SPAN_CONTEXT,
     TRACE_EVENT_FIELDS,
 
     /**

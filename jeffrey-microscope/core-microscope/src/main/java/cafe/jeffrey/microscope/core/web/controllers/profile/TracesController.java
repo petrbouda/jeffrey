@@ -24,6 +24,7 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.model.FlamegraphPanel;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.PanelContext;
+import cafe.jeffrey.profile.manager.model.trace.TraceContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
@@ -213,6 +214,23 @@ public class TracesController {
         return resolver.resolve(profileId).traceManager()
                 .trace(parseId(traceId))
                 .orElseThrow(() -> Exceptions.resourceNotFound("Trace not found: " + traceId));
+    }
+
+    /**
+     * What the JVM was doing to this trace: the stop-the-world pauses that crossed it, what each
+     * span waited on, and a ranked summary of where its wall-clock time went.
+     * <p>
+     * Separate from {@code GET /{traceId}} because it is a second question about the same trace, and
+     * a slower one — the pauses come from a scan of the events table rather than from the derived
+     * span tables. Keeping them apart lets the waterfall draw immediately and the context arrive
+     * over it.
+     */
+    @GetMapping("/{traceId}/context")
+    public TraceContext context(
+            @PathVariable("profileId") String profileId,
+            @PathVariable("traceId") String traceId) {
+        LOG.debug("Reading trace context: profile_id={} trace_id={}", profileId, traceId);
+        return resolver.resolve(profileId).traceManager().context(parseId(traceId));
     }
 
     /**

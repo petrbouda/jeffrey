@@ -167,6 +167,60 @@ export interface TraceOperationRow extends TraceOperationId {
   maxNanos: number;
 }
 
+/**
+ * Why a span was not doing its own work. Must match the backend's `TraceContextCategory`, plus
+ * `OWN_WORK` — the residual the summary reports for everything no category accounts for.
+ */
+export type TraceContextCategoryName =
+  | 'GC_PAUSE'
+  | 'SAFEPOINT'
+  | 'MONITOR_BLOCKED'
+  | 'MONITOR_WAIT'
+  | 'PARKED'
+  | 'SLEEPING'
+  | 'SOCKET_IO'
+  | 'FILE_IO'
+  | 'ALLOCATION_STALL'
+  | 'DEOPTIMIZATION'
+  | 'OWN_WORK';
+
+/**
+ * One stretch during which the whole JVM was stopped, overlapping the trace.
+ *
+ * Global: a collection pause and a safepoint halt every thread, so they belong to the trace's window
+ * rather than to any one span — which is why one band can explain a gap in several spans at once.
+ * Positioned in the same absolute epoch micros a span's start carries.
+ */
+export interface TracePause {
+  category: TraceContextCategoryName;
+  /** What the pause called itself — the GC phase, the VM operation. */
+  label: string;
+  startEpochMicros: number;
+  durationNanos: number;
+}
+
+/** One line of a "where did the time go" breakdown. */
+export interface TraceContextSlice {
+  category: TraceContextCategoryName;
+  totalNanos: number;
+  /** How many events; 0 for `OWN_WORK`, which is a remainder rather than an event. */
+  occurrences: number;
+}
+
+/**
+ * What the JVM was doing to a trace, beside what the trace was doing itself.
+ *
+ * The answer a waterfall cannot give alone: a 200 ms span looks identical whether it computed, waited
+ * on a lock, or was stopped by a collection.
+ */
+export interface TraceContext {
+  pauses: TracePause[];
+  /** Per-span waiting, keyed by hex span id, longest first. A span that only ran is absent. */
+  spanWaits: Record<string, TraceContextSlice[]>;
+  /** The trace's time ranked by where it went, with the remainder reported as `OWN_WORK`. */
+  summary: TraceContextSlice[];
+}
+
 /** What a trace list can be ordered by; must match the backend's `TraceSortField`. */
 export type TraceSortField = 'DURATION' | 'START' | 'SPAN_COUNT' | 'ERROR_COUNT';
 
@@ -266,12 +320,23 @@ export interface TraceSpanEvents {
  * One span name in an operation's breakdown. Times are inclusive — a parent contains its children,
  * so the rows sum past the operation's own duration.
  */
+/**
+ * One span name in an operation's breakdown, carrying both readings of its time.
+ *
+ * Inclusive times contain the span's children, so those rows sum past the operation's own duration
+ * and answer "which part of the tree is this request in". Self times contain only the span's own
+ * work, so those rows sum to the operation's time and answer "which code should I go and look at".
+ * The two rankings routinely disagree — a span that merely wraps three slow queries tops the first
+ * and barely registers on the second — which is why the breakdown offers both.
+ */
 export interface TraceOperationSpanRow {
   name: string;
   occurrences: number;
   traceCount: number;
   totalNanos: number;
+  selfNanos: number;
   p50Nanos: number;
+  p50SelfNanos: number;
   maxNanos: number;
 }
 

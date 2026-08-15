@@ -90,6 +90,19 @@
               </span>
             </p>
 
+            <!--
+              What the thread was waiting on inside this span. Sits under the meter because it
+              explains the solid green rather than competing with it: self time says how much was
+              the span's own, this says how much of that was spent not running.
+            -->
+            <p v-if="spanWaits.length > 0" class="sd-waits">
+              <span v-for="wait in spanWaits" :key="wait.category" :title="waitTitle(wait)">
+                <i :style="{ background: contextColor(wait.category) }"></i>
+                {{ contextLabel(wait.category) }}
+                <b>{{ FormattingService.formatDuration2Units(wait.totalNanos) }}</b>
+              </span>
+            </p>
+
             <p class="sd-foot">
               <span>{{ shape }}</span>
               <span>started <b>{{ startedAt }}</b> into the recording</span>
@@ -183,8 +196,12 @@ import { NANOS_PER_MILLI } from '@/services/trace/timeUnits';
 import { computed } from 'vue';
 import Badge from '@shared/components/Badge.vue';
 import FormattingService from '@shared/services/FormattingService';
-import type { EventFieldRow, TraceSpanRow } from '@/services/api/model/trace/TraceModels';
-import { spanKindVariant } from '@/services/trace/traceLabels';
+import type {
+  EventFieldRow,
+  TraceContextSlice,
+  TraceSpanRow
+} from '@/services/api/model/trace/TraceModels';
+import { contextColor, contextLabel, spanKindVariant } from '@/services/trace/traceLabels';
 import type { SpanDetailRow } from '@/services/trace/spanAttributes';
 import { spanDetail } from '@/services/trace/spanAttributes';
 import { indentRem } from '@/services/trace/TraceWaterfallLayout';
@@ -209,6 +226,12 @@ const props = defineProps<{
    * rather than dividing by it.
    */
   traceDurationNanos?: number;
+  /**
+   * What this span's thread spent waiting on, longest first. Empty for a span that only ever ran —
+   * and also before the context request lands, which is why its absence draws nothing rather than
+   * an empty section claiming the span never waited.
+   */
+  waits?: TraceContextSlice[];
 }>();
 
 defineEmits<{
@@ -270,6 +293,14 @@ const meterTitle = computed(
 const startedAt = computed(() =>
   FormattingService.formatDuration2Units(props.span.startMillisFromBeginning * NANOS_PER_MILLI)
 );
+
+/** Anything that came to nothing is dropped: a category with no time is not a finding. */
+const spanWaits = computed(() => (props.waits ?? []).filter((wait) => wait.totalNanos > 0));
+
+function waitTitle(wait: TraceContextSlice): string {
+  const events = wait.occurrences === 1 ? '1 event' : `${wait.occurrences} events`;
+  return `${contextLabel(wait.category)} · ${events} while this span was open`;
+}
 
 /** The share of the whole trace this span decided, when the caller knows the trace's duration. */
 const criticalShareOfTrace = computed(() => {
@@ -470,6 +501,36 @@ function percent(part: number, whole: number): string {
 
 .sd-leg > span {
   color: var(--color-text-muted);
+}
+
+/* One chip per category, reading as a sentence about the span rather than as a second table. */
+.sd-waits {
+  margin: 0 0 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.75rem;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.sd-waits span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.sd-waits i {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-xs);
+  flex: none;
+}
+
+.sd-waits b {
+  font-family: var(--font-family-monospace);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  font-weight: 600;
 }
 
 /* Same weight as the footer below it, with the accent the waterfall marks critical rows in. */

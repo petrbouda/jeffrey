@@ -102,7 +102,24 @@
         <template #header>
           <MainCardHeader icon="bi bi-list-nested" title="Top spans by time">
             <template #actions>
-              <span class="card-note">inclusive — a parent contains its children</span>
+              <!--
+                The two rankings answer different questions and routinely disagree: a span that only
+                wraps three slow queries tops the inclusive list and barely registers on the self
+                one. Switching between them is how you tell "where the request is" from "what to go
+                and fix", so the toggle sits on the card rather than being a preference.
+              -->
+              <span class="span-mode">
+                <button
+                  v-for="mode in SPAN_MODES"
+                  :key="mode.key"
+                  type="button"
+                  :class="{ active: spanMode === mode.key }"
+                  :title="mode.title"
+                  @click="spanMode = mode.key"
+                >
+                  {{ mode.label }}
+                </button>
+              </span>
             </template>
           </MainCardHeader>
         </template>
@@ -117,13 +134,13 @@
           icon="bi-list-nested"
         />
         <div v-else class="span-bars">
-          <div v-for="span in spans" :key="span.name" class="span-bar">
+          <div v-for="span in rankedSpans" :key="span.name" class="span-bar">
             <span class="span-name" :title="span.name">{{ span.name }}</span>
             <div class="span-track">
               <div class="span-fill" :style="{ width: spanShare(span) }"></div>
             </div>
             <span class="span-value">
-              {{ duration(span.totalNanos) }}
+              {{ duration(spanTime(span)) }}
               <span class="span-count">· {{ span.occurrences }}</span>
             </span>
             <!--
@@ -134,8 +151,9 @@
             -->
             <span class="span-detail">
               <span :title="spanReachTitle(span)">{{ spanReach(span) }}</span>
-              <span>p50 <b>{{ duration(span.p50Nanos) }}</b></span>
-              <span>max <b>{{ duration(span.maxNanos) }}</b></span>
+              <span>p50 <b>{{ duration(spanMode === 'self' ? span.p50SelfNanos : span.p50Nanos) }}</b></span>
+              <span v-if="spanMode === 'total'">max <b>{{ duration(span.maxNanos) }}</b></span>
+              <span v-else :title="ownShareTitle(span)">own <b>{{ ownShare(span) }}</b></span>
             </span>
           </div>
         </div>
@@ -205,6 +223,8 @@ const MIN_HISTOGRAM_BUCKETS = 6;
 const DISPLAYED_SPANS = 8;
 /** A summary shows the worst few; the Slowest Traces tab is where the whole ranking lives. */
 const SLOWEST_SHOWN = 5;
+/** Below this an own-work share rounds to 0%, where "<1%" is the more honest reading. */
+const MIN_REPORTED_SHARE_PERCENT = 1;
 
 const props = defineProps<{
   profileId: string;
@@ -419,9 +439,45 @@ function bucketTitle(bucket: { from: number; to: number; count: number }): strin
   return `${duration(bucket.from)} – ${duration(bucket.to)}: ${bucket.count} traces`;
 }
 
+/** Which reading of a span's time the card is ranking by. */
+type SpanMode = 'total' | 'self';
+
+const SPAN_MODES: { key: SpanMode; label: string; title: string }[] = [
+  { key: 'total', label: 'Inclusive', title: 'Time including everything the span called' },
+  { key: 'self', label: 'Self', title: "Time the span spent on its own work, children excluded" }
+];
+
+const spanMode = ref<SpanMode>('total');
+
+function spanTime(span: TraceOperationSpanRow): number {
+  return spanMode.value === 'self' ? span.selfNanos : span.totalNanos;
+}
+
+/**
+ * Re-ranked for the chosen reading. The server orders by inclusive total, which is the wrong order
+ * for the self view — the point of the toggle is that the two disagree, so leaving the rows where
+ * they were would show a "top spans" list whose top span is not the top one.
+ */
+const rankedSpans = computed(() =>
+  [...spans.value].sort((left, right) => spanTime(right) - spanTime(left))
+);
+
 function spanShare(span: TraceOperationSpanRow): string {
-  const widest = spans.value[0]?.totalNanos ?? 0;
-  return widest <= 0 ? '0%' : `${Math.max(2, (span.totalNanos / widest) * 100)}%`;
+  const widest = rankedSpans.value[0] === undefined ? 0 : spanTime(rankedSpans.value[0]);
+  return widest <= 0 ? '0%' : `${Math.max(2, (spanTime(span) / widest) * 100)}%`;
+}
+
+/** How much of a span's own wall time was its own work rather than something it called. */
+function ownShare(span: TraceOperationSpanRow): string {
+  if (span.totalNanos <= 0) {
+    return '—';
+  }
+  const share = (span.selfNanos / span.totalNanos) * 100;
+  return share < MIN_REPORTED_SHARE_PERCENT ? '<1%' : `${Math.round(share)}%`;
+}
+
+function ownShareTitle(span: TraceOperationSpanRow): string {
+  return `${duration(span.selfNanos)} of ${duration(span.totalNanos)} was this span's own work`;
 }
 
 /**
@@ -522,6 +578,44 @@ watch(() => operationKey(props.operation), load, { immediate: true });
 .card-note {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
+}
+
+/* A two-state segmented control, sized to sit inside the card header without crowding the title. */
+.span-mode {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.span-mode button {
+  border: 0;
+  padding: 0.15rem 0.5rem;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+.span-mode button + button {
+  border-left: 1px solid var(--color-border);
+}
+
+.span-mode button:hover {
+  background: var(--color-bg-hover-alt);
+  color: var(--color-dark);
+}
+
+.span-mode button.active {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.span-mode button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
 }
 
 .histogram {

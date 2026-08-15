@@ -23,6 +23,37 @@ import type { SpanKind, TraceOperationId } from '@/services/api/model/trace/Trac
  * span view's header so the same trace never reads "1 errors" in one place and "1 error" in the
  * other.
  */
+/**
+ * How each context category is named and coloured, in one place so the waterfall bands, the why-slow
+ * panel and the per-span breakdown cannot describe the same thing three ways.
+ *
+ * Semantic colour, deliberately separate from the span-kind palette: a kind says what a span *is*,
+ * a category says what went *wrong*, and reusing one ramp for both would make a client call look
+ * like a problem. Values are design tokens rather than literals so both themes resolve.
+ */
+export const CONTEXT_CATEGORIES: Record<string, { label: string; color: string }> = {
+  GC_PAUSE: { label: 'GC pause', color: 'var(--color-danger)' },
+  SAFEPOINT: { label: 'Safepoint', color: 'var(--color-warning)' },
+  MONITOR_BLOCKED: { label: 'Lock wait', color: 'var(--flamegraph-color-purple)' },
+  MONITOR_WAIT: { label: 'Object.wait', color: 'var(--flamegraph-color-pink)' },
+  PARKED: { label: 'Parked', color: 'var(--color-secondary)' },
+  SLEEPING: { label: 'Sleeping', color: 'var(--flamegraph-color-teal)' },
+  SOCKET_IO: { label: 'Socket I/O', color: 'var(--color-info)' },
+  FILE_IO: { label: 'File I/O', color: 'var(--flamegraph-color-blue)' },
+  ALLOCATION_STALL: { label: 'Allocation stall', color: 'var(--flamegraph-color-orange)' },
+  DEOPTIMIZATION: { label: 'Deoptimization', color: 'var(--flamegraph-color-peach)' },
+  OWN_WORK: { label: 'Own work', color: 'var(--flamegraph-color-green)' }
+};
+
+/** A category's display name, falling back to the raw name for one this build does not know. */
+export function contextLabel(category: string): string {
+  return CONTEXT_CATEGORIES[category]?.label ?? category;
+}
+
+export function contextColor(category: string): string {
+  return CONTEXT_CATEGORIES[category]?.color ?? 'var(--color-text-muted)';
+}
+
 export function errorLabel(count: number): string {
   return count === 1 ? '1 error' : `${count} errors`;
 }

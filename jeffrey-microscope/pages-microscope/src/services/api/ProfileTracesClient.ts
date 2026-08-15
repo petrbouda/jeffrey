@@ -19,6 +19,7 @@
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import FlamegraphPanel from '@/services/api/model/FlamegraphPanel';
 import type {
+  TraceContext,
   TraceDetail,
   TraceListQuery,
   TraceOperationId,
@@ -89,6 +90,18 @@ export default class ProfileTracesClient extends BaseProfileClient {
 
   public getTrace(traceId: string): Promise<TraceDetail> {
     return this.get<TraceDetail>(`/${traceId}`);
+  }
+
+  /**
+   * What the JVM was doing to the trace — the pauses that crossed it, what each span waited on, and
+   * where its time went.
+   *
+   * A second request rather than part of {@link getTrace} because it is a slower question: the
+   * pauses come from a scan of the events table rather than the derived span tables. The waterfall
+   * draws immediately and the context arrives over it.
+   */
+  public getTraceContext(traceId: string): Promise<TraceContext> {
+    return this.get<TraceContext>(`/${traceId}/context`);
   }
 
   /** A page of operations, narrowed and ordered on the server for the same reason traces are. */
