@@ -191,7 +191,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import GenericModal from '@shared/components/GenericModal.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
@@ -470,6 +470,38 @@ function openFlamegraph(request: TraceSpanFlamegraphRequest): void {
 function goBack(): void {
   mode.value = mode.value === 'flamegraph' ? flamegraphOrigin.value : 'spans';
 }
+
+/**
+ * Escape walks the drill-down back one level at a time — flamegraph to its origin, events to the
+ * waterfall, an open inline detail to nothing — and only a press with nowhere left to step reaches
+ * GenericModal and closes the dialog. Without this, Escape three levels deep discarded the whole
+ * drill-down at once.
+ *
+ * Captured on the document because GenericModal focuses its own overlay, so a handler on this
+ * component's markup never sees the key.
+ */
+function onEscapeCapture(event: KeyboardEvent): void {
+  if (!props.show || event.key !== 'Escape') {
+    return;
+  }
+  if (mode.value !== 'spans') {
+    event.stopPropagation();
+    goBack();
+    return;
+  }
+  if (selected.value !== null) {
+    event.stopPropagation();
+    selected.value = null;
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keyup', onEscapeCapture, true);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keyup', onEscapeCapture, true);
+});
 
 function scrollToTop(): void {
   const wrapper = document.getElementById(TRACE_FG_SCROLL_ID);

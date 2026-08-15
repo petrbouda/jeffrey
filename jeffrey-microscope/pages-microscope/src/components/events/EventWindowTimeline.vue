@@ -183,6 +183,11 @@ export interface EventWindowRow {
 const NANOS_PER_MILLI = 1_000_000;
 /** A drag shorter than this is a mis-click, not a selection. */
 const MIN_WINDOW_MS = 50;
+/**
+ * The effective floor never exceeds a quarter of the span: a fixed 50ms minimum made the brush a
+ * silent no-op on any span shorter than that, and short spans are exactly the ones people zoom into.
+ */
+const minWindowMs = () => Math.min(MIN_WINDOW_MS, Math.max(1, props.windowMillis / 4));
 const FIELDS_MAX = 80;
 const ROW_STEP = 16;
 /** Narrowest a marker may be drawn: an instantaneous event still has to be visible and clickable. */
@@ -397,9 +402,9 @@ function onBrushMove(event: PointerEvent): void {
   const current = pointerToMillis(event.clientX);
   let from = Math.min(brushAnchor, current);
   let to = Math.max(brushAnchor, current);
-  if (to - from < MIN_WINDOW_MS) {
-    to = Math.min(props.windowMillis, from + MIN_WINDOW_MS);
-    from = Math.max(0, to - MIN_WINDOW_MS);
+  if (to - from < minWindowMs()) {
+    to = Math.min(props.windowMillis, from + minWindowMs());
+    from = Math.max(0, to - minWindowMs());
   }
   viewS.value = from;
   viewE.value = to;

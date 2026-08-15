@@ -203,7 +203,12 @@
         icon="bi-signpost-split"
         title="No spans shown"
         description="Every span is hidden by the current filter."
-      />
+      >
+        <template #action>
+          <!-- The state names the filter as the culprit, so it must also offer the way out. -->
+          <button type="button" class="wf-toggle" @click="showAllSpans">Show all spans</button>
+        </template>
+      </EmptyState>
     </div>
 
     <div class="wf-legend">
@@ -441,6 +446,12 @@ function bar(span: TraceSpanRow): SpanBar {
 
 function isCritical(span: TraceSpanRow): boolean {
   return span.criticalPathNanos > 0;
+}
+
+/** The empty state's way out: undo everything that can hide a row. */
+function showAllSpans(): void {
+  criticalOnly.value = false;
+  collapsed.value = new Set();
 }
 
 /**
