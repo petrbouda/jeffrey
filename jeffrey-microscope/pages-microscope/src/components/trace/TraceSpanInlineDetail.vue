@@ -74,6 +74,22 @@
               </span>
             </div>
 
+            <!--
+              The critical path is a different question from the meter above it -- not "where did
+              this span's time go" but "did this span decide how long the trace took" -- so it gets
+              its own line rather than a third slice of a bar that is already fully accounted for.
+            -->
+            <p class="sd-crit" :class="{ off: span.criticalPathNanos === 0 }">
+              <i :class="span.criticalPathNanos > 0 ? 'bi bi-signpost-split-fill' : 'bi bi-signpost'"></i>
+              <span v-if="span.criticalPathNanos > 0">
+                <b>{{ FormattingService.formatDuration2Units(span.criticalPathNanos) }}</b>
+                on the critical path{{ criticalShareOfTrace }}
+              </span>
+              <span v-else>
+                not on the critical path — it ran beside work that outlasted it
+              </span>
+            </p>
+
             <p class="sd-foot">
               <span>{{ shape }}</span>
               <span>started <b>{{ startedAt }}</b> into the recording</span>
@@ -187,6 +203,12 @@ const props = defineProps<{
    * thread has no child time to show and is still not a leaf.
    */
   childCount: number;
+  /**
+   * The trace's end-to-end duration, only so the span's critical-path share can be stated as a
+   * percentage. Zero when the caller has nothing to compare against, which drops the percentage
+   * rather than dividing by it.
+   */
+  traceDurationNanos?: number;
 }>();
 
 defineEmits<{
@@ -248,6 +270,15 @@ const meterTitle = computed(
 const startedAt = computed(() =>
   FormattingService.formatDuration2Units(props.span.startMillisFromBeginning * NANOS_PER_MILLI)
 );
+
+/** The share of the whole trace this span decided, when the caller knows the trace's duration. */
+const criticalShareOfTrace = computed(() => {
+  const traceNanos = props.traceDurationNanos ?? 0;
+  if (traceNanos <= 0) {
+    return '';
+  }
+  return ` · ${percent(props.span.criticalPathNanos, traceNanos)} of the trace`;
+});
 
 function keyCount(rows: SpanDetailRow[]): string {
   return rows.length === 1 ? '1 key' : `${rows.length} keys`;
@@ -439,6 +470,24 @@ function percent(part: number, whole: number): string {
 
 .sd-leg > span {
   color: var(--color-text-muted);
+}
+
+/* Same weight as the footer below it, with the accent the waterfall marks critical rows in. */
+.sd-crit {
+  margin: 0 0 0.35rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--color-warning);
+}
+.sd-crit.off {
+  color: var(--color-text-muted);
+}
+.sd-crit b {
+  font-family: var(--font-family-monospace);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 
 .sd-foot {

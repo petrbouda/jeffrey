@@ -96,12 +96,18 @@ const props = withDefaults(
     accent?: (item: T) => SlowestRowAccent;
     /** Time-bar ramp. Omitted = every row on the brand ramp. */
     tone?: (item: T) => SlowestRowTone;
-    /** Rows rendered; the bar scale still uses the full list. */
+    /** Rows rendered; the bar scale still uses the full list. Ignored when `serverOrdered`. */
     limit?: number;
     /** Header denominator when the caller knows a truer total than `items.length`. */
     total?: number;
     /** Overrides the header's "sorted by duration". */
     note?: string;
+    /**
+     * Take `items` exactly as given — already ordered and already the page. For a caller whose
+     * server did the sorting and the paging: re-sorting here would reorder a page that was cut from
+     * a different order, and slicing it again would hide rows the caller deliberately fetched.
+     */
+    serverOrdered?: boolean;
   }>(),
   {
     icon: undefined,
@@ -109,7 +115,8 @@ const props = withDefaults(
     tone: undefined,
     limit: 50,
     total: undefined,
-    note: undefined
+    note: undefined,
+    serverOrdered: false
   }
 );
 
@@ -117,9 +124,12 @@ const emit = defineEmits<{
   rowClick: [item: T];
 }>();
 
-const displayedItems = computed(() =>
-  [...props.items].sort((a, b) => props.duration(b) - props.duration(a)).slice(0, props.limit)
-);
+const displayedItems = computed(() => {
+  if (props.serverOrdered) {
+    return props.items;
+  }
+  return [...props.items].sort((a, b) => props.duration(b) - props.duration(a)).slice(0, props.limit);
+});
 
 // Scaled to the slowest row in the whole list, not just the displayed page, so the bars keep
 // meaning when the list is truncated. reduce, not Math.max(...list), which overflows the

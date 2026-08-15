@@ -46,6 +46,7 @@ function span(
     startEpochMicros: startMicros,
     durationNanos: durationMicros * NANOS_PER_MICRO,
     selfDurationNanos: durationMicros * NANOS_PER_MICRO,
+    criticalPathNanos: durationMicros * NANOS_PER_MICRO,
     depth: 0,
     threadHash: '900',
     threadName: 'worker',

@@ -25,7 +25,7 @@
     <ErrorState v-else-if="error" :message="error" @retry="loadData" />
 
     <EmptyState
-      v-else-if="traces.length === 0"
+      v-else-if="untraced"
       title="No Traces"
       description="No trace-carrying events were recorded in this profile."
       icon="bi-diagram-3"
@@ -34,12 +34,74 @@
     <div v-else class="dashboard-container">
       <TraceOverviewStats v-if="overview" :overview="overview" />
 
-      <TraceSlowestList
-        :traces="traces"
-        :total="listTotal"
-        :note="listNote"
-        @row-click="openTrace"
-      />
+      <MainCard v-if="timeline.length > 0">
+        <template #header>
+          <MainCardHeader icon="bi-graph-up" title="Traces over the recording" />
+        </template>
+        <TimeSeriesChart
+          :primary-data="timelineDurations"
+          primary-title="Slowest Trace"
+          :secondary-data="timelineCounts"
+          secondary-title="Traces"
+          time-unit="milliseconds"
+          :visible-minutes="60"
+          :independent-secondary-axis="true"
+          :primary-axis-type="AxisFormatType.DURATION_IN_NANOS"
+          :secondary-axis-type="AxisFormatType.NUMBER"
+        />
+      </MainCard>
+
+      <MainCard>
+        <template #header>
+          <MainCardHeader icon="bi-diagram-3" title="Traces" />
+        </template>
+
+        <TableToolbar v-model="search" search-placeholder="Filter by operation name...">
+          <template #filters>
+            <button
+              type="button"
+              class="btn btn-sm"
+              :class="errorsOnly ? 'btn-danger' : 'btn-outline-secondary'"
+              @click="errorsOnly = !errorsOnly"
+            >
+              <i class="bi bi-exclamation-triangle"></i> Errors only
+            </button>
+            <select v-model="sort" class="form-select form-select-sm sort-select">
+              <option value="DURATION">Slowest first</option>
+              <option value="START">Most recent first</option>
+              <option value="SPAN_COUNT">Most spans first</option>
+              <option value="ERROR_COUNT">Most errors first</option>
+            </select>
+          </template>
+        </TableToolbar>
+
+        <LoadingState v-if="listLoading && traces.length === 0" message="Loading traces..." />
+
+        <EmptyState
+          v-else-if="traces.length === 0"
+          title="No matching traces"
+          description="No trace matches the current filter."
+          icon="bi-search"
+        />
+
+        <template v-else>
+          <!-- Ordered and paged by the server, so the list must not re-sort or re-slice it. -->
+          <TraceSlowestList
+            :traces="traces"
+            :total="totalMatching"
+            :note="listNote"
+            server-ordered
+            @row-click="openTrace"
+          />
+          <LoadMoreFooter
+            :shown="traces.length"
+            :total="totalMatching"
+            noun="traces"
+            :loading="listLoading"
+            @load-more="loadMore"
+          />
+        </template>
+      </MainCard>
 
       <TraceSpansModal
         v-model:show="spansShow"
@@ -52,18 +114,29 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
+import LoadMoreFooter from '@shared/components/LoadMoreFooter.vue';
+import MainCard from '@shared/components/MainCard.vue';
+import MainCardHeader from '@shared/components/MainCardHeader.vue';
+import TableToolbar from '@shared/components/table/TableToolbar.vue';
 import TracesDisabledFeatureAlert from '@/components/alerts/TracesDisabledFeatureAlert.vue';
+import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import TraceOverviewStats from '@/components/trace/TraceOverviewStats.vue';
 import TraceSlowestList from '@/components/trace/TraceSlowestList.vue';
 import TraceSpansModal from '@/components/trace/TraceSpansModal.vue';
+import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
-import type { TraceOverview, TraceRow } from '@/services/api/model/trace/TraceModels';
+import type {
+  TraceOverview,
+  TraceRow,
+  TraceSortField,
+  TraceTimelineBucket
+} from '@/services/api/model/trace/TraceModels';
 import FeatureType from '@/services/api/model/FeatureType';
 
 const props = defineProps<{ disabledFeatures: FeatureType[] }>();
@@ -71,13 +144,27 @@ const props = defineProps<{ disabledFeatures: FeatureType[] }>();
 const route = useRoute();
 const router = useRouter();
 
-/** Passed explicitly on the fetch, so the cap the header note reports is the cap actually used. */
-const TRACE_FETCH_LIMIT = 100;
+/** One page of traces. Small enough that a filter feels immediate, large enough to scroll. */
+const PAGE_SIZE = 50;
+/**
+ * How the recording is sliced for the density strip. Enough points to see where the profile got
+ * busy, few enough that each one still covers a meaningful stretch.
+ */
+const TIMELINE_BUCKETS = 60;
+/** How long to wait for typing to settle before asking the server again. */
+const SEARCH_DEBOUNCE_MILLIS = 250;
 
 const traces = ref<TraceRow[]>([]);
+const totalMatching = ref(0);
+const timeline = ref<TraceTimelineBucket[]>([]);
 const overview = ref<TraceOverview | null>(null);
 const loading = ref(true);
+const listLoading = ref(false);
 const error = ref<string | null>(null);
+
+const search = ref('');
+const errorsOnly = ref(false);
+const sort = ref<TraceSortField>('DURATION');
 
 const selectedTrace = ref<TraceRow | null>(null);
 const spansShow = ref(false);
@@ -86,20 +173,32 @@ const profileId = computed(() => route.params.profileId as string);
 
 const featureDisabled = computed(() => props.disabledFeatures.includes(FeatureType.TRACES));
 
-/** The profile-wide count, so the header agrees with the overview card instead of reporting the
- * fetch cap as if it were the total. */
-const listTotal = computed<number | undefined>(() => overview.value?.totalTraces);
-
 /**
- * With the true total shown, the header would otherwise imply every trace is reachable. The
- * backend returns the slowest `TRACE_FETCH_LIMIT`, so say so when it actually withheld some.
+ * Whether the profile holds no traces at all, as opposed to none matching the filter. Taken from the
+ * overview rather than from the list, which a filter can empty at any time — the two say very
+ * different things and only one of them means the feature has nothing to show.
  */
-const listNote = computed<string | undefined>(() => {
-  if (listTotal.value === undefined || listTotal.value <= TRACE_FETCH_LIMIT) {
-    return undefined;
-  }
-  return `slowest ${TRACE_FETCH_LIMIT} fetched · sorted by duration`;
+const untraced = computed(() => (overview.value?.totalTraces ?? 0) === 0);
+
+/** What the list is ordered by, said in words, since the rows no longer imply it. */
+const listNote = computed(() => {
+  const direction = {
+    DURATION: 'sorted by duration',
+    START: 'most recent first',
+    SPAN_COUNT: 'most spans first',
+    ERROR_COUNT: 'most errors first'
+  }[sort.value];
+  return errorsOnly.value ? `${direction} · failed traces only` : direction;
 });
+
+/** Bucket start against slowest trace, the pair that makes a latency spike visible. */
+const timelineDurations = computed(() =>
+  timeline.value.map(bucket => [bucket.fromMillisFromBeginning, bucket.maxDurationNanos])
+);
+
+const timelineCounts = computed(() =>
+  timeline.value.map(bucket => [bucket.fromMillisFromBeginning, bucket.count])
+);
 
 function openTrace(trace: TraceRow): void {
   selectedTrace.value = trace;
@@ -137,18 +236,59 @@ async function loadData(): Promise<void> {
   error.value = null;
   try {
     const client = new ProfileTracesClient(profileId.value);
-    const [loadedOverview, loadedTraces] = await Promise.all([
+    const [loadedOverview, loadedTimeline] = await Promise.all([
       client.getOverview(),
-      client.getTraces(TRACE_FETCH_LIMIT)
+      client.getTimeline(TIMELINE_BUCKETS)
     ]);
     overview.value = loadedOverview;
-    traces.value = loadedTraces;
+    timeline.value = loadedTimeline;
+    await loadPage(0);
   } catch {
     error.value = 'Failed to load the traces for this profile.';
   } finally {
     loading.value = false;
   }
 }
+
+/**
+ * Fetches one page of the current filter. An offset of zero replaces the list; anything else appends
+ * to it, which is what makes "load more" a continuation rather than a jump.
+ */
+async function loadPage(offset: number): Promise<void> {
+  listLoading.value = true;
+  try {
+    const page = await new ProfileTracesClient(profileId.value).getTraces({
+      search: search.value,
+      errorsOnly: errorsOnly.value,
+      sort: sort.value,
+      limit: PAGE_SIZE,
+      offset
+    });
+    traces.value = offset === 0 ? page.traces : [...traces.value, ...page.traces];
+    totalMatching.value = page.totalMatching;
+  } catch {
+    error.value = 'Failed to load the traces for this profile.';
+  } finally {
+    listLoading.value = false;
+  }
+}
+
+function loadMore(): void {
+  loadPage(traces.value.length);
+}
+
+/**
+ * Refetches from the top whenever the filter changes. Debounced because the search box changes on
+ * every keystroke, and each one would otherwise be a round trip whose answer is thrown away by the
+ * next letter.
+ */
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
+watch([search, errorsOnly, sort], () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadPage(0), SEARCH_DEBOUNCE_MILLIS);
+});
+
+onUnmounted(() => clearTimeout(searchTimer));
 
 onMounted(() => {
   if (!featureDisabled.value) {
@@ -158,3 +298,10 @@ onMounted(() => {
   }
 });
 </script>
+
+<style scoped>
+/* Narrow enough to sit beside the search box rather than crowding it off the toolbar. */
+.sort-select {
+  width: auto;
+}
+</style>

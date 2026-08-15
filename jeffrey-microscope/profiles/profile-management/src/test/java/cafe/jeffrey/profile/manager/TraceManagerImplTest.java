@@ -266,6 +266,102 @@ class TraceManagerImplTest {
     }
 
     @Nested
+    @DisplayName("Critical path")
+    class CriticalPath {
+
+        private static long totalCriticalNanos(List<TraceSpanRow> spans) {
+            return spans.stream().mapToLong(TraceSpanRow::criticalPathNanos).sum();
+        }
+
+        private static TraceSpanRow named(List<TraceSpanRow> spans, String name) {
+            return spans.stream()
+                    .filter(span -> span.name().equals(name))
+                    .findFirst()
+                    .orElseThrow();
+        }
+
+        @Test
+        @DisplayName("a lone span owns the whole path")
+        void singleSpan() {
+            List<TraceSpanRow> spans = spansOf(List.of(span(1, null, "root", 0, 100)));
+
+            assertEquals(100 * MS, spans.getFirst().criticalPathNanos());
+        }
+
+        @Test
+        @DisplayName("a sequential chain splits the path between parent and child")
+        void sequentialChain() {
+            List<TraceSpanRow> spans = spansOf(List.of(
+                    span(1, null, "root", 0, 100),
+                    span(2, 1L, "child", 10, 30)));
+
+            assertEquals(70 * MS, named(spans, "root").criticalPathNanos(),
+                    "the root owns everything its child was not holding open");
+            assertEquals(30 * MS, named(spans, "child").criticalPathNanos());
+            assertEquals(100 * MS, totalCriticalNanos(spans),
+                    "the path accounts for the trace end to end");
+        }
+
+        @Test
+        @DisplayName("of two children, the one finishing last is what the parent waited for")
+        void laterFinishingSiblingWins() {
+            // Both run under the root; b is still going when a is done, so b is what held the root.
+            List<TraceSpanRow> spans = spansOf(List.of(
+                    span(1, null, "root", 0, 100),
+                    spanOnThread(2, 1L, "a", 10, 30, OTHER_THREAD),
+                    spanOnThread(3, 1L, "b", 20, 40, OTHER_THREAD)));
+
+            assertEquals(40 * MS, named(spans, "b").criticalPathNanos(),
+                    "b covered 20..60 with nothing finishing later");
+            assertEquals(10 * MS, named(spans, "a").criticalPathNanos(),
+                    "only 10..20, the stretch before b started, was a's to hold");
+            assertEquals(100 * MS, totalCriticalNanos(spans));
+        }
+
+        @Test
+        @DisplayName("a child covered by a later-finishing sibling is not on the path at all")
+        void coveredSiblingIsNotCritical() {
+            // b starts earlier *and* finishes later, so a never determined anything. Ordering the
+            // walk by start rather than by end credited a here and skipped b.
+            List<TraceSpanRow> spans = spansOf(List.of(
+                    span(1, null, "root", 0, 100),
+                    spanOnThread(2, 1L, "covered", 20, 30, OTHER_THREAD),
+                    spanOnThread(3, 1L, "covering", 10, 60, OTHER_THREAD)));
+
+            assertEquals(0, named(spans, "covered").criticalPathNanos());
+            assertEquals(60 * MS, named(spans, "covering").criticalPathNanos());
+            assertEquals(40 * MS, named(spans, "root").criticalPathNanos(),
+                    "0..10 before the child began and 70..100 after it ended");
+            assertEquals(100 * MS, totalCriticalNanos(spans));
+        }
+
+        @Test
+        @DisplayName("a child outliving its parent is credited only the stretch they shared")
+        void clipsChildrenToTheParentWindow() {
+            List<TraceSpanRow> spans = spansOf(List.of(
+                    span(1, null, "root", 0, 50),
+                    span(2, 1L, "overruns", 20, 80)));
+
+            assertEquals(30 * MS, named(spans, "overruns").criticalPathNanos(),
+                    "the child covered 20..50 of the root, not 20..100");
+            assertEquals(20 * MS, named(spans, "root").criticalPathNanos());
+        }
+
+        @Test
+        @DisplayName("never exceeds the span's own duration")
+        void cappedAtTheSpansDuration() {
+            List<TraceSpanRow> spans = spansOf(List.of(
+                    spanMicros(1, null, "root", 0, 1_500),
+                    spanMicros(2, 1L, "child", 500, 200)));
+
+            for (TraceSpanRow span : spans) {
+                assertTrue(span.criticalPathNanos() <= span.durationNanos(),
+                        span.name() + " was credited more than it ran for");
+            }
+        }
+    }
+
+    @Nested
     @DisplayName("Span placement")
     class SpanPlacement {
 

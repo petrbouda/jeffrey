@@ -25,15 +25,22 @@ import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSpanRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationThreads;
+import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceTimelineBucket;
+import cafe.jeffrey.profile.manager.model.trace.TracesPage;
 import cafe.jeffrey.provider.profile.api.EventFieldRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
+import cafe.jeffrey.provider.profile.api.TraceListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
+import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
+import cafe.jeffrey.provider.profile.api.TraceOperationPage;
 import cafe.jeffrey.provider.profile.api.TraceOperationThreadsRecord;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
+import cafe.jeffrey.provider.profile.api.TracePage;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
@@ -76,9 +83,23 @@ public class TraceManagerImpl implements TraceManager {
     }
 
     @Override
-    public List<TraceRow> slowestTraces(int limit) {
-        return traceRepository.slowestTraces(limit).stream()
-                .map(TraceManagerImpl::toRow)
+    public TracesPage traces(TraceListQuery query) {
+        TracePage page = traceRepository.traces(query);
+        return new TracesPage(
+                page.traces().stream()
+                        .map(TraceManagerImpl::toRow)
+                        .toList(),
+                page.totalMatching());
+    }
+
+    @Override
+    public List<TraceTimelineBucket> timeline(int buckets) {
+        return traceRepository.timeline(buckets).stream()
+                .map(bucket -> new TraceTimelineBucket(
+                        bucket.fromMillisFromBeginning(),
+                        bucket.count(),
+                        bucket.errorCount(),
+                        bucket.maxDurationNanos()))
                 .toList();
     }
 
@@ -166,20 +187,24 @@ public class TraceManagerImpl implements TraceManager {
     }
 
     @Override
-    public List<TraceOperationRow> operations(int limit) {
-        return traceRepository.operations(limit).stream()
-                .map(operation -> new TraceOperationRow(
-                        operation.name(),
-                        operation.kind(),
-                        operation.eventType(),
-                        operation.count(),
-                        operation.errorCount(),
-                        operation.spanCount(),
-                        operation.totalNanos(),
-                        operation.p50Nanos(),
-                        operation.p95Nanos(),
-                        operation.maxNanos()))
-                .toList();
+    public TraceOperationsPage operations(TraceOperationListQuery query) {
+        TraceOperationPage page = traceRepository.operations(query);
+        return new TraceOperationsPage(
+                page.operations().stream()
+                        .map(operation -> new TraceOperationRow(
+                                operation.name(),
+                                operation.kind(),
+                                operation.eventType(),
+                                operation.count(),
+                                operation.errorCount(),
+                                operation.spanCount(),
+                                operation.totalNanos(),
+                                operation.p50Nanos(),
+                                operation.p95Nanos(),
+                                operation.p99Nanos(),
+                                operation.maxNanos()))
+                        .toList(),
+                page.totalMatching());
     }
 
     @Override
@@ -266,9 +291,11 @@ public class TraceManagerImpl implements TraceManager {
         childrenByParent.values()
                 .forEach(children -> children.sort(Comparator.comparingLong(TraceSpanRecord::startEpochMicros)));
 
+        Map<Long, Long> criticalMicros = criticalPathMicros(roots, childrenByParent);
+
         List<TraceSpanRow> ordered = new ArrayList<>(spans.size());
         Set<Long> visited = new HashSet<>();
-        traverse(roots, childrenByParent, visited, ordered);
+        traverse(roots, childrenByParent, criticalMicros, visited, ordered);
 
         // Whatever is left belongs to a parent cycle. Breaking in at each still-unplaced span, in
         // start order, renders a malformed trace as a flatter tree instead of an empty one. The
@@ -279,7 +306,7 @@ public class TraceManagerImpl implements TraceManager {
         byStart.sort(Comparator.comparingLong(TraceSpanRecord::startEpochMicros));
         for (TraceSpanRecord span : byStart) {
             if (!visited.contains(span.spanId())) {
-                traverse(List.of(span), childrenByParent, visited, ordered);
+                traverse(List.of(span), childrenByParent, criticalMicros, visited, ordered);
             }
         }
         return ordered;
@@ -293,6 +320,7 @@ public class TraceManagerImpl implements TraceManager {
     private static void traverse(
             List<TraceSpanRecord> startSpans,
             Map<Long, List<TraceSpanRecord>> childrenByParent,
+            Map<Long, Long> criticalMicros,
             Set<Long> visited,
             List<TraceSpanRow> ordered) {
 
@@ -308,10 +336,121 @@ public class TraceManagerImpl implements TraceManager {
             }
             List<TraceSpanRecord> children = childrenByParent.getOrDefault(span.spanId(), List.of());
             ordered.add(toRow(span, placement.depth(), placement.parentSpanId(),
-                    selfDurationOf(span, children)));
+                    selfDurationOf(span, children), criticalNanosOf(span, criticalMicros)));
             for (int i = children.size() - 1; i >= 0; i--) {
                 pending.push(new Placement(children.get(i), placement.depth() + 1, span.spanId()));
             }
+        }
+    }
+
+    /**
+     * The span's own share of the trace's critical path, in nanoseconds.
+     * <p>
+     * Capped at the span's duration: the walk works in microseconds, and a span whose bounds round
+     * outwards could otherwise be credited a sliver more than it ever ran for.
+     */
+    private static long criticalNanosOf(TraceSpanRecord span, Map<Long, Long> criticalMicros) {
+        long micros = criticalMicros.getOrDefault(span.spanId(), 0L);
+        return Math.min(micros * NANOS_PER_MICRO, span.durationNanos());
+    }
+
+    /**
+     * How much of the trace's end-to-end duration each span is personally responsible for, in
+     * microseconds keyed by span id. A span missing from the result contributed nothing: shortening
+     * it would not have shortened the trace.
+     * <p>
+     * The walk runs backwards from the end of the trace. Within a span's window the last child to
+     * finish is what held the span open, so that child owns the stretch it covers and the span owns
+     * what is left between and around its children; recursing into each child in turn gives the
+     * chain of work that actually determined the total. A child that ran entirely inside a
+     * later-finishing sibling's window is therefore credited nothing at all — shortening it would
+     * have changed no total, which is the whole point of drawing the path.
+     * <p>
+     * Children are taken to block their parent. That is true by construction on the parent's own
+     * thread, and it is the intended reading of a parent that hands work off and waits for it. A
+     * parent that forked a cross-thread child and never waited will see that child credited time it
+     * did not really cost — telling the two apart needs the thread's state, not the span tree.
+     * <p>
+     * The roots are walked as the children of one window covering the whole trace, so a trace that
+     * recorded more than one root — which correct instrumentation cannot produce, but a recording
+     * that began mid-request can — still attributes every stretch of its own timeline. That outer
+     * window owns nothing itself; the gaps between roots belong to no span.
+     */
+    private static Map<Long, Long> criticalPathMicros(
+            List<TraceSpanRecord> roots, Map<Long, List<TraceSpanRecord>> childrenByParent) {
+
+        Map<Long, Long> critical = new HashMap<>();
+        if (roots.isEmpty()) {
+            return critical;
+        }
+
+        long from = Long.MAX_VALUE;
+        long to = Long.MIN_VALUE;
+        for (TraceSpanRecord root : roots) {
+            from = Math.min(from, root.startEpochMicros());
+            to = Math.max(to, endMicrosOf(root));
+        }
+
+        Deque<Window> pending = new ArrayDeque<>();
+        attribute(roots, from, to, null, critical, pending);
+
+        // Iterative for the same reason the tree traversal is: a trace deep enough to overflow the
+        // stack must still render. The visited set also stops a parent cycle from walking forever.
+        Set<Long> visited = new HashSet<>();
+        while (!pending.isEmpty()) {
+            Window window = pending.pop();
+            TraceSpanRecord span = window.span();
+            if (!visited.add(span.spanId())) {
+                continue;
+            }
+            attribute(childrenByParent.getOrDefault(span.spanId(), List.of()),
+                    window.from(), window.to(), span, critical, pending);
+        }
+        return critical;
+    }
+
+    /**
+     * Splits one window between the span that owns it and the children that held it open, crediting
+     * the owner with what no child covered and queueing each covering child for its own turn.
+     * <p>
+     * Children are read in the order they <em>finished</em>, latest first, which is what the walk is
+     * actually asking: at any instant, whatever finishes last from here is what the owner is still
+     * waiting on. Start order will not do — a child that began earlier can finish later, and reading
+     * by start would credit the shorter sibling and skip the one that really held the window open.
+     * <p>
+     * The cursor only ever moves left, so a child starting at or after it was already covered by a
+     * later-finishing sibling and is skipped entirely, as is one that ended before the window began.
+     * A {@code null} owner is the outer trace window, which credits nobody.
+     */
+    private static void attribute(
+            List<TraceSpanRecord> children,
+            long from,
+            long to,
+            TraceSpanRecord owner,
+            Map<Long, Long> critical,
+            Deque<Window> pending) {
+
+        // A copy: the caller's list is in start order, which the tree traversal draws from.
+        List<TraceSpanRecord> byEnd = new ArrayList<>(children);
+        byEnd.sort(Comparator.comparingLong(TraceManagerImpl::endMicrosOf).reversed());
+
+        long cursor = to;
+        for (TraceSpanRecord child : byEnd) {
+            long childStart = child.startEpochMicros();
+            long childEnd = endMicrosOf(child);
+            if (childStart >= cursor || childEnd <= from) {
+                continue;
+            }
+            long clampedStart = Math.max(childStart, from);
+            long clampedEnd = Math.min(childEnd, cursor);
+            if (owner != null && clampedEnd < cursor) {
+                critical.merge(owner.spanId(), cursor - clampedEnd, Long::sum);
+            }
+            pending.push(new Window(child, clampedStart, clampedEnd));
+            cursor = clampedStart;
+        }
+        if (owner != null && cursor > from) {
+            critical.merge(owner.spanId(), cursor - from, Long::sum);
         }
     }
 
@@ -448,7 +587,8 @@ public class TraceManagerImpl implements TraceManager {
     }
 
     private static TraceSpanRow toRow(
-            TraceSpanRecord span, int depth, Long parentSpanId, long selfDurationNanos) {
+            TraceSpanRecord span, int depth, Long parentSpanId, long selfDurationNanos,
+            long criticalPathNanos) {
 
         return new TraceSpanRow(
                 toHex(span.spanId()),
@@ -461,6 +601,7 @@ public class TraceManagerImpl implements TraceManager {
                 span.startEpochMicros(),
                 span.durationNanos(),
                 selfDurationNanos,
+                criticalPathNanos,
                 depth,
                 Long.toString(span.threadHash()),
                 span.threadName(),
@@ -480,5 +621,12 @@ public class TraceManagerImpl implements TraceManager {
 
     /** A span queued for emission, with the position the tree gives it. */
     private record Placement(TraceSpanRecord span, int depth, Long parentSpanId) {
+    }
+
+    /**
+     * A span queued for critical-path attribution, with the stretch of its parent's window it was
+     * found to be holding open — its own bounds clipped to what the parent had left to give.
+     */
+    private record Window(TraceSpanRecord span, long from, long to) {
     }
 }

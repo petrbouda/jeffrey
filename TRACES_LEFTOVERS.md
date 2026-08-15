@@ -21,15 +21,15 @@ Not bugs — decisions with a stated trade-off.
 
 | Omission | Why | Revisit when |
 |---|---|---|
-| **No zoom/pan in the waterfall** | DOM/CSS substrate chosen for tens-to-hundreds of spans | Real traces exceed a few thousand spans |
-| **Critical path not computed** | Deferred | Traces get deep enough that the longest chain isn't obvious |
+| **No zoom/pan in the waterfall** | DOM/CSS substrate chosen for tens-to-hundreds of spans. Subtree folding and the critical-path filter now cover the density problem at those sizes | Real traces exceed a few thousand spans |
+| **The critical path assumes children block their parent** | True by construction on the parent's own thread, and the intended reading of a parent that hands work off and waits. A parent that forked a cross-thread child and never waited sees that child credited time it did not cost — the span tree alone cannot tell the two apart | Thread states are available to the waterfall, which is what settles it exactly |
+| **Self time is still per-trace only** | The operation's span breakdown is inclusive; a self-time column would need the same interval merge the waterfall does per trace, which is not a group-by | `trace_spans` carries a derived `self_duration`, computed once at derivation |
 | **64-bit trace ids** | Jeffrey mints every id in a single recording | Cross-process assembly or ingesting an external `traceparent` becomes a goal — this is a one-way door, widening is a format change |
 | **No threshold or throttle on `TraceSpanEvent`** | How much span volume is acceptable is a property of the application, not of the event; both levers are settable from a JFR settings file without touching code | Span volume proves too high in practice |
 | **Pipeline runs are their own traces** | `PipelineRunRegistry` forks to a virtual thread; a background job's lifetime is unrelated to the request | Users find the disconnection confusing in the trace list |
 | **`SpanKind` has no `PRODUCER`/`CONSUMER`** | Their purpose is cross-process pairing, impossible single-JVM; no messaging instrumentation exists | Messaging instrumentation arrives — additive, so safe to defer |
 | **`HttpClientExchangeEvent` / `GrpcClientExchangeEvent` never emitted here** | The derivation handles them and they are stamped-capable, so a third-party app gets outbound spans; Jeffrey itself makes no instrumented outbound calls | Jeffrey starts making them |
 | **Old recordings misread HTTP/gRPC/JDBC status** | `status` → `statusCode` and the removal of `isSuccess` are breaking schema changes; fallbacks were considered and declined in favour of one shape | A user reports it on a recording worth keeping — the fallback is three one-line reads |
-| **P99 shown only when the trace sample is complete** | There is no server-side p99 column, and a p99 over the first 1,000 traces beside a p95 over all of them is two different questions in one row | A p99 aggregate is added to the `OPERATIONS` query |
 | **`TraceSpanInlineDetail` hand-rolls its key/value tables** | `@shared` `DrawerSection`/`InfoRow` fit the identity block but not the two data-driven tables, which need a label-side tooltip and a sub-key | Those shared components grow a richer label slot |
 | **Span drill-downs re-read `spansOf(traceId)` per request** | `trace()`, `spanIntervals()` and `eventsInSpan()` each fetch the trace's spans; they back separate HTTP requests against a small indexed table, and caching across requests is a design cost with no measured win | A profiled slow drill-down names this read as the cost |
 | **Scope events are joined via JSON extraction per query** | `OPERATION_INTERVALS` re-parses `fields` for `jeffrey.TraceScope` rows; the event-type filter keeps that set small, and only re-entered spans (gRPC server traffic today) emit scopes at all. A third derived table was judged more schema than the join is worth | Scope-emitting instrumentation broadens beyond gRPC |
@@ -39,6 +39,26 @@ Not bugs — decisions with a stated trade-off.
 ---
 
 ## Closed on this branch
+
+- ~~Critical path not computed~~ — `TraceManagerImpl` walks it backwards from the end of the trace,
+  attributing each stretch to whatever was holding it open, and every span carries its own share as
+  `criticalPathNanos`. The waterfall marks the rows on it, the inline detail says how much of the
+  trace each one decided, and a filter narrows to them. Children are read in the order they
+  *finished*, not the order they started: a child that began earlier can finish later, and reading by
+  start credits the shorter sibling while skipping the one that actually held the window open.
+- ~~No search, filter or sorting anywhere in the trace views~~ — the trace and operation lists narrow,
+  sort and page on the server. Client-side was considered and declined: both lists are capped, so
+  filtering the fetched page only ever searches the slowest few hundred and a search for anything
+  outside them comes back empty while the row sits in the table. Both endpoints return the count the
+  filter matched, which is what makes "load more" possible and what lets a capped list say it is one.
+- ~~P99 shown only when the trace sample is complete~~ — `OPERATIONS` aggregates it, so an operation's
+  p50, p95 and p99 all describe the same population and the summary no longer prints "—" for it.
+- ~~No time axis on the trace list~~ — `GET /traces/timeline` buckets the traces over the recording,
+  aggregated in SQL rather than from the fetched rows, which would have drawn the density of *slow*
+  traces and labelled it the density of traces.
+- ~~A waterfall reached through an operation was not linkable~~ — `TraceOperationDetail` writes
+  `?trace=` the way the trace list already did. Async-profiler tag selection moved into `?tag=` too.
+- ~~No way through a large waterfall but scrolling~~ — subtrees fold, and arrow keys walk the rows.
 
 - ~~`Tracer` cannot re-enter an existing span~~ — `Tracer.openSpanOf` opens a span without binding
   and `Tracer.reenter` resumes that same span (not a child) around any block, so a callback-driven

@@ -126,6 +126,17 @@
               {{ duration(span.totalNanos) }}
               <span class="span-count">· {{ span.occurrences }}</span>
             </span>
+            <!--
+              The total alone cannot separate "one span that is always slow" from "a fast span called
+              a thousand times", which are different problems with different fixes. The median and
+              the worst case say which one this row is, and how many traces it appears in says
+              whether it is the operation's habit or one trace's accident.
+            -->
+            <span class="span-detail">
+              <span :title="spanReachTitle(span)">{{ spanReach(span) }}</span>
+              <span>p50 <b>{{ duration(span.p50Nanos) }}</b></span>
+              <span>max <b>{{ duration(span.maxNanos) }}</b></span>
+            </span>
           </div>
         </div>
       </MainCard>
@@ -328,13 +339,20 @@ const bucketCount = computed(() =>
 );
 
 /*
- * P99 has no server-side column, so it is the one latency figure that can only come from the sample.
- * Shown as "—" rather than as a number when the sample is not the population: a p99 over the first
- * thousand traces sitting beside a p95 over all of them is two different questions in one row.
+ * The operation's own p99, aggregated over every trace of the type, exactly like the p50 and p95
+ * beside it. It used to read "—" whenever the fetched list was a sample, because a p99 over the
+ * first thousand traces sitting next to a p95 over all of them is two different questions in one
+ * row; now that the aggregate exists, the row can answer one question throughout.
+ *
+ * The fallback still stands for a deep link into an operation the list did not carry, and still
+ * declines to compute a p99 from a sample.
  */
-const p99Label = computed(() =>
-  props.truncated ? '—' : duration(quantileNanos(durationsNanos.value, 0.99))
-);
+const p99Label = computed(() => {
+  if (props.totals) {
+    return duration(props.totals.p99Nanos);
+  }
+  return props.truncated ? '—' : duration(quantileNanos(durationsNanos.value, 0.99));
+});
 
 const histogram = computed(() => latencyHistogram(durationsNanos.value, bucketCount.value));
 
@@ -404,6 +422,22 @@ function bucketTitle(bucket: { from: number; to: number; count: number }): strin
 function spanShare(span: TraceOperationSpanRow): string {
   const widest = spans.value[0]?.totalNanos ?? 0;
   return widest <= 0 ? '0%' : `${Math.max(2, (span.totalNanos / widest) * 100)}%`;
+}
+
+/**
+ * How widely the span appears across the operation's traces. Called out because it separates the two
+ * shapes a large total can have: every trace paying a little, or a handful paying a lot.
+ */
+function spanReach(span: TraceOperationSpanRow): string {
+  if (span.occurrences === span.traceCount) {
+    return `${span.traceCount} traces`;
+  }
+  const perTrace = span.occurrences / span.traceCount;
+  return `${span.traceCount} traces · ×${perTrace.toFixed(perTrace < 10 ? 1 : 0)}`;
+}
+
+function spanReachTitle(span: TraceOperationSpanRow): string {
+  return `${span.occurrences} occurrences across ${span.traceCount} traces of this operation`;
 }
 
 function spanCountTooltip(value: number): string {
@@ -555,9 +589,27 @@ watch(() => operationKey(props.operation), load, { immediate: true });
 
 .span-bar {
   display: grid;
+  /* The detail line runs under the bar, in the two columns the bar and its value occupy. */
   grid-template-columns: minmax(7rem, 12rem) 1fr auto;
-  gap: 0.7rem;
+  gap: 0.15rem 0.7rem;
   align-items: center;
+}
+
+/* Second row, starting under the track so the names column stays a clean edge to scan down. */
+.span-detail {
+  grid-column: 2 / -1;
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.span-detail b {
+  font-family: var(--font-family-monospace);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--color-text);
 }
 
 .span-name {

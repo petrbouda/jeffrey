@@ -70,6 +70,13 @@ export interface TraceSpanRow {
   durationNanos: number;
   /** The span's duration minus what its children covered. */
   selfDurationNanos: number;
+  /**
+   * How much of the trace's end-to-end duration this span is personally responsible for: the
+   * stretches of its own window that no later-finishing child was holding open. Zero means the span
+   * is not on the critical path — it ran beside work that outlasted it, so shortening it would not
+   * have made the trace any faster.
+   */
+  criticalPathNanos: number;
   /** Nesting level; 0 for a root. The spans arrive pre-ordered, so this carries the tree's shape. */
   depth: number;
   threadHash: string;
@@ -152,7 +159,83 @@ export interface TraceOperationRow extends TraceOperationId {
   totalNanos: number;
   p50Nanos: number;
   p95Nanos: number;
+  /**
+   * 99th percentile, aggregated over every trace of the type. Trustworthy beside `p95Nanos` because
+   * both come from the same population — a p99 worked out from the capped trace list would not be.
+   */
+  p99Nanos: number;
   maxNanos: number;
+}
+
+/** What a trace list can be ordered by; must match the backend's `TraceSortField`. */
+export type TraceSortField = 'DURATION' | 'START' | 'SPAN_COUNT' | 'ERROR_COUNT';
+
+/** What an operation list can be ordered by; must match the backend's `TraceOperationSortField`. */
+export type TraceOperationSortField =
+  | 'TOTAL_TIME'
+  | 'P50'
+  | 'P95'
+  | 'P99'
+  | 'MAX'
+  | 'COUNT'
+  | 'ERRORS'
+  | 'NAME';
+
+/**
+ * How the trace list should be narrowed, ordered and paged. Every field is optional: what is left
+ * out is left to the server's own default, so an empty query is the unfiltered slowest-first list.
+ */
+export interface TraceListQuery {
+  /** Matched against the root span's name, case-insensitively, as a substring. */
+  search?: string;
+  errorsOnly?: boolean;
+  minDurationNanos?: number;
+  sort?: TraceSortField;
+  /** Whether the sort column runs high-to-low. */
+  desc?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+/** The operations counterpart of {@link TraceListQuery}. */
+export interface TraceOperationListQuery {
+  search?: string;
+  errorsOnly?: boolean;
+  sort?: TraceOperationSortField;
+  desc?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * One page of traces, with how many the same filter matched in total.
+ *
+ * The total is what lets a capped list say whether what it drew was all there was — the question a
+ * reader looking at exactly 100 rows always has — and what makes "load more" possible at all.
+ */
+export interface TracesPage {
+  traces: TraceRow[];
+  totalMatching: number;
+}
+
+/** One page of operations, with how many the same filter matched in total. */
+export interface TraceOperationsPage {
+  operations: TraceOperationRow[];
+  totalMatching: number;
+}
+
+/**
+ * One slice of the recording, with what the traces starting inside it did.
+ *
+ * Aggregated on the server rather than bucketed from the fetched list, which holds only the slowest
+ * traces: bucketing that would draw the shape of the tail and label it the shape of the profile.
+ * Slices holding no trace are absent rather than zero.
+ */
+export interface TraceTimelineBucket {
+  fromMillisFromBeginning: number;
+  count: number;
+  errorCount: number;
+  maxDurationNanos: number;
 }
 
 /**

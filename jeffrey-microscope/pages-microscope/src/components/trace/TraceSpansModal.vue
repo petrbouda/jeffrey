@@ -233,9 +233,46 @@ const chips = computed<MetaChip[]>(() => {
     text: threads.size === 1 ? (threadName ?? 'unknown') : `${threads.size} threads`
   });
   result.push({ icon: 'diagram-2', text: trace.rootKind });
+
+  // Which span decided the trace's duration -- the first thing worth knowing about a slow trace, and
+  // not something the bars give up at a glance once there is any concurrency in them.
+  const leader = topCriticalSpan.value;
+  if (leader !== null) {
+    result.push({
+      icon: 'signpost-split',
+      text: `${leader.name} · ${percentOfTrace(leader.criticalPathNanos, trace.durationNanos)}`
+    });
+  }
+
   result.push({ icon: 'hash', text: trace.traceId });
   return result;
 });
+
+/**
+ * The single largest contributor to the critical path, or none when the trace is one span (where
+ * naming the root as its own bottleneck says nothing) or nothing was attributed.
+ */
+const topCriticalSpan = computed<TraceSpanRow | null>(() => {
+  const spans = detail.value?.spans ?? [];
+  if (spans.length < 2) {
+    return null;
+  }
+  let leader: TraceSpanRow | null = null;
+  for (const span of spans) {
+    if (span.criticalPathNanos > 0 && (leader === null || span.criticalPathNanos > leader.criticalPathNanos)) {
+      leader = span;
+    }
+  }
+  return leader;
+});
+
+function percentOfTrace(part: number, whole: number): string {
+  if (whole <= 0) {
+    return '—';
+  }
+  const share = (part / whole) * 100;
+  return `${share.toFixed(share < 10 ? 1 : 0)}%`;
+}
 
 /*
  * Ceiled, not rounded. The start below is floored to the millisecond the span's events were filed

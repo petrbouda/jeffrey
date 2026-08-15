@@ -86,6 +86,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
 import ErrorState from '@shared/components/ErrorState.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
@@ -126,6 +127,9 @@ const props = defineProps<{
   overview: TraceOverview | null;
 }>();
 
+const route = useRoute();
+const router = useRouter();
+
 const loading = ref(true);
 const error = ref<string | null>(null);
 const traces = ref<TraceRow[]>([]);
@@ -159,7 +163,35 @@ const selectedTrace = ref<TraceRow | null>(null);
 function openTrace(trace: TraceRow): void {
   selectedTrace.value = trace;
   spansShow.value = true;
+  // The id joins the operation already in the URL, so a waterfall reached through an operation is
+  // as linkable as one reached from the trace list -- it is the same modal either way, and it used
+  // to be shareable from only one of the two places it opens.
+  router.replace({ query: { ...route.query, trace: trace.traceId } });
 }
+
+// Closing takes the trace back out again, so returning to the link does not reopen it.
+watch(spansShow, (open) => {
+  if (!open && route.query.trace) {
+    const query = { ...route.query };
+    delete query.trace;
+    router.replace({ query });
+  }
+});
+
+/**
+ * Reopens the trace named in the URL once this operation's traces are in. A link can point at a
+ * trace beyond the fetched page, in which case no row is found here — the modal fetches everything
+ * it draws from the id alone, so it still opens, just without the row's own header values.
+ */
+watch([() => route.query.trace, traces], ([traceId]) => {
+  if (!traceId) {
+    spansShow.value = false;
+    return;
+  }
+  const id = traceId as string;
+  selectedTrace.value = traces.value.find((trace) => trace.traceId === id) ?? null;
+  spansShow.value = true;
+});
 
 /*
  * Whether a sample can be attributed to this operation at all. A span is matched to samples by

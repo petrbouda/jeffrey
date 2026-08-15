@@ -47,11 +47,14 @@ public interface TraceRepository {
     boolean hasTraces();
 
     /**
-     * Lists traces for the trace list, slowest first.
-     *
-     * @param limit maximum number of traces to return
+     * Lists traces for the trace list, narrowed, ordered and paged as the query asks.
+     * <p>
+     * Narrowing happens here rather than over a fetched list because the list is capped: filtering
+     * client-side searches only the slowest page, so a search for a trace outside it comes back
+     * empty while the trace sits in the table. The returned page carries how many the filter matched
+     * in total, which is what lets the caller page past the cap instead of guessing at it.
      */
-    List<TraceSummaryRecord> slowestTraces(int limit);
+    TracePage traces(TraceListQuery query);
 
     /**
      * Lists the traces of one type, in the order they ran.
@@ -115,11 +118,21 @@ public interface TraceRepository {
     List<SpanInterval> operationIntervals(TraceOperationId operation);
 
     /**
-     * Aggregates traces by type — one row per {@link TraceOperationId} — across the whole profile.
-     *
-     * @param limit maximum number of operations to return, ranked by total time
+     * Aggregates traces by type — one row per {@link TraceOperationId} — across the whole profile,
+     * narrowed, ordered and paged as the query asks.
      */
-    List<TraceOperationRecord> operations(int limit);
+    TraceOperationPage operations(TraceOperationListQuery query);
+
+    /**
+     * How traces were spread over the recording, as at most {@code buckets} equal slices.
+     * <p>
+     * Aggregated in SQL for the same reason {@link #overview()} is: the trace list is capped, so
+     * bucketing what it fetched would plot the slowest traces and call it the trace rate. Buckets
+     * holding no trace are omitted rather than returned as zeroes.
+     *
+     * @param buckets how many slices to divide the recording into; at least 1
+     */
+    List<TraceTimelineBucketRecord> timeline(int buckets);
 
     /**
      * Returns what the JVM was doing on a span's thread while the span was open — CPU samples,

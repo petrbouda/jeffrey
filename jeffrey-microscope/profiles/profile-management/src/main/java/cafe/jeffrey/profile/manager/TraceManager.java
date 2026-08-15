@@ -19,12 +19,16 @@
 package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
-import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
+import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
+import cafe.jeffrey.profile.manager.model.trace.TraceTimelineBucket;
+import cafe.jeffrey.profile.manager.model.trace.TracesPage;
+import cafe.jeffrey.provider.profile.api.TraceListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
+import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 
@@ -43,10 +47,18 @@ public interface TraceManager {
     }
 
     /**
-     * @param limit maximum number of traces to return
-     * @return traces ordered by duration descending — the slowest requests first
+     * Lists traces, narrowed, ordered and paged as the query asks.
+     *
+     * @return the page's rows plus how many the filter matched, so a truncated list can say so
      */
-    List<TraceRow> slowestTraces(int limit);
+    TracesPage traces(TraceListQuery query);
+
+    /**
+     * How traces were spread over the recording, for the timeline above the trace list.
+     *
+     * @param buckets how many slices to divide the recording into
+     */
+    List<TraceTimelineBucket> timeline(int buckets);
 
     /**
      * @param operation the trace type to list
@@ -98,10 +110,10 @@ public interface TraceManager {
     List<SpanInterval> operationIntervals(TraceOperationId operation);
 
     /**
-     * @param limit maximum number of operations to return, ranked by total time
-     * @return traces aggregated by type — one row per {@link TraceOperationId} — across the profile
+     * Aggregates traces by type — one row per {@link TraceOperationId} — narrowed, ordered and paged
+     * as the query asks.
      */
-    List<TraceOperationRow> operations(int limit);
+    TraceOperationsPage operations(TraceOperationListQuery query);
 
     /**
      * What one operation's summary needs beyond the traces the caller already has: its span

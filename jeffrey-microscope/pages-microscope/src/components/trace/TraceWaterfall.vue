@@ -18,6 +18,30 @@
 
 <template>
   <div class="waterfall">
+    <div class="wf-toolbar">
+      <button
+        type="button"
+        class="wf-toggle"
+        :class="{ active: criticalOnly }"
+        :disabled="!hasOffPathSpans"
+        :title="criticalOnlyTitle"
+        @click="criticalOnly = !criticalOnly"
+      >
+        <i class="bi bi-signpost-split"></i> Critical path only
+      </button>
+      <button
+        type="button"
+        class="wf-toggle"
+        :disabled="parents.size === 0"
+        :title="allCollapsed ? 'Expand every span' : 'Collapse every span that has children'"
+        @click="toggleAll"
+      >
+        <i :class="allCollapsed ? 'bi bi-arrows-expand' : 'bi bi-arrows-collapse'"></i>
+        {{ allCollapsed ? 'Expand all' : 'Collapse all' }}
+      </button>
+      <span class="wf-count">{{ rowCountLabel }}</span>
+    </div>
+
     <div class="wf-head">
       <span>Span</span>
       <span class="wf-scale">
@@ -27,19 +51,39 @@
       <span class="wf-duration">Duration</span>
     </div>
 
-    <template v-for="span in spans" :key="span.spanId">
+    <template v-for="span in rows" :key="span.spanId">
       <button
         type="button"
         class="wf-row"
-        :class="{ selected: span.spanId === selectedSpanId }"
+        :class="{ selected: span.spanId === selectedSpanId, critical: isCritical(span) }"
         :aria-expanded="span.spanId === selectedSpanId"
+        :data-span-id="span.spanId"
         @click="$emit('select', span)"
+        @keydown="onRowKeydown($event, span)"
       >
         <span class="wf-name">
           <span class="wf-indent" :style="{ width: indentRem(span.depth) + 'rem' }"></span>
+          <!--
+            The twistie is a span, not a nested button: the row itself is the button, and nesting one
+            inside another is invalid markup that browsers resolve by dropping it. Clicks are stopped
+            here so folding a subtree does not also select the row.
+          -->
+          <span
+            v-if="parents.has(span.spanId)"
+            class="wf-twist"
+            role="presentation"
+            :title="twistTitle(span)"
+            @click.stop="toggleCollapsed(span.spanId)"
+          >
+            <i :class="collapsed.has(span.spanId) ? 'bi bi-caret-right-fill' : 'bi bi-caret-down-fill'"></i>
+          </span>
+          <span v-else class="wf-twist is-leaf"></span>
           <span class="wf-kind" :class="kindClass(span)"></span>
           <span class="wf-label" :title="span.name">{{ span.name }}</span>
           <Badge v-if="span.status === 'ERROR'" variant="danger" size="xs" value="error" />
+          <span v-if="collapsed.has(span.spanId)" class="wf-folded">
+            +{{ foldedCounts.get(span.spanId) ?? 0 }}
+          </span>
         </span>
 
         <span class="wf-track">
@@ -71,14 +115,23 @@
         :span="span"
         :fields="eventFields[span.eventType] ?? []"
         :child-count="childCounts.get(span.spanId) ?? 0"
+        :trace-duration-nanos="windowNanos"
         @view-events="$emit('viewEvents')"
         @view-flamegraph="$emit('viewFlamegraph')"
       />
     </template>
 
+    <EmptyState
+      v-if="rows.length === 0"
+      icon="bi-signpost-split"
+      title="No spans shown"
+      description="Every span is hidden by the current filter."
+    />
+
     <div class="wf-legend">
       <span><i class="swatch swatch-self"></i> self time</span>
       <span><i class="swatch swatch-children"></i> time in children</span>
+      <span><i class="swatch swatch-critical"></i> on the critical path</span>
       <span><i class="swatch swatch-server"></i> server</span>
       <span><i class="swatch swatch-client"></i> client</span>
       <span><i class="swatch swatch-internal"></i> internal</span>
@@ -88,13 +141,15 @@
 
 <script setup lang="ts">
 import { NANOS_PER_MICRO } from '@/services/trace/timeUnits';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import Badge from '@shared/components/Badge.vue';
+import EmptyState from '@shared/components/EmptyState.vue';
 import FormattingService from '@shared/services/FormattingService';
 import TraceSpanInlineDetail from '@/components/trace/TraceSpanInlineDetail.vue';
 import type { EventFieldRow, TraceSpanRow } from '@/services/api/model/trace/TraceModels';
 import type { SpanBar } from '@/services/trace/TraceWaterfallLayout';
 import { indentRem, traceWindow, waterfallBars } from '@/services/trace/TraceWaterfallLayout';
+import { descendantCounts, spansWithChildren, visibleSpans } from '@/services/trace/traceTree';
 
 const props = defineProps<{
   spans: TraceSpanRow[];
@@ -103,7 +158,7 @@ const props = defineProps<{
   eventFields: Record<string, EventFieldRow[]>;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   (event: 'select', span: TraceSpanRow): void;
   (event: 'viewEvents'): void;
   (event: 'viewFlamegraph'): void;
@@ -113,9 +168,67 @@ defineEmits<{
 /** A span with no geometry cannot happen for a span that is being drawn, but must not throw. */
 const EMPTY_BAR: SpanBar = { leftPercent: 0, widthPercent: 0, selfSegments: [] };
 
+const collapsed = ref<Set<string>>(new Set());
+const criticalOnly = ref(false);
+
+// A different trace is a different tree, so nothing folded in the last one still applies.
+watch(
+  () => props.spans,
+  () => {
+    collapsed.value = new Set();
+    criticalOnly.value = false;
+  }
+);
+
 const windowNanos = computed(() => {
   const window = traceWindow(props.spans);
   return (window.endMicros - window.startMicros) * NANOS_PER_MICRO;
+});
+
+const parents = computed(() => spansWithChildren(props.spans));
+
+// Counted once for the whole trace, like the bars and the child counts below: every parent row asks
+// for this on each render, and answering per row would rescan the trace for each of them.
+const foldedCounts = computed(() => descendantCounts(props.spans));
+
+/**
+ * The rows actually drawn: folded subtrees removed first, then the off-path spans when the filter is
+ * on. That order is what makes the two compose — collapsing hides a subtree whether or not its spans
+ * are critical, and the filter then narrows whatever survived.
+ */
+const rows = computed(() => {
+  const visible = visibleSpans(props.spans, collapsed.value);
+  if (!criticalOnly.value) {
+    return visible;
+  }
+  return visible.filter(isCritical);
+});
+
+/**
+ * Whether the filter would remove anything. In a strictly sequential trace every span is on the
+ * critical path — correct, but it makes the toggle a no-op, so it is disabled rather than left to
+ * look broken.
+ */
+const hasOffPathSpans = computed(() => props.spans.some((span) => !isCritical(span)));
+
+const criticalOnlyTitle = computed(() => {
+  if (!hasOffPathSpans.value) {
+    return 'Every span in this trace is on the critical path — nothing to hide';
+  }
+  return 'Show only the spans that determined how long this trace took';
+});
+
+const allCollapsed = computed(
+  () => parents.value.size > 0 && collapsed.value.size === parents.value.size
+);
+
+const rowCountLabel = computed(() => {
+  const shown = rows.value.length;
+  const total = props.spans.length;
+  if (shown === total) {
+    return total === 1 ? '1 span' : `${total} spans`;
+  }
+  return `${shown} of ${total} spans`;
 });
 
 // Every bar at once: a bar's solid stretches depend on the span's children, so laying them out
@@ -136,6 +249,75 @@ const childCounts = computed(() => {
 
 function bar(span: TraceSpanRow): SpanBar {
   return bars.value.get(span.spanId) ?? EMPTY_BAR;
+}
+
+function isCritical(span: TraceSpanRow): boolean {
+  return span.criticalPathNanos > 0;
+}
+
+function toggleCollapsed(spanId: string): void {
+  const next = new Set(collapsed.value);
+  if (!next.delete(spanId)) {
+    next.add(spanId);
+  }
+  collapsed.value = next;
+}
+
+function toggleAll(): void {
+  collapsed.value = allCollapsed.value ? new Set() : new Set(parents.value);
+}
+
+function twistTitle(span: TraceSpanRow): string {
+  const hidden = foldedCounts.value.get(span.spanId) ?? 0;
+  const spans = hidden === 1 ? '1 span' : `${hidden} spans`;
+  return collapsed.value.has(span.spanId) ? `Expand ${spans}` : `Collapse ${spans}`;
+}
+
+/**
+ * Arrow-key navigation over the drawn rows. Left and right fold and unfold the way a tree widget is
+ * expected to; up and down move the selection, which is also what opens the inline detail, so the
+ * keyboard reaches everything the mouse does. The row is a button, so Enter and Space already
+ * select through the click handler and are left alone.
+ */
+function onRowKeydown(event: KeyboardEvent, span: TraceSpanRow): void {
+  if (event.key === 'ArrowRight') {
+    if (parents.value.has(span.spanId) && collapsed.value.has(span.spanId)) {
+      event.preventDefault();
+      toggleCollapsed(span.spanId);
+    }
+    return;
+  }
+  if (event.key === 'ArrowLeft') {
+    if (parents.value.has(span.spanId) && !collapsed.value.has(span.spanId)) {
+      event.preventDefault();
+      toggleCollapsed(span.spanId);
+    }
+    return;
+  }
+  if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
+    return;
+  }
+
+  const index = rows.value.findIndex((row) => row.spanId === span.spanId);
+  const next = rows.value[index + (event.key === 'ArrowDown' ? 1 : -1)];
+  if (next === undefined) {
+    return;
+  }
+  event.preventDefault();
+  emit('select', next);
+  focusRow(next.spanId);
+}
+
+/**
+ * Moves focus onto a row after the selection follows the keyboard. Deferred to the next frame
+ * because selecting a row also mounts its detail panel, which re-renders the list the target row
+ * lives in.
+ */
+function focusRow(spanId: string): void {
+  requestAnimationFrame(() => {
+    const row = document.querySelector<HTMLElement>(`.wf-row[data-span-id="${spanId}"]`);
+    row?.focus();
+  });
 }
 
 function barStyle(span: TraceSpanRow) {
@@ -162,7 +344,10 @@ function tooltip(span: TraceSpanRow): string {
   const total = FormattingService.formatDuration2Units(span.durationNanos);
   const self = FormattingService.formatDuration2Units(span.selfDurationNanos);
   const thread = span.threadName ? ` · ${span.threadName}` : '';
-  return `${span.name} — ${total} total, ${self} self${thread}`;
+  const critical = isCritical(span)
+    ? `, ${FormattingService.formatDuration2Units(span.criticalPathNanos)} critical`
+    : ', off the critical path';
+  return `${span.name} — ${total} total, ${self} self${critical}${thread}`;
 }
 </script>
 
@@ -172,6 +357,51 @@ function tooltip(span: TraceSpanRow): string {
   display: flex;
   flex-direction: column;
   background: var(--color-bg-card);
+}
+
+/* Filters sit above the scale rather than in the modal header: they change what this list draws. */
+.wf-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem 0;
+}
+
+.wf-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+.wf-toggle:hover:not(:disabled) {
+  background: var(--color-bg-hover-alt);
+  color: var(--color-dark);
+}
+
+.wf-toggle.active {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.wf-toggle:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.wf-count {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .wf-head,
@@ -202,11 +432,20 @@ function tooltip(span: TraceSpanRow): string {
   padding: 0.28rem 1rem;
   border: 0;
   border-bottom: 1px solid var(--color-border-light);
+  /*
+   * Carried by every row, transparent unless the span is on the critical path, so switching the
+   * filter on and off never shifts the names sideways.
+   */
+  border-left: 2px solid transparent;
   background: transparent;
   font-family: inherit;
   font-size: var(--font-size-sm);
   text-align: left;
   cursor: pointer;
+}
+
+.wf-row.critical {
+  border-left-color: var(--color-warning);
 }
 
 .wf-row:hover {
@@ -231,6 +470,38 @@ function tooltip(span: TraceSpanRow): string {
 
 .wf-indent {
   flex: none;
+}
+
+/*
+ * The twistie keeps its width on a leaf, so names stay on one column whether or not a span has
+ * children -- a tree whose labels shift left at every leaf is much harder to read down.
+ */
+.wf-twist {
+  flex: none;
+  width: 0.8rem;
+  font-size: 0.6rem;
+  line-height: 1;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.wf-twist:hover {
+  color: var(--color-dark);
+}
+
+.wf-twist.is-leaf {
+  cursor: inherit;
+}
+
+/* How many rows a fold is hiding, so a collapsed span does not look like a leaf. */
+.wf-folded {
+  flex: none;
+  padding: 0 0.25rem;
+  border-radius: var(--radius-xs);
+  background: var(--color-lighter);
+  color: var(--color-text-muted);
+  font-size: 0.6rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .wf-kind {
@@ -363,6 +634,11 @@ function tooltip(span: TraceSpanRow): string {
 
 .swatch-children {
   background: color-mix(in srgb, var(--flamegraph-color-green) 40%, transparent);
+}
+
+/* Matches the row's left accent rather than a bar colour: the critical path marks rows, not spans. */
+.swatch-critical {
+  background: var(--color-warning);
 }
 
 .swatch-server {

@@ -20,12 +20,16 @@ import BaseProfileClient from '@/services/api/BaseProfileClient';
 import FlamegraphPanel from '@/services/api/model/FlamegraphPanel';
 import type {
   TraceDetail,
+  TraceListQuery,
   TraceOperationId,
-  TraceOperationRow,
+  TraceOperationListQuery,
+  TraceOperationsPage,
   TraceOperationSummary,
   TraceOverview,
   TraceRow,
-  TraceSpanEvents
+  TraceSpanEvents,
+  TraceTimelineBucket,
+  TracesPage
 } from '@/services/api/model/trace/TraceModels';
 
 /**
@@ -39,13 +43,43 @@ function operationParams(operation: TraceOperationId): Record<string, string> {
   return { name: operation.name, kind: operation.kind, eventType: operation.eventType };
 }
 
+/**
+ * A list query as query parameters, leaving out everything the caller did not set.
+ *
+ * Omitting rather than sending defaults keeps the server's own defaults authoritative, so the two
+ * cannot drift apart — and keeps an unfiltered request looking exactly like the request this list
+ * made before it could be filtered at all.
+ */
+function listParams(query: TraceListQuery | TraceOperationListQuery): Record<string, string | number | boolean> {
+  const params: Record<string, string | number | boolean> = {};
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== null && value !== '') {
+      params[key] = value;
+    }
+  }
+  return params;
+}
+
 export default class ProfileTracesClient extends BaseProfileClient {
   constructor(profileId: string) {
     super(profileId, 'traces');
   }
 
-  public getTraces(limit?: number): Promise<TraceRow[]> {
-    return this.get<TraceRow[]>('', limit === undefined ? undefined : { limit });
+  /**
+   * A page of traces. Narrowing happens on the server because the list is capped: filtering the
+   * fetched page would only ever search the slowest few hundred traces, so a search for anything
+   * outside them comes back empty while the trace sits in the profile.
+   */
+  public getTraces(query: TraceListQuery = {}): Promise<TracesPage> {
+    return this.get<TracesPage>('', listParams(query));
+  }
+
+  /** How traces were spread over the recording, for the density strip above the list. */
+  public getTimeline(buckets?: number): Promise<TraceTimelineBucket[]> {
+    return this.get<TraceTimelineBucket[]>(
+      '/timeline',
+      buckets === undefined ? undefined : { buckets }
+    );
   }
 
   /** Profile-wide totals, which the capped trace list cannot be summed into. */
@@ -57,11 +91,9 @@ export default class ProfileTracesClient extends BaseProfileClient {
     return this.get<TraceDetail>(`/${traceId}`);
   }
 
-  public getOperations(limit?: number): Promise<TraceOperationRow[]> {
-    return this.get<TraceOperationRow[]>(
-      '/operations',
-      limit === undefined ? undefined : { limit }
-    );
+  /** A page of operations, narrowed and ordered on the server for the same reason traces are. */
+  public getOperations(query: TraceOperationListQuery = {}): Promise<TraceOperationsPage> {
+    return this.get<TraceOperationsPage>('/operations', listParams(query));
   }
 
   /**

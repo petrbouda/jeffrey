@@ -27,6 +27,7 @@
     :tone="tone"
     :total="total"
     :note="note"
+    :server-ordered="serverOrdered"
     empty-message="No traces for this filter."
     @row-click="(trace: TraceRow) => emit('rowClick', trace)"
   >
@@ -64,12 +65,17 @@ import type { SlowestRowAccent, SlowestRowTone } from '@shared/types/ui';
 import { errorLabel, spanKindVariant } from '@/services/trace/traceLabels';
 import type { TraceRow } from '@/services/api/model/trace/TraceModels';
 
-defineProps<{
-  traces: TraceRow[];
-  /** Profile-wide trace count, which the capped list cannot be summed into. */
-  total?: number;
-  note?: string;
-}>();
+withDefaults(
+  defineProps<{
+    traces: TraceRow[];
+    /** Profile-wide trace count, which the capped list cannot be summed into. */
+    total?: number;
+    note?: string;
+    /** Draw the rows exactly as given, for a caller whose server ordered and paged them. */
+    serverOrdered?: boolean;
+  }>(),
+  { total: undefined, note: undefined, serverOrdered: false }
+);
 
 const emit = defineEmits<{
   rowClick: [trace: TraceRow];

@@ -39,6 +39,11 @@ package cafe.jeffrey.profile.manager.model.trace;
  * @param durationNanos            total time the span covers
  * @param selfDurationNanos        that time minus what its children covered — where the span's own
  *                                 work actually went
+ * @param criticalPathNanos        how much of the trace's end-to-end duration this span is
+ *                                 personally responsible for: the stretches of its own window that
+ *                                 no later-finishing child was holding open. Zero means the span was
+ *                                 not on the critical path at all — it ran beside work that finished
+ *                                 after it, so shortening it would not have shortened the trace
  * @param depth                    nesting level; 0 for a root
  * @param threadHash               thread the span was committed on, as a string for the same
  *                                 safe-integer reason as the ids
@@ -63,6 +68,7 @@ public record TraceSpanRow(
         long startEpochMicros,
         long durationNanos,
         long selfDurationNanos,
+        long criticalPathNanos,
         int depth,
         String threadHash,
         String threadName,
