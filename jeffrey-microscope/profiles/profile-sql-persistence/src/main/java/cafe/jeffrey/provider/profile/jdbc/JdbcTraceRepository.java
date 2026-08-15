@@ -334,6 +334,51 @@ public class JdbcTraceRepository implements TraceRepository {
               AND trace_spans.span_id = covered.span_id
             """;
 
+    /*
+     * Every span overlapping a window, whichever trace it belongs to.
+     *
+     * The unified timeline asks a different question from the waterfall: not "what did this request
+     * do" but "what was every thread doing between these two instants", so the window is the filter
+     * and the trace is just another column.
+     *
+     * Overlap rather than starts-inside, for the reason the pause query needs it: a span that began
+     * before the viewport and is still running is drawn across it, and dropping it would leave a
+     * thread looking idle while it was busy. The lower bound is floored by MAX_SPAN_LOOKBACK_MILLIS
+     * so the scan still prunes on the same zone maps rather than reading from the start of the
+     * recording.
+     *
+     * Ordered by thread and then start, because the reader packs each thread's spans into depth
+     * lanes in one pass and that is the order the pass needs.
+     */
+    //language=SQL
+    private static final String SPANS_IN_WINDOW = """
+            SELECT
+                s.trace_id                              AS trace_id,
+                s.span_id                               AS span_id,
+                s.parent_span_id                        AS parent_span_id,
+                s.name                                  AS name,
+                s.status                                AS status,
+                s.kind                                  AS kind,
+                s.error_type                            AS error_type,
+                s.start_timestamp_from_beginning        AS start_ms,
+                EPOCH_US(s.start_timestamp)             AS start_epoch_us,
+                s.duration                              AS duration_ns,
+                s.self_duration                         AS self_duration_ns,
+                COALESCE(s.thread_hash, 0)              AS thread_hash,
+                t.name                                  AS thread_name,
+                COALESCE(t.is_virtual, FALSE)           AS is_virtual,
+                s.event_type                            AS event_type,
+                s.attributes                            AS attributes,
+                s.event_fields                          AS event_fields
+            FROM trace_spans s
+            LEFT JOIN threads t ON s.thread_hash = t.thread_hash
+            WHERE s.start_timestamp >= make_timestamptz(:lookback_from_ms * 1000)
+              AND s.start_timestamp < make_timestamptz((:to_ms + 1) * 1000)
+              AND EPOCH_US(s.start_timestamp) + s.duration // 1000 > :from_us
+            ORDER BY COALESCE(s.thread_hash, 0), s.start_timestamp
+            LIMIT :limit
+            """;
+
     //language=SQL
     private static final String TRACES_EXIST = """
             SELECT COUNT(*) FROM (SELECT 1 FROM traces LIMIT 1) probe
@@ -749,6 +794,16 @@ public class JdbcTraceRepository implements TraceRepository {
 
     private static final long MICROS_PER_MILLI_LONG = 1_000L;
 
+    /**
+     * How far back a span is allowed to have started before the window it is being looked for in.
+     * <p>
+     * The same bound {@link #MAX_PAUSE_LOOKBACK_MILLIS} exists for, and for the same reason: overlap
+     * is not sargable on the lower bound, so without a floor every viewport scroll would scan the
+     * span table from the beginning of the recording. Generous enough for any realistic request, and
+     * a span longer than five minutes is not something a timeline viewport is going to explain.
+     */
+    private static final long MAX_SPAN_LOOKBACK_MILLIS = 300_000L;
+
     /*
      * The stop-the-world stretches overlapping a window, whichever thread recorded them.
      *
@@ -1133,6 +1188,19 @@ public class JdbcTraceRepository implements TraceRepository {
                         rs.getString("label"),
                         rs.getLong("from_epoch_us"),
                         rs.getLong("to_epoch_us")));
+    }
+
+    @Override
+    public List<TraceSpanRecord> spansInWindow(long fromEpochMicros, long toEpochMicros, int limit) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("from_us", fromEpochMicros)
+                .addValue("to_ms", Math.floorDiv(toEpochMicros, MICROS_PER_MILLI_LONG))
+                .addValue("lookback_from_ms",
+                        Math.floorDiv(fromEpochMicros, MICROS_PER_MILLI_LONG) - MAX_SPAN_LOOKBACK_MILLIS)
+                .addValue("limit", limit);
+
+        return databaseClient.query(
+                StatementLabel.TRACE_SPANS_IN_WINDOW, SPANS_IN_WINDOW, params, traceSpanMapper());
     }
 
     @Override

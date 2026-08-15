@@ -18,8 +18,9 @@
 
 package cafe.jeffrey.profile.manager;
 
-import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TimelineWindow;
 import cafe.jeffrey.profile.manager.model.trace.TraceContext;
+import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
@@ -96,6 +97,17 @@ public interface TraceManager {
     TraceContext context(long traceId);
 
     /**
+     * One viewport of the unified timeline: what stopped the JVM during it, and what every thread was
+     * doing, with each thread's spans packed into depth lanes.
+     * <p>
+     * Per viewport rather than per recording, which is what makes pan and zoom affordable: a capture
+     * holds far more spans than a screen can show, so the window is the unit of work.
+     *
+     * @param spanLimit hard cap on spans; the result says whether it was reached
+     */
+    TimelineWindow timelineWindow(long fromEpochMicros, long toEpochMicros, int spanLimit);
+
+    /**
      * Reduces a span to the {@code (thread, window)} intervals a flamegraph can be scoped to, so
      * the samples shown are exactly the ones taken while that span was running.
      *
@@ -129,13 +141,6 @@ public interface TraceManager {
     TraceOperationsPage operations(TraceOperationListQuery query);
 
     /**
-     * What one operation's summary needs beyond the traces the caller already has: its span
-     * breakdown and its thread split.
-     *
-     * @param operation the trace type
-     * @param spanLimit maximum number of span names to return, ranked by total time
-     */
-    /**
      * One operation's aggregate row — its counts and latency percentiles.
      * <p>
      * The identity is the whole triple rather than the name, since an inbound and an outbound call
@@ -145,6 +150,13 @@ public interface TraceManager {
      */
     Optional<TraceOperationRow> operation(TraceOperationId operation);
 
+    /**
+     * What one operation's summary needs beyond the traces the caller already has: its span
+     * breakdown and its thread split.
+     *
+     * @param operation the trace type
+     * @param spanLimit maximum number of span names to return, ranked by total time
+     */
     TraceOperationSummary operationSummary(TraceOperationId operation, int spanLimit);
 
     /**

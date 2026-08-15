@@ -165,6 +165,19 @@ public interface TraceRepository {
     List<TracePauseRecord> pausesInWindow(long fromEpochMicros, long toEpochMicros);
 
     /**
+     * Every span overlapping a window, whichever trace it belongs to.
+     * <p>
+     * The question the unified timeline asks, and the mirror image of {@link #spansOf(long)}: not
+     * "what did this request do" but "what was every thread doing between these two instants". A
+     * span that began before the window and is still running is included, since a timeline that
+     * dropped it would draw an idle thread that was busy.
+     *
+     * @param limit hard cap on rows; the caller is expected to say when it was hit rather than
+     *              quietly drawing a partial picture
+     */
+    List<TraceSpanRecord> spansInWindow(long fromEpochMicros, long toEpochMicros, int limit);
+
+    /**
      * What each span of one trace spent waiting on — locks, parking, I/O — one row per
      * {@code (span, category)} that recorded anything.
      * <p>

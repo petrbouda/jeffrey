@@ -575,6 +575,12 @@ const technologyRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'technologies/traces/timeline',
+    name: 'profile-technologies-traces-timeline',
+    component: () => import('@/views/profiles/detail/ProfileUnifiedTimeline.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'technologies/grpc/overview',
     name: 'profile-technologies-grpc-overview',
     component: () => import('@/views/profiles/detail/technologies/ProfileGrpcOverview.vue'),

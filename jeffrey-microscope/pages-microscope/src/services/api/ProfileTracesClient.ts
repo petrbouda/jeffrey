@@ -18,6 +18,7 @@
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import FlamegraphPanel from '@/services/api/model/FlamegraphPanel';
+import type { TimelineWindow } from '@/services/api/model/TimelineModels';
 import type {
   TraceContext,
   TraceDetail,
@@ -51,7 +52,9 @@ function operationParams(operation: TraceOperationId): Record<string, string> {
  * cannot drift apart — and keeps an unfiltered request looking exactly like the request this list
  * made before it could be filtered at all.
  */
-function listParams(query: TraceListQuery | TraceOperationListQuery): Record<string, string | number | boolean> {
+function listParams(
+  query: TraceListQuery | TraceOperationListQuery
+): Record<string, string | number | boolean> {
   const params: Record<string, string | number | boolean> = {};
   for (const [key, value] of Object.entries(query)) {
     if (value !== undefined && value !== null && value !== '') {
@@ -102,6 +105,20 @@ export default class ProfileTracesClient extends BaseProfileClient {
    */
   public getTraceContext(traceId: string): Promise<TraceContext> {
     return this.get<TraceContext>(`/${traceId}/context`);
+  }
+
+  /**
+   * One viewport of the unified timeline. Bounds are absolute epoch micros, the units a span's start
+   * already carries, so nothing converts between the canvas and the stored timestamps.
+   */
+  public getTimelineWindow(
+    fromEpochMicros: number,
+    toEpochMicros: number
+  ): Promise<TimelineWindow> {
+    return this.get<TimelineWindow>('/timeline/window', {
+      fromEpochMicros: Math.floor(fromEpochMicros),
+      toEpochMicros: Math.ceil(toEpochMicros)
+    });
   }
 
   /** A page of operations, narrowed and ordered on the server for the same reason traces are. */

@@ -19,6 +19,9 @@
 package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.trace.EventFieldRow;
+import cafe.jeffrey.profile.manager.model.trace.TimelineSpan;
+import cafe.jeffrey.profile.manager.model.trace.TimelineTrack;
+import cafe.jeffrey.profile.manager.model.trace.TimelineWindow;
 import cafe.jeffrey.profile.manager.model.trace.TraceContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceContextSlice;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
@@ -45,6 +48,7 @@ import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
 import cafe.jeffrey.provider.profile.api.TraceOperationThreadsRecord;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TracePage;
+import cafe.jeffrey.provider.profile.api.TracePauseRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
@@ -271,6 +275,86 @@ public class TraceManagerImpl implements TraceManager {
         slices.add(new TraceContextSlice(
                 TraceContextSlice.OWN_WORK, Math.max(0, windowNanos - accounted), 0));
         return List.copyOf(slices);
+    }
+
+    /**
+     * One viewport of the unified timeline: the pauses that crossed it, and every thread that ran in
+     * it with its spans packed into depth lanes.
+     */
+    @Override
+    public TimelineWindow timelineWindow(long fromEpochMicros, long toEpochMicros, int spanLimit) {
+        List<TracePauseRecord> pauses = traceRepository.pausesInWindow(fromEpochMicros, toEpochMicros);
+        List<TraceSpanRecord> spans = traceRepository.spansInWindow(
+                fromEpochMicros, toEpochMicros, spanLimit);
+
+        Map<Long, List<TraceSpanRecord>> byThread = spans.stream()
+                .collect(Collectors.groupingBy(TraceSpanRecord::threadHash, LinkedHashMap::new,
+                        Collectors.toList()));
+
+        List<TimelineTrack> tracks = byThread.values().stream()
+                .map(TraceManagerImpl::toTrack)
+                .sorted(Comparator.comparing(TimelineTrack::threadName,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+
+        return new TimelineWindow(
+                fromEpochMicros,
+                toEpochMicros,
+                pauses.stream()
+                        .map(pause -> new TracePause(
+                                pause.category().name(),
+                                pause.label(),
+                                pause.fromEpochMicros(),
+                                pause.durationNanos()))
+                        .toList(),
+                tracks,
+                spans.size() >= spanLimit);
+    }
+
+    /**
+     * Packs one thread's spans into lanes by enclosure.
+     * <p>
+     * A span's lane is how many spans on this thread contain it, which on a single thread is exactly
+     * the nesting a reader expects to see. It is computed from the window rather than from the trace
+     * tree on purpose: a thread that served two unrelated requests puts both at lane 0, because
+     * neither ran inside the other, and reading tree depth instead would indent the second one under
+     * nothing.
+     * <p>
+     * The spans arrive ordered by start, so a stack of the enclosing spans is enough — anything that
+     * ended before this one began is popped, and whatever is left is what encloses it.
+     */
+    private static TimelineTrack toTrack(List<TraceSpanRecord> threadSpans) {
+        List<TimelineSpan> placed = new ArrayList<>(threadSpans.size());
+        Deque<Long> openEnds = new ArrayDeque<>();
+        int deepest = -1;
+
+        for (TraceSpanRecord span : threadSpans) {
+            long start = span.startEpochMicros();
+            while (!openEnds.isEmpty() && openEnds.peek() <= start) {
+                openEnds.pop();
+            }
+            int depth = openEnds.size();
+            deepest = Math.max(deepest, depth);
+            openEnds.push(endMicrosOf(span));
+
+            placed.add(new TimelineSpan(
+                    toHex(span.traceId()),
+                    toHex(span.spanId()),
+                    span.name(),
+                    span.kind(),
+                    span.status(),
+                    start,
+                    span.durationNanos(),
+                    depth));
+        }
+
+        TraceSpanRecord first = threadSpans.getFirst();
+        return new TimelineTrack(
+                toHex(first.threadHash()),
+                first.threadName(),
+                first.isVirtual(),
+                deepest + 1,
+                List.copyOf(placed));
     }
 
     @Override
