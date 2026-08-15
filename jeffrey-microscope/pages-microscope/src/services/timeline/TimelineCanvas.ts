@@ -894,6 +894,11 @@ export default class TimelineCanvas {
       );
     }
 
+    if ((track.density?.length ?? 0) > 0) {
+      this.drawDensityRow(target, row, track, plot);
+      return;
+    }
+
     for (const span of track.spans) {
       const to = span.startEpochMicros + span.durationNanos / NANOS_PER_MICRO;
       const placed = placeInterval(span.startEpochMicros, to, this.view, plot);
@@ -926,6 +931,47 @@ export default class TimelineCanvas {
           })
         );
       }
+    }
+  }
+
+  /**
+   * The capped window's rendering: per-thread density columns instead of a biased span sample. The
+   * columns are placed in time space against the fetched window's own bounds, so a pan between
+   * fetch and paint shifts them correctly rather than pinning them to the viewport. Opacity carries
+   * the count, scaled to the window's busiest bucket. Nothing here is clickable — a column is a
+   * count, not a span, and the cap notice above already offers the way back to real spans.
+   */
+  private drawDensityRow(target: Konva.Group, row: Row, track: TimelineTrack, plot: number): void {
+    const buckets = this.data?.densityBuckets ?? 0;
+    const dataFrom = this.data?.fromEpochMicros ?? 0;
+    const dataTo = this.data?.toEpochMicros ?? 0;
+    if (buckets <= 0 || dataTo <= dataFrom) {
+      return;
+    }
+    const bucketMicros = (dataTo - dataFrom) / buckets;
+    const busiest = Math.max(
+      1,
+      ...(this.data?.tracks ?? []).flatMap(t => t.density.map(b => b.count))
+    );
+    const color = resolveToken('--color-primary', '#5e64ff');
+    const columnHeight = row.height - M.threadRowHeight - 2;
+
+    for (const bucket of track.density) {
+      const from = dataFrom + bucket.bucketIndex * bucketMicros;
+      const placed = placeInterval(from, from + bucketMicros, this.view, plot);
+      if (!placed) {
+        continue;
+      }
+      target.add(
+        new Konva.Rect({
+          x: M.gutterWidth + placed.x,
+          y: row.y + M.threadRowHeight,
+          width: placed.width,
+          height: columnHeight,
+          fill: color,
+          opacity: 0.2 + 0.7 * (bucket.count / busiest)
+        })
+      );
     }
   }
 

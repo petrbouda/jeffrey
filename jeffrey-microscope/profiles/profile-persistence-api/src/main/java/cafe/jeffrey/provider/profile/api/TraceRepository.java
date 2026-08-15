@@ -191,6 +191,17 @@ public interface TraceRepository {
     List<TraceThreadStateRecord> threadStatesInWindow(long fromEpochMicros, long toEpochMicros, int limit);
 
     /**
+     * Span counts per {@code (thread, time bucket)} over a window — the level-of-detail read for a
+     * window where {@link #spansInWindow} hit its cap.
+     * <p>
+     * A capped span list is a biased sample; a count is not subject to the cap. The caller draws
+     * these as density columns instead of pretending the sample was the picture.
+     *
+     * @param buckets how many slices the window is cut into; at least 1
+     */
+    List<TraceSpanDensityRecord> spanDensityInWindow(long fromEpochMicros, long toEpochMicros, int buckets);
+
+    /**
      * What each span of one trace spent waiting on — locks, parking, I/O — one row per
      * {@code (span, category)} that recorded anything.
      * <p>

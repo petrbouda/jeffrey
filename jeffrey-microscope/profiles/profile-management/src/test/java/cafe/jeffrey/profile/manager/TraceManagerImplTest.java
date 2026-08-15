@@ -31,6 +31,7 @@ import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceContextCategory;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
+import cafe.jeffrey.provider.profile.api.TraceSpanDensityRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.provider.profile.api.TraceThreadStateRecord;
@@ -329,6 +330,37 @@ class TraceManagerImplTest {
             }
 
             assertTrue(windowOf(many).truncated());
+        }
+
+        @Test
+        @DisplayName("a capped window swaps the biased span sample for density columns")
+        void cappedWindowBecomesDensity() {
+            List<TraceSpanRecord> many = new java.util.ArrayList<>();
+            for (int i = 0; i < 4_000; i++) {
+                many.add(onThread(i, "s" + i, i * 10L, 5, THREAD));
+            }
+            lenient().when(traceRepository.spanDensityInWindow(anyLong(), anyLong(), anyInt()))
+                    .thenReturn(List.of(
+                            new TraceSpanDensityRecord(THREAD, "thread-" + THREAD, false, 0, 3_000),
+                            new TraceSpanDensityRecord(THREAD, "thread-" + THREAD, false, 7, 1_500)));
+
+            TimelineWindow window = windowOf(many);
+
+            assertTrue(window.truncated());
+            assertTrue(window.densityBuckets() > 0, "density mode declares its bucket count");
+            TimelineTrack track = window.tracks().getFirst();
+            assertTrue(track.spans().isEmpty(), "the capped sample is discarded, not drawn");
+            assertEquals(2, track.density().size());
+            assertEquals(3_000, track.density().getFirst().count());
+        }
+
+        @Test
+        @DisplayName("an uncapped window carries no density")
+        void uncappedWindowHasNoDensity() {
+            TimelineWindow window = windowOf(List.of(onThread(1, "a", 0, 100, THREAD)));
+
+            assertEquals(0, window.densityBuckets());
+            assertTrue(window.tracks().getFirst().density().isEmpty());
         }
 
         @Test

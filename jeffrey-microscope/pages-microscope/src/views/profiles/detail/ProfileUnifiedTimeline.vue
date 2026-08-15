@@ -34,8 +34,10 @@
               <!-- The remedy in visible words with the button that performs it, not in a title
                    attribute nobody hovers: a capped window silently drawn as complete data is a
                    biased sample wearing the costume of the whole truth. -->
+              <!-- In a capped window the canvas swaps to density columns, and the pill says so:
+                   the count-shape is honest, but only zooming in brings back clickable spans. -->
               <span v-if="timelineWindow?.truncated" class="tl-capped">
-                <i class="bi bi-exclamation-triangle"></i> not all spans drawn —
+                <i class="bi bi-exclamation-triangle"></i> too busy for spans, showing density —
                 <button type="button" class="tl-capped-zoom" @click="zoomIn">zoom in</button>
               </span>
               <span v-else-if="timelineWindow?.statesTruncated" class="tl-capped">

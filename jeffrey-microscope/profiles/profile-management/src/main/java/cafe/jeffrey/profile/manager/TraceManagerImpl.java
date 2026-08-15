@@ -19,6 +19,7 @@
 package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.trace.EventFieldRow;
+import cafe.jeffrey.profile.manager.model.trace.TimelineDensityBucket;
 import cafe.jeffrey.profile.manager.model.trace.TimelineSpan;
 import cafe.jeffrey.profile.manager.model.trace.TimelineStatePeriod;
 import cafe.jeffrey.profile.manager.model.trace.TimelineTrack;
@@ -52,6 +53,7 @@ import cafe.jeffrey.provider.profile.api.TracePage;
 import cafe.jeffrey.provider.profile.api.TracePauseRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
+import cafe.jeffrey.provider.profile.api.TraceSpanDensityRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.provider.profile.api.TraceThreadStateRecord;
@@ -99,6 +101,10 @@ public class TraceManagerImpl implements TraceManager {
      * spans, and an uncapped scan would make every pan pay for them.
      */
     private static final int TIMELINE_STATES_LIMIT = 4_000;
+    /** Slices per capped window — enough columns to show shape, few enough that each means something. */
+    private static final int TIMELINE_DENSITY_BUCKETS = 200;
+    /** Row height (in lanes) a density track claims, since it has no real lanes of its own. */
+    private static final int TIMELINE_DENSITY_LANES = 3;
 
     private final TraceRepository traceRepository;
 
@@ -297,23 +303,16 @@ public class TraceManagerImpl implements TraceManager {
         List<TraceThreadStateRecord> states = traceRepository.threadStatesInWindow(
                 fromEpochMicros, toEpochMicros, TIMELINE_STATES_LIMIT);
 
-        Map<Long, List<TraceSpanRecord>> byThread = spans.stream()
-                .collect(Collectors.groupingBy(TraceSpanRecord::threadHash, LinkedHashMap::new,
-                        Collectors.toList()));
-
-        // States for threads with no spans in the window are dropped with the grouping below: a
+        // States for threads with no spans in the window are dropped with the track grouping: a
         // track exists because work ran on it, and a thread that only waited has no track to
         // underlay. The whole-JVM idle picture is the threads timeline's job, not this view's.
         Map<Long, List<TraceThreadStateRecord>> statesByThread = states.stream()
                 .collect(Collectors.groupingBy(TraceThreadStateRecord::threadHash));
 
-        List<TimelineTrack> tracks = byThread.entrySet().stream()
-                .map(entry -> toTrack(
-                        entry.getValue(),
-                        statesByThread.getOrDefault(entry.getKey(), List.of())))
-                .sorted(Comparator.comparing(TimelineTrack::threadName,
-                        Comparator.nullsLast(Comparator.naturalOrder())))
-                .toList();
+        boolean spansCapped = spans.size() >= spanLimit;
+        List<TimelineTrack> tracks = spansCapped
+                ? densityTracks(fromEpochMicros, toEpochMicros, statesByThread)
+                : spanTracks(spans, statesByThread);
 
         return new TimelineWindow(
                 fromEpochMicros,
@@ -326,8 +325,68 @@ public class TraceManagerImpl implements TraceManager {
                                 pause.durationNanos()))
                         .toList(),
                 tracks,
-                spans.size() >= spanLimit,
-                states.size() >= TIMELINE_STATES_LIMIT);
+                spansCapped,
+                states.size() >= TIMELINE_STATES_LIMIT,
+                spansCapped ? TIMELINE_DENSITY_BUCKETS : 0);
+    }
+
+    private List<TimelineTrack> spanTracks(
+            List<TraceSpanRecord> spans, Map<Long, List<TraceThreadStateRecord>> statesByThread) {
+        Map<Long, List<TraceSpanRecord>> byThread = spans.stream()
+                .collect(Collectors.groupingBy(TraceSpanRecord::threadHash, LinkedHashMap::new,
+                        Collectors.toList()));
+
+        return byThread.entrySet().stream()
+                .map(entry -> toTrack(
+                        entry.getValue(),
+                        statesByThread.getOrDefault(entry.getKey(), List.of())))
+                .sorted(Comparator.comparing(TimelineTrack::threadName,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+    }
+
+    /**
+     * The capped window's honest substitute for spans: per-thread bucket counts, which the cap
+     * cannot bias. The capped span fetch is discarded rather than drawn — whichever rows filled the
+     * cap first are a sample wearing the costume of the whole window, and the one thing worse than
+     * less detail is wrong detail.
+     */
+    private List<TimelineTrack> densityTracks(
+            long fromEpochMicros,
+            long toEpochMicros,
+            Map<Long, List<TraceThreadStateRecord>> statesByThread) {
+        List<TraceSpanDensityRecord> density = traceRepository.spanDensityInWindow(
+                fromEpochMicros, toEpochMicros, TIMELINE_DENSITY_BUCKETS);
+
+        Map<Long, List<TraceSpanDensityRecord>> byThread = density.stream()
+                .collect(Collectors.groupingBy(TraceSpanDensityRecord::threadHash, LinkedHashMap::new,
+                        Collectors.toList()));
+
+        return byThread.entrySet().stream()
+                .map(entry -> {
+                    TraceSpanDensityRecord first = entry.getValue().getFirst();
+                    return new TimelineTrack(
+                            toHex(entry.getKey()),
+                            first.threadName(),
+                            first.isVirtual(),
+                            // Enough lanes to give the columns a readable height in the row
+                            // arithmetic every track shares.
+                            TIMELINE_DENSITY_LANES,
+                            List.of(),
+                            statesByThread.getOrDefault(entry.getKey(), List.of()).stream()
+                                    .map(state -> new TimelineStatePeriod(
+                                            state.category().name(),
+                                            state.fromEpochMicros(),
+                                            state.durationNanos()))
+                                    .toList(),
+                            entry.getValue().stream()
+                                    .map(bucket -> new TimelineDensityBucket(
+                                            bucket.bucketIndex(), bucket.count()))
+                                    .toList());
+                })
+                .sorted(Comparator.comparing(TimelineTrack::threadName,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
     }
 
     /**
@@ -380,7 +439,8 @@ public class TraceManagerImpl implements TraceManager {
                                 state.category().name(),
                                 state.fromEpochMicros(),
                                 state.durationNanos()))
-                        .toList());
+                        .toList(),
+                List.of());
     }
 
     @Override

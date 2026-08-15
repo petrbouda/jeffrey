@@ -44,6 +44,12 @@ export interface TimelineStatePeriod {
   durationNanos: number;
 }
 
+/** How many spans started in one slice of a capped window — the honest zoomed-out shape. */
+export interface TimelineDensityBucket {
+  bucketIndex: number;
+  count: number;
+}
+
 /** One thread's row, with the spans that ran on it inside the window. */
 export interface TimelineTrack {
   threadHash: string;
@@ -53,6 +59,8 @@ export interface TimelineTrack {
   laneCount: number;
   spans: TimelineSpan[];
   states: TimelineStatePeriod[];
+  /** Non-empty exactly when the window was capped; then `spans` is empty. */
+  density: TimelineDensityBucket[];
 }
 
 /**
@@ -68,4 +76,6 @@ export interface TimelineWindow {
   truncated: boolean;
   /** Whether the thread-state cap was hit — separate, since the spans being complete says nothing. */
   statesTruncated: boolean;
+  /** How many slices the density view cut the window into; 0 outside density mode. */
+  densityBuckets: number;
 }

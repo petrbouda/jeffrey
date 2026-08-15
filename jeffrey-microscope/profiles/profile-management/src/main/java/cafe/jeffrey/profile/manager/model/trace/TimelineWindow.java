@@ -39,5 +39,7 @@ public record TimelineWindow(
         List<TimelineTrack> tracks,
         boolean truncated,
         /** Separate from {@code truncated}: the spans being complete says nothing about the states. */
-        boolean statesTruncated) {
+        boolean statesTruncated,
+        /** How many slices the density view cut the window into; {@code 0} outside density mode. */
+        int densityBuckets) {
 }

@@ -34,5 +34,7 @@ public record TimelineTrack(
         boolean isVirtual,
         int laneCount,
         List<TimelineSpan> spans,
-        List<TimelineStatePeriod> states) {
+        List<TimelineStatePeriod> states,
+        /** Non-empty exactly when the window was capped; then {@code spans} is empty. */
+        List<TimelineDensityBucket> density) {
 }

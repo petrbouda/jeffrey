@@ -36,6 +36,7 @@ import cafe.jeffrey.provider.profile.api.TracePauseRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSortField;
 import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
+import cafe.jeffrey.provider.profile.api.TraceSpanDensityRecord;
 import cafe.jeffrey.provider.profile.api.TraceThreadStateRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
@@ -410,6 +411,32 @@ public class JdbcTraceRepository implements TraceRepository {
               AND EPOCH_US(e.start_timestamp) + COALESCE(e.duration, 0) // 1000 > :from_us
             ORDER BY e.thread_hash, e.start_timestamp
             LIMIT :limit
+            """;
+
+    /*
+     * Span counts per (thread, bucket) for the capped-window density view. Same window predicate
+     * triad as SPANS_IN_WINDOW; the bucket is the span's start position clamped into [0, buckets),
+     * so a span running in from before the window lands in the first column rather than a negative
+     * one. The threads join rides along because in a capped window this query is the only record of
+     * some threads — the span rows that would have named them are past the cap.
+     */
+    //language=SQL
+    private static final String SPAN_DENSITY_IN_WINDOW = """
+            SELECT
+                COALESCE(s.thread_hash, 0)              AS thread_hash,
+                t.name                                  AS thread_name,
+                COALESCE(t.is_virtual, FALSE)           AS is_virtual,
+                LEAST(:buckets - 1, GREATEST(0,
+                    ((EPOCH_US(s.start_timestamp) - :from_us) * :buckets)
+                        // (:to_us - :from_us)))::INT   AS bucket_index,
+                COUNT(*)                                AS span_count
+            FROM trace_spans s
+            LEFT JOIN threads t ON s.thread_hash = t.thread_hash
+            WHERE s.start_timestamp >= make_timestamptz(:lookback_from_ms * 1000)
+              AND s.start_timestamp < make_timestamptz((:to_ms + 1) * 1000)
+              AND EPOCH_US(s.start_timestamp) + s.duration // 1000 > :from_us
+            GROUP BY 1, 2, 3, 4
+            ORDER BY 1, 4
             """;
 
     //language=SQL
@@ -1234,6 +1261,30 @@ public class JdbcTraceRepository implements TraceRepository {
 
         return databaseClient.query(
                 StatementLabel.TRACE_SPANS_IN_WINDOW, SPANS_IN_WINDOW, params, traceSpanMapper());
+    }
+
+    @Override
+    public List<TraceSpanDensityRecord> spanDensityInWindow(
+            long fromEpochMicros, long toEpochMicros, int buckets) {
+        long toMillis = Math.floorDiv(toEpochMicros, MICROS_PER_MILLI_LONG);
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("from_us", fromEpochMicros)
+                .addValue("to_us", toEpochMicros)
+                .addValue("to_ms", toMillis)
+                .addValue("buckets", Math.max(1, buckets))
+                .addValue("lookback_from_ms",
+                        Math.floorDiv(fromEpochMicros, MICROS_PER_MILLI_LONG) - MAX_SPAN_LOOKBACK_MILLIS);
+
+        return databaseClient.query(
+                StatementLabel.TRACE_SPAN_DENSITY,
+                SPAN_DENSITY_IN_WINDOW,
+                params,
+                (rs, _) -> new TraceSpanDensityRecord(
+                        rs.getLong("thread_hash"),
+                        rs.getString("thread_name"),
+                        rs.getBoolean("is_virtual"),
+                        rs.getInt("bucket_index"),
+                        rs.getLong("span_count")));
     }
 
     @Override
