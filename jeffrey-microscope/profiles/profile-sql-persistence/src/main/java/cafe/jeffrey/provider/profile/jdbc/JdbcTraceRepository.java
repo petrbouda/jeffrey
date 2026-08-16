@@ -60,9 +60,9 @@ public class JdbcTraceRepository implements TraceRepository {
      * That is the whole of this class's knowledge about instrumented event types, and it names none
      * of them. An event type instrumented after this was written — including one declared outside
      * Jeffrey — takes part in traces with no change here, where a hard-coded list would have left it
-     * silently missing from the Traces page until someone noticed. What such a type does not get is
-     * a naming convention: {@link SpanConventions} is where those live, and it is the one place any
-     * event type is named.
+     * silently missing from the Traces page until someone noticed. Naming works the same way: a
+     * type declares its convention in the recording ({@link DeclaredSpanConventions}), with
+     * {@link SpanConventions} holding the built-ins for recordings that predate the annotations.
      * <p>
      * The same set is what the drill-down excludes: an event that is itself a span belongs in the
      * waterfall, not in the list of what happened inside one.
@@ -116,15 +116,18 @@ public class JdbcTraceRepository implements TraceRepository {
      * minted every id in the JVM, so each is read straight out of the JSON. What used to be a
      * synthetic span id here now lives in the event classes.
      *
-     * The three shape columns are not flat, and deliberately so: each is a projection built by
-     * SpanConventions, which settles what an exchange, a call or a statement is *called* rather than
+     * The three shape columns are not flat, and deliberately so: each is a projection over
+     * conventions, which settle what an exchange, a call or a statement is *called* rather than
      * reading back whichever answer the recording's instrumentation cached in a field. That is what
      * makes one endpoint one operation across recordings, and what lets instrumentation that stamps
      * the trace ids and its own fields land under a name rather than under its event type.
      *
-     * SpanConventions is the only place any event type is named. Discovery above stays structural,
-     * so an event type it says nothing about is still a span; it just carries the name, kind and
-     * status it recorded for itself.
+     * The conventions come from two places, in order: what the recording itself declares per event
+     * type (@SpanName/@SpanOutcome metadata, rendered by DeclaredSpanConventions -- which is how an
+     * event type Jeffrey has never seen gets named with no change here), then the built-ins in
+     * SpanConventions for Jeffrey's own types on recordings that predate the annotations. Discovery
+     * above stays structural, so an event type no convention covers is still a span; it just
+     * carries the name, kind and status it recorded for itself.
      *
      * The ids are pulled out once in the CTE, which the filter then reuses by name, so each is read
      * out of the JSON a single time. The two predicates drop events that were never part of a
@@ -566,6 +569,10 @@ public class JdbcTraceRepository implements TraceRepository {
         databaseClient.execute(StatementLabel.DERIVE_TRACES, DELETE_TRACES);
         databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, DELETE_TRACE_SPANS);
 
+        // What the recording declared about its own event types (@SpanName/@SpanOutcome, stored in
+        // event_types.extras by the parser) is folded into the projections ahead of the built-ins.
+        DeclaredSpanConventions.Projections declared = DeclaredSpanConventions.load(databaseClient);
+
         // The placeholders in the order they appear: which event types are spans, the three span
         // shape projections, and then the test and the two patches that decide which keys are
         // stripped to leave the event's own declared fields.
@@ -573,9 +580,9 @@ public class JdbcTraceRepository implements TraceRepository {
                 StatementLabel.DERIVE_TRACE_SPANS,
                 DERIVE_TRACE_SPANS.formatted(
                         SPAN_EVENT_TYPES,
-                        SpanConventions.nameProjection(),
+                        SpanConventions.nameProjection(declared.nameCase()),
                         SpanConventions.kindProjection(),
-                        SpanConventions.statusProjection(),
+                        SpanConventions.statusProjection(declared.statusCase()),
                         SpanConventions.recordedStatusIsSpanStatus(),
                         PLUMBING_FIELDS_AND_SPAN_STATUS,
                         PLUMBING_FIELDS));

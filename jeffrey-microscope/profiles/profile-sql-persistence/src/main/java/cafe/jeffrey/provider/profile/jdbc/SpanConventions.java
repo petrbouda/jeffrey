@@ -19,6 +19,7 @@
 package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.shared.common.model.EventTypeName;
+import cafe.jeffrey.shared.common.model.SpanConventionKeys;
 
 /**
  * How a span is named, directed and judged, expressed as SQL over the event that recorded it.
@@ -38,11 +39,15 @@ import cafe.jeffrey.shared.common.model.EventTypeName;
  * third-party instrumentation that stamps the trace ids and its own fields all land under the same
  * operation.
  * <p>
- * This is the only place in Jeffrey that names an instrumented event type, and it will grow when a
- * new type is instrumented. Span <em>discovery</em> stays structural — see
- * {@code JdbcTraceRepository.SPAN_EVENT_TYPES}, which finds a span by its declared {@code spanId}
- * field — so an event type absent from here is still a span in every trace; it simply carries the
- * name, kind and status it recorded for itself, and its event type as a last resort.
+ * These built-in arms are not the only conventions any more, and a new event type should not be
+ * added here: a type declares its own convention in the recording via {@code @SpanName} and
+ * {@code @SpanOutcome}, which {@link DeclaredSpanConventions} discovers and which outranks the
+ * built-ins. What remains here are the conventions for Jeffrey's own types on recordings made
+ * before the annotations existed — a set that genuinely cannot grow. Span <em>discovery</em> stays
+ * structural — see {@code JdbcTraceRepository.SPAN_EVENT_TYPES}, which finds a span by its
+ * declared {@code spanId} field — so an event type no convention covers is still a span in every
+ * trace; it simply carries the name, kind and status it recorded for itself, and its event type as
+ * a last resort.
  *
  * <h2>Reading an outcome without guessing which one it is</h2>
  * {@code statusCode} is the key that unambiguously holds an exchange's own outcome: an HTTP
@@ -146,36 +151,62 @@ final class SpanConventions {
     //language=SQL
     private static final String CONVENTIONAL_STATUS = """
             CASE
-                     WHEN %s IN (%s) AND TRY_CAST(%s AS BIGINT) IS NOT NULL
-                         THEN CASE WHEN TRY_CAST(%s AS BIGINT) >= %d THEN 'ERROR' ELSE 'UNSET' END
-                     WHEN %s IN (%s) AND %s IS NOT NULL
-                         THEN CASE WHEN %s = '%s' THEN 'OK' ELSE 'ERROR' END
-                     WHEN %s IN (%s) AND %s IS NOT NULL
-                         THEN CASE WHEN %s = 'false' THEN 'ERROR' ELSE 'UNSET' END
+                     WHEN %s IN (%s) THEN %s
+                     WHEN %s IN (%s) THEN %s
+                     WHEN %s IN (%s) THEN %s
                  END"""
             .formatted(
-                    EVENT_TYPE, HTTP_EXCHANGES, EXCHANGE_CODE,
-                    EXCHANGE_CODE, FIRST_ERROR_STATUS,
-                    EVENT_TYPE, GRPC_EXCHANGES, EXCHANGE_CODE,
-                    EXCHANGE_CODE, OK_STATUS_CODE,
-                    EVENT_TYPE, JDBC_STATEMENTS, SUCCESS_FLAG,
-                    SUCCESS_FLAG);
+                    EVENT_TYPE, HTTP_EXCHANGES, outcomeArm(SpanConventionKeys.SEMANTICS_HTTP_CODE, EXCHANGE_CODE),
+                    EVENT_TYPE, GRPC_EXCHANGES, outcomeArm(SpanConventionKeys.SEMANTICS_GRPC_CODE, EXCHANGE_CODE),
+                    EVENT_TYPE, JDBC_STATEMENTS, outcomeArm(SpanConventionKeys.SEMANTICS_BOOLEAN, SUCCESS_FLAG));
 
     private SpanConventions() {
     }
 
     /**
-     * The span name: the convention for its event type, else the name the event recorded for
-     * itself, and only then the event type — a last resort meaning "this carried trace ids and
-     * nothing that names it", not a name any operation should be listed under.
+     * The one spelling of what each outcome semantics means, shared between the built-in arms
+     * above and the conventions a recording declares for itself ({@link DeclaredSpanConventions}).
+     * The 400 threshold, the {@code OK} code and the {@code false} flag exist only here, so the
+     * two consumers cannot drift.
      * <p>
-     * The convention comes first because an endpoint has to be the same operation whichever version
-     * of the instrumentation recorded it. An event type with no convention — a hand-written span, a
-     * statement named after itself, anything instrumented outside Jeffrey — has only the field, and
-     * it is read unchanged.
+     * Every arm is guarded on the code being present — and, for the HTTP semantics, numeric — so a
+     * row without the field yields NULL and falls through to the recorded status rather than being
+     * judged on nothing. An unknown semantics yields NULL for the same reason: a reader must skip
+     * a declaration it does not understand, never fail on it.
      */
-    static String nameProjection() {
-        return "COALESCE(%s, %s, %s)".formatted(CONVENTIONAL_NAME, RECORDED_NAME, EVENT_TYPE);
+    static String outcomeArm(String semantics, String codeExpression) {
+        return switch (semantics) {
+            case SpanConventionKeys.SEMANTICS_HTTP_CODE -> """
+                    CASE WHEN TRY_CAST(%s AS BIGINT) IS NOT NULL
+                         THEN CASE WHEN TRY_CAST(%s AS BIGINT) >= %d THEN 'ERROR' ELSE 'UNSET' END END"""
+                    .formatted(codeExpression, codeExpression, FIRST_ERROR_STATUS);
+            case SpanConventionKeys.SEMANTICS_GRPC_CODE -> """
+                    CASE WHEN %s IS NOT NULL
+                         THEN CASE WHEN %s = '%s' THEN 'OK' ELSE 'ERROR' END END"""
+                    .formatted(codeExpression, codeExpression, OK_STATUS_CODE);
+            case SpanConventionKeys.SEMANTICS_BOOLEAN -> """
+                    CASE WHEN %s IS NOT NULL
+                         THEN CASE WHEN %s = 'false' THEN 'ERROR' ELSE 'UNSET' END END"""
+                    .formatted(codeExpression, codeExpression);
+            default -> null;
+        };
+    }
+
+    /**
+     * The span name: what the recording's own metadata declares for its event type
+     * ({@link DeclaredSpanConventions}), else the built-in convention, else the name the event
+     * recorded for itself, and only then the event type — a last resort meaning "this carried
+     * trace ids and nothing that names it", not a name any operation should be listed under.
+     * <p>
+     * Conventions come before the field because an endpoint has to be the same operation whichever
+     * version of the instrumentation recorded it. An event type with no convention anywhere — a
+     * hand-written span, a statement named after itself — has only the field, and it is read
+     * unchanged.
+     *
+     * @param declaredName the CASE over conventions declared in the recording, or {@code "NULL"}
+     */
+    static String nameProjection(String declaredName) {
+        return "COALESCE(%s, %s, %s, %s)".formatted(declaredName, CONVENTIONAL_NAME, RECORDED_NAME, EVENT_TYPE);
     }
 
     /** The span kind, defaulting to the neutral one for an event no convention places. */
@@ -185,16 +216,19 @@ final class SpanConventions {
 
     /**
      * The span status: an {@code ERROR} the instrumentation recorded, else what the operation's own
-     * outcome says, else the recorded status, else the neutral one.
+     * outcome says — declared in the recording first, built-in next — else the recorded status,
+     * else the neutral one.
      * <p>
-     * {@code ERROR} outranks the convention because it is the one outcome a response code cannot
+     * {@code ERROR} outranks every convention because it is the one outcome a response code cannot
      * carry: an exchange that threw and still answered 200 knows something its code does not.
+     *
+     * @param declaredStatus the CASE over outcomes declared in the recording, or {@code "NULL"}
      */
-    static String statusProjection() {
+    static String statusProjection(String declaredStatus) {
         return """
                 CASE WHEN %s = 'ERROR' THEN 'ERROR'
-                                 ELSE COALESCE(%s, %s, 'UNSET') END"""
-                .formatted(RECORDED_STATUS, CONVENTIONAL_STATUS, RECORDED_STATUS);
+                                 ELSE COALESCE(%s, %s, %s, 'UNSET') END"""
+                .formatted(RECORDED_STATUS, declaredStatus, CONVENTIONAL_STATUS, RECORDED_STATUS);
     }
 
     /**

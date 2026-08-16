@@ -227,13 +227,16 @@ public class JfrEventReader implements EventProcessor<Void> {
     public void onComplete() {
         for (jdk.jfr.EventType eventType : eventTypeMap.values()) {
             JsonNode columns = EventTypeUtils.toColumns(eventType);
+            // Extras carry what the event type declared about itself beyond its fields -- today the
+            // span conventions (@SpanName/@SpanOutcome), read from the recording's metadata.
             EventType newEventType = new EventType(
                     eventType.getName(),
                     eventType.getLabel(),
                     eventType.getId(),
                     eventType.getDescription(),
                     eventType.getCategoryNames(),
-                    columns);
+                    columns,
+                    EventTypeUtils.toExtras(eventType));
 
             this.writer.onEventType(newEventType);
         }

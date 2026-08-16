@@ -74,9 +74,19 @@ Not bugs — decisions with a stated trade-off.
   <br>The outcome is read as `COALESCE(statusCode, status)`, with `status` consulted only where it
   cannot be a span status, so no vintage test is needed to tell a response code from an outcome; a
   recorded `ERROR` outranks the code, since an exchange that threw and still answered 200 knows
-  something its code does not. This retracts the earlier claim that the class naming event types
-  "can never grow": it is the one place event types are named, and a newly instrumented type with a
-  convention of its own belongs in it.
+  something its code does not.
+- ~~Conventions enumerated Jeffrey's event types~~ — a type now declares its own convention *inside
+  the recording*: `@SpanName("{method} {uri}")` and `@SpanOutcome(from, semantics)` are JFR
+  `@MetadataDefinition` annotations, persisted into every recording's metadata, copied by the
+  parser into `event_types.extras`, and rendered by `DeclaredSpanConventions` into the same CASE
+  arms as the built-ins — discovered structurally, exactly the way `spanId` discovers a span. A
+  third-party event type Jeffrey has never seen is named and judged with zero changes to Jeffrey,
+  even when committed with plain `commit()`. Declared conventions outrank the built-ins, which
+  remain only for Jeffrey's own types on recordings that predate the annotations — a set that
+  genuinely cannot grow, restoring the earlier claim in its correct form. The semantics names and
+  extras keys are wire format: frozen, additive-only; an unknown semantics is skipped, never failed
+  on. Everything read from recording metadata is validated before it reaches SQL (`[A-Za-z0-9_]+`
+  fields, quoted literals).
 - ~~The trace detail recomputed its own header~~ — it reads the stored `traces` row, so a trace's
   duration is the same number in the list and in the detail.
 - ~~`has_platform_span` computed per query, two ways~~ — one stored column, one convention: a span

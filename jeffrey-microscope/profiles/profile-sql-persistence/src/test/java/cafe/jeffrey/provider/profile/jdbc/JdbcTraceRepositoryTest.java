@@ -23,8 +23,11 @@ import cafe.jeffrey.jfr.events.grpc.GrpcServerExchangeEvent;
 import cafe.jeffrey.jfr.events.http.HttpClientExchangeEvent;
 import cafe.jeffrey.jfr.events.http.HttpServerExchangeEvent;
 import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.SpanName;
+import cafe.jeffrey.jfr.events.trace.SpanOutcome;
 import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import cafe.jeffrey.shared.common.model.EventTypeName;
+import cafe.jeffrey.shared.common.model.SpanConventionKeys;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
@@ -750,6 +753,102 @@ class JdbcTraceRepositoryTest {
     }
 
     @Nested
+    @DisplayName("Conventions declared in the recording")
+    class DeclaredConventions {
+
+        private static final String PUBLISH_OPERATION = "PUBLISH orders";
+
+        private JdbcTraceRepository declared(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-declared-convention-events.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+            return repository;
+        }
+
+        private TraceSummaryRecord root(JdbcTraceRepository repository, long traceId) {
+            return repository.summaryOf(traceId).orElseThrow();
+        }
+
+        @Test
+        @DisplayName("a plain-commit third-party event is named and judged by what it declared")
+        void namesAndJudgesAPlainCommitEvent(DataSource dataSource) throws SQLException {
+            // The case nothing else can serve: describeSpan() never ran, so no name was recorded
+            // and the status is the field default. The template and outcome travelled in the
+            // recording's metadata, and Jeffrey has no code that knows com.acme.KafkaPublish.
+            TraceSummaryRecord failed = root(declared(dataSource), 701L);
+
+            assertEquals(PUBLISH_OPERATION, failed.rootName());
+            assertEquals(1, failed.errorCount(), "503 judged by the declared HTTP_CODE semantics");
+        }
+
+        @Test
+        @DisplayName("a passing code under the declared semantics is not a failure")
+        void aPassingCodeIsNotAFailure(DataSource dataSource) throws SQLException {
+            assertEquals(0, root(declared(dataSource), 702L).errorCount());
+        }
+
+        @Test
+        @DisplayName("the declared template outranks a stale recorded name")
+        void declaredTemplateOutranksARecordedName(DataSource dataSource) throws SQLException {
+            assertEquals("PUBLISH payments", root(declared(dataSource), 703L).rootName(),
+                    "the recorded name is one library version's answer; the declaration is the rule");
+        }
+
+        @Test
+        @DisplayName("a recorded error still outranks a passing declared outcome")
+        void recordedErrorOutranksTheDeclaredOutcome(DataSource dataSource) throws SQLException {
+            // The exchange threw and still delivered: the one outcome no code can carry.
+            assertEquals(1, root(declared(dataSource), 704L).errorCount());
+        }
+
+        @Test
+        @DisplayName("BOOLEAN semantics reads a success flag")
+        void booleanSemanticsReadsAFlag(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = declared(dataSource);
+
+            assertEquals(1, root(repository, 705L).errorCount(), "stored=false is a failed put");
+            assertEquals(0, root(repository, 706L).errorCount());
+            assertEquals("CACHE PUT sessions", root(repository, 705L).rootName());
+        }
+
+        @Test
+        @DisplayName("an unknown semantics is skipped, not failed on")
+        void unknownSemanticsIsSkipped(DataSource dataSource) throws SQLException {
+            // A recording annotated by a future library version: derive() must not throw, the
+            // template still names the event, and the outcome falls back to what was recorded.
+            TraceSummaryRecord future = root(declared(dataSource), 707L);
+
+            assertEquals("FUTURE entangle", future.rootName());
+            assertEquals(0, future.errorCount(), "judged only by its recorded UNSET status");
+        }
+
+        @Test
+        @DisplayName("the operations list carries the declared names, with no Jeffrey code involved")
+        void operationsAreListedUnderDeclaredNames(DataSource dataSource) throws SQLException {
+            Map<String, TraceOperationRecord> byName = declared(dataSource).operations(100).stream()
+                    .collect(Collectors.toMap(TraceOperationRecord::name, Function.identity()));
+
+            TraceOperationRecord publish = byName.get(PUBLISH_OPERATION);
+            assertNotNull(publish, "the zero-Jeffrey-changes proof: a foreign type, a real operation name");
+            assertEquals(3, publish.count());
+            assertEquals(2, publish.errorCount(), "the 503 and the recorded ERROR");
+            assertTrue(byName.keySet().stream().noneMatch(name -> name.startsWith("com.acme.")),
+                    "no declared type may fall back to its event type");
+        }
+
+        @Test
+        @DisplayName("a profile with no declarations derives exactly as before")
+        void noDeclarationsChangesNothing(DataSource dataSource) throws SQLException {
+            // The existing fixtures keep extras NULL, so this pins that the declared-conventions
+            // path renders to nothing rather than to broken SQL when a profile declares nothing.
+            JdbcTraceRepository repository = derived(dataSource);
+
+            assertEquals("POST /api/internal/profiles/{profileId}/flamegraph",
+                    repository.summaryOf(SLOW_TRACE).orElseThrow().rootName());
+        }
+    }
+
+    @Nested
     @DisplayName("Contract with the event API")
     class EventApiContract {
 
@@ -796,6 +895,57 @@ class JdbcTraceRepositoryTest {
             assertEquals(EventTypeName.HTTP_CLIENT_EXCHANGE, HttpClientExchangeEvent.NAME);
             assertEquals(EventTypeName.GRPC_SERVER_EXCHANGE, GrpcServerExchangeEvent.NAME);
             assertEquals(EventTypeName.GRPC_CLIENT_EXCHANGE, GrpcClientExchangeEvent.NAME);
+        }
+
+        @Test
+        @DisplayName("the keys a declared convention travels under match the annotations")
+        void conventionKeysMatchTheAnnotations() {
+            // The parser matches annotations by type name and the derivation reads extras by key;
+            // neither module compiles against jeffrey-events, so these strings are the whole
+            // contract. A rename on either side must fail here, not silently un-declare every
+            // convention in every new recording.
+            assertEquals(SpanConventionKeys.SPAN_NAME_ANNOTATION, SpanName.class.getName());
+            assertEquals(SpanConventionKeys.SPAN_OUTCOME_ANNOTATION, SpanOutcome.class.getName());
+            assertEquals(SpanConventionKeys.SEMANTICS_HTTP_CODE, SpanOutcome.HTTP_CODE);
+            assertEquals(SpanConventionKeys.SEMANTICS_GRPC_CODE, SpanOutcome.GRPC_CODE);
+            assertEquals(SpanConventionKeys.SEMANTICS_BOOLEAN, SpanOutcome.BOOLEAN);
+        }
+
+        @Test
+        @DisplayName("what the exchanges declare is what describeSpan computes")
+        void declarationsAgreeWithDescribeSpan() {
+            // The convention exists in two spellings on purpose -- the annotation for readers of
+            // the metadata, describeSpan() for readers of the raw events -- and this is what holds
+            // them together. @Inherited is also load-bearing here: the annotations live on the
+            // abstract bases and must be readable off the concrete classes.
+            SpanName httpName = HttpServerExchangeEvent.class.getAnnotation(SpanName.class);
+            SpanOutcome httpOutcome = HttpServerExchangeEvent.class.getAnnotation(SpanOutcome.class);
+            assertEquals("{method} {uri}", httpName.value());
+            assertEquals("statusCode", httpOutcome.from());
+            assertEquals(SpanOutcome.HTTP_CODE, httpOutcome.semantics());
+
+            HttpServerExchangeEvent http = new HttpServerExchangeEvent();
+            http.method = "GET";
+            http.uri = "/api/internal/health";
+            http.statusCode = 500;
+            http.commitSpan();
+            assertEquals("GET /api/internal/health", http.name,
+                    "describeSpan must produce what the template declares");
+            assertEquals(SpanStatus.ERROR.name(), http.status,
+                    "describeSpan must judge 500 the way HTTP_CODE declares");
+
+            SpanName grpcName = GrpcServerExchangeEvent.class.getAnnotation(SpanName.class);
+            SpanOutcome grpcOutcome = GrpcServerExchangeEvent.class.getAnnotation(SpanOutcome.class);
+            assertEquals("{service}/{method}", grpcName.value());
+            assertEquals(SpanOutcome.GRPC_CODE, grpcOutcome.semantics());
+
+            GrpcServerExchangeEvent grpc = new GrpcServerExchangeEvent();
+            grpc.service = "jeffrey.api.v1.ProjectService";
+            grpc.method = "List";
+            grpc.statusCode = "UNAVAILABLE";
+            grpc.commitSpan();
+            assertEquals("jeffrey.api.v1.ProjectService/List", grpc.name);
+            assertEquals(SpanStatus.ERROR.name(), grpc.status);
         }
 
         @Test

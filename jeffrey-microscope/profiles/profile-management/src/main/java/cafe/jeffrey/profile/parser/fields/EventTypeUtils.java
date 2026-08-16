@@ -22,10 +22,13 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 import jdk.jfr.*;
 import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.shared.common.model.SpanConventionKeys;
 import cafe.jeffrey.shared.common.model.Type;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public abstract class EventTypeUtils {
 
@@ -60,6 +63,38 @@ public abstract class EventTypeUtils {
         }
 
         return Json.mapper().valueToTree(columns);
+    }
+
+    /**
+     * The span conventions the event type declared for itself — a {@code @SpanName} template and a
+     * {@code @SpanOutcome} field-and-semantics pair — read out of the recording's own metadata and
+     * carried as extras, where the trace derivation discovers them the same way span discovery
+     * finds a {@code spanId} column.
+     * <p>
+     * Matched by annotation type name rather than by class: the annotations live in
+     * {@code jeffrey-events}, which this module deliberately does not compile against — the
+     * convention crosses between the two as recording metadata, never as a shared type. The values
+     * are read defensively because they come from an arbitrary recording; anything that is not the
+     * expected {@code String} is left out, and the derivation treats an absent key as "declared
+     * nothing".
+     */
+    public static Map<String, String> toExtras(EventType eventType) {
+        Map<String, String> extras = new LinkedHashMap<>();
+        for (AnnotationElement annotation : eventType.getAnnotationElements()) {
+            if (SpanConventionKeys.SPAN_NAME_ANNOTATION.equals(annotation.getTypeName())) {
+                putIfString(extras, SpanConventionKeys.EXTRAS_SPAN_NAME, annotation.getValue("value"));
+            } else if (SpanConventionKeys.SPAN_OUTCOME_ANNOTATION.equals(annotation.getTypeName())) {
+                putIfString(extras, SpanConventionKeys.EXTRAS_OUTCOME_FROM, annotation.getValue("from"));
+                putIfString(extras, SpanConventionKeys.EXTRAS_OUTCOME_SEMANTICS, annotation.getValue("semantics"));
+            }
+        }
+        return extras;
+    }
+
+    private static void putIfString(Map<String, String> extras, String key, Object value) {
+        if (value instanceof String s) {
+            extras.put(key, s);
+        }
     }
 
     public static String getContentType(ValueDescriptor desc) {

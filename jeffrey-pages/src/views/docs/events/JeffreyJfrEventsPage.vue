@@ -104,6 +104,8 @@ onMounted(() => {
 
         <p>Jeffrey recognises a span by that shape rather than by a list of event types: any event declaring a <code>spanId</code> field takes part in traces, including instrumentation written outside Jeffrey.</p>
 
+        <p>An event type can also declare its <em>conventions</em> the same way — inside the recording. <code>@SpanName("{method} {uri}")</code> on the event class states the naming template, and <code>@SpanOutcome(from = "statusCode", semantics = SpanOutcome.HTTP_CODE)</code> states which field carries the operation's outcome and how to judge it (<code>HTTP_CODE</code>: 400 and up fails; <code>GRPC_CODE</code>: anything but <code>OK</code> fails; <code>BOOLEAN</code>: <code>false</code> fails). Both are JFR metadata annotations, so they are persisted into every recording the event is written to, and any reader — Jeffrey's derivation included — can name and judge the span without knowing the event type, even when it was committed with plain <code>commit()</code> and never described itself. The semantics names are wire format: frozen once recordings carry them, extended only by addition.</p>
+
         <DocsCallout type="warning">
           <strong>Tracing requires Java 25.</strong> The <code>Tracer</code> API is built on <code>ScopedValue</code> (JEP&nbsp;506) and <code>jdk.jfr.Contextual</code>, both finalized in Java&nbsp;25. The event definitions themselves remain usable on older releases from an earlier version of the library.
         </DocsCallout>

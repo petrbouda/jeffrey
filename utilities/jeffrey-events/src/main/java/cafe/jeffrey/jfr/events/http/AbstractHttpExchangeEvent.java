@@ -20,6 +20,8 @@ package cafe.jeffrey.jfr.events.http;
 
 import cafe.jeffrey.jfr.events.trace.AbstractTracedEvent;
 import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.SpanName;
+import cafe.jeffrey.jfr.events.trace.SpanOutcome;
 import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import jdk.jfr.*;
 
@@ -27,9 +29,17 @@ import jdk.jfr.*;
  * The half of an HTTP exchange that is the same on both sides of the wire, and the span shape both
  * derive the same way: named by the method and the matched URI template, failed from the response
  * status.
+ * <p>
+ * The convention is declared twice on purpose, and {@code SpanMetadataRoundTripTest} plus Jeffrey's
+ * {@code EventApiContract} keep the two in agreement: {@link #describeSpan()} applies it at commit
+ * so the recording reads correctly in {@code jfr print} and JMC, while {@link SpanName} and
+ * {@link SpanOutcome} carry it in the recording's metadata for any reader — Jeffrey included — to
+ * apply itself, even to an event committed without {@code commitSpan()}.
  */
 @Category({"Application", "HTTP"})
 @StackTrace(false)
+@SpanName("{method} {uri}")
+@SpanOutcome(from = "statusCode", semantics = SpanOutcome.HTTP_CODE)
 public abstract class AbstractHttpExchangeEvent extends AbstractTracedEvent {
 
     /**

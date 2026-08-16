@@ -201,10 +201,12 @@ if (event.isEnabled()) {
 
       <p>Each event type answers for its own span shape once, in its own class: an HTTP exchange names itself by method and matched URI template and fails from 400 upwards, a gRPC call names itself by service and method and fails on anything but <code>OK</code>, a statement takes its label and fails on what it threw.</p>
 
-      <p>Jeffrey applies the same conventions again when it derives the trace, rather than reading the recorded name back. They are the naming rules OpenTelemetry states for the same operations, and applying them at the point the operation is assembled is what makes one endpoint one operation: a recorded name is only ever this rule evaluated by whichever version of the library produced the recording, so an endpoint that only some recordings carry the answer for would be split across two rows of Trace Operations. An event type Jeffrey has no convention for keeps whatever name it recorded for itself.</p>
+      <p>Jeffrey applies the same conventions again when it derives the trace, rather than reading the recorded name back. They are the naming rules OpenTelemetry states for the same operations, and applying them at the point the operation is assembled is what makes one endpoint one operation: a recorded name is only ever this rule evaluated by whichever version of the library produced the recording, so an endpoint that only some recordings carry the answer for would be split across two rows of Trace Operations.</p>
+
+      <p>Where the conventions come from is layered: what the recording itself declares per event type — the <code>@SpanName</code> template and <code>@SpanOutcome</code> rule carried in its metadata — comes first, then the built-in conventions for Jeffrey's own types on recordings that predate those annotations, then the name and status the event recorded for itself, and only then the event type as a last resort. An event type that declares nothing anywhere keeps whatever it recorded.</p>
 
       <DocsCallout type="tip">
-        Discovery names no event type at all. Jeffrey treats an event as a span when the recording's own metadata says it declares a <code>spanId</code> field, so instrumentation written outside Jeffrey takes part in traces with no change to Jeffrey — extend <code>AbstractTracedEvent</code> and stamp. Naming is the one place event types are named, and only for the types Jeffrey ships.
+        Discovery names no event type at all. Jeffrey treats an event as a span when the recording's own metadata says it declares a <code>spanId</code> field, so instrumentation written outside Jeffrey takes part in traces with no change to Jeffrey — extend <code>AbstractTracedEvent</code> and stamp. Naming works the same way: annotate the class with <code>@SpanName</code>/<code>@SpanOutcome</code> and the convention travels inside every recording, applied by Jeffrey without knowing the type.
       </DocsCallout>
 
       <DocsCallout type="tip">
