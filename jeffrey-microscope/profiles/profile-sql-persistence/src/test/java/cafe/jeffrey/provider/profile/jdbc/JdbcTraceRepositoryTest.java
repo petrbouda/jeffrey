@@ -855,19 +855,30 @@ class JdbcTraceRepositoryTest {
         @Test
         @DisplayName("the SQL names an exchange the way the event names itself")
         void conventionsAgreeWithTheInstrumentation() {
-            // The derivation applies the conventions and the event applies them again at commit, so
-            // a recording can be read either way. Nothing but this holds the two spellings together:
-            // `commitSpan()` runs describeSpan() and then commits into no recording, which makes
-            // this a pure assertion about the fields the instrumentation would have written.
+            // One naming rule, three readers held together here: the built-in template (for
+            // recordings that predate @SpanName), the annotation (carried in every new recording),
+            // and describeSpan() (what commitSpan() writes into the raw event). @Inherited is
+            // load-bearing for the annotation reads: the declarations live on the abstract bases
+            // and must be readable off the concrete classes. The status assertions are about
+            // describeSpan alone -- a verdict is only ever recorded, which is why commitSpan() is
+            // the required path for failure detection.
+            assertEquals(SpanNameTemplates.BUILT_IN.get(HttpServerExchangeEvent.NAME),
+                    HttpServerExchangeEvent.class.getAnnotation(SpanName.class).value(),
+                    "the built-in template IS the annotation's rule, one rule across vintages");
+            assertEquals(SpanNameTemplates.BUILT_IN.get(GrpcServerExchangeEvent.NAME),
+                    GrpcServerExchangeEvent.class.getAnnotation(SpanName.class).value());
+
             HttpServerExchangeEvent http = new HttpServerExchangeEvent();
             http.method = "GET";
             http.uri = "/api/internal/health";
             http.statusCode = 500;
             http.commitSpan();
 
-            assertEquals("GET /api/internal/health", http.name);
+            assertEquals("GET /api/internal/health", http.name,
+                    "describeSpan must produce what the template declares");
             assertEquals(SpanKind.SERVER.name(), http.kind);
-            assertEquals(SpanStatus.ERROR.name(), http.status);
+            assertEquals(SpanStatus.ERROR.name(), http.status,
+                    "describeSpan records the verdict; nothing else does");
 
             GrpcServerExchangeEvent grpc = new GrpcServerExchangeEvent();
             grpc.service = "jeffrey.api.v1.ProjectService";
@@ -908,40 +919,6 @@ class JdbcTraceRepositoryTest {
             // @SpanName means "no convention exists", never "the rule lives elsewhere".
             assertEquals("{name}", JdbcQueryEvent.class.getAnnotation(SpanName.class).value());
             assertEquals("{name}", TraceSpanEvent.class.getAnnotation(SpanName.class).value());
-        }
-
-        @Test
-        @DisplayName("what the exchanges declare is what describeSpan computes")
-        void declarationsAgreeWithDescribeSpan() {
-            // The naming convention exists in two spellings on purpose -- the annotation for
-            // readers of the metadata, describeSpan() for readers of the raw events -- and this is
-            // what holds them together. @Inherited is also load-bearing here: the annotations live
-            // on the abstract bases and must be readable off the concrete classes. The status
-            // assertions are about describeSpan alone: a verdict is only ever recorded, which is
-            // why commitSpan() is the required path for failure detection.
-            SpanName httpName = HttpServerExchangeEvent.class.getAnnotation(SpanName.class);
-            assertEquals("{method} {uri}", httpName.value());
-
-            HttpServerExchangeEvent http = new HttpServerExchangeEvent();
-            http.method = "GET";
-            http.uri = "/api/internal/health";
-            http.statusCode = 500;
-            http.commitSpan();
-            assertEquals("GET /api/internal/health", http.name,
-                    "describeSpan must produce what the template declares");
-            assertEquals(SpanStatus.ERROR.name(), http.status,
-                    "describeSpan records the verdict; nothing else does");
-
-            SpanName grpcName = GrpcServerExchangeEvent.class.getAnnotation(SpanName.class);
-            assertEquals("{service}/{method}", grpcName.value());
-
-            GrpcServerExchangeEvent grpc = new GrpcServerExchangeEvent();
-            grpc.service = "jeffrey.api.v1.ProjectService";
-            grpc.method = "List";
-            grpc.statusCode = "UNAVAILABLE";
-            grpc.commitSpan();
-            assertEquals("jeffrey.api.v1.ProjectService/List", grpc.name);
-            assertEquals(SpanStatus.ERROR.name(), grpc.status);
         }
 
         @Test

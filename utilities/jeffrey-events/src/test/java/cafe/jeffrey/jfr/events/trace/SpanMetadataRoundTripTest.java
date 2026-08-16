@@ -23,16 +23,11 @@ import cafe.jeffrey.jfr.events.jdbc.statement.JdbcQueryEvent;
 import jdk.jfr.AnnotationElement;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
-import jdk.jfr.Recording;
 import jdk.jfr.consumer.RecordedEvent;
-import jdk.jfr.consumer.RecordingFile;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -76,7 +71,7 @@ class SpanMetadataRoundTripTest {
     @Test
     @DisplayName("a third-party event's declared template survives the recording round trip")
     void thirdPartyDeclarationsRoundTrip() throws IOException {
-        RecordedEvent event = record(ThirdPartyEvent.NAME, () -> {
+        RecordedEvent event = JfrRecordings.single(ThirdPartyEvent.NAME, () -> {
             ThirdPartyEvent third = new ThirdPartyEvent();
             third.topic = "orders";
             third.deliveryCode = 503;
@@ -91,7 +86,7 @@ class SpanMetadataRoundTripTest {
     void inheritedDeclarationsRoundTrip() throws IOException {
         // @Inherited is load-bearing: the template lives on AbstractHttpExchangeEvent, and the
         // recording's metadata describes jeffrey.HttpServerExchange.
-        RecordedEvent event = record(HttpServerExchangeEvent.NAME, () -> {
+        RecordedEvent event = JfrRecordings.single(HttpServerExchangeEvent.NAME, () -> {
             HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
             exchange.method = "GET";
             exchange.uri = "/api/internal/health";
@@ -107,13 +102,13 @@ class SpanMetadataRoundTripTest {
     void selfNamingTypesDeclareTheIdentityTemplate() throws IOException {
         // The invariant: every span type this library ships carries its @SpanName. A statement's
         // template is the identity -- it names itself, at construction.
-        RecordedEvent statement = record("jeffrey.JdbcQuery", () -> {
+        RecordedEvent statement = JfrRecordings.single("jeffrey.JdbcQuery", () -> {
             JdbcQueryEvent query = new JdbcQueryEvent("listSpans", "PROFILE_EVENTS");
             query.commitSpan();
         });
         assertEquals("{name}", annotationValue(statement, SPAN_NAME_TYPE, "value"));
 
-        RecordedEvent span = record(TraceSpanEvent.NAME, () -> {
+        RecordedEvent span = JfrRecordings.single(TraceSpanEvent.NAME, () -> {
             Tracer.run("hand.written", () -> {
             });
         });
@@ -123,7 +118,7 @@ class SpanMetadataRoundTripTest {
     @Test
     @DisplayName("a scope event declares no convention and no spanId, so it can never be a span")
     void scopeEventCarriesNoConventions() throws IOException {
-        RecordedEvent event = record(TraceScopeEvent.NAME, () -> {
+        RecordedEvent event = JfrRecordings.single(TraceScopeEvent.NAME, () -> {
             TraceScopeEvent scope = new TraceScopeEvent();
             scope.traceId = 1;
             scope.scopedSpanId = 2;
@@ -150,23 +145,4 @@ class SpanMetadataRoundTripTest {
                 .findFirst();
     }
 
-    /** Records {@code body} into a real recording and returns the single event of {@code eventType}. */
-    private static RecordedEvent record(String eventType, Runnable body) throws IOException {
-        Path dump = Files.createTempFile("span-metadata-test", ".jfr");
-        try (Recording recording = new Recording()) {
-            recording.enable(eventType).withoutThreshold();
-            recording.start();
-            body.run();
-            recording.stop();
-            recording.dump(dump);
-
-            List<RecordedEvent> events = RecordingFile.readAllEvents(dump).stream()
-                    .filter(event -> event.getEventType().getName().equals(eventType))
-                    .toList();
-            assertEquals(1, events.size(), "exactly the one committed event");
-            return events.getFirst();
-        } finally {
-            Files.deleteIfExists(dump);
-        }
-    }
 }

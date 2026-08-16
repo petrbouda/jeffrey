@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
+import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.shared.common.model.SpanConventionKeys;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
@@ -25,23 +26,30 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * The naming conventions a recording declares for itself — {@code @SpanName} templates, carried in
- * the recording's metadata and stored by the parser in {@code event_types.extras} — rendered into
- * the same CASE-arm SQL shape as the built-ins in {@link SpanConventions}.
+ * How a span is named: one template per event type, in {@code @SpanName}'s syntax, rendered into
+ * one SQL CASE expression. The template is the only naming concept — the built-ins for Jeffrey's
+ * own exchange types are the same strings their annotations declare (pinned by
+ * {@code JdbcTraceRepositoryTest.EventApiContract}), kept here for recordings made before the
+ * annotation existed; what a recording declares for itself, carried in its metadata and stored by
+ * the parser in {@code event_types.extras}, overlays them per event type and wins.
  * <p>
  * This is what makes naming generic: an event type Jeffrey has never seen annotates itself, and
  * the derivation names it with no change here — the same way span discovery finds it structurally
- * by its {@code spanId} field. The built-ins remain only for Jeffrey's own types on recordings
- * that predate the annotation, and a declared template outranks them.
+ * by its {@code spanId} field. Deriving the name from the event's own fields, rather than reading
+ * back what one library version recorded, is what makes two recordings of the same endpoint one
+ * operation.
  * <p>
  * Only the name is declarable. A span's verdict is the writer's statement — recorded through
  * {@code commitSpan()}/{@code failed()} — so there is deliberately nothing here that judges an
- * outcome; an event type outside the built-ins is judged solely by the status it recorded.
+ * outcome; the built-in status rules for Jeffrey's own types live in {@link SpanConventions}.
  *
  * <h2>Trust boundary</h2>
  * Everything read here comes out of an arbitrary recording and ends up inside a SQL statement, so
@@ -50,12 +58,29 @@ import java.util.regex.Pattern;
  * and dropped — the event type falls back to what it recorded — and {@code derive()} never fails
  * on it.
  */
-final class DeclaredSpanConventions {
+final class SpanNameTemplates {
 
-    private static final Logger LOG = LoggerFactory.getLogger(DeclaredSpanConventions.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SpanNameTemplates.class);
 
-    /** The SQL rendered when nothing is declared, so the projections need no special case. */
-    static final String NONE = "NULL";
+    /**
+     * The naming conventions for Jeffrey's own exchange types, as templates — the same strings the
+     * {@code @SpanName} annotations on the event classes declare. New recordings carry these
+     * declarations themselves; the map is what names the same events on recordings that predate
+     * the annotation, and it is why that backward-compat set genuinely cannot grow.
+     */
+    static final Map<String, String> BUILT_IN = Map.of(
+            EventTypeName.HTTP_SERVER_EXCHANGE, "{method} {uri}",
+            EventTypeName.HTTP_CLIENT_EXCHANGE, "{method} {uri}",
+            EventTypeName.GRPC_SERVER_EXCHANGE, "{service}/{method}",
+            EventTypeName.GRPC_CLIENT_EXCHANGE, "{service}/{method}");
+
+    /**
+     * The template of a self-naming type: its name is the recorded {@code name} field, which is
+     * exactly the fallback the name projection reads anyway. Declaring it keeps the invariant that
+     * every shipped span type carries its convention; rendering it would generate CASE arms that
+     * cannot change an answer, so it is skipped.
+     */
+    private static final String IDENTITY_TEMPLATE = "{name}";
 
     /** A template names fields as {@code {token}}; anything between tokens is literal text. */
     private static final Pattern TEMPLATE_TOKEN = Pattern.compile("\\{([A-Za-z0-9_]+)}");
@@ -73,31 +98,32 @@ final class DeclaredSpanConventions {
     private record Declaration(String eventType, String nameTemplate) {
     }
 
-    private DeclaredSpanConventions() {
+    private SpanNameTemplates() {
     }
 
     /**
-     * Reads every declared template in the profile and renders the CASE expression the name
-     * projection folds in ahead of the built-in conventions — {@link #NONE} when the profile
-     * declares nothing usable.
+     * The CASE expression naming every event type that has a template — built-in or declared in
+     * the recording, declared winning per type. Rendered in event-type order so the derivation SQL
+     * is deterministic. Never empty: the built-ins are always present.
      */
     static String nameCase(DatabaseClient databaseClient) {
         List<Declaration> declarations = databaseClient.query(
-                StatementLabel.DERIVE_TRACE_SPANS,
+                StatementLabel.LOAD_SPAN_NAME_TEMPLATES,
                 DECLARED_TEMPLATES,
                 new MapSqlParameterSource(),
                 (rs, _) -> new Declaration(rs.getString("event_type"), rs.getString("name_template")));
 
-        StringBuilder arms = new StringBuilder();
+        Map<String, String> templates = new LinkedHashMap<>(BUILT_IN);
         for (Declaration declaration : declarations) {
-            String concatenation = renderTemplate(declaration);
-            if (concatenation != null) {
-                arms.append("WHEN event_type = '%s' THEN %s\n"
-                        .formatted(quoted(declaration.eventType()), concatenation));
-            }
+            templates.put(declaration.eventType(), declaration.nameTemplate());
         }
-        if (arms.isEmpty()) {
-            return NONE;
+
+        StringBuilder arms = new StringBuilder();
+        for (Map.Entry<String, String> template : new TreeMap<>(templates).entrySet()) {
+            String concatenation = renderTemplate(template.getKey(), template.getValue());
+            if (concatenation != null) {
+                arms.append("WHEN event_type = '%s' THEN %s\n".formatted(quoted(template.getKey()), concatenation));
+            }
         }
         return "CASE %s END".formatted(arms);
     }
@@ -105,11 +131,13 @@ final class DeclaredSpanConventions {
     /**
      * The template as a SQL concatenation: tokens become JSON reads of the event's own fields,
      * literal runs become quoted literals. {@code ||} propagates NULL, so an event missing a
-     * templated field derives a NULL name and falls through — the same behaviour the built-in
-     * conventions have for an exchange without a URI.
+     * templated field derives a NULL name and falls through — the same behaviour an exchange
+     * without a URI always had.
      */
-    private static String renderTemplate(Declaration declaration) {
-        String template = declaration.nameTemplate();
+    private static String renderTemplate(String eventType, String template) {
+        if (IDENTITY_TEMPLATE.equals(template)) {
+            return null;
+        }
 
         StringBuilder parts = new StringBuilder();
         Matcher tokens = TEMPLATE_TOKEN.matcher(template);
@@ -126,8 +154,7 @@ final class DeclaredSpanConventions {
         // A template with no token names nothing of the event's — including one whose braces held
         // characters the token pattern refuses, which must not be quietly read as literal text.
         if (tokenCount == 0 || template.chars().filter(c -> c == '{').count() != tokenCount) {
-            LOG.warn("Ignoring an invalid span name template: event_type={} template={}",
-                    declaration.eventType(), template);
+            LOG.warn("Ignoring an invalid span name template: event_type={} template={}", eventType, template);
             return null;
         }
         return parts.toString();

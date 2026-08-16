@@ -78,13 +78,15 @@ Not bugs — decisions with a stated trade-off.
 - ~~Naming conventions enumerated Jeffrey's event types~~ — a type now declares its naming
   convention *inside the recording*: `@SpanName("{method} {uri}")` is a JFR `@MetadataDefinition`
   annotation, persisted into every recording's metadata, copied by the parser into
-  `event_types.extras`, and rendered by `DeclaredSpanConventions` into the same CASE arms as the
-  built-ins — discovered structurally, exactly the way `spanId` discovers a span. A third-party
-  event type Jeffrey has never seen is named with zero changes to Jeffrey, even when committed with
-  plain `commit()`; self-naming types (statements, hand-written spans) declare the identity
-  template `{name}`, so every shipped span type carries its convention. Declared templates outrank
-  the built-ins, which remain only for Jeffrey's own types on recordings that predate the
-  annotation — a set that genuinely cannot grow, restoring the earlier claim in its correct form.
+  `event_types.extras`, and rendered by `SpanNameTemplates` into one CASE expression — discovered
+  structurally, exactly the way `spanId` discovers a span. A third-party event type Jeffrey has
+  never seen is named with zero changes to Jeffrey, even when committed with plain `commit()`;
+  self-naming types (statements, hand-written spans) declare the identity template `{name}`, so
+  every shipped span type carries its convention (rendered as no arm — it is the recorded-name
+  fallback). The template is the *only* naming concept: the built-ins are the same template
+  strings the annotations declare (pinned by test), kept as a map for recordings that predate the
+  annotation — a set that genuinely cannot grow, restoring the earlier claim in its correct form;
+  a declared template overlays the built-in per event type and wins.
   The template syntax and extras key are wire format: frozen, additive-only. Everything read from
   recording metadata is validated before it reaches SQL (`[A-Za-z0-9_]+` tokens, quoted literals).
   <br>The *verdict* is deliberately not declarable — a `@SpanOutcome` annotation was built and then

@@ -21,7 +21,9 @@ package cafe.jeffrey.provider.profile.jdbc;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 
 /**
- * How a span is named, directed and judged, expressed as SQL over the event that recorded it.
+ * How a span is directed and judged, and how the three span-shape projections compose, expressed
+ * as SQL over the event that recorded it. Naming lives in {@link SpanNameTemplates} — one template
+ * per event type, built-in or declared in the recording — and feeds {@link #nameProjection}.
  * <p>
  * An operation is what a trace <em>is</em> — {@code GET /api/internal/profiles/{profileId}}, not
  * {@code jeffrey.HttpServerExchange} — and that mapping is a convention rather than a datum. It is
@@ -31,24 +33,18 @@ import cafe.jeffrey.shared.common.model.EventTypeName;
  * and is always a call out to something else.
  * <p>
  * Applying the convention here, rather than reading back a field, is what makes two recordings of
- * the same endpoint one operation. The recorded {@code name} is this same rule evaluated earlier,
- * by whichever version of the instrumentation produced the recording — and a rule that only some
- * recordings carry the answer to is a rule that splits one endpoint across two rows of Trace
- * Operations. Deriving it means a recording made by an older library, by a newer one, or by
+ * the same endpoint one operation: a recording made by an older library, by a newer one, or by
  * third-party instrumentation that stamps the trace ids and its own fields all land under the same
  * operation.
  * <p>
- * For <em>naming</em>, these built-in arms are not the only conventions, and a new event type
- * should not be added here: a type declares its template in the recording via {@code @SpanName},
- * which {@link DeclaredSpanConventions} discovers and which outranks the built-ins. What remains
- * here are the conventions for Jeffrey's own types on recordings made before the annotation
- * existed — a set that genuinely cannot grow. The <em>verdict</em> is different and is never
- * declared: it is the writer's statement, recorded through {@code commitSpan()}/{@code failed()};
- * the status arms below exist only because Jeffrey's own exchange types are known here, so their
- * codes can be judged on recordings of any vintage. Span <em>discovery</em> stays structural — see
- * {@code JdbcTraceRepository.SPAN_EVENT_TYPES}, which finds a span by its declared {@code spanId}
- * field — so an event type no convention covers is still a span in every trace; it simply carries
- * the name, kind and status it recorded for itself, and its event type as a last resort.
+ * The kind and status arms below are keyed to Jeffrey's own event types, and that is not a gap to
+ * close: a <em>verdict</em> is never declared — it is the writer's statement, recorded through
+ * {@code commitSpan()}/{@code failed()} — and these arms exist only because Jeffrey's own exchange
+ * types are known here, so their codes can be judged on recordings of any vintage. Span
+ * <em>discovery</em> stays structural — see {@code JdbcTraceRepository.SPAN_EVENT_TYPES}, which
+ * finds a span by its declared {@code spanId} field — so an event type nothing here covers is
+ * still a span in every trace; it simply carries the name, kind and status it recorded for
+ * itself, and its event type as a last resort.
  *
  * <h2>Reading an outcome without guessing which one it is</h2>
  * {@code statusCode} is the key that unambiguously holds an exchange's own outcome: an HTTP
@@ -91,9 +87,6 @@ final class SpanConventions {
     private static final String RECORDED_KIND = "json_extract_string(fields, '$.kind')";
     private static final String RECORDED_STATUS = "json_extract_string(fields, '$.status')";
     private static final String RECORDED_STATUS_CODE = "json_extract_string(fields, '$.statusCode')";
-    private static final String METHOD = "json_extract_string(fields, '$.method')";
-    private static final String URI = "json_extract_string(fields, '$.uri')";
-    private static final String SERVICE = "json_extract_string(fields, '$.service')";
 
     /** The flag a statement recorded before it had a status of its own. */
     private static final String SUCCESS_FLAG = "json_extract_string(fields, '$.isSuccess')";
@@ -119,26 +112,6 @@ final class SpanConventions {
     private static final String JDBC_STATEMENTS = "'%s', '%s', '%s', '%s', '%s', '%s'".formatted(
             EventTypeName.JDBC_INSERT, EventTypeName.JDBC_UPDATE, EventTypeName.JDBC_DELETE,
             EventTypeName.JDBC_QUERY, EventTypeName.JDBC_EXECUTE, EventTypeName.JDBC_STREAM);
-
-    /**
-     * The span name of each exchange. Concatenation yields NULL if either half is missing, so an
-     * exchange that recorded no URI falls through to whatever it did record rather than to
-     * {@code "GET "}.
-     */
-    //language=SQL
-    private static final String CONVENTIONAL_NAME = """
-            CASE %s
-                     WHEN '%s' THEN %s || ' ' || %s
-                     WHEN '%s' THEN %s || ' ' || %s
-                     WHEN '%s' THEN %s || '/' || %s
-                     WHEN '%s' THEN %s || '/' || %s
-                 END"""
-            .formatted(
-                    EVENT_TYPE,
-                    EventTypeName.HTTP_SERVER_EXCHANGE, METHOD, URI,
-                    EventTypeName.HTTP_CLIENT_EXCHANGE, METHOD, URI,
-                    EventTypeName.GRPC_SERVER_EXCHANGE, SERVICE, METHOD,
-                    EventTypeName.GRPC_CLIENT_EXCHANGE, SERVICE, METHOD);
 
     /**
      * An exchange's direction and a statement's are properties of the event type rather than of the
@@ -199,20 +172,19 @@ final class SpanConventions {
     }
 
     /**
-     * The span name: what the recording's own metadata declares for its event type
-     * ({@link DeclaredSpanConventions}), else the built-in convention, else the name the event
-     * recorded for itself, and only then the event type — a last resort meaning "this carried
-     * trace ids and nothing that names it", not a name any operation should be listed under.
+     * The span name: the template for the event type ({@link SpanNameTemplates} — built-in or
+     * declared in the recording), else the name the event recorded for itself, and only then the
+     * event type — a last resort meaning "this carried trace ids and nothing that names it", not
+     * a name any operation should be listed under.
      * <p>
-     * Conventions come before the field because an endpoint has to be the same operation whichever
-     * version of the instrumentation recorded it. An event type with no convention anywhere — a
-     * hand-written span, a statement named after itself — has only the field, and it is read
-     * unchanged.
+     * The template comes before the field because an endpoint has to be the same operation
+     * whichever version of the instrumentation recorded it. A self-naming type — a hand-written
+     * span, a statement named after itself — has only the field, and it is read unchanged.
      *
-     * @param declaredName the CASE over conventions declared in the recording, or {@code "NULL"}
+     * @param templateCase the CASE over per-event-type templates, from {@link SpanNameTemplates}
      */
-    static String nameProjection(String declaredName) {
-        return "COALESCE(%s, %s, %s, %s)".formatted(declaredName, CONVENTIONAL_NAME, RECORDED_NAME, EVENT_TYPE);
+    static String nameProjection(String templateCase) {
+        return "COALESCE(%s, %s, %s)".formatted(templateCase, RECORDED_NAME, EVENT_TYPE);
     }
 
     /** The span kind, defaulting to the neutral one for an event no convention places. */
