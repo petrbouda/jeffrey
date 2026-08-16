@@ -685,7 +685,7 @@
         <div
           v-if="shouldShowChunkSizeWarning"
           class="warning-panel clickable-warning"
-          @click="enableChunkSizeConfiguration"
+          @click="enableChunkSizeConfiguration()"
         >
           <div class="step-header-status header-warning">
             <div class="step-type-info">
@@ -711,7 +711,7 @@
         <div
           v-if="shouldShowJfrSyncWarning"
           class="warning-panel clickable-warning"
-          @click="enableJfrSyncConfiguration"
+          @click="enableJfrSyncConfiguration()"
         >
           <div class="step-header-status header-warning">
             <div class="step-type-info">

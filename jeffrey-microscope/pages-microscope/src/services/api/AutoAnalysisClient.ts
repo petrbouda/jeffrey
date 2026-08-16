@@ -29,6 +29,6 @@ export default class AutoAnalysisClient extends BaseProfileClient {
   }
 
   generate(): Promise<AnalysisResult[]> {
-    return super.post<AnalysisResult[]>('');
+    return super.post<AnalysisResult[]>('', {});
   }
 }

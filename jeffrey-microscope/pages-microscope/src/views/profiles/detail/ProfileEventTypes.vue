@@ -237,6 +237,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import type { PropType } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import EventViewerClient from '@/services/api/EventViewerClient';
@@ -516,10 +517,11 @@ const filterEvents = () => {
     const currentPath = [...path, node.data.name];
 
     // Only match leaf nodes by name and code
-    const nodeMatches =
+    const nodeMatches = Boolean(
       node.leaf &&
-      (node.data.name.toLowerCase().includes(search) ||
-        (node.data.code && node.data.code.toLowerCase().includes(search)));
+        (node.data.name.toLowerCase().includes(search) ||
+          (node.data.code && node.data.code.toLowerCase().includes(search)))
+    );
 
     // No additional filtering applied
     const matchesFilter = true;

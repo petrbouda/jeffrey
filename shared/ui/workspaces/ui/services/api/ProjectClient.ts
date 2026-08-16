@@ -24,7 +24,7 @@ export default class ProjectClient extends BasePlatformClient {
     super(`/hubs/${hubId}/workspaces/${workspaceId}/projects/${projectId}`);
   }
 
-  async get(): Promise<Project> {
+  async fetch(): Promise<Project> {
     return super.get<Project>();
   }
 

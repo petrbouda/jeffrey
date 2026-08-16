@@ -87,12 +87,30 @@ class TraceManagerImplTest {
         return microSpan(TRACE, spanId, parentSpanId, name, startMicros, durationMicros * US, THREAD);
     }
 
+    /**
+     * Self time defaults to the whole duration, which is what the derivation stores for a childless
+     * span. The manager only passes it through, so the tree tests do not care what it holds; the one
+     * test that does supplies it through {@link #spanWithSelf}.
+     */
     private static TraceSpanRecord microSpan(long traceId, long spanId, Long parentSpanId, String name,
             long startMicros, long durationNanos, long threadHash) {
+        return microSpan(traceId, spanId, parentSpanId, name, startMicros, durationNanos, threadHash,
+                durationNanos);
+    }
+
+    private static TraceSpanRecord microSpan(long traceId, long spanId, Long parentSpanId, String name,
+            long startMicros, long durationNanos, long threadHash, long selfDurationNanos) {
         return new TraceSpanRecord(
                 traceId, spanId, parentSpanId, name, "INTERNAL", "UNSET", null,
-                startMicros / MICROS_PER_MILLI, startMicros, durationNanos, threadHash, "worker",
-                false, "jeffrey.TraceSpan", null, null);
+                startMicros / MICROS_PER_MILLI, startMicros, durationNanos, selfDurationNanos,
+                threadHash, "worker", false, "jeffrey.TraceSpan", null, null);
+    }
+
+    /** A span carrying a self time of its own, in milliseconds like the rest of the fixture. */
+    private static TraceSpanRecord spanWithSelf(long spanId, Long parentSpanId, String name,
+            long startMillis, long durationMs, long selfMs) {
+        return microSpan(TRACE, spanId, parentSpanId, name,
+                startMillis * MICROS_PER_MILLI, durationMs * MS, THREAD, selfMs * MS);
     }
 
     /** Like {@link #span}, but for a caller building spans from more than one trace. */
@@ -194,74 +212,113 @@ class TraceManagerImplTest {
     class SelfTime {
 
         @Test
-        @DisplayName("is the span's duration minus what its children covered")
-        void subtractsChildren() {
+        @DisplayName("is reported as the derivation stored it")
+        void readsTheStoredValue() {
+            // The interval merge behind this number runs once, in SQL, where every span of a trace
+            // is in hand -- see JdbcTraceRepositoryTest.SelfDuration for the rules it obeys. The
+            // manager's job is only to pass it through without recomputing a second answer.
+            List<TraceSpanRow> spans = spansOf(List.of(
+                    spanWithSelf(1, null, "root", 0, 100, 70),
+                    spanWithSelf(2, 1L, "child", 10, 30, 30)));
+
+            assertEquals(70 * MS, spans.getFirst().selfDurationNanos());
+            assertEquals(30 * MS, spans.get(1).selfDurationNanos());
+        }
+    }
+
+    @Nested
+    @DisplayName("Critical path")
+    class CriticalPath {
+
+        private static long totalCriticalNanos(List<TraceSpanRow> spans) {
+            return spans.stream().mapToLong(TraceSpanRow::criticalPathNanos).sum();
+        }
+
+        private static TraceSpanRow named(List<TraceSpanRow> spans, String name) {
+            return spans.stream()
+                    .filter(span -> span.name().equals(name))
+                    .findFirst()
+                    .orElseThrow();
+        }
+
+        @Test
+        @DisplayName("a lone span owns the whole path")
+        void singleSpan() {
+            List<TraceSpanRow> spans = spansOf(List.of(span(1, null, "root", 0, 100)));
+
+            assertEquals(100 * MS, spans.getFirst().criticalPathNanos());
+        }
+
+        @Test
+        @DisplayName("a sequential chain splits the path between parent and child")
+        void sequentialChain() {
             List<TraceSpanRow> spans = spansOf(List.of(
                     span(1, null, "root", 0, 100),
                     span(2, 1L, "child", 10, 30)));
 
-            assertEquals(70 * MS, spans.getFirst().selfDurationNanos());
-            assertEquals(30 * MS, spans.get(1).selfDurationNanos(),
-                    "a leaf's self time is its whole duration");
+            assertEquals(70 * MS, named(spans, "root").criticalPathNanos(),
+                    "the root owns everything its child was not holding open");
+            assertEquals(30 * MS, named(spans, "child").criticalPathNanos());
+            assertEquals(100 * MS, totalCriticalNanos(spans),
+                    "the path accounts for the trace end to end");
         }
 
         @Test
-        @DisplayName("overlapping children are not subtracted twice")
-        void mergesOverlappingChildren() {
-            // Two children running concurrently cover 10..50, i.e. 40ms, not 30+30.
+        @DisplayName("of two children, the one finishing last is what the parent waited for")
+        void laterFinishingSiblingWins() {
+            // Both run under the root; b is still going when a is done, so b is what held the root.
             List<TraceSpanRow> spans = spansOf(List.of(
                     span(1, null, "root", 0, 100),
-                    span(2, 1L, "a", 10, 30),
-                    span(3, 1L, "b", 20, 30)));
+                    spanOnThread(2, 1L, "a", 10, 30, OTHER_THREAD),
+                    spanOnThread(3, 1L, "b", 20, 40, OTHER_THREAD)));
 
-            assertEquals(60 * MS, spans.getFirst().selfDurationNanos());
+            assertEquals(40 * MS, named(spans, "b").criticalPathNanos(),
+                    "b covered 20..60 with nothing finishing later");
+            assertEquals(10 * MS, named(spans, "a").criticalPathNanos(),
+                    "only 10..20, the stretch before b started, was a's to hold");
+            assertEquals(100 * MS, totalCriticalNanos(spans));
         }
 
         @Test
-        @DisplayName("never goes negative when a child outlives its parent")
-        void clampsAtZero() {
-            // Malformed but recorded: the child's window is longer than the parent's own.
-            List<TraceSpanRow> spans = spansOf(List.of(
-                    span(1, null, "root", 0, 10),
-                    span(2, 1L, "outlives", 0, 50)));
-
-            assertEquals(0, spans.getFirst().selfDurationNanos());
-        }
-
-        @Test
-        @DisplayName("a child on another thread is not subtracted from the parent's own time")
-        void ignoresChildrenOnOtherThreads() {
-            // Tracer.continueIn forks the work: the parent thread kept working the whole time.
+        @DisplayName("a child covered by a later-finishing sibling is not on the path at all")
+        void coveredSiblingIsNotCritical() {
+            // b starts earlier *and* finishes later, so a never determined anything. Ordering the
+            // walk by start rather than by end credited a here and skipped b.
             List<TraceSpanRow> spans = spansOf(List.of(
                     span(1, null, "root", 0, 100),
-                    spanOnThread(2, 1L, "forked", 10, 30, OTHER_THREAD)));
+                    spanOnThread(2, 1L, "covered", 20, 30, OTHER_THREAD),
+                    spanOnThread(3, 1L, "covering", 10, 60, OTHER_THREAD)));
 
-            assertEquals(100 * MS, spans.getFirst().selfDurationNanos());
+            assertEquals(0, named(spans, "covered").criticalPathNanos());
+            assertEquals(60 * MS, named(spans, "covering").criticalPathNanos());
+            assertEquals(40 * MS, named(spans, "root").criticalPathNanos(),
+                    "0..10 before the child began and 70..100 after it ended");
+            assertEquals(100 * MS, totalCriticalNanos(spans));
         }
 
         @Test
-        @DisplayName("a child shorter than a millisecond still costs its parent that time")
-        void subtractsSubMillisecondChildren() {
-            // Rounding each child's window to whole milliseconds made every sub-millisecond call
-            // cost nothing, handing the parent back time its children had spent. A handful of short
-            // queries under one request is the ordinary case, not a corner one.
-            List<TraceSpanRow> spans = spansOf(List.of(
-                    spanMicros(1, null, "root", 0, 4_000),
-                    spanMicros(2, 1L, "a", 500, 600),
-                    spanMicros(3, 1L, "b", 2_000, 400)));
-
-            assertEquals(3_000 * US, spans.getFirst().selfDurationNanos());
-        }
-
-        @Test
-        @DisplayName("a child outliving its parent costs it only the stretch the two shared")
+        @DisplayName("a child outliving its parent is credited only the stretch they shared")
         void clipsChildrenToTheParentWindow() {
             List<TraceSpanRow> spans = spansOf(List.of(
-                    spanMicros(1, null, "root", 0, 1_000),
-                    spanMicros(2, 1L, "overruns", 600, 900)));
+                    span(1, null, "root", 0, 50),
+                    span(2, 1L, "overruns", 20, 80)));
 
-            assertEquals(600 * US, spans.getFirst().selfDurationNanos(),
-                    "the child covered 600..1000, not 600..1500, so 600us stayed the parent's own");
+            assertEquals(30 * MS, named(spans, "overruns").criticalPathNanos(),
+                    "the child covered 20..50 of the root, not 20..100");
+            assertEquals(20 * MS, named(spans, "root").criticalPathNanos());
+        }
+
+        @Test
+        @DisplayName("never exceeds the span's own duration")
+        void cappedAtTheSpansDuration() {
+            List<TraceSpanRow> spans = spansOf(List.of(
+                    spanMicros(1, null, "root", 0, 1_500),
+                    spanMicros(2, 1L, "child", 500, 200)));
+
+            for (TraceSpanRow span : spans) {
+                assertTrue(span.criticalPathNanos() <= span.durationNanos(),
+                        span.name() + " was credited more than it ran for");
+            }
         }
     }
 

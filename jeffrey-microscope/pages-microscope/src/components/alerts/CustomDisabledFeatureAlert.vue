@@ -58,7 +58,6 @@
 </template>
 
 <script setup lang="ts">
-import { withDefaults, defineProps } from 'vue';
 
 // Define props
 interface Props {

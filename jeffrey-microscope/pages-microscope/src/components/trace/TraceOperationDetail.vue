@@ -22,6 +22,21 @@
     <ErrorState v-else-if="error" :message="error" @retry="load" />
 
     <template v-else>
+      <div class="op-actions">
+        <!--
+          The reverse of the trace dialog's "All … traces" edge: from the aggregate view to the
+          filtered instance list, where the full search/sort/errors toolbar applies to just this
+          operation's traces.
+        -->
+        <router-link class="op-list-link" :to="traceListLink">
+          <i class="bi bi-diagram-3"></i> In trace list
+        </router-link>
+        <AiExportButton
+          :build-source="buildAiExportSource"
+          tooltip="Export this operation for AI analysis"
+        />
+      </div>
+
       <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
 
       <div v-show="activeTab === 'summary'">
@@ -61,10 +76,18 @@
       </div>
 
       <div v-show="activeTab === 'slowest'">
+        <!--
+          server-ordered is load-bearing: the rows arrive slowest-first from the server, and without
+          it the shared list re-sorts and silently slices to its own default of 50 — a tab named
+          "Slowest Traces" quietly showing 5% of what was fetched. The denominator is the
+          operation's real call count, not the capped sample, so "Showing X / Total Y" tells the
+          truth for operations past the cap.
+        -->
         <TraceSlowestList
           :traces="traces"
-          :total="traces.length"
+          :total="totals?.count ?? traces.length"
           :note="capNote"
+          server-ordered
           @row-click="openTrace"
         />
       </div>
@@ -74,11 +97,13 @@
         GenericModal renders in place rather than teleporting. Nested inside a hidden `v-show` it
         would mount invisibly, lock body scroll, and put its own dismiss handlers out of reach.
       -->
+      <!-- No operation link in the modal here: it would point at this very page. -->
       <TraceSpansModal
         v-model:show="spansShow"
         :profile-id="profileId"
         :trace-id="selectedTrace?.traceId ?? ''"
         :root-name="selectedTrace?.rootName ?? ''"
+        :with-operation-link="false"
       />
     </template>
   </div>
@@ -86,6 +111,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 
 import ErrorState from '@shared/components/ErrorState.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
@@ -95,8 +121,11 @@ import TraceSlowestList from '@/components/trace/TraceSlowestList.vue';
 import TraceOperationSummary from '@/components/trace/TraceOperationSummary.vue';
 import TraceSpansModal from '@/components/trace/TraceSpansModal.vue';
 import TraceOperationFlamegraphs from '@/components/trace/TraceOperationFlamegraphs.vue';
+import AiExportButton from '@/components/ai-analysis/AiExportButton.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
+import TraceAiExportClient from '@/services/api/TraceAiExportClient';
+import type { AiExportSource } from '@/composables/useAiExport';
 import { profileStore } from '@/stores/profileStore';
 import { timelineBuckets } from '@/services/trace/traceTimelineBuckets';
 import type { TabBarItem } from '@shared/components/TabBar.vue';
@@ -126,6 +155,34 @@ const props = defineProps<{
   overview: TraceOverview | null;
 }>();
 
+/**
+ * Always available: the operation's identity comes from the route, not from a loaded response, so
+ * the export works even on a deep link whose capped list never contained this operation.
+ */
+function buildAiExportSource(): AiExportSource | null {
+  const client = new TraceAiExportClient(props.profileId);
+  const operation = props.operation;
+  return {
+    fetch: () => client.generateOperation(operation.name, operation.kind, operation.eventType),
+    label: 'Operation',
+    filenameStem: `operation-${operation.name}`
+  };
+}
+
+/** The Slowest Traces page narrowed to exactly this operation, via its operation-filter params. */
+const traceListLink = computed(() => ({
+  name: 'profile-technologies-traces',
+  params: { profileId: props.profileId },
+  query: {
+    operation: props.operation.name,
+    kind: props.operation.kind,
+    eventType: props.operation.eventType
+  }
+}));
+
+const route = useRoute();
+const router = useRouter();
+
 const loading = ref(true);
 const error = ref<string | null>(null);
 const traces = ref<TraceRow[]>([]);
@@ -137,7 +194,30 @@ const recordingSpan = computed(() => {
   const window = profileStore.recordingWindow.value;
   return window === null ? undefined : { from: 0, to: window.durationMillis };
 });
-const activeTab = ref('summary');
+const TAB_IDS = new Set(['summary', 'flames', 'timeline', 'slowest']);
+
+/**
+ * Seeded from the URL so a shared link lands on the tab its sender was looking at, not always on
+ * the summary. An unknown value falls back rather than rendering an empty pane.
+ */
+function initialTab(): string {
+  const tab = route.query.tab as string | undefined;
+  return tab !== undefined && TAB_IDS.has(tab) ? tab : 'summary';
+}
+
+const activeTab = ref(initialTab());
+
+// Replaced, not pushed: switching tabs is view state, and putting every switch in history would
+// make Back walk through tabs before it steps out of the operation.
+watch(activeTab, tab => {
+  const query = { ...route.query };
+  if (tab === 'summary') {
+    delete query.tab;
+  } else {
+    query.tab = tab;
+  }
+  router.replace({ query });
+});
 
 /*
  * The Flamegraphs tab fetches its panels on mount, and it is the only tab that fetches anything the
@@ -159,7 +239,36 @@ const selectedTrace = ref<TraceRow | null>(null);
 function openTrace(trace: TraceRow): void {
   selectedTrace.value = trace;
   spansShow.value = true;
+  // The id joins the operation already in the URL, so a waterfall reached through an operation is
+  // as linkable as one reached from the trace list -- it is the same modal either way, and it used
+  // to be shareable from only one of the two places it opens. Pushed so Back closes the dialog,
+  // matching how the operation itself was entered.
+  router.push({ query: { ...route.query, trace: trace.traceId } });
 }
+
+// Closing takes the trace back out again, so returning to the link does not reopen it.
+watch(spansShow, open => {
+  if (!open && route.query.trace) {
+    const query = { ...route.query };
+    delete query.trace;
+    router.replace({ query });
+  }
+});
+
+/**
+ * Reopens the trace named in the URL once this operation's traces are in. A link can point at a
+ * trace beyond the fetched page, in which case no row is found here — the modal fetches everything
+ * it draws from the id alone, so it still opens, just without the row's own header values.
+ */
+watch([() => route.query.trace, traces], ([traceId]) => {
+  if (!traceId) {
+    spansShow.value = false;
+    return;
+  }
+  const id = traceId as string;
+  selectedTrace.value = traces.value.find(trace => trace.traceId === id) ?? null;
+  spansShow.value = true;
+});
 
 /*
  * Whether a sample can be attributed to this operation at all. A span is matched to samples by
@@ -242,3 +351,39 @@ async function load(): Promise<void> {
 // operation remounts it. `useFlamegraphPanels` only fetches on mount, which is why the key is there.
 onMounted(load);
 </script>
+
+<style scoped>
+/* The audit found this class styled nowhere — the actions rendered as an unaligned block. */
+.op-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Same affordance as the trace dialog's operation link, so the two edges read as a pair. */
+.op-list-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.op-list-link:hover {
+  border-color: var(--color-primary);
+}
+
+.op-list-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+</style>

@@ -35,14 +35,18 @@
             type="button"
             class="btn btn-outline-secondary btn-sm"
             :class="{ active: currentSort === option.key }"
-            @click="currentSort = option.key"
+            @click="selectSort(option.key)"
           >
             {{ option.label }}
           </button>
         </div>
       </div>
+      <!--
+        Hidden when the server did the paging: there is no "all" to show, only a next page, which
+        only the caller can ask for.
+      -->
       <button
-        v-if="items.length > maxDisplayed"
+        v-if="!serverOrdered && items.length > maxDisplayed"
         @click="showAll = !showAll"
         class="btn btn-sm btn-outline-secondary"
       >
@@ -52,11 +56,16 @@
 
     <!-- Cards -->
     <div class="mcl-cards">
+      <!-- Keyboard-operable: opening a card is the list's primary action. -->
       <div
         v-for="item in displayedItems"
         :key="itemKey(item)"
         class="mcl-card"
+        role="button"
+        tabindex="0"
         @click="$emit('itemClick', item)"
+        @keydown.enter.prevent="$emit('itemClick', item)"
+        @keydown.space.prevent="$emit('itemClick', item)"
       >
         <!-- Left: Gradient count zone -->
         <div class="mcl-count">
@@ -81,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
 
 export interface MetricSortOption {
@@ -99,21 +108,50 @@ const props = withDefaults(
     sortOptions: MetricSortOption[];
     initialSort?: string;
     maxDisplayed?: number;
+    /**
+     * Take `items` exactly as given — already ordered and already the page. The sort buttons then
+     * only report which one is pressed, through `sortChange`, and it is the caller's job to fetch
+     * the newly-ordered page. Sorting here as well would reorder a page cut from a different order,
+     * which shows the top of the wrong list.
+     */
+    serverOrdered?: boolean;
   }>(),
   {
     initialSort: undefined,
-    maxDisplayed: 10
+    maxDisplayed: 10,
+    serverOrdered: false
   }
 );
 
-defineEmits<{
+const emit = defineEmits<{
   itemClick: [item: any];
+  /** The key of the sort option just pressed. Only acted on by a `serverOrdered` caller. */
+  sortChange: [key: string];
 }>();
 
 const showAll = ref(false);
 const currentSort = ref<string>(props.initialSort ?? props.sortOptions[0]?.key ?? '');
 
+// Kept in step with a caller that drives the sort from its own state -- the URL, say -- so the
+// pressed button still reflects the order the rows actually arrived in.
+watch(
+  () => props.initialSort,
+  (sort) => {
+    if (sort !== undefined) {
+      currentSort.value = sort;
+    }
+  }
+);
+
+function selectSort(key: string): void {
+  currentSort.value = key;
+  emit('sortChange', key);
+}
+
 const sortedItems = computed(() => {
+  if (props.serverOrdered) {
+    return props.items;
+  }
   const option = props.sortOptions.find(o => o.key === currentSort.value);
   if (!option) {
     return props.items;
@@ -121,9 +159,12 @@ const sortedItems = computed(() => {
   return [...props.items].sort(option.compare);
 });
 
-const displayedItems = computed(() =>
-  showAll.value ? sortedItems.value : sortedItems.value.slice(0, props.maxDisplayed)
-);
+const displayedItems = computed(() => {
+  if (props.serverOrdered) {
+    return sortedItems.value;
+  }
+  return showAll.value ? sortedItems.value : sortedItems.value.slice(0, props.maxDisplayed);
+});
 </script>
 
 <style scoped>
@@ -150,6 +191,11 @@ const displayedItems = computed(() =>
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.mcl-card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
 }
 
 .mcl-card {

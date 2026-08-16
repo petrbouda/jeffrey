@@ -19,21 +19,32 @@
 package cafe.jeffrey.microscope.core.web.controllers.profile;
 
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
+import cafe.jeffrey.profile.ai.trace.TraceAiMarkdownBuilder;
+import cafe.jeffrey.profile.ai.trace.TraceOperationAiMarkdownBuilder;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.manager.TraceManager;
+import cafe.jeffrey.profile.manager.model.trace.TraceContext;
+import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
+import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
+import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.model.FlamegraphPanel;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.PanelContext;
-import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
-import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
-import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
-import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
+import cafe.jeffrey.profile.manager.model.trace.TraceTimelineBucket;
+import cafe.jeffrey.profile.manager.model.trace.TracesPage;
 import cafe.jeffrey.profile.resources.request.GenerateTraceOperationFlamegraphRequest;
 import cafe.jeffrey.profile.resources.request.GenerateTraceSpanFlamegraphRequest;
 import cafe.jeffrey.profile.resources.request.SpanFlamegraphOptions;
+import cafe.jeffrey.provider.profile.api.TraceListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
+import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
+import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
+import cafe.jeffrey.provider.profile.api.TraceSortField;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 import org.slf4j.Logger;
@@ -73,6 +84,27 @@ public class TracesController {
     private static final String DEFAULT_OPERATION_SPANS_LIMIT = "20";
     /** The most rows any of these lists can usefully render, and the ceiling a caller cannot raise. */
     private static final int MAX_LIMIT = 10_000;
+    /**
+     * Markdown, because the export is a document rather than a payload.
+     * <p>
+     * The charset is explicit: both documents are prose containing em dashes and typographic
+     * punctuation, and a string converter that falls back to ISO-8859-1 turns every one of them into
+     * a replacement character. Stating UTF-8 costs nothing and removes the question.
+     */
+    private static final String MARKDOWN_MEDIA_TYPE = "text/markdown;charset=UTF-8";
+    /**
+     * How much of an operation an AI bundle carries. Wider than the UI's twenty, because a reader
+     * scrolls and a model does not, and narrow enough that the document still fits a chat window.
+     */
+    private static final int AI_EXPORT_SPANS_LIMIT = 40;
+    /** Exemplars to name at the end of an operation bundle, as candidates to export individually. */
+    private static final int AI_EXPORT_EXEMPLARS_LIMIT = 10;
+    /** Slowest-first and busiest-first: what each list showed before it could be sorted at all. */
+    private static final String DEFAULT_TRACE_SORT = "DURATION";
+    private static final String DEFAULT_OPERATION_SORT = "TOTAL_TIME";
+    /** Enough points to see where a recording got busy, few enough to stay a strip rather than a chart. */
+    private static final String DEFAULT_TIMELINE_BUCKETS = "60";
+    private static final int MAX_TIMELINE_BUCKETS = 500;
 
     private final ProfileManagerResolver resolver;
     private final JfrFlamegraphPanelProvider panelProvider;
@@ -82,12 +114,65 @@ public class TracesController {
         this.panelProvider = panelProvider;
     }
 
+    /**
+     * The trace list, narrowed and paged by the caller.
+     * <p>
+     * Every parameter has the default the list had before any of them existed, so a caller that
+     * sends none gets the same slowest-first page it always did.
+     */
     @GetMapping
-    public List<TraceRow> traces(
+    public TracesPage traces(
             @PathVariable("profileId") String profileId,
-            @RequestParam(value = "limit", defaultValue = DEFAULT_TRACES_LIMIT) int limit) {
-        LOG.debug("Listing slowest traces: profile_id={} limit={}", profileId, limit);
-        return resolver.resolve(profileId).traceManager().slowestTraces(boundedLimit(limit));
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "errorsOnly", defaultValue = "false") boolean errorsOnly,
+            @RequestParam(value = "minDurationNanos", defaultValue = "0") long minDurationNanos,
+            @RequestParam(value = "name", required = false) String operationName,
+            @RequestParam(value = "kind", required = false) String operationKind,
+            @RequestParam(value = "eventType", required = false) String operationEventType,
+            @RequestParam(value = "sort", defaultValue = DEFAULT_TRACE_SORT) TraceSortField sort,
+            @RequestParam(value = "desc", defaultValue = "true") boolean descending,
+            @RequestParam(value = "limit", defaultValue = DEFAULT_TRACES_LIMIT) int limit,
+            @RequestParam(value = "offset", defaultValue = "0") int offset) {
+        LOG.debug("Listing traces: profile_id={} search={} errors_only={} operation={} sort={} limit={} offset={}",
+                profileId, search, errorsOnly, operationName, sort, limit, offset);
+
+        TraceListQuery query = new TraceListQuery(
+                search,
+                errorsOnly,
+                Math.max(0, minDurationNanos),
+                operationFilter(operationName, operationKind, operationEventType),
+                sort,
+                descending,
+                boundedLimit(limit),
+                boundedOffset(offset));
+        return resolver.resolve(profileId).traceManager().traces(query);
+    }
+
+    /**
+     * The optional operation filter, present only when the caller sent the whole identifying triple
+     * — the same three params the {@code /operation/*} endpoints require. A partial triple would
+     * silently re-merge operations the grouping deliberately keeps apart, so it is treated as absent
+     * rather than half-applied.
+     */
+    private static TraceOperationId operationFilter(String name, String kind, String eventType) {
+        if (name == null || kind == null || eventType == null) {
+            return null;
+        }
+        return new TraceOperationId(name, kind, eventType);
+    }
+
+    /**
+     * How traces were spread over the recording, for the density strip above the list. Aggregated
+     * server-side because the list itself is capped — bucketing the slowest hundred would draw the
+     * shape of the tail and label it the shape of the profile.
+     */
+    @GetMapping("/timeline")
+    public List<TraceTimelineBucket> timeline(
+            @PathVariable("profileId") String profileId,
+            @RequestParam(value = "buckets", defaultValue = DEFAULT_TIMELINE_BUCKETS) int buckets) {
+        LOG.debug("Bucketing traces over the recording: profile_id={} buckets={}", profileId, buckets);
+        return resolver.resolve(profileId).traceManager()
+                .timeline(Math.clamp(buckets, 1, MAX_TIMELINE_BUCKETS));
     }
 
     /**
@@ -102,11 +187,21 @@ public class TracesController {
     }
 
     @GetMapping("/operations")
-    public List<TraceOperationRow> operations(
+    public TraceOperationsPage operations(
             @PathVariable("profileId") String profileId,
-            @RequestParam(value = "limit", defaultValue = DEFAULT_OPERATIONS_LIMIT) int limit) {
-        LOG.debug("Aggregating trace operations: profile_id={} limit={}", profileId, limit);
-        return resolver.resolve(profileId).traceManager().operations(boundedLimit(limit));
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "errorsOnly", defaultValue = "false") boolean errorsOnly,
+            @RequestParam(value = "sort", defaultValue = DEFAULT_OPERATION_SORT)
+            TraceOperationSortField sort,
+            @RequestParam(value = "desc", defaultValue = "true") boolean descending,
+            @RequestParam(value = "limit", defaultValue = DEFAULT_OPERATIONS_LIMIT) int limit,
+            @RequestParam(value = "offset", defaultValue = "0") int offset) {
+        LOG.debug("Aggregating trace operations: profile_id={} search={} errors_only={} sort={} limit={} offset={}",
+                profileId, search, errorsOnly, sort, limit, offset);
+
+        TraceOperationListQuery query = new TraceOperationListQuery(
+                search, errorsOnly, sort, descending, boundedLimit(limit), boundedOffset(offset));
+        return resolver.resolve(profileId).traceManager().operations(query);
     }
 
     /**
@@ -147,6 +242,55 @@ public class TracesController {
                 .operationSummary(new TraceOperationId(name, kind, eventType), boundedLimit(spanLimit));
     }
 
+    /**
+     * One operation rendered as Markdown for an AI to read — percentiles, the span breakdown in both
+     * accountings, and slowest exemplars, with a preamble that defines every term it uses.
+     * <p>
+     * Placed before {@code /{traceId}} so the literal path is matched as one rather than being read
+     * as a trace id.
+     */
+    @GetMapping(value = "/operation/ai-export", produces = MARKDOWN_MEDIA_TYPE)
+    public String operationAiExport(
+            @PathVariable("profileId") String profileId,
+            @RequestParam("name") String name,
+            @RequestParam("kind") String kind,
+            @RequestParam("eventType") String eventType) {
+        LOG.debug("Exporting an operation for AI: profile_id={} name={} kind={} event_type={}",
+                profileId, name, kind, eventType);
+
+        TraceOperationId operationId = new TraceOperationId(name, kind, eventType);
+        TraceManager traceManager = resolver.resolve(profileId).traceManager();
+        TraceOperationRow operation = traceManager.operation(operationId)
+                .orElseThrow(() -> Exceptions.resourceNotFound("Operation not found: " + name));
+
+        return new TraceOperationAiMarkdownBuilder(
+                operation,
+                traceManager.operationSummary(operationId, AI_EXPORT_SPANS_LIMIT),
+                traceManager.tracesOfOperation(operationId, AI_EXPORT_EXEMPLARS_LIMIT))
+                .build();
+    }
+
+    /**
+     * One trace rendered as Markdown for an AI to read.
+     * <p>
+     * The context is fetched alongside the trace rather than left out: without the pauses and waits
+     * this is an ordinary tracing export, and the JVM's own events are the whole reason Jeffrey's
+     * version of this document is worth reading.
+     */
+    @GetMapping(value = "/{traceId}/ai-export", produces = MARKDOWN_MEDIA_TYPE)
+    public String traceAiExport(
+            @PathVariable("profileId") String profileId,
+            @PathVariable("traceId") String traceId) {
+        LOG.debug("Exporting a trace for AI: profile_id={} trace_id={}", profileId, traceId);
+
+        long id = parseId(traceId);
+        TraceManager traceManager = resolver.resolve(profileId).traceManager();
+        TraceDetail detail = traceManager.trace(id)
+                .orElseThrow(() -> Exceptions.resourceNotFound("Trace not found: " + traceId));
+
+        return new TraceAiMarkdownBuilder(detail, traceManager.context(id)).build();
+    }
+
     @GetMapping("/{traceId}")
     public TraceDetail trace(
             @PathVariable("profileId") String profileId,
@@ -155,6 +299,23 @@ public class TracesController {
         return resolver.resolve(profileId).traceManager()
                 .trace(parseId(traceId))
                 .orElseThrow(() -> Exceptions.resourceNotFound("Trace not found: " + traceId));
+    }
+
+    /**
+     * What the JVM was doing to this trace: the stop-the-world pauses that crossed it, what each
+     * span waited on, and a ranked summary of where its wall-clock time went.
+     * <p>
+     * Separate from {@code GET /{traceId}} because it is a second question about the same trace, and
+     * a slower one — the pauses come from a scan of the events table rather than from the derived
+     * span tables. Keeping them apart lets the waterfall draw immediately and the context arrive
+     * over it.
+     */
+    @GetMapping("/{traceId}/context")
+    public TraceContext context(
+            @PathVariable("profileId") String profileId,
+            @PathVariable("traceId") String traceId) {
+        LOG.debug("Reading trace context: profile_id={} trace_id={}", profileId, traceId);
+        return resolver.resolve(profileId).traceManager().context(parseId(traceId));
     }
 
     /**
@@ -286,6 +447,15 @@ public class TracesController {
             return 1;
         }
         return Math.min(limit, MAX_LIMIT);
+    }
+
+    /**
+     * Keeps a caller-supplied page offset inside the same ceiling the page size has. A negative
+     * offset is not a page, and an unbounded one is a request for the database to count past the
+     * end of the table before returning nothing.
+     */
+    private static int boundedOffset(int offset) {
+        return Math.clamp(offset, 0, MAX_LIMIT);
     }
 
     /**

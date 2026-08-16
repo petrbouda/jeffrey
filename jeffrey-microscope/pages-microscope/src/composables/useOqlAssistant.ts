@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { ref, computed, Ref } from 'vue';
+import { ref, computed } from 'vue';
 import OqlAssistantClient from '@/services/api/OqlAssistantClient';
 import AiStatusResponse from '@/services/api/model/AiStatusResponse';
 import ChatMessage from '@/services/api/model/ChatMessage';

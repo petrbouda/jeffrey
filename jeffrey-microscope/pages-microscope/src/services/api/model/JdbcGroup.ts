@@ -1,4 +1,4 @@
-import JdbcStatementNameStats from '@/services/profile/custom/jdbc/JdbcStatementNameStats.ts';
+import JdbcStatementNameStats from '@/services/api/model/JdbcStatementNameStats.ts';
 
 export default class JdbcGroup {
   constructor(

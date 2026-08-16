@@ -29,7 +29,7 @@
             type="checkbox"
             class="toggle-input"
             :checked="isEnabled"
-            @change="$emit('toggle', $event.target.checked)"
+            @change="$emit('toggle', ($event.target as HTMLInputElement).checked)"
           />
           <span class="toggle-slider"></span>
         </label>

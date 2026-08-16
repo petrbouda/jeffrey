@@ -16,7 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import { MenuItem } from 'primevue/menuitem';
+/**
+ * The menu-entry shape the flamegraph's context menu consumes. This used to be PrimeVue's
+ * `MenuItem`, imported from a package that is no longer a dependency — the import only survived
+ * because type-only imports are erased before the bundler would have failed to resolve it.
+ */
+export interface MenuItem {
+  label?: string;
+  icon?: string;
+  command?: () => void;
+  separator?: boolean;
+}
 
 export default class FlamegraphContextMenu {
   static resolve(timeseriesSearchCallback: () => void, resetCallback: () => void): MenuItem[] {

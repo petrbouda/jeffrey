@@ -579,47 +579,7 @@ const frameKindLabel = (frame: ThreadStackFrame): string => {
 const localsBytes = (frame: ThreadStackFrame): number =>
   frame.locals.reduce((sum, l) => sum + (l.shallowSize ?? 0), 0);
 
-const totalLocalsCount = (frames: ThreadStackFrame[]): number =>
-  frames.reduce((sum, f) => sum + f.locals.length, 0);
 
-const totalLocalsBytes = (frames: ThreadStackFrame[]): number =>
-  frames.reduce((sum, f) => sum + localsBytes(f), 0);
-
-// Heuristic thread-state label derived from the top frame. JFR/HPROF doesn't
-// carry the JVM Thread.State directly, but the top frame usually tells the
-// story (Unsafe.park, Object.wait, Thread.sleep, …). Falls back to "Runnable"
-// when nothing matches.
-const threadStateLabel = (frames: ThreadStackFrame[]): string => {
-  if (frames.length === 0) return 'Unknown';
-  const top = frames[0];
-  const method = `${top.className}.${top.methodName}`;
-  if (method === 'jdk.internal.misc.Unsafe.park' || method === 'sun.misc.Unsafe.park')
-    return 'PARKED';
-  if (method === 'java.lang.Object.wait' || method === 'java.lang.Object.wait0') return 'WAITING';
-  if (
-    method === 'java.lang.Thread.sleep' ||
-    method === 'java.lang.Thread.sleep0' ||
-    method === 'java.lang.Thread.sleepNanos'
-  )
-    return 'SLEEPING';
-  if (top.lineNumber === -3) return 'NATIVE';
-  return 'RUNNABLE';
-};
-
-const threadStatePillClass = (frames: ThreadStackFrame[]): string => {
-  switch (threadStateLabel(frames)) {
-    case 'PARKED':
-    case 'WAITING':
-    case 'SLEEPING':
-      return 'state-waiting';
-    case 'NATIVE':
-      return 'state-native';
-    case 'RUNNABLE':
-      return 'state-runnable';
-    default:
-      return 'state-unknown';
-  }
-};
 
 // Best-effort one-liner explaining what the frame is doing. Keeps the
 // inspector useful even when the user isn't fluent in JDK internals.

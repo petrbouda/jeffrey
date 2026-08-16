@@ -157,6 +157,7 @@ import ToastService from '@shared/services/ToastService';
 import ProfileToolsClient from '@/services/api/ProfileToolsClient';
 import type PprofExportEventType from '@/services/api/model/PprofExportEventType';
 import '@shared/styles/shared-components.css';
+import type { Variant } from '@shared/types/ui';
 
 const route = useRoute();
 const profileId = route.params.profileId as string;
@@ -188,7 +189,7 @@ const selectedEvent = computed<PprofExportEventType | null>(() => {
   return eventTypes.value.find(event => event.label === selectedLabel.value) ?? null;
 });
 
-const CATEGORY_VARIANTS: Record<string, string> = {
+const CATEGORY_VARIANTS: Record<string, Variant> = {
   CPU: 'blue',
   Wall: 'info',
   Allocation: 'teal',

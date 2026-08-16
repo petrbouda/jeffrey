@@ -27,6 +27,10 @@ package cafe.jeffrey.profile.manager.model.trace;
  * <p>
  * {@code eventType} is the event that opened the trace — which instrumentation the operation came
  * from, something the name alone does not say.
+ * <p>
+ * Every percentile here is aggregated over the whole type, so they can be read against each other.
+ * A p99 taken from the capped trace list beside a p95 taken from the table would be two different
+ * questions in one row, which is why the view showed no p99 at all until this one existed.
  */
 public record TraceOperationRow(
         String name,
@@ -38,5 +42,6 @@ public record TraceOperationRow(
         long totalNanos,
         long p50Nanos,
         long p95Nanos,
+        long p99Nanos,
         long maxNanos) {
 }

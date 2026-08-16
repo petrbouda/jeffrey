@@ -91,9 +91,6 @@ const { hubId, workspaceId, projectId, generateProjectUrl } = useNavigation();
 const projectInfo = ref<Project | null>(null);
 const workspaceInfo = ref<Workspace | null>(null);
 
-// Scheduler is always disabled in local mode; Collector-only mode is never active.
-const isCollectorOnly = computed(() => false);
-
 // Prefix-matching would mark Instances active on /instances/timeline (which has its own tab).
 // Custom predicate: active on /instances and /instances/{instanceId} but not on /timeline.
 const isInstancesActive = computed(() => {
@@ -109,7 +106,7 @@ async function initializeProject() {
     const workspaceClient = new WorkspaceClient(hubId.value);
 
     const [project, workspace] = await Promise.all([
-      projectClient.get(),
+      projectClient.fetch(),
       workspaceClient.getById(workspaceId.value).catch(err => {
         console.error('Failed to load workspace:', err);
         return null;

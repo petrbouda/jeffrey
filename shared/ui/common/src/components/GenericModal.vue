@@ -25,7 +25,7 @@
     tabindex="-1"
     :aria-labelledby="modalId + 'Label'"
     @keyup.esc="closeModal"
-    @click.self="closeModal"
+    @click.self="onBackdropClick"
   >
     <div class="modal-dialog" :class="[modalSizeClass, modalDialogClass]" :style="fullscreenStyle">
       <div class="modal-content">
@@ -63,6 +63,12 @@ interface Props {
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'fullscreen';
   modalDialogClass?: string;
   showFooter?: boolean;
+  /**
+   * Whether clicking the backdrop closes the dialog. A host whose dialog holds deep, accumulated
+   * state (a drill-down several levels in) turns this off so a stray click beside the content
+   * cannot discard all of it — Escape and the close button still work.
+   */
+  backdropClose?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -71,7 +77,8 @@ const props = withDefaults(defineProps<Props>(), {
   // Confirmation / info / small-form modals should opt down explicitly (size="sm" / "md" / "lg").
   size: 'fullscreen',
   modalDialogClass: '',
-  showFooter: true
+  showFooter: true,
+  backdropClose: true
 });
 
 const emit = defineEmits<{
@@ -84,6 +91,12 @@ const overlayRef = ref<HTMLElement | null>(null);
 
 const closeModal = () => {
   emit('update:show', false);
+};
+
+const onBackdropClick = () => {
+  if (props.backdropClose) {
+    closeModal();
+  }
 };
 
 const modalSizeClass = computed(() => {

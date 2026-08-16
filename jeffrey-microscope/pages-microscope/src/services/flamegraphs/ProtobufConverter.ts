@@ -31,7 +31,6 @@ type ProtoGraphData = cafe.jeffrey.flamegraph.proto.GraphData;
 type ProtoFlamegraphData = cafe.jeffrey.flamegraph.proto.IFlamegraphData;
 type ProtoFrame = cafe.jeffrey.flamegraph.proto.IFrame;
 type ProtoTimeseriesData = cafe.jeffrey.flamegraph.proto.ITimeseriesData;
-type ProtoFrameType = cafe.jeffrey.flamegraph.proto.FrameType;
 
 const FrameTypeEnum = cafe.jeffrey.flamegraph.proto.FrameType;
 

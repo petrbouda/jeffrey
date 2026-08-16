@@ -21,7 +21,7 @@
         <MetricTileSwitch
           v-model="metric"
           :tiles="metricTiles"
-          aria-label="Socket I/O metric"
+          group-label="Socket I/O metric"
           class="mb-3"
         />
         <ChartDescription :shows="metricDescription.shows" :use-case="metricDescription.useCase" />
@@ -53,7 +53,7 @@
           <MetricTileSwitch
             v-model="metric"
             :tiles="metricTiles"
-            aria-label="Socket I/O metric"
+            group-label="Socket I/O metric"
             class="mb-3"
           />
 

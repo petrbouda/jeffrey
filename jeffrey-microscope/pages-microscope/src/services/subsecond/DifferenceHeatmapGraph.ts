@@ -137,7 +137,7 @@ export default class DifferenceHeatmapGraph {
       chart: {
         height: 500,
         width: chartWidth,
-        type: 'heatmap',
+        type: 'heatmap' as const,
         offsetY: -20,
         selection: {
           enabled: false
@@ -149,17 +149,17 @@ export default class DifferenceHeatmapGraph {
           show: false
         },
         events: {
-          click: (_event: MouseEvent, _chartContext: any, selected: HeatmapPoint) => {
-            this.#onClick(selected);
+          click: (_event: MouseEvent, _chartContext?: unknown, selected?: HeatmapPoint) => {
+            if (selected !== undefined) {
+              this.#onClick(selected);
+            }
           }
         }
       },
       yaxis: {
         labels: {
           formatter: function (value: number) {
-            if (value % 100 === 0) {
-              return value;
-            }
+            return value % 100 === 0 ? String(value) : '';
           }
         }
       },

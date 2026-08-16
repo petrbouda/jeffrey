@@ -27,13 +27,20 @@
     :tone="tone"
     :total="total"
     :note="note"
+    :server-ordered="serverOrdered"
     empty-message="No traces for this filter."
     @row-click="(trace: TraceRow) => emit('rowClick', trace)"
   >
     <template #details="{ item }">
       <!-- Not uppercased: the event type is a type name, and jeffrey.HttpServerExchange is how the
            recording, jfr print and JMC all spell it. -->
-      <Badge :value="item.rootEventType" variant="secondary" size="s" borderless :uppercase="false" />
+      <Badge
+        :value="item.rootEventType"
+        variant="secondary"
+        size="s"
+        borderless
+        :uppercase="false"
+      />
       <!-- Same treatment as the Trace Operations list: borderless and unadorned, so the pair reads
            identically wherever a trace root is described. -->
       <Badge :value="item.rootKind" :variant="spanKindVariant(item.rootKind)" size="s" borderless />
@@ -64,12 +71,17 @@ import type { SlowestRowAccent, SlowestRowTone } from '@shared/types/ui';
 import { errorLabel, spanKindVariant } from '@/services/trace/traceLabels';
 import type { TraceRow } from '@/services/api/model/trace/TraceModels';
 
-defineProps<{
-  traces: TraceRow[];
-  /** Profile-wide trace count, which the capped list cannot be summed into. */
-  total?: number;
-  note?: string;
-}>();
+withDefaults(
+  defineProps<{
+    traces: TraceRow[];
+    /** Profile-wide trace count, which the capped list cannot be summed into. */
+    total?: number;
+    note?: string;
+    /** Draw the rows exactly as given, for a caller whose server ordered and paged them. */
+    serverOrdered?: boolean;
+  }>(),
+  { total: undefined, note: undefined, serverOrdered: false }
+);
 
 const emit = defineEmits<{
   rowClick: [trace: TraceRow];

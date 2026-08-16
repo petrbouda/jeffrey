@@ -36,6 +36,9 @@ package cafe.jeffrey.provider.profile.api;
  * @param totalNanos summed trace duration, for ranking by total time rather than by average
  * @param p50Nanos   median trace duration
  * @param p95Nanos   95th percentile trace duration
+ * @param p99Nanos   99th percentile trace duration. Aggregated here rather than worked out from the
+ *                   trace list, which is capped: a p99 over the first page beside a p95 over the
+ *                   whole type is two different questions printed in one row
  * @param maxNanos   slowest trace of the type
  */
 public record TraceOperationRecord(
@@ -48,5 +51,6 @@ public record TraceOperationRecord(
         long totalNanos,
         long p50Nanos,
         long p95Nanos,
+        long p99Nanos,
         long maxNanos) {
 }

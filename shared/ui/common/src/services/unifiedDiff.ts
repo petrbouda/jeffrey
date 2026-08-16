@@ -115,7 +115,7 @@ export function parseUnifiedDiff(patch: string): ParsedDiff {
           file = path;
         }
       }
-      if (file !== null && current?.path !== file) {
+      if (file !== null && (current === null || current.path !== file)) {
         current = { path: file, added: 0, removed: 0 };
         files.push(current);
       }

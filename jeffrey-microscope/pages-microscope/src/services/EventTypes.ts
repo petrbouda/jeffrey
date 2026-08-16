@@ -145,7 +145,7 @@ export default class EventTypes {
     return code === this.NATIVE_LEAK;
   }
 
-  static getSapDocumentationUrl(code: string): string | null {
+  static getSapDocumentationUrl(code: string | undefined): string | null {
     if (!code || !code.startsWith('jdk.')) {
       return null;
     }

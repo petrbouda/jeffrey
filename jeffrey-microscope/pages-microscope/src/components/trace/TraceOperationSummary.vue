@@ -53,7 +53,7 @@
               v-for="(bucket, index) in histogram.buckets"
               :key="index"
               class="histogram-bar"
-              :class="{ tail: bucket.to >= p95Nanos }"
+              :class="{ tail: bucket.to >= chartP95Nanos }"
               :style="{ height: barHeight(bucket.count) }"
               :title="bucketTitle(bucket)"
             >
@@ -66,9 +66,15 @@
             <span>{{ duration(histogram.to) }}</span>
           </div>
           <div class="histogram-marks">
-            <span>p50 <b>{{ duration(p50Nanos) }}</b></span>
-            <span>p95 <b>{{ duration(p95Nanos) }}</b></span>
-            <span>max <b>{{ duration(maxNanos) }}</b></span>
+            <span
+              >p50 <b>{{ duration(chartP50Nanos) }}</b></span
+            >
+            <span
+              >p95 <b>{{ duration(chartP95Nanos) }}</b></span
+            >
+            <span
+              >max <b>{{ duration(chartMaxNanos) }}</b></span
+            >
           </div>
         </div>
       </MainCard>
@@ -102,7 +108,24 @@
         <template #header>
           <MainCardHeader icon="bi bi-list-nested" title="Top spans by time">
             <template #actions>
-              <span class="card-note">inclusive — a parent contains its children</span>
+              <!--
+                The two rankings answer different questions and routinely disagree: a span that only
+                wraps three slow queries tops the inclusive list and barely registers on the self
+                one. Switching between them is how you tell "where the request is" from "what to go
+                and fix", so the toggle sits on the card rather than being a preference.
+              -->
+              <span class="span-mode">
+                <button
+                  v-for="mode in SPAN_MODES"
+                  :key="mode.key"
+                  type="button"
+                  :class="{ active: spanMode === mode.key }"
+                  :title="mode.title"
+                  @click="spanMode = mode.key"
+                >
+                  {{ mode.label }}
+                </button>
+              </span>
             </template>
           </MainCardHeader>
         </template>
@@ -117,14 +140,33 @@
           icon="bi-list-nested"
         />
         <div v-else class="span-bars">
-          <div v-for="span in spans" :key="span.name" class="span-bar">
+          <div v-for="span in rankedSpans" :key="span.name" class="span-bar">
             <span class="span-name" :title="span.name">{{ span.name }}</span>
             <div class="span-track">
               <div class="span-fill" :style="{ width: spanShare(span) }"></div>
             </div>
             <span class="span-value">
-              {{ duration(span.totalNanos) }}
+              {{ duration(spanTime(span)) }}
               <span class="span-count">· {{ span.occurrences }}</span>
+            </span>
+            <!--
+              The total alone cannot separate "one span that is always slow" from "a fast span called
+              a thousand times", which are different problems with different fixes. The median and
+              the worst case say which one this row is, and how many traces it appears in says
+              whether it is the operation's habit or one trace's accident.
+            -->
+            <span class="span-detail">
+              <span :title="spanReachTitle(span)">{{ spanReach(span) }}</span>
+              <span
+                >p50
+                <b>{{ duration(spanMode === 'self' ? span.p50SelfNanos : span.p50Nanos) }}</b></span
+              >
+              <span v-if="spanMode === 'total'"
+                >max <b>{{ duration(span.maxNanos) }}</b></span
+              >
+              <span v-else :title="ownShareTitle(span)"
+                >own <b>{{ ownShare(span) }}</b></span
+              >
             </span>
           </div>
         </div>
@@ -175,7 +217,11 @@ import FormattingService from '@shared/services/FormattingService';
 
 import TraceSlowestList from '@/components/trace/TraceSlowestList.vue';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
-import { latencyHistogram, peakConcurrency, quantileNanos } from '@/services/trace/traceOperationStats';
+import {
+  latencyHistogram,
+  peakConcurrency,
+  quantileNanos
+} from '@/services/trace/traceOperationStats';
 import type {
   TraceOperationId,
   TraceOperationRow,
@@ -194,6 +240,8 @@ const MIN_HISTOGRAM_BUCKETS = 6;
 const DISPLAYED_SPANS = 8;
 /** A summary shows the worst few; the Slowest Traces tab is where the whole ranking lives. */
 const SLOWEST_SHOWN = 5;
+/** Below this an own-work share rounds to 0%, where "<1%" is the more honest reading. */
+const MIN_REPORTED_SHARE_PERCENT = 1;
 
 const props = defineProps<{
   profileId: string;
@@ -242,19 +290,41 @@ const durationsNanos = computed(() => props.traces.map(trace => trace.durationNa
  * So: numbers come from `totals`, shape comes from the sample, and the sample says it is one.
  */
 const p50Nanos = computed(() => props.totals?.p50Nanos ?? quantileNanos(durationsNanos.value, 0.5));
-const p95Nanos = computed(() => props.totals?.p95Nanos ?? quantileNanos(durationsNanos.value, 0.95));
-const maxNanos = computed(() =>
-  props.totals?.maxNanos ?? durationsNanos.value.reduce((max, nanos) => Math.max(max, nanos), 0)
+const p95Nanos = computed(
+  () => props.totals?.p95Nanos ?? quantileNanos(durationsNanos.value, 0.95)
 );
-const totalNanos = computed(() =>
-  props.totals?.totalNanos ?? durationsNanos.value.reduce((sum, nanos) => sum + nanos, 0)
+const maxNanos = computed(
+  () =>
+    props.totals?.maxNanos ?? durationsNanos.value.reduce((max, nanos) => Math.max(max, nanos), 0)
+);
+
+/*
+ * Marks printed under the histogram, always from the same population as its bars. The headline
+ * percentiles above prefer the operation-wide totals — correctly, they describe the population —
+ * but the histogram is built from the capped sample, and annotating a sample's chart with the
+ * population's percentiles let the "tail" highlight match every bar or none, and printed a max
+ * beyond the chart's own axis.
+ */
+const chartP50Nanos = computed(() =>
+  props.truncated ? quantileNanos(durationsNanos.value, 0.5) : p50Nanos.value
+);
+const chartP95Nanos = computed(() =>
+  props.truncated ? quantileNanos(durationsNanos.value, 0.95) : p95Nanos.value
+);
+const chartMaxNanos = computed(() =>
+  props.truncated
+    ? durationsNanos.value.reduce((max, nanos) => Math.max(max, nanos), 0)
+    : maxNanos.value
+);
+const totalNanos = computed(
+  () => props.totals?.totalNanos ?? durationsNanos.value.reduce((sum, nanos) => sum + nanos, 0)
 );
 const callCount = computed(() => props.totals?.count ?? props.traces.length);
-const spanCount = computed(() =>
-  props.totals?.spanCount ?? props.traces.reduce((sum, trace) => sum + trace.spanCount, 0)
+const spanCount = computed(
+  () => props.totals?.spanCount ?? props.traces.reduce((sum, trace) => sum + trace.spanCount, 0)
 );
-const failedTraces = computed(() =>
-  props.totals?.errorCount ?? props.traces.filter(trace => trace.errorCount > 0).length
+const failedTraces = computed(
+  () => props.totals?.errorCount ?? props.traces.filter(trace => trace.errorCount > 0).length
 );
 
 /** Says out loud that the panels below are drawn from a slice, so their shape is not over-read. */
@@ -279,7 +349,7 @@ const metrics = computed(() => [
     icon: 'arrow-repeat',
     title: 'Calls',
     value: callCount.value,
-    variant: failedTraces.value > 0 ? 'danger' : undefined,
+    variant: failedTraces.value > 0 ? ('danger' as const) : undefined,
     breakdown: [
       { label: 'Spans', value: spanCount.value },
       { label: 'Failed', value: failedTraces.value }
@@ -300,12 +370,13 @@ const metrics = computed(() => [
     icon: 'stopwatch-fill',
     title: 'Total time',
     value: duration(totalNanos.value),
-    breakdown: shareOfProfile.value === null
-      ? []
-      : [
-          { label: 'Share of traces', value: `${shareOfProfile.value}%` },
-          { label: 'Of', value: duration(props.overview?.totalNanos ?? 0) }
-        ]
+    breakdown:
+      shareOfProfile.value === null
+        ? []
+        : [
+            { label: 'Share of traces', value: `${shareOfProfile.value}%` },
+            { label: 'Of', value: duration(props.overview?.totalNanos ?? 0) }
+          ]
   },
   {
     icon: 'arrow-left-right',
@@ -328,13 +399,20 @@ const bucketCount = computed(() =>
 );
 
 /*
- * P99 has no server-side column, so it is the one latency figure that can only come from the sample.
- * Shown as "—" rather than as a number when the sample is not the population: a p99 over the first
- * thousand traces sitting beside a p95 over all of them is two different questions in one row.
+ * The operation's own p99, aggregated over every trace of the type, exactly like the p50 and p95
+ * beside it. It used to read "—" whenever the fetched list was a sample, because a p99 over the
+ * first thousand traces sitting next to a p95 over all of them is two different questions in one
+ * row; now that the aggregate exists, the row can answer one question throughout.
+ *
+ * The fallback still stands for a deep link into an operation the list did not carry, and still
+ * declines to compute a p99 from a sample.
  */
-const p99Label = computed(() =>
-  props.truncated ? '—' : duration(quantileNanos(durationsNanos.value, 0.99))
-);
+const p99Label = computed(() => {
+  if (props.totals) {
+    return duration(props.totals.p99Nanos);
+  }
+  return props.truncated ? '—' : duration(quantileNanos(durationsNanos.value, 0.99));
+});
 
 const histogram = computed(() => latencyHistogram(durationsNanos.value, bucketCount.value));
 
@@ -401,9 +479,61 @@ function bucketTitle(bucket: { from: number; to: number; count: number }): strin
   return `${duration(bucket.from)} – ${duration(bucket.to)}: ${bucket.count} traces`;
 }
 
+/** Which reading of a span's time the card is ranking by. */
+type SpanMode = 'total' | 'self';
+
+const SPAN_MODES: { key: SpanMode; label: string; title: string }[] = [
+  { key: 'total', label: 'Inclusive', title: 'Time including everything the span called' },
+  { key: 'self', label: 'Self', title: 'Time the span spent on its own work, children excluded' }
+];
+
+const spanMode = ref<SpanMode>('total');
+
+function spanTime(span: TraceOperationSpanRow): number {
+  return spanMode.value === 'self' ? span.selfNanos : span.totalNanos;
+}
+
+/**
+ * Re-ranked for the chosen reading. The server orders by inclusive total, which is the wrong order
+ * for the self view — the point of the toggle is that the two disagree, so leaving the rows where
+ * they were would show a "top spans" list whose top span is not the top one.
+ */
+const rankedSpans = computed(() =>
+  [...spans.value].sort((left, right) => spanTime(right) - spanTime(left))
+);
+
 function spanShare(span: TraceOperationSpanRow): string {
-  const widest = spans.value[0]?.totalNanos ?? 0;
-  return widest <= 0 ? '0%' : `${Math.max(2, (span.totalNanos / widest) * 100)}%`;
+  const widest = rankedSpans.value[0] === undefined ? 0 : spanTime(rankedSpans.value[0]);
+  return widest <= 0 ? '0%' : `${Math.max(2, (spanTime(span) / widest) * 100)}%`;
+}
+
+/** How much of a span's own wall time was its own work rather than something it called. */
+function ownShare(span: TraceOperationSpanRow): string {
+  if (span.totalNanos <= 0) {
+    return '—';
+  }
+  const share = (span.selfNanos / span.totalNanos) * 100;
+  return share < MIN_REPORTED_SHARE_PERCENT ? '<1%' : `${Math.round(share)}%`;
+}
+
+function ownShareTitle(span: TraceOperationSpanRow): string {
+  return `${duration(span.selfNanos)} of ${duration(span.totalNanos)} was this span's own work`;
+}
+
+/**
+ * How widely the span appears across the operation's traces. Called out because it separates the two
+ * shapes a large total can have: every trace paying a little, or a handful paying a lot.
+ */
+function spanReach(span: TraceOperationSpanRow): string {
+  if (span.occurrences === span.traceCount) {
+    return `${span.traceCount} traces`;
+  }
+  const perTrace = span.occurrences / span.traceCount;
+  return `${span.traceCount} traces · ×${perTrace.toFixed(perTrace < 10 ? 1 : 0)}`;
+}
+
+function spanReachTitle(span: TraceOperationSpanRow): string {
+  return `${span.occurrences} occurrences across ${span.traceCount} traces of this operation`;
 }
 
 function spanCountTooltip(value: number): string {
@@ -490,6 +620,44 @@ watch(() => operationKey(props.operation), load, { immediate: true });
   color: var(--color-text-muted);
 }
 
+/* A two-state segmented control, sized to sit inside the card header without crowding the title. */
+.span-mode {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.span-mode button {
+  border: 0;
+  padding: 0.15rem 0.5rem;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+.span-mode button + button {
+  border-left: 1px solid var(--color-border);
+}
+
+.span-mode button:hover {
+  background: var(--color-bg-hover-alt);
+  color: var(--color-dark);
+}
+
+.span-mode button.active {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.span-mode button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
 .histogram {
   flex: 1;
   display: flex;
@@ -555,9 +723,27 @@ watch(() => operationKey(props.operation), load, { immediate: true });
 
 .span-bar {
   display: grid;
+  /* The detail line runs under the bar, in the two columns the bar and its value occupy. */
   grid-template-columns: minmax(7rem, 12rem) 1fr auto;
-  gap: 0.7rem;
+  gap: 0.15rem 0.7rem;
   align-items: center;
+}
+
+/* Second row, starting under the track so the names column stays a clean edge to scan down. */
+.span-detail {
+  grid-column: 2 / -1;
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.span-detail b {
+  font-family: var(--font-family-monospace);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--color-text);
 }
 
 .span-name {

@@ -52,7 +52,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
@@ -66,24 +66,32 @@ import ProfileAsyncProfilerClient from '@/services/api/ProfileAsyncProfilerClien
 import type { SpanOverview, SpanTagStat } from '@/services/api/model/span/SpanModels';
 
 const route = useRoute();
+const router = useRouter();
 const profileId = route.params.profileId as string;
 
 const loading = ref(true);
 const error = ref<string | null>(null);
 const overview = ref<SpanOverview | null>(null);
 const stats = ref<SpanTagStat[]>([]);
-const selectedTag = ref<string | null>(null);
+
+/**
+ * The selection lives in the URL, so a tag's detail can be linked to and Back steps out of it rather
+ * than off the page — the same treatment the trace operations get, which this view is the sibling of.
+ */
+const selectedTag = computed<string | null>(() => (route.query.tag as string | undefined) ?? null);
 
 const selectedStat = computed<SpanTagStat | null>(
   () => stats.value.find(s => s.tag === selectedTag.value) ?? null
 );
 
 function openDetail(tag: string) {
-  selectedTag.value = tag;
+  router.push({ query: { ...route.query, tag } });
 }
 
 function clearSelection() {
-  selectedTag.value = null;
+  const query = { ...route.query };
+  delete query.tag;
+  router.push({ query });
 }
 
 async function loadData() {

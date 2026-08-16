@@ -25,7 +25,7 @@
     <ErrorState v-else-if="error" :message="error" @retry="loadData" />
 
     <EmptyState
-      v-else-if="operations.length === 0"
+      v-else-if="untraced"
       title="No Operations"
       description="No trace-carrying events were recorded in this profile."
       icon="bi-bar-chart-steps"
@@ -33,14 +33,50 @@
 
     <div v-else class="dashboard-container">
       <template v-if="selectedOperation === null">
-        <TraceOperationStats v-if="overview" :operations="operations" :overview="overview" />
-        <!--
-          The tile above says how many operations the profile has; this says how many of them are
-          listed. Without it a capped list reads as the whole set, and the two numbers disagree with
-          no explanation.
-        -->
-        <p v-if="listNote" class="list-note">{{ listNote }}</p>
-        <TraceOperationList :operations="operations" @operation-click="openOperation" />
+        <TraceOperationStats v-if="overview" :overview="overview" />
+
+        <TableToolbar v-model="search" search-placeholder="Filter by operation name...">
+          <template #filters>
+            <button
+              type="button"
+              class="btn btn-sm"
+              :class="errorsOnly ? 'btn-danger' : 'btn-outline-secondary'"
+              @click="errorsOnly = !errorsOnly"
+            >
+              <i class="bi bi-exclamation-triangle"></i> Errors only
+            </button>
+          </template>
+        </TableToolbar>
+
+        <LoadingState
+          v-if="listLoading && operations.length === 0"
+          message="Loading operations..."
+        />
+
+        <ErrorState v-else-if="listError" :message="listError" @retry="loadPage(0)" />
+
+        <EmptyState
+          v-else-if="operations.length === 0"
+          title="No matching operations"
+          description="No operation matches the current filter."
+          icon="bi-search"
+        />
+
+        <template v-else>
+          <TraceOperationList
+            :operations="operations"
+            :sort-key="sortKey"
+            @operation-click="openOperation"
+            @sort-change="changeSort"
+          />
+          <LoadMoreFooter
+            :shown="operations.length"
+            :total="totalMatching"
+            noun="operations"
+            :loading="listLoading"
+            @load-more="loadMore"
+          />
+        </template>
       </template>
 
       <template v-else>
@@ -70,16 +106,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import DetailBreadcrumb from '@shared/components/DetailBreadcrumb.vue';
+import LoadMoreFooter from '@shared/components/LoadMoreFooter.vue';
+import TableToolbar from '@shared/components/table/TableToolbar.vue';
 import TracesDisabledFeatureAlert from '@/components/alerts/TracesDisabledFeatureAlert.vue';
 import TraceOperationStats from '@/components/trace/TraceOperationStats.vue';
 import TraceOperationList from '@/components/trace/TraceOperationList.vue';
+import type { TraceOperationSortKey } from '@/components/trace/TraceOperationList.vue';
 import TraceOperationDetail from '@/components/trace/TraceOperationDetail.vue';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
 import type {
@@ -91,8 +130,10 @@ import type {
 import { operationKey } from '@/services/trace/traceLabels';
 import FeatureType from '@/services/api/model/FeatureType';
 
-/** Ranked by total time, so the cut is the tail rather than an arbitrary slice. */
-const OPERATIONS_LIMIT = 100;
+/** One page of operations. Ranked by whatever the sort says, so the cut is always the tail of it. */
+const PAGE_SIZE = 50;
+/** How long to wait for typing to settle before asking the server again. */
+const SEARCH_DEBOUNCE_MILLIS = 250;
 
 const props = defineProps<{ disabledFeatures: FeatureType[] }>();
 
@@ -100,17 +141,39 @@ const route = useRoute();
 const router = useRouter();
 
 const operations = ref<TraceOperationRow[]>([]);
+const totalMatching = ref(0);
 const overview = ref<TraceOverview | null>(null);
 const loading = ref(true);
+const listLoading = ref(false);
+/**
+ * Failures of the incremental list fetches stay inside the list region. They used to write the
+ * page-level `error`, so one failed "Load more" or filter refetch blanked the stats, the timeline
+ * and every row already on screen, replacing a page of good data with a whole-page error.
+ */
+const listError = ref<string | null>(null);
 const error = ref<string | null>(null);
-const truncated = ref(false);
 
-const listNote = computed<string | null>(() => {
-  if (!truncated.value) {
-    return null;
-  }
-  return `Showing the ${OPERATIONS_LIMIT} operations with the most total time`;
-});
+const SORT_KEYS = new Set<string>(['TOTAL_TIME', 'P95', 'P99', 'MAX', 'COUNT', 'ERRORS']);
+const DEFAULT_SORT: TraceOperationSortKey = 'TOTAL_TIME';
+
+/*
+ * The filter lives in the URL, so a filtered list is shareable — same contract as the sibling
+ * Slowest Traces page. Seeded here, mirrored back by the watcher below.
+ */
+const initialQuery = route.query;
+const search = ref((initialQuery.q as string | undefined) ?? '');
+const errorsOnly = ref(initialQuery.errors === '1');
+const sortKey = ref<TraceOperationSortKey>(
+  SORT_KEYS.has(initialQuery.sort as string)
+    ? (initialQuery.sort as TraceOperationSortKey)
+    : DEFAULT_SORT
+);
+
+/**
+ * Whether the profile holds no traces at all, as opposed to none matching the filter — only the
+ * first of those means the page has nothing to offer.
+ */
+const untraced = computed(() => (overview.value?.distinctOperations ?? 0) === 0);
 
 const profileId = computed(() => route.params.profileId as string);
 
@@ -146,9 +209,12 @@ const selectedTotals = computed<TraceOperationRow | null>(() => {
 });
 
 function openOperation(operation: TraceOperationRow): void {
+  // Any lingering ?tab= belongs to a previously viewed operation, not this one.
+  const query = { ...route.query };
+  delete query.tab;
   router.push({
     query: {
-      ...route.query,
+      ...query,
       operation: operation.name,
       kind: operation.kind,
       eventType: operation.eventType
@@ -161,6 +227,7 @@ function clearSelection(): void {
   delete query.operation;
   delete query.kind;
   delete query.eventType;
+  delete query.tab;
   router.push({ query });
 }
 
@@ -168,21 +235,79 @@ async function loadData(): Promise<void> {
   loading.value = true;
   error.value = null;
   try {
-    const client = new ProfileTracesClient(profileId.value);
-    const [operationRows, overviewData] = await Promise.all([
-      // One past the cap, so a list that merely filled it can be told apart from one that was cut.
-      client.getOperations(OPERATIONS_LIMIT + 1),
-      client.getOverview()
-    ]);
-    truncated.value = operationRows.length > OPERATIONS_LIMIT;
-    operations.value = truncated.value ? operationRows.slice(0, OPERATIONS_LIMIT) : operationRows;
-    overview.value = overviewData;
+    overview.value = await new ProfileTracesClient(profileId.value).getOverview();
+    await loadPage(0);
   } catch {
     error.value = 'Failed to load the trace operations for this profile.';
   } finally {
     loading.value = false;
   }
 }
+
+/** One page of the current filter; an offset of zero replaces the list, anything else appends. */
+async function loadPage(offset: number): Promise<void> {
+  listLoading.value = true;
+  listError.value = null;
+  try {
+    const page = await new ProfileTracesClient(profileId.value).getOperations({
+      search: search.value,
+      errorsOnly: errorsOnly.value,
+      sort: sortKey.value,
+      limit: PAGE_SIZE,
+      offset
+    });
+    operations.value = offset === 0 ? page.operations : [...operations.value, ...page.operations];
+    totalMatching.value = page.totalMatching;
+  } catch {
+    listError.value = 'Failed to load the operations for this filter.';
+  } finally {
+    listLoading.value = false;
+  }
+}
+
+function loadMore(): void {
+  loadPage(operations.value.length);
+}
+
+function changeSort(key: TraceOperationSortKey): void {
+  sortKey.value = key;
+}
+
+// Debounced because the search box changes on every keystroke; the sort and the toggle do not, but
+// sharing one watcher keeps the refetch in a single place.
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
+watch([search, errorsOnly, sortKey], () => {
+  syncFilterQuery();
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => loadPage(0), SEARCH_DEBOUNCE_MILLIS);
+});
+
+/**
+ * Mirrors the filter into the URL. Replaced, not pushed — a filter is view state, and Back should
+ * step out of the page, not backspace through a search term. Defaults are left out so an unfiltered
+ * link stays clean.
+ */
+function syncFilterQuery(): void {
+  const next = { ...route.query };
+  if (search.value) {
+    next.q = search.value;
+  } else {
+    delete next.q;
+  }
+  if (errorsOnly.value) {
+    next.errors = '1';
+  } else {
+    delete next.errors;
+  }
+  if (sortKey.value !== DEFAULT_SORT) {
+    next.sort = sortKey.value;
+  } else {
+    delete next.sort;
+  }
+  router.replace({ query: next });
+}
+
+onUnmounted(() => clearTimeout(searchTimer));
 
 onMounted(() => {
   if (featureDisabled.value) {
@@ -192,12 +317,3 @@ onMounted(() => {
   }
 });
 </script>
-
-<style scoped>
-
-.list-note {
-  margin: 0 0 var(--space-2, 0.5rem);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-}
-</style>

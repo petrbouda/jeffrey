@@ -17,7 +17,7 @@
   -->
 
 <script setup lang="ts">
-import { computed, onBeforeMount, ref } from 'vue';
+import { computed, onBeforeMount, ref, shallowRef } from 'vue';
 import { useRoute } from 'vue-router';
 
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
@@ -58,7 +58,9 @@ const isTracingDisabled = computed(() => {
 const overviewData = ref<MethodTracingOverviewData | null>(null);
 
 // Flamegraph infrastructure
-const graphUpdater = ref<GraphUpdater | null>(null);
+// shallowRef, not ref: deep unwrapping maps over the class instance and drops its private
+// fields, so the template value stopped being assignable to props typed as GraphUpdater.
+const graphUpdater = shallowRef<GraphUpdater | null>(null);
 const flamegraphTooltip = ref<FlamegraphTooltip | null>(null);
 
 // Configuration - reactive for dynamic updates

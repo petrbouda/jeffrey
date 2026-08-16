@@ -26,16 +26,18 @@
 import { computed } from 'vue';
 import StatsTable from '@shared/components/table/StatsTable.vue';
 import FormattingService from '@shared/services/FormattingService';
-import { operationTotals } from '@/services/trace/traceOperationMetrics';
-import type { TraceOperationRow, TraceOverview } from '@/services/api/model/trace/TraceModels';
+import type { TraceOverview } from '@/services/api/model/trace/TraceModels';
 
 const props = defineProps<{
-  operations: TraceOperationRow[];
   overview: TraceOverview;
 }>();
 
-const totals = computed(() => operationTotals(props.operations));
-
+/*
+ * Every figure here comes from the profile-wide overview, never from the loaded page. The tiles
+ * used to reduce "slowest" and "worst p95" over the operations currently fetched, which made a
+ * headline KPI change value whenever the user sorted, filtered or loaded more — and put page-wide
+ * and profile-wide numbers side by side in one row with nothing telling them apart.
+ */
 const metrics = computed(() => [
   {
     icon: 'bar-chart-steps',
@@ -49,15 +51,12 @@ const metrics = computed(() => [
   },
   {
     icon: 'clock-fill',
-    title: 'Slowest Operation',
-    value: FormattingService.formatDuration2Units(totals.value.slowestNanos),
+    title: 'Slowest Trace',
+    value: FormattingService.formatDuration2Units(props.overview.maxNanos),
     variant: 'highlight' as const,
     breakdown: [
       { label: 'Total', value: FormattingService.formatDuration2Units(props.overview.totalNanos) },
-      {
-        label: 'Worst P95',
-        value: FormattingService.formatDuration2Units(totals.value.worstP95Nanos)
-      }
+      { label: 'P99', value: FormattingService.formatDuration2Units(props.overview.p99Nanos) }
     ]
   }
 ]);

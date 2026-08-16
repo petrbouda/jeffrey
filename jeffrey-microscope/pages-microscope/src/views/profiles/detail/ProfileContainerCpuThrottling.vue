@@ -326,7 +326,6 @@ const selectWindow = (w: ThrottledWindow) => {
 
 // ---- flamegraph drill-down (mirrors ProfileSubSecondView.vue) ----
 const showDialog = ref(false);
-const subSecondRef = ref<InstanceType<typeof SubSecondComponent> | null>(null);
 let graphUpdater: GraphUpdater;
 let flamegraphTooltip: FlamegraphTooltip;
 let flamegraphClient: PrimaryFlamegraphClient;

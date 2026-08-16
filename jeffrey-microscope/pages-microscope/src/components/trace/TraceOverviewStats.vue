@@ -32,6 +32,21 @@ const props = defineProps<{
   overview: TraceOverview;
 }>();
 
+/** Below this a rate rounds to 0%, where the count on its own is the more honest reading. */
+const MIN_REPORTED_PERCENT = 0.1;
+
+function failedLabel(failed: number, total: number): string {
+  const count = FormattingService.formatNumber(failed);
+  if (failed === 0 || total === 0) {
+    return count;
+  }
+  const rate = (failed / total) * 100;
+  if (rate < MIN_REPORTED_PERCENT) {
+    return `${count} (<0.1%)`;
+  }
+  return `${count} (${rate.toFixed(rate < 10 ? 1 : 0)}%)`;
+}
+
 // Two tiles, two breakdown items each -- the discipline the Spans overview keeps. The list below
 // answers "which run", so the tiles only have to answer "how much" and "how slow".
 const metrics = computed(() => {
@@ -46,7 +61,9 @@ const metrics = computed(() => {
         { label: 'Spans', value: FormattingService.formatNumber(overview.totalSpans) },
         {
           label: 'Failed',
-          value: FormattingService.formatNumber(overview.errorTraces),
+          // With the rate: a bare count of failures cannot be read without knowing what it is out
+          // of, and 12 means something very different against 15 traces than against 15,000.
+          value: failedLabel(overview.errorTraces, overview.totalTraces),
           // Failures painted in the tile's success green read as "all good" at a glance.
           color: overview.errorTraces > 0 ? 'var(--color-danger)' : undefined
         }

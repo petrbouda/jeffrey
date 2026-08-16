@@ -74,9 +74,40 @@
               </span>
             </div>
 
+            <!--
+              The critical path is a different question from the meter above it -- not "where did
+              this span's time go" but "did this span decide how long the trace took" -- so it gets
+              its own line rather than a third slice of a bar that is already fully accounted for.
+            -->
+            <p class="sd-crit" :class="{ off: span.criticalPathNanos === 0 }">
+              <i
+                :class="span.criticalPathNanos > 0 ? 'bi bi-signpost-split-fill' : 'bi bi-signpost'"
+              ></i>
+              <span v-if="span.criticalPathNanos > 0">
+                <b>{{ FormattingService.formatDuration2Units(span.criticalPathNanos) }}</b>
+                on the critical path{{ criticalShareOfTrace }}
+              </span>
+              <span v-else> not on the critical path — it ran beside work that outlasted it </span>
+            </p>
+
+            <!--
+              What the thread was waiting on inside this span. Sits under the meter because it
+              explains the solid green rather than competing with it: self time says how much was
+              the span's own, this says how much of that was spent not running.
+            -->
+            <p v-if="spanWaits.length > 0" class="sd-waits">
+              <span v-for="wait in spanWaits" :key="wait.category" :title="waitTitle(wait)">
+                <i :style="{ background: contextColor(wait.category) }"></i>
+                {{ contextLabel(wait.category) }}
+                <b>{{ FormattingService.formatDuration2Units(wait.totalNanos) }}</b>
+              </span>
+            </p>
+
             <p class="sd-foot">
               <span>{{ shape }}</span>
-              <span>started <b>{{ startedAt }}</b> into the recording</span>
+              <span
+                >started <b>{{ startedAt }}</b> into the recording</span
+              >
             </p>
           </div>
         </section>
@@ -98,6 +129,16 @@
               <tr>
                 <td class="sd-k">thread</td>
                 <td class="sd-v">{{ span.threadName ?? span.threadHash }}</td>
+              </tr>
+              <!--
+                The one absolute instant in the panel, for lining the span up against application
+                logs — every other time here is relative to the recording or the trace on purpose.
+              -->
+              <tr>
+                <td class="sd-k">started (UTC)</td>
+                <td class="sd-v">
+                  {{ FormattingService.formatTimestamp(Math.floor(span.startEpochMicros / 1000)) }}
+                </td>
               </tr>
               <tr>
                 <td class="sd-k">source event</td>
@@ -167,12 +208,15 @@ import { NANOS_PER_MILLI } from '@/services/trace/timeUnits';
 import { computed } from 'vue';
 import Badge from '@shared/components/Badge.vue';
 import FormattingService from '@shared/services/FormattingService';
-import type { EventFieldRow, TraceSpanRow } from '@/services/api/model/trace/TraceModels';
-import { spanKindVariant } from '@/services/trace/traceLabels';
+import type {
+  EventFieldRow,
+  TraceContextSlice,
+  TraceSpanRow
+} from '@/services/api/model/trace/TraceModels';
+import { contextColor, contextLabel, spanKindVariant } from '@/services/trace/traceLabels';
 import type { SpanDetailRow } from '@/services/trace/spanAttributes';
 import { spanDetail } from '@/services/trace/spanAttributes';
 import { indentRem } from '@/services/trace/TraceWaterfallLayout';
-
 
 /** Below this, a share rounds to 0% and the number itself says more than the percentage. */
 const MIN_REPORTED_PERCENT = 0.1;
@@ -187,6 +231,18 @@ const props = defineProps<{
    * thread has no child time to show and is still not a leaf.
    */
   childCount: number;
+  /**
+   * The trace's end-to-end duration, only so the span's critical-path share can be stated as a
+   * percentage. Zero when the caller has nothing to compare against, which drops the percentage
+   * rather than dividing by it.
+   */
+  traceDurationNanos?: number;
+  /**
+   * What this span's thread spent waiting on, longest first. Empty for a span that only ever ran —
+   * and also before the context request lands, which is why its absence draws nothing rather than
+   * an empty section claiming the span never waited.
+   */
+  waits?: TraceContextSlice[];
 }>();
 
 defineEmits<{
@@ -194,7 +250,9 @@ defineEmits<{
   (event: 'viewFlamegraph'): void;
 }>();
 
-const detail = computed(() => spanDetail(props.span.attributes, props.span.eventFields, props.fields));
+const detail = computed(() =>
+  spanDetail(props.span.attributes, props.span.eventFields, props.fields)
+);
 
 /** A hand-written span has no event view: its own fields are already the span's. */
 const hasEventView = computed(
@@ -248,6 +306,23 @@ const meterTitle = computed(
 const startedAt = computed(() =>
   FormattingService.formatDuration2Units(props.span.startMillisFromBeginning * NANOS_PER_MILLI)
 );
+
+/** Anything that came to nothing is dropped: a category with no time is not a finding. */
+const spanWaits = computed(() => (props.waits ?? []).filter(wait => wait.totalNanos > 0));
+
+function waitTitle(wait: TraceContextSlice): string {
+  const events = wait.occurrences === 1 ? '1 event' : `${wait.occurrences} events`;
+  return `${contextLabel(wait.category)} · ${events} while this span was open`;
+}
+
+/** The share of the whole trace this span decided, when the caller knows the trace's duration. */
+const criticalShareOfTrace = computed(() => {
+  const traceNanos = props.traceDurationNanos ?? 0;
+  if (traceNanos <= 0) {
+    return '';
+  }
+  return ` · ${percent(props.span.criticalPathNanos, traceNanos)} of the trace`;
+});
 
 function keyCount(rows: SpanDetailRow[]): string {
   return rows.length === 1 ? '1 key' : `${rows.length} keys`;
@@ -439,6 +514,54 @@ function percent(part: number, whole: number): string {
 
 .sd-leg > span {
   color: var(--color-text-muted);
+}
+
+/* One chip per category, reading as a sentence about the span rather than as a second table. */
+.sd-waits {
+  margin: 0 0 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.75rem;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.sd-waits span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.sd-waits i {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-xs);
+  flex: none;
+}
+
+.sd-waits b {
+  font-family: var(--font-family-monospace);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* Same weight as the footer below it, with the accent the waterfall marks critical rows in. */
+.sd-crit {
+  margin: 0 0 0.35rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--color-warning);
+}
+.sd-crit.off {
+  color: var(--color-text-muted);
+}
+.sd-crit b {
+  font-family: var(--font-family-monospace);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 
 .sd-foot {

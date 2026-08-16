@@ -34,11 +34,21 @@
       :note="note"
     />
     <div class="slowest-list">
+      <!--
+        Keyboard-operable: opening a row is these lists' primary action, and as a plain div it was
+        unreachable without a mouse. The click handler also stands down while the user is selecting
+        text — the ids on these rows exist to be copied, and finishing a drag-select used to open
+        the drill-down instead.
+      -->
       <div
         v-for="(item, index) in displayedItems"
         :key="itemKey(item, index)"
         class="slowest-row"
-        @click="emit('rowClick', item)"
+        role="button"
+        tabindex="0"
+        @click="onRowClick(item)"
+        @keydown.enter.prevent="emit('rowClick', item)"
+        @keydown.space.prevent="emit('rowClick', item)"
       >
         <!-- The gutter carries the outcome: a failed row is visible before anything is read. -->
         <div class="left-accent" :class="`accent-${rowAccent(item)}`"></div>
@@ -96,12 +106,18 @@ const props = withDefaults(
     accent?: (item: T) => SlowestRowAccent;
     /** Time-bar ramp. Omitted = every row on the brand ramp. */
     tone?: (item: T) => SlowestRowTone;
-    /** Rows rendered; the bar scale still uses the full list. */
+    /** Rows rendered; the bar scale still uses the full list. Ignored when `serverOrdered`. */
     limit?: number;
     /** Header denominator when the caller knows a truer total than `items.length`. */
     total?: number;
     /** Overrides the header's "sorted by duration". */
     note?: string;
+    /**
+     * Take `items` exactly as given — already ordered and already the page. For a caller whose
+     * server did the sorting and the paging: re-sorting here would reorder a page that was cut from
+     * a different order, and slicing it again would hide rows the caller deliberately fetched.
+     */
+    serverOrdered?: boolean;
   }>(),
   {
     icon: undefined,
@@ -109,7 +125,8 @@ const props = withDefaults(
     tone: undefined,
     limit: 50,
     total: undefined,
-    note: undefined
+    note: undefined,
+    serverOrdered: false
   }
 );
 
@@ -117,9 +134,21 @@ const emit = defineEmits<{
   rowClick: [item: T];
 }>();
 
-const displayedItems = computed(() =>
-  [...props.items].sort((a, b) => props.duration(b) - props.duration(a)).slice(0, props.limit)
-);
+/** Swallows the click that ends a text selection, so copying an id does not open the row. */
+function onRowClick(item: T): void {
+  const selection = window.getSelection();
+  if (selection && !selection.isCollapsed) {
+    return;
+  }
+  emit('rowClick', item);
+}
+
+const displayedItems = computed(() => {
+  if (props.serverOrdered) {
+    return props.items;
+  }
+  return [...props.items].sort((a, b) => props.duration(b) - props.duration(a)).slice(0, props.limit);
+});
 
 // Scaled to the slowest row in the whole list, not just the displayed page, so the bars keep
 // meaning when the list is truncated. reduce, not Math.max(...list), which overflows the
@@ -165,6 +194,12 @@ function rowTone(item: T): SlowestRowTone {
   border-bottom: 1px solid var(--color-border-light);
   padding: 0.75rem 0;
   cursor: pointer;
+}
+
+.slowest-row:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
 }
 
 .slowest-row:last-child {

@@ -90,7 +90,7 @@ const createHistogramChart = async () => {
       }
     ],
     chart: {
-      type: 'bar',
+      type: 'bar' as const,
       height: 350,
       toolbar: { show: false },
       animations: { enabled: true }

@@ -32,10 +32,11 @@
           class="ev-mk"
           :style="{
             left: mainLeft(ev.offset) + '%',
+            width: markerWidth(ev),
             top: rowTop(ev.eventType) + 'px',
             background: `var(${colorOf(ev.eventType)})`
           }"
-          :title="ev.eventType + ' · +' + compact(ev.offset)"
+          :title="markerTitle(ev)"
         ></span>
       </div>
       <div class="ev-axis">
@@ -66,23 +67,27 @@
         </button>
       </div>
       <div class="ev-breakdown">
-        <div
-          v-for="b in breakdown"
-          :key="b.type"
-          class="ev-bd"
-          :class="{ 'ev-bd-off': !isTypeVisible(b.type) }"
-          role="button"
-          tabindex="0"
-          :title="isTypeVisible(b.type) ? `Hide ${b.type}` : `Show ${b.type}`"
-          @click="toggleType(b.type)"
-          @keydown.enter.prevent="toggleType(b.type)"
-        >
-          <span class="ev-dot" :style="{ background: `var(${b.color})` }"></span>
-          <span class="ev-bd-type">{{ b.type }}</span>
-          <span class="ev-bd-bar">
-            <i :style="{ width: b.pct + '%', background: `var(${b.color})` }"></i>
-          </span>
-          <span class="ev-bd-ct">{{ b.count }}</span>
+        <!--
+          The toggle is a real button and the flamegraph action its sibling, never its child: an
+          interactive control inside another is invalid markup that assistive tech cannot resolve,
+          and the old role="button" wrapper answered Enter but not Space.
+        -->
+        <div v-for="b in breakdown" :key="b.type" class="ev-bd">
+          <button
+            type="button"
+            class="ev-bd-toggle"
+            :class="{ 'ev-bd-off': !isTypeVisible(b.type) }"
+            :aria-pressed="isTypeVisible(b.type)"
+            :title="isTypeVisible(b.type) ? `Hide ${b.type}` : `Show ${b.type}`"
+            @click="toggleType(b.type)"
+          >
+            <span class="ev-dot" :style="{ background: `var(${b.color})` }"></span>
+            <span class="ev-bd-type">{{ b.type }}</span>
+            <span class="ev-bd-bar">
+              <i :style="{ width: b.pct + '%', background: `var(${b.color})` }"></i>
+            </span>
+            <span class="ev-bd-ct">{{ b.count }}</span>
+          </button>
           <button
             v-if="b.fg"
             type="button"
@@ -90,7 +95,6 @@
             :class="`ev-fg-${b.fg.tone}`"
             :title="`Open ${b.type} as a flamegraph for this span`"
             @click.stop="emit('flamegraph', b.type)"
-            @keydown.enter.stop
           >
             <i class="bi bi-fire"></i> Flamegraph
           </button>
@@ -182,8 +186,15 @@ export interface EventWindowRow {
 const NANOS_PER_MILLI = 1_000_000;
 /** A drag shorter than this is a mis-click, not a selection. */
 const MIN_WINDOW_MS = 50;
+/**
+ * The effective floor never exceeds a quarter of the span: a fixed 50ms minimum made the brush a
+ * silent no-op on any span shorter than that, and short spans are exactly the ones people zoom into.
+ */
+const minWindowMs = () => Math.min(MIN_WINDOW_MS, Math.max(1, props.windowMillis / 4));
 const FIELDS_MAX = 80;
 const ROW_STEP = 16;
+/** Narrowest a marker may be drawn: an instantaneous event still has to be visible and clickable. */
+const MARKER_MIN_WIDTH_PX = 3;
 const AXIS_TICKS = 6;
 
 const props = defineProps<{
@@ -307,6 +318,31 @@ const brushStyle = computed(() => ({
   width: ((viewE.value - viewS.value) / props.windowMillis) * 100 + '%'
 }));
 
+/**
+ * How wide an event is drawn: its real duration against the view, floored at the marker's own width.
+ *
+ * An event that lasted is a stretch of time, not an instant, and drawing a 90ms lock wait as the
+ * same 3px tick as a 2µs allocation hid the one thing the reader came for. The floor keeps a genuine
+ * instant visible and clickable, so the lane still reads as a series of marks rather than a bar
+ * chart with gaps.
+ */
+function markerWidth(event: OffsetEvent): string {
+  if (event.durationNanos <= 0) {
+    return `${MARKER_MIN_WIDTH_PX}px`;
+  }
+  const endOffset = event.offset + event.durationNanos / NANOS_PER_MILLI;
+  const widthPercent = mainLeft(endOffset) - mainLeft(event.offset);
+  return `max(${MARKER_MIN_WIDTH_PX}px, ${widthPercent}%)`;
+}
+
+function markerTitle(event: OffsetEvent): string {
+  const at = `${event.eventType} · +${compact(event.offset)}`;
+  if (event.durationNanos <= 0) {
+    return at;
+  }
+  return `${at} · ${FormattingService.formatDuration2Units(event.durationNanos)}`;
+}
+
 function mainLeft(offset: number): number {
   return positionPercent(offset, viewS.value, viewE.value);
 }
@@ -369,9 +405,9 @@ function onBrushMove(event: PointerEvent): void {
   const current = pointerToMillis(event.clientX);
   let from = Math.min(brushAnchor, current);
   let to = Math.max(brushAnchor, current);
-  if (to - from < MIN_WINDOW_MS) {
-    to = Math.min(props.windowMillis, from + MIN_WINDOW_MS);
-    from = Math.max(0, to - MIN_WINDOW_MS);
+  if (to - from < minWindowMs()) {
+    to = Math.min(props.windowMillis, from + minWindowMs());
+    from = Math.max(0, to - minWindowMs());
   }
   viewS.value = from;
   viewE.value = to;
@@ -554,8 +590,32 @@ onUnmounted(onBrushUp);
   background: var(--color-light);
 }
 
+/* The toggle inherits the row's typography; the row itself is no longer interactive. */
+.ev-bd-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ev-bd-toggle:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+  border-radius: var(--radius-sm);
+}
+
+/* Off is a struck-through label, matching the waterfall's category toggles — not colour alone. */
 .ev-bd-off {
-  opacity: 0.4;
+  opacity: 0.55;
+  text-decoration: line-through;
 }
 
 .ev-bd-type {

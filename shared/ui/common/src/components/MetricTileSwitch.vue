@@ -25,7 +25,7 @@
   Selection is owned by the parent through v-model, the same contract as TabBar.
 -->
 <template>
-  <div class="metric-tile-switch" role="group" :aria-label="ariaLabel">
+  <div class="metric-tile-switch" role="group" :aria-label="groupLabel">
     <button
       v-for="tile in tiles"
       :key="tile.id"
@@ -64,7 +64,7 @@ export interface MetricTile {
 
 defineProps<{
   tiles: MetricTile[];
-  ariaLabel: string;
+  groupLabel: string;
 }>();
 
 const modelValue = defineModel<string>({ required: true });

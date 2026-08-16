@@ -284,7 +284,7 @@
           />
         </DrawerField>
 
-        <DrawerField label="Reference ID" required :error="referenceIdError" :disabled="creating">
+        <DrawerField label="Reference ID" required :error="referenceIdError ?? undefined" :disabled="creating">
           <input
             v-model="createForm.referenceId"
             type="text"

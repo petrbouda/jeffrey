@@ -171,7 +171,7 @@ export default class Flamegraph {
         const tooltipContent = this.flamegraphTooltip.generate(
           frame,
           this.levels[0][0].totalSamples,
-          this.levels[0][0].totalWeight
+          this.levels[0][0].totalWeight ?? 0
         );
 
         this.tooltip.showTooltip(event, tooltipContent);
@@ -508,7 +508,7 @@ export default class Flamegraph {
   private color(frame: Frame): string {
     // Differential flamegraph - compute color from diff details
     if (frame.diffDetails) {
-      const totalValue = this.useWeight ? frame.totalWeight : frame.totalSamples;
+      const totalValue = (this.useWeight ? frame.totalWeight : frame.totalSamples) ?? 0;
       const diffValue = this.useWeight ? frame.diffDetails.weight : frame.diffDetails.samples;
       // Reconstruct primary and secondary from total (primary + secondary) and diff (primary - secondary)
       const primary = (totalValue + diffValue) / 2;
@@ -521,7 +521,7 @@ export default class Flamegraph {
 
   private totalValue(frame: Frame): number {
     if (this.useWeight) {
-      return frame.totalWeight;
+      return frame.totalWeight ?? 0;
     } else {
       return frame.totalSamples;
     }
@@ -529,7 +529,7 @@ export default class Flamegraph {
 
   private leftDistance(frame: Frame): number {
     if (this.useWeight) {
-      return frame.leftWeight;
+      return frame.leftWeight ?? 0;
     } else {
       return frame.leftSamples;
     }

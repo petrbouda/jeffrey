@@ -49,7 +49,11 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(row, index) in EXAMPLE_ROWS" :key="index" :class="{ platform: !row.virtual }">
+            <tr
+              v-for="(row, index) in EXAMPLE_ROWS"
+              :key="index"
+              :class="{ platform: !row.virtual }"
+            >
               <td :class="`indent-${row.depth}`">{{ row.span }}</td>
               <td>{{ row.thread }}</td>
               <td>
@@ -109,13 +113,62 @@ const EXAMPLE_TRACE = 'POST /api/internal/recordings/…/analyze';
  * The parse forks onto pool threads, which is exactly where the samples start matching.
  */
 const EXAMPLE_ROWS: ExampleRow[] = [
-  { span: 'POST /api/…/analyze', thread: 'tomcat-handler-53', virtual: true, duration: '4173ms', samples: 0, depth: 0 },
-  { span: 'profile.initialize', thread: 'tomcat-handler-53', virtual: true, duration: '4102ms', samples: 0, depth: 1 },
-  { span: 'recording.parse', thread: 'tomcat-handler-53', virtual: true, duration: '2797ms', samples: 0, depth: 2 },
-  { span: 'chunk.parse', thread: 'bulk-parallel', virtual: false, duration: '2730ms', samples: 153, depth: 3 },
-  { span: 'chunk.parse', thread: 'bulk-parallel', virtual: false, duration: '2571ms', samples: 140, depth: 3 },
-  { span: 'profile.data-init', thread: 'tomcat-handler-53', virtual: true, duration: '933ms', samples: 0, depth: 2 },
-  { span: 'guardian.results', thread: 'parallel', virtual: false, duration: '932ms', samples: 63, depth: 3 }
+  {
+    span: 'POST /api/…/analyze',
+    thread: 'tomcat-handler-53',
+    virtual: true,
+    duration: '4173ms',
+    samples: 0,
+    depth: 0
+  },
+  {
+    span: 'profile.initialize',
+    thread: 'tomcat-handler-53',
+    virtual: true,
+    duration: '4102ms',
+    samples: 0,
+    depth: 1
+  },
+  {
+    span: 'recording.parse',
+    thread: 'tomcat-handler-53',
+    virtual: true,
+    duration: '2797ms',
+    samples: 0,
+    depth: 2
+  },
+  {
+    span: 'chunk.parse',
+    thread: 'bulk-parallel',
+    virtual: false,
+    duration: '2730ms',
+    samples: 153,
+    depth: 3
+  },
+  {
+    span: 'chunk.parse',
+    thread: 'bulk-parallel',
+    virtual: false,
+    duration: '2571ms',
+    samples: 140,
+    depth: 3
+  },
+  {
+    span: 'profile.data-init',
+    thread: 'tomcat-handler-53',
+    virtual: true,
+    duration: '933ms',
+    samples: 0,
+    depth: 2
+  },
+  {
+    span: 'guardian.results',
+    thread: 'parallel',
+    virtual: false,
+    duration: '932ms',
+    samples: 63,
+    depth: 3
+  }
 ];
 
 const props = defineProps<{
@@ -267,9 +320,15 @@ const reason = computed(() =>
 }
 
 /* Qualified by the table, or `.vt-table td`'s own padding wins and the tree renders flat. */
-.vt-table td.indent-1 { padding-left: 1.6rem; }
-.vt-table td.indent-2 { padding-left: 2.6rem; }
-.vt-table td.indent-3 { padding-left: 3.6rem; }
+.vt-table td.indent-1 {
+  padding-left: 1.6rem;
+}
+.vt-table td.indent-2 {
+  padding-left: 2.6rem;
+}
+.vt-table td.indent-3 {
+  padding-left: 3.6rem;
+}
 
 .vt-kind {
   font-size: 0.62rem;

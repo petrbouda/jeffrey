@@ -16,9 +16,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-import PoolConfiguration from '@/services/profile/custom/jdbc/model/PoolConfiguration.ts';
-import PoolStatistics from '@/services/profile/custom/jdbc/model/PoolStatistics.ts';
-import PoolEventStatistics from '@/services/profile/custom/jdbc/model/PoolEventStatistics.ts';
+import PoolConfiguration from '@/services/api/model/PoolConfiguration.ts';
+import PoolStatistics from '@/services/api/model/PoolStatistics.ts';
+import PoolEventStatistics from '@/services/api/model/PoolEventStatistics.ts';
 
 export default class PoolData {
   constructor(

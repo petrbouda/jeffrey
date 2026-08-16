@@ -23,8 +23,10 @@
     :count="operation => operation.count"
     count-label="calls"
     :sort-options="sortOptions"
-    initial-sort="totalNanos"
+    :initial-sort="sortKey"
+    server-ordered
     @item-click="operation => $emit('operationClick', operation)"
+    @sort-change="key => $emit('sortChange', key as TraceOperationSortKey)"
   >
     <template #name="{ item }">
       <div class="operation-title">
@@ -37,7 +39,13 @@
           print and JMC all spell it.
         -->
         <span class="operation-tags">
-          <Badge :value="item.eventType" variant="secondary" size="s" borderless :uppercase="false" />
+          <Badge
+            :value="item.eventType"
+            variant="secondary"
+            size="s"
+            borderless
+            :uppercase="false"
+          />
           <Badge :value="item.kind" :variant="spanKindVariant(item.kind)" size="s" borderless />
         </span>
       </div>
@@ -72,6 +80,17 @@
         size="s"
         borderless
       />
+      <!--
+        Shown unconditionally, unlike the summary's p99, because this one is aggregated over every
+        trace of the type rather than over the page the list happens to hold.
+      -->
+      <Badge
+        key-label="P99"
+        :value="FormattingService.formatDuration2Units(item.p99Nanos)"
+        variant="info"
+        size="s"
+        borderless
+      />
       <Badge
         key-label="Max"
         :value="FormattingService.formatDuration2Units(item.maxNanos)"
@@ -100,25 +119,42 @@ import MetricCardList from '@shared/components/MetricCardList.vue';
 import MetricName from '@/components/common/MetricName.vue';
 import { parseGroupedName } from '@/services/metricName';
 import type { MetricSortOption } from '@shared/components/MetricCardList.vue';
-import type { TraceOperationRow } from '@/services/api/model/trace/TraceModels';
+import type {
+  TraceOperationRow,
+  TraceOperationSortField
+} from '@/services/api/model/trace/TraceModels';
 import { errorLabel, operationKey, spanKindVariant } from '@/services/trace/traceLabels';
+
+/** The subset of the backend's sort fields this list offers a button for. */
+export type TraceOperationSortKey = Extract<
+  TraceOperationSortField,
+  'TOTAL_TIME' | 'P95' | 'P99' | 'MAX' | 'COUNT' | 'ERRORS'
+>;
 
 defineProps<{
   operations: TraceOperationRow[];
+  /** Which button is pressed. Owned by the caller, since it is the caller that fetches the order. */
+  sortKey: TraceOperationSortKey;
 }>();
 
 defineEmits<{
   operationClick: [operation: TraceOperationRow];
+  sortChange: [key: TraceOperationSortKey];
 }>();
 
+/*
+ * Keyed by the backend's own sort names, so a pressed button is the value the next request sends and
+ * nothing has to translate between two vocabularies. The comparators are what each key means; the
+ * server is what actually applies them, since it holds rows this page has not fetched.
+ */
 const sortOptions: MetricSortOption[] = [
-  { key: 'totalNanos', label: 'Total', compare: (a, b) => b.totalNanos - a.totalNanos },
-  { key: 'p95Nanos', label: 'P95', compare: (a, b) => b.p95Nanos - a.p95Nanos },
-  { key: 'maxNanos', label: 'Max', compare: (a, b) => b.maxNanos - a.maxNanos },
-  { key: 'count', label: 'Count', compare: (a, b) => b.count - a.count },
-  { key: 'errorCount', label: 'Errors', compare: (a, b) => b.errorCount - a.errorCount }
+  { key: 'TOTAL_TIME', label: 'Total', compare: (a, b) => b.totalNanos - a.totalNanos },
+  { key: 'P95', label: 'P95', compare: (a, b) => b.p95Nanos - a.p95Nanos },
+  { key: 'P99', label: 'P99', compare: (a, b) => b.p99Nanos - a.p99Nanos },
+  { key: 'MAX', label: 'Max', compare: (a, b) => b.maxNanos - a.maxNanos },
+  { key: 'COUNT', label: 'Count', compare: (a, b) => b.count - a.count },
+  { key: 'ERRORS', label: 'Errors', compare: (a, b) => b.errorCount - a.errorCount }
 ];
-
 </script>
 
 <style scoped>

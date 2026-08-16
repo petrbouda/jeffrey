@@ -74,4 +74,11 @@ export default class TraceOperationFlamegraphClient extends RemoteFlamegraphClie
       components: components
     };
   }
+
+  // Same stance as SingleSpanFlamegraphClient: a scoped flamegraph is a transient view, not a
+  // repository artifact, so saving is explicitly unsupported rather than silently absent.
+  save(): Promise<void> {
+    return Promise.reject(new Error('Saving trace-scoped flamegraphs is not supported'));
+  }
 }
+

@@ -192,6 +192,7 @@ import PerformanceCounter from '@/services/api/model/PerformanceCounter.ts';
 import PerformanceCounterEnhanced from '@/services/api/model/PerformanceCounterEnhanced.ts';
 import FeatureType from '@/services/api/model/FeatureType';
 import PerformanceCountersNotAvailableAlert from '@/components/alerts/PerformanceCountersNotAvailableAlert.vue';
+import type { Variant } from '@shared/types/ui';
 import EmptyState from '@shared/components/EmptyState.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
@@ -392,7 +393,7 @@ const getBadgeForKey = (key: string): string | null => {
   return null;
 };
 
-const getBadgeVariant = (key: string): string => {
+const getBadgeVariant = (key: string): Variant => {
   const prefix = extractKeyPrefix(key);
   if (prefix === 'java') {
     return 'green';

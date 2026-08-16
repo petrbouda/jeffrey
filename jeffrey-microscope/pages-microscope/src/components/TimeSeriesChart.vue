@@ -218,7 +218,7 @@ const dataMinTime = ref(0);
 const dataMaxTime = ref(0);
 const visibleStartTime = ref(0);
 const visibleEndTime = ref(0);
-let selectionTimeout: NodeJS.Timeout | null = null;
+let selectionTimeout: ReturnType<typeof setTimeout> | null = null;
 let isUpdatingSelection = false; // Flag to prevent re-entrant selection events from updateOptions
 let lastProcessedSelection = { min: 0, max: 0 }; // Track last processed selection to avoid duplicates
 

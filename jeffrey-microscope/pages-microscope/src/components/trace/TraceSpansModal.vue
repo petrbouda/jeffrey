@@ -25,10 +25,33 @@
     size="fullscreen"
     modal-dialog-class="events-modal-dialog"
     :show-footer="false"
+    :backdrop-close="mode === 'spans'"
     @update:show="$emit('update:show', $event)"
   >
     <div v-if="show" class="trace-spans">
-      <MetaChips :chips="chips" />
+      <div class="trace-meta">
+        <MetaChips :chips="chips" />
+        <div class="trace-actions">
+          <!--
+            The edge from one trace to all of its kind: this dialog answers "why was THIS one slow",
+            and the operation page answers "is it always like this" — the natural next question, and
+            previously unreachable from here without retyping the name into another page's filter.
+          -->
+          <router-link v-if="operationLink" class="trace-op-link" :to="operationLink">
+            <i class="bi bi-bar-chart-steps"></i> All {{ detail?.trace?.rootName }} traces
+          </router-link>
+          <!--
+            Beside the trace's own facts rather than in the waterfall toolbar: it exports the whole
+            trace, not the view of it, so it should not sit among the controls that change that view.
+          -->
+          <AiExportButton
+            :build-source="buildAiExportSource"
+            tooltip="Export this trace for AI analysis"
+            :disabled="!detail"
+            disabled-tooltip="Waiting for the trace to load"
+          />
+        </div>
+      </div>
 
       <LoadingState v-if="loading" message="Loading trace..." />
 
@@ -44,109 +67,149 @@
       <!--
         The flamegraph replaces the bars rather than opening over them: the drill-down already lives
         in a fullscreen modal, and stacking a second one would trap the reader behind two dialogs.
+
+        The drill-down views are v-if inside this v-else block, but the spans view at the bottom is
+        v-show: the waterfall holds fold, filter and overlay state the reader built up, and
+        unmounting it on every events/flamegraph visit handed them back a reset tree on return.
       -->
-      <div v-else-if="mode === 'events'" class="ts-fg-view">
-        <div class="ts-fg-bar">
-          <button type="button" class="ts-fg-back" @click="goBack">
-            <i class="bi bi-arrow-left"></i> {{ backLabel }}
-          </button>
-          <span class="ts-fg-active">
-            <i class="bi bi-list-ul"></i> {{ selected?.name }}
-            <span class="ts-fg-scope">events on {{ selected?.threadName ?? 'this thread' }}</span>
-          </span>
-        </div>
-
-        <LoadingState v-if="eventsLoading" message="Loading events..." />
-
-        <ErrorState v-else-if="eventsError" :message="eventsError" @retry="loadEvents" />
-
-        <EmptyState
-          v-else-if="spanEvents.length === 0"
-          title="Nothing recorded"
-          description="Nothing else ran on this thread while the span was open."
-          icon="bi-inbox"
-        />
-
-        <template v-else-if="selected">
-          <div v-if="eventsTruncated" class="ts-truncated-note">
-            <i class="bi bi-info-circle"></i>
-            Showing the first {{ spanEvents.length }} events recorded in this window — the span held
-            more than the drill-down can list.
+      <template v-else>
+        <div v-if="mode === 'events'" class="ts-fg-view">
+          <div class="ts-fg-bar">
+            <button type="button" class="ts-fg-back" @click="goBack">
+              <i class="bi bi-arrow-left"></i> {{ backLabel }}
+            </button>
+            <span class="ts-fg-active">
+              <i class="bi bi-list-ul"></i> {{ selected?.name }}
+              <span class="ts-fg-scope">events on {{ selected?.threadName ?? 'this thread' }}</span>
+            </span>
           </div>
-          <EventWindowTimeline
-            :events="spanEvents"
-            :window-start-millis="spanWindowStartMillis"
-            :window-millis="spanWindowMillis"
-            @flamegraph="openFlamegraphForType"
-          />
-        </template>
-      </div>
 
-      <div v-else-if="mode === 'flamegraph'" class="ts-fg-view">
-        <div class="ts-fg-bar">
-          <button type="button" class="ts-fg-back" @click="goBack">
-            <i class="bi bi-arrow-left"></i> {{ backLabel }}
-          </button>
-          <span class="ts-fg-active">
-            <i class="bi bi-fire"></i> {{ activeEventType }}
-            <span class="ts-fg-scope">{{ activeSelfOnly ? 'self only' : 'inclusive' }}</span>
-          </span>
-        </div>
-        <div :id="TRACE_FG_SCROLL_ID" class="ts-fg-scroll">
-          <FlamegraphComponent
-            :with-timeseries="false"
-            :use-weight="activeUseWeight"
-            :use-guardian="null"
-            :scrollable-wrapper-class="TRACE_FG_SCROLL_ID"
-            :flamegraph-tooltip="flamegraphTooltip"
-            :graph-updater="graphUpdater"
-            @loaded="scrollToTop"
-          />
-        </div>
-      </div>
+          <LoadingState v-if="eventsLoading" message="Loading events..." />
 
-      <!--
+          <ErrorState v-else-if="eventsError" :message="eventsError" @retry="loadEvents" />
+
+          <EmptyState
+            v-else-if="spanEvents.length === 0"
+            title="Nothing recorded"
+            description="Nothing else ran on this thread while the span was open."
+            icon="bi-inbox"
+          />
+
+          <template v-else-if="selected">
+            <div v-if="eventsTruncated" class="ts-truncated-note">
+              <i class="bi bi-info-circle"></i>
+              Showing the first {{ spanEvents.length }} events recorded in this window — the span
+              held more than the drill-down can list.
+            </div>
+            <EventWindowTimeline
+              :events="spanEvents"
+              :window-start-millis="spanWindowStartMillis"
+              :window-millis="spanWindowMillis"
+              @flamegraph="openFlamegraphForType"
+            />
+          </template>
+        </div>
+
+        <div v-else-if="mode === 'flamegraph'" class="ts-fg-view">
+          <div class="ts-fg-bar">
+            <button type="button" class="ts-fg-back" @click="goBack">
+              <i class="bi bi-arrow-left"></i> {{ backLabel }}
+            </button>
+            <span class="ts-fg-active">
+              <i class="bi bi-fire"></i> {{ activeEventType }}
+              <span class="ts-fg-scope">{{ activeSelfOnly ? 'self only' : 'inclusive' }}</span>
+            </span>
+          </div>
+          <div :id="TRACE_FG_SCROLL_ID" class="ts-fg-scroll">
+            <FlamegraphComponent
+              :with-timeseries="false"
+              :use-weight="activeUseWeight"
+              :use-guardian="null"
+              :scrollable-wrapper-class="TRACE_FG_SCROLL_ID"
+              :flamegraph-tooltip="flamegraphTooltip"
+              :graph-updater="graphUpdater"
+              @loaded="scrollToTop"
+            />
+          </div>
+        </div>
+
+        <!--
         The flamegraph chooser gets the dialog to itself: it is a grid of cards, which is wider than
         a row of the waterfall can hold, and the reader has already decided which span they are on.
       -->
-      <div v-else-if="mode === 'flamegraph-picker' && selected" class="ts-fg-view">
-        <div class="ts-fg-bar">
-          <button type="button" class="ts-fg-back" @click="goBack">
-            <i class="bi bi-arrow-left"></i> {{ backLabel }}
-          </button>
-          <span class="ts-fg-active">
-            <i class="bi bi-fire"></i> {{ selected.name }}
-            <span class="ts-fg-scope">pick an event type</span>
-          </span>
-        </div>
+        <div v-else-if="mode === 'flamegraph-picker' && selected" class="ts-fg-view">
+          <div class="ts-fg-bar">
+            <button type="button" class="ts-fg-back" @click="goBack">
+              <i class="bi bi-arrow-left"></i> {{ backLabel }}
+            </button>
+            <span class="ts-fg-active">
+              <i class="bi bi-fire"></i> {{ selected.name }}
+              <span class="ts-fg-scope">pick an event type</span>
+            </span>
+          </div>
 
-        <TraceSpanFlamegraphs
-          :profile-id="profileId"
-          :trace-id="traceId"
-          :span-id="selected.spanId"
-          :virtual-thread="selected.isVirtual"
-          @view="openFlamegraph"
-        />
-      </div>
-
-      <div v-else class="trace-body">
-        <div class="waterfall-pane">
-          <TraceWaterfall
-            :spans="detail.spans"
-            :selected-span-id="selected?.spanId ?? null"
-            :event-fields="detail.eventFields ?? {}"
-            @select="select"
-            @view-events="openEvents"
-            @view-flamegraph="openFlamegraphPicker"
+          <TraceSpanFlamegraphs
+            :profile-id="profileId"
+            :trace-id="traceId"
+            :span-id="selected.spanId"
+            :virtual-thread="selected.isVirtual"
+            @view="openFlamegraph"
           />
         </div>
-      </div>
+
+        <div v-show="mode === 'spans'" class="trace-body">
+          <div class="waterfall-pane">
+            <TraceWaterfall
+              :spans="detail.spans"
+              :selected-span-id="selected?.spanId ?? null"
+              :event-fields="detail.eventFields ?? {}"
+              :context="context"
+              :context-state="contextState"
+              :trace-duration-nanos="detail.trace.durationNanos"
+              @select="select"
+              @view-events="openEvents"
+              @view-flamegraph="openFlamegraphPicker"
+            />
+          </div>
+
+          <!--
+          Below the bars rather than beside them: it is the conclusion drawn from the trace above,
+          and a reader reaches it after looking at the shape, not instead of doing so.
+        -->
+          <!--
+          Always rendered, with words for each state. Vanishing entirely made three different facts
+          — still loading, request failed, and "the JVM genuinely never interrupted this trace" —
+          indistinguishable, and a reader who saw the panel on one trace had no way to learn why
+          another lacked it.
+        -->
+          <section class="context-pane">
+            <header><i class="bi bi-question-circle"></i> Why was this trace slow?</header>
+            <TraceWhySlowPanel
+              v-if="hasContextFindings"
+              :slices="context?.summary ?? []"
+              :trace-duration-nanos="detail.trace.durationNanos"
+              :profile-id="profileId"
+            />
+            <p v-else-if="contextState === 'loading'" class="context-note">
+              Attributing this trace's time to GC, locks and I/O…
+            </p>
+            <p v-else-if="contextState === 'failed'" class="context-note">
+              The JVM context could not be loaded, so nothing here says why this trace was slow.
+              <button type="button" class="context-retry" @click="loadContext">Try again</button>
+            </p>
+            <p v-else class="context-note">
+              No GC pauses, lock waits or I/O were attributed to this trace — its time was spent
+              running its own code.
+            </p>
+          </section>
+        </div>
+      </template>
     </div>
   </GenericModal>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import GenericModal from '@shared/components/GenericModal.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
@@ -157,12 +220,16 @@ import type { MetaChip } from '@shared/components/MetaChips.vue';
 import FormattingService from '@shared/services/FormattingService';
 
 import TraceWaterfall from '@/components/trace/TraceWaterfall.vue';
+import TraceWhySlowPanel from '@/components/trace/TraceWhySlowPanel.vue';
+import AiExportButton from '@/components/ai-analysis/AiExportButton.vue';
 import TraceSpanFlamegraphs from '@/components/trace/TraceSpanFlamegraphs.vue';
 import EventWindowTimeline from '@/components/events/EventWindowTimeline.vue';
 import type { TraceSpanFlamegraphRequest } from '@/components/trace/TraceSpanFlamegraphs.vue';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
+import TraceAiExportClient from '@/services/api/TraceAiExportClient';
+import type { AiExportSource } from '@/composables/useAiExport';
 import TraceSpanFlamegraphClient from '@/services/api/TraceSpanFlamegraphClient';
 import { errorLabel } from '@/services/trace/traceLabels';
 import { ceilNanosToMillis, floorToMillis } from '@/services/trace/timeUnits';
@@ -171,6 +238,7 @@ import OnlyFlamegraphGraphUpdater from '@/services/flamegraphs/updater/OnlyFlame
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
 import FlamegraphTooltipFactory from '@/services/flamegraphs/tooltips/FlamegraphTooltipFactory';
 import type {
+  TraceContext,
   TraceDetail,
   TraceEventRow,
   TraceSpanRow
@@ -178,13 +246,21 @@ import type {
 
 const TRACE_FG_SCROLL_ID = 'trace-fg-scroll';
 
-const props = defineProps<{
-  show: boolean;
-  profileId: string;
-  traceId: string;
-  /** Known from the row that opened the modal, so the header reads right before the fetch lands. */
-  rootName: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    show: boolean;
+    profileId: string;
+    traceId: string;
+    /** Known from the row that opened the modal, so the header reads right before the fetch lands. */
+    rootName: string;
+    /**
+     * Off when the modal is opened from the operation's own detail page, where "all traces of this
+     * kind" is a link to exactly where the reader already stands.
+     */
+    withOperationLink?: boolean;
+  }>(),
+  { withOperationLink: true }
+);
 
 defineEmits<{ (event: 'update:show', value: boolean): void }>();
 
@@ -203,6 +279,23 @@ const flamegraphOrigin = ref<'events' | 'flamegraph-picker'>('flamegraph-picker'
 const activeEventType = ref('');
 const activeUseWeight = ref(false);
 const activeSelfOnly = ref(false);
+
+/** Null until the second request lands, and after one that failed. The waterfall copes with both. */
+const context = ref<TraceContext | null>(null);
+
+/**
+ * Distinguished, because the three ways context can be absent are three different facts. A null
+ * context used to render identically for "still loading", "the request failed" and "the JVM never
+ * interrupted this trace" — and downstream text asserted the third while the first was true.
+ */
+const contextState = ref<'loading' | 'ready' | 'failed'>('loading');
+
+/** Whether anything beyond the residual was attributed — what decides the panel's wording. */
+const hasContextFindings = computed(() =>
+  (context.value?.summary ?? []).some(
+    slice => slice.category !== 'OWN_WORK' && slice.totalNanos > 0
+  )
+);
 let flamegraphTooltip: FlamegraphTooltip;
 let graphUpdater: GraphUpdater;
 
@@ -233,9 +326,66 @@ const chips = computed<MetaChip[]>(() => {
     text: threads.size === 1 ? (threadName ?? 'unknown') : `${threads.size} threads`
   });
   result.push({ icon: 'diagram-2', text: trace.rootKind });
+
+  // Which span decided the trace's duration -- the first thing worth knowing about a slow trace, and
+  // not something the bars give up at a glance once there is any concurrency in them.
+  const leader = topCriticalSpan.value;
+  if (leader !== null) {
+    result.push({
+      icon: 'signpost-split',
+      text: `${leader.name} · ${percentOfTrace(leader.criticalPathNanos, trace.durationNanos)}`
+    });
+  }
+
   result.push({ icon: 'hash', text: trace.traceId });
   return result;
 });
+
+/**
+ * The single largest contributor to the critical path, or none when the trace is one span (where
+ * naming the root as its own bottleneck says nothing) or nothing was attributed.
+ */
+const topCriticalSpan = computed<TraceSpanRow | null>(() => {
+  const spans = detail.value?.spans ?? [];
+  if (spans.length < 2) {
+    return null;
+  }
+  let leader: TraceSpanRow | null = null;
+  for (const span of spans) {
+    if (
+      span.criticalPathNanos > 0 &&
+      (leader === null || span.criticalPathNanos > leader.criticalPathNanos)
+    ) {
+      leader = span;
+    }
+  }
+  return leader;
+});
+
+/**
+ * The deep link to this trace's operation on the operations page, carrying the full identifying
+ * triple — the name alone would resolve an inbound and an outbound call of the same name to
+ * whichever came first. Null until the trace loads, since the triple comes from it.
+ */
+const operationLink = computed(() => {
+  const trace = detail.value?.trace;
+  if (!trace || !props.withOperationLink) {
+    return null;
+  }
+  return {
+    name: 'profile-technologies-traces-operations',
+    params: { profileId: props.profileId },
+    query: { operation: trace.rootName, kind: trace.rootKind, eventType: trace.rootEventType }
+  };
+});
+
+function percentOfTrace(part: number, whole: number): string {
+  if (whole <= 0) {
+    return '—';
+  }
+  const share = (part / whole) * 100;
+  return `${share.toFixed(share < 10 ? 1 : 0)}%`;
+}
 
 /*
  * Ceiled, not rounded. The start below is floored to the millisecond the span's events were filed
@@ -364,6 +514,38 @@ function goBack(): void {
   mode.value = mode.value === 'flamegraph' ? flamegraphOrigin.value : 'spans';
 }
 
+/**
+ * Escape walks the drill-down back one level at a time — flamegraph to its origin, events to the
+ * waterfall, an open inline detail to nothing — and only a press with nowhere left to step reaches
+ * GenericModal and closes the dialog. Without this, Escape three levels deep discarded the whole
+ * drill-down at once.
+ *
+ * Captured on the document because GenericModal focuses its own overlay, so a handler on this
+ * component's markup never sees the key.
+ */
+function onEscapeCapture(event: KeyboardEvent): void {
+  if (!props.show || event.key !== 'Escape') {
+    return;
+  }
+  if (mode.value !== 'spans') {
+    event.stopPropagation();
+    goBack();
+    return;
+  }
+  if (selected.value !== null) {
+    event.stopPropagation();
+    selected.value = null;
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keyup', onEscapeCapture, true);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keyup', onEscapeCapture, true);
+});
+
 function scrollToTop(): void {
   const wrapper = document.getElementById(TRACE_FG_SCROLL_ID);
   if (wrapper) {
@@ -371,21 +553,62 @@ function scrollToTop(): void {
   }
 }
 
+/**
+ * Null until the trace is loaded, so the button cannot export a document describing nothing. The
+ * rendering happens on the server, so nothing here has to know what a bundle contains.
+ */
+function buildAiExportSource(): AiExportSource | null {
+  if (!detail.value) {
+    return null;
+  }
+  const client = new TraceAiExportClient(props.profileId);
+  const traceId = props.traceId;
+  // The name leads and the id follows, truncated: in a downloads folder the operation name is what
+  // a person scans for, and the id tail still tells two traces of the same operation apart.
+  const idTail = traceId.slice(0, 8);
+  return {
+    fetch: () => client.generateTrace(traceId),
+    label: 'Trace',
+    filenameStem: `trace-${detail.value.trace.rootName}-${idTail}`
+  };
+}
+
 async function load(): Promise<void> {
   loading.value = true;
   error.value = null;
   selected.value = null;
   mode.value = 'spans';
+  context.value = null;
   spanEvents.value = [];
   eventsTruncated.value = false;
   eventsError.value = null;
+  const client = new ProfileTracesClient(props.profileId);
   try {
-    detail.value = await new ProfileTracesClient(props.profileId).getTrace(props.traceId);
+    detail.value = await client.getTrace(props.traceId);
   } catch {
     detail.value = null;
     error.value = 'Failed to load this trace.';
+    return;
   } finally {
     loading.value = false;
+  }
+
+  // Fetched after the waterfall is already on screen, and deliberately not awaited with it: the
+  // pauses come from a scan of the events table rather than the derived span tables, and the bars
+  // are worth reading before the context lands. A failure here leaves the waterfall intact --
+  // context is an enrichment, and losing it must not turn a readable trace into an error page.
+  loadContext();
+}
+
+/** Its own function so the why-slow panel's failed state can offer a retry that refetches only this. */
+async function loadContext(): Promise<void> {
+  contextState.value = 'loading';
+  try {
+    context.value = await new ProfileTracesClient(props.profileId).getTraceContext(props.traceId);
+    contextState.value = 'ready';
+  } catch {
+    context.value = null;
+    contextState.value = 'failed';
   }
 }
 
@@ -402,6 +625,92 @@ watch(
 </script>
 
 <style scoped>
+/* The conclusion under the evidence, set apart so it reads as a summary rather than another row. */
+.context-pane {
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-border-radius);
+  background: var(--color-bg-card);
+}
+
+.context-note {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.context-retry {
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+}
+
+.context-retry:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.context-retry:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.context-pane > header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--color-border-light);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--color-dark);
+}
+
+/* The trace's own facts on the left, the actions on the right. */
+.trace-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.trace-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.trace-op-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-primary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.trace-op-link:hover {
+  border-color: var(--color-primary);
+}
+
+.trace-op-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
 .trace-spans {
   display: flex;
   flex-direction: column;

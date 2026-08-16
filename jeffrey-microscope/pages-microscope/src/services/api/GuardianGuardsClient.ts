@@ -32,7 +32,7 @@ export default class GuardianGuardsClient extends BasePlatformClient {
     return super.get<GuardianGuard[]>();
   }
 
-  get(guardId: string): Promise<GuardianGuard> {
+  find(guardId: string): Promise<GuardianGuard> {
     return super.get<GuardianGuard>(`/${guardId}`);
   }
 

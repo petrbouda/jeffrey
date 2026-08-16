@@ -307,7 +307,7 @@ const EVENT_TYPE_COLORS = [
 ];
 const SESSION_PALETTE_SIZE = 6;
 
-const { workspaceId, projectId } = useNavigation();
+const { hubId, workspaceId, projectId } = useNavigation();
 const route = useRoute();
 
 const editing = ref<EditingCard>(null);

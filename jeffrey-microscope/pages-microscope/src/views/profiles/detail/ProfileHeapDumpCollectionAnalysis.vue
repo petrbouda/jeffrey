@@ -563,14 +563,6 @@ const sortedWasteByClass = computed(() => {
   return entries;
 });
 
-const toggleWasteSort = (column: string) => {
-  if (wasteSortColumn.value === column) {
-    wasteSortDirection.value = wasteSortDirection.value === 'asc' ? 'desc' : 'asc';
-  } else {
-    wasteSortColumn.value = column;
-    wasteSortDirection.value = column === 'ownerClassName' ? 'asc' : 'desc';
-  }
-};
 
 const simpleClassName = (name: string): string => {
   const lastDot = name.lastIndexOf('.');

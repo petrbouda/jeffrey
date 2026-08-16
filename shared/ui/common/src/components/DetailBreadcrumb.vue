@@ -1,8 +1,13 @@
 <template>
+  <!--
+    The element styled as the primary Back button is a real button: it is the only exit from every
+    detail view that uses this breadcrumb, and as a span on a clickable div it was invisible to the
+    keyboard and to assistive tech. The row-level click stays as a larger courtesy target.
+  -->
   <div class="detail-breadcrumb" @click="$emit('back')">
-    <span class="breadcrumb-back-btn">
-      <i class="bi bi-arrow-left"></i> Back to {{ rootLabel }}
-    </span>
+    <button type="button" class="breadcrumb-back-btn" @click.stop="$emit('back')">
+      <i class="bi bi-arrow-left"></i> <span>Back to {{ rootLabel }}</span>
+    </button>
     <div class="breadcrumb-divider"></div>
     <div class="breadcrumb-tile">
       <i class="bi" :class="icon"></i>
@@ -47,6 +52,12 @@ defineEmits<{ back: [] }>();
     box-shadow var(--transition-fast, 0.15s) ease;
 }
 
+.breadcrumb-back-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
 .detail-breadcrumb:hover {
   border-color: var(--color-primary-border);
   background: var(--color-primary-lighter);
@@ -55,6 +66,12 @@ defineEmits<{ back: [] }>();
 
 /* Prominent "Back to <root>" affordance — fills with brand color on hover. */
 .breadcrumb-back-btn {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;

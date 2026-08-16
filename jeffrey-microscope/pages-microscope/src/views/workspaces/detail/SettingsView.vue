@@ -175,7 +175,7 @@ const deleteConfirmText = ref('');
 onMounted(async () => {
   try {
     isLoading.value = true;
-    const settings = await settingsClient.get();
+    const settings = await settingsClient.fetch();
     originalProjectName.value = settings.name;
     projectName.value = settings.name;
     isLoading.value = false;

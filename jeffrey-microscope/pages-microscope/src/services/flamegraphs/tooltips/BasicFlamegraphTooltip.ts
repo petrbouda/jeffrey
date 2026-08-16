@@ -75,8 +75,12 @@ export default class BasicFlamegraphTooltip extends FlamegraphTooltip {
 
     let extraSections = '';
     if (this.showPositionAndTypes) {
-      extraSections += FlamegraphTooltip.position(frame.position, frame.type);
-      extraSections += FlamegraphTooltip.frame_types(frame.sampleTypes);
+      if (frame.position !== undefined) {
+        extraSections += FlamegraphTooltip.position(frame.position, frame.type);
+      }
+      if (frame.sampleTypes !== undefined) {
+        extraSections += FlamegraphTooltip.frame_types(frame.sampleTypes);
+      }
       extraSections += FlamegraphTooltip.self_vs_total(selfSamples, frame.totalSamples);
     }
 

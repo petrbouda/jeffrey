@@ -29,7 +29,12 @@
       virtual thread and walks its continuation stack, so a virtual-thread span can carry samples —
       and hiding the choice there withheld a working control from spans that had a graph to scope.
     -->
-    <div v-if="hasEvents" class="scope-toggle" role="group" aria-label="Flamegraph scope">
+    <!--
+      Rendered whenever panels have loaded, not only when the current scope has samples: the
+      self-only empty state says "try the inclusive scope", and hiding this control at that moment
+      told the user to press a button that was no longer on screen.
+    -->
+    <div v-if="loaded && !error" class="scope-toggle" role="group" aria-label="Flamegraph scope">
       <button
         type="button"
         :class="{ active: !selfOnly }"

@@ -19,7 +19,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import ThreadRowData from '@/services/api/model/ThreadRowData';
-import { useRoute } from 'vue-router';
 
 import ThreadCommon from '@/services/api/model/ThreadCommon';
 import ThreadPeriod from '@/services/api/model/ThreadPeriod';
@@ -76,8 +75,6 @@ const threadGroup = computed<string | null>(() => (collapsed.value ? props.group
 const MEMBER_PAGE_SIZE = 50;
 
 const threadClient = new ProfileThreadClient(props.primaryProfileId);
-
-const route = useRoute();
 
 const selectedEventCode = ref();
 const showFlameMenu = ref(false);
