@@ -155,6 +155,28 @@ try {
     }
 }`;
 
+const customSpanEvent = `import cafe.jeffrey.jfr.events.trace.AbstractTracedEvent;
+import cafe.jeffrey.jfr.events.trace.Span;
+import jdk.jfr.Category;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
+
+@Name("com.acme.KafkaPublish")
+@Label("Kafka Publish")
+@Category({"Application", "Messaging"})
+@Span("PUBLISH {topic}")                       // the operation name template
+public class KafkaPublishEvent extends AbstractTracedEvent {   // what makes it a span
+
+    @Label("Topic")
+    public String topic;
+}`;
+
+const customSpanUsage = `KafkaPublishEvent event = new KafkaPublishEvent();
+event.topic = "orders";
+Tracer.inSpanOf(event, () -> {                 // stamps traceId/spanId/parentSpanId
+    // ... the work; anything traced inside nests under this span
+});                                            // inSpanOf commits via commitSpan()`;
+
 const inSpanOfTree = `trace 2b7fe410…
 └─ GET /api/internal/profiles/{profileId}   HttpServerExchangeEvent  SERVER  parentSpanId=0
    ├─ flamegraph.generate                   jeffrey.TraceSpan        INTERNAL
@@ -300,6 +322,8 @@ const composedTree = `trace a3f9c1d4…                                         
 
       <p>An instrumented event fills in its own span shape in <code>describeSpan()</code>, invoked by <code>commitSpan()</code> just before the commit: an HTTP exchange names itself <code>GET /api/internal/profiles/{profileId}</code> and turns <code>ERROR</code> from status 400 upwards; a gRPC call names itself <code>service/Method</code> and fails on anything but <code>OK</code>; a JDBC statement is born named after its label, is always <code>CLIENT</code>, and <code>failed(throwable)</code> settles its outcome.</p>
 
+      <p>Jeffrey applies those same conventions when it derives a trace, reading the exchange's own fields rather than the recorded name, so that one endpoint is one operation across library versions. Overriding <code>describeSpan()</code> on one of the event types Jeffrey ships therefore changes what the recording says but not what Trace Operations lists. A new event type of your own is named by whatever it writes in <code>describeSpan()</code> — or, better, by the <code>@Span</code> template it declares on the class: the template travels inside the recording's metadata, Jeffrey discovers and applies it with no change on its side, and it keeps working even for events committed with plain <code>commit()</code>. The verdict does not: a span's status is only ever recorded, so commit through <code>commitSpan()</code> if failures should count.</p>
+
       <h2 id="api">API Reference</h2>
 
       <h3 id="api-run-call">run / call — record a span around a block</h3>
@@ -350,6 +374,14 @@ const composedTree = `trace a3f9c1d4…                                         
       <DocsCodeBlock :code="inSpanOfTree" language="text" />
 
       <p>Unlike <code>call</code>, this always establishes the binding, even with nothing recording: whether an interval is recorded at all is the caller's event's decision, not this method's.</p>
+
+      <p>The same shape works for an event type of your own — extend <code>AbstractTracedEvent</code> (that is what makes it a span: the <code>spanId</code> field Jeffrey discovers structurally), declare the name with <code>@Span</code>, and hand it to <code>inSpanOf</code>, which stamps the ids, marks the span <code>ERROR</code> if the body throws, and commits through <code>commitSpan()</code>. Jeffrey then discovers, nests and names it — <code>PUBLISH orders</code> in Trace Operations, not <code>com.acme.KafkaPublish</code> — with zero changes on its side:</p>
+
+      <DocsCodeBlock :code="customSpanEvent" language="java" />
+
+      <DocsCodeBlock :code="customSpanUsage" language="java" />
+
+      <p>The full recipe — including what plain <code>commit()</code> keeps and loses — is on the <router-link to="/docs/events/overview">Jeffrey JFR Events page</router-link>.</p>
 
       <h3 id="api-openspanof-reenter">openSpanOf / reenter — a span the work arrives back into</h3>
 

@@ -22,17 +22,12 @@ import cafe.jeffrey.jfr.events.grpc.GrpcServerExchangeEvent;
 import cafe.jeffrey.jfr.events.http.HttpClientExchangeEvent;
 import cafe.jeffrey.jfr.events.http.HttpServerExchangeEvent;
 import cafe.jeffrey.jfr.events.jdbc.statement.JdbcQueryEvent;
-import jdk.jfr.Recording;
 import jdk.jfr.consumer.RecordedEvent;
-import jdk.jfr.consumer.RecordingFile;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -267,7 +262,7 @@ class TracerTest {
         void commitSpanReachesTheInstrumentedCommit() throws IOException {
             HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
 
-            List<RecordedEvent> recorded = recordEvents(HttpServerExchangeEvent.NAME, () -> {
+            List<RecordedEvent> recorded = JfrRecordings.all(HttpServerExchangeEvent.NAME, () -> {
                 exchange.begin();
                 Tracer.inSpanOf(exchange, () -> null);
                 exchange.end();
@@ -482,7 +477,7 @@ class TracerTest {
         void eachReentryEmitsOneScope() throws IOException {
             HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
 
-            List<RecordedEvent> scopes = recordEvents(TraceScopeEvent.NAME, () -> {
+            List<RecordedEvent> scopes = JfrRecordings.all(TraceScopeEvent.NAME, () -> {
                 SpanContext span = Tracer.openSpanOf(exchange);
                 Tracer.reenter(span, () -> null);
                 runOnAnotherThread(() -> Tracer.reenter(span, () -> null));
@@ -500,7 +495,7 @@ class TracerTest {
         void scopeNamesTheThreadItRanOn() throws IOException {
             HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
 
-            List<RecordedEvent> scopes = recordEvents(TraceScopeEvent.NAME, () -> {
+            List<RecordedEvent> scopes = JfrRecordings.all(TraceScopeEvent.NAME, () -> {
                 SpanContext span = Tracer.openSpanOf(exchange);
                 runOnAnotherThread(() -> Tracer.reenter(span, () -> null));
             });
@@ -513,7 +508,7 @@ class TracerTest {
         @Test
         @DisplayName("thread-confined spans emit no scope, so existing instrumentation pays nothing")
         void confinedSpansEmitNoScope() throws IOException {
-            List<RecordedEvent> scopes = recordEvents(TraceScopeEvent.NAME, () -> {
+            List<RecordedEvent> scopes = JfrRecordings.all(TraceScopeEvent.NAME, () -> {
                 Tracer.run("checkout", SpanKind.SERVER, () -> {
                 });
                 Tracer.inSpanOf(new HttpServerExchangeEvent(), () -> null);
@@ -683,25 +678,7 @@ class TracerTest {
      * test spans — which do no work — are emitted whatever the enclosing JFR settings say.
      */
     private static Map<String, RecordedEvent> recordSpans(Runnable body) throws IOException {
-        return recordEvents(TraceSpanEvent.NAME, body).stream()
+        return JfrRecordings.all(TraceSpanEvent.NAME, body).stream()
                 .collect(Collectors.toMap(event -> event.getString("name"), Function.identity()));
-    }
-
-    /** The same, for an event type that is a span without being a {@link TraceSpanEvent}. */
-    private static List<RecordedEvent> recordEvents(String eventType, Runnable body) throws IOException {
-        Path dump = Files.createTempFile("tracer-test", ".jfr");
-        try (Recording recording = new Recording()) {
-            recording.enable(eventType).withThreshold(Duration.ZERO);
-            recording.start();
-            body.run();
-            recording.stop();
-            recording.dump(dump);
-
-            return RecordingFile.readAllEvents(dump).stream()
-                    .filter(event -> event.getEventType().getName().equals(eventType))
-                    .toList();
-        } finally {
-            Files.deleteIfExists(dump);
-        }
     }
 }

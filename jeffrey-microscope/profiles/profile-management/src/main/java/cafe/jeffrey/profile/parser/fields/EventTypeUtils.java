@@ -22,10 +22,13 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 import jdk.jfr.*;
 import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.shared.common.model.SpanConventionKeys;
 import cafe.jeffrey.shared.common.model.Type;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public abstract class EventTypeUtils {
 
@@ -60,6 +63,34 @@ public abstract class EventTypeUtils {
         }
 
         return Json.mapper().valueToTree(columns);
+    }
+
+    /**
+     * The naming convention the event type declared for itself — its {@code @Span} template —
+     * read out of the recording's own metadata and carried as extras, where the trace derivation
+     * discovers it the same way span discovery finds a {@code spanId} column.
+     * <p>
+     * Matched by annotation type name rather than by class: the annotation lives in
+     * {@code jeffrey-events}, which this module deliberately does not compile against — the
+     * convention crosses between the two as recording metadata, never as a shared type. The value
+     * is read defensively because it comes from an arbitrary recording; anything that is not the
+     * expected {@code String} is left out, and the derivation treats an absent key as "declared
+     * nothing".
+     */
+    public static Map<String, String> toExtras(EventType eventType) {
+        Map<String, String> extras = new LinkedHashMap<>();
+        for (AnnotationElement annotation : eventType.getAnnotationElements()) {
+            if (SpanConventionKeys.SPAN_ANNOTATION.equals(annotation.getTypeName())) {
+                putIfString(extras, SpanConventionKeys.EXTRAS_SPAN_NAME, annotation.getValue("value"));
+            }
+        }
+        return extras;
+    }
+
+    private static void putIfString(Map<String, String> extras, String key, Object value) {
+        if (value instanceof String s) {
+            extras.put(key, s);
+        }
     }
 
     public static String getContentType(ValueDescriptor desc) {

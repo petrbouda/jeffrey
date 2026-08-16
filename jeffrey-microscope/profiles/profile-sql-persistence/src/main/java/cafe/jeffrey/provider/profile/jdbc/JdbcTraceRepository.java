@@ -71,7 +71,9 @@ public class JdbcTraceRepository implements TraceRepository {
      * That is the whole of this class's knowledge about instrumented event types, and it names none
      * of them. An event type instrumented after this was written — including one declared outside
      * Jeffrey — takes part in traces with no change here, where a hard-coded list would have left it
-     * silently missing from the Traces page until someone noticed.
+     * silently missing from the Traces page until someone noticed. Naming works the same way: one
+     * template per event type ({@link SpanNameTemplates}) — built-in for Jeffrey's own exchanges
+     * on recordings that predate {@code @Span}, overlaid by what the recording declares.
      * <p>
      * The same set is what the drill-down excludes: an event that is itself a span belongs in the
      * waterfall, not in the list of what happened inside one.
@@ -102,20 +104,43 @@ public class JdbcTraceRepository implements TraceRepository {
      * A hand-written span declares nothing beyond the span shape, so it strips down to an empty
      * object — which is why the projection nulls that out rather than storing an empty object.
      */
-    private static final String PLUMBING_FIELDS = """
-            {"startTime":null,"duration":null,"eventThread":null,\
+    private static final String PLUMBING_KEYS = """
+            "startTime":null,"duration":null,"eventThread":null,\
             "traceId":null,"spanId":null,"parentSpanId":null,\
-            "name":null,"kind":null,"status":null,"errorType":null,"attributes":null}""";
+            "name":null,"kind":null,"errorType":null,"attributes":null""";
+
+    /**
+     * The whole {@code event_fields} projection: the plumbing patch applied, the result nulled out
+     * when nothing of the event's own remains.
+     * <p>
+     * {@code status} joins the patch per row rather than once, because it is not always plumbing:
+     * where an exchange recorded no {@code statusCode}, that key holds its response code, which is
+     * detail about the operation and the only record of it. Stripping it unconditionally is what
+     * took the 500 out of the span detail of every recording that spells the outcome that way.
+     */
+    private static final String EVENT_FIELDS_PROJECTION = """
+            NULLIF(CAST(json_merge_patch(fields,
+                CASE WHEN %s THEN '{%s,"status":null}' ELSE '{%s}' END) AS VARCHAR), '{}')"""
+            .formatted(SpanConventions.recordedStatusIsSpanStatus(), PLUMBING_KEYS, PLUMBING_KEYS);
 
     /*
-     * A flat projection, because there is nothing left to work out: the event recorded its own name,
-     * kind, status and identity, so every column here is read straight out of the JSON. What used to
-     * be four CASE ladders and a synthetic span id now lives in the event classes, where an HTTP
-     * exchange decides once and for all that it is named by its method and URI and fails at 400.
+     * The identity columns are a flat projection, because there is nothing left to work out: Tracer
+     * minted every id in the JVM, so each is read straight out of the JSON. What used to be a
+     * synthetic span id here now lives in the event classes.
      *
-     * The COALESCEs cover an event that carries trace identity without the rest of the shape -- an
-     * older recording, or third-party instrumentation that stamped only the ids. It gets its event
-     * type for a name and the neutral kind and status rather than dropping out of the trace.
+     * The three shape columns are not flat, and deliberately so: each is a projection over
+     * conventions, which settle what an exchange, a call or a statement is *called* rather than
+     * reading back whichever answer the recording's instrumentation cached in a field. That is what
+     * makes one endpoint one operation across recordings, and what lets instrumentation that stamps
+     * the trace ids and its own fields land under a name rather than under its event type.
+     *
+     * Naming is one concept, the template: SpanNameTemplates renders a template per event type --
+     * built-in for Jeffrey's own exchanges on recordings that predate @Span, overlaid by what
+     * the recording declares for itself, which is how an event type Jeffrey has never seen gets
+     * named with no change here. The verdict is never declared -- it is recorded by the writer,
+     * and the built-in status arms exist only for the exchange types Jeffrey itself knows.
+     * Discovery above stays structural, so an event type no convention covers is still a span; it
+     * just carries the name, kind and status it recorded for itself.
      *
      * The ids are pulled out once in the CTE, which the filter then reuses by name, so each is read
      * out of the JSON a single time. The two predicates drop events that were never part of a
@@ -148,9 +173,9 @@ public class JdbcTraceRepository implements TraceRepository {
                 trace_id                                                        AS trace_id,
                 span_id                                                         AS span_id,
                 parent_span_id                                                  AS parent_span_id,
-                COALESCE(json_extract_string(fields, '$.name'), event_type)     AS name,
-                COALESCE(json_extract_string(fields, '$.kind'), 'INTERNAL')     AS kind,
-                COALESCE(json_extract_string(fields, '$.status'), 'UNSET')      AS status,
+                %s                                                              AS name,
+                %s                                                              AS kind,
+                %s                                                              AS status,
                 json_extract_string(fields, '$.errorType')                      AS error_type,
                 start_timestamp                                                 AS start_timestamp,
                 COALESCE(start_timestamp_from_beginning, 0)                     AS start_timestamp_from_beginning,
@@ -162,7 +187,7 @@ public class JdbcTraceRepository implements TraceRepository {
                 thread_hash                                                     AS thread_hash,
                 event_type                                                      AS event_type,
                 json_extract_string(fields, '$.attributes')                     AS attributes,
-                NULLIF(CAST(json_merge_patch(fields, '%s') AS VARCHAR), '{}')   AS event_fields
+                %s                                                              AS event_fields
             FROM spans
             QUALIFY ROW_NUMBER() OVER (PARTITION BY trace_id, span_id
                                        ORDER BY start_timestamp, duration) = 1
@@ -817,11 +842,20 @@ public class JdbcTraceRepository implements TraceRepository {
         databaseClient.execute(StatementLabel.DERIVE_TRACES, DELETE_TRACES);
         databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, DELETE_TRACE_SPANS);
 
-        // Two placeholders, in the order they appear: which event types are spans, and the keys
-        // stripped out to leave the event's own declared fields.
+        // One template per event type -- built-ins overlaid by what the recording declares for
+        // itself (@Span, stored in event_types.extras by the parser) -- rendered as one CASE.
+        String nameTemplates = SpanNameTemplates.nameCase(databaseClient);
+
+        // The placeholders in the order they appear: which event types are spans, the three span
+        // shape projections, and the event_fields stripping projection.
         databaseClient.execute(
                 StatementLabel.DERIVE_TRACE_SPANS,
-                DERIVE_TRACE_SPANS.formatted(SPAN_EVENT_TYPES, PLUMBING_FIELDS));
+                DERIVE_TRACE_SPANS.formatted(
+                        SPAN_EVENT_TYPES,
+                        SpanConventions.nameProjection(nameTemplates),
+                        SpanConventions.kindProjection(),
+                        SpanConventions.statusProjection(),
+                        EVENT_FIELDS_PROJECTION));
         // After the spans, before the headers: self time is a fact about a span's children, so
         // every span has to be in the table before any of them can be resolved.
         databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, SELF_DURATIONS);

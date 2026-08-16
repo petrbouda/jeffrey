@@ -42,6 +42,11 @@ import jdk.jfr.StackTrace;
  * their children and moves their samples into the parent's self time. Set one explicitly per
  * recording when the volume calls for it, through the usual JFR configuration
  * ({@code -XX:StartFlightRecording:cafe.jeffrey.jfr.events.trace.TraceSpanEvent#threshold=1ms}).
+ * <p>
+ * The declared template is the identity, {@code {name}}: a hand-written span is named by whoever
+ * opened it, and {@link Tracer} records that name before the event commits. The declaration keeps
+ * the invariant that every span type this library ships carries its naming convention in the
+ * recording. The verdict is not declared: {@link Tracer} writes the span status directly.
  *
  * @see Tracer
  */
@@ -50,6 +55,7 @@ import jdk.jfr.StackTrace;
 @Description("A single named interval of work within a trace")
 @Category({"Application", "Tracing"})
 @StackTrace(false)
+@Span("{name}")
 public class TraceSpanEvent extends AbstractTracedEvent {
 
     public static final String NAME = "jeffrey.TraceSpan";

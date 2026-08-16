@@ -193,6 +193,10 @@ if (event.isEnabled()) {
 
       <p>Each re-entry emits a <code>jeffrey.TraceScope</code> event recording which thread the span ran on and for how long. That is what the drill-down and the span-scoped flamegraph read: a re-entered span can be committed on a thread it barely ran on, and the scopes are the only record of where the work actually happened. Spans that are never re-entered emit none — <code>call</code> and <code>inSpanOf</code> are thread-confined already, so their span is its own single scope and existing instrumentation pays nothing.</p>
 
+      <p class="docs-read-more">
+        <router-link to="/docs/microscope/profiles/traces/api">Full Tracer API reference &rarr;</router-link>
+      </p>
+
       <h2 id="auto-instrumented">Every Instrumented Event Is a Span</h2>
 
       <p>The HTTP, gRPC and JDBC events in <code>jeffrey-events</code> extend <code>AbstractTracedEvent</code>, which carries the whole span shape — <code>traceId</code>, <code>spanId</code>, <code>parentSpanId</code>, plus the <code>name</code>, <code>kind</code>, <code>status</code>, <code>errorType</code> and <code>attributes</code> a <code>jeffrey.TraceSpan</code> carries. An event that has them <em>is</em> a span; there is nothing for Jeffrey to work out from the event type.</p>
@@ -203,8 +207,12 @@ if (event.isEnabled()) {
 
       <p>Each event type answers for its own span shape once, in its own class: an HTTP exchange names itself by method and matched URI template and fails from 400 upwards, a gRPC call names itself by service and method and fails on anything but <code>OK</code>, a statement takes its label and fails on what it threw.</p>
 
+      <p>Jeffrey applies the same conventions again when it derives the trace, rather than reading the recorded name back. They are the naming rules OpenTelemetry states for the same operations, and applying them at the point the operation is assembled is what makes one endpoint one operation: a recorded name is only ever this rule evaluated by whichever version of the library produced the recording, so an endpoint that only some recordings carry the answer for would be split across two rows of Trace Operations.</p>
+
+      <p>Where the naming conventions come from is layered: what the recording itself declares per event type — the <code>@Span</code> template carried in its metadata — comes first, then the built-in conventions for Jeffrey's own types on recordings that predate the annotation, then the name the event recorded for itself, and only then the event type as a last resort. The <em>verdict</em> is not layered the same way, because it is not derivable: an exchange that threw and still answered 200 knows something its code does not, so a span's status is the writer's statement — recorded through <code>commitSpan()</code> or <code>failed()</code> — and Jeffrey's built-in rules judge only its own exchange types' codes, on recordings of any vintage.</p>
+
       <DocsCallout type="tip">
-        The derivation names no event type at all. It treats an event as a span when the recording's own metadata says it declares a <code>spanId</code> field, so instrumentation written outside Jeffrey takes part in traces with no change to Jeffrey — extend <code>AbstractTracedEvent</code> and stamp.
+        Discovery names no event type at all. Jeffrey treats an event as a span when the recording's own metadata says it declares a <code>spanId</code> field, so instrumentation written outside Jeffrey takes part in traces with no change to Jeffrey — extend <code>AbstractTracedEvent</code> and stamp. Naming works the same way: annotate the class with <code>@Span</code> and the template travels inside every recording, applied by Jeffrey without knowing the type. Failure detection is the one thing that must be recorded: commit through <code>commitSpan()</code>.
       </DocsCallout>
 
       <DocsCallout type="tip">
@@ -265,7 +273,7 @@ if (event.isEnabled()) {
 
       <h2 id="operations">Trace Operations</h2>
 
-      <p>The trace list answers "which run was slow". Trace Operations answers "which <em>kind</em> of run is slow, across every time it ran": one card per <strong>trace type</strong>, grouped from the <code>traces</code> table. A trace type is keyed by all three of the root span's name, its kind and the event type that opened it — not by the name alone: an inbound <code>GET /orders</code> and an outbound call to the same path are named identically by the same convention, and they are not the same operation. Each card leads with the call count, then Spans / Total / P50 / P95 / Max badges; the name row carries the event type and the kind, and an error-count badge sits on the right when the type has failures. Sort by total, P95, max, call count or errors.</p>
+      <p>The trace list answers "which run was slow". Trace Operations answers "which <em>kind</em> of run is slow, across every time it ran": one card per <strong>trace type</strong>, grouped from the <code>traces</code> table. An operation's name is derived from what the root did — <code>GET /api/internal/profiles/{profileId}</code>, <code>jeffrey.api.v1.ProjectService/List</code> — rather than read out of the recording, so the same endpoint is one operation whichever version of <code>jeffrey-events</code> recorded it. A trace type is keyed by all three of that name, the root's kind and the event type that opened it — not by the name alone: an inbound <code>GET /orders</code> and an outbound call to the same path are named identically by the same convention, and they are not the same operation. Each card leads with the call count, then Spans / Total / P50 / P95 / Max badges; the name row carries the event type and the kind, and an error-count badge sits on the right when the type has failures. Sort by total, P95, max, call count or errors.</p>
 
       <DocsCallout type="info">
         <strong>Where did the nested spans go?</strong> This list used to be every span name in the profile — including names, like <code>chunk.parse</code> or <code>dominator</code>, that only ever occur nested inside another span and are never a trace root. Grouping by root name instead of span name dropped one reference profile's list from 105 rows to 36. A nested span is not lost: open the trace it belongs to and find it in the <a href="#waterfall">waterfall</a>, alongside every other span in that trace's tree.
