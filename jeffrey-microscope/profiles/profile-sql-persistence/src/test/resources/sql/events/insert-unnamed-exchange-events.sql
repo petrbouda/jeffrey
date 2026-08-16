@@ -1,14 +1,16 @@
--- A recording taken before an event described its own span, which is what every profile made with
--- an earlier jeffrey-events contains.
+-- A recording whose events carry the operation's own fields and no span shape.
 --
--- The span shape is absent rather than incomplete: an exchange recorded its method, its URI and an
--- integer `status`, and left the naming to whoever read it. `kind` did not exist, and a statement
--- recorded `isSuccess` instead of a status. Read with the current projection alone, every request
--- here has no name and falls back to its event type, so all three traces collapse into one
--- operation called `jeffrey.HttpServerExchange`.
+-- Two things produce it: instrumentation older than the shape `AbstractTracedEvent` now declares,
+-- and third-party instrumentation that stamps the trace ids and its own domain fields without
+-- describing a span. Either way an exchange recorded its method, its URI and an integer `status`,
+-- and left the naming to whoever reads it.
+--
+-- There is nothing here for a `name` or a `kind` projection to read back, so this fixture is what
+-- proves the conventions are doing the naming: an HTTP exchange is `{method} {route}`, a gRPC call
+-- is `{service}/{method}`, and a statement is a client call whose outcome is its `isSuccess` flag.
 --
 -- Loaded on its own, not on top of insert-trace-spans.sql: the two describe the same event types
--- with different schemas, which is the whole point of the fixture.
+-- with different schemas, which is the point of the fixture.
 
 -- `columns` is what the parser copied out of the recording's metadata, and it is how the derivation
 -- recognises a span: an event type is one if it declares a `spanId` field. That much these types

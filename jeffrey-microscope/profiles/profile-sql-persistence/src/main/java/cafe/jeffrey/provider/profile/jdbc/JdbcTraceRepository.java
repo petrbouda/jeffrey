@@ -60,7 +60,9 @@ public class JdbcTraceRepository implements TraceRepository {
      * That is the whole of this class's knowledge about instrumented event types, and it names none
      * of them. An event type instrumented after this was written — including one declared outside
      * Jeffrey — takes part in traces with no change here, where a hard-coded list would have left it
-     * silently missing from the Traces page until someone noticed.
+     * silently missing from the Traces page until someone noticed. What such a type does not get is
+     * a naming convention: {@link SpanConventions} is where those live, and it is the one place any
+     * event type is named.
      * <p>
      * The same set is what the drill-down excludes: an event that is itself a span belongs in the
      * waterfall, not in the list of what happened inside one.
@@ -91,23 +93,38 @@ public class JdbcTraceRepository implements TraceRepository {
      * A hand-written span declares nothing beyond the span shape, so it strips down to an empty
      * object — which is why the projection nulls that out rather than storing an empty object.
      */
-    private static final String PLUMBING_FIELDS = """
-            {"startTime":null,"duration":null,"eventThread":null,\
+    private static final String PLUMBING_KEYS = """
+            "startTime":null,"duration":null,"eventThread":null,\
             "traceId":null,"spanId":null,"parentSpanId":null,\
-            "name":null,"kind":null,"status":null,"errorType":null,"attributes":null}""";
+            "name":null,"kind":null,"errorType":null,"attributes":null""";
+
+    private static final String PLUMBING_FIELDS = "{%s}".formatted(PLUMBING_KEYS);
+
+    /**
+     * The same, plus {@code status} — for an event where that key holds the span status the row
+     * already carries.
+     * <p>
+     * Which patch applies is decided per row rather than once, because {@code status} is not always
+     * plumbing: where an exchange recorded no {@code statusCode}, that key holds its response code,
+     * which is detail about the operation and the only record of it. Stripping it unconditionally is
+     * what took the 500 out of the span detail of every recording that spells the outcome that way.
+     */
+    private static final String PLUMBING_FIELDS_AND_SPAN_STATUS = "{%s,\"status\":null}".formatted(PLUMBING_KEYS);
 
     /*
-     * A flat projection, because there is nothing left to work out: the event recorded its own name,
-     * kind, status and identity, so every column here is read straight out of the JSON. What used to
-     * be four CASE ladders and a synthetic span id now lives in the event classes, where an HTTP
-     * exchange decides once and for all that it is named by its method and URI and fails at 400.
+     * The identity columns are a flat projection, because there is nothing left to work out: Tracer
+     * minted every id in the JVM, so each is read straight out of the JSON. What used to be a
+     * synthetic span id here now lives in the event classes.
      *
-     * The three shape columns are the one exception, and they name no event type here either: each
-     * is a projection built by LegacySpanShape, which falls back to how an event described itself
-     * before it carried a span shape. Without it a recording taken before that change has no name
-     * and no kind to read, and every request in it collapses into one operation named after the
-     * event type. Third-party instrumentation that stamps only the ids still lands on the event type
-     * and the neutral kind and status, rather than dropping out of the trace.
+     * The three shape columns are not flat, and deliberately so: each is a projection built by
+     * SpanConventions, which settles what an exchange, a call or a statement is *called* rather than
+     * reading back whichever answer the recording's instrumentation cached in a field. That is what
+     * makes one endpoint one operation across recordings, and what lets instrumentation that stamps
+     * the trace ids and its own fields land under a name rather than under its event type.
+     *
+     * SpanConventions is the only place any event type is named. Discovery above stays structural,
+     * so an event type it says nothing about is still a span; it just carries the name, kind and
+     * status it recorded for itself.
      *
      * The ids are pulled out once in the CTE, which the filter then reuses by name, so each is read
      * out of the JSON a single time. The two predicates drop events that were never part of a
@@ -150,7 +167,8 @@ public class JdbcTraceRepository implements TraceRepository {
                 thread_hash                                                     AS thread_hash,
                 event_type                                                      AS event_type,
                 json_extract_string(fields, '$.attributes')                     AS attributes,
-                NULLIF(CAST(json_merge_patch(fields, '%s') AS VARCHAR), '{}')   AS event_fields
+                NULLIF(CAST(json_merge_patch(fields,
+                    CASE WHEN %s THEN '%s' ELSE '%s' END) AS VARCHAR), '{}')    AS event_fields
             FROM spans
             QUALIFY ROW_NUMBER() OVER (PARTITION BY trace_id, span_id
                                        ORDER BY start_timestamp, duration) = 1
@@ -549,14 +567,17 @@ public class JdbcTraceRepository implements TraceRepository {
         databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, DELETE_TRACE_SPANS);
 
         // The placeholders in the order they appear: which event types are spans, the three span
-        // shape projections, and the keys stripped out to leave the event's own declared fields.
+        // shape projections, and then the test and the two patches that decide which keys are
+        // stripped to leave the event's own declared fields.
         databaseClient.execute(
                 StatementLabel.DERIVE_TRACE_SPANS,
                 DERIVE_TRACE_SPANS.formatted(
                         SPAN_EVENT_TYPES,
-                        LegacySpanShape.nameProjection(),
-                        LegacySpanShape.kindProjection(),
-                        LegacySpanShape.statusProjection(),
+                        SpanConventions.nameProjection(),
+                        SpanConventions.kindProjection(),
+                        SpanConventions.statusProjection(),
+                        SpanConventions.recordedStatusIsSpanStatus(),
+                        PLUMBING_FIELDS_AND_SPAN_STATUS,
                         PLUMBING_FIELDS));
         databaseClient.execute(StatementLabel.DERIVE_TRACES, DERIVE_TRACES);
     }

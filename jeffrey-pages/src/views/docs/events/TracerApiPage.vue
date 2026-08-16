@@ -300,6 +300,8 @@ const composedTree = `trace a3f9c1d4…                                         
 
       <p>An instrumented event fills in its own span shape in <code>describeSpan()</code>, invoked by <code>commitSpan()</code> just before the commit: an HTTP exchange names itself <code>GET /api/internal/profiles/{profileId}</code> and turns <code>ERROR</code> from status 400 upwards; a gRPC call names itself <code>service/Method</code> and fails on anything but <code>OK</code>; a JDBC statement is born named after its label, is always <code>CLIENT</code>, and <code>failed(throwable)</code> settles its outcome.</p>
 
+      <p>Jeffrey applies those same conventions when it derives a trace, reading the exchange's own fields rather than the recorded name, so that one endpoint is one operation across library versions. Overriding <code>describeSpan()</code> on one of the event types Jeffrey ships therefore changes what the recording says but not what Trace Operations lists; a new event type of your own is named by whatever it writes there.</p>
+
       <h2 id="api">API Reference</h2>
 
       <h3 id="api-run-call">run / call — record a span around a block</h3>
