@@ -102,9 +102,12 @@ public class JdbcTraceRepository implements TraceRepository {
      * be four CASE ladders and a synthetic span id now lives in the event classes, where an HTTP
      * exchange decides once and for all that it is named by its method and URI and fails at 400.
      *
-     * The COALESCEs cover an event that carries trace identity without the rest of the shape -- an
-     * older recording, or third-party instrumentation that stamped only the ids. It gets its event
-     * type for a name and the neutral kind and status rather than dropping out of the trace.
+     * The three shape columns are the one exception, and they name no event type here either: each
+     * is a projection built by LegacySpanShape, which falls back to how an event described itself
+     * before it carried a span shape. Without it a recording taken before that change has no name
+     * and no kind to read, and every request in it collapses into one operation named after the
+     * event type. Third-party instrumentation that stamps only the ids still lands on the event type
+     * and the neutral kind and status, rather than dropping out of the trace.
      *
      * The ids are pulled out once in the CTE, which the filter then reuses by name, so each is read
      * out of the JSON a single time. The two predicates drop events that were never part of a
@@ -137,9 +140,9 @@ public class JdbcTraceRepository implements TraceRepository {
                 trace_id                                                        AS trace_id,
                 span_id                                                         AS span_id,
                 parent_span_id                                                  AS parent_span_id,
-                COALESCE(json_extract_string(fields, '$.name'), event_type)     AS name,
-                COALESCE(json_extract_string(fields, '$.kind'), 'INTERNAL')     AS kind,
-                COALESCE(json_extract_string(fields, '$.status'), 'UNSET')      AS status,
+                %s                                                              AS name,
+                %s                                                              AS kind,
+                %s                                                              AS status,
                 json_extract_string(fields, '$.errorType')                      AS error_type,
                 start_timestamp                                                 AS start_timestamp,
                 COALESCE(start_timestamp_from_beginning, 0)                     AS start_timestamp_from_beginning,
@@ -545,11 +548,16 @@ public class JdbcTraceRepository implements TraceRepository {
         databaseClient.execute(StatementLabel.DERIVE_TRACES, DELETE_TRACES);
         databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, DELETE_TRACE_SPANS);
 
-        // Two placeholders, in the order they appear: which event types are spans, and the keys
-        // stripped out to leave the event's own declared fields.
+        // The placeholders in the order they appear: which event types are spans, the three span
+        // shape projections, and the keys stripped out to leave the event's own declared fields.
         databaseClient.execute(
                 StatementLabel.DERIVE_TRACE_SPANS,
-                DERIVE_TRACE_SPANS.formatted(SPAN_EVENT_TYPES, PLUMBING_FIELDS));
+                DERIVE_TRACE_SPANS.formatted(
+                        SPAN_EVENT_TYPES,
+                        LegacySpanShape.nameProjection(),
+                        LegacySpanShape.kindProjection(),
+                        LegacySpanShape.statusProjection(),
+                        PLUMBING_FIELDS));
         databaseClient.execute(StatementLabel.DERIVE_TRACES, DERIVE_TRACES);
     }
 

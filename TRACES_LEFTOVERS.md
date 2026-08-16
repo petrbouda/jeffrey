@@ -28,7 +28,8 @@ Not bugs — decisions with a stated trade-off.
 | **Pipeline runs are their own traces** | `PipelineRunRegistry` forks to a virtual thread; a background job's lifetime is unrelated to the request | Users find the disconnection confusing in the trace list |
 | **`SpanKind` has no `PRODUCER`/`CONSUMER`** | Their purpose is cross-process pairing, impossible single-JVM; no messaging instrumentation exists | Messaging instrumentation arrives — additive, so safe to defer |
 | **`HttpClientExchangeEvent` / `GrpcClientExchangeEvent` never emitted here** | The derivation handles them and they are stamped-capable, so a third-party app gets outbound spans; Jeffrey itself makes no instrumented outbound calls | Jeffrey starts making them |
-| **Old recordings misread HTTP/gRPC/JDBC status** | `status` → `statusCode` and the removal of `isSuccess` are breaking schema changes; fallbacks were considered and declined in favour of one shape | A user reports it on a recording worth keeping — the fallback is three one-line reads |
+| **An old recording's exchange loses its response code from the span detail** | The span shape is stripped out of `event_fields` as plumbing, and in the older shape the response code *is* the `status` key that gets stripped; the outcome it implies survives as the span status | Someone needs to read the code, not just the outcome, off a legacy recording |
+| **An old recording's statements share their parent's span id** | Before `Tracer.stamp` minted an id in the JVM, a stamped event carried the enclosing span's; the derivation used to invent one, and re-adding that is a different concern from the span shape | Waterfalls of legacy recordings prove unreadable |
 | **P99 shown only when the trace sample is complete** | There is no server-side p99 column, and a p99 over the first 1,000 traces beside a p95 over all of them is two different questions in one row | A p99 aggregate is added to the `OPERATIONS` query |
 | **`TraceSpanInlineDetail` hand-rolls its key/value tables** | `@shared` `DrawerSection`/`InfoRow` fit the identity block but not the two data-driven tables, which need a label-side tooltip and a sub-key | Those shared components grow a richer label slot |
 | **Span drill-downs re-read `spansOf(traceId)` per request** | `trace()`, `spanIntervals()` and `eventsInSpan()` each fetch the trace's spans; they back separate HTTP requests against a small indexed table, and caching across requests is a design cost with no measured win | A profiled slow drill-down names this read as the cost |
@@ -61,6 +62,16 @@ Not bugs — decisions with a stated trade-off.
   in the JVM, so the derivation is a flat projection with nothing to work out.
 - ~~Span shape interpreted in SQL~~ — each event describes itself via `describeSpan()`/`commitSpan()`;
   the derivation names no event type at all, and discovers span types from JFR metadata.
+- ~~A recording older than the span shape listed event types instead of operations~~ — an exchange
+  recorded before `AbstractTracedEvent` carried `name`/`kind`/`status` has none to read, so every
+  request in it fell back to its event type and collapsed into one INTERNAL operation called
+  `jeffrey.HttpServerExchange`. `LegacySpanShape` restores the derivation those events were written
+  for, consulted only when the event did not describe itself: `kind` is the discriminator, since it
+  is absent in every older shape and never absent in the current one. It matters most for `status`,
+  which exists in both shapes meaning two different things — an HTTP response code then, a span
+  status now. That is the fallback declined earlier "in favour of one shape"; the one shape is still
+  what the derivation reads first, and this only answers for recordings that already exist. No new
+  event type can ever need an entry here.
 - ~~The trace detail recomputed its own header~~ — it reads the stored `traces` row, so a trace's
   duration is the same number in the list and in the detail.
 - ~~`has_platform_span` computed per query, two ways~~ — one stored column, one convention: a span

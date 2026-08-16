@@ -551,6 +551,109 @@ class JdbcTraceRepositoryTest {
     }
 
     @Nested
+    @DisplayName("Recordings older than the span shape")
+    class LegacyRecordings {
+
+        private static final long HEALTHY_TRACE = 501L;
+        private static final long FAILED_TRACE = 502L;
+        private static final long GRPC_TRACE = 503L;
+
+        private static final String LEGACY_HEALTH = "GET /api/internal/health";
+        private static final String LEGACY_GRPC_CALL = "jeffrey.api.v1.ProjectService/List";
+
+        private JdbcTraceRepository legacy(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-legacy-shaped-events.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+            return repository;
+        }
+
+        private Map<Long, TraceSpanRecord> spansById(JdbcTraceRepository repository, long traceId) {
+            return repository.spansOf(traceId).stream()
+                    .collect(Collectors.toMap(TraceSpanRecord::spanId, Function.identity()));
+        }
+
+        @Test
+        @DisplayName("an exchange is named by its method and URI, the way the event now names itself")
+        void namesAnExchangeFromItsOwnFields(DataSource dataSource) throws SQLException {
+            TraceSpanRecord exchange = spansById(legacy(dataSource), HEALTHY_TRACE).get(5011L);
+
+            assertEquals(LEGACY_HEALTH, exchange.name());
+            assertEquals("SERVER", exchange.kind(), "the direction was a property of the event type");
+            assertEquals("UNSET", exchange.status(), "200 is not a failure, and not a span status either");
+        }
+
+        @Test
+        @DisplayName("a gRPC call is named by its service and method, and fails on a non-OK code")
+        void namesAGrpcCallFromItsOwnFields(DataSource dataSource) throws SQLException {
+            TraceSpanRecord call = spansById(legacy(dataSource), GRPC_TRACE).get(5031L);
+
+            assertEquals(LEGACY_GRPC_CALL, call.name());
+            assertEquals("SERVER", call.kind());
+            assertEquals("ERROR", call.status(), "UNAVAILABLE is a failed call");
+        }
+
+        @Test
+        @DisplayName("a response code is read as an outcome rather than as a span status")
+        void readsTheResponseCodeAsAnOutcome(DataSource dataSource) throws SQLException {
+            // `status` means two different things across the two shapes: the response code here, the
+            // span status now. Coalescing the recorded value would file this trace under "500".
+            JdbcTraceRepository repository = legacy(dataSource);
+
+            TraceSpanRecord failed = spansById(repository, FAILED_TRACE).get(5021L);
+            assertEquals("ERROR", failed.status());
+            assertEquals(1, repository.summaryOf(FAILED_TRACE).orElseThrow().errorCount());
+            assertEquals(0, repository.summaryOf(HEALTHY_TRACE).orElseThrow().errorCount());
+        }
+
+        @Test
+        @DisplayName("a statement keeps its own name and is a client call that failed")
+        void derivesAStatementFromItsSuccessFlag(DataSource dataSource) throws SQLException {
+            // A statement always recorded a name; what it lacked was a kind and a status, and
+            // `isSuccess` is the flag that stood in for the latter.
+            JdbcTraceRepository repository = legacy(dataSource);
+
+            TraceSpanRecord succeeded = spansById(repository, HEALTHY_TRACE).get(5012L);
+            assertEquals("listSpans", succeeded.name());
+            assertEquals("CLIENT", succeeded.kind());
+            assertEquals("UNSET", succeeded.status());
+
+            assertEquals("ERROR", spansById(repository, GRPC_TRACE).get(5032L).status());
+        }
+
+        @Test
+        @DisplayName("the operations are the endpoints, not the event types they were recorded by")
+        void groupsOperationsByEndpoint(DataSource dataSource) throws SQLException {
+            // The regression this guards: with no name to read, every request in the recording
+            // collapsed into one INTERNAL operation called `jeffrey.HttpServerExchange`.
+            List<TraceOperationRecord> operations = legacy(dataSource).operations(100);
+
+            assertEquals(List.of(LEGACY_HEALTH, LEGACY_GRPC_CALL),
+                    operations.stream().map(TraceOperationRecord::name).sorted().toList());
+            assertTrue(operations.stream().noneMatch(row -> row.name().startsWith("jeffrey.Http")),
+                    "an event type is not an operation name");
+
+            TraceOperationRecord health = operations.stream()
+                    .filter(row -> LEGACY_HEALTH.equals(row.name()))
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(2, health.count(), "both requests of the endpoint belong to one operation");
+            assertEquals(1, health.errorCount());
+            assertEquals("SERVER", health.kind());
+        }
+
+        @Test
+        @DisplayName("drilling into an operation finds the traces it was derived from")
+        void drillsDownIntoADerivedOperation(DataSource dataSource) throws SQLException {
+            List<TraceSummaryRecord> traces = legacy(dataSource)
+                    .tracesOfOperation(operation(LEGACY_HEALTH, "SERVER", HTTP_SERVER_EXCHANGE), 100);
+
+            assertEquals(List.of(HEALTHY_TRACE, FAILED_TRACE),
+                    traces.stream().map(TraceSummaryRecord::traceId).toList());
+        }
+    }
+
+    @Nested
     @DisplayName("Contract with the event API")
     class EventApiContract {
 
