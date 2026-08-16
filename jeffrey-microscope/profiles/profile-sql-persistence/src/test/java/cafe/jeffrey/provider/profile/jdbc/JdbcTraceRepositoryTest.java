@@ -672,7 +672,8 @@ class JdbcTraceRepositoryTest {
         void groupsOperationsByEndpoint(DataSource dataSource) throws SQLException {
             // The regression this guards: with no name to read, every request in the recording
             // collapsed into one INTERNAL operation called `jeffrey.HttpServerExchange`.
-            List<TraceOperationRecord> operations = unnamedExchanges(dataSource).operations(100);
+            List<TraceOperationRecord> operations =
+                    unnamedExchanges(dataSource).operations(TraceOperationListQuery.busiest(100)).operations();
 
             assertEquals(List.of(HEALTH_ENDPOINT, GRPC_CALL),
                     operations.stream().map(TraceOperationRecord::name).sorted().toList());
@@ -704,7 +705,8 @@ class JdbcTraceRepositoryTest {
             // The whole point of deriving rather than reading back: a recorded name is this same rule
             // evaluated by whichever version recorded it, and an endpoint that only some recordings
             // carry the answer for is an endpoint split across two rows of Trace Operations.
-            TraceOperationRecord health = mixedShapes(dataSource).operations(100).stream()
+            TraceOperationRecord health = mixedShapes(dataSource)
+                    .operations(TraceOperationListQuery.busiest(100)).operations().stream()
                     .filter(row -> HEALTH_ENDPOINT.equals(row.name()))
                     .findFirst()
                     .orElseThrow(() -> new AssertionError("both recordings must land under one name"));
@@ -826,7 +828,8 @@ class JdbcTraceRepositoryTest {
         @Test
         @DisplayName("the operations list carries the declared names, with no Jeffrey code involved")
         void operationsAreListedUnderDeclaredNames(DataSource dataSource) throws SQLException {
-            Map<String, TraceOperationRecord> byName = declared(dataSource).operations(100).stream()
+            Map<String, TraceOperationRecord> byName = declared(dataSource)
+                    .operations(TraceOperationListQuery.busiest(100)).operations().stream()
                     .collect(Collectors.toMap(TraceOperationRecord::name, Function.identity()));
 
             TraceOperationRecord publish = byName.get(PUBLISH_OPERATION);
