@@ -20,6 +20,7 @@ package cafe.jeffrey.jfr.events.http;
 
 import cafe.jeffrey.jfr.events.trace.AbstractTracedEvent;
 import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.Span;
 import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import jdk.jfr.*;
 
@@ -27,9 +28,19 @@ import jdk.jfr.*;
  * The half of an HTTP exchange that is the same on both sides of the wire, and the span shape both
  * derive the same way: named by the method and the matched URI template, failed from the response
  * status.
+ * <p>
+ * The naming convention is declared twice on purpose, and {@code SpanMetadataRoundTripTest} plus
+ * Jeffrey's {@code EventApiContract} keep the two in agreement: {@link #describeSpan()} applies it
+ * at commit so the recording reads correctly in {@code jfr print} and JMC, while {@link Span}
+ * carries it in the recording's metadata for any reader — Jeffrey included — to apply itself, even
+ * to an event committed without {@code commitSpan()}. The <em>verdict</em> is different: it is the
+ * writer's statement, not a derivable mapping — an exchange that threw and still answered 200
+ * knows something its code does not — so it is only ever recorded, by {@link #describeSpan()},
+ * which is why {@code commitSpan()} is the required path for failure detection.
  */
 @Category({"Application", "HTTP"})
 @StackTrace(false)
+@Span("{method} {uri}")
 public abstract class AbstractHttpExchangeEvent extends AbstractTracedEvent {
 
     /**

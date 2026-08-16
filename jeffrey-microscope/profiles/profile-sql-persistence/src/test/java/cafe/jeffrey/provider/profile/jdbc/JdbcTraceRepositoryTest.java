@@ -18,8 +18,17 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
+import cafe.jeffrey.jfr.events.grpc.GrpcClientExchangeEvent;
+import cafe.jeffrey.jfr.events.grpc.GrpcServerExchangeEvent;
+import cafe.jeffrey.jfr.events.http.HttpClientExchangeEvent;
+import cafe.jeffrey.jfr.events.http.HttpServerExchangeEvent;
+import cafe.jeffrey.jfr.events.jdbc.statement.JdbcQueryEvent;
+import cafe.jeffrey.jfr.events.trace.Span;
 import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.SpanStatus;
+import cafe.jeffrey.jfr.events.trace.TraceSpanEvent;
+import cafe.jeffrey.shared.common.model.EventTypeName;
+import cafe.jeffrey.shared.common.model.SpanConventionKeys;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
@@ -395,15 +404,15 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
-        @DisplayName("names and kinds come from the event, whatever type it is")
+        @DisplayName("every span gets the kind its type's convention gives it")
         void readsNameAndKindFromTheEvent(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
             Map<String, TraceSpanRecord> byName = repository.spansOf(SLOW_TRACE).stream()
                     .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
 
-            // Three event types, one uniform shape: the exchange had already folded its method and
-            // matched template into the name, the statement its label, the hand-written span its own.
+            // Three event types, one uniform shape: an exchange is the inbound side by construction,
+            // a statement is always a call out, and a hand-written span is whatever Tracer was told.
             assertEquals("SERVER", byName.get("POST /api/internal/profiles/{profileId}/flamegraph").kind());
             assertEquals("CLIENT", byName.get("listSpans").kind());
             assertEquals("INTERNAL", byName.get("flamegraph.generate").kind());
@@ -452,6 +461,23 @@ class JdbcTraceRepositoryTest {
             assertFalse(attributes.contains("startTime"), attributes);
             assertFalse(attributes.contains("duration"), attributes);
             assertFalse(attributes.contains("\"name\""), attributes);
+            assertFalse(attributes.contains("\"status\""), attributes);
+        }
+
+        @Test
+        @DisplayName("a response code under `status` is detail, not plumbing, and is kept")
+        void keepsAResponseCodeThatIsNotASpanStatus(DataSource dataSource) throws SQLException {
+            // Where an exchange records no `statusCode`, `status` holds the response code and is the
+            // only record of it. Stripping that key unconditionally took the 500 out of the span
+            // detail of every recording that spells the outcome that way.
+            TestUtils.executeSql(dataSource, "sql/events/insert-unnamed-exchange-events.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+
+            TraceSpanRecord failed = repository.spansOf(502L).getFirst();
+
+            assertEquals("ERROR", failed.status(), "the span is still judged by the code");
+            assertTrue(failed.eventFields().contains("\"status\":500"), failed.eventFields());
         }
 
         @Test
@@ -529,11 +555,11 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
-        @DisplayName("an event carrying ids but no span shape still lands in the trace")
+        @DisplayName("an event no convention names takes its event type for a name")
         void fallsBackForAnIncompleteShape(DataSource dataSource) throws SQLException {
-            // Third-party instrumentation that stamped only the ids, or a recording older than the
-            // span shape. Dropping it would lose a real part of the trace, so it takes its event
-            // type for a name and the neutral kind and status.
+            // Third-party instrumentation that stamped only the ids: no convention places it and it
+            // named nothing itself. Dropping it would lose a real part of the trace, so it takes its
+            // event type for a name and the neutral kind and status.
             TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
             TestUtils.executeSql(dataSource, "sql/events/insert-bare-traced-event.sql");
             JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
@@ -551,6 +577,270 @@ class JdbcTraceRepositoryTest {
     }
 
     @Nested
+    @DisplayName("Span naming conventions")
+    class SpanNaming {
+
+        private static final long HEALTHY_TRACE = 501L;
+        private static final long FAILED_TRACE = 502L;
+        private static final long GRPC_TRACE = 503L;
+
+        private static final String HEALTH_ENDPOINT = "GET /api/internal/health";
+        private static final String GRPC_CALL = "jeffrey.api.v1.ProjectService/List";
+
+        /** Exchanges that recorded their own fields and no span shape — nothing to read a name from. */
+        private JdbcTraceRepository unnamedExchanges(DataSource dataSource) throws SQLException {
+            return derivedFrom(dataSource, "sql/events/insert-unnamed-exchange-events.sql");
+        }
+
+        /** The same endpoint recorded both ways, plus the cases where field and convention differ. */
+        private JdbcTraceRepository mixedShapes(DataSource dataSource) throws SQLException {
+            return derivedFrom(dataSource, "sql/events/insert-mixed-shape-exchanges.sql");
+        }
+
+        private JdbcTraceRepository derivedFrom(DataSource dataSource, String fixture) throws SQLException {
+            TestUtils.executeSql(dataSource, fixture);
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+            return repository;
+        }
+
+        private Map<Long, TraceSpanRecord> spansById(JdbcTraceRepository repository, long traceId) {
+            return repository.spansOf(traceId).stream()
+                    .collect(Collectors.toMap(TraceSpanRecord::spanId, Function.identity()));
+        }
+
+        @Test
+        @DisplayName("an exchange is named by its method and URI")
+        void namesAnExchangeByMethodAndUri(DataSource dataSource) throws SQLException {
+            TraceSpanRecord exchange = spansById(unnamedExchanges(dataSource), HEALTHY_TRACE).get(5011L);
+
+            assertEquals(HEALTH_ENDPOINT, exchange.name());
+            assertEquals("SERVER", exchange.kind(), "the direction is a property of the event type");
+            assertEquals("UNSET", exchange.status(), "200 is not a failure, and not a span status either");
+        }
+
+        @Test
+        @DisplayName("a gRPC call is named by its service and method, and fails on a non-OK code")
+        void namesAGrpcCallByServiceAndMethod(DataSource dataSource) throws SQLException {
+            TraceSpanRecord call = spansById(unnamedExchanges(dataSource), GRPC_TRACE).get(5031L);
+
+            assertEquals(GRPC_CALL, call.name());
+            assertEquals("SERVER", call.kind());
+            assertEquals("ERROR", call.status(), "UNAVAILABLE is a failed call");
+        }
+
+        @Test
+        @DisplayName("a response code is read as an outcome rather than as a span status")
+        void readsTheResponseCodeAsAnOutcome(DataSource dataSource) throws SQLException {
+            // Where an exchange records no `statusCode`, its code is what `status` holds -- and that
+            // is the same key a self-describing event puts a span status under. Reading `statusCode`
+            // first and `status` only where it cannot be a span status is what tells the two apart.
+            JdbcTraceRepository repository = unnamedExchanges(dataSource);
+
+            TraceSpanRecord failed = spansById(repository, FAILED_TRACE).get(5021L);
+            assertEquals("ERROR", failed.status());
+            assertEquals(1, repository.summaryOf(FAILED_TRACE).orElseThrow().errorCount());
+            assertEquals(0, repository.summaryOf(HEALTHY_TRACE).orElseThrow().errorCount());
+        }
+
+        @Test
+        @DisplayName("a statement keeps its own name and is a client call")
+        void namesAStatementAfterItself(DataSource dataSource) throws SQLException {
+            // A statement names itself -- there is no convention for it beyond being a call out to
+            // something else -- and `isSuccess` is what an outcome was before it had a status.
+            JdbcTraceRepository repository = unnamedExchanges(dataSource);
+
+            TraceSpanRecord succeeded = spansById(repository, HEALTHY_TRACE).get(5012L);
+            assertEquals("listSpans", succeeded.name());
+            assertEquals("CLIENT", succeeded.kind());
+            assertEquals("UNSET", succeeded.status());
+
+            assertEquals("ERROR", spansById(repository, GRPC_TRACE).get(5032L).status());
+        }
+
+        @Test
+        @DisplayName("the operations are the endpoints, not the event types they were recorded by")
+        void groupsOperationsByEndpoint(DataSource dataSource) throws SQLException {
+            // The regression this guards: with no name to read, every request in the recording
+            // collapsed into one INTERNAL operation called `jeffrey.HttpServerExchange`.
+            List<TraceOperationRecord> operations = unnamedExchanges(dataSource).operations(100);
+
+            assertEquals(List.of(HEALTH_ENDPOINT, GRPC_CALL),
+                    operations.stream().map(TraceOperationRecord::name).sorted().toList());
+            assertTrue(operations.stream().noneMatch(row -> row.name().startsWith("jeffrey.Http")),
+                    "an event type is not an operation name");
+
+            TraceOperationRecord health = operations.stream()
+                    .filter(row -> HEALTH_ENDPOINT.equals(row.name()))
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(2, health.count(), "both requests of the endpoint belong to one operation");
+            assertEquals(1, health.errorCount());
+            assertEquals("SERVER", health.kind());
+        }
+
+        @Test
+        @DisplayName("drilling into an operation finds the traces it was derived from")
+        void drillsDownIntoADerivedOperation(DataSource dataSource) throws SQLException {
+            List<TraceSummaryRecord> traces = unnamedExchanges(dataSource)
+                    .tracesOfOperation(operation(HEALTH_ENDPOINT, "SERVER", HTTP_SERVER_EXCHANGE), 100);
+
+            assertEquals(List.of(HEALTHY_TRACE, FAILED_TRACE),
+                    traces.stream().map(TraceSummaryRecord::traceId).toList());
+        }
+
+        @Test
+        @DisplayName("an endpoint recorded by either instrumentation is one operation")
+        void eitherShapeIsOneOperation(DataSource dataSource) throws SQLException {
+            // The whole point of deriving rather than reading back: a recorded name is this same rule
+            // evaluated by whichever version recorded it, and an endpoint that only some recordings
+            // carry the answer for is an endpoint split across two rows of Trace Operations.
+            TraceOperationRecord health = mixedShapes(dataSource).operations(100).stream()
+                    .filter(row -> HEALTH_ENDPOINT.equals(row.name()))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("both recordings must land under one name"));
+
+            assertEquals(2, health.count());
+            assertEquals("SERVER", health.kind());
+        }
+
+        @Test
+        @DisplayName("a self-describing exchange derives exactly the name it recorded")
+        void aCurrentRecordingIsUnchanged(DataSource dataSource) throws SQLException {
+            // The guard that deriving changes nothing for a recording that names itself: this fails
+            // the moment the SQL and describeSpan() disagree about what an exchange is called.
+            JdbcTraceRepository repository = derived(dataSource);
+
+            TraceSummaryRecord slow = repository.summaryOf(SLOW_TRACE).orElseThrow();
+            assertEquals("POST /api/internal/profiles/{profileId}/flamegraph", slow.rootName());
+            assertEquals("SERVER", slow.rootKind());
+
+            TraceSummaryRecord fast = repository.summaryOf(FAST_TRACE).orElseThrow();
+            assertEquals("GET /api/internal/health", fast.rootName());
+            assertEquals(1, fast.errorCount(), "500 is a failure whichever side works it out");
+        }
+
+        @Test
+        @DisplayName("the convention outranks a name the recording disagrees with")
+        void theConventionOutranksARecordedName(DataSource dataSource) throws SQLException {
+            TraceSpanRecord exchange = spansById(mixedShapes(dataSource), 603L).get(6031L);
+
+            assertEquals("POST /orders", exchange.name(),
+                    "an exchange is named by what it did, not by what one library version called it");
+        }
+
+        @Test
+        @DisplayName("an error the instrumentation recorded outranks a successful response code")
+        void aRecordedErrorOutranksTheCode(DataSource dataSource) throws SQLException {
+            // The one outcome a code cannot carry: the exchange threw and still answered 200.
+            JdbcTraceRepository repository = mixedShapes(dataSource);
+
+            TraceSpanRecord threw = spansById(repository, 604L).get(6041L);
+            assertEquals("ERROR", threw.status());
+            assertEquals("java.lang.IllegalStateException", threw.errorType());
+            assertEquals(1, repository.summaryOf(604L).orElseThrow().errorCount());
+        }
+
+        @Test
+        @DisplayName("400 is the first response code that fails the span")
+        void fourHundredIsTheFirstFailure(DataSource dataSource) throws SQLException {
+            // The threshold is spelled once in the event class and once in the SQL; nothing else
+            // pins them to each other.
+            JdbcTraceRepository repository = mixedShapes(dataSource);
+
+            assertEquals("UNSET", spansById(repository, 605L).get(6051L).status());
+            assertEquals("ERROR", spansById(repository, 606L).get(6061L).status());
+        }
+    }
+
+    @Nested
+    @DisplayName("Conventions declared in the recording")
+    class DeclaredConventions {
+
+        private static final String PUBLISH_OPERATION = "PUBLISH orders";
+
+        private JdbcTraceRepository declared(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-declared-convention-events.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+            return repository;
+        }
+
+        private TraceSummaryRecord root(JdbcTraceRepository repository, long traceId) {
+            return repository.summaryOf(traceId).orElseThrow();
+        }
+
+        @Test
+        @DisplayName("a plain-commit third-party event is named by its declared template")
+        void namesAPlainCommitEvent(DataSource dataSource) throws SQLException {
+            // The case nothing else can serve: describeSpan() never ran, so no name was recorded.
+            // The template travelled in the recording's metadata, and Jeffrey has no code that
+            // knows com.acme.KafkaPublish. The verdict is a different story on purpose: it is the
+            // writer's statement, so the 503 sitting in deliveryCode is NOT read as a failure --
+            // failure detection requires commitSpan() (or writing `status` directly).
+            TraceSummaryRecord published = root(declared(dataSource), 701L);
+
+            assertEquals(PUBLISH_OPERATION, published.rootName());
+            assertEquals(0, published.errorCount(),
+                    "no verdict was recorded, so none exists -- a code is not a statement of failure");
+        }
+
+        @Test
+        @DisplayName("the declared template outranks a stale recorded name")
+        void declaredTemplateOutranksARecordedName(DataSource dataSource) throws SQLException {
+            assertEquals("PUBLISH payments", root(declared(dataSource), 703L).rootName(),
+                    "the recorded name is one library version's answer; the declaration is the rule");
+        }
+
+        @Test
+        @DisplayName("a recorded error is the verdict, on any commit path")
+        void aRecordedErrorIsTheVerdict(DataSource dataSource) throws SQLException {
+            // The one way a third-party event states a failure: record it. failed()-style direct
+            // writes and commitSpan() both do; the derivation's ERROR escalation honours it.
+            TraceSummaryRecord failed = root(declared(dataSource), 704L);
+
+            assertEquals(1, failed.errorCount());
+        }
+
+        @Test
+        @DisplayName("the identity template names a self-naming type by what it recorded")
+        void identityTemplateReadsTheRecordedName(DataSource dataSource) throws SQLException {
+            // The shape of a Jeffrey statement in a new recording: @Span("{name}") declared,
+            // name recorded at construction. The declared arm and the recorded-name fallback must
+            // agree -- the template exists for the invariant that every shipped span type declares
+            // its convention, not to change any answer.
+            TraceSummaryRecord statement = root(declared(dataSource), 708L);
+
+            assertEquals("listSpans", statement.rootName());
+        }
+
+        @Test
+        @DisplayName("the operations list carries the declared names, with no Jeffrey code involved")
+        void operationsAreListedUnderDeclaredNames(DataSource dataSource) throws SQLException {
+            Map<String, TraceOperationRecord> byName = declared(dataSource).operations(100).stream()
+                    .collect(Collectors.toMap(TraceOperationRecord::name, Function.identity()));
+
+            TraceOperationRecord publish = byName.get(PUBLISH_OPERATION);
+            assertNotNull(publish, "the zero-Jeffrey-changes proof: a foreign type, a real operation name");
+            assertEquals(3, publish.count());
+            assertEquals(1, publish.errorCount(), "only the recorded ERROR counts as a failure");
+            assertTrue(byName.keySet().stream().noneMatch(name -> name.startsWith("com.acme.")),
+                    "no declared type may fall back to its event type");
+        }
+
+        @Test
+        @DisplayName("a profile with no declarations derives exactly as before")
+        void noDeclarationsChangesNothing(DataSource dataSource) throws SQLException {
+            // The existing fixtures keep extras NULL, so this pins that the declared-conventions
+            // path renders to nothing rather than to broken SQL when a profile declares nothing.
+            JdbcTraceRepository repository = derived(dataSource);
+
+            assertEquals("POST /api/internal/profiles/{profileId}/flamegraph",
+                    repository.summaryOf(SLOW_TRACE).orElseThrow().rootName());
+        }
+    }
+
+    @Nested
     @DisplayName("Contract with the event API")
     class EventApiContract {
 
@@ -560,6 +850,75 @@ class JdbcTraceRepositoryTest {
             assertEquals("SERVER", SpanKind.SERVER.name());
             assertEquals("CLIENT", SpanKind.CLIENT.name());
             assertEquals("INTERNAL", SpanKind.INTERNAL.name());
+        }
+
+        @Test
+        @DisplayName("the SQL names an exchange the way the event names itself")
+        void conventionsAgreeWithTheInstrumentation() {
+            // One naming rule, three readers held together here: the built-in template (for
+            // recordings that predate @Span), the annotation (carried in every new recording),
+            // and describeSpan() (what commitSpan() writes into the raw event). @Inherited is
+            // load-bearing for the annotation reads: the declarations live on the abstract bases
+            // and must be readable off the concrete classes. The status assertions are about
+            // describeSpan alone -- a verdict is only ever recorded, which is why commitSpan() is
+            // the required path for failure detection.
+            assertEquals(SpanNameTemplates.BUILT_IN.get(HttpServerExchangeEvent.NAME),
+                    HttpServerExchangeEvent.class.getAnnotation(Span.class).value(),
+                    "the built-in template IS the annotation's rule, one rule across vintages");
+            assertEquals(SpanNameTemplates.BUILT_IN.get(GrpcServerExchangeEvent.NAME),
+                    GrpcServerExchangeEvent.class.getAnnotation(Span.class).value());
+
+            HttpServerExchangeEvent http = new HttpServerExchangeEvent();
+            http.method = "GET";
+            http.uri = "/api/internal/health";
+            http.statusCode = 500;
+            http.commitSpan();
+
+            assertEquals("GET /api/internal/health", http.name,
+                    "describeSpan must produce what the template declares");
+            assertEquals(SpanKind.SERVER.name(), http.kind);
+            assertEquals(SpanStatus.ERROR.name(), http.status,
+                    "describeSpan records the verdict; nothing else does");
+
+            GrpcServerExchangeEvent grpc = new GrpcServerExchangeEvent();
+            grpc.service = "jeffrey.api.v1.ProjectService";
+            grpc.method = "List";
+            grpc.statusCode = "UNAVAILABLE";
+            grpc.commitSpan();
+
+            assertEquals("jeffrey.api.v1.ProjectService/List", grpc.name);
+            assertEquals(SpanKind.SERVER.name(), grpc.kind);
+            assertEquals(SpanStatus.ERROR.name(), grpc.status);
+        }
+
+        @Test
+        @DisplayName("the event types the conventions name are the names the events register under")
+        void eventTypeNamesMatchTheInstrumentation() {
+            assertEquals(EventTypeName.HTTP_SERVER_EXCHANGE, HttpServerExchangeEvent.NAME);
+            assertEquals(EventTypeName.HTTP_CLIENT_EXCHANGE, HttpClientExchangeEvent.NAME);
+            assertEquals(EventTypeName.GRPC_SERVER_EXCHANGE, GrpcServerExchangeEvent.NAME);
+            assertEquals(EventTypeName.GRPC_CLIENT_EXCHANGE, GrpcClientExchangeEvent.NAME);
+        }
+
+        @Test
+        @DisplayName("the keys a declared convention travels under match the annotation")
+        void conventionKeysMatchTheAnnotations() {
+            // The parser matches the annotation by type name and the derivation reads extras by
+            // key; neither module compiles against jeffrey-events, so these strings are the whole
+            // contract. A rename on either side must fail here, not silently un-declare every
+            // convention in every new recording.
+            assertEquals(SpanConventionKeys.SPAN_ANNOTATION, Span.class.getName());
+        }
+
+        @Test
+        @DisplayName("every span type the library ships declares its naming convention")
+        void everySpanTypeDeclaresItsTemplate() {
+            // Exchanges derive their name from their fields; a statement and a hand-written span
+            // name themselves, which the identity template states explicitly. The invariant is
+            // that no jeffrey-events span type is silent about how it is named -- absence of
+            // @Span means "no convention exists", never "the rule lives elsewhere".
+            assertEquals("{name}", JdbcQueryEvent.class.getAnnotation(Span.class).value());
+            assertEquals("{name}", TraceSpanEvent.class.getAnnotation(Span.class).value());
         }
 
         @Test

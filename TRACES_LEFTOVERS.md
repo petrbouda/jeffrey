@@ -28,7 +28,7 @@ Not bugs — decisions with a stated trade-off.
 | **Pipeline runs are their own traces** | `PipelineRunRegistry` forks to a virtual thread; a background job's lifetime is unrelated to the request | Users find the disconnection confusing in the trace list |
 | **`SpanKind` has no `PRODUCER`/`CONSUMER`** | Their purpose is cross-process pairing, impossible single-JVM; no messaging instrumentation exists | Messaging instrumentation arrives — additive, so safe to defer |
 | **`HttpClientExchangeEvent` / `GrpcClientExchangeEvent` never emitted here** | The derivation handles them and they are stamped-capable, so a third-party app gets outbound spans; Jeffrey itself makes no instrumented outbound calls | Jeffrey starts making them |
-| **Old recordings misread HTTP/gRPC/JDBC status** | `status` → `statusCode` and the removal of `isSuccess` are breaking schema changes; fallbacks were considered and declined in favour of one shape | A user reports it on a recording worth keeping — the fallback is three one-line reads |
+| **Statements share their parent's span id where the recording predates minted ids** | Before `Tracer.stamp` minted an id in the JVM, a stamped event carried the enclosing span's; the derivation used to invent one, and re-adding that is a separate concern from naming | Such waterfalls prove unreadable |
 | **P99 shown only when the trace sample is complete** | There is no server-side p99 column, and a p99 over the first 1,000 traces beside a p95 over all of them is two different questions in one row | A p99 aggregate is added to the `OPERATIONS` query |
 | **`TraceSpanInlineDetail` hand-rolls its key/value tables** | `@shared` `DrawerSection`/`InfoRow` fit the identity block but not the two data-driven tables, which need a label-side tooltip and a sub-key | Those shared components grow a richer label slot |
 | **Span drill-downs re-read `spansOf(traceId)` per request** | `trace()`, `spanIntervals()` and `eventsInSpan()` each fetch the trace's spans; they back separate HTTP requests against a small indexed table, and caching across requests is a design cost with no measured win | A profiled slow drill-down names this read as the cost |
@@ -61,6 +61,41 @@ Not bugs — decisions with a stated trade-off.
   in the JVM, so the derivation is a flat projection with nothing to work out.
 - ~~Span shape interpreted in SQL~~ — each event describes itself via `describeSpan()`/`commitSpan()`;
   the derivation names no event type at all, and discovers span types from JFR metadata.
+- ~~Operation names were read from a field instead of derived from a convention~~ — reading back
+  `$.name` meant any recording that did not carry one had every request collapse into one INTERNAL
+  operation called `jeffrey.HttpServerExchange`: an earlier `jeffrey-events`, or third-party
+  instrumentation that stamps the ids and commits plainly. `SpanConventions` derives the name, the
+  kind and the outcome from the event's own fields — `{method} {route}`, `{service}/{method}`, a
+  statement's label — and the recorded field is what an event type with no convention carries.
+  Deriving is what makes one endpoint one operation: a recorded name is only this same rule
+  evaluated by whichever version recorded it, and an endpoint only some recordings answer for is an
+  endpoint split across two rows. `describeSpan()` still writes the name so the recording describes
+  itself outside Jeffrey, and `EventApiContract` pins the two spellings together.
+  <br>The outcome is read as `COALESCE(statusCode, status)`, with `status` consulted only where it
+  cannot be a span status, so no vintage test is needed to tell a response code from an outcome; a
+  recorded `ERROR` outranks the code, since an exchange that threw and still answered 200 knows
+  something its code does not.
+- ~~Naming conventions enumerated Jeffrey's event types~~ — a type now declares its naming
+  convention *inside the recording*: `@Span("{method} {uri}")` is a JFR `@MetadataDefinition`
+  annotation, persisted into every recording's metadata, copied by the parser into
+  `event_types.extras`, and rendered by `SpanNameTemplates` into one CASE expression — discovered
+  structurally, exactly the way `spanId` discovers a span. A third-party event type Jeffrey has
+  never seen is named with zero changes to Jeffrey, even when committed with plain `commit()`;
+  self-naming types (statements, hand-written spans) declare the identity template `{name}`, so
+  every shipped span type carries its convention (rendered as no arm — it is the recorded-name
+  fallback). The template is the *only* naming concept: the built-ins are the same template
+  strings the annotations declare (pinned by test), kept as a map for recordings that predate the
+  annotation — a set that genuinely cannot grow, restoring the earlier claim in its correct form;
+  a declared template overlays the built-in per event type and wins.
+  The template syntax and extras key are wire format: frozen, additive-only. Everything read from
+  recording metadata is validated before it reaches SQL (`[A-Za-z0-9_]+` tokens, quoted literals).
+  <br>The *verdict* is deliberately not declarable — a `@SpanOutcome` annotation was built and then
+  removed after design discussion: a span's status is the writer's statement (an exchange that
+  threw and still answered 200 knows something its code does not — the same reasoning behind the
+  recorded-`ERROR` escalation), so it is recorded through `commitSpan()`/`failed()`, never derived
+  from a declaration. An event committed with plain `commit()` keeps its name, kind and nesting but
+  reports no errors; Jeffrey's own exchange types are judged by the built-in code rules on
+  recordings of any vintage regardless.
 - ~~The trace detail recomputed its own header~~ — it reads the stored `traces` row, so a trace's
   duration is the same number in the list and in the detail.
 - ~~`has_platform_span` computed per query, two ways~~ — one stored column, one convention: a span
@@ -69,6 +104,9 @@ Not bugs — decisions with a stated trade-off.
   merged per `(trace, thread)` with idle gaps preserved (gaps-and-islands), because a plain MIN/MAX
   per pair handed the operation flamegraph one window spanning a thread's idle gap and absorbed
   whatever unrelated work ran in it.
+- ~~An exchange's response code was stripped from its span detail~~ — `status` is only plumbing when
+  it holds a span status; where an exchange spells its response code there, that key is the sole
+  record of it, so the patch that strips the span shape is chosen per row.
 - ~~`derive()` not idempotent~~ — both tables are cleared first, and a test runs it twice.
 - ~~Every virtual thread collapsed into one~~ — `EventThreadCleaner` no longer groups on a null
   `os_id`, which is what `trace_spans.thread_hash` depends on.

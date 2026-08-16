@@ -19,6 +19,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import DocsCallout from '@/components/docs/DocsCallout.vue';
+import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
@@ -27,12 +28,35 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'event-types', text: 'Event Types', level: 2 },
   { id: 'trace-context', text: 'Trace Context', level: 2 },
+  { id: 'custom-span', text: 'Write Your Own Span Event', level: 2 },
   { id: 'integration', text: 'Integration', level: 2 }
 ];
 
 onMounted(() => {
   setHeadings(headings);
 });
+
+const customSpanEvent = `import cafe.jeffrey.jfr.events.trace.AbstractTracedEvent;
+import cafe.jeffrey.jfr.events.trace.Span;
+import jdk.jfr.Category;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
+
+@Name("com.acme.KafkaPublish")
+@Label("Kafka Publish")
+@Category({"Application", "Messaging"})
+@Span("PUBLISH {topic}")                       // 3. the operation name template
+public class KafkaPublishEvent extends AbstractTracedEvent {   // 1. what makes it a span
+
+    @Label("Topic")
+    public String topic;
+}`;
+
+const customSpanUsage = `KafkaPublishEvent event = new KafkaPublishEvent();
+event.topic = "orders";
+Tracer.inSpanOf(event, () -> {                 // 2. stamps traceId/spanId/parentSpanId
+    // ... the work; anything traced inside nests under this span
+});                                            // inSpanOf commits via commitSpan()`;
 </script>
 
 <template>
@@ -100,22 +124,40 @@ onMounted(() => {
         <h2 id="trace-context">The Span Shape</h2>
         <p>The HTTP, gRPC and database events above extend <code>AbstractTracedEvent</code>, which carries the whole shape of a span: three identity fields — <code>traceId</code>, <code>spanId</code> and <code>parentSpanId</code>, 64-bit longs where <code>0</code> means absent — and the <code>name</code>, <code>kind</code>, <code>status</code>, <code>errorType</code> and <code>attributes</code> that describe it. The library never populates the ids itself; the instrumentation does, either with <code>Tracer.stamp(event)</code>, which gives the event a span of its own under the one in progress, or with <code>Tracer.inSpanOf(...)</code>, which makes the event <em>be</em> the span it opens.</p>
 
-        <p>An event fills in the rest for itself when it is committed through <code>commitSpan()</code>: an exchange is named by its method and matched URI template and fails from HTTP 400 upwards, a gRPC call is named by service and method and fails on anything but <code>OK</code>. So an instrumented event is a span with nothing left to interpret, and lands in the same tree as <code>jeffrey.TraceSpan</code> — which is what makes a request's SQL statements appear as its children with neither side knowing about the other. The trace and span ids are also annotated <code>@Contextual</code>, so <code>jfr print</code> and JMC show them alongside the surrounding events even outside Jeffrey.</p>
+        <p>An event fills in the rest for itself when it is committed through <code>commitSpan()</code>: an exchange is named by its method and matched URI template and fails from HTTP 400 upwards, a gRPC call is named by service and method and fails on anything but <code>OK</code>. These are the naming rules OpenTelemetry states for the same operations, and the recording carries the answer so that <code>jfr print</code>, JMC and any other reader see a described span. Jeffrey itself applies the same rules again when it derives a trace, from the exchange's own <code>method</code>, <code>uri</code>, <code>service</code> and status fields — so an operation is named the same way whichever version of this library recorded it, and instrumentation that stamps the ids and commits plainly is named too. An instrumented event lands in the same tree as <code>jeffrey.TraceSpan</code>, which is what makes a request's SQL statements appear as its children with neither side knowing about the other. The trace and span ids are also annotated <code>@Contextual</code>, so <code>jfr print</code> and JMC show them alongside the surrounding events even outside Jeffrey.</p>
 
         <p>Jeffrey recognises a span by that shape rather than by a list of event types: any event declaring a <code>spanId</code> field takes part in traces, including instrumentation written outside Jeffrey.</p>
+
+        <p>An event type can also declare its <em>naming convention</em> the same way — inside the recording. <code>@Span("{method} {uri}")</code> on the event class states the template; it is a JFR metadata annotation, so it is persisted into every recording the event is written to, and any reader — Jeffrey's derivation included — can name the span without knowing the event type, even when it was committed with plain <code>commit()</code> and never described itself. A self-naming event — a database statement, a hand-written span — declares the identity template <code>{name}</code>, so every span type in this library carries its convention; an event with no <code>@Span</code> at all is one that has no naming convention. The template syntax is wire format: frozen once recordings carry it, extended only by addition.</p>
+
+        <p>The <em>verdict</em> is deliberately not declarable. A span's status is the writer's statement — an exchange that threw and still answered 200 knows something its response code does not — so failure detection requires committing through <code>commitSpan()</code> (or writing <code>status</code> directly, as <code>JdbcBaseEvent.failed()</code> does). An event committed with plain <code>commit()</code> keeps its name, kind, identity and nesting, but its traces report no errors. Jeffrey's own HTTP and gRPC exchange types are the exception by construction: Jeffrey knows their codes and judges them on recordings of any vintage.</p>
 
         <DocsCallout type="warning">
           <strong>Tracing requires Java 25.</strong> The <code>Tracer</code> API is built on <code>ScopedValue</code> (JEP&nbsp;506) and <code>jdk.jfr.Contextual</code>, both finalized in Java&nbsp;25. The event definitions themselves remain usable on older releases from an earlier version of the library.
         </DocsCallout>
 
-        <DocsCallout type="warning">
-          <strong>Recordings made before the span shape existed read differently.</strong> Giving every traced event a <code>status</code> of its own — <code>UNSET</code>, <code>OK</code> or <code>ERROR</code> — collided with the field HTTP and gRPC exchanges already used for their response code, so that one was renamed to <code>statusCode</code>, and <code>JdbcBaseEvent.isSuccess</code> was replaced by the span status. A recording produced by an earlier version of the library still carries the old field names, and Jeffrey reads the new ones: HTTP and gRPC status codes file under <code>0</code>, every database statement reads as successful, and an HTTP exchange's numeric code is taken for a span status, so its trace reports no errors. The traces themselves are unaffected — identity, naming and nesting all still work. Re-record with the current library for accurate HTTP and JDBC status data.
+        <DocsCallout type="info">
+          <strong>The field names changed once, and Jeffrey reads either spelling.</strong> Giving every traced event a <code>status</code> of its own — <code>UNSET</code>, <code>OK</code> or <code>ERROR</code> — collided with the field HTTP and gRPC exchanges already used for their response code, so that one was renamed to <code>statusCode</code>, and <code>JdbcBaseEvent.isSuccess</code> was replaced by the span status. A recording produced by an earlier version of the library still carries the old names. Because Jeffrey derives an operation from the event's own fields, both shapes read correctly: the outcome is taken from <code>statusCode</code> where it exists and from <code>status</code> where it does not, which cannot be confused with a span status — <code>ERROR</code> and <code>UNSET</code> are not codes any exchange reports. What an older recording still loses is the identity of its database statements: before <code>Tracer.stamp</code> minted an id per event, every statement inside one span carried that span's id, so such statements collapse together in the waterfall. Re-record with the current library for accurate statement identity.
         </DocsCallout>
 
         <p class="docs-read-more">
           <router-link to="/docs/events/tracer">Read the Tracer API reference &rarr;</router-link><br>
           <router-link to="/docs/microscope/profiles/traces">Read the Traces &amp; Spans reference &rarr;</router-link>
         </p>
+
+        <h2 id="custom-span">Write Your Own Span Event</h2>
+        <p>Everything above composes into a recipe: a JFR event type of your own takes part in traces — discovered, nested, named as a real operation — with zero changes to Jeffrey. Three pieces, numbered in the code:</p>
+
+        <DocsCodeBlock :code="customSpanEvent" language="java" />
+        <DocsCodeBlock :code="customSpanUsage" language="java" />
+
+        <ol>
+          <li><strong>Extend <code>AbstractTracedEvent</code>.</strong> This is what makes the event a span — it declares the <code>spanId</code> field Jeffrey discovers structurally. <code>@Span</code> on a plain <code>jdk.jfr.Event</code> does nothing.</li>
+          <li><strong>Stamp the ids.</strong> The derivation drops events whose <code>traceId</code>/<code>spanId</code> are 0. Run the work through <code>Tracer.inSpanOf(event, ...)</code> so the event joins the active trace — or roots a new one if none is active. An event that should sit <em>under</em> the current span rather than be one of its own uses <code>Tracer.stamp(event)</code> instead.</li>
+          <li><strong>Declare the name with <code>@Span</code>.</strong> The template travels inside every recording, so Trace Operations lists <code>PUBLISH orders</code> rather than <code>com.acme.KafkaPublish</code>, and one operation groups as one row across recordings.</li>
+        </ol>
+
+        <p>Failure detection is the one thing that is not automatic, because a verdict is recorded rather than declared: override <code>describeSpan()</code> to set <code>status</code> from your own fields and commit through <code>commitSpan()</code> — which <code>Tracer.inSpanOf</code> already does, including marking the span <code>ERROR</code> when the body throws. The difference from a hand-written <code>Tracer.run("name", ...)</code> span is the typed payload: your own fields show up in the span detail and feed the naming template, instead of whatever string each call site passed.</p>
 
         <h2 id="integration">Integration</h2>
         <p>Add Jeffrey Events to your project and instrument your code to emit events:</p>
