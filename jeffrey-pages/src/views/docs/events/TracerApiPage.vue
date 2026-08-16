@@ -155,6 +155,28 @@ try {
     }
 }`;
 
+const customSpanEvent = `import cafe.jeffrey.jfr.events.trace.AbstractTracedEvent;
+import cafe.jeffrey.jfr.events.trace.Span;
+import jdk.jfr.Category;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
+
+@Name("com.acme.KafkaPublish")
+@Label("Kafka Publish")
+@Category({"Application", "Messaging"})
+@Span("PUBLISH {topic}")                       // the operation name template
+public class KafkaPublishEvent extends AbstractTracedEvent {   // what makes it a span
+
+    @Label("Topic")
+    public String topic;
+}`;
+
+const customSpanUsage = `KafkaPublishEvent event = new KafkaPublishEvent();
+event.topic = "orders";
+Tracer.inSpanOf(event, () -> {                 // stamps traceId/spanId/parentSpanId
+    // ... the work; anything traced inside nests under this span
+});                                            // inSpanOf commits via commitSpan()`;
+
 const inSpanOfTree = `trace 2b7fe410…
 └─ GET /api/internal/profiles/{profileId}   HttpServerExchangeEvent  SERVER  parentSpanId=0
    ├─ flamegraph.generate                   jeffrey.TraceSpan        INTERNAL
@@ -352,6 +374,14 @@ const composedTree = `trace a3f9c1d4…                                         
       <DocsCodeBlock :code="inSpanOfTree" language="text" />
 
       <p>Unlike <code>call</code>, this always establishes the binding, even with nothing recording: whether an interval is recorded at all is the caller's event's decision, not this method's.</p>
+
+      <p>The same shape works for an event type of your own — extend <code>AbstractTracedEvent</code> (that is what makes it a span: the <code>spanId</code> field Jeffrey discovers structurally), declare the name with <code>@Span</code>, and hand it to <code>inSpanOf</code>, which stamps the ids, marks the span <code>ERROR</code> if the body throws, and commits through <code>commitSpan()</code>. Jeffrey then discovers, nests and names it — <code>PUBLISH orders</code> in Trace Operations, not <code>com.acme.KafkaPublish</code> — with zero changes on its side:</p>
+
+      <DocsCodeBlock :code="customSpanEvent" language="java" />
+
+      <DocsCodeBlock :code="customSpanUsage" language="java" />
+
+      <p>The full recipe — including what plain <code>commit()</code> keeps and loses — is on the <router-link to="/docs/events/overview">Jeffrey JFR Events page</router-link>.</p>
 
       <h3 id="api-openspanof-reenter">openSpanOf / reenter — a span the work arrives back into</h3>
 
