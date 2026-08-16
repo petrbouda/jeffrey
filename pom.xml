@@ -64,7 +64,7 @@
         <antlr4.version>4.13.2</antlr4.version>
         <jgit.version>7.7.0.202606012155-r</jgit.version>
         <!-- Vendored async-profiler Java API (span-api branch), served from the in-repo lib/m2 repository. -->
-        <async-profiler.version>4.4-span</async-profiler.version>
+        <async-profiler.version>4.5-span</async-profiler.version>
     </properties>
 
     <repositories>
