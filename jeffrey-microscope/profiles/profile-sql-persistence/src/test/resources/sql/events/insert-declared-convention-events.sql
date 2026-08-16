@@ -25,7 +25,14 @@ VALUES
     -- event judged by what it recorded, and derive() must not fail.
     ('com.acme.FutureThing', 'Future Thing', 3, 'unknown semantics', '["Application"]', '1', NULL, false,
      '{"spanName":"FUTURE {what}","spanOutcomeFrom":"code","spanOutcomeSemantics":"QUANTUM_CODE"}', NULL,
-     '[{"field":"traceId","header":"Trace Id"},{"field":"spanId","header":"Span Id"},{"field":"parentSpanId","header":"Parent Span Id"},{"field":"name","header":"Name"},{"field":"kind","header":"Kind"},{"field":"status","header":"Status"},{"field":"what","header":"What"},{"field":"code","header":"Code"}]');
+     '[{"field":"traceId","header":"Trace Id"},{"field":"spanId","header":"Span Id"},{"field":"parentSpanId","header":"Parent Span Id"},{"field":"name","header":"Name"},{"field":"kind","header":"Kind"},{"field":"status","header":"Status"},{"field":"what","header":"What"},{"field":"code","header":"Code"}]'),
+
+    -- The shape of a Jeffrey statement in a new recording: the identity template @SpanName("{name}")
+    -- declares that the event names itself. The declared arm must agree with the recorded-name
+    -- fallback it shadows -- the template exists for the invariant, not to change any answer.
+    ('jeffrey.JdbcQuery', 'JDBC Query', 4, 'jdbc', '["Application","JDBC"]', '1', NULL, false,
+     '{"spanName":"{name}"}', NULL,
+     '[{"field":"traceId","header":"Trace Id"},{"field":"spanId","header":"Span Id"},{"field":"parentSpanId","header":"Parent Span Id"},{"field":"name","header":"Statement Name"},{"field":"kind","header":"Kind"},{"field":"status","header":"Status"},{"field":"sql","header":"SQL Query"}]');
 
 INSERT INTO threads (thread_hash, name, os_id, java_id, is_virtual)
 VALUES
@@ -54,4 +61,8 @@ VALUES
 
     -- Unknown semantics: still named by its template, judged only by what it recorded.
     ('com.acme.FutureThing', '2025-01-15T10:00:00.600Z', 600,  1000000, 1, NULL, NULL, NULL, 6001,
-     '{"traceId":707,"spanId":7071,"parentSpanId":0,"kind":"INTERNAL","status":"UNSET","what":"entangle","code":"BAD"}');
+     '{"traceId":707,"spanId":7071,"parentSpanId":0,"kind":"INTERNAL","status":"UNSET","what":"entangle","code":"BAD"}'),
+
+    -- A statement under the identity template: the declared name is the recorded name.
+    ('jeffrey.JdbcQuery', '2025-01-15T10:00:00.700Z', 700,  2000000, 1, NULL, NULL, NULL, 6001,
+     '{"traceId":708,"spanId":7081,"parentSpanId":0,"name":"listSpans","kind":"CLIENT","status":"UNSET","sql":"SELECT * FROM spans"}');

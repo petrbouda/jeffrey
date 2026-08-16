@@ -45,8 +45,11 @@ import java.lang.annotation.Target;
  *
  * <h2>Wire format</h2>
  * The semantics names below are read out of recordings that outlive every version of this library.
- * They are frozen: never renamed, only added to. A reader finding a semantics value it does not
- * know must ignore the declaration — not fail — and fall back to the recorded status.
+ * They are frozen: never renamed, only added to — and they are added only when a shipped event
+ * actually declares one, never speculatively, because every name published here is a commitment a
+ * recording can hold forever. A reader finding a semantics value it does not know must ignore the
+ * declaration — not fail — and fall back to the recorded status; that rule is what makes adding a
+ * name later safe.
  */
 @MetadataDefinition
 @Label("Span Outcome")
@@ -69,19 +72,14 @@ public @interface SpanOutcome {
     String GRPC_CODE = "GRPC_CODE";
 
     /**
-     * A success flag: {@code false} is {@code ERROR}, anything else is {@code UNSET}.
-     */
-    String BOOLEAN = "BOOLEAN";
-
-    /**
      * The name of the event field holding the outcome code, matching {@code [A-Za-z0-9_]+}.
      */
     String from();
 
     /**
-     * One of {@link #HTTP_CODE}, {@link #GRPC_CODE} or {@link #BOOLEAN}. A {@code String} element
-     * rather than an enum on purpose: JFR's own metadata annotations carry only strings and
-     * primitives, and these values are wire format either way.
+     * One of {@link #HTTP_CODE} or {@link #GRPC_CODE}. A {@code String} element rather than an
+     * enum on purpose: JFR's own metadata annotations carry only strings and primitives, and these
+     * values are wire format either way.
      */
     String semantics();
 }

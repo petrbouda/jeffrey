@@ -22,10 +22,12 @@ import cafe.jeffrey.jfr.events.grpc.GrpcClientExchangeEvent;
 import cafe.jeffrey.jfr.events.grpc.GrpcServerExchangeEvent;
 import cafe.jeffrey.jfr.events.http.HttpClientExchangeEvent;
 import cafe.jeffrey.jfr.events.http.HttpServerExchangeEvent;
+import cafe.jeffrey.jfr.events.jdbc.statement.JdbcQueryEvent;
 import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.SpanName;
 import cafe.jeffrey.jfr.events.trace.SpanOutcome;
 import cafe.jeffrey.jfr.events.trace.SpanStatus;
+import cafe.jeffrey.jfr.events.trace.TraceSpanEvent;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.shared.common.model.SpanConventionKeys;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
@@ -802,13 +804,29 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
-        @DisplayName("BOOLEAN semantics reads a success flag")
+        @DisplayName("a declared BOOLEAN semantics is read, though no shipped writer mints one")
         void booleanSemanticsReadsAFlag(DataSource dataSource) throws SQLException {
+            // SpanOutcome publishes only HTTP_CODE and GRPC_CODE -- the semantics Jeffrey's own
+            // types prove out -- but the reader stays liberal: the flag logic exists anyway for
+            // the isSuccess built-in arm, and understanding a declared BOOLEAN now means a future
+            // library version that publishes it produces recordings this version already reads.
             JdbcTraceRepository repository = declared(dataSource);
 
             assertEquals(1, root(repository, 705L).errorCount(), "stored=false is a failed put");
             assertEquals(0, root(repository, 706L).errorCount());
             assertEquals("CACHE PUT sessions", root(repository, 705L).rootName());
+        }
+
+        @Test
+        @DisplayName("the identity template names a self-naming type by what it recorded")
+        void identityTemplateReadsTheRecordedName(DataSource dataSource) throws SQLException {
+            // The shape of a Jeffrey statement in a new recording: @SpanName("{name}") declared,
+            // name recorded at construction. The declared arm and the recorded-name fallback must
+            // agree -- the template exists for the invariant that every shipped span type declares
+            // its convention, not to change any answer.
+            TraceSummaryRecord statement = root(declared(dataSource), 708L);
+
+            assertEquals("listSpans", statement.rootName());
         }
 
         @Test
@@ -908,7 +926,23 @@ class JdbcTraceRepositoryTest {
             assertEquals(SpanConventionKeys.SPAN_OUTCOME_ANNOTATION, SpanOutcome.class.getName());
             assertEquals(SpanConventionKeys.SEMANTICS_HTTP_CODE, SpanOutcome.HTTP_CODE);
             assertEquals(SpanConventionKeys.SEMANTICS_GRPC_CODE, SpanOutcome.GRPC_CODE);
-            assertEquals(SpanConventionKeys.SEMANTICS_BOOLEAN, SpanOutcome.BOOLEAN);
+            // SEMANTICS_BOOLEAN has no annotation constant on purpose: the reader understands it
+            // (the isSuccess built-in arm, and forward compat), but no shipped writer mints it.
+        }
+
+        @Test
+        @DisplayName("every span type the library ships declares its naming convention")
+        void everySpanTypeDeclaresItsTemplate() {
+            // Exchanges derive their name from their fields; a statement and a hand-written span
+            // name themselves, which the identity template states explicitly. The invariant is
+            // that no jeffrey-events span type is silent about how it is named -- absence of
+            // @SpanName means "no convention exists", never "the rule lives elsewhere".
+            assertEquals("{name}", JdbcQueryEvent.class.getAnnotation(SpanName.class).value());
+            assertEquals("{name}", TraceSpanEvent.class.getAnnotation(SpanName.class).value());
+
+            assertNull(JdbcQueryEvent.class.getAnnotation(SpanOutcome.class),
+                    "a statement records no outcome code; failed() writes the status directly");
+            assertNull(TraceSpanEvent.class.getAnnotation(SpanOutcome.class));
         }
 
         @Test

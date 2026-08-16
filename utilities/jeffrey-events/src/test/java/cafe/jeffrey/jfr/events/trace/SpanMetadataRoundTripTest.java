@@ -19,8 +19,8 @@
 package cafe.jeffrey.jfr.events.trace;
 
 import cafe.jeffrey.jfr.events.http.HttpServerExchangeEvent;
+import cafe.jeffrey.jfr.events.jdbc.statement.JdbcQueryEvent;
 import jdk.jfr.AnnotationElement;
-import jdk.jfr.Event;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
 import jdk.jfr.Recording;
@@ -104,6 +104,28 @@ class SpanMetadataRoundTripTest {
         assertEquals("{method} {uri}", annotationValue(event, SPAN_NAME_TYPE, "value"));
         assertEquals("statusCode", annotationValue(event, SPAN_OUTCOME_TYPE, "from"));
         assertEquals(SpanOutcome.HTTP_CODE, annotationValue(event, SPAN_OUTCOME_TYPE, "semantics"));
+    }
+
+    @Test
+    @DisplayName("a self-naming type declares the identity template, and no outcome")
+    void selfNamingTypesDeclareTheIdentityTemplate() throws IOException {
+        // The invariant: every span type this library ships carries its @SpanName. A statement's
+        // template is the identity -- it names itself, at construction -- and it declares no
+        // outcome, because failed() writes the span status directly.
+        RecordedEvent statement = record("jeffrey.JdbcQuery", () -> {
+            JdbcQueryEvent query = new JdbcQueryEvent("listSpans", "PROFILE_EVENTS");
+            query.commitSpan();
+        });
+        assertEquals("{name}", annotationValue(statement, SPAN_NAME_TYPE, "value"));
+        assertTrue(findAnnotation(statement, SPAN_OUTCOME_TYPE).isEmpty(),
+                "a statement records no outcome code to judge");
+
+        RecordedEvent span = record(TraceSpanEvent.NAME, () -> {
+            Tracer.run("hand.written", () -> {
+            });
+        });
+        assertEquals("{name}", annotationValue(span, SPAN_NAME_TYPE, "value"));
+        assertTrue(findAnnotation(span, SPAN_OUTCOME_TYPE).isEmpty());
     }
 
     @Test

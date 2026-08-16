@@ -57,6 +57,13 @@ public abstract class SpanConventionKeys {
     /** A textual code judged the gRPC way: {@code OK} is OK, anything else is ERROR. */
     public static final String SEMANTICS_GRPC_CODE = "GRPC_CODE";
 
-    /** A success flag: {@code false} is ERROR, anything else is UNSET. */
+    /**
+     * A success flag: {@code false} is ERROR, anything else is UNSET. Read, but not currently
+     * written: no shipped annotation constant mints it — {@code SpanOutcome} publishes only the
+     * semantics its own event types prove out. It is understood here regardless, both as the
+     * built-in arm for the {@code isSuccess} flag older statements recorded and as forward
+     * compatibility: a future library version that publishes it produces recordings this version
+     * already reads.
+     */
     public static final String SEMANTICS_BOOLEAN = "BOOLEAN";
 }

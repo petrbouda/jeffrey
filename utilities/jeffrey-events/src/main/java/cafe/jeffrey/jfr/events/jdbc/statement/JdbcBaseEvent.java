@@ -20,6 +20,7 @@ package cafe.jeffrey.jfr.events.jdbc.statement;
 
 import cafe.jeffrey.jfr.events.trace.AbstractTracedEvent;
 import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.SpanName;
 import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import jdk.jfr.Description;
 import jdk.jfr.Label;
@@ -28,7 +29,16 @@ import jdk.jfr.Label;
  * A statement run against a database, which is a span whose shape is already filled in by the time
  * it starts: the statement's own label is the span name, and a statement is always a call out to
  * something else. Only the outcome is left, and {@link #failed(Throwable)} settles that.
+ * <p>
+ * The declared template is the identity, {@code {name}}: a statement names itself, and the label is
+ * assigned at construction, so it is recorded whatever the commit path. The declaration is there so
+ * that every span type this library ships carries its convention in the recording — an event type
+ * with no {@code @SpanName} at all is one that has no naming convention, not one whose rule lives
+ * somewhere else. No {@code @SpanOutcome} accompanies it: a statement records no outcome code to
+ * judge — {@link #failed(Throwable)} writes the span status directly, and a recorded {@code ERROR}
+ * outranks any declared semantics anyway.
  */
+@SpanName("{name}")
 public abstract class JdbcBaseEvent extends AbstractTracedEvent {
 
     @Label("SQL Query")
