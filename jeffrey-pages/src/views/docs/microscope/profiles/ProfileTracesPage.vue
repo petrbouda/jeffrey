@@ -37,6 +37,7 @@ const headings = [
   { id: 'span-drill-down', text: 'Span Drill-Down', level: 2 },
   { id: 'operations', text: 'Trace Operations', level: 2 },
   { id: 'ai-export', text: 'AI Export', level: 2 },
+  { id: 'unified-timeline', text: 'Unified Timeline', level: 2 },
   { id: 'volume-control', text: 'Controlling Span Volume', level: 2 },
   { id: 'limits', text: 'Limits', level: 2 }
 ];
@@ -302,6 +303,20 @@ if (event.isEnabled()) {
       </ul>
 
       <p>Anything truncated says so inside the document — a capped list is annotated rather than silently complete. <strong>Copy for AI</strong> uses the browser clipboard, which exists only on HTTPS or localhost origins; on a plain-HTTP deployment the button becomes <em>Export for AI</em> and downloads the file instead, with the copy item explaining why it is off. Filenames lead with the operation name and are timestamped to the second, so two exports of the same thing do not overwrite each other.</p>
+
+      <h2 id="unified-timeline">Unified Timeline</h2>
+
+      <p>Every view above answers a question about one trace or one operation. The unified timeline answers the question none of them can: <strong>what was the whole JVM doing between these two instants?</strong> One horizontal time axis; a track per thread carrying the spans that ran on it; pinned tracks above for the stop-the-world pauses; and under each thread's spans, a coloured band for what that thread was <em>waiting</em> on — parking, locks, sleeping, socket and file I/O — in the same category colours the waterfall uses. Put the cursor on a GC pause and read straight down: every thread it stopped, every span it crossed. A blank gap with a park band under it and a blank gap with nothing under it are two different diagnoses, and the timeline shows which one you have.</p>
+
+      <p>Spans and waits are fetched <strong>per viewport</strong>, not per recording, which is what makes pan and zoom affordable on a large capture. The controls follow the conventions deep-timeline readers already know: bare scroll moves through the threads, horizontal scroll pans time, <strong>Ctrl/⌘+scroll zooms at the cursor</strong>, dragging pans, and the minimap at the bottom is clickable and draggable. Thread-pool groups fold on a click of their header. The whole surface also works from the keyboard: arrows pan and scroll, <code>+</code>/<code>−</code> zoom, <code>Home</code> fits the whole recording.</p>
+
+      <p>Clicking a span opens its trace's waterfall — and the waterfall links back with <em>Show on timeline</em>, as do the slowest HTTP, JDBC, gRPC and async-profiler span rows, each landing zoomed to its own padded moment. The viewport itself travels in the URL as <code>?from&amp;to</code>, so a window worth discussing is a link.</p>
+
+      <DocsCallout type="info">
+        <strong>When a window is too busy, the timeline says so.</strong> A viewport holding more spans than the cap is not drawn as a partial span list — whichever rows happened to arrive first would be a biased sample wearing the costume of the whole window. Instead each thread renders <strong>density columns</strong> (darker = more spans started there), a notice states that the view is density, and zooming in far enough to fit under the cap returns to real, clickable spans.
+      </DocsCallout>
+
+      <p>The timeline has its own <a href="#ai-export">AI export</a>: the window's pauses, its busiest threads with their longest spans and summed waits, behind a preamble stating the cross-section rules — pauses are global and must not be summed per thread, waits are thread-scoped, and one window is not a population.</p>
 
       <h2 id="volume-control">Controlling Span Volume</h2>
 

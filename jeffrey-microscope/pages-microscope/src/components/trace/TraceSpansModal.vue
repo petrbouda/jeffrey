@@ -41,6 +41,14 @@
             <i class="bi bi-bar-chart-steps"></i> All {{ detail?.trace?.rootName }} traces
           </router-link>
           <!--
+            The same trace in its surroundings: the waterfall shows what the trace did, the unified
+            timeline shows what the JVM and every other thread did while it ran — the two halves of
+            "was it me or was it the machine".
+          -->
+          <router-link v-if="timelineLink" class="trace-op-link" :to="timelineLink">
+            <i class="bi bi-distribute-horizontal"></i> Show on timeline
+          </router-link>
+          <!--
             Beside the trace's own facts rather than in the waterfall toolbar: it exports the whole
             trace, not the view of it, so it should not sit among the controls that change that view.
           -->
@@ -232,6 +240,7 @@ import TraceAiExportClient from '@/services/api/TraceAiExportClient';
 import type { AiExportSource } from '@/composables/useAiExport';
 import TraceSpanFlamegraphClient from '@/services/api/TraceSpanFlamegraphClient';
 import { errorLabel } from '@/services/trace/traceLabels';
+import { timelineWindowLink } from '@/services/timeline/timelineLink';
 import { ceilNanosToMillis, floorToMillis } from '@/services/trace/timeUnits';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import OnlyFlamegraphGraphUpdater from '@/services/flamegraphs/updater/OnlyFlamegraphGraphUpdater';
@@ -377,6 +386,15 @@ const operationLink = computed(() => {
     params: { profileId: props.profileId },
     query: { operation: trace.rootName, kind: trace.rootKind, eventType: trace.rootEventType }
   };
+});
+
+/** The unified timeline zoomed to this trace's padded moment — the shared edge every view builds. */
+const timelineLink = computed(() => {
+  const trace = detail.value?.trace;
+  if (!trace) {
+    return null;
+  }
+  return timelineWindowLink(props.profileId, trace.startEpochMillis, trace.durationNanos);
 });
 
 function percentOfTrace(part: number, whole: number): string {

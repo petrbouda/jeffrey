@@ -18,6 +18,9 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.profile.manager.model.trace.TimelineSpan;
+import cafe.jeffrey.profile.manager.model.trace.TimelineTrack;
+import cafe.jeffrey.profile.manager.model.trace.TimelineWindow;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
@@ -25,10 +28,13 @@ import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
+import cafe.jeffrey.provider.profile.api.TraceContextCategory;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
+import cafe.jeffrey.provider.profile.api.TraceSpanDensityRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
+import cafe.jeffrey.provider.profile.api.TraceThreadStateRecord;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -41,8 +47,11 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
@@ -223,6 +232,183 @@ class TraceManagerImplTest {
 
             assertEquals(70 * MS, spans.getFirst().selfDurationNanos());
             assertEquals(30 * MS, spans.get(1).selfDurationNanos());
+        }
+    }
+
+    @Nested
+    @DisplayName("Timeline window")
+    class Timeline {
+
+        private static final long US = 1_000L;
+
+        private TimelineWindow windowOf(List<TraceSpanRecord> spans) {
+            when(traceRepository.spansInWindow(anyLong(), anyLong(), anyInt())).thenReturn(spans);
+            lenient().when(traceRepository.pausesInWindow(anyLong(), anyLong())).thenReturn(List.of());
+            return new TraceManagerImpl(traceRepository).timelineWindow(0, 1_000_000, 4_000);
+        }
+
+        /** A span given directly in microseconds on a named thread, since lanes are per thread. */
+        private static TraceSpanRecord onThread(
+                long spanId, String name, long startMicros, long durationMicros, long threadHash) {
+
+            return new TraceSpanRecord(
+                    TRACE, spanId, null, name, "INTERNAL", "UNSET", null,
+                    startMicros / MICROS_PER_MILLI, startMicros, durationMicros * US,
+                    durationMicros * US, threadHash, "thread-" + threadHash, false,
+                    "jeffrey.TraceSpan", null, null);
+        }
+
+        @Test
+        @DisplayName("groups spans into one track per thread")
+        void groupsByThread() {
+            TimelineWindow window = windowOf(List.of(
+                    onThread(1, "a", 0, 100, THREAD),
+                    onThread(2, "b", 10, 20, OTHER_THREAD)));
+
+            assertEquals(2, window.tracks().size());
+        }
+
+        @Test
+        @DisplayName("nests an enclosed span one lane deeper")
+        void nestsEnclosedSpans() {
+            TimelineWindow window = windowOf(List.of(
+                    onThread(1, "outer", 0, 100, THREAD),
+                    onThread(2, "inner", 10, 20, THREAD),
+                    onThread(3, "innermost", 12, 5, THREAD)));
+
+            List<TimelineSpan> spans = window.tracks().getFirst().spans();
+            assertEquals(List.of(0, 1, 2), spans.stream().map(TimelineSpan::depth).toList());
+            assertEquals(3, window.tracks().getFirst().laneCount());
+        }
+
+        @Test
+        @DisplayName("puts sequential spans back on the same lane")
+        void reusesLanesAfterASpanEnds() {
+            // Two unrelated requests served one after the other by the same thread. Neither ran
+            // inside the other, so indenting the second would claim a nesting that never happened.
+            TimelineWindow window = windowOf(List.of(
+                    onThread(1, "first", 0, 50, THREAD),
+                    onThread(2, "second", 60, 50, THREAD)));
+
+            assertEquals(List.of(0, 0),
+                    window.tracks().getFirst().spans().stream().map(TimelineSpan::depth).toList());
+            assertEquals(1, window.tracks().getFirst().laneCount());
+        }
+
+        @Test
+        @DisplayName("a span abutting the previous one does not nest under it")
+        void treatsTouchingSpansAsSiblings() {
+            TimelineWindow window = windowOf(List.of(
+                    onThread(1, "first", 0, 50, THREAD),
+                    onThread(2, "second", 50, 50, THREAD)));
+
+            assertEquals(List.of(0, 0),
+                    window.tracks().getFirst().spans().stream().map(TimelineSpan::depth).toList());
+        }
+
+        @Test
+        @DisplayName("depth is per thread, so a forked child starts its own lane")
+        void depthIsPerThread() {
+            // The child runs inside the parent in time but on another thread; on its own track it is
+            // the only thing running, so it belongs at lane 0.
+            TimelineWindow window = windowOf(List.of(
+                    onThread(1, "parent", 0, 100, THREAD),
+                    onThread(2, "forked", 10, 20, OTHER_THREAD)));
+
+            TimelineTrack forked = window.tracks().stream()
+                    .filter(track -> track.spans().getFirst().name().equals("forked"))
+                    .findFirst().orElseThrow();
+            assertEquals(0, forked.spans().getFirst().depth());
+        }
+
+        @Test
+        @DisplayName("says when the span cap was reached rather than drawing a partial picture")
+        void reportsTruncation() {
+            List<TraceSpanRecord> many = new java.util.ArrayList<>();
+            for (int i = 0; i < 4_000; i++) {
+                many.add(onThread(i, "s" + i, i * 10L, 5, THREAD));
+            }
+
+            assertTrue(windowOf(many).truncated());
+        }
+
+        @Test
+        @DisplayName("a capped window swaps the biased span sample for density columns")
+        void cappedWindowBecomesDensity() {
+            List<TraceSpanRecord> many = new java.util.ArrayList<>();
+            for (int i = 0; i < 4_000; i++) {
+                many.add(onThread(i, "s" + i, i * 10L, 5, THREAD));
+            }
+            lenient().when(traceRepository.spanDensityInWindow(anyLong(), anyLong(), anyInt()))
+                    .thenReturn(List.of(
+                            new TraceSpanDensityRecord(THREAD, "thread-" + THREAD, false, 0, 3_000),
+                            new TraceSpanDensityRecord(THREAD, "thread-" + THREAD, false, 7, 1_500)));
+
+            TimelineWindow window = windowOf(many);
+
+            assertTrue(window.truncated());
+            assertTrue(window.densityBuckets() > 0, "density mode declares its bucket count");
+            TimelineTrack track = window.tracks().getFirst();
+            assertTrue(track.spans().isEmpty(), "the capped sample is discarded, not drawn");
+            assertEquals(2, track.density().size());
+            assertEquals(3_000, track.density().getFirst().count());
+        }
+
+        @Test
+        @DisplayName("an uncapped window carries no density")
+        void uncappedWindowHasNoDensity() {
+            TimelineWindow window = windowOf(List.of(onThread(1, "a", 0, 100, THREAD)));
+
+            assertEquals(0, window.densityBuckets());
+            assertTrue(window.tracks().getFirst().density().isEmpty());
+        }
+
+        @Test
+        @DisplayName("a quiet window is empty rather than absent")
+        void handlesEmptyWindow() {
+            TimelineWindow window = windowOf(List.of());
+
+            assertTrue(window.tracks().isEmpty());
+            assertFalse(window.truncated());
+            assertFalse(window.statesTruncated());
+        }
+
+        @Test
+        @DisplayName("attaches a thread's waits to that thread's track")
+        void attachesStatesToTheirTrack() {
+            lenient().when(traceRepository.threadStatesInWindow(anyLong(), anyLong(), anyInt()))
+                    .thenReturn(List.of(
+                            new TraceThreadStateRecord(
+                                    THREAD, TraceContextCategory.PARKED, 20, 40),
+                            new TraceThreadStateRecord(
+                                    OTHER_THREAD, TraceContextCategory.SOCKET_IO, 30, 35)));
+
+            TimelineWindow window = windowOf(List.of(
+                    onThread(1, "a", 0, 100, THREAD),
+                    onThread(2, "b", 10, 20, OTHER_THREAD)));
+
+            TimelineTrack first = window.tracks().stream()
+                    .filter(track -> track.spans().getFirst().name().equals("a"))
+                    .findFirst().orElseThrow();
+            assertEquals(1, first.states().size());
+            assertEquals("PARKED", first.states().getFirst().category());
+            assertEquals(20, first.states().getFirst().startEpochMicros());
+            assertEquals(20 * US, first.states().getFirst().durationNanos());
+        }
+
+        @Test
+        @DisplayName("drops a wait on a thread with no spans in the window")
+        void dropsStatesWithoutATrack() {
+            // A thread that only waited has no track to underlay; the whole-JVM idle picture is the
+            // threads timeline's job, not this view's.
+            lenient().when(traceRepository.threadStatesInWindow(anyLong(), anyLong(), anyInt()))
+                    .thenReturn(List.of(new TraceThreadStateRecord(
+                            OTHER_THREAD, TraceContextCategory.PARKED, 20, 40)));
+
+            TimelineWindow window = windowOf(List.of(onThread(1, "a", 0, 100, THREAD)));
+
+            assertEquals(1, window.tracks().size());
+            assertTrue(window.tracks().getFirst().states().isEmpty());
         }
     }
 

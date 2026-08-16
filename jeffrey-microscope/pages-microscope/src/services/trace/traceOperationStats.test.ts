@@ -20,7 +20,8 @@ import { describe, expect, it } from 'vitest';
 import {
   latencyHistogram,
   peakConcurrency,
-  quantileNanos
+  quantileNanos,
+  slowestFirst
 } from '@/services/trace/traceOperationStats';
 
 const MS = 1_000_000;
@@ -96,5 +97,32 @@ describe('peakConcurrency', () => {
 
   it('is one for runs that never overlap', () => {
     expect(peakConcurrency([trace(0, 5), trace(100, 5), trace(200, 5)])).toBe(1);
+  });
+});
+
+describe('slowestFirst', () => {
+  const trace = (id: string, durationMillis: number) => ({
+    traceId: id,
+    durationNanos: durationMillis * MS
+  });
+
+  it('has nothing to rank in an empty list', () => {
+    expect(slowestFirst([])).toEqual([]);
+  });
+
+  it('ranks by duration regardless of the order it was given', () => {
+    // The shape the operation drill-down actually receives: ordered by start time, which put a
+    // 656 ms trace above a 4 s one under a tab headed "sorted by duration".
+    const given = [trace('a', 656), trace('b', 378), trace('c', 1535), trace('d', 4173)];
+
+    expect(slowestFirst(given).map(t => t.traceId)).toEqual(['d', 'c', 'a', 'b']);
+  });
+
+  it('leaves the given list alone, because the other readings depend on its order', () => {
+    const given = [trace('a', 10), trace('b', 90)];
+
+    slowestFirst(given);
+
+    expect(given.map(t => t.traceId)).toEqual(['a', 'b']);
   });
 });

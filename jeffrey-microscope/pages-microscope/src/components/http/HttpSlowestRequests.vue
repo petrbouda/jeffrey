@@ -6,66 +6,71 @@
       note="sorted by response time"
     />
     <div class="slowest-list">
-    <div v-for="request in displayedRequests" :key="request.timestamp" class="slowest-row">
-      <div class="left-accent" :class="getAccentClass(request.statusCode)"></div>
-      <div class="row-content">
-        <div class="row-header">
-          <div class="row-header-left">
+      <div v-for="request in displayedRequests" :key="request.timestamp" class="slowest-row">
+        <div class="left-accent" :class="getAccentClass(request.statusCode)"></div>
+        <div class="row-content">
+          <div class="row-header">
+            <div class="row-header-left">
+              <Badge
+                :value="request.method"
+                :variant="getMethodVariant(request.method)"
+                size="s"
+                borderless
+              />
+              <div class="uri-path" :title="request.uri">
+                <span class="uri-sep">/</span>
+                <span v-for="(part, index) in parseUri(request.uri)" :key="index" class="uri-part">
+                  <span v-if="index > 0" class="uri-sep">/</span>
+                  <span v-if="part.isVariable" class="uri-var">{{ part.text }}</span>
+                  <span v-else>{{ part.text }}</span>
+                </span>
+              </div>
+            </div>
+            <div class="time-bar-wrap">
+              <span class="time-bar-value">{{
+                FormattingService.formatDuration2Units(request.responseTime)
+              }}</span>
+              <div class="time-bar-track">
+                <div
+                  class="time-bar-fill"
+                  :style="{ width: getTimePercentage(request.responseTime) + '%' }"
+                ></div>
+              </div>
+            </div>
+          </div>
+          <div class="row-details">
+            <span class="detail-chip"
+              ><i class="bi bi-clock"></i>
+              {{ FormattingService.formatTimestamp(request.timestamp).replace('T', ' ') }}</span
+            >
+            <span class="detail-dot">&middot;</span>
             <Badge
-              :value="request.method"
-              :variant="getMethodVariant(request.method)"
-              size="s"
+              :value="request.statusCode.toString()"
+              :variant="getStatusVariant(request.statusCode)"
+              size="xs"
               borderless
             />
-            <div class="uri-path" :title="request.uri">
-              <span class="uri-sep">/</span>
-              <span v-for="(part, index) in parseUri(request.uri)" :key="index" class="uri-part">
-                <span v-if="index > 0" class="uri-sep">/</span>
-                <span v-if="part.isVariable" class="uri-var">{{ part.text }}</span>
-                <span v-else>{{ part.text }}</span>
-              </span>
-            </div>
+            <span class="detail-dot">&middot;</span>
+            <span class="detail-chip"
+              ><i class="bi bi-hdd-network"></i> {{ request.host }}:{{ request.port }}</span
+            >
+            <span class="detail-dot">&middot;</span>
+            <span class="detail-chip"
+              ><i class="bi bi-arrow-up"></i>
+              {{ FormattingService.formatBytes(request.requestSize) }}</span
+            >
+            <span class="detail-chip"
+              ><i class="bi bi-arrow-down"></i>
+              {{ FormattingService.formatBytes(request.responseSize) }}</span
+            >
+            <span class="detail-dot">&middot;</span>
+            <ShowOnTimelineLink
+              :start-epoch-millis="request.timestamp"
+              :duration-nanos="request.responseTime"
+            />
           </div>
-          <div class="time-bar-wrap">
-            <span class="time-bar-value">{{
-              FormattingService.formatDuration2Units(request.responseTime)
-            }}</span>
-            <div class="time-bar-track">
-              <div
-                class="time-bar-fill"
-                :style="{ width: getTimePercentage(request.responseTime) + '%' }"
-              ></div>
-            </div>
-          </div>
-        </div>
-        <div class="row-details">
-          <span class="detail-chip"
-            ><i class="bi bi-clock"></i>
-            {{ FormattingService.formatTimestamp(request.timestamp).replace('T', ' ') }}</span
-          >
-          <span class="detail-dot">&middot;</span>
-          <Badge
-            :value="request.statusCode.toString()"
-            :variant="getStatusVariant(request.statusCode)"
-            size="xs"
-            borderless
-          />
-          <span class="detail-dot">&middot;</span>
-          <span class="detail-chip"
-            ><i class="bi bi-hdd-network"></i> {{ request.host }}:{{ request.port }}</span
-          >
-          <span class="detail-dot">&middot;</span>
-          <span class="detail-chip"
-            ><i class="bi bi-arrow-up"></i>
-            {{ FormattingService.formatBytes(request.requestSize) }}</span
-          >
-          <span class="detail-chip"
-            ><i class="bi bi-arrow-down"></i>
-            {{ FormattingService.formatBytes(request.responseSize) }}</span
-          >
         </div>
       </div>
-    </div>
     </div>
   </div>
 </template>
@@ -75,6 +80,7 @@ import { computed } from 'vue';
 import FormattingService from '@shared/services/FormattingService.ts';
 import Badge from '@shared/components/Badge.vue';
 import SlowestCountHeader from '@shared/components/SlowestCountHeader.vue';
+import ShowOnTimelineLink from '@/components/timeline/ShowOnTimelineLink.vue';
 import type { Variant } from '@shared/types/ui';
 
 interface SlowRequest {

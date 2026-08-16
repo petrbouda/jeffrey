@@ -1,12 +1,12 @@
 <template>
   <MetricCardList
     :items="services"
-    :item-key="(service) => service.service"
-    :count="(service) => service.callCount"
+    :item-key="service => service.service"
+    :count="service => service.callCount"
     count-label="calls"
     :sort-options="sortOptions"
     initial-sort="maxResponseTime"
-    @item-click="(service) => $emit('serviceClick', service.service)"
+    @item-click="service => $emit('serviceClick', service.service)"
   >
     <template #name="{ item }">
       <MetricName :segments="parseQualifiedName(item.service)" :title="item.service" />
@@ -108,5 +108,4 @@ const sortOptions: MetricSortOption[] = [
     compare: (a: GrpcServiceInfo, b: GrpcServiceInfo) => a.successRate - b.successRate
   }
 ];
-
 </script>

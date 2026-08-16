@@ -11,7 +11,7 @@
       :secondary-data="props.responseSizeData"
       secondary-title="Response Size"
       :visible-minutes="60"
-      :independentSecondaryAxis="true"
+      :independent-secondary-axis="true"
       :primary-axis-type="AxisFormatType.BYTES"
       :secondary-axis-type="AxisFormatType.BYTES"
     />

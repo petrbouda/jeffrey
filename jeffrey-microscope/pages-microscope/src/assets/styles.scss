@@ -352,3 +352,35 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
     padding: 1rem;
   }
 }
+/*
+ * Tooltip for the unified timeline. Global rather than scoped because the canvas renderer appends it
+ * to the body: a Konva stage has no Vue-scoped DOM to hang it inside, and a tooltip clipped by the
+ * canvas's own overflow would be unreadable at the edges.
+ */
+.tl-tooltip {
+  position: fixed;
+  z-index: 1080;
+  display: none;
+  max-width: 24rem;
+  padding: 0.45rem 0.6rem;
+  pointer-events: none;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.tl-tooltip b {
+  display: block;
+  margin-bottom: 0.15rem;
+  color: var(--color-dark);
+  font-weight: 600;
+}
+
+.tl-tooltip span {
+  display: block;
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-xs);
+}

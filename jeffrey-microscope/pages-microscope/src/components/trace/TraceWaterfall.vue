@@ -73,8 +73,8 @@
     <!--
       One lane per kind of pause, above the spans. The lane reuses the row grid, so its track lines
       up with the bars without either side knowing the other's measurements, and it is the lane
-      rather than the stripe that carries the labels and the hit targets: the stripe sits behind
-      rows that come and go as the detail panel opens.
+      rather than the stripe that carries the labels and the hit targets: the stripe is a wash
+      behind rows that come and go as the detail panel opens, with nothing to click.
     -->
     <div v-for="lane in laneGroups" :key="lane.category" class="wf-lane">
       <span class="lane-label">
@@ -118,9 +118,11 @@
     <div class="wf-rows">
       <!--
         Laid out with the row grid rather than at a measured offset, so the stripes track the name
-        and duration columns however those are sized, and stretched over the rows by a parent that
-        is exactly as tall as they are — no pixel arithmetic, and nothing to recompute when the
-        detail panel opens a row and makes the list taller.
+        and duration columns however those are sized — no pixel arithmetic, and nothing to recompute
+        when the detail panel opens a row and makes the list taller.
+
+        It stretches the whole of `.wf-rows`, which is taller than the rows themselves once a detail
+        panel is open, so every other child claims a layer above it — see `.wf-rows > :not(...)`.
       -->
       <div v-if="bands.length > 0" class="wf-stripes" aria-hidden="true">
         <span></span>
@@ -761,11 +763,23 @@ function tooltip(span: TraceSpanRow): string {
   gap: 0.5rem;
 }
 
-/* The rows' own stacking context, so the stripe layer can stretch over exactly them. */
+/* The rows' own stacking context, which the stripe layer stretches over. */
 .wf-rows {
   position: relative;
   display: flex;
   flex-direction: column;
+}
+
+/*
+ * Everything in the block sits above the stripe wash. The rule is here rather than on each child
+ * because the wash is stretched by a parent that also holds the open detail panel and the empty
+ * state: a child that does not claim a layer is painted over by it, positioned elements being drawn
+ * above static ones whatever background they carry. That is what ran GC bands through the span
+ * detail's identity table.
+ */
+.wf-rows > :not(.wf-stripes) {
+  position: relative;
+  z-index: 1;
 }
 
 .wf-lane {
@@ -869,9 +883,6 @@ function tooltip(span: TraceSpanRow): string {
 }
 
 .wf-row {
-  /* Above the stripe wash, which is drawn behind the whole block of rows. */
-  position: relative;
-  z-index: 1;
   width: 100%;
   padding: 0.28rem 1rem;
   border: 0;
