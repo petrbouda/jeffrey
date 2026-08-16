@@ -77,14 +77,18 @@
 
       <div v-show="activeTab === 'slowest'">
         <!--
-          server-ordered is load-bearing: the rows arrive slowest-first from the server, and without
-          it the shared list re-sorts and silently slices to its own default of 50 — a tab named
-          "Slowest Traces" quietly showing 5% of what was fetched. The denominator is the
-          operation's real call count, not the capped sample, so "Showing X / Total Y" tells the
-          truth for operations past the cap.
+          The rows are ranked here, not by the server: the fetch is ordered by start time on
+          purpose, because the histogram, the timeline and the truncated percentiles all need a
+          chronological slice rather than a duration-biased one.
+
+          server-ordered is still load-bearing — it means "draw these exactly as given", and
+          without it the shared list applies its own ordering and silently slices to its default
+          of 50, a tab named "Slowest Traces" quietly showing 5% of what was fetched. The
+          denominator is the operation's real call count, not the capped sample, so
+          "Showing X / Total Y" tells the truth for operations past the cap.
         -->
         <TraceSlowestList
-          :traces="traces"
+          :traces="rankedByDuration"
           :total="totals?.count ?? traces.length"
           :note="capNote"
           server-ordered
@@ -128,6 +132,7 @@ import TraceAiExportClient from '@/services/api/TraceAiExportClient';
 import type { AiExportSource } from '@/composables/useAiExport';
 import { profileStore } from '@/stores/profileStore';
 import { timelineBuckets } from '@/services/trace/traceTimelineBuckets';
+import { slowestFirst } from '@/services/trace/traceOperationStats';
 import type { TabBarItem } from '@shared/components/TabBar.vue';
 import type {
   TraceOperationId,
@@ -276,6 +281,9 @@ watch([() => route.query.trace, traces], ([traceId]) => {
  * its virtual threads has nothing to draw — the tab stays and explains that, rather than vanishing.
  */
 const samplesAreReachable = computed(() => traces.value.some(trace => trace.hasPlatformSpan));
+
+/** The ranking the Slowest Traces tab is named after; `traces` itself arrives in start order. */
+const rankedByDuration = computed(() => slowestFirst(traces.value));
 
 const tabs: TabBarItem[] = [
   { id: 'summary', label: 'Summary', icon: 'grid-1x2' },

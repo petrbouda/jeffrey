@@ -133,3 +133,18 @@ export function peakConcurrency(traces: TimedTrace[]): number {
   }
   return peak;
 }
+
+/**
+ * The traces of an operation ranked slowest first.
+ *
+ * The ranking lives here rather than in the query because the fetch is ordered by start time on
+ * purpose: the histogram, the metrics timeline and the percentiles shown for a truncated sample all
+ * need a chronological slice, and a duration-ordered fetch would hand them a biased one. Ranking at
+ * the point of use lets both readings come off the same list.
+ *
+ * The copy is deliberate — sorting the caller's array in place would reorder the very list those
+ * other readings depend on.
+ */
+export function slowestFirst<T extends { durationNanos: number }>(traces: readonly T[]): T[] {
+  return [...traces].sort((a, b) => b.durationNanos - a.durationNanos);
+}

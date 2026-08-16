@@ -220,7 +220,8 @@ import ProfileTracesClient from '@/services/api/ProfileTracesClient';
 import {
   latencyHistogram,
   peakConcurrency,
-  quantileNanos
+  quantileNanos,
+  slowestFirst
 } from '@/services/trace/traceOperationStats';
 import type {
   TraceOperationId,
@@ -273,9 +274,7 @@ const threadsSummary = ref<TraceOperationThreads | null>(null);
 /*
  * Sorted here rather than left to the list: handing it a pre-cut five means cutting the right five.
  */
-const slowestTraces = computed(() =>
-  [...props.traces].sort((a, b) => b.durationNanos - a.durationNanos).slice(0, SLOWEST_SHOWN)
-);
+const slowestTraces = computed(() => slowestFirst(props.traces).slice(0, SLOWEST_SHOWN));
 
 const durationsNanos = computed(() => props.traces.map(trace => trace.durationNanos));
 
