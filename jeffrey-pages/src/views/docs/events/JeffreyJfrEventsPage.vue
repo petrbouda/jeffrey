@@ -19,6 +19,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import DocsCallout from '@/components/docs/DocsCallout.vue';
+import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
@@ -27,12 +28,35 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'event-types', text: 'Event Types', level: 2 },
   { id: 'trace-context', text: 'Trace Context', level: 2 },
+  { id: 'custom-span', text: 'Write Your Own Span Event', level: 2 },
   { id: 'integration', text: 'Integration', level: 2 }
 ];
 
 onMounted(() => {
   setHeadings(headings);
 });
+
+const customSpanEvent = `import cafe.jeffrey.jfr.events.trace.AbstractTracedEvent;
+import cafe.jeffrey.jfr.events.trace.Span;
+import jdk.jfr.Category;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
+
+@Name("com.acme.KafkaPublish")
+@Label("Kafka Publish")
+@Category({"Application", "Messaging"})
+@Span("PUBLISH {topic}")                       // 3. the operation name template
+public class KafkaPublishEvent extends AbstractTracedEvent {   // 1. what makes it a span
+
+    @Label("Topic")
+    public String topic;
+}`;
+
+const customSpanUsage = `KafkaPublishEvent event = new KafkaPublishEvent();
+event.topic = "orders";
+Tracer.inSpanOf(event, () -> {                 // 2. stamps traceId/spanId/parentSpanId
+    // ... the work; anything traced inside nests under this span
+});                                            // inSpanOf commits via commitSpan()`;
 </script>
 
 <template>
@@ -120,6 +144,20 @@ onMounted(() => {
           <router-link to="/docs/events/tracer">Read the Tracer API reference &rarr;</router-link><br>
           <router-link to="/docs/microscope/profiles/traces">Read the Traces &amp; Spans reference &rarr;</router-link>
         </p>
+
+        <h2 id="custom-span">Write Your Own Span Event</h2>
+        <p>Everything above composes into a recipe: a JFR event type of your own takes part in traces — discovered, nested, named as a real operation — with zero changes to Jeffrey. Three pieces, numbered in the code:</p>
+
+        <DocsCodeBlock :code="customSpanEvent" language="java" />
+        <DocsCodeBlock :code="customSpanUsage" language="java" />
+
+        <ol>
+          <li><strong>Extend <code>AbstractTracedEvent</code>.</strong> This is what makes the event a span — it declares the <code>spanId</code> field Jeffrey discovers structurally. <code>@Span</code> on a plain <code>jdk.jfr.Event</code> does nothing.</li>
+          <li><strong>Stamp the ids.</strong> The derivation drops events whose <code>traceId</code>/<code>spanId</code> are 0. Run the work through <code>Tracer.inSpanOf(event, ...)</code> so the event joins the active trace — or roots a new one if none is active. An event that should sit <em>under</em> the current span rather than be one of its own uses <code>Tracer.stamp(event)</code> instead.</li>
+          <li><strong>Declare the name with <code>@Span</code>.</strong> The template travels inside every recording, so Trace Operations lists <code>PUBLISH orders</code> rather than <code>com.acme.KafkaPublish</code>, and one operation groups as one row across recordings.</li>
+        </ol>
+
+        <p>Failure detection is the one thing that is not automatic, because a verdict is recorded rather than declared: override <code>describeSpan()</code> to set <code>status</code> from your own fields and commit through <code>commitSpan()</code> — which <code>Tracer.inSpanOf</code> already does, including marking the span <code>ERROR</code> when the body throws. The difference from a hand-written <code>Tracer.run("name", ...)</code> span is the typed payload: your own fields show up in the span detail and feed the naming template, instead of whatever string each call site passed.</p>
 
         <h2 id="integration">Integration</h2>
         <p>Add Jeffrey Events to your project and instrument your code to emit events:</p>
