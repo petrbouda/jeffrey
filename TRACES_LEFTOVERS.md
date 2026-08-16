@@ -76,7 +76,7 @@ Not bugs — decisions with a stated trade-off.
   recorded `ERROR` outranks the code, since an exchange that threw and still answered 200 knows
   something its code does not.
 - ~~Naming conventions enumerated Jeffrey's event types~~ — a type now declares its naming
-  convention *inside the recording*: `@SpanName("{method} {uri}")` is a JFR `@MetadataDefinition`
+  convention *inside the recording*: `@Span("{method} {uri}")` is a JFR `@MetadataDefinition`
   annotation, persisted into every recording's metadata, copied by the parser into
   `event_types.extras`, and rendered by `SpanNameTemplates` into one CASE expression — discovered
   structurally, exactly the way `spanId` discovers a span. A third-party event type Jeffrey has

@@ -23,8 +23,8 @@ import cafe.jeffrey.jfr.events.grpc.GrpcServerExchangeEvent;
 import cafe.jeffrey.jfr.events.http.HttpClientExchangeEvent;
 import cafe.jeffrey.jfr.events.http.HttpServerExchangeEvent;
 import cafe.jeffrey.jfr.events.jdbc.statement.JdbcQueryEvent;
+import cafe.jeffrey.jfr.events.trace.Span;
 import cafe.jeffrey.jfr.events.trace.SpanKind;
-import cafe.jeffrey.jfr.events.trace.SpanName;
 import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import cafe.jeffrey.jfr.events.trace.TraceSpanEvent;
 import cafe.jeffrey.shared.common.model.EventTypeName;
@@ -805,7 +805,7 @@ class JdbcTraceRepositoryTest {
         @Test
         @DisplayName("the identity template names a self-naming type by what it recorded")
         void identityTemplateReadsTheRecordedName(DataSource dataSource) throws SQLException {
-            // The shape of a Jeffrey statement in a new recording: @SpanName("{name}") declared,
+            // The shape of a Jeffrey statement in a new recording: @Span("{name}") declared,
             // name recorded at construction. The declared arm and the recorded-name fallback must
             // agree -- the template exists for the invariant that every shipped span type declares
             // its convention, not to change any answer.
@@ -856,17 +856,17 @@ class JdbcTraceRepositoryTest {
         @DisplayName("the SQL names an exchange the way the event names itself")
         void conventionsAgreeWithTheInstrumentation() {
             // One naming rule, three readers held together here: the built-in template (for
-            // recordings that predate @SpanName), the annotation (carried in every new recording),
+            // recordings that predate @Span), the annotation (carried in every new recording),
             // and describeSpan() (what commitSpan() writes into the raw event). @Inherited is
             // load-bearing for the annotation reads: the declarations live on the abstract bases
             // and must be readable off the concrete classes. The status assertions are about
             // describeSpan alone -- a verdict is only ever recorded, which is why commitSpan() is
             // the required path for failure detection.
             assertEquals(SpanNameTemplates.BUILT_IN.get(HttpServerExchangeEvent.NAME),
-                    HttpServerExchangeEvent.class.getAnnotation(SpanName.class).value(),
+                    HttpServerExchangeEvent.class.getAnnotation(Span.class).value(),
                     "the built-in template IS the annotation's rule, one rule across vintages");
             assertEquals(SpanNameTemplates.BUILT_IN.get(GrpcServerExchangeEvent.NAME),
-                    GrpcServerExchangeEvent.class.getAnnotation(SpanName.class).value());
+                    GrpcServerExchangeEvent.class.getAnnotation(Span.class).value());
 
             HttpServerExchangeEvent http = new HttpServerExchangeEvent();
             http.method = "GET";
@@ -907,7 +907,7 @@ class JdbcTraceRepositoryTest {
             // key; neither module compiles against jeffrey-events, so these strings are the whole
             // contract. A rename on either side must fail here, not silently un-declare every
             // convention in every new recording.
-            assertEquals(SpanConventionKeys.SPAN_NAME_ANNOTATION, SpanName.class.getName());
+            assertEquals(SpanConventionKeys.SPAN_ANNOTATION, Span.class.getName());
         }
 
         @Test
@@ -916,9 +916,9 @@ class JdbcTraceRepositoryTest {
             // Exchanges derive their name from their fields; a statement and a hand-written span
             // name themselves, which the identity template states explicitly. The invariant is
             // that no jeffrey-events span type is silent about how it is named -- absence of
-            // @SpanName means "no convention exists", never "the rule lives elsewhere".
-            assertEquals("{name}", JdbcQueryEvent.class.getAnnotation(SpanName.class).value());
-            assertEquals("{name}", TraceSpanEvent.class.getAnnotation(SpanName.class).value());
+            // @Span means "no convention exists", never "the rule lives elsewhere".
+            assertEquals("{name}", JdbcQueryEvent.class.getAnnotation(Span.class).value());
+            assertEquals("{name}", TraceSpanEvent.class.getAnnotation(Span.class).value());
         }
 
         @Test

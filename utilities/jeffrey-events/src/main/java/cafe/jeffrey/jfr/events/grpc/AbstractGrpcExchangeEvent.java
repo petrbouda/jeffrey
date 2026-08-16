@@ -20,7 +20,7 @@ package cafe.jeffrey.jfr.events.grpc;
 
 import cafe.jeffrey.jfr.events.trace.AbstractTracedEvent;
 import cafe.jeffrey.jfr.events.trace.SpanKind;
-import cafe.jeffrey.jfr.events.trace.SpanName;
+import cafe.jeffrey.jfr.events.trace.Span;
 import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import jdk.jfr.*;
 
@@ -29,13 +29,13 @@ import jdk.jfr.*;
  * the same way: named by the fully qualified method, failed by anything but {@code OK}.
  * <p>
  * The naming convention is declared twice on purpose, like the HTTP exchange: {@link #describeSpan()}
- * applies it at commit for readers of the raw recording, while {@link SpanName} carries it in the
+ * applies it at commit for readers of the raw recording, while {@link Span} carries it in the
  * recording's metadata for any reader to apply itself. The verdict is only recorded, never
  * declared — {@code commitSpan()} is the required path for failure detection.
  */
 @Category({"Application", "gRPC"})
 @StackTrace(false)
-@SpanName("{service}/{method}")
+@Span("{service}/{method}")
 public abstract class AbstractGrpcExchangeEvent extends AbstractTracedEvent {
 
     /** gRPC's own name for "the call succeeded"; every other code is a failed call. */

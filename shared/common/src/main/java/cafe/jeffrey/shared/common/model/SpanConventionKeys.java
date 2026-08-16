@@ -19,7 +19,7 @@
 package cafe.jeffrey.shared.common.model;
 
 /**
- * The names a declared span naming convention travels under, from the {@code @SpanName} annotation
+ * The names a declared span naming convention travels under, from the {@code @Span} annotation
  * in a recording's metadata to the {@code event_types.extras} column the derivation reads.
  * <p>
  * Spelled here rather than referenced from {@code jeffrey-events} because neither the parser nor
@@ -38,9 +38,9 @@ package cafe.jeffrey.shared.common.model;
  */
 public abstract class SpanConventionKeys {
 
-    /** Fully qualified name of the {@code @SpanName} annotation, as JFR metadata spells it. */
-    public static final String SPAN_NAME_ANNOTATION = "cafe.jeffrey.jfr.events.trace.SpanName";
+    /** Fully qualified name of the {@code @Span} annotation, as JFR metadata spells it. */
+    public static final String SPAN_ANNOTATION = "cafe.jeffrey.jfr.events.trace.Span";
 
-    /** Extras key holding the {@code @SpanName} template, e.g. {@code "{method} {uri}"}. */
+    /** Extras key holding the {@code @Span} template, e.g. {@code "{method} {uri}"}. */
     public static final String EXTRAS_SPAN_NAME = "spanName";
 }

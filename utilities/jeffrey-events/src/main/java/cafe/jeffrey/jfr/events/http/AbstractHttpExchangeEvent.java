@@ -20,7 +20,7 @@ package cafe.jeffrey.jfr.events.http;
 
 import cafe.jeffrey.jfr.events.trace.AbstractTracedEvent;
 import cafe.jeffrey.jfr.events.trace.SpanKind;
-import cafe.jeffrey.jfr.events.trace.SpanName;
+import cafe.jeffrey.jfr.events.trace.Span;
 import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import jdk.jfr.*;
 
@@ -31,7 +31,7 @@ import jdk.jfr.*;
  * <p>
  * The naming convention is declared twice on purpose, and {@code SpanMetadataRoundTripTest} plus
  * Jeffrey's {@code EventApiContract} keep the two in agreement: {@link #describeSpan()} applies it
- * at commit so the recording reads correctly in {@code jfr print} and JMC, while {@link SpanName}
+ * at commit so the recording reads correctly in {@code jfr print} and JMC, while {@link Span}
  * carries it in the recording's metadata for any reader — Jeffrey included — to apply itself, even
  * to an event committed without {@code commitSpan()}. The <em>verdict</em> is different: it is the
  * writer's statement, not a derivable mapping — an exchange that threw and still answered 200
@@ -40,7 +40,7 @@ import jdk.jfr.*;
  */
 @Category({"Application", "HTTP"})
 @StackTrace(false)
-@SpanName("{method} {uri}")
+@Span("{method} {uri}")
 public abstract class AbstractHttpExchangeEvent extends AbstractTracedEvent {
 
     /**

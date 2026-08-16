@@ -20,7 +20,7 @@ package cafe.jeffrey.jfr.events.jdbc.statement;
 
 import cafe.jeffrey.jfr.events.trace.AbstractTracedEvent;
 import cafe.jeffrey.jfr.events.trace.SpanKind;
-import cafe.jeffrey.jfr.events.trace.SpanName;
+import cafe.jeffrey.jfr.events.trace.Span;
 import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import jdk.jfr.Description;
 import jdk.jfr.Label;
@@ -33,11 +33,11 @@ import jdk.jfr.Label;
  * The declared template is the identity, {@code {name}}: a statement names itself, and the label is
  * assigned at construction, so it is recorded whatever the commit path. The declaration is there so
  * that every span type this library ships carries its naming convention in the recording — an event
- * type with no {@code @SpanName} at all is one that has no naming convention, not one whose rule
+ * type with no {@code @Span} at all is one that has no naming convention, not one whose rule
  * lives somewhere else. The verdict is not declared, here or anywhere: {@link #failed(Throwable)}
  * writes the span status directly, which is the one way a failure is stated.
  */
-@SpanName("{name}")
+@Span("{name}")
 public abstract class JdbcBaseEvent extends AbstractTracedEvent {
 
     @Label("SQL Query")

@@ -66,7 +66,7 @@ public abstract class EventTypeUtils {
     }
 
     /**
-     * The naming convention the event type declared for itself — its {@code @SpanName} template —
+     * The naming convention the event type declared for itself — its {@code @Span} template —
      * read out of the recording's own metadata and carried as extras, where the trace derivation
      * discovers it the same way span discovery finds a {@code spanId} column.
      * <p>
@@ -80,7 +80,7 @@ public abstract class EventTypeUtils {
     public static Map<String, String> toExtras(EventType eventType) {
         Map<String, String> extras = new LinkedHashMap<>();
         for (AnnotationElement annotation : eventType.getAnnotationElements()) {
-            if (SpanConventionKeys.SPAN_NAME_ANNOTATION.equals(annotation.getTypeName())) {
+            if (SpanConventionKeys.SPAN_ANNOTATION.equals(annotation.getTypeName())) {
                 putIfString(extras, SpanConventionKeys.EXTRAS_SPAN_NAME, annotation.getValue("value"));
             }
         }

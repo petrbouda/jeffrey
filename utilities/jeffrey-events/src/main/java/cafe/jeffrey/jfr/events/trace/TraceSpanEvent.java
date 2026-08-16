@@ -55,7 +55,7 @@ import jdk.jfr.StackTrace;
 @Description("A single named interval of work within a trace")
 @Category({"Application", "Tracing"})
 @StackTrace(false)
-@SpanName("{name}")
+@Span("{name}")
 public class TraceSpanEvent extends AbstractTracedEvent {
 
     public static final String NAME = "jeffrey.TraceSpan";

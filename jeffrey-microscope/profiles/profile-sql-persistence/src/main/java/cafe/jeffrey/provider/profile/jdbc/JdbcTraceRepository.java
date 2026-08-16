@@ -62,7 +62,7 @@ public class JdbcTraceRepository implements TraceRepository {
      * Jeffrey — takes part in traces with no change here, where a hard-coded list would have left it
      * silently missing from the Traces page until someone noticed. Naming works the same way: one
      * template per event type ({@link SpanNameTemplates}) — built-in for Jeffrey's own exchanges
-     * on recordings that predate {@code @SpanName}, overlaid by what the recording declares.
+     * on recordings that predate {@code @Span}, overlaid by what the recording declares.
      * <p>
      * The same set is what the drill-down excludes: an event that is itself a span belongs in the
      * waterfall, not in the list of what happened inside one.
@@ -124,7 +124,7 @@ public class JdbcTraceRepository implements TraceRepository {
      * the trace ids and its own fields land under a name rather than under its event type.
      *
      * Naming is one concept, the template: SpanNameTemplates renders a template per event type --
-     * built-in for Jeffrey's own exchanges on recordings that predate @SpanName, overlaid by what
+     * built-in for Jeffrey's own exchanges on recordings that predate @Span, overlaid by what
      * the recording declares for itself, which is how an event type Jeffrey has never seen gets
      * named with no change here. The verdict is never declared -- it is recorded by the writer,
      * and the built-in status arms exist only for the exchange types Jeffrey itself knows.
@@ -571,7 +571,7 @@ public class JdbcTraceRepository implements TraceRepository {
         databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, DELETE_TRACE_SPANS);
 
         // One template per event type -- built-ins overlaid by what the recording declares for
-        // itself (@SpanName, stored in event_types.extras by the parser) -- rendered as one CASE.
+        // itself (@Span, stored in event_types.extras by the parser) -- rendered as one CASE.
         String nameTemplates = SpanNameTemplates.nameCase(databaseClient);
 
         // The placeholders in the order they appear: which event types are spans, the three span

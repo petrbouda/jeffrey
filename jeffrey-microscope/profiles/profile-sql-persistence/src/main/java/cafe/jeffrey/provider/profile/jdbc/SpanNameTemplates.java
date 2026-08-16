@@ -34,7 +34,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * How a span is named: one template per event type, in {@code @SpanName}'s syntax, rendered into
+ * How a span is named: one template per event type, in {@code @Span}'s syntax, rendered into
  * one SQL CASE expression. The template is the only naming concept — the built-ins for Jeffrey's
  * own exchange types are the same strings their annotations declare (pinned by
  * {@code JdbcTraceRepositoryTest.EventApiContract}), kept here for recordings made before the
@@ -64,7 +64,7 @@ final class SpanNameTemplates {
 
     /**
      * The naming conventions for Jeffrey's own exchange types, as templates — the same strings the
-     * {@code @SpanName} annotations on the event classes declare. New recordings carry these
+     * {@code @Span} annotations on the event classes declare. New recordings carry these
      * declarations themselves; the map is what names the same events on recordings that predate
      * the annotation, and it is why that backward-compat set genuinely cannot grow.
      */

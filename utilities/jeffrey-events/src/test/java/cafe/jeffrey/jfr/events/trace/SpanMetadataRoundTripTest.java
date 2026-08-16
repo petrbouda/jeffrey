@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class SpanMetadataRoundTripTest {
 
-    private static final String SPAN_NAME_TYPE = SpanName.class.getName();
+    private static final String SPAN_ANNOTATION_TYPE = Span.class.getName();
 
     /**
      * What third-party instrumentation looks like: not a Jeffrey type, declares its naming
@@ -56,7 +56,7 @@ class SpanMetadataRoundTripTest {
      */
     @Name(ThirdPartyEvent.NAME)
     @Label("Third Party Event")
-    @SpanName("PUBLISH {topic}")
+    @Span("PUBLISH {topic}")
     static class ThirdPartyEvent extends AbstractTracedEvent {
 
         static final String NAME = "com.acme.KafkaPublish";
@@ -78,7 +78,7 @@ class SpanMetadataRoundTripTest {
             third.commit();
         });
 
-        assertEquals("PUBLISH {topic}", annotationValue(event, SPAN_NAME_TYPE, "value"));
+        assertEquals("PUBLISH {topic}", annotationValue(event, SPAN_ANNOTATION_TYPE, "value"));
     }
 
     @Test
@@ -94,25 +94,25 @@ class SpanMetadataRoundTripTest {
             exchange.commitSpan();
         });
 
-        assertEquals("{method} {uri}", annotationValue(event, SPAN_NAME_TYPE, "value"));
+        assertEquals("{method} {uri}", annotationValue(event, SPAN_ANNOTATION_TYPE, "value"));
     }
 
     @Test
     @DisplayName("a self-naming type declares the identity template")
     void selfNamingTypesDeclareTheIdentityTemplate() throws IOException {
-        // The invariant: every span type this library ships carries its @SpanName. A statement's
+        // The invariant: every span type this library ships carries its @Span. A statement's
         // template is the identity -- it names itself, at construction.
         RecordedEvent statement = JfrRecordings.single("jeffrey.JdbcQuery", () -> {
             JdbcQueryEvent query = new JdbcQueryEvent("listSpans", "PROFILE_EVENTS");
             query.commitSpan();
         });
-        assertEquals("{name}", annotationValue(statement, SPAN_NAME_TYPE, "value"));
+        assertEquals("{name}", annotationValue(statement, SPAN_ANNOTATION_TYPE, "value"));
 
         RecordedEvent span = JfrRecordings.single(TraceSpanEvent.NAME, () -> {
             Tracer.run("hand.written", () -> {
             });
         });
-        assertEquals("{name}", annotationValue(span, SPAN_NAME_TYPE, "value"));
+        assertEquals("{name}", annotationValue(span, SPAN_ANNOTATION_TYPE, "value"));
     }
 
     @Test
@@ -125,7 +125,7 @@ class SpanMetadataRoundTripTest {
             scope.commit();
         });
 
-        assertTrue(findAnnotation(event, SPAN_NAME_TYPE).isEmpty());
+        assertTrue(findAnnotation(event, SPAN_ANNOTATION_TYPE).isEmpty());
         assertTrue(event.getEventType().getFields().stream().noneMatch(f -> f.getName().equals("spanId")),
                 "discovery is structural on spanId, which a scope must not declare");
     }

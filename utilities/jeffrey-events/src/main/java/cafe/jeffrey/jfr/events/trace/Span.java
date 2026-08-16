@@ -56,12 +56,12 @@ import java.lang.annotation.Target;
  * always a plain field name matching {@code [A-Za-z0-9_]+}.
  */
 @MetadataDefinition
-@Label("Span Name")
+@Label("Span")
 @Description("Template a reader derives this event's span name from; tokens name the event's own fields")
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 @Inherited
-public @interface SpanName {
+public @interface Span {
 
     /**
      * The naming template, e.g. {@code "{method} {uri}"}.

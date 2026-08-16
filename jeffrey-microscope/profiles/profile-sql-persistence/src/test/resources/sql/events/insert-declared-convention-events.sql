@@ -1,5 +1,5 @@
 -- Event types that declare their own naming convention in the recording's metadata, the way a
--- @SpanName-annotated event does. The acme type is not a jeffrey.* type: this fixture is the proof
+-- @Span-annotated event does. The acme type is not a jeffrey.* type: this fixture is the proof
 -- that an event type Jeffrey has never seen is named with no change to Jeffrey, which is the whole
 -- point of carrying the convention in the recording.
 --
@@ -16,7 +16,7 @@ VALUES
      '{"spanName":"PUBLISH {topic}"}', NULL,
      '[{"field":"traceId","header":"Trace Id"},{"field":"spanId","header":"Span Id"},{"field":"parentSpanId","header":"Parent Span Id"},{"field":"name","header":"Name"},{"field":"kind","header":"Kind"},{"field":"status","header":"Status"},{"field":"topic","header":"Topic"},{"field":"deliveryCode","header":"Delivery Code"}]'),
 
-    -- The shape of a Jeffrey statement in a new recording: the identity template @SpanName("{name}")
+    -- The shape of a Jeffrey statement in a new recording: the identity template @Span("{name}")
     -- declares that the event names itself. The declared arm must agree with the recorded-name
     -- fallback it shadows -- the template exists for the invariant, not to change any answer.
     ('jeffrey.JdbcQuery', 'JDBC Query', 2, 'jdbc', '["Application","JDBC"]', '1', NULL, false,
