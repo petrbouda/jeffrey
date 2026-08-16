@@ -25,7 +25,6 @@ import cafe.jeffrey.jfr.events.http.HttpServerExchangeEvent;
 import cafe.jeffrey.jfr.events.jdbc.statement.JdbcQueryEvent;
 import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.SpanName;
-import cafe.jeffrey.jfr.events.trace.SpanOutcome;
 import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import cafe.jeffrey.jfr.events.trace.TraceSpanEvent;
 import cafe.jeffrey.shared.common.model.EventTypeName;
@@ -772,21 +771,18 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
-        @DisplayName("a plain-commit third-party event is named and judged by what it declared")
-        void namesAndJudgesAPlainCommitEvent(DataSource dataSource) throws SQLException {
-            // The case nothing else can serve: describeSpan() never ran, so no name was recorded
-            // and the status is the field default. The template and outcome travelled in the
-            // recording's metadata, and Jeffrey has no code that knows com.acme.KafkaPublish.
-            TraceSummaryRecord failed = root(declared(dataSource), 701L);
+        @DisplayName("a plain-commit third-party event is named by its declared template")
+        void namesAPlainCommitEvent(DataSource dataSource) throws SQLException {
+            // The case nothing else can serve: describeSpan() never ran, so no name was recorded.
+            // The template travelled in the recording's metadata, and Jeffrey has no code that
+            // knows com.acme.KafkaPublish. The verdict is a different story on purpose: it is the
+            // writer's statement, so the 503 sitting in deliveryCode is NOT read as a failure --
+            // failure detection requires commitSpan() (or writing `status` directly).
+            TraceSummaryRecord published = root(declared(dataSource), 701L);
 
-            assertEquals(PUBLISH_OPERATION, failed.rootName());
-            assertEquals(1, failed.errorCount(), "503 judged by the declared HTTP_CODE semantics");
-        }
-
-        @Test
-        @DisplayName("a passing code under the declared semantics is not a failure")
-        void aPassingCodeIsNotAFailure(DataSource dataSource) throws SQLException {
-            assertEquals(0, root(declared(dataSource), 702L).errorCount());
+            assertEquals(PUBLISH_OPERATION, published.rootName());
+            assertEquals(0, published.errorCount(),
+                    "no verdict was recorded, so none exists -- a code is not a statement of failure");
         }
 
         @Test
@@ -797,24 +793,13 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
-        @DisplayName("a recorded error still outranks a passing declared outcome")
-        void recordedErrorOutranksTheDeclaredOutcome(DataSource dataSource) throws SQLException {
-            // The exchange threw and still delivered: the one outcome no code can carry.
-            assertEquals(1, root(declared(dataSource), 704L).errorCount());
-        }
+        @DisplayName("a recorded error is the verdict, on any commit path")
+        void aRecordedErrorIsTheVerdict(DataSource dataSource) throws SQLException {
+            // The one way a third-party event states a failure: record it. failed()-style direct
+            // writes and commitSpan() both do; the derivation's ERROR escalation honours it.
+            TraceSummaryRecord failed = root(declared(dataSource), 704L);
 
-        @Test
-        @DisplayName("a declared BOOLEAN semantics is read, though no shipped writer mints one")
-        void booleanSemanticsReadsAFlag(DataSource dataSource) throws SQLException {
-            // SpanOutcome publishes only HTTP_CODE and GRPC_CODE -- the semantics Jeffrey's own
-            // types prove out -- but the reader stays liberal: the flag logic exists anyway for
-            // the isSuccess built-in arm, and understanding a declared BOOLEAN now means a future
-            // library version that publishes it produces recordings this version already reads.
-            JdbcTraceRepository repository = declared(dataSource);
-
-            assertEquals(1, root(repository, 705L).errorCount(), "stored=false is a failed put");
-            assertEquals(0, root(repository, 706L).errorCount());
-            assertEquals("CACHE PUT sessions", root(repository, 705L).rootName());
+            assertEquals(1, failed.errorCount());
         }
 
         @Test
@@ -830,17 +815,6 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
-        @DisplayName("an unknown semantics is skipped, not failed on")
-        void unknownSemanticsIsSkipped(DataSource dataSource) throws SQLException {
-            // A recording annotated by a future library version: derive() must not throw, the
-            // template still names the event, and the outcome falls back to what was recorded.
-            TraceSummaryRecord future = root(declared(dataSource), 707L);
-
-            assertEquals("FUTURE entangle", future.rootName());
-            assertEquals(0, future.errorCount(), "judged only by its recorded UNSET status");
-        }
-
-        @Test
         @DisplayName("the operations list carries the declared names, with no Jeffrey code involved")
         void operationsAreListedUnderDeclaredNames(DataSource dataSource) throws SQLException {
             Map<String, TraceOperationRecord> byName = declared(dataSource).operations(100).stream()
@@ -849,7 +823,7 @@ class JdbcTraceRepositoryTest {
             TraceOperationRecord publish = byName.get(PUBLISH_OPERATION);
             assertNotNull(publish, "the zero-Jeffrey-changes proof: a foreign type, a real operation name");
             assertEquals(3, publish.count());
-            assertEquals(2, publish.errorCount(), "the 503 and the recorded ERROR");
+            assertEquals(1, publish.errorCount(), "only the recorded ERROR counts as a failure");
             assertTrue(byName.keySet().stream().noneMatch(name -> name.startsWith("com.acme.")),
                     "no declared type may fall back to its event type");
         }
@@ -916,18 +890,13 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
-        @DisplayName("the keys a declared convention travels under match the annotations")
+        @DisplayName("the keys a declared convention travels under match the annotation")
         void conventionKeysMatchTheAnnotations() {
-            // The parser matches annotations by type name and the derivation reads extras by key;
-            // neither module compiles against jeffrey-events, so these strings are the whole
+            // The parser matches the annotation by type name and the derivation reads extras by
+            // key; neither module compiles against jeffrey-events, so these strings are the whole
             // contract. A rename on either side must fail here, not silently un-declare every
             // convention in every new recording.
             assertEquals(SpanConventionKeys.SPAN_NAME_ANNOTATION, SpanName.class.getName());
-            assertEquals(SpanConventionKeys.SPAN_OUTCOME_ANNOTATION, SpanOutcome.class.getName());
-            assertEquals(SpanConventionKeys.SEMANTICS_HTTP_CODE, SpanOutcome.HTTP_CODE);
-            assertEquals(SpanConventionKeys.SEMANTICS_GRPC_CODE, SpanOutcome.GRPC_CODE);
-            // SEMANTICS_BOOLEAN has no annotation constant on purpose: the reader understands it
-            // (the isSuccess built-in arm, and forward compat), but no shipped writer mints it.
         }
 
         @Test
@@ -939,24 +908,19 @@ class JdbcTraceRepositoryTest {
             // @SpanName means "no convention exists", never "the rule lives elsewhere".
             assertEquals("{name}", JdbcQueryEvent.class.getAnnotation(SpanName.class).value());
             assertEquals("{name}", TraceSpanEvent.class.getAnnotation(SpanName.class).value());
-
-            assertNull(JdbcQueryEvent.class.getAnnotation(SpanOutcome.class),
-                    "a statement records no outcome code; failed() writes the status directly");
-            assertNull(TraceSpanEvent.class.getAnnotation(SpanOutcome.class));
         }
 
         @Test
         @DisplayName("what the exchanges declare is what describeSpan computes")
         void declarationsAgreeWithDescribeSpan() {
-            // The convention exists in two spellings on purpose -- the annotation for readers of
-            // the metadata, describeSpan() for readers of the raw events -- and this is what holds
-            // them together. @Inherited is also load-bearing here: the annotations live on the
-            // abstract bases and must be readable off the concrete classes.
+            // The naming convention exists in two spellings on purpose -- the annotation for
+            // readers of the metadata, describeSpan() for readers of the raw events -- and this is
+            // what holds them together. @Inherited is also load-bearing here: the annotations live
+            // on the abstract bases and must be readable off the concrete classes. The status
+            // assertions are about describeSpan alone: a verdict is only ever recorded, which is
+            // why commitSpan() is the required path for failure detection.
             SpanName httpName = HttpServerExchangeEvent.class.getAnnotation(SpanName.class);
-            SpanOutcome httpOutcome = HttpServerExchangeEvent.class.getAnnotation(SpanOutcome.class);
             assertEquals("{method} {uri}", httpName.value());
-            assertEquals("statusCode", httpOutcome.from());
-            assertEquals(SpanOutcome.HTTP_CODE, httpOutcome.semantics());
 
             HttpServerExchangeEvent http = new HttpServerExchangeEvent();
             http.method = "GET";
@@ -966,12 +930,10 @@ class JdbcTraceRepositoryTest {
             assertEquals("GET /api/internal/health", http.name,
                     "describeSpan must produce what the template declares");
             assertEquals(SpanStatus.ERROR.name(), http.status,
-                    "describeSpan must judge 500 the way HTTP_CODE declares");
+                    "describeSpan records the verdict; nothing else does");
 
             SpanName grpcName = GrpcServerExchangeEvent.class.getAnnotation(SpanName.class);
-            SpanOutcome grpcOutcome = GrpcServerExchangeEvent.class.getAnnotation(SpanOutcome.class);
             assertEquals("{service}/{method}", grpcName.value());
-            assertEquals(SpanOutcome.GRPC_CODE, grpcOutcome.semantics());
 
             GrpcServerExchangeEvent grpc = new GrpcServerExchangeEvent();
             grpc.service = "jeffrey.api.v1.ProjectService";

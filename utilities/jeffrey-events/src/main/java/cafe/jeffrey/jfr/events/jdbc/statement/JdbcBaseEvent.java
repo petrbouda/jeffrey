@@ -32,11 +32,10 @@ import jdk.jfr.Label;
  * <p>
  * The declared template is the identity, {@code {name}}: a statement names itself, and the label is
  * assigned at construction, so it is recorded whatever the commit path. The declaration is there so
- * that every span type this library ships carries its convention in the recording — an event type
- * with no {@code @SpanName} at all is one that has no naming convention, not one whose rule lives
- * somewhere else. No {@code @SpanOutcome} accompanies it: a statement records no outcome code to
- * judge — {@link #failed(Throwable)} writes the span status directly, and a recorded {@code ERROR}
- * outranks any declared semantics anyway.
+ * that every span type this library ships carries its naming convention in the recording — an event
+ * type with no {@code @SpanName} at all is one that has no naming convention, not one whose rule
+ * lives somewhere else. The verdict is not declared, here or anywhere: {@link #failed(Throwable)}
+ * writes the span status directly, which is the one way a failure is stated.
  */
 @SpanName("{name}")
 public abstract class JdbcBaseEvent extends AbstractTracedEvent {

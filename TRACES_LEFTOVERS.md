@@ -75,18 +75,25 @@ Not bugs — decisions with a stated trade-off.
   cannot be a span status, so no vintage test is needed to tell a response code from an outcome; a
   recorded `ERROR` outranks the code, since an exchange that threw and still answered 200 knows
   something its code does not.
-- ~~Conventions enumerated Jeffrey's event types~~ — a type now declares its own convention *inside
-  the recording*: `@SpanName("{method} {uri}")` and `@SpanOutcome(from, semantics)` are JFR
-  `@MetadataDefinition` annotations, persisted into every recording's metadata, copied by the
-  parser into `event_types.extras`, and rendered by `DeclaredSpanConventions` into the same CASE
-  arms as the built-ins — discovered structurally, exactly the way `spanId` discovers a span. A
-  third-party event type Jeffrey has never seen is named and judged with zero changes to Jeffrey,
-  even when committed with plain `commit()`. Declared conventions outrank the built-ins, which
-  remain only for Jeffrey's own types on recordings that predate the annotations — a set that
-  genuinely cannot grow, restoring the earlier claim in its correct form. The semantics names and
-  extras keys are wire format: frozen, additive-only; an unknown semantics is skipped, never failed
-  on. Everything read from recording metadata is validated before it reaches SQL (`[A-Za-z0-9_]+`
-  fields, quoted literals).
+- ~~Naming conventions enumerated Jeffrey's event types~~ — a type now declares its naming
+  convention *inside the recording*: `@SpanName("{method} {uri}")` is a JFR `@MetadataDefinition`
+  annotation, persisted into every recording's metadata, copied by the parser into
+  `event_types.extras`, and rendered by `DeclaredSpanConventions` into the same CASE arms as the
+  built-ins — discovered structurally, exactly the way `spanId` discovers a span. A third-party
+  event type Jeffrey has never seen is named with zero changes to Jeffrey, even when committed with
+  plain `commit()`; self-naming types (statements, hand-written spans) declare the identity
+  template `{name}`, so every shipped span type carries its convention. Declared templates outrank
+  the built-ins, which remain only for Jeffrey's own types on recordings that predate the
+  annotation — a set that genuinely cannot grow, restoring the earlier claim in its correct form.
+  The template syntax and extras key are wire format: frozen, additive-only. Everything read from
+  recording metadata is validated before it reaches SQL (`[A-Za-z0-9_]+` tokens, quoted literals).
+  <br>The *verdict* is deliberately not declarable — a `@SpanOutcome` annotation was built and then
+  removed after design discussion: a span's status is the writer's statement (an exchange that
+  threw and still answered 200 knows something its code does not — the same reasoning behind the
+  recorded-`ERROR` escalation), so it is recorded through `commitSpan()`/`failed()`, never derived
+  from a declaration. An event committed with plain `commit()` keeps its name, kind and nesting but
+  reports no errors; Jeffrey's own exchange types are judged by the built-in code rules on
+  recordings of any vintage regardless.
 - ~~The trace detail recomputed its own header~~ — it reads the stored `traces` row, so a trace's
   duration is the same number in the list and in the detail.
 - ~~`has_platform_span` computed per query, two ways~~ — one stored column, one convention: a span

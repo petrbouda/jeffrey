@@ -66,15 +66,14 @@ public abstract class EventTypeUtils {
     }
 
     /**
-     * The span conventions the event type declared for itself — a {@code @SpanName} template and a
-     * {@code @SpanOutcome} field-and-semantics pair — read out of the recording's own metadata and
-     * carried as extras, where the trace derivation discovers them the same way span discovery
-     * finds a {@code spanId} column.
+     * The naming convention the event type declared for itself — its {@code @SpanName} template —
+     * read out of the recording's own metadata and carried as extras, where the trace derivation
+     * discovers it the same way span discovery finds a {@code spanId} column.
      * <p>
-     * Matched by annotation type name rather than by class: the annotations live in
+     * Matched by annotation type name rather than by class: the annotation lives in
      * {@code jeffrey-events}, which this module deliberately does not compile against — the
-     * convention crosses between the two as recording metadata, never as a shared type. The values
-     * are read defensively because they come from an arbitrary recording; anything that is not the
+     * convention crosses between the two as recording metadata, never as a shared type. The value
+     * is read defensively because it comes from an arbitrary recording; anything that is not the
      * expected {@code String} is left out, and the derivation treats an absent key as "declared
      * nothing".
      */
@@ -83,9 +82,6 @@ public abstract class EventTypeUtils {
         for (AnnotationElement annotation : eventType.getAnnotationElements()) {
             if (SpanConventionKeys.SPAN_NAME_ANNOTATION.equals(annotation.getTypeName())) {
                 putIfString(extras, SpanConventionKeys.EXTRAS_SPAN_NAME, annotation.getValue("value"));
-            } else if (SpanConventionKeys.SPAN_OUTCOME_ANNOTATION.equals(annotation.getTypeName())) {
-                putIfString(extras, SpanConventionKeys.EXTRAS_OUTCOME_FROM, annotation.getValue("from"));
-                putIfString(extras, SpanConventionKeys.EXTRAS_OUTCOME_SEMANTICS, annotation.getValue("semantics"));
             }
         }
         return extras;

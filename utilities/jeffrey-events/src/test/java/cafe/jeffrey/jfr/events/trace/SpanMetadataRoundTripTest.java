@@ -52,16 +52,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SpanMetadataRoundTripTest {
 
     private static final String SPAN_NAME_TYPE = SpanName.class.getName();
-    private static final String SPAN_OUTCOME_TYPE = SpanOutcome.class.getName();
 
     /**
-     * What third-party instrumentation looks like: not a Jeffrey type, declares both conventions
-     * itself, and is committed with plain {@code commit()} — no {@code describeSpan()}, no name.
+     * What third-party instrumentation looks like: not a Jeffrey type, declares its naming
+     * convention itself, and is committed with plain {@code commit()} — no {@code describeSpan()},
+     * no name recorded. The name still derives from the template; the verdict does not exist,
+     * because a verdict is the writer's statement and only {@code commitSpan()} records one.
      */
     @Name(ThirdPartyEvent.NAME)
     @Label("Third Party Event")
     @SpanName("PUBLISH {topic}")
-    @SpanOutcome(from = "deliveryCode", semantics = SpanOutcome.HTTP_CODE)
     static class ThirdPartyEvent extends AbstractTracedEvent {
 
         static final String NAME = "com.acme.KafkaPublish";
@@ -74,7 +74,7 @@ class SpanMetadataRoundTripTest {
     }
 
     @Test
-    @DisplayName("a third-party event's declared conventions survive the recording round trip")
+    @DisplayName("a third-party event's declared template survives the recording round trip")
     void thirdPartyDeclarationsRoundTrip() throws IOException {
         RecordedEvent event = record(ThirdPartyEvent.NAME, () -> {
             ThirdPartyEvent third = new ThirdPartyEvent();
@@ -84,8 +84,6 @@ class SpanMetadataRoundTripTest {
         });
 
         assertEquals("PUBLISH {topic}", annotationValue(event, SPAN_NAME_TYPE, "value"));
-        assertEquals("deliveryCode", annotationValue(event, SPAN_OUTCOME_TYPE, "from"));
-        assertEquals(SpanOutcome.HTTP_CODE, annotationValue(event, SPAN_OUTCOME_TYPE, "semantics"));
     }
 
     @Test
@@ -102,34 +100,28 @@ class SpanMetadataRoundTripTest {
         });
 
         assertEquals("{method} {uri}", annotationValue(event, SPAN_NAME_TYPE, "value"));
-        assertEquals("statusCode", annotationValue(event, SPAN_OUTCOME_TYPE, "from"));
-        assertEquals(SpanOutcome.HTTP_CODE, annotationValue(event, SPAN_OUTCOME_TYPE, "semantics"));
     }
 
     @Test
-    @DisplayName("a self-naming type declares the identity template, and no outcome")
+    @DisplayName("a self-naming type declares the identity template")
     void selfNamingTypesDeclareTheIdentityTemplate() throws IOException {
         // The invariant: every span type this library ships carries its @SpanName. A statement's
-        // template is the identity -- it names itself, at construction -- and it declares no
-        // outcome, because failed() writes the span status directly.
+        // template is the identity -- it names itself, at construction.
         RecordedEvent statement = record("jeffrey.JdbcQuery", () -> {
             JdbcQueryEvent query = new JdbcQueryEvent("listSpans", "PROFILE_EVENTS");
             query.commitSpan();
         });
         assertEquals("{name}", annotationValue(statement, SPAN_NAME_TYPE, "value"));
-        assertTrue(findAnnotation(statement, SPAN_OUTCOME_TYPE).isEmpty(),
-                "a statement records no outcome code to judge");
 
         RecordedEvent span = record(TraceSpanEvent.NAME, () -> {
             Tracer.run("hand.written", () -> {
             });
         });
         assertEquals("{name}", annotationValue(span, SPAN_NAME_TYPE, "value"));
-        assertTrue(findAnnotation(span, SPAN_OUTCOME_TYPE).isEmpty());
     }
 
     @Test
-    @DisplayName("a scope event declares neither convention and no spanId, so it can never be a span")
+    @DisplayName("a scope event declares no convention and no spanId, so it can never be a span")
     void scopeEventCarriesNoConventions() throws IOException {
         RecordedEvent event = record(TraceScopeEvent.NAME, () -> {
             TraceScopeEvent scope = new TraceScopeEvent();
@@ -139,7 +131,6 @@ class SpanMetadataRoundTripTest {
         });
 
         assertTrue(findAnnotation(event, SPAN_NAME_TYPE).isEmpty());
-        assertTrue(findAnnotation(event, SPAN_OUTCOME_TYPE).isEmpty());
         assertTrue(event.getEventType().getFields().stream().noneMatch(f -> f.getName().equals("spanId")),
                 "discovery is structural on spanId, which a scope must not declare");
     }

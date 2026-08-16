@@ -45,9 +45,8 @@ import jdk.jfr.StackTrace;
  * <p>
  * The declared template is the identity, {@code {name}}: a hand-written span is named by whoever
  * opened it, and {@link Tracer} records that name before the event commits. The declaration keeps
- * the invariant that every span type this library ships carries its convention in the recording.
- * No {@code @SpanOutcome}: the outcome is written by {@link Tracer} as a span status directly,
- * there is no code field to judge.
+ * the invariant that every span type this library ships carries its naming convention in the
+ * recording. The verdict is not declared: {@link Tracer} writes the span status directly.
  *
  * @see Tracer
  */

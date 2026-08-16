@@ -122,12 +122,14 @@ public class JdbcTraceRepository implements TraceRepository {
      * makes one endpoint one operation across recordings, and what lets instrumentation that stamps
      * the trace ids and its own fields land under a name rather than under its event type.
      *
-     * The conventions come from two places, in order: what the recording itself declares per event
-     * type (@SpanName/@SpanOutcome metadata, rendered by DeclaredSpanConventions -- which is how an
-     * event type Jeffrey has never seen gets named with no change here), then the built-ins in
-     * SpanConventions for Jeffrey's own types on recordings that predate the annotations. Discovery
-     * above stays structural, so an event type no convention covers is still a span; it just
-     * carries the name, kind and status it recorded for itself.
+     * The naming conventions come from two places, in order: what the recording itself declares per
+     * event type (@SpanName metadata, rendered by DeclaredSpanConventions -- which is how an event
+     * type Jeffrey has never seen gets named with no change here), then the built-ins in
+     * SpanConventions for Jeffrey's own types on recordings that predate the annotation. The
+     * verdict is never declared -- it is recorded by the writer, and the built-in status arms exist
+     * only for the exchange types Jeffrey itself knows. Discovery above stays structural, so an
+     * event type no convention covers is still a span; it just carries the name, kind and status it
+     * recorded for itself.
      *
      * The ids are pulled out once in the CTE, which the filter then reuses by name, so each is read
      * out of the JSON a single time. The two predicates drop events that were never part of a
@@ -569,9 +571,9 @@ public class JdbcTraceRepository implements TraceRepository {
         databaseClient.execute(StatementLabel.DERIVE_TRACES, DELETE_TRACES);
         databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, DELETE_TRACE_SPANS);
 
-        // What the recording declared about its own event types (@SpanName/@SpanOutcome, stored in
-        // event_types.extras by the parser) is folded into the projections ahead of the built-ins.
-        DeclaredSpanConventions.Projections declared = DeclaredSpanConventions.load(databaseClient);
+        // The naming templates the recording declared for its own event types (@SpanName, stored in
+        // event_types.extras by the parser), folded into the name projection ahead of the built-ins.
+        String declaredNames = DeclaredSpanConventions.nameCase(databaseClient);
 
         // The placeholders in the order they appear: which event types are spans, the three span
         // shape projections, and then the test and the two patches that decide which keys are
@@ -580,9 +582,9 @@ public class JdbcTraceRepository implements TraceRepository {
                 StatementLabel.DERIVE_TRACE_SPANS,
                 DERIVE_TRACE_SPANS.formatted(
                         SPAN_EVENT_TYPES,
-                        SpanConventions.nameProjection(declared.nameCase()),
+                        SpanConventions.nameProjection(declaredNames),
                         SpanConventions.kindProjection(),
-                        SpanConventions.statusProjection(declared.statusCase()),
+                        SpanConventions.statusProjection(),
                         SpanConventions.recordedStatusIsSpanStatus(),
                         PLUMBING_FIELDS_AND_SPAN_STATUS,
                         PLUMBING_FIELDS));
