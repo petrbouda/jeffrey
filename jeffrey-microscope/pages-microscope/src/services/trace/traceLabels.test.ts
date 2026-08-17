@@ -18,7 +18,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { errorLabel, operationKey, spanKindVariant } from '@/services/trace/traceLabels';
+import { errorLabel, operationKey, parseOperationName, spanKindVariant } from '@/services/trace/traceLabels';
 import type { TraceOperationId } from '@/services/api/model/trace/TraceModels';
 
 describe('errorLabel', () => {
@@ -75,5 +75,53 @@ describe('operationKey', () => {
     expect(operationKey(inbound)).not.toBe(
       operationKey({ ...inbound, eventType: 'jeffrey.TraceSpan' })
     );
+  });
+});
+
+describe('parseOperationName', () => {
+  it('highlights the method of an HTTP operation and styles the URI like an endpoint', () => {
+    const segments = parseOperationName(
+      'POST /api/recordings/{recordingId}/analyze',
+      'jeffrey.HttpServerExchange'
+    );
+
+    expect(segments[0]).toEqual({ kind: 'group', text: 'POST' });
+    expect(segments).toContainEqual({ kind: 'var', text: '{recordingId}' });
+    expect(segments).toContainEqual({ kind: 'segment', text: 'analyze' });
+    expect(segments.map(s => s.text).join('')).toBe('POST /api/recordings/{recordingId}/analyze');
+  });
+
+  it('leaves an HTTP-typed name that is not METHOD /uri shaped alone', () => {
+    const segments = parseOperationName('something odd', 'jeffrey.HttpServerExchange');
+
+    expect(segments).toEqual([{ kind: 'name', text: 'something odd' }]);
+  });
+
+  it('splits a gRPC operation into package, service and method', () => {
+    const segments = parseOperationName(
+      'jeffrey.api.v1.ProjectService/List',
+      'jeffrey.GrpcServerExchange'
+    );
+
+    expect(segments).toContainEqual({ kind: 'path', text: 'jeffrey.api.v1.' });
+    expect(segments).toContainEqual({ kind: 'leaf', text: 'ProjectService' });
+    expect(segments).toContainEqual({ kind: 'leaf', text: 'List' });
+    expect(segments.map(s => s.text).join('')).toBe('jeffrey.api.v1.ProjectService/List');
+  });
+
+  it('falls back to the grouped span-tag parse for other event types', () => {
+    expect(parseOperationName('heap-dump-init', 'jeffrey.TraceSpan')).toEqual([
+      { kind: 'name', text: 'heap-dump-init' }
+    ]);
+    expect(parseOperationName('profile.initialize', 'jeffrey.TraceSpan')[0]).toEqual({
+      kind: 'group',
+      text: 'profile'
+    });
+  });
+
+  it('renders the fallback for an empty name', () => {
+    expect(parseOperationName('', 'jeffrey.TraceSpan')).toEqual([
+      { kind: 'name', text: '(unnamed)' }
+    ]);
   });
 });

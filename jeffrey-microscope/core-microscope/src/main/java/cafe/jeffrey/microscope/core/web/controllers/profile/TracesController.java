@@ -19,13 +19,11 @@
 package cafe.jeffrey.microscope.core.web.controllers.profile;
 
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.ai.trace.TimelineWindowAiMarkdownBuilder;
 import cafe.jeffrey.profile.ai.trace.TraceAiMarkdownBuilder;
 import cafe.jeffrey.profile.ai.trace.TraceOperationAiMarkdownBuilder;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.TraceManager;
-import cafe.jeffrey.profile.manager.model.trace.TimelineWindow;
 import cafe.jeffrey.profile.manager.model.trace.TraceContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
@@ -101,18 +99,6 @@ public class TracesController {
     private static final int AI_EXPORT_SPANS_LIMIT = 40;
     /** Exemplars to name at the end of an operation bundle, as candidates to export individually. */
     private static final int AI_EXPORT_EXEMPLARS_LIMIT = 10;
-    /**
-     * Span cap for a timeline bundle, tighter than the canvas's: the builder lists only each
-     * thread's longest spans anyway, and past this the window flips to the honest density shape
-     * the builder also knows how to describe.
-     */
-    private static final int AI_EXPORT_TIMELINE_SPANS_LIMIT = 2_000;
-    /**
-     * Spans per timeline viewport. Enough that a normally busy window is drawn whole, and far fewer
-     * than a canvas can usefully show — past this the reader is told the window was capped rather
-     * than shown a partial picture that looks complete.
-     */
-    private static final String DEFAULT_TIMELINE_SPANS_LIMIT = "4000";
     /** Slowest-first and busiest-first: what each list showed before it could be sorted at all. */
     private static final String DEFAULT_TRACE_SORT = "DURATION";
     private static final String DEFAULT_OPERATION_SORT = "TOTAL_TIME";
@@ -254,62 +240,6 @@ public class TracesController {
                 profileId, name, kind, eventType, spanLimit);
         return resolver.resolve(profileId).traceManager()
                 .operationSummary(new TraceOperationId(name, kind, eventType), boundedLimit(spanLimit));
-    }
-
-    /**
-     * One viewport of the unified timeline: what stopped the JVM between these two instants, and
-     * what every thread was doing.
-     * <p>
-     * Bounds are absolute epoch microseconds, the units a span's start already carries, so the
-     * caller's viewport and the stored timestamps need no conversion between them.
-     * <p>
-     * Fetched per viewport rather than once per recording. A capture holds far more spans than a
-     * screen can draw, so the window is the unit of work — which is what makes pan and zoom
-     * affordable at all.
-     */
-    @GetMapping("/timeline/window")
-    public TimelineWindow timelineWindow(
-            @PathVariable("profileId") String profileId,
-            @RequestParam("fromEpochMicros") long fromEpochMicros,
-            @RequestParam("toEpochMicros") long toEpochMicros,
-            @RequestParam(value = "spanLimit", defaultValue = DEFAULT_TIMELINE_SPANS_LIMIT) int spanLimit) {
-        LOG.debug("Reading a timeline window: profile_id={} from_us={} to_us={} span_limit={}",
-                profileId, fromEpochMicros, toEpochMicros, spanLimit);
-
-        // A standard Java exception rather than a framework one; the central handler maps it to 400.
-        if (toEpochMicros <= fromEpochMicros) {
-            throw new IllegalArgumentException(
-                    "The timeline window must end after it starts: from=" + fromEpochMicros
-                            + " to=" + toEpochMicros);
-        }
-        return resolver.resolve(profileId).traceManager()
-                .timelineWindow(fromEpochMicros, toEpochMicros, boundedLimit(spanLimit));
-    }
-
-    /**
-     * One timeline window rendered as Markdown for an AI to read — the pauses, the busiest threads
-     * with their spans and waits, and a preamble stating the cross-section rules (pauses are global,
-     * waits are thread-scoped, a window is not a population).
-     * <p>
-     * Sits under the literal {@code /timeline} prefix like its sibling above, out of the
-     * {@code /{traceId}} template's reach.
-     */
-    @GetMapping(value = "/timeline/ai-export", produces = MARKDOWN_MEDIA_TYPE)
-    public String timelineAiExport(
-            @PathVariable("profileId") String profileId,
-            @RequestParam("fromEpochMicros") long fromEpochMicros,
-            @RequestParam("toEpochMicros") long toEpochMicros) {
-        LOG.debug("Generating a timeline AI export: profile_id={} from_us={} to_us={}",
-                profileId, fromEpochMicros, toEpochMicros);
-
-        if (toEpochMicros <= fromEpochMicros) {
-            throw new IllegalArgumentException(
-                    "The timeline window must end after it starts: from=" + fromEpochMicros
-                            + " to=" + toEpochMicros);
-        }
-        TimelineWindow window = resolver.resolve(profileId).traceManager()
-                .timelineWindow(fromEpochMicros, toEpochMicros, AI_EXPORT_TIMELINE_SPANS_LIMIT);
-        return new TimelineWindowAiMarkdownBuilder(window).build();
     }
 
     /**

@@ -52,6 +52,23 @@
         <i class="bi bi-cpu"></i> JVM context
       </button>
       <!--
+        The GC phase breakdown, off unless asked for. A levelled phase runs inside its collection
+        pause, so drawing them alongside it redraws the same stopped world up to five times: on the
+        trace this was built against, 17 bands became 94 and 38 of the extras were shorter than the
+        band floor. They are still worth having for a GC investigation, which is what this is for.
+      -->
+      <button
+        type="button"
+        class="wf-toggle"
+        :class="{ active: showNestedPauses }"
+        :aria-pressed="showNestedPauses"
+        :disabled="nestedPauseCount === 0"
+        :title="nestedToggleTitle"
+        @click="showNestedPauses = !showNestedPauses"
+      >
+        <i class="bi bi-layers"></i> GC phases
+      </button>
+      <!--
         Only when there is an error to jump to: in a 200-span trace the one red badge can sit three
         folds deep and two screens down, and "this trace failed" without a way to the failure is a
         finding withheld.
@@ -77,9 +94,27 @@
       behind rows that come and go as the detail panel opens, with nothing to click.
     -->
     <div v-for="lane in laneGroups" :key="lane.category" class="wf-lane">
+      <!--
+        The name sits at the left edge, under the Span header, and the gutter between it and the
+        track carries what the lane could never say on its own: what share of the trace it cost and
+        how many events that was. Twenty rems of empty column was the alternative.
+      -->
       <span class="lane-label">
-        <i class="lane-dot" :style="{ background: contextColor(lane.category) }"></i>
-        {{ contextLabel(lane.category) }}
+        <span class="lane-name">
+          <i class="lane-dot" :style="{ background: contextColor(lane.category) }"></i>
+          {{ contextLabel(lane.category) }}
+        </span>
+        <span class="lane-meter" :title="laneShareTitle(lane)">
+          <i
+            :style="{
+              width: laneSharePercent(lane.bands) + '%',
+              background: contextColor(lane.category)
+            }"
+          ></i>
+        </span>
+        <span class="lane-stat">
+          {{ laneSharePercent(lane.bands).toFixed(1) }}% · {{ lane.bands.length }}×
+        </span>
       </span>
       <span class="lane-track">
         <span
@@ -115,7 +150,7 @@
       actually crossed. Inert to the pointer and behind the bars: it is background, and the rows
       underneath stay clickable.
     -->
-    <div class="wf-rows">
+    <div class="wf-rows" @pointermove="trackCursor" @pointerleave="clearCursor">
       <!--
         Laid out with the row grid rather than at a measured offset, so the stripes track the name
         and duration columns however those are sized — no pixel arithmetic, and nothing to recompute
@@ -137,6 +172,33 @@
               '--stripe-color': contextColor(band.category)
             }"
           ></span>
+        </span>
+        <span></span>
+      </div>
+
+      <!--
+        The instant under the pointer, named. The wash can say a pause was crossed but never which
+        one or how long it ran: below a pixel every band is drawn at the same floor width, so the
+        picture cannot be read as a duration however carefully it is drawn. This reads the one place
+        the reader is actually pointing, where the numbers are exact.
+
+        Shares the row grid with the stripes, so the reading and the bands agree on where an instant
+        is without either measuring the other. Pointer-only, and so hidden from assistive tech: the
+        same offset and wall-clock reach the keyboard through the span detail, which Enter opens.
+      -->
+      <div class="wf-cursor" aria-hidden="true">
+        <span></span>
+        <span ref="cursorTrack" class="wf-cursor-track">
+          <span v-if="cursorPercent !== null" class="wf-cursor-line" :style="cursorStyle">
+            <span class="wf-cursor-chip">
+              +{{ cursorOffset }}
+              <span v-if="cursorBand !== null" class="wf-cursor-pause">
+                <i class="lane-dot" :style="{ background: contextColor(cursorBand.category) }"></i>
+                {{ contextLabel(cursorBand.category) }}
+                {{ FormattingService.formatDuration2Units(cursorBand.durationNanos) }}
+              </span>
+            </span>
+          </span>
         </span>
         <span></span>
       </div>
@@ -289,7 +351,12 @@ import type { SpanBar } from '@/services/trace/TraceWaterfallLayout';
 import { indentRem, traceWindow, waterfallBars } from '@/services/trace/TraceWaterfallLayout';
 import { descendantCounts, spansWithChildren, visibleSpans } from '@/services/trace/traceTree';
 import type { ContextBand } from '@/services/trace/TraceContextBands';
-import { bandLanes, contextBands } from '@/services/trace/TraceContextBands';
+import {
+  bandAt,
+  bandLanes,
+  contextBands,
+  mergedDurationNanos
+} from '@/services/trace/TraceContextBands';
 import { contextColor, contextLabel } from '@/services/trace/traceLabels';
 
 const props = withDefaults(
@@ -340,6 +407,7 @@ watch(
     collapsed.value = new Set();
     criticalOnly.value = false;
     hiddenCategories.value = new Set();
+    showNestedPauses.value = false;
   }
 );
 
@@ -350,8 +418,37 @@ const windowNanos = computed(() => {
 
 const parents = computed(() => spansWithChildren(props.spans));
 
+/**
+ * Whether the levelled GC phases are drawn alongside the collection pauses that contain them.
+ *
+ * Off by default because they are a breakdown rather than more pauses: every one of them overlaps a
+ * band already on screen, so switching them on multiplies the ink without adding a stretch of
+ * stopped world the reader could not already see.
+ */
+const showNestedPauses = ref(false);
+
+const nestedPauses = computed(() => (props.context?.pauses ?? []).filter(pause => pause.nested));
+
+const nestedPauseCount = computed(() => nestedPauses.value.length);
+
+const nestedToggleTitle = computed(() => {
+  if (props.contextState === 'loading') {
+    return 'Loading JVM context…';
+  }
+  if (nestedPauseCount.value === 0) {
+    return 'This trace recorded no GC phase breakdown';
+  }
+  const phases = nestedPauseCount.value === 1 ? '1 phase' : `${nestedPauseCount.value} phases`;
+  return showNestedPauses.value
+    ? `Hide the ${phases} drawn inside the collection pauses that contain them`
+    : `Break the collection pauses down into the ${phases} recorded inside them`;
+});
+
 const allBands = computed(() =>
-  contextBands(props.context?.pauses ?? [], traceWindow(props.spans))
+  contextBands(
+    (props.context?.pauses ?? []).filter(pause => showNestedPauses.value || !pause.nested),
+    traceWindow(props.spans)
+  )
 );
 
 /**
@@ -548,7 +645,9 @@ function jumpToFirstError(): void {
 
 /**
  * What a band says on hover. Clipping is called out because the number would otherwise be read as
- * the pause's whole length, when part of it happened outside the trace entirely.
+ * the pause's whole length, when part of it happened outside the trace entirely. So is a band drawn
+ * at the floor width, for the mirror-image reason: there the drawing overstates the pause, and the
+ * band is the only thing that knows by how little.
  */
 function bandTitle(band: ContextBand): string {
   const duration = FormattingService.formatDuration2Units(band.durationNanos);
@@ -562,13 +661,103 @@ function bandTitle(band: ContextBand): string {
   if (band.clippedEnd) {
     return `${name} — was still running when the trace ended`;
   }
+  if (band.clamped) {
+    return `${name} — too brief to draw to scale, shown at the minimum width`;
+  }
   return name;
 }
 
-/** How much of the trace one lane's pauses came to, for the row's duration column. */
+/**
+ * Where the pointer is across the track, 0-100, or null when it is not over a row.
+ *
+ * The waterfall's other readings are per span, and a span is a poor unit for "what stopped us here":
+ * the pauses in this view are global, they cross whatever happened to be running, and the interesting
+ * question at a dense stretch of bands is what the JVM was doing at *that instant* — which no span
+ * boundary answers.
+ */
+const cursorPercent = ref<number | null>(null);
+const cursorTrack = ref<HTMLElement | null>(null);
+
+const cursorStyle = computed(() => ({ left: (cursorPercent.value ?? 0) + '%' }));
+
+/** How far into the trace the pointer is, in the same units every other duration here is written. */
+const cursorOffset = computed(() =>
+  FormattingService.formatDuration2Units(((cursorPercent.value ?? 0) / 100) * windowNanos.value)
+);
+
+const cursorBand = computed(() =>
+  cursorPercent.value === null ? null : bandAt(bands.value, cursorPercent.value)
+);
+
+/**
+ * Follows the pointer along the track.
+ *
+ * Measured against the cursor layer's own track cell rather than a row's, because rows come and go
+ * as the detail panel opens and closes while this cell is always present and always the same width
+ * — the grid gives both of them the same column.
+ */
+function trackCursor(event: PointerEvent): void {
+  const track = cursorTrack.value;
+  const target = event.target;
+  // Only over the rows themselves. An open detail panel is a table rather than a timeline, and a
+  // cursor drawn down it points at nothing.
+  if (track === null || !(target instanceof Element) || target.closest('.wf-row') === null) {
+    cursorPercent.value = null;
+    return;
+  }
+
+  const box = track.getBoundingClientRect();
+  if (box.width <= 0) {
+    cursorPercent.value = null;
+    return;
+  }
+  const percent = ((event.clientX - box.left) / box.width) * 100;
+  cursorPercent.value = percent < 0 || percent > 100 ? null : percent;
+}
+
+function clearCursor(): void {
+  cursorPercent.value = null;
+}
+
+/**
+ * How much of the trace one lane's pauses came to, for the row's duration column.
+ *
+ * Merged rather than summed, so switching the GC phase breakdown on cannot change the answer: the
+ * phases run inside the pauses above them, and adding both counts the same stopped instant twice.
+ */
 function laneTotal(laneBands: ContextBand[]): string {
-  const nanos = laneBands.reduce((sum, band) => sum + band.durationNanos, 0);
-  return FormattingService.formatDuration2Units(nanos);
+  return FormattingService.formatDuration2Units(
+    mergedDurationNanos(laneBands, windowNanos.value)
+  );
+}
+
+/**
+ * The denominator every "% of the trace" in this dialog is taken against — the trace's recorded
+ * duration where there is one, and the span-derived window otherwise. The two can differ when a
+ * child outlives its parent, and using each in turn made one quantity read as two percentages.
+ */
+const shareDenominatorNanos = computed(() => props.traceDurationNanos ?? windowNanos.value);
+
+/** What share of the trace a lane cost, 0-100. */
+function laneSharePercent(laneBands: ContextBand[]): number {
+  const denominator = shareDenominatorNanos.value;
+  if (denominator <= 0) {
+    return 0;
+  }
+  return (mergedDurationNanos(laneBands, windowNanos.value) / denominator) * 100;
+}
+
+function laneShareTitle(lane: { category: string; bands: ContextBand[] }): string {
+  const total = FormattingService.formatDuration2Units(
+    mergedDurationNanos(lane.bands, windowNanos.value)
+  );
+  const events = lane.bands.length === 1 ? '1 event' : `${lane.bands.length} events`;
+  // Overlapping pauses are called out because the two numbers otherwise look like they should
+  // divide into each other, and for a lane whose bands overlap they do not.
+  return (
+    `${contextLabel(lane.category)} covered ${total} of this trace ` +
+    `— ${laneSharePercent(lane.bands).toFixed(1)}%, across ${events}`
+  );
 }
 
 function toggleCollapsed(spanId: string): void {
@@ -702,11 +891,16 @@ function tooltip(span: TraceSpanRow): string {
 }
 
 /* Filters sit above the scale rather than in the modal header: they change what this list draws. */
+/*
+ * The bottom padding is the gap to the pause lanes below. The controls change what the list draws
+ * and the lanes are part of the drawing, so they need to read as two things rather than as one
+ * crowded strip.
+ */
 .wf-toolbar {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.5rem 1rem 0;
+  padding: 0.5rem 1rem 1.1rem;
 }
 
 .wf-toggle {
@@ -756,7 +950,8 @@ function tooltip(span: TraceSpanRow): string {
 .wf-head,
 .wf-row,
 .wf-lane,
-.wf-stripes {
+.wf-stripes,
+.wf-cursor {
   display: grid;
   grid-template-columns: 20rem 1fr 5.5rem;
   align-items: center;
@@ -776,10 +971,18 @@ function tooltip(span: TraceSpanRow): string {
  * state: a child that does not claim a layer is painted over by it, positioned elements being drawn
  * above static ones whatever background they carry. That is what ran GC bands through the span
  * detail's identity table.
+ *
+ * The two overlays are excluded because they place themselves: the wash below the rows, the cursor
+ * above them.
  */
-.wf-rows > :not(.wf-stripes) {
+.wf-rows > :not(.wf-stripes, .wf-cursor) {
   position: relative;
   z-index: 1;
+}
+
+/* Above the rows so the line is not cut by each one, below the detail panel for the reason above. */
+.wf-rows > .span-detail {
+  z-index: 3;
 }
 
 .wf-lane {
@@ -788,17 +991,56 @@ function tooltip(span: TraceSpanRow): string {
   border-left: 2px solid transparent;
 }
 
+/* Left-aligned, so the lane names start on the same column as the Span header beneath them. */
 .lane-label {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 0.35rem;
+  gap: 0.5rem;
   font-size: var(--font-size-xs);
   letter-spacing: 0.03em;
   text-transform: uppercase;
   font-weight: 600;
   color: var(--color-text-muted);
   white-space: nowrap;
+}
+
+.lane-name {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: none;
+}
+
+/* Fills whatever the name and the figures leave, so the gutter carries a reading instead of air. */
+.lane-meter {
+  flex: 1 1 auto;
+  min-width: 1.5rem;
+  height: 0.3rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-lighter);
+  overflow: hidden;
+}
+
+.lane-meter i {
+  display: block;
+  height: 100%;
+}
+
+/*
+ * Figures, so they take the monospace the duration column uses rather than the label's uppercase
+ * treatment — they are numbers that sit beside a number, not part of the name.
+ */
+.lane-stat {
+  flex: none;
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 400;
+  /* Muted rather than light: these are figures to be read, and --color-text-light against the card
+     is under 2:1. Weight and case already tell them apart from the name beside them. */
+  color: var(--color-text-muted);
 }
 
 .lane-dot {
@@ -858,17 +1100,95 @@ function tooltip(span: TraceSpanRow): string {
   height: 100%;
 }
 
+/*
+ * Fill only. The borders this used to carry added a hard 1px edge to each side of every band, which
+ * on a trace crossing a hundred pauses drew as a picket fence over the whole track and put 2px on
+ * top of a width that is already at its floor for most of them — the two overstatements compounded,
+ * and between them the spans underneath stopped being readable.
+ *
+ * There is deliberately no companion rule giving `clamped` bands a stronger fill to compensate. Most
+ * pauses in a real trace are shorter than the floor — a four-second trace puts it at 17ms, and
+ * collections are routinely quicker than that — so emphasising the clamped ones emphasises nearly
+ * all of them, which is the fence again in another colour. What they get instead is words: the band
+ * says in its title that it is drawn at the minimum, and the cursor reads out its real duration.
+ */
 .wf-stripe {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: color-mix(in srgb, var(--stripe-color) 9%, transparent);
-  border-left: 1px solid color-mix(in srgb, var(--stripe-color) 30%, transparent);
-  border-right: 1px solid color-mix(in srgb, var(--stripe-color) 30%, transparent);
+  background: color-mix(in srgb, var(--stripe-color) 6%, transparent);
+}
+
+/*
+ * The reading of the instant under the pointer. Inert, like the wash — it follows the pointer and
+ * must never be what the pointer lands on.
+ */
+.wf-cursor {
+  position: absolute;
+  inset: 0;
+  padding: 0 1rem;
+  /* Matches the row's accent gutter, so the cursor's track and the bars' share an origin. */
+  border-left: 2px solid transparent;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.wf-cursor-track {
+  position: relative;
+  height: 100%;
+}
+
+.wf-cursor-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-dark);
+}
+
+/*
+ * Sits above the rows, over the scale it is a reading of. Pulled to the pointer's own column rather
+ * than pinned to a corner: at four seconds across, a readout at the edge is a different measurement
+ * from the one being pointed at.
+ */
+.wf-cursor-chip {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.15rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-dark);
+  color: var(--color-bg-card);
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.wf-cursor-pause {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* In the header the column is a label rather than a figure, so it keeps the header's own size. */
+.wf-head .wf-duration {
+  font-size: inherit;
 }
 
 .wf-head {
   padding: 0.55rem 1rem 0.4rem;
+  /*
+   * The same accent gutter the rows and lanes carry. Without it the header sat two pixels left of
+   * everything it labels — invisible until the lane names moved to this column and had something to
+   * be out of line with.
+   */
+  border-left: 2px solid transparent;
   font-size: var(--font-size-xs);
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -903,8 +1223,17 @@ function tooltip(span: TraceSpanRow): string {
   border-left-color: var(--color-warning);
 }
 
+/*
+ * Two rules rather than a fill. The fill was `--color-bg-hover-alt`, three percent off the card it
+ * sits on — a separation that works on a clean table and disappears entirely under a pause wash. It
+ * was also opaque, so it painted out the bands on the one row being inspected, while the translucent
+ * selected state left them showing: hovering a row and selecting it disagreed about what the JVM had
+ * been doing to it. A rule top and bottom is unmissable at any density and hides nothing.
+ */
 .wf-row:hover {
-  background: var(--color-bg-hover-alt);
+  box-shadow:
+    inset 0 1px 0 var(--color-primary),
+    inset 0 -1px 0 var(--color-primary);
 }
 
 .wf-row.selected {
@@ -1064,8 +1393,14 @@ function tooltip(span: TraceSpanRow): string {
   background: var(--flamegraph-color-red);
 }
 
+/*
+ * The size is set here rather than left to inherit. This column appears in a row, a lane and the
+ * header, and only the row carries a font-size — so a lane's total inherited the page's instead and
+ * rendered a quarter larger than the identical column directly beneath it.
+ */
 .wf-duration {
   font-family: var(--font-family-monospace);
+  font-size: var(--font-size-sm);
   font-variant-numeric: tabular-nums;
   text-align: right;
   white-space: nowrap;

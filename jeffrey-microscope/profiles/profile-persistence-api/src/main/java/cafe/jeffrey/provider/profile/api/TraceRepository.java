@@ -165,43 +165,6 @@ public interface TraceRepository {
     List<TracePauseRecord> pausesInWindow(long fromEpochMicros, long toEpochMicros);
 
     /**
-     * Every span overlapping a window, whichever trace it belongs to.
-     * <p>
-     * The question the unified timeline asks, and the mirror image of {@link #spansOf(long)}: not
-     * "what did this request do" but "what was every thread doing between these two instants". A
-     * span that began before the window and is still running is included, since a timeline that
-     * dropped it would draw an idle thread that was busy.
-     *
-     * @param limit hard cap on rows; the caller is expected to say when it was hit rather than
-     *              quietly drawing a partial picture
-     */
-    List<TraceSpanRecord> spansInWindow(long fromEpochMicros, long toEpochMicros, int limit);
-
-    /**
-     * Every thread-scoped wait overlapping a window — parking, monitor blocking, sleeping, socket
-     * and file I/O — whichever thread it was recorded on.
-     * <p>
-     * The underlay under {@link #spansInWindow}: spans say what a thread was doing, these say why it
-     * was doing nothing. Same overlap semantics as the other window reads, because a park that began
-     * just before the window is exactly the one explaining the gap at its start.
-     *
-     * @param limit hard cap on rows; the caller is expected to say when it was hit rather than
-     *              quietly drawing a partial picture
-     */
-    List<TraceThreadStateRecord> threadStatesInWindow(long fromEpochMicros, long toEpochMicros, int limit);
-
-    /**
-     * Span counts per {@code (thread, time bucket)} over a window — the level-of-detail read for a
-     * window where {@link #spansInWindow} hit its cap.
-     * <p>
-     * A capped span list is a biased sample; a count is not subject to the cap. The caller draws
-     * these as density columns instead of pretending the sample was the picture.
-     *
-     * @param buckets how many slices the window is cut into; at least 1
-     */
-    List<TraceSpanDensityRecord> spanDensityInWindow(long fromEpochMicros, long toEpochMicros, int buckets);
-
-    /**
      * What each span of one trace spent waiting on — locks, parking, I/O — one row per
      * {@code (span, category)} that recorded anything.
      * <p>

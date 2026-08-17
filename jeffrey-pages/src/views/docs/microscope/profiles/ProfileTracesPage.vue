@@ -36,8 +36,8 @@ const headings = [
   { id: 'jvm-context', text: 'Why a Trace Was Slow', level: 2 },
   { id: 'span-drill-down', text: 'Span Drill-Down', level: 2 },
   { id: 'operations', text: 'Trace Operations', level: 2 },
+  { id: 'timeseries', text: 'Timeseries', level: 2 },
   { id: 'ai-export', text: 'AI Export', level: 2 },
-  { id: 'unified-timeline', text: 'Unified Timeline', level: 2 },
   { id: 'volume-control', text: 'Controlling Span Volume', level: 2 },
   { id: 'limits', text: 'Limits', level: 2 }
 ];
@@ -238,6 +238,14 @@ if (event.isEnabled()) {
 
       <p><strong>On the bars</strong>: stop-the-world pauses — GC pauses and safepoints — are drawn as vertical lanes across the whole waterfall, because they stopped every span they cross. What an individual span's thread was waiting on — lock acquisition, <code>Object.wait</code>, parking, sleeping, socket and file I/O, allocation stalls, deoptimizations — is drawn as stripes on that span's own bar. A toolbar toggle switches the whole overlay off, and each category can be hidden individually; the toggles reset per trace, so one trace's tuning does not silently reshape the next.</p>
 
+      <p><strong>One band per stoppage.</strong> A collection pause is recorded as a <code>GCPhasePause</code> plus the levelled phases that ran inside it, and the phases are a breakdown rather than pauses of their own — every one of them overlaps the band above it. They are left out by default and revealed by the <strong>GC phases</strong> toggle: on a four-second trace measured while building this, the levels turned 17 bands into 94 without adding a single stretch of stopped world. Totals are unaffected either way, because a lane's figure and the why-slow panel's both merge overlapping intervals before summing — an instant the JVM was stopped counts once, however many phases describe it.</p>
+
+      <p><strong>Reading an instant</strong>: a band cannot be read as a duration. Below about half a percent of the trace a pause is thinner than a pixel, so every short one is drawn at the same minimum width — the lanes say <em>where</em> the JVM stopped but never <em>for how long</em>. Moving the pointer across the waterfall draws a time cursor and reads out the instant under it: how far into the trace it is, and, when it falls inside a pause, that pause's name and its true duration. Hovering a row marks it with a rule above and below rather than a fill, so the bands stay visible on the row being inspected. The same offset and wall-clock time are in the span detail, which <kbd>Enter</kbd> opens from the keyboard.</p>
+
+      <DocsCallout type="info">
+        <strong>Durations are carried in nanoseconds, and unmeasured pauses are not drawn.</strong> A GC phase is routinely shorter than a microsecond — 41&nbsp;ns is the shortest in a recording measured while writing this — so a pause duration is taken from the recording as written rather than rebuilt from a microsecond-resolution end. JFR also writes some phases with no duration at all; those are dropped rather than defaulted to zero, because a pause of unknown length is not a stretch of stopped time, and drawing it at the minimum band width claims one the recording never did.
+      </DocsCallout>
+
       <p><strong>Under the bars</strong>, the <em>"Why was this trace slow?"</em> panel ranks where the trace's wall-clock time went, category by category, with the remainder named as <strong>own work</strong> rather than left as an unexplained gap — a breakdown that only names the waiting invites the reader to assume the rest is mystery. Each category links out to the profile view that explains it: a GC finding leads to the Garbage Collection view, a lock finding to Blocking Operations, an I/O finding to the Socket or File I/O view. Selecting a span shows the same breakdown scoped to that one span.</p>
 
       <DocsCallout type="info">
@@ -293,6 +301,12 @@ if (event.isEnabled()) {
 
       <p>A stale or hand-edited operation in the URL is not rejected — the drill-down opens and its own panels come back empty. The list above is capped, so a link into an operation past the cap is a valid link, and refusing it would have broken more than it caught.</p>
 
+      <h2 id="timeseries">Timeseries</h2>
+
+      <p>The third Traces page answers "<em>when</em> was it slow" for one operation at a time. A ranked operation picker sits on the left — the same server-side name search as the other lists, ordered by total time so it doubles as a "where did the time go" ranking — and the selected operation's charts fill the right: a <strong>Duration</strong> chart with the P50, P95 and Max of each time bucket as three lines on one axis, and an <strong>Invocations</strong> chart with the bucket's trace count underneath, both plotted against the recording's own clock so a burst reads as a burst. Bucket percentiles are nearest-rank over the traces that landed in the bucket — a one-trace bucket reports that trace, not an interpolated value that never happened — and an empty bucket drops to zero rather than carrying its neighbour's latency across a quiet stretch.</p>
+
+      <p>The selection travels in the URL (<code>?operation=&amp;kind=&amp;eventType=</code>, the same triple every other trace view uses), so a chart worth discussing is a link. The charts read the same capped 1,000-trace fetch as the operation drill-down and say so when the cap is reached.</p>
+
       <h2 id="ai-export">AI Export</h2>
 
       <p>Both the trace waterfall and an operation's drill-down carry an export button that renders what you are looking at as a single Markdown document, built for handing to an AI assistant — paste it into Claude Code, or attach the downloaded file. The document is rendered <strong>server-side</strong>, and its value is less the numbers than the preamble: each bundle opens with a "how to read this" section stating the semantics an assistant would otherwise guess wrong.</p>
@@ -303,20 +317,6 @@ if (event.isEnabled()) {
       </ul>
 
       <p>Anything truncated says so inside the document — a capped list is annotated rather than silently complete. <strong>Copy for AI</strong> uses the browser clipboard, which exists only on HTTPS or localhost origins; on a plain-HTTP deployment the button becomes <em>Export for AI</em> and downloads the file instead, with the copy item explaining why it is off. Filenames lead with the operation name and are timestamped to the second, so two exports of the same thing do not overwrite each other.</p>
-
-      <h2 id="unified-timeline">Unified Timeline</h2>
-
-      <p>Every view above answers a question about one trace or one operation. The unified timeline answers the question none of them can: <strong>what was the whole JVM doing between these two instants?</strong> One horizontal time axis; a track per thread carrying the spans that ran on it; pinned tracks above for the stop-the-world pauses; and under each thread's spans, a coloured band for what that thread was <em>waiting</em> on — parking, locks, sleeping, socket and file I/O — in the same category colours the waterfall uses. Put the cursor on a GC pause and read straight down: every thread it stopped, every span it crossed. A blank gap with a park band under it and a blank gap with nothing under it are two different diagnoses, and the timeline shows which one you have.</p>
-
-      <p>Spans and waits are fetched <strong>per viewport</strong>, not per recording, which is what makes pan and zoom affordable on a large capture. The controls follow the conventions deep-timeline readers already know: bare scroll moves through the threads, horizontal scroll pans time, <strong>Ctrl/⌘+scroll zooms at the cursor</strong>, dragging pans, and the minimap at the bottom is clickable and draggable. Thread-pool groups fold on a click of their header. The whole surface also works from the keyboard: arrows pan and scroll, <code>+</code>/<code>−</code> zoom, <code>Home</code> fits the whole recording.</p>
-
-      <p>Clicking a span opens its trace's waterfall — and the waterfall links back with <em>Show on timeline</em>, as do the slowest HTTP, JDBC, gRPC and async-profiler span rows, each landing zoomed to its own padded moment. The viewport itself travels in the URL as <code>?from&amp;to</code>, so a window worth discussing is a link.</p>
-
-      <DocsCallout type="info">
-        <strong>When a window is too busy, the timeline says so.</strong> A viewport holding more spans than the cap is not drawn as a partial span list — whichever rows happened to arrive first would be a biased sample wearing the costume of the whole window. Instead each thread renders <strong>density columns</strong> (darker = more spans started there), a notice states that the view is density, and zooming in far enough to fit under the cap returns to real, clickable spans.
-      </DocsCallout>
-
-      <p>The timeline has its own <a href="#ai-export">AI export</a>: the window's pauses, its busiest threads with their longest spans and summed waits, behind a preamble stating the cross-section rules — pauses are global and must not be summed per thread, waits are thread-scoped, and one window is not a population.</p>
 
       <h2 id="volume-control">Controlling Span Volume</h2>
 

@@ -41,17 +41,21 @@
           </button>
         </div>
       </div>
-      <!--
-        Hidden when the server did the paging: there is no "all" to show, only a next page, which
-        only the caller can ask for.
-      -->
-      <button
-        v-if="!serverOrdered && items.length > maxDisplayed"
-        @click="showAll = !showAll"
-        class="btn btn-sm btn-outline-secondary"
-      >
-        {{ showAll ? 'Show Less' : `Show All (${items.length})` }}
-      </button>
+      <div class="mcl-controls-right">
+        <!-- Caller-provided filters sharing the sort row, so a list needs no toolbar of its own. -->
+        <slot name="controls" />
+        <!--
+          Hidden when the server did the paging: there is no "all" to show, only a next page, which
+          only the caller can ask for.
+        -->
+        <button
+          v-if="!serverOrdered && items.length > maxDisplayed"
+          @click="showAll = !showAll"
+          class="btn btn-sm btn-outline-secondary"
+        >
+          {{ showAll ? 'Show Less' : `Show All (${items.length})` }}
+        </button>
+      </div>
     </div>
 
     <!-- Cards -->
@@ -173,6 +177,12 @@ const displayedItems = computed(() => {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 0.75rem;
+}
+
+.mcl-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .sort-controls {

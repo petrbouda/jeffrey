@@ -59,9 +59,9 @@
         <TableToolbar v-model="search" search-placeholder="Filter by operation name...">
           <template #filters>
             <!--
-              The exact-operation filter has no control of its own on this page — it arrives from an
-              operation page's "in trace list" link — so the chip is how the reader learns the list
-              is narrowed, and the × is the way back to everything.
+              The exact-operation filter has no control of its own on this page — it only ever
+              arrives in the URL — so the chip is how the reader learns the list is narrowed, and
+              the × is the way back to everything.
             -->
             <span v-if="operationFilter" class="op-filter-chip" :title="operationFilterTitle">
               <i class="bi bi-bar-chart-steps"></i> {{ operationFilter.name }}

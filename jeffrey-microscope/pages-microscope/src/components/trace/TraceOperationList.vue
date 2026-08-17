@@ -28,9 +28,13 @@
     @item-click="operation => $emit('operationClick', operation)"
     @sort-change="key => $emit('sortChange', key as TraceOperationSortKey)"
   >
+    <template #controls>
+      <slot name="controls" />
+    </template>
+
     <template #name="{ item }">
       <div class="operation-title">
-        <MetricName :segments="parseGroupedName(item.name, '(unnamed)')" :title="item.name" />
+        <MetricName :segments="parseOperationName(item.name, item.eventType)" :title="item.name" />
         <!--
           What the operation is, at the end of the row that says what it is called. The event type
           is verbatim as the recording spells it -- two operations can read alike and come from
@@ -117,13 +121,17 @@ import FormattingService from '@shared/services/FormattingService';
 import Badge from '@shared/components/Badge.vue';
 import MetricCardList from '@shared/components/MetricCardList.vue';
 import MetricName from '@/components/common/MetricName.vue';
-import { parseGroupedName } from '@/services/metricName';
 import type { MetricSortOption } from '@shared/components/MetricCardList.vue';
 import type {
   TraceOperationRow,
   TraceOperationSortField
 } from '@/services/api/model/trace/TraceModels';
-import { errorLabel, operationKey, spanKindVariant } from '@/services/trace/traceLabels';
+import {
+  errorLabel,
+  operationKey,
+  parseOperationName,
+  spanKindVariant
+} from '@/services/trace/traceLabels';
 
 /** The subset of the backend's sort fields this list offers a button for. */
 export type TraceOperationSortKey = Extract<

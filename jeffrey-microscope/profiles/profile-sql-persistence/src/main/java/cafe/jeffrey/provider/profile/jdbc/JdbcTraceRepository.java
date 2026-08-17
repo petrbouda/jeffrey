@@ -36,8 +36,6 @@ import cafe.jeffrey.provider.profile.api.TracePauseRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSortField;
 import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
-import cafe.jeffrey.provider.profile.api.TraceSpanDensityRecord;
-import cafe.jeffrey.provider.profile.api.TraceThreadStateRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.provider.profile.api.TraceTimelineBucketRecord;
@@ -334,109 +332,6 @@ public class JdbcTraceRepository implements TraceRepository {
             ) covered
             WHERE trace_spans.trace_id = covered.trace_id
               AND trace_spans.span_id = covered.span_id
-            """;
-
-    /*
-     * Every span overlapping a window, whichever trace it belongs to.
-     *
-     * The unified timeline asks a different question from the waterfall: not "what did this request
-     * do" but "what was every thread doing between these two instants", so the window is the filter
-     * and the trace is just another column.
-     *
-     * Overlap rather than starts-inside, for the reason the pause query needs it: a span that began
-     * before the viewport and is still running is drawn across it, and dropping it would leave a
-     * thread looking idle while it was busy. The lower bound is floored by MAX_SPAN_LOOKBACK_MILLIS
-     * so the scan still prunes on the same zone maps rather than reading from the start of the
-     * recording.
-     *
-     * Ordered by thread and then start, because the reader packs each thread's spans into depth
-     * lanes in one pass and that is the order the pass needs.
-     */
-    //language=SQL
-    private static final String SPANS_IN_WINDOW = """
-            SELECT
-                s.trace_id                              AS trace_id,
-                s.span_id                               AS span_id,
-                s.parent_span_id                        AS parent_span_id,
-                s.name                                  AS name,
-                s.status                                AS status,
-                s.kind                                  AS kind,
-                s.error_type                            AS error_type,
-                s.start_timestamp_from_beginning        AS start_ms,
-                EPOCH_US(s.start_timestamp)             AS start_epoch_us,
-                s.duration                              AS duration_ns,
-                s.self_duration                         AS self_duration_ns,
-                COALESCE(s.thread_hash, 0)              AS thread_hash,
-                t.name                                  AS thread_name,
-                COALESCE(t.is_virtual, FALSE)           AS is_virtual,
-                s.event_type                            AS event_type,
-                s.attributes                            AS attributes,
-                s.event_fields                          AS event_fields
-            FROM trace_spans s
-            LEFT JOIN threads t ON s.thread_hash = t.thread_hash
-            WHERE s.start_timestamp >= make_timestamptz(:lookback_from_ms * 1000)
-              AND s.start_timestamp < make_timestamptz((:to_ms + 1) * 1000)
-              AND EPOCH_US(s.start_timestamp) + s.duration // 1000 > :from_us
-            ORDER BY COALESCE(s.thread_hash, 0), s.start_timestamp
-            LIMIT :limit
-            """;
-
-    /*
-     * The thread-scoped waits overlapping a window, for the timeline's per-thread underlay.
-     *
-     * Same predicate triad as SPANS_IN_WINDOW — a sargable floored lower bound so zone maps prune,
-     * an exclusive millisecond-floored upper bound, and overlap-not-starts-inside on the end — and
-     * the same two-list UNNEST mapping SPAN_CONTEXT uses, so the enum stays the single place an
-     * event type is tied to a category. The event-type filter is what keeps the scan on the
-     * (event_type, start_timestamp_from_beginning) clustering.
-     */
-    //language=SQL
-    private static final String STATES_IN_WINDOW = """
-            WITH mapping AS (
-                SELECT UNNEST([:state_event_types]) AS event_type,
-                       UNNEST([:state_categories])  AS category
-            )
-            SELECT
-                e.thread_hash                                       AS thread_hash,
-                m.category                                          AS category,
-                EPOCH_US(e.start_timestamp)                         AS from_epoch_us,
-                EPOCH_US(e.start_timestamp)
-                    + COALESCE(e.duration, 0) // 1000               AS to_epoch_us
-            FROM events e
-            JOIN mapping m ON m.event_type = e.event_type
-            WHERE e.event_type IN (:state_event_types)
-              AND e.thread_hash IS NOT NULL
-              AND e.start_timestamp >= make_timestamptz(:lookback_from_ms * 1000)
-              AND e.start_timestamp < make_timestamptz((:to_ms + 1) * 1000)
-              AND EPOCH_US(e.start_timestamp) + COALESCE(e.duration, 0) // 1000 > :from_us
-            ORDER BY e.thread_hash, e.start_timestamp
-            LIMIT :limit
-            """;
-
-    /*
-     * Span counts per (thread, bucket) for the capped-window density view. Same window predicate
-     * triad as SPANS_IN_WINDOW; the bucket is the span's start position clamped into [0, buckets),
-     * so a span running in from before the window lands in the first column rather than a negative
-     * one. The threads join rides along because in a capped window this query is the only record of
-     * some threads — the span rows that would have named them are past the cap.
-     */
-    //language=SQL
-    private static final String SPAN_DENSITY_IN_WINDOW = """
-            SELECT
-                COALESCE(s.thread_hash, 0)              AS thread_hash,
-                t.name                                  AS thread_name,
-                COALESCE(t.is_virtual, FALSE)           AS is_virtual,
-                LEAST(:buckets - 1, GREATEST(0,
-                    ((EPOCH_US(s.start_timestamp) - :from_us) * :buckets)
-                        // (:to_us - :from_us)))::INT   AS bucket_index,
-                COUNT(*)                                AS span_count
-            FROM trace_spans s
-            LEFT JOIN threads t ON s.thread_hash = t.thread_hash
-            WHERE s.start_timestamp >= make_timestamptz(:lookback_from_ms * 1000)
-              AND s.start_timestamp < make_timestamptz((:to_ms + 1) * 1000)
-              AND EPOCH_US(s.start_timestamp) + s.duration // 1000 > :from_us
-            GROUP BY 1, 2, 3, 4
-            ORDER BY 1, 4
             """;
 
     //language=SQL
@@ -854,16 +749,6 @@ public class JdbcTraceRepository implements TraceRepository {
 
     private static final long MICROS_PER_MILLI_LONG = 1_000L;
 
-    /**
-     * How far back a span is allowed to have started before the window it is being looked for in.
-     * <p>
-     * The same bound {@link #MAX_PAUSE_LOOKBACK_MILLIS} exists for, and for the same reason: overlap
-     * is not sargable on the lower bound, so without a floor every viewport scroll would scan the
-     * span table from the beginning of the recording. Generous enough for any realistic request, and
-     * a span longer than five minutes is not something a timeline viewport is going to explain.
-     */
-    private static final long MAX_SPAN_LOOKBACK_MILLIS = 300_000L;
-
     /*
      * The stop-the-world stretches overlapping a window, whichever thread recorded them.
      *
@@ -878,6 +763,15 @@ public class JdbcTraceRepository implements TraceRepository {
      *
      * A label is read out of the event's own fields, trying the names those event types use, so a
      * band can say "G1 Young" or "RevokeBias" rather than only that something stopped the world.
+     *
+     * The duration is handed over in nanoseconds exactly as recorded. It used to be folded into a
+     * microsecond end timestamp and rebuilt from the difference, which floored every pause shorter
+     * than a microsecond to nothing at all — and the levelled GC phases are full of them.
+     *
+     * Events with no duration are dropped rather than defaulted to zero. JFR writes some phases with
+     * a null duration ("Notify and keep alive finalizable" among them); a pause of unknown length is
+     * not a stretch of stopped time, and a zero-length one still draws at the band floor, so
+     * defaulting it asserted a pause the recording never claimed.
      */
     //language=SQL
     private static final String PAUSES_IN_WINDOW = """
@@ -889,13 +783,13 @@ public class JdbcTraceRepository implements TraceRepository {
                     json_extract_string(e.fields, '$.cause'),
                     e.event_type)                                   AS label,
                 EPOCH_US(e.start_timestamp)                         AS from_epoch_us,
-                EPOCH_US(e.start_timestamp)
-                    + COALESCE(e.duration, 0) // 1000                AS to_epoch_us
+                e.duration                                          AS duration_ns
             FROM events e
             WHERE e.event_type IN (:pause_event_types)
+                AND e.duration IS NOT NULL
                 AND e.start_timestamp >= make_timestamptz(:lookback_from_ms * 1000)
                 AND e.start_timestamp < make_timestamptz((:to_ms + 1) * 1000)
-                AND EPOCH_US(e.start_timestamp) + COALESCE(e.duration, 0) // 1000 > :from_us
+                AND EPOCH_US(e.start_timestamp) + e.duration // 1000 > :from_us
             ORDER BY e.start_timestamp
             LIMIT :limit
             """;
@@ -1243,76 +1137,15 @@ public class JdbcTraceRepository implements TraceRepository {
                 StatementLabel.TRACE_PAUSES,
                 PAUSES_IN_WINDOW,
                 params,
-                (rs, _) -> new TracePauseRecord(
-                        TraceContextCategory.fromEventType(rs.getString("event_type")).orElseThrow(),
-                        rs.getString("label"),
-                        rs.getLong("from_epoch_us"),
-                        rs.getLong("to_epoch_us")));
-    }
-
-    @Override
-    public List<TraceSpanRecord> spansInWindow(long fromEpochMicros, long toEpochMicros, int limit) {
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("from_us", fromEpochMicros)
-                .addValue("to_ms", Math.floorDiv(toEpochMicros, MICROS_PER_MILLI_LONG))
-                .addValue("lookback_from_ms",
-                        Math.floorDiv(fromEpochMicros, MICROS_PER_MILLI_LONG) - MAX_SPAN_LOOKBACK_MILLIS)
-                .addValue("limit", limit);
-
-        return databaseClient.query(
-                StatementLabel.TRACE_SPANS_IN_WINDOW, SPANS_IN_WINDOW, params, traceSpanMapper());
-    }
-
-    @Override
-    public List<TraceSpanDensityRecord> spanDensityInWindow(
-            long fromEpochMicros, long toEpochMicros, int buckets) {
-        long toMillis = Math.floorDiv(toEpochMicros, MICROS_PER_MILLI_LONG);
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("from_us", fromEpochMicros)
-                .addValue("to_us", toEpochMicros)
-                .addValue("to_ms", toMillis)
-                .addValue("buckets", Math.max(1, buckets))
-                .addValue("lookback_from_ms",
-                        Math.floorDiv(fromEpochMicros, MICROS_PER_MILLI_LONG) - MAX_SPAN_LOOKBACK_MILLIS);
-
-        return databaseClient.query(
-                StatementLabel.TRACE_SPAN_DENSITY,
-                SPAN_DENSITY_IN_WINDOW,
-                params,
-                (rs, _) -> new TraceSpanDensityRecord(
-                        rs.getLong("thread_hash"),
-                        rs.getString("thread_name"),
-                        rs.getBoolean("is_virtual"),
-                        rs.getInt("bucket_index"),
-                        rs.getLong("span_count")));
-    }
-
-    @Override
-    public List<TraceThreadStateRecord> threadStatesInWindow(
-            long fromEpochMicros, long toEpochMicros, int limit) {
-        ThreadCategoryMapping mapping = ThreadCategoryMapping.build();
-
-        long toMillis = Math.floorDiv(toEpochMicros, MICROS_PER_MILLI_LONG);
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("state_event_types", mapping.eventTypes())
-                .addValue("state_categories", mapping.categories())
-                .addValue("from_us", fromEpochMicros)
-                .addValue("to_ms", toMillis)
-                // A wait can run long: the span look-back, not the shorter pause one, since a park
-                // held across the whole visible window is exactly what the underlay must show.
-                .addValue("lookback_from_ms",
-                        Math.floorDiv(fromEpochMicros, MICROS_PER_MILLI_LONG) - MAX_SPAN_LOOKBACK_MILLIS)
-                .addValue("limit", limit);
-
-        return databaseClient.query(
-                StatementLabel.TRACE_THREAD_STATES,
-                STATES_IN_WINDOW,
-                params,
-                (rs, _) -> new TraceThreadStateRecord(
-                        rs.getLong("thread_hash"),
-                        TraceContextCategory.valueOf(rs.getString("category")),
-                        rs.getLong("from_epoch_us"),
-                        rs.getLong("to_epoch_us")));
+                (rs, _) -> {
+                    String eventType = rs.getString("event_type");
+                    return new TracePauseRecord(
+                            TraceContextCategory.fromEventType(eventType).orElseThrow(),
+                            rs.getString("label"),
+                            rs.getLong("from_epoch_us"),
+                            rs.getLong("duration_ns"),
+                            TraceContextCategory.isDetail(eventType));
+                });
     }
 
     /**

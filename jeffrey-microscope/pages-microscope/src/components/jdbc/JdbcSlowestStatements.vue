@@ -48,12 +48,6 @@
               <Badge v-if="statement.isBatch" value="BATCH" variant="blue" size="xs" />
               <Badge v-if="statement.isLob" value="LOB" variant="yellow" size="xs" />
             </template>
-            <span class="detail-dot">&middot;</span>
-            <!-- Stops its own clicks, so following it does not also open the row's SQL modal. -->
-            <ShowOnTimelineLink
-              :start-epoch-millis="statement.timestamp"
-              :duration-nanos="statement.executionTime"
-            />
           </div>
         </div>
       </div>
@@ -64,7 +58,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import JdbcOperationBadge from '@/components/jdbc/JdbcOperationBadge.vue';
-import ShowOnTimelineLink from '@/components/timeline/ShowOnTimelineLink.vue';
 import Badge from '@shared/components/Badge.vue';
 import SlowestCountHeader from '@shared/components/SlowestCountHeader.vue';
 import JdbcSlowStatement from '@/services/api/model/JdbcSlowStatement.ts';

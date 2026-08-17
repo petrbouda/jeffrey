@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Why a span was not doing its own work, in the terms a reader asks the question in.
@@ -48,12 +49,21 @@ import java.util.stream.Collectors;
  */
 public enum TraceContextCategory {
 
-    /** A stop-the-world collection pause. Global: every application thread was stopped. */
-    GC_PAUSE(Scope.GLOBAL, EventTypeName.GC_PHASE_PAUSE,
-            EventTypeName.GC_PHASE_PAUSE_LEVEL_1,
-            EventTypeName.GC_PHASE_PAUSE_LEVEL_2,
-            EventTypeName.GC_PHASE_PAUSE_LEVEL_3,
-            EventTypeName.GC_PHASE_PAUSE_LEVEL_4),
+    /**
+     * A stop-the-world collection pause. Global: every application thread was stopped.
+     * <p>
+     * The levelled phases are detail rather than pauses in their own right: each one runs
+     * <em>inside</em> a {@code GCPhasePause}, so counting them alongside it counts the same stopped
+     * microsecond twice, and drawing them alongside it draws the same stretch of stopped world five
+     * times over. On a four-second trace measured while writing this, the levels turned 17 bands
+     * into 94 and added 14ms to a 626ms total.
+     */
+    GC_PAUSE(Scope.GLOBAL,
+            List.of(EventTypeName.GC_PHASE_PAUSE),
+            List.of(EventTypeName.GC_PHASE_PAUSE_LEVEL_1,
+                    EventTypeName.GC_PHASE_PAUSE_LEVEL_2,
+                    EventTypeName.GC_PHASE_PAUSE_LEVEL_3,
+                    EventTypeName.GC_PHASE_PAUSE_LEVEL_4)),
 
     /**
      * A VM operation run at a safepoint — a deoptimisation sweep, a biased-lock revocation, a heap
@@ -94,25 +104,53 @@ public enum TraceContextCategory {
 
     private static final Map<String, TraceContextCategory> BY_EVENT_TYPE =
             Arrays.stream(values())
-                    .flatMap(category -> category.eventTypes.stream()
+                    .flatMap(category -> category.eventTypes().stream()
                             .map(eventType -> Map.entry(eventType, category)))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-    private final Scope scope;
-    private final List<String> eventTypes;
+    private static final Set<String> DETAIL_EVENT_TYPES =
+            Arrays.stream(values())
+                    .flatMap(category -> category.detailEventTypes.stream())
+                    .collect(Collectors.toUnmodifiableSet());
 
-    TraceContextCategory(Scope scope, String... eventTypes) {
+    private final Scope scope;
+    private final List<String> primaryEventTypes;
+    private final List<String> detailEventTypes;
+
+    TraceContextCategory(Scope scope, String... primaryEventTypes) {
+        this(scope, List.of(primaryEventTypes), List.of());
+    }
+
+    TraceContextCategory(Scope scope, List<String> primaryEventTypes, List<String> detailEventTypes) {
         this.scope = scope;
-        this.eventTypes = List.of(eventTypes);
+        this.primaryEventTypes = List.copyOf(primaryEventTypes);
+        this.detailEventTypes = List.copyOf(detailEventTypes);
     }
 
     public Scope scope() {
         return scope;
     }
 
-    /** The JFR event types this category is reconstructed from. */
+    /** The JFR event types this category is reconstructed from, detail included. */
     public List<String> eventTypes() {
-        return eventTypes;
+        return Stream.concat(primaryEventTypes.stream(), detailEventTypes.stream()).toList();
+    }
+
+    /**
+     * The event types that stand on their own — one per stretch of time the category actually
+     * occupied, with nothing nested inside another.
+     */
+    public List<String> primaryEventTypes() {
+        return primaryEventTypes;
+    }
+
+    /**
+     * The event types that break a primary one down from the inside. Every one of these overlaps a
+     * primary event, so anything that measures a total, rather than describing a breakdown, has to
+     * leave them out or merge them in.
+     */
+    public List<String> detailEventTypes() {
+        return detailEventTypes;
     }
 
     /** Empty for an event type that is not context — a span, a sample, a periodic metric. */
@@ -120,11 +158,16 @@ public enum TraceContextCategory {
         return Optional.ofNullable(BY_EVENT_TYPE.get(eventType));
     }
 
+    /** Whether an event type breaks another one down rather than standing on its own. */
+    public static boolean isDetail(String eventType) {
+        return DETAIL_EVENT_TYPES.contains(eventType);
+    }
+
     /** Every event type of the given scope, for the query that reads them. */
     public static Set<String> eventTypesOf(Scope scope) {
         return Arrays.stream(values())
                 .filter(category -> category.scope == scope)
-                .flatMap(category -> category.eventTypes.stream())
+                .flatMap(category -> category.eventTypes().stream())
                 .collect(Collectors.toUnmodifiableSet());
     }
 }

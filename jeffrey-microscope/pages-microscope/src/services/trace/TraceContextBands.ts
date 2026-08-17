@@ -40,6 +40,12 @@ export interface ContextBand {
   /** Whether the pause ran past the edges of the trace, so the band can say it was clipped. */
   clippedStart: boolean;
   clippedEnd: boolean;
+  /**
+   * Whether the band had to be widened to {@link MIN_BAR_PERCENT} to stay visible — its width is the
+   * floor rather than the pause. Everything drawn from a band reads its width as a duration, so the
+   * one case where that reading is wrong has to be something the drawing can say out loud.
+   */
+  clamped: boolean;
 }
 
 /**
@@ -70,7 +76,8 @@ export function contextBands(pauses: TracePause[], window: TraceWindow): Context
 
     const leftRaw = positionPercent(from, window.startMicros, window.endMicros);
     const rightRaw = positionPercent(to, window.startMicros, window.endMicros);
-    const widthPercent = Math.min(100, Math.max(rightRaw - leftRaw, MIN_BAR_PERCENT));
+    const trueWidth = rightRaw - leftRaw;
+    const widthPercent = Math.min(100, Math.max(trueWidth, MIN_BAR_PERCENT));
 
     bands.push({
       category: pause.category,
@@ -80,7 +87,8 @@ export function contextBands(pauses: TracePause[], window: TraceWindow): Context
       widthPercent,
       durationNanos: pause.durationNanos,
       clippedStart: from < window.startMicros,
-      clippedEnd: to > window.endMicros
+      clippedEnd: to > window.endMicros,
+      clamped: trueWidth < MIN_BAR_PERCENT
     });
   }
   return bands;
@@ -94,6 +102,68 @@ export function contextBands(pauses: TracePause[], window: TraceWindow): Context
  * safepoint sits inside a collection pause more often than not, and stacked in one lane they would
  * draw over each other.
  */
+/**
+ * The band under a point on the track, or null where the JVM was not stopped.
+ *
+ * Matched against the drawn geometry rather than the pause's real interval, because this answers a
+ * question about the picture: the reader is pointing at a band and asking what it is, and a band
+ * widened to {@link MIN_BAR_PERCENT} must still answer under the whole of itself.
+ *
+ * Where several overlap — a safepoint inside the collection pause that caused it — the shortest
+ * wins. The longer one is the one already legible as a band; the shorter is the one the reader
+ * cannot resolve by eye, and so the one worth naming.
+ */
+export function bandAt(bands: ContextBand[], percent: number): ContextBand | null {
+  let found: ContextBand | null = null;
+  for (const band of bands) {
+    if (percent < band.leftPercent || percent > band.leftPercent + band.widthPercent) {
+      continue;
+    }
+    if (found === null || band.durationNanos < found.durationNanos) {
+      found = band;
+    }
+  }
+  return found;
+}
+
+/**
+ * How much time a set of bands covers between them, counting an instant once however many of them
+ * contain it.
+ *
+ * Summing the durations instead would double-count the moment a band is drawn inside another — which
+ * is exactly what the levelled GC phases are — and make a lane's total disagree with the why-slow
+ * panel, whose figure the backend already merges.
+ *
+ * Merged on each band's true interval rather than its drawn one: a band narrower than
+ * {@link MIN_BAR_PERCENT} is widened to stay visible, and a total built from the drawn width would
+ * inherit that padding.
+ */
+export function mergedDurationNanos(bands: ContextBand[], windowNanos: number): number {
+  if (bands.length === 0 || windowNanos <= 0) {
+    return 0;
+  }
+
+  const intervals = bands
+    .map(band => {
+      const start = (band.leftPercent / 100) * windowNanos;
+      return { start, end: start + band.durationNanos };
+    })
+    .sort((first, second) => first.start - second.start);
+
+  let covered = 0;
+  let { start, end } = intervals[0];
+  for (const interval of intervals) {
+    if (interval.start > end) {
+      covered += end - start;
+      start = interval.start;
+      end = interval.end;
+    } else {
+      end = Math.max(end, interval.end);
+    }
+  }
+  return covered + (end - start);
+}
+
 export function bandLanes(bands: ContextBand[]): { category: string; bands: ContextBand[] }[] {
   const lanes: { category: string; bands: ContextBand[] }[] = [];
   for (const band of bands) {

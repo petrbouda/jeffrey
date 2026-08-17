@@ -575,9 +575,9 @@ const technologyRoutes = [
     meta: { layout: 'profile' }
   },
   {
-    path: 'technologies/traces/timeline',
-    name: 'profile-technologies-traces-timeline',
-    component: () => import('@/views/profiles/detail/ProfileUnifiedTimeline.vue'),
+    path: 'technologies/traces/timeseries',
+    name: 'profile-technologies-traces-timeseries',
+    component: () => import('@/views/profiles/detail/technologies/ProfileTraceTimeseries.vue'),
     meta: { layout: 'profile' }
   },
   {

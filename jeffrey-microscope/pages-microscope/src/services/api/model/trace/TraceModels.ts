@@ -197,6 +197,13 @@ export interface TracePause {
   label: string;
   startEpochMicros: number;
   durationNanos: number;
+  /**
+   * Whether this describes part of a longer pause rather than one of its own — a levelled GC phase
+   * runs inside its collection pause. Drawn only on request: five bands over one stretch of stopped
+   * world say nothing the one band did not, and on a four-second trace the levels turn 17 bands
+   * into 94.
+   */
+  nested: boolean;
 }
 
 /** One line of a "where did the time go" breakdown. */

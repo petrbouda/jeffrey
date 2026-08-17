@@ -223,7 +223,7 @@ export const technologiesNav: Record<string, TechnologyNav> = {
         items: [
           item('Trace Operations', 'bi-bar-chart-steps', '/technologies/traces/operations'),
           item('Slowest Traces', 'bi-hourglass-split', '/technologies/traces'),
-          item('Unified Timeline', 'bi-align-start', '/technologies/traces/timeline')
+          item('Timeseries', 'bi-graph-up', '/technologies/traces/timeseries')
         ]
       }
     ]

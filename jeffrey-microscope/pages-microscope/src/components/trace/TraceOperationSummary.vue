@@ -437,12 +437,12 @@ const threadData = computed<DonutChartData | null>(() => {
   const slices = [
     {
       color: 'var(--color-success)',
-      label: 'Platform — carries samples',
+      label: 'Platform Threads',
       count: threads.platformSpans
     },
     {
       color: 'var(--color-secondary)',
-      label: 'Virtual — samples go to the carrier',
+      label: 'Virtual Threads',
       count: threads.virtualSpans
     },
     {

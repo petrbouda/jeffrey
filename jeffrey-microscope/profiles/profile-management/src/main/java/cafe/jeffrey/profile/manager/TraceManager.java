@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.profile.manager;
 
-import cafe.jeffrey.profile.manager.model.trace.TimelineWindow;
 import cafe.jeffrey.profile.manager.model.trace.TraceContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
@@ -95,17 +94,6 @@ public interface TraceManager {
      * @return the context, or {@link TraceContext#EMPTY} when the profile has no such trace
      */
     TraceContext context(long traceId);
-
-    /**
-     * One viewport of the unified timeline: what stopped the JVM during it, and what every thread was
-     * doing, with each thread's spans packed into depth lanes.
-     * <p>
-     * Per viewport rather than per recording, which is what makes pan and zoom affordable: a capture
-     * holds far more spans than a screen can show, so the window is the unit of work.
-     *
-     * @param spanLimit hard cap on spans; the result says whether it was reached
-     */
-    TimelineWindow timelineWindow(long fromEpochMicros, long toEpochMicros, int spanLimit);
 
     /**
      * Reduces a span to the {@code (thread, window)} intervals a flamegraph can be scoped to, so

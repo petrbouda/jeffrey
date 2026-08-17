@@ -51,16 +51,4 @@ export default class TraceAiExportClient extends BaseProfileClient {
     });
     return response.data;
   }
-
-  /** Rounded outward, the same way `getTimelineWindow` rounds, so the export covers the viewport. */
-  async generateTimelineWindow(fromEpochMicros: number, toEpochMicros: number): Promise<string> {
-    const response = await axios.get<string>(`${this.baseUrl}/timeline/ai-export`, {
-      ...MARKDOWN_ACCEPT_HEADERS,
-      params: {
-        fromEpochMicros: Math.floor(fromEpochMicros),
-        toEpochMicros: Math.ceil(toEpochMicros)
-      }
-    });
-    return response.data;
-  }
 }

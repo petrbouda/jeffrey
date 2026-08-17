@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+import type { NameSegment } from '@/services/metricName';
+import { parseGroupedName, parseQualifiedName, parseUriName } from '@/services/metricName';
 import type { SpanKind, TraceOperationId } from '@/services/api/model/trace/TraceModels';
 
 /**
@@ -117,4 +119,69 @@ export function spanKindVariant(kind: SpanKind): 'primary' | 'info' | 'secondary
  */
 export function operationKey(operation: TraceOperationId): string {
   return `${operation.eventType}|${operation.kind}|${operation.name}`;
+}
+
+/** The verbs an HTTP operation name can open with; anything else is not "METHOD /uri" shaped. */
+const HTTP_METHODS = new Set([
+  'GET',
+  'POST',
+  'PUT',
+  'DELETE',
+  'PATCH',
+  'HEAD',
+  'OPTIONS',
+  'TRACE',
+  'CONNECT'
+]);
+
+const HTTP_EVENT_TYPE_PREFIX = 'jeffrey.Http';
+const GRPC_EVENT_TYPE_PREFIX = 'jeffrey.Grpc';
+
+/**
+ * An operation name parsed into the {@link MetricName} visual vocabulary the Span Tags list uses,
+ * keyed by the event type that opened the trace:
+ *
+ * - HTTP exchanges (`POST /api/recordings/{id}`) — the method is the highlighted group token, the
+ *   way a span tag's leading `http` reads, and the URI gets the HTTP-endpoint treatment:
+ *   emphasised segments, purple `{params}`, grey slashes.
+ * - gRPC exchanges (`jeffrey.api.v1.ProjectService/List`) — dimmed package, bold service and
+ *   method, matching the gRPC Services list.
+ * - everything else — the grouped dot-notation parse the span tags use, so `heap-dump-init`
+ *   stays plain and `profile.initialize` leads with its group.
+ *
+ * A name that does not match its event type's shape falls back to the grouped parse rather than
+ * being forced into it — conventions decide the name, but old recordings spell things their own way.
+ */
+export function parseOperationName(
+  name: string,
+  eventType: string,
+  fallback = '(unnamed)'
+): NameSegment[] {
+  if (!name) {
+    return parseGroupedName(name, fallback);
+  }
+
+  if (eventType.startsWith(HTTP_EVENT_TYPE_PREFIX)) {
+    const space = name.indexOf(' ');
+    if (space > 0) {
+      const method = name.slice(0, space);
+      const uri = name.slice(space + 1);
+      if (HTTP_METHODS.has(method) && uri.startsWith('/')) {
+        return [{ kind: 'group', text: method }, { kind: 'sep', text: ' ' }, ...parseUriName(uri)];
+      }
+    }
+  }
+
+  if (eventType.startsWith(GRPC_EVENT_TYPE_PREFIX)) {
+    const slash = name.lastIndexOf('/');
+    if (slash > 0 && slash < name.length - 1) {
+      return [
+        ...parseQualifiedName(name.slice(0, slash)),
+        { kind: 'sep', text: '/' },
+        { kind: 'leaf', text: name.slice(slash + 1) }
+      ];
+    }
+  }
+
+  return parseGroupedName(name, fallback);
 }

@@ -1611,8 +1611,45 @@ class JdbcTraceRepositoryTest {
             // return nothing at all here.
             List<TracePauseRecord> pauses = withContext(dataSource).pausesInWindow(SPAN_FROM_US, SPAN_TO_US);
 
-            assertEquals(2, pauses.size(), "the collection inside the span and the one overlapping its start");
+            assertEquals(3, pauses.size(),
+                    "the collection inside the span, the one overlapping its start, and one phase of the first");
             assertTrue(pauses.stream().allMatch(p -> p.category() == TraceContextCategory.GC_PAUSE));
+        }
+
+        @Test
+        @DisplayName("keeps a pause shorter than a microsecond at its recorded length")
+        void keepsSubMicrosecondPauses(DataSource dataSource) throws SQLException {
+            // Folded through a microsecond end timestamp this became a pause of exactly no length --
+            // which the waterfall still drew, at the band floor, wider than a real collection.
+            TracePauseRecord phase = withContext(dataSource).pausesInWindow(SPAN_FROM_US, SPAN_TO_US).stream()
+                    .filter(pause -> "Ext Root Scanning".equals(pause.label()))
+                    .findFirst()
+                    .orElseThrow();
+
+            assertEquals(41L, phase.durationNanos());
+        }
+
+        @Test
+        @DisplayName("drops a pause the recording never measured")
+        void dropsPausesWithoutADuration(DataSource dataSource) throws SQLException {
+            // A null duration is not a zero one. Defaulted to zero it drew a band asserting stopped
+            // time that nothing in the recording claimed.
+            List<TracePauseRecord> pauses = withContext(dataSource).pausesInWindow(SPAN_FROM_US, SPAN_TO_US);
+
+            assertTrue(pauses.stream().noneMatch(p -> p.label().startsWith("Notify and keep alive")),
+                    "the phase JFR recorded with a null duration");
+        }
+
+        @Test
+        @DisplayName("marks a phase recorded inside another pause as nested")
+        void marksNestedPhases(DataSource dataSource) throws SQLException {
+            Map<String, Boolean> nestedByLabel = withContext(dataSource)
+                    .pausesInWindow(SPAN_FROM_US, SPAN_TO_US).stream()
+                    .collect(Collectors.toMap(
+                            TracePauseRecord::label, TracePauseRecord::nested, (first, _) -> first));
+
+            assertEquals(Boolean.TRUE, nestedByLabel.get("Ext Root Scanning"), "a levelled phase");
+            assertEquals(Boolean.FALSE, nestedByLabel.get("G1 Young"), "the collection pause itself");
         }
 
         @Test
@@ -1640,8 +1677,10 @@ class JdbcTraceRepositoryTest {
         void pausesAreLabelled(DataSource dataSource) throws SQLException {
             List<TracePauseRecord> pauses = withContext(dataSource).pausesInWindow(SPAN_FROM_US, SPAN_TO_US);
 
-            assertTrue(pauses.stream().allMatch(p -> "G1 Young".equals(p.label())),
+            assertTrue(pauses.stream().noneMatch(p -> p.label().startsWith("jdk.")),
                     "a band saying only 'something stopped the world' is not worth drawing");
+            assertTrue(pauses.stream().anyMatch(p -> "G1 Young".equals(p.label())),
+                    "the collection pause names its phase");
         }
 
         @Test

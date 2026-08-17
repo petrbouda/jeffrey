@@ -28,10 +28,16 @@ package cafe.jeffrey.profile.manager.model.trace;
  * @param label           what the pause called itself — the GC phase, the VM operation
  * @param startEpochMicros when it began, absolute
  * @param durationNanos   how long it lasted
+ * @param nested          whether this breaks a longer pause down from the inside rather than being
+ *                        one of its own — a levelled GC phase runs inside a collection pause. The
+ *                        flag travels to the client so the waterfall can draw the breakdown on
+ *                        request without a second query, and leave it out by default: five bands
+ *                        over one stretch of stopped world say nothing the one band did not
  */
 public record TracePause(
         String category,
         String label,
         long startEpochMicros,
-        long durationNanos) {
+        long durationNanos,
+        boolean nested) {
 }

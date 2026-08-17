@@ -18,9 +18,7 @@
 
 package cafe.jeffrey.profile.manager;
 
-import cafe.jeffrey.profile.manager.model.trace.TimelineSpan;
-import cafe.jeffrey.profile.manager.model.trace.TimelineTrack;
-import cafe.jeffrey.profile.manager.model.trace.TimelineWindow;
+import cafe.jeffrey.profile.manager.model.trace.TraceContextSlice;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
@@ -30,11 +28,10 @@ import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceContextCategory;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
+import cafe.jeffrey.provider.profile.api.TracePauseRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
-import cafe.jeffrey.provider.profile.api.TraceSpanDensityRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
-import cafe.jeffrey.provider.profile.api.TraceThreadStateRecord;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -50,7 +47,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
@@ -236,179 +232,100 @@ class TraceManagerImplTest {
     }
 
     @Nested
-    @DisplayName("Timeline window")
-    class Timeline {
+    @DisplayName("JVM context summary")
+    class ContextSummary {
 
-        private static final long US = 1_000L;
+        /** The trace runs 0..1_000_000 micros, so every figure below reads as a share of one second. */
+        private static final long WINDOW_MICROS = 1_000_000L;
 
-        private TimelineWindow windowOf(List<TraceSpanRecord> spans) {
-            when(traceRepository.spansInWindow(anyLong(), anyLong(), anyInt())).thenReturn(spans);
-            lenient().when(traceRepository.pausesInWindow(anyLong(), anyLong())).thenReturn(List.of());
-            return new TraceManagerImpl(traceRepository).timelineWindow(0, 1_000_000, 4_000);
+        private List<TraceContextSlice> summaryOf(TracePauseRecord... pauses) {
+            when(traceRepository.spansOf(TRACE)).thenReturn(List.of(new TraceSpanRecord(
+                    TRACE, 1L, null, "root", "SERVER", "UNSET", null,
+                    0, 0, WINDOW_MICROS * 1_000, WINDOW_MICROS * 1_000,
+                    THREAD, "main", false, "jeffrey.TraceSpan", null, null)));
+            when(traceRepository.pausesInWindow(anyLong(), anyLong())).thenReturn(List.of(pauses));
+            lenient().when(traceRepository.spanContext(TRACE)).thenReturn(List.of());
+            return new TraceManagerImpl(traceRepository).context(TRACE).summary();
         }
 
-        /** A span given directly in microseconds on a named thread, since lanes are per thread. */
-        private static TraceSpanRecord onThread(
-                long spanId, String name, long startMicros, long durationMicros, long threadHash) {
-
-            return new TraceSpanRecord(
-                    TRACE, spanId, null, name, "INTERNAL", "UNSET", null,
-                    startMicros / MICROS_PER_MILLI, startMicros, durationMicros * US,
-                    durationMicros * US, threadHash, "thread-" + threadHash, false,
-                    "jeffrey.TraceSpan", null, null);
+        private static TracePauseRecord gcPause(long startMicros, long durationMicros, boolean nested) {
+            return new TracePauseRecord(
+                    TraceContextCategory.GC_PAUSE, "G1 Young",
+                    startMicros, durationMicros * 1_000L, nested);
         }
 
-        @Test
-        @DisplayName("groups spans into one track per thread")
-        void groupsByThread() {
-            TimelineWindow window = windowOf(List.of(
-                    onThread(1, "a", 0, 100, THREAD),
-                    onThread(2, "b", 10, 20, OTHER_THREAD)));
-
-            assertEquals(2, window.tracks().size());
-        }
-
-        @Test
-        @DisplayName("nests an enclosed span one lane deeper")
-        void nestsEnclosedSpans() {
-            TimelineWindow window = windowOf(List.of(
-                    onThread(1, "outer", 0, 100, THREAD),
-                    onThread(2, "inner", 10, 20, THREAD),
-                    onThread(3, "innermost", 12, 5, THREAD)));
-
-            List<TimelineSpan> spans = window.tracks().getFirst().spans();
-            assertEquals(List.of(0, 1, 2), spans.stream().map(TimelineSpan::depth).toList());
-            assertEquals(3, window.tracks().getFirst().laneCount());
+        private static long totalOf(List<TraceContextSlice> summary, String category) {
+            return summary.stream()
+                    .filter(slice -> slice.category().equals(category))
+                    .mapToLong(TraceContextSlice::totalNanos)
+                    .findFirst()
+                    .orElseThrow();
         }
 
         @Test
-        @DisplayName("puts sequential spans back on the same lane")
-        void reusesLanesAfterASpanEnds() {
-            // Two unrelated requests served one after the other by the same thread. Neither ran
-            // inside the other, so indenting the second would claim a nesting that never happened.
-            TimelineWindow window = windowOf(List.of(
-                    onThread(1, "first", 0, 50, THREAD),
-                    onThread(2, "second", 60, 50, THREAD)));
+        @DisplayName("counts a stopped instant once however many phases cover it")
+        void mergesOverlappingPauses() {
+            // A levelled phase runs inside its collection pause. Summed, the two report 120ms of a
+            // 100ms stoppage; the world was only stopped for the 100ms the outer band covers.
+            List<TraceContextSlice> summary = summaryOf(
+                    gcPause(0, 100_000, false),
+                    gcPause(20_000, 20_000, true));
 
-            assertEquals(List.of(0, 0),
-                    window.tracks().getFirst().spans().stream().map(TimelineSpan::depth).toList());
-            assertEquals(1, window.tracks().getFirst().laneCount());
+            assertEquals(100_000 * MS / 1_000, totalOf(summary, "GC_PAUSE"));
         }
 
         @Test
-        @DisplayName("a span abutting the previous one does not nest under it")
-        void treatsTouchingSpansAsSiblings() {
-            TimelineWindow window = windowOf(List.of(
-                    onThread(1, "first", 0, 50, THREAD),
-                    onThread(2, "second", 50, 50, THREAD)));
+        @DisplayName("still adds up pauses that do not touch")
+        void keepsDisjointPausesSeparate() {
+            List<TraceContextSlice> summary = summaryOf(
+                    gcPause(0, 100_000, false),
+                    gcPause(500_000, 50_000, false));
 
-            assertEquals(List.of(0, 0),
-                    window.tracks().getFirst().spans().stream().map(TimelineSpan::depth).toList());
+            assertEquals(150_000 * MS / 1_000, totalOf(summary, "GC_PAUSE"));
         }
 
         @Test
-        @DisplayName("depth is per thread, so a forked child starts its own lane")
-        void depthIsPerThread() {
-            // The child runs inside the parent in time but on another thread; on its own track it is
-            // the only thing running, so it belongs at lane 0.
-            TimelineWindow window = windowOf(List.of(
-                    onThread(1, "parent", 0, 100, THREAD),
-                    onThread(2, "forked", 10, 20, OTHER_THREAD)));
+        @DisplayName("joins two pauses that overlap only partly")
+        void joinsPartialOverlaps() {
+            List<TraceContextSlice> summary = summaryOf(
+                    gcPause(0, 100_000, false),
+                    gcPause(80_000, 100_000, false));
 
-            TimelineTrack forked = window.tracks().stream()
-                    .filter(track -> track.spans().getFirst().name().equals("forked"))
-                    .findFirst().orElseThrow();
-            assertEquals(0, forked.spans().getFirst().depth());
+            assertEquals(180_000 * MS / 1_000, totalOf(summary, "GC_PAUSE"));
         }
 
         @Test
-        @DisplayName("says when the span cap was reached rather than drawing a partial picture")
-        void reportsTruncation() {
-            List<TraceSpanRecord> many = new java.util.ArrayList<>();
-            for (int i = 0; i < 4_000; i++) {
-                many.add(onThread(i, "s" + i, i * 10L, 5, THREAD));
-            }
+        @DisplayName("counts events even where their time is merged away")
+        void countsEveryEvent() {
+            // How many times the JVM stopped and for how long are different questions, and only the
+            // second one double-counts.
+            List<TraceContextSlice> summary = summaryOf(
+                    gcPause(0, 100_000, false),
+                    gcPause(20_000, 20_000, true));
 
-            assertTrue(windowOf(many).truncated());
+            assertEquals(2, summary.stream()
+                    .filter(slice -> slice.category().equals("GC_PAUSE"))
+                    .mapToLong(TraceContextSlice::occurrences)
+                    .findFirst()
+                    .orElseThrow());
         }
 
         @Test
-        @DisplayName("a capped window swaps the biased span sample for density columns")
-        void cappedWindowBecomesDensity() {
-            List<TraceSpanRecord> many = new java.util.ArrayList<>();
-            for (int i = 0; i < 4_000; i++) {
-                many.add(onThread(i, "s" + i, i * 10L, 5, THREAD));
-            }
-            lenient().when(traceRepository.spanDensityInWindow(anyLong(), anyLong(), anyInt()))
-                    .thenReturn(List.of(
-                            new TraceSpanDensityRecord(THREAD, "thread-" + THREAD, false, 0, 3_000),
-                            new TraceSpanDensityRecord(THREAD, "thread-" + THREAD, false, 7, 1_500)));
+        @DisplayName("gives the unaccounted time back to own work")
+        void residualIsOwnWork() {
+            List<TraceContextSlice> summary = summaryOf(
+                    gcPause(0, 100_000, false),
+                    gcPause(20_000, 20_000, true));
 
-            TimelineWindow window = windowOf(many);
-
-            assertTrue(window.truncated());
-            assertTrue(window.densityBuckets() > 0, "density mode declares its bucket count");
-            TimelineTrack track = window.tracks().getFirst();
-            assertTrue(track.spans().isEmpty(), "the capped sample is discarded, not drawn");
-            assertEquals(2, track.density().size());
-            assertEquals(3_000, track.density().getFirst().count());
+            assertEquals(900_000 * MS / 1_000, totalOf(summary, TraceContextSlice.OWN_WORK));
         }
 
         @Test
-        @DisplayName("an uncapped window carries no density")
-        void uncappedWindowHasNoDensity() {
-            TimelineWindow window = windowOf(List.of(onThread(1, "a", 0, 100, THREAD)));
+        @DisplayName("clips a pause that began before the trace")
+        void clipsPausesToTheWindow() {
+            List<TraceContextSlice> summary = summaryOf(gcPause(-50_000, 100_000, false));
 
-            assertEquals(0, window.densityBuckets());
-            assertTrue(window.tracks().getFirst().density().isEmpty());
-        }
-
-        @Test
-        @DisplayName("a quiet window is empty rather than absent")
-        void handlesEmptyWindow() {
-            TimelineWindow window = windowOf(List.of());
-
-            assertTrue(window.tracks().isEmpty());
-            assertFalse(window.truncated());
-            assertFalse(window.statesTruncated());
-        }
-
-        @Test
-        @DisplayName("attaches a thread's waits to that thread's track")
-        void attachesStatesToTheirTrack() {
-            lenient().when(traceRepository.threadStatesInWindow(anyLong(), anyLong(), anyInt()))
-                    .thenReturn(List.of(
-                            new TraceThreadStateRecord(
-                                    THREAD, TraceContextCategory.PARKED, 20, 40),
-                            new TraceThreadStateRecord(
-                                    OTHER_THREAD, TraceContextCategory.SOCKET_IO, 30, 35)));
-
-            TimelineWindow window = windowOf(List.of(
-                    onThread(1, "a", 0, 100, THREAD),
-                    onThread(2, "b", 10, 20, OTHER_THREAD)));
-
-            TimelineTrack first = window.tracks().stream()
-                    .filter(track -> track.spans().getFirst().name().equals("a"))
-                    .findFirst().orElseThrow();
-            assertEquals(1, first.states().size());
-            assertEquals("PARKED", first.states().getFirst().category());
-            assertEquals(20, first.states().getFirst().startEpochMicros());
-            assertEquals(20 * US, first.states().getFirst().durationNanos());
-        }
-
-        @Test
-        @DisplayName("drops a wait on a thread with no spans in the window")
-        void dropsStatesWithoutATrack() {
-            // A thread that only waited has no track to underlay; the whole-JVM idle picture is the
-            // threads timeline's job, not this view's.
-            lenient().when(traceRepository.threadStatesInWindow(anyLong(), anyLong(), anyInt()))
-                    .thenReturn(List.of(new TraceThreadStateRecord(
-                            OTHER_THREAD, TraceContextCategory.PARKED, 20, 40)));
-
-            TimelineWindow window = windowOf(List.of(onThread(1, "a", 0, 100, THREAD)));
-
-            assertEquals(1, window.tracks().size());
-            assertTrue(window.tracks().getFirst().states().isEmpty());
+            assertEquals(50_000 * MS / 1_000, totalOf(summary, "GC_PAUSE"));
         }
     }
 

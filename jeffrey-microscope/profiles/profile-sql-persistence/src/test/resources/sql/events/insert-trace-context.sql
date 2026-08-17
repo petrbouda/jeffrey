@@ -21,7 +21,9 @@ VALUES
     ('jdk.JavaMonitorEnter', 'Java Monitor Blocked', 22, 'monitor', '["Java Application"]', '1', NULL, true, NULL, NULL,
      '[{"field":"monitorClass","header":"Monitor Class"},{"field":"previousOwner","header":"Previous Owner"}]'),
     ('jdk.ThreadPark', 'Thread Park', 23, 'park', '["Java Application"]', '1', NULL, true, NULL, NULL,
-     '[{"field":"parkedClass","header":"Class Parked On"}]');
+     '[{"field":"parkedClass","header":"Class Parked On"}]'),
+    ('jdk.GCPhasePauseLevel1', 'GC Phase Pause Level 1', 24, 'gc pause phase', '["Java Virtual Machine","GC"]', '1', NULL, false, NULL, NULL,
+     '[{"field":"name","header":"Name"},{"field":"gcId","header":"GC Identifier"}]');
 
 INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
@@ -41,6 +43,21 @@ VALUES
     -- semantics miss this one entirely, which is the bug the overlap predicate exists to prevent.
     ('jdk.GCPhasePause', '2025-01-15T10:09:59.970Z', 599970, 40000000, 1, NULL, NULL, NULL, 3003,
      '{"name":"G1 Young","gcId":41}'),
+
+    -- Two phases of that same collection, recorded from inside it. Both are real events and both
+    -- are already covered by the 100ms band above, which is what makes them detail rather than
+    -- pauses of their own.
+    --
+    -- The first lasts 41ns. Rounded into microseconds it is a pause of no length at all, and the
+    -- waterfall draws a pause of no length at the band floor -- wider, on a four-second trace, than
+    -- a real 15ms collection.
+    ('jdk.GCPhasePauseLevel1', '2025-01-15T10:10:00.120Z', 600120, 41, 1, NULL, NULL, NULL, 3003,
+     '{"name":"Ext Root Scanning","gcId":42}'),
+
+    -- The second has no duration at all: JFR writes this phase with a null one. It is not an
+    -- interval and must not be drawn as one.
+    ('jdk.GCPhasePauseLevel1', '2025-01-15T10:10:00.150Z', 600150, NULL, 1, NULL, NULL, NULL, 3003,
+     '{"name":"Notify and keep alive finalizable","gcId":42}'),
 
     -- Thread-scoped waiting inside the span: 30ms blocked on a monitor, 20ms parked.
     ('jdk.JavaMonitorEnter', '2025-01-15T10:10:00.210Z', 600210, 30000000, 1, NULL, NULL, NULL, 3001,

@@ -17,7 +17,12 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { bandLanes, contextBands } from '@/services/trace/TraceContextBands';
+import {
+  bandAt,
+  bandLanes,
+  contextBands,
+  mergedDurationNanos
+} from '@/services/trace/TraceContextBands';
 import { MIN_BAR_PERCENT } from '@/services/trace/TraceWaterfallLayout';
 import type { TracePause, TraceContextCategoryName } from '@/services/api/model/trace/TraceModels';
 
@@ -35,7 +40,8 @@ function pause(
     category,
     label: 'G1 Young',
     startEpochMicros: startMicros,
-    durationNanos: durationMicros * NANOS_PER_MICRO
+    durationNanos: durationMicros * NANOS_PER_MICRO,
+    nested: false
   };
 }
 
@@ -80,6 +86,19 @@ describe('contextBands', () => {
     expect(band.widthPercent).toBe(MIN_BAR_PERCENT);
   });
 
+  it('marks a band that had to be widened to stay visible', () => {
+    // The reader is owed the difference: this band's width is the floor, not the pause.
+    const [band] = contextBands([pause(1_500, 1)], WINDOW);
+
+    expect(band.clamped).toBe(true);
+  });
+
+  it('does not mark a band wide enough to draw at its real width', () => {
+    const [band] = contextBands([pause(1_200, 300)], WINDOW);
+
+    expect(band.clamped).toBe(false);
+  });
+
   it('never lets a band run past the right edge', () => {
     const [band] = contextBands([pause(1_999, 1)], WINDOW);
 
@@ -121,5 +140,75 @@ describe('bandLanes', () => {
 
   it('handles an empty list', () => {
     expect(bandLanes([])).toHaveLength(0);
+  });
+});
+
+describe('mergedDurationNanos', () => {
+  /** The window is 1000 micros, so a band of N micros is N/10 percent of it. */
+  const WINDOW_NANOS = 1_000 * NANOS_PER_MICRO;
+
+  it('adds up bands that do not touch', () => {
+    const bands = contextBands([pause(1_100, 100), pause(1_500, 200)], WINDOW);
+
+    expect(mergedDurationNanos(bands, WINDOW_NANOS)).toBeCloseTo(300 * NANOS_PER_MICRO, 0);
+  });
+
+  it('counts an instant once when one band runs inside another', () => {
+    // A levelled GC phase inside its collection pause. Summed, these report 400us of a 300us stop.
+    const bands = contextBands([pause(1_100, 300), pause(1_150, 100, 'SAFEPOINT')], WINDOW);
+
+    expect(mergedDurationNanos(bands, WINDOW_NANOS)).toBeCloseTo(300 * NANOS_PER_MICRO, 0);
+  });
+
+  it('joins two bands that overlap only partly', () => {
+    const bands = contextBands([pause(1_100, 200), pause(1_250, 200)], WINDOW);
+
+    expect(mergedDurationNanos(bands, WINDOW_NANOS)).toBeCloseTo(350 * NANOS_PER_MICRO, 0);
+  });
+
+  it('measures the pause rather than the width it was widened to', () => {
+    // The band is drawn at MIN_BAR_PERCENT so it can be seen and hovered; the total must not
+    // inherit that padding, or every brief pause would inflate the lane's figure.
+    const bands = contextBands([pause(1_500, 1)], WINDOW);
+
+    expect(mergedDurationNanos(bands, WINDOW_NANOS)).toBeCloseTo(1 * NANOS_PER_MICRO, 0);
+  });
+
+  it('is zero for no bands at all', () => {
+    expect(mergedDurationNanos([], WINDOW_NANOS)).toBe(0);
+  });
+});
+
+describe('bandAt', () => {
+  it('finds the band the cursor is standing inside', () => {
+    const bands = contextBands([pause(1_100, 100), pause(1_500, 200)], WINDOW);
+
+    expect(bandAt(bands, 55)?.leftPercent).toBeCloseTo(50);
+  });
+
+  it('answers with nothing between two bands', () => {
+    const bands = contextBands([pause(1_100, 100), pause(1_500, 200)], WINDOW);
+
+    expect(bandAt(bands, 35)).toBeNull();
+  });
+
+  it('prefers the shortest pause when several overlap', () => {
+    // A safepoint sits inside the collection pause that caused it. Naming the collection tells the
+    // reader what they can already see in the lane; naming the safepoint tells them where they are.
+    const bands = contextBands([pause(1_100, 500), pause(1_200, 100, 'SAFEPOINT')], WINDOW);
+
+    expect(bandAt(bands, 25)?.category).toBe('SAFEPOINT');
+    expect(bandAt(bands, 45)?.category).toBe('GC_PAUSE');
+  });
+
+  it('includes both edges, so a band is never a gap at its own boundary', () => {
+    const bands = contextBands([pause(1_100, 100)], WINDOW);
+
+    expect(bandAt(bands, 10)).not.toBeNull();
+    expect(bandAt(bands, 20)).not.toBeNull();
+  });
+
+  it('answers with nothing when there are no bands at all', () => {
+    expect(bandAt([], 50)).toBeNull();
   });
 });

@@ -375,6 +375,25 @@ const calculateMaxYValues = (): void => {
   }
 };
 
+/**
+ * The window the chart opens on: the data's start, clamped to the configured visible span.
+ * <p>
+ * Derived from the data bounds rather than read from the live visibleStartTime/visibleEndTime
+ * refs on purpose: the chart options computeds must not depend on the zoom state. vue3-apexcharts
+ * re-applies the whole options object through JSON.parse(JSON.stringify(...)) whenever the bound
+ * options change, which strips every formatter function — ApexCharts then rebuilds yaxis as a
+ * replacement array, so a duration axis relabels itself with raw nanosecond ticks on the first
+ * brush zoom. Zooming is applied imperatively in the brush selection handler instead.
+ */
+const initialVisibleWindow = computed(() => {
+  const totalRange = dataMaxTime.value - dataMinTime.value;
+  const visibleRange = Math.min(
+    timeConverter.value.getVisibleRangeFromMinutes(props.visibleMinutes || defaultVisibleMinutes),
+    totalRange
+  );
+  return { start: dataMinTime.value, end: dataMinTime.value + visibleRange };
+});
+
 // Calculate min/max time values
 const calculateMinMaxTimeValues = (): void => {
   // In multi-series mode every series shares the same x timeline, so the first series defines it.
@@ -411,13 +430,8 @@ const calculateMinMaxTimeValues = (): void => {
   dataMaxTime.value = max;
 
   // Initialize visible range
-  const totalRange = max - min;
-  const visibleRange = Math.min(
-    timeConverter.value.getVisibleRangeFromMinutes(props.visibleMinutes || defaultVisibleMinutes),
-    totalRange
-  );
-  visibleStartTime.value = min;
-  visibleEndTime.value = min + visibleRange;
+  visibleStartTime.value = initialVisibleWindow.value.start;
+  visibleEndTime.value = initialVisibleWindow.value.end;
 
   // Calculate Y-axis max values
   calculateMaxYValues();
@@ -775,8 +789,9 @@ const mainChartOptions = computed(() => {
         },
     xaxis: {
       type: 'datetime',
-      min: timeConverter.value.toChartTime(visibleStartTime.value),
-      max: timeConverter.value.toChartTime(visibleEndTime.value),
+      // The initial window, not the live zoom refs — see initialVisibleWindow for why.
+      min: timeConverter.value.toChartTime(initialVisibleWindow.value.start),
+      max: timeConverter.value.toChartTime(initialVisibleWindow.value.end),
       labels: {
         formatter: function (value: number) {
           return timeConverter.value.formatTime(timeConverter.value.fromChartTime(value));
@@ -915,8 +930,9 @@ const brushChartOptions = computed(() => ({
         dashArray: 4
       },
       xaxis: {
-        min: timeConverter.value.toChartTime(visibleStartTime.value),
-        max: timeConverter.value.toChartTime(visibleEndTime.value)
+        // The initial window, not the live zoom refs — see initialVisibleWindow for why.
+        min: timeConverter.value.toChartTime(initialVisibleWindow.value.start),
+        max: timeConverter.value.toChartTime(initialVisibleWindow.value.end)
       }
     },
     events: {
@@ -1009,7 +1025,11 @@ const brushChartOptions = computed(() => ({
                 xaxis: {
                   min: tc.toChartTime(clampedStart),
                   max: tc.toChartTime(clampedEnd)
-                }
+                },
+                // Restores the label formatter if a reactive options re-application stripped
+                // it (vue3-apexcharts JSON-clones the options, and functions do not survive —
+                // see initialVisibleWindow). This imperative path keeps functions intact.
+                yaxis: mainChartOptions.value.yaxis
               },
               false,
               false

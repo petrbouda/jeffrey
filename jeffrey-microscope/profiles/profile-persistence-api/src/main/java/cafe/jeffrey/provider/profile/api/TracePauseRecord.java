@@ -31,16 +31,25 @@ package cafe.jeffrey.provider.profile.api;
  * @param label         what the event called itself — the GC phase name, the VM operation — so the
  *                      band can say which pause it was rather than only that there was one
  * @param fromEpochMicros when the pause began, absolute, in the same units a span's start carries
- * @param toEpochMicros   when it ended
+ * @param durationNanos how long it lasted, in nanoseconds — carried as the recording wrote it
+ *                      rather than derived from a microsecond end, which is what this used to do.
+ *                      A GC phase is routinely shorter than a microsecond (41ns is the shortest in
+ *                      a recording measured while writing this), and the round trip through micros
+ *                      floored every one of them to a pause of exactly no length
+ * @param nested        whether the event describes part of another pause rather than a pause of its
+ *                      own — see {@link TraceContextCategory#detailEventTypes()}. A nested pause is
+ *                      real, but its time is already inside its parent's, so a total that adds it
+ *                      counts the same stopped microsecond twice
  */
 public record TracePauseRecord(
         TraceContextCategory category,
         String label,
         long fromEpochMicros,
-        long toEpochMicros) {
+        long durationNanos,
+        boolean nested) {
 
-    /** How long the pause lasted, in nanoseconds, to match every other duration in the API. */
-    public long durationNanos() {
-        return (toEpochMicros - fromEpochMicros) * 1_000L;
+    /** When the pause ended, in the units it began in. */
+    public long toEpochMicros() {
+        return fromEpochMicros + durationNanos / 1_000L;
     }
 }

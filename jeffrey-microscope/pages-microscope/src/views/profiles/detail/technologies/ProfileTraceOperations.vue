@@ -35,8 +35,18 @@
       <template v-if="selectedOperation === null">
         <TraceOperationStats v-if="overview" :overview="overview" />
 
-        <TableToolbar v-model="search" search-placeholder="Filter by operation name...">
-          <template #filters>
+        <!--
+          The filters share the sort row rather than having a toolbar of their own, and the list
+          renders even with no rows — the controls are how a reader clears a filter, so they must
+          not vanish along with the rows they filtered out.
+        -->
+        <TraceOperationList
+          :operations="operations"
+          :sort-key="sortKey"
+          @operation-click="openOperation"
+          @sort-change="changeSort"
+        >
+          <template #controls>
             <button
               type="button"
               class="btn btn-sm"
@@ -45,8 +55,20 @@
             >
               <i class="bi bi-exclamation-triangle"></i> Errors only
             </button>
+            <div class="op-search">
+              <i class="bi bi-search"></i>
+              <input
+                v-model="search"
+                type="text"
+                class="form-control form-control-sm"
+                placeholder="Filter by operation name..."
+              />
+              <button v-if="search" class="btn-clear" @click="search = ''">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
           </template>
-        </TableToolbar>
+        </TraceOperationList>
 
         <LoadingState
           v-if="listLoading && operations.length === 0"
@@ -62,21 +84,14 @@
           icon="bi-search"
         />
 
-        <template v-else>
-          <TraceOperationList
-            :operations="operations"
-            :sort-key="sortKey"
-            @operation-click="openOperation"
-            @sort-change="changeSort"
-          />
-          <LoadMoreFooter
-            :shown="operations.length"
-            :total="totalMatching"
-            noun="operations"
-            :loading="listLoading"
-            @load-more="loadMore"
-          />
-        </template>
+        <LoadMoreFooter
+          v-else
+          :shown="operations.length"
+          :total="totalMatching"
+          noun="operations"
+          :loading="listLoading"
+          @load-more="loadMore"
+        />
       </template>
 
       <template v-else>
@@ -114,7 +129,6 @@ import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import DetailBreadcrumb from '@shared/components/DetailBreadcrumb.vue';
 import LoadMoreFooter from '@shared/components/LoadMoreFooter.vue';
-import TableToolbar from '@shared/components/table/TableToolbar.vue';
 import TracesDisabledFeatureAlert from '@/components/alerts/TracesDisabledFeatureAlert.vue';
 import TraceOperationStats from '@/components/trace/TraceOperationStats.vue';
 import TraceOperationList from '@/components/trace/TraceOperationList.vue';
@@ -317,3 +331,45 @@ onMounted(() => {
   }
 });
 </script>
+
+<style scoped>
+/* The toolbar's search affordance, carried over when the filters moved into the sort row. */
+.op-search {
+  position: relative;
+}
+
+.op-search i.bi-search {
+  position: absolute;
+  left: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-light);
+  font-size: 0.75rem;
+  pointer-events: none;
+}
+
+.op-search .form-control {
+  padding-left: 1.8rem;
+  padding-right: 1.8rem;
+  font-size: 0.8rem;
+  min-width: 220px;
+}
+
+.btn-clear {
+  position: absolute;
+  right: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-text-light);
+  font-size: 0.6rem;
+  cursor: pointer;
+  padding: 2px;
+  line-height: 1;
+}
+
+.btn-clear:hover {
+  color: var(--color-text);
+}
+</style>
