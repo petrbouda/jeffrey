@@ -22,7 +22,6 @@ import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 import cafe.jeffrey.jfr.events.trace.Tracer;
-import cafe.jeffrey.shared.common.span.Spans;
 import cafe.jeffrey.timeseries.TimeseriesData;
 import cafe.jeffrey.timeseries.TimeseriesResolver;
 import cafe.jeffrey.timeseries.TimeseriesSearchBuilder;
@@ -44,12 +43,7 @@ public class TimeseriesDataProvider {
     }
 
     public TimeseriesData provide() {
-        long generateSpan = Spans.start();
-        try {
-            return Tracer.call(SPAN_GENERATE, this::query);
-        } finally {
-            Spans.end(generateSpan, SPAN_GENERATE);
-        }
+        return Tracer.call(SPAN_GENERATE, this::query);
     }
 
     /**

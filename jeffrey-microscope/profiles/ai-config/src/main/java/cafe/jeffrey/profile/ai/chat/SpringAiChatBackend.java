@@ -18,7 +18,8 @@
 
 package cafe.jeffrey.profile.ai.chat;
 
-import cafe.jeffrey.shared.common.span.Spans;
+import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
@@ -76,8 +77,7 @@ public final class SpringAiChatBackend implements AiChatBackend {
     public String chat(ChatExchange exchange, String spanName) {
         List<Message> messages = buildMessages(exchange.history(), exchange.userMessage());
 
-        long span = Spans.start();
-        try {
+        return Tracer.call(spanName, SpanKind.CLIENT, () -> {
             ChatClient.ChatClientRequestSpec spec = chatClient.prompt();
             if (exchange.systemPrompt() != null) {
                 spec = spec.system(exchange.systemPrompt());
@@ -85,9 +85,7 @@ public final class SpringAiChatBackend implements AiChatBackend {
             return spec.messages(messages)
                     .call()
                     .content();
-        } finally {
-            Spans.end(span, spanName);
-        }
+        });
     }
 
     @Override

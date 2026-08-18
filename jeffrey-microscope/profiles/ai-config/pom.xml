@@ -62,6 +62,11 @@
         </dependency>
 
         <!-- Jeffrey dependencies -->
+        <!-- Tracer: the chat backends record a span per AI call -->
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-events</artifactId>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>common</artifactId>

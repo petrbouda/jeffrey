@@ -23,7 +23,8 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
-import cafe.jeffrey.shared.common.span.Spans;
+import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,21 +73,17 @@ public final class ToolCallingChatSession {
     public String call(String systemPrompt, List<ChatMessage> history, String userMessage, Object tools) {
         List<Message> messages = buildMessages(history, userMessage);
 
-        long aiSpan = Spans.start();
-        ChatResponse response;
-        try {
+        ChatResponse response = Tracer.call(spanName, SpanKind.CLIENT, () -> {
             ChatClient.ChatClientRequestSpec spec = chatClient.prompt();
             if (systemPrompt != null) {
                 spec = spec.system(systemPrompt);
             }
-            response = spec
+            return spec
                     .messages(messages)
                     .tools(tools)
                     .call()
                     .chatResponse();
-        } finally {
-            Spans.end(aiSpan, spanName);
-        }
+        });
 
         return response.getResult().getOutput().getText();
     }
