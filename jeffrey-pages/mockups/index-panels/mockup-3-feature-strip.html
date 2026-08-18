@@ -9,7 +9,7 @@
   :root {
     --ms: #38bdf8; --ms-d: #2563eb; --ms-l: #7dd3fc;
     --hub: #a855f7; --hub-d: #7c3aed; --hub-l: #d8b4fe;
-    --prov: #f59e0b; --ide: #fb923c; --pa: #10b981; --jib: #6366f1;
+    --prov: #f59e0b; --ide: #fb923c; --jib: #6366f1;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; background: #fff; }
@@ -50,7 +50,7 @@
   .eco-head h2 { color: #0f172a; font-size: 2rem; font-weight: 800; letter-spacing: -.02em; }
   .eco-head p { color: #475569; font-size: 1.02rem; margin-bottom: .3rem; }
 
-  .strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.3rem; align-items: stretch; }
+  .strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.3rem; align-items: stretch; }
   .card {
     position: relative; border: 1px solid #e2e8f0; border-radius: 16px; padding: 2rem 1.5rem 1.6rem; background: #fff;
     display: flex; flex-direction: column; text-align: left; transition: transform .25s, box-shadow .25s, border-color .25s; overflow: hidden;
@@ -58,8 +58,6 @@
   .card::after { content: ""; position: absolute; left: 1.5rem; bottom: 0; height: 4px; width: 0; border-radius: 4px 4px 0 0; background: linear-gradient(90deg, var(--c), color-mix(in srgb, var(--c) 50%, #fff)); transition: width .35s; }
   .card:hover { transform: translateY(-7px); box-shadow: 0 22px 44px rgba(15,23,42,.14); border-color: color-mix(in srgb, var(--c) 40%, #e2e8f0); }
   .card:hover::after { width: calc(100% - 3rem); }
-  .card.featured { transform: translateY(-14px); box-shadow: 0 24px 50px rgba(16,185,129,.18); border-color: color-mix(in srgb, var(--pa) 45%, #e2e8f0); }
-  .card.featured:hover { transform: translateY(-20px); }
   .card-icon { width: 64px; height: 64px; border-radius: 18px; display: grid; place-items: center; font-size: 1.8rem; color: #fff; margin-bottom: 1.3rem;
     background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 55%, #000)); box-shadow: 0 10px 26px color-mix(in srgb, var(--c) 45%, transparent); }
   .card h3 { font-size: 1.18rem; font-weight: 800; color: #0f172a; margin-bottom: .35rem; letter-spacing: -.01em; }
@@ -68,11 +66,8 @@
   .learn { display: inline-flex; align-items: center; gap: .4rem; color: var(--c); font-size: .85rem; font-weight: 700; text-decoration: none; }
   .card:hover .learn i { transform: translateX(4px); }
   .learn i { transition: transform .2s; }
-  .glow-badge { position: absolute; top: 1.2rem; right: 1.2rem; font-size: .64rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
-    color: #052e1a; background: linear-gradient(135deg, #34d399, #10b981); padding: .25rem .6rem; border-radius: 999px; box-shadow: 0 0 0 0 rgba(16,185,129,.55); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,.55);} 50% { box-shadow: 0 0 0 7px rgba(16,185,129,0);} }
 
-  @media (max-width: 1000px) { .strip { grid-template-columns: repeat(2, 1fr); } .card.featured { transform: none; } }
+  @media (max-width: 1000px) { .strip { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 760px) { .dual-hero { grid-template-columns: 1fr; } .strip { grid-template-columns: 1fr; } .hero-half { padding: 2.4rem 1.6rem; } }
 </style>
 </head>
@@ -103,7 +98,7 @@
           <span class="eco-eyebrow"><span class="dot"></span> Also in the toolbox</span>
           <h2>The rest of the Jeffrey family</h2>
         </div>
-        <p>From getting profiling switched on to having AI tell you what to fix.</p>
+        <p>From getting profiling switched on to reading the results in your IDE.</p>
       </div>
 
       <div class="strip">
@@ -129,15 +124,6 @@
           <div class="kicker">IDE · JetBrains</div>
           <h3>IntelliJ Plugin</h3>
           <p>From a hot frame to the exact source line. Click any frame in Microscope and jump to the method in your open IntelliJ — Java &amp; Kotlin.</p>
-          <a class="learn" href="#">Explore <i class="bi bi-arrow-right"></i></a>
-        </article>
-
-        <article class="card featured" style="--c: var(--pa);">
-          <span class="glow-badge">New · Incubating</span>
-          <div class="card-icon"><i class="bi bi-robot"></i></div>
-          <div class="kicker">AI · Coming soon</div>
-          <h3>Performance Analyst</h3>
-          <p>AI that reads your recordings and writes the fix — graded, source-level recommendations and ready-to-apply patches.</p>
           <a class="learn" href="#">Explore <i class="bi bi-arrow-right"></i></a>
         </article>
 

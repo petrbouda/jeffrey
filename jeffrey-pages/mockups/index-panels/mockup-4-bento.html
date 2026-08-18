@@ -9,7 +9,7 @@
   :root {
     --ms: #38bdf8; --ms-d: #2563eb; --ms-l: #7dd3fc;
     --hub: #a855f7; --hub-d: #7c3aed; --hub-l: #d8b4fe;
-    --prov: #f59e0b; --ide: #fb923c; --pa: #10b981; --jib: #6366f1;
+    --prov: #f59e0b; --ide: #fb923c; --jib: #6366f1;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; background: #0a0f1e; }
@@ -48,7 +48,7 @@
   .eco-head h2 { color: #fff; font-size: 2rem; font-weight: 800; letter-spacing: -.02em; }
   .eco-head p { color: #94a3b8; margin-top: .6rem; font-size: 1.02rem; }
 
-  .bento { display: grid; grid-template-columns: 1fr 1fr 1.6fr; grid-template-rows: auto auto; gap: 1.2rem; }
+  .bento { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; gap: 1.2rem; }
   .tile {
     position: relative; border-radius: 18px; padding: 1.7rem; overflow: hidden; text-decoration: none; display: flex; flex-direction: column;
     border: 1px solid color-mix(in srgb, var(--c) 30%, transparent); background:
@@ -64,21 +64,12 @@
   .tile .tag { margin-top: 1.1rem; display: inline-flex; align-items: center; gap: .35rem; font-size: .72rem; font-weight: 600; color: var(--c);
     background: color-mix(in srgb, var(--c) 14%, transparent); border: 1px solid color-mix(in srgb, var(--c) 35%, transparent); padding: .25rem .6rem; border-radius: 999px; width: fit-content; }
 
-  /* feature tile sits on the right, spanning both rows */
-  .tile.feature { grid-column: 3; grid-row: 1 / span 2; }
   .tile.wide { grid-column: span 2; }
-  .tile.feature .tile-icon { width: 70px; height: 70px; font-size: 2rem; border-radius: 18px; }
-  .tile.feature h3 { font-size: 1.6rem; }
-  .tile.feature p { font-size: 1rem; max-width: 30rem; }
-  .new-badge { font-size: .64rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #052e1a;
-    background: linear-gradient(135deg, #34d399, #10b981); padding: .22rem .6rem; border-radius: 999px; box-shadow: 0 0 0 0 rgba(16,185,129,.5); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,.5);} 50% { box-shadow: 0 0 0 7px rgba(16,185,129,0);} }
   .go { margin-top: 1.4rem; display: inline-flex; align-items: center; gap: .4rem; color: var(--c); font-size: .88rem; font-weight: 700; }
   .tile:hover .go i { transform: translateX(4px); }
   .go i { transition: transform .2s; }
 
-  @media (max-width: 1000px) { .bento { grid-template-columns: 1fr 1fr; } .tile.feature { grid-row: auto; grid-column: span 2; } }
-  @media (max-width: 760px) { .dual-hero { grid-template-columns: 1fr; } .bento { grid-template-columns: 1fr; } .tile.feature, .tile.wide { grid-column: auto; } .hero-half { padding: 2.4rem 1.6rem; } }
+  @media (max-width: 760px) { .dual-hero { grid-template-columns: 1fr; } .bento { grid-template-columns: 1fr; } .tile.wide { grid-column: auto; } .hero-half { padding: 2.4rem 1.6rem; } }
 </style>
 </head>
 <body>
@@ -106,7 +97,7 @@
       <div class="eco-head">
         <span class="eco-eyebrow"><i class="bi bi-grid-1x2"></i> The Jeffrey ecosystem</span>
         <h2>More than the two flagships</h2>
-        <p>A growing family of tools — with AI-assisted analysis leading the way.</p>
+        <p>A growing family of tools around the two flagships.</p>
       </div>
 
       <div class="bento">
@@ -130,14 +121,6 @@
           <h3>IntelliJ Plugin</h3>
           <p>From a hot flame-graph frame to the exact source line in your open IntelliJ — Java &amp; Kotlin, with graceful line → method → class fallback.</p>
           <span class="go">Explore <i class="bi bi-arrow-right"></i></span>
-        </a>
-
-        <a class="tile feature" href="#" style="--c: var(--pa);">
-          <div class="tile-icon"><i class="bi bi-robot"></i></div>
-          <h3>Performance Analyst <span class="new-badge">New · Incubating</span></h3>
-          <p>AI that reads your recordings and writes the fix. It turns the JFR data your Hub already collects into graded, source-level performance recommendations — and ready-to-apply patches.</p>
-          <span class="tag"><i class="bi bi-stars"></i> AI · Coming soon</span>
-          <span class="go">Read the documentation <i class="bi bi-arrow-right"></i></span>
         </a>
 
       </div>

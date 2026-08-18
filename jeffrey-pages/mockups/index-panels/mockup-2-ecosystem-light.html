@@ -9,7 +9,7 @@
   :root {
     --ms: #38bdf8; --ms-d: #2563eb; --ms-l: #7dd3fc;
     --hub: #a855f7; --hub-d: #7c3aed; --hub-l: #d8b4fe;
-    --prov: #f59e0b; --ide: #fb923c; --pa: #10b981; --jib: #6366f1;
+    --prov: #f59e0b; --ide: #fb923c; --jib: #6366f1;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; background: #f8fafc; }
@@ -48,7 +48,7 @@
   .eco-head h2 { color: #0f172a; font-size: 2rem; font-weight: 800; letter-spacing: -.02em; }
   .eco-head p { color: #475569; margin-top: .6rem; font-size: 1.05rem; }
 
-  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.4rem; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; }
   .card {
     position: relative; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.7rem 1.5rem;
     border-top: 4px solid var(--c); overflow: hidden; transition: transform .25s, box-shadow .25s;
@@ -64,9 +64,6 @@
   .learn { display: inline-flex; align-items: center; gap: .4rem; color: var(--c); font-size: .85rem; font-weight: 600; text-decoration: none; }
   .card:hover .learn i { transform: translateX(4px); }
   .learn i { transition: transform .2s; }
-
-  .ribbon { position: absolute; top: 14px; right: -34px; transform: rotate(45deg); background: linear-gradient(135deg, #34d399, #10b981);
-    color: #052e1a; font-size: .64rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding: .3rem 2.6rem; box-shadow: 0 4px 10px rgba(16,185,129,.4); }
 
   @media (max-width: 1000px) { .grid { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 760px) { .dual-hero { grid-template-columns: 1fr; } .grid { grid-template-columns: 1fr; } .hero-half { padding: 2.4rem 1.6rem; } }
@@ -97,7 +94,7 @@
       <div class="eco-head">
         <span class="eco-eyebrow"><i class="bi bi-diagram-3"></i> The Jeffrey ecosystem</span>
         <h2>Built around the two flagships</h2>
-        <p>Four focused tools that get profiling on, into your IDE, and acted upon.</p>
+        <p>Three focused tools that get profiling on and into your IDE.</p>
       </div>
       <div class="grid">
 
@@ -122,15 +119,6 @@
           <h3>IntelliJ Plugin</h3>
           <span class="pill"><i class="bi bi-puzzle"></i> IDE · JetBrains</span>
           <p>From a hot frame to the exact source line. Click any frame in Microscope and land on the method in your open IntelliJ — Java &amp; Kotlin.</p>
-          <a class="learn" href="#">Read the docs <i class="bi bi-arrow-right"></i></a>
-        </article>
-
-        <article class="card" style="--c: var(--pa);">
-          <div class="ribbon">New</div>
-          <div class="card-icon"><i class="bi bi-robot"></i></div>
-          <h3>Performance Analyst</h3>
-          <span class="pill"><i class="bi bi-stars"></i> AI · Incubating</span>
-          <p>AI that reads your recordings and writes the fix — graded, source-level recommendations and ready-to-apply patches.</p>
           <a class="learn" href="#">Read the docs <i class="bi bi-arrow-right"></i></a>
         </article>
 

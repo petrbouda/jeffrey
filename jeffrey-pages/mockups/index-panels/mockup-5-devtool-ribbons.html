@@ -9,7 +9,7 @@
   :root {
     --ms: #38bdf8; --ms-d: #2563eb; --ms-l: #7dd3fc;
     --hub: #a855f7; --hub-d: #7c3aed; --hub-l: #d8b4fe;
-    --prov: #f59e0b; --ide: #fb923c; --pa: #10b981; --jib: #6366f1;
+    --prov: #f59e0b; --ide: #fb923c; --jib: #6366f1;
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -49,7 +49,7 @@
   .eco-head h2 { color: #fff; font-size: 1.9rem; font-weight: 800; letter-spacing: -.02em; }
   .eco-head p { color: #94a3b8; margin-top: .5rem; font-size: 1.02rem; max-width: 42rem; }
 
-  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.3rem; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.3rem; }
   .card {
     position: relative; border-radius: 14px; padding: 1.6rem 1.4rem 1.4rem; overflow: hidden; display: flex; flex-direction: column;
     background: linear-gradient(180deg, #111a2e, #0d1626); border: 1px solid #1e2a44;
@@ -59,8 +59,6 @@
   .ribbon { position: absolute; top: 13px; right: -36px; transform: rotate(45deg); width: 130px; text-align: center;
     font-size: .62rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #07101e; padding: .28rem 0;
     background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 55%, #fff)); }
-  .ribbon.inc { animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(16,185,129,.5);} 50% { box-shadow: 0 0 0 9px rgba(16,185,129,0);} }
   .head { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; }
   .card-icon { width: 44px; height: 44px; border-radius: 11px; display: grid; place-items: center; font-size: 1.25rem; color: #fff; flex-shrink: 0;
     background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 55%, #000)); box-shadow: 0 6px 16px color-mix(in srgb, var(--c) 40%, transparent); }
@@ -105,7 +103,7 @@
       <div class="eco-head">
         <span class="eco-eyebrow"><i class="bi bi-terminal"></i> ~/jeffrey/tools</span>
         <h2>The developer toolbox around Jeffrey</h2>
-        <p>Four sharp tools — from switching profiling on at deploy time to having AI grade and patch what it finds.</p>
+        <p>Three sharp tools — from switching profiling on at deploy time to jumping straight to the source line.</p>
       </div>
 
       <div class="grid">
@@ -132,14 +130,6 @@
           <p>From a hot frame to the exact source line. Click a frame in Microscope and jump to the method in IntelliJ.</p>
           <div class="cmd"><span class="p">⌘</span> Open in IDE → frame</div>
           <a class="cta" href="#"><span>JetBrains Marketplace</span> <i class="bi bi-arrow-right"></i></a>
-        </article>
-
-        <article class="card" style="--c: var(--pa);">
-          <div class="ribbon inc">Incubating</div>
-          <div class="head"><div class="card-icon"><i class="bi bi-robot"></i></div><h3>Performance Analyst</h3></div>
-          <p>AI that reads your recordings and writes the fix — graded, source-level recommendations and ready-to-apply patches.</p>
-          <div class="cmd"><span class="p">ai&gt;</span> analyze recording.jfr</div>
-          <a class="cta" href="#"><span>Read the docs</span> <i class="bi bi-arrow-right"></i></a>
         </article>
 
       </div>
