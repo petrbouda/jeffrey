@@ -32,7 +32,7 @@ import java.util.List;
 /**
  * Reusable Spring AI tool-calling chat session: converts the conversation history into
  * Spring AI messages, appends the current user message, and executes a single tool-enabled
- * call wrapped in a measurement span.
+ * call wrapped in a trace span.
  */
 public final class ToolCallingChatSession {
 
