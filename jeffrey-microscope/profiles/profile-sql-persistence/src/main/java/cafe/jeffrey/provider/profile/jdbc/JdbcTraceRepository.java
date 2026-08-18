@@ -529,7 +529,7 @@ public class JdbcTraceRepository implements TraceRepository {
      * leaves `traces` empty, where SUM, MAX and QUANTILE_CONT all return SQL NULL rather than zero.
      *
      * Both the total and the distinct count are taken off `traces`, keyed by root_name, so this
-     * agrees with the Trace Operations view: an operation is a trace type, not a span name.
+     * agrees with the Traces by Operation view: an operation is a trace type, not a span name.
      */
     //language=SQL
     private static final String OVERVIEW = """

@@ -96,7 +96,7 @@
 
       <template v-else>
         <DetailBreadcrumb
-          root-label="Trace Operations"
+          root-label="Traces by Operation"
           icon="bi-bar-chart-steps"
           @back="clearSelection"
         >

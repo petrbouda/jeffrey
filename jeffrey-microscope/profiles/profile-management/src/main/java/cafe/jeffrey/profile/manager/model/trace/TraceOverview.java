@@ -33,7 +33,7 @@ package cafe.jeffrey.profile.manager.model.trace;
  * @param p99Nanos           99th percentile trace duration
  * @param maxNanos           slowest trace
  * @param totalNanos         summed trace duration across the profile
- * @param distinctOperations distinct trace types, matching what the Trace Operations view ranks
+ * @param distinctOperations distinct trace types, matching what the Traces by Operation view ranks
  */
 public record TraceOverview(
         long totalTraces,

@@ -252,7 +252,7 @@ CREATE TABLE IF NOT EXISTS trace_spans
 CREATE TABLE IF NOT EXISTS traces
 (
     trace_id                       BIGINT      NOT NULL PRIMARY KEY,
-    -- The three together are the trace's *type*, which is what the Trace Operations view groups on.
+    -- The three together are the trace's *type*, which is what the Traces by Operation view groups on.
     -- Not the name alone: an inbound `GET /a` and an outbound call to the same path share a name and
     -- are not the same operation. All three are NOT NULL because the derivation COALESCEs each one
     -- from a NOT NULL source, and a nullable grouping key would make `<>` comparisons against it
