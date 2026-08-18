@@ -38,8 +38,8 @@ import java.util.List;
 
 /**
  * Microscope-only WorkspaceBrowser endpoints: projects with their profile summaries, and the unique
- * namespaces across a workspace's projects. Both depend on profiles, which the analyst lacks, so they
- * live outside the shared {@code WorkspaceProjectsController}.
+ * namespaces across a workspace's projects. Both depend on profiles, which a profile-less deployment
+ * lacks, so they live outside the shared {@code WorkspaceProjectsController}.
  */
 @RestController
 @RequestMapping("/api/internal/hubs/{hubId}/workspaces/{workspaceId}/projects")

@@ -25,7 +25,7 @@ export interface BreadcrumbItem {
   to?: string
 }
 
-export type Product = 'microscope' | 'hub' | 'perf-analyst' | 'provisioner' | 'jib' | 'intellij-plugin';
+export type Product = 'microscope' | 'hub' | 'provisioner' | 'jib' | 'intellij-plugin';
 
 export interface ProductInfo {
   id: Product;
@@ -46,12 +46,6 @@ export const PRODUCTS: Record<Product, ProductInfo> = {
     title: 'Jeffrey Hub',
     icon: 'bi-cloud',
     hubPath: '/docs/hub'
-  },
-  'perf-analyst': {
-    id: 'perf-analyst',
-    title: 'Performance Analyst',
-    icon: 'bi-robot',
-    hubPath: '/docs/perf-analyst'
   },
   provisioner: {
     id: 'provisioner',
@@ -80,8 +74,6 @@ const MICROSCOPE_SEGMENTS = new Set(['microscope', 'local', 'events', 'ai']);
 // 'server' is kept alongside 'hub' so a direct hit on a legacy /docs/server/* URL still
 // resolves to the Hub sidebar in the brief moment before the router redirects to /docs/hub/*.
 const HUB_SEGMENTS = new Set(['hub', 'server', 'agent']);
-// Performance Analyst (incubating) owns a single top-level segment.
-const PERF_ANALYST_SEGMENTS = new Set(['perf-analyst']);
 // The Provisioner is its own product. 'cli' is kept so a direct hit on a legacy
 // /docs/cli/* URL still resolves to the Provisioner sidebar before the router redirects.
 const PROVISIONER_SEGMENTS = new Set(['provisioner', 'cli']);
@@ -260,33 +252,6 @@ export const hubNavigation: DocSection[] = [
   }
 ];
 
-export const perfAnalystNavigation: DocSection[] = [
-  // Top-level single-page entries — promoted out of the product group so the
-  // most-used links sit at the root of the sidebar. Synthetic section paths
-  // (prefixed with `_`) keep them out of the breadcrumb/section auto-expand logic.
-  {
-    title: 'Overview',
-    path: '_perf-analyst-overview',
-    icon: 'bi-info-circle',
-    children: [{ title: 'Overview', to: '/docs/perf-analyst' }]
-  },
-  {
-    title: 'Quick Start',
-    path: '_perf-analyst-quickstart',
-    icon: 'bi-rocket-takeoff',
-    children: [{ title: 'Quick Start', to: '/docs/perf-analyst/quick-start' }]
-  },
-  {
-    title: 'Architecture',
-    path: '_perf-analyst-architecture',
-    icon: 'bi-diagram-3',
-    children: [
-      { title: 'Overview', to: '/docs/perf-analyst/architecture' },
-      { title: 'Hub Connection', to: '/docs/perf-analyst/hub-connection' }
-    ]
-  }
-];
-
 export const provisionerNavigation: DocSection[] = [
   // Standalone product section for the Provisioner. Overview is promoted to the root
   // of the sidebar (synthetic `_` path); the remaining pages follow as single entries.
@@ -385,7 +350,7 @@ export const intellijPluginNavigation: DocSection[] = [
 ];
 
 // Union — used by global helpers like getAllDocs/search and as a back-compat export.
-export const docsNavigation: DocSection[] = [...microscopeNavigation, ...hubNavigation, ...perfAnalystNavigation, ...provisionerNavigation, ...jibNavigation, ...intellijPluginNavigation];
+export const docsNavigation: DocSection[] = [...microscopeNavigation, ...hubNavigation, ...provisionerNavigation, ...jibNavigation, ...intellijPluginNavigation];
 
 export function getProductForPath(routePath: string): Product | null {
   const cleaned = routePath.replace(/^\/docs\/?/, '');
@@ -393,7 +358,6 @@ export function getProductForPath(routePath: string): Product | null {
   const first = cleaned.split('/')[0];
   if (MICROSCOPE_SEGMENTS.has(first)) return 'microscope';
   if (HUB_SEGMENTS.has(first)) return 'hub';
-  if (PERF_ANALYST_SEGMENTS.has(first)) return 'perf-analyst';
   if (PROVISIONER_SEGMENTS.has(first)) return 'provisioner';
   if (JIB_SEGMENTS.has(first)) return 'jib';
   if (INTELLIJ_PLUGIN_SEGMENTS.has(first)) return 'intellij-plugin';
@@ -403,9 +367,6 @@ export function getProductForPath(routePath: string): Product | null {
 export function navigationForProduct(product: Product): DocSection[] {
   if (product === 'hub') {
     return hubNavigation;
-  }
-  if (product === 'perf-analyst') {
-    return perfAnalystNavigation;
   }
   if (product === 'provisioner') {
     return provisionerNavigation;

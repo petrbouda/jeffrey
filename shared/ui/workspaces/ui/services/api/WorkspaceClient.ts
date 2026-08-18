@@ -28,8 +28,6 @@ export interface CreateWorkspaceRequest {
 /**
  * API client for workspace operations under a connected jeffrey-hub.
  * One instance per (hubId) — workspaces are listed live via gRPC.
- *
- * Shared between jeffrey-microscope and jeffrey-performance-analyst.
  */
 export default class WorkspaceClient extends BasePlatformClient {
   constructor(hubId: string) {

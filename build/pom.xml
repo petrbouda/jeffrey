@@ -37,8 +37,6 @@
         <module>build-microscope-examples-jib</module>
         <module>build-hub</module>
         <module>build-hub-jib</module>
-        <module>build-performance-analyst</module>
-        <module>build-performance-analyst-jib</module>
         <module>build-provisioner</module>
         <module>build-provisioner-native</module>
         <module>build-agent</module>

@@ -23,7 +23,7 @@ import cafe.jeffrey.shared.common.model.Recording;
 /**
  * Optional SPI invoked when a recording is being deleted, so deployments that attach analysis
  * profiles to recordings can clean those up. {@code recordings-core} itself never touches profiles;
- * the {@link #NOOP} default is used by deployments (e.g. the analyst) that have no profiles.
+ * the {@link #NOOP} default is used by deployments that have no profiles.
  */
 @FunctionalInterface
 public interface RecordingProfileCleanup {

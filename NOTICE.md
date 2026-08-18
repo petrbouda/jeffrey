@@ -49,10 +49,6 @@ Flyway
 * Project: https://flywaydb.org/
 * Copyright (C) Red Gate Software Ltd 2010-2024
 
-SQLite JDBC Driver
-* License: The author disclaims copyright to this source code
-* Project: https://www.sqlite.org/
-
 org.openjdk.jmc.flightrecorder
 * License: The Universal Permissive License (UPL), Version 1.0
 * Project: https://github.com/openjdk/jmc

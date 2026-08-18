@@ -23,9 +23,8 @@ import cafe.jeffrey.shared.common.model.Recording;
 /**
  * Optional enrichment SPI for the shared recordings list. Supplies the per-recording profile
  * fields ({@code profileSizeInBytes} / {@code profileModified}) that only a profile-capable
- * deployment can compute. Deployments without profiles (e.g. the analyst) wire {@link #NOOP},
- * which reports no profile data; microscope provides a real implementation backed by its profile
- * managers.
+ * deployment can compute. Deployments without profiles wire {@link #NOOP}, which reports no
+ * profile data; microscope provides a real implementation backed by its profile managers.
  */
 @FunctionalInterface
 public interface RecordingProfileInfoProvider {

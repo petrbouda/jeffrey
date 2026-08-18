@@ -26,8 +26,8 @@ import java.util.List;
 /**
  * Deployment-agnostic access to a remote hub's workspaces and projects, used by the shared
  * WorkspaceBrowser controllers. Each deployment supplies an implementation that resolves the data
- * its own way — microscope via its local manager objects, the analyst via direct gRPC calls — and
- * maps it into the shared response DTOs so the controllers stay free of deployment-specific types.
+ * its own way — microscope via its local manager objects — and maps it into the shared response
+ * DTOs so the controllers stay free of deployment-specific types.
  *
  * <p>Implementations may throw {@link io.grpc.StatusRuntimeException} from the mutating operations;
  * the controllers translate those into HTTP errors at the boundary.

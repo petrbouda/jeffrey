@@ -26,7 +26,7 @@ import cafe.jeffrey.hub.client.manager.RepositoryManager;
  * Deployment-agnostic resolver from a (hubId, workspaceId, projectId) tuple to the per-project
  * remote managers used by the shared workspace controllers. Each deployment provides a bean that
  * delegates to its own project resolution machinery (microscope's {@code ProjectManagerResolver}
- * via {@code ProjectManager}; the analyst's {@code RemoteProjectResolver}).
+ * via {@code ProjectManager}).
  */
 public interface RemoteProjectAccess {
 

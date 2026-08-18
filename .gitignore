@@ -37,14 +37,6 @@ jeffrey-hub/pages-hub/dist
 jeffrey-hub/pages-hub/coverage
 jeffrey-hub/pages-hub/*.local
 
-# pages-performance-analyst dependencies and build output
-jeffrey-performance-analyst/pages-performance-analyst/node_modules
-jeffrey-performance-analyst/pages-performance-analyst/package-lock.json
-jeffrey-performance-analyst/pages-performance-analyst/.DS_Store
-jeffrey-performance-analyst/pages-performance-analyst/dist
-jeffrey-performance-analyst/pages-performance-analyst/coverage
-jeffrey-performance-analyst/pages-performance-analyst/*.local
-
 /cypress/videos/
 /cypress/screenshots/
 

@@ -44,10 +44,9 @@ import java.util.Optional;
  * Builds — and caches — the flamegraph prompt an advisor run reads, one per profile group present in
  * the profile.
  *
- * <p>Standalone Performance Analyst re-parsed the JFR file for this, because it has no profile
- * database. Microscope has one, so the call tree comes from the same provider the Flamegraph page uses
- * and the markdown is byte-for-byte what "Copy for AI" produces. The prompt is therefore a projection
- * of data that already exists, not a second parse of the recording that could disagree with the first.</p>
+ * <p>The call tree comes from the same provider the Flamegraph page uses, so the markdown is
+ * byte-for-byte what "Copy for AI" produces. The prompt is therefore a projection of data that
+ * already exists, not a second parse of the recording that could disagree with the first.</p>
  *
  * <p>What is cached is the <em>complete user message</em>, not the markdown alone. Composing it here
  * rather than at run time makes the prompt a real artifact: the run sends the stored string verbatim,

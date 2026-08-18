@@ -144,28 +144,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/hub/HubArchitectureOverviewPage.vue')
       },
 
-      // ──── Performance Analyst (incubating) ────
-      {
-        path: 'perf-analyst',
-        name: 'DocsPerformanceAnalyst',
-        component: () => import('@/views/docs/perf-analyst/PerformanceAnalystOverviewPage.vue')
-      },
-      {
-        path: 'perf-analyst/quick-start',
-        name: 'DocsPerformanceAnalystQuickStart',
-        component: () => import('@/views/docs/perf-analyst/PerformanceAnalystQuickStartPage.vue')
-      },
-      {
-        path: 'perf-analyst/architecture',
-        name: 'DocsPerformanceAnalystArchitecture',
-        component: () => import('@/views/docs/perf-analyst/PerformanceAnalystArchitecturePage.vue')
-      },
-      {
-        path: 'perf-analyst/hub-connection',
-        name: 'DocsPerformanceAnalystHubConnection',
-        component: () => import('@/views/docs/perf-analyst/PerformanceAnalystHubConnectionPage.vue')
-      },
-
       // ──── Getting Started ────
       {
         path: 'getting-started/introduction',

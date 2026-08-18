@@ -28,7 +28,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 /**
  * Local-only stub of jeffrey-hub. Implements the same gRPC API (workspaces, projects,
  * instances, repository, workspace events) with hard-coded in-memory data so the Microscope
- * and Performance-Analyst frontends can connect to it for development and demos.
+ * frontend can connect to it for development and demos.
  *
  * <p>Runs as a headless (non-web) Spring Boot app; the gRPC server is started/stopped by
  * {@code StubGrpcServerConfiguration} via the Spring context lifecycle. {@code main} blocks on

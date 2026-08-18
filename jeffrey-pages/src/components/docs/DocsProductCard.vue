@@ -98,7 +98,7 @@ defineProps<{
 }
 
 .product-card.variant-tertiary {
-  /* tertiary: Performance Analyst — emerald, matching its own app brand */
+  /* tertiary: emerald accent slot */
   --accent: #10b981;
   --accent-tint: #ecfdf5;
   --accent-soft: #f0fdf4;

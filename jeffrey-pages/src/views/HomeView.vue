@@ -159,11 +159,6 @@ const productTabs: ProductTab[] = [
   }
 ];
 
-interface EcoBadge {
-  label: string;
-  tone: 'new' | 'inc';
-}
-
 interface EcoProduct {
   id: string;
   name: string;
@@ -172,11 +167,10 @@ interface EcoProduct {
   icon: string;
   chips: string[];
   to: string;
-  badges?: EcoBadge[];
 }
 
 // The rest of the Jeffrey ecosystem — companion products shown under the
-// Microscope + Hub hero. Performance Analyst carries New + Incubating badges.
+// Microscope + Hub hero.
 const ecosystem: EcoProduct[] = [
   {
     id: 'provisioner',
@@ -204,16 +198,6 @@ const ecosystem: EcoProduct[] = [
     desc: 'A Jib (Gradle/Maven) extension that wraps your container entrypoint so Jeffrey profiling starts before your app does — no command override, no binaries baked into the image.',
     chips: ['Gradle/Maven', 'Entrypoint wrapper', 'Shared volume', 'Kill switch'],
     to: '/docs/jib'
-  },
-  {
-    id: 'pa',
-    name: 'Performance Analyst',
-    role: 'AI analyst',
-    icon: 'bi-robot',
-    desc: 'An AI companion that pulls recordings from a Hub and turns each profile into source-code-level recommendations — with severity grades and ready-to-apply patches.',
-    chips: ['Hub-connected', 'AI recommendations', 'Severity grading', 'Patches'],
-    to: '/docs/perf-analyst',
-    badges: [{ label: 'New', tone: 'new' }, { label: 'Incubating', tone: 'inc' }]
   }
 ];
 
@@ -345,14 +329,6 @@ function copyCmd(): void {
           <div class="eco-body">
             <div class="eco-title">
               <span>{{ p.name }}</span>
-              <template v-if="p.badges">
-                <span
-                  v-for="b in p.badges"
-                  :key="b.label"
-                  class="eco-badge"
-                  :class="`eco-badge--${b.tone}`"
-                >{{ b.label }}</span>
-              </template>
             </div>
             <div class="eco-role">{{ p.role }}</div>
             <p class="eco-desc">{{ p.desc }}</p>
@@ -934,7 +910,6 @@ function copyCmd(): void {
 .eco-card--provisioner { --eco-a: #f43f5e; --eco-b: #e11d48; }
 .eco-card--plugin { --eco-a: #fb923c; --eco-b: #ea580c; }
 .eco-card--jib { --eco-a: #6366f1; --eco-b: #4f46e5; }
-.eco-card--pa { --eco-a: #10b981; --eco-b: #059669; }
 
 .eco-ic {
   flex-shrink: 0;
@@ -992,26 +967,6 @@ function copyCmd(): void {
   border: 1px solid #e2e8f0;
   border-radius: 6px;
   padding: 0.13rem 0.5rem;
-}
-
-.eco-badge {
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  border-radius: 999px;
-  padding: 0.12rem 0.5rem;
-}
-
-.eco-badge--new {
-  color: #fff;
-  background: linear-gradient(135deg, #10b981, #059669);
-}
-
-.eco-badge--inc {
-  color: #047857;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
 }
 
 /* ============ TAB SHOWCASE ============ */

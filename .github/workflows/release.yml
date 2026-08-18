@@ -38,12 +38,6 @@ jobs:
         name: jeffrey-hub-jar
         path: ./build/build-hub/target/jeffrey-hub.jar
 
-    - name: Upload jeffrey-performance-analyst.jar
-      uses: actions/upload-artifact@v7
-      with:
-        name: jeffrey-performance-analyst-jar
-        path: ./build/build-performance-analyst/target/jeffrey-performance-analyst.jar
-
     - name: Upload provisioner.jar
       uses: actions/upload-artifact@v7
       with:
@@ -69,13 +63,8 @@ jobs:
     uses: ./.github/workflows/release-hub.yml
     secrets: inherit
 
-  docker-performance-analyst:
-    needs: [build, provisioner-native]
-    uses: ./.github/workflows/release-performance-analyst.yml
-    secrets: inherit
-
   create-release:
-    needs: [docker-microscope, docker-hub, docker-performance-analyst, provisioner-native]
+    needs: [docker-microscope, docker-hub, provisioner-native]
     runs-on: ubuntu-latest
     permissions: write-all
 
@@ -93,12 +82,6 @@ jobs:
       uses: actions/download-artifact@v8
       with:
         name: jeffrey-hub-jar
-        path: ./artifacts
-
-    - name: Download jeffrey-performance-analyst.jar
-      uses: actions/download-artifact@v8
-      with:
-        name: jeffrey-performance-analyst-jar
         path: ./artifacts
 
     - name: Download provisioner.jar

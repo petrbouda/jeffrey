@@ -26,7 +26,6 @@ const { setHeadings } = useDocHeadings();
 
 const microscopeComponents = ['Flamegraph', 'Timeseries', 'Guardian', 'Heap dump', 'AI assistant', 'Events'];
 const serverComponents = ['Continuous recording', 'Scheduler', 'gRPC API', 'Agent'];
-const perfAnalystComponents = ['Hub-connected', 'AI recommendations', 'Severity grading', 'Patches'];
 const provisionerComponents = ['HOCON config', 'JVM argfile', 'Session layout', 'Workspace events', 'Native binary'];
 const jibComponents = ['Gradle/Maven', 'Entrypoint wrapper', 'Shared volume', 'Kill switch'];
 const pluginComponents = ['Open in IDE', 'Inline source', 'Java & Kotlin', 'Auto-pairing'];
@@ -65,16 +64,6 @@ onMounted(() => {
           :components="serverComponents"
           cta-text="Open Server docs"
           variant="secondary"
-        />
-        <DocsProductCard
-          to="/docs/perf-analyst"
-          title="Performance Analyst"
-          role="Incubating · AI analyst"
-          description="The AI-driven companion. Pulls recordings from a Hub and turns each profile into source-code-level performance recommendations with severity grades and patches."
-          icon="bi bi-robot"
-          :components="perfAnalystComponents"
-          cta-text="Open Performance Analyst docs"
-          variant="tertiary"
         />
         <DocsProductCard
           to="/docs/provisioner"

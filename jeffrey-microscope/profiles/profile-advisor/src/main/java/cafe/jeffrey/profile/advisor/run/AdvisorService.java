@@ -46,7 +46,7 @@ import java.util.concurrent.CancellationException;
 /**
  * Produces recommendations and a proposed patch for one profile.
  *
- * <p>The shape is the standalone analyst's, with the clone replaced by a folder the user already has:
+ * <p>The run works against a folder the user already has, rather than a clone:
  * resolve the cached prompt, point the read-only tools at the source tree, let the model explore it the
  * way an agentic code assistant would, and build its proposed diff into an applicable patch — each
  * phase reported through the sink, so the run timeline shows where the time went. One phase per

@@ -29,8 +29,9 @@ import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 
 /**
- * Microscope-only WorkspaceBrowser endpoints: deleting and restoring a project. The analyst is
- * read-only against remote hubs, so these live outside the shared {@code ProjectController}.
+ * Microscope-only WorkspaceBrowser endpoints: deleting and restoring a project. Deployments that are
+ * read-only against remote hubs do not have them, so these live outside the shared
+ * {@code ProjectController}.
  */
 @RestController
 @RequestMapping("/api/internal/hubs/{hubId}/workspaces/{workspaceId}/projects/{projectId}")

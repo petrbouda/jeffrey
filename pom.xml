@@ -31,7 +31,6 @@
         <module>shared</module>
         <module>jeffrey-hub</module>
         <module>jeffrey-microscope</module>
-        <module>jeffrey-performance-analyst</module>
         <module>jeffrey-provisioner</module>
         <module>jeffrey-agent</module>
         <module>utilities</module>
@@ -57,12 +56,10 @@
         <duckdb.version>1.5.3.0</duckdb.version>
         <flyway.version>10.24.0</flyway.version>
         <flyway-core.version>12.8.1</flyway-core.version>
-        <sqlite-jdbc.version>3.49.1.0</sqlite-jdbc.version>
         <grpc.version>1.81.0</grpc.version>
         <netty.version>4.2.15.Final</netty.version>
         <protobuf.version>4.35.0</protobuf.version>
         <antlr4.version>4.13.2</antlr4.version>
-        <jgit.version>7.7.0.202606012155-r</jgit.version>
         <!-- Vendored async-profiler Java API (span-api branch), served from the in-repo lib/m2 repository. -->
         <async-profiler.version>4.5-span</async-profiler.version>
     </properties>
@@ -118,16 +115,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>pages-hub</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>pages-performance-analyst</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>core-performance-analyst</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -362,27 +349,12 @@
                 <artifactId>flyway-core</artifactId>
                 <version>${flyway-core.version}</version>
             </dependency>
-            <!-- SQLite driver for the performance-analyst projects/prompts store. flyway-core 12.x
-                 bundles SQLite support, so no separate flyway-database-sqlite module is needed. -->
-            <dependency>
-                <groupId>org.xerial</groupId>
-                <artifactId>sqlite-jdbc</artifactId>
-                <version>${sqlite-jdbc.version}</version>
-            </dependency>
 
             <!-- ANTLR4 runtime — used by heapdump-oql for the OQL grammar -->
             <dependency>
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4-runtime</artifactId>
                 <version>${antlr4.version}</version>
-            </dependency>
-
-            <!-- JGit — pure-Java git client used by performance-analyst to clone project repositories
-                 for AI recommendation generation (no external git binary required). -->
-            <dependency>
-                <groupId>org.eclipse.jgit</groupId>
-                <artifactId>org.eclipse.jgit</artifactId>
-                <version>${jgit.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -369,7 +369,6 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
             <span class="hero-docs-label"><i class="bi bi-journal-text"></i> Documentation</span>
             <router-link to="/docs/microscope" class="hero-docs-btn"><i class="bi bi-search"></i> Microscope</router-link>
             <router-link to="/docs/hub" class="hero-docs-btn"><i class="bi bi-cloud"></i> Hub</router-link>
-            <router-link to="/docs/perf-analyst" class="hero-docs-btn"><i class="bi bi-speedometer2"></i> Performance Analyst</router-link>
           </div>
         </div>
       </div>

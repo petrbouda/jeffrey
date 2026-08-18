@@ -42,10 +42,10 @@ import java.time.Clock;
  * {@code @RestController}-annotated (Spring 7's {@code RequestMappingHandlerMapping} requires the
  * {@code @Controller} stereotype to treat a bean as a handler — a bare type-level
  * {@code @RequestMapping} is no longer sufficient), but they live in
- * {@code cafe.jeffrey.shared.ui.workspace.controller}, which is outside both apps' component-scan
- * roots ({@code cafe.jeffrey.microscope.core} / {@code cafe.jeffrey.performance.analyst}). They are
- * therefore registered exactly once, via these explicit {@code @Bean} methods, with no
- * component-scan pickup. Each deployment {@code @Import}s this configuration and supplies the bridge
+ * {@code cafe.jeffrey.shared.ui.workspace.controller}, which is outside the app's component-scan
+ * root ({@code cafe.jeffrey.microscope.core}). They are therefore registered exactly once, via these
+ * explicit {@code @Bean} methods, with no component-scan pickup. Each deployment
+ * {@code @Import}s this configuration and supplies the bridge
  * beans ({@link RemoteProjectAccess}, {@link RecordingProfileInfoProvider}) plus the shared
  * {@link RecordingsCoreManager} and a {@link Clock}.
  */

@@ -59,7 +59,6 @@ files:
   artifacts:
     - path: artifacts/microscope.jar
     - path: artifacts/jeffrey-hub.jar
-    - path: artifacts/jeffrey-performance-analyst.jar
     - path: artifacts/provisioner.jar
     - path: artifacts/jeffrey-agent.jar
     - path: artifacts/provisioner-amd64
