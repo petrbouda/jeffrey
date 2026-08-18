@@ -22,6 +22,14 @@ import HttpUtils from '@shared/services/HttpUtils';
 
 export interface RequestOptions {
   suppressToast?: boolean;
+  /**
+   * Serialise an array parameter as a repeated bare key — `?where=a&where=b`.
+   *
+   * Axios appends `[]` to a repeated key by default, which Spring does not bind to a `List<String>`
+   * request parameter: it looks for the bare name. Needed wherever a filter is several conditions of
+   * the same kind rather than one value.
+   */
+  repeatArrayParams?: boolean;
 }
 
 /**
@@ -39,7 +47,14 @@ export default abstract class BasePlatformClient {
     config: Record<string, any>,
     options?: RequestOptions
   ): Record<string, any> {
-    return options?.suppressToast ? { ...config, suppressToast: true } : config;
+    let applied = config;
+    if (options?.repeatArrayParams) {
+      applied = { ...applied, paramsSerializer: { indexes: null } };
+    }
+    if (options?.suppressToast) {
+      applied = { ...applied, suppressToast: true };
+    }
+    return applied;
   }
 
   protected get<T>(

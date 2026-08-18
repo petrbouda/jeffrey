@@ -54,6 +54,7 @@ import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.provider.profile.api.SpanRepository;
+import cafe.jeffrey.provider.profile.api.TraceAttributeRepository;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 
 import javax.sql.DataSource;
@@ -93,7 +94,8 @@ public class ProfileJvmInsightConfiguration {
             LeakCandidatesManager.Factory leakCandidatesFactory,
             SecurityManager.Factory securityFactory,
             SpanManager.Factory spanFactory,
-            TraceManager.Factory traceFactory) {
+            TraceManager.Factory traceFactory,
+            TraceAttributesManager.Factory traceAttributesFactory) {
 
         return new JvmInsightFactories(
                 gcFactory,
@@ -116,7 +118,8 @@ public class ProfileJvmInsightConfiguration {
                 leakCandidatesFactory,
                 securityFactory,
                 spanFactory,
-                traceFactory);
+                traceFactory,
+                traceAttributesFactory);
     }
 
     @Bean
@@ -380,6 +383,20 @@ public class ProfileJvmInsightConfiguration {
             DataSource profileDb = databaseManagerResolver.open(profileInfo);
             TraceRepository repository = profileRepositories.newTraceRepository(profileDb);
             return new TraceManagerImpl(repository);
+        };
+    }
+
+    /**
+     * Creates the attribute manager over the attribute index derived from the profile's spans during
+     * initialization, alongside the trace tables themselves.
+     */
+    @Bean
+    public TraceAttributesManager.Factory traceAttributesManagerFactory() {
+        return profileInfo -> {
+            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            TraceAttributeRepository repository =
+                    profileRepositories.newTraceAttributeRepository(profileDb);
+            return new TraceAttributesManagerImpl(repository);
         };
     }
 }

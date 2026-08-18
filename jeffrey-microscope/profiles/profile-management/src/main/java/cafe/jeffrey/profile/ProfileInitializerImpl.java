@@ -28,6 +28,7 @@ import cafe.jeffrey.provider.profile.api.RecordingEventParser;
 import cafe.jeffrey.provider.profile.api.RecordingEventParserResolver;
 import cafe.jeffrey.provider.profile.api.ProfileInfoRepository;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
+import cafe.jeffrey.provider.profile.api.TraceAttributeRepository;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.measure.Measuring;
@@ -136,6 +137,14 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                 Tracer.run(SPAN_TRACES_DERIVE, () -> {
                     TraceRepository traceRepository = profileRepositories.newTraceRepository(dataSource);
                     traceRepository.derive();
+
+                    // Then flatten what those spans carry -- their attributes, their event type's
+                    // own fields and their shape columns -- into the queryable attribute index.
+                    // Strictly after the spans: it reads trace_spans, so there is nothing to
+                    // flatten until the statement above has run.
+                    TraceAttributeRepository attributeRepository =
+                            profileRepositories.newTraceAttributeRepository(dataSource);
+                    attributeRepository.derive();
                 });
 
                 ProfileManager profileManager = profileManagerFactory.apply(profileInfo);

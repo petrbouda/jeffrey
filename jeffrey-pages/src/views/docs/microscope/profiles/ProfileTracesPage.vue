@@ -36,6 +36,7 @@ const headings = [
   { id: 'jvm-context', text: 'Why a Trace Was Slow', level: 2 },
   { id: 'span-drill-down', text: 'Span Drill-Down', level: 2 },
   { id: 'operations', text: 'Traces by Operation', level: 2 },
+  { id: 'attributes', text: 'Traces by Attributes', level: 2 },
   { id: 'timeseries', text: 'Timeseries', level: 2 },
   { id: 'ai-export', text: 'AI Export', level: 2 },
   { id: 'volume-control', text: 'Controlling Span Volume', level: 2 },
@@ -300,6 +301,29 @@ if (event.isEnabled()) {
       </ul>
 
       <p>A stale or hand-edited operation in the URL is not rejected — the drill-down opens and its own panels come back empty. The list above is capped, so a link into an operation past the cap is a valid link, and refusing it would have broken more than it caught.</p>
+
+      <h2 id="attributes">Traces by Attributes</h2>
+
+      <p>Every span carries two key/value payloads, and until this page they were readable only one span at a time, inside the waterfall. The first is the open <strong>attributes</strong> map a developer attaches at the call site — <code>tenant</code>, <code>cache.hit</code>, <code>order.items</code>, whatever was passed. The second is what the event type <strong>declares about itself</strong>: a statement's <code>rows</code> and <code>group</code>, an exchange's <code>uri</code> and <code>statusCode</code>, a custom <code>@Span</code> event's own fields. Alongside them the page exposes the <strong>span shape</strong> — <code>name</code>, <code>kind</code>, <code>status</code>, <code>errorType</code>, <code>eventType</code> — so one query surface answers "spans that failed" and "spans of this tenant" the same way. All three are flattened once, immediately after the trace tables are derived, into an index that makes filtering and grouping ordinary SQL rather than JSON extraction repeated per span per query.</p>
+
+      <p>The keys are listed in a rail down the left, grouped by which of the three they came from, each with its cardinality and a bar showing how much of the profile carries it. An event field is qualified by the event type declaring it: <code>rows</code> on a JDBC query and <code>rows</code> on anything else are two keys that happen to share a name. A newly instrumented event type needs no change here — its declared fields are in the rail the first time its recording is opened, the same property the <a href="#operations">naming convention</a> already has.</p>
+
+      <DocsCallout type="warning">
+        <strong>One span, or anywhere in the trace?</strong> The search offers both, because they are different questions with different answers. A trace whose HTTP span carries <code>tenant=acme</code> and whose JDBC span carries <code>rows&nbsp;&gt;&nbsp;10000</code> matches "anywhere in the trace" and does not match "all on one span" — attributes are recorded per span and are never inherited down the tree. A page that quietly picked one of the two would be wrong for whoever wanted the other.
+      </DocsCallout>
+
+      <p>There are four views, and the conditions, the scope and the selected key all live in the URL, so a filter is a link rather than a set of instructions:</p>
+
+      <ul>
+        <li><strong>Search</strong> — conditions built from the catalog and ANDed together, with <code>=</code>, <code>≠</code>, <code>contains</code>, the four numeric comparisons and "is present". Only the operators a key's values can answer are offered; the comparisons read a numeric column filled only where the value is a number, so <code>rows&nbsp;&gt;&nbsp;9</code> never compares <code>"9"</code> against <code>"10000"</code> as text. Above the results: how many traces matched and how their percentiles compare with the profile's, and a density strip drawing the matches against every trace as a backdrop. Each result row shows <em>which span</em> matched and what it held, so the list is usually the whole answer rather than the start of one.</li>
+        <li><strong>Values</strong> — one key broken down into every value it took, ranked by total time rather than by call count: a busy value and an expensive value are rarely the same value. Each row carries the traces holding it, their P50, P95 and max, and their error rate. A trace that recorded two values of one key counts towards both, so the rows do not sum to the profile — and traces where no span carried the key at all get a row of their own rather than being silently dropped.</li>
+        <li><strong>Latency</strong> — each value's traces spread over log-spaced duration buckets. Percentiles hide bimodality: a value whose traces are either fast or catastrophic has the same median as one that is uniformly mediocre, and it is the first that is worth looking at. Colour is normalised inside each row, so the shapes are comparable even where one value ran ten times as often.</li>
+        <li><strong>What's different?</strong> — the view for when there are slow traces and no theory about them. Pick a selection (traces above a duration, or the ones that failed) and every key/value in the profile is ranked by how much more of the selection carries it than of the baseline. A recording is a bounded population, so these are the real counts of the real traces and the lift is arithmetic rather than inference — unlike the sampled estimate a live tracer can offer. Raw counts sit beside every percentage, because 100% of three traces is not a finding.</li>
+      </ul>
+
+      <DocsCallout type="info">
+        <strong>Cardinality is the guard.</strong> A <code>user.id</code> attribute on sixty thousand spans is legitimate instrumentation, and every breakdown of it — a value list, a heatmap axis, a place in the difference ranking — would be eighteen thousand rows of one trace each. Keys past the cap are marked <em>search only</em>: they can be searched, and they are kept out of every ranking. Where a list is the top of a key rather than the whole of it, it says so.
+      </DocsCallout>
 
       <h2 id="timeseries">Timeseries</h2>
 

@@ -771,7 +771,7 @@ public class TraceManagerImpl implements TraceManager {
      * hex is also how every other tracer renders them.
      */
     private static String toHex(long id) {
-        return String.format("%016x", id);
+        return TraceIds.hex(id);
     }
 
     /** A span queued for emission, with the position the tree gives it. */

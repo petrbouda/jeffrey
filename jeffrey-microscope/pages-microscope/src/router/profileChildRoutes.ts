@@ -9,8 +9,7 @@ import type { RouteLocationGeneric } from 'vue-router';
 // Typed to the router's own redirect signature: a narrower hand-written param type made every
 // route array using this helper unassignable to RouteRecordRaw[].
 function redirectTo(targetSubPath: string) {
-  return (to: RouteLocationGeneric) =>
-    `/profiles/${String(to.params.profileId)}/${targetSubPath}`;
+  return (to: RouteLocationGeneric) => `/profiles/${String(to.params.profileId)}/${targetSubPath}`;
 }
 
 // Overview, analysis, and event browsing
@@ -572,6 +571,12 @@ const technologyRoutes = [
     path: 'technologies/traces/operations',
     name: 'profile-technologies-traces-operations',
     component: () => import('@/views/profiles/detail/technologies/ProfileTraceOperations.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'technologies/traces/attributes',
+    name: 'profile-technologies-traces-attributes',
+    component: () => import('@/views/profiles/detail/technologies/ProfileTraceAttributes.vue'),
     meta: { layout: 'profile' }
   },
   {

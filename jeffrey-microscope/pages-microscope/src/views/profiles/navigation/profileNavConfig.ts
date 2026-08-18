@@ -222,6 +222,7 @@ export const technologiesNav: Record<string, TechnologyNav> = {
         // ("Spans by Tag" then "Slowest Spans") so both features open the same way.
         items: [
           item('Traces by Operation', 'bi-bar-chart-steps', '/technologies/traces/operations'),
+          item('Traces by Attributes', 'bi-tags', '/technologies/traces/attributes'),
           item('Slowest Traces', 'bi-hourglass-split', '/technologies/traces'),
           item('Timeseries', 'bi-graph-up', '/technologies/traces/timeseries')
         ]
