@@ -97,6 +97,13 @@ export interface TraceSpanRow {
    * for an event that declares nothing of its own, a hand-written span being the usual case.
    */
   eventFields: string | null;
+  /**
+   * Whether the derivation synthesized this span out of a blocking JDK event (`jdk.SocketRead`,
+   * `jdk.JavaMonitorEnter`, ...) rather than reading it off an instrumented span event. A
+   * synthesized span carries a minted id and is always a leaf — what lets the waterfall style and
+   * filter promoted waits apart from recorded spans.
+   */
+  synthesized: boolean;
 }
 
 /**
@@ -182,6 +189,7 @@ export type TraceContextCategoryName =
   | 'FILE_IO'
   | 'ALLOCATION_STALL'
   | 'DEOPTIMIZATION'
+  | 'VT_PINNED'
   | 'OWN_WORK';
 
 /**

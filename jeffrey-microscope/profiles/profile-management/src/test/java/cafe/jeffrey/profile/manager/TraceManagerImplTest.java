@@ -108,7 +108,7 @@ class TraceManagerImplTest {
         return new TraceSpanRecord(
                 traceId, spanId, parentSpanId, name, "INTERNAL", "UNSET", null,
                 startMicros / MICROS_PER_MILLI, startMicros, durationNanos, selfDurationNanos,
-                threadHash, "worker", false, "jeffrey.TraceSpan", null, null);
+                threadHash, "worker", false, "jeffrey.TraceSpan", null, null, false);
     }
 
     /** A span carrying a self time of its own, in milliseconds like the rest of the fixture. */
@@ -123,6 +123,15 @@ class TraceManagerImplTest {
             long startMillis, long durationMs) {
         return microSpan(traceId, spanId, parentSpanId, name,
                 startMillis * MICROS_PER_MILLI, durationMs * MS, THREAD);
+    }
+
+    /** A leaf the derivation synthesized out of a blocking JDK event rather than read off a span event. */
+    private static TraceSpanRecord promotedSpan(long spanId, Long parentSpanId, String name,
+            String eventType, long startMillis, long durationMs) {
+        return new TraceSpanRecord(
+                TRACE, spanId, parentSpanId, name, "CLIENT", "UNSET", null,
+                startMillis, startMillis * MICROS_PER_MILLI, durationMs * MS, durationMs * MS,
+                THREAD, "worker", false, eventType, null, null, true);
     }
 
     private TraceManagerImpl managerOf(List<TraceSpanRecord> spans) {
@@ -154,6 +163,17 @@ class TraceManagerImplTest {
             assertEquals(List.of("root", "first-child", "grandchild", "second-child"),
                     spans.stream().map(TraceSpanRow::name).toList());
             assertEquals(List.of(0, 1, 2, 1), spans.stream().map(TraceSpanRow::depth).toList());
+        }
+
+        @Test
+        @DisplayName("carries the synthesized flag through to the row")
+        void carriesSynthesizedFlag() {
+            List<TraceSpanRow> spans = spansOf(List.of(
+                    span(1, null, "root", 0, 100),
+                    promotedSpan(2, 1L, "Socket read", "jdk.SocketRead", 10, 20)));
+
+            assertEquals(List.of(false, true),
+                    spans.stream().map(TraceSpanRow::synthesized).toList());
         }
 
         @Test
@@ -242,7 +262,7 @@ class TraceManagerImplTest {
             when(traceRepository.spansOf(TRACE)).thenReturn(List.of(new TraceSpanRecord(
                     TRACE, 1L, null, "root", "SERVER", "UNSET", null,
                     0, 0, WINDOW_MICROS * 1_000, WINDOW_MICROS * 1_000,
-                    THREAD, "main", false, "jeffrey.TraceSpan", null, null)));
+                    THREAD, "main", false, "jeffrey.TraceSpan", null, null, false)));
             when(traceRepository.pausesInWindow(anyLong(), anyLong())).thenReturn(List.of(pauses));
             lenient().when(traceRepository.spanContext(TRACE)).thenReturn(List.of());
             return new TraceManagerImpl(traceRepository).context(TRACE).summary();
@@ -252,6 +272,39 @@ class TraceManagerImplTest {
             return new TracePauseRecord(
                     TraceContextCategory.GC_PAUSE, "G1 Young",
                     startMicros, durationMicros * 1_000L, nested);
+        }
+
+        @Test
+        @DisplayName("promoted spans feed their category's slice")
+        void promotedSpansFeedTheSummary() {
+            // The promoted categories never arrive as waits any more -- the repository excludes
+            // them -- so the summary must rebuild their totals from the synthesized spans, or the
+            // panel would say a trace full of socket reads waited on nothing.
+            when(traceRepository.spansOf(TRACE)).thenReturn(List.of(
+                    new TraceSpanRecord(
+                            TRACE, 1L, null, "root", "SERVER", "UNSET", null,
+                            0, 0, WINDOW_MICROS * 1_000, WINDOW_MICROS * 1_000,
+                            THREAD, "main", false, "jeffrey.TraceSpan", null, null, false),
+                    promotedSpan(2, 1L, "Socket read", "jdk.SocketRead", 100, 100)));
+            when(traceRepository.pausesInWindow(anyLong(), anyLong())).thenReturn(List.of());
+            lenient().when(traceRepository.spanContext(TRACE)).thenReturn(List.of());
+
+            List<TraceContextSlice> summary =
+                    new TraceManagerImpl(traceRepository).context(TRACE).summary();
+
+            TraceContextSlice socket = summary.stream()
+                    .filter(slice -> TraceContextCategory.SOCKET_IO.name().equals(slice.category()))
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(100 * MS, socket.totalNanos());
+            assertEquals(1, socket.occurrences());
+
+            TraceContextSlice ownWork = summary.stream()
+                    .filter(slice -> TraceContextSlice.OWN_WORK.equals(slice.category()))
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(900 * MS, ownWork.totalNanos(),
+                    "the second of window minus the promoted socket read");
         }
 
         private static long totalOf(List<TraceContextSlice> summary, String category) {

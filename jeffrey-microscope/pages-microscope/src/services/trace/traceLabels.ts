@@ -18,7 +18,11 @@
 
 import type { NameSegment } from '@/services/metricName';
 import { parseGroupedName, parseQualifiedName, parseUriName } from '@/services/metricName';
-import type { SpanKind, TraceOperationId } from '@/services/api/model/trace/TraceModels';
+import type {
+  SpanKind,
+  TraceContextCategoryName,
+  TraceOperationId
+} from '@/services/api/model/trace/TraceModels';
 
 /**
  * How many spans failed, written the way a person would say it. Shared by the trace row and the
@@ -56,6 +60,12 @@ export const CONTEXT_CATEGORIES: Record<string, { label: string; color: string }
   FILE_IO: { label: 'File I/O', color: 'var(--chart-series-9)' },
   ALLOCATION_STALL: { label: 'Allocation stall', color: 'var(--flamegraph-color-orange)' },
   DEOPTIMIZATION: { label: 'Deoptimization', color: 'var(--flamegraph-color-peach)' },
+  /*
+   * Crimson-pink rather than another purple: a pin is usually *caused by* a monitor, but drawing it
+   * in the lock-wait purple would claim the two rows are the same wait, and the reader's fix — free
+   * the carrier — is different from the reader's fix for contention.
+   */
+  VT_PINNED: { label: 'VT pinned', color: 'var(--chart-series-4)' },
   OWN_WORK: { label: 'Own work', color: 'var(--flamegraph-color-green)' }
 };
 
@@ -76,8 +86,34 @@ const CONTEXT_EXPLAINING_ROUTES: Record<string, string> = {
   SOCKET_IO: 'profile-socket-io',
   FILE_IO: 'profile-file-io',
   ALLOCATION_STALL: 'profile-allocations',
-  DEOPTIMIZATION: 'profile-jit-deoptimizations'
+  DEOPTIMIZATION: 'profile-jit-deoptimizations',
+  VT_PINNED: 'profile-threads-timeline'
 };
+
+/**
+ * The context category a promoted blocking event belongs to, keyed by the JDK event type the
+ * derivation synthesized the span from. Must match the backend's `BlockingLeafSpans` promoted set —
+ * this is how a synthesized row borrows the category's colour, so a promoted Socket read bar, the
+ * Socket I/O legend button and the threads timeline keep saying the same thing the same way.
+ */
+const PROMOTED_CATEGORY_BY_EVENT_TYPE: Record<string, TraceContextCategoryName> = {
+  'jdk.SocketRead': 'SOCKET_IO',
+  'jdk.SocketWrite': 'SOCKET_IO',
+  'jdk.FileRead': 'FILE_IO',
+  'jdk.FileWrite': 'FILE_IO',
+  'jdk.FileForce': 'FILE_IO',
+  'jdk.JavaMonitorEnter': 'MONITOR_BLOCKED',
+  'jdk.JavaMonitorWait': 'MONITOR_WAIT',
+  'jdk.ThreadPark': 'PARKED',
+  'jdk.ThreadSleep': 'SLEEPING',
+  'jdk.ZAllocationStall': 'ALLOCATION_STALL',
+  'jdk.VirtualThreadPinned': 'VT_PINNED'
+};
+
+/** The category a synthesized span's event type maps to, or null for a non-promoted type. */
+export function promotedCategory(eventType: string): TraceContextCategoryName | null {
+  return PROMOTED_CATEGORY_BY_EVENT_TYPE[eventType] ?? null;
+}
 
 /** The route name of the view that explains a category, or null for one that has no such view. */
 export function contextExplainingRoute(category: string): string | null {

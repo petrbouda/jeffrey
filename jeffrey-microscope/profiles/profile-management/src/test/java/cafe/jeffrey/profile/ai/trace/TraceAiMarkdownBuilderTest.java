@@ -65,7 +65,7 @@ class TraceAiMarkdownBuilderTest {
         return new TraceSpanRow(
                 spanId, parentSpanId, name, kind, "UNSET", null,
                 startMillis, startMillis * 1_000L, durationMs * MS, selfMs * MS, criticalMs * MS,
-                depth, "3001", "http-1", false, "jeffrey.TraceSpan", null, null);
+                depth, "3001", "http-1", false, "jeffrey.TraceSpan", null, null, false);
     }
 
     private static TraceContext context() {
@@ -176,7 +176,7 @@ class TraceAiMarkdownBuilderTest {
             TraceSpanRow failing = new TraceSpanRow(
                     "05", "01", "chargePayment", "CLIENT", "ERROR", "TimeoutException",
                     335, 335_000L, 65 * MS, 65 * MS, 0, 1, "3001", "http-1", false,
-                    "jeffrey.TraceSpan", null, null);
+                    "jeffrey.TraceSpan", null, null, false);
             TraceDetail withError = new TraceDetail(
                     detail().trace(), List.of(failing), Map.of());
 

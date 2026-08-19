@@ -40,7 +40,8 @@ function row(spanId: string, depth: number): TraceSpanRow {
     isVirtual: false,
     eventType: 'jeffrey.TraceSpan',
     attributes: null,
-    eventFields: null
+    eventFields: null,
+    synthesized: false
   };
 }
 

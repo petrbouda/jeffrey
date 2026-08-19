@@ -1695,41 +1695,52 @@ class JdbcTraceRepositoryTest {
             assertEquals(SPAN_FROM_US + 100 * US_PER_MS, inside.fromEpochMicros());
         }
 
-        @Test
-        @DisplayName("per-span waiting is grouped by what the thread was waiting on")
-        void groupsSpanWaitsByCategory(DataSource dataSource) throws SQLException {
-            Map<TraceContextCategory, TraceSpanContextRecord> waits = waitsByCategory(withContext(dataSource));
-
-            assertEquals(30 * MS, waits.get(TraceContextCategory.MONITOR_BLOCKED).totalNanos());
-            assertEquals(20 * MS, waits.get(TraceContextCategory.PARKED).totalNanos());
+        private static List<TraceSpanRecord> promotedOf(JdbcTraceRepository repository) {
+            return repository.spansOf(CONTEXT_TRACE).stream()
+                    .filter(TraceSpanRecord::synthesized)
+                    .toList();
         }
 
         @Test
-        @DisplayName("waiting on another thread is not attributed to the span")
+        @DisplayName("promoted wait categories leave the context and become spans")
+        void promotedCategoriesBecomeSpans(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withContext(dataSource);
+
+            // The monitor and park waits are synthesized leaf spans now; counting them here too
+            // would say the same blocked microsecond twice.
+            assertTrue(waitsByCategory(repository).isEmpty(),
+                    "nothing but promoted categories waited in this trace");
+
+            Map<String, TraceSpanRecord> promoted = promotedOf(repository).stream()
+                    .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));
+            assertEquals(30 * MS, promoted.get("Lock wait").durationNanos());
+            assertEquals(20 * MS, promoted.get("Parked").durationNanos());
+        }
+
+        @Test
+        @DisplayName("waiting on another thread is not promoted into the span")
         void ignoresOtherThreads(DataSource dataSource) throws SQLException {
             // A 90ms monitor wait on thread 3002 overlaps the span in time but not on its thread.
-            Map<TraceContextCategory, TraceSpanContextRecord> waits = waitsByCategory(withContext(dataSource));
-
-            assertEquals(30 * MS, waits.get(TraceContextCategory.MONITOR_BLOCKED).totalNanos(),
-                    "only the wait on the span's own thread counts");
+            assertTrue(promotedOf(withContext(dataSource)).stream()
+                            .noneMatch(span -> span.durationNanos() == 90 * MS),
+                    "only a wait on the span's own thread becomes its child");
         }
 
         @Test
-        @DisplayName("waiting after the span ended is not attributed to it")
+        @DisplayName("waiting after the span ended is not promoted into it")
         void ignoresEventsOutsideTheSpan(DataSource dataSource) throws SQLException {
-            Map<TraceContextCategory, TraceSpanContextRecord> waits = waitsByCategory(withContext(dataSource));
-
-            assertEquals(20 * MS, waits.get(TraceContextCategory.PARKED).totalNanos(),
+            assertTrue(promotedOf(withContext(dataSource)).stream()
+                            .noneMatch(span -> span.durationNanos() == 10 * MS),
                     "the 10ms park 600ms later is outside the span's window");
         }
 
         @Test
-        @DisplayName("counts the events behind a total")
-        void countsOccurrences(DataSource dataSource) throws SQLException {
-            // One long stall and a thousand short ones sum the same and are not the same problem.
-            Map<TraceContextCategory, TraceSpanContextRecord> waits = waitsByCategory(withContext(dataSource));
+        @DisplayName("a promoted wait hangs under the span it began in")
+        void promotedWaitsCarryTheirParent(DataSource dataSource) throws SQLException {
+            List<TraceSpanRecord> promoted = promotedOf(withContext(dataSource));
 
-            assertEquals(1, waits.get(TraceContextCategory.MONITOR_BLOCKED).occurrences());
+            assertEquals(2, promoted.size(), "the 30ms monitor and the 20ms park");
+            assertTrue(promoted.stream().allMatch(span -> span.parentSpanId() == 501L));
         }
 
         @Test
@@ -1744,6 +1755,167 @@ class JdbcTraceRepositoryTest {
         void emptyWindow(DataSource dataSource) throws SQLException {
             assertTrue(withContext(dataSource)
                     .pausesInWindow(SPAN_FROM_US - 10_000_000L, SPAN_FROM_US - 9_000_000L).isEmpty());
+        }
+    }
+
+    @Nested
+    @DisplayName("Blocking span promotion")
+    class BlockingSpanPromotion {
+
+        private static final long BLOCKING_TRACE = 9100L;
+        private static final long PARENT_SPAN = 601L;
+        private static final long CHILD_SPAN = 602L;
+        /** The fixture's second hour: 2025-01-15T11:00:00Z as epoch millis. */
+        private static final long EPOCH_11_00_00 = EPOCH_10_00_00 + 3_600_000L;
+
+        private static JdbcTraceRepository withBlockingEvents(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-blocking-spans.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+            return repository;
+        }
+
+        private static List<TraceSpanRecord> promotedOf(JdbcTraceRepository repository) {
+            return repository.spansOf(BLOCKING_TRACE).stream()
+                    .filter(TraceSpanRecord::synthesized)
+                    .toList();
+        }
+
+        private static TraceSpanRecord spanOf(JdbcTraceRepository repository, long spanId) {
+            return repository.spansOf(BLOCKING_TRACE).stream()
+                    .filter(span -> span.spanId() == spanId)
+                    .findFirst()
+                    .orElseThrow();
+        }
+
+        @Test
+        @DisplayName("promotes a blocking event under the innermost enclosing span")
+        void promotesUnderTheInnermostSpan(DataSource dataSource) throws SQLException {
+            // The socket read began inside BOTH exportReport and loadRows on the same thread. The
+            // window join alone matches both; only the innermost pick keeps it a single leaf of the
+            // span that was actually waiting.
+            TraceSpanRecord socketRead = promotedOf(withBlockingEvents(dataSource)).stream()
+                    .filter(span -> "Socket read".equals(span.name()))
+                    .findFirst()
+                    .orElseThrow();
+
+            assertEquals(CHILD_SPAN, socketRead.parentSpanId());
+            assertEquals(50 * MS, socketRead.durationNanos());
+            assertEquals("CLIENT", socketRead.kind());
+            assertEquals("UNSET", socketRead.status());
+            assertEquals("jdk.SocketRead", socketRead.eventType());
+        }
+
+        @Test
+        @DisplayName("attributes waits around the child to the parent")
+        void attributesToTheParentAroundTheChild(DataSource dataSource) throws SQLException {
+            List<TraceSpanRecord> promoted = promotedOf(withBlockingEvents(dataSource));
+
+            TraceSpanRecord fileRead = promoted.stream()
+                    .filter(span -> span.durationNanos() == 30 * MS)
+                    .findFirst()
+                    .orElseThrow();
+            TraceSpanRecord parked = promoted.stream()
+                    .filter(span -> "Parked".equals(span.name()))
+                    .findFirst()
+                    .orElseThrow();
+
+            assertEquals(PARENT_SPAN, fileRead.parentSpanId(), "the read ran before the child began");
+            assertEquals(PARENT_SPAN, parked.parentSpanId(), "the park ran after the child ended");
+        }
+
+        @Test
+        @DisplayName("a wait recorded with no duration is promoted at zero length, not dropped")
+        void keepsANullDurationWait(DataSource dataSource) throws SQLException {
+            assertTrue(promotedOf(withBlockingEvents(dataSource)).stream()
+                            .anyMatch(span -> "File read".equals(span.name()) && span.durationNanos() == 0),
+                    "a wait of unknown length still deserves its row");
+        }
+
+        @Test
+        @DisplayName("an event outside every span, or on a spanless thread, is not promoted")
+        void leavesUnparentedEventsAlone(DataSource dataSource) throws SQLException {
+            List<TraceSpanRecord> promoted = promotedOf(withBlockingEvents(dataSource));
+
+            assertEquals(4, promoted.size(),
+                    "the socket read, both file reads and the park — not the late read, not the foreign monitor");
+            assertTrue(promoted.stream().noneMatch(span -> span.durationNanos() == 10 * MS),
+                    "the read after the trace ended has no span to hang on");
+            assertTrue(promoted.stream().noneMatch(span -> span.durationNanos() == 40 * MS),
+                    "the monitor blocked a thread this trace never ran on");
+        }
+
+        @Test
+        @DisplayName("minted ids collide with nothing and read as absent nowhere")
+        void mintsUsableSpanIds(DataSource dataSource) throws SQLException {
+            List<TraceSpanRecord> promoted = promotedOf(withBlockingEvents(dataSource));
+
+            assertEquals(4, promoted.stream().map(TraceSpanRecord::spanId).distinct().count());
+            assertTrue(promoted.stream().allMatch(span -> span.spanId() > 0),
+                    "minted in [1, 2^63-1]: never 0, the wire encoding for absent, and never negative");
+        }
+
+        @Test
+        @DisplayName("the trace header counts promoted spans like any others")
+        void countsPromotedSpansInTheHeader(DataSource dataSource) throws SQLException {
+            TraceSummaryRecord summary = withBlockingEvents(dataSource)
+                    .summaryOf(BLOCKING_TRACE)
+                    .orElseThrow();
+
+            assertEquals(6, summary.spanCount(), "two recorded spans and four promoted waits");
+        }
+
+        @Test
+        @DisplayName("a promoted wait comes out of its parent's self time")
+        void subtractsPromotedWaitsFromSelfTime(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withBlockingEvents(dataSource);
+
+            assertEquals(150 * MS, spanOf(repository, CHILD_SPAN).selfDurationNanos(),
+                    "200ms minus the 50ms socket read promoted into it");
+            assertEquals(150 * MS, spanOf(repository, PARENT_SPAN).selfDurationNanos(),
+                    "400ms minus the 200ms child and the 30ms read and 20ms park beside it");
+        }
+
+        @Test
+        @DisplayName("a promoted span carries the event's own payload, without the plumbing")
+        void stripsPlumbingFromEventFields(DataSource dataSource) throws SQLException {
+            TraceSpanRecord socketRead = promotedOf(withBlockingEvents(dataSource)).stream()
+                    .filter(span -> "Socket read".equals(span.name()))
+                    .findFirst()
+                    .orElseThrow();
+
+            assertNotNull(socketRead.eventFields());
+            assertTrue(socketRead.eventFields().contains("db-primary"), "the operation's own detail survives");
+            assertFalse(socketRead.eventFields().contains("startTime"), "JFR's plumbing keys do not");
+        }
+
+        @Test
+        @DisplayName("the drill-down leaves promoted events to the waterfall, and only those")
+        void drillDownExcludesPromotedEvents(DataSource dataSource) throws SQLException {
+            // The parent span's whole window on its thread. The socket read, file reads and park
+            // are child bars now; listing them here too would show every wait twice. The
+            // deoptimization is not promoted and must still be listed.
+            ThreadWindowEventsPage page = withBlockingEvents(dataSource)
+                    .eventsInSpan(3002L, EPOCH_11_00_00, EPOCH_11_00_00 + 400);
+
+            assertEquals(List.of("jdk.Deoptimization"), page.events().stream()
+                    .map(ThreadWindowEventRecord::eventType)
+                    .toList());
+        }
+
+        @Test
+        @DisplayName("span context attributes a remaining category to the innermost span only")
+        void spanContextAttributesInnermost(DataSource dataSource) throws SQLException {
+            // The deoptimization happened inside both spans' windows. Before the innermost pick,
+            // this query charged it to the child, the parent, and the summary's total all at once.
+            List<TraceSpanContextRecord> context = withBlockingEvents(dataSource)
+                    .spanContext(BLOCKING_TRACE);
+
+            assertEquals(1, context.size(), "one event, one row — not one row per enclosing span");
+            assertEquals(CHILD_SPAN, context.getFirst().spanId());
+            assertEquals(TraceContextCategory.DEOPTIMIZATION, context.getFirst().category());
+            assertEquals(1, context.getFirst().occurrences());
         }
     }
 

@@ -45,6 +45,7 @@ import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
 import cafe.jeffrey.provider.profile.api.TraceOperationThreadsRecord;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TracePage;
+import cafe.jeffrey.provider.profile.api.TraceContextCategory;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
@@ -243,6 +244,11 @@ public class TraceManagerImpl implements TraceManager {
      * runs inside its collection pause, so adding the two adds the same stopped microsecond twice.
      * The count stays a count of events, because "how many times" and "for how long" are different
      * questions and only the second one double-counts.
+     * <p>
+     * The categories the derivation promotes into synthesized leaf spans — I/O, locks, parks and
+     * the rest — no longer arrive as waits at all; their totals are rebuilt here from the
+     * synthesized spans themselves, so the panel's numbers and the waterfall's bars are one source
+     * of truth by construction.
      */
     private static List<TraceContextSlice> summarise(
             List<TraceSpanRecord> spans,
@@ -268,6 +274,16 @@ public class TraceManagerImpl implements TraceManager {
             long[] slot = totals.computeIfAbsent(wait.category().name(), _ -> new long[2]);
             slot[0] += wait.totalNanos();
             slot[1] += wait.occurrences();
+        }
+        for (TraceSpanRecord span : spans) {
+            if (!span.synthesized()) {
+                continue;
+            }
+            TraceContextCategory.fromEventType(span.eventType()).ifPresent(category -> {
+                long[] slot = totals.computeIfAbsent(category.name(), _ -> new long[2]);
+                slot[0] += span.durationNanos();
+                slot[1]++;
+            });
         }
 
         List<TraceContextSlice> slices = new ArrayList<>(totals.entrySet().stream()
@@ -763,7 +779,8 @@ public class TraceManagerImpl implements TraceManager {
                 span.isVirtual(),
                 span.eventType(),
                 span.attributes(),
-                span.eventFields());
+                span.eventFields(),
+                span.synthesized());
     }
 
     /**

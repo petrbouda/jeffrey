@@ -87,14 +87,22 @@ public enum TraceContextCategory {
     /** Network I/O the thread was waiting on. */
     SOCKET_IO(Scope.THREAD, EventTypeName.SOCKET_READ, EventTypeName.SOCKET_WRITE),
 
-    /** Disk I/O the thread was waiting on. */
-    FILE_IO(Scope.THREAD, EventTypeName.FILE_READ, EventTypeName.FILE_WRITE),
+    /** Disk I/O the thread was waiting on — reads, writes, and {@code force()}/fsync flushes. */
+    FILE_IO(Scope.THREAD, EventTypeName.FILE_READ, EventTypeName.FILE_WRITE, EventTypeName.FILE_FORCE),
 
     /** A ZGC allocation stall — the thread waiting for the collector to hand back memory. */
     ALLOCATION_STALL(Scope.THREAD, EventTypeName.Z_ALLOCATION_STALL),
 
     /** The thread dropped out of compiled code and back into the interpreter. */
-    DEOPTIMIZATION(Scope.THREAD, EventTypeName.DEOPTIMIZATION);
+    DEOPTIMIZATION(Scope.THREAD, EventTypeName.DEOPTIMIZATION),
+
+    /**
+     * A virtual thread pinned to its carrier while it should have unmounted — the wait that
+     * {@code jdk.ThreadPark} cannot see, because a parking virtual thread normally unmounts instead
+     * of parking the carrier. The complement matters: on virtual threads, a pin is where blocked
+     * time hides.
+     */
+    VT_PINNED(Scope.THREAD, EventTypeName.VIRTUAL_THREAD_PINNED);
 
     /** Whether a category stops the whole JVM or only the thread that recorded it. */
     public enum Scope {

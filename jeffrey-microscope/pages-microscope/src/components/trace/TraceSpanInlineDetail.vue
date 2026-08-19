@@ -34,6 +34,17 @@
         size="xs"
         :value="span.errorType ?? 'error'"
       />
+      <!--
+        A synthesized span says so up front: its bar came out of a JDK event, not out of anyone's
+        instrumentation, and a reader deciding where to add spans of their own needs the difference.
+      -->
+      <span
+        v-if="span.synthesized"
+        class="sd-promoted"
+        title="This span was synthesized from a JDK blocking event during analysis — nothing was instrumented"
+      >
+        <i class="bi bi-link-45deg"></i> promoted from {{ span.eventType }}
+      </span>
       <p class="sd-vitals">
         <strong>{{ FormattingService.formatDuration2Units(span.durationNanos) }}</strong>
       </p>
@@ -357,6 +368,19 @@ function percent(part: number, whole: number): string {
   align-items: center;
   gap: 0.45rem;
   flex-wrap: wrap;
+}
+
+/* Worn like a badge, muted like a footnote: provenance, not a state to react to. */
+.sd-promoted {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
 /*
