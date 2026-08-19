@@ -55,11 +55,11 @@ public class Lz4Compressor {
      * @throws IOException if compression fails
      */
     public Path compressAndMove(Path source) throws IOException {
-        String targetFilename = source.toString() + LZ4_EXTENSION;
+        Path target = source.resolveSibling(source.getFileName() + LZ4_EXTENSION);
         try (TempDirectory tempDir = tempDirFactory.newTempDir()) {
             Path tempFile = compressToDir(source, tempDir.path());
             compress(source, tempFile);
-            return Files.move(tempFile, Path.of(targetFilename), ATOMIC_MOVE, REPLACE_EXISTING);
+            return Files.move(tempFile, target, ATOMIC_MOVE, REPLACE_EXISTING);
         }
     }
 

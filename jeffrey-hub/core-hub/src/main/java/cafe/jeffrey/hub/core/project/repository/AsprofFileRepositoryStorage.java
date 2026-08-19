@@ -106,7 +106,9 @@ public class AsprofFileRepositoryStorage implements RepositoryStorage {
 
     private Path resolveWorkspacePath(RepositoryInfo repositoryInfo) {
         String workspacesPath = repositoryInfo.workspacesPath();
-        Path resolvedWorkspacesPath = workspacesPath == null ? workspacesDir : Path.of(workspacesPath);
+        Path resolvedWorkspacesPath = workspacesPath == null
+                ? workspacesDir
+                : workspacesDir.getFileSystem().getPath(workspacesPath);
         return resolvedWorkspacesPath
                 .resolve(repositoryInfo.relativeWorkspacePath());
     }

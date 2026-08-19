@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -193,8 +192,7 @@ public abstract class FileSystemUtils {
 
         try (Stream<Path> files = Files.walk(directory)) {
             files.sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(File::delete);
+                    .forEach(FileSystemUtils::delete);
         } catch (IOException e) {
             throw new RuntimeException("Cannot complete removing of a directory: " + directory, e);
         }
