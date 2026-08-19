@@ -19,8 +19,6 @@
 package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.provider.profile.api.TraceAttributeCondition;
-import cafe.jeffrey.provider.profile.api.TraceAttributeDifferenceQuery;
-import cafe.jeffrey.provider.profile.api.TraceAttributeDifferenceRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeLatencyRecord;
@@ -37,7 +35,6 @@ import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_TRACES;
@@ -317,80 +314,6 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
             ORDER BY 1, 2
             """;
 
-    /*
-     * What is different about the selection: every key/value ranked by how much more of the
-     * selection carries it than of the baseline.
-     *
-     * Exact rather than sampled -- a recording is a bounded population, so the shares are the real
-     * ones and the lift is arithmetic. Three guards keep the ranking honest, and each is a floor
-     * rather than a silent filter: keys too wide to mean anything are excluded by the catalog's own
-     * cardinality, a numeric key's values are bucketed by order of magnitude once it is wide enough
-     * that its raw values are per-trace, and a value has to appear in enough of the selection to be
-     * ranked at all -- without that last one, a value seen three times at 100% outranks everything
-     * real in the profile.
-     *
-     * A baseline share of zero is floored at one trace's worth rather than divided by, so a value
-     * unique to the selection ranks at the top instead of at infinity.
-     */
-    //language=SQL
-    private static final String DIFFERENCES = """
-            WITH selection AS (
-                SELECT trace_id FROM traces %s
-            ),
-            totals AS (
-                SELECT
-                    (SELECT COUNT(*) FROM selection)                             AS selection_total,
-                    (SELECT COUNT(*) FROM traces)
-                        - (SELECT COUNT(*) FROM selection)                       AS baseline_total
-            ),
-            candidates AS (
-                SELECT DISTINCT
-                    a.source                                                     AS source,
-                    a.owner                                                      AS owner,
-                    a.attr_key                                                   AS attr_key,
-                    CASE
-                        WHEN k.value_kind = 'NUMBER' AND k.distinct_values > :numeric_bucket_above
-                        THEN '>= ' || CAST(CAST(POW(10, FLOOR(LOG10(GREATEST(a.value_num, 1))))
-                                                AS BIGINT) AS VARCHAR)
-                        ELSE a.value_text
-                    END                                                          AS value_text,
-                    a.trace_id                                                   AS trace_id,
-                    a.trace_id IN (SELECT trace_id FROM selection)                AS in_selection
-                FROM trace_span_attributes a
-                JOIN trace_attribute_keys k
-                  ON k.source = a.source
-                 AND k.attr_key = a.attr_key
-                 AND (k.owner = a.owner OR (k.owner IS NULL AND a.owner IS NULL))
-                WHERE k.distinct_values <= :max_distinct_values
-            )
-            SELECT
-                c.source                                                         AS source,
-                c.owner                                                          AS owner,
-                c.attr_key                                                       AS attr_key,
-                c.value_text                                                     AS value,
-                COUNT(*) FILTER (WHERE c.in_selection)                           AS selection_traces,
-                COUNT(*) FILTER (WHERE NOT c.in_selection)                       AS baseline_traces,
-                (COUNT(*) FILTER (WHERE c.in_selection) * 1.0 / NULLIF(t.selection_total, 0))
-                    / GREATEST(COUNT(*) FILTER (WHERE NOT c.in_selection) * 1.0
-                                   / NULLIF(t.baseline_total, 0),
-                               1.0 / NULLIF(t.baseline_total, 0))                AS lift
-            FROM candidates c, totals t
-            GROUP BY c.source, c.owner, c.attr_key, c.value_text,
-                     t.selection_total, t.baseline_total
-            HAVING COUNT(*) FILTER (WHERE c.in_selection) >= :min_selection_traces
-               AND lift >= :min_lift
-            ORDER BY lift DESC, selection_traces DESC, attr_key
-                LIMIT :limit
-            """;
-
-    //language=SQL
-    private static final String SELECTION_TOTALS = """
-            SELECT
-                COUNT(*) FILTER (%s)                                AS selection_traces,
-                COUNT(*) FILTER (%s)                                AS baseline_traces
-            FROM traces
-            """;
-
     /**
      * The narrowest and widest half-decade the heatmap draws: 100&nbsp;µs and 3.16&nbsp;s. Traces
      * outside them are clamped into the end buckets rather than dropped, so the grid still accounts
@@ -580,64 +503,6 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
                         rs.getString("value"),
                         rs.getInt("bucket"),
                         rs.getLong("trace_count")));
-    }
-
-    @Override
-    public Differences differences(TraceAttributeDifferenceQuery query) {
-        String selection = selectionPredicate(query);
-        MapSqlParameterSource totalParams = new MapSqlParameterSource();
-
-        long[] totals = databaseClient.querySingle(
-                        StatementLabel.TRACE_ATTRIBUTE_DIFFERENCES,
-                        SELECTION_TOTALS.formatted("WHERE " + selection, "WHERE NOT (" + selection + ")"),
-                        totalParams,
-                        (rs, _) -> new long[]{rs.getLong("selection_traces"), rs.getLong("baseline_traces")})
-                .orElse(new long[]{0, 0});
-        if (totals[0] == 0 || totals[1] == 0) {
-            // One side empty is not a ranking: every value of the profile would sit at the same lift,
-            // or at none at all. Said as an empty result rather than as a list of ones.
-            return new Differences(List.of(), totals[0], totals[1]);
-        }
-
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("numeric_bucket_above", query.numericBucketAbove())
-                .addValue("max_distinct_values", query.maxDistinctValues())
-                .addValue("min_selection_traces", query.minSelectionTraces())
-                .addValue("min_lift", query.minLift())
-                .addValue("limit", query.limit());
-
-        List<TraceAttributeDifferenceRecord> differences = databaseClient.query(
-                StatementLabel.TRACE_ATTRIBUTE_DIFFERENCES,
-                DIFFERENCES.formatted("WHERE " + selection),
-                params,
-                (rs, _) -> new TraceAttributeDifferenceRecord(
-                        new TraceAttributeKeyId(
-                                TraceAttributeSource.valueOf(rs.getString("source")),
-                                rs.getString("owner"),
-                                rs.getString("attr_key")),
-                        rs.getString("value"),
-                        rs.getLong("selection_traces"),
-                        rs.getLong("baseline_traces"),
-                        rs.getDouble("lift")));
-
-        return new Differences(differences, totals[0], totals[1]);
-    }
-
-    /**
-     * What puts a trace in the selection. Spelled into the SQL rather than bound because it is
-     * built from a boolean and a number this class validated, and because the same fragment has to
-     * be negated for the baseline — a negated bound predicate is where an unmatched NULL quietly
-     * lands in neither half.
-     */
-    private static String selectionPredicate(TraceAttributeDifferenceQuery query) {
-        List<String> predicates = new ArrayList<>(2);
-        if (query.minDurationNanos() > 0) {
-            predicates.add("duration >= " + query.minDurationNanos());
-        }
-        if (query.errorsOnly()) {
-            predicates.add("error_count > 0");
-        }
-        return predicates.isEmpty() ? "FALSE" : String.join(" AND ", predicates);
     }
 
     private static MapSqlParameterSource keyParams(TraceAttributeKeyId key) {

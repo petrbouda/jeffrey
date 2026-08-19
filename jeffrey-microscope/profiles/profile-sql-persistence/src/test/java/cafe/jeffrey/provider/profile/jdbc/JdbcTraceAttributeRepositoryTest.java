@@ -19,8 +19,6 @@
 package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.provider.profile.api.TraceAttributeCondition;
-import cafe.jeffrey.provider.profile.api.TraceAttributeDifferenceQuery;
-import cafe.jeffrey.provider.profile.api.TraceAttributeDifferenceRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeLatencyRecord;
@@ -360,77 +358,6 @@ class JdbcTraceAttributeRepositoryTest {
             List<TraceAttributeLatencyRecord> cells = derived(dataSource).latency(SHAPE_EVENT_TYPE, 1);
 
             assertEquals(1, cells.stream().map(TraceAttributeLatencyRecord::value).distinct().count());
-        }
-    }
-
-    @Nested
-    @DisplayName("Differences")
-    class Differences {
-
-        /**
-         * Above the fast trace and below the slow one, so the selection is exactly one of the two.
-         * Duration rather than failure: both traces of the fixture carry a failed span — the
-         * hand-written one in the slow trace, the exchange in the fast one — so "errors only" would
-         * select the whole profile and leave nothing to compare it against.
-         */
-        private static final long SLOW_ENOUGH_NANOS = 100_000_000L;
-
-        private static TraceAttributeDifferenceQuery selection(long minDurationNanos) {
-            // A floor of one, unlike the controller's three: the fixture has two traces, and the real
-            // floor exists to stop a value seen three times outranking everything in a real profile.
-            return new TraceAttributeDifferenceQuery(minDurationNanos, false, 1, 1.2, 500, 12, 25);
-        }
-
-        @Test
-        @DisplayName("what only the slow trace carries ranks above what both carry")
-        void slowTraceStandsOut(DataSource dataSource) throws SQLException {
-            TraceAttributeRepository.Differences differences =
-                    derived(dataSource).differences(selection(SLOW_ENOUGH_NANOS));
-
-            assertEquals(1, differences.selectionTraces());
-            assertEquals(1, differences.baselineTraces());
-            assertFalse(differences.differences().isEmpty());
-
-            TraceAttributeDifferenceRecord top = differences.differences().getFirst();
-            assertEquals(1, top.selectionTraces());
-            assertEquals(0, top.baselineTraces(),
-                    "the strongest difference is something the rest of the profile never carried");
-            assertTrue(top.lift() > 1.2);
-        }
-
-        @Test
-        @DisplayName("a selection matching nothing ranks nothing")
-        void emptySelection(DataSource dataSource) throws SQLException {
-            TraceAttributeRepository.Differences differences =
-                    derived(dataSource).differences(selection(Long.MAX_VALUE));
-
-            assertEquals(0, differences.selectionTraces());
-            assertTrue(differences.differences().isEmpty(),
-                    "with one side empty every value sits at the same lift, which ranks nothing");
-        }
-
-        @Test
-        @DisplayName("a selection holding everything ranks nothing")
-        void emptyBaseline(DataSource dataSource) throws SQLException {
-            TraceAttributeRepository.Differences differences =
-                    derived(dataSource).differences(selection(1));
-
-            assertEquals(TRACES, differences.selectionTraces());
-            assertEquals(0, differences.baselineTraces());
-            assertTrue(differences.differences().isEmpty());
-        }
-
-        @Test
-        @DisplayName("every ranked value names the key it belongs to")
-        void differencesCarryTheirKey(DataSource dataSource) throws SQLException {
-            TraceAttributeRepository.Differences differences =
-                    derived(dataSource).differences(selection(SLOW_ENOUGH_NANOS));
-
-            for (TraceAttributeDifferenceRecord difference : differences.differences()) {
-                assertNotNull(difference.key());
-                assertNotNull(difference.key().source());
-                assertFalse(difference.value().isBlank());
-            }
         }
     }
 }

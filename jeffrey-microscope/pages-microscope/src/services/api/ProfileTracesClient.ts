@@ -21,7 +21,6 @@ import FlamegraphPanel from '@/services/api/model/FlamegraphPanel';
 import {
   encodeCondition,
   type TraceAttributeConditionModel,
-  type TraceAttributeDifferences,
   type TraceAttributeKeyId,
   type TraceAttributeKeyRow,
   type TraceAttributeLatency,
@@ -227,17 +226,6 @@ export default class ProfileTracesClient extends BaseProfileClient {
       ...(maxValues === undefined ? {} : { maxValues })
     });
   }
-
-  /** Every key/value ranked by how much more common it is inside the selection than outside it. */
-  public getAttributeDifferences(
-    selection: AttributeSelection
-  ): Promise<TraceAttributeDifferences> {
-    return this.get<TraceAttributeDifferences>('/attributes/differences', {
-      minDurationNanos: selection.minDurationNanos,
-      errorsOnly: selection.errorsOnly,
-      ...(selection.limit === undefined ? {} : { limit: selection.limit })
-    });
-  }
 }
 
 /**
@@ -263,13 +251,6 @@ export interface AttributeSearchQuery {
   desc?: boolean;
   limit?: number;
   offset?: number;
-}
-
-/** Which traces the difference ranking treats as the selection; everything else is the baseline. */
-export interface AttributeSelection {
-  minDurationNanos: number;
-  errorsOnly: boolean;
-  limit?: number;
 }
 
 function searchParams(query: AttributeSearchQuery): Record<string, unknown> {

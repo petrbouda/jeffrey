@@ -24,6 +24,7 @@ import cafe.jeffrey.provider.profile.api.EventWriter;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.provider.profile.api.RecordingEventParser;
 import cafe.jeffrey.provider.profile.api.RecordingEventParserResolver;
+import cafe.jeffrey.provider.profile.api.TraceAttributeRepository;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.persistence.DatabaseLease;
@@ -84,6 +85,9 @@ class ProfileInitializerImplTest {
     TraceRepository traceRepository;
 
     @Mock
+    TraceAttributeRepository traceAttributeRepository;
+
+    @Mock
     EventWriter eventWriter;
 
     @Mock
@@ -98,6 +102,8 @@ class ProfileInitializerImplTest {
         when(eventWriterFactory.create(any(), any())).thenReturn(eventWriter);
         when(recordingEventParserResolver.resolve(any())).thenReturn(recordingEventParser);
         when(profileRepositories.newTraceRepository(dataSource)).thenReturn(traceRepository);
+        when(profileRepositories.newTraceAttributeRepository(dataSource))
+                .thenReturn(traceAttributeRepository);
 
         // The re-cluster and checkpoint steps at the tail run through the infrastructure client.
         DatabaseClientProvider clientProvider = mock(DatabaseClientProvider.class);
@@ -124,9 +130,12 @@ class ProfileInitializerImplTest {
 
         // Before the writer completes there is nothing to derive from; after the data initializer
         // the pre-computed views would have been built against tables that were still empty.
-        InOrder inOrder = inOrder(eventWriter, traceRepository, profileDataInitializer);
+        // The attribute index reads trace_spans, so it derives strictly after the spans do.
+        InOrder inOrder =
+                inOrder(eventWriter, traceRepository, traceAttributeRepository, profileDataInitializer);
         inOrder.verify(eventWriter).onComplete();
         inOrder.verify(traceRepository).derive();
+        inOrder.verify(traceAttributeRepository).derive();
         inOrder.verify(profileDataInitializer).initialize(any());
     }
 }

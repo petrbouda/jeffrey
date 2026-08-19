@@ -92,15 +92,6 @@ public interface TraceAttributeRepository {
     List<TraceAttributeLatencyRecord> latency(TraceAttributeKeyId key, int maxValues);
 
     /**
-     * Every key/value in the profile, ranked by how much more common it is inside the selection than
-     * outside it.
-     * <p>
-     * Exact rather than estimated: a recording is a bounded population, so these are the real counts
-     * of the real traces, and the lift is arithmetic rather than inference.
-     */
-    Differences differences(TraceAttributeDifferenceQuery query);
-
-    /**
      * A page of matched traces, the spans that matched them, and what the whole match set looks like.
      *
      * @param traces the page's traces, ordered as the query asked
@@ -164,20 +155,5 @@ public interface TraceAttributeRepository {
     record Values(List<TraceAttributeValueRecord> values, long tracesWithoutKey) {
 
         public static final Values EMPTY = new Values(List.of(), 0);
-    }
-
-    /**
-     * What is different about the selection.
-     *
-     * @param differences     the ranked values
-     * @param selectionTraces how many traces the selection holds
-     * @param baselineTraces  how many it does not — the two together are the profile
-     */
-    record Differences(
-            List<TraceAttributeDifferenceRecord> differences,
-            long selectionTraces,
-            long baselineTraces) {
-
-        public static final Differences EMPTY = new Differences(List.of(), 0, 0);
     }
 }

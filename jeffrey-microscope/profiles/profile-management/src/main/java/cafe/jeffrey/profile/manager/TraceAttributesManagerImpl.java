@@ -18,14 +18,12 @@
 
 package cafe.jeffrey.profile.manager;
 
-import cafe.jeffrey.profile.manager.model.trace.TraceAttributeDifferences;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeKeyRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeLatency;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeSearchResult;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeTimelineBucket;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeValues;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
-import cafe.jeffrey.provider.profile.api.TraceAttributeDifferenceQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeRepository;
@@ -165,30 +163,6 @@ public class TraceAttributesManagerImpl implements TraceAttributesManager {
         return new TraceAttributeLatency(cells, min, max);
     }
 
-    @Override
-    public TraceAttributeDifferences differences(TraceAttributeDifferenceQuery query) {
-        TraceAttributeRepository.Differences differences = repository.differences(query);
-
-        double selectionTotal = differences.selectionTraces();
-        double baselineTotal = differences.baselineTraces();
-
-        List<TraceAttributeDifferences.Row> rows = differences.differences().stream()
-                .map(difference -> new TraceAttributeDifferences.Row(
-                        difference.key().source().name(),
-                        difference.key().owner(),
-                        difference.key().key(),
-                        difference.value(),
-                        difference.selectionTraces(),
-                        difference.baselineTraces(),
-                        share(difference.selectionTraces(), selectionTotal),
-                        share(difference.baselineTraces(), baselineTotal),
-                        difference.lift()))
-                .toList();
-
-        return new TraceAttributeDifferences(
-                rows, differences.selectionTraces(), differences.baselineTraces());
-    }
-
     /**
      * The key's true cardinality, read from the catalog.
      * <p>
@@ -201,10 +175,6 @@ public class TraceAttributesManagerImpl implements TraceAttributesManager {
                 .mapToLong(TraceAttributeKeyRecord::distinctValues)
                 .findFirst()
                 .orElse(0L);
-    }
-
-    private static double share(long count, double total) {
-        return total == 0 ? 0 : count / total;
     }
 
     private static TraceAttributeKeyRow toRow(TraceAttributeKeyRecord key) {

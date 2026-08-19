@@ -70,7 +70,7 @@
         </template>
 
         <!-- 02 and 03 — one key, broken down and then distributed -->
-        <template v-else-if="mode === 'values' || mode === 'latency'">
+        <template v-else>
           <EmptyState
             v-if="selectedKey === null"
             icon="bi-tag"
@@ -100,24 +100,6 @@
           </template>
         </template>
 
-        <!-- 04 — no theory yet: rank every key/value by how much it stands out -->
-        <template v-else>
-          <LoadingState v-if="differencesLoading" message="Comparing traces..." />
-
-          <ErrorState
-            v-else-if="differencesError"
-            :message="differencesError"
-            @retry="loadDifferences"
-          />
-
-          <TraceAttributeDifferences
-            v-else-if="differences"
-            :differences="differences"
-            :selection="selection"
-            @select="applySelection"
-            @filter="filterByDifference"
-          />
-        </template>
       </div>
     </div>
   </div>
@@ -134,8 +116,6 @@ import LoadingState from '@shared/components/LoadingState.vue';
 import TabBar, { type TabBarItem } from '@shared/components/TabBar.vue';
 import TracesDisabledFeatureAlert from '@/components/alerts/TracesDisabledFeatureAlert.vue';
 import TraceAttributeCatalog from '@/components/trace/TraceAttributeCatalog.vue';
-import TraceAttributeDifferences from '@/components/trace/TraceAttributeDifferences.vue';
-import type { DifferenceSelection } from '@/components/trace/TraceAttributeDifferences.vue';
 import TraceAttributeLatency from '@/components/trace/TraceAttributeLatency.vue';
 import TraceAttributeResults from '@/components/trace/TraceAttributeResults.vue';
 import TraceAttributeSearchBar from '@/components/trace/TraceAttributeSearchBar.vue';
@@ -146,8 +126,6 @@ import {
   encodeCondition,
   keyLabel,
   type TraceAttributeConditionModel,
-  type TraceAttributeDifferenceRow,
-  type TraceAttributeDifferences as Differences,
   type TraceAttributeKeyId,
   type TraceAttributeKeyRow,
   type TraceAttributeLatency as Latency,
@@ -162,7 +140,10 @@ import {
 import type { TraceRow } from '@/services/api/model/trace/TraceModels';
 import FeatureType from '@/services/api/model/FeatureType';
 
-type Mode = 'search' | 'values' | 'latency' | 'differences';
+type Mode = 'search' | 'values' | 'latency';
+
+/** The views the workspace has. Anything else in the URL is a stale link and opens on Search. */
+const MODES = new Set<string>(['search', 'values', 'latency']);
 
 // Resolved by ProfileDetail's router-view before this view is rendered, like every other
 // technology page.
@@ -175,7 +156,6 @@ const client = new ProfileTracesClient(profileId);
 
 /** A page of matches; the load-more button asks for another. */
 const PAGE_SIZE = 50;
-const DEFAULT_SELECTION: DifferenceSelection = { minDurationNanos: 500_000_000, errorsOnly: false };
 
 const featureDisabled = computed(() => props.disabledFeatures.includes(FeatureType.TRACES));
 
@@ -196,10 +176,6 @@ const values = ref<Values | null>(null);
 const latency = ref<Latency | null>(null);
 const valueSort = ref<TraceAttributeValueSortField>('TOTAL_TIME');
 
-const differencesLoading = ref(false);
-const differencesError = ref<string | null>(null);
-const differences = ref<Differences | null>(null);
-
 /*
  * Everything that decides what is on screen lives in the URL: the mode, the conditions, the scope
  * and the selected key. A filter is then a link — "the failed traces of this tenant" is something to
@@ -207,7 +183,10 @@ const differences = ref<Differences | null>(null);
  * through the investigation instead of off the page.
  */
 const mode = computed<Mode>({
-  get: () => ((route.query.view as Mode | undefined) ?? 'search') as Mode,
+  get: () => {
+    const view = route.query.view;
+    return typeof view === 'string' && MODES.has(view) ? (view as Mode) : 'search';
+  },
   set: view => {
     router.push({ query: { ...route.query, view } });
   }
@@ -238,15 +217,6 @@ const selectedKey = computed<TraceAttributeKeyId | null>(() => {
   };
 });
 
-const selection = computed<DifferenceSelection>(() => {
-  const minDurationNanos = Number(route.query.minDurationNanos ?? 0);
-  const errorsOnly = route.query.errorsOnly === 'true';
-  if (minDurationNanos <= 0 && !errorsOnly) {
-    return DEFAULT_SELECTION;
-  }
-  return { minDurationNanos, errorsOnly };
-});
-
 const tabs = computed<TabBarItem[]>(() => [
   { id: 'search', label: 'Search', icon: 'search' },
   {
@@ -260,8 +230,7 @@ const tabs = computed<TabBarItem[]>(() => [
     label: 'Latency',
     icon: 'grid-3x3',
     disabled: selectedKey.value === null
-  },
-  { id: 'differences', label: "What's different?", icon: 'bar-chart-steps' }
+  }
 ]);
 
 function openKey(key: TraceAttributeKeyRow): void {
@@ -302,17 +271,6 @@ function applyValueSort(field: TraceAttributeValueSortField): void {
   loadKey();
 }
 
-function applySelection(next: DifferenceSelection): void {
-  router.push({
-    query: {
-      ...route.query,
-      view: 'differences',
-      minDurationNanos: String(next.minDurationNanos),
-      errorsOnly: String(next.errorsOnly)
-    }
-  });
-}
-
 /** Turns a row of one of the breakdowns into the search that produced it. */
 function filterByValue(row: TraceAttributeValueRow): void {
   const key = selectedKey.value;
@@ -320,13 +278,6 @@ function filterByValue(row: TraceAttributeValueRow): void {
     return;
   }
   applyConditions([...conditions.value, { ...key, operator: 'EQ', value: row.value }]);
-}
-
-function filterByDifference(row: TraceAttributeDifferenceRow): void {
-  applyConditions([
-    ...conditions.value,
-    { source: row.source, owner: row.owner, key: row.key, operator: 'EQ', value: row.value }
-  ]);
 }
 
 function openTrace(trace: TraceRow): void {
@@ -421,26 +372,9 @@ async function loadKey(): Promise<void> {
   }
 }
 
-async function loadDifferences(): Promise<void> {
-  differencesLoading.value = true;
-  differencesError.value = null;
-  try {
-    differences.value = await client.getAttributeDifferences(selection.value);
-  } catch (e: unknown) {
-    console.error('Failed to rank attribute differences:', e);
-    differencesError.value = 'Failed to compare these traces. Please try again.';
-  } finally {
-    differencesLoading.value = false;
-  }
-}
-
 /** What the current URL needs loaded. Every navigation goes through here, including Back. */
 function loadForRoute(): void {
   if (featureDisabled.value || loading.value) {
-    return;
-  }
-  if (mode.value === 'differences') {
-    loadDifferences();
     return;
   }
   if (mode.value === 'values' || mode.value === 'latency') {
@@ -456,9 +390,7 @@ watch(
     route.query.where,
     route.query.scope,
     route.query.key,
-    route.query.owner,
-    route.query.minDurationNanos,
-    route.query.errorsOnly
+    route.query.owner
   ],
   () => loadForRoute()
 );

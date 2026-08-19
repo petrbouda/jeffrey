@@ -146,25 +146,6 @@ export interface TraceAttributeLatency {
   maxBucket: number;
 }
 
-export interface TraceAttributeDifferenceRow {
-  source: TraceAttributeSource;
-  owner: string | null;
-  key: string;
-  value: string;
-  selectionTraces: number;
-  baselineTraces: number;
-  /** Shares as fractions of each side's total, so the row can be drawn without knowing the totals. */
-  selectionShare: number;
-  baselineShare: number;
-  lift: number;
-}
-
-export interface TraceAttributeDifferences {
-  differences: TraceAttributeDifferenceRow[];
-  selectionTraces: number;
-  baselineTraces: number;
-}
-
 /** The nanosecond lower bound of a latency bucket — see {@link TraceAttributeLatencyCell.bucket}. */
 export function bucketLowerNanos(bucket: number): number {
   return Math.pow(10, bucket / 2);

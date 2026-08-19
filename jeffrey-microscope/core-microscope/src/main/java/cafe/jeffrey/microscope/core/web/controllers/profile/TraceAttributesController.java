@@ -20,14 +20,12 @@ package cafe.jeffrey.microscope.core.web.controllers.profile;
 
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.TraceAttributesManager;
-import cafe.jeffrey.profile.manager.model.trace.TraceAttributeDifferences;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeKeyRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeLatency;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeSearchResult;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeTimelineBucket;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeValues;
 import cafe.jeffrey.provider.profile.api.TraceAttributeCondition;
-import cafe.jeffrey.provider.profile.api.TraceAttributeDifferenceQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
 import cafe.jeffrey.provider.profile.api.TraceAttributeOperator;
 import cafe.jeffrey.provider.profile.api.TraceAttributeScope;
@@ -48,8 +46,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Serves the Traces by Attributes views: the key catalog, a search over what spans recorded, one
- * key's values broken down and distributed, and what is different about a selection of traces.
+ * Serves the Traces by Attributes views: the key catalog, a search over what spans recorded, and one
+ * key's values broken down and distributed.
  * <p>
  * Sits alongside {@link TracesController} rather than inside it: every path here has a literal first
  * segment, so none of them can be mistaken for that controller's {@code /{traceId}} template, and
@@ -78,7 +76,6 @@ public class TraceAttributesController {
 
     private static final String DEFAULT_SEARCH_LIMIT = "50";
     private static final String DEFAULT_VALUES_LIMIT = "50";
-    private static final String DEFAULT_DIFFERENCES_LIMIT = "25";
     /** Enough rows to see a distribution's shape, few enough that the grid stays readable. */
     private static final String DEFAULT_LATENCY_VALUES = "12";
     private static final int MAX_LATENCY_VALUES = 40;
@@ -91,16 +88,6 @@ public class TraceAttributesController {
     private static final String DEFAULT_SCOPE = "TRACE";
     /** Total time, not call count: a busy value and an expensive value are rarely the same value. */
     private static final String DEFAULT_VALUES_SORT = "TOTAL_TIME";
-
-    /**
-     * The guards on the difference ranking, fixed here rather than exposed as parameters. They are
-     * what separates a finding from a coincidence, and a caller lowering them would only ever be
-     * lowering them to get more rows.
-     */
-    private static final int MIN_SELECTION_TRACES = 3;
-    private static final double MIN_LIFT = 1.2;
-    private static final long MAX_DISTINCT_VALUES = 500;
-    private static final long NUMERIC_BUCKET_ABOVE = 12;
 
     private final ProfileManagerResolver resolver;
 
@@ -199,38 +186,6 @@ public class TraceAttributesController {
 
         return manager(profileId)
                 .latency(keyId(source, owner, key), Math.clamp(maxValues, 1, MAX_LATENCY_VALUES));
-    }
-
-    /**
-     * What is different about the selected traces.
-     * <p>
-     * The selection is a property of the trace — how slow, whether it failed — rather than an
-     * attribute filter, because this is the screen for when there is no theory yet, and starting
-     * from an attribute would assume the answer.
-     */
-    @GetMapping("/differences")
-    public TraceAttributeDifferences differences(
-            @PathVariable("profileId") String profileId,
-            @RequestParam(value = "minDurationNanos", defaultValue = "0") long minDurationNanos,
-            @RequestParam(value = "errorsOnly", defaultValue = "false") boolean errorsOnly,
-            @RequestParam(value = "limit", defaultValue = DEFAULT_DIFFERENCES_LIMIT) int limit) {
-
-        LOG.debug("Ranking attribute differences: profile_id={} min_duration_ns={} errors_only={}",
-                profileId, minDurationNanos, errorsOnly);
-
-        if (minDurationNanos <= 0 && !errorsOnly) {
-            throw Exceptions.invalidRequest(
-                    "A selection is required: give a minimum duration, or ask for the failed traces");
-        }
-
-        return manager(profileId).differences(new TraceAttributeDifferenceQuery(
-                Math.max(0, minDurationNanos),
-                errorsOnly,
-                MIN_SELECTION_TRACES,
-                MIN_LIFT,
-                MAX_DISTINCT_VALUES,
-                NUMERIC_BUCKET_ABOVE,
-                boundedLimit(limit)));
     }
 
     /**

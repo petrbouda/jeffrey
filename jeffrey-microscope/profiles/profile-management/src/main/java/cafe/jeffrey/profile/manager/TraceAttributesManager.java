@@ -18,13 +18,11 @@
 
 package cafe.jeffrey.profile.manager;
 
-import cafe.jeffrey.profile.manager.model.trace.TraceAttributeDifferences;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeKeyRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeLatency;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeSearchResult;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeTimelineBucket;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeValues;
-import cafe.jeffrey.provider.profile.api.TraceAttributeDifferenceQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
 import cafe.jeffrey.provider.profile.api.TraceAttributeSearchQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueQuery;
@@ -34,8 +32,8 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * Reads the key/value payload of a profile's spans as dimensions the trace views can query, break
- * down and compare.
+ * Reads the key/value payload of a profile's spans as dimensions the trace views can query and
+ * break down.
  * <p>
  * A span carries two of them — the open map a developer attached at the call site, and the fields
  * the event type declares about itself — and both were, until this existed, readable only one span
@@ -48,9 +46,8 @@ public interface TraceAttributesManager {
      * How many values a key may have before it is treated as search-only.
      * <p>
      * The guard the whole feature leans on. A {@code user.id} attribute on sixty thousand spans is
-     * legitimate instrumentation, and every breakdown of it — a facet list, a heatmap axis, a place
-     * in the difference ranking — is eighteen thousand rows of one trace each, which is noise
-     * wearing the shape of an answer.
+     * legitimate instrumentation, and every breakdown of it — a facet list, a heatmap axis — is
+     * eighteen thousand rows of one trace each, which is noise wearing the shape of an answer.
      */
     long SEARCH_ONLY_ABOVE = 200;
 
@@ -95,10 +92,4 @@ public interface TraceAttributesManager {
      * @param maxValues how many of the key's values to cover, most-carried first
      */
     TraceAttributeLatency latency(TraceAttributeKeyId key, int maxValues);
-
-    /**
-     * Every key/value ranked by how much more common it is inside the selection than outside it —
-     * the screen for when there are slow traces and no theory about them.
-     */
-    TraceAttributeDifferences differences(TraceAttributeDifferenceQuery query);
 }

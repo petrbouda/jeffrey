@@ -18,12 +18,9 @@
 
 package cafe.jeffrey.profile.manager;
 
-import cafe.jeffrey.profile.manager.model.trace.TraceAttributeDifferences;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeKeyRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeSearchResult;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeValues;
-import cafe.jeffrey.provider.profile.api.TraceAttributeDifferenceQuery;
-import cafe.jeffrey.provider.profile.api.TraceAttributeDifferenceRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeRepository;
@@ -216,42 +213,6 @@ class TraceAttributesManagerImplTest {
 
             assertFalse(manager().values(new TraceAttributeValueQuery(
                     TENANT, TraceAttributeValueSortField.TOTAL_TIME, true, 50)).truncated());
-        }
-    }
-
-    @Nested
-    @DisplayName("Differences")
-    class Differences {
-
-        private static final TraceAttributeDifferenceQuery QUERY =
-                new TraceAttributeDifferenceQuery(500 * MS, false, 3, 1.2, 500, 12, 25);
-
-        @Test
-        @DisplayName("each side's count becomes a share of its own total")
-        void sharesAreOfTheirOwnSide() {
-            when(repository.differences(any())).thenReturn(new TraceAttributeRepository.Differences(
-                    List.of(new TraceAttributeDifferenceRecord(TENANT, "acme", 40, 25, 8.0)),
-                    50,
-                    500));
-
-            TraceAttributeDifferences differences = manager().differences(QUERY);
-
-            TraceAttributeDifferences.Row row = differences.differences().getFirst();
-            assertEquals(0.8, row.selectionShare(), 1e-9, "40 of the selection's 50");
-            assertEquals(0.05, row.baselineShare(), 1e-9, "25 of the baseline's 500");
-            assertEquals(8.0, row.lift(), 1e-9);
-        }
-
-        @Test
-        @DisplayName("an empty side divides into zero rather than into nothing")
-        void emptySideIsNotDividedBy() {
-            when(repository.differences(any())).thenReturn(new TraceAttributeRepository.Differences(
-                    List.of(new TraceAttributeDifferenceRecord(TENANT, "acme", 0, 0, 0)), 0, 0));
-
-            TraceAttributeDifferences.Row row = manager().differences(QUERY).differences().getFirst();
-
-            assertEquals(0.0, row.selectionShare(), 1e-9);
-            assertEquals(0.0, row.baselineShare(), 1e-9);
         }
     }
 }
