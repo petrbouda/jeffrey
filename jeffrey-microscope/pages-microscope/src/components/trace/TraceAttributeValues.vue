@@ -31,7 +31,7 @@
           <span class="toolbar-note">
             Ranked by
             <b>{{ SORT_LABELS[sort] }}</b>
-            — {{ FormattingService.formatNumber(values.distinctValues) }} values in all
+            — {{ FormattingService.formatNumber(values.distinctValues) }} values on these spans
           </span>
         </TableToolbar>
       </template>

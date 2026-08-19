@@ -159,8 +159,11 @@ public class TraceAttributesManagerImpl implements TraceAttributesManager {
                 .toList();
 
         // From the catalog rather than counted here: the returned rows only say how many values fit
-        // in the page, and a list truncated at the cap has to say what it was truncated from.
-        long distinctValues = distinctValuesOf(query.key());
+        // in the page, and a list truncated at the cap has to say what it was truncated from. Read
+        // under the same scope as the rows — a scoped breakdown whose cardinality came from the
+        // profile-wide catalog would say "12 values in all" above a list that is all of the four the
+        // event type has, and call a complete list truncated.
+        long distinctValues = distinctValuesOf(query.key(), query.eventType());
 
         return new TraceAttributeValues(
                 rows, values.tracesWithoutKey(), distinctValues, distinctValues > rows.size());
@@ -182,13 +185,18 @@ public class TraceAttributesManagerImpl implements TraceAttributesManager {
     }
 
     /**
-     * The key's true cardinality, read from the catalog.
+     * The key's true cardinality, read from whichever catalog matches the breakdown's scope.
      * <p>
-     * A scan of one small table — the catalog holds a row per key, not per value — which is why this
-     * is a second read rather than a column smuggled onto every value row.
+     * A scan of one small table — either catalog holds a row per key, not per value — which is why
+     * this is a second read rather than a column smuggled onto every value row.
+     *
+     * @param eventType the event type the values were read under, or null for the whole profile
      */
-    private long distinctValuesOf(TraceAttributeKeyId key) {
-        return repository.keys().stream()
+    private long distinctValuesOf(TraceAttributeKeyId key, String eventType) {
+        List<TraceAttributeKeyRecord> catalog =
+                eventType == null ? repository.keys() : repository.keysOf(eventType);
+
+        return catalog.stream()
                 .filter(candidate -> candidate.id().equals(key))
                 .mapToLong(TraceAttributeKeyRecord::distinctValues)
                 .findFirst()

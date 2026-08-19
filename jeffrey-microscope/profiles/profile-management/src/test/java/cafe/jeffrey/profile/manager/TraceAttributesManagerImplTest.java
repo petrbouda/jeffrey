@@ -50,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -186,6 +187,9 @@ class TraceAttributesManagerImplTest {
         }
     }
 
+    /** The event type the scoped reads are taken under. */
+    private static final String HTTP = "jeffrey.HttpServerExchange";
+
     @Nested
     @DisplayName("Event types")
     class EventTypes {
@@ -194,13 +198,13 @@ class TraceAttributesManagerImplTest {
         @DisplayName("the cardinality cap the manager owns is what splits breakable from search-only")
         void capIsPassedDown() {
             when(repository.spanEventTypes(anyLong())).thenReturn(List.of(
-                    new TraceSpanTypeRecord("jeffrey.HttpServerExchange", 900, 120, 4, 11, 8)));
+                    new TraceSpanTypeRecord(HTTP, 900, 120, 4, 11, 8)));
 
             List<TraceSpanTypeRow> rows = manager().spanEventTypes();
 
             verify(repository).spanEventTypes(TraceAttributesManager.SEARCH_ONLY_ABOVE);
             assertEquals(1, rows.size());
-            assertEquals("jeffrey.HttpServerExchange", rows.getFirst().eventType());
+            assertEquals(HTTP, rows.getFirst().eventType());
             assertEquals(11, rows.getFirst().attributeCount());
             assertEquals(8, rows.getFirst().breakableCount(),
                     "three of the type's keys are too wide to break down");
@@ -209,11 +213,11 @@ class TraceAttributesManagerImplTest {
         @Test
         @DisplayName("a type's keys are marked search-only by the same cap as the catalog's")
         void keysOfAreMarked() {
-            when(repository.keysOf("jeffrey.HttpServerExchange")).thenReturn(List.of(
+            when(repository.keysOf(HTTP)).thenReturn(List.of(
                     key(TENANT, 4),
                     key(TENANT, TraceAttributesManager.SEARCH_ONLY_ABOVE + 1)));
 
-            List<TraceAttributeKeyRow> rows = manager().keysOf("jeffrey.HttpServerExchange");
+            List<TraceAttributeKeyRow> rows = manager().keysOf(HTTP);
 
             assertFalse(rows.getFirst().searchOnly());
             assertTrue(rows.getLast().searchOnly());
@@ -240,6 +244,41 @@ class TraceAttributesManagerImplTest {
             assertEquals(7, values.distinctValues());
             assertTrue(values.truncated(), "one of seven values is the top of the key, not the key");
             assertEquals(3, values.tracesWithoutKey());
+        }
+
+        /**
+         * The bug the two-step picker exists to prevent, in the one place it can still happen: the
+         * rows come from one event type and the cardinality from the profile-wide catalog, so the
+         * table says "12 values" above a list that is all four the event type has — and calls a
+         * complete list truncated.
+         */
+        @Test
+        @DisplayName("a scoped breakdown takes its cardinality from the same event type")
+        void scopedCardinalityMatchesTheRows() {
+            when(repository.values(any()))
+                    .thenReturn(new TraceAttributeRepository.Values(List.of(ACME), 0));
+            when(repository.keysOf(HTTP)).thenReturn(List.of(key(TENANT, 1)));
+
+            TraceAttributeValues values = manager().values(new TraceAttributeValueQuery(
+                    TENANT, TraceAttributeValueSortField.TOTAL_TIME, true, 50, HTTP));
+
+            assertEquals(1, values.distinctValues(), "the key's cardinality on these spans, not in all");
+            assertFalse(values.truncated(), "one of one is the whole key here");
+            verify(repository, never()).keys();
+        }
+
+        @Test
+        @DisplayName("an unscoped breakdown still reads the profile-wide catalog")
+        void unscopedCardinalityIsProfileWide() {
+            when(repository.values(any()))
+                    .thenReturn(new TraceAttributeRepository.Values(List.of(ACME), 0));
+            when(repository.keys()).thenReturn(List.of(key(TENANT, 12)));
+
+            TraceAttributeValues values = manager().values(new TraceAttributeValueQuery(
+                    TENANT, TraceAttributeValueSortField.TOTAL_TIME, true, 50, null));
+
+            assertEquals(12, values.distinctValues());
+            assertTrue(values.truncated());
         }
 
         @Test

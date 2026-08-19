@@ -217,11 +217,6 @@ export function decodeCondition(encoded: string): TraceAttributeConditionModel |
   };
 }
 
-/** How a key is shown when its name alone is ambiguous — an event field is owned by its event type. */
-export function keyLabel(key: TraceAttributeKeyId): string {
-  return key.owner ? `${key.owner} · ${key.key}` : key.key;
-}
-
 /** Whether two key identities are the same key. */
 export function sameKey(a: TraceAttributeKeyId, b: TraceAttributeKeyId): boolean {
   return a.source === b.source && a.owner === b.owner && a.key === b.key;
