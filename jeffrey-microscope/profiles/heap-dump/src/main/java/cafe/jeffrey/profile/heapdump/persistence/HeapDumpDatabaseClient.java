@@ -24,6 +24,7 @@ import cafe.jeffrey.jfr.events.jdbc.statement.JdbcInsertEvent;
 import cafe.jeffrey.jfr.events.jdbc.statement.JdbcQueryEvent;
 import cafe.jeffrey.jfr.events.jdbc.statement.JdbcStreamEvent;
 import cafe.jeffrey.jfr.events.jdbc.statement.JdbcUpdateEvent;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import org.duckdb.DuckDBAppender;
@@ -89,6 +90,7 @@ public final class HeapDumpDatabaseClient {
 
     public void execute(HeapDumpStatement stmt, String sql) {
         JdbcExecuteEvent event = new JdbcExecuteEvent(stmt.label(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
 
         try (Statement s = connection.createStatement()) {
@@ -120,6 +122,7 @@ public final class HeapDumpDatabaseClient {
 
     private int runInsert(HeapDumpStatement stmt, String sql, Object[] params) {
         JdbcInsertEvent event = new JdbcInsertEvent(stmt.label(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
         int rows = 0;
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -142,6 +145,7 @@ public final class HeapDumpDatabaseClient {
 
     private int runUpdate(HeapDumpStatement stmt, String sql, Object[] params) {
         JdbcUpdateEvent event = new JdbcUpdateEvent(stmt.label(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
         int rows = 0;
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -164,6 +168,7 @@ public final class HeapDumpDatabaseClient {
 
     private int runDelete(HeapDumpStatement stmt, String sql, Object[] params) {
         JdbcDeleteEvent event = new JdbcDeleteEvent(stmt.label(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
         int rows = 0;
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -188,6 +193,7 @@ public final class HeapDumpDatabaseClient {
 
     public void withAppender(HeapDumpStatement stmt, String tableName, AppenderBody body) {
         JdbcInsertEvent event = new JdbcInsertEvent(stmt.label(), groupLabel);
+        Tracer.stamp(event);
         event.isBatch = true;
         event.begin();
         long rows = 0;
@@ -215,6 +221,7 @@ public final class HeapDumpDatabaseClient {
     public void withAppenderPair(
             HeapDumpStatement stmt, String primaryTable, String secondaryTable, AppenderPairBody body) {
         JdbcInsertEvent event = new JdbcInsertEvent(stmt.label(), groupLabel);
+        Tracer.stamp(event);
         event.isBatch = true;
         event.begin();
         long rows = 0;
@@ -248,6 +255,7 @@ public final class HeapDumpDatabaseClient {
         String sql = "INSERT INTO " + table
                 + " SELECT * FROM read_parquet('" + parquetGlob + "')";
         JdbcInsertEvent event = new JdbcInsertEvent(stmt.label(), groupLabel);
+        Tracer.stamp(event);
         event.isBatch = true;
         event.begin();
         long rows = 0;
@@ -275,6 +283,7 @@ public final class HeapDumpDatabaseClient {
 
     public <T> Optional<T> queryScalar(HeapDumpStatement stmt, String sql, RowMapper<T> mapper, Object... params) {
         JdbcQueryEvent event = new JdbcQueryEvent(stmt.label(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
         Optional<T> result = Optional.empty();
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -301,6 +310,7 @@ public final class HeapDumpDatabaseClient {
 
     public <T> List<T> queryList(HeapDumpStatement stmt, String sql, RowMapper<T> mapper, Object... params) {
         JdbcQueryEvent event = new JdbcQueryEvent(stmt.label(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
         List<T> out = new ArrayList<>();
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -327,6 +337,7 @@ public final class HeapDumpDatabaseClient {
 
     public long queryLong(HeapDumpStatement stmt, String sql, Object... params) {
         JdbcQueryEvent event = new JdbcQueryEvent(stmt.label(), groupLabel);
+        Tracer.stamp(event);
         event.begin();
         long value = 0L;
         boolean present = false;
@@ -367,6 +378,7 @@ public final class HeapDumpDatabaseClient {
      */
     public void rawStream(HeapDumpStatement stmt, String sql, RawStreamBody body, Object... params) {
         JdbcStreamEvent event = new JdbcStreamEvent(stmt.label(), groupLabel);
+        Tracer.stamp(event);
         event.sql = sql;
         event.params = paramsToJson(params);
         event.begin();
@@ -400,6 +412,7 @@ public final class HeapDumpDatabaseClient {
      */
     public <T> Stream<T> queryStream(HeapDumpStatement stmt, String sql, RowMapper<T> mapper, Object... params) {
         JdbcStreamEvent event = new JdbcStreamEvent(stmt.label(), groupLabel);
+        Tracer.stamp(event);
         event.sql = sql;
         event.params = paramsToJson(params);
         event.begin();
