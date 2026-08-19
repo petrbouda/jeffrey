@@ -52,20 +52,35 @@
         <i class="bi bi-cpu"></i> JVM context
       </button>
       <!--
-        The promoted waits — I/O, locks, parks — drawn as child bars. On by default because they are
-        the feature: a trace that says where its time went. Off is for reading the recorded span
-        structure alone, and the per-category legend buttons narrow it finer than this master can.
+        The promoted waits drawn as child bars, split into two masters along the reader's question:
+        locks, parks and stalls under "Blocking ops", file and socket reads under "I/O" — different
+        suspicions, so hiding one family must not take the other down with it. Both on by default
+        because they are the feature: a trace that says where its time went. Off is for reading the
+        recorded span structure alone, and the per-category legend buttons narrow it finer than the
+        masters can. Each stays visible but disabled when its family recorded nothing, so its
+        absence never reads as a missing feature.
       -->
       <button
         type="button"
         class="wf-toggle"
-        :class="{ active: showBlockingOps && promotedCount > 0 }"
-        :aria-pressed="showBlockingOps && promotedCount > 0"
-        :disabled="promotedCount === 0"
+        :class="{ active: showBlockingOps && promotedBlockingCount > 0 }"
+        :aria-pressed="showBlockingOps && promotedBlockingCount > 0"
+        :disabled="promotedBlockingCount === 0"
         :title="blockingToggleTitle"
         @click="showBlockingOps = !showBlockingOps"
       >
         <i class="bi bi-hourglass-split"></i> Blocking ops
+      </button>
+      <button
+        type="button"
+        class="wf-toggle"
+        :class="{ active: showIoOps && promotedIoCount > 0 }"
+        :aria-pressed="showIoOps && promotedIoCount > 0"
+        :disabled="promotedIoCount === 0"
+        :title="ioToggleTitle"
+        @click="showIoOps = !showIoOps"
+      >
+        <i class="bi bi-hdd-network"></i> I/O
       </button>
       <!--
         Only when there is an error to jump to: in a 200-span trace the one red badge can sit three
@@ -356,7 +371,7 @@ import {
   contextBands,
   mergedDurationNanos
 } from '@/services/trace/TraceContextBands';
-import { contextColor, contextLabel, promotedCategory } from '@/services/trace/traceLabels';
+import { contextColor, contextLabel, isIoCategory, promotedCategory } from '@/services/trace/traceLabels';
 
 const props = withDefaults(
   defineProps<{
@@ -407,6 +422,7 @@ watch(
     criticalOnly.value = false;
     hiddenCategories.value = new Set();
     showBlockingOps.value = true;
+    showIoOps.value = true;
   }
 );
 
@@ -419,8 +435,10 @@ const parents = computed(() => spansWithChildren(props.spans));
 
 /**
  * Whether the promoted blocking operations — the synthesized leaf spans the derivation built out of
- * I/O, lock, park and sleep events — are drawn. On by default: they are the rows that say where a
- * span's time actually went. Off reads the recorded span structure alone.
+ * lock, park, sleep and stall events — are drawn. On by default: they are the rows that say where a
+ * span's time actually went. Off reads the recorded span structure alone. The promoted I/O rows are
+ * not under this switch — {@link showIoOps} owns them, so hiding the lock noise cannot silently
+ * hide the socket read that explains the trace.
  *
  * The levelled GC phases used to have a toggle of their own here; it drew the same stopped world up
  * to five times over and answered a GC question rather than a latency one, so the nested pauses now
@@ -428,14 +446,44 @@ const parents = computed(() => spansWithChildren(props.spans));
  */
 const showBlockingOps = ref(true);
 
+/** Whether the promoted file and socket I/O rows are drawn — the other master of the same split. */
+const showIoOps = ref(true);
+
 const promotedCount = computed(() => props.spans.filter(span => span.synthesized).length);
 
+const promotedIoCount = computed(() => props.spans.filter(isPromotedIo).length);
+
+const promotedBlockingCount = computed(
+  () => promotedCount.value - promotedIoCount.value
+);
+
+/** Whether a span is a promoted file or socket I/O wait, as opposed to any other promoted wait. */
+function isPromotedIo(span: TraceSpanRow): boolean {
+  if (!span.synthesized) {
+    return false;
+  }
+  const category = promotedCategory(span.eventType);
+  return category !== null && isIoCategory(category);
+}
+
 const blockingToggleTitle = computed(() => {
-  if (promotedCount.value === 0) {
+  if (promotedBlockingCount.value === 0) {
     return 'No blocking operations were promoted in this trace';
   }
-  const ops = promotedCount.value === 1 ? '1 blocking operation' : `${promotedCount.value} blocking operations`;
+  const count = promotedBlockingCount.value;
+  const ops = count === 1 ? '1 blocking operation' : `${count} blocking operations`;
   return showBlockingOps.value
+    ? `Hide the ${ops} drawn as child spans`
+    : `Show the ${ops} drawn as child spans`;
+});
+
+const ioToggleTitle = computed(() => {
+  if (promotedIoCount.value === 0) {
+    return 'No file or socket I/O operations were promoted in this trace';
+  }
+  const count = promotedIoCount.value;
+  const ops = count === 1 ? '1 I/O operation' : `${count} I/O operations`;
+  return showIoOps.value
     ? `Hide the ${ops} drawn as child spans`
     : `Show the ${ops} drawn as child spans`;
 });
@@ -504,8 +552,9 @@ function toggleContextCategory(category: string): void {
 
 /**
  * Hides or restores the pause bands only. Working through the band categories rather than through
- * every legend category keeps this master away from the promoted rows, which "Blocking ops" owns —
- * one switch per question, and a per-category choice on the other family survives flipping this one.
+ * every legend category keeps this master away from the promoted rows, which "Blocking ops" and
+ * "I/O" own — one switch per question, and a per-category choice on another family survives
+ * flipping this one.
  */
 function toggleAllContext(): void {
   const hidden = new Set(hiddenCategories.value);
@@ -557,12 +606,13 @@ const rows = computed(() => {
   return visible.filter(isCritical);
 });
 
-/** Whether a row survives the blocking-ops master and the per-category legend choices. */
+/** Whether a row survives its family's master toggle and the per-category legend choices. */
 function isSpanDrawn(span: TraceSpanRow): boolean {
   if (!span.synthesized) {
     return true;
   }
-  if (!showBlockingOps.value) {
+  const master = isPromotedIo(span) ? showIoOps.value : showBlockingOps.value;
+  if (!master) {
     return false;
   }
   const category = promotedCategory(span.eventType);

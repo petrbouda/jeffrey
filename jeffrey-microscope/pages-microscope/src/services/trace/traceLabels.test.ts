@@ -18,7 +18,14 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { errorLabel, operationKey, parseOperationName, spanKindVariant } from '@/services/trace/traceLabels';
+import {
+  errorLabel,
+  isIoCategory,
+  operationKey,
+  parseOperationName,
+  promotedCategory,
+  spanKindVariant
+} from '@/services/trace/traceLabels';
 import type { TraceOperationId } from '@/services/api/model/trace/TraceModels';
 
 describe('errorLabel', () => {
@@ -29,6 +36,51 @@ describe('errorLabel', () => {
   it('pluralises everything else', () => {
     expect(errorLabel(0)).toBe('0 errors');
     expect(errorLabel(3)).toBe('3 errors');
+  });
+});
+
+describe('isIoCategory', () => {
+  it('puts both I/O families on the I/O side of the split', () => {
+    expect(isIoCategory('SOCKET_IO')).toBe(true);
+    expect(isIoCategory('FILE_IO')).toBe(true);
+  });
+
+  it('leaves the blocking waits on the other side', () => {
+    expect(isIoCategory('MONITOR_BLOCKED')).toBe(false);
+    expect(isIoCategory('PARKED')).toBe(false);
+    expect(isIoCategory('SLEEPING')).toBe(false);
+    expect(isIoCategory('VT_PINNED')).toBe(false);
+  });
+
+  it('splits every promoted event type into exactly one of the two masters', () => {
+    // The waterfall's two toolbar masters partition the promoted set between them; a promoted
+    // event type whose category answered neither master would be a row no toggle governs.
+    const promotedEventTypes = [
+      'jdk.SocketRead',
+      'jdk.SocketWrite',
+      'jdk.FileRead',
+      'jdk.FileWrite',
+      'jdk.FileForce',
+      'jdk.JavaMonitorEnter',
+      'jdk.JavaMonitorWait',
+      'jdk.ThreadPark',
+      'jdk.ThreadSleep',
+      'jdk.ZAllocationStall',
+      'jdk.VirtualThreadPinned'
+    ];
+
+    const io = promotedEventTypes.filter(eventType => {
+      const category = promotedCategory(eventType);
+      return category !== null && isIoCategory(category);
+    });
+
+    expect(io).toEqual([
+      'jdk.SocketRead',
+      'jdk.SocketWrite',
+      'jdk.FileRead',
+      'jdk.FileWrite',
+      'jdk.FileForce'
+    ]);
   });
 });
 

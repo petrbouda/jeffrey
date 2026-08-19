@@ -115,6 +115,19 @@ export function promotedCategory(eventType: string): TraceContextCategoryName | 
   return PROMOTED_CATEGORY_BY_EVENT_TYPE[eventType] ?? null;
 }
 
+/**
+ * The categories that are file or socket I/O rather than a blocking wait. This is the line the
+ * waterfall toolbar splits the promoted rows along: "was this trace waiting on I/O?" and "was it
+ * waiting on locks, parks and stalls?" are different suspicions, so each family has its own master
+ * toggle, and both sides of the split read the answer from here rather than each keeping a list.
+ */
+const IO_CATEGORIES: ReadonlySet<TraceContextCategoryName> = new Set(['SOCKET_IO', 'FILE_IO']);
+
+/** Whether a promoted category belongs to the I/O family rather than the blocking one. */
+export function isIoCategory(category: TraceContextCategoryName): boolean {
+  return IO_CATEGORIES.has(category);
+}
+
 /** The route name of the view that explains a category, or null for one that has no such view. */
 export function contextExplainingRoute(category: string): string | null {
   return CONTEXT_EXPLAINING_ROUTES[category] ?? null;
