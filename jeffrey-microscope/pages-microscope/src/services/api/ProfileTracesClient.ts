@@ -18,6 +18,19 @@
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import FlamegraphPanel from '@/services/api/model/FlamegraphPanel';
+import {
+  encodeCondition,
+  type TraceAttributeConditionModel,
+  type TraceAttributeKeyId,
+  type TraceAttributeKeyRow,
+  type TraceAttributeLatency,
+  type TraceAttributeScope,
+  type TraceAttributeSearchResult,
+  type TraceAttributeTimelineBucket,
+  type TraceAttributeValues,
+  type TraceAttributeValueSortField,
+  type TraceSpanTypeRow
+} from '@/services/api/model/trace/TraceAttributeModels';
 import type {
   TraceContext,
   TraceDetail,
@@ -154,4 +167,116 @@ export default class ProfileTracesClient extends BaseProfileClient {
   ): Promise<FlamegraphPanel[]> {
     return this.get<FlamegraphPanel[]>(`/${traceId}/spans/${spanId}/panels`, { selfOnly });
   }
+
+  /** Every attribute key the profile recorded — the catalog the key rail renders. */
+  public getAttributeKeys(eventType?: string): Promise<TraceAttributeKeyRow[]> {
+    // Scoped to an event type this is the picker's second step, where the counts are that type's
+    // own; unscoped it is the whole catalog, which is what the search builder offers.
+    return this.get<TraceAttributeKeyRow[]>(
+      '/attributes/keys',
+      eventType === undefined ? {} : { eventType }
+    );
+  }
+
+  /**
+   * The traces whose spans satisfy every condition, with the spans that satisfied them.
+   *
+   * The conditions repeat as a bare `where` parameter rather than travelling as one encoded blob, so
+   * a filter stays legible in the address bar and can be edited there.
+   */
+  public searchByAttributes(query: AttributeSearchQuery): Promise<TraceAttributeSearchResult> {
+    return this.get<TraceAttributeSearchResult>(
+      '/attributes/search',
+      searchParams(query),
+      REPEATED_PARAMS
+    );
+  }
+
+  /** Where in the recording the matches fell, against every trace as a backdrop. */
+  public getAttributeTimeline(
+    conditions: TraceAttributeConditionModel[],
+    scope: TraceAttributeScope,
+    buckets?: number
+  ): Promise<TraceAttributeTimelineBucket[]> {
+    return this.get<TraceAttributeTimelineBucket[]>(
+      '/attributes/timeline',
+      {
+        where: conditions.map(encodeCondition),
+        scope,
+        ...(buckets === undefined ? {} : { buckets })
+      },
+      REPEATED_PARAMS
+    );
+  }
+
+  /** One key's values, ranked by what they cost. */
+  public getAttributeValues(
+    key: TraceAttributeKeyId,
+    eventType: string,
+    sort?: TraceAttributeValueSortField,
+    limit?: number
+  ): Promise<TraceAttributeValues> {
+    // Scoped to the event type the key was reached through, so the breakdown answers the question
+    // the picker asked rather than the wider one about every span carrying the key.
+    return this.get<TraceAttributeValues>('/attributes/values', {
+      ...keyParams(key),
+      eventType,
+      ...(sort === undefined ? {} : { sort }),
+      ...(limit === undefined ? {} : { limit })
+    });
+  }
+
+  /** The event types that produced spans — the attribute picker's first step. */
+  public getSpanEventTypes(): Promise<TraceSpanTypeRow[]> {
+    return this.get<TraceSpanTypeRow[]>('/attributes/event-types');
+  }
+
+  /** How each of the key's values is distributed over trace duration. */
+  public getAttributeLatency(
+    key: TraceAttributeKeyId,
+    eventType: string,
+    maxValues?: number
+  ): Promise<TraceAttributeLatency> {
+    return this.get<TraceAttributeLatency>('/attributes/latency', {
+      ...keyParams(key),
+      eventType,
+      ...(maxValues === undefined ? {} : { maxValues })
+    });
+  }
+}
+
+/**
+ * Axios repeats an array parameter as `where[]=a&where[]=b` by default, which Spring does not bind
+ * to a `List<String>` — it looks for the bare name.
+ */
+const REPEATED_PARAMS = { repeatArrayParams: true };
+
+/** A key as query parameters. The owner is omitted rather than sent empty when there is none. */
+function keyParams(key: TraceAttributeKeyId): Record<string, string> {
+  return {
+    source: key.source,
+    key: key.key,
+    ...(key.owner === null ? {} : { owner: key.owner })
+  };
+}
+
+/** How the attribute search is asked for. */
+export interface AttributeSearchQuery {
+  conditions: TraceAttributeConditionModel[];
+  scope: TraceAttributeScope;
+  sort?: string;
+  desc?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+function searchParams(query: AttributeSearchQuery): Record<string, unknown> {
+  return {
+    where: query.conditions.map(encodeCondition),
+    scope: query.scope,
+    ...(query.sort === undefined ? {} : { sort: query.sort }),
+    ...(query.desc === undefined ? {} : { desc: query.desc }),
+    ...(query.limit === undefined ? {} : { limit: query.limit }),
+    ...(query.offset === undefined ? {} : { offset: query.offset })
+  };
 }

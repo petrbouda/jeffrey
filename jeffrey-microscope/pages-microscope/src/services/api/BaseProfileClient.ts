@@ -42,7 +42,14 @@ export default abstract class BaseProfileClient {
     config: Record<string, any>,
     options?: RequestOptions
   ): Record<string, any> {
-    return options?.suppressToast ? { ...config, suppressToast: true } : config;
+    let applied = config;
+    if (options?.repeatArrayParams) {
+      applied = { ...applied, paramsSerializer: { indexes: null } };
+    }
+    if (options?.suppressToast) {
+      applied = { ...applied, suppressToast: true };
+    }
+    return applied;
   }
 
   /**

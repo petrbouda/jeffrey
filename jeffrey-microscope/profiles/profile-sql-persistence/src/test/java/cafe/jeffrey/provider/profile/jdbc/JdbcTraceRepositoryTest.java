@@ -704,7 +704,7 @@ class JdbcTraceRepositoryTest {
         void eitherShapeIsOneOperation(DataSource dataSource) throws SQLException {
             // The whole point of deriving rather than reading back: a recorded name is this same rule
             // evaluated by whichever version recorded it, and an endpoint that only some recordings
-            // carry the answer for is an endpoint split across two rows of Trace Operations.
+            // carry the answer for is an endpoint split across two rows of Traces by Operation.
             TraceOperationRecord health = mixedShapes(dataSource)
                     .operations(TraceOperationListQuery.busiest(100)).operations().stream()
                     .filter(row -> HEALTH_ENDPOINT.equals(row.name()))

@@ -106,6 +106,12 @@ public class JdbcProfileRepositories implements ProfileRepositories {
     }
 
     @Override
+    public TraceAttributeRepository newTraceAttributeRepository(DataSource dataSource) {
+        DatabaseClientProvider profileClientProvider = new DatabaseClientProvider(dataSource);
+        return new JdbcTraceAttributeRepository(profileClientProvider);
+    }
+
+    @Override
     public ProfileAdvisorRepository newAdvisorRepository(DataSource dataSource) {
         DatabaseClientProvider profileClientProvider = new DatabaseClientProvider(dataSource);
         return new JdbcProfileAdvisorRepository(profileClientProvider);

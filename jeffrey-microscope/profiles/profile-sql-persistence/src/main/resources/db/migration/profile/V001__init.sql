@@ -252,7 +252,7 @@ CREATE TABLE IF NOT EXISTS trace_spans
 CREATE TABLE IF NOT EXISTS traces
 (
     trace_id                       BIGINT      NOT NULL PRIMARY KEY,
-    -- The three together are the trace's *type*, which is what the Trace Operations view groups on.
+    -- The three together are the trace's *type*, which is what the Traces by Operation view groups on.
     -- Not the name alone: an inbound `GET /a` and an outbound call to the same path share a name and
     -- are not the same operation. All three are NOT NULL because the derivation COALESCEs each one
     -- from a NOT NULL source, and a nullable grouping key would make `<>` comparisons against it
@@ -289,3 +289,92 @@ CREATE TABLE IF NOT EXISTS traces
 -- prefix-only lookup.
 CREATE INDEX IF NOT EXISTS trace_spans_trace_id_idx ON trace_spans (trace_id);
 CREATE INDEX IF NOT EXISTS traces_operation_idx ON traces (root_name, root_kind, root_event_type);
+
+--
+-- TRACE SPAN ATTRIBUTES
+-- The key/value payload of every span, flattened to one row per (span, key), so an attribute can be
+-- filtered, grouped and ranked in SQL instead of being re-parsed out of JSON on every read.
+--
+-- Three sources feed it, kept apart because they mean different things to a reader:
+--   ATTRIBUTE   -- the open map from AbstractTracedEvent.attributes, whatever the developer passed
+--   EVENT_FIELD -- what the event type declares about itself; `owner` is that event type, since
+--                  `rows` on a JdbcQuery and `rows` on some other event are not the same key
+--   SPAN_SHAPE  -- the columns every span already has (name, kind, status, ...), exposed here so
+--                  one query surface answers "spans that failed" and "spans of this tenant" alike
+--
+-- A trace can carry two different values of the same key on different spans; that is a property of
+-- the data, not a defect, and every read that groups by value says so rather than picking one.
+--
+-- value_num is filled only where the text casts to a number. It is what makes `rows > 10000` and
+-- numeric bucketing possible without parsing the value again per row, and it is NULL for every
+-- value that is not a number -- including `true`, which casts to nothing on purpose so a boolean
+-- never sorts between two integers.
+--
+CREATE TABLE IF NOT EXISTS trace_span_attributes
+(
+    trace_id   BIGINT  NOT NULL,
+    span_id    BIGINT  NOT NULL,
+    source     VARCHAR NOT NULL,
+    -- The event type an EVENT_FIELD belongs to; NULL for the other two sources, whose keys are
+    -- global. Nullable rather than a sentinel because it is compared with IS NULL, never with `=`.
+    owner      VARCHAR,
+    attr_key   VARCHAR NOT NULL,
+    value_text VARCHAR NOT NULL,
+    value_num  DOUBLE,
+    -- Which event type the span carrying this value was, copied from trace_spans at derivation.
+    -- Distinct from `owner`: owner says which event type *declares* a key, and only EVENT_FIELD has
+    -- one, while this says which event type a value was *recorded on*, which every row has. It is
+    -- what lets `tenant` -- a key no event type declares -- be listed under the types that carry it.
+    event_type VARCHAR NOT NULL
+);
+
+--
+-- TRACE ATTRIBUTE CATALOG
+-- One row per key, written by the same derivation. Two jobs: it is what the key list renders
+-- without touching the rows above, and `distinct_values` is the guard the whole feature leans on --
+-- a key with eighteen thousand values (a user id, a SQL statement) is search-only, and must never
+-- become a facet list, a heatmap axis or a candidate in the difference ranking.
+--
+CREATE TABLE IF NOT EXISTS trace_attribute_keys
+(
+    source          VARCHAR NOT NULL,
+    owner           VARCHAR,
+    attr_key        VARCHAR NOT NULL,
+    -- STRING | NUMBER | BOOLEAN, inferred from the values themselves: what the UI offers as
+    -- operators, and what decides whether a key's values are bucketed by magnitude when ranked.
+    value_kind      VARCHAR NOT NULL,
+    distinct_values BIGINT  NOT NULL,
+    span_count      BIGINT  NOT NULL,
+    trace_count     BIGINT  NOT NULL
+);
+
+--
+-- WHICH KEYS EACH EVENT TYPE CARRIES
+-- The catalog above answers "what keys does this profile have"; this answers "what keys do spans of
+-- this event type have", which is what the two-step picker walks.
+--
+-- A separate table rather than a column on the catalog, because a key is not per event type: one
+-- `tenant` attached at a call site rides on an HTTP span and a Kafka span alike, and folding the
+-- event type into the catalog's key would split it into two keys that are the same key. Here it is
+-- a second row for the same key, with the counts scoped to that event type -- so the picker can say
+-- how many values `tenant` took *on HTTP spans* without changing what `tenant` is.
+--
+CREATE TABLE IF NOT EXISTS trace_attribute_key_event_types
+(
+    event_type      VARCHAR NOT NULL,
+    source          VARCHAR NOT NULL,
+    owner           VARCHAR,
+    attr_key        VARCHAR NOT NULL,
+    distinct_values BIGINT  NOT NULL,
+    span_count      BIGINT  NOT NULL,
+    trace_count     BIGINT  NOT NULL
+);
+
+-- Written once by the derivation, then read interactively by every attribute query, so the same
+-- reasoning applies as for the trace tables above. The key index serves the facet, latency and
+-- difference reads; the trace index serves the search, which resolves a set of trace ids.
+CREATE INDEX IF NOT EXISTS trace_span_attributes_key_idx ON trace_span_attributes (attr_key, value_text);
+CREATE INDEX IF NOT EXISTS trace_span_attributes_trace_id_idx ON trace_span_attributes (trace_id);
+-- The picker's second step reads this by event type and nothing else.
+CREATE INDEX IF NOT EXISTS trace_attribute_key_event_types_idx
+    ON trace_attribute_key_event_types (event_type);

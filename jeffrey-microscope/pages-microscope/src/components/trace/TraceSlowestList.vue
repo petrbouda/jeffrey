@@ -41,7 +41,7 @@
         borderless
         :uppercase="false"
       />
-      <!-- Same treatment as the Trace Operations list: borderless and unadorned, so the pair reads
+      <!-- Same treatment as the Traces by Operation list: borderless and unadorned, so the pair reads
            identically wherever a trace root is described. -->
       <Badge :value="item.rootKind" :variant="spanKindVariant(item.rootKind)" size="s" borderless />
       <Badge

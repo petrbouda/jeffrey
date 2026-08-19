@@ -111,6 +111,14 @@ public interface ProfileRepositories {
     TraceRepository newTraceRepository(DataSource dataSource);
 
     /**
+     * Creates a trace attribute repository over the attribute index derived from the profile's spans.
+     *
+     * @param dataSource the profile database connection
+     * @return a new trace attribute repository for the profile
+     */
+    TraceAttributeRepository newTraceAttributeRepository(DataSource dataSource);
+
+    /**
      * Creates an advisor repository for the AI recommendation artifacts stored alongside the profile.
      *
      * @param dataSource the profile database connection

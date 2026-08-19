@@ -111,6 +111,8 @@ public interface ProfileManager {
 
     TraceManager traceManager();
 
+    TraceAttributesManager traceAttributesManager();
+
     ProfileFeaturesManager featuresManager();
 
     ProfileToolsManager toolsManager();

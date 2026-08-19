@@ -19,15 +19,19 @@ interface CollectedItem {
 function collectAllItems(): CollectedItem[] {
   const collected: CollectedItem[] = [];
 
+  // Both rails descend into submenus: a technology's groups carry them too, and a child collected
+  // from one rail but not the other is a route nothing here checks.
+  const collect = (origin: string, item: ProfileNavItem): void => {
+    collected.push({ origin, item });
+    for (const child of item.children ?? []) {
+      collected.push({ origin: `${origin} / ${item.label}`, item: child });
+    }
+  };
+
   for (const [mode, sections] of Object.entries(profileNavSections)) {
     for (const section of sections) {
       for (const item of section.items) {
-        collected.push({ origin: `${mode} / ${section.title}`, item });
-        if (item.children) {
-          for (const child of item.children) {
-            collected.push({ origin: `${mode} / ${section.title} / ${item.label}`, item: child });
-          }
-        }
+        collect(`${mode} / ${section.title}`, item);
       }
     }
   }
@@ -35,7 +39,7 @@ function collectAllItems(): CollectedItem[] {
   for (const tech of Object.values(technologiesNav)) {
     for (const group of tech.groups) {
       for (const item of group.items) {
-        collected.push({ origin: `Technologies / ${tech.key}`, item });
+        collect(`Technologies / ${tech.key}`, item);
       }
     }
   }
@@ -68,8 +72,9 @@ describe('profileNavConfig', () => {
   it('collects a sane number of nav items', () => {
     // 7 Overview (incl. Dashboards) + 19 JVM (incl. GC/JIT submenu parents + children)
     // + 16 Application (incl. Memory Issues submenu) + 4 Visualization + 17 HeapDump
-    // + 4 Tools + 4 Advisor + 37 Technologies (34 + Traces + Operations + Timeseries)
-    expect(allItems.length).toBe(108);
+    // + 4 Tools + 4 Advisor + 41 Technologies (34 + Traces + Operations + Timeseries
+    // + the Attributes parent and its three sub-pages)
+    expect(allItems.length).toBe(112);
   });
 
   it('every item has a label and a bootstrap icon', () => {
@@ -113,10 +118,14 @@ describe('profileNavConfig', () => {
   });
 
   it('submenu parents carry children and an active-path matcher instead of a path', () => {
-    const parents = Object.values(profileNavSections)
-      .flat()
-      .flatMap(section => section.items)
-      .filter(item => item.children !== undefined);
+    const parents = [
+      ...Object.values(profileNavSections)
+        .flat()
+        .flatMap(section => section.items),
+      ...Object.values(technologiesNav)
+        .flatMap(tech => tech.groups)
+        .flatMap(group => group.items)
+    ].filter(item => item.children !== undefined);
 
     expect(parents.length).toBeGreaterThan(0);
     for (const parent of parents) {
@@ -149,6 +158,59 @@ describe('profileNavConfig', () => {
       const target = redirect({ params: { profileId: SAMPLE_PROFILE_ID } });
       expect(target, oldSubPath).toBe(`/profiles/${SAMPLE_PROFILE_ID}/${newSubPath}`);
     }
+  });
+
+  // The attribute views moved from `?view=` tabs of one route to three routes. Its redirect answers
+  // with a location rather than a string, so it is checked here instead of in LEGACY_REDIRECTS.
+  describe('the attributes route redirects its old tab links', () => {
+    const attributesRedirect = () => {
+      const record = profileChildRoutes.find(
+        route => route.path === 'technologies/traces/attributes'
+      );
+      expect(record, 'technologies/traces/attributes').toBeDefined();
+      return (
+        record as unknown as {
+          redirect: (to: {
+            params: { profileId: string };
+            query: Record<string, unknown>;
+          }) => { path: string; query: Record<string, unknown> };
+        }
+      ).redirect;
+    };
+
+    const base = `/profiles/${SAMPLE_PROFILE_ID}/technologies/traces/attributes`;
+
+    it.each([
+      ['search', `${base}/search`],
+      ['values', `${base}/values`],
+      ['latency', `${base}/latency`]
+    ])('sends ?view=%s to its own page', (view, expected) => {
+      const target = attributesRedirect()({
+        params: { profileId: SAMPLE_PROFILE_ID },
+        query: { view }
+      });
+
+      expect(target.path).toBe(expected);
+    });
+
+    it('opens on Search for a missing view, and for one the page no longer has', () => {
+      const redirect = attributesRedirect();
+      const params = { profileId: SAMPLE_PROFILE_ID };
+
+      expect(redirect({ params, query: {} }).path).toBe(`${base}/search`);
+      // `differences` was a fourth tab until it was removed; its links are still out there.
+      expect(redirect({ params, query: { view: 'differences' } }).path).toBe(`${base}/search`);
+    });
+
+    it('carries the rest of the query and drops only the view', () => {
+      const target = attributesRedirect()({
+        params: { profileId: SAMPLE_PROFILE_ID },
+        query: { view: 'values', source: 'ATTRIBUTE', key: 'tenant', where: ['a~~b~EQ~c'] }
+      });
+
+      expect(target.path).toBe(`${base}/values`);
+      expect(target.query).toEqual({ source: 'ATTRIBUTE', key: 'tenant', where: ['a~~b~EQ~c'] });
+    });
   });
 
   it('derives the mode pill from a route path', () => {
