@@ -21,6 +21,9 @@
     Grouped by source rather than listed flat: `tenant`, which somebody attached at a call site, and
     `statusCode`, which an event type declares about itself, are not the same kind of thing, and one
     alphabetical list of both reads as a single convention badly applied.
+
+    Every key here has a breakdown to open — the caller filters the search-only ones out, since
+    picking one would open a page that could only report that it will not draw anything.
   -->
   <aside class="attr-catalog">
     <header class="catalog-head">
@@ -63,16 +66,14 @@
         :key="keyOf(key)"
         type="button"
         class="catalog-key"
-        :class="{ selected: isSelected(key), 'search-only': key.searchOnly }"
+        :class="{ selected: isSelected(key) }"
         :title="describe(key)"
         @click="$emit('select', key)"
       >
         <span class="key-top">
           <span class="key-name">{{ key.key }}</span>
           <span class="key-cardinality">
-            {{
-              key.searchOnly ? 'search only' : FormattingService.formatNumber(key.distinctValues)
-            }}
+            {{ FormattingService.formatNumber(key.distinctValues) }}
           </span>
         </span>
         <span v-if="key.owner" class="key-owner">{{ key.owner }}</span>
@@ -155,10 +156,7 @@ function coverage(key: TraceAttributeKeyRow): number {
 }
 
 function describe(key: TraceAttributeKeyRow): string {
-  const values = key.searchOnly
-    ? `${FormattingService.formatNumber(key.distinctValues)} values — too many to break down`
-    : `${FormattingService.formatNumber(key.distinctValues)} values`;
-  return `${keyLabel(key)} · ${key.valueKind.toLowerCase()} · ${values} · on ${FormattingService.formatNumber(key.traceCount)} traces`;
+  return `${keyLabel(key)} · ${key.valueKind.toLowerCase()} · ${FormattingService.formatNumber(key.distinctValues)} values · on ${FormattingService.formatNumber(key.traceCount)} traces`;
 }
 </script>
 
@@ -291,10 +289,6 @@ function describe(key: TraceAttributeKeyRow): string {
 .catalog-key.selected {
   background: var(--color-primary-light);
   border-left-color: var(--color-primary);
-}
-
-.catalog-key.search-only {
-  opacity: 0.65;
 }
 
 .key-top {

@@ -69,11 +69,19 @@
       </div>
 
       <div class="bar-row builder">
+        <!--
+          Grouped and annotated because this is now the only place a key is picked for a search: the
+          rail beside the breakdown pages does not appear here, so what it used to say about a key —
+          where it came from, how many values it has, whether it is too wide to break down — has to
+          be readable at the moment of choosing.
+        -->
         <select v-model="draftKey" class="form-select form-select-sm builder-key">
           <option :value="null" disabled>Choose a key…</option>
-          <option v-for="key in keys" :key="keyOf(key)" :value="keyOf(key)">
-            {{ key.owner ? `${key.key} · ${key.owner}` : key.key }}
-          </option>
+          <optgroup v-for="group in keyGroups" :key="group.source" :label="group.label">
+            <option v-for="key in group.keys" :key="keyOf(key)" :value="keyOf(key)">
+              {{ optionLabel(key) }}
+            </option>
+          </optgroup>
         </select>
 
         <select v-model="draftOperator" class="form-select form-select-sm builder-operator">
@@ -124,7 +132,8 @@ import type {
   TraceAttributeConditionModel,
   TraceAttributeKeyRow,
   TraceAttributeOperator,
-  TraceAttributeScope
+  TraceAttributeScope,
+  TraceAttributeSource
 } from '@/services/api/model/trace/TraceAttributeModels';
 
 const props = defineProps<{
@@ -188,6 +197,33 @@ function keyOf(key: TraceAttributeKeyRow): string {
 const draftKeyRow = computed<TraceAttributeKeyRow | null>(
   () => props.keys.find(key => keyOf(key) === draftKey.value) ?? null
 );
+
+/** The order the groups appear in: attached by hand, declared by the event, then the span's own. */
+const KEY_GROUPS: Array<{ source: TraceAttributeSource; label: string }> = [
+  { source: 'ATTRIBUTE', label: 'Span attributes' },
+  { source: 'EVENT_FIELD', label: 'Event fields' },
+  { source: 'SPAN_SHAPE', label: 'Span shape' }
+];
+
+const keyGroups = computed(() =>
+  KEY_GROUPS.map(group => ({
+    ...group,
+    keys: props.keys.filter(key => key.source === group.source)
+  })).filter(group => group.keys.length > 0)
+);
+
+/**
+ * The key, its owner where it has one, and what its values look like. A search-only key says so
+ * instead of showing a count: the number is the reason it is search-only, and "41,208 values" reads
+ * as a promise of a breakdown that no page will give.
+ */
+function optionLabel(key: TraceAttributeKeyRow): string {
+  const name = key.owner ? `${key.key} · ${key.owner}` : key.key;
+  const shape = key.searchOnly
+    ? 'search only'
+    : `${FormattingService.formatNumber(key.distinctValues)} values`;
+  return `${name} — ${shape}`;
+}
 
 /**
  * Only the operators the key's values can answer. Offering `>` on a string key produces a condition

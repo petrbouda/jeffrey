@@ -211,3 +211,42 @@ export function keyLabel(key: TraceAttributeKeyId): string {
 export function sameKey(a: TraceAttributeKeyId, b: TraceAttributeKeyId): boolean {
   return a.source === b.source && a.owner === b.owner && a.key === b.key;
 }
+
+/**
+ * A key as one comparable string — a `v-for` key, and what a watcher compares so that an unrelated
+ * change to the query does not read as a change of key.
+ */
+export function keyToken(key: TraceAttributeKeyId): string {
+  return `${key.source}~${key.owner ?? ''}~${key.key}`;
+}
+
+/**
+ * The shape of a route's query as far as these helpers care: a value the router may have parsed
+ * into an array when a name repeats. Declared here rather than imported so the models stay free of
+ * the router.
+ */
+type QueryLike = Record<string, string | null | undefined | Array<string | null>>;
+
+function firstValue(raw: QueryLike[string]): string | undefined {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  return value === null || value === undefined ? undefined : value;
+}
+
+/**
+ * The key the URL is pointing at, or null where it points at none.
+ *
+ * All three parts travel because all three identify the key: `rows` on a JDBC query and `rows` on
+ * anything else are two keys that happen to share a name. Every attribute page reads the same
+ * triple, which is what lets a key survive a move between them.
+ */
+export function keyFromQuery(query: QueryLike): TraceAttributeKeyId | null {
+  const key = firstValue(query.key);
+  if (key === undefined) {
+    return null;
+  }
+  return {
+    source: (firstValue(query.source) as TraceAttributeSource | undefined) ?? 'ATTRIBUTE',
+    owner: firstValue(query.owner) ?? null,
+    key
+  };
+}

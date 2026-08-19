@@ -222,7 +222,19 @@ export const technologiesNav: Record<string, TechnologyNav> = {
         // ("Spans by Tag" then "Slowest Spans") so both features open the same way.
         items: [
           item('Traces by Operation', 'bi-bar-chart-steps', '/technologies/traces/operations'),
-          item('Traces by Attributes', 'bi-tags', '/technologies/traces/attributes'),
+          {
+            // A parent rather than a link: the three readings of the attribute index are pages of
+            // their own, and one of them has to be the landing page anyway — putting them in the
+            // menu says which three there are without opening the feature first.
+            label: 'Traces by Attributes',
+            icon: 'bi-tags',
+            activePathIncludes: '/technologies/traces/attributes',
+            children: [
+              item('Search Traces', 'bi-search', '/technologies/traces/attributes/search'),
+              item('Attribute Values', 'bi-tag', '/technologies/traces/attributes/values'),
+              item('Latency by Attributes', 'bi-grid-3x3', '/technologies/traces/attributes/latency')
+            ]
+          },
           item('Slowest Traces', 'bi-hourglass-split', '/technologies/traces'),
           item('Timeseries', 'bi-graph-up', '/technologies/traces/timeseries')
         ]

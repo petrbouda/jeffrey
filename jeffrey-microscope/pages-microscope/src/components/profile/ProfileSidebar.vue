@@ -29,13 +29,16 @@
                 <div class="nav-items">
                   <template v-for="(group, groupIndex) in technology.groups" :key="groupIndex">
                     <div v-if="group.title" class="nav-section-title">{{ group.title }}</div>
-                    <ProfileSidebarItem
+                    <ProfileSidebarGroup
                       v-for="navItem in group.items"
                       :key="navItem.label"
                       :item="navItem"
                       :profile-id="profileId"
                       :is-feature-disabled="isFeatureDisabled"
                       :has-secondary-profile="hasSecondaryProfile"
+                      :expanded="isSubmenuExpanded(navItem)"
+                      :active="isSubmenuActive(navItem)"
+                      @toggle="toggleSubmenu(navItem)"
                       @navigate-differential="onNavigateDifferential"
                     />
                   </template>
@@ -58,48 +61,18 @@
                 ></i>
               </div>
               <div v-show="!isSectionCollapsed(section.title)" class="nav-items">
-                <template v-for="navItem in section.items" :key="navItem.label">
-                  <!-- Item with submenu (e.g. Garbage Collection) -->
-                  <div v-if="navItem.children" class="nav-item-group">
-                    <div
-                      class="nav-item nav-item-parent"
-                      :class="{
-                        active: isSubmenuActive(navItem),
-                        expanded: isSubmenuExpanded(navItem)
-                      }"
-                      @click="toggleSubmenu(navItem)"
-                    >
-                      <i class="bi" :class="navItem.icon"></i>
-                      <span>{{ navItem.label }}</span>
-                      <i
-                        class="bi bi-chevron-right submenu-arrow"
-                        :class="{ rotated: isSubmenuExpanded(navItem) }"
-                      ></i>
-                    </div>
-                    <div class="nav-submenu" :class="{ expanded: isSubmenuExpanded(navItem) }">
-                      <ProfileSidebarItem
-                        v-for="child in navItem.children"
-                        :key="child.label"
-                        :item="child"
-                        subitem
-                        :profile-id="profileId"
-                        :is-feature-disabled="isFeatureDisabled"
-                        :has-secondary-profile="hasSecondaryProfile"
-                        @navigate-differential="onNavigateDifferential"
-                      />
-                    </div>
-                  </div>
-
-                  <!-- Plain item -->
-                  <ProfileSidebarItem
-                    v-else
-                    :item="navItem"
-                    :profile-id="profileId"
-                    :is-feature-disabled="isFeatureDisabled"
-                    :has-secondary-profile="hasSecondaryProfile"
-                    @navigate-differential="onNavigateDifferential"
-                  />
-                </template>
+                <ProfileSidebarGroup
+                  v-for="navItem in section.items"
+                  :key="navItem.label"
+                  :item="navItem"
+                  :profile-id="profileId"
+                  :is-feature-disabled="isFeatureDisabled"
+                  :has-secondary-profile="hasSecondaryProfile"
+                  :expanded="isSubmenuExpanded(navItem)"
+                  :active="isSubmenuActive(navItem)"
+                  @toggle="toggleSubmenu(navItem)"
+                  @navigate-differential="onNavigateDifferential"
+                />
               </div>
             </div>
           </template>
@@ -112,7 +85,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import ProfileSidebarItem from '@/components/profile/ProfileSidebarItem.vue';
+import ProfileSidebarGroup from '@/components/profile/ProfileSidebarGroup.vue';
 import {
   DifferentialType,
   ProfileMode,
@@ -164,11 +137,17 @@ const technology = computed<TechnologyNav | null>(() => {
   return technologiesNav[props.activeTechnology] ?? null;
 });
 
-// Submenu expand/collapse state (e.g. Garbage Collection), keyed by item label.
-const submenuParents: ProfileNavItem[] = Object.values(profileNavSections)
-  .flat()
-  .flatMap(section => section.items)
-  .filter(navItem => navItem.children !== undefined);
+// Submenu expand/collapse state (e.g. Garbage Collection, Traces by Attributes), keyed by item
+// label. Both rails contribute: a technology's groups carry submenus too, and a parent left out of
+// this list never auto-expands onto the route its own child is showing.
+const submenuParents: ProfileNavItem[] = [
+  ...Object.values(profileNavSections)
+    .flat()
+    .flatMap(section => section.items),
+  ...Object.values(technologiesNav)
+    .flatMap(nav => nav.groups)
+    .flatMap(group => group.items)
+].filter(navItem => navItem.children !== undefined);
 
 const expandedSubmenus = ref<Set<string>>(new Set());
 
