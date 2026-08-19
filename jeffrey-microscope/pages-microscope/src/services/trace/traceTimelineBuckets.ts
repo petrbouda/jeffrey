@@ -23,15 +23,6 @@ export interface TimelineBucket {
   count: number;
 }
 
-/** One column of a percentile timeline: the latency distribution of the items that landed in it. */
-export interface PercentileBucket {
-  mid: number;
-  p50: number;
-  p95: number;
-  max: number;
-  count: number;
-}
-
 /** The stretch of time a timeline covers, in the same unit as the items' starts. */
 export interface TimelineWindow {
   from: number;
@@ -98,79 +89,4 @@ export function timelineBuckets<T>(
     }
   }
   return buckets;
-}
-
-/**
- * Buckets timestamped items into equal columns and reduces each column to its latency percentiles.
- *
- * The Trace Timeseries page plots P50/P95/Max per bucket, which needs every duration in the bucket,
- * not just the worst one — so this collects before it reduces, where {@link timelineBuckets} can
- * fold as it goes. The percentile is the nearest-rank of the sorted bucket
- * ({@code ceil(q * n) - 1}), matching how the backend computes the operation-wide figures, so a
- * one-item bucket reports that item for every percentile rather than an interpolated value that
- * never happened.
- *
- * Parameters read as in {@link timelineBuckets}; an empty bucket keeps zeros so the chart shows a
- * gap rather than carrying the previous bucket's latency across quiet stretches.
- */
-export function percentileTimelineBuckets<T>(
-  items: T[],
-  startMillis: (item: T) => number,
-  durationNanos: (item: T) => number,
-  bucketCount: number,
-  window?: TimelineWindow
-): PercentileBucket[] {
-  if (items.length === 0) {
-    return [];
-  }
-
-  let min = window ? window.from : Infinity;
-  let max = window ? window.to : -Infinity;
-  if (!window) {
-    for (const item of items) {
-      const start = startMillis(item);
-      if (start < min) {
-        min = start;
-      }
-      if (start > max) {
-        max = start;
-      }
-    }
-  }
-
-  const span = Math.max(1, max - min);
-  const width = Math.max(1, Math.ceil(span / bucketCount));
-
-  const collected: number[][] = [];
-  for (let i = 0; i < bucketCount; i++) {
-    collected.push([]);
-  }
-
-  for (const item of items) {
-    // Clamped at both ends, for the same reason timelineBuckets clamps: an item outside an
-    // explicit window must still be counted somewhere.
-    const offset = Math.floor((startMillis(item) - min) / width);
-    const index = Math.min(bucketCount - 1, Math.max(0, offset));
-    collected[index].push(durationNanos(item));
-  }
-
-  return collected.map((durations, i) => {
-    const mid = min + i * width + width / 2;
-    if (durations.length === 0) {
-      return { mid, p50: 0, p95: 0, max: 0, count: 0 };
-    }
-    durations.sort((a, b) => a - b);
-    return {
-      mid,
-      p50: nearestRank(durations, 0.5),
-      p95: nearestRank(durations, 0.95),
-      max: durations[durations.length - 1],
-      count: durations.length
-    };
-  });
-}
-
-/** Nearest-rank percentile of an ascending-sorted list: {@code ceil(q * n) - 1}. */
-function nearestRank(sorted: number[], quantile: number): number {
-  return sorted[Math.max(0, Math.ceil(quantile * sorted.length) - 1)];
 }

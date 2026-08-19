@@ -38,7 +38,6 @@ const headings = [
   { id: 'span-drill-down', text: 'Span Drill-Down', level: 2 },
   { id: 'operations', text: 'Traces by Operation', level: 2 },
   { id: 'attributes', text: 'Traces by Attributes', level: 2 },
-  { id: 'timeseries', text: 'Timeseries', level: 2 },
   { id: 'ai-export', text: 'AI Export', level: 2 },
   { id: 'volume-control', text: 'Controlling Span Volume', level: 2 },
   { id: 'limits', text: 'Limits', level: 2 }
@@ -335,12 +334,6 @@ if (event.isEnabled()) {
       <DocsCallout type="info">
         <strong>Cardinality is the guard.</strong> A <code>user.id</code> attribute on sixty thousand spans is legitimate instrumentation, and every breakdown of it — a value list, a heatmap axis — would be eighteen thousand rows of one trace each. Keys past the cap are <em>search only</em>: they are offered in the Search Traces builder, marked, and kept out of the picker's second step entirely — picking one there would open a page that could only report that it will not draw anything. The step says how many it left out rather than showing four of a type's eleven keys and letting that read as the type having four. Where a list is the top of a key rather than the whole of it, it says so.
       </DocsCallout>
-
-      <h2 id="timeseries">Timeseries</h2>
-
-      <p>The third Traces page answers "<em>when</em> was it slow" for one operation at a time. A ranked operation picker sits on the left — the same server-side name search as the other lists, ordered by total time so it doubles as a "where did the time go" ranking — and the selected operation's charts fill the right: a <strong>Duration</strong> chart with the P50, P95 and Max of each time bucket as three lines on one axis, and an <strong>Invocations</strong> chart with the bucket's trace count underneath, both plotted against the recording's own clock so a burst reads as a burst. Bucket percentiles are nearest-rank over the traces that landed in the bucket — a one-trace bucket reports that trace, not an interpolated value that never happened — and an empty bucket drops to zero rather than carrying its neighbour's latency across a quiet stretch.</p>
-
-      <p>The selection travels in the URL (<code>?operation=&amp;kind=&amp;eventType=</code>, the same triple every other trace view uses), so a chart worth discussing is a link. The charts read the same capped 1,000-trace fetch as the operation drill-down and say so when the cap is reached.</p>
 
       <h2 id="ai-export">AI Export</h2>
 

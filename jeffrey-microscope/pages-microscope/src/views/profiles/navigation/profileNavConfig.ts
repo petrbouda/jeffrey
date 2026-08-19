@@ -235,8 +235,7 @@ export const technologiesNav: Record<string, TechnologyNav> = {
               item('Latency by Attributes', 'bi-grid-3x3', '/technologies/traces/attributes/latency')
             ]
           },
-          item('Slowest Traces', 'bi-hourglass-split', '/technologies/traces'),
-          item('Timeseries', 'bi-graph-up', '/technologies/traces/timeseries')
+          item('Slowest Traces', 'bi-hourglass-split', '/technologies/traces')
         ]
       }
     ]

@@ -17,7 +17,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { percentileTimelineBuckets, timelineBuckets } from '@/services/trace/traceTimelineBuckets';
+import { timelineBuckets } from '@/services/trace/traceTimelineBuckets';
 
 interface Item {
   start: number;
@@ -127,69 +127,5 @@ describe('timelineBuckets', () => {
 
     expect(buckets[0].count).toBe(1);
     expect(buckets[3].count).toBe(1);
-  });
-});
-
-describe('percentileTimelineBuckets', () => {
-  it('returns nothing for no items, rather than empty buckets', () => {
-    expect(percentileTimelineBuckets<Item>([], start, duration, 4)).toEqual([]);
-  });
-
-  it('reports a lone item as every percentile of its bucket', () => {
-    const buckets = percentileTimelineBuckets<Item>(
-      [{ start: 1000, duration: 50 }],
-      start,
-      duration,
-      4
-    );
-
-    expect(buckets).toHaveLength(4);
-    expect(buckets[0]).toMatchObject({ p50: 50, p95: 50, max: 50, count: 1 });
-  });
-
-  it('computes nearest-rank percentiles over a bucket', () => {
-    const items: Item[] = [];
-    for (let i = 1; i <= 100; i++) {
-      items.push({ start: 0, duration: i });
-    }
-
-    const buckets = percentileTimelineBuckets<Item>(items, start, duration, 1, {
-      from: 0,
-      to: 100
-    });
-
-    expect(buckets[0].p50).toBe(50);
-    expect(buckets[0].p95).toBe(95);
-    expect(buckets[0].max).toBe(100);
-    expect(buckets[0].count).toBe(100);
-  });
-
-  it('keeps an empty bucket at zero instead of carrying a neighbour across', () => {
-    const buckets = percentileTimelineBuckets<Item>(
-      [
-        { start: 0, duration: 10 },
-        { start: 99, duration: 30 }
-      ],
-      start,
-      duration,
-      4,
-      { from: 0, to: 100 }
-    );
-
-    expect(buckets[1]).toMatchObject({ p50: 0, p95: 0, max: 0, count: 0 });
-    expect(buckets[3].max).toBe(30);
-  });
-
-  it('clamps an item outside the explicit window into the edge bucket', () => {
-    const buckets = percentileTimelineBuckets<Item>(
-      [{ start: -50, duration: 10 }],
-      start,
-      duration,
-      4,
-      { from: 0, to: 100 }
-    );
-
-    expect(buckets[0].count).toBe(1);
-    expect(buckets[0].max).toBe(10);
   });
 });

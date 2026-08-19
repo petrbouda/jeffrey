@@ -616,12 +616,6 @@ const technologyRoutes = [
     meta: { layout: 'profile' }
   },
   {
-    path: 'technologies/traces/timeseries',
-    name: 'profile-technologies-traces-timeseries',
-    component: () => import('@/views/profiles/detail/technologies/ProfileTraceTimeseries.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
     path: 'technologies/grpc/overview',
     name: 'profile-technologies-grpc-overview',
     component: () => import('@/views/profiles/detail/technologies/ProfileGrpcOverview.vue'),
