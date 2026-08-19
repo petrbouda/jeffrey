@@ -111,4 +111,31 @@ public abstract class AbstractTracedEvent extends Event {
         describeSpan();
         commit();
     }
+
+    /**
+     * Stamps the event into the trace in progress and commits it — the whole emit path of a leaf
+     * event in one call, so an emitter cannot commit without stamping. Forgetting the stamp is not
+     * a hypothetical: it is exactly how every heap-dump statement went missing from the traces it
+     * ran inside, with nothing failing to say so.
+     * <p>
+     * Stamping happens here, at commit time, rather than back at construction. For an emitter that
+     * commits in its own {@code finally} the two are the same ids — the enclosing binding is
+     * stack-scoped, so it is identical at both points — and an event that falls under the JFR
+     * threshold then never pays for minting ids it will not record. The one shape this does not
+     * fit is a deferred commit: an event committed from a stream's {@code close()} may run after
+     * the enclosing span's binding is gone, or inside someone else's, so such an emitter must
+     * stamp eagerly with {@link Tracer#stamp} at construction and commit with {@link #commitSpan()}.
+     * <p>
+     * An event that already carries identity is committed as it is. Re-stamping would mint a fresh
+     * span id at commit time and orphan everything recorded under the original one — which is why
+     * this is safe to call on a pre-stamped event, and why an event that <em>is</em> its span
+     * ({@link Tracer#inSpanOf}, {@link Tracer#openSpanOf}) still reads better committed through
+     * {@link #commitSpan()}.
+     */
+    public final void stampAndCommit() {
+        if (spanId == 0) {
+            Tracer.stamp(this);
+        }
+        commitSpan();
+    }
 }

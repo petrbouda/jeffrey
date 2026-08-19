@@ -100,15 +100,14 @@ return new SimpleForwardingServerCallListener<>(listener) {
 
 const stampExample = `JdbcQueryEvent event = new JdbcQueryEvent("listSpans", "profile");
 if (event.isEnabled()) {
-    // Gives the statement a span of its own, under the span in progress.
-    Tracer.stamp(event);
     event.begin();
     // ... run the statement ...
     event.end();
     event.sql = sql;
     event.rows = rows;
-    // Derives the span shape from the event's own fields, then commits.
-    event.commitSpan();
+    // Gives the statement a span of its own under the span in progress,
+    // derives the span shape from the event's own fields, then commits.
+    event.stampAndCommit();
 }`;
 </script>
 
@@ -203,7 +202,7 @@ if (event.isEnabled()) {
 
       <p>The HTTP, gRPC and JDBC events in <code>jeffrey-events</code> extend <code>AbstractTracedEvent</code>, which carries the whole span shape — <code>traceId</code>, <code>spanId</code>, <code>parentSpanId</code>, plus the <code>name</code>, <code>kind</code>, <code>status</code>, <code>errorType</code> and <code>attributes</code> a <code>jeffrey.TraceSpan</code> carries. An event that has them <em>is</em> a span; there is nothing for Jeffrey to work out from the event type.</p>
 
-      <p>Two calls populate them. <code>Tracer.stamp</code> gives the event a span of its own nested inside the span in progress — the form for a leaf, like a statement. <code>Tracer.inSpanOf</code> makes the event <em>be</em> the span it opens, so anything traced underneath nests inside it — the form for an entry point, like an inbound request. Committing through <code>commitSpan()</code> lets the event derive its own name and status first:</p>
+      <p>Two forms populate them. <code>stampAndCommit()</code> gives the event a span of its own nested inside the span in progress and commits it — the form for a leaf, like a statement, folding the stamp into the commit so it cannot be forgotten. <code>Tracer.inSpanOf</code> makes the event <em>be</em> the span it opens, so anything traced underneath nests inside it — the form for an entry point, like an inbound request, committed through <code>commitSpan()</code>. Both let the event derive its own name and status first:</p>
 
       <DocsCodeBlock :code="stampExample" language="java" />
 

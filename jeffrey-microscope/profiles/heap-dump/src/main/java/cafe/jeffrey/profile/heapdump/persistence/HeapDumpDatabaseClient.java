@@ -90,7 +90,6 @@ public final class HeapDumpDatabaseClient {
 
     public void execute(HeapDumpStatement stmt, String sql) {
         JdbcExecuteEvent event = new JdbcExecuteEvent(stmt.label(), groupLabel);
-        Tracer.stamp(event);
         event.begin();
 
         try (Statement s = connection.createStatement()) {
@@ -102,7 +101,7 @@ public final class HeapDumpDatabaseClient {
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
-                event.commitSpan();
+                event.stampAndCommit();
             }
         }
     }
@@ -122,7 +121,6 @@ public final class HeapDumpDatabaseClient {
 
     private int runInsert(HeapDumpStatement stmt, String sql, Object[] params) {
         JdbcInsertEvent event = new JdbcInsertEvent(stmt.label(), groupLabel);
-        Tracer.stamp(event);
         event.begin();
         int rows = 0;
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -137,7 +135,7 @@ public final class HeapDumpDatabaseClient {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramsToJson(params);
-                event.commitSpan();
+                event.stampAndCommit();
             }
         }
         return rows;
@@ -145,7 +143,6 @@ public final class HeapDumpDatabaseClient {
 
     private int runUpdate(HeapDumpStatement stmt, String sql, Object[] params) {
         JdbcUpdateEvent event = new JdbcUpdateEvent(stmt.label(), groupLabel);
-        Tracer.stamp(event);
         event.begin();
         int rows = 0;
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -160,7 +157,7 @@ public final class HeapDumpDatabaseClient {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramsToJson(params);
-                event.commitSpan();
+                event.stampAndCommit();
             }
         }
         return rows;
@@ -168,7 +165,6 @@ public final class HeapDumpDatabaseClient {
 
     private int runDelete(HeapDumpStatement stmt, String sql, Object[] params) {
         JdbcDeleteEvent event = new JdbcDeleteEvent(stmt.label(), groupLabel);
-        Tracer.stamp(event);
         event.begin();
         int rows = 0;
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -183,7 +179,7 @@ public final class HeapDumpDatabaseClient {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramsToJson(params);
-                event.commitSpan();
+                event.stampAndCommit();
             }
         }
         return rows;
@@ -193,7 +189,6 @@ public final class HeapDumpDatabaseClient {
 
     public void withAppender(HeapDumpStatement stmt, String tableName, AppenderBody body) {
         JdbcInsertEvent event = new JdbcInsertEvent(stmt.label(), groupLabel);
-        Tracer.stamp(event);
         event.isBatch = true;
         event.begin();
         long rows = 0;
@@ -207,7 +202,7 @@ public final class HeapDumpDatabaseClient {
             if (event.shouldCommit()) {
                 event.sql = APPENDER_SQL_PREFIX + tableName;
                 event.rows = rows;
-                event.commitSpan();
+                event.stampAndCommit();
             }
         }
     }
@@ -221,7 +216,6 @@ public final class HeapDumpDatabaseClient {
     public void withAppenderPair(
             HeapDumpStatement stmt, String primaryTable, String secondaryTable, AppenderPairBody body) {
         JdbcInsertEvent event = new JdbcInsertEvent(stmt.label(), groupLabel);
-        Tracer.stamp(event);
         event.isBatch = true;
         event.begin();
         long rows = 0;
@@ -236,7 +230,7 @@ public final class HeapDumpDatabaseClient {
             if (event.shouldCommit()) {
                 event.sql = APPENDER_SQL_PREFIX + primaryTable + " + " + secondaryTable;
                 event.rows = rows;
-                event.commitSpan();
+                event.stampAndCommit();
             }
         }
     }
@@ -255,7 +249,6 @@ public final class HeapDumpDatabaseClient {
         String sql = "INSERT INTO " + table
                 + " SELECT * FROM read_parquet('" + parquetGlob + "')";
         JdbcInsertEvent event = new JdbcInsertEvent(stmt.label(), groupLabel);
-        Tracer.stamp(event);
         event.isBatch = true;
         event.begin();
         long rows = 0;
@@ -273,7 +266,7 @@ public final class HeapDumpDatabaseClient {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = rows;
-                event.commitSpan();
+                event.stampAndCommit();
             }
         }
         return rows;
@@ -283,7 +276,6 @@ public final class HeapDumpDatabaseClient {
 
     public <T> Optional<T> queryScalar(HeapDumpStatement stmt, String sql, RowMapper<T> mapper, Object... params) {
         JdbcQueryEvent event = new JdbcQueryEvent(stmt.label(), groupLabel);
-        Tracer.stamp(event);
         event.begin();
         Optional<T> result = Optional.empty();
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -302,7 +294,7 @@ public final class HeapDumpDatabaseClient {
                 event.sql = sql;
                 event.rows = result.isPresent() ? 1 : 0;
                 event.params = paramsToJson(params);
-                event.commitSpan();
+                event.stampAndCommit();
             }
         }
         return result;
@@ -310,7 +302,6 @@ public final class HeapDumpDatabaseClient {
 
     public <T> List<T> queryList(HeapDumpStatement stmt, String sql, RowMapper<T> mapper, Object... params) {
         JdbcQueryEvent event = new JdbcQueryEvent(stmt.label(), groupLabel);
-        Tracer.stamp(event);
         event.begin();
         List<T> out = new ArrayList<>();
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -329,7 +320,7 @@ public final class HeapDumpDatabaseClient {
                 event.sql = sql;
                 event.rows = out.size();
                 event.params = paramsToJson(params);
-                event.commitSpan();
+                event.stampAndCommit();
             }
         }
         return out;
@@ -337,7 +328,6 @@ public final class HeapDumpDatabaseClient {
 
     public long queryLong(HeapDumpStatement stmt, String sql, Object... params) {
         JdbcQueryEvent event = new JdbcQueryEvent(stmt.label(), groupLabel);
-        Tracer.stamp(event);
         event.begin();
         long value = 0L;
         boolean present = false;
@@ -358,7 +348,7 @@ public final class HeapDumpDatabaseClient {
                 event.sql = sql;
                 event.rows = present ? 1 : 0;
                 event.params = paramsToJson(params);
-                event.commitSpan();
+                event.stampAndCommit();
             }
         }
         return value;
@@ -378,7 +368,6 @@ public final class HeapDumpDatabaseClient {
      */
     public void rawStream(HeapDumpStatement stmt, String sql, RawStreamBody body, Object... params) {
         JdbcStreamEvent event = new JdbcStreamEvent(stmt.label(), groupLabel);
-        Tracer.stamp(event);
         event.sql = sql;
         event.params = paramsToJson(params);
         event.begin();
@@ -395,7 +384,7 @@ public final class HeapDumpDatabaseClient {
         } finally {
             if (event.shouldCommit()) {
                 event.rows = rows;
-                event.commitSpan();
+                event.stampAndCommit();
             }
         }
     }
@@ -412,6 +401,9 @@ public final class HeapDumpDatabaseClient {
      */
     public <T> Stream<T> queryStream(HeapDumpStatement stmt, String sql, RowMapper<T> mapper, Object... params) {
         JdbcStreamEvent event = new JdbcStreamEvent(stmt.label(), groupLabel);
+        // Stamped eagerly, unlike every other emitter here: the event commits from the stream's
+        // onClose, which may run after the enclosing span's binding is gone — or inside someone
+        // else's — so stampAndCommit there would attach the statement to the wrong place.
         Tracer.stamp(event);
         event.sql = sql;
         event.params = paramsToJson(params);

@@ -185,6 +185,53 @@ class TracerTest {
             assertEquals(statement.parentSpanId, query.getLong("parentSpanId"),
                     "both hang off the exchange's span - a stamped event is a leaf, not a scope");
         }
+
+        @Test
+        @DisplayName("stampAndCommit stamps the leaf exactly as stamp does")
+        void stampAndCommitStampsTheLeaf() {
+            JdbcQueryEvent event = new JdbcQueryEvent("listSpans", "profile");
+
+            SpanContext context = Tracer.continueIn(null, "scope", SpanKind.INTERNAL, () -> {
+                event.stampAndCommit();
+                return Tracer.current().orElseThrow();
+            });
+
+            assertEquals(context.traceId(), event.traceId);
+            assertNotEquals(0, event.spanId);
+            assertNotEquals(context.spanId(), event.spanId, "a span id has to identify exactly one span");
+            assertEquals(context.spanId(), event.parentSpanId);
+        }
+
+        @Test
+        @DisplayName("stampAndCommit outside a span leaves the ids at zero")
+        void stampAndCommitOutsideASpanIsANoOp() {
+            JdbcQueryEvent event = new JdbcQueryEvent("listSpans", "profile");
+
+            event.stampAndCommit();
+
+            assertEquals(0, event.traceId);
+            assertEquals(0, event.spanId);
+            assertEquals(0, event.parentSpanId);
+        }
+
+        @Test
+        @DisplayName("stampAndCommit leaves an event that already carries identity alone")
+        void stampAndCommitDoesNotRestampAnOwnSpan() {
+            HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
+            exchange.method = "GET";
+            exchange.uri = "/api/internal/profiles/{profileId}";
+            exchange.statusCode = 200;
+            SpanContext own = Tracer.openSpanOf(exchange);
+
+            Tracer.continueIn(null, "scope", SpanKind.INTERNAL, () -> {
+                exchange.stampAndCommit();
+            });
+
+            assertEquals(own.traceId(), exchange.traceId,
+                    "re-stamping would mint fresh ids and orphan everything recorded under the original span");
+            assertEquals(own.spanId(), exchange.spanId);
+            assertEquals(own.parentSpanId(), exchange.parentSpanId);
+        }
     }
 
     @Nested
