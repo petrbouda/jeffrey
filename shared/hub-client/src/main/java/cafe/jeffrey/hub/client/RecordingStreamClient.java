@@ -26,7 +26,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import cafe.jeffrey.hub.api.v1.*;
+import cafe.jeffrey.hub.client.manager.TempDirProvider;
 import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -52,9 +54,11 @@ public class RecordingStreamClient {
     private static final long UNKNOWN_CONTENT_LENGTH = -1;
 
     private final RecordingDownloadServiceGrpc.RecordingDownloadServiceBlockingStub stub;
+    private final TempDirProvider tempDirProvider;
 
-    public RecordingStreamClient(GrpcHubConnection connection) {
+    public RecordingStreamClient(GrpcHubConnection connection, TempDirProvider tempDirProvider) {
         this.stub = RecordingDownloadServiceGrpc.newBlockingStub(connection.getChannel());
+        this.tempDirProvider = tempDirProvider;
     }
 
     public CompletableFuture<Resource> downloadRecordings(
@@ -123,10 +127,14 @@ public class RecordingStreamClient {
 
     /**
      * Collects gRPC data chunks into a temporary file and returns it as a Spring Resource.
+     * The temp directory is intentionally not closed on success — the returned Resource is backed
+     * by the file inside it, so ownership passes to the consumer and the application's temp-dir
+     * lifecycle removes the leftovers.
      */
-    private static Resource collectChunksToResource(Iterator<DataChunk> chunks) {
+    private Resource collectChunksToResource(Iterator<DataChunk> chunks) {
+        TempDirectory tempDir = tempDirProvider.newTempDir();
         try {
-            Path tempFile = Files.createTempFile("grpc-download-", ".tmp");
+            Path tempFile = Files.createTempFile(tempDir.path(), "grpc-download-", ".tmp");
 
             try (OutputStream out = new BufferedOutputStream(Files.newOutputStream(tempFile))) {
                 while (chunks.hasNext()) {
@@ -136,6 +144,7 @@ public class RecordingStreamClient {
 
             return new FileSystemResource(tempFile);
         } catch (IOException e) {
+            tempDir.close();
             throw new UncheckedIOException("Failed to collect gRPC data chunks to temp file", e);
         }
     }

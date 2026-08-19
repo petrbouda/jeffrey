@@ -47,8 +47,8 @@ public class RemoteWorkspaceConfiguration {
     }
 
     @Bean(destroyMethod = "close")
-    public CachedHubClientsFactory remoteClientsFactory() {
-        return new CachedHubClientsFactory();
+    public CachedHubClientsFactory remoteClientsFactory(MicroscopeJeffreyDirs jeffreyDirs) {
+        return new CachedHubClientsFactory(jeffreyDirs::newTempDir);
     }
 
     @Bean

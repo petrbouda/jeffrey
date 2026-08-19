@@ -38,7 +38,10 @@ public abstract class SessionPaths {
     public static Path resolve(
             HubJeffreyDirs jeffreyDirs, RepositoryInfo repositoryInfo, ProjectInstanceSessionInfo sessionInfo) {
         String workspacesPath = repositoryInfo.workspacesPath();
-        Path resolvedWorkspacesPath = workspacesPath == null ? jeffreyDirs.workspaces() : Path.of(workspacesPath);
+        Path defaultWorkspaces = jeffreyDirs.workspaces();
+        Path resolvedWorkspacesPath = workspacesPath == null
+                ? defaultWorkspaces
+                : defaultWorkspaces.getFileSystem().getPath(workspacesPath);
 
         return resolvedWorkspacesPath
                 .resolve(repositoryInfo.relativeWorkspacePath())
