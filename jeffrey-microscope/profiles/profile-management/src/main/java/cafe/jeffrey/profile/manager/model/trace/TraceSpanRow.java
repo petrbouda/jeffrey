@@ -56,6 +56,10 @@ package cafe.jeffrey.profile.manager.model.trace;
  *                                 count, an exchange's URI and status, a hand-written span's own
  *                                 attributes. Passed through as text rather than parsed: the keys
  *                                 differ per event type, and the UI renders them generically
+ * @param synthesized              whether the derivation synthesized this span out of a blocking JDK
+ *                                 event rather than reading it off an instrumented span event — what
+ *                                 lets the waterfall style and filter promoted waits apart from
+ *                                 recorded spans
  */
 public record TraceSpanRow(
         String spanId,
@@ -75,5 +79,6 @@ public record TraceSpanRow(
         boolean isVirtual,
         String eventType,
         String attributes,
-        String eventFields) {
+        String eventFields,
+        boolean synthesized) {
 }

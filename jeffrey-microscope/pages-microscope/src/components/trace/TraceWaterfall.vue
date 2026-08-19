@@ -43,30 +43,29 @@
       <button
         type="button"
         class="wf-toggle"
-        :class="{ active: contextCategories.length > 0 && !allContextHidden }"
-        :aria-pressed="contextCategories.length > 0 && !allContextHidden"
-        :disabled="contextCategories.length === 0"
+        :class="{ active: bandCategories.length > 0 && !allContextHidden }"
+        :aria-pressed="bandCategories.length > 0 && !allContextHidden"
+        :disabled="bandCategories.length === 0"
         :title="contextToggleTitle"
         @click="toggleAllContext"
       >
         <i class="bi bi-cpu"></i> JVM context
       </button>
       <!--
-        The GC phase breakdown, off unless asked for. A levelled phase runs inside its collection
-        pause, so drawing them alongside it redraws the same stopped world up to five times: on the
-        trace this was built against, 17 bands became 94 and 38 of the extras were shorter than the
-        band floor. They are still worth having for a GC investigation, which is what this is for.
+        The promoted waits — I/O, locks, parks — drawn as child bars. On by default because they are
+        the feature: a trace that says where its time went. Off is for reading the recorded span
+        structure alone, and the per-category legend buttons narrow it finer than this master can.
       -->
       <button
         type="button"
         class="wf-toggle"
-        :class="{ active: showNestedPauses }"
-        :aria-pressed="showNestedPauses"
-        :disabled="nestedPauseCount === 0"
-        :title="nestedToggleTitle"
-        @click="showNestedPauses = !showNestedPauses"
+        :class="{ active: showBlockingOps && promotedCount > 0 }"
+        :aria-pressed="showBlockingOps && promotedCount > 0"
+        :disabled="promotedCount === 0"
+        :title="blockingToggleTitle"
+        @click="showBlockingOps = !showBlockingOps"
       >
-        <i class="bi bi-layers"></i> GC phases
+        <i class="bi bi-hourglass-split"></i> Blocking ops
       </button>
       <!--
         Only when there is an error to jump to: in a 200-span trace the one red badge can sit three
@@ -236,7 +235,7 @@
               ></i>
             </span>
             <span v-else class="wf-twist is-leaf"></span>
-            <span class="wf-kind" :class="kindClass(span)"></span>
+            <span class="wf-kind" :class="kindClass(span)" :style="kindStyle(span)"></span>
             <span class="wf-label" :title="span.name">{{ span.name }}</span>
             <Badge v-if="span.status === 'ERROR'" variant="danger" size="xs" value="error" />
             <span v-if="collapsed.has(span.spanId)" class="wf-folded">
@@ -357,7 +356,7 @@ import {
   contextBands,
   mergedDurationNanos
 } from '@/services/trace/TraceContextBands';
-import { contextColor, contextLabel } from '@/services/trace/traceLabels';
+import { contextColor, contextLabel, promotedCategory } from '@/services/trace/traceLabels';
 
 const props = withDefaults(
   defineProps<{
@@ -407,7 +406,7 @@ watch(
     collapsed.value = new Set();
     criticalOnly.value = false;
     hiddenCategories.value = new Set();
-    showNestedPauses.value = false;
+    showBlockingOps.value = true;
   }
 );
 
@@ -419,43 +418,60 @@ const windowNanos = computed(() => {
 const parents = computed(() => spansWithChildren(props.spans));
 
 /**
- * Whether the levelled GC phases are drawn alongside the collection pauses that contain them.
+ * Whether the promoted blocking operations — the synthesized leaf spans the derivation built out of
+ * I/O, lock, park and sleep events — are drawn. On by default: they are the rows that say where a
+ * span's time actually went. Off reads the recorded span structure alone.
  *
- * Off by default because they are a breakdown rather than more pauses: every one of them overlaps a
- * band already on screen, so switching them on multiplies the ink without adding a stretch of
- * stopped world the reader could not already see.
+ * The levelled GC phases used to have a toggle of their own here; it drew the same stopped world up
+ * to five times over and answered a GC question rather than a latency one, so the nested pauses now
+ * simply stay out of the lanes.
  */
-const showNestedPauses = ref(false);
+const showBlockingOps = ref(true);
 
-const nestedPauses = computed(() => (props.context?.pauses ?? []).filter(pause => pause.nested));
+const promotedCount = computed(() => props.spans.filter(span => span.synthesized).length);
 
-const nestedPauseCount = computed(() => nestedPauses.value.length);
-
-const nestedToggleTitle = computed(() => {
-  if (props.contextState === 'loading') {
-    return 'Loading JVM context…';
+const blockingToggleTitle = computed(() => {
+  if (promotedCount.value === 0) {
+    return 'No blocking operations were promoted in this trace';
   }
-  if (nestedPauseCount.value === 0) {
-    return 'This trace recorded no GC phase breakdown';
-  }
-  const phases = nestedPauseCount.value === 1 ? '1 phase' : `${nestedPauseCount.value} phases`;
-  return showNestedPauses.value
-    ? `Hide the ${phases} drawn inside the collection pauses that contain them`
-    : `Break the collection pauses down into the ${phases} recorded inside them`;
+  const ops = promotedCount.value === 1 ? '1 blocking operation' : `${promotedCount.value} blocking operations`;
+  return showBlockingOps.value
+    ? `Hide the ${ops} drawn as child spans`
+    : `Show the ${ops} drawn as child spans`;
 });
 
 const allBands = computed(() =>
   contextBands(
-    (props.context?.pauses ?? []).filter(pause => showNestedPauses.value || !pause.nested),
+    (props.context?.pauses ?? []).filter(pause => !pause.nested),
     traceWindow(props.spans)
   )
 );
 
 /**
+ * The categories drawn as pause lanes and stripes — the GLOBAL ones. The "JVM context" master
+ * toggle governs exactly these, so switching the bands off cannot silently swallow the promoted
+ * rows, which have their own master.
+ */
+const bandCategories = computed(() => bandLanes(allBands.value).map(lane => lane.category));
+
+/**
  * Every category the trace recorded, hidden or not — the legend is driven from this rather than from
  * what is currently drawn, or hiding a category would take away the control that brings it back.
+ * Band categories first, then whatever categories the promoted rows add.
  */
-const contextCategories = computed(() => bandLanes(allBands.value).map(lane => lane.category));
+const contextCategories = computed(() => {
+  const categories = [...bandCategories.value];
+  for (const span of props.spans) {
+    if (!span.synthesized) {
+      continue;
+    }
+    const category = promotedCategory(span.eventType);
+    if (category !== null && !categories.includes(category)) {
+      categories.push(category);
+    }
+  }
+  return categories;
+});
 
 const bands = computed(() =>
   allBands.value.filter(band => !hiddenCategories.value.has(band.category))
@@ -469,7 +485,7 @@ const laneGroups = computed(() => bandLanes(bands.value));
  * off and saying on.
  */
 const allContextHidden = computed(
-  () => contextCategories.value.length > 0 && bands.value.length === 0
+  () => bandCategories.value.length > 0 && bands.value.length === 0
 );
 
 function isContextVisible(category: string): boolean {
@@ -486,12 +502,23 @@ function toggleContextCategory(category: string): void {
   hiddenCategories.value = hidden;
 }
 
+/**
+ * Hides or restores the pause bands only. Working through the band categories rather than through
+ * every legend category keeps this master away from the promoted rows, which "Blocking ops" owns —
+ * one switch per question, and a per-category choice on the other family survives flipping this one.
+ */
 function toggleAllContext(): void {
+  const hidden = new Set(hiddenCategories.value);
   if (allContextHidden.value) {
-    hiddenCategories.value = new Set();
+    for (const category of bandCategories.value) {
+      hidden.delete(category);
+    }
   } else {
-    hiddenCategories.value = new Set(contextCategories.value);
+    for (const category of bandCategories.value) {
+      hidden.add(category);
+    }
   }
+  hiddenCategories.value = hidden;
 }
 
 const contextToggleTitle = computed(() => {
@@ -503,7 +530,7 @@ const contextToggleTitle = computed(() => {
   if (props.contextState === 'failed') {
     return 'JVM context could not be loaded';
   }
-  if (contextCategories.value.length === 0) {
+  if (bandCategories.value.length === 0) {
     return 'No GC pauses or safepoints crossed this trace';
   }
   return allContextHidden.value
@@ -516,17 +543,31 @@ const contextToggleTitle = computed(() => {
 const foldedCounts = computed(() => descendantCounts(props.spans));
 
 /**
- * The rows actually drawn: folded subtrees removed first, then the off-path spans when the filter is
- * on. That order is what makes the two compose — collapsing hides a subtree whether or not its spans
- * are critical, and the filter then narrows whatever survived.
+ * The rows actually drawn: folded subtrees removed first, then the promoted rows the reader has
+ * switched off, then the off-path spans when the filter is on. That order is what makes them
+ * compose — collapsing hides a subtree whether or not its spans are critical, and each filter then
+ * narrows whatever survived. Dropping a synthesized row never breaks the tree: a promoted span is a
+ * leaf by construction, so the depth sequence the rendering reads stays intact.
  */
 const rows = computed(() => {
-  const visible = visibleSpans(props.spans, collapsed.value);
+  const visible = visibleSpans(props.spans, collapsed.value).filter(isSpanDrawn);
   if (!criticalOnly.value) {
     return visible;
   }
   return visible.filter(isCritical);
 });
+
+/** Whether a row survives the blocking-ops master and the per-category legend choices. */
+function isSpanDrawn(span: TraceSpanRow): boolean {
+  if (!span.synthesized) {
+    return true;
+  }
+  if (!showBlockingOps.value) {
+    return false;
+  }
+  const category = promotedCategory(span.eventType);
+  return category === null || !hiddenCategories.value.has(category);
+}
 
 /**
  * Whether the filter would remove anything. In a strictly sequential trace every span is on the
@@ -550,7 +591,10 @@ const rowCountLabel = computed(() => {
   const shown = rows.value.length;
   const total = props.spans.length;
   if (shown === total) {
-    return total === 1 ? '1 span' : `${total} spans`;
+    const spans = total === 1 ? '1 span' : `${total} spans`;
+    // The promoted rows are counted out loud so a reader knows how much of the tree is synthesized
+    // waits rather than recorded structure.
+    return promotedCount.value > 0 ? `${spans} · ${promotedCount.value} promoted` : spans;
   }
   return `${shown} of ${total} spans`;
 });
@@ -583,6 +627,7 @@ function isCritical(span: TraceSpanRow): boolean {
 function showAllSpans(): void {
   criticalOnly.value = false;
   collapsed.value = new Set();
+  showBlockingOps.value = true;
 }
 
 /** In drawn order, so "first" means the first the reader would meet scrolling down. */
@@ -848,18 +893,42 @@ function focusRow(spanId: string): void {
 
 function barStyle(span: TraceSpanRow) {
   const geometry = bar(span);
-  return { left: geometry.leftPercent + '%', width: geometry.widthPercent + '%' };
+  const style: Record<string, string> = {
+    left: geometry.leftPercent + '%',
+    width: geometry.widthPercent + '%'
+  };
+  // A promoted wait wears its category's colour -- the same one its legend button, the lanes and
+  // the threads timeline use -- rather than a span-kind pastel: it is context turned into a bar,
+  // not a new kind of span.
+  const category = promotedColorCategory(span);
+  if (category !== null) {
+    style.background = contextColor(category);
+  }
+  return style;
 }
 
 function barClass(span: TraceSpanRow): string {
   if (span.status === 'ERROR') {
     return 'bar-error';
   }
+  if (span.synthesized) {
+    return 'bar-synthesized';
+  }
   return 'bar-' + span.kind.toLowerCase();
 }
 
 function kindClass(span: TraceSpanRow): string {
   return 'kind-' + span.kind.toLowerCase();
+}
+
+/** The row marker follows the bar for a promoted wait, so the two cannot disagree about what it is. */
+function kindStyle(span: TraceSpanRow): Record<string, string> | undefined {
+  const category = promotedColorCategory(span);
+  return category === null ? undefined : { background: contextColor(category) };
+}
+
+function promotedColorCategory(span: TraceSpanRow): string | null {
+  return span.synthesized ? promotedCategory(span.eventType) : null;
 }
 
 /**
@@ -878,7 +947,9 @@ function tooltip(span: TraceSpanRow): string {
   const startedMicros = span.startEpochMicros - traceWindow(props.spans).startMicros;
   const offset = FormattingService.formatDuration2Units(startedMicros * NANOS_PER_MICRO);
   const wallClock = FormattingService.formatTimestamp(Math.floor(span.startEpochMicros / 1_000));
-  return `${span.name} — ${total} total, ${self} self${critical}${thread}\nstarted ${offset} into the trace · ${wallClock}`;
+  // A promoted row names its source event, so the bar never passes itself off as instrumentation.
+  const promoted = span.synthesized ? `\npromoted from ${span.eventType}` : '';
+  return `${span.name} — ${total} total, ${self} self${critical}${thread}\nstarted ${offset} into the trace · ${wallClock}${promoted}`;
 }
 </script>
 
@@ -1391,6 +1462,19 @@ function tooltip(span: TraceSpanRow): string {
 
 .bar-error .wf-self {
   background: var(--flamegraph-color-red);
+}
+
+/*
+ * A promoted wait's colour is its category's, set inline where the bar is laid out — the palette
+ * lives in traceLabels, not here. The whole bar is solid: a synthesized span is a leaf, so a wash
+ * plus self overlay would draw the same stretch twice in two shades of the same colour.
+ */
+.bar-synthesized {
+  opacity: 0.9;
+}
+
+.bar-synthesized .wf-self {
+  display: none;
 }
 
 /*

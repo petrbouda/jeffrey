@@ -54,6 +54,7 @@ function span(
     eventType: 'jeffrey.TraceSpan',
     attributes: null,
     eventFields: null,
+    synthesized: false,
     ...overrides
   };
 }

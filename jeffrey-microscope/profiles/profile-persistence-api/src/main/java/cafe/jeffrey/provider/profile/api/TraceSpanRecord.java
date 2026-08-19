@@ -60,6 +60,11 @@ package cafe.jeffrey.provider.profile.api;
  *                                 type, known in advance, which is why they are kept apart from the
  *                                 map above. {@code null} for an event that declares nothing of its
  *                                 own, a hand-written span being the usual case
+ * @param synthesized              whether the derivation synthesized this span out of a blocking JDK
+ *                                 event ({@code jdk.SocketRead}, {@code jdk.JavaMonitorEnter}, ...)
+ *                                 rather than reading it off an instrumented span event. A
+ *                                 synthesized span carries a minted id and is always a leaf under
+ *                                 the innermost span open on its thread
  */
 public record TraceSpanRecord(
         long traceId,
@@ -78,5 +83,6 @@ public record TraceSpanRecord(
         boolean isVirtual,
         String eventType,
         String attributes,
-        String eventFields) {
+        String eventFields,
+        boolean synthesized) {
 }

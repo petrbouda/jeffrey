@@ -236,6 +236,11 @@ CREATE TABLE IF NOT EXISTS trace_spans
     -- labelled field of its event type -- so they are kept apart from the map above. Null for an
     -- event that declares nothing of its own, a hand-written span being the usual case.
     event_fields                   VARCHAR,
+    -- TRUE for a span the derivation synthesized out of a blocking JDK event (jdk.SocketRead,
+    -- jdk.JavaMonitorEnter, ...) rather than read out of an instrumented span event. A synthesized
+    -- span carries a minted id and is always a leaf under the innermost span open on its thread --
+    -- the flag is what lets the UI style and filter promoted waits apart from recorded spans.
+    synthesized                    BOOLEAN     NOT NULL DEFAULT FALSE,
     PRIMARY KEY (trace_id, span_id)
 );
 
