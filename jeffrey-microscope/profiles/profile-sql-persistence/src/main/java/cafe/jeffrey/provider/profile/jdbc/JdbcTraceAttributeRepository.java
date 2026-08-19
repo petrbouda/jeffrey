@@ -21,6 +21,7 @@ package cafe.jeffrey.provider.profile.jdbc;
 import cafe.jeffrey.provider.profile.api.TraceAttributeCondition;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyRecord;
+import cafe.jeffrey.provider.profile.api.TraceAttributeLatencyQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeLatencyRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeRepository;
 import cafe.jeffrey.provider.profile.api.TraceAttributeSearchQuery;
@@ -28,6 +29,7 @@ import cafe.jeffrey.provider.profile.api.TraceAttributeSource;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueKind;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueRecord;
+import cafe.jeffrey.provider.profile.api.TraceSpanTypeRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
@@ -82,11 +84,12 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
     //language=SQL
     private static final String DERIVE_FROM_JSON = """
             INSERT INTO trace_span_attributes (
-                trace_id, span_id, source, owner, attr_key, value_text, value_num)
+                trace_id, span_id, source, owner, attr_key, value_text, value_num, event_type)
             WITH pairs AS (
                 SELECT
                     trace_id,
                     span_id,
+                    event_type,
                     <<owner>>                                       AS owner,
                     <<payload>>                                     AS payload,
                     UNNEST(json_keys(<<payload>>))                  AS attr_key
@@ -100,7 +103,8 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
                 owner,
                 attr_key,
                 json_extract_string(payload, <<path>>),
-                TRY_CAST(json_extract_string(payload, <<path>>) AS DOUBLE)
+                TRY_CAST(json_extract_string(payload, <<path>>) AS DOUBLE),
+                event_type
             FROM pairs
             WHERE attr_key NOT LIKE '%"%'
               AND json_type(payload, <<path>>) NOT IN ('OBJECT', 'ARRAY')
@@ -110,8 +114,8 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
     //language=SQL
     private static final String DERIVE_FROM_SHAPE = """
             INSERT INTO trace_span_attributes (
-                trace_id, span_id, source, owner, attr_key, value_text, value_num)
-            SELECT trace_id, span_id, '%s', NULL, shape.attr_key, shape.value_text, NULL
+                trace_id, span_id, source, owner, attr_key, value_text, value_num, event_type)
+            SELECT trace_id, span_id, '%s', NULL, shape.attr_key, shape.value_text, NULL, event_type
             FROM trace_spans,
                  UNNEST([%s]) AS columns(shape)
             WHERE shape.value_text IS NOT NULL
@@ -145,8 +149,88 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
             GROUP BY source, owner, attr_key
             """;
 
+    /*
+     * The same summary as the catalog, cut by the event type the value was recorded on.
+     *
+     * Written from the index rather than joined at read time: the picker asks for it on every step,
+     * and the counts have to be the event type's own -- `tenant` on HTTP spans is a different number
+     * of values from `tenant` across the profile, and showing the profile-wide figure under an
+     * event type would be a number that no page can reproduce.
+     */
+    //language=SQL
+    private static final String DERIVE_KEY_EVENT_TYPES = """
+            INSERT INTO trace_attribute_key_event_types (
+                event_type, source, owner, attr_key, distinct_values, span_count, trace_count)
+            SELECT
+                event_type,
+                source,
+                owner,
+                attr_key,
+                COUNT(DISTINCT value_text)                          AS distinct_values,
+                COUNT(*)                                            AS span_count,
+                COUNT(DISTINCT trace_id)                            AS trace_count
+            FROM trace_span_attributes
+            GROUP BY event_type, source, owner, attr_key
+            """;
+
+    /*
+     * The event types that produced spans -- the picker's first step.
+     *
+     * Read from trace_spans rather than from the attribute index: a span with no attributes at all
+     * still produced a span, and a type that vanished from the first step because none of its spans
+     * carried a payload would be a type the reader cannot explain the absence of. The shape keys
+     * mean this is unlikely, but the list is about spans, so it is counted from spans.
+     */
+    //language=SQL
+    private static final String SPAN_EVENT_TYPES = """
+            SELECT
+                s.event_type                                        AS event_type,
+                COUNT(*)                                            AS span_count,
+                COUNT(DISTINCT s.trace_id)                          AS trace_count,
+                COUNT(*) FILTER (WHERE s.status = 'ERROR')          AS error_spans,
+                (SELECT COUNT(*)
+                   FROM trace_attribute_key_event_types k
+                  WHERE k.event_type = s.event_type)                AS attribute_count,
+                (SELECT COUNT(*)
+                   FROM trace_attribute_key_event_types k
+                  WHERE k.event_type = s.event_type
+                    AND k.distinct_values <= :search_only_above)    AS breakable_count
+            FROM trace_spans s
+            GROUP BY s.event_type
+            ORDER BY span_count DESC
+            """;
+
+    /*
+     * The keys one event type carries, with that type's own counts.
+     *
+     * The value kind is joined from the profile-wide catalog rather than re-inferred here, because
+     * it is a property of the key and not of the slice: a numeric key whose values on one event type
+     * happen to all be `0` is still numeric, and an operator list that changed with the event type
+     * selected would be a different question answered by the same control.
+     */
+    //language=SQL
+    private static final String KEYS_OF_EVENT_TYPE = """
+            SELECT
+                t.source                                            AS source,
+                t.owner                                             AS owner,
+                t.attr_key                                          AS attr_key,
+                k.value_kind                                        AS value_kind,
+                t.distinct_values                                   AS distinct_values,
+                t.span_count                                        AS span_count,
+                t.trace_count                                       AS trace_count
+            FROM trace_attribute_key_event_types t
+            JOIN trace_attribute_keys k
+              ON k.source = t.source
+             AND k.attr_key = t.attr_key
+             AND (k.owner = t.owner OR (k.owner IS NULL AND t.owner IS NULL))
+            WHERE t.event_type = :event_type
+            ORDER BY t.source, t.attr_key, t.owner
+            """;
+
     private static final String DELETE_ATTRIBUTES = "DELETE FROM trace_span_attributes";
     private static final String DELETE_CATALOG = "DELETE FROM trace_attribute_keys";
+    private static final String DELETE_KEY_EVENT_TYPES =
+            "DELETE FROM trace_attribute_key_event_types";
 
     //language=SQL
     private static final String KEYS = """
@@ -278,10 +362,15 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
 
     //language=SQL
     private static final String TRACES_WITHOUT_KEY = """
-            SELECT (SELECT COUNT(*) FROM traces) - COUNT(DISTINCT a.trace_id) AS absent
+            SELECT %s - COUNT(DISTINCT a.trace_id) AS absent
             FROM trace_span_attributes a
             WHERE a.source = :source AND a.attr_key = :attr_key AND %s
             """;
+
+    /** Traces in the profile, or — once the read is scoped — traces holding a span of that type. */
+    private static final String ALL_TRACES = "(SELECT COUNT(*) FROM traces)";
+    private static final String TRACES_OF_EVENT_TYPE =
+            "(SELECT COUNT(DISTINCT trace_id) FROM trace_spans WHERE event_type = :event_type)";
 
     /*
      * The heatmap's cells. Buckets are half-decades of nanoseconds, clamped at both ends so the grid
@@ -332,6 +421,7 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
     public void derive() {
         // Wholly a function of trace_spans, so deriving twice has to land where deriving once did.
         databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DELETE_CATALOG);
+        databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DELETE_KEY_EVENT_TYPES);
         databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DELETE_ATTRIBUTES);
 
         databaseClient.execute(
@@ -342,8 +432,41 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
                 deriveFromJson("event_type", "event_fields", TraceAttributeSource.EVENT_FIELD));
         databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DERIVE_FROM_SHAPE);
 
-        // The catalog summarises the index, so every row has to be in it first.
+        // Both catalogs summarise the index, so every row has to be in it first.
         databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DERIVE_CATALOG);
+        databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DERIVE_KEY_EVENT_TYPES);
+    }
+
+    @Override
+    public List<TraceSpanTypeRecord> spanEventTypes(long searchOnlyAbove) {
+        return databaseClient.query(
+                StatementLabel.TRACE_SPAN_EVENT_TYPES,
+                SPAN_EVENT_TYPES,
+                new MapSqlParameterSource().addValue("search_only_above", searchOnlyAbove),
+                (rs, _) -> new TraceSpanTypeRecord(
+                        rs.getString("event_type"),
+                        rs.getLong("span_count"),
+                        rs.getLong("trace_count"),
+                        rs.getLong("error_spans"),
+                        rs.getInt("attribute_count"),
+                        rs.getInt("breakable_count")));
+    }
+
+    @Override
+    public List<TraceAttributeKeyRecord> keysOf(String eventType) {
+        return databaseClient.query(
+                StatementLabel.TRACE_ATTRIBUTE_KEYS,
+                KEYS_OF_EVENT_TYPE,
+                new MapSqlParameterSource().addValue("event_type", eventType),
+                (rs, _) -> new TraceAttributeKeyRecord(
+                        new TraceAttributeKeyId(
+                                TraceAttributeSource.valueOf(rs.getString("source")),
+                                rs.getString("owner"),
+                                rs.getString("attr_key")),
+                        TraceAttributeValueKind.valueOf(rs.getString("value_kind")),
+                        rs.getLong("distinct_values"),
+                        rs.getLong("span_count"),
+                        rs.getLong("trace_count")));
     }
 
     private static String deriveFromJson(String ownerExpression, String payload, TraceAttributeSource source) {
@@ -461,12 +584,13 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
 
     @Override
     public Values values(TraceAttributeValueQuery query) {
-        MapSqlParameterSource params = keyParams(query.key()).addValue("limit", query.limit());
+        MapSqlParameterSource params = scopedParams(query.key(), query.eventType())
+                .addValue("limit", query.limit());
 
         List<TraceAttributeValueRecord> values = databaseClient.query(
                 StatementLabel.TRACE_ATTRIBUTE_VALUES,
                 VALUES_OF_KEY.formatted(
-                        ownerClause(query.key()),
+                        scopedClause(query.key(), query.eventType()),
                         "%s %s".formatted(query.sort().column(), query.descending() ? "DESC" : "ASC")),
                 params,
                 (rs, _) -> new TraceAttributeValueRecord(
@@ -483,8 +607,10 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
 
         long absent = databaseClient.querySingle(
                         StatementLabel.TRACE_ATTRIBUTE_VALUES,
-                        TRACES_WITHOUT_KEY.formatted(ownerClause(query.key())),
-                        keyParams(query.key()),
+                        TRACES_WITHOUT_KEY.formatted(
+                                query.eventType() == null ? ALL_TRACES : TRACES_OF_EVENT_TYPE,
+                                scopedClause(query.key(), query.eventType())),
+                        params,
                         (rs, _) -> rs.getLong("absent"))
                 .orElse(0L);
 
@@ -492,17 +618,41 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
     }
 
     @Override
-    public List<TraceAttributeLatencyRecord> latency(TraceAttributeKeyId key, int maxValues) {
-        MapSqlParameterSource params = keyParams(key).addValue("max_values", maxValues);
+    public List<TraceAttributeLatencyRecord> latency(TraceAttributeLatencyQuery query) {
+        MapSqlParameterSource params = scopedParams(query.key(), query.eventType())
+                .addValue("max_values", query.maxValues());
 
         return databaseClient.query(
                 StatementLabel.TRACE_ATTRIBUTE_LATENCY,
-                LATENCY.formatted(ownerClause(key), MIN_LATENCY_BUCKET, MAX_LATENCY_BUCKET),
+                LATENCY.formatted(
+                        scopedClause(query.key(), query.eventType()),
+                        MIN_LATENCY_BUCKET,
+                        MAX_LATENCY_BUCKET),
                 params,
                 (rs, _) -> new TraceAttributeLatencyRecord(
                         rs.getString("value"),
                         rs.getInt("bucket"),
                         rs.getLong("trace_count")));
+    }
+
+    /**
+     * The key's own predicate, narrowed to one event type where the caller asked for one.
+     * <p>
+     * Spelled into the SQL rather than bound because a null owner is compared with {@code IS NULL},
+     * which a bound parameter cannot express — see {@link TraceAttributeQueries#predicates}.
+     */
+    private static String scopedClause(TraceAttributeKeyId key, String eventType) {
+        return eventType == null
+                ? ownerClause(key)
+                : ownerClause(key) + " AND a.event_type = :event_type";
+    }
+
+    private static MapSqlParameterSource scopedParams(TraceAttributeKeyId key, String eventType) {
+        MapSqlParameterSource params = keyParams(key);
+        if (eventType != null) {
+            params.addValue("event_type", eventType);
+        }
+        return params;
     }
 
     private static MapSqlParameterSource keyParams(TraceAttributeKeyId key) {

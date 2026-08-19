@@ -320,7 +320,12 @@ CREATE TABLE IF NOT EXISTS trace_span_attributes
     owner      VARCHAR,
     attr_key   VARCHAR NOT NULL,
     value_text VARCHAR NOT NULL,
-    value_num  DOUBLE
+    value_num  DOUBLE,
+    -- Which event type the span carrying this value was, copied from trace_spans at derivation.
+    -- Distinct from `owner`: owner says which event type *declares* a key, and only EVENT_FIELD has
+    -- one, while this says which event type a value was *recorded on*, which every row has. It is
+    -- what lets `tenant` -- a key no event type declares -- be listed under the types that carry it.
+    event_type VARCHAR NOT NULL
 );
 
 --
@@ -343,8 +348,33 @@ CREATE TABLE IF NOT EXISTS trace_attribute_keys
     trace_count     BIGINT  NOT NULL
 );
 
+--
+-- WHICH KEYS EACH EVENT TYPE CARRIES
+-- The catalog above answers "what keys does this profile have"; this answers "what keys do spans of
+-- this event type have", which is what the two-step picker walks.
+--
+-- A separate table rather than a column on the catalog, because a key is not per event type: one
+-- `tenant` attached at a call site rides on an HTTP span and a Kafka span alike, and folding the
+-- event type into the catalog's key would split it into two keys that are the same key. Here it is
+-- a second row for the same key, with the counts scoped to that event type -- so the picker can say
+-- how many values `tenant` took *on HTTP spans* without changing what `tenant` is.
+--
+CREATE TABLE IF NOT EXISTS trace_attribute_key_event_types
+(
+    event_type      VARCHAR NOT NULL,
+    source          VARCHAR NOT NULL,
+    owner           VARCHAR,
+    attr_key        VARCHAR NOT NULL,
+    distinct_values BIGINT  NOT NULL,
+    span_count      BIGINT  NOT NULL,
+    trace_count     BIGINT  NOT NULL
+);
+
 -- Written once by the derivation, then read interactively by every attribute query, so the same
 -- reasoning applies as for the trace tables above. The key index serves the facet, latency and
 -- difference reads; the trace index serves the search, which resolves a set of trace ids.
 CREATE INDEX IF NOT EXISTS trace_span_attributes_key_idx ON trace_span_attributes (attr_key, value_text);
 CREATE INDEX IF NOT EXISTS trace_span_attributes_trace_id_idx ON trace_span_attributes (trace_id);
+-- The picker's second step reads this by event type and nothing else.
+CREATE INDEX IF NOT EXISTS trace_attribute_key_event_types_idx
+    ON trace_attribute_key_event_types (event_type);

@@ -24,13 +24,12 @@
 <template>
   <TraceAttributeKeyWorkspace
     :disabled-features="disabledFeatures"
-    no-key-description="Pick a key on the left to see how its values spread over trace duration."
-    empty-catalog-description="No span in this profile recorded an attribute, a declared field or a shape worth breaking down."
+    no-key-description="Choose an event type, then one of the attributes its spans carried."
   >
-    <template #default="{ attributeKey }">
+    <template #default="{ attributeKey, eventType }">
       <LoadingState v-if="loading" message="Loading distribution..." />
 
-      <ErrorState v-else-if="error" :message="error" @retry="load(attributeKey)" />
+      <ErrorState v-else-if="error" :message="error" @retry="load(attributeKey, eventType)" />
 
       <TraceAttributeLatency v-else-if="latency" :latency="latency" />
     </template>
@@ -48,6 +47,7 @@ import TraceAttributeLatency from '@/components/trace/TraceAttributeLatency.vue'
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
 import FeatureType from '@/services/api/model/FeatureType';
 import {
+  eventTypeFromQuery,
   keyFromQuery,
   keyToken,
   type TraceAttributeKeyId,
@@ -65,6 +65,7 @@ const error = ref<string | null>(null);
 const latency = ref<Latency | null>(null);
 
 const selectedKey = computed(() => keyFromQuery(route.query));
+const selectedEventType = computed(() => eventTypeFromQuery(route.query));
 
 /*
  * Guards against an out-of-order response: a slow fetch for a previously selected key must not land
@@ -72,12 +73,12 @@ const selectedKey = computed(() => keyFromQuery(route.query));
  */
 let generation = 0;
 
-async function load(key: TraceAttributeKeyId): Promise<void> {
+async function load(key: TraceAttributeKeyId, eventType: string): Promise<void> {
   const current = ++generation;
   loading.value = true;
   error.value = null;
   try {
-    const loaded = await client.getAttributeLatency(key);
+    const loaded = await client.getAttributeLatency(key, eventType);
     if (current !== generation) {
       return;
     }
@@ -98,14 +99,15 @@ async function load(key: TraceAttributeKeyId): Promise<void> {
 
 // Watched by identity rather than by object, for the reason Attribute Values states.
 watch(
-  () => (selectedKey.value === null ? null : keyToken(selectedKey.value)),
+  () => [selectedEventType.value, selectedKey.value === null ? null : keyToken(selectedKey.value)],
   () => {
     const key = selectedKey.value;
-    if (key === null || props.disabledFeatures.includes(FeatureType.TRACES)) {
+    const eventType = selectedEventType.value;
+    if (key === null || eventType === null || props.disabledFeatures.includes(FeatureType.TRACES)) {
       latency.value = null;
       return;
     }
-    load(key);
+    load(key, eventType);
   },
   { immediate: true }
 );

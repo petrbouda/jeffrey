@@ -28,12 +28,17 @@ import java.util.Objects;
  * @param descending whether that column runs high-to-low
  * @param limit      how many values to return; the caller is told the key's true cardinality
  *                   separately, so a truncated list can say it is one
+ * @param eventType  which event type's spans to read the key on, or null for every span carrying it.
+ *                   The picker reaches a key through an event type, and a breakdown that ignored it
+ *                   would answer a wider question than the one asked — the same key on a different
+ *                   type is a different set of values
  */
 public record TraceAttributeValueQuery(
         TraceAttributeKeyId key,
         TraceAttributeValueSortField sort,
         boolean descending,
-        int limit) {
+        int limit,
+        String eventType) {
 
     public TraceAttributeValueQuery {
         Objects.requireNonNull(key, "key must not be null");

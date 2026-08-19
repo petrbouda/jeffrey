@@ -21,6 +21,7 @@ package cafe.jeffrey.profile.manager;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeKeyRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeSearchResult;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeValues;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanTypeRow;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeRepository;
@@ -31,6 +32,7 @@ import cafe.jeffrey.provider.profile.api.TraceAttributeValueKind;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueSortField;
+import cafe.jeffrey.provider.profile.api.TraceSpanTypeRecord;
 import cafe.jeffrey.provider.profile.api.TraceSortField;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import org.junit.jupiter.api.DisplayName;
@@ -47,6 +49,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -183,6 +187,40 @@ class TraceAttributesManagerImplTest {
     }
 
     @Nested
+    @DisplayName("Event types")
+    class EventTypes {
+
+        @Test
+        @DisplayName("the cardinality cap the manager owns is what splits breakable from search-only")
+        void capIsPassedDown() {
+            when(repository.spanEventTypes(anyLong())).thenReturn(List.of(
+                    new TraceSpanTypeRecord("jeffrey.HttpServerExchange", 900, 120, 4, 11, 8)));
+
+            List<TraceSpanTypeRow> rows = manager().spanEventTypes();
+
+            verify(repository).spanEventTypes(TraceAttributesManager.SEARCH_ONLY_ABOVE);
+            assertEquals(1, rows.size());
+            assertEquals("jeffrey.HttpServerExchange", rows.getFirst().eventType());
+            assertEquals(11, rows.getFirst().attributeCount());
+            assertEquals(8, rows.getFirst().breakableCount(),
+                    "three of the type's keys are too wide to break down");
+        }
+
+        @Test
+        @DisplayName("a type's keys are marked search-only by the same cap as the catalog's")
+        void keysOfAreMarked() {
+            when(repository.keysOf("jeffrey.HttpServerExchange")).thenReturn(List.of(
+                    key(TENANT, 4),
+                    key(TENANT, TraceAttributesManager.SEARCH_ONLY_ABOVE + 1)));
+
+            List<TraceAttributeKeyRow> rows = manager().keysOf("jeffrey.HttpServerExchange");
+
+            assertFalse(rows.getFirst().searchOnly());
+            assertTrue(rows.getLast().searchOnly());
+        }
+    }
+
+    @Nested
     @DisplayName("Values")
     class Values {
 
@@ -197,7 +235,7 @@ class TraceAttributesManagerImplTest {
             when(repository.keys()).thenReturn(List.of(key(TENANT, 7)));
 
             TraceAttributeValues values = manager().values(new TraceAttributeValueQuery(
-                    TENANT, TraceAttributeValueSortField.TOTAL_TIME, true, 50));
+                    TENANT, TraceAttributeValueSortField.TOTAL_TIME, true, 50, null));
 
             assertEquals(7, values.distinctValues());
             assertTrue(values.truncated(), "one of seven values is the top of the key, not the key");
@@ -212,7 +250,7 @@ class TraceAttributesManagerImplTest {
             when(repository.keys()).thenReturn(List.of(key(TENANT, 1)));
 
             assertFalse(manager().values(new TraceAttributeValueQuery(
-                    TENANT, TraceAttributeValueSortField.TOTAL_TIME, true, 50)).truncated());
+                    TENANT, TraceAttributeValueSortField.TOTAL_TIME, true, 50, null)).truncated());
         }
     }
 }

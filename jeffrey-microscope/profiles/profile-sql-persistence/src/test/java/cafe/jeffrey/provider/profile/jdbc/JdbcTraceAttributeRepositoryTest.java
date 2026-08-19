@@ -21,6 +21,7 @@ package cafe.jeffrey.provider.profile.jdbc;
 import cafe.jeffrey.provider.profile.api.TraceAttributeCondition;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyRecord;
+import cafe.jeffrey.provider.profile.api.TraceAttributeLatencyQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeLatencyRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeOperator;
 import cafe.jeffrey.provider.profile.api.TraceAttributeRepository;
@@ -32,6 +33,7 @@ import cafe.jeffrey.provider.profile.api.TraceAttributeValueQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueSortField;
 import cafe.jeffrey.provider.profile.api.TraceSortField;
+import cafe.jeffrey.provider.profile.api.TraceSpanTypeRecord;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
 import cafe.jeffrey.test.TestUtils;
@@ -298,7 +300,7 @@ class JdbcTraceAttributeRepositoryTest {
         void valuesAreSummarised(DataSource dataSource) throws SQLException {
             TraceAttributeRepository.Values values = derived(dataSource).values(
                     new TraceAttributeValueQuery(
-                            HTTP_STATUS_CODE, TraceAttributeValueSortField.TOTAL_TIME, true, 50));
+                            HTTP_STATUS_CODE, TraceAttributeValueSortField.TOTAL_TIME, true, 50, null));
 
             assertEquals(2, values.values().size(), "200 and 500");
             TraceAttributeValueRecord slowest = values.values().getFirst();
@@ -316,7 +318,7 @@ class JdbcTraceAttributeRepositoryTest {
         void absentTracesAreReported(DataSource dataSource) throws SQLException {
             TraceAttributeRepository.Values values = derived(dataSource).values(
                     new TraceAttributeValueQuery(
-                            ATTRIBUTE_DEPTH, TraceAttributeValueSortField.TOTAL_TIME, true, 50));
+                            ATTRIBUTE_DEPTH, TraceAttributeValueSortField.TOTAL_TIME, true, 50, null));
 
             assertEquals(1, values.values().size());
             assertEquals(1, values.tracesWithoutKey(), "the second trace has no such attribute");
@@ -328,9 +330,112 @@ class JdbcTraceAttributeRepositoryTest {
             TraceAttributeRepository.Values values = derived(dataSource).values(
                     new TraceAttributeValueQuery(
                             TraceAttributeKeyId.attribute("nope"),
-                            TraceAttributeValueSortField.TOTAL_TIME, true, 50));
+                            TraceAttributeValueSortField.TOTAL_TIME, true, 50, null));
 
             assertEquals(TraceAttributeRepository.Values.EMPTY, values);
+        }
+    }
+
+    @Nested
+    @DisplayName("Event types")
+    class EventTypes {
+
+        /** The cap the manager applies; high enough here that nothing in the fixture is search-only. */
+        private static final long NO_CAP = 1_000;
+
+        @Test
+        @DisplayName("every event type that produced spans is listed, busiest first")
+        void spanEventTypesAreListed(DataSource dataSource) throws SQLException {
+            List<TraceSpanTypeRecord> types = derived(dataSource).spanEventTypes(NO_CAP);
+
+            assertFalse(types.isEmpty());
+            assertTrue(
+                    types.stream().map(TraceSpanTypeRecord::eventType).toList()
+                            .containsAll(List.of(HTTP_SERVER_EXCHANGE, JDBC_QUERY, TRACE_SPAN)),
+                    "the fixture's three span-producing types");
+
+            for (int i = 1; i < types.size(); i++) {
+                assertTrue(types.get(i - 1).spanCount() >= types.get(i).spanCount(),
+                        "listed busiest first");
+            }
+            assertTrue(types.stream().allMatch(type -> type.attributeCount() > 0),
+                    "every span carries the shape keys at least");
+        }
+
+        @Test
+        @DisplayName("the breakable count excludes what is too wide to break down")
+        void breakableExcludesSearchOnly(DataSource dataSource) throws SQLException {
+            // A cap of zero makes every key search-only, which is the only cap-independent assertion
+            // available on a fixture whose keys all have one or two values.
+            List<TraceSpanTypeRecord> capped = derived(dataSource).spanEventTypes(0);
+
+            assertTrue(capped.stream().allMatch(type -> type.breakableCount() == 0));
+            assertTrue(capped.stream().anyMatch(type -> type.attributeCount() > 0),
+                    "the keys are still there, they are merely all too wide");
+        }
+
+        @Test
+        @DisplayName("a type's keys carry that type's own counts")
+        void keysOfEventType(DataSource dataSource) throws SQLException {
+            JdbcTraceAttributeRepository repository = derived(dataSource);
+            List<TraceAttributeKeyRecord> http = repository.keysOf(HTTP_SERVER_EXCHANGE);
+
+            assertFalse(http.isEmpty());
+            assertTrue(http.stream().anyMatch(key -> key.id().equals(HTTP_STATUS_CODE)),
+                    "the type's own declared field");
+            assertTrue(http.stream().anyMatch(key -> key.id().equals(SHAPE_EVENT_TYPE)),
+                    "and the shape keys every span has");
+            assertTrue(http.stream().noneMatch(key -> key.id().equals(JDBC_ROWS)),
+                    "but nothing another event type declares");
+
+            // The value kind is the key's, joined from the profile-wide catalog rather than re-inferred.
+            TraceAttributeKeyRecord statusCode = http.stream()
+                    .filter(key -> key.id().equals(HTTP_STATUS_CODE))
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(
+                    keyOf(repository, HTTP_STATUS_CODE).orElseThrow().valueKind(),
+                    statusCode.valueKind());
+        }
+
+        @Test
+        @DisplayName("an event type nothing recorded carries no keys")
+        void unknownEventType(DataSource dataSource) throws SQLException {
+            assertTrue(derived(dataSource).keysOf("jeffrey.NotARealEvent").isEmpty());
+        }
+
+        @Test
+        @DisplayName("a breakdown scoped to an event type reads only that type's spans")
+        void breakdownIsScoped(DataSource dataSource) throws SQLException {
+            JdbcTraceAttributeRepository repository = derived(dataSource);
+
+            // `eventType` is a shape key, so every span carries it and its values are the event types
+            // themselves -- which makes it the one key whose scoping is checkable without a fixture
+            // built for it: scoped to one type, the only value left is that type.
+            TraceAttributeRepository.Values scoped = repository.values(new TraceAttributeValueQuery(
+                    SHAPE_EVENT_TYPE, TraceAttributeValueSortField.TOTAL_TIME, true, 50,
+                    HTTP_SERVER_EXCHANGE));
+
+            assertEquals(1, scoped.values().size());
+            assertEquals(HTTP_SERVER_EXCHANGE, scoped.values().getFirst().value());
+
+            TraceAttributeRepository.Values wide = repository.values(new TraceAttributeValueQuery(
+                    SHAPE_EVENT_TYPE, TraceAttributeValueSortField.TOTAL_TIME, true, 50, null));
+
+            assertTrue(wide.values().size() > scoped.values().size(),
+                    "unscoped, the same key answers for every event type in the profile");
+        }
+
+        @Test
+        @DisplayName("a scoped latency grid reads only that type's spans")
+        void latencyIsScoped(DataSource dataSource) throws SQLException {
+            List<TraceAttributeLatencyRecord> scoped = derived(dataSource)
+                    .latency(new TraceAttributeLatencyQuery(SHAPE_EVENT_TYPE, 12, HTTP_SERVER_EXCHANGE));
+
+            assertFalse(scoped.isEmpty());
+            assertEquals(
+                    List.of(HTTP_SERVER_EXCHANGE),
+                    scoped.stream().map(TraceAttributeLatencyRecord::value).distinct().toList());
         }
     }
 
@@ -342,7 +447,7 @@ class JdbcTraceAttributeRepositoryTest {
         @DisplayName("a value's traces land in duration buckets")
         void valuesAreBucketed(DataSource dataSource) throws SQLException {
             List<TraceAttributeLatencyRecord> cells = derived(dataSource)
-                    .latency(HTTP_STATUS_CODE, 12);
+                    .latency(new TraceAttributeLatencyQuery(HTTP_STATUS_CODE, 12, null));
 
             assertEquals(2, cells.size(), "one bucket each, for two values one trace apiece");
             for (TraceAttributeLatencyRecord cell : cells) {
@@ -355,7 +460,7 @@ class JdbcTraceAttributeRepositoryTest {
         @Test
         @DisplayName("the values covered are capped")
         void coverageIsCapped(DataSource dataSource) throws SQLException {
-            List<TraceAttributeLatencyRecord> cells = derived(dataSource).latency(SHAPE_EVENT_TYPE, 1);
+            List<TraceAttributeLatencyRecord> cells = derived(dataSource).latency(new TraceAttributeLatencyQuery(SHAPE_EVENT_TYPE, 1, null));
 
             assertEquals(1, cells.stream().map(TraceAttributeLatencyRecord::value).distinct().count());
         }

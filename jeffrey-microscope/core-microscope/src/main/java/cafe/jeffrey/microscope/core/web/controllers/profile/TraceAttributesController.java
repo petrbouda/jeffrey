@@ -25,8 +25,10 @@ import cafe.jeffrey.profile.manager.model.trace.TraceAttributeLatency;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeSearchResult;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeTimelineBucket;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeValues;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanTypeRow;
 import cafe.jeffrey.provider.profile.api.TraceAttributeCondition;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
+import cafe.jeffrey.provider.profile.api.TraceAttributeLatencyQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeOperator;
 import cafe.jeffrey.provider.profile.api.TraceAttributeScope;
 import cafe.jeffrey.provider.profile.api.TraceAttributeSearchQuery;
@@ -46,8 +48,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Serves the Traces by Attributes views: the key catalog, a search over what spans recorded, and one
- * key's values broken down and distributed.
+ * Serves the Traces by Attributes views: the event types that produced spans and the keys each of
+ * them carried, a search over what spans recorded, and one key's values broken down and distributed.
  * <p>
  * Sits alongside {@link TracesController} rather than inside it: every path here has a literal first
  * segment, so none of them can be mistaken for that controller's {@code /{traceId}} template, and
@@ -100,9 +102,29 @@ public class TraceAttributesController {
      * happen before anything can be asked about a key.
      */
     @GetMapping("/keys")
-    public List<TraceAttributeKeyRow> keys(@PathVariable("profileId") String profileId) {
-        LOG.debug("Listing trace attribute keys: profile_id={}", profileId);
-        return manager(profileId).keys();
+    public List<TraceAttributeKeyRow> keys(
+            @PathVariable("profileId") String profileId,
+            @RequestParam(value = "eventType", required = false) String eventType) {
+
+        LOG.debug("Listing trace attribute keys: profile_id={} event_type={}", profileId, eventType);
+
+        // Scoped to an event type this is the picker's second step, where the counts are that type's
+        // own; unscoped it is the whole catalog, which is what the search builder offers.
+        return eventType == null || eventType.isBlank()
+                ? manager(profileId).keys()
+                : manager(profileId).keysOf(eventType);
+    }
+
+    /**
+     * The event types that produced spans — the attribute picker's first step.
+     * <p>
+     * A recording carries hundreds of JFR event types; these are the ones that opened spans, which
+     * is what makes choosing one a reasonable first move rather than a search through a catalog.
+     */
+    @GetMapping("/event-types")
+    public List<TraceSpanTypeRow> eventTypes(@PathVariable("profileId") String profileId) {
+        LOG.debug("Listing span-producing event types: profile_id={}", profileId);
+        return manager(profileId).spanEventTypes();
     }
 
     /**
@@ -161,13 +183,14 @@ public class TraceAttributesController {
             @RequestParam("key") String key,
             @RequestParam(value = "sort", defaultValue = DEFAULT_VALUES_SORT) TraceAttributeValueSortField sort,
             @RequestParam(value = "desc", defaultValue = "true") boolean descending,
-            @RequestParam(value = "limit", defaultValue = DEFAULT_VALUES_LIMIT) int limit) {
+            @RequestParam(value = "limit", defaultValue = DEFAULT_VALUES_LIMIT) int limit,
+            @RequestParam(value = "eventType", required = false) String eventType) {
 
-        LOG.debug("Breaking down attribute key: profile_id={} source={} owner={} key={} sort={}",
-                profileId, source, owner, key, sort);
+        LOG.debug("Breaking down attribute key: profile_id={} source={} owner={} key={} event_type={} sort={}",
+                profileId, source, owner, key, eventType, sort);
 
         return manager(profileId).values(new TraceAttributeValueQuery(
-                keyId(source, owner, key), sort, descending, boundedLimit(limit)));
+                keyId(source, owner, key), sort, descending, boundedLimit(limit), scope(eventType)));
     }
 
     /**
@@ -179,13 +202,24 @@ public class TraceAttributesController {
             @RequestParam("source") TraceAttributeSource source,
             @RequestParam(value = "owner", required = false) String owner,
             @RequestParam("key") String key,
-            @RequestParam(value = "maxValues", defaultValue = DEFAULT_LATENCY_VALUES) int maxValues) {
+            @RequestParam(value = "maxValues", defaultValue = DEFAULT_LATENCY_VALUES) int maxValues,
+            @RequestParam(value = "eventType", required = false) String eventType) {
 
-        LOG.debug("Distributing attribute key over duration: profile_id={} key={} max_values={}",
-                profileId, key, maxValues);
+        LOG.debug("Distributing attribute key over duration: profile_id={} key={} event_type={} max_values={}",
+                profileId, key, eventType, maxValues);
 
-        return manager(profileId)
-                .latency(keyId(source, owner, key), Math.clamp(maxValues, 1, MAX_LATENCY_VALUES));
+        return manager(profileId).latency(new TraceAttributeLatencyQuery(
+                keyId(source, owner, key),
+                Math.clamp(maxValues, 1, MAX_LATENCY_VALUES),
+                scope(eventType)));
+    }
+
+    /**
+     * The event type a breakdown is scoped to, or null for the whole profile. A blank parameter is
+     * the same as none: it can only arrive that way from a URL that carried the key but not the type.
+     */
+    private static String scope(String eventType) {
+        return eventType == null || eventType.isBlank() ? null : eventType;
     }
 
     /**

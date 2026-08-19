@@ -146,6 +146,21 @@ export interface TraceAttributeLatency {
   maxBucket: number;
 }
 
+/**
+ * One row of the picker's first step: an event type that produced spans.
+ *
+ * `breakableCount` is the subset of `attributeCount` narrow enough to break down — both travel,
+ * because a row promising twelve attributes that opens onto three usable ones is a row that lied.
+ */
+export interface TraceSpanTypeRow {
+  eventType: string;
+  spanCount: number;
+  traceCount: number;
+  errorSpans: number;
+  attributeCount: number;
+  breakableCount: number;
+}
+
 /** The nanosecond lower bound of a latency bucket — see {@link TraceAttributeLatencyCell.bucket}. */
 export function bucketLowerNanos(bucket: number): number {
   return Math.pow(10, bucket / 2);
@@ -249,4 +264,15 @@ export function keyFromQuery(query: QueryLike): TraceAttributeKeyId | null {
     owner: firstValue(query.owner) ?? null,
     key
   };
+}
+
+/**
+ * The event type the URL is reading a key under, or null before one is chosen.
+ *
+ * Separate from the key's own identity: a key is identified by source, owner and name, and the
+ * event type says which of the types carrying it is on screen. Two spans' worth of `tenant` are the
+ * same key read under different types, not two keys.
+ */
+export function eventTypeFromQuery(query: QueryLike): string | null {
+  return firstValue(query.eventType) ?? null;
 }

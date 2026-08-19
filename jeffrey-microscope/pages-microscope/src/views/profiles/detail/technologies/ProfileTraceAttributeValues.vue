@@ -24,20 +24,19 @@
 <template>
   <TraceAttributeKeyWorkspace
     :disabled-features="disabledFeatures"
-    no-key-description="Pick a key on the left to break it down into the values it took."
-    empty-catalog-description="No span in this profile recorded an attribute, a declared field or a shape worth breaking down."
+    no-key-description="Choose an event type, then one of the attributes its spans carried."
   >
-    <template #default="{ attributeKey }">
+    <template #default="{ attributeKey, eventType }">
       <LoadingState v-if="loading" message="Loading values..." />
 
-      <ErrorState v-else-if="error" :message="error" @retry="load(attributeKey)" />
+      <ErrorState v-else-if="error" :message="error" @retry="load(attributeKey, eventType)" />
 
       <TraceAttributeValues
         v-else-if="values"
         :values="values"
         :sort="sort"
         :descending="true"
-        @sort="applySort(attributeKey, $event)"
+        @sort="applySort(attributeKey, eventType, $event)"
         @pick="filterByValue(attributeKey, $event)"
       />
     </template>
@@ -56,6 +55,7 @@ import ProfileTracesClient from '@/services/api/ProfileTracesClient';
 import FeatureType from '@/services/api/model/FeatureType';
 import {
   encodeCondition,
+  eventTypeFromQuery,
   keyFromQuery,
   keyToken,
   type TraceAttributeKeyId,
@@ -77,6 +77,7 @@ const values = ref<Values | null>(null);
 const sort = ref<TraceAttributeValueSortField>('TOTAL_TIME');
 
 const selectedKey = computed(() => keyFromQuery(route.query));
+const selectedEventType = computed(() => eventTypeFromQuery(route.query));
 
 /*
  * Guards against an out-of-order response: a slow fetch for a previously selected key must not land
@@ -84,12 +85,12 @@ const selectedKey = computed(() => keyFromQuery(route.query));
  */
 let generation = 0;
 
-async function load(key: TraceAttributeKeyId): Promise<void> {
+async function load(key: TraceAttributeKeyId, eventType: string): Promise<void> {
   const current = ++generation;
   loading.value = true;
   error.value = null;
   try {
-    const loaded = await client.getAttributeValues(key, sort.value);
+    const loaded = await client.getAttributeValues(key, eventType, sort.value);
     if (current !== generation) {
       return;
     }
@@ -108,9 +109,13 @@ async function load(key: TraceAttributeKeyId): Promise<void> {
   }
 }
 
-function applySort(key: TraceAttributeKeyId, field: TraceAttributeValueSortField): void {
+function applySort(
+  key: TraceAttributeKeyId,
+  eventType: string,
+  field: TraceAttributeValueSortField
+): void {
   sort.value = field;
-  load(key);
+  load(key, eventType);
 }
 
 /**
@@ -124,18 +129,19 @@ function filterByValue(key: TraceAttributeKeyId, row: TraceAttributeValueRow): v
   });
 }
 
-// Watched by identity rather than by object: the key travels in the URL, and an unrelated change to
-// the query — a leftover condition, say — is not a change of key. Immediate, so a deep link loads
-// on arrival.
+// Watched by identity rather than by object: both halves travel in the URL, and an unrelated change
+// to the query — a leftover condition, say — is not a change of selection. Immediate, so a deep link
+// loads on arrival.
 watch(
-  () => (selectedKey.value === null ? null : keyToken(selectedKey.value)),
+  () => [selectedEventType.value, selectedKey.value === null ? null : keyToken(selectedKey.value)],
   () => {
     const key = selectedKey.value;
-    if (key === null || props.disabledFeatures.includes(FeatureType.TRACES)) {
+    const eventType = selectedEventType.value;
+    if (key === null || eventType === null || props.disabledFeatures.includes(FeatureType.TRACES)) {
       values.value = null;
       return;
     }
-    load(key);
+    load(key, eventType);
   },
   { immediate: true }
 );

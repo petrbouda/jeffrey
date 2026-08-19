@@ -23,12 +23,15 @@ import cafe.jeffrey.profile.manager.model.trace.TraceAttributeLatency;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeSearchResult;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeTimelineBucket;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeValues;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanTypeRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
+import cafe.jeffrey.provider.profile.api.TraceAttributeLatencyQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeRepository;
 import cafe.jeffrey.provider.profile.api.TraceAttributeSearchQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueQuery;
+import cafe.jeffrey.provider.profile.api.TraceSpanTypeRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 
 import java.util.ArrayList;
@@ -64,6 +67,20 @@ public class TraceAttributesManagerImpl implements TraceAttributesManager {
     @Override
     public List<TraceAttributeKeyRow> keys() {
         return repository.keys().stream()
+                .map(TraceAttributesManagerImpl::toRow)
+                .toList();
+    }
+
+    @Override
+    public List<TraceSpanTypeRow> spanEventTypes() {
+        return repository.spanEventTypes(SEARCH_ONLY_ABOVE).stream()
+                .map(TraceAttributesManagerImpl::toRow)
+                .toList();
+    }
+
+    @Override
+    public List<TraceAttributeKeyRow> keysOf(String eventType) {
+        return repository.keysOf(eventType).stream()
                 .map(TraceAttributesManagerImpl::toRow)
                 .toList();
     }
@@ -127,7 +144,8 @@ public class TraceAttributesManagerImpl implements TraceAttributesManager {
     public TraceAttributeValues values(TraceAttributeValueQuery query) {
         int limit = Math.min(query.limit(), MAX_VALUES);
         TraceAttributeRepository.Values values = repository.values(
-                new TraceAttributeValueQuery(query.key(), query.sort(), query.descending(), limit));
+                new TraceAttributeValueQuery(
+                        query.key(), query.sort(), query.descending(), limit, query.eventType()));
 
         List<TraceAttributeValues.Row> rows = values.values().stream()
                 .map(value -> new TraceAttributeValues.Row(
@@ -149,8 +167,8 @@ public class TraceAttributesManagerImpl implements TraceAttributesManager {
     }
 
     @Override
-    public TraceAttributeLatency latency(TraceAttributeKeyId key, int maxValues) {
-        List<TraceAttributeLatency.Cell> cells = repository.latency(key, maxValues).stream()
+    public TraceAttributeLatency latency(TraceAttributeLatencyQuery query) {
+        List<TraceAttributeLatency.Cell> cells = repository.latency(query).stream()
                 .map(cell -> new TraceAttributeLatency.Cell(
                         cell.value(), cell.bucket(), cell.traceCount()))
                 .toList();
@@ -175,6 +193,16 @@ public class TraceAttributesManagerImpl implements TraceAttributesManager {
                 .mapToLong(TraceAttributeKeyRecord::distinctValues)
                 .findFirst()
                 .orElse(0L);
+    }
+
+    private static TraceSpanTypeRow toRow(TraceSpanTypeRecord type) {
+        return new TraceSpanTypeRow(
+                type.eventType(),
+                type.spanCount(),
+                type.traceCount(),
+                type.errorSpans(),
+                type.attributeCount(),
+                type.breakableCount());
     }
 
     private static TraceAttributeKeyRow toRow(TraceAttributeKeyRecord key) {

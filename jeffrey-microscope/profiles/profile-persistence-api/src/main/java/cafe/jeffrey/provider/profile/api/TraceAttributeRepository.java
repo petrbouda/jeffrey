@@ -52,6 +52,28 @@ public interface TraceAttributeRepository {
     List<TraceAttributeKeyRecord> keys();
 
     /**
+     * The event types that produced spans, most spans first — the picker's first step.
+     *
+     * @param searchOnlyAbove the cardinality past which a key cannot be broken down. Passed in rather
+     *                        than known here, because it is the caller's policy; it decides only how
+     *                        the returned counts are split, never which types come back
+     */
+    List<TraceSpanTypeRecord> spanEventTypes(long searchOnlyAbove);
+
+    /**
+     * The keys spans of one event type carried, with that type's own counts.
+     * <p>
+     * Not a filter over {@link #keys()}: a key's counts here are scoped to the event type, because
+     * {@code tenant} on HTTP spans is a different number of values from {@code tenant} across the
+     * profile, and a picker showing the profile-wide figure under an event type would state a number
+     * the page it opens cannot reproduce.
+     *
+     * @param eventType the event type to list; an unknown one yields no keys rather than an error,
+     *                  since it can only reach here from a stale link
+     */
+    List<TraceAttributeKeyRecord> keysOf(String eventType);
+
+    /**
      * The traces matching the query, with the spans that matched.
      * <p>
      * The hits are what keeps the answer in the list: without them a reader has to open a trace to
@@ -86,10 +108,8 @@ public interface TraceAttributeRepository {
      * Cells that hold nothing are left out rather than returned as zeroes; the caller draws a fixed
      * grid and fills what it was given.
      *
-     * @param key       which key to break down
-     * @param maxValues how many of the key's values to cover, most-carried first
      */
-    List<TraceAttributeLatencyRecord> latency(TraceAttributeKeyId key, int maxValues);
+    List<TraceAttributeLatencyRecord> latency(TraceAttributeLatencyQuery query);
 
     /**
      * A page of matched traces, the spans that matched them, and what the whole match set looks like.

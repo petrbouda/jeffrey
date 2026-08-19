@@ -28,7 +28,8 @@ import {
   type TraceAttributeSearchResult,
   type TraceAttributeTimelineBucket,
   type TraceAttributeValues,
-  type TraceAttributeValueSortField
+  type TraceAttributeValueSortField,
+  type TraceSpanTypeRow
 } from '@/services/api/model/trace/TraceAttributeModels';
 import type {
   TraceContext,
@@ -168,8 +169,13 @@ export default class ProfileTracesClient extends BaseProfileClient {
   }
 
   /** Every attribute key the profile recorded — the catalog the key rail renders. */
-  public getAttributeKeys(): Promise<TraceAttributeKeyRow[]> {
-    return this.get<TraceAttributeKeyRow[]>('/attributes/keys');
+  public getAttributeKeys(eventType?: string): Promise<TraceAttributeKeyRow[]> {
+    // Scoped to an event type this is the picker's second step, where the counts are that type's
+    // own; unscoped it is the whole catalog, which is what the search builder offers.
+    return this.get<TraceAttributeKeyRow[]>(
+      '/attributes/keys',
+      eventType === undefined ? {} : { eventType }
+    );
   }
 
   /**
@@ -206,23 +212,34 @@ export default class ProfileTracesClient extends BaseProfileClient {
   /** One key's values, ranked by what they cost. */
   public getAttributeValues(
     key: TraceAttributeKeyId,
+    eventType: string,
     sort?: TraceAttributeValueSortField,
     limit?: number
   ): Promise<TraceAttributeValues> {
+    // Scoped to the event type the key was reached through, so the breakdown answers the question
+    // the picker asked rather than the wider one about every span carrying the key.
     return this.get<TraceAttributeValues>('/attributes/values', {
       ...keyParams(key),
+      eventType,
       ...(sort === undefined ? {} : { sort }),
       ...(limit === undefined ? {} : { limit })
     });
   }
 
+  /** The event types that produced spans — the attribute picker's first step. */
+  public getSpanEventTypes(): Promise<TraceSpanTypeRow[]> {
+    return this.get<TraceSpanTypeRow[]>('/attributes/event-types');
+  }
+
   /** How each of the key's values is distributed over trace duration. */
   public getAttributeLatency(
     key: TraceAttributeKeyId,
+    eventType: string,
     maxValues?: number
   ): Promise<TraceAttributeLatency> {
     return this.get<TraceAttributeLatency>('/attributes/latency', {
       ...keyParams(key),
+      eventType,
       ...(maxValues === undefined ? {} : { maxValues })
     });
   }

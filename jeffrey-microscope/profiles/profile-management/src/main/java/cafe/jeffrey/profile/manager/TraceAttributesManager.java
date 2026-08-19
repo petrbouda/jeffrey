@@ -23,7 +23,8 @@ import cafe.jeffrey.profile.manager.model.trace.TraceAttributeLatency;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeSearchResult;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeTimelineBucket;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeValues;
-import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
+import cafe.jeffrey.profile.manager.model.trace.TraceSpanTypeRow;
+import cafe.jeffrey.provider.profile.api.TraceAttributeLatencyQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeSearchQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueQuery;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -65,6 +66,19 @@ public interface TraceAttributesManager {
     List<TraceAttributeKeyRow> keys();
 
     /**
+     * The event types that produced spans — the first step of the attribute picker.
+     */
+    List<TraceSpanTypeRow> spanEventTypes();
+
+    /**
+     * The keys spans of one event type carried, with that type's own counts — the second step.
+     * <p>
+     * Scoped rather than filtered: {@code tenant} is one key, but how many values it took and how
+     * much of the profile carries it are both properties of the event type it is being read under.
+     */
+    List<TraceAttributeKeyRow> keysOf(String eventType);
+
+    /**
      * The traces whose spans satisfy every condition, with the spans that satisfied them.
      */
     TraceAttributeSearchResult search(TraceAttributeSearchQuery query);
@@ -88,8 +102,6 @@ public interface TraceAttributesManager {
 
     /**
      * The duration distribution of each of a key's values.
-     *
-     * @param maxValues how many of the key's values to cover, most-carried first
      */
-    TraceAttributeLatency latency(TraceAttributeKeyId key, int maxValues);
+    TraceAttributeLatency latency(TraceAttributeLatencyQuery query);
 }
