@@ -31,7 +31,6 @@ import cafe.jeffrey.flamegraph.provider.TimeseriesDataProvider;
 import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 import cafe.jeffrey.jfr.events.trace.Tracer;
-import cafe.jeffrey.shared.common.span.Spans;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
@@ -87,12 +86,7 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
 
         CompletableFuture.allOf(flameFuture, timeseriesFuture).join();
 
-        long marshallingSpan = Spans.start();
-        try {
-            return Tracer.call(SPAN_MARSHALLING, () -> marshal(flameFuture, timeseriesFuture));
-        } finally {
-            Spans.end(marshallingSpan, SPAN_MARSHALLING);
-        }
+        return Tracer.call(SPAN_MARSHALLING, () -> marshal(flameFuture, timeseriesFuture));
     }
 
     private byte[] marshal(

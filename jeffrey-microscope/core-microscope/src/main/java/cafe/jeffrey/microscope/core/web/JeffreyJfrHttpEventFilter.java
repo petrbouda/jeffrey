@@ -25,10 +25,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerMapping;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.span.Spans;
 
 import java.io.IOException;
 
@@ -39,19 +37,11 @@ import java.io.IOException;
  * {@link HandlerMapping#BEST_MATCHING_PATTERN_ATTRIBUTE}; falls back to the
  * raw URI when no template was matched.
  * <p>
- * Also opens an async-profiler {@link Spans span} per request, tagged
- * {@code http.<ControllerSimpleName>.<method>} (e.g. {@code http.FlamegraphController.generate}),
- * so a self-profiling recording shows what the server was doing while serving each request. Requests
- * not handled by a controller method (static assets, unmapped paths) are skipped to keep the span tag
- * low-cardinality.
- * <p>
  * The request is also the root of a trace: {@link Tracer#inSpanOf} stamps the exchange event with a
  * fresh trace and span id and publishes that context for the duration of the chain, so any
  * {@code Tracer} call made while serving the request is recorded as a child of it.
  */
 public class JeffreyJfrHttpEventFilter extends OncePerRequestFilter {
-
-    private static final String HTTP_SPAN_TAG_PREFIX = "http.";
 
     /** Stands in for the URI of a request that matched no handler — see {@link #resolveTemplateUri}. */
     private static final String UNMATCHED_URI = "<unmatched>";
@@ -62,63 +52,46 @@ public class JeffreyJfrHttpEventFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
 
-        long httpSpan = Spans.start();
+        HttpServerExchangeEvent event = new HttpServerExchangeEvent();
+        if (!event.isEnabled()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        event.begin();
         try {
-            HttpServerExchangeEvent event = new HttpServerExchangeEvent();
-            if (!event.isEnabled()) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-            event.begin();
+            // Opens the root span of the request's trace. The exchange event *is* that span --
+            // it already describes the same interval -- so no separate trace-span event is
+            // emitted; the exchange just gets stamped with the ids. Anything traced further
+            // down the call stack is recorded as a child of this request.
             try {
-                // Opens the root span of the request's trace. The exchange event *is* that span --
-                // it already describes the same interval -- so no separate trace-span event is
-                // emitted; the exchange just gets stamped with the ids. Anything traced further
-                // down the call stack is recorded as a child of this request.
-                try {
-                    Tracer.inSpanOf(event, () -> {
-                        filterChain.doFilter(request, response);
-                        return null;
-                    });
-                } catch (IOException | ServletException | RuntimeException e) {
-                    // Tracer infers one thrown type, which widens to Exception for a body that throws
-                    // both IOException and ServletException. Narrow it back to what this filter
-                    // declares; the trailing catch is unreachable in practice.
-                    throw e;
-                } catch (Exception e) {
-                    throw new IllegalStateException(e);
-                }
-            } finally {
-                event.end();
-                if (event.shouldCommit()) {
-                    event.remoteHost = request.getRemoteHost();
-                    event.remotePort = request.getRemotePort();
-                    event.uri = resolveTemplateUri(request);
-                    event.method = request.getMethod();
-                    event.mediaType = request.getContentType();
-                    event.queryParams = Json.toString(splitQueryParameters(request));
-                    event.pathParams = Json.toString(extractPathParameters(request));
-                    event.requestLength = parseLong(request.getHeader("Content-Length"));
-                    event.responseLength = parseLong(response.getHeader("Content-Length"));
-                    event.statusCode = response.getStatus();
-                    event.commitSpan();
-                }
+                Tracer.inSpanOf(event, () -> {
+                    filterChain.doFilter(request, response);
+                    return null;
+                });
+            } catch (IOException | ServletException | RuntimeException e) {
+                // Tracer infers one thrown type, which widens to Exception for a body that throws
+                // both IOException and ServletException. Narrow it back to what this filter
+                // declares; the trailing catch is unreachable in practice.
+                throw e;
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
             }
         } finally {
-            endHttpSpan(httpSpan, request);
+            event.end();
+            if (event.shouldCommit()) {
+                event.remoteHost = request.getRemoteHost();
+                event.remotePort = request.getRemotePort();
+                event.uri = resolveTemplateUri(request);
+                event.method = request.getMethod();
+                event.mediaType = request.getContentType();
+                event.queryParams = Json.toString(splitQueryParameters(request));
+                event.pathParams = Json.toString(extractPathParameters(request));
+                event.requestLength = parseLong(request.getHeader("Content-Length"));
+                event.responseLength = parseLong(response.getHeader("Content-Length"));
+                event.statusCode = response.getStatus();
+                event.commitSpan();
+            }
         }
-    }
-
-    private static void endHttpSpan(long httpSpan, HttpServletRequest request) {
-        Object handler = request.getAttribute(HandlerMapping.BEST_MATCHING_HANDLER_ATTRIBUTE);
-        if (handler instanceof HandlerMethod handlerMethod) {
-            String tag = HTTP_SPAN_TAG_PREFIX
-                    + handlerMethod.getBeanType().getSimpleName()
-                    + "." + handlerMethod.getMethod().getName();
-            Spans.end(httpSpan, tag);
-        }
-        // Non-controller handlers (static assets, unmapped paths): leave the span unrecorded to keep
-        // the tag low-cardinality. start() returned a token only; skipping end() emits nothing.
     }
 
     /**
@@ -129,8 +102,7 @@ public class JeffreyJfrHttpEventFilter extends OncePerRequestFilter {
      * rather than to its raw URI. The name becomes {@code traces.root_name}, i.e. the identity of a
      * whole trace type, so the raw URI produced one "operation" per asset and per mistyped path,
      * against the stable-and-low-cardinality contract {@code AbstractTracedEvent.name} states. The
-     * async-profiler span below does the same thing by skipping such requests outright; the exchange
-     * still records them, so it names them together instead.
+     * exchange still records such requests, so it names them together instead.
      */
     private static String resolveTemplateUri(HttpServletRequest request) {
         Object pattern = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);

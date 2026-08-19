@@ -28,7 +28,7 @@ import java.util.List;
  * @param history      optional conversation history (may be null)
  * @param userMessage  the current user message
  * @param toolBinding  the tool access binding (provider-agnostic)
- * @param spanName     the measurement span name recorded for the AI call
+ * @param spanName     the trace span name recorded for the AI call
  */
 public record ToolExchange(
         String systemPrompt,

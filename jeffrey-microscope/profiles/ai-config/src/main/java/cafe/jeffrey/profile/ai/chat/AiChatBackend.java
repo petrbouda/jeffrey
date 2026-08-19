@@ -45,7 +45,7 @@ public interface AiChatBackend extends AutoCloseable {
      * Execute a prompt-only chat call (no tools).
      *
      * @param exchange the system prompt, history, and user message
-     * @param spanName the measurement span name recorded for the call
+     * @param spanName the trace span name recorded for the call
      * @return the assistant's response text
      */
     String chat(ChatExchange exchange, String spanName);

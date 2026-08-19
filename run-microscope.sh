@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 #
-# Launch Jeffrey Microscope under async-profiler (span-api build), self-profiling into a JFR that
-# also contains the application's own profiler.Span events (http.*, flamegraph.generate, ai.*.call, ...).
+# Launch Jeffrey Microscope under async-profiler, self-profiling into a JFR that also contains the
+# application's own trace spans -- jeffrey.TraceSpan / jeffrey.HttpServerExchange events emitted by
+# the Tracer API (profile.initialize, flamegraph.generate, hprof.index.build, ai.*.call, ...) and
+# merged in through jfrsync below.
 #
 # Events: cpu + wall + alloc + lock, merged with the JVM's JFR (jfrsync=profile) into one .jfr.
 # On macOS the event is already sampled by the wall-clock engine, so 'wall' is dropped there (the

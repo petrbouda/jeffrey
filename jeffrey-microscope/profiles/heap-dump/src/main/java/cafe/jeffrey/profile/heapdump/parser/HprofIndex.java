@@ -24,7 +24,6 @@ import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
 import cafe.jeffrey.jfr.events.trace.Tracer;
-import cafe.jeffrey.shared.common.span.Spans;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +59,9 @@ import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
 public final class HprofIndex {
 
     private static final Logger LOG = LoggerFactory.getLogger(HprofIndex.class);
+
+    /** Names the span the whole index build runs in; the sub-phases below nest underneath it. */
+    private static final String SPAN_INDEX_BUILD = "hprof.index.build";
 
     /** Sub-phase ids of the index build; shared by the progress listener, the timings and the spans. */
     private static final String PHASE_WALK_TOP_LEVEL = "walk_top_level";
@@ -170,8 +172,9 @@ public final class HprofIndex {
             throw new IllegalArgumentException("listener must not be null");
         }
 
-        long indexSpan = Spans.start();
-        try {
+        // One span for the whole build, so the sub-phase spans opened by measureSql below are read
+        // as its children rather than as that many unrelated root traces.
+        return Tracer.call(SPAN_INDEX_BUILD, () -> {
             // The build runs against a scratch sibling and is renamed into place only once it
             // has finished. Readers accept any index file that exists and out-dates the dump,
             // so a database left behind by a failed build would be taken for a complete one and
@@ -214,9 +217,7 @@ public final class HprofIndex {
                     r.recordCount(),
                     elapsed.duration(),
                     r.subPhases());
-        } finally {
-            Spans.end(indexSpan, "hprof.index.build");
-        }
+        });
     }
 
     /** Deletes a DuckDB database together with the write-ahead log that belongs to it. */

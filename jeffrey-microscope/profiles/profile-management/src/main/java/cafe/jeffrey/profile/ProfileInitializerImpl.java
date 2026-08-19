@@ -34,7 +34,6 @@ import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.measure.Measuring;
 import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.Tracer;
-import cafe.jeffrey.shared.common.span.Spans;
 import cafe.jeffrey.shared.persistence.DatabaseLease;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
 import cafe.jeffrey.shared.persistence.GroupLabel;
@@ -101,12 +100,13 @@ public class ProfileInitializerImpl implements ProfileInitializer {
     public ProfileManager initialize(ProfileInfo profileInfo, String recordingId, Path recordingPath) {
         LOG.debug("Initializing profile: profileId={} recordingId={}", profileInfo.id(), recordingId);
         Instant startedAt = clock.instant();
-        long initSpan = Spans.start();
 
         // Open database connection for the new profile (creating the database file on disk if it
         // does not exist yet). The lease keeps this profile's pool pinned for the whole
         // initialization, so a concurrent initialization of a different profile cannot idle-evict or
-        // otherwise close the pool while parsing is still writing events into it.
+        // otherwise close the pool while parsing is still writing events into it. Closing it releases
+        // the pin; the cached pool stays warm for subsequent reads and is closed later by idle
+        // eviction, not here.
         // The whole initialization is one trace: each step below becomes a child span, so a slow
         // ingest can be read as "which stage took the time" instead of a single opaque duration.
         try (DatabaseLease lease = databaseManager.acquire(profileInfo.id())) {
@@ -185,10 +185,6 @@ public class ProfileInitializerImpl implements ProfileInitializer {
 
                 return profileManager;
             });
-        } finally {
-            // The lease (try-with-resources) releases the pin; the cached pool stays warm for
-            // subsequent reads and is closed later by idle eviction, not here.
-            Spans.end(initSpan, "profile.initialize");
         }
     }
 }

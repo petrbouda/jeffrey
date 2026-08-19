@@ -18,13 +18,14 @@
 
 package cafe.jeffrey.profile.ai.claudecode;
 
+import cafe.jeffrey.jfr.events.trace.SpanKind;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.chat.ChatExchange;
 import cafe.jeffrey.profile.ai.chat.ChatMessage;
 import cafe.jeffrey.profile.ai.chat.McpToolset;
 import cafe.jeffrey.profile.ai.chat.ToolCallResult;
 import cafe.jeffrey.profile.ai.chat.ToolExchange;
-import cafe.jeffrey.shared.common.span.Spans;
 import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
@@ -75,13 +76,7 @@ public final class ClaudeCodeChatBackend implements AiChatBackend {
         String prompt = buildPrompt(exchange.history(), exchange.userMessage());
         ClaudeCodeRequest request = ClaudeCodeRequest.promptOnly(prompt, exchange.systemPrompt(), modelName);
 
-        long span = Spans.start();
-        try {
-            ClaudeCodeResult result = cliClient.run(request);
-            return result.text();
-        } finally {
-            Spans.end(span, spanName);
-        }
+        return Tracer.call(spanName, SpanKind.CLIENT, () -> cliClient.run(request).text());
     }
 
     @Override
@@ -102,13 +97,10 @@ public final class ClaudeCodeChatBackend implements AiChatBackend {
                     toolset.allowedTools());
         }
 
-        long span = Spans.start();
-        try {
+        return Tracer.call(exchange.spanName(), SpanKind.CLIENT, () -> {
             ClaudeCodeResult result = cliClient.run(request);
             return new ToolCallResult(result.text(), result.toolsUsed());
-        } finally {
-            Spans.end(span, exchange.spanName());
-        }
+        });
     }
 
     private String buildMcpConfigJson(McpToolset toolset) {
