@@ -19,7 +19,6 @@
 package cafe.jeffrey.shared.persistence;
 
 public enum StatementLabel {
-
     WAL_CHECK_POINT,
     RECREATE_TABLE_CLUSTERED,
 
@@ -27,17 +26,6 @@ public enum StatementLabel {
      * {@link GroupLabel#INTERNAL_PROFILES}
      */
     INSERT_PROFILE,
-    MAX_EVENT_TIMESTAMP,
-    UPDATE_PROFILE_FINISHED_AT,
-
-    /**
-     * {@link GroupLabel#GLOBAL_SCHEDULERS}
-     */
-    INSERT_GLOBAL_JOB,
-    FIND_ALL_GLOBAL_JOBS,
-    FIND_GLOBAL_JOBS_BY_TYPE,
-    ENABLE_GLOBAL_JOB,
-    DELETE_GLOBAL_JOB,
 
     /**
      * {@link GroupLabel#PROJECT_RECORDINGS}
@@ -48,7 +36,6 @@ public enum StatementLabel {
     GROUP_EXISTS,
     FIND_RECORDING,
     FIND_ALL_RECORDINGS,
-    FIND_LATEST_RECORDINGS,
     FIND_RECORDING_FILES,
     FIND_RECORDINGS_IN_GROUP,
     FIND_ALL_RECORDING_FILES,
@@ -64,11 +51,6 @@ public enum StatementLabel {
     DELETE_RECORDING_TAGS,
 
     /**
-     * {@link GroupLabel#INTERNAL_RECORDINGS}
-     */
-    FIND_RECORDING_INTERNAL,
-
-    /**
      * {@link GroupLabel#PROFILE_CACHE}
      */
     INSERT_CACHE_ENTRY,
@@ -79,7 +61,6 @@ public enum StatementLabel {
      * {@link GroupLabel#PROFILE_EVENTS}
      */
     FIND_LATEST_JSON,
-    FIND_ALL_LATEST_EVENTS,
     STREAM_EVENTS,
     LOAD_FRAMES_CACHE,
     LIST_SPANS,
@@ -135,14 +116,6 @@ public enum StatementLabel {
     FIND_EVENT_TYPE,
 
     /**
-     * {@link GroupLabel#PROFILE_GRAPHS}
-     */
-    INSERT_GRAPH,
-    FIND_GRAPH_CONTENT,
-    FIND_ALL_METADATA,
-    DELETE_GRAPH,
-
-    /**
      * {@link GroupLabel#PROFILES}
      */
     FIND_PROFILE,
@@ -182,28 +155,17 @@ public enum StatementLabel {
     DELETE_ALL_REPOSITORIES,
 
     /**
-     * {@link GroupLabel#PROJECT_SCHEDULERS}
-     */
-    INSERT_SCHEDULER,
-    FIND_ALL_SCHEDULERS,
-    FIND_SCHEDULERS_BY_TYPE,
-    ENABLE_SCHEDULER,
-    DELETE_SCHEDULER,
-
-    /**
      * {@link GroupLabel#EVENT_WRITERS}
      */
     INSERT_EVENT_TYPES,
     INSERT_EVENTS,
     INSERT_STACKTRACES,
-    INSERT_STACKTRACE_TAGS,
     INSERT_THREADS,
     INSERT_FRAMES,
 
     /**
      * {@link GroupLabel#NATIVE_LEAK_EVENTS}
      */
-    FIND_NATIVE_LEAK_EVENTS,
     FIND_NATIVE_LEAK_EVENTS_SAMPLES_AND_WEIGHT,
     FIND_MALLOC_EVENT_TYPE_COLUMNS,
     MALLOC_AND_FREE_EXISTS,
@@ -225,7 +187,6 @@ public enum StatementLabel {
     FIND_REMOTE_SERVER_BY_ID,
     INSERT_REMOTE_SERVER,
     DELETE_REMOTE_SERVER,
-    FIND_PROJECT_IDS_BY_WORKSPACE_ID,
     FIND_PROJECTS_BY_WORKSPACE_ID,
     INSERT_WORKSPACE_SESSION,
     DELETE_WORKSPACE_SESSION,
@@ -239,37 +200,11 @@ public enum StatementLabel {
     UPDATE_SESSION_RETAINED,
 
     /**
-     * {@link GroupLabel#EXTERNAL_WORKSPACES}
-     */
-    FIND_ALL_EXTERNAL_WORKSPACE_PROJECTS,
-
-    /**
      * {@link GroupLabel#PROFILER}
      */
     UPSERT_PROFILER_SETTINGS,
     FIND_PROFILER_SETTINGS,
-    FIND_GLOBAL_PROFILER_SETTINGS,
     DELETE_PROFILER_SETTINGS,
-
-    /**
-     * {@link GroupLabel#PROJECTS} (AI configuration) / {@link GroupLabel#AI_PROMPTS}
-     */
-    UPSERT_PROJECT_AI_CONFIG,
-    FIND_PROJECT_AI_CONFIG,
-    UPSERT_AI_PROMPT,
-    FIND_AI_PROMPTS_BY_RECORDING,
-    DELETE_AI_PROMPTS_BY_RECORDING,
-    UPSERT_AI_RECOMMENDATION,
-    FIND_AI_RECOMMENDATIONS_BY_RECORDING,
-    FIND_TOP_SEVERITY_RECOMMENDATIONS,
-    COUNT_RECOMMENDATIONS_BY_SEVERITY,
-
-    /**
-     * {@link GroupLabel#PROJECTS} (version-control integration)
-     */
-    UPSERT_VERSION_CONTROL_SYSTEM,
-    FIND_VERSION_CONTROL_SYSTEM,
-    DELETE_VERSION_CONTROL_SYSTEM,
 
     /**
      * {@link GroupLabel#PROJECT_INSTANCES}
@@ -289,22 +224,6 @@ public enum StatementLabel {
     DELETE_PROJECT_INSTANCE,
 
     FIND_ALL_PROJECT_NAMESPACES,
-
-    /**
-     * {@link GroupLabel#MESSAGES}
-     */
-    INSERT_MESSAGE,
-    FIND_ALL_MESSAGES,
-    DELETE_MESSAGES_BY_PROJECT,
-    DELETE_OLD_MESSAGES,
-
-    /**
-     * {@link GroupLabel#ALERTS}
-     */
-    INSERT_ALERT,
-    FIND_ALL_ALERTS,
-    DELETE_ALERTS_BY_PROJECT,
-    DELETE_OLD_ALERTS,
 
     /**
      * {@link GroupLabel#PROFILE_FRAMES}
@@ -378,6 +297,5 @@ public enum StatementLabel {
     FIND_PIPELINE_RUN,
     FIND_PIPELINE_RUNS,
     UPSERT_PIPELINE_RUN,
-    DELETE_PIPELINE_RUNS,
-
+    DELETE_PIPELINE_RUNS
 }
