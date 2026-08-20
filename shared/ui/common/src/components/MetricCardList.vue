@@ -24,9 +24,9 @@
 -->
 <template>
   <div class="metric-card-list">
-    <!-- Controls -->
-    <div class="mcl-controls">
-      <div class="sort-controls">
+    <!-- Controls. Absent entirely for a list with nothing to sort and no filters of its own. -->
+    <div v-if="sortOptions.length > 0 || $slots.controls" class="mcl-controls">
+      <div v-if="sortOptions.length > 0" class="sort-controls">
         <label class="sort-label">Sort by:</label>
         <div class="btn-group" role="group">
           <button
@@ -71,22 +71,31 @@
         @keydown.enter.prevent="$emit('itemClick', item)"
         @keydown.space.prevent="$emit('itemClick', item)"
       >
-        <!-- Left: Gradient count zone -->
-        <div class="mcl-count">
-          <span class="mcl-count-num">{{ FormattingService.formatNumber(count(item)) }}</span>
-          <span class="mcl-count-label">{{ countLabel }}</span>
+        <!-- Left: Gradient count zone. The #count slot replaces the number for a caller whose
+             headline is not a count (a duration, say); countClass lets it tint the zone per item. -->
+        <div class="mcl-count" :class="countClass?.(item)">
+          <slot name="count" :item="item">
+            <span class="mcl-count-num">{{ FormattingService.formatNumber(count(item)) }}</span>
+            <span class="mcl-count-label">{{ countLabel }}</span>
+          </slot>
         </div>
 
-        <!-- Body: name + metrics, optional right status, chevron -->
-        <div class="mcl-body">
-          <div class="mcl-main">
-            <div class="mcl-name"><slot name="name" :item="item" /></div>
-            <div class="mcl-metrics"><slot name="metrics" :item="item" /></div>
+        <!-- Right of the zone: body (name + metrics, optional status, chevron), then an optional
+             full-width footer band the caller styles itself — evidence, notes, anything that
+             deserves its own strip along the card's bottom edge. -->
+        <div class="mcl-right">
+          <div class="mcl-body">
+            <div class="mcl-main">
+              <div class="mcl-name"><slot name="name" :item="item" /></div>
+              <div class="mcl-metrics"><slot name="metrics" :item="item" /></div>
+            </div>
+
+            <div class="mcl-status"><slot name="right" :item="item" /></div>
+
+            <i class="bi bi-chevron-right mcl-arrow"></i>
           </div>
 
-          <div class="mcl-status"><slot name="right" :item="item" /></div>
-
-          <i class="bi bi-chevron-right mcl-arrow"></i>
+          <slot name="footer" :item="item" />
         </div>
       </div>
     </div>
@@ -107,8 +116,11 @@ const props = withDefaults(
   defineProps<{
     items: any[];
     itemKey: (item: any) => string | number;
-    count: (item: any) => number;
-    countLabel: string;
+    /** Unused when the caller fills the #count slot with its own headline. */
+    count?: (item: any) => number;
+    countLabel?: string;
+    /** An extra class for the count zone of one item — a severity tint, say. */
+    countClass?: (item: any) => string | undefined;
     sortOptions: MetricSortOption[];
     initialSort?: string;
     maxDisplayed?: number;
@@ -121,6 +133,9 @@ const props = withDefaults(
     serverOrdered?: boolean;
   }>(),
   {
+    count: () => 0,
+    countLabel: '',
+    countClass: undefined,
     initialSort: undefined,
     maxDisplayed: 10,
     serverOrdered: false
@@ -255,6 +270,14 @@ const displayedItems = computed(() => {
   letter-spacing: 0.6px;
   opacity: 0.85;
   margin-top: 4px;
+}
+
+/* Everything right of the count zone: the body, then the optional footer band beneath it. */
+.mcl-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Body: name + metrics + optional status + chevron */

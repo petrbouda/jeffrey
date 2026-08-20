@@ -55,57 +55,96 @@
       description="No trace in this profile carries every condition. Try widening the scope, or drop a condition."
     />
 
+    <!--
+      The same card the Traces by Operation list draws, so a trace reads the same way whichever
+      page found it. What differs is what a single trace has to say: the zone holds its duration
+      rather than a call count — tinted by how that duration sits in the matched set, so the slow
+      traces pop out of the list before a single number is read.
+    -->
     <div v-else class="matches mt-3">
-      <button
-        v-for="match in matches"
-        :key="match.trace.traceId"
-        type="button"
-        class="match-row"
-        @click="$emit('open', match.trace)"
+      <MetricCardList
+        :items="matches"
+        :item-key="(match: TraceAttributeMatch) => match.trace.traceId"
+        :count-class="durationSeverity"
+        :sort-options="[]"
+        server-ordered
+        @item-click="(match: TraceAttributeMatch) => $emit('open', match.trace)"
       >
-        <span class="match-duration">
-          {{ FormattingService.formatDuration2Units(match.trace.durationNanos) }}
-        </span>
+        <template #count="{ item }">
+          <span class="zone-duration">
+            {{ FormattingService.formatDuration2Units(item.trace.durationNanos) }}
+          </span>
+          <span class="zone-caption">Duration</span>
+        </template>
 
-        <span class="match-body">
-          <span class="match-name" :title="match.trace.rootName">{{ match.trace.rootName }}</span>
-          <span class="match-meta">
-            <Badge
-              :value="match.trace.rootEventType"
-              variant="info"
-              size="xs"
-              borderless
-              :uppercase="false"
+        <template #name="{ item }">
+          <div class="match-title">
+            <MetricName
+              :segments="parseOperationName(item.trace.rootName, item.trace.rootEventType)"
+              :title="item.trace.rootName"
             />
-            <Badge
-              key-label="Spans"
-              :value="FormattingService.formatNumber(match.trace.spanCount)"
-              variant="secondary"
-              size="xs"
-              borderless
-            />
-            <Badge
-              v-if="match.trace.errorCount > 0"
-              :value="errorLabel(match.trace.errorCount)"
-              variant="danger"
-              size="xs"
-              icon="bi bi-exclamation-triangle"
-            />
+            <span class="match-tags">
+              <Badge
+                :value="item.trace.rootEventType"
+                variant="secondary"
+                size="s"
+                borderless
+                :uppercase="false"
+              />
+              <Badge
+                :value="item.trace.rootKind"
+                :variant="spanKindVariant(item.trace.rootKind)"
+                size="s"
+                borderless
+              />
+            </span>
+          </div>
+        </template>
 
-            <!--
-              Which span carried the value, on the row itself. Every other trace search makes you
-              open the waterfall to find that out, once per trace; showing it here is what makes the
-              list the answer rather than the start of one.
-            -->
-            <span v-for="hit in match.hits" :key="hit.spanId + hit.key" class="match-hit">
+        <template #metrics="{ item }">
+          <Badge
+            key-label="Spans"
+            :value="FormattingService.formatNumber(item.trace.spanCount)"
+            variant="secondary"
+            size="s"
+            borderless
+          />
+          <Badge
+            key-label="Started"
+            :value="`+${FormattingService.formatDuration2Units(item.trace.startMillisFromBeginning * NANOS_PER_MILLI)}`"
+            variant="secondary"
+            size="s"
+            borderless
+          />
+        </template>
+
+        <!--
+          Which span carried the value, on the row itself. Every other trace search makes you
+          open the waterfall to find that out, once per trace; showing it here is what makes the
+          list the answer rather than the start of one. A band of its own along the card's bottom
+          edge, in the faint brand tint: the evidence cannot collide with the statistics, and the
+          tint quietly connects it to the search that produced it.
+        -->
+        <template #footer="{ item }">
+          <div v-if="item.hits.length > 0" class="match-footer">
+            <span class="match-footer-label">Matched on</span>
+            <span v-for="hit in item.hits" :key="hit.spanId + hit.key" class="match-hit">
               <span class="hit-span">span {{ shortSpanId(hit.spanId) }}</span>
               {{ hit.key }}=<b>{{ hit.value }}</b>
             </span>
-          </span>
-        </span>
+          </div>
+        </template>
 
-        <i class="bi bi-chevron-right match-arrow"></i>
-      </button>
+        <template #right="{ item }">
+          <Badge
+            v-if="item.trace.errorCount > 0"
+            :value="errorLabel(item.trace.errorCount)"
+            variant="danger"
+            size="s"
+            icon="bi bi-exclamation-triangle"
+          />
+        </template>
+      </MetricCardList>
 
       <LoadMoreFooter
         :shown="matches.length"
@@ -126,15 +165,17 @@ import EmptyState from '@shared/components/EmptyState.vue';
 import LoadMoreFooter from '@shared/components/LoadMoreFooter.vue';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
+import MetricCardList from '@shared/components/MetricCardList.vue';
 import StatsTable from '@shared/components/table/StatsTable.vue';
 import FormattingService from '@shared/services/FormattingService';
+import MetricName from '@/components/common/MetricName.vue';
 import type { TraceRow } from '@/services/api/model/trace/TraceModels';
 import type {
   TraceAttributeMatch,
   TraceAttributeStats,
   TraceAttributeTimelineBucket
 } from '@/services/api/model/trace/TraceAttributeModels';
-import { errorLabel } from '@/services/trace/traceLabels';
+import { errorLabel, parseOperationName, spanKindVariant } from '@/services/trace/traceLabels';
 
 const props = defineProps<{
   matches: TraceAttributeMatch[];
@@ -150,6 +191,9 @@ defineEmits<{ open: [trace: TraceRow]; loadMore: [] }>();
 
 /** How many hex digits of a span id are enough to tell two spans of one trace apart on sight. */
 const SHORT_SPAN_ID_DIGITS = 6;
+
+/** The Started chip holds an offset in millis; the duration formatter reads nanos. */
+const NANOS_PER_MILLI = 1_000_000;
 
 const peak = computed(() =>
   props.timeline.reduce((highest, bucket) => Math.max(highest, bucket.total), 0)
@@ -172,18 +216,18 @@ function shortSpanId(spanId: string): string {
 }
 
 /**
- * A percentile against the unfiltered profile.
- *
- * A matched P95 of 1.4 s is only alarming next to the 310 ms the profile as a whole manages, and a
- * reader who has to hold the second number in their head to read the first will not.
+ * The tint of a trace's duration zone: how its duration sits within the matched set. Green up to
+ * the set's median, the neutral brand tint in between, red past its P95 — thresholds from the
+ * whole match rather than the visible page, so paging does not recolour the rows already read.
  */
-function versusBaseline(matched: number, base: number | undefined): string {
-  if (base === undefined || base === 0 || matched === 0) {
-    return 'no baseline to compare against';
+function durationSeverity(match: TraceAttributeMatch): string | undefined {
+  if (match.trace.durationNanos > props.stats.p95Nanos) {
+    return 'zone-slow';
   }
-  const ratio = matched / base;
-  const direction = ratio >= 1 ? '×' : '× of';
-  return `${ratio.toFixed(1)}${direction} the profile's ${FormattingService.formatDuration2Units(base)}`;
+  if (match.trace.durationNanos <= props.stats.p50Nanos) {
+    return 'zone-fast';
+  }
+  return undefined;
 }
 
 const metrics = computed(() => {
@@ -216,7 +260,7 @@ const metrics = computed(() => {
       variant: 'info' as const,
       breakdown: [
         { label: 'Median', value: FormattingService.formatDuration2Units(stats.p50Nanos) },
-        { label: 'Against the profile', value: versusBaseline(stats.p95Nanos, baseline?.p95Nanos) }
+        { label: 'Slowest', value: FormattingService.formatDuration2Units(stats.maxNanos) }
       ]
     }
   ];
@@ -291,57 +335,83 @@ const metrics = computed(() => {
   gap: var(--spacing-2);
 }
 
-.match-row {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-  width: 100%;
-  text-align: left;
-  padding: var(--spacing-2) var(--spacing-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-white);
-  box-shadow: var(--shadow-sm);
-  cursor: pointer;
-}
-
-.match-row:hover {
-  box-shadow: var(--shadow-md);
-}
-
-.match-duration {
-  width: 82px;
-  flex-shrink: 0;
-  text-align: right;
+/* The zone's headline, in the caller because slotted content styles itself. */
+.zone-duration {
   font-family: var(--font-family-monospace);
-  font-size: var(--font-size-md);
+  font-size: 1.05rem;
   font-weight: 700;
-  color: var(--color-dark);
+  line-height: 1.15;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
-.match-body {
-  flex: 1;
+/*
+ * One width for every zone: durations run from "4us" to "656ms 759us", and a zone sized by its
+ * text puts each name at a different offset, which breaks the column the list is read down.
+ */
+.matches :deep(.mcl-count) {
+  width: 132px;
+  min-width: 132px;
+  padding: 0 var(--spacing-2);
+}
+
+.zone-caption {
+  font-size: 0.56rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+
+/* How the duration sits in the matched set — see durationSeverity. */
+.matches :deep(.mcl-count.zone-fast) {
+  background: var(--color-success-light);
+  color: var(--color-success-dark);
+}
+
+.matches :deep(.mcl-count.zone-slow) {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.match-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
   min-width: 0;
 }
 
-.match-name {
-  display: block;
-  font-family: var(--font-family-monospace);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--color-dark);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Pinned to the end of the name row, one scannable column down the list — as the operations do. */
+.match-tags {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-left: auto;
+  padding-left: var(--spacing-3);
 }
 
-.match-meta {
+.match-title :deep(.badge) {
+  flex-shrink: 0;
+}
+
+.match-footer {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--spacing-1);
-  margin-top: var(--spacing-1);
+  gap: 0.45rem;
+  padding: 7px 16px;
+  background: var(--color-primary-lighter);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.match-footer-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+  flex-shrink: 0;
 }
 
 .match-hit {

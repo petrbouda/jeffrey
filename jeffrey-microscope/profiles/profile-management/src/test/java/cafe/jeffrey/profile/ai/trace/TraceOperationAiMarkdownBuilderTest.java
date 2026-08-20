@@ -59,7 +59,8 @@ class TraceOperationAiMarkdownBuilderTest {
             String name, long selfMs, long inclusiveMs, long p50SelfMs, long p50Ms) {
 
         return new TraceOperationSpanRow(
-                name, 214, 214, inclusiveMs * MS, selfMs * MS, p50Ms * MS, p50SelfMs * MS, 400 * MS);
+                name, 214, 214, inclusiveMs * MS, selfMs * MS, p50Ms * MS, p50SelfMs * MS,
+                380 * MS, 380 * MS, 400 * MS);
     }
 
     private static List<TraceRow> slowest() {

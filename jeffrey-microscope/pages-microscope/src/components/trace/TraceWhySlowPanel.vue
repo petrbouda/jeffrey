@@ -56,11 +56,6 @@
       </router-link>
       <span v-else class="why-goto"></span>
     </div>
-
-    <p class="why-foot">
-      Measured against the trace's own window, not the sum of its spans — spans nest, so summing
-      them counts the same instant once per level of the tree.
-    </p>
   </div>
 </template>
 
@@ -205,12 +200,6 @@ a.why-goto:focus-visible {
 
 .why-percent,
 .why-count {
-  color: var(--color-text-muted);
-}
-
-.why-foot {
-  margin: 0.5rem 0 0;
-  font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
 </style>

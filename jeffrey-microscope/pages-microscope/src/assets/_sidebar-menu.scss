@@ -328,12 +328,15 @@
   }
 }
 
-// Main content area next to sidebar
+// Main content area next to sidebar. min-width: 0 rather than overflow: hidden: both stop a wide
+// child (a table, a flamegraph) from blowing the flex item past the viewport, but overflow: hidden
+// also clips anything that deliberately protrudes — the Selection picker's dropdowns get cut off
+// at the bottom of a short page.
 .detail-main-content {
   flex: 1;
+  min-width: 0;
   padding-left: 1rem;
   transition: all 0.3s ease;
-  overflow: hidden;
 }
 
 .detail-content-container {

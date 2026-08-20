@@ -402,6 +402,8 @@ public class TraceManagerImpl implements TraceManager {
                         span.selfNanos(),
                         span.p50Nanos(),
                         span.p50SelfNanos(),
+                        span.p99Nanos(),
+                        span.p99SelfNanos(),
                         span.maxNanos()))
                 .toList();
 

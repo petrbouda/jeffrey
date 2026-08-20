@@ -174,7 +174,8 @@
 
           <!--
           Below the bars rather than beside them: it is the conclusion drawn from the trace above,
-          and a reader reaches it after looking at the shape, not instead of doing so.
+          and a reader reaches it after looking at the shape, not instead of doing so. The slices
+          speak for themselves — no heading over them.
         -->
           <!--
           Always rendered, with words for each state. Vanishing entirely made three different facts
@@ -183,7 +184,6 @@
           another lacked it.
         -->
           <section class="context-pane">
-            <header><i class="bi bi-question-circle"></i> Why was this trace slow?</header>
             <TraceWhySlowPanel
               v-if="hasContextFindings"
               :slices="context?.summary ?? []"
@@ -661,17 +661,6 @@ watch(
   outline-offset: 1px;
 }
 
-.context-pane > header {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.6rem 1rem;
-  border-bottom: 1px solid var(--color-border-light);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--color-dark);
-}
-
 /* The trace's own facts on the left, the actions on the right. */
 .trace-meta {
   display: flex;
@@ -722,16 +711,15 @@ watch(
  * the dialog, and a side panel took its width from them -- the one dimension a waterfall cannot
  * spare, since every bar is positioned against the trace's full duration.
  */
+/* Two cards, not one: the waterfall and the conclusion drawn from it each hold their own frame. */
 .trace-body {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-card);
-  overflow: hidden;
+  gap: 0.75rem;
 }
 
-/* The waterfall scrolls on its own so a wide trace never scrolls the modal sideways. */
+/* The waterfall scrolls on its own so a wide trace never scrolls the modal sideways. The card
+   chrome lives on the waterfall's own panels — this is only the scroll container. */
 .waterfall-pane {
   overflow-x: auto;
   min-width: 0;

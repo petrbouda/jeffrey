@@ -352,6 +352,8 @@ export interface TraceOperationSpanRow {
   selfNanos: number;
   p50Nanos: number;
   p50SelfNanos: number;
+  p99Nanos: number;
+  p99SelfNanos: number;
   maxNanos: number;
 }
 

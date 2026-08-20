@@ -36,7 +36,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-import { DifferentialType, ProfileNavItem } from '@/views/profiles/navigation/profileNavConfig';
+import {
+  DifferentialType,
+  matchesActivePath,
+  ProfileNavItem
+} from '@/views/profiles/navigation/profileNavConfig';
 
 const props = defineProps<{
   item: ProfileNavItem;
@@ -83,10 +87,7 @@ const matchesQueryMode = computed<boolean>(() => {
 
 const isManuallyActive = computed<boolean>(() => {
   if (props.item.activeQueryMode) {
-    if (!props.item.activePathIncludes) {
-      return false;
-    }
-    return route.path.includes(props.item.activePathIncludes) && matchesQueryMode.value;
+    return matchesActivePath(props.item, route.path) && matchesQueryMode.value;
   }
   if (props.item.activeExactPath) {
     return route.path === targetPath.value;
@@ -95,9 +96,6 @@ const isManuallyActive = computed<boolean>(() => {
 });
 
 const isDifferentialActive = computed<boolean>(() => {
-  if (!props.item.activePathIncludes) {
-    return false;
-  }
-  return route.path.includes(props.item.activePathIncludes);
+  return matchesActivePath(props.item, route.path);
 });
 </script>

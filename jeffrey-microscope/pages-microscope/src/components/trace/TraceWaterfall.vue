@@ -18,6 +18,8 @@
 
 <template>
   <div class="waterfall">
+    <!-- The drawing in one card, the legend in its own below — two panels, not one surface. -->
+    <div class="wf-card">
     <div class="wf-toolbar">
       <button
         type="button"
@@ -40,48 +42,55 @@
         <i :class="allCollapsed ? 'bi bi-arrows-expand' : 'bi bi-arrows-collapse'"></i>
         {{ allCollapsed ? 'Expand all' : 'Collapse all' }}
       </button>
-      <button
-        type="button"
-        class="wf-toggle"
-        :class="{ active: bandCategories.length > 0 && !allContextHidden }"
-        :aria-pressed="bandCategories.length > 0 && !allContextHidden"
-        :disabled="bandCategories.length === 0"
-        :title="contextToggleTitle"
-        @click="toggleAllContext"
-      >
-        <i class="bi bi-cpu"></i> JVM context
-      </button>
       <!--
-        The promoted waits drawn as child bars, split into two masters along the reader's question:
-        locks, parks and stalls under "Blocking ops", file and socket reads under "I/O" — different
-        suspicions, so hiding one family must not take the other down with it. Both on by default
-        because they are the feature: a trace that says where its time went. Off is for reading the
-        recorded span structure alone, and the per-category legend buttons narrow it finer than the
-        masters can. Each stays visible but disabled when its family recorded nothing, so its
-        absence never reads as a missing feature.
+        The three overlay families as real switches inside a labeled group, apart from the view
+        actions beside them — a control that draws something over the waterfall and a control that
+        rearranges it are two kinds of thing, and stopped wearing one costume. The promoted waits
+        stay split along the reader's question: locks, parks and stalls under "Blocking ops", file
+        and socket reads under "I/O ops" — different suspicions, so hiding one family must not take
+        the other down with it. Both on by default because they are the feature: a trace that says
+        where its time went. A family that recorded nothing keeps its switch visible but dashed,
+        with the zero said out loud, so its absence never reads as a missing feature.
       -->
-      <button
-        type="button"
-        class="wf-toggle"
-        :class="{ active: showBlockingOps && promotedBlockingCount > 0 }"
-        :aria-pressed="showBlockingOps && promotedBlockingCount > 0"
-        :disabled="promotedBlockingCount === 0"
-        :title="blockingToggleTitle"
-        @click="showBlockingOps = !showBlockingOps"
-      >
-        <i class="bi bi-hourglass-split"></i> Blocking ops
-      </button>
-      <button
-        type="button"
-        class="wf-toggle"
-        :class="{ active: showIoOps && promotedIoCount > 0 }"
-        :aria-pressed="showIoOps && promotedIoCount > 0"
-        :disabled="promotedIoCount === 0"
-        :title="ioToggleTitle"
-        @click="showIoOps = !showIoOps"
-      >
-        <i class="bi bi-hdd-network"></i> I/O
-      </button>
+      <span class="wf-overlays" role="group" aria-label="Overlay families">
+        <span class="wf-overlays-label">Overlays</span>
+        <button
+          type="button"
+          class="wf-switch-item"
+          :aria-pressed="bandCategories.length > 0 && !allContextHidden"
+          :disabled="bandCategories.length === 0"
+          :title="contextToggleTitle"
+          @click="toggleAllContext"
+        >
+          <span class="wf-switch" :class="{ on: bandCategories.length > 0 && !allContextHidden }"></span>
+          JVM context
+          <span v-if="bandCategories.length === 0" class="wf-zero">0 events</span>
+        </button>
+        <button
+          type="button"
+          class="wf-switch-item"
+          :aria-pressed="showBlockingOps && promotedBlockingCount > 0"
+          :disabled="promotedBlockingCount === 0"
+          :title="blockingToggleTitle"
+          @click="showBlockingOps = !showBlockingOps"
+        >
+          <span class="wf-switch" :class="{ on: showBlockingOps && promotedBlockingCount > 0 }"></span>
+          Blocking ops
+          <span v-if="promotedBlockingCount === 0" class="wf-zero">0 events</span>
+        </button>
+        <button
+          type="button"
+          class="wf-switch-item"
+          :aria-pressed="showIoOps && promotedIoCount > 0"
+          :disabled="promotedIoCount === 0"
+          :title="ioToggleTitle"
+          @click="showIoOps = !showIoOps"
+        >
+          <span class="wf-switch" :class="{ on: showIoOps && promotedIoCount > 0 }"></span>
+          I/O ops
+          <span v-if="promotedIoCount === 0" class="wf-zero">0 events</span>
+        </button>
+      </span>
       <!--
         Only when there is an error to jump to: in a 200-span trace the one red badge can sit three
         folds deep and two screens down, and "this trace failed" without a way to the failure is a
@@ -96,9 +105,6 @@
       >
         <i class="bi bi-exclamation-triangle"></i> First error
       </button>
-      <span class="wf-count">{{ rowCountLabel }}</span>
-      <!-- The only place the keyboard model is written down; without it, arrows are a secret. -->
-      <span class="wf-keys" aria-hidden="true">↑↓ move · ←→ fold · Enter open</span>
     </div>
 
     <!--
@@ -217,17 +223,114 @@
         <span></span>
       </div>
 
-      <template v-for="span in rows" :key="span.spanId">
+      <template v-for="{ run, span } in displayRows" :key="run ? run.key : span!.spanId">
+        <!--
+          A run of same-named leaf siblings drawn as one synthesized row: the count says how many,
+          the sigma says what they cost together, and the lane keeps a tick per occurrence so the
+          rhythm of the run survives the merge. 462 file writes are one question, not 462 rows.
+        -->
+        <template v-if="run">
+          <button
+            type="button"
+            class="wf-row wf-run-row"
+            :class="{ 'detail-open': openRunDetail === run.key }"
+            tabindex="-1"
+            :title="isRunExpanded(run) ? 'Collapse the run' : `Expand ${run.spans.length} spans`"
+            @click="toggleRun(run.key)"
+          >
+            <span class="wf-name">
+              <span class="wf-indent" :style="{ width: indentRem(run.spans[0].depth) + 'rem' }"></span>
+              <span class="wf-twist" role="presentation">
+                <i :class="isRunExpanded(run) ? 'bi bi-caret-down-fill' : 'bi bi-caret-right-fill'"></i>
+              </span>
+              <span class="wf-kind" :class="kindClass(run.spans[0])" :style="kindStyle(run.spans[0])"></span>
+              <span class="wf-label">{{ run.spans[0].name }}</span>
+              <span class="wf-run-count" :style="kindStyle(run.spans[0])">×{{ run.spans.length }}</span>
+              <!--
+                A span rather than a nested button, for the same reason the twistie is one. Clicks
+                are stopped so opening the statistics does not also unfold the run.
+              -->
+              <span
+                class="wf-run-stats-toggle"
+                :class="{ open: openRunDetail === run.key }"
+                role="button"
+                :title="openRunDetail === run.key ? 'Hide the run statistics' : 'Show the run statistics'"
+                @click.stop="toggleRunDetail(run.key)"
+              >
+                <span class="wf-run-stats-glyph" aria-hidden="true">
+                  <i style="height: 3px"></i><i style="height: 8px"></i><i style="height: 5px"></i><i style="height: 2px"></i>
+                </span>
+                stats
+              </span>
+            </span>
+
+            <span class="wf-track">
+              <span
+                v-for="tick in run.spans"
+                :key="tick.spanId"
+                class="wf-bar wf-run-tick"
+                :class="barClass(tick)"
+                :style="barStyle(tick)"
+              ></span>
+            </span>
+
+            <span class="wf-duration">
+              Σ {{ FormattingService.formatDuration2Units(run.totalNanos) }}
+            </span>
+          </button>
+
+          <!--
+            The run's facts, shown while the stats chip is pressed: labeled figures with room to be
+            read, and the durations as a small histogram — the shape of 462 writes, which no single
+            number carries. The row itself only folds and unfolds the individuals.
+          -->
+          <div v-if="openRunDetail === run.key" class="wf-run-detail-row">
+          <div class="wf-run-detail" :style="{ marginLeft: runDetailIndent(run) }">
+            <span class="wf-run-stat">
+              <span class="wf-run-stat-label">Spans</span>
+              <span class="wf-run-stat-value">{{ run.spans.length }}</span>
+            </span>
+            <span class="wf-run-stat">
+              <span class="wf-run-stat-label">Total</span>
+              <span class="wf-run-stat-value">{{ FormattingService.formatDuration2Units(run.totalNanos) }}</span>
+            </span>
+            <span class="wf-run-stat">
+              <span class="wf-run-stat-label">Median</span>
+              <span class="wf-run-stat-value">{{ FormattingService.formatDuration2Units(run.medianNanos) }}</span>
+            </span>
+            <span class="wf-run-stat">
+              <span class="wf-run-stat-label">P95</span>
+              <span class="wf-run-stat-value">{{ FormattingService.formatDuration2Units(run.p95Nanos) }}</span>
+            </span>
+            <span class="wf-run-stat">
+              <span class="wf-run-stat-label">Max</span>
+              <span class="wf-run-stat-value">{{ FormattingService.formatDuration2Units(run.maxNanos) }}</span>
+            </span>
+            <span
+              class="wf-run-histogram"
+              title="How the run's durations are distributed, fastest on the left, slowest on the right"
+            >
+              <i
+                v-for="(bucket, index) in runHistogram(run)"
+                :key="index"
+                :class="{ hot: bucket.height === 1 }"
+                :style="{ height: 4 + bucket.height * 26 + 'px', ...(kindStyle(run.spans[0]) ?? {}) }"
+                :title="bucketTitle(bucket)"
+              ></i>
+            </span>
+          </div>
+          </div>
+        </template>
+
+        <template v-else-if="span">
         <button
           type="button"
           class="wf-row"
           :class="{ selected: span.spanId === selectedSpanId, critical: isCritical(span) }"
           :aria-expanded="span.spanId === selectedSpanId"
           :data-span-id="span.spanId"
-          :tabindex="rowTabindex(span)"
+          tabindex="-1"
           @click="$emit('select', span)"
-          @focus="focusedSpanId = span.spanId"
-          @keydown="onRowKeydown($event, span)"
         >
           <span class="wf-name">
             <span class="wf-indent" :style="{ width: indentRem(span.depth) + 'rem' }"></span>
@@ -300,6 +403,7 @@
           @view-events="$emit('viewEvents')"
           @view-flamegraph="$emit('viewFlamegraph')"
         />
+        </template>
       </template>
 
       <EmptyState
@@ -313,6 +417,7 @@
           <button type="button" class="wf-toggle" @click="showAllSpans">Show all spans</button>
         </template>
       </EmptyState>
+    </div>
     </div>
 
     <div class="wf-legend">
@@ -606,6 +711,178 @@ const rows = computed(() => {
   return visible.filter(isCritical);
 });
 
+/**
+ * A run shorter than this reads fine as rows; from here up it starts drowning the tree it sits in.
+ * A 2 GB upload written through an 8 MB buffer produces hundreds of identical "File write" leaves,
+ * and the twenty structural spans around them are what the reader came for.
+ */
+const MIN_RUN_LENGTH = 5;
+
+/** Consecutive same-named leaf siblings, drawn as one rollup row until expanded. */
+interface SpanRun {
+  key: string;
+  spans: TraceSpanRow[];
+  totalNanos: number;
+  medianNanos: number;
+  p95Nanos: number;
+  maxNanos: number;
+}
+
+/** One drawn row: either a single span or a whole run. Exactly one side is set. */
+interface DisplayRow {
+  span?: TraceSpanRow;
+  run?: SpanRun;
+}
+
+const expandedRuns = ref<Set<string>>(new Set());
+
+/** Whether two visible rows belong to one run. Errors never join one — a rollup must not eat one. */
+function sameRun(a: TraceSpanRow, b: TraceSpanRow): boolean {
+  return (
+    a.parentSpanId === b.parentSpanId &&
+    a.name === b.name &&
+    a.eventType === b.eventType &&
+    a.status !== 'ERROR' &&
+    b.status !== 'ERROR'
+  );
+}
+
+function buildRun(spans: TraceSpanRow[]): SpanRun {
+  const durations = spans.map(span => span.durationNanos).sort((a, b) => a - b);
+  return {
+    // The first span's id keeps the key stable however often the surrounding filters recompute.
+    key: `${spans[0].parentSpanId ?? ''}|${spans[0].name}|${spans[0].eventType}|${spans[0].spanId}`,
+    spans,
+    totalNanos: durations.reduce((sum, nanos) => sum + nanos, 0),
+    medianNanos: durations[Math.floor(durations.length / 2)],
+    p95Nanos: durations[Math.min(durations.length - 1, Math.floor(durations.length * 0.95))],
+    maxNanos: durations[durations.length - 1]
+  };
+}
+
+/*
+ * A run containing the selected span counts as expanded whatever the toggle says: the inline
+ * detail is drawn under the selected row, and a rollup hiding the row would hide the detail with
+ * it — a jump to the first error must land somewhere visible.
+ */
+function isRunExpanded(run: SpanRun): boolean {
+  if (expandedRuns.value.has(run.key)) {
+    return true;
+  }
+  return props.selectedSpanId != null && run.spans.some(span => span.spanId === props.selectedSpanId);
+}
+
+function toggleRun(key: string): void {
+  const next = new Set(expandedRuns.value);
+  if (next.has(key)) {
+    next.delete(key);
+  } else {
+    next.add(key);
+  }
+  expandedRuns.value = next;
+}
+
+/** Which run's statistics panel is open. One at a time, like the span detail above it. */
+const openRunDetail = ref<string | null>(null);
+
+function toggleRunDetail(key: string): void {
+  openRunDetail.value = openRunDetail.value === key ? null : key;
+}
+
+/** Buckets in the detail strip's histogram — enough to show a shape, few enough to stay a glyph. */
+const RUN_HISTOGRAM_BUCKETS = 12;
+
+interface RunHistogramBucket {
+  /** Drawn height, 0..1 against the busiest bucket. */
+  height: number;
+  fromNanos: number;
+  toNanos: number;
+  count: number;
+}
+
+/**
+ * The run's durations bucketed min-to-max, each height normalized to the busiest bucket. The shape
+ * answers what median and max cannot: were the slow writes a tail, a cluster, or a second mode?
+ */
+function runHistogram(run: SpanRun): RunHistogramBucket[] {
+  const counts = new Array(RUN_HISTOGRAM_BUCKETS).fill(0) as number[];
+  const min = Math.min(...run.spans.map(span => span.durationNanos));
+  const range = Math.max(1, run.maxNanos - min);
+  for (const span of run.spans) {
+    const bucket = Math.min(
+      RUN_HISTOGRAM_BUCKETS - 1,
+      Math.floor(((span.durationNanos - min) / range) * RUN_HISTOGRAM_BUCKETS)
+    );
+    counts[bucket]++;
+  }
+  const peak = Math.max(...counts, 1);
+  const bucketWidth = range / RUN_HISTOGRAM_BUCKETS;
+  return counts.map((count, index) => ({
+    height: count / peak,
+    fromNanos: min + index * bucketWidth,
+    toNanos: min + (index + 1) * bucketWidth,
+    count
+  }));
+}
+
+/**
+ * Where a run row's name text begins, in rems: the row's 1rem padding, then the 0.8rem twistie,
+ * the 0.45rem kind dot and the two 0.4rem gaps between them. The detail strip starts at the same
+ * offset — aligned under the name it belongs to, whatever the run's depth.
+ */
+const RUN_DETAIL_BASE_REM = 1 + 0.8 + 0.4 + 0.45 + 0.4;
+
+function runDetailIndent(run: SpanRun): string {
+  // The extra 2px is the accent gutter every row carries on its left edge.
+  return `calc(${RUN_DETAIL_BASE_REM + indentRem(run.spans[0].depth)}rem + 2px)`;
+}
+
+/** One bar, said in words: which slice of durations it covers and how many spans landed in it. */
+function bucketTitle(bucket: RunHistogramBucket): string {
+  const format = FormattingService.formatDuration2Units;
+  const spans = bucket.count === 1 ? '1 span' : `${bucket.count} spans`;
+  return `${format(bucket.fromNanos)} – ${format(bucket.toNanos)}: ${spans}`;
+}
+
+/**
+ * The rows as drawn: runs of {@link MIN_RUN_LENGTH}+ identical leaves fold into one rollup entry,
+ * everything else passes through one span per row. Only leaves are grouped — merging a parent
+ * would hide the structure beneath it, which is the opposite of what the rollup is for.
+ */
+const displayRows = computed<DisplayRow[]>(() => {
+  const list = rows.value;
+  const out: DisplayRow[] = [];
+  let index = 0;
+  while (index < list.length) {
+    const start = list[index];
+    let end = index;
+    if (!parents.value.has(start.spanId)) {
+      while (
+        end + 1 < list.length &&
+        !parents.value.has(list[end + 1].spanId) &&
+        sameRun(start, list[end + 1])
+      ) {
+        end++;
+      }
+    }
+    if (end - index + 1 >= MIN_RUN_LENGTH) {
+      const run = buildRun(list.slice(index, end + 1));
+      out.push({ run });
+      if (isRunExpanded(run)) {
+        for (const span of run.spans) {
+          out.push({ span });
+        }
+      }
+    } else {
+      for (let position = index; position <= end; position++) {
+        out.push({ span: list[position] });
+      }
+    }
+    index = end + 1;
+  }
+  return out;
+});
+
 /** Whether a row survives its family's master toggle and the per-category legend choices. */
 function isSpanDrawn(span: TraceSpanRow): boolean {
   if (!span.synthesized) {
@@ -636,18 +913,6 @@ const criticalOnlyTitle = computed(() => {
 const allCollapsed = computed(
   () => parents.value.size > 0 && collapsed.value.size === parents.value.size
 );
-
-const rowCountLabel = computed(() => {
-  const shown = rows.value.length;
-  const total = props.spans.length;
-  if (shown === total) {
-    const spans = total === 1 ? '1 span' : `${total} spans`;
-    // The promoted rows are counted out loud so a reader knows how much of the tree is synthesized
-    // waits rather than recorded structure.
-    return promotedCount.value > 0 ? `${spans} · ${promotedCount.value} promoted` : spans;
-  }
-  return `${shown} of ${total} spans`;
-});
 
 // Every bar at once: a bar's solid stretches depend on the span's children, so laying them out
 // row by row would rescan the whole trace per row.
@@ -711,7 +976,7 @@ function hiddenErrorTitle(span: TraceSpanRow): string {
 }
 
 /**
- * Expands whatever hides the first failed span, then focuses and opens it. Every filter that can
+ * Expands whatever hides the first failed span, then scrolls to and opens it. Every filter that can
  * conceal a row is undone only as far as needed: ancestors unfold, and the critical-path filter is
  * lifted only when the error is off the path it shows.
  */
@@ -731,8 +996,7 @@ function jumpToFirstError(): void {
   if (criticalOnly.value && !isCritical(target)) {
     criticalOnly.value = false;
   }
-  focusedSpanId.value = target.spanId;
-  focusRow(target.spanId);
+  scrollRowIntoView(target.spanId);
   if (props.selectedSpanId !== target.spanId) {
     emit('select', target);
   }
@@ -874,70 +1138,13 @@ function twistTitle(span: TraceSpanRow): string {
 }
 
 /**
- * Arrow-key navigation over the drawn rows. Left and right fold and unfold the way a tree widget is
- * expected to; up and down move focus only, and Enter or Space (the row is a button) opens the
- * inline detail, so reading down a trace does not mount a detail panel per row passed through.
+ * Brings a row into view after a jump has unfolded the tree above it. Deferred to the next frame
+ * because folding can re-render the list the target row lives in.
  */
-function onRowKeydown(event: KeyboardEvent, span: TraceSpanRow): void {
-  if (event.key === 'ArrowRight') {
-    if (parents.value.has(span.spanId) && collapsed.value.has(span.spanId)) {
-      event.preventDefault();
-      toggleCollapsed(span.spanId);
-    }
-    return;
-  }
-  if (event.key === 'ArrowLeft') {
-    if (parents.value.has(span.spanId) && !collapsed.value.has(span.spanId)) {
-      event.preventDefault();
-      toggleCollapsed(span.spanId);
-    }
-    return;
-  }
-  // Arrows only move focus; Enter and Space (the row is a button) open the detail. Selecting on
-  // every arrow press force-mounted a detail panel per row passed through, which made the keyboard
-  // unusable for simply reading down a trace.
-  if (event.key === 'Home' || event.key === 'End') {
-    const target = event.key === 'Home' ? rows.value[0] : rows.value[rows.value.length - 1];
-    if (target !== undefined) {
-      event.preventDefault();
-      focusedSpanId.value = target.spanId;
-      focusRow(target.spanId);
-    }
-    return;
-  }
-  if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
-    return;
-  }
-
-  const index = rows.value.findIndex(row => row.spanId === span.spanId);
-  const next = rows.value[index + (event.key === 'ArrowDown' ? 1 : -1)];
-  if (next === undefined) {
-    return;
-  }
-  event.preventDefault();
-  focusedSpanId.value = next.spanId;
-  focusRow(next.spanId);
-}
-
-/**
- * The row that owns the list's single tab stop. One stop for the whole tree, moved by arrows: with
- * every row a tab stop, crossing a 200-span trace to reach the legend cost 200 presses.
- */
-const focusedSpanId = ref<string | null>(null);
-
-function rowTabindex(span: TraceSpanRow): number {
-  const focusTarget = focusedSpanId.value ?? rows.value[0]?.spanId;
-  return span.spanId === focusTarget ? 0 : -1;
-}
-
-/**
- * Moves focus onto a row after the keyboard walks the tree. Deferred to the next frame because
- * folding can re-render the list the target row lives in.
- */
-function focusRow(spanId: string): void {
+function scrollRowIntoView(spanId: string): void {
   requestAnimationFrame(() => {
     const row = document.querySelector<HTMLElement>(`.wf-row[data-span-id="${spanId}"]`);
-    row?.focus();
+    row?.scrollIntoView({ block: 'center' });
   });
 }
 
@@ -1004,11 +1211,20 @@ function tooltip(span: TraceSpanRow): string {
 </script>
 
 <style scoped>
-/* The panel treatment the Spans views use, so the bars read as one surface rather than as a table. */
+/* Two panels with air between them: the drawing, then the legend that decodes it. */
 .waterfall {
   display: flex;
   flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* The panel treatment the Spans views use, so the bars read as one surface rather than as a table. */
+.wf-card {
+  display: flex;
+  flex-direction: column;
   background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
 /* Filters sit above the scale rather than in the modal header: they change what this list draws. */
@@ -1027,14 +1243,15 @@ function tooltip(span: TraceSpanRow): string {
 .wf-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.2rem 0.55rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: transparent;
+  gap: 0.35rem;
+  padding: var(--spacing-1) var(--spacing-3);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
   color: var(--color-text-muted);
   font-family: inherit;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-base);
+  font-weight: 500;
   cursor: pointer;
 }
 
@@ -1046,26 +1263,109 @@ function tooltip(span: TraceSpanRow): string {
 .wf-toggle.active {
   background: var(--color-primary-light);
   border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
   color: var(--color-primary);
+  font-weight: 600;
 }
 
 .wf-toggle:disabled {
-  opacity: 0.5;
+  border-style: dashed;
+  background: var(--color-light);
+  color: var(--color-text-light);
   cursor: default;
 }
 
-.wf-keys {
-  margin-left: auto;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-light);
-  white-space: nowrap;
+/*
+ * The overlay switches, boxed and labeled apart from the view actions. Disabled stays legible:
+ * the label keeps a readable grey, the track goes hollow with a dashed outline — unmistakably
+ * "cannot flip", distinct from an OFF switch which stays solid — and the reason wears the amber
+ * zero tag instead of whispering in pale text.
+ */
+.wf-overlays {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: var(--spacing-1) var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-light);
 }
 
-.wf-count {
-  margin-left: auto;
+.wf-overlays-label {
   font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+}
+
+.wf-switch-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: var(--spacing-1);
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--font-size-base);
+  color: var(--color-dark);
+  cursor: pointer;
+}
+
+.wf-switch {
+  position: relative;
+  width: 30px;
+  height: 17px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-input);
+  flex-shrink: 0;
+}
+
+.wf-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: var(--radius-circle);
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.wf-switch.on {
+  background: var(--color-primary);
+}
+
+.wf-switch.on::after {
+  left: 15px;
+}
+
+.wf-switch-item:disabled {
   color: var(--color-text-muted);
-  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+
+.wf-switch-item:disabled .wf-switch {
+  background: var(--color-white);
+  border: 1.5px dashed var(--color-text-light);
+}
+
+.wf-switch-item:disabled .wf-switch::after {
+  top: 1px;
+  left: 1px;
+  background: var(--color-lighter);
+  box-shadow: none;
+}
+
+.wf-zero {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--color-warning-hover);
+  background: var(--color-warning-light);
+  border-radius: var(--radius-sm);
+  padding: 1px var(--spacing-2);
 }
 
 .wf-head,
@@ -1361,11 +1661,6 @@ function tooltip(span: TraceSpanRow): string {
   background: var(--color-primary-light);
 }
 
-.wf-row:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
-}
-
 .wf-name {
   display: flex;
   align-items: center;
@@ -1471,6 +1766,131 @@ function tooltip(span: TraceSpanRow): string {
   display: block;
 }
 
+.wf-run-row .wf-label {
+  font-weight: 600;
+}
+
+.wf-run-count {
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--color-white);
+  background: var(--color-primary);
+  border-radius: var(--radius-pill);
+  padding: 1px var(--spacing-2);
+  flex-shrink: 0;
+}
+
+/* A 4ms write on a 15s trace is subpixel; the floor keeps every occurrence a visible tick. */
+.wf-run-tick {
+  min-width: 2px;
+}
+
+/*
+ * While the statistics panel is open it is part of the aggregated row above it, so the row's own
+ * bottom border is suppressed and the panel's wrapper carries the full-width divider instead —
+ * the pair reads as one unit, separated from the next row rather than glued to it.
+ */
+.wf-run-row.detail-open {
+  border-bottom: 0;
+}
+
+.wf-run-stats-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-white);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-pill);
+  padding: 1px var(--spacing-2);
+  cursor: pointer;
+}
+
+.wf-run-stats-toggle:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary-border);
+}
+
+.wf-run-stats-toggle.open {
+  color: var(--color-primary);
+  background: var(--color-primary-lighter);
+  border-color: var(--color-primary-border);
+}
+
+.wf-run-stats-glyph {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 9px;
+}
+
+.wf-run-stats-glyph i {
+  width: 2.5px;
+  background: currentColor;
+  opacity: 0.7;
+  border-radius: 1px 1px 0 0;
+}
+
+.wf-run-detail-row {
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.wf-run-detail {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  flex-wrap: wrap;
+  /* The left margin comes inline, per row — it follows the run's own indent depth. */
+  margin: var(--spacing-1) 1rem var(--spacing-2) 0;
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--color-light);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+}
+
+.wf-run-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.wf-run-stat-label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.wf-run-stat-value {
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-dark);
+}
+
+.wf-run-histogram {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 30px;
+}
+
+.wf-run-histogram i {
+  width: 22px;
+  border-radius: 2px 2px 0 0;
+  background: var(--color-primary);
+  opacity: 0.35;
+}
+
+.wf-run-histogram i.hot {
+  opacity: 1;
+}
+
 /*
  * The pale body is the whole span; the solid stretches are the span's own work, drawn where it
  * actually happened rather than gathered into a block at the front. The gaps between them are its
@@ -1549,6 +1969,9 @@ function tooltip(span: TraceSpanRow): string {
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--color-text-muted);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   padding: 0.6rem 1rem;
 }
 

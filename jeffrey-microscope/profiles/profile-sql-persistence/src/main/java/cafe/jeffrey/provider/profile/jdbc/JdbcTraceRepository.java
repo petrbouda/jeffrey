@@ -784,6 +784,8 @@ public class JdbcTraceRepository implements TraceRepository {
                 SUM(s.self_duration)                                AS self_ns,
                 CAST(QUANTILE_CONT(s.duration, 0.5) AS BIGINT)      AS p50_ns,
                 CAST(QUANTILE_CONT(s.self_duration, 0.5) AS BIGINT) AS p50_self_ns,
+                CAST(QUANTILE_CONT(s.duration, 0.99) AS BIGINT)     AS p99_ns,
+                CAST(QUANTILE_CONT(s.self_duration, 0.99) AS BIGINT) AS p99_self_ns,
                 MAX(s.duration)                                     AS max_ns
             FROM trace_spans s
             JOIN traces t ON t.trace_id = s.trace_id
@@ -1379,6 +1381,8 @@ public class JdbcTraceRepository implements TraceRepository {
                         rs.getLong("self_ns"),
                         rs.getLong("p50_ns"),
                         rs.getLong("p50_self_ns"),
+                        rs.getLong("p99_ns"),
+                        rs.getLong("p99_self_ns"),
                         rs.getLong("max_ns")));
     }
 

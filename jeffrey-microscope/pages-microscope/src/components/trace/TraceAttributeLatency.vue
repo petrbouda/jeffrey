@@ -259,11 +259,13 @@ function spread(row: HeatRow): string {
   font-variant-numeric: tabular-nums;
 }
 
+/* The scale the whole picture is read against — dark and full-size, not a pale footnote. */
 .heat-axis {
   height: auto;
   background: transparent;
-  color: var(--color-text-light);
-  font-size: var(--font-size-xs);
+  color: var(--color-dark);
+  font-size: var(--font-size-base);
+  font-weight: 600;
 }
 
 .scale {

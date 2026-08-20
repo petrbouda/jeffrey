@@ -17,74 +17,90 @@
   -->
 
 <template>
-  <MainCard>
-    <div class="search-bar">
-      <div class="bar-row">
-        <span class="bar-label">Match traces where</span>
+  <MainCard :no-padding="true" class="search-conditions-card">
+    <div class="clause-head">
+      <span class="clause-title">Search Conditions</span>
 
-        <!--
-          The scope is not a preference, it is the question. A trace whose HTTP span carries the
-          tenant and whose JDBC span carries the row count matches "anywhere in the trace" and does
-          not match "all on one span" — attributes are per-span and are never inherited — so the
-          choice is stated in words rather than left for a reader to infer from the results.
-        -->
-        <div class="btn-group btn-group-sm scope-toggle" role="group" aria-label="Condition scope">
-          <button
-            v-for="option in SCOPES"
-            :key="option.scope"
-            type="button"
-            class="btn"
-            :class="scope === option.scope ? 'btn-primary' : 'btn-outline-secondary'"
-            :title="option.hint"
-            @click="$emit('update:scope', option.scope)"
-          >
-            {{ option.label }}
-          </button>
-        </div>
+      <!--
+        The scope is not a preference, it is the question. A trace whose HTTP span carries the
+        tenant and whose JDBC span carries the row count matches "anywhere in the trace" and does
+        not match "all on one span" — attributes are per-span and are never inherited — so the
+        choice is stated in words rather than left for a reader to infer from the results.
+      -->
+      <div class="scope-toggle" role="group" aria-label="Condition scope">
+        <button
+          v-for="option in SCOPES"
+          :key="option.scope"
+          type="button"
+          :class="{ on: scope === option.scope }"
+          :title="option.hint"
+          @click="$emit('update:scope', option.scope)"
+        >
+          {{ option.label }}
+        </button>
       </div>
+    </div>
 
-      <div class="bar-row conditions">
-        <template v-for="(condition, index) in conditions" :key="index">
-          <span v-if="index > 0" class="conjunction">AND</span>
-          <span class="condition-chip">
-            <span class="chip-key" :class="`chip-${condition.source.toLowerCase()}`">
-              {{ condition.key }}
-            </span>
-            <span class="chip-operator">{{ OPERATOR_SYMBOLS[condition.operator] }}</span>
-            <span v-if="condition.value !== null" class="chip-value">{{ condition.value }}</span>
-            <button
-              type="button"
-              class="chip-remove"
-              :aria-label="`Remove condition on ${condition.key}`"
-              @click="remove(index)"
-            >
-              <i class="bi bi-x"></i>
-            </button>
-          </span>
-        </template>
+    <!--
+      One condition per row, structured like the WHERE clause it is. The keyword rail carries the
+      shape of the query, and each row names its source — a value a developer attached at a call
+      site and a field an event type declares are kept apart everywhere else, so they are kept
+      apart here too.
+    -->
+    <div v-for="(condition, index) in conditions" :key="index" class="clause-row">
+      <span class="clause-keyword" :class="{ and: index > 0 }">
+        {{ index === 0 ? 'WHERE' : 'AND' }}
+      </span>
 
-        <span v-if="conditions.length === 0" class="no-conditions">
-          every trace — pick a key on the left, or add a condition
+      <span class="clause-expr">
+        <span class="expr-key">{{ condition.key }}</span>
+        <span
+          class="expr-source"
+          :class="`source-${condition.source.toLowerCase()}`"
+          :title="condition.owner ?? undefined"
+        >
+          {{ SOURCE_LABELS[condition.source] }}
         </span>
-      </div>
+        <span class="expr-operator">{{ OPERATOR_SYMBOLS[condition.operator] }}</span>
+        <span v-if="condition.value !== null" class="expr-value">{{ condition.value }}</span>
+      </span>
 
-      <div class="bar-row builder">
-        <!--
-          Grouped and annotated because this is now the only place a key is picked for a search: the
-          rail beside the breakdown pages does not appear here, so what it used to say about a key —
-          where it came from, how many values it has, whether it is too wide to break down — has to
-          be readable at the moment of choosing.
-        -->
-        <select v-model="draftKey" class="form-select form-select-sm builder-key">
-          <option :value="null" disabled>Choose a key…</option>
-          <optgroup v-for="group in keyGroups" :key="group.source" :label="group.label">
-            <option v-for="key in group.keys" :key="keyOf(key)" :value="keyOf(key)">
-              {{ optionLabel(key) }}
-            </option>
-          </optgroup>
-        </select>
+      <button
+        type="button"
+        class="clause-remove"
+        :aria-label="`Remove condition on ${condition.key}`"
+        @click="remove(index)"
+      >
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
 
-        <select v-model="draftOperator" class="form-select form-select-sm builder-operator">
+    <div class="clause-add">
+      <span class="clause-keyword ghost">{{ conditions.length === 0 ? 'WHERE' : 'AND' }}</span>
+
+      <!--
+        The shared two-step picker: which spans, then which of the things those spans carried. The
+        selection stays a draft here — it becomes real only when the condition is added.
+      -->
+      <TraceAttributeStepPicker
+        :event-types="eventTypes"
+        :selected-type="draftType"
+        :selected-key-name="draftKey?.key ?? null"
+        include-search-only
+        @pick-type="onPickType"
+        @pick-key="onPickKey"
+      />
+
+      <!--
+        Asleep, not merely disabled, until a key is chosen: the controls that cannot be used yet
+        drop to a whisper so the one control that can be is the loudest thing in the row.
+      -->
+      <span class="builder-rest" :class="{ asleep: draftKey === null }">
+        <select
+          v-model="draftOperator"
+          class="form-select form-select-sm builder-operator"
+          :disabled="draftKey === null"
+        >
           <option v-for="operator in availableOperators" :key="operator" :value="operator">
             {{ OPERATOR_SYMBOLS[operator] }}&nbsp;{{ OPERATOR_LABELS[operator] }}
           </option>
@@ -96,30 +112,31 @@
           type="text"
           class="form-control form-control-sm builder-value"
           :placeholder="valuePlaceholder"
+          :disabled="draftKey === null"
           @keyup.enter="add"
         />
 
         <button type="button" class="btn btn-sm btn-primary" :disabled="!canAdd" @click="add">
-          <i class="bi bi-plus-lg"></i> Add condition
+          <i class="bi bi-plus-lg"></i> Add
         </button>
+      </span>
 
-        <button
-          v-if="conditions.length > 0"
-          type="button"
-          class="btn btn-sm btn-outline-secondary"
-          @click="$emit('update:conditions', [])"
-        >
-          Clear
-        </button>
-      </div>
-
-      <p v-if="draftKeyRow?.searchOnly" class="builder-note">
-        <i class="bi bi-info-circle"></i>
-        <span class="mono">{{ draftKeyRow.key }}</span> has
-        {{ FormattingService.formatNumber(draftKeyRow.distinctValues) }} values, so it is not broken
-        down anywhere — searching it is what it is for.
-      </p>
+      <button
+        v-if="conditions.length > 0"
+        type="button"
+        class="btn btn-sm btn-outline-secondary clause-clear"
+        @click="$emit('update:conditions', [])"
+      >
+        Clear all
+      </button>
     </div>
+
+    <p v-if="draftKey?.searchOnly" class="builder-note">
+      <i class="bi bi-info-circle"></i>
+      <span class="mono">{{ draftKey.key }}</span> has
+      {{ FormattingService.formatNumber(draftKey.distinctValues) }} values, so it is not broken
+      down anywhere — searching it is what it is for.
+    </p>
   </MainCard>
 </template>
 
@@ -128,16 +145,18 @@ import { computed, ref, watch } from 'vue';
 
 import MainCard from '@shared/components/MainCard.vue';
 import FormattingService from '@shared/services/FormattingService';
+import TraceAttributeStepPicker from '@/components/trace/TraceAttributeStepPicker.vue';
 import type {
   TraceAttributeConditionModel,
   TraceAttributeKeyRow,
   TraceAttributeOperator,
   TraceAttributeScope,
-  TraceAttributeSource
+  TraceAttributeSource,
+  TraceSpanTypeRow
 } from '@/services/api/model/trace/TraceAttributeModels';
 
 const props = defineProps<{
-  keys: TraceAttributeKeyRow[];
+  eventTypes: TraceSpanTypeRow[];
   conditions: TraceAttributeConditionModel[];
   scope: TraceAttributeScope;
 }>();
@@ -159,6 +178,13 @@ const SCOPES: Array<{ scope: TraceAttributeScope; label: string; hint: string }>
     hint: 'Every condition has to be satisfied by the same single span'
   }
 ];
+
+/** How a row names where its key came from — worded for a reader, not after the enum. */
+const SOURCE_LABELS: Record<TraceAttributeSource, string> = {
+  ATTRIBUTE: 'attribute',
+  EVENT_FIELD: 'event field',
+  SPAN_SHAPE: 'span shape'
+};
 
 const OPERATOR_SYMBOLS: Record<TraceAttributeOperator, string> = {
   EQ: '=',
@@ -186,43 +212,22 @@ const OPERATOR_LABELS: Record<TraceAttributeOperator, string> = {
 const NUMERIC_OPERATORS: TraceAttributeOperator[] = ['GT', 'GTE', 'LT', 'LTE'];
 const TEXT_OPERATORS: TraceAttributeOperator[] = ['EQ', 'NOT_EQ', 'CONTAINS'];
 
-const draftKey = ref<string | null>(null);
+const draftType = ref<string | null>(null);
+const draftKey = ref<TraceAttributeKeyRow | null>(null);
 const draftOperator = ref<TraceAttributeOperator>('EQ');
 const draftValue = ref('');
 
-function keyOf(key: TraceAttributeKeyRow): string {
-  return `${key.source}~${key.owner ?? ''}~${key.key}`;
+/*
+ * A different event type may not carry the chosen key at all, and the ones that do carry it under
+ * different counts — so the key is dropped rather than kept pointing at another type's numbers.
+ */
+function onPickType(type: TraceSpanTypeRow): void {
+  draftType.value = type.eventType;
+  draftKey.value = null;
 }
 
-const draftKeyRow = computed<TraceAttributeKeyRow | null>(
-  () => props.keys.find(key => keyOf(key) === draftKey.value) ?? null
-);
-
-/** The order the groups appear in: attached by hand, declared by the event, then the span's own. */
-const KEY_GROUPS: Array<{ source: TraceAttributeSource; label: string }> = [
-  { source: 'ATTRIBUTE', label: 'Span attributes' },
-  { source: 'EVENT_FIELD', label: 'Event fields' },
-  { source: 'SPAN_SHAPE', label: 'Span shape' }
-];
-
-const keyGroups = computed(() =>
-  KEY_GROUPS.map(group => ({
-    ...group,
-    keys: props.keys.filter(key => key.source === group.source)
-  })).filter(group => group.keys.length > 0)
-);
-
-/**
- * The key, its owner where it has one, and what its values look like. A search-only key says so
- * instead of showing a count: the number is the reason it is search-only, and "41,208 values" reads
- * as a promise of a breakdown that no page will give.
- */
-function optionLabel(key: TraceAttributeKeyRow): string {
-  const name = key.owner ? `${key.key} · ${key.owner}` : key.key;
-  const shape = key.searchOnly
-    ? 'search only'
-    : `${FormattingService.formatNumber(key.distinctValues)} values`;
-  return `${name} — ${shape}`;
+function onPickKey(key: TraceAttributeKeyRow): void {
+  draftKey.value = key;
 }
 
 /**
@@ -231,7 +236,7 @@ function optionLabel(key: TraceAttributeKeyRow): string {
  * as a mistake.
  */
 const availableOperators = computed<TraceAttributeOperator[]>(() => {
-  const kind = draftKeyRow.value?.valueKind;
+  const kind = draftKey.value?.valueKind;
   if (kind === 'NUMBER') {
     return [...TEXT_OPERATORS, ...NUMERIC_OPERATORS, 'EXISTS'];
   }
@@ -250,7 +255,7 @@ watch(availableOperators, operators => {
 });
 
 const valuePlaceholder = computed(() => {
-  const kind = draftKeyRow.value?.valueKind;
+  const kind = draftKey.value?.valueKind;
   if (kind === 'NUMBER') {
     return 'a number';
   }
@@ -261,7 +266,7 @@ const valuePlaceholder = computed(() => {
 });
 
 const canAdd = computed(() => {
-  if (draftKeyRow.value === null) {
+  if (draftKey.value === null) {
     return false;
   }
   if (draftOperator.value === 'EXISTS') {
@@ -274,7 +279,7 @@ const canAdd = computed(() => {
 });
 
 function add(): void {
-  const key = draftKeyRow.value;
+  const key = draftKey.value;
   if (key === null || !canAdd.value) {
     return;
   }
@@ -290,6 +295,9 @@ function add(): void {
     }
   ]);
 
+  // The event type survives the add — the next condition usually reads the same spans — but the
+  // key does not: a chip still naming the just-added key invites adding it twice.
+  draftKey.value = null;
   draftValue.value = '';
 }
 
@@ -299,132 +307,208 @@ function remove(index: number): void {
     props.conditions.filter((_, position) => position !== index)
   );
 }
-
-/** Lets the rail put a key into the builder without the parent reaching into this component. */
-defineExpose({
-  useKey(key: TraceAttributeKeyRow): void {
-    draftKey.value = keyOf(key);
-  }
-});
 </script>
 
 <style scoped>
-.search-bar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3);
+/*
+ * The card must not clip the pickers' dropdowns, so the shared overflow:hidden is lifted and the
+ * header strip clips its own top corners instead.
+ */
+.search-conditions-card {
+  overflow: visible;
 }
 
-.bar-row {
+.clause-head {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
   flex-wrap: wrap;
+  padding: var(--spacing-3) var(--spacing-5);
+  background: var(--color-light);
+  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 
-.bar-label {
+.clause-title {
   font-size: var(--font-size-sm);
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--color-text-muted);
 }
 
 .scope-toggle {
   margin-left: auto;
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--color-lighter);
+  border-radius: var(--radius-pill);
 }
 
-.conditions {
-  min-height: 30px;
+.scope-toggle button {
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  padding: var(--spacing-1) var(--spacing-3);
+  white-space: nowrap;
+  cursor: pointer;
 }
 
-.conjunction {
+.scope-toggle button.on {
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+.clause-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-5);
+}
+
+.clause-row + .clause-row {
+  border-top: 1px solid var(--color-border-light);
+}
+
+.clause-row:hover {
+  background: var(--color-primary-lighter);
+}
+
+.clause-keyword {
+  width: 52px;
+  flex-shrink: 0;
+  text-align: right;
+  font-family: var(--font-family-monospace);
   font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--color-text-muted);
+  color: var(--color-primary);
 }
 
-.no-conditions {
-  font-size: var(--font-size-base);
-  color: var(--color-text-muted);
+.clause-keyword.and,
+.clause-keyword.ghost {
+  color: var(--color-text-light);
 }
 
-.condition-chip {
-  display: inline-flex;
-  align-items: stretch;
-  border: 1px solid var(--color-border-input);
-  border-radius: var(--radius-base);
-  overflow: hidden;
-  background: var(--color-white);
+.clause-expr {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  flex: 1;
+  min-width: 0;
   font-family: var(--font-family-monospace);
   font-size: var(--font-size-base);
 }
 
-.chip-key,
-.chip-operator,
-.chip-value {
-  padding: 3px var(--spacing-2);
-  display: inline-flex;
-  align-items: center;
-}
-
-.chip-key {
-  background: var(--color-light);
+.expr-key {
+  font-weight: 600;
   color: var(--color-dark);
-  font-weight: 500;
 }
 
-.chip-key.chip-event_field {
-  color: var(--color-info-text);
-}
-
-.chip-key.chip-span_shape {
+.expr-source {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  padding: 1px var(--spacing-2);
   color: var(--color-text-muted);
+  background: var(--color-lighter);
 }
 
-.chip-operator {
+.expr-source.source-attribute {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.expr-source.source-event_field {
+  color: var(--color-info-text);
+  background: var(--color-info-light);
+}
+
+.expr-operator {
   color: var(--color-primary);
   font-weight: 700;
-  border-left: 1px solid var(--color-border-light);
-  border-right: 1px solid var(--color-border-light);
 }
 
-.chip-value {
+.expr-value {
   color: var(--color-dark);
-  max-width: 320px;
+  max-width: 420px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.chip-remove {
+.clause-remove {
+  margin-left: auto;
   border: 0;
   background: transparent;
   color: var(--color-text-light);
-  padding: 0 var(--spacing-2) 0 0;
+  padding: var(--spacing-1);
+  border-radius: var(--radius-sm);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
 }
 
-.chip-remove:hover {
+.clause-remove:hover {
   color: var(--color-danger);
 }
 
-.builder-key {
-  max-width: 260px;
+.clause-add {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+  padding: var(--spacing-3) var(--spacing-5);
+  border-top: 1px dashed var(--color-border-input);
 }
 
+/* No conditions means no rows above — the header's own border is the only divider needed. */
+.clause-head + .clause-add {
+  border-top: 0;
+}
+
+.clause-add .clause-keyword {
+  margin-right: var(--spacing-1);
+}
+
+.clause-clear {
+  margin-left: auto;
+}
+
+.builder-rest {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+}
+
+.builder-rest.asleep {
+  opacity: 0.4;
+}
+
+/* Fixed rather than max widths: Bootstrap's width:100% inside the inline-flex group wraps the row. */
 .builder-operator {
-  max-width: 170px;
+  width: 170px;
 }
 
 .builder-value {
-  max-width: 260px;
+  width: 260px;
   font-family: var(--font-family-monospace);
 }
 
 .builder-note {
   margin: 0;
+  padding: var(--spacing-2) var(--spacing-5) var(--spacing-3);
   font-size: var(--font-size-base);
   color: var(--color-text-muted);
   display: flex;

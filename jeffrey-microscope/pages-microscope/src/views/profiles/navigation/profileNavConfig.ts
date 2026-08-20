@@ -33,8 +33,8 @@ export interface ProfileNavItem {
   cssClass?: string;
   /** Renders as an `<a>` emitting `navigate-differential` (with lock icon) instead of a router-link. */
   differentialType?: DifferentialType;
-  /** Substring matched against `route.path` for manual active-state handling. */
-  activePathIncludes?: string;
+  /** Substring(s) matched against `route.path` for manual active-state handling — any one hits. */
+  activePathIncludes?: string | string[];
   /** Query `mode` matching for Technologies items (`server` also matches a missing mode). */
   activeQueryMode?: TechnologyQueryMode;
   /** Also adds the `active` class when `route.path` equals the item path exactly. */
@@ -218,24 +218,28 @@ export const technologiesNav: Record<string, TechnologyNav> = {
     icon: 'bi-diagram-3',
     groups: [
       {
-        // Aggregated list first, then the instance list — mirroring `async-profiler`
-        // ("Spans by Tag" then "Slowest Spans") so both features open the same way.
         items: [
           item('Traces by Operation', 'bi-bar-chart-steps', '/technologies/traces/operations'),
+          // Promoted out of the attribute submenu: searching is the everyday entry point, and an
+          // everyday page should not sit one fold deep.
+          item('Search Traces', 'bi-search', '/technologies/traces/attributes/search'),
           {
-            // A parent rather than a link: the three readings of the attribute index are pages of
-            // their own, and one of them has to be the landing page anyway — putting them in the
-            // menu says which three there are without opening the feature first.
+            // A parent rather than a link: the readings of the attribute index are pages of their
+            // own, and one of them has to be the landing page anyway — putting them in the menu
+            // says which there are without opening the feature first.
             label: 'Traces by Attributes',
             icon: 'bi-tags',
-            activePathIncludes: '/technologies/traces/attributes',
+            // The children's paths, not the shared /attributes prefix: Search Traces lives under
+            // the same prefix but is a top-level item now, and must not light this parent up.
+            activePathIncludes: [
+              '/technologies/traces/attributes/values',
+              '/technologies/traces/attributes/latency'
+            ],
             children: [
-              item('Search Traces', 'bi-search', '/technologies/traces/attributes/search'),
               item('Attribute Values', 'bi-tag', '/technologies/traces/attributes/values'),
               item('Latency by Attributes', 'bi-grid-3x3', '/technologies/traces/attributes/latency')
             ]
-          },
-          item('Slowest Traces', 'bi-hourglass-split', '/technologies/traces')
+          }
         ]
       }
     ]
@@ -545,6 +549,17 @@ const VISUALIZATION_PATH_MARKERS = [
  * cross-mode navigations keep the pill row in sync. Single source of truth shared by
  * `ProfileDetail.vue`.
  */
+/** Whether a route path hits an item's `activePathIncludes` — any of them, when it carries several. */
+export function matchesActivePath(item: ProfileNavItem, path: string): boolean {
+  if (item.activePathIncludes === undefined) {
+    return false;
+  }
+  const patterns = Array.isArray(item.activePathIncludes)
+    ? item.activePathIncludes
+    : [item.activePathIncludes];
+  return patterns.some(pattern => path.includes(pattern));
+}
+
 export function getModeForPath(path: string): ProfileMode {
   if (path.includes('/technologies/')) {
     return 'Technologies';

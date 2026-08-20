@@ -22,13 +22,6 @@
     <ErrorState v-else-if="error" :message="error" @retry="load" />
 
     <template v-else>
-      <div class="op-actions">
-        <AiExportButton
-          :build-source="buildAiExportSource"
-          tooltip="Export this operation for AI analysis"
-        />
-      </div>
-
       <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
 
       <div v-show="activeTab === 'summary'">
@@ -117,11 +110,8 @@ import TraceSlowestList from '@/components/trace/TraceSlowestList.vue';
 import TraceOperationSummary from '@/components/trace/TraceOperationSummary.vue';
 import TraceSpansModal from '@/components/trace/TraceSpansModal.vue';
 import TraceOperationFlamegraphs from '@/components/trace/TraceOperationFlamegraphs.vue';
-import AiExportButton from '@/components/ai-analysis/AiExportButton.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
-import TraceAiExportClient from '@/services/api/TraceAiExportClient';
-import type { AiExportSource } from '@/composables/useAiExport';
 import { profileStore } from '@/stores/profileStore';
 import { timelineBuckets } from '@/services/trace/traceTimelineBuckets';
 import { slowestFirst } from '@/services/trace/traceOperationStats';
@@ -151,20 +141,6 @@ const props = defineProps<{
   /** Profile-wide totals, already fetched by the page above — not requested a second time here. */
   overview: TraceOverview | null;
 }>();
-
-/**
- * Always available: the operation's identity comes from the route, not from a loaded response, so
- * the export works even on a deep link whose capped list never contained this operation.
- */
-function buildAiExportSource(): AiExportSource | null {
-  const client = new TraceAiExportClient(props.profileId);
-  const operation = props.operation;
-  return {
-    fetch: () => client.generateOperation(operation.name, operation.kind, operation.eventType),
-    label: 'Operation',
-    filenameStem: `operation-${operation.name}`
-  };
-}
 
 const route = useRoute();
 const router = useRouter();
@@ -342,12 +318,4 @@ onMounted(load);
 </script>
 
 <style scoped>
-/* The audit found this class styled nowhere — the actions rendered as an unaligned block. */
-.op-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
 </style>

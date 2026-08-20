@@ -37,6 +37,8 @@ package cafe.jeffrey.provider.profile.api;
  *                     work, with their children's stretches taken out
  * @param p50Nanos     median inclusive duration of a single occurrence
  * @param p50SelfNanos median self time of a single occurrence
+ * @param p99Nanos     99th-percentile inclusive duration of a single occurrence
+ * @param p99SelfNanos 99th-percentile self time of a single occurrence
  * @param maxNanos     the slowest single occurrence, inclusive
  */
 public record TraceOperationSpanRecord(
@@ -47,5 +49,7 @@ public record TraceOperationSpanRecord(
         long selfNanos,
         long p50Nanos,
         long p50SelfNanos,
+        long p99Nanos,
+        long p99SelfNanos,
         long maxNanos) {
 }

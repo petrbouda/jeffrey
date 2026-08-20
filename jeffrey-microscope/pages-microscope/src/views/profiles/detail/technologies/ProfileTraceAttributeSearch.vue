@@ -33,7 +33,7 @@
     <ErrorState v-else-if="error" :message="error" @retry="loadCatalog" />
 
     <EmptyState
-      v-else-if="keys.length === 0"
+      v-else-if="eventTypes.length === 0"
       icon="bi-tags"
       title="No Attributes"
       description="No span in this profile recorded an attribute, a declared field or a shape worth querying."
@@ -41,7 +41,7 @@
 
     <div v-else class="dashboard-container search-layout">
       <TraceAttributeSearchBar
-        :keys="keys"
+        :event-types="eventTypes"
         :conditions="conditions"
         :scope="scope"
         @update:conditions="applyConditions"
@@ -83,11 +83,11 @@ import {
   decodeCondition,
   encodeCondition,
   type TraceAttributeConditionModel,
-  type TraceAttributeKeyRow,
   type TraceAttributeScope,
   type TraceAttributeSearchResult,
   type TraceAttributeStats,
-  type TraceAttributeTimelineBucket
+  type TraceAttributeTimelineBucket,
+  type TraceSpanTypeRow
 } from '@/services/api/model/trace/TraceAttributeModels';
 import type { TraceRow } from '@/services/api/model/trace/TraceModels';
 
@@ -105,7 +105,7 @@ const featureDisabled = computed(() => props.disabledFeatures.includes(FeatureTy
 
 const loading = ref(true);
 const error = ref<string | null>(null);
-const keys = ref<TraceAttributeKeyRow[]>([]);
+const eventTypes = ref<TraceSpanTypeRow[]>([]);
 const baseline = ref<TraceAttributeStats | null>(null);
 
 const searchLoading = ref(false);
@@ -144,18 +144,18 @@ function openTrace(trace: TraceRow): void {
 }
 
 /**
- * Every key, high-cardinality ones included: the builder is where a search-only key is used, and it
- * marks them rather than hiding them. Only the rail on the breakdown pages leaves them out.
+ * The picker's first step: the event types that produced spans. Their keys are loaded by the
+ * builder itself, one type at a time, once a type is chosen.
  */
 async function loadCatalog(): Promise<void> {
   loading.value = true;
   error.value = null;
   try {
-    const [catalog, overview] = await Promise.all([
-      client.getAttributeKeys(),
+    const [types, overview] = await Promise.all([
+      client.getSpanEventTypes(),
       client.getOverview()
     ]);
-    keys.value = catalog;
+    eventTypes.value = types;
     // The profile as the search's own stats would describe it, so a matched percentile can be read
     // against what the profile manages as a whole rather than in isolation.
     baseline.value = {

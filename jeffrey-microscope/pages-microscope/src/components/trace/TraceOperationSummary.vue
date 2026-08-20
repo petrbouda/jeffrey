@@ -27,8 +27,7 @@
   <div class="op-summary">
     <StatsTable :metrics="metrics" />
 
-    <div class="summary-split">
-      <MainCard :bottom-margin="false">
+    <MainCard :bottom-margin="false">
         <template #header>
           <MainCardHeader icon="bi bi-bar-chart-steps" title="Latency distribution">
             <template #actions>
@@ -53,58 +52,19 @@
               v-for="(bucket, index) in histogram.buckets"
               :key="index"
               class="histogram-bar"
-              :class="{ tail: bucket.to >= chartP95Nanos }"
               :style="{ height: barHeight(bucket.count) }"
               :title="bucketTitle(bucket)"
-            >
-              <span v-if="bucket.count > 0" class="histogram-count">{{ bucket.count }}</span>
-            </div>
+            ></div>
           </div>
           <div class="histogram-axis">
             <span>{{ duration(histogram.from) }}</span>
             <span>{{ duration((histogram.from + histogram.to) / 2) }}</span>
             <span>{{ duration(histogram.to) }}</span>
           </div>
-          <div class="histogram-marks">
-            <span
-              >p50 <b>{{ duration(chartP50Nanos) }}</b></span
-            >
-            <span
-              >p95 <b>{{ duration(chartP95Nanos) }}</b></span
-            >
-            <span
-              >max <b>{{ duration(chartMaxNanos) }}</b></span
-            >
-          </div>
         </div>
-      </MainCard>
+    </MainCard>
 
-      <MainCard :bottom-margin="false">
-        <template #header>
-          <MainCardHeader icon="bi bi-diagram-2" title="Threads">
-            <template #actions>
-              <span class="card-note">{{ threadsSummary?.distinctThreads ?? 0 }} distinct</span>
-            </template>
-          </MainCardHeader>
-        </template>
-
-        <EmptyState
-          v-if="threadData === null"
-          title="No spans"
-          description="This operation recorded no spans to attribute."
-          icon="bi-diagram-2"
-        />
-        <DonutWithLegend
-          v-else
-          :data="threadData"
-          :chart-height="180"
-          :tooltip-formatter="spanCountTooltip"
-        />
-      </MainCard>
-    </div>
-
-    <div class="summary-split summary-split-wide">
-      <MainCard :bottom-margin="false">
+    <MainCard :bottom-margin="false">
         <template #header>
           <MainCardHeader icon="bi bi-list-nested" title="Top spans by time">
             <template #actions>
@@ -114,12 +74,25 @@
                 one. Switching between them is how you tell "where the request is" from "what to go
                 and fix", so the toggle sits on the card rather than being a preference.
               -->
-              <span class="span-mode">
+              <!-- The ranking key, a sibling pill to the mode: both govern what the list below says. -->
+              <span class="span-seg" role="group" aria-label="Rank spans by">
+                <button
+                  v-for="option in SPAN_SORT_OPTIONS"
+                  :key="option.key"
+                  type="button"
+                  :class="{ on: spanSort === option.key }"
+                  :title="`Rank the spans by ${sortLabel(option)}`"
+                  @click="spanSort = option.key"
+                >
+                  {{ sortLabel(option) }}
+                </button>
+              </span>
+              <span class="span-seg" role="group" aria-label="Time reading">
                 <button
                   v-for="mode in SPAN_MODES"
                   :key="mode.key"
                   type="button"
-                  :class="{ active: spanMode === mode.key }"
+                  :class="{ on: spanMode === mode.key }"
                   :title="mode.title"
                   @click="spanMode = mode.key"
                 >
@@ -139,65 +112,131 @@
           description="Every trace of this operation is a single span."
           icon="bi-list-nested"
         />
-        <div v-else class="span-bars">
-          <div v-for="span in rankedSpans" :key="span.name" class="span-bar">
+        <!--
+          One line per span, columns aligned: the total alone cannot separate "one span that is
+          always slow" from "a fast span called a thousand times", which are different problems
+          with different fixes — the Calls, P50 and Max columns say which one each row is, and
+          they align down the list so spans can be compared against each other at a glance.
+        -->
+        <div v-else class="span-grid">
+          <div class="span-grid-head">
+            <span>Span</span>
+            <span>Share of operation</span>
+            <span class="span-end">Total</span>
+            <span class="span-end">Calls</span>
+            <span class="span-end">{{ spanMode === 'total' ? 'Max' : 'Own' }}</span>
+            <span class="span-end">P99</span>
+            <span class="span-end">P50</span>
+          </div>
+          <div v-for="span in rankedSpans" :key="span.name" class="span-grid-row">
             <span class="span-name" :title="span.name">{{ span.name }}</span>
-            <div class="span-track">
-              <div class="span-fill" :style="{ width: spanShare(span) }"></div>
-            </div>
-            <span class="span-value">
-              {{ duration(spanTime(span)) }}
-              <span class="span-count">· {{ span.occurrences }}</span>
+            <span class="span-track">
+              <span class="span-fill" :style="{ width: spanShare(span) }"></span>
             </span>
-            <!--
-              The total alone cannot separate "one span that is always slow" from "a fast span called
-              a thousand times", which are different problems with different fixes. The median and
-              the worst case say which one this row is, and how many traces it appears in says
-              whether it is the operation's habit or one trace's accident.
-            -->
-            <span class="span-detail">
-              <span :title="spanReachTitle(span)">{{ spanReach(span) }}</span>
-              <span
-                >p50
-                <b>{{ duration(spanMode === 'self' ? span.p50SelfNanos : span.p50Nanos) }}</b></span
-              >
-              <span v-if="spanMode === 'total'"
-                >max <b>{{ duration(span.maxNanos) }}</b></span
-              >
-              <span v-else :title="ownShareTitle(span)"
-                >own <b>{{ ownShare(span) }}</b></span
-              >
+            <span class="span-total">{{ duration(spanTime(span)) }}</span>
+            <span class="span-cell" :title="spanReachTitle(span)">{{ span.occurrences }}</span>
+            <span v-if="spanMode === 'total'" class="span-cell">{{ duration(span.maxNanos) }}</span>
+            <span v-else class="span-cell" :title="ownShareTitle(span)">{{ ownShare(span) }}</span>
+            <span class="span-cell">
+              {{ duration(spanMode === 'self' ? span.p99SelfNanos : span.p99Nanos) }}
+            </span>
+            <span class="span-cell">
+              {{ duration(spanMode === 'self' ? span.p50SelfNanos : span.p50Nanos) }}
             </span>
           </div>
         </div>
       </MainCard>
 
-      <MainCard :bottom-margin="false">
-        <template #header>
-          <MainCardHeader icon="bi bi-hourglass-split" title="Slowest traces">
-            <template #actions>
-              <button
-                v-if="traces.length > SLOWEST_SHOWN"
-                type="button"
-                class="see-all"
-                @click="emit('showAllTraces')"
-              >
-                All {{ traces.length }} <i class="bi bi-arrow-right"></i>
-              </button>
-            </template>
-          </MainCardHeader>
+    <!--
+      The slowest traces as the cards Search Traces draws, so a trace reads the same way whichever
+      page found it. The zone's tint reads each duration against this operation's own median and
+      P95 — thresholds from the operation-wide totals, not the capped sample.
+    -->
+    <MainCard :bottom-margin="false" :no-padding="true" class="slowest-header-card">
+      <template #header>
+        <MainCardHeader icon="bi bi-hourglass-split" title="Slowest traces">
+          <template #actions>
+            <span v-if="sampleNote" class="card-note">{{ sampleNote }}</span>
+            <button
+              v-if="traces.length > SLOWEST_SHOWN"
+              type="button"
+              class="see-all"
+              @click="emit('showAllTraces')"
+            >
+              All {{ traces.length }} <i class="bi bi-arrow-right"></i>
+            </button>
+          </template>
+        </MainCardHeader>
+      </template>
+    </MainCard>
+
+    <div class="slowest-cards">
+      <MetricCardList
+        :items="slowestTraces"
+        :item-key="(trace: TraceRow) => trace.traceId"
+        :count-class="durationSeverity"
+        :sort-options="[]"
+        server-ordered
+        @item-click="(trace: TraceRow) => emit('openTrace', trace)"
+      >
+        <template #count="{ item }">
+          <span class="zone-duration">
+            {{ duration(item.durationNanos) }}
+          </span>
+          <span class="zone-caption">Duration</span>
         </template>
-        <!--
-          Cut to the worst few here rather than by the list: it ranks and slices what it is given, so
-          handing it the whole sample would show its own count header a second time under this one.
-        -->
-        <TraceSlowestList
-          :traces="slowestTraces"
-          :total="traces.length"
-          :note="sampleNote ?? undefined"
-          @row-click="emit('openTrace', $event)"
-        />
-      </MainCard>
+
+        <template #name="{ item }">
+          <div class="slowest-title">
+            <MetricName
+              :segments="parseOperationName(item.rootName, item.rootEventType)"
+              :title="item.rootName"
+            />
+            <span class="slowest-tags">
+              <Badge
+                :value="item.rootEventType"
+                variant="secondary"
+                size="s"
+                borderless
+                :uppercase="false"
+              />
+              <Badge
+                :value="item.rootKind"
+                :variant="spanKindVariant(item.rootKind)"
+                size="s"
+                borderless
+              />
+            </span>
+          </div>
+        </template>
+
+        <template #metrics="{ item }">
+          <Badge
+            key-label="Spans"
+            :value="FormattingService.formatNumber(item.spanCount)"
+            variant="secondary"
+            size="s"
+            borderless
+          />
+          <Badge
+            key-label="Started"
+            :value="`+${duration(item.startMillisFromBeginning * NANOS_PER_MILLI)}`"
+            variant="secondary"
+            size="s"
+            borderless
+          />
+        </template>
+
+        <template #right="{ item }">
+          <Badge
+            v-if="item.errorCount > 0"
+            :value="errorLabel(item.errorCount)"
+            variant="danger"
+            size="s"
+            icon="bi bi-exclamation-triangle"
+          />
+        </template>
+      </MetricCardList>
     </div>
   </div>
 </template>
@@ -208,18 +247,17 @@ import { computed, ref, watch } from 'vue';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import StatsTable from '@shared/components/table/StatsTable.vue';
-import DonutWithLegend from '@shared/components/DonutWithLegend.vue';
-import type { DonutChartData } from '@shared/components/DonutWithLegend.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import FormattingService from '@shared/services/FormattingService';
 
-import TraceSlowestList from '@/components/trace/TraceSlowestList.vue';
+import Badge from '@shared/components/Badge.vue';
+import MetricCardList from '@shared/components/MetricCardList.vue';
+import MetricName from '@/components/common/MetricName.vue';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
 import {
   latencyHistogram,
-  peakConcurrency,
   quantileNanos,
   slowestFirst
 } from '@/services/trace/traceOperationStats';
@@ -231,7 +269,12 @@ import type {
   TraceOverview,
   TraceRow
 } from '@/services/api/model/trace/TraceModels';
-import { operationKey } from '@/services/trace/traceLabels';
+import {
+  errorLabel,
+  operationKey,
+  parseOperationName,
+  spanKindVariant
+} from '@/services/trace/traceLabels';
 
 /** Upper bound on histogram columns: past this they are too thin to read. */
 const MAX_HISTOGRAM_BUCKETS = 24;
@@ -276,6 +319,24 @@ const threadsSummary = ref<TraceOperationThreads | null>(null);
  */
 const slowestTraces = computed(() => slowestFirst(props.traces).slice(0, SLOWEST_SHOWN));
 
+/** The Started chip holds an offset in millis; the duration formatter reads nanos. */
+const NANOS_PER_MILLI = 1_000_000;
+
+/**
+ * The tint of a trace's duration zone: how its duration sits within the operation. Green up to the
+ * operation's median, the neutral brand tint in between, red past its P95 — the same reading the
+ * Search Traces cards give, against this operation's own population percentiles.
+ */
+function durationSeverity(trace: TraceRow): string | undefined {
+  if (trace.durationNanos > p95Nanos.value) {
+    return 'zone-slow';
+  }
+  if (trace.durationNanos <= p50Nanos.value) {
+    return 'zone-fast';
+  }
+  return undefined;
+}
+
 const durationsNanos = computed(() => props.traces.map(trace => trace.durationNanos));
 
 /*
@@ -297,24 +358,6 @@ const maxNanos = computed(
     props.totals?.maxNanos ?? durationsNanos.value.reduce((max, nanos) => Math.max(max, nanos), 0)
 );
 
-/*
- * Marks printed under the histogram, always from the same population as its bars. The headline
- * percentiles above prefer the operation-wide totals — correctly, they describe the population —
- * but the histogram is built from the capped sample, and annotating a sample's chart with the
- * population's percentiles let the "tail" highlight match every bar or none, and printed a max
- * beyond the chart's own axis.
- */
-const chartP50Nanos = computed(() =>
-  props.truncated ? quantileNanos(durationsNanos.value, 0.5) : p50Nanos.value
-);
-const chartP95Nanos = computed(() =>
-  props.truncated ? quantileNanos(durationsNanos.value, 0.95) : p95Nanos.value
-);
-const chartMaxNanos = computed(() =>
-  props.truncated
-    ? durationsNanos.value.reduce((max, nanos) => Math.max(max, nanos), 0)
-    : maxNanos.value
-);
 const totalNanos = computed(
   () => props.totals?.totalNanos ?? durationsNanos.value.reduce((sum, nanos) => sum + nanos, 0)
 );
@@ -378,12 +421,28 @@ const metrics = computed(() => [
           ]
   },
   {
-    icon: 'arrow-left-right',
-    title: 'Peak concurrency',
-    value: peakConcurrency(props.traces),
-    breakdown: [{ label: 'Threads', value: threadsSummary.value?.distinctThreads ?? '—' }]
+    icon: 'diagram-2',
+    title: 'Threads',
+    value: threadsSummary.value?.distinctThreads ?? '—',
+    breakdown: threadBreakdown.value
   }
 ]);
+
+/*
+ * The donut's facts as breakdown cells: where the spans ran, in the colours the donut used.
+ * Unknown appears only when there is some, so the ordinary two-way split stays a two-way split.
+ */
+const threadBreakdown = computed(() => {
+  const threads = threadsSummary.value;
+  if (threads === null) {
+    return [];
+  }
+  return [
+    { label: 'Virtual spans', value: threads.virtualSpans, color: 'var(--color-secondary)' },
+    { label: 'Platform spans', value: threads.platformSpans, color: 'var(--color-success)' },
+    { label: 'Unknown', value: threads.unknownSpans, color: 'var(--color-warning)' }
+  ].filter(cell => cell.value > 0);
+});
 
 /*
  * Columns scale with the sample size — the square-root rule. Fixing the count instead would give
@@ -423,49 +482,6 @@ const tallestBucket = computed(() =>
  * The platform/virtual split, which is also the answer to "will the Flamegraphs tab have anything
  * in it" — samples are attributed to the carrier, never to the virtual thread mounted on it.
  */
-const threadData = computed<DonutChartData | null>(() => {
-  const threads = threadsSummary.value;
-  if (threads === null) {
-    return null;
-  }
-  const total = threads.platformSpans + threads.virtualSpans + threads.unknownSpans;
-  if (total === 0) {
-    return null;
-  }
-
-  // Unknown is drawn only when there is some, so the ordinary two-way split stays a two-way split.
-  const slices = [
-    {
-      color: 'var(--color-success)',
-      label: 'Platform Threads',
-      count: threads.platformSpans
-    },
-    {
-      color: 'var(--color-secondary)',
-      label: 'Virtual Threads',
-      count: threads.virtualSpans
-    },
-    {
-      color: 'var(--color-warning)',
-      label: 'Unknown thread — cannot be matched',
-      count: threads.unknownSpans
-    }
-  ].filter(slice => slice.count > 0);
-
-  return {
-    series: slices.map(slice => slice.count),
-    labels: slices.map(slice => slice.label.split(' — ')[0]),
-    colors: slices.map(slice => slice.color),
-    legendItems: slices.map(slice => ({
-      color: slice.color,
-      label: slice.label,
-      value: String(slice.count)
-    })),
-    totalLabel: 'spans',
-    totalValue: String(total)
-  };
-});
-
 function duration(nanos: number): string {
   return FormattingService.formatDuration2Units(Math.round(nanos));
 }
@@ -492,17 +508,64 @@ function spanTime(span: TraceOperationSpanRow): number {
   return spanMode.value === 'self' ? span.selfNanos : span.totalNanos;
 }
 
+/** Rows on show. The tail of a long list is never read; ten is where the reading stops. */
+const MAX_SPAN_ROWS = 10;
+
+/** The columns the list can be ranked by. Always descending — a "top" list has no other way up. */
+type SpanSortKey = 'total' | 'calls' | 'max' | 'p99' | 'p50';
+
+const SPAN_SORT_OPTIONS: Array<{ key: SpanSortKey; label: string }> = [
+  { key: 'total', label: 'Total' },
+  { key: 'calls', label: 'Calls' },
+  { key: 'max', label: 'Max' },
+  { key: 'p99', label: 'P99' },
+  { key: 'p50', label: 'P50' }
+];
+
+const spanSort = ref<SpanSortKey>('total');
+
+/** In the self reading the third column is Own, and the pill that ranks by it says so too. */
+function sortLabel(option: { key: SpanSortKey; label: string }): string {
+  return option.key === 'max' && spanMode.value === 'self' ? 'Own' : option.label;
+}
+
+/** The numeric share behind the Own column, for ranking what ownShare only formats. */
+function ownShareValue(span: TraceOperationSpanRow): number {
+  return span.totalNanos <= 0 ? 0 : span.selfNanos / span.totalNanos;
+}
+
+/** The chosen column's value for one span, in the chosen reading of time. */
+function spanMetric(span: TraceOperationSpanRow, key: SpanSortKey): number {
+  switch (key) {
+    case 'total':
+      return spanTime(span);
+    case 'calls':
+      return span.occurrences;
+    case 'max':
+      return spanMode.value === 'self' ? ownShareValue(span) : span.maxNanos;
+    case 'p99':
+      return spanMode.value === 'self' ? span.p99SelfNanos : span.p99Nanos;
+    case 'p50':
+      return spanMode.value === 'self' ? span.p50SelfNanos : span.p50Nanos;
+  }
+}
+
 /**
- * Re-ranked for the chosen reading. The server orders by inclusive total, which is the wrong order
- * for the self view — the point of the toggle is that the two disagree, so leaving the rows where
- * they were would show a "top spans" list whose top span is not the top one.
+ * Re-ranked for the chosen key and reading, then cut to the top ten. The server orders by
+ * inclusive total, which is only one of the orders on offer — the point of the pills is that the
+ * orders disagree. The cut comes after the sort for the same reason: a span can be top-ten by max
+ * without being top-ten by total, and it must not be cut before its ranking is applied.
  */
 const rankedSpans = computed(() =>
-  [...spans.value].sort((left, right) => spanTime(right) - spanTime(left))
+  [...spans.value]
+    .sort((left, right) => spanMetric(right, spanSort.value) - spanMetric(left, spanSort.value))
+    .slice(0, MAX_SPAN_ROWS)
 );
 
 function spanShare(span: TraceOperationSpanRow): string {
-  const widest = rankedSpans.value[0] === undefined ? 0 : spanTime(rankedSpans.value[0]);
+  // Against the widest shown row, not the first: under a Max or P99 ranking the first row is not
+  // necessarily the one with the most time, and a bar past 100% would run out of its lane.
+  const widest = rankedSpans.value.reduce((most, row) => Math.max(most, spanTime(row)), 0);
   return widest <= 0 ? '0%' : `${Math.max(2, (spanTime(span) / widest) * 100)}%`;
 }
 
@@ -523,20 +586,8 @@ function ownShareTitle(span: TraceOperationSpanRow): string {
  * How widely the span appears across the operation's traces. Called out because it separates the two
  * shapes a large total can have: every trace paying a little, or a handful paying a lot.
  */
-function spanReach(span: TraceOperationSpanRow): string {
-  if (span.occurrences === span.traceCount) {
-    return `${span.traceCount} traces`;
-  }
-  const perTrace = span.occurrences / span.traceCount;
-  return `${span.traceCount} traces · ×${perTrace.toFixed(perTrace < 10 ? 1 : 0)}`;
-}
-
 function spanReachTitle(span: TraceOperationSpanRow): string {
   return `${span.occurrences} occurrences across ${span.traceCount} traces of this operation`;
-}
-
-function spanCountTooltip(value: number): string {
-  return `${value} spans`;
 }
 
 /* Discards a response that a newer request has already superseded — see TraceOperationDetail. */
@@ -579,39 +630,69 @@ watch(() => operationKey(props.operation), load, { immediate: true });
   gap: 1rem;
 }
 
-/*
- * The histogram earns the wider half: it is the panel with a shape to read, while the donut is two
- * numbers and stays legible small. Both cards stretch to the taller of the two — a row whose cards
- * end at different heights reads as two unrelated blocks rather than one row.
- */
-.summary-split {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 1rem;
-  align-items: stretch;
+/* The slowest-traces cards, dressed exactly as the Search Traces results dress theirs. */
+.slowest-header-card {
+  margin-bottom: -0.25rem;
 }
 
-.summary-split > :deep(.main-card) {
-  height: 100%;
+/* A header-only card: the header's own divider would double the card's bottom edge. */
+.slowest-header-card :deep(.main-card-header) {
+  border-bottom: 0;
+  border-radius: var(--radius-md);
+}
+
+.zone-duration {
+  font-family: var(--font-family-monospace);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.zone-caption {
+  font-size: 0.56rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+
+/* One width for every zone, so each name starts at the same offset down the list. */
+.slowest-cards :deep(.mcl-count) {
+  width: 132px;
+  min-width: 132px;
+  padding: 0 var(--spacing-2);
+}
+
+.slowest-cards :deep(.mcl-count.zone-fast) {
+  background: var(--color-success-light);
+  color: var(--color-success-dark);
+}
+
+.slowest-cards :deep(.mcl-count.zone-slow) {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.slowest-title {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
 }
 
-.summary-split > :deep(.main-card) .main-card-content {
-  flex: 1;
+.slowest-tags {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  margin-left: auto;
+  padding-left: var(--spacing-3);
 }
 
-.summary-split-wide {
-  grid-template-columns: 1fr 1fr;
-}
-
-@media (max-width: 900px) {
-  .summary-split,
-  .summary-split-wide {
-    grid-template-columns: 1fr;
-  }
+.slowest-title :deep(.badge) {
+  flex-shrink: 0;
 }
 
 .card-note {
@@ -619,40 +700,47 @@ watch(() => operationKey(props.operation), load, { immediate: true });
   color: var(--color-text-muted);
 }
 
-/* A two-state segmented control, sized to sit inside the card header without crowding the title. */
-.span-mode {
+/*
+ * The card's two pill segments — what to rank by, and which reading of time — in the same visual
+ * family as the scope toggle on Search Conditions, so sibling controls wear one costume.
+ */
+.span-seg {
   display: inline-flex;
-  border: 1px solid var(--color-border);
+  gap: 2px;
+  padding: 3px;
+  background: var(--color-lighter);
   border-radius: var(--radius-sm);
-  overflow: hidden;
 }
 
-.span-mode button {
+.span-seg + .span-seg {
+  margin-left: var(--spacing-2);
+}
+
+.span-seg button {
   border: 0;
-  padding: 0.15rem 0.5rem;
   background: transparent;
+  border-radius: var(--radius-xs);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
   color: var(--color-text-muted);
+  padding: var(--spacing-1) var(--spacing-3);
+  white-space: nowrap;
   font-family: inherit;
-  font-size: var(--font-size-xs);
   cursor: pointer;
 }
 
-.span-mode button + button {
-  border-left: 1px solid var(--color-border);
-}
-
-.span-mode button:hover {
-  background: var(--color-bg-hover-alt);
+.span-seg button:hover {
   color: var(--color-dark);
 }
 
-.span-mode button.active {
-  background: var(--color-primary-light);
+.span-seg button.on {
+  background: var(--color-white);
   color: var(--color-primary);
   font-weight: 600;
+  box-shadow: var(--shadow-sm);
 }
 
-.span-mode button:focus-visible {
+.span-seg button:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
 }
@@ -663,40 +751,24 @@ watch(() => operationKey(props.operation), load, { immediate: true });
   flex-direction: column;
 }
 
+/* The same strip the search page's "When the matches happened" draws, so the two read as one. */
 .histogram-bars {
   display: flex;
   align-items: flex-end;
-  gap: 3px;
-  flex: 1;
-  min-height: 8rem;
+  gap: 2px;
+  height: 54px;
   margin-top: 1rem;
 }
 
 .histogram-bar {
   flex: 1;
+  min-width: 2px;
   min-height: 2px;
-  position: relative;
-  background: var(--color-primary-bg);
+  background: var(--color-primary);
   border-radius: var(--radius-xs) var(--radius-xs) 0 0;
 }
 
-/* From the column holding p95 onwards: the tail the reader came for. */
-.histogram-bar.tail {
-  background: var(--color-primary);
-}
-
-.histogram-count {
-  position: absolute;
-  top: -1.05rem;
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: var(--font-family-monospace);
-  font-size: 0.62rem;
-  color: var(--color-text-muted);
-}
-
-.histogram-axis,
-.histogram-marks {
+.histogram-axis {
   display: flex;
   justify-content: space-between;
   margin-top: 0.35rem;
@@ -704,50 +776,40 @@ watch(() => operationKey(props.operation), load, { immediate: true });
   color: var(--color-text-muted);
 }
 
-.histogram-marks {
-  justify-content: flex-start;
-  gap: 1.1rem;
-}
-
-.histogram-marks b {
-  font-family: var(--font-family-monospace);
-  color: var(--color-dark);
-  font-weight: var(--font-weight-semibold);
-}
-
-.span-bars {
+/* A table without table chrome: every fact on one line, columns tabular-aligned down the list. */
+.span-grid-head,
+.span-grid-row {
   display: grid;
-  gap: 0.5rem;
-}
-
-.span-bar {
-  display: grid;
-  /* The detail line runs under the bar, in the two columns the bar and its value occupy. */
-  grid-template-columns: minmax(7rem, 12rem) 1fr auto;
-  gap: 0.15rem 0.7rem;
+  grid-template-columns: minmax(10rem, 15rem) 1fr 120px 60px 110px 110px 110px;
+  gap: 0.8rem;
   align-items: center;
+  padding: 0.4rem 0;
 }
 
-/* Second row, starting under the track so the names column stays a clean edge to scan down. */
-.span-detail {
-  grid-column: 2 / -1;
-  display: flex;
-  gap: 0.7rem;
-  flex-wrap: wrap;
-  font-size: var(--font-size-xs);
+.span-grid-head {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.span-grid-head span {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
   color: var(--color-text-muted);
 }
 
-.span-detail b {
-  font-family: var(--font-family-monospace);
-  font-variant-numeric: tabular-nums;
-  font-weight: 500;
-  color: var(--color-text);
+.span-grid-row + .span-grid-row {
+  border-top: 1px solid var(--color-border-light);
+}
+
+.span-end {
+  text-align: right;
 }
 
 .span-name {
   font-family: var(--font-family-monospace);
-  font-size: 0.74rem;
+  font-size: var(--font-size-base);
+  font-weight: 600;
   color: var(--color-dark);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -755,27 +817,37 @@ watch(() => operationKey(props.operation), load, { immediate: true });
 }
 
 .span-track {
-  height: 0.55rem;
-  background: var(--color-bg-hover);
-  border-radius: var(--radius-pill);
+  height: 8px;
+  background: var(--color-lighter);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .span-fill {
+  display: block;
   height: 100%;
-  background: var(--chart-series-1);
-  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  opacity: 0.8;
+  border-radius: var(--radius-sm);
 }
 
-.span-value {
+.span-total {
   font-family: var(--font-family-monospace);
-  font-size: 0.72rem;
-  color: var(--color-text);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-dark);
+  text-align: right;
   white-space: nowrap;
 }
 
-.span-count {
-  color: var(--color-text-muted);
+.span-cell {
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-base);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-dark);
+  text-align: right;
+  white-space: nowrap;
 }
 
 .see-all {

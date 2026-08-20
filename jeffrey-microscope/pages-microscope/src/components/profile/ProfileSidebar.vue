@@ -91,6 +91,7 @@ import {
   ProfileMode,
   ProfileNavItem,
   ProfileNavSection,
+  matchesActivePath,
   profileNavSections,
   technologiesNav,
   TechnologyNav
@@ -164,10 +165,7 @@ const toggleSubmenu = (navItem: ProfileNavItem): void => {
 };
 
 const isSubmenuActive = (navItem: ProfileNavItem): boolean => {
-  if (!navItem.activePathIncludes) {
-    return false;
-  }
-  return route.path.includes(navItem.activePathIncludes);
+  return matchesActivePath(navItem, route.path);
 };
 
 // Collapsible sections: collapsed state is keyed by `${mode}:${title}` (default: all
@@ -214,7 +212,7 @@ const toggleSection = (title: string): void => {
 // `activePathIncludes` matcher, or any submenu child).
 const sectionContainsRoute = (section: ProfileNavSection, path: string): boolean => {
   const matchesItem = (navItem: ProfileNavItem): boolean => {
-    if (navItem.activePathIncludes && path.includes(navItem.activePathIncludes)) {
+    if (matchesActivePath(navItem, path)) {
       return true;
     }
     if (navItem.path) {
@@ -234,7 +232,7 @@ watch(
   [() => route.path, () => props.mode],
   ([newPath]) => {
     for (const parent of submenuParents) {
-      if (parent.activePathIncludes && newPath.includes(parent.activePathIncludes)) {
+      if (matchesActivePath(parent, newPath)) {
         expandedSubmenus.value.add(parent.label);
       }
     }

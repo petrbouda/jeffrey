@@ -33,6 +33,8 @@ package cafe.jeffrey.profile.manager.model.trace;
  * @param selfNanos    summed self time across all of them
  * @param p50Nanos     median inclusive duration of one occurrence
  * @param p50SelfNanos median self time of one occurrence
+ * @param p99Nanos     99th-percentile inclusive duration of one occurrence
+ * @param p99SelfNanos 99th-percentile self time of one occurrence
  * @param maxNanos     the slowest single occurrence, inclusive
  */
 public record TraceOperationSpanRow(
@@ -43,5 +45,7 @@ public record TraceOperationSpanRow(
         long selfNanos,
         long p50Nanos,
         long p50SelfNanos,
+        long p99Nanos,
+        long p99SelfNanos,
         long maxNanos) {
 }
