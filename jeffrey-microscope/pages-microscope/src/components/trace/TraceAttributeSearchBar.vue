@@ -76,7 +76,11 @@
     </div>
 
     <div class="clause-add">
-      <span class="clause-keyword ghost">{{ conditions.length === 0 ? 'WHERE' : 'AND' }}</span>
+      <!-- A real WHERE while the query is empty — it is the first word of the sentence being
+           written, not an echo of one written above. Only the trailing AND stays quiet. -->
+      <span class="clause-keyword" :class="{ ghost: conditions.length > 0 }">
+        {{ conditions.length === 0 ? 'WHERE' : 'AND' }}
+      </span>
 
       <!--
         The shared two-step picker: which spans, then which of the things those spans carried. The
@@ -116,7 +120,12 @@
           @keyup.enter="add"
         />
 
-        <button type="button" class="btn btn-sm btn-primary" :disabled="!canAdd" @click="add">
+        <button
+          type="button"
+          class="btn btn-sm btn-primary clause-add-btn"
+          :disabled="!canAdd"
+          @click="add"
+        >
           <i class="bi bi-plus-lg"></i> Add
         </button>
       </span>
@@ -393,7 +402,7 @@ function remove(index: number): void {
 
 .clause-keyword.and,
 .clause-keyword.ghost {
-  color: var(--color-text-light);
+  color: var(--color-text-muted);
 }
 
 .clause-expr {
@@ -479,6 +488,13 @@ function remove(index: number): void {
 
 .clause-add .clause-keyword {
   margin-right: var(--spacing-1);
+}
+
+/* Icon and word on one centreline — the baseline gap read as the label sitting too low. */
+.clause-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
 }
 
 .clause-clear {

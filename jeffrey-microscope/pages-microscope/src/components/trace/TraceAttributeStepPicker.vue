@@ -327,7 +327,7 @@ onBeforeUnmount(() => {
   gap: var(--spacing-2);
   border: 1px solid var(--color-border-input);
   background: var(--color-white);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
   padding: var(--spacing-1) var(--spacing-3) var(--spacing-1) var(--spacing-1);
   font-size: var(--font-size-base);
   cursor: pointer;
@@ -358,10 +358,20 @@ onBeforeUnmount(() => {
   box-shadow: 0 0 0 3px var(--color-primary-lighter);
 }
 
+/*
+ * Not yet takeable, but never faded: full-contrast text on a grey ground, with the dashes carrying
+ * the "not yet". Opacity made the whole step nearly invisible on the empty page, where it is the
+ * one thing explaining what the flow expects next.
+ */
 .picker-chip:disabled {
   cursor: default;
   border-style: dashed;
-  opacity: 0.4;
+  background: var(--color-lighter);
+}
+
+/* The dim badge blends into the chip's own grey ground; a shade darker keeps the numeral read. */
+.picker-chip:disabled .chip-step.dim {
+  background: var(--color-border-input);
 }
 
 .chip-step {
