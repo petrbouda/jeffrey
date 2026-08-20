@@ -52,6 +52,7 @@
           <div class="card-row">
             <i class="bi card-icon" :class="[tech.icon, tech.colorClass]"></i>
             <div class="card-name">{{ tech.name }}</div>
+            <span v-if="tech.incubating" class="card-incubating">Incubating</span>
           </div>
           <div class="card-desc">{{ tech.description }}</div>
           <div class="card-bottom">
@@ -91,6 +92,8 @@ interface TechnologyCard {
   route: string;
   featureType: FeatureType;
   disabled: boolean;
+  /** Usable, but still settling — shown last among its group and marked as such. */
+  incubating?: boolean;
 }
 
 const technologies = [
@@ -111,7 +114,8 @@ const technologies = [
     icon: 'bi-bounding-box',
     colorClass: 'color-spans',
     route: `/profiles/${profileId}/technologies/async-profiler/spans`,
-    featureType: FeatureType.ASYNC_PROFILER_SPANS
+    featureType: FeatureType.ASYNC_PROFILER_SPANS,
+    incubating: true
   },
   {
     id: 'http-server',
@@ -174,7 +178,13 @@ const sortedTechnologies = computed<TechnologyCard[]>(() => {
     ...tech,
     disabled: props.disabledFeatures.includes(tech.featureType)
   }));
-  return cards.sort((a, b) => Number(a.disabled) - Number(b.disabled));
+  // Active before disabled, and the incubating ones at the tail of their group: a feature that is
+  // still settling should not greet the reader ahead of the settled ones.
+  return cards.sort(
+    (a, b) =>
+      Number(a.disabled) - Number(b.disabled) ||
+      Number(a.incubating ?? false) - Number(b.incubating ?? false)
+  );
 });
 
 const navigateTo = (tech: TechnologyCard) => {
@@ -310,6 +320,19 @@ const navigateTo = (tech: TechnologyCard) => {
 .card-name {
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-base);
+}
+
+/* Usable but still settling — the same amber tag the search-only attribute keys wear. */
+.card-incubating {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-warning-hover);
+  background: var(--color-warning-light);
+  border-radius: var(--radius-sm);
+  padding: 1px var(--spacing-2);
+  flex-shrink: 0;
 }
 
 .card-desc {
