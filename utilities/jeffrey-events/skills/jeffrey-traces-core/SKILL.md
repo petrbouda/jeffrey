@@ -104,17 +104,9 @@ Understand this model first; every rule follows from it.
 - If the application runs on the module path, `jeffrey-events` already
   `opens` its event packages to `jdk.jfr`; nothing to configure. On the
   classpath, nothing to configure either.
-
-**Optional but recommended** — register all event types eagerly at startup so
-their metadata is present in every recording even before the first event fires
-(e.g. in an `ApplicationListener<ApplicationReadyEvent>` or any init hook):
-
-```java
-import cafe.jeffrey.jfr.events.JeffreyEventRegistry;
-import jdk.jfr.FlightRecorder;
-
-JeffreyEventRegistry.all().forEach(FlightRecorder::register);
-```
+- No registration step is needed: JFR auto-registers each event type the
+  first time an instance of its class is created, so committed events always
+  land in the recording with full metadata.
 
 ---
 
