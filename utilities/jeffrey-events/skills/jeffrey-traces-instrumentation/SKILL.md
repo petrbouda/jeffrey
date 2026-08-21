@@ -74,7 +74,7 @@ Understand this model first; every rule follows from it.
 <dependency>
     <groupId>cafe.jeffrey-analyst</groupId>
     <artifactId>jeffrey-events</artifactId>
-    <version>0.12.0</version> <!-- use the latest release -->
+    <version>0.13.0</version> <!-- latest release on Maven Central -->
 </dependency>
 ```
 
@@ -85,7 +85,7 @@ Understand this model first; every rule follows from it.
   `jeffrey-events` release (they still light up the HTTP/Database dashboards),
   but not `Tracer` — no hand-written spans and no cross-event trace nesting.
 - `Tracer.openSpanOf` / `Tracer.reenter` / `jeffrey.TraceScope` arrived after
-  0.12.0 and need the release that follows it.
+  0.12.0 — use 0.13.0 or newer for the callback-driven patterns in §8.
 - The library has **zero dependencies** (only `jdk.jfr`) and is safe to leave
   on in production: when no recording is running, every emit path checks
   `event.isEnabled()` and runs the body directly with nothing allocated beyond
@@ -568,7 +568,7 @@ executor.submit(() -> Tracer.continueIn(parent, "chunk.parse", () -> {
 it on the thread whose span the work belongs to, then submit the result.
 `@Async` methods and scheduled tasks need the same treatment.
 
-### Callback-driven work (newer releases)
+### Callback-driven work (0.13.0+)
 
 For one operation arriving in pieces on threads you don't control (async HTTP
 clients, gRPC listeners): `SpanContext ctx = Tracer.openSpanOf(event)` stamps
