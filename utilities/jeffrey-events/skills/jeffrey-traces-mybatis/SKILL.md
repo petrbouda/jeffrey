@@ -164,7 +164,7 @@ public class JeffreyJfrMyBatisInterceptor implements Interceptor {
 | Symptom | Cause | Fix |
 |---|---|---|
 | Statements present in the Database dashboard but not in Traces | committed with `commit()` | `stampAndCommit()` in the `finally` |
-| SQL spans are roots of their own one-span traces | statement ran outside a bound span (no HTTP filter, `@Async`, batch job) | register the root-span filter (`jeffrey-traces-spring-http`); wrap background work with `Tracer.fork`/`continueIn` |
+| SQL spans are roots of their own one-span traces | statement ran outside a bound span (no HTTP filter, `@Async`, batch job) | register the root-span filter (`jeffrey-traces-spring-rest-server`); wrap background work with `Tracer.fork`/`continueIn` |
 | One "statement" per parameter combination | parameter values leaked into the event **name** | name from `MappedStatement.getId()` only; values go to `params` at most |
 | Failed statements look green | exception path missing `failed(t)` | catch `Throwable`, call `event.failed(t)`, rethrow |
 | Duplicate events per query | interceptor registered twice (bean + XML) | register through exactly one mechanism |

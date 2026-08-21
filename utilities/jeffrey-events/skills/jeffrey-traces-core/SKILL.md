@@ -1,6 +1,6 @@
 ---
 name: jeffrey-traces-core
-description: Core concepts and rules for instrumenting any JVM application with Jeffrey JFR events and Jeffrey Traces — the trace/span data model (AbstractTracedEvent, TraceSpanEvent, SpanContext), the emit rules that make events land correctly in Jeffrey's profile database, the Tracer API (run/call/inSpanOf/stamp/fork/continueIn/openSpanOf/reenter), JFR recording configuration, and verification. Read this FIRST before any technology-specific Jeffrey instrumentation skill (jeffrey-traces-spring-http, jeffrey-traces-mybatis) or when writing custom spans, custom traced events, or connecting spans across threads.
+description: Core concepts and rules for instrumenting any JVM application with Jeffrey JFR events and Jeffrey Traces — the trace/span data model (AbstractTracedEvent, TraceSpanEvent, SpanContext), the emit rules that make events land correctly in Jeffrey's profile database, the Tracer API (run/call/inSpanOf/stamp/fork/continueIn/openSpanOf/reenter), JFR recording configuration, and verification. Read this FIRST before any technology-specific Jeffrey instrumentation skill (jeffrey-traces-spring-rest-server, jeffrey-traces-http-client, jeffrey-traces-mybatis) or when writing custom spans, custom traced events, or connecting spans across threads.
 ---
 
 # Jeffrey Traces — Core Concepts and Rules
@@ -15,9 +15,12 @@ application logic between.
 Technology-specific wiring lives in companion skills — apply them after this
 one:
 
-- **`jeffrey-traces-spring-http`** — Spring MVC `@RestController` apps: the
-  servlet filter that emits `HttpServerExchangeEvent` as the trace root, and
-  the HTTP-client interceptor for outbound calls.
+- **`jeffrey-traces-spring-rest-server`** — Spring MVC `@RestController`
+  apps: the servlet filter that emits `HttpServerExchangeEvent` as the trace
+  root of every inbound request.
+- **`jeffrey-traces-http-client`** — outbound HTTP calls: the client
+  interceptor that emits `HttpClientExchangeEvent` as a leaf span
+  (RestTemplate; async clients via the callback pattern).
 - **`jeffrey-traces-mybatis`** — MyBatis: the `Executor` interceptor that
   emits a `JdbcQuery/Insert/Update/Delete/Execute` event per statement.
 
@@ -119,8 +122,8 @@ JeffreyEventRegistry.all().forEach(FlightRecorder::register);
 
 | Event type (JFR name) | Class | Kind | Emitted by |
 |---|---|---|---|
-| `jeffrey.HttpServerExchange` | `http.HttpServerExchangeEvent` | SERVER | servlet filter — **root span of the trace** (see `jeffrey-traces-spring-http`) |
-| `jeffrey.HttpClientExchange` | `http.HttpClientExchangeEvent` | CLIENT | HTTP-client interceptor — leaf (see `jeffrey-traces-spring-http`) |
+| `jeffrey.HttpServerExchange` | `http.HttpServerExchangeEvent` | SERVER | servlet filter — **root span of the trace** (see `jeffrey-traces-spring-rest-server`) |
+| `jeffrey.HttpClientExchange` | `http.HttpClientExchangeEvent` | CLIENT | HTTP-client interceptor — leaf (see `jeffrey-traces-http-client`) |
 | `jeffrey.JdbcQuery` | `jdbc.statement.JdbcQueryEvent` | CLIENT | DB interceptor, SELECT — leaf (see `jeffrey-traces-mybatis`) |
 | `jeffrey.JdbcInsert` | `jdbc.statement.JdbcInsertEvent` | CLIENT | DB interceptor, INSERT — leaf |
 | `jeffrey.JdbcUpdate` | `jdbc.statement.JdbcUpdateEvent` | CLIENT | DB interceptor, UPDATE — leaf |
