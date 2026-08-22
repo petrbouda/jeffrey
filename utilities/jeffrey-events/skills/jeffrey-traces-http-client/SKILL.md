@@ -29,7 +29,25 @@ Rules recap (from the core skill) that this code embodies:
 
 ---
 
-## 1. RestTemplate interceptor
+## 1. The shipped interceptor (Spring)
+
+`jeffrey-events-spring` ships this interceptor, so on Spring you do not write it. Adding
+`jeffrey-events-spring-boot-starter` (or `@Import(JeffreyTracingConfiguration.class)` on plain
+Spring) gives you a `JfrClientHttpRequestInterceptor` bean; attach it where you build the client:
+
+```java
+RestTemplate restTemplate = new RestTemplate();
+restTemplate.getInterceptors().add(interceptor);   // the bean from the configuration
+```
+
+It is only a bean, not attached automatically: Spring Boot 4 removed `RestTemplateCustomizer`, and
+applications build clients in too many ways for a starter to guess. By default it records host and
+path with the query string dropped — that is where ids and tokens live — and you can pass a
+`Function<URI, String>` to collapse variable path segments into a template instead.
+
+The rest of this section shows what that interceptor does, for a client with no Spring involved.
+
+## 2. Writing it yourself: RestTemplate interceptor
 
 For `RestTemplate` (a `ClientHttpRequestInterceptor`); the same shape applies
 to any HTTP client with an interception point:
@@ -70,7 +88,7 @@ On 0.13.0, without `TracedEvents`, write the expanded shape from the core
 skill's §4 rule 3 instead (guard, `begin()`, `end()` on success, `commitSpan()`
 in the `finally`).
 
-## 2. Registration
+## 3. Registration
 
 ```java
 restTemplate.getInterceptors().add(new JeffreyJfrRestTemplateInterceptor());
@@ -87,7 +105,7 @@ public RestTemplateCustomizer jeffreyJfrRestTemplateCustomizer() {
 }
 ```
 
-## 3. Async clients (WebClient, async HttpClient)
+## 4. Async clients (WebClient, async HttpClient)
 
 A blocking interceptor shape does not fit a client whose response arrives via
 callbacks on threads you don't control. Use the callback pattern from the core
@@ -97,7 +115,7 @@ callback, and `event.commitSpan()` at completion. `openSpanOf` stamps the ids
 eagerly, so a completion running after the enclosing binding is gone still
 carries the right identity.
 
-## 4. Client-side pitfalls
+## 5. Client-side pitfalls
 
 | Symptom | Cause | Fix |
 |---|---|---|
