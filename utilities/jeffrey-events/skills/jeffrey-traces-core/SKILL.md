@@ -196,12 +196,13 @@ They are plain events (not spans); emit them from your pool's hook points
    individual request lives in the trace id, which is already there.
 
 5. **A trace does not cross a plain executor by itself.** `ScopedValue`
-   propagates only through structured concurrency. Before handing work to an
-   `ExecutorService`, `@Async` method, or `CompletableFuture`, capture the
-   context and re-establish it: `Tracer.fork(...)` (capture at call site) or
+   propagates only through structured concurrency. Either wrap the pool once
+   with `Tracer.propagating(executor)` (releases after 0.13.0) so every task
+   submitted inside a span runs inside it, or capture per call site:
+   `Tracer.fork(...)`/`Tracer.forkCallable(...)` (a named child span) or
    `Tracer.current()` + `Tracer.continueIn(parent, ...)` (explicit). Work
-   submitted without this still runs and its leaf events still commit — but as
-   roots of their own single-span traces.
+   submitted without any of this still runs and its leaf events still commit —
+   but as roots of their own single-span traces.
 
 ---
 
@@ -238,13 +239,23 @@ Tracer.run("payment.charge", SpanKind.CLIENT, () -> paymentGateway.charge(order)
 
 ### Crossing threads
 
-`ScopedValue` does not survive a plain executor hand-off. Two tools:
+`ScopedValue` does not survive a plain executor hand-off. Three tools:
 
 ```java
-// fork(): capture here, replay there — for work that IS a separate operation
+// propagating(): wrap the POOL once, and every task submitted inside a span
+// runs inside that span — no per-call-site wrapping, no name, no child span.
+// Leaf events in the task stamp under the submitting span; each activation
+// records a jeffrey.TraceScope naming the thread it ran on.
+ExecutorService executor = Tracer.propagating(Executors.newFixedThreadPool(8));
+executor.submit(() -> parseChunk(file));
+
+// fork()/forkCallable(): capture here, replay there — for work that IS a
+// separate operation deserving its own named span (composes with the above)
 CompletableFuture.runAsync(
         Tracer.fork("report.render", () -> renderChunk(part)),   // capture at call site!
         executor);
+Future<Report> report = executor.submit(
+        Tracer.forkCallable("report.render", () -> render(part)));
 
 // continueIn(): the explicit form when you carry the context yourself
 SpanContext parent = Tracer.current().orElse(null);
@@ -254,9 +265,12 @@ executor.submit(() -> Tracer.continueIn(parent, "chunk.parse", () -> {
 }));
 ```
 
-`fork` captures the parent when *called*, not when the task runs — always call
-it on the thread whose span the work belongs to, then submit the result.
-`@Async` methods and scheduled tasks need the same treatment.
+Pick `propagating` when a whole pool serves traced requests (releases after
+0.13.0), `fork`/`forkCallable` when one task is a distinct operation worth a
+span of its own. `fork` captures the parent when *called*, not when the task
+runs — always call it on the thread whose span the work belongs to, then
+submit the result. `@Async` methods and scheduled tasks need the same
+treatment (a `TaskDecorator`/wrapped executor is the `propagating` shape).
 
 ### Callback-driven work (0.13.0+)
 
