@@ -18,6 +18,7 @@
 module cafe.jeffrey.microscope.grpc.client {
     requires transitive cafe.jeffrey.shared.hub.api;
     requires transitive cafe.jeffrey.shared.common;
+    requires cafe.jeffrey.jfr.events.grpc.interceptor;
     requires io.grpc;
     requires io.grpc.netty;
     requires io.grpc.stub;
