@@ -99,6 +99,37 @@ class AgentArgsTest {
     }
 
     @Nested
+    class MethodTracing {
+
+        @Test
+        void offUnlessAskedFor() {
+            AgentArgs args = AgentArgs.parse("heartbeat.dir=/tmp");
+
+            assertFalse(args.tracingEnabled(),
+                    "weaving application bytecode is not something to switch on behind an operator's back");
+        }
+
+        @Test
+        void offForAnEmptyArgumentString() {
+            assertFalse(AgentArgs.parse("").tracingEnabled());
+            assertFalse(AgentArgs.parse(null).tracingEnabled());
+        }
+
+        @Test
+        void enabledExplicitly() {
+            AgentArgs args = AgentArgs.parse("heartbeat.dir=/tmp,tracing.enabled=true");
+
+            assertTrue(args.tracingEnabled());
+            assertEquals(Path.of("/tmp"), args.heartbeatDir(), "the other features are unaffected");
+        }
+
+        @Test
+        void disabledExplicitly() {
+            assertFalse(AgentArgs.parse("tracing.enabled=false").tracingEnabled());
+        }
+    }
+
+    @Nested
     class HeartbeatEnabled {
 
         @Test
