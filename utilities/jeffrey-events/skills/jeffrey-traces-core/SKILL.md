@@ -1,6 +1,6 @@
 ---
 name: jeffrey-traces-core
-description: Core concepts and rules for instrumenting any JVM application with Jeffrey JFR events and Jeffrey Traces — the trace/span data model (AbstractTracedEvent, TraceSpanEvent, SpanContext), the emit rules that make events land correctly in Jeffrey's profile database, the Tracer API (run/call/inSpanOf/stamp/fork/continueIn/openSpanOf/reenter), JFR recording configuration, and verification. Read this FIRST before any technology-specific Jeffrey instrumentation skill (jeffrey-traces-spring-rest-server, jeffrey-traces-http-client, jeffrey-traces-mybatis) or when writing custom spans, custom traced events, or connecting spans across threads.
+description: Core concepts and rules for instrumenting any JVM application with Jeffrey JFR events and Jeffrey Traces — the trace/span data model (AbstractTracedEvent, TraceSpanEvent, SpanContext), the emit rules that make events land correctly in Jeffrey's profile database, the Tracer API (run/call/inSpanOf/stamp/fork/continueIn/openSpanOf/reenter), JFR recording configuration, and verification. Read this FIRST before any technology-specific Jeffrey instrumentation skill (jeffrey-traces-spring-rest-server, jeffrey-traces-http-client, jeffrey-traces-mybatis, jeffrey-traces-grpc) or when writing custom spans, custom traced events, or connecting spans across threads.
 ---
 
 # Jeffrey Traces — Core Concepts and Rules
@@ -23,6 +23,9 @@ one:
   (RestTemplate; async clients via the callback pattern).
 - **`jeffrey-traces-mybatis`** — MyBatis: the `Executor` interceptor that
   emits a `JdbcQuery/Insert/Update/Delete/Execute` event per statement.
+- **`jeffrey-traces-grpc`** — gRPC: the server interceptor that roots a trace
+  per inbound call, and the client interceptor that records outbound calls as
+  leaf spans.
 
 There is no separate "send data to Jeffrey" step. The events are ordinary JFR
 events written into the JVM's flight recording; you upload the `.jfr` file to
@@ -128,6 +131,8 @@ Understand this model first; every rule follows from it.
 | `jeffrey.JdbcUpdate` | `jdbc.statement.JdbcUpdateEvent` | CLIENT | DB interceptor, UPDATE — leaf |
 | `jeffrey.JdbcDelete` | `jdbc.statement.JdbcDeleteEvent` | CLIENT | DB interceptor, DELETE — leaf |
 | `jeffrey.JdbcExecute` | `jdbc.statement.JdbcExecuteEvent` | CLIENT | DB interceptor, DDL/other — leaf |
+| `jeffrey.GrpcServerExchange` | `grpc.GrpcServerExchangeEvent` | SERVER | gRPC server interceptor — **root span of the trace** (see `jeffrey-traces-grpc`) |
+| `jeffrey.GrpcClientExchange` | `grpc.GrpcClientExchangeEvent` | CLIENT | gRPC client interceptor — leaf (see `jeffrey-traces-grpc`) |
 | `jeffrey.TraceSpan` | `trace.TraceSpanEvent` | any | `Tracer.run`/`call`/`continueIn` — interior spans |
 | `jeffrey.TraceScope` | `trace.TraceScopeEvent` | — | `Tracer.reenter` (automatic; never emit by hand) |
 

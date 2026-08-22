@@ -15,15 +15,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module cafe.jeffrey.microscope.grpc.client {
-    requires transitive cafe.jeffrey.shared.hub.api;
-    requires transitive cafe.jeffrey.shared.common;
-    requires cafe.jeffrey.jfr.events.grpc.interceptor;
-    requires io.grpc;
-    requires io.grpc.netty;
-    requires io.grpc.stub;
-    requires io.netty.handler;
-    requires org.slf4j;
 
-    exports cafe.jeffrey.microscope.grpc.client;
+/**
+ * Declared as a real module rather than an automatic one because Jeffrey's own gRPC client is a
+ * named module and has to {@code requires} this by name.
+ */
+module cafe.jeffrey.jfr.events.grpc.interceptor {
+    // The interceptors drive the JFR event lifecycle directly (isEnabled/begin/end/shouldCommit).
+    requires jdk.jfr;
+    requires cafe.jeffrey.jfr.events;
+    requires io.grpc;
+    requires com.google.protobuf;
+
+    exports cafe.jeffrey.jfr.events.grpc.interceptor;
 }

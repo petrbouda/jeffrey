@@ -312,6 +312,11 @@
                 <artifactId>jeffrey-events-spring-boot-starter</artifactId>
                 <version>${jeffrey-events.version}</version>
             </dependency>
+            <dependency>
+                <groupId>cafe.jeffrey-analyst</groupId>
+                <artifactId>jeffrey-events-grpc</artifactId>
+                <version>${jeffrey-events.version}</version>
+            </dependency>
 
             <!-- gRPC -->
             <dependency>
