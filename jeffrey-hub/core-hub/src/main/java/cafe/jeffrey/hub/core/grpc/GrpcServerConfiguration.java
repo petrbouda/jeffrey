@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.hub.core.grpc;
 
+import cafe.jeffrey.jfr.events.grpc.interceptor.JfrGrpcServerInterceptor;
 import io.grpc.BindableService;
 import io.grpc.ServerInterceptor;
 import org.springframework.context.annotation.Bean;
