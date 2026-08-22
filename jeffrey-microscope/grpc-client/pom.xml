@@ -40,6 +40,11 @@
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty</artifactId>
         </dependency>
+        <!-- Client interceptor recording a span per outbound call -->
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-events-grpc</artifactId>
+        </dependency>
         <!-- HubAddress record used by GrpcHubConnection -->
         <dependency>
             <groupId>${project.groupId}</groupId>

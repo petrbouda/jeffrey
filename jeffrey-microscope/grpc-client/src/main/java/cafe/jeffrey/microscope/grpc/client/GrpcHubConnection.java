@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.grpc.client;
 
+import cafe.jeffrey.jfr.events.grpc.interceptor.JfrGrpcClientInterceptor;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyChannelBuilder;
@@ -44,7 +45,10 @@ public class GrpcHubConnection implements Closeable {
     public GrpcHubConnection(HubAddress address) {
         this.address = address;
 
-        NettyChannelBuilder builder = NettyChannelBuilder.forAddress(address.hostname(), address.port());
+        // Every call over this channel is recorded as a span under whatever the caller is doing,
+        // so a hub round-trip shows up inside the request or job that triggered it.
+        NettyChannelBuilder builder = NettyChannelBuilder.forAddress(address.hostname(), address.port())
+                .intercept(new JfrGrpcClientInterceptor());
         if (address.plaintext()) {
             builder.usePlaintext();
         } else {
