@@ -45,7 +45,7 @@
         <junit.version>6.0.3</junit.version>
         <uuid-creator.version>6.1.1</uuid-creator.version>
         <!--
-            The reactor's own utilities/tracing, not the published artifact: the events the
+            The reactor's own utilities/jeffrey-events, not the published artifact: the events the
             application records and the events it parses have to be the same source, or a change to
             an event type compiles here and never reaches a recording. Override with
             -Djeffrey-tracing.version=<released> to build against what is on Maven Central.

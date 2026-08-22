@@ -1,5 +1,5 @@
 # Ad-hoc, manual Maven Central release for the standalone utility libraries
-# (tracing — published as the jeffrey-events artifacts — and jeffrey-jib). These are
+# (jeffrey-events — which publishes the jeffrey-tracing artifacts — and jeffrey-jib). These are
 # released independently and on demand, NOT as part of the main tag-triggered Jeffrey
 # release (release.yml). The module input is the directory name under utilities/.
 #
@@ -15,7 +15,7 @@ on:
         required: true
         type: choice
         options:
-          - tracing
+          - jeffrey-events
           - jeffrey-jib
       version:
         description: 'Release version (e.g. 0.11.0 or 0.11.0-b5). Must follow [0-9]+.[0-9]+.[0-9]+(-b[0-9]+)?'
