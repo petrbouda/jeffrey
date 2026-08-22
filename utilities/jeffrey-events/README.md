@@ -43,6 +43,26 @@ Not on Boot? `jeffrey-events-spring` has the same beans with no Boot dependency 
 auto-configuration — `@Import(JeffreyTracingConfiguration.class)` and nothing happens until you ask.
 No Spring at all? `jeffrey-events-servlet` needs only `jakarta.servlet`.
 
+gRPC and MyBatis are one line each, wherever you build the server, the channel or the
+`Configuration` — there is nothing to auto-configure because gRPC has no bean the starter could
+recognise:
+
+```java
+Server server = ServerBuilder.forPort(port)
+        .intercept(new JfrGrpcServerInterceptor())      // inbound call = trace root
+        .build();
+
+ManagedChannel channel = ManagedChannelBuilder.forAddress(host, port)
+        .intercept(new JfrGrpcClientInterceptor())      // outbound call = leaf under the caller
+        .build();
+
+configuration.addInterceptor(new JeffreyMyBatisInterceptor());   // statements named UserMapper.selectById
+```
+
+Use `jeffrey-events-mybatis` **or** the `DataSource` wrapper, not both — the MyBatis one names
+statements by mapper method rather than by parsing their SQL, and two of them record every statement
+twice.
+
 ## Sixty seconds of tracing
 
 An inbound request becomes the root of a trace, hand-written spans describe the application logic
@@ -106,6 +126,8 @@ dashboards.
 | `jeffrey-events-spring` | Spring `@Configuration` you `@Import` explicitly; no Spring Boot dependency |
 | `jeffrey-events-jdbc` | a `DataSource` wrapper recording every statement — JdbcTemplate, Hibernate, jOOQ and MyBatis alike |
 | `jeffrey-events-hikari` | HikariCP metrics tracker: connection acquire/borrow/create/timeout, plus the periodic pool gauge |
+| `jeffrey-events-mybatis` | MyBatis `Executor` interceptor naming every statement by its mapper method |
+| `jeffrey-events-grpc` | gRPC server and client interceptors: an inbound call becomes a trace root, an outbound one a leaf |
 | `jeffrey-events-spring-boot-starter` | auto-configuration: add it and write nothing |
 
 ## Event catalog
@@ -174,6 +196,8 @@ consumed by AI coding agents):
   interceptor for outbound calls.
 - [`jeffrey-traces-mybatis`](skills/jeffrey-traces-mybatis/SKILL.md) — the MyBatis interceptor
   emitting one statement event per mapper call.
+- [`jeffrey-traces-grpc`](skills/jeffrey-traces-grpc/SKILL.md) — the gRPC server and client
+  interceptors.
 
 Full documentation: [jeffrey-analyst.cafe](https://www.jeffrey-analyst.cafe).
 

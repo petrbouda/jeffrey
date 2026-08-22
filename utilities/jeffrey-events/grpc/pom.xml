@@ -21,39 +21,53 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
-        <groupId>cafe.jeffrey</groupId>
-        <artifactId>jeffrey-microscope</artifactId>
+        <groupId>cafe.jeffrey-analyst</groupId>
+        <artifactId>jeffrey-events-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>grpc-client</artifactId>
+    <artifactId>jeffrey-events-grpc</artifactId>
+
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>gRPC client and server interceptors emitting Jeffrey exchange events, with the span re-entered on every callback</description>
+    <!-- Explicit: Maven Central rejects children that inherit a url with the artifactId appended. -->
+    <url>https://github.com/petrbouda/jeffrey</url>
 
     <dependencies>
-        <!-- Proto stubs (EventStreamingServiceGrpc, etc.) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>hub-api</artifactId>
+            <artifactId>jeffrey-events</artifactId>
         </dependency>
-        <!-- ManagedChannel + Netty -->
+        <!-- provided: the application already has the gRPC runtime it is instrumenting. -->
         <dependency>
             <groupId>io.grpc</groupId>
-            <artifactId>grpc-netty</artifactId>
+            <artifactId>grpc-api</artifactId>
+            <scope>provided</scope>
         </dependency>
-        <!-- Client interceptor recording a span per outbound call -->
         <dependency>
-            <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-events-grpc</artifactId>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf.version}</version>
+            <scope>provided</scope>
         </dependency>
-        <!-- HubAddress record used by GrpcHubConnection -->
+
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-inprocess</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-stub</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>common</artifactId>
-        </dependency>
-        <!-- Logging -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
+            <artifactId>jeffrey-events-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
+
 </project>
