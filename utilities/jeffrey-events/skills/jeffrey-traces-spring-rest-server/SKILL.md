@@ -47,10 +47,17 @@ Tune it with `jeffrey.tracing.*`:
 | `jeffrey.tracing.order` | `HIGHEST_PRECEDENCE` | Filter order; keep it first so security, routing and data access all happen inside the span |
 | `jeffrey.tracing.jdbc-enabled` | `true` | Wrap every `DataSource` bean so statements are recorded |
 | `jeffrey.tracing.hikari-enabled` | `true` | Give HikariCP pools a Jeffrey metrics tracker |
+| `jeffrey.tracing.mybatis-enabled` | `false` | Name statements by their mapper method instead. Turning it on stands the `DataSource` wrapper down, so nothing is recorded twice — see `jeffrey-traces-mybatis` |
+| `jeffrey.tracing.mybatis-capture-parameters` | `true` | Record the values a MyBatis statement was bound with |
+| `jeffrey.tracing.mybatis-max-parameter-length` | `256` | Truncate longer parameter values |
 | `jeffrey.tracing.capture-query-params` | `false` | Record query-string parameters on the event |
 | `jeffrey.tracing.capture-path-params` | `false` | Record the route's template variables on the event |
 
-**Both capture flags are off by default, deliberately.** A recording is a file that gets uploaded,
+`mybatis-capture-parameters` is the one capture flag that is *on*: a statement's parameters are what
+make a slow statement readable, where a query string is free-form user input. The MyBatis skill
+explains the difference and how to turn it off.
+
+**Both HTTP capture flags are off by default, deliberately.** A recording is a file that gets uploaded,
 shared and kept, and query strings routinely carry access tokens, e-mail addresses and search
 terms. Turn them on for an application whose parameters you know are safe to keep — as Jeffrey does
 for itself.
