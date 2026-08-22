@@ -145,6 +145,22 @@ Field notes:
   with `event.failed(throwable)` — never by setting `status` directly.
 - **`TraceSpanEvent`**: no fields of its own; the span shape is all there is.
   You never construct it — `Tracer` does.
+- **`attributes`** (any traced event): operation-specific detail as a JSON
+  object string — per-request values (an entity id, a retry count) that must
+  never go into the span *name*. Build it with `SpanAttributes`
+  (releases after 0.13.0) rather than concatenating JSON by hand — it escapes
+  quotes, backslashes and control characters — and only inside the
+  `shouldCommit()` block, so an event under threshold pays nothing:
+
+  ```java
+  event.attributes = SpanAttributes.create()
+          .put("cache", "miss")
+          .put("retries", 2)
+          .json();
+  ```
+
+  The recording and the profile database contain the values verbatim — scrub
+  anything sensitive.
 
 There are also connection-pool events (`jeffrey.JdbcPoolStatistics`,
 `jeffrey.PooledJdbcConnectionAcquired/Borrowed/Created`,
