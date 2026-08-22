@@ -3,7 +3,7 @@
 # NOT as part of the main tag-triggered Jeffrey release (release.yml). The module input is
 # the directory name under utilities/, which is where the pom and jreleaser.yml are read from;
 # picking jeffrey-events-parent publishes the whole family it aggregates by relative path -
-# ../jeffrey-events, ../jeffrey-events-test and the jeffrey-tracing-* modules under ../tracing.
+# ../jeffrey-events, ../jeffrey-events-test and ../jeffrey-tracing with its jeffrey-tracing-* modules.
 #
 # Replaces the two near-identical workflows release-jeffrey-events.yml and
 # release-jeffrey-jib.yml. Maven stages the artifacts (jar + sources + javadoc)

@@ -29,29 +29,29 @@
         <relativePath>../jeffrey-events-parent/pom.xml</relativePath>
     </parent>
 
-    <!--
-      The published coordinate every consumer already depends on, and the one
-      the JFR event types live under. It must not change: the instrumentation
-      modules were split out to ../jeffrey-tracing and renamed jeffrey-tracing-*,
-      but the events artifact stays exactly where consumers expect it.
-    -->
-    <artifactId>jeffrey-events</artifactId>
+    <artifactId>jeffrey-tracing</artifactId>
+    <packaging>pom</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>Jeffrey-specific events that can be visualized by Jeffrey</description>
+    <description>Parent of the instrumentation modules that emit Jeffrey tracing events</description>
     <!-- Explicit: Maven Central rejects children that inherit a url with the artifactId appended. -->
     <url>https://github.com/petrbouda/jeffrey</url>
 
-    <dependencies>
-        <!--
-          The toolkit depends on nothing, so this does not make a reactor cycle:
-          jeffrey-events-test builds first, and jeffrey-events uses it to assert
-          its own emit paths against a real recording.
-        -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-events-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+    <!--
+      The tracing family is one directory with one parent instead of seven siblings
+      reached by relative path from jeffrey-events-parent: a module added here is a
+      single line, and everything shared by the instrumentation modules (and nothing
+      else) has a place to live. The build configuration, dependencyManagement and
+      release profile still come from jeffrey-events-parent above, so the whole
+      family stays on one version and one release run.
+    -->
+    <modules>
+        <module>jeffrey-tracing-servlet</module>
+        <module>jeffrey-tracing-spring</module>
+        <module>jeffrey-tracing-jdbc</module>
+        <module>jeffrey-tracing-hikari</module>
+        <module>jeffrey-tracing-mybatis</module>
+        <module>jeffrey-tracing-grpc</module>
+        <module>jeffrey-tracing-spring-boot-starter</module>
+    </modules>
 </project>
