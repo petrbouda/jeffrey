@@ -45,6 +45,8 @@ Tune it with `jeffrey.tracing.*`:
 | `jeffrey.tracing.enabled` | `true` | Turn the instrumentation off without removing the dependency |
 | `jeffrey.tracing.url-patterns` | `/*` | Which requests the filter sees |
 | `jeffrey.tracing.order` | `HIGHEST_PRECEDENCE` | Filter order; keep it first so security, routing and data access all happen inside the span |
+| `jeffrey.tracing.jdbc-enabled` | `true` | Wrap every `DataSource` bean so statements are recorded |
+| `jeffrey.tracing.hikari-enabled` | `true` | Give HikariCP pools a Jeffrey metrics tracker |
 | `jeffrey.tracing.capture-query-params` | `false` | Record query-string parameters on the event |
 | `jeffrey.tracing.capture-path-params` | `false` | Record the route's template variables on the event |
 
