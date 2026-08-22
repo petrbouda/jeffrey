@@ -27,6 +27,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import cafe.jeffrey.jfr.events.mybatis.JeffreyMyBatisInterceptor;
+import cafe.jeffrey.jfr.events.mybatis.MyBatisStatementSettings;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -155,6 +157,7 @@ class JeffreyTracingAutoConfigurationTest {
             });
         }
 
+        /** Nested inside this class on purpose: at test-class level the Boot slice would scan it. */
         @Configuration(proxyBeanMethods = false)
         static class PlainDataSource {
 
@@ -162,6 +165,71 @@ class JeffreyTracingAutoConfigurationTest {
             DataSource dataSource() {
                 return Mockito.mock(DataSource.class);
             }
+        }
+    }
+
+    /**
+     * MyBatis names statements better than a {@code DataSource} proxy can, so once an application
+     * asks for it, it takes over — and that hand-over is what keeps a mapper call out of the
+     * dashboard twice.
+     */
+    @Nested
+    @DisplayName("MyBatis")
+    class MyBatis {
+
+        private final WebApplicationContextRunner mybatisRunner = new WebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        JeffreyMyBatisTracingAutoConfiguration.class, JeffreyJdbcTracingAutoConfiguration.class))
+                .withUserConfiguration(DataSources.PlainDataSource.class)
+                .withPropertyValues("jeffrey.tracing.mybatis-enabled=true");
+
+        @Test
+        @DisplayName("the interceptor is registered as a bean, which is the whole registration")
+        void registersTheInterceptor() {
+            mybatisRunner.run(context -> {
+                assertThat(context).hasSingleBean(JeffreyMyBatisInterceptor.class);
+                assertThat(context.getBean(JeffreyMyBatisInterceptor.class).settings())
+                        .isEqualTo(MyBatisStatementSettings.defaults());
+            });
+        }
+
+        @Test
+        @DisplayName("parameter capture is on by default, because it is what makes a slow statement readable")
+        void capturesParametersByDefault() {
+            mybatisRunner.run(context ->
+                    assertThat(context.getBean(MyBatisStatementSettings.class).captureParameters()).isTrue());
+        }
+
+        @Test
+        @DisplayName("properties reach the interceptor the application actually gets")
+        void propertiesBind() {
+            mybatisRunner.withPropertyValues(
+                            "jeffrey.tracing.mybatis-capture-parameters=false",
+                            "jeffrey.tracing.mybatis-max-parameter-length=16")
+                    .run(context -> assertThat(context.getBean(JeffreyMyBatisInterceptor.class).settings())
+                            .isEqualTo(new MyBatisStatementSettings(false, 16)));
+        }
+
+        @Test
+        @DisplayName("the DataSource is left alone while the interceptor is recording, so nothing is counted twice")
+        void theDataSourceWrapperBacksOff() {
+            mybatisRunner.run(context ->
+                    assertThat(context.getBean(DataSource.class)).isNotInstanceOf(TracingDataSource.class));
+        }
+
+        @Test
+        @DisplayName("having MyBatis on the classpath is not by itself a reason to register anything")
+        void classpathAloneRegistersNothing() {
+            new WebApplicationContextRunner()
+                    .withConfiguration(AutoConfigurations.of(
+                            JeffreyMyBatisTracingAutoConfiguration.class, JeffreyJdbcTracingAutoConfiguration.class))
+                    .withUserConfiguration(DataSources.PlainDataSource.class)
+                    .run(context -> {
+                        assertThat(context).doesNotHaveBean(JeffreyMyBatisInterceptor.class);
+                        assertThat(context.getBean(DataSource.class))
+                                .as("a transitive MyBatis jar must not stop statements being recorded")
+                                .isInstanceOf(TracingDataSource.class);
+                    });
         }
     }
 
