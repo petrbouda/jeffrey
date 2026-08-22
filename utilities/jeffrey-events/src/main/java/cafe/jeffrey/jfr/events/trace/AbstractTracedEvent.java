@@ -131,39 +131,47 @@ public abstract class AbstractTracedEvent extends Event {
     }
 
     /**
-     * Describes the span and commits the event, which is how every instrumented event should be
-     * committed. Pairing {@link #describeSpan()} with {@link #commit()} by hand works too, but is
-     * one more thing for an emitter to forget.
+     * The one way an instrumented event is committed: stamps the event into the trace in progress
+     * when it does not yet carry identity, describes the span, and commits. One verb for every
+     * emitter, whatever the event's role in the trace — which matters because the historical split
+     * between a stamping and a non-stamping commit is exactly how every heap-dump statement once
+     * went missing from the traces it ran inside, with nothing failing to say so.
+     * <ul>
+     *   <li><b>A leaf committed in its own {@code finally}</b> — a JDBC statement, an outbound HTTP
+     *       call — is stamped here, at commit time, as a child of the span in progress. Stamping
+     *       late rather than at construction costs nothing (the enclosing binding is stack-scoped,
+     *       so the ids are identical at both points) and an event that falls under the JFR
+     *       threshold never pays for minting ids it will not record.</li>
+     *   <li><b>An event that already carries identity</b> — one that <em>is</em> its span
+     *       ({@link Tracer#inSpanOf}, {@link Tracer#openSpanOf}), or a deferred emitter that
+     *       stamped eagerly with {@link Tracer#stamp} — is committed as it is. Re-stamping would
+     *       mint a fresh span id and orphan everything recorded under the original one.</li>
+     *   <li><b>No span in progress</b> — the ids stay {@code 0}: the event is recorded, feeds its
+     *       dashboard, and is simply not part of any trace.</li>
+     * </ul>
+     * The one emit shape that needs a second call is a deferred commit: an event committed from a
+     * stream's {@code close()} may run after the enclosing span's binding is gone, or inside
+     * someone else's, so such an emitter must stamp eagerly with {@link Tracer#stamp} at
+     * construction — this method then commits it under the identity it already carries.
+     * <p>
+     * The inherited {@link #commit()} remains the raw path: it neither stamps nor runs
+     * {@link #describeSpan()}, so reach for it only for an event that must deliberately stay
+     * outside the trace in progress.
      */
     public final void commitSpan() {
+        if (spanId == 0) {
+            Tracer.stamp(this);
+        }
         describeSpan();
         commit();
     }
 
     /**
-     * Stamps the event into the trace in progress and commits it — the whole emit path of a leaf
-     * event in one call, so an emitter cannot commit without stamping. Forgetting the stamp is not
-     * a hypothetical: it is exactly how every heap-dump statement went missing from the traces it
-     * ran inside, with nothing failing to say so.
-     * <p>
-     * Stamping happens here, at commit time, rather than back at construction. For an emitter that
-     * commits in its own {@code finally} the two are the same ids — the enclosing binding is
-     * stack-scoped, so it is identical at both points — and an event that falls under the JFR
-     * threshold then never pays for minting ids it will not record. The one shape this does not
-     * fit is a deferred commit: an event committed from a stream's {@code close()} may run after
-     * the enclosing span's binding is gone, or inside someone else's, so such an emitter must
-     * stamp eagerly with {@link Tracer#stamp} at construction and commit with {@link #commitSpan()}.
-     * <p>
-     * An event that already carries identity is committed as it is. Re-stamping would mint a fresh
-     * span id at commit time and orphan everything recorded under the original one — which is why
-     * this is safe to call on a pre-stamped event, and why an event that <em>is</em> its span
-     * ({@link Tracer#inSpanOf}, {@link Tracer#openSpanOf}) still reads better committed through
-     * {@link #commitSpan()}.
+     * @deprecated {@link #commitSpan()} now stamps an unstamped event exactly as this method did,
+     * so the two commit paths collapsed into one; this alias only delegates.
      */
+    @Deprecated(since = "0.14.0", forRemoval = true)
     public final void stampAndCommit() {
-        if (spanId == 0) {
-            Tracer.stamp(this);
-        }
         commitSpan();
     }
 }

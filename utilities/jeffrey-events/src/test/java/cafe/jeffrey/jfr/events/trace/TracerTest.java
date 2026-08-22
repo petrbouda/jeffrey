@@ -188,12 +188,12 @@ class TracerTest {
         }
 
         @Test
-        @DisplayName("stampAndCommit stamps the leaf exactly as stamp does")
-        void stampAndCommitStampsTheLeaf() {
+        @DisplayName("commitSpan stamps the leaf exactly as stamp does")
+        void commitSpanStampsTheLeaf() {
             JdbcQueryEvent event = new JdbcQueryEvent("listSpans", "profile");
 
             SpanContext context = Tracer.continueIn(null, "scope", SpanKind.INTERNAL, () -> {
-                event.stampAndCommit();
+                event.commitSpan();
                 return Tracer.current().orElseThrow();
             });
 
@@ -204,11 +204,11 @@ class TracerTest {
         }
 
         @Test
-        @DisplayName("stampAndCommit outside a span leaves the ids at zero")
-        void stampAndCommitOutsideASpanIsANoOp() {
+        @DisplayName("commitSpan outside a span leaves the ids at zero")
+        void commitSpanOutsideASpanIsANoOp() {
             JdbcQueryEvent event = new JdbcQueryEvent("listSpans", "profile");
 
-            event.stampAndCommit();
+            event.commitSpan();
 
             assertEquals(0, event.traceId);
             assertEquals(0, event.spanId);
@@ -216,8 +216,8 @@ class TracerTest {
         }
 
         @Test
-        @DisplayName("stampAndCommit leaves an event that already carries identity alone")
-        void stampAndCommitDoesNotRestampAnOwnSpan() {
+        @DisplayName("commitSpan leaves an event that already carries identity alone")
+        void commitSpanDoesNotRestampAnOwnSpan() {
             HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
             exchange.method = "GET";
             exchange.uri = "/api/internal/profiles/{profileId}";
@@ -225,13 +225,29 @@ class TracerTest {
             SpanContext own = Tracer.openSpanOf(exchange);
 
             Tracer.continueIn(null, "scope", SpanKind.INTERNAL, () -> {
-                exchange.stampAndCommit();
+                exchange.commitSpan();
             });
 
             assertEquals(own.traceId(), exchange.traceId,
                     "re-stamping would mint fresh ids and orphan everything recorded under the original span");
             assertEquals(own.spanId(), exchange.spanId);
             assertEquals(own.parentSpanId(), exchange.parentSpanId);
+        }
+
+        @Test
+        @SuppressWarnings("removal")
+        @DisplayName("the deprecated stampAndCommit alias behaves exactly like commitSpan")
+        void deprecatedStampAndCommitStillStamps() {
+            JdbcQueryEvent event = new JdbcQueryEvent("listSpans", "profile");
+
+            SpanContext context = Tracer.continueIn(null, "scope", SpanKind.INTERNAL, () -> {
+                event.stampAndCommit();
+                return Tracer.current().orElseThrow();
+            });
+
+            assertEquals(context.traceId(), event.traceId,
+                    "code written against the old two-verb API keeps landing in traces unchanged");
+            assertEquals(context.spanId(), event.parentSpanId);
         }
     }
 
