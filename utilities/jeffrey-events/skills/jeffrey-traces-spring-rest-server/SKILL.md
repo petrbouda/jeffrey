@@ -19,8 +19,9 @@ Rules recap (from the core skill) that this code embodies:
 
 - The exchange event **is** the root span: `Tracer.inSpanOf` stamps it when the
   span opens — the `finally` block only fills HTTP fields and calls
-  `commitSpan()`, never `stampAndCommit()` (re-stamping would mint a fresh span
-  id and orphan every child).
+  `commitSpan()`, which commits the event under the identity it already
+  carries (it never re-stamps; minting fresh ids at commit time would orphan
+  every child).
 - The span name must be low-cardinality: the **matched URI template**
   (`/api/users/{id}`), never the raw path.
 - `statusCode` drives span status automatically: `describeSpan()` marks
@@ -93,9 +94,8 @@ public class JeffreyJfrHttpEventFilter extends OncePerRequestFilter {
                 event.statusCode = response.getStatus();
                 event.requestLength = parseLong(request.getHeader("Content-Length"));
                 event.responseLength = parseLong(response.getHeader("Content-Length"));
-                // commitSpan(), NOT stampAndCommit(): inSpanOf already stamped
-                // the ids when the span opened. Re-stamping would mint a fresh
-                // span id and orphan every child recorded under the original.
+                // inSpanOf already stamped the ids when the span opened;
+                // commitSpan() commits under that identity and never re-stamps.
                 event.commitSpan();
             }
         }
@@ -161,6 +161,6 @@ public class JeffreyInstrumentationConfiguration {
 |---|---|---|
 | One "endpoint" per user/entity in the HTTP dashboard | raw URI recorded instead of the template | `HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE`; a fixed `<unmatched>` label for handler-less requests |
 | SQL spans not nested under requests | filter registered after work-dispatching filters, or missing entirely | `Ordered.HIGHEST_PRECEDENCE`, URL pattern `/*` |
-| Request span missing, children promoted to roots | root committed with `stampAndCommit()` (re-stamped) | `commitSpan()` for the `inSpanOf` event |
+| Request span missing, children promoted to roots | root re-stamped by hand (`Tracer.stamp` after `inSpanOf`), or on 0.13.0 committed with `stampAndCommit()` | never stamp an `inSpanOf` event again; commit with `commitSpan()` |
 | 5xx/4xx not red in Traces | `statusCode` not set before commit | set it in the `finally`, before `commitSpan()` |
 | Async servlet requests measured wrong | interval ends when the container thread returns, not when the response completes | complete the event from an `AsyncListener`, stamping eagerly with `Tracer.stamp` + `commitSpan()` (deferred-commit pattern in the core skill) |

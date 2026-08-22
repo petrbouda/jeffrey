@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -194,12 +195,12 @@ class TracerTest {
         }
 
         @Test
-        @DisplayName("stampAndCommit stamps the leaf exactly as stamp does")
-        void stampAndCommitStampsTheLeaf() {
+        @DisplayName("commitSpan stamps the leaf exactly as stamp does")
+        void commitSpanStampsTheLeaf() {
             JdbcQueryEvent event = new JdbcQueryEvent("listSpans", "profile");
 
             SpanContext context = Tracer.continueIn(null, "scope", SpanKind.INTERNAL, () -> {
-                event.stampAndCommit();
+                event.commitSpan();
                 return Tracer.current().orElseThrow();
             });
 
@@ -210,11 +211,11 @@ class TracerTest {
         }
 
         @Test
-        @DisplayName("stampAndCommit outside a span leaves the ids at zero")
-        void stampAndCommitOutsideASpanIsANoOp() {
+        @DisplayName("commitSpan outside a span leaves the ids at zero")
+        void commitSpanOutsideASpanIsANoOp() {
             JdbcQueryEvent event = new JdbcQueryEvent("listSpans", "profile");
 
-            event.stampAndCommit();
+            event.commitSpan();
 
             assertEquals(0, event.traceId);
             assertEquals(0, event.spanId);
@@ -222,8 +223,8 @@ class TracerTest {
         }
 
         @Test
-        @DisplayName("stampAndCommit leaves an event that already carries identity alone")
-        void stampAndCommitDoesNotRestampAnOwnSpan() {
+        @DisplayName("commitSpan leaves an event that already carries identity alone")
+        void commitSpanDoesNotRestampAnOwnSpan() {
             HttpServerExchangeEvent exchange = new HttpServerExchangeEvent();
             exchange.method = "GET";
             exchange.uri = "/api/internal/profiles/{profileId}";
@@ -231,13 +232,29 @@ class TracerTest {
             SpanContext own = Tracer.openSpanOf(exchange);
 
             Tracer.continueIn(null, "scope", SpanKind.INTERNAL, () -> {
-                exchange.stampAndCommit();
+                exchange.commitSpan();
             });
 
             assertEquals(own.traceId(), exchange.traceId,
                     "re-stamping would mint fresh ids and orphan everything recorded under the original span");
             assertEquals(own.spanId(), exchange.spanId);
             assertEquals(own.parentSpanId(), exchange.parentSpanId);
+        }
+
+        @Test
+        @SuppressWarnings("removal")
+        @DisplayName("the deprecated stampAndCommit alias behaves exactly like commitSpan")
+        void deprecatedStampAndCommitStillStamps() {
+            JdbcQueryEvent event = new JdbcQueryEvent("listSpans", "profile");
+
+            SpanContext context = Tracer.continueIn(null, "scope", SpanKind.INTERNAL, () -> {
+                event.stampAndCommit();
+                return Tracer.current().orElseThrow();
+            });
+
+            assertEquals(context.traceId(), event.traceId,
+                    "code written against the old two-verb API keeps landing in traces unchanged");
+            assertEquals(context.spanId(), event.parentSpanId);
         }
     }
 
@@ -309,6 +326,37 @@ class TracerTest {
 
             assertEquals(SpanStatus.ERROR.name(), statement.status);
             assertEquals(IllegalStateException.class.getName(), statement.errorType);
+        }
+
+        @Test
+        @DisplayName("a transport failure recorded on an HTTP call survives the derived verdict")
+        void transportFailureSurvivesDescribeSpan() {
+            HttpClientExchangeEvent exchange = new HttpClientExchangeEvent();
+            exchange.method = "POST";
+            exchange.uri = "payments.internal/api/v1/charge";
+
+            exchange.failed(new ConnectException("connection refused"));
+            exchange.commitSpan();
+
+            assertEquals(SpanStatus.ERROR.name(), exchange.status,
+                    "no status code ever arrived - the recorded failure is the verdict");
+            assertEquals(ConnectException.class.getName(), exchange.errorType);
+        }
+
+        @Test
+        @DisplayName("a failure recorded on a gRPC call is not painted over by the derived verdict")
+        void grpcFailureIsNotDowngraded() {
+            GrpcServerExchangeEvent exchange = new GrpcServerExchangeEvent();
+            exchange.service = "jeffrey.api.v1.WorkspaceService";
+            exchange.method = "List";
+            exchange.statusCode = "OK";
+
+            exchange.failed(new IllegalStateException("stream reset"));
+            exchange.commitSpan();
+
+            assertEquals(SpanStatus.ERROR.name(), exchange.status,
+                    "deriving a verdict only escalates, it never downgrades a recorded failure");
+            assertEquals(IllegalStateException.class.getName(), exchange.errorType);
         }
 
         @Test

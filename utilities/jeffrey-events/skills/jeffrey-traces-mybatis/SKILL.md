@@ -14,7 +14,7 @@ Your mappers need **zero changes**. A MyBatis `Interceptor` (plugin) on the
 
 Rules recap (from the core skill) that this code embodies:
 
-- Every statement event is a **leaf span**: committed with `stampAndCommit()`
+- Every statement event is a **leaf span**: committed with `commitSpan()`
   in its own `finally`, so it nests under whatever span is in progress on the
   executing thread (usually the HTTP request), or records as untraced-but-
   present when there is none. A bare `commit()` would drop it from every trace.
@@ -87,7 +87,7 @@ public class JeffreyJfrMyBatisInterceptor implements Interceptor {
                 event.rows = countRows(result);
                 // Leaf span: nested under the HTTP request (or Tracer span)
                 // in progress on this thread; untraced-but-recorded when none.
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
     }
@@ -163,7 +163,7 @@ public class JeffreyJfrMyBatisInterceptor implements Interceptor {
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Statements present in the Database dashboard but not in Traces | committed with `commit()` | `stampAndCommit()` in the `finally` |
+| Statements present in the Database dashboard but not in Traces | committed with `commit()` | `commitSpan()` in the `finally` |
 | SQL spans are roots of their own one-span traces | statement ran outside a bound span (no HTTP filter, `@Async`, batch job) | register the root-span filter (`jeffrey-traces-spring-rest-server`); wrap background work with `Tracer.fork`/`continueIn` |
 | One "statement" per parameter combination | parameter values leaked into the event **name** | name from `MappedStatement.getId()` only; values go to `params` at most |
 | Failed statements look green | exception path missing `failed(t)` | catch `Throwable`, call `event.failed(t)`, rethrow |

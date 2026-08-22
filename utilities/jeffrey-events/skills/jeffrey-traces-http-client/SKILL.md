@@ -12,17 +12,19 @@ companion skill **`jeffrey-traces-spring-rest-server`**.
 
 The client exchange is a **leaf span**: the downstream work happens in another
 process this recording cannot see, so the event is committed with
-`stampAndCommit()` — nesting it under the span in progress (usually the server
+`commitSpan()` — nesting it under the span in progress (usually the server
 exchange of the request being served) — never with `Tracer.inSpanOf`.
 
 Rules recap (from the core skill) that this code embodies:
 
-- Leaf events commit with `stampAndCommit()` in their own `finally`; a bare
+- Leaf events commit with `commitSpan()` in their own `finally`; a bare
   `commit()` silently drops the call from every trace.
 - `uri` must be low-cardinality: the URI template you expanded, or host + path
   with variable segments collapsed — never a URL containing an entity id.
 - `statusCode` drives span status automatically: `describeSpan()` marks
-  `>= 400` as `ERROR` — never set `name`/`status` yourself.
+  `>= 400` as `ERROR` — never set `name`/`status` yourself. A transport
+  failure that produced no status code is recorded with `event.failed(e)`,
+  which the derived verdict never paints over.
 
 ---
 
@@ -48,6 +50,11 @@ public class JeffreyJfrRestTemplateInterceptor implements ClientHttpRequestInter
             response = execution.execute(request, body);
             event.end();
             return response;
+        } catch (IOException e) {
+            // No status code ever arrived - the recorded failure is the
+            // verdict: status=ERROR + the exception's class as errorType.
+            event.failed(e);
+            throw e;
         } finally {
             if (event.shouldCommit()) {
                 event.method = request.getMethod().name();
@@ -59,9 +66,9 @@ public class JeffreyJfrRestTemplateInterceptor implements ClientHttpRequestInter
                 event.remotePort = request.getURI().getPort();
                 event.requestLength = body.length;
                 event.statusCode = response != null ? response.getStatusCode().value() : 0;
-                // A leaf: nested under the span in progress (usually the
-                // server exchange of the request being served).
-                event.stampAndCommit();
+                // A leaf: commitSpan() stamps it under the span in progress
+                // (usually the server exchange of the request being served).
+                event.commitSpan();
             }
         }
     }
@@ -99,8 +106,8 @@ carries the right identity.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Calls in the HTTP Client dashboard but not in Traces | committed with `commit()` | `stampAndCommit()` in the `finally` |
+| Calls in the HTTP Client dashboard but not in Traces | committed with `commit()` | `commitSpan()` in the `finally` |
 | Client calls are roots of their own one-span traces | call ran outside a bound span (no server filter, `@Async`, scheduled job) | register the root-span filter (`jeffrey-traces-spring-rest-server`); wrap background work with `Tracer.fork`/`continueIn` |
 | One "endpoint" per entity id | raw expanded URL recorded as `uri` | record the template / normalized path |
-| Connection failures look green | exception path leaves `statusCode = 0` and status `UNSET` | acceptable (UNSET ≠ OK), or set `statusCode` from the exception mapping if you need red spans for transport errors |
+| Connection failures look green | exception path missing `failed(e)` | catch the transport exception, call `event.failed(e)`, rethrow (on 0.13.0, where HTTP events have no `failed`, UNSET ≠ OK is the best available) |
 | Async call measured as ~0 ms | event ended when the request was *sent*, not when the response arrived | complete the event from the response callback (deferred-commit pattern, §3) |
