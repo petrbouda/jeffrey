@@ -75,6 +75,15 @@
             <groupId>cafe.jeffrey-analyst</groupId>
             <artifactId>jeffrey-events</artifactId>
         </dependency>
+        <!--
+          Replaces the hand-written JFR HTTP filter this module used to carry: the
+          starter registers it, and jeffrey.tracing.* below keeps the same URL
+          patterns, ordering and parameter capture the filter had.
+        -->
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-events-spring-boot-starter</artifactId>
+        </dependency>
 
         <!-- gRPC remote clients (brings in hub-api + grpc-netty transitively) -->
         <dependency>

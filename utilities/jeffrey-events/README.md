@@ -23,6 +23,24 @@ into full request traces with per-span flamegraphs.
 </dependency>
 ```
 
+## Spring Boot: one dependency, no code
+
+```xml
+<dependency>
+    <groupId>cafe.jeffrey-analyst</groupId>
+    <artifactId>jeffrey-events-spring-boot-starter</artifactId>
+    <version><!-- latest release --></version>
+</dependency>
+```
+
+Every inbound request becomes the root span of a trace, named by the matched handler pattern, with
+statements and outbound calls nesting underneath. Tune it with `jeffrey.tracing.*`; see the
+[Spring server skill](skills/jeffrey-traces-spring-rest-server/SKILL.md).
+
+Not on Boot? `jeffrey-events-spring` has the same beans with no Boot dependency and no
+auto-configuration — `@Import(JeffreyTracingConfiguration.class)` and nothing happens until you ask.
+No Spring at all? `jeffrey-events-servlet` needs only `jakarta.servlet`.
+
 ## Sixty seconds of tracing
 
 An inbound request becomes the root of a trace, hand-written spans describe the application logic
@@ -75,6 +93,16 @@ jfr print --events "jeffrey.*" app.jfr
 
 Then upload `app.jfr` to Jeffrey — it auto-detects the event types and activates the matching
 dashboards.
+
+## Modules
+
+| Artifact | What it is |
+|---|---|
+| `jeffrey-events` | the events and the `Tracer` API; zero dependencies |
+| `jeffrey-events-test` | assertions over the spans in a recording, for your own tests; zero dependencies |
+| `jeffrey-events-servlet` | the root-span filter; needs only `jakarta.servlet` |
+| `jeffrey-events-spring` | Spring `@Configuration` you `@Import` explicitly; no Spring Boot dependency |
+| `jeffrey-events-spring-boot-starter` | auto-configuration: add it and write nothing |
 
 ## Event catalog
 

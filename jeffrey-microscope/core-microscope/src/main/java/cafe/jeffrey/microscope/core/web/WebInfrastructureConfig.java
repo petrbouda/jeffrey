@@ -25,7 +25,12 @@ import org.springframework.core.Ordered;
 
 /**
  * Wires Jeffrey's Spring MVC web infrastructure: the Jackson 3 message
- * converter, the exception handler, and the request-logging / JFR filters.
+ * converter, the exception handler, and the request-logging filter.
+ * <p>
+ * The JFR HTTP filter is no longer registered here: it ships in
+ * {@code jeffrey-events-spring-boot-starter}, which registers it from
+ * {@code jeffrey.tracing.*}. Jeffrey consumes the same artifact it publishes,
+ * so the filter has one implementation rather than one per adopter.
  */
 @Configuration
 public class WebInfrastructureConfig {
@@ -40,14 +45,6 @@ public class WebInfrastructureConfig {
         FilterRegistrationBean<JeffreyRequestLoggingFilter> bean = new FilterRegistrationBean<>(new JeffreyRequestLoggingFilter());
         bean.addUrlPatterns("/api/*");
         bean.setOrder(Ordered.HIGHEST_PRECEDENCE);
-        return bean;
-    }
-
-    @Bean
-    public FilterRegistrationBean<JeffreyJfrHttpEventFilter> jeffreyJfrHttpEventFilter() {
-        FilterRegistrationBean<JeffreyJfrHttpEventFilter> bean = new FilterRegistrationBean<>(new JeffreyJfrHttpEventFilter());
-        bean.addUrlPatterns("/api/*");
-        bean.setOrder(Ordered.HIGHEST_PRECEDENCE + 10);
         return bean;
     }
 }
