@@ -69,7 +69,7 @@
         </dependency>
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-events-grpc</artifactId>
+            <artifactId>jeffrey-tracing-grpc</artifactId>
         </dependency>
 
         <!-- Shared version controller (GET /api/internal/version) -->

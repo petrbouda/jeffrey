@@ -36,10 +36,14 @@
         exercises them too; their own <parent> references and release profiles stay independent so
         each library keeps its own coordinate, license, and publishing pipeline.
 
-        jeffrey-events is also *consumed* by the monorepo rather than merely built alongside it:
-        the root pom pins jeffrey-events.version to this module's 1.0-SNAPSHOT so the events the
-        application records and the events the parser reads come from one source. Editing an event
-        type here therefore changes the application; releasing the library is a separate act.
+        jeffrey-events is also *consumed* by the monorepo rather than merely built alongside it: the
+        root pom pins jeffrey-events.version to this module's 1.0-SNAPSHOT so the events the
+        application records and the events the parser reads come from one source. Editing an
+        event type here therefore changes the application; releasing the library is a separate act.
+
+        Only jeffrey-events is listed below, yet ../tracing builds too: the instrumentation
+        modules (jeffrey-tracing-*) live in that sibling directory and are aggregated by
+        jeffrey-events/pom.xml, which keeps them on one parent, one version and one release run.
     -->
     <modules>
         <module>jeffrey-events</module>

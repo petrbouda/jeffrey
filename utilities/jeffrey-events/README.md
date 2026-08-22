@@ -28,7 +28,7 @@ into full request traces with per-span flamegraphs.
 ```xml
 <dependency>
     <groupId>cafe.jeffrey-analyst</groupId>
-    <artifactId>jeffrey-events-spring-boot-starter</artifactId>
+    <artifactId>jeffrey-tracing-spring-boot-starter</artifactId>
     <version><!-- latest release --></version>
 </dependency>
 ```
@@ -39,9 +39,9 @@ anyone writing JDBC instrumentation, and a HikariCP pool gets its acquire/borrow
 periodic gauge. Tune it with `jeffrey.tracing.*`; see the
 [Spring server skill](skills/jeffrey-traces-spring-rest-server/SKILL.md).
 
-Not on Boot? `jeffrey-events-spring` has the same beans with no Boot dependency and no
+Not on Boot? `jeffrey-tracing-spring` has the same beans with no Boot dependency and no
 auto-configuration — `@Import(JeffreyTracingConfiguration.class)` and nothing happens until you ask.
-No Spring at all? `jeffrey-events-servlet` needs only `jakarta.servlet`.
+No Spring at all? `jeffrey-tracing-servlet` needs only `jakarta.servlet`.
 
 gRPC and MyBatis are one line each, wherever you build the server, the channel or the
 `Configuration` — there is nothing to auto-configure because gRPC has no bean the starter could
@@ -59,7 +59,7 @@ ManagedChannel channel = ManagedChannelBuilder.forAddress(host, port)
 configuration.addInterceptor(new JeffreyMyBatisInterceptor());   // UserMapper.selectById, with its parameters
 ```
 
-Use `jeffrey-events-mybatis` **or** the `DataSource` wrapper, not both — the MyBatis one names
+Use `jeffrey-tracing-mybatis` **or** the `DataSource` wrapper, not both — the MyBatis one names
 statements by mapper method rather than by parsing their SQL, and two of them record every statement
 twice.
 
@@ -138,13 +138,13 @@ dashboards.
 |---|---|
 | `jeffrey-events` | the events and the `Tracer` API; zero dependencies |
 | `jeffrey-events-test` | assertions over the spans in a recording, for your own tests; zero dependencies |
-| `jeffrey-events-servlet` | the root-span filter; needs only `jakarta.servlet` |
-| `jeffrey-events-spring` | Spring `@Configuration` you `@Import` explicitly; no Spring Boot dependency |
-| `jeffrey-events-jdbc` | a `DataSource` wrapper recording every statement — JdbcTemplate, Hibernate, jOOQ and MyBatis alike |
-| `jeffrey-events-hikari` | HikariCP metrics tracker: connection acquire/borrow/create/timeout, plus the periodic pool gauge |
-| `jeffrey-events-mybatis` | MyBatis `Executor` interceptor naming every statement by its mapper method, and recording the values it ran with |
-| `jeffrey-events-grpc` | gRPC server and client interceptors: an inbound call becomes a trace root, an outbound one a leaf |
-| `jeffrey-events-spring-boot-starter` | auto-configuration: add it and write nothing |
+| `jeffrey-tracing-servlet` | the root-span filter; needs only `jakarta.servlet` |
+| `jeffrey-tracing-spring` | Spring `@Configuration` you `@Import` explicitly; no Spring Boot dependency |
+| `jeffrey-tracing-jdbc` | a `DataSource` wrapper recording every statement — JdbcTemplate, Hibernate, jOOQ and MyBatis alike |
+| `jeffrey-tracing-hikari` | HikariCP metrics tracker: connection acquire/borrow/create/timeout, plus the periodic pool gauge |
+| `jeffrey-tracing-mybatis` | MyBatis `Executor` interceptor naming every statement by its mapper method, and recording the values it ran with |
+| `jeffrey-tracing-grpc` | gRPC server and client interceptors: an inbound call becomes a trace root, an outbound one a leaf |
+| `jeffrey-tracing-spring-boot-starter` | auto-configuration: add it and write nothing |
 
 ## Event catalog
 

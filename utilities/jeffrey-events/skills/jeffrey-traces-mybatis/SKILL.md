@@ -1,6 +1,6 @@
 ---
 name: jeffrey-traces-mybatis
-description: Instrument MyBatis data access with Jeffrey JFR events so every mapper call emits a JdbcQuery/JdbcInsert/JdbcUpdate/JdbcDelete/JdbcExecute event named by its MyBatis statement id, landing as a leaf span in Jeffrey Traces and feeding the Database dashboard. Covers the jeffrey-events-mybatis module (one dependency, one registration line), recording the parameter values a statement was bound with, when to prefer it over the DataSource wrapper in jeffrey-events-jdbc, and the hand-written interceptor for older releases. Requires the jeffrey-traces-core skill for the data model, emit rules, recording setup, and verification.
+description: Instrument MyBatis data access with Jeffrey JFR events so every mapper call emits a JdbcQuery/JdbcInsert/JdbcUpdate/JdbcDelete/JdbcExecute event named by its MyBatis statement id, landing as a leaf span in Jeffrey Traces and feeding the Database dashboard. Covers the jeffrey-tracing-mybatis module (one dependency, one registration line), recording the parameter values a statement was bound with, when to prefer it over the DataSource wrapper in jeffrey-tracing-jdbc, and the hand-written interceptor for older releases. Requires the jeffrey-traces-core skill for the data model, emit rules, recording setup, and verification.
 ---
 
 # Jeffrey Traces — MyBatis Instrumentation
@@ -28,7 +28,7 @@ Rules recap (from the core skill) that this embodies:
 ```xml
 <dependency>
     <groupId>cafe.jeffrey-analyst</groupId>
-    <artifactId>jeffrey-events-mybatis</artifactId>
+    <artifactId>jeffrey-tracing-mybatis</artifactId>
     <version><!-- latest release --></version>
 </dependency>
 ```
@@ -68,11 +68,11 @@ application that has the jar and no mappers.
 
 ## 2. This module or the `DataSource` wrapper — one of the two
 
-`jeffrey-events-jdbc` wraps the `DataSource` and would already record MyBatis statements, because
+`jeffrey-tracing-jdbc` wraps the `DataSource` and would already record MyBatis statements, because
 they reach the driver like everyone else's. Use it when one wrapper should cover a mixed
 application (JdbcTemplate *and* MyBatis *and* Hibernate), and accept SQL-derived names.
 
-Use `jeffrey-events-mybatis` when MyBatis is how the application talks to the database, because
+Use `jeffrey-tracing-mybatis` when MyBatis is how the application talks to the database, because
 MyBatis knows something the driver cannot: the **statement id**. A `DataSource` proxy has to name a
 statement by parsing its SQL (`SELECT users`); this names it `UserMapper.selectById` — one name per
 mapper method, stable however the SQL is assembled, and the name a developer would search for.
@@ -107,7 +107,7 @@ dashboard, and the values that made one execution slow live in `params` instead.
 MyBatis is the one integration that can record them cheaply: it hands the interceptor a `BoundSql`
 carrying the parameter mappings and the parameter object — the same inputs it binds the statement
 from. A `DataSource` proxy would have to intercept every `setXxx` call to know the same thing, and
-`jeffrey-events-jdbc` does not.
+`jeffrey-tracing-jdbc` does not.
 
 ```json
 {"id":42,"name":"grace"}

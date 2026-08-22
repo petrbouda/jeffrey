@@ -6,13 +6,13 @@
         <h5 class="alert-heading mb-3">{{ title }} Unavailable</h5>
         <p class="mb-3">
           {{ title }} is not available because of missing {{ eventType }} events in this profile. To
-          enable this dashboard, you need to include the Jeffrey Events library in your application.
+          enable this dashboard, you need to include the Jeffrey Tracing library in your application.
         </p>
 
         <div class="feature-benefits mb-3">
           <h6 class="mb-2">What you need to do:</h6>
           <ul class="mb-0">
-            <li>Add the Jeffrey Events dependency to your project</li>
+            <li>Add the Jeffrey Tracing dependency to your project</li>
             <li>
               Instrument your code to emit {{ eventType }} events at relevant points
               <div class="example-link mt-1">

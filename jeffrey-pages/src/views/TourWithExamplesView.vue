@@ -162,7 +162,7 @@
               </div>
               <h4>Custom Events</h4>
               <p>
-                Application-specific metrics and business logic events. Concretely, this recording contain emitted events from <a href="https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-events">Jeffrey Events</a>:
+                Application-specific metrics and business logic events. Concretely, this recording contain emitted events from <a href="https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-events">Jeffrey Tracing</a>:
               </p>
               <ul>
                 <li>HTTP Server</li>

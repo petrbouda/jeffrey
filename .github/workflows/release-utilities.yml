@@ -1,6 +1,8 @@
 # Ad-hoc, manual Maven Central release for the standalone utility libraries
-# (jeffrey-events, jeffrey-jib). These are released independently and on demand,
-# NOT as part of the main tag-triggered Jeffrey release (release.yml).
+# (jeffrey-events and jeffrey-jib). These are released independently and on demand,
+# NOT as part of the main tag-triggered Jeffrey release (release.yml). The module input is
+# the directory name under utilities/; picking jeffrey-events also publishes the
+# jeffrey-tracing-* instrumentation modules, which it aggregates from ../tracing.
 #
 # Replaces the two near-identical workflows release-jeffrey-events.yml and
 # release-jeffrey-jib.yml. Maven stages the artifacts (jar + sources + javadoc)

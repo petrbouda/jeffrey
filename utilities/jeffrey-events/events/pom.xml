@@ -29,9 +29,10 @@
     </parent>
 
     <!--
-      The published coordinate every consumer already depends on. It must not
-      change: the artifactId stays `jeffrey-events` even though the module now
-      lives one directory deeper.
+      The published coordinate every consumer already depends on, and the one
+      the JFR event types live under. It must not change: the instrumentation
+      modules were split out to ../../tracing and renamed jeffrey-tracing-*,
+      but the events artifact stays exactly where consumers expect it.
     -->
     <artifactId>jeffrey-events</artifactId>
 

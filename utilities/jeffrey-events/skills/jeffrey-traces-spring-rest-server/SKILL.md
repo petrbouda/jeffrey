@@ -1,6 +1,6 @@
 ---
 name: jeffrey-traces-spring-rest-server
-description: Instrument the server side of a Spring MVC (@RestController) application with Jeffrey JFR events so every inbound request becomes the root span of a trace. Covers the jeffrey-events-spring-boot-starter (one dependency, no code), the explicit @Import route for plain Spring, registering the filter on any servlet container, and the hand-written filter for older releases. Requires the jeffrey-traces-core skill for the data model, emit rules, recording setup, and verification; outbound HTTP calls are covered by jeffrey-traces-http-client.
+description: Instrument the server side of a Spring MVC (@RestController) application with Jeffrey JFR events so every inbound request becomes the root span of a trace. Covers the jeffrey-tracing-spring-boot-starter (one dependency, no code), the explicit @Import route for plain Spring, registering the filter on any servlet container, and the hand-written filter for older releases. Requires the jeffrey-traces-core skill for the data model, emit rules, recording setup, and verification; outbound HTTP calls are covered by jeffrey-traces-http-client.
 ---
 
 # Jeffrey Traces — Spring REST Server Instrumentation
@@ -29,7 +29,7 @@ Rules recap (from the core skill) that this embodies:
 ```xml
 <dependency>
     <groupId>cafe.jeffrey-analyst</groupId>
-    <artifactId>jeffrey-events-spring-boot-starter</artifactId>
+    <artifactId>jeffrey-tracing-spring-boot-starter</artifactId>
     <version><!-- latest release --></version>
 </dependency>
 ```
@@ -64,7 +64,7 @@ for itself.
 
 ## 2. Plain Spring, or Boot without auto-configuration: `@Import`
 
-`jeffrey-events-spring` carries the same beans with **no Spring Boot dependency and no
+`jeffrey-tracing-spring` carries the same beans with **no Spring Boot dependency and no
 auto-configuration**. It ships no `AutoConfiguration.imports` entry, so having it on the classpath
 registers nothing at all until you ask:
 
@@ -90,7 +90,7 @@ Using both the starter and this `@Import` is safe: the auto-configuration is gua
 
 ## 3. Any servlet container, no Spring at all
 
-`jeffrey-events-servlet` depends on `jakarta.servlet` and nothing else:
+`jeffrey-tracing-servlet` depends on `jakarta.servlet` and nothing else:
 
 ```java
 HttpExchangeFilter filter = new HttpExchangeFilter(
@@ -102,7 +102,7 @@ The one thing a container cannot answer is what a request should be *called*, so
 `HttpRequestNaming`. The built-in strategy names requests by their servlet mapping pattern
 (`/api/*`), which is already low-cardinality because a mapping is declared rather than derived from
 the request. Supply your own to use a router's matched template — that is exactly what
-`jeffrey-events-spring` does with Spring MVC's best-matching handler pattern.
+`jeffrey-tracing-spring` does with Spring MVC's best-matching handler pattern.
 
 ## 4. Older releases: the hand-written filter
 
