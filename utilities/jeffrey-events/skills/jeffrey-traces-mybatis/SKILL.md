@@ -14,15 +14,17 @@ Your mappers need **zero changes**. A MyBatis `Interceptor` (plugin) on the
 
 Rules recap (from the core skill) that this code embodies:
 
-- Every statement event is a **leaf span**: committed with `commitSpan()`
-  in its own `finally`, so it nests under whatever span is in progress on the
-  executing thread (usually the HTTP request), or records as untraced-but-
-  present when there is none. A bare `commit()` would drop it from every trace.
+- Every statement event is a **leaf span**: committed with `commitSpan()`,
+  so it nests under whatever span is in progress on the executing thread
+  (usually the HTTP request), or records as untraced-but-present when there is
+  none. A bare `commit()` would drop it from every trace. `TracedEvents.emit`
+  below commits that way for you.
 - The span name must be low-cardinality: the **MyBatis statement id**
   (`UserMapper.selectById`) — one name per mapper method — never the SQL text
   or anything containing parameter values.
 - Failures are recorded with `event.failed(throwable)` (sets `status=ERROR` +
-  `errorType`), then rethrown.
+  `errorType`), then rethrown — again, what `TracedEvents.emit` does for a
+  body that throws.
 
 ---
 
@@ -145,8 +147,8 @@ public class JeffreyJfrMyBatisInterceptor implements Interceptor {
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Statements present in the Database dashboard but not in Traces | committed with `commit()` | `commitSpan()` in the `finally` |
+| Statements present in the Database dashboard but not in Traces | committed with `commit()` | `TracedEvents.emit`, or `commitSpan()` in the `finally` |
 | SQL spans are roots of their own one-span traces | statement ran outside a bound span (no HTTP filter, `@Async`, batch job) | register the root-span filter (`jeffrey-traces-spring-rest-server`); wrap background work with `Tracer.fork`/`continueIn` |
 | One "statement" per parameter combination | parameter values leaked into the event **name** | name from `MappedStatement.getId()` only; values go to `params` at most |
-| Failed statements look green | exception path missing `failed(t)` | catch `Throwable`, call `event.failed(t)`, rethrow |
+| Failed statements look green | exception path missing `failed(t)` | `TracedEvents.emit` records it; by hand, catch `Throwable`, call `event.failed(t)`, rethrow |
 | Duplicate events per query | interceptor registered twice (bean + XML) | register through exactly one mechanism |

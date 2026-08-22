@@ -17,8 +17,9 @@ exchange of the request being served) — never with `Tracer.inSpanOf`.
 
 Rules recap (from the core skill) that this code embodies:
 
-- Leaf events commit with `commitSpan()` in their own `finally`; a bare
-  `commit()` silently drops the call from every trace.
+- Leaf events commit with `commitSpan()`; a bare `commit()` silently drops
+  the call from every trace. `TracedEvents.emit` below commits that way for
+  you.
 - `uri` must be low-cardinality: the URI template you expanded, or host + path
   with variable segments collapsed — never a URL containing an entity id.
 - `statusCode` drives span status automatically: `describeSpan()` marks
@@ -100,8 +101,8 @@ carries the right identity.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Calls in the HTTP Client dashboard but not in Traces | committed with `commit()` | `commitSpan()` in the `finally` |
+| Calls in the HTTP Client dashboard but not in Traces | committed with `commit()` | `TracedEvents.emit`, or `commitSpan()` in the `finally` |
 | Client calls are roots of their own one-span traces | call ran outside a bound span (no server filter, `@Async`, scheduled job) | register the root-span filter (`jeffrey-traces-spring-rest-server`); wrap background work with `Tracer.fork`/`continueIn` |
 | One "endpoint" per entity id | raw expanded URL recorded as `uri` | record the template / normalized path |
-| Connection failures look green | exception path missing `failed(e)` | catch the transport exception, call `event.failed(e)`, rethrow (on 0.13.0, where HTTP events have no `failed`, UNSET ≠ OK is the best available) |
+| Connection failures look green | exception path missing `failed(e)` | `TracedEvents.emit` records it; by hand, catch the transport exception, call `event.failed(e)`, rethrow (on 0.13.0, where HTTP events have no `failed`, UNSET ≠ OK is the best available) |
 | Async call measured as ~0 ms | event ended when the request was *sent*, not when the response arrived | complete the event from the response callback (deferred-commit pattern, §3) |
