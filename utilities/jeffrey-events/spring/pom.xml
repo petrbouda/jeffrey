@@ -52,6 +52,26 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- optional: an application without a data source, or without Hikari, uses neither. -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jeffrey-events-jdbc</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jeffrey-events-hikari</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>${hikaricp.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>

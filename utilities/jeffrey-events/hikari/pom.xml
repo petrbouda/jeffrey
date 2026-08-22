@@ -28,86 +28,31 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <!--
-      The one dependency a Spring Boot application adds. It brings the events, the
-      filter and the plain Spring configuration transitively, and contributes the
-      auto-configuration that wires them.
-    -->
-    <artifactId>jeffrey-events-spring-boot-starter</artifactId>
+    <artifactId>jeffrey-events-hikari</artifactId>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>Spring Boot starter that auto-configures Jeffrey JFR instrumentation: one dependency, no code</description>
+    <description>HikariCP metrics tracker emitting Jeffrey connection-pool events, including the periodic pool gauge</description>
     <!-- Explicit: Maven Central rejects children that inherit a url with the artifactId appended. -->
     <url>https://github.com/petrbouda/jeffrey</url>
 
     <dependencies>
-        <!-- Compile scope: a starter exists to bring what it configures. -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-events-spring</artifactId>
-            <version>${project.version}</version>
+            <artifactId>jeffrey-events</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-events-jdbc</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <!--
-          Brought along, but inert unless the application actually uses HikariCP: the
-          auto-configuration is conditional on HikariDataSource being present, and Hikari
-          itself stays provided here.
-        -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-events-hikari</artifactId>
-            <version>${project.version}</version>
-        </dependency>
+        <!-- provided: the application already has the pool it is instrumenting. -->
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
             <version>${hikaricp.version}</version>
             <scope>provided</scope>
         </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-autoconfigure</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.servlet</groupId>
-            <artifactId>jakarta.servlet-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- Generates IDE metadata for the jeffrey.tracing.* properties. -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-configuration-processor</artifactId>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>jeffrey-events-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- A real pool over a real driver, so the tracker is exercised by Hikari itself. -->
         <dependency>
             <groupId>org.duckdb</groupId>
             <artifactId>duckdb_jdbc</artifactId>
@@ -124,7 +69,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Automatic-Module-Name>cafe.jeffrey.jfr.events.spring.boot</Automatic-Module-Name>
+                            <Automatic-Module-Name>cafe.jeffrey.jfr.events.jdbc.hikari</Automatic-Module-Name>
                         </manifestEntries>
                     </archive>
                 </configuration>

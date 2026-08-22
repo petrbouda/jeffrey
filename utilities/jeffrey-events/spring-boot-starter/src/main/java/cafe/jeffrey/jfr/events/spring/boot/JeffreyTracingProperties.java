@@ -35,6 +35,8 @@ import java.util.List;
  * @param urlPatterns      which requests the filter sees; {@code /*} covers everything
  * @param order            the filter's order in the chain — first by default, so security, routing
  *                         and data access all happen inside the span
+ * @param jdbcEnabled      whether every {@code DataSource} bean is wrapped to record statements
+ * @param hikariEnabled    whether HikariCP pools get a Jeffrey metrics tracker
  * @param captureQueryParams record query-string parameters on the event; off by default, because
  *                         query strings routinely carry tokens and personal data, and a recording
  *                         is a file that gets shared
@@ -46,6 +48,8 @@ public record JeffreyTracingProperties(
         Boolean enabled,
         List<String> urlPatterns,
         Integer order,
+        Boolean jdbcEnabled,
+        Boolean hikariEnabled,
         Boolean captureQueryParams,
         Boolean capturePathParams) {
 
@@ -55,6 +59,8 @@ public record JeffreyTracingProperties(
         enabled = enabled == null || enabled;
         urlPatterns = urlPatterns == null || urlPatterns.isEmpty() ? ALL_REQUESTS : List.copyOf(urlPatterns);
         order = order == null ? Ordered.HIGHEST_PRECEDENCE : order;
+        jdbcEnabled = jdbcEnabled == null || jdbcEnabled;
+        hikariEnabled = hikariEnabled == null || hikariEnabled;
         captureQueryParams = captureQueryParams != null && captureQueryParams;
         capturePathParams = capturePathParams != null && capturePathParams;
     }
