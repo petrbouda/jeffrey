@@ -19,6 +19,7 @@
 package cafe.jeffrey.shared.persistence.client;
 
 import cafe.jeffrey.jfr.events.jdbc.statement.*;
+import cafe.jeffrey.jfr.events.trace.TracedEvents;
 import tools.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
@@ -64,121 +65,58 @@ public class DatabaseClient {
 
     public int insert(StatementLabel statement, String sql, SqlParameterSource paramSource) {
         JdbcInsertEvent event = new JdbcInsertEvent(statement.name().toLowerCase(), groupLabel);
-        event.begin();
-
-        int rows = 0;
-        try {
-            rows = delegate.update(sql, paramSource);
-            event.end();
-        } catch (Exception e) {
-            event.failed(e);
-            throw e;
-        } finally {
-            if (event.shouldCommit()) {
-                event.sql = sql;
-                event.rows = rows;
-                event.params = paramSourceToJson(paramSource);
-                event.commitSpan();
-            }
-        }
-
-        return rows;
+        return TracedEvents.emit(event,
+                () -> delegate.update(sql, paramSource),
+                (e, rows) -> {
+                    e.sql = sql;
+                    e.rows = rows != null ? rows : 0;
+                    e.params = paramSourceToJson(paramSource);
+                });
     }
 
     public int insertWithLob(StatementLabel statement, String sql, SqlParameterSource paramSource) {
         JdbcInsertEvent event = new JdbcInsertEvent(statement.name().toLowerCase(), groupLabel);
-        event.begin();
-
-        int rows = 0;
-        try {
-            rows = delegate.update(sql, paramSource);
-            event.end();
-        } catch (Exception e) {
-            event.failed(e);
-            throw e;
-        } finally {
-            if (event.shouldCommit()) {
-                event.sql = sql;
-                event.rows = rows;
-                event.isLob = true;
-                event.params = paramSourceToJson(paramSource);
-                event.commitSpan();
-            }
-        }
-
-        return rows;
+        return TracedEvents.emit(event,
+                () -> delegate.update(sql, paramSource),
+                (e, rows) -> {
+                    e.sql = sql;
+                    e.rows = rows != null ? rows : 0;
+                    e.isLob = true;
+                    e.params = paramSourceToJson(paramSource);
+                });
     }
 
     public long batchInsert(StatementLabel statement, String sql, SqlParameterSource[] paramSources) {
         JdbcInsertEvent event = new JdbcInsertEvent(statement.name().toLowerCase(), groupLabel);
-        event.begin();
-
-        long rowsSum = 0;
-        try {
-            int[] rows = delegate.batchUpdate(sql, paramSources);
-            event.end();
-            rowsSum = sumRows(rows);
-        } catch (Exception e) {
-            event.failed(e);
-            throw e;
-        } finally {
-            if (event.shouldCommit()) {
-                event.rows = rowsSum;
-                event.isBatch = true;
-                // Don't populate `params` and `sql` in batch processing
-                // event.sql = sql;
-                // event.params = paramSourceToString(paramSource);
-                event.commitSpan();
-            }
-        }
-
-        return rowsSum;
+        return TracedEvents.emit(event,
+                () -> sumRows(delegate.batchUpdate(sql, paramSources)),
+                (e, rows) -> {
+                    e.rows = rows != null ? rows : 0;
+                    e.isBatch = true;
+                    // Don't populate `params` and `sql` in batch processing
+                });
     }
 
     public int update(StatementLabel statement, String sql, SqlParameterSource paramSource) {
         JdbcUpdateEvent event = new JdbcUpdateEvent(statement.name().toLowerCase(), groupLabel);
-        event.begin();
-
-        int rows = 0;
-        try {
-            rows = delegate.update(sql, paramSource);
-            event.end();
-        } catch (Exception e) {
-            event.failed(e);
-            throw e;
-        } finally {
-            if (event.shouldCommit()) {
-                event.sql = sql;
-                event.rows = rows;
-                event.params = paramSourceToJson(paramSource);
-                event.commitSpan();
-            }
-        }
-
-        return rows;
+        return TracedEvents.emit(event,
+                () -> delegate.update(sql, paramSource),
+                (e, rows) -> {
+                    e.sql = sql;
+                    e.rows = rows != null ? rows : 0;
+                    e.params = paramSourceToJson(paramSource);
+                });
     }
 
     public int delete(StatementLabel statement, String sql, SqlParameterSource paramSource) {
         JdbcDeleteEvent event = new JdbcDeleteEvent(statement.name().toLowerCase(), groupLabel);
-        event.begin();
-
-        int rows = 0;
-        try {
-            rows = delegate.update(sql, paramSource);
-            event.end();
-        } catch (Exception e) {
-            event.failed(e);
-            throw e;
-        } finally {
-            if (event.shouldCommit()) {
-                event.sql = sql;
-                event.rows = rows;
-                event.params = paramSourceToJson(paramSource);
-                event.commitSpan();
-            }
-        }
-
-        return rows;
+        return TracedEvents.emit(event,
+                () -> delegate.update(sql, paramSource),
+                (e, rows) -> {
+                    e.sql = sql;
+                    e.rows = rows != null ? rows : 0;
+                    e.params = paramSourceToJson(paramSource);
+                });
     }
 
     /**
@@ -212,137 +150,67 @@ public class DatabaseClient {
 
     public int delete(StatementLabel statement, String sql) {
         JdbcDeleteEvent event = new JdbcDeleteEvent(statement.name().toLowerCase(), groupLabel);
-        event.begin();
-
-        int rows = 0;
-        try {
-            rows = delegate.getJdbcOperations().update(sql);
-            event.end();
-        } catch (Exception e) {
-            event.failed(e);
-            throw e;
-        } finally {
-            if (event.shouldCommit()) {
-                event.sql = sql;
-                event.rows = rows;
-                event.commitSpan();
-            }
-        }
-
-        return rows;
+        return TracedEvents.emit(event,
+                () -> delegate.getJdbcOperations().update(sql),
+                (e, rows) -> {
+                    e.sql = sql;
+                    e.rows = rows != null ? rows : 0;
+                });
     }
 
     public void execute(StatementLabel statement, String sql) {
         JdbcExecuteEvent event = new JdbcExecuteEvent(statement.name().toLowerCase(), groupLabel);
-        event.begin();
-
-        try {
-            delegate.getJdbcOperations().execute(sql);
-            event.end();
-        } catch (Exception e) {
-            event.failed(e);
-            throw e;
-        } finally {
-            if (event.shouldCommit()) {
-                event.sql = sql;
-                event.commitSpan();
-            }
-        }
+        TracedEvents.emit(event,
+                () -> delegate.getJdbcOperations().execute(sql),
+                e -> e.sql = sql);
     }
 
     public <T> List<T> query(StatementLabel statement, String sql, RowMapper<T> rowMapper) {
         JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
-        event.begin();
-
-        List<T> list = null;
-        try {
-            list = delegate.query(sql, rowMapper);
-            event.end();
-        } catch (Exception e) {
-            event.failed(e);
-            throw e;
-        } finally {
-            if (event.shouldCommit()) {
-                event.sql = sql;
-                event.rows = list != null ? list.size() : 0;
-                event.commitSpan();
-            }
-        }
-
-        return list;
+        return TracedEvents.emit(event,
+                () -> delegate.query(sql, rowMapper),
+                (e, list) -> {
+                    e.sql = sql;
+                    e.rows = list != null ? list.size() : 0;
+                });
     }
 
-    public <T> List<T> query(
+    public void query(
             StatementLabel statement, String sql, SqlParameterSource paramSource, RowCallbackHandler callbackHandler) {
 
         CountingRowCallbackHandler handler = new CountingRowCallbackHandler(callbackHandler);
 
         JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
-        event.begin();
-
-        List<T> list = null;
-        try {
-            delegate.query(sql, paramSource, handler);
-            event.end();
-        } catch (Exception e) {
-            event.failed(e);
-            throw e;
-        } finally {
-            if (event.shouldCommit()) {
-                event.sql = sql;
-                event.rows = handler.getRowCount();
-                event.commitSpan();
-            }
-        }
-
-        return list;
+        TracedEvents.emit(event,
+                () -> delegate.query(sql, paramSource, handler),
+                e -> {
+                    e.sql = sql;
+                    e.rows = handler.getRowCount();
+                });
     }
 
     public <T> List<T> query(
             StatementLabel statement, String sql, SqlParameterSource paramSource, RowMapper<T> rowMapper) {
 
         JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
-        event.begin();
-
-        List<T> list = null;
-        try {
-            list = delegate.query(sql, paramSource, rowMapper);
-            event.end();
-        } catch (Exception e) {
-            event.failed(e);
-            throw e;
-        } finally {
-            if (event.shouldCommit()) {
-                event.sql = sql;
-                event.rows = list != null ? list.size() : 0;
-                event.params = paramSourceToJson(paramSource);
-                event.commitSpan();
-            }
-        }
-
-        return list;
+        return TracedEvents.emit(event,
+                () -> delegate.query(sql, paramSource, rowMapper),
+                (e, list) -> {
+                    e.sql = sql;
+                    e.rows = list != null ? list.size() : 0;
+                    e.params = paramSourceToJson(paramSource);
+                });
     }
 
     public long queryLong(StatementLabel statement, String sql, SqlParameterSource paramSource) {
         JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
-        event.begin();
-
-        Long longValue = null;
-        try {
-            longValue = delegate.queryForObject(sql, paramSource, long.class);
-            event.end();
-        } catch (Exception e) {
-            event.failed(e);
-            throw e;
-        } finally {
-            if (event.shouldCommit()) {
-                event.sql = sql;
-                event.rows = longValue != null ? 1 : 0;
-                event.params = paramSourceToJson(paramSource);
-                event.commitSpan();
-            }
-        }
-        return longValue;
+        return TracedEvents.emit(event,
+                () -> delegate.queryForObject(sql, paramSource, long.class),
+                (e, value) -> {
+                    e.sql = sql;
+                    e.rows = value != null ? 1 : 0;
+                    e.params = paramSourceToJson(paramSource);
+                });
     }
 
     public <T> Optional<T> querySingle(
@@ -354,26 +222,16 @@ public class DatabaseClient {
 
     public boolean queryExists(StatementLabel statement, String sql, SqlParameterSource paramSource) {
         JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
-        event.begin();
-
-        boolean exists = false;
-        try {
-            Long count = delegate.queryForObject(sql, paramSource, Long.class);
-            exists = count != null && count > 0;
-            event.end();
-        } catch (Exception e) {
-            event.failed(e);
-            throw e;
-        } finally {
-            if (event.shouldCommit()) {
-                event.sql = sql;
-                event.rows = exists ? 1 : 0;
-                event.params = paramSourceToJson(paramSource);
-                event.commitSpan();
-            }
-        }
-
-        return exists;
+        return TracedEvents.emit(event,
+                () -> {
+                    Long count = delegate.queryForObject(sql, paramSource, Long.class);
+                    return count != null && count > 0;
+                },
+                (e, exists) -> {
+                    e.sql = sql;
+                    e.rows = Boolean.TRUE.equals(exists) ? 1 : 0;
+                    e.params = paramSourceToJson(paramSource);
+                });
     }
 
     public <T> void queryStream(
@@ -385,33 +243,24 @@ public class DatabaseClient {
             StatementLabel statement, String sql, SqlParameterSource paramSource, RowMapper<T> mapper, Consumer<T> consumer, Consumer<Object> counter) {
 
         JdbcStreamEvent event = new JdbcStreamEvent(statement.name().toLowerCase(), groupLabel);
-        event.sql = sql;
-        event.begin();
-
-        long rows = 0;
-        long samples = 0;
-        try (Stream<T> queryStream = delegate.queryForStream(sql, paramSource, mapper)) {
-            Stream<T> stream = queryStream;
-            if (counter != null) {
-                stream = stream.peek(counter);
-            }
-            stream.forEach(consumer);
-            if (counter instanceof StreamCounter sc) {
-                rows = sc.rows();
-                samples = sc.samples();
-            }
-        } catch (Exception e) {
-            event.failed(e);
-            throw e;
-        } finally {
-            event.end();
-            if (event.shouldCommit()) {
-                event.rows = rows;
-                event.samples = samples;
-                event.params = paramSourceToJson(paramSource);
-                event.commitSpan();
-            }
-        }
+        TracedEvents.emit(event,
+                () -> {
+                    try (Stream<T> queryStream = delegate.queryForStream(sql, paramSource, mapper)) {
+                        Stream<T> stream = queryStream;
+                        if (counter != null) {
+                            stream = stream.peek(counter);
+                        }
+                        stream.forEach(consumer);
+                    }
+                },
+                e -> {
+                    e.sql = sql;
+                    if (counter instanceof StreamCounter sc) {
+                        e.rows = sc.rows();
+                        e.samples = sc.samples();
+                    }
+                    e.params = paramSourceToJson(paramSource);
+                });
     }
 
     public <T> void queryStream(StatementLabel statement, String sql, RowMapper<T> mapper, Consumer<T> consumer) {
