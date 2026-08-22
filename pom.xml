@@ -301,6 +301,12 @@
                 <artifactId>jeffrey-events</artifactId>
                 <version>${jeffrey-events.version}</version>
             </dependency>
+            <dependency>
+                <groupId>cafe.jeffrey-analyst</groupId>
+                <artifactId>jeffrey-events-test</artifactId>
+                <version>${jeffrey-events.version}</version>
+                <scope>test</scope>
+            </dependency>
 
             <!-- gRPC -->
             <dependency>

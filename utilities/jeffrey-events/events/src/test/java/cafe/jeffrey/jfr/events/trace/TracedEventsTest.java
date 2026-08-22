@@ -20,6 +20,7 @@ package cafe.jeffrey.jfr.events.trace;
 
 import cafe.jeffrey.jfr.events.jdbc.statement.JdbcQueryEvent;
 import cafe.jeffrey.jfr.events.jdbc.statement.JdbcUpdateEvent;
+import cafe.jeffrey.jfr.events.test.JfrRecordings;
 import jdk.jfr.consumer.RecordedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
