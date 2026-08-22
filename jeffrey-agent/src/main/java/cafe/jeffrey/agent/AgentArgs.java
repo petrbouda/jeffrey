@@ -30,7 +30,9 @@ public record AgentArgs(Path heartbeatDir, Duration heartbeatInterval, boolean h
     private record KeyValue(String key, String value) {
     }
 
-    // Duplicated from HeartbeatConstants — agent must stay zero-dependency for minimal JAR size
+    // Duplicated from HeartbeatConstants rather than shared: the agent depends on none of
+    // Jeffrey's own modules, which is what lets it target an older Java release than they do
+    // and keeps it independent of whatever the profiled application has on its class path.
     private static final String PARAM_DIR = "heartbeat.dir";
     private static final String PARAM_INTERVAL = "heartbeat.interval";
     private static final String PARAM_ENABLED = "heartbeat.enabled";

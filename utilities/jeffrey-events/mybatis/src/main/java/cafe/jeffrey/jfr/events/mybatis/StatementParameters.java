@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.jfr.events.mybatis;
 
+import cafe.jeffrey.jfr.events.trace.AttributeValues;
 import cafe.jeffrey.jfr.events.trace.SpanAttributes;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
@@ -51,12 +52,6 @@ final class StatementParameters {
             List.of(byte[].class, Blob.class, Clob.class, InputStream.class, Reader.class, SQLXML.class);
 
     private static final String LOB_PLACEHOLDER = "<lob-value>";
-    private static final String TRUNCATION_MARKER = "…";
-
-    /** Written as JSON numbers; every other Number is rendered as text rather than losing digits. */
-    private static final Set<Class<?>> INTEGRAL_TYPES = Set.of(Byte.class, Short.class, Integer.class, Long.class);
-    private static final Set<Class<?>> DECIMAL_TYPES = Set.of(Float.class, Double.class);
-
     private StatementParameters() {
     }
 
@@ -108,26 +103,16 @@ final class StatementParameters {
         return configuration.newMetaObject(parameterObject).getValue(property);
     }
 
+    /**
+     * Content that would have to be read to be rendered is named rather than read; everything else
+     * is written the way every other emitter writes a captured value.
+     */
     private static void put(SpanAttributes attributes, String key, Object value, int maxValueLength) {
-        switch (value) {
-            case null -> attributes.put(key, (String) null);
-            case Boolean flag -> attributes.put(key, (boolean) flag);
-            case Number number when INTEGRAL_TYPES.contains(number.getClass()) ->
-                    attributes.put(key, number.longValue());
-            case Number number when DECIMAL_TYPES.contains(number.getClass()) ->
-                    attributes.put(key, number.doubleValue());
-            default -> attributes.put(key, render(value, maxValueLength));
-        }
-    }
-
-    private static String render(Object value, int maxValueLength) {
         if (LOB_TYPES.stream().anyMatch(type -> type.isInstance(value))) {
-            return LOB_PLACEHOLDER;
+            attributes.put(key, LOB_PLACEHOLDER);
+            return;
         }
-        String rendered = String.valueOf(value);
-        if (rendered.length() <= maxValueLength) {
-            return rendered;
-        }
-        return rendered.substring(0, maxValueLength) + TRUNCATION_MARKER;
+
+        AttributeValues.put(attributes, key, value, maxValueLength);
     }
 }
