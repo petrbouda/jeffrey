@@ -22,6 +22,14 @@ import jdk.jfr.Category;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
 
+/**
+ * A query consumed as a stream, committed when the stream closes rather than when the statement
+ * returns. That deferred commit may run after the enclosing span's binding is gone — or inside
+ * someone else's — so the emitter stamps eagerly with
+ * {@link cafe.jeffrey.jfr.events.trace.Tracer#stamp Tracer.stamp} at construction;
+ * {@link cafe.jeffrey.jfr.events.trace.AbstractTracedEvent#commitSpan() commitSpan()} never
+ * re-stamps an event that already carries identity.
+ */
 @Name(JdbcStreamEvent.NAME)
 @Label("JDBC Stream Statement")
 @Category({"Application", "JDBC"})

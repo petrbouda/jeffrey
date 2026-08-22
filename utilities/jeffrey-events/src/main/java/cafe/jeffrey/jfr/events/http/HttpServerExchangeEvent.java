@@ -23,6 +23,12 @@ import jdk.jfr.Description;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
 
+/**
+ * An inbound HTTP request/response exchange — normally the <b>root span</b> of the request's
+ * trace, opened with {@link cafe.jeffrey.jfr.events.trace.Tracer#inSpanOf Tracer.inSpanOf} from a
+ * servlet filter registered first in the chain. See the {@linkplain cafe.jeffrey.jfr.events.http
+ * package documentation} for the full emit pattern.
+ */
 @Name(HttpServerExchangeEvent.NAME)
 @Label("HTTP Server Exchange")
 @Description("Information about a single HTTP Server Request/Response Exchange")

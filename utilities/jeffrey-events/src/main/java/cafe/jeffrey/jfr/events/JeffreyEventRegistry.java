@@ -31,6 +31,14 @@ import jdk.jfr.Event;
 
 import java.util.List;
 
+/**
+ * Every event type this library ships, in one list — for tooling that needs the catalog: eager
+ * {@link jdk.jfr.FlightRecorder#register registration}, settings generation, documentation.
+ * <p>
+ * Ordinary instrumentation never needs it: JFR auto-registers an event type the first time an
+ * instance of its class is created, so committed events always land in the recording with full
+ * metadata.
+ */
 public abstract class JeffreyEventRegistry {
 
     private static final List<Class<? extends Event>> EVENTS = List.of(
