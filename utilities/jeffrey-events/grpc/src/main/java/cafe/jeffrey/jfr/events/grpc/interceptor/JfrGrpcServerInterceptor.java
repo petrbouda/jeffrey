@@ -16,13 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.grpc;
+package cafe.jeffrey.jfr.events.grpc.interceptor;
 
 import cafe.jeffrey.jfr.events.grpc.GrpcServerExchangeEvent;
 import cafe.jeffrey.jfr.events.trace.SpanContext;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import com.google.protobuf.MessageLite;
-import io.grpc.*;
+import io.grpc.ForwardingServerCall;
+import io.grpc.ForwardingServerCallListener;
+import io.grpc.Grpc;
+import io.grpc.Metadata;
+import io.grpc.MethodDescriptor;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
+import io.grpc.Status;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -46,6 +54,10 @@ import java.net.SocketAddress;
  * For a unary call the handler runs inside {@code onHalfClose}, so that is the callback that
  * actually carries the service method; the others are wrapped because a streaming call spreads its
  * work across all of them.
+ * <p>
+ * Register it once, globally, rather than per service — on Spring gRPC that is a
+ * {@code @GlobalServerInterceptor} bean, and on plain gRPC
+ * {@code ServerBuilder.intercept(new JfrGrpcServerInterceptor())}.
  */
 public class JfrGrpcServerInterceptor implements ServerInterceptor {
 
@@ -83,6 +95,11 @@ public class JfrGrpcServerInterceptor implements ServerInterceptor {
                 // transport does on the way out still falls within the span it belongs to.
                 Tracer.reenter(span, () -> {
                     event.statusCode = status.getCode().name();
+                    // A status that carries a cause knows more than its code does: recording it
+                    // puts the exception type on the span, the way the client side does.
+                    if (status.getCause() != null) {
+                        event.failed(status.getCause());
+                    }
                     event.end();
                     if (event.shouldCommit()) {
                         event.commitSpan();
