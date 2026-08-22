@@ -40,40 +40,34 @@ public class JeffreyJfrRestTemplateInterceptor implements ClientHttpRequestInter
     public ClientHttpResponse intercept(
             HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
 
+        // TracedEvents.emit is the whole leaf lifecycle: guard, begin, end on
+        // success, failed(e) on the exception path (a transport failure that
+        // never produced a status code shows red), commitSpan() stamping the
+        // event under the span in progress — usually the server exchange of
+        // the request being served. The IOException propagates through typed.
         HttpClientExchangeEvent event = new HttpClientExchangeEvent();
-        if (!event.isEnabled()) {
-            return execution.execute(request, body);
-        }
-        event.begin();
-        ClientHttpResponse response = null;
-        try {
-            response = execution.execute(request, body);
-            event.end();
-            return response;
-        } catch (IOException e) {
-            // No status code ever arrived - the recorded failure is the
-            // verdict: status=ERROR + the exception's class as errorType.
-            event.failed(e);
-            throw e;
-        } finally {
-            if (event.shouldCommit()) {
-                event.method = request.getMethod().name();
-                // Low-cardinality: host + path with variable segments collapsed,
-                // ideally the URI template you expanded. Never a URL containing
-                // an entity id — one distinct name per endpoint, not per call.
-                event.uri = request.getURI().getHost() + normalizePath(request.getURI().getPath());
-                event.remoteHost = request.getURI().getHost();
-                event.remotePort = request.getURI().getPort();
-                event.requestLength = body.length;
-                event.statusCode = response != null ? response.getStatusCode().value() : 0;
-                // A leaf: commitSpan() stamps it under the span in progress
-                // (usually the server exchange of the request being served).
-                event.commitSpan();
-            }
-        }
+        return TracedEvents.emit(event,
+                () -> execution.execute(request, body),
+                (e, response) -> {
+                    e.method = request.getMethod().name();
+                    // Low-cardinality: host + path with variable segments
+                    // collapsed, ideally the URI template you expanded. Never a
+                    // URL containing an entity id — one distinct name per
+                    // endpoint, not per call.
+                    e.uri = request.getURI().getHost() + normalizePath(request.getURI().getPath());
+                    e.remoteHost = request.getURI().getHost();
+                    e.remotePort = request.getURI().getPort();
+                    e.requestLength = body.length;
+                    // response is null when the call threw before answering.
+                    e.statusCode = response != null ? response.getStatusCode().value() : 0;
+                });
     }
 }
 ```
+
+On 0.13.0, without `TracedEvents`, write the expanded shape from the core
+skill's §4 rule 3 instead (guard, `begin()`, `end()` on success, `commitSpan()`
+in the `finally`).
 
 ## 2. Registration
 

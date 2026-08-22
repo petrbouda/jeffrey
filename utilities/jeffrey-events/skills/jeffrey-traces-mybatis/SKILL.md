@@ -34,6 +34,7 @@ picks the event class.
 ```java
 import cafe.jeffrey.jfr.events.jdbc.statement.JdbcBaseEvent;
 import cafe.jeffrey.jfr.events.jdbc.statement.JdbcStatementEvents;
+import cafe.jeffrey.jfr.events.trace.TracedEvents;
 import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
@@ -62,30 +63,18 @@ public class JeffreyJfrMyBatisInterceptor implements Interceptor {
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
         MappedStatement statement = (MappedStatement) invocation.getArgs()[0];
-        JdbcBaseEvent event = createEvent(statement);
-        if (!event.isEnabled()) {
-            return invocation.proceed();
-        }
-
         Object parameter = invocation.getArgs()[1];
-        event.begin();
-        Object result = null;
-        try {
-            result = invocation.proceed();
-            event.end();
-            return result;
-        } catch (Throwable t) {
-            event.failed(t);        // status=ERROR + errorType; the span shows red
-            throw t;
-        } finally {
-            if (event.shouldCommit()) {
-                event.sql = statement.getBoundSql(parameter).getSql();
-                event.rows = countRows(result);
-                // Leaf span: nested under the HTTP request (or Tracer span)
-                // in progress on this thread; untraced-but-recorded when none.
-                event.commitSpan();
-            }
-        }
+
+        // TracedEvents.emit is the whole leaf lifecycle: guard, begin, end on
+        // success, failed(t) on a throw (the span shows red), commitSpan()
+        // nesting the statement under the HTTP request (or Tracer span) in
+        // progress on this thread — untraced-but-recorded when there is none.
+        return TracedEvents.emit(createEvent(statement),
+                invocation::proceed,
+                (event, result) -> {
+                    event.sql = statement.getBoundSql(parameter).getSql();
+                    event.rows = countRows(result);   // null result on failure -> 0
+                });
     }
 
     /**

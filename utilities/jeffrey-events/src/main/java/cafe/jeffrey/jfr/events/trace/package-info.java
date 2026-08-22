@@ -27,6 +27,8 @@
  *       ({@code run}/{@code call}), opens an event as its own span ({@code inSpanOf} /
  *       {@code openSpanOf}), and carries traces across threads ({@code fork}, {@code continueIn},
  *       {@code reenter})</li>
+ *   <li>{@link cafe.jeffrey.jfr.events.trace.TracedEvents} — the leaf emit shape written once:
+ *       guard, begin, the work, failure recording, fill, commit</li>
  *   <li>{@link cafe.jeffrey.jfr.events.trace.TraceSpanEvent} ({@code jeffrey.TraceSpan}) — the
  *       event {@code Tracer} emits for an interval no other instrumentation describes</li>
  *   <li>{@link cafe.jeffrey.jfr.events.trace.TraceScopeEvent} ({@code jeffrey.TraceScope}) — one
