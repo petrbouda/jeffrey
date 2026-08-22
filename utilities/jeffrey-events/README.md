@@ -33,8 +33,10 @@ into full request traces with per-span flamegraphs.
 </dependency>
 ```
 
-Every inbound request becomes the root span of a trace, named by the matched handler pattern, with
-statements and outbound calls nesting underneath. Tune it with `jeffrey.tracing.*`; see the
+Every inbound request becomes the root span of a trace, named by the matched handler pattern. Every
+`DataSource` bean is wrapped, so the statements your ORM issues nest underneath the request without
+anyone writing JDBC instrumentation, and a HikariCP pool gets its acquire/borrow/create timings and a
+periodic gauge. Tune it with `jeffrey.tracing.*`; see the
 [Spring server skill](skills/jeffrey-traces-spring-rest-server/SKILL.md).
 
 Not on Boot? `jeffrey-events-spring` has the same beans with no Boot dependency and no
@@ -102,6 +104,8 @@ dashboards.
 | `jeffrey-events-test` | assertions over the spans in a recording, for your own tests; zero dependencies |
 | `jeffrey-events-servlet` | the root-span filter; needs only `jakarta.servlet` |
 | `jeffrey-events-spring` | Spring `@Configuration` you `@Import` explicitly; no Spring Boot dependency |
+| `jeffrey-events-jdbc` | a `DataSource` wrapper recording every statement — JdbcTemplate, Hibernate, jOOQ and MyBatis alike |
+| `jeffrey-events-hikari` | HikariCP metrics tracker: connection acquire/borrow/create/timeout, plus the periodic pool gauge |
 | `jeffrey-events-spring-boot-starter` | auto-configuration: add it and write nothing |
 
 ## Event catalog
