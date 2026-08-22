@@ -40,6 +40,7 @@ const headings = [
   { id: 'api-fork', text: 'fork', level: 3 },
   { id: 'semantics', text: 'Semantics at a Glance', level: 2 },
   { id: 'choosing', text: 'Choosing the Right Method', level: 2 },
+  { id: 'annotation', text: 'Without the Lambda: @Traced', level: 2 },
   { id: 'composed-tree', text: 'A Complete Tree', level: 2 },
   { id: 'usages', text: 'Where Jeffrey Uses It', level: 2 }
 ];
@@ -527,6 +528,57 @@ const composedTree = `trace a3f9c1d4…                                         
           </tr>
         </tbody>
       </table>
+
+      <h2 id="annotation">Without the Lambda: <code>@Traced</code></h2>
+
+      <p>Every method on this page wraps work in a lambda, which is precise and visible in the code. <code>@Traced</code> declares the same span instead, and the Jeffrey Agent weaves it in — the method is left as it was written.</p>
+
+      <pre><code class="language-java">@Traced(name = "order.checkout", kind = SpanKind.CLIENT,
+        args = {"tier=gold"}, includeMethodArgs = {"orderId"})
+public Receipt checkout(String orderId, Card card) { ... }</code></pre>
+
+      <pre><code class="language-bash">java -javaagent:jeffrey-agent.jar=tracing.enabled=true -jar app.jar</code></pre>
+
+      <p>It emits the same <code>jeffrey.TraceSpan</code> event as <code>Tracer.call</code>, nests under whatever span is in progress on the thread, records as its own root when there is none, and marks the span failed with the exception's type when the method throws — the exception itself reaches the caller untouched.</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Attribute</th>
+            <th>Default</th>
+            <th>Meaning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>name</code></td>
+            <td>derived</td>
+            <td>The span name. Empty derives <code>SimpleClassName.methodName</code>, which is low-cardinality by construction</td>
+          </tr>
+          <tr>
+            <td><code>kind</code></td>
+            <td><code>INTERNAL</code></td>
+            <td>What kind of work this is, exactly as the <code>SpanKind</code> passed to <code>Tracer.run</code></td>
+          </tr>
+          <tr>
+            <td><code>args</code></td>
+            <td>none</td>
+            <td>Fixed <code>"key=value"</code> attributes recorded on every call</td>
+          </tr>
+          <tr>
+            <td><code>includeMethodArgs</code></td>
+            <td>none</td>
+            <td>Which parameters to record, by name. Naming one is itself the request to capture it</td>
+          </tr>
+          <tr>
+            <td><code>captureMethodArgs</code></td>
+            <td><code>false</code></td>
+            <td>Records every argument. Prefer <code>includeMethodArgs</code>, which is a list of what may be recorded rather than of what may not</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>Captured values are truncated, and parameter names come from javac's <code>-parameters</code> flag — without it they are <code>arg0</code>, <code>arg1</code>, and so on. The annotation needs Java 25 and the agent attached at startup; without either it is inert and the method runs exactly as written. See the <router-link to="/docs/agent/overview">Jeffrey Agent</router-link> for the rest.</p>
 
       <h2 id="composed-tree">A Complete Tree</h2>
 

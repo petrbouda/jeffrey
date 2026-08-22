@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Jeffrey
+  ~ Copyright (C) 2026 Petr Bouda
+  ~
+  ~ This program is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU Affero General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU Affero General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU Affero General Public License
+  ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>cafe.jeffrey</groupId>
+        <artifactId>build</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>build-agent-tests</artifactId>
+
+    <!--
+      Proves the agent works as shipped: the real shaded jar, attached with -javaagent, weaving
+      classes that use the real jeffrey-events. Nothing here is published; it exists so that the
+      relocation, the class-loader bridge and the span semantics are exercised together, which no
+      unit test in either module can do on its own.
+    -->
+    <properties>
+        <maven-failsafe-plugin.version>3.5.4</maven-failsafe-plugin.version>
+        <!--
+          The jar the release publishes, by the name build-agent's finalName gives it. Not resolved
+          as a dependency: that resolves to build-agent's main artifact, which is the thin jar
+          without the relocated engine — the one thing these tests must not attach.
+        -->
+        <agent.jar>${project.basedir}/../build-agent/target/jeffrey-agent.jar</agent.jar>
+    </properties>
+
+    <dependencies>
+        <!-- The shaded agent jar itself. Also what orders the reactor: this module cannot build
+             until build-agent has produced the jar the tests attach. -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>build-agent</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-events</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-events-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!--
+              Failsafe rather than surefire, because these tests need the agent jar to exist: they
+              run after package, which is when the shaded jar is built.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${maven-failsafe-plugin.version}</version>
+                <configuration>
+                    <argLine>-javaagent:${agent.jar}=tracing.enabled=true</argLine>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
