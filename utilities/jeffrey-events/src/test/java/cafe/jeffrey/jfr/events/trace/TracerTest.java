@@ -30,6 +30,13 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -655,6 +662,157 @@ class TracerTest {
                 task.run();
                 return null;
             });
+        }
+
+        @Test
+        @DisplayName("the callable form returns the body's value and reparents like fork")
+        void forkCallableReturnsTheValueAndReparents() throws IOException {
+            Object result = new Object();
+
+            Map<String, RecordedEvent> spans = recordSpans(() -> {
+                Callable<Object> task = Tracer.call("submit", SpanKind.SERVER,
+                        () -> Tracer.forkCallable("handle", SpanKind.INTERNAL, () -> result));
+                runOnAnotherThread(() -> {
+                    assertSame(result, task.call());
+                    return null;
+                });
+            });
+
+            RecordedEvent submit = spans.get("submit");
+            RecordedEvent handle = spans.get("handle");
+            assertEquals(submit.getLong("traceId"), handle.getLong("traceId"));
+            assertEquals(submit.getLong("spanId"), handle.getLong("parentSpanId"));
+        }
+
+        @Test
+        @DisplayName("the kind-less callable form records INTERNAL")
+        void kindLessCallableDefaultsToInternal() throws IOException {
+            Map<String, RecordedEvent> spans = recordSpans(() -> {
+                Callable<String> task = Tracer.forkCallable("handle", () -> "done");
+                try {
+                    assertEquals("done", task.call());
+                } catch (Exception e) {
+                    throw new IllegalStateException(e);
+                }
+            });
+
+            assertEquals(SpanKind.INTERNAL.name(), spans.get("handle").getString("kind"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Propagating executors")
+    class PropagatingExecutors {
+
+        @Test
+        @DisplayName("a submitted task runs inside the submitting span, so nested work reparents to it")
+        void submittedTaskRunsInsideTheSubmittingSpan() throws IOException {
+            Map<String, RecordedEvent> spans = recordSpans(() ->
+                    withExecutor(executor -> {
+                        Future<?> future = Tracer.call("submit", SpanKind.SERVER, () ->
+                                executor.submit(() -> Tracer.run("handle", SpanKind.INTERNAL, () -> {
+                                })));
+                        awaitQuietly(future);
+                    }));
+
+            RecordedEvent submit = spans.get("submit");
+            RecordedEvent handle = spans.get("handle");
+            assertEquals(submit.getLong("traceId"), handle.getLong("traceId"));
+            assertEquals(submit.getLong("spanId"), handle.getLong("parentSpanId"),
+                    "the task is the same operation continuing elsewhere, not a child span");
+        }
+
+        @Test
+        @DisplayName("a leaf event emitted inside a submitted callable stamps under the submitting span")
+        void leafInsideACallableStampsUnderTheSubmittingSpan() {
+            JdbcQueryEvent statement = new JdbcQueryEvent("listSpans", "profile");
+
+            withExecutor(executor -> {
+                // continueIn rather than call: it binds with or without a recording, so the
+                // propagation itself is what this test exercises.
+                SpanContext submitting = Tracer.continueIn(null, "submit", SpanKind.SERVER, () -> {
+                    Future<?> future = executor.submit(() -> {
+                        Tracer.stamp(statement);
+                        return null;
+                    });
+                    awaitQuietly(future);
+                    return Tracer.current().orElseThrow();
+                });
+
+                assertEquals(submitting.traceId(), statement.traceId);
+                assertEquals(submitting.spanId(), statement.parentSpanId);
+            });
+        }
+
+        @Test
+        @DisplayName("each task activation records a scope naming the span it resumed")
+        void eachTaskRecordsAScope() throws IOException {
+            AtomicReference<SpanContext> submitting = new AtomicReference<>();
+
+            List<RecordedEvent> scopes = JfrRecordings.all(TraceScopeEvent.NAME, () ->
+                    withExecutor(executor ->
+                            submitting.set(Tracer.call("submit", SpanKind.SERVER, () -> {
+                                awaitQuietly(executor.submit(() -> null));
+                                awaitQuietly(executor.submit(() -> null));
+                                return Tracer.current().orElseThrow();
+                            }))));
+
+            assertEquals(2, scopes.size(), "one scope per task, recording where each actually ran");
+            for (RecordedEvent scope : scopes) {
+                assertEquals(submitting.get().spanId(), scope.getLong("scopedSpanId"));
+            }
+        }
+
+        @Test
+        @DisplayName("invokeAll carries the span into every task of the batch")
+        void invokeAllCarriesTheSpan() {
+            withExecutor(executor ->
+                    // continueIn rather than run: it binds with or without a recording.
+                    Tracer.continueIn(null, "submit", SpanKind.SERVER, () -> {
+                        try {
+                            List<Future<Boolean>> futures = executor.invokeAll(List.of(
+                                    () -> Tracer.current().isPresent(),
+                                    () -> Tracer.current().isPresent()));
+                            for (Future<Boolean> future : futures) {
+                                assertTrue(future.get(), "every task of the batch runs inside the span");
+                            }
+                        } catch (InterruptedException | ExecutionException e) {
+                            throw new IllegalStateException(e);
+                        }
+                    }));
+        }
+
+        @Test
+        @DisplayName("a task submitted outside any span runs untouched")
+        void taskOutsideASpanRunsUntouched() throws IOException {
+            List<RecordedEvent> scopes = JfrRecordings.all(TraceScopeEvent.NAME, () ->
+                    withExecutor(executor -> {
+                        Future<?> future = executor.submit(() ->
+                                assertTrue(Tracer.current().isEmpty(), "nothing was bound at submission"));
+                        awaitQuietly(future);
+                    }));
+
+            assertTrue(scopes.isEmpty(), "no span was carried, so there is no scope to record");
+        }
+
+        private void withExecutor(Consumer<ExecutorService> body) {
+            ExecutorService executor = Tracer.propagating(Executors.newSingleThreadExecutor());
+            try {
+                body.accept(executor);
+            } finally {
+                executor.shutdown();
+            }
+        }
+
+        private void awaitQuietly(Future<?> future) {
+            try {
+                future.get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
+            } catch (ExecutionException e) {
+                throw new IllegalStateException(e.getCause());
+            }
         }
     }
 
