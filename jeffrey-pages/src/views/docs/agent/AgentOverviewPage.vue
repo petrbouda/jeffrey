@@ -72,7 +72,7 @@ onMounted(() => {
             <div class="agent-card-icon"><i class="bi bi-braces"></i></div>
             <div class="agent-card-content">
               <h4>Method Tracing</h4>
-              <p>Every method annotated <code>@Traced</code> becomes a span nested under whatever work called it. Opt-in, and it needs Java 25 plus <code>jeffrey-tracing</code> on the application's class path; without either, the annotated methods simply run.</p>
+              <p>Every method annotated <code>@Traced</code> becomes a span nested under whatever work called it. Opt-in, and it needs Java 25 plus <code>jeffrey-events</code> on the application's class path; without either, the annotated methods simply run.</p>
             </div>
           </div>
           <div class="agent-card">
@@ -153,7 +153,7 @@ onMounted(() => {
         </div>
 
         <h2 id="method-tracing">Method Tracing</h2>
-        <p>Annotate a method and it becomes a span. The method itself is not written around its own tracing — that is the difference from calling <code>Tracer.run</code> by hand, which the <code>jeffrey-tracing</code> library also offers.</p>
+        <p>Annotate a method and it becomes a span. The method itself is not written around its own tracing — that is the difference from calling <code>Tracer.run</code> by hand, which the <code>jeffrey-events</code> library also offers.</p>
         <pre class="agent-code"><code>@Traced(name = "order.checkout", args = {"tier=gold"}, includeMethodArgs = {"orderId"})
 public Receipt checkout(String orderId, Card card) { ... }</code></pre>
         <pre class="agent-code"><code>java -javaagent:/path/to/jeffrey-agent.jar=tracing.enabled=true -jar app.jar</code></pre>
@@ -161,7 +161,7 @@ public Receipt checkout(String orderId, Card card) { ... }</code></pre>
         <p>Arguments are recorded only when asked for. <code>includeMethodArgs</code> names the ones to keep, which is a list of what may be recorded rather than of what may not; <code>captureMethodArgs = true</code> takes all of them. Values are truncated, and the parameter names come from javac's <code>-parameters</code> flag — without it they are <code>arg0</code>, <code>arg1</code>, and so on.</p>
 
         <DocsCallout type="info">
-          Method tracing needs Java 25 and <code>cafe.jeffrey-analyst:jeffrey-tracing</code> on the application's class path, because that is where <code>@Traced</code> and the span machinery live. Missing either, the agent says so once in the log and the annotated methods run exactly as if it were not attached — the application is never at risk from a missing dependency.
+          Method tracing needs Java 25 and <code>cafe.jeffrey-analyst:jeffrey-events</code> on the application's class path, because that is where <code>@Traced</code> and the span machinery live. Missing either, the agent says so once in the log and the annotated methods run exactly as if it were not attached — the application is never at risk from a missing dependency.
         </DocsCallout>
         <DocsCallout type="warning">
           Classes are woven as they load, so the agent has to be on the command line at startup. A class already loaded when the agent attaches keeps its original methods.

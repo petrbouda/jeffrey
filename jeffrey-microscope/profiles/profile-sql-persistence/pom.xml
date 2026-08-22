@@ -34,7 +34,7 @@
              instrumentation emits, so a rename on one side cannot silently diverge from the other -->
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-tracing</artifactId>
+            <artifactId>jeffrey-events</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

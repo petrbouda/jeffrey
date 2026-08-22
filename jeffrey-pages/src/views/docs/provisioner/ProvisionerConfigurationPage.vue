@@ -264,7 +264,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
               <td><code>method-tracing.enabled</code></td>
               <td>No</td>
               <td><code>JEFFREY_METHOD_TRACING</code></td>
-              <td>Record methods annotated <code>@Traced</code> as spans. Needs Java 25 and <code>jeffrey-tracing</code> on the application's class path</td>
+              <td>Record methods annotated <code>@Traced</code> as spans. Needs Java 25 and <code>jeffrey-events</code> on the application's class path</td>
             </tr>
             <tr>
               <td><code>heap-dump</code></td>

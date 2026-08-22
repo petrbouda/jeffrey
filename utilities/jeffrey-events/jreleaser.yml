@@ -1,4 +1,4 @@
-# JReleaser configuration for deploying jeffrey-tracing to Maven Central.
+# JReleaser configuration for deploying jeffrey-events to Maven Central.
 #
 # JReleaser only performs the SIGN + UPLOAD of artifacts that Maven has already
 # staged into target/staging-deploy (see the unified release-utilities workflow).
@@ -7,7 +7,7 @@
 #
 # Invoked with `jreleaser deploy`, so no GitHub release/tag is created here.
 project:
-  name: jeffrey-tracing
+  name: jeffrey-events
   description: Jeffrey-specific events that can be visualized by Jeffrey
   authors:
     - Petr Bouda

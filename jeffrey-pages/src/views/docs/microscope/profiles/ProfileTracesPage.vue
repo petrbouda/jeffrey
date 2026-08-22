@@ -49,8 +49,8 @@ onMounted(() => {
 
 const mavenDependency = `<dependency>
     <groupId>cafe.jeffrey-analyst</groupId>
-    <artifactId>jeffrey-tracing</artifactId>
-    <version>x.y.z</version>
+    <artifactId>jeffrey-events</artifactId>
+    <version>0.12.0</version>
 </dependency>`;
 
 const tracerExample = `import cafe.jeffrey.jfr.events.trace.SpanKind;
@@ -169,7 +169,7 @@ if (event.isEnabled()) {
       <DocsCodeBlock :code="mavenDependency" language="xml" />
 
       <DocsCallout type="warning">
-        <strong>Java 25 or newer.</strong> The tracing API is built on <code>ScopedValue</code> (JEP&nbsp;506) and <code>jdk.jfr.Contextual</code>, both finalized in Java&nbsp;25, so <code>jeffrey-tracing</code> targets 25. Applications on Java 17–24 can stay on a <code>jeffrey-events</code> release older than 0.12.0 for the HTTP, gRPC and JDBC events, but cannot use <code>Tracer</code>.
+        <strong>Java 25 or newer.</strong> The tracing API is built on <code>ScopedValue</code> (JEP&nbsp;506) and <code>jdk.jfr.Contextual</code>, both finalized in Java&nbsp;25, so <code>jeffrey-events</code> 0.12.0 targets 25. Applications on Java 17–24 can stay on an earlier release for the HTTP, gRPC and JDBC events, but cannot use <code>Tracer</code>.
       </DocsCallout>
 
       <h3>Opening spans</h3>
@@ -200,7 +200,7 @@ if (event.isEnabled()) {
 
       <h2 id="auto-instrumented">Every Instrumented Event Is a Span</h2>
 
-      <p>The HTTP, gRPC and JDBC events in <code>jeffrey-tracing</code> extend <code>AbstractTracedEvent</code>, which carries the whole span shape — <code>traceId</code>, <code>spanId</code>, <code>parentSpanId</code>, plus the <code>name</code>, <code>kind</code>, <code>status</code>, <code>errorType</code> and <code>attributes</code> a <code>jeffrey.TraceSpan</code> carries. An event that has them <em>is</em> a span; there is nothing for Jeffrey to work out from the event type.</p>
+      <p>The HTTP, gRPC and JDBC events in <code>jeffrey-events</code> extend <code>AbstractTracedEvent</code>, which carries the whole span shape — <code>traceId</code>, <code>spanId</code>, <code>parentSpanId</code>, plus the <code>name</code>, <code>kind</code>, <code>status</code>, <code>errorType</code> and <code>attributes</code> a <code>jeffrey.TraceSpan</code> carries. An event that has them <em>is</em> a span; there is nothing for Jeffrey to work out from the event type.</p>
 
       <p>Both roles commit through <code>commitSpan()</code>, which stamps an event that does not yet carry trace identity and leaves one that does untouched. A leaf, like a statement, is stamped by the commit itself with a span of its own nested inside the span in progress — the stamp cannot be forgotten. An entry point, like an inbound request, runs through <code>Tracer.inSpanOf</code> first, which makes the event <em>be</em> the span it opens, so anything traced underneath nests inside it. Both let the event derive its own name and status first:</p>
 

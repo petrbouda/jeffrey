@@ -29,14 +29,14 @@ import java.util.concurrent.Callable;
  * Finds the tracing runtime that belongs to an instrumented class, or decides once and for all
  * that there is none.
  * <p>
- * The agent cannot link against {@code jeffrey-tracing}: the agent jar is appended to the system
+ * The agent cannot link against {@code jeffrey-events}: the agent jar is appended to the system
  * class path, while the library usually lives in a child loader — a Spring Boot fat jar, a web
  * application, a plugin container. Linking would also pin the agent to Java 25, which it is not.
  * So the runtime is resolved through the <em>instrumented class's own</em> loader, which is the one
  * loader guaranteed to see the library that class was compiled against.
  * <p>
  * Resolution can fail for perfectly ordinary reasons — the application does not ship
- * {@code jeffrey-tracing}, or runs on Java 21 where the release-25 runtime cannot load. Every one of
+ * {@code jeffrey-events}, or runs on Java 21 where the release-25 runtime cannot load. Every one of
  * those ends the same way: remember that this class has no runtime, say so once, and let its
  * methods run untouched forever after. An agent that broke an application because a dependency was
  * missing would be a far worse bug than the missing spans.
@@ -85,7 +85,7 @@ final class TracedRuntimeBinding {
         } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | LinkageError e) {
             // LinkageError covers the Java 21 case: the runtime is compiled for 25 and cannot load.
             LOG.log(Level.WARNING, "Method tracing inactive for " + instrumented.getName()
-                    + ": jeffrey-tracing is missing, older than this agent, or needs Java 25 (" + e + ")");
+                    + ": jeffrey-events is missing, older than this agent, or needs Java 25 (" + e + ")");
             return UNAVAILABLE;
         }
     }

@@ -1,4 +1,4 @@
-# jeffrey-tracing
+# jeffrey-events
 
 Custom JFR event types and a tracing API for instrumenting JVM applications, visualized by
 [Jeffrey](https://github.com/petrbouda/jeffrey).
@@ -18,7 +18,7 @@ into full request traces with per-span flamegraphs.
 ```xml
 <dependency>
     <groupId>cafe.jeffrey-analyst</groupId>
-    <artifactId>jeffrey-tracing</artifactId>
+    <artifactId>jeffrey-events</artifactId>
     <version><!-- latest from Maven Central --></version>
 </dependency>
 ```
@@ -136,8 +136,8 @@ dashboards.
 
 | Artifact | What it is |
 |---|---|
-| `jeffrey-tracing` | the events and the `Tracer` API; zero dependencies |
-| `jeffrey-tracing-test` | assertions over the spans in a recording, for your own tests; zero dependencies |
+| `jeffrey-events` | the events and the `Tracer` API; zero dependencies |
+| `jeffrey-events-test` | assertions over the spans in a recording, for your own tests; zero dependencies |
 | `jeffrey-tracing-servlet` | the root-span filter; needs only `jakarta.servlet` |
 | `jeffrey-tracing-spring` | Spring `@Configuration` you `@Import` explicitly; no Spring Boot dependency |
 | `jeffrey-tracing-jdbc` | a `DataSource` wrapper recording every statement — JdbcTemplate, Hibernate, jOOQ and MyBatis alike |

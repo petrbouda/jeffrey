@@ -48,9 +48,9 @@
             The reactor's own utilities/jeffrey-events, not the published artifact: the events the
             application records and the events it parses have to be the same source, or a change to
             an event type compiles here and never reaches a recording. Override with
-            -Djeffrey-tracing.version=<released> to build against what is on Maven Central.
+            -Djeffrey-events.version=<released> to build against what is on Maven Central.
         -->
-        <jeffrey-tracing.version>1.0-SNAPSHOT</jeffrey-tracing.version>
+        <jeffrey-events.version>1.0-SNAPSHOT</jeffrey-events.version>
         <spring-boot.version>4.1.0</spring-boot.version>
         <spring-ai.version>2.0.0</spring-ai.version>
         <duckdb.version>1.5.3.0</duckdb.version>
@@ -298,24 +298,24 @@
             </dependency>
             <dependency>
                 <groupId>cafe.jeffrey-analyst</groupId>
-                <artifactId>jeffrey-tracing</artifactId>
-                <version>${jeffrey-tracing.version}</version>
+                <artifactId>jeffrey-events</artifactId>
+                <version>${jeffrey-events.version}</version>
             </dependency>
             <dependency>
                 <groupId>cafe.jeffrey-analyst</groupId>
-                <artifactId>jeffrey-tracing-test</artifactId>
-                <version>${jeffrey-tracing.version}</version>
+                <artifactId>jeffrey-events-test</artifactId>
+                <version>${jeffrey-events.version}</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>cafe.jeffrey-analyst</groupId>
                 <artifactId>jeffrey-tracing-spring-boot-starter</artifactId>
-                <version>${jeffrey-tracing.version}</version>
+                <version>${jeffrey-events.version}</version>
             </dependency>
             <dependency>
                 <groupId>cafe.jeffrey-analyst</groupId>
                 <artifactId>jeffrey-tracing-grpc</artifactId>
-                <version>${jeffrey-tracing.version}</version>
+                <version>${jeffrey-events.version}</version>
             </dependency>
 
             <!-- gRPC -->

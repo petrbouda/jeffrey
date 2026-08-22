@@ -31,7 +31,7 @@
 
     <!--
       Proves the agent works as shipped: the real shaded jar, attached with -javaagent, weaving
-      classes that use the real jeffrey-tracing. Nothing here is published; it exists so that the
+      classes that use the real jeffrey-events. Nothing here is published; it exists so that the
       relocation, the class-loader bridge and the span semantics are exercised together, which no
       unit test in either module can do on its own.
     -->
@@ -56,12 +56,12 @@
         </dependency>
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-tracing</artifactId>
+            <artifactId>jeffrey-events</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-tracing-test</artifactId>
+            <artifactId>jeffrey-events-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

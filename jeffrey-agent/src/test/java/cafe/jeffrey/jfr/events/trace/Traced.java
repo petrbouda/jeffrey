@@ -24,7 +24,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Stands in for the real annotation, which lives in {@code jeffrey-tracing} and cannot be depended
+ * Stands in for the real annotation, which lives in {@code jeffrey-events} and cannot be depended
  * on here: that library is compiled for Java 25 while the agent targets 21, and the agent resolves
  * everything about tracing by name at runtime rather than by linking.
  * <p>

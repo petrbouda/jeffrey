@@ -35,7 +35,7 @@
         <!-- Tracer: profile initialization is recorded as a trace of its stages -->
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-tracing</artifactId>
+            <artifactId>jeffrey-events</artifactId>
         </dependency>
         <!-- Core dependencies -->
         <dependency>

@@ -24,17 +24,17 @@
 
     <parent>
         <groupId>cafe.jeffrey-analyst</groupId>
-        <artifactId>jeffrey-tracing-parent</artifactId>
+        <artifactId>jeffrey-events-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
     <!--
-      Renamed from `jeffrey-events`: the library is a tracing toolkit, and the
-      old name described only half of it. Versions up to 0.15.0 stay on Maven
-      Central under the old coordinate forever — Central is immutable — so a
-      consumer moving to this one changes the artifactId, not just the version.
+      The published coordinate every consumer already depends on, and the one
+      the JFR event types live under. It must not change: the instrumentation
+      modules were split out to ../../tracing and renamed jeffrey-tracing-*,
+      but the events artifact stays exactly where consumers expect it.
     -->
-    <artifactId>jeffrey-tracing</artifactId>
+    <artifactId>jeffrey-events</artifactId>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Jeffrey-specific events that can be visualized by Jeffrey</description>
@@ -44,12 +44,12 @@
     <dependencies>
         <!--
           The toolkit depends on nothing, so this does not make a reactor cycle:
-          jeffrey-tracing-test builds first, and jeffrey-tracing uses it to assert
+          jeffrey-events-test builds first, and jeffrey-events uses it to assert
           its own emit paths against a real recording.
         -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-tracing-test</artifactId>
+            <artifactId>jeffrey-events-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

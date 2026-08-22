@@ -24,25 +24,31 @@
 
     <parent>
         <groupId>cafe.jeffrey-analyst</groupId>
-        <artifactId>jeffrey-tracing-parent</artifactId>
+        <artifactId>jeffrey-events-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath>../../pom.xml</relativePath>
+        <relativePath>../../jeffrey-events/pom.xml</relativePath>
     </parent>
 
-    <artifactId>jeffrey-tracing-jdbc</artifactId>
+    <artifactId>jeffrey-tracing-mybatis</artifactId>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>DataSource wrapper recording every JDBC statement as a Jeffrey leaf span, whatever persistence framework issued it</description>
+    <description>MyBatis Executor interceptor emitting a Jeffrey statement event per mapper call, named by the statement id</description>
     <!-- Explicit: Maven Central rejects children that inherit a url with the artifactId appended. -->
     <url>https://github.com/petrbouda/jeffrey</url>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-tracing</artifactId>
+            <artifactId>jeffrey-events</artifactId>
+        </dependency>
+        <!-- provided: the application already has MyBatis. -->
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+            <version>${mybatis.version}</version>
+            <scope>provided</scope>
         </dependency>
 
-        <!-- An in-process database, so the proxy is tested against a real driver. -->
         <dependency>
             <groupId>org.duckdb</groupId>
             <artifactId>duckdb_jdbc</artifactId>
@@ -51,7 +57,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-tracing-test</artifactId>
+            <artifactId>jeffrey-events-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -64,7 +70,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Automatic-Module-Name>cafe.jeffrey.jfr.events.jdbc.datasource</Automatic-Module-Name>
+                            <Automatic-Module-Name>cafe.jeffrey.jfr.events.mybatis</Automatic-Module-Name>
                         </manifestEntries>
                     </archive>
                 </configuration>

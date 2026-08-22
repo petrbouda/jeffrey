@@ -24,9 +24,9 @@
 
     <parent>
         <groupId>cafe.jeffrey-analyst</groupId>
-        <artifactId>jeffrey-tracing-parent</artifactId>
+        <artifactId>jeffrey-events-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath>../../pom.xml</relativePath>
+        <relativePath>../../jeffrey-events/pom.xml</relativePath>
     </parent>
 
     <artifactId>jeffrey-tracing-servlet</artifactId>
@@ -39,7 +39,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-tracing</artifactId>
+            <artifactId>jeffrey-events</artifactId>
         </dependency>
         <!--
           provided: the container supplies the servlet API, and a web framework is
@@ -54,7 +54,7 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-tracing-test</artifactId>
+            <artifactId>jeffrey-events-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

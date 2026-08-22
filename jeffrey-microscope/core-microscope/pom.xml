@@ -69,7 +69,7 @@
         </dependency>
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-tracing</artifactId>
+            <artifactId>jeffrey-events</artifactId>
         </dependency>
         <!--
           Replaces the hand-written JFR HTTP filter this module used to carry: the

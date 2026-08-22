@@ -6,7 +6,7 @@ description: Core concepts and rules for instrumenting any JVM application with 
 # Jeffrey Traces — Core Concepts and Rules
 
 This is the foundation skill for instrumenting an application with Jeffrey's
-custom JFR events (library `cafe.jeffrey-analyst:jeffrey-tracing`) so that
+custom JFR events (library `cafe.jeffrey-analyst:jeffrey-events`) so that
 recordings uploaded to Jeffrey land **correctly in its profile database**:
 requests become roots of traces, SQL statements and outbound calls become leaf
 spans nested under them, and hand-written `TraceSpan` events fill in the
@@ -94,7 +94,7 @@ Understand this model first; every rule follows from it.
 ```xml
 <dependency>
     <groupId>cafe.jeffrey-analyst</groupId>
-    <artifactId>jeffrey-tracing</artifactId>
+    <artifactId>jeffrey-events</artifactId>
     <version><!-- latest release on Maven Central --></version>
 </dependency>
 ```
@@ -103,7 +103,7 @@ Understand this model first; every rule follows from it.
   is built on `ScopedValue` (JEP 506) and `jdk.jfr.Contextual`, both finalized
   in Java 25.
 - On **Java 17–24** you can use the HTTP, gRPC and JDBC events from an earlier
-  `jeffrey-tracing` release (they still light up the HTTP/Database dashboards),
+  `jeffrey-events` release (they still light up the HTTP/Database dashboards),
   but not `Tracer` — no hand-written spans and no cross-event trace nesting.
 - There is a single commit verb: `commitSpan()` stamps an event that does not
   yet carry identity, `failed(Throwable)` exists on **every** traced event, and
@@ -113,7 +113,7 @@ Understand this model first; every rule follows from it.
   on in production: when no recording is running, every emit path checks
   `event.isEnabled()` and runs the body directly with nothing allocated beyond
   an escape-analysable event instance.
-- If the application runs on the module path, `jeffrey-tracing` already
+- If the application runs on the module path, `jeffrey-events` already
   `opens` its event packages to `jdk.jfr`; nothing to configure. On the
   classpath, nothing to configure either.
 - No registration step is needed: JFR auto-registers each event type the
