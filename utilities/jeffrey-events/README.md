@@ -63,6 +63,22 @@ Use `jeffrey-events-mybatis` **or** the `DataSource` wrapper, not both — the M
 statements by mapper method rather than by parsing their SQL, and two of them record every statement
 twice.
 
+## Or annotate the method and write nothing
+
+```java
+@Traced(name = "order.checkout", args = {"tier=gold"}, includeMethodArgs = {"orderId"})
+public Receipt checkout(String orderId, Card card) { ... }
+```
+
+```bash
+java -javaagent:jeffrey-agent.jar=tracing.enabled=true -jar app.jar
+```
+
+The [Jeffrey agent](https://www.jeffrey-analyst.cafe) weaves the same span the explicit form builds,
+so the method is not written around its own tracing. It nests under whatever span is in progress,
+fails with the exception's type, and records only the arguments you name. Needs Java 25; without the
+agent the annotation is inert and the method runs as written.
+
 ## Sixty seconds of tracing
 
 An inbound request becomes the root of a trace, hand-written spans describe the application logic
@@ -140,7 +156,7 @@ dashboards.
 | `jeffrey.GrpcClientExchange` | `grpc.GrpcClientExchangeEvent` | leaf: outbound gRPC call |
 | `jeffrey.JdbcQuery` / `JdbcInsert` / `JdbcUpdate` / `JdbcDelete` / `JdbcExecute` | `jdbc.statement.*` | leaf: one statement per event, split by verb |
 | `jeffrey.JdbcStream` | `jdbc.statement.JdbcStreamEvent` | leaf: query consumed as a stream (deferred commit) |
-| `jeffrey.TraceSpan` | `trace.TraceSpanEvent` | interior span, emitted by `Tracer.run`/`call`/`continueIn` |
+| `jeffrey.TraceSpan` | `trace.TraceSpanEvent` | interior span, emitted by `Tracer.run`/`call`/`continueIn` and by `@Traced` |
 | `jeffrey.TraceScope` | `trace.TraceScopeEvent` | where a re-entered span ran; emitted by `Tracer.reenter` only |
 | `jeffrey.JdbcPoolStatistics` + `PooledJdbcConnection*` | `jdbc.pool.*` | not spans: pool gauges and durations |
 | `jeffrey.Message` / `jeffrey.Alert` | `message.*` | not spans: operational notes and alerts |

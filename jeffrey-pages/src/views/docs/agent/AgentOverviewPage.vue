@@ -28,6 +28,7 @@ const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'how-it-works', text: 'How It Works', level: 2 },
   { id: 'configuration', text: 'Configuration', level: 2 },
+  { id: 'method-tracing', text: 'Method Tracing', level: 2 },
   { id: 'server-side-detection', text: 'Server-Side Detection', level: 2 }
 ];
 
@@ -45,7 +46,8 @@ onMounted(() => {
 
       <div class="docs-content">
         <h2 id="overview">Overview</h2>
-        <p><strong>Jeffrey Agent</strong> is a lightweight Java agent (~11 KB, zero external dependencies) that runs inside your Java application's JVM process. Its sole purpose is <strong>heartbeat monitoring</strong> — it periodically writes a timestamp to the filesystem so Jeffrey Hub can detect when a profiled application has stopped.</p>
+        <p><strong>Jeffrey Agent</strong> is a Java agent that runs inside your Java application's JVM process. It does two things: <strong>heartbeat monitoring</strong>, so Jeffrey Hub can detect when a profiled application has stopped, and <strong>method tracing</strong>, which records methods annotated with <code>@Traced</code> as spans without touching their code.</p>
+        <p>Heartbeating is what the agent does by default and costs a daemon thread writing a timestamp. Method tracing rewrites application bytecode as it loads, so it is off until <code>tracing.enabled=true</code> asks for it.</p>
 
         <DocsCallout type="info">
           Jeffrey Agent is automatically configured by <router-link to="/docs/provisioner/overview">Jeffrey Provisioner</router-link> when initializing a profiling session. You do not need to set up the agent manually.
@@ -63,7 +65,14 @@ onMounted(() => {
             <div class="agent-card-icon"><i class="bi bi-feather"></i></div>
             <div class="agent-card-content">
               <h4>Minimal Footprint</h4>
-              <p>Zero external dependencies, single daemon thread, ~11 KB JAR. Designed to add negligible overhead to the profiled application.</p>
+              <p>A single daemon thread, no external dependencies at runtime, and nothing touched in the application unless method tracing is switched on. The JAR is ~4.9 MB, almost all of it the bytecode engine that does the weaving, relocated so it can never clash with the application's own copy.</p>
+            </div>
+          </div>
+          <div class="agent-card">
+            <div class="agent-card-icon"><i class="bi bi-braces"></i></div>
+            <div class="agent-card-content">
+              <h4>Method Tracing</h4>
+              <p>Every method annotated <code>@Traced</code> becomes a span nested under whatever work called it. Opt-in, and it needs Java 25 plus <code>jeffrey-events</code> on the application's class path; without either, the annotated methods simply run.</p>
             </div>
           </div>
           <div class="agent-card">
@@ -134,9 +143,29 @@ onMounted(() => {
                 <td><code>true</code></td>
                 <td>Set to <code>false</code> to disable heartbeating</td>
               </tr>
+              <tr>
+                <td><code>tracing.enabled</code></td>
+                <td><code>false</code></td>
+                <td>Set to <code>true</code> to record <code>@Traced</code> methods as spans</td>
+              </tr>
             </tbody>
           </table>
         </div>
+
+        <h2 id="method-tracing">Method Tracing</h2>
+        <p>Annotate a method and it becomes a span. The method itself is not written around its own tracing — that is the difference from calling <code>Tracer.run</code> by hand, which the <code>jeffrey-events</code> library also offers.</p>
+        <pre class="agent-code"><code>@Traced(name = "order.checkout", args = {"tier=gold"}, includeMethodArgs = {"orderId"})
+public Receipt checkout(String orderId, Card card) { ... }</code></pre>
+        <pre class="agent-code"><code>java -javaagent:/path/to/jeffrey-agent.jar=tracing.enabled=true -jar app.jar</code></pre>
+        <p>The span nests under whatever span is in progress on the thread — an inbound HTTP request, a job, another traced method — and records as its own root when there is none. A method that throws marks its span as failed with the exception's type, and the exception reaches the caller untouched.</p>
+        <p>Arguments are recorded only when asked for. <code>includeMethodArgs</code> names the ones to keep, which is a list of what may be recorded rather than of what may not; <code>captureMethodArgs = true</code> takes all of them. Values are truncated, and the parameter names come from javac's <code>-parameters</code> flag — without it they are <code>arg0</code>, <code>arg1</code>, and so on.</p>
+
+        <DocsCallout type="info">
+          Method tracing needs Java 25 and <code>cafe.jeffrey-analyst:jeffrey-events</code> on the application's class path, because that is where <code>@Traced</code> and the span machinery live. Missing either, the agent says so once in the log and the annotated methods run exactly as if it were not attached — the application is never at risk from a missing dependency.
+        </DocsCallout>
+        <DocsCallout type="warning">
+          Classes are woven as they load, so the agent has to be on the command line at startup. A class already loaded when the agent attaches keeps its original methods.
+        </DocsCallout>
 
         <h2 id="server-side-detection">Server-Side Detection</h2>
         <p>Jeffrey Hub runs a periodic job that polls heartbeat files for all active sessions. When a heartbeat becomes stale (older than a configured threshold, typically ~5 minutes), the server marks the session as finished and uses the last heartbeat timestamp as the session end time. If no heartbeat file exists and the session is old enough, a fallback finish time is used instead.</p>
