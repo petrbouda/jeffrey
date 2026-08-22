@@ -20,6 +20,7 @@ package cafe.jeffrey.jfr.events.trace;
 
 import cafe.jeffrey.jfr.events.http.HttpServerExchangeEvent;
 import cafe.jeffrey.jfr.events.jdbc.statement.JdbcQueryEvent;
+import cafe.jeffrey.jfr.events.test.JfrRecordings;
 import jdk.jfr.AnnotationElement;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
