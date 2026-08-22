@@ -27,6 +27,13 @@ one:
   per inbound call, and the client interceptor that records outbound calls as
   leaf spans.
 
+Application logic in between has two forms. `Tracer.run`/`call` wrap work in a
+lambda — precise, and visible in the method. `@Traced` on a method declares the
+same span and is woven by the Jeffrey agent
+(`-javaagent:jeffrey-agent.jar=tracing.enabled=true`), which leaves the method
+untouched but needs the agent attached at startup and Java 25. Both emit
+`jeffrey.TraceSpan` and nest identically; neither replaces the emit rules below.
+
 There is no separate "send data to Jeffrey" step. The events are ordinary JFR
 events written into the JVM's flight recording; you upload the `.jfr` file to
 Jeffrey (or let a Jeffrey workspace collect it), and Jeffrey parses every event
