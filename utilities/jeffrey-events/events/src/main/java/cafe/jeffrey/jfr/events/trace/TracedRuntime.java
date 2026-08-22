@@ -23,7 +23,6 @@ import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -49,19 +48,10 @@ public final class TracedRuntime {
      */
     private static final int MAX_CAPTURED_VALUE_LENGTH = 256;
 
-    private static final String TRUNCATION_MARKER = "…";
-
-    /** Recorded when an argument's own {@code toString()} throws — instrumentation never does. */
-    private static final String UNRENDERABLE_VALUE = "<unavailable>";
-
     private static final char KEY_VALUE_SEPARATOR = '=';
     private static final char PACKAGE_SEPARATOR = '.';
     private static final char NESTED_CLASS_SEPARATOR = '$';
     private static final String NAME_SEPARATOR = ".";
-
-    /** Written as JSON numbers; every other Number is rendered as text rather than losing digits. */
-    private static final Set<Class<?>> INTEGRAL_TYPES = Set.of(Byte.class, Short.class, Integer.class, Long.class);
-    private static final Set<Class<?>> DECIMAL_TYPES = Set.of(Float.class, Double.class);
 
     /**
      * Keyed by declaring class so an entry dies with the class that owns it, which matters in a
@@ -216,34 +206,6 @@ public final class TracedRuntime {
         return rendered.json();
     }
 
-    private static void put(SpanAttributes attributes, String key, Object value) {
-        switch (value) {
-            case null -> attributes.put(key, (String) null);
-            case Boolean flag -> attributes.put(key, (boolean) flag);
-            case Number number when INTEGRAL_TYPES.contains(number.getClass()) ->
-                    attributes.put(key, number.longValue());
-            case Number number when DECIMAL_TYPES.contains(number.getClass()) ->
-                    attributes.put(key, number.doubleValue());
-            default -> attributes.put(key, text(value));
-        }
-    }
-
-    private static String text(Object value) {
-        String rendered;
-        try {
-            rendered = String.valueOf(value);
-        } catch (Throwable failure) {
-            // The argument's own toString() threw. That is its problem, not the method's.
-            return UNRENDERABLE_VALUE;
-        }
-
-        if (rendered.length() <= MAX_CAPTURED_VALUE_LENGTH) {
-            return rendered;
-        }
-
-        return rendered.substring(0, MAX_CAPTURED_VALUE_LENGTH) + TRUNCATION_MARKER;
-    }
-
     /** Everything about a traced method that does not change between calls. */
     private record TracedMetadata(
             String name,
@@ -265,7 +227,7 @@ public final class TracedRuntime {
                 // Defensive on length: a woven call always passes every argument, but this class is
                 // callable by anyone.
                 Object value = parameter.index() < arguments.length ? arguments[parameter.index()] : null;
-                put(rendered, parameter.name(), value);
+                AttributeValues.put(rendered, parameter.name(), value, MAX_CAPTURED_VALUE_LENGTH);
             }
 
             return rendered.json();

@@ -21,6 +21,7 @@ package cafe.jeffrey.agent.tracing;
 import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
 import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.utility.JavaModule;
 
@@ -138,7 +139,7 @@ public final class TracedWeaver {
         @Override
         public void onTransformation(
                 TypeDescription type, ClassLoader classLoader, JavaModule module,
-                boolean loaded, net.bytebuddy.dynamic.DynamicType dynamicType) {
+                boolean loaded, DynamicType dynamicType) {
 
             LOG.log(Level.DEBUG, "Instrumented traced methods: " + type.getName());
         }

@@ -36,7 +36,8 @@ public class HeartbeatProducer implements Closeable {
 
     private static final System.Logger LOG = System.getLogger(HeartbeatProducer.class.getName());
 
-    // Duplicated from HeartbeatConstants — agent must stay zero-dependency for minimal JAR size
+    // Duplicated from HeartbeatConstants — see the note in AgentArgs: the agent shares no
+    // module with the rest of Jeffrey, so the constant travels by copy.
     private static final String HEARTBEAT_FILE_NAME = "heartbeat";
     private static final String HEARTBEAT_TMP_FILE_NAME = "heartbeat.tmp";
     private static final String FINISHED_FILE_NAME = "finished";

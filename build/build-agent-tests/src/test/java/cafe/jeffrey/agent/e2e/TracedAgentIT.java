@@ -23,6 +23,7 @@ import cafe.jeffrey.jfr.events.test.SpansAssert;
 import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import cafe.jeffrey.jfr.events.trace.TraceSpanEvent;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.jfr.events.trace.Traced;
 import jdk.jfr.consumer.RecordedEvent;
 import org.junit.jupiter.api.DisplayName;
@@ -70,7 +71,7 @@ class TracedAgentIT {
     @DisplayName("the span nests under the work that called it, with nothing threaded through")
     void nestsUnderTheCaller() throws IOException {
         List<RecordedEvent> events = JfrRecordings.all(TraceSpanEvent.NAME, () ->
-                cafe.jeffrey.jfr.events.trace.Tracer.run("orders.batch", SpanKind.SERVER, () -> orders.ship("a-1")));
+                Tracer.run("orders.batch", SpanKind.SERVER, () -> orders.ship("a-1")));
 
         SpansAssert.assertThat(events)
                 .hasNoOrphanedSpans()
