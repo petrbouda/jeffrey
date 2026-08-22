@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.jfr.events.spring.boot;
 
+import cafe.jeffrey.jfr.events.jdbc.datasource.TracingDataSource;
 import cafe.jeffrey.jfr.events.servlet.HttpExchangeFilter;
 import cafe.jeffrey.jfr.events.servlet.HttpExchangeSettings;
 import cafe.jeffrey.jfr.events.servlet.HttpRequestNaming;
@@ -25,12 +26,16 @@ import cafe.jeffrey.jfr.events.spring.JeffreyTracingConfiguration;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.Ordered;
+
+import javax.sql.DataSource;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -114,6 +119,49 @@ class JeffreyTracingAutoConfigurationTest {
         void canBeDisabled() {
             runner.withPropertyValues("jeffrey.tracing.enabled=false")
                     .run(context -> assertThat(context).doesNotHaveBean(HttpExchangeFilter.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("JDBC and connection pools")
+    class DataSources {
+
+        private final WebApplicationContextRunner jdbcRunner = new WebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        JeffreyTracingAutoConfiguration.class, JeffreyJdbcTracingAutoConfiguration.class))
+                .withUserConfiguration(PlainDataSource.class);
+
+        @Test
+        @DisplayName("an application's own DataSource is wrapped without it doing anything")
+        void wrapsTheDataSource() {
+            jdbcRunner.run(context ->
+                    assertThat(context.getBean(DataSource.class)).isInstanceOf(TracingDataSource.class));
+        }
+
+        @Test
+        @DisplayName("jdbc-enabled=false leaves the DataSource untouched")
+        void jdbcCanBeDisabled() {
+            jdbcRunner.withPropertyValues("jeffrey.tracing.jdbc-enabled=false")
+                    .run(context ->
+                            assertThat(context.getBean(DataSource.class)).isNotInstanceOf(TracingDataSource.class));
+        }
+
+        @Test
+        @DisplayName("a DataSource is not wrapped twice when the context already has a traced one")
+        void doesNotWrapTwice() {
+            jdbcRunner.run(context -> {
+                DataSource wrapped = context.getBean(DataSource.class);
+                assertThat(((TracingDataSource) wrapped).delegate()).isNotInstanceOf(TracingDataSource.class);
+            });
+        }
+
+        @Configuration(proxyBeanMethods = false)
+        static class PlainDataSource {
+
+            @Bean
+            DataSource dataSource() {
+                return Mockito.mock(DataSource.class);
+            }
         }
     }
 
