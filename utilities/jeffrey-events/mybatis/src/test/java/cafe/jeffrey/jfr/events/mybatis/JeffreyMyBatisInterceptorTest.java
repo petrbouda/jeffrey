@@ -39,11 +39,13 @@ import org.duckdb.DuckDBDriver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -53,6 +55,7 @@ import java.util.function.Function;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Driven through a real MyBatis {@code SqlSession} over a real database: the value of this module
@@ -67,6 +70,7 @@ class JeffreyMyBatisInterceptorTest {
 
     private DuckDBConnection connection;
     private SqlSessionFactory sessionFactory;
+    private DataSource dataSource;
 
     /** Mapper methods, whose ids become the recorded span names. */
     public interface UserMapper {
@@ -76,6 +80,18 @@ class JeffreyMyBatisInterceptorTest {
 
         @Insert("INSERT INTO users VALUES (#{id}, #{name})")
         int insert(@Param("id") int id, @Param("name") String name);
+
+        @Select("SELECT name FROM users WHERE id = #{id} OR id = #{id}")
+        String findNameTwice(@Param("id") int id);
+
+        @Select("SELECT name FROM users WHERE name = #{name} OR name = #{missing,jdbcType=VARCHAR}")
+        String findByName(@Param("name") String name, @Param("missing") String missing);
+
+        @Select("SELECT count(*) FROM users WHERE name = CAST(#{payload} AS VARCHAR)")
+        int countByPayload(@Param("payload") byte[] payload);
+
+        @Select("SELECT count(*) FROM users")
+        int countAll();
     }
 
     @BeforeEach
@@ -84,13 +100,19 @@ class JeffreyMyBatisInterceptorTest {
         try (Statement statement = connection.createStatement()) {
             statement.execute("CREATE TABLE users (id INTEGER, name VARCHAR)");
             statement.execute("INSERT INTO users VALUES (1, 'ada')");
+            statement.execute("CREATE TABLE blobs (data BLOB)");
         }
 
-        Configuration configuration = new Configuration(new Environment(
-                "test", new JdbcTransactionFactory(), new SharedConnectionDataSource(connection)));
+        dataSource = new SharedConnectionDataSource(connection);
+        sessionFactory = sessionFactoryWith(new JeffreyMyBatisInterceptor());
+    }
+
+    private SqlSessionFactory sessionFactoryWith(JeffreyMyBatisInterceptor interceptor) {
+        Configuration configuration = new Configuration(
+                new Environment("test", new JdbcTransactionFactory(), dataSource));
         configuration.addMapper(UserMapper.class);
-        configuration.addInterceptor(new JeffreyMyBatisInterceptor());
-        sessionFactory = new SqlSessionFactoryBuilder().build(configuration);
+        configuration.addInterceptor(interceptor);
+        return new SqlSessionFactoryBuilder().build(configuration);
     }
 
     @AfterEach
@@ -143,8 +165,126 @@ class JeffreyMyBatisInterceptorTest {
                 .hasSpan(SELECT_NAME).nestedUnder("users.show");
     }
 
+    /**
+     * The values a statement ran with are what separates the one slow call from the thousands that
+     * share its SQL, so they are recorded — and everything here is about recording them safely.
+     */
+    @Nested
+    @DisplayName("The parameters a statement ran with")
+    class Parameters {
+
+        @Test
+        @DisplayName("are keyed by the names the mapper method gave them")
+        void namedParametersAreRecorded() throws IOException {
+            RecordedEvent event = JfrRecordings.single(JdbcQueryEvent.NAME, () ->
+                    inSession(mapper -> mapper.findName(1)));
+
+            assertEquals("{\"id\":1}", event.getString("params"),
+                    "a number is written as a number, not as a quoted string");
+        }
+
+        @Test
+        @DisplayName("are escaped, so a value carrying a quote cannot corrupt the field")
+        void valuesAreEscaped() throws IOException {
+            RecordedEvent event = JfrRecordings.single(JdbcInsertEvent.NAME, () ->
+                    inSession(mapper -> mapper.insert(3, "gr\"ace\\")));
+
+            assertEquals("{\"id\":3,\"name\":\"gr\\\"ace\\\\\"}", event.getString("params"));
+        }
+
+        @Test
+        @DisplayName("record a null argument as null rather than dropping it")
+        void nullArgumentIsRecorded() throws IOException {
+            RecordedEvent event = JfrRecordings.single(JdbcQueryEvent.NAME, () ->
+                    inSession(mapper -> mapper.findByName("ada", null)));
+
+            assertEquals("{\"name\":\"ada\",\"missing\":null}", event.getString("params"));
+        }
+
+        @Test
+        @DisplayName("write a property used twice once, because both placeholders resolve alike")
+        void repeatedPropertyIsWrittenOnce() throws IOException {
+            RecordedEvent event = JfrRecordings.single(JdbcQueryEvent.NAME, () ->
+                    inSession(mapper -> mapper.findNameTwice(1)));
+
+            assertEquals("{\"id\":1}", event.getString("params"));
+        }
+
+        @Test
+        @DisplayName("are truncated, so one oversized argument cannot bloat every recording")
+        void longValuesAreTruncated() throws IOException {
+            SqlSessionFactory factory = sessionFactoryWith(
+                    new JeffreyMyBatisInterceptor(new MyBatisStatementSettings(true, 4)));
+
+            RecordedEvent event = JfrRecordings.single(JdbcInsertEvent.NAME, () ->
+                    inSession(factory, mapper -> mapper.insert(4, "abcdefgh")));
+
+            assertEquals("{\"id\":4,\"name\":\"abcd…\"}", event.getString("params"));
+        }
+
+        @Test
+        @DisplayName("stand in for binary content instead of rendering it")
+        void binaryContentIsNotRendered() throws IOException {
+            byte[] payload = "not text".getBytes(StandardCharsets.UTF_8);
+
+            RecordedEvent event = JfrRecordings.single(JdbcQueryEvent.NAME, () ->
+                    assertEquals(0, (int) inSession(mapper -> mapper.countByPayload(payload)),
+                            "the statement still runs — rendering a stream would have consumed it"));
+
+            assertEquals("{\"payload\":\"<lob-value>\"}", event.getString("params"));
+        }
+
+        @Test
+        @DisplayName("are absent for a statement that takes none")
+        void statementWithoutParametersRecordsNone() throws IOException {
+            RecordedEvent event = JfrRecordings.single(JdbcQueryEvent.NAME, () ->
+                    inSession(UserMapper::countAll));
+
+            assertNull(event.getString("params"), "an empty object would only be noise");
+        }
+
+        @Test
+        @DisplayName("can be turned off for an application whose arguments are sensitive")
+        void captureCanBeTurnedOff() throws IOException {
+            SqlSessionFactory factory = sessionFactoryWith(
+                    new JeffreyMyBatisInterceptor(MyBatisStatementSettings.noParameters()));
+
+            RecordedEvent event = JfrRecordings.single(JdbcQueryEvent.NAME, () ->
+                    inSession(factory, mapper -> mapper.findName(1)));
+
+            assertNull(event.getString("params"));
+            assertEquals(SELECT_NAME, event.getString("name"), "the statement itself is still recorded");
+        }
+
+        @Test
+        @DisplayName("are configurable through MyBatis' own plugin properties")
+        void pluginPropertiesConfigureTheSettings() {
+            Properties properties = new Properties();
+            properties.setProperty("capture-parameters", "false");
+            properties.setProperty("max-value-length", "16");
+
+            JeffreyMyBatisInterceptor interceptor = new JeffreyMyBatisInterceptor();
+            interceptor.setProperties(properties);
+
+            assertEquals(new MyBatisStatementSettings(false, 16), interceptor.settings());
+        }
+
+        @Test
+        @DisplayName("keep their defaults when a plugin declaration mentions neither")
+        void unmentionedPropertiesKeepTheirDefaults() {
+            JeffreyMyBatisInterceptor interceptor = new JeffreyMyBatisInterceptor();
+            interceptor.setProperties(new Properties());
+
+            assertEquals(MyBatisStatementSettings.defaults(), interceptor.settings());
+        }
+    }
+
     private <T> T inSession(Function<UserMapper, T> body) {
-        try (SqlSession session = sessionFactory.openSession()) {
+        return inSession(sessionFactory, body);
+    }
+
+    private <T> T inSession(SqlSessionFactory factory, Function<UserMapper, T> body) {
+        try (SqlSession session = factory.openSession()) {
             return body.apply(session.getMapper(UserMapper.class));
         }
     }

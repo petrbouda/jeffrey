@@ -33,6 +33,7 @@ import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Records every MyBatis statement as a Jeffrey leaf span, named by the mapper method that issued
@@ -48,12 +49,29 @@ import java.util.List;
  * The {@code Executor} is the interception point rather than {@code StatementHandler} so that
  * cached and batched execution are covered too.
  *
+ * <h2>Parameters</h2>
+ * The values a statement was bound with are recorded too, because they are what distinguishes the
+ * one slow call from the thousands with the same SQL. That is on by default and switched off with
+ * {@link MyBatisStatementSettings}, which documents what the recording then contains.
+ *
  * <h2>Registration</h2>
- * On mybatis-spring-boot-starter, declaring it as a bean is enough — every {@code Interceptor}
+ * On {@code jeffrey-events-spring-boot-starter} there is nothing to declare:
+ * {@code jeffrey.tracing.mybatis-enabled=true} registers this and stands the {@code DataSource}
+ * wrapper down, so the two cannot record the same statement twice. Without that starter, and on
+ * mybatis-spring-boot-starter, declaring it as a bean is enough — every {@code Interceptor}
  * bean is added to the {@code SqlSessionFactory}. Otherwise
  * {@code configuration.addInterceptor(new JeffreyMyBatisInterceptor())}, or the {@code <plugins>}
  * element in XML. Register it through exactly one of those: registered twice, it records every
  * statement twice.
+ * <p>
+ * Registered through XML or MyBatis' own configuration properties, the settings arrive as plugin
+ * properties rather than a constructor argument:
+ *
+ * <pre>{@code
+ * <plugin interceptor="cafe.jeffrey.jfr.events.mybatis.JeffreyMyBatisInterceptor">
+ *     <property name="capture-parameters" value="false"/>
+ * </plugin>
+ * }</pre>
  */
 @Intercepts({
         @Signature(type = Executor.class, method = "update",
@@ -71,6 +89,27 @@ public class JeffreyMyBatisInterceptor implements Interceptor {
     private static final int STATEMENT_ARGUMENT = 0;
     private static final int PARAMETER_ARGUMENT = 1;
 
+    private static final String CAPTURE_PARAMETERS_PROPERTY = "capture-parameters";
+    private static final String MAX_VALUE_LENGTH_PROPERTY = "max-value-length";
+
+    // Volatile because registration and execution are different threads: MyBatis applies
+    // setProperties while wiring the SqlSessionFactory, and statements run wherever they run.
+    private volatile MyBatisStatementSettings settings = MyBatisStatementSettings.defaults();
+
+    public JeffreyMyBatisInterceptor() {
+    }
+
+    public JeffreyMyBatisInterceptor(MyBatisStatementSettings settings) {
+        this.settings = settings;
+    }
+
+    /**
+     * @return the settings in force — the constructor's, or whatever {@link #setProperties} applied
+     */
+    public MyBatisStatementSettings settings() {
+        return settings;
+    }
+
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
         MappedStatement statement = (MappedStatement) invocation.getArgs()[STATEMENT_ARGUMENT];
@@ -81,9 +120,40 @@ public class JeffreyMyBatisInterceptor implements Interceptor {
         return TracedEvents.emit(createEvent(statement),
                 invocation::proceed,
                 (event, result) -> {
-                    event.sql = statement.getBoundSql(parameter).getSql();
+                    // Asked for inside the filler, so a statement under the recording threshold
+                    // pays for neither the SQL nor the parameter object walk.
+                    BoundSql boundSql = statement.getBoundSql(parameter);
+                    event.sql = boundSql.getSql();
                     event.rows = countRows(result);
+                    if (settings.captureParameters()) {
+                        event.params = StatementParameters.json(statement, boundSql, settings.maxValueLength());
+                    }
                 });
+    }
+
+    /**
+     * MyBatis' own configuration hook, so an XML {@code <plugin>} can configure this without the
+     * application writing any Java. Unknown properties are left alone; MyBatis passes whatever the
+     * declaration carried.
+     */
+    @Override
+    public void setProperties(Properties properties) {
+        boolean captureParameters = booleanProperty(
+                properties, CAPTURE_PARAMETERS_PROPERTY, settings.captureParameters());
+        int maxValueLength = intProperty(
+                properties, MAX_VALUE_LENGTH_PROPERTY, settings.maxValueLength());
+
+        this.settings = new MyBatisStatementSettings(captureParameters, maxValueLength);
+    }
+
+    private static boolean booleanProperty(Properties properties, String name, boolean fallback) {
+        String value = properties.getProperty(name);
+        return value == null ? fallback : Boolean.parseBoolean(value);
+    }
+
+    private static int intProperty(Properties properties, String name, int fallback) {
+        String value = properties.getProperty(name);
+        return value == null ? fallback : Integer.parseInt(value);
     }
 
     /**
