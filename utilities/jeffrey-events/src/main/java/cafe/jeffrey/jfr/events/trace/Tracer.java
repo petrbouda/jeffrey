@@ -20,6 +20,8 @@ package cafe.jeffrey.jfr.events.trace;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
 /**
@@ -386,6 +388,62 @@ public final class Tracer {
      */
     public static <T> Supplier<T> fork(String name, Supplier<T> body) {
         return fork(name, SpanKind.INTERNAL, body);
+    }
+
+    /**
+     * The {@link Callable} form of {@link #fork(String, SpanKind, Runnable)}, shaped for
+     * {@link ExecutorService#submit(Callable)} — the common typed-result hand-off that neither the
+     * {@link Runnable} nor the {@link Supplier} form fits. A distinct name rather than another
+     * {@code fork} overload, because a result-bearing lambda matches {@link Supplier} and
+     * {@link Callable} alike and would make every existing {@code fork} call ambiguous.
+     *
+     * <pre>{@code
+     * Future<Report> report = executor.submit(
+     *         Tracer.forkCallable("report.render", () -> render(part)));
+     * }</pre>
+     */
+    public static <T> Callable<T> forkCallable(String name, SpanKind kind, Callable<T> body) {
+        Objects.requireNonNull(name, "name must not be null");
+        Objects.requireNonNull(kind, "kind must not be null");
+        Objects.requireNonNull(body, "body must not be null");
+
+        SpanContext parent = CURRENT.isBound() ? CURRENT.get() : null;
+        return () -> continueIn(parent, name, kind, body::call);
+    }
+
+    /**
+     * The form of {@link #forkCallable(String, SpanKind, Callable)} with kind
+     * {@link SpanKind#INTERNAL}.
+     */
+    public static <T> Callable<T> forkCallable(String name, Callable<T> body) {
+        return forkCallable(name, SpanKind.INTERNAL, body);
+    }
+
+    /**
+     * Wraps {@code delegate} so that every task submitted to it runs inside the span in progress
+     * on the <em>submitting</em> thread — the executor-wide form of capturing {@link #current}
+     * and re-establishing it per task, for the pool that serves traced requests wholesale.
+     * <p>
+     * Distinct from {@link #fork}: no child span is minted and no name is needed, because the
+     * task is treated as the same operation continuing elsewhere, not a separate one. The context
+     * is re-established with {@link #reenter}, so leaf events emitted inside the task stamp under
+     * the submitting span, and each task activation records a {@link TraceScopeEvent} naming the
+     * thread it actually ran on. A task that wants its own named span in the waterfall still
+     * wraps itself with {@link #fork} or {@link #forkCallable} — submitted through this executor,
+     * the two compose.
+     * <p>
+     * The capture happens per submission, not when the executor is wrapped, so one wrapped pool
+     * serves many requests. A task submitted outside any span is handed to the delegate
+     * untouched and runs exactly as it would have unwrapped.
+     *
+     * <pre>{@code
+     * ExecutorService executor = Tracer.propagating(Executors.newFixedThreadPool(8));
+     * // ... per request:
+     * executor.submit(() -> parseChunk(file));   // nests under the request's span
+     * }</pre>
+     */
+    public static ExecutorService propagating(ExecutorService delegate) {
+        return new ContextPropagatingExecutorService(delegate);
     }
 
     /**
