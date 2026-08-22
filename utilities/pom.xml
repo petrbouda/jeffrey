@@ -42,11 +42,11 @@
         event type here therefore changes the application; releasing the library is a separate act.
 
         Only jeffrey-events-parent is listed below, yet the whole family builds: that module is
-        the pom-packaged parent of jeffrey-events, jeffrey-events-test and the jeffrey-tracing-*
-        instrumentation modules under ./tracing, and it aggregates them all by relative path. Every
-        one of them is a directory named after the artifact it builds, so a published coordinate
-        maps to a path without translation; the parent keeps them on one version and one release
-        run, and owns the library's LICENSE, README and JReleaser configuration.
+        the pom-packaged parent of jeffrey-events, jeffrey-events-test and the jeffrey-tracing
+        module, itself the parent of the jeffrey-tracing-* instrumentation modules, and it aggregates
+        them by relative path. Every one of them is a directory named after the artifact it builds,
+        so a published coordinate maps to a path without translation; the parent keeps them on one
+        version and one release run, and owns the library's LICENSE, README and JReleaser configuration.
     -->
     <modules>
         <module>jeffrey-events-parent</module>

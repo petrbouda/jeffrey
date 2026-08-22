@@ -24,15 +24,15 @@
 
     <parent>
         <groupId>cafe.jeffrey-analyst</groupId>
-        <artifactId>jeffrey-events-parent</artifactId>
+        <artifactId>jeffrey-tracing</artifactId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath>../../jeffrey-events-parent/pom.xml</relativePath>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>jeffrey-tracing-hikari</artifactId>
+    <artifactId>jeffrey-tracing-jdbc</artifactId>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>HikariCP metrics tracker emitting Jeffrey connection-pool events, including the periodic pool gauge</description>
+    <description>DataSource wrapper recording every JDBC statement as a Jeffrey leaf span, whatever persistence framework issued it</description>
     <!-- Explicit: Maven Central rejects children that inherit a url with the artifactId appended. -->
     <url>https://github.com/petrbouda/jeffrey</url>
 
@@ -41,23 +41,17 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>jeffrey-events</artifactId>
         </dependency>
-        <!-- provided: the application already has the pool it is instrumenting. -->
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
-            <version>${hikaricp.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-events-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <!-- A real pool over a real driver, so the tracker is exercised by Hikari itself. -->
+
+        <!-- An in-process database, so the proxy is tested against a real driver. -->
         <dependency>
             <groupId>org.duckdb</groupId>
             <artifactId>duckdb_jdbc</artifactId>
             <version>${duckdb.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jeffrey-events-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -70,7 +64,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Automatic-Module-Name>cafe.jeffrey.jfr.events.jdbc.hikari</Automatic-Module-Name>
+                            <Automatic-Module-Name>cafe.jeffrey.jfr.events.jdbc.datasource</Automatic-Module-Name>
                         </manifestEntries>
                     </archive>
                 </configuration>
