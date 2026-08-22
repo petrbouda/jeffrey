@@ -95,7 +95,7 @@ Understand this model first; every rule follows from it.
 <dependency>
     <groupId>cafe.jeffrey-analyst</groupId>
     <artifactId>jeffrey-events</artifactId>
-    <version>0.13.0</version> <!-- latest release on Maven Central -->
+    <version><!-- latest release on Maven Central --></version>
 </dependency>
 ```
 
@@ -105,15 +105,10 @@ Understand this model first; every rule follows from it.
 - On **Java 17–24** you can use the HTTP, gRPC and JDBC events from an earlier
   `jeffrey-events` release (they still light up the HTTP/Database dashboards),
   but not `Tracer` — no hand-written spans and no cross-event trace nesting.
-- `Tracer.openSpanOf` / `Tracer.reenter` / `jeffrey.TraceScope` arrived after
-  0.12.0 — use 0.13.0 or newer for the callback-driven patterns in §5.
-- In releases **after 0.13.0** there is a single commit verb: `commitSpan()`
-  stamps an event that does not yet carry identity (`stampAndCommit()` is a
-  deprecated alias), `failed(Throwable)` exists on **every** traced event, and
+- There is a single commit verb: `commitSpan()` stamps an event that does not
+  yet carry identity, `failed(Throwable)` exists on **every** traced event, and
   `TracedEvents.emit` writes the whole leaf emit shape in one call.
-  On 0.13.0 itself, commit leaf events with `stampAndCommit()`, note that
-  `failed` exists only on JDBC statement events, and write the emit shape by
-  hand (§4 rule 3 shows the expansion).
+  (`stampAndCommit()` is a deprecated alias kept for older call sites.)
 - The library has **zero dependencies** (only `jdk.jfr`) and is safe to leave
   on in production: when no recording is running, every emit path checks
   `event.isEnabled()` and runs the body directly with nothing allocated beyond
@@ -161,8 +156,8 @@ Field notes:
   You never construct it — `Tracer` does.
 - **`attributes`** (any traced event): operation-specific detail as a JSON
   object string — per-request values (an entity id, a retry count) that must
-  never go into the span *name*. Build it with `SpanAttributes`
-  (releases after 0.13.0) rather than concatenating JSON by hand — it escapes
+  never go into the span *name*. Build it with `SpanAttributes` rather than
+  concatenating JSON by hand — it escapes
   quotes, backslashes and control characters — and only inside the
   `shouldCommit()` block, so an event under threshold pays nothing:
 
@@ -201,7 +196,7 @@ They are plain events (not spans); emit them from your pool's hook points
    identity exactly as it is, and then runs `describeSpan()` + `commit()`. A
    bare `commit()` silently drops the event from every trace.
 
-3. **Emit leaves through `TracedEvents.emit`** (releases after 0.13.0), which
+3. **Emit leaves through `TracedEvents.emit`**, which
    is the whole guard/begin/end/failed/shouldCommit/fill/commitSpan lifecycle
    in one call — the emit site states only the event, the work, and the
    fields:
@@ -217,8 +212,7 @@ They are plain events (not spans); emit them from your pool's hook points
    ```
 
    An exception escaping the body is recorded with `failed(t)` and rethrown
-   unchanged. On 0.13.0, or where the helper does not fit, write what it
-   expands to:
+   unchanged. Where the helper does not fit, write what it expands to:
 
    ```java
    SomeEvent event = new SomeEvent(...);
@@ -253,7 +247,7 @@ They are plain events (not spans); emit them from your pool's hook points
 
 5. **A trace does not cross a plain executor by itself.** `ScopedValue`
    propagates only through structured concurrency. Either wrap the pool once
-   with `Tracer.propagating(executor)` (releases after 0.13.0) so every task
+   with `Tracer.propagating(executor)` so every task
    submitted inside a span runs inside it, or capture per call site:
    `Tracer.fork(...)`/`Tracer.forkCallable(...)` (a named child span) or
    `Tracer.current()` + `Tracer.continueIn(parent, ...)` (explicit). Work
@@ -322,13 +316,13 @@ executor.submit(() -> Tracer.continueIn(parent, "chunk.parse", () -> {
 ```
 
 Pick `propagating` when a whole pool serves traced requests (releases after
-0.13.0), `fork`/`forkCallable` when one task is a distinct operation worth a
+`fork`/`forkCallable` when one task is a distinct operation worth a
 span of its own. `fork` captures the parent when *called*, not when the task
 runs — always call it on the thread whose span the work belongs to, then
 submit the result. `@Async` methods and scheduled tasks need the same
 treatment (a `TaskDecorator`/wrapped executor is the `propagating` shape).
 
-### Callback-driven work (0.13.0+)
+### Callback-driven work
 
 For one operation arriving in pieces on threads you don't control (async HTTP
 clients, gRPC listeners): `SpanContext ctx = Tracer.openSpanOf(event)` stamps

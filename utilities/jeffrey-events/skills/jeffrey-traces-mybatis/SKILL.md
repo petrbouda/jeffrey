@@ -190,7 +190,6 @@ public class JeffreyJfrMyBatisInterceptor implements Interceptor {
         String group = id.substring(mapperDot + 1, methodDot);  // UserMapper
 
         // The verb-to-event mapping is the library's own convention; forVerb applies it.
-        // On 0.13.0, without JdbcStatementEvents, write the switch by hand.
         return JdbcStatementEvents.forVerb(statement.getSqlCommandType().name(), name, group);
     }
 

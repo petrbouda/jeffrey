@@ -84,7 +84,7 @@ public class JeffreyJfrRestTemplateInterceptor implements ClientHttpRequestInter
 }
 ```
 
-On 0.13.0, without `TracedEvents`, write the expanded shape from the core
+Where `TracedEvents` does not fit, write the expanded shape from the core
 skill's §4 rule 3 instead (guard, `begin()`, `end()` on success, `commitSpan()`
 in the `finally`).
 
@@ -109,7 +109,7 @@ public RestTemplateCustomizer jeffreyJfrRestTemplateCustomizer() {
 
 A blocking interceptor shape does not fit a client whose response arrives via
 callbacks on threads you don't control. Use the callback pattern from the core
-skill instead (0.13.0+): `Tracer.openSpanOf(event)` when the call starts (on
+skill instead: `Tracer.openSpanOf(event)` when the call starts (on
 the thread whose span it belongs to), `Tracer.reenter(ctx, ...)` around each
 callback, and `event.commitSpan()` at completion. `openSpanOf` stamps the ids
 eagerly, so a completion running after the enclosing binding is gone still
@@ -122,5 +122,5 @@ carries the right identity.
 | Calls in the HTTP Client dashboard but not in Traces | committed with `commit()` | `TracedEvents.emit`, or `commitSpan()` in the `finally` |
 | Client calls are roots of their own one-span traces | call ran outside a bound span (no server filter, `@Async`, scheduled job) | register the root-span filter (`jeffrey-traces-spring-rest-server`); wrap background work with `Tracer.fork`/`continueIn` |
 | One "endpoint" per entity id | raw expanded URL recorded as `uri` | record the template / normalized path |
-| Connection failures look green | exception path missing `failed(e)` | `TracedEvents.emit` records it; by hand, catch the transport exception, call `event.failed(e)`, rethrow (on 0.13.0, where HTTP events have no `failed`, UNSET ≠ OK is the best available) |
+| Connection failures look green | exception path missing `failed(e)` | `TracedEvents.emit` records it; by hand, catch the transport exception, call `event.failed(e)`, rethrow |
 | Async call measured as ~0 ms | event ended when the request was *sent*, not when the response arrived | complete the event from the response callback (deferred-commit pattern, §3) |
