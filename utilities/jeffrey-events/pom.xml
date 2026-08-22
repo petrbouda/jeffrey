@@ -44,6 +44,7 @@
         <module>spring</module>
         <module>jdbc</module>
         <module>hikari</module>
+        <module>mybatis</module>
         <module>spring-boot-starter</module>
     </modules>
 
@@ -81,6 +82,7 @@
         <spring-boot.version>4.1.0</spring-boot.version>
         <hikaricp.version>7.0.2</hikaricp.version>
         <duckdb.version>1.5.3.0</duckdb.version>
+        <mybatis.version>3.5.19</mybatis.version>
         <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
     </properties>
