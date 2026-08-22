@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -302,6 +303,37 @@ class TracerTest {
 
             assertEquals(SpanStatus.ERROR.name(), statement.status);
             assertEquals(IllegalStateException.class.getName(), statement.errorType);
+        }
+
+        @Test
+        @DisplayName("a transport failure recorded on an HTTP call survives the derived verdict")
+        void transportFailureSurvivesDescribeSpan() {
+            HttpClientExchangeEvent exchange = new HttpClientExchangeEvent();
+            exchange.method = "POST";
+            exchange.uri = "payments.internal/api/v1/charge";
+
+            exchange.failed(new ConnectException("connection refused"));
+            exchange.commitSpan();
+
+            assertEquals(SpanStatus.ERROR.name(), exchange.status,
+                    "no status code ever arrived - the recorded failure is the verdict");
+            assertEquals(ConnectException.class.getName(), exchange.errorType);
+        }
+
+        @Test
+        @DisplayName("a failure recorded on a gRPC call is not painted over by the derived verdict")
+        void grpcFailureIsNotDowngraded() {
+            GrpcServerExchangeEvent exchange = new GrpcServerExchangeEvent();
+            exchange.service = "jeffrey.api.v1.WorkspaceService";
+            exchange.method = "List";
+            exchange.statusCode = "OK";
+
+            exchange.failed(new IllegalStateException("stream reset"));
+            exchange.commitSpan();
+
+            assertEquals(SpanStatus.ERROR.name(), exchange.status,
+                    "deriving a verdict only escalates, it never downgrades a recorded failure");
+            assertEquals(IllegalStateException.class.getName(), exchange.errorType);
         }
 
         @Test

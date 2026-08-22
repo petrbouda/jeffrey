@@ -87,6 +87,34 @@ public abstract class AbstractTracedEvent extends Event {
     public String attributes;
 
     /**
+     * Records that the operation this event describes threw, which is what makes it count as a
+     * failure in the trace it belongs to: the span status becomes {@link SpanStatus#ERROR} and the
+     * exception's class name is kept as the error type.
+     * <p>
+     * This is the one way a failure is stated, for every event family alike — a JDBC statement that
+     * threw, an HTTP call that never got a response, a gRPC call torn down by the transport. Call it
+     * on the exception path and rethrow; never assign {@link #status} directly.
+     * <p>
+     * A recorded failure survives {@link #describeSpan()}: an event type that derives its verdict
+     * from its own fields — an HTTP exchange from its status code — only ever escalates to
+     * {@link SpanStatus#ERROR}, so a transport failure recorded here is not painted over by a
+     * status code that was never received.
+     *
+     * <pre>{@code
+     * try {
+     *     response = execution.execute(request, body);
+     * } catch (IOException e) {
+     *     event.failed(e);
+     *     throw e;
+     * }
+     * }</pre>
+     */
+    public final void failed(Throwable failure) {
+        this.status = SpanStatus.ERROR.name();
+        this.errorType = failure.getClass().getName();
+    }
+
+    /**
      * Fills in the span shape from the event's own fields, called once immediately before the event
      * is committed.
      * <p>
