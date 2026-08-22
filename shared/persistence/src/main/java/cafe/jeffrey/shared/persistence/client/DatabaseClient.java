@@ -78,7 +78,7 @@ public class DatabaseClient {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramSourceToJson(paramSource);
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
 
@@ -102,7 +102,7 @@ public class DatabaseClient {
                 event.rows = rows;
                 event.isLob = true;
                 event.params = paramSourceToJson(paramSource);
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
 
@@ -128,7 +128,7 @@ public class DatabaseClient {
                 // Don't populate `params` and `sql` in batch processing
                 // event.sql = sql;
                 // event.params = paramSourceToString(paramSource);
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
 
@@ -151,7 +151,7 @@ public class DatabaseClient {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramSourceToJson(paramSource);
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
 
@@ -174,7 +174,7 @@ public class DatabaseClient {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramSourceToJson(paramSource);
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
 
@@ -225,7 +225,7 @@ public class DatabaseClient {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = rows;
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
 
@@ -245,7 +245,7 @@ public class DatabaseClient {
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
     }
@@ -265,7 +265,7 @@ public class DatabaseClient {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = list != null ? list.size() : 0;
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
 
@@ -291,7 +291,7 @@ public class DatabaseClient {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = handler.getRowCount();
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
 
@@ -316,7 +316,7 @@ public class DatabaseClient {
                 event.sql = sql;
                 event.rows = list != null ? list.size() : 0;
                 event.params = paramSourceToJson(paramSource);
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
 
@@ -339,7 +339,7 @@ public class DatabaseClient {
                 event.sql = sql;
                 event.rows = longValue != null ? 1 : 0;
                 event.params = paramSourceToJson(paramSource);
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
         return longValue;
@@ -369,7 +369,7 @@ public class DatabaseClient {
                 event.sql = sql;
                 event.rows = exists ? 1 : 0;
                 event.params = paramSourceToJson(paramSource);
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
 
@@ -409,7 +409,7 @@ public class DatabaseClient {
                 event.rows = rows;
                 event.samples = samples;
                 event.params = paramSourceToJson(paramSource);
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
     }
