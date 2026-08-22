@@ -187,6 +187,36 @@ class FeatureBuilderTest {
         }
 
         @Test
+        void methodTracingIsAskedForAsAnAgentArgument() {
+            String result = new FeatureBuilder()
+                    .setAgentPath("/path/to/jeffrey-agent.jar")
+                    .setMethodTracingEnabled(true)
+                    .build(SESSION_PATH, PLACEHOLDERS);
+
+            assertTrue(result.contains(",tracing.enabled=true"),
+                    "@Traced is unreachable on a provisioned session unless the agent is told to weave");
+        }
+
+        @Test
+        void methodTracingIsOffUnlessAskedFor() {
+            String result = new FeatureBuilder()
+                    .setAgentPath("/path/to/jeffrey-agent.jar")
+                    .build(SESSION_PATH, PLACEHOLDERS);
+
+            assertTrue(result.contains("-javaagent:"), "the agent still runs, it just does not weave");
+            assertFalse(result.contains("tracing.enabled"));
+        }
+
+        @Test
+        void methodTracingNeedsTheAgentToBeThere() {
+            String result = new FeatureBuilder()
+                    .setMethodTracingEnabled(true)
+                    .build(SESSION_PATH, PLACEHOLDERS);
+
+            assertFalse(result.contains("tracing.enabled"), "there is no agent to carry the argument");
+        }
+
+        @Test
         void noAgentPathProducesNoOptions() {
             String result = new FeatureBuilder()
                     .build(SESSION_PATH, PLACEHOLDERS);

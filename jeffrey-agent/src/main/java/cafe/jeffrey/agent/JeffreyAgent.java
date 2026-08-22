@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.agent;
 
+import cafe.jeffrey.agent.tracing.TracedWeaver;
+
 import java.lang.System.Logger.Level;
 import java.lang.instrument.Instrumentation;
 import java.nio.file.Files;
@@ -32,6 +34,7 @@ public class JeffreyAgent {
 
         startHeartbeat(agentArgs);
         startAppInformation(agentArgs);
+        startMethodTracing(agentArgs, inst);
     }
 
     // Heartbeat writes a liveness file; AppInformation emits a JFR event. They are
@@ -53,6 +56,14 @@ public class JeffreyAgent {
         producer.start();
 
         LOG.log(Level.INFO, "Heartbeat started: dir=" + heartbeatDir + " interval=" + agentArgs.heartbeatInterval());
+    }
+
+    // Weaves @Traced methods into spans. Off unless asked for, and the only feature that touches
+    // application bytecode, so it is kept apart from the two that merely observe.
+    private static void startMethodTracing(AgentArgs agentArgs, Instrumentation inst) {
+        if (TracedWeaver.install(agentArgs.tracingEnabled(), inst)) {
+            LOG.log(Level.INFO, "Method tracing started, @Traced methods will be recorded as spans");
+        }
     }
 
     private static void startAppInformation(AgentArgs agentArgs) {

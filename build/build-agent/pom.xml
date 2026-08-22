@@ -31,6 +31,12 @@
 
     <properties>
         <finalName>jeffrey-agent</finalName>
+        <!--
+          Pinned: unlike the assembly plugin, shade has no version in Maven's super-POM. It also has
+          to be new enough to read ByteBuddy's versioned classes for recent JDKs — 3.6.0 fails on
+          them with "Unsupported class file major version 68".
+        -->
+        <maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
     </properties>
 
     <dependencies>
@@ -42,26 +48,58 @@
 
     <build>
         <plugins>
+            <!--
+              Shaded rather than assembled, because the agent now carries ByteBuddy and the jar is
+              appended to the system class path of every application it attaches to. Unrelocated, it
+              would win parent-first delegation over the ByteBuddy those applications ship with
+              Hibernate, Mockito or Spring — a profiler must never re-version the thing it profiles.
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${maven-shade-plugin.version}</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
                         <goals>
-                            <goal>single</goal>
+                            <goal>shade</goal>
                         </goals>
                         <configuration>
                             <finalName>${finalName}</finalName>
-                            <archive>
-                                <manifestEntries>
-                                    <Premain-Class>cafe.jeffrey.agent.JeffreyAgent</Premain-Class>
-                                </manifestEntries>
-                            </archive>
-                            <descriptorRefs>
-                                <descriptorRef>jar-with-dependencies</descriptorRef>
-                            </descriptorRefs>
-                            <appendAssemblyId>false</appendAssemblyId>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <!--
+                              Left off deliberately: ByteBuddy reaches parts of itself reflectively,
+                              so keeping only what is statically reachable is a correctness risk not
+                              worth a few megabytes.
+                            -->
+                            <minimizeJar>false</minimizeJar>
+                            <relocations>
+                                <relocation>
+                                    <pattern>net.bytebuddy</pattern>
+                                    <shadedPattern>cafe.jeffrey.agent.internal.bytebuddy</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>module-info.class</exclude>
+                                        <exclude>META-INF/maven/**</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Premain-Class>cafe.jeffrey.agent.JeffreyAgent</Premain-Class>
+                                        <!-- ByteBuddy ships versioned classes for newer JDKs. -->
+                                        <Multi-Release>true</Multi-Release>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
                         </configuration>
                     </execution>
                 </executions>

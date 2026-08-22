@@ -168,7 +168,9 @@ public abstract class AbstractTracedEvent extends Event {
 
     /**
      * @deprecated {@link #commitSpan()} now stamps an unstamped event exactly as this method did,
-     * so the two commit paths collapsed into one; this alias only delegates.
+     * so the two commit paths collapsed into one; this alias only delegates. It stays through the
+     * 0.x line — removing published API in a minor release would break call sites for no gain —
+     * and goes at the next major.
      */
     @Deprecated(since = "0.14.0", forRemoval = true)
     public final void stampAndCommit() {

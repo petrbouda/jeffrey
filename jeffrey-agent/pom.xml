@@ -29,7 +29,30 @@
 
     <artifactId>jeffrey-agent</artifactId>
 
+    <properties>
+        <!--
+          Pinned here on purpose, not inherited from Spring's BOM: the agent is shaded into every
+          application it attaches to, so its bytecode engine is a deliberate choice, not whatever a
+          framework happens to manage. Worth keeping in step with what core-hub and core-microscope
+          resolve, but they do not decide it.
+        -->
+        <byte-buddy.version>1.18.10</byte-buddy.version>
+    </properties>
+
     <dependencies>
+        <!-- The weaver. Relocated into the agent jar by build/build-agent so it can never
+             shadow the ByteBuddy of the application being profiled. -->
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+            <version>${byte-buddy.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy-agent</artifactId>
+            <version>${byte-buddy.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
