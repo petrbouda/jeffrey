@@ -40,13 +40,13 @@
     <modules>
         <module>events</module>
         <module>test</module>
-        <module>../tracing/servlet</module>
-        <module>../tracing/spring</module>
-        <module>../tracing/jdbc</module>
-        <module>../tracing/hikari</module>
-        <module>../tracing/mybatis</module>
-        <module>../tracing/grpc</module>
-        <module>../tracing/spring-boot-starter</module>
+        <module>../tracing/jeffrey-tracing-servlet</module>
+        <module>../tracing/jeffrey-tracing-spring</module>
+        <module>../tracing/jeffrey-tracing-jdbc</module>
+        <module>../tracing/jeffrey-tracing-hikari</module>
+        <module>../tracing/jeffrey-tracing-mybatis</module>
+        <module>../tracing/jeffrey-tracing-grpc</module>
+        <module>../tracing/jeffrey-tracing-spring-boot-starter</module>
     </modules>
 
     <developers>
