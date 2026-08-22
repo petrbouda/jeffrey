@@ -54,7 +54,7 @@ import java.util.stream.Collectors;
  *
  * <h2>Registration</h2>
  * Register it first in the chain, so security, routing and data access all happen inside the span.
- * On Spring Boot, {@code jeffrey-events-spring-boot-starter} does this for you.
+ * On Spring Boot, {@code jeffrey-tracing-spring-boot-starter} does this for you.
  *
  * <h2>Asynchronous requests</h2>
  * When the handler starts async processing, the response is not finished when the container thread

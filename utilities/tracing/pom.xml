@@ -23,7 +23,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>cafe.jeffrey-analyst</groupId>
-    <artifactId>jeffrey-events-parent</artifactId>
+    <artifactId>jeffrey-tracing-parent</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
@@ -33,9 +33,9 @@
 
     <!--
       The artifact consumers depend on is the `events` module, which keeps the
-      artifactId `jeffrey-events`. This parent exists only to hold the shared
+      artifactId `jeffrey-tracing`. This parent exists only to hold the shared
       build configuration and to aggregate the instrumentation modules; it is
-      published as `jeffrey-events-parent`, so no existing coordinate changes.
+      published as `jeffrey-tracing-parent`, so no existing coordinate changes.
     -->
     <modules>
         <module>events</module>
@@ -113,12 +113,12 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>jeffrey-events</artifactId>
+                <artifactId>jeffrey-tracing</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>jeffrey-events-test</artifactId>
+                <artifactId>jeffrey-tracing-test</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

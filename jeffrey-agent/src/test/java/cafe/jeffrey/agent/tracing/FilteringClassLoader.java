@@ -24,7 +24,7 @@ import java.util.Set;
 
 /**
  * Loads the fixtures itself while hiding chosen classes from them, which is how a test reproduces
- * the application that has the agent but not {@code jeffrey-events}.
+ * the application that has the agent but not {@code jeffrey-tracing}.
  * <p>
  * Defining the fixtures here rather than delegating is the point: a class's tracing runtime is
  * resolved through the loader that defined it, so only a class defined by this loader is subject to

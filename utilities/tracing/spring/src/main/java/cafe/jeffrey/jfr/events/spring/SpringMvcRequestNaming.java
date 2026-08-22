@@ -30,7 +30,7 @@ import java.util.Map;
  * <p>
  * This is the whole reason {@link HttpRequestNaming} exists as an interface: the matched template
  * is knowledge only the routing framework has, and keeping it here leaves
- * {@code jeffrey-events-servlet} free of any web framework.
+ * {@code jeffrey-tracing-servlet} free of any web framework.
  * <p>
  * A request that matched no handler — a static asset, a 404 — is named
  * {@link HttpRequestNaming#UNMATCHED_URI} rather than by its raw path. The name becomes the

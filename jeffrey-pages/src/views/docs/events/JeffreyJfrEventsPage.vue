@@ -70,7 +70,7 @@ Tracer.inSpanOf(event, () -> {                 // 2. stamps traceId/spanId/paren
         <p><strong>Jeffrey JFR Events</strong> is a library that provides custom JFR event definitions for emitting application-level events that can be captured and analyzed in Jeffrey.</p>
 
         <DocsCallout type="info">
-          <strong>Open Source Library:</strong> Jeffrey Events is available at <a href="https://github.com/petrbouda/jeffrey-events" target="_blank" rel="noopener">github.com/petrbouda/jeffrey-events</a>. Add it to your project to emit custom events that Jeffrey can process.
+          <strong>Open Source Library:</strong> Jeffrey Tracing is available at <a href="https://github.com/petrbouda/jeffrey/tree/master/utilities/tracing" target="_blank" rel="noopener">github.com/petrbouda/jeffrey</a>. Add it to your project to emit custom events that Jeffrey can process.
         </DocsCallout>
 
         <h2 id="event-types">Event Types</h2>
@@ -166,8 +166,8 @@ Tracer.inSpanOf(event, () -> {                 // 2. stamps traceId/spanId/paren
         <div class="code-block">
           <pre><code>&lt;dependency&gt;
     &lt;groupId&gt;cafe.jeffrey-analyst&lt;/groupId&gt;
-    &lt;artifactId&gt;jeffrey-events&lt;/artifactId&gt;
-    &lt;version&gt;0.12.0&lt;/version&gt;
+    &lt;artifactId&gt;jeffrey-tracing&lt;/artifactId&gt;
+    &lt;version&gt;x.y.z&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
         </div>
       </div>

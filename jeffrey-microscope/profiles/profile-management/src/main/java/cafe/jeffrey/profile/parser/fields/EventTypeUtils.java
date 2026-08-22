@@ -71,7 +71,7 @@ public abstract class EventTypeUtils {
      * discovers it the same way span discovery finds a {@code spanId} column.
      * <p>
      * Matched by annotation type name rather than by class: the annotation lives in
-     * {@code jeffrey-events}, which this module deliberately does not compile against — the
+     * {@code jeffrey-tracing}, which this module deliberately does not compile against — the
      * convention crosses between the two as recording metadata, never as a shared type. The value
      * is read defensively because it comes from an arbitrary recording; anything that is not the
      * expected {@code String} is left out, and the derivation treats an absent key as "declared

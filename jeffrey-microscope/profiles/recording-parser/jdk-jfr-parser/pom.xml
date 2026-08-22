@@ -33,7 +33,7 @@
         <!-- Tracer: each recording file parsed in parallel is recorded as a span -->
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-events</artifactId>
+            <artifactId>jeffrey-tracing</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

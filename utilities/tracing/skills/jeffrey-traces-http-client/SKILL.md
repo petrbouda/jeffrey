@@ -31,8 +31,8 @@ Rules recap (from the core skill) that this code embodies:
 
 ## 1. The shipped interceptor (Spring)
 
-`jeffrey-events-spring` ships this interceptor, so on Spring you do not write it. Adding
-`jeffrey-events-spring-boot-starter` (or `@Import(JeffreyTracingConfiguration.class)` on plain
+`jeffrey-tracing-spring` ships this interceptor, so on Spring you do not write it. Adding
+`jeffrey-tracing-spring-boot-starter` (or `@Import(JeffreyTracingConfiguration.class)` on plain
 Spring) gives you a `JfrClientHttpRequestInterceptor` bean; attach it where you build the client:
 
 ```java

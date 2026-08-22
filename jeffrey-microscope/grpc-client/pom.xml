@@ -43,7 +43,7 @@
         <!-- Client interceptor recording a span per outbound call -->
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-events-grpc</artifactId>
+            <artifactId>jeffrey-tracing-grpc</artifactId>
         </dependency>
         <!-- HubAddress record used by GrpcHubConnection -->
         <dependency>

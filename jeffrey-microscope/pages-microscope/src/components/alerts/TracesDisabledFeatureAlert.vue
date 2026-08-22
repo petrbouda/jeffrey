@@ -31,7 +31,7 @@
           <h6 class="mb-2">What you need to do:</h6>
           <ul class="mb-0">
             <li>
-              Add <code>cafe.jeffrey-analyst:jeffrey-events</code> to the application you want to
+              Add <code>cafe.jeffrey-analyst:jeffrey-tracing</code> to the application you want to
               profile
             </li>
             <li>

@@ -24,11 +24,11 @@
 
     <parent>
         <groupId>cafe.jeffrey-analyst</groupId>
-        <artifactId>jeffrey-events-parent</artifactId>
+        <artifactId>jeffrey-tracing-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>jeffrey-events-jdbc</artifactId>
+    <artifactId>jeffrey-tracing-jdbc</artifactId>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>DataSource wrapper recording every JDBC statement as a Jeffrey leaf span, whatever persistence framework issued it</description>
@@ -38,7 +38,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-events</artifactId>
+            <artifactId>jeffrey-tracing</artifactId>
         </dependency>
 
         <!-- An in-process database, so the proxy is tested against a real driver. -->
@@ -50,7 +50,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-events-test</artifactId>
+            <artifactId>jeffrey-tracing-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

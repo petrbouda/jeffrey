@@ -45,8 +45,8 @@ onMounted(() => {
 
 const mavenDependency = `<dependency>
     <groupId>cafe.jeffrey-analyst</groupId>
-    <artifactId>jeffrey-events</artifactId>
-    <version>0.12.0</version>
+    <artifactId>jeffrey-tracing</artifactId>
+    <version>x.y.z</version>
 </dependency>`;
 
 const quickStartExample = `import cafe.jeffrey.jfr.events.trace.SpanKind;
@@ -201,7 +201,7 @@ const volumeExample = `# Drop spans shorter than 1 ms (their children are orphan
     />
 
     <div class="docs-content">
-      <p>How to instrument an application with <code>Tracer</code>, the tracing API in <code>jeffrey-events</code>. This page is the reference for writing the code; the <router-link to="/docs/microscope/profiles/traces">Traces &amp; Spans</router-link> page documents the views you read afterwards.</p>
+      <p>How to instrument an application with <code>Tracer</code>, the tracing API in <code>jeffrey-tracing</code>. This page is the reference for writing the code; the <router-link to="/docs/microscope/profiles/traces">Traces &amp; Spans</router-link> page documents the views you read afterwards.</p>
 
       <h2 id="overview">Overview</h2>
 
@@ -426,7 +426,7 @@ const volumeExample = `# Drop spans shorter than 1 ms (their children are orphan
 
       <h2 id="traced-events">Events That Are Already Spans</h2>
 
-      <p>The HTTP, gRPC and JDBC events in <code>jeffrey-events</code> extend <code>AbstractTracedEvent</code>, which carries the whole span shape — <code>traceId</code>, <code>spanId</code>, <code>parentSpanId</code>, <code>name</code>, <code>kind</code>, <code>status</code>, <code>errorType</code> and <code>attributes</code>. An event that has them <em>is</em> a span; there is nothing for a reader to interpret.</p>
+      <p>The HTTP, gRPC and JDBC events in <code>jeffrey-tracing</code> extend <code>AbstractTracedEvent</code>, which carries the whole span shape — <code>traceId</code>, <code>spanId</code>, <code>parentSpanId</code>, <code>name</code>, <code>kind</code>, <code>status</code>, <code>errorType</code> and <code>attributes</code>. An event that has them <em>is</em> a span; there is nothing for a reader to interpret.</p>
 
       <p>Each type answers for its own span shape by overriding <code>describeSpan()</code> — an HTTP exchange names itself by method and matched URI template and fails at status 400, a gRPC call names itself by service and method and fails on anything but <code>OK</code>. Commit through <code>commitSpan()</code>, which is <code>describeSpan()</code> followed by <code>commit()</code>, so an emitter cannot forget the first half.</p>
 

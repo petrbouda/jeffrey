@@ -6,13 +6,13 @@
         <h5 class="alert-heading mb-3">{{ title }} Unavailable</h5>
         <p class="mb-3">
           {{ title }} is not available because of missing {{ eventType }} events in this profile. To
-          enable this dashboard, you need to include the Jeffrey Events library in your application.
+          enable this dashboard, you need to include the Jeffrey Tracing library in your application.
         </p>
 
         <div class="feature-benefits mb-3">
           <h6 class="mb-2">What you need to do:</h6>
           <ul class="mb-0">
-            <li>Add the Jeffrey Events dependency to your project</li>
+            <li>Add the Jeffrey Tracing dependency to your project</li>
             <li>
               Instrument your code to emit {{ eventType }} events at relevant points
               <div class="example-link mt-1">
@@ -39,17 +39,17 @@
           <p class="mb-2 small text-muted">
             Events are available on Maven Central:
             <a
-              href="https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-events"
+              href="https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-tracing"
               target="_blank"
               class="text-decoration-none"
             >
-              https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-events
+              https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-tracing
             </a>
           </p>
           <pre class="mt-2 mb-0 bg-light p-2 rounded"><code>&lt;dependency&gt;
     &lt;groupId&gt;cafe.jeffrey-analyst&lt;/groupId&gt;
-    &lt;artifactId&gt;jeffrey-events&lt;/artifactId&gt;
-    &lt;version&gt;0.10.0&lt;/version&gt;
+    &lt;artifactId&gt;jeffrey-tracing&lt;/artifactId&gt;
+    &lt;version&gt;x.y.z&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
         </div>
       </div>

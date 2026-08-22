@@ -10,14 +10,14 @@
           <div class="info-strip-text">
             <div class="info-strip-heading">How to enable these dashboards?</div>
             <div class="info-strip-sub">
-              Add <code>cafe.jeffrey-analyst:jeffrey-events:0.13.0</code> to your app to emit proper
+              Add <code>cafe.jeffrey-analyst:jeffrey-tracing</code> to your app to emit proper
               events — dashboards activate when events are detected.
             </div>
           </div>
           <div class="info-strip-actions">
             <a
               class="info-strip-btn info-strip-btn-ghost"
-              href="https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-events"
+              href="https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-tracing"
               target="_blank"
             >
               <i class="bi bi-box-seam"></i> Maven Central

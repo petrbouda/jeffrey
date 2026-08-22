@@ -24,11 +24,11 @@
 
     <parent>
         <groupId>cafe.jeffrey-analyst</groupId>
-        <artifactId>jeffrey-events-parent</artifactId>
+        <artifactId>jeffrey-tracing-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>jeffrey-events-servlet</artifactId>
+    <artifactId>jeffrey-tracing-servlet</artifactId>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Servlet filter emitting a Jeffrey HTTP server exchange event as the root span of every request</description>
@@ -38,7 +38,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-events</artifactId>
+            <artifactId>jeffrey-tracing</artifactId>
         </dependency>
         <!--
           provided: the container supplies the servlet API, and a web framework is
@@ -53,7 +53,7 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-events-test</artifactId>
+            <artifactId>jeffrey-tracing-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

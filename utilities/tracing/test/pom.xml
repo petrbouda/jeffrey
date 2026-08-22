@@ -24,18 +24,18 @@
 
     <parent>
         <groupId>cafe.jeffrey-analyst</groupId>
-        <artifactId>jeffrey-events-parent</artifactId>
+        <artifactId>jeffrey-tracing-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
     <!--
-      Deliberately depends on nothing - not even jeffrey-events. It reads spans
+      Deliberately depends on nothing - not even jeffrey-tracing. It reads spans
       out of a recording by their declared field names, which are the frozen wire
       format, exactly as Jeffrey's own derivation discovers spans structurally.
       That keeps the toolkit dependency-free for consumers AND lets the
-      jeffrey-events module use it in its own tests without a reactor cycle.
+      jeffrey-tracing module use it in its own tests without a reactor cycle.
     -->
-    <artifactId>jeffrey-events-test</artifactId>
+    <artifactId>jeffrey-tracing-test</artifactId>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Test toolkit for asserting Jeffrey JFR events and traces in a real flight recording</description>

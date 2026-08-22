@@ -40,7 +40,7 @@ import java.util.Properties;
  * it.
  * <p>
  * MyBatis is worth instrumenting directly even though
- * {@code jeffrey-events-jdbc} would already catch its statements through the {@code DataSource},
+ * {@code jeffrey-tracing-jdbc} would already catch its statements through the {@code DataSource},
  * because MyBatis knows something the driver does not: the <b>statement id</b>. A
  * {@code DataSource} proxy has to name a statement by reading its SQL, while this names it
  * {@code UserMapper.selectById} — one name per mapper method, stable however the SQL is
@@ -55,7 +55,7 @@ import java.util.Properties;
  * {@link MyBatisStatementSettings}, which documents what the recording then contains.
  *
  * <h2>Registration</h2>
- * On {@code jeffrey-events-spring-boot-starter} there is nothing to declare:
+ * On {@code jeffrey-tracing-spring-boot-starter} there is nothing to declare:
  * {@code jeffrey.tracing.mybatis-enabled=true} registers this and stands the {@code DataSource}
  * wrapper down, so the two cannot record the same statement twice. Without that starter, and on
  * mybatis-spring-boot-starter, declaring it as a bean is enough — every {@code Interceptor}

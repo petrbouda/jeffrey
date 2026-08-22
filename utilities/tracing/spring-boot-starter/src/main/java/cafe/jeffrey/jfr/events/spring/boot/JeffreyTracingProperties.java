@@ -28,7 +28,7 @@ import java.util.List;
 /**
  * The {@code jeffrey.tracing.*} configuration.
  * <p>
- * A Boot-side type on purpose: {@code jeffrey-events-spring} stays free of Spring Boot, so the
+ * A Boot-side type on purpose: {@code jeffrey-tracing-spring} stays free of Spring Boot, so the
  * plain {@link HttpExchangeSettings} it consumes is built from these bound values rather than being
  * annotated itself.
  *

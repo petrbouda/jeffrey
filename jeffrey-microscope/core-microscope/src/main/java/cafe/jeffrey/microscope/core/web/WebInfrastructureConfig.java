@@ -28,7 +28,7 @@ import org.springframework.core.Ordered;
  * converter, the exception handler, and the request-logging filter.
  * <p>
  * The JFR HTTP filter is no longer registered here: it ships in
- * {@code jeffrey-events-spring-boot-starter}, which registers it from
+ * {@code jeffrey-tracing-spring-boot-starter}, which registers it from
  * {@code jeffrey.tracing.*}. Jeffrey consumes the same artifact it publishes,
  * so the filter has one implementation rather than one per adopter.
  */

@@ -52,7 +52,7 @@ import java.util.Set;
  */
 public final class JfrRecordings {
 
-    private static final String DUMP_PREFIX = "jeffrey-events-test";
+    private static final String DUMP_PREFIX = "jeffrey-tracing-test";
     private static final String DUMP_SUFFIX = ".jfr";
 
     private JfrRecordings() {

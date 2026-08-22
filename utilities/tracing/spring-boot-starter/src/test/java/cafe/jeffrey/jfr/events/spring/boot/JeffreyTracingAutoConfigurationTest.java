@@ -249,7 +249,7 @@ class JeffreyTracingAutoConfigurationTest {
         }
 
         @Test
-        @DisplayName("jeffrey-events-spring ships no auto-configuration entry, which is what keeps it opt-in")
+        @DisplayName("jeffrey-tracing-spring ships no auto-configuration entry, which is what keeps it opt-in")
         void springModuleContributesNoAutoConfiguration() throws IOException {
             List<String> entries = autoConfigurationEntries();
 

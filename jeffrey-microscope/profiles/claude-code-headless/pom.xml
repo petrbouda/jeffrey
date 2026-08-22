@@ -34,7 +34,7 @@
         <!-- Tracer: ReflectiveToolset records a span per MCP tool invocation -->
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-events</artifactId>
+            <artifactId>jeffrey-tracing</artifactId>
         </dependency>
         <!-- AI seam (AiChatBackend, ChatExchange, McpToolset, ...) -->
         <dependency>

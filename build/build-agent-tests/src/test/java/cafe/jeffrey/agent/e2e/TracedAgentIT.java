@@ -38,14 +38,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * The agent as it ships: the shaded jar with its relocated bytecode engine, attached with
- * {@code -javaagent}, weaving classes that use the real {@code jeffrey-events}.
+ * {@code -javaagent}, weaving classes that use the real {@code jeffrey-tracing}.
  * <p>
  * Everything below crosses the boundary the unit tests each see only one side of — the agent
  * resolving the library through the instrumented class's own loader, and the library turning that
  * call into a span in a real recording. A method here is annotated and called normally; nothing
  * mentions the agent.
  * <p>
- * One case cannot live here: an application without {@code jeffrey-events} on its class path. This
+ * One case cannot live here: an application without {@code jeffrey-tracing} on its class path. This
  * module has the library by construction, so that fall-through is proven in the agent's own
  * {@code TracedWeavingTest} instead.
  * <p>

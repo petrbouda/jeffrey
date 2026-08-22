@@ -52,7 +52,7 @@
         </dependency>
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-events</artifactId>
+            <artifactId>jeffrey-tracing</artifactId>
         </dependency>
         <dependency>
             <groupId>org.duckdb</groupId>

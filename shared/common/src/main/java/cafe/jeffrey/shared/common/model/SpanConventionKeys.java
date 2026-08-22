@@ -22,7 +22,7 @@ package cafe.jeffrey.shared.common.model;
  * The names a declared span naming convention travels under, from the {@code @Span} annotation
  * in a recording's metadata to the {@code event_types.extras} column the derivation reads.
  * <p>
- * Spelled here rather than referenced from {@code jeffrey-events} because neither the parser nor
+ * Spelled here rather than referenced from {@code jeffrey-tracing} because neither the parser nor
  * the profile persistence may compile against the instrumentation library — the convention crosses
  * between them as data, inside the recording. {@code JdbcTraceRepositoryTest.EventApiContract}
  * pins every constant to the real annotation, so a rename on either side fails a test instead of

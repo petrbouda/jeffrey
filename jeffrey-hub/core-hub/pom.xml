@@ -65,11 +65,11 @@
         <!-- Third-party -->
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-events</artifactId>
+            <artifactId>jeffrey-tracing</artifactId>
         </dependency>
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-events-grpc</artifactId>
+            <artifactId>jeffrey-tracing-grpc</artifactId>
         </dependency>
 
         <!-- Shared version controller (GET /api/internal/version) -->

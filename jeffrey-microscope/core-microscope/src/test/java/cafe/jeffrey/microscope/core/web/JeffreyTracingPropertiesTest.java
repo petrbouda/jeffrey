@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Pins the configuration that replaced this module's hand-written JFR HTTP filter.
  * <p>
- * The filter now ships in {@code jeffrey-events-spring-boot-starter} and is registered from
+ * The filter now ships in {@code jeffrey-tracing-spring-boot-starter} and is registered from
  * {@code jeffrey.tracing.*}. That is a better arrangement — one implementation instead of one per
  * adopter — but it moves the filter's placement out of Java, where the compiler was checking it,
  * and into a properties file, where nothing is. These assertions are that check: a changed value

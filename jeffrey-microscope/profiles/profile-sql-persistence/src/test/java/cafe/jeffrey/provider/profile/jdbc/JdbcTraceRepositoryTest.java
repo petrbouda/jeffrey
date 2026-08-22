@@ -916,7 +916,7 @@ class JdbcTraceRepositoryTest {
         @DisplayName("the keys a declared convention travels under match the annotation")
         void conventionKeysMatchTheAnnotations() {
             // The parser matches the annotation by type name and the derivation reads extras by
-            // key; neither module compiles against jeffrey-events, so these strings are the whole
+            // key; neither module compiles against jeffrey-tracing, so these strings are the whole
             // contract. A rename on either side must fail here, not silently un-declare every
             // convention in every new recording.
             assertEquals(SpanConventionKeys.SPAN_ANNOTATION, Span.class.getName());
@@ -927,7 +927,7 @@ class JdbcTraceRepositoryTest {
         void everySpanTypeDeclaresItsTemplate() {
             // Exchanges derive their name from their fields; a statement and a hand-written span
             // name themselves, which the identity template states explicitly. The invariant is
-            // that no jeffrey-events span type is silent about how it is named -- absence of
+            // that no jeffrey-tracing span type is silent about how it is named -- absence of
             // @Span means "no convention exists", never "the rule lives elsewhere".
             assertEquals("{name}", JdbcQueryEvent.class.getAnnotation(Span.class).value());
             assertEquals("{name}", TraceSpanEvent.class.getAnnotation(Span.class).value());

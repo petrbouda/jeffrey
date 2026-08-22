@@ -32,8 +32,8 @@ import java.util.Map;
  * answer is the routing framework's matched <em>template</em> — {@code /api/users/{id}} — which
  * only the framework knows.
  * <p>
- * This interface is why {@code jeffrey-events-servlet} needs no web framework: the filter asks for
- * a name, and whoever knows the routing supplies one. {@code jeffrey-events-spring} contributes a
+ * This interface is why {@code jeffrey-tracing-servlet} needs no web framework: the filter asks for
+ * a name, and whoever knows the routing supplies one. {@code jeffrey-tracing-spring} contributes a
  * Spring MVC implementation reading the matched handler pattern.
  */
 public interface HttpRequestNaming {

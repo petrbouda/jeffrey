@@ -167,7 +167,7 @@ class TracedWeavingTest {
             Object fixture = newFixture(withoutRuntime);
 
             assertEquals("body:ada", invoke(fixture, "returnsAValue", new Class<?>[]{String.class}, "ada"),
-                    "a missing jeffrey-events must cost spans, never the application");
+                    "a missing jeffrey-tracing must cost spans, never the application");
             assertTrue(TracedRuntime.invocations().isEmpty(), "there was no runtime to reach");
         }
     }

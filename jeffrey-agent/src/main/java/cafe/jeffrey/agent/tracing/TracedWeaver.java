@@ -43,7 +43,7 @@ import static net.bytebuddy.matcher.ElementMatchers.not;
  * <p>
  * The annotation is matched <b>by name</b>, never by class: the agent must decide whether to weave
  * a class without loading anything the application owns, and it has no compile-time knowledge of
- * {@code jeffrey-events} at all. ByteBuddy reads the annotation out of the class file for exactly
+ * {@code jeffrey-tracing} at all. ByteBuddy reads the annotation out of the class file for exactly
  * this reason.
  * <p>
  * The rewrite is a <em>rebase</em>: the original body moves to a synthetic method and the original

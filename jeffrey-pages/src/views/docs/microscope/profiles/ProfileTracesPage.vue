@@ -49,8 +49,8 @@ onMounted(() => {
 
 const mavenDependency = `<dependency>
     <groupId>cafe.jeffrey-analyst</groupId>
-    <artifactId>jeffrey-events</artifactId>
-    <version>0.12.0</version>
+    <artifactId>jeffrey-tracing</artifactId>
+    <version>x.y.z</version>
 </dependency>`;
 
 const tracerExample = `import cafe.jeffrey.jfr.events.trace.SpanKind;
@@ -169,7 +169,7 @@ if (event.isEnabled()) {
       <DocsCodeBlock :code="mavenDependency" language="xml" />
 
       <DocsCallout type="warning">
-        <strong>Java 25 or newer.</strong> The tracing API is built on <code>ScopedValue</code> (JEP&nbsp;506) and <code>jdk.jfr.Contextual</code>, both finalized in Java&nbsp;25, so <code>jeffrey-events</code> 0.12.0 targets 25. Applications on Java 17–24 can stay on an earlier release for the HTTP, gRPC and JDBC events, but cannot use <code>Tracer</code>.
+        <strong>Java 25 or newer.</strong> The tracing API is built on <code>ScopedValue</code> (JEP&nbsp;506) and <code>jdk.jfr.Contextual</code>, both finalized in Java&nbsp;25, so <code>jeffrey-tracing</code> targets 25. Applications on Java 17–24 can stay on a <code>jeffrey-events</code> release older than 0.12.0 for the HTTP, gRPC and JDBC events, but cannot use <code>Tracer</code>.
       </DocsCallout>
 
       <h3>Opening spans</h3>
@@ -200,7 +200,7 @@ if (event.isEnabled()) {
 
       <h2 id="auto-instrumented">Every Instrumented Event Is a Span</h2>
 
-      <p>The HTTP, gRPC and JDBC events in <code>jeffrey-events</code> extend <code>AbstractTracedEvent</code>, which carries the whole span shape — <code>traceId</code>, <code>spanId</code>, <code>parentSpanId</code>, plus the <code>name</code>, <code>kind</code>, <code>status</code>, <code>errorType</code> and <code>attributes</code> a <code>jeffrey.TraceSpan</code> carries. An event that has them <em>is</em> a span; there is nothing for Jeffrey to work out from the event type.</p>
+      <p>The HTTP, gRPC and JDBC events in <code>jeffrey-tracing</code> extend <code>AbstractTracedEvent</code>, which carries the whole span shape — <code>traceId</code>, <code>spanId</code>, <code>parentSpanId</code>, plus the <code>name</code>, <code>kind</code>, <code>status</code>, <code>errorType</code> and <code>attributes</code> a <code>jeffrey.TraceSpan</code> carries. An event that has them <em>is</em> a span; there is nothing for Jeffrey to work out from the event type.</p>
 
       <p>Both roles commit through <code>commitSpan()</code>, which stamps an event that does not yet carry trace identity and leaves one that does untouched. A leaf, like a statement, is stamped by the commit itself with a span of its own nested inside the span in progress — the stamp cannot be forgotten. An entry point, like an inbound request, runs through <code>Tracer.inSpanOf</code> first, which makes the event <em>be</em> the span it opens, so anything traced underneath nests inside it. Both let the event derive its own name and status first:</p>
 
@@ -292,7 +292,7 @@ if (event.isEnabled()) {
 
       <h2 id="operations">Traces by Operation</h2>
 
-      <p>The trace list answers "which run was slow". Traces by Operation answers "which <em>kind</em> of run is slow, across every time it ran": one card per <strong>trace type</strong>, grouped from the <code>traces</code> table. An operation's name is derived from what the root did — <code>GET /api/internal/profiles/{profileId}</code>, <code>jeffrey.api.v1.ProjectService/List</code> — rather than read out of the recording, so the same endpoint is one operation whichever version of <code>jeffrey-events</code> recorded it. A trace type is keyed by all three of that name, the root's kind and the event type that opened it — not by the name alone: an inbound <code>GET /orders</code> and an outbound call to the same path are named identically by the same convention, and they are not the same operation. Each card leads with the call count, then Spans / Total / P50 / P95 / Max badges; the name row carries the event type and the kind, and an error-count badge sits on the right when the type has failures. Sort by total, P95, max, call count or errors.</p>
+      <p>The trace list answers "which run was slow". Traces by Operation answers "which <em>kind</em> of run is slow, across every time it ran": one card per <strong>trace type</strong>, grouped from the <code>traces</code> table. An operation's name is derived from what the root did — <code>GET /api/internal/profiles/{profileId}</code>, <code>jeffrey.api.v1.ProjectService/List</code> — rather than read out of the recording, so the same endpoint is one operation whichever version of the library recorded it. A trace type is keyed by all three of that name, the root's kind and the event type that opened it — not by the name alone: an inbound <code>GET /orders</code> and an outbound call to the same path are named identically by the same convention, and they are not the same operation. Each card leads with the call count, then Spans / Total / P50 / P95 / Max badges; the name row carries the event type and the kind, and an error-count badge sits on the right when the type has failures. Sort by total, P95, max, call count or errors.</p>
 
       <DocsCallout type="info">
         <strong>Where did the nested spans go?</strong> This list used to be every span name in the profile — including names, like <code>chunk.parse</code> or <code>dominator</code>, that only ever occur nested inside another span and are never a trace root. Grouping by root name instead of span name dropped one reference profile's list from 105 rows to 36. A nested span is not lost: open the trace it belongs to and find it in the <a href="#waterfall">waterfall</a>, alongside every other span in that trace's tree.

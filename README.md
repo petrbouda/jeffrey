@@ -65,14 +65,14 @@ The complete toolbox — Microscope and Hub are the core, the rest round it out:
 | **[Provisioner](https://www.jeffrey-analyst.cafe/docs/provisioner)**                            | One HOCON file lays out your workspace / project / session tree, registers sessions with the Hub, and generates the JVM argfile that starts your app under the profiler. |
 | **[Jeffrey JIB](https://www.jeffrey-analyst.cafe/docs/jib)**                                    | A Jib (Gradle/Maven) extension that wraps your container entrypoint so profiling starts before your app does — no command override, no binaries baked into the image. |
 | **Jeffrey Agent**                                                                               | A tiny `-javaagent` that writes a heartbeat file to the shared volume, so the Hub can track liveness and tell a clean shutdown from a crash. No network, no gRPC. |
-| **[Jeffrey Events](https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-events)** | A lightweight custom-JFR-event library (HTTP, gRPC, database, connection-pool, heartbeat) that powers the tech dashboards. |
+| **[Jeffrey Tracing](https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-tracing)** | A lightweight custom-JFR-event library (HTTP, gRPC, database, connection-pool, heartbeat) that powers the tech dashboards. |
 
 ## 📖 Links
 
 - 🌐 **Website:** https://www.jeffrey-analyst.cafe/
 - 📦 **Releases:** https://github.com/petrbouda/jeffrey/releases
 - 🧩 **IntelliJ plugin:** https://plugins.jetbrains.com/plugin/31963-jeffrey-microscope
-- 📡 **Jeffrey Events:** https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-events
+- 📡 **Jeffrey Tracing:** https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-tracing
 
 ## 📄 License
 

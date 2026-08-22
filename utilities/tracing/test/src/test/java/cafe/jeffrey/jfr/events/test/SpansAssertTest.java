@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The toolkit is tested against event types declared here rather than against Jeffrey's own, which
  * is the point: span discovery is structural — an event is a span because it declares
  * {@code spanId}, whoever wrote it — and this module deliberately does not depend on
- * {@code jeffrey-events}.
+ * {@code jeffrey-tracing}.
  */
 class SpansAssertTest {
 

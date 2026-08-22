@@ -24,7 +24,7 @@
 
     <parent>
         <groupId>cafe.jeffrey-analyst</groupId>
-        <artifactId>jeffrey-events-parent</artifactId>
+        <artifactId>jeffrey-tracing-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
@@ -33,7 +33,7 @@
       filter and the plain Spring configuration transitively, and contributes the
       auto-configuration that wires them.
     -->
-    <artifactId>jeffrey-events-spring-boot-starter</artifactId>
+    <artifactId>jeffrey-tracing-spring-boot-starter</artifactId>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>Spring Boot starter that auto-configures Jeffrey JFR instrumentation: one dependency, no code</description>
@@ -44,13 +44,13 @@
         <!-- Compile scope: a starter exists to bring what it configures. -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-events-spring</artifactId>
+            <artifactId>jeffrey-tracing-spring</artifactId>
             <version>${project.version}</version>
         </dependency>
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-events-jdbc</artifactId>
+            <artifactId>jeffrey-tracing-jdbc</artifactId>
             <version>${project.version}</version>
         </dependency>
         <!--
@@ -60,7 +60,7 @@
         -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-events-hikari</artifactId>
+            <artifactId>jeffrey-tracing-hikari</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -72,7 +72,7 @@
         <!-- Same shape as Hikari: brought along, inert until the application actually uses MyBatis. -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-events-mybatis</artifactId>
+            <artifactId>jeffrey-tracing-mybatis</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -117,7 +117,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-events-test</artifactId>
+            <artifactId>jeffrey-tracing-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

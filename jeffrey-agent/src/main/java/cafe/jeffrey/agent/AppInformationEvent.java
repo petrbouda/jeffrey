@@ -32,7 +32,7 @@ import jdk.jfr.Timestamp;
  *
  * <p>This is a self-contained copy of
  * {@code cafe.jeffrey.jfr.events.appinfo.AppInformationEvent}. The agent duplicates it rather than
- * depending on {@code jeffrey-events} because it must not require the profiled application to carry
+ * depending on {@code jeffrey-tracing} because it must not require the profiled application to carry
  * that library, and because it targets an older Java release than the library does. JFR
  * deduplicates event types by {@link Name}, so the two copies describe the same event type.</p>
  */

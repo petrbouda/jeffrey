@@ -1,6 +1,6 @@
 ---
 name: jeffrey-traces-grpc
-description: Instrument gRPC with Jeffrey JFR events — a ServerInterceptor that makes every inbound call the root span of a trace, and a ClientInterceptor that records every outbound call as a leaf under the span that made it, both emitting GrpcServerExchangeEvent/GrpcClientExchangeEvent into Jeffrey Traces. Covers the jeffrey-events-grpc module, registration on plain gRPC and on Spring gRPC, and the callback problem that makes gRPC different from a servlet filter. Requires the jeffrey-traces-core skill for the data model, emit rules, recording setup, and verification.
+description: Instrument gRPC with Jeffrey JFR events — a ServerInterceptor that makes every inbound call the root span of a trace, and a ClientInterceptor that records every outbound call as a leaf under the span that made it, both emitting GrpcServerExchangeEvent/GrpcClientExchangeEvent into Jeffrey Traces. Covers the jeffrey-tracing-grpc module, registration on plain gRPC and on Spring gRPC, and the callback problem that makes gRPC different from a servlet filter. Requires the jeffrey-traces-core skill for the data model, emit rules, recording setup, and verification.
 ---
 
 # Jeffrey Traces — gRPC Instrumentation
@@ -27,7 +27,7 @@ Rules recap (from the core skill) that this embodies:
 ```xml
 <dependency>
     <groupId>cafe.jeffrey-analyst</groupId>
-    <artifactId>jeffrey-events-grpc</artifactId>
+    <artifactId>jeffrey-tracing-grpc</artifactId>
     <version><!-- latest release --></version>
 </dependency>
 ```

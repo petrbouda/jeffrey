@@ -41,7 +41,7 @@ import org.springframework.context.annotation.Configuration;
  * }</pre>
  *
  * That is the point of the split. Applications that want instrumentation to appear by itself add
- * {@code jeffrey-events-spring-boot-starter}, whose auto-configuration imports this class and adds
+ * {@code jeffrey-tracing-spring-boot-starter}, whose auto-configuration imports this class and adds
  * the Boot-only pieces — filter registration order and URL patterns, and property binding. Keeping
  * those out of here is not tidiness: {@code FilterRegistrationBean} is a Spring Boot type, and
  * depending on it would make this module unusable from the plain Spring MVC applications it is
