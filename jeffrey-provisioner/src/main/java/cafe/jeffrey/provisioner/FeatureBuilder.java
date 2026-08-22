@@ -41,6 +41,9 @@ public class FeatureBuilder {
     /* Agent JVM option prefix (passes heartbeat directory as the first agent argument) */
     private static final String AGENT_OPTION_PREFIX = "-javaagent:%s=" + HeartbeatConstants.PARAM_DIR + "=%s";
 
+    /* Turns on @Traced method tracing in the agent; off unless the session asks for it */
+    private static final String AGENT_ARG_METHOD_TRACING = "tracing.enabled=true";
+
     private static final String AGENT_ARG_SEPARATOR = ",";
     private static final String AGENT_ARG_ASSIGN = "=";
 
@@ -49,6 +52,7 @@ public class FeatureBuilder {
 
     private boolean debugNonSafepointsEnabled;
     private boolean perfCountersEnabled;
+    private boolean methodTracingEnabled;
     private HeapDumpType heapDumpType;
     private String jvmLogging;
     private String agentPath;
@@ -62,6 +66,15 @@ public class FeatureBuilder {
 
     public FeatureBuilder setPerfCountersEnabled(boolean enabled) {
         this.perfCountersEnabled = enabled;
+        return this;
+    }
+
+    /**
+     * Records methods annotated {@code @Traced} as spans. It weaves application bytecode as it
+     * loads, so it stays off unless the session asks for it.
+     */
+    public FeatureBuilder setMethodTracingEnabled(boolean enabled) {
+        this.methodTracingEnabled = enabled;
         return this;
     }
 
@@ -126,6 +139,9 @@ public class FeatureBuilder {
         if (agentPath != null && !agentPath.isBlank()) {
             String heartbeatDirPath = currentSessionPath.resolve(HeartbeatConstants.HEARTBEAT_DIR).toString();
             StringBuilder agentOption = new StringBuilder(String.format(AGENT_OPTION_PREFIX, agentPath, heartbeatDirPath));
+            if (methodTracingEnabled) {
+                agentOption.append(AGENT_ARG_SEPARATOR).append(AGENT_ARG_METHOD_TRACING);
+            }
             appendAppIdentity(agentOption);
             options.append(agentOption);
             options.append(" ");
