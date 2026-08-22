@@ -26,7 +26,7 @@
         <groupId>cafe.jeffrey-analyst</groupId>
         <artifactId>jeffrey-events-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath>../../jeffrey-events/pom.xml</relativePath>
+        <relativePath>../../jeffrey-events-parent/pom.xml</relativePath>
     </parent>
 
     <artifactId>jeffrey-tracing-jdbc</artifactId>

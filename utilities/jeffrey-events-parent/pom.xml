@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Jeffrey
+  ~ Copyright (C) 2026 Petr Bouda
+  ~
+  ~ This program is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU Affero General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU Affero General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU Affero General Public License
+  ~ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>cafe.jeffrey-analyst</groupId>
+    <artifactId>jeffrey-events-parent</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>Jeffrey-specific events that can be visualized by Jeffrey, and the instrumentation modules that emit them</description>
+    <url>https://github.com/petrbouda/jeffrey</url>
+
+    <!--
+      The artifact consumers depend on is the `events` module, which keeps the
+      artifactId `jeffrey-events`. This parent exists only to hold the shared
+      build configuration and to aggregate the instrumentation modules; it is
+      published as `jeffrey-events-parent`, so no existing coordinate changes.
+    -->
+    <modules>
+        <module>../jeffrey-events</module>
+        <module>../jeffrey-events-test</module>
+        <module>../tracing/jeffrey-tracing-servlet</module>
+        <module>../tracing/jeffrey-tracing-spring</module>
+        <module>../tracing/jeffrey-tracing-jdbc</module>
+        <module>../tracing/jeffrey-tracing-hikari</module>
+        <module>../tracing/jeffrey-tracing-mybatis</module>
+        <module>../tracing/jeffrey-tracing-grpc</module>
+        <module>../tracing/jeffrey-tracing-spring-boot-starter</module>
+    </modules>
+
+    <developers>
+        <developer>
+            <name>Petr Bouda</name>
+            <email>bouda.petr@gmail.com</email>
+            <organization>Jeffrey</organization>
+            <organizationUrl>https://www.jeffrey-analyst.cafe/</organizationUrl>
+        </developer>
+    </developers>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+    </licenses>
+
+    <scm>
+        <connection>scm:git:https://github.com/petrbouda/jeffrey.git</connection>
+        <developerConnection>scm:git:https://github.com/petrbouda/jeffrey.git</developerConnection>
+        <url>https://github.com/petrbouda/jeffrey/tree/main</url>
+    </scm>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- Java 25: the tracing API is built on ScopedValue and jdk.jfr.Contextual. -->
+        <maven.compiler.release>25</maven.compiler.release>
+        <junit.version>6.0.3</junit.version>
+        <!--
+          Compile-time only: every framework dependency below is `provided`, so a
+          consumer brings its own version and nothing here is imposed on them.
+        -->
+        <spring-boot.version>4.1.0</spring-boot.version>
+        <hikaricp.version>7.0.2</hikaricp.version>
+        <duckdb.version>1.5.3.0</duckdb.version>
+        <mybatis.version>3.5.19</mybatis.version>
+        <grpc.version>1.81.0</grpc.version>
+        <protobuf.version>4.35.0</protobuf.version>
+        <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!--
+              gRPC's own poms skew: grpc-inprocess 1.81.0 depends on grpc-core 1.80.0, which
+              mismatches grpc-api and fails at runtime with an AbstractMethodError. The BOM pins
+              every gRPC artifact to one version.
+            -->
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-bom</artifactId>
+                <version>${grpc.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>jeffrey-events</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>jeffrey-events-test</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+                <configuration>
+                    <release>${maven.compiler.release}</release>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>release</id>
+            <!--
+              Staging-only release profile. Maven produces the jar + sources + javadoc
+              for every module and deploys them into a local staging repository
+              (target/staging-deploy, via -DaltDeploymentRepository). Signing and the
+              actual upload to Maven Central are handled by JReleaser (`jreleaser deploy`,
+              see jreleaser.yml), which replaced central-publishing-maven-plugin +
+              maven-gpg-plugin.
+            -->
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.3.0</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.6.3</version>
+                        <executions>
+                            <execution>
+                                <id>attach-javadoc</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <stylesheet>java</stylesheet>
+                            <doclint>none</doclint>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
