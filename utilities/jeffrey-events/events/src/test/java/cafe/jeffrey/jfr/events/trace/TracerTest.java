@@ -22,6 +22,7 @@ import cafe.jeffrey.jfr.events.grpc.GrpcServerExchangeEvent;
 import cafe.jeffrey.jfr.events.http.HttpClientExchangeEvent;
 import cafe.jeffrey.jfr.events.http.HttpServerExchangeEvent;
 import cafe.jeffrey.jfr.events.jdbc.statement.JdbcQueryEvent;
+import cafe.jeffrey.jfr.events.test.JfrRecordings;
 import jdk.jfr.consumer.RecordedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
