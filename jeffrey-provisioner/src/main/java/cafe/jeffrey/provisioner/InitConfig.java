@@ -66,6 +66,7 @@ public class InitConfig {
     private static final String ENV_ATTRIBUTES = "JEFFREY_ATTRIBUTES";
     private static final String ENV_HEAP_DUMP = "JEFFREY_HEAP_DUMP";
     private static final String ENV_PERF_COUNTERS = "JEFFREY_PERF_COUNTERS";
+    private static final String ENV_METHOD_TRACING = "JEFFREY_METHOD_TRACING";
     private static final String ENV_JVM_LOGGING = "JEFFREY_JVM_LOGGING";
     private static final String ENV_ADDITIONAL_JVM_OPTIONS = "JEFFREY_ADDITIONAL_JVM_OPTIONS";
 
@@ -117,6 +118,7 @@ public class InitConfig {
             }
             attributes = {}
             perf-counters { enabled = false }
+            method-tracing { enabled = false }
             heap-dump { enabled = false, type = "exit" }
             jvm-logging { enabled = false, command = "" }
             agent-path = ""
@@ -237,6 +239,11 @@ public class InitConfig {
         PerfCountersConfig perfCounters = new PerfCountersConfig();
         perfCounters.setEnabled(resolveBoolWithEnv(perfCfg.getBoolean("enabled"), ENV_PERF_COUNTERS, envLookup));
         config.setPerfCounters(perfCounters);
+
+        Config tracingCfg = resolved.getConfig("method-tracing");
+        MethodTracingConfig methodTracing = new MethodTracingConfig();
+        methodTracing.setEnabled(resolveBoolWithEnv(tracingCfg.getBoolean("enabled"), ENV_METHOD_TRACING, envLookup));
+        config.setMethodTracing(methodTracing);
 
         Config heapCfg = resolved.getConfig("heap-dump");
         HeapDumpConfig heapDump = new HeapDumpConfig();
@@ -392,6 +399,7 @@ public class InitConfig {
     private String agentPath;
     private ProjectConfig project;
     private PerfCountersConfig perfCounters;
+    private MethodTracingConfig methodTracing;
     private HeapDumpConfig heapDump;
     private JvmLoggingConfig jvmLogging;
     private JdkJavaOptionsConfig jdkJavaOptions;
@@ -599,6 +607,19 @@ public class InitConfig {
         this.attributes = attributes;
     }
 
+    /** Whether the agent records {@code @Traced} methods as spans. */
+    public static class MethodTracingConfig {
+        private boolean enabled;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+    }
+
     public static class PerfCountersConfig {
         private boolean enabled;
 
@@ -696,6 +717,18 @@ public class InitConfig {
 
     public boolean isPerfCountersEnabled() {
         return perfCounters != null && perfCounters.isEnabled();
+    }
+
+    public MethodTracingConfig getMethodTracing() {
+        return methodTracing;
+    }
+
+    public void setMethodTracing(MethodTracingConfig methodTracing) {
+        this.methodTracing = methodTracing;
+    }
+
+    public boolean isMethodTracingEnabled() {
+        return methodTracing != null && methodTracing.isEnabled();
     }
 
     public boolean isDebugNonSafepointsEnabled() {

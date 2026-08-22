@@ -149,6 +149,7 @@ public class InitExecutor {
                 .setDebugNonSafepointsEnabled(config.isDebugNonSafepointsEnabled())
                 .setHeapDumpEnabled(config.resolveHeapDumpType())
                 .setPerfCountersEnabled(config.isPerfCountersEnabled())
+                .setMethodTracingEnabled(config.isMethodTracingEnabled())
                 .setJvmLogging(config.getJvmLoggingCommand())
                 .setAgentPath(config.getAgentPath())
                 .setAdditionalJvmOptions(config.getAdditionalJvmOptions())

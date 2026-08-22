@@ -72,6 +72,7 @@ attributes { cluster = "blue", namespace = "production" }
 
 debug-non-safepoints { enabled = true }
 perf-counters { enabled = true }
+method-tracing { enabled = true }
 heap-dump { enabled = true, type = "crash" }
 jvm-logging {
   enabled = true
@@ -260,6 +261,12 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
               <td>Save JVM performance counters into the session directory</td>
             </tr>
             <tr>
+              <td><code>method-tracing.enabled</code></td>
+              <td>No</td>
+              <td><code>JEFFREY_METHOD_TRACING</code></td>
+              <td>Record methods annotated <code>@Traced</code> as spans. Needs Java 25 and <code>jeffrey-events</code> on the application's class path</td>
+            </tr>
+            <tr>
               <td><code>heap-dump</code></td>
               <td>No</td>
               <td><code>JEFFREY_HEAP_DUMP</code></td>
@@ -293,6 +300,12 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
             <h4>Perf Counters</h4>
             <p>Captures JVM performance data via <code>-XX:+UsePerfData</code>. Provides low-level metrics about JVM internals.</p>
             <code>perf-counters { enabled = true }</code>
+          </div>
+          <div class="feature-card trace">
+            <div class="feature-icon"><i class="bi bi-braces"></i></div>
+            <h4>Method Tracing</h4>
+            <p>Tells the Jeffrey Agent to weave methods annotated <code>@Traced</code> into spans. Off by default, since it rewrites application bytecode as it loads.</p>
+            <code>method-tracing { enabled = true }</code>
           </div>
           <div class="feature-card heap">
             <div class="feature-icon"><i class="bi bi-memory"></i></div>
