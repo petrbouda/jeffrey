@@ -59,7 +59,7 @@ Understand this model first; every rule follows from it.
    The value `0` means "absent". An event whose `traceId`/`spanId` are `0` still
    appears in the dashboards, but it is **not part of any trace** — this is the
    single most common instrumentation mistake (committing with `commit()`
-   instead of `stampAndCommit()`/`commitSpan()`).
+   instead of `commitSpan()`).
 
 3. **Jeffrey detects spans from metadata, not from event names.** Any event
    type that declares a `spanId` field takes part in traces — including your
@@ -97,6 +97,11 @@ Understand this model first; every rule follows from it.
   but not `Tracer` — no hand-written spans and no cross-event trace nesting.
 - `Tracer.openSpanOf` / `Tracer.reenter` / `jeffrey.TraceScope` arrived after
   0.12.0 — use 0.13.0 or newer for the callback-driven patterns in §5.
+- In releases **after 0.13.0** there is a single commit verb: `commitSpan()`
+  stamps an event that does not yet carry identity (`stampAndCommit()` is a
+  deprecated alias), and `failed(Throwable)` exists on **every** traced event.
+  On 0.13.0 itself, commit leaf events with `stampAndCommit()` and note that
+  `failed` exists only on JDBC statement events.
 - The library has **zero dependencies** (only `jdk.jfr`) and is safe to leave
   on in production: when no recording is running, every emit path checks
   `event.isEnabled()` and runs the body directly with nothing allocated beyond
@@ -130,7 +135,9 @@ Field notes:
   `uri`, `method`, `mediaType`, `statusCode`, `queryParams` (JSON),
   `pathParams` (JSON), `requestLength`, `responseLength`. Span name and status
   are derived for you in `describeSpan()`: name = `"{method} {uri}"`, status =
-  `ERROR` when `statusCode >= 400`. **Never set `name`/`status` yourself.**
+  `ERROR` when `statusCode >= 400`. **Never set `name`/`status` yourself** — a
+  transport failure that produced no status code is recorded with
+  `event.failed(throwable)`, which the derived verdict never paints over.
 - **JDBC events** (`JdbcBaseEvent`): constructor `(String name, String group)`
   — `name` is the statement label, `group` groups statements in the Database
   dashboard. Fields: `sql`, `params` (JSON), `rows`. `JdbcInsertEvent` adds
@@ -156,12 +163,13 @@ They are plain events (not spans); emit them from your pool's hook points
    additionally call `Tracer.run` around the request — that would record the
    same interval twice.
 
-2. **Leaf events use `stampAndCommit()`, never `commit()`.** A JDBC statement
-   or HTTP client event committed in its own `finally` must end with
-   `event.stampAndCommit()`. It stamps the event as a child of the span in
-   progress (or leaves ids at `0` when there is none — still valid, just
-   untraced) and then runs `describeSpan()` + `commit()`. A bare `commit()`
-   silently drops the event from every trace.
+2. **Every traced event commits through `commitSpan()`, never `commit()`.** A
+   JDBC statement or HTTP client event committed in its own `finally` must end
+   with `event.commitSpan()`. It stamps an event that does not yet carry trace
+   identity as a child of the span in progress (or leaves ids at `0` when there
+   is none — still valid, just untraced), keeps an event that already carries
+   identity exactly as it is, and then runs `describeSpan()` + `commit()`. A
+   bare `commit()` silently drops the event from every trace.
 
 3. **Always follow the guard/begin/end/shouldCommit shape:**
 
@@ -175,12 +183,12 @@ They are plain events (not spans); emit them from your pool's hook points
        result = doWork();
        event.end();                    // interval ends when the work ends
    } catch (Exception e) {
-       event.failed(e);                // JDBC events; rethrow afterwards
+       event.failed(e);                // any traced event; rethrow afterwards
        throw e;
    } finally {
        if (event.shouldCommit()) {     // respects per-recording thresholds
            event.sql = ...;            // fill fields only when committing
-           event.stampAndCommit();
+           event.commitSpan();
        }
    }
    ```
@@ -271,17 +279,18 @@ doing a separate piece of work.
 ### Deferred commits
 
 If an event is committed after the enclosing binding is gone (e.g. from a
-stream's `close()`), `stampAndCommit()` in the `finally` would find no span
-and record ids of `0`. Stamp eagerly instead: call `Tracer.stamp(event)` at
-construction (inside the span) and commit later with `event.commitSpan()` —
-`stampAndCommit()` never re-stamps an event that already carries identity.
+stream's `close()`), `commitSpan()` in the `finally` would find no span and
+record ids of `0` — or worse, run inside someone else's binding and stamp the
+event into the wrong trace. Stamp eagerly instead: call `Tracer.stamp(event)`
+at construction (inside the span) and commit later with `event.commitSpan()` —
+it never re-stamps an event that already carries identity.
 
 ### Custom traced event types
 
 To make your own domain event a span (a batch job step, a cache rebuild),
 extend `AbstractTracedEvent`, declare your fields, optionally override
 `describeSpan()` to derive `name`/`status` from them, and commit through
-`commitSpan()`/`stampAndCommit()`. Jeffrey picks it up with no configuration —
+`commitSpan()`. Jeffrey picks it up with no configuration —
 span participation is detected from the `spanId` field in the recording's
 metadata.
 
@@ -335,8 +344,8 @@ Check, for one request you exercised:
 4. No high-cardinality names (raw URIs, ids, literal-bearing SQL as names).
 
 An event with all-zero ids means a `commit()` slipped in where
-`stampAndCommit()`/`commitSpan()` belonged, or work crossed an executor
-without `fork`/`continueIn`.
+`commitSpan()` belonged, or work crossed an executor without
+`fork`/`continueIn`.
 
 Then upload `app.jfr` to Jeffrey (create a project → upload recording →
 initialize profile). Jeffrey auto-detects the event types and activates the
@@ -348,7 +357,7 @@ self time and flamegraphs.
 
 | Symptom in Jeffrey | Cause | Fix |
 |---|---|---|
-| Events in HTTP/DB dashboards but Traces empty or flat | committed with `commit()` | use `stampAndCommit()` (leaves) / `commitSpan()` (root) |
+| Events in HTTP/DB dashboards but Traces empty or flat | committed with `commit()` | use `commitSpan()` |
 | Leaf spans are roots of their own one-span traces | executor/`@Async` boundary, or no root filter in front | `Tracer.fork`/`continueIn`; register the root filter first in the chain |
 | Children of a request orphaned & promoted to roots | root event re-stamped, or `TraceSpan` threshold dropped the parent | never stamp an `inSpanOf` event again; commit root via `commitSpan()`; mind thresholds |
 | Huge recordings | high-cardinality span names / URIs / `params` | templates & statement ids as names; ids belong in the trace id |
