@@ -33,11 +33,7 @@ picks the event class.
 
 ```java
 import cafe.jeffrey.jfr.events.jdbc.statement.JdbcBaseEvent;
-import cafe.jeffrey.jfr.events.jdbc.statement.JdbcDeleteEvent;
-import cafe.jeffrey.jfr.events.jdbc.statement.JdbcExecuteEvent;
-import cafe.jeffrey.jfr.events.jdbc.statement.JdbcInsertEvent;
-import cafe.jeffrey.jfr.events.jdbc.statement.JdbcQueryEvent;
-import cafe.jeffrey.jfr.events.jdbc.statement.JdbcUpdateEvent;
+import cafe.jeffrey.jfr.events.jdbc.statement.JdbcStatementEvents;
 import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.BoundSql;
@@ -103,13 +99,10 @@ public class JeffreyJfrMyBatisInterceptor implements Interceptor {
         String name = id.substring(mapperDot + 1);            // UserMapper.selectById
         String group = id.substring(mapperDot + 1, methodDot); // UserMapper
 
-        return switch (statement.getSqlCommandType()) {
-            case SELECT -> new JdbcQueryEvent(name, group);
-            case INSERT -> new JdbcInsertEvent(name, group);
-            case UPDATE -> new JdbcUpdateEvent(name, group);
-            case DELETE -> new JdbcDeleteEvent(name, group);
-            default -> new JdbcExecuteEvent(name, group);
-        };
+        // The verb-to-event mapping (SELECT -> JdbcQueryEvent, ..., other ->
+        // JdbcExecuteEvent) is the library's own convention; forVerb applies it.
+        // On 0.13.0, without JdbcStatementEvents, write the switch by hand.
+        return JdbcStatementEvents.forVerb(statement.getSqlCommandType().name(), name, group);
     }
 
     private static long countRows(Object result) {
