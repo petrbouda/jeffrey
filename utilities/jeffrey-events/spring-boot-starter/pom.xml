@@ -69,6 +69,18 @@
             <version>${hikaricp.version}</version>
             <scope>provided</scope>
         </dependency>
+        <!-- Same shape as Hikari: brought along, inert until the application actually uses MyBatis. -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jeffrey-events-mybatis</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+            <version>${mybatis.version}</version>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

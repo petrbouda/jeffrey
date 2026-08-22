@@ -56,7 +56,7 @@ ManagedChannel channel = ManagedChannelBuilder.forAddress(host, port)
         .intercept(new JfrGrpcClientInterceptor())      // outbound call = leaf under the caller
         .build();
 
-configuration.addInterceptor(new JeffreyMyBatisInterceptor());   // statements named UserMapper.selectById
+configuration.addInterceptor(new JeffreyMyBatisInterceptor());   // UserMapper.selectById, with its parameters
 ```
 
 Use `jeffrey-events-mybatis` **or** the `DataSource` wrapper, not both — the MyBatis one names
@@ -126,7 +126,7 @@ dashboards.
 | `jeffrey-events-spring` | Spring `@Configuration` you `@Import` explicitly; no Spring Boot dependency |
 | `jeffrey-events-jdbc` | a `DataSource` wrapper recording every statement — JdbcTemplate, Hibernate, jOOQ and MyBatis alike |
 | `jeffrey-events-hikari` | HikariCP metrics tracker: connection acquire/borrow/create/timeout, plus the periodic pool gauge |
-| `jeffrey-events-mybatis` | MyBatis `Executor` interceptor naming every statement by its mapper method |
+| `jeffrey-events-mybatis` | MyBatis `Executor` interceptor naming every statement by its mapper method, and recording the values it ran with |
 | `jeffrey-events-grpc` | gRPC server and client interceptors: an inbound call becomes a trace root, an outbound one a leaf |
 | `jeffrey-events-spring-boot-starter` | auto-configuration: add it and write nothing |
 
