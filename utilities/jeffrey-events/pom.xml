@@ -40,6 +40,9 @@
     <modules>
         <module>events</module>
         <module>test</module>
+        <module>servlet</module>
+        <module>spring</module>
+        <module>spring-boot-starter</module>
     </modules>
 
     <developers>
@@ -69,12 +72,24 @@
         <!-- Java 25: the tracing API is built on ScopedValue and jdk.jfr.Contextual. -->
         <maven.compiler.release>25</maven.compiler.release>
         <junit.version>6.0.3</junit.version>
+        <!--
+          Compile-time only: every framework dependency below is `provided`, so a
+          consumer brings its own version and nothing here is imposed on them.
+        -->
+        <spring-boot.version>4.1.0</spring-boot.version>
         <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>jeffrey-events</artifactId>
