@@ -1,1 +1,3 @@
 cafe.jeffrey.jfr.events.spring.boot.JeffreyTracingAutoConfiguration
+cafe.jeffrey.jfr.events.spring.boot.JeffreyJdbcTracingAutoConfiguration
+cafe.jeffrey.jfr.events.spring.boot.JeffreyHikariTracingAutoConfiguration

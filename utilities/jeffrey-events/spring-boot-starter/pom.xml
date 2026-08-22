@@ -49,6 +49,28 @@
         </dependency>
 
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jeffrey-events-jdbc</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!--
+          Brought along, but inert unless the application actually uses HikariCP: the
+          auto-configuration is conditional on HikariDataSource being present, and Hikari
+          itself stays provided here.
+        -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jeffrey-events-hikari</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>${hikaricp.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
             <scope>provided</scope>
@@ -84,6 +106,12 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>jeffrey-events-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.duckdb</groupId>
+            <artifactId>duckdb_jdbc</artifactId>
+            <version>${duckdb.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
