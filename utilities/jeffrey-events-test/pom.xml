@@ -26,51 +26,38 @@
         <groupId>cafe.jeffrey-analyst</groupId>
         <artifactId>jeffrey-events-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath>../../jeffrey-events/pom.xml</relativePath>
+        <relativePath>../jeffrey-events-parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>jeffrey-tracing-mybatis</artifactId>
+    <!--
+      Deliberately depends on nothing - not even jeffrey-events. It reads spans
+      out of a recording by their declared field names, which are the frozen wire
+      format, exactly as Jeffrey's own derivation discovers spans structurally.
+      That keeps the toolkit dependency-free for consumers AND lets the
+      jeffrey-events module use it in its own tests without a reactor cycle.
+    -->
+    <artifactId>jeffrey-events-test</artifactId>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>MyBatis Executor interceptor emitting a Jeffrey statement event per mapper call, named by the statement id</description>
+    <description>Test toolkit for asserting Jeffrey JFR events and traces in a real flight recording</description>
     <!-- Explicit: Maven Central rejects children that inherit a url with the artifactId appended. -->
     <url>https://github.com/petrbouda/jeffrey</url>
 
-    <dependencies>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-events</artifactId>
-        </dependency>
-        <!-- provided: the application already has MyBatis. -->
-        <dependency>
-            <groupId>org.mybatis</groupId>
-            <artifactId>mybatis</artifactId>
-            <version>${mybatis.version}</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.duckdb</groupId>
-            <artifactId>duckdb_jdbc</artifactId>
-            <version>${duckdb.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>jeffrey-events-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-
     <build>
         <plugins>
+            <!--
+              No module-info: a test toolkit is consumed from test code, which is
+              rarely modularised, and declaring a module here would force every
+              consumer's test compilation onto the module path. The automatic
+              module name keeps it well-behaved for anyone who does.
+            -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Automatic-Module-Name>cafe.jeffrey.jfr.events.mybatis</Automatic-Module-Name>
+                            <Automatic-Module-Name>cafe.jeffrey.jfr.events.test</Automatic-Module-Name>
                         </manifestEntries>
                     </archive>
                 </configuration>

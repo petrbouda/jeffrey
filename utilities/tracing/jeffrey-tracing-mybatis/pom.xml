@@ -26,31 +26,55 @@
         <groupId>cafe.jeffrey-analyst</groupId>
         <artifactId>jeffrey-events-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
+        <relativePath>../../jeffrey-events-parent/pom.xml</relativePath>
     </parent>
 
-    <!--
-      The published coordinate every consumer already depends on, and the one
-      the JFR event types live under. It must not change: the instrumentation
-      modules were split out to ../../tracing and renamed jeffrey-tracing-*,
-      but the events artifact stays exactly where consumers expect it.
-    -->
-    <artifactId>jeffrey-events</artifactId>
+    <artifactId>jeffrey-tracing-mybatis</artifactId>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>Jeffrey-specific events that can be visualized by Jeffrey</description>
+    <description>MyBatis Executor interceptor emitting a Jeffrey statement event per mapper call, named by the statement id</description>
     <!-- Explicit: Maven Central rejects children that inherit a url with the artifactId appended. -->
     <url>https://github.com/petrbouda/jeffrey</url>
 
     <dependencies>
-        <!--
-          The toolkit depends on nothing, so this does not make a reactor cycle:
-          jeffrey-events-test builds first, and jeffrey-events uses it to assert
-          its own emit paths against a real recording.
-        -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>jeffrey-events</artifactId>
+        </dependency>
+        <!-- provided: the application already has MyBatis. -->
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+            <version>${mybatis.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.duckdb</groupId>
+            <artifactId>duckdb_jdbc</artifactId>
+            <version>${duckdb.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>jeffrey-events-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Automatic-Module-Name>cafe.jeffrey.jfr.events.mybatis</Automatic-Module-Name>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

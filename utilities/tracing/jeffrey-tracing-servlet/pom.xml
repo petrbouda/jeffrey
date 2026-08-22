@@ -26,13 +26,13 @@
         <groupId>cafe.jeffrey-analyst</groupId>
         <artifactId>jeffrey-events-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
-        <relativePath>../../jeffrey-events/pom.xml</relativePath>
+        <relativePath>../../jeffrey-events-parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>jeffrey-tracing-hikari</artifactId>
+    <artifactId>jeffrey-tracing-servlet</artifactId>
 
     <name>${project.groupId}:${project.artifactId}</name>
-    <description>HikariCP metrics tracker emitting Jeffrey connection-pool events, including the periodic pool gauge</description>
+    <description>Servlet filter emitting a Jeffrey HTTP server exchange event as the root span of every request</description>
     <!-- Explicit: Maven Central rejects children that inherit a url with the artifactId appended. -->
     <url>https://github.com/petrbouda/jeffrey</url>
 
@@ -41,23 +41,20 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>jeffrey-events</artifactId>
         </dependency>
-        <!-- provided: the application already has the pool it is instrumenting. -->
+        <!--
+          provided: the container supplies the servlet API, and a web framework is
+          deliberately NOT a dependency here - what a request is called is asked of
+          an HttpRequestNaming instead.
+        -->
         <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
-            <version>${hikaricp.version}</version>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
             <scope>provided</scope>
         </dependency>
+
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>jeffrey-events-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <!-- A real pool over a real driver, so the tracker is exercised by Hikari itself. -->
-        <dependency>
-            <groupId>org.duckdb</groupId>
-            <artifactId>duckdb_jdbc</artifactId>
-            <version>${duckdb.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -70,7 +67,7 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Automatic-Module-Name>cafe.jeffrey.jfr.events.jdbc.hikari</Automatic-Module-Name>
+                            <Automatic-Module-Name>cafe.jeffrey.jfr.events.servlet</Automatic-Module-Name>
                         </manifestEntries>
                     </archive>
                 </configuration>
