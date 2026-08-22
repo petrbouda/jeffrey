@@ -42,6 +42,8 @@
  * {@link cafe.jeffrey.jfr.events.trace.AbstractTracedEvent#commitSpan() commitSpan()}, the event
  * nests under whatever span is in progress on the executing thread — usually the request being
  * served — or records untraced-but-present when there is none.
+ * {@link cafe.jeffrey.jfr.events.trace.TracedEvents#emit TracedEvents.emit} writes this whole
+ * shape in one call; spelled out, it is:
  *
  * <pre>{@code
  * JdbcQueryEvent event = new JdbcQueryEvent("UserMapper.selectById", "UserMapper");

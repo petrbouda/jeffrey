@@ -54,21 +54,16 @@ Tracer.run("order.checkout", SpanKind.SERVER, () -> {
     Tracer.run("payment.charge", SpanKind.CLIENT, this::charge);
 });
 
-// 3. A statement (or outbound HTTP call) is a leaf, committed in its own finally
+// 3. A statement (or outbound HTTP call) is a leaf — TracedEvents.emit is the
+//    whole lifecycle: guard, begin, end on success, failed(e) on a throw (the
+//    span shows red), commitSpan() stamping it under the span in progress
 JdbcQueryEvent query = new JdbcQueryEvent("UserMapper.selectById", "UserMapper");
-query.begin();
-try {
-    result = doQuery();
-    query.end();
-} catch (Exception e) {
-    query.failed(e);                               // the span shows red, errorType recorded
-    throw e;
-} finally {
-    if (query.shouldCommit()) {
-        query.sql = sql;
-        query.commitSpan();                        // stamps as a child of the span in progress
-    }
-}
+List<User> users = TracedEvents.emit(query,
+        () -> doQuery(),
+        (e, result) -> {
+            e.sql = sql;
+            e.rows = result != null ? result.size() : 0;
+        });
 ```
 
 Record and verify:
@@ -107,6 +102,8 @@ covers the tracing model itself.
    identity as a child of the span in progress, keeps one that does exactly as it is, and leaves
    the ids at zero when no span is bound (recorded, just untraced). A bare `commit()` skips both
    the stamp and the event's self-description — it is the deliberate opt-out, not the default.
+   For a leaf committed in its own `finally`, `TracedEvents.emit` writes the whole lifecycle in
+   one call (each package's docs show what it expands to).
 3. **Failures are stated with `failed(throwable)`** — on any traced event — then rethrown. Events
    that derive a verdict from their own fields (HTTP status ≥ 400, gRPC status ≠ OK) only ever
    escalate; they never paint over a recorded failure.

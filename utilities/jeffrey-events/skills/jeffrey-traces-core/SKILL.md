@@ -99,9 +99,11 @@ Understand this model first; every rule follows from it.
   0.12.0 — use 0.13.0 or newer for the callback-driven patterns in §5.
 - In releases **after 0.13.0** there is a single commit verb: `commitSpan()`
   stamps an event that does not yet carry identity (`stampAndCommit()` is a
-  deprecated alias), and `failed(Throwable)` exists on **every** traced event.
-  On 0.13.0 itself, commit leaf events with `stampAndCommit()` and note that
-  `failed` exists only on JDBC statement events.
+  deprecated alias), `failed(Throwable)` exists on **every** traced event, and
+  `TracedEvents.emit` writes the whole leaf emit shape in one call.
+  On 0.13.0 itself, commit leaf events with `stampAndCommit()`, note that
+  `failed` exists only on JDBC statement events, and write the emit shape by
+  hand (§4 rule 3 shows the expansion).
 - The library has **zero dependencies** (only `jdk.jfr`) and is safe to leave
   on in production: when no recording is running, every emit path checks
   `event.isEnabled()` and runs the body directly with nothing allocated beyond
@@ -187,7 +189,24 @@ They are plain events (not spans); emit them from your pool's hook points
    identity exactly as it is, and then runs `describeSpan()` + `commit()`. A
    bare `commit()` silently drops the event from every trace.
 
-3. **Always follow the guard/begin/end/shouldCommit shape:**
+3. **Emit leaves through `TracedEvents.emit`** (releases after 0.13.0), which
+   is the whole guard/begin/end/failed/shouldCommit/fill/commitSpan lifecycle
+   in one call — the emit site states only the event, the work, and the
+   fields:
+
+   ```java
+   JdbcQueryEvent event = new JdbcQueryEvent("UserMapper.selectById", "UserMapper");
+   List<User> users = TracedEvents.emit(event,
+           () -> doQuery(),                     // checked exceptions carry through typed
+           (e, result) -> {                     // runs only when actually committing;
+               e.sql = sql;                     // result is null on the failure path
+               e.rows = result != null ? result.size() : 0;
+           });
+   ```
+
+   An exception escaping the body is recorded with `failed(t)` and rethrown
+   unchanged. On 0.13.0, or where the helper does not fit, write what it
+   expands to:
 
    ```java
    SomeEvent event = new SomeEvent(...);
@@ -210,7 +229,8 @@ They are plain events (not spans); emit them from your pool's hook points
    ```
 
    (On the exception path `end()` is intentionally not called — `commit()`
-   closes the interval itself. This mirrors Jeffrey's own `DatabaseClient`.)
+   closes the interval itself. This mirrors Jeffrey's own `DatabaseClient`,
+   which emits every statement through `TracedEvents.emit`.)
 
 4. **Names must be stable and low-cardinality.** Every distinct string enters
    the JFR per-chunk constant pool. Name the *operation*, not the instance:
