@@ -76,6 +76,10 @@ public abstract class AbstractGrpcExchangeEvent extends AbstractTracedEvent {
     @Override
     protected void describeSpan() {
         name = service + METHOD_SEPARATOR + method;
-        status = OK_STATUS_CODE.equals(statusCode) ? SpanStatus.OK.name() : SpanStatus.ERROR.name();
+        // A failure recorded with failed() is the writer's statement and must not be painted over
+        // by a derived verdict — deriving only escalates, it never downgrades an ERROR.
+        if (!SpanStatus.ERROR.name().equals(status)) {
+            status = OK_STATUS_CODE.equals(statusCode) ? SpanStatus.OK.name() : SpanStatus.ERROR.name();
+        }
     }
 }

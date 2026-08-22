@@ -21,7 +21,6 @@ package cafe.jeffrey.jfr.events.jdbc.statement;
 import cafe.jeffrey.jfr.events.trace.AbstractTracedEvent;
 import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.Span;
-import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import jdk.jfr.Description;
 import jdk.jfr.Label;
 
@@ -58,14 +57,5 @@ public abstract class JdbcBaseEvent extends AbstractTracedEvent {
         this.name = name;
         this.group = group;
         this.kind = SpanKind.CLIENT.name();
-    }
-
-    /**
-     * Records that the statement threw, which is what makes a failed statement count as an error in
-     * the trace it belongs to.
-     */
-    public void failed(Throwable failure) {
-        this.status = SpanStatus.ERROR.name();
-        this.errorType = failure.getClass().getName();
     }
 }

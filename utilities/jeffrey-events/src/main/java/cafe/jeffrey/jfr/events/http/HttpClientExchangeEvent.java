@@ -23,6 +23,15 @@ import jdk.jfr.Description;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
 
+/**
+ * An outbound HTTP call — a <b>leaf span</b>, committed with
+ * {@link cafe.jeffrey.jfr.events.trace.AbstractTracedEvent#commitSpan() commitSpan()} in the
+ * emitter's own {@code finally} so it nests under the span in progress. A transport failure that
+ * never produced a status code is recorded with
+ * {@link cafe.jeffrey.jfr.events.trace.AbstractTracedEvent#failed(Throwable) failed(Throwable)}.
+ * See the {@linkplain cafe.jeffrey.jfr.events.http package documentation} for the full emit
+ * pattern.
+ */
 @Name(HttpClientExchangeEvent.NAME)
 @Label("HTTP Client Exchange")
 @Description("Information about a single HTTP Client Request/Response Exchange")

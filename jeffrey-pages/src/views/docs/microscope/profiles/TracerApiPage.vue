@@ -124,7 +124,7 @@ if (event.isEnabled()) {
     event.rows = rows;
     // Gives the statement a span of its own nested under the span in progress,
     // derives name/kind/status from the event's own fields, then commits.
-    event.stampAndCommit();
+    event.commitSpan();
 }`;
 
 const continueInExample = `// ScopedValue does not propagate through a plain executor, so the parent
@@ -309,7 +309,7 @@ const volumeExample = `# Drop spans shorter than 1 ms (their children are orphan
 
       <p>Gives <code>event</code> a span of its own, nested inside the span in progress. Does nothing when no span is in progress, leaving the ids at <code>0</code> — the encoding for "not part of a trace".</p>
 
-      <p>An emitter that commits in its own <code>finally</code> should not call it directly: <code>event.stampAndCommit()</code> folds the stamp into the commit, so forgetting the stamp — which silently drops the event from every trace — stops being possible. Reach for <code>stamp</code> itself only when the commit is deferred past the enclosing binding, e.g. an event committed from a stream's <code>close()</code>.</p>
+      <p>An emitter that commits in its own <code>finally</code> should not call it directly: <code>event.commitSpan()</code> folds the stamp into the commit — it stamps an event that does not yet carry identity and leaves one that does untouched — so forgetting the stamp, which silently drops the event from every trace, stops being possible. Reach for <code>stamp</code> itself only when the commit is deferred past the enclosing binding, e.g. an event committed from a stream's <code>close()</code>.</p>
 
       <DocsCodeBlock :code="stampExample" language="java" />
 

@@ -101,7 +101,7 @@ public final class HeapDumpDatabaseClient {
         } finally {
             if (event.shouldCommit()) {
                 event.sql = sql;
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
     }
@@ -135,7 +135,7 @@ public final class HeapDumpDatabaseClient {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramsToJson(params);
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
         return rows;
@@ -157,7 +157,7 @@ public final class HeapDumpDatabaseClient {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramsToJson(params);
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
         return rows;
@@ -179,7 +179,7 @@ public final class HeapDumpDatabaseClient {
                 event.sql = sql;
                 event.rows = rows;
                 event.params = paramsToJson(params);
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
         return rows;
@@ -202,7 +202,7 @@ public final class HeapDumpDatabaseClient {
             if (event.shouldCommit()) {
                 event.sql = APPENDER_SQL_PREFIX + tableName;
                 event.rows = rows;
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
     }
@@ -230,7 +230,7 @@ public final class HeapDumpDatabaseClient {
             if (event.shouldCommit()) {
                 event.sql = APPENDER_SQL_PREFIX + primaryTable + " + " + secondaryTable;
                 event.rows = rows;
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
     }
@@ -266,7 +266,7 @@ public final class HeapDumpDatabaseClient {
             if (event.shouldCommit()) {
                 event.sql = sql;
                 event.rows = rows;
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
         return rows;
@@ -294,7 +294,7 @@ public final class HeapDumpDatabaseClient {
                 event.sql = sql;
                 event.rows = result.isPresent() ? 1 : 0;
                 event.params = paramsToJson(params);
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
         return result;
@@ -320,7 +320,7 @@ public final class HeapDumpDatabaseClient {
                 event.sql = sql;
                 event.rows = out.size();
                 event.params = paramsToJson(params);
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
         return out;
@@ -348,7 +348,7 @@ public final class HeapDumpDatabaseClient {
                 event.sql = sql;
                 event.rows = present ? 1 : 0;
                 event.params = paramsToJson(params);
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
         return value;
@@ -384,7 +384,7 @@ public final class HeapDumpDatabaseClient {
         } finally {
             if (event.shouldCommit()) {
                 event.rows = rows;
-                event.stampAndCommit();
+                event.commitSpan();
             }
         }
     }
@@ -403,7 +403,7 @@ public final class HeapDumpDatabaseClient {
         JdbcStreamEvent event = new JdbcStreamEvent(stmt.label(), groupLabel);
         // Stamped eagerly, unlike every other emitter here: the event commits from the stream's
         // onClose, which may run after the enclosing span's binding is gone — or inside someone
-        // else's — so stampAndCommit there would attach the statement to the wrong place.
+        // else's — so letting commitSpan stamp there would attach the statement to the wrong place.
         Tracer.stamp(event);
         event.sql = sql;
         event.params = paramsToJson(params);
