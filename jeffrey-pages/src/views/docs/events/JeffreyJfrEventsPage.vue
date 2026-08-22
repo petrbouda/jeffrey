@@ -153,7 +153,7 @@ Tracer.inSpanOf(event, () -> {                 // 2. stamps traceId/spanId/paren
 
         <ol>
           <li><strong>Extend <code>AbstractTracedEvent</code>.</strong> This is what makes the event a span — it declares the <code>spanId</code> field Jeffrey discovers structurally. <code>@Span</code> on a plain <code>jdk.jfr.Event</code> does nothing.</li>
-          <li><strong>Stamp the ids.</strong> The derivation drops events whose <code>traceId</code>/<code>spanId</code> are 0. Run the work through <code>Tracer.inSpanOf(event, ...)</code> so the event joins the active trace — or roots a new one if none is active. An event that should sit <em>under</em> the current span rather than be one of its own — a leaf, like a statement — commits through <code>event.stampAndCommit()</code> instead, which stamps and commits in one call.</li>
+          <li><strong>Stamp the ids.</strong> The derivation drops events whose <code>traceId</code>/<code>spanId</code> are 0. Run the work through <code>Tracer.inSpanOf(event, ...)</code> so the event joins the active trace — or roots a new one if none is active. An event that should sit <em>under</em> the current span rather than be one of its own — a leaf, like a statement — commits through <code>event.commitSpan()</code> instead, which stamps and commits in one call.</li>
           <li><strong>Declare the name with <code>@Span</code>.</strong> The template travels inside every recording, so Traces by Operation lists <code>PUBLISH orders</code> rather than <code>com.acme.KafkaPublish</code>, and one operation groups as one row across recordings.</li>
         </ol>
 

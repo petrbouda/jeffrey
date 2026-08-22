@@ -125,7 +125,7 @@ event.end();
 if (event.shouldCommit()) {
     event.sql = sql;
     event.rows = rows;
-    event.stampAndCommit();   // child ids under the span in progress, then commits;
+    event.commitSpan();       // stamps child ids under the span in progress, then commits;
 }                             // no-op ids outside a span — the untraced shape`;
 
 const stampTree = `trace 8c1d33f0…
@@ -355,7 +355,7 @@ const composedTree = `trace a3f9c1d4…                                         
 
       <p>Gives the event a span of its own, nested inside the span currently in progress, so the event takes its place in the trace. Nothing is bound to the minted id — that is what makes a stamped event a <strong>leaf</strong>: the work it describes is the event itself, not a scope other spans can nest inside. Outside any span it does nothing, leaving the ids at <code>0</code> — the encoding for "not part of a trace" — so the same instrumentation works traced and untraced.</p>
 
-      <p>An emitter that commits in its own <code>finally</code> should not call <code>stamp</code> directly: <code>event.stampAndCommit()</code> folds the stamp into the commit, so forgetting it — which silently drops the event from every trace — stops being possible. Call <code>stamp</code> yourself only when the commit is deferred past the enclosing binding, e.g. an event committed from a stream's <code>close()</code>.</p>
+      <p>An emitter that commits in its own <code>finally</code> should not call <code>stamp</code> directly: <code>event.commitSpan()</code> folds the stamp into the commit — it stamps an event that does not yet carry identity and leaves one that does untouched — so forgetting the stamp, which silently drops the event from every trace, stops being possible. Call <code>stamp</code> yourself only when the commit is deferred past the enclosing binding, e.g. an event committed from a stream's <code>close()</code>.</p>
 
       <DocsCodeBlock :code="stampExample" language="java" />
 

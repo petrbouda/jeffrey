@@ -23,7 +23,7 @@ import jdk.jfr.Label;
 import jdk.jfr.Name;
 
 @Name(JdbcDeleteEvent.NAME)
-@Label("JDBC Insert Statement")
+@Label("JDBC Delete Statement")
 @Category({"Application", "JDBC"})
 public class JdbcDeleteEvent extends JdbcBaseEvent {
 
