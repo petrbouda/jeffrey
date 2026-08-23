@@ -53,7 +53,7 @@ JEFFREY_PERF_COUNTERS=true
 JEFFREY_JVM_LOGGING="jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log"
 JEFFREY_ADDITIONAL_JVM_OPTIONS="-Xmx2g"`;
 
-const tracingThresholdsExample = `-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=15m,\\
+const tracingThresholdsExample = `-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,\\
   jdk.SocketRead#enabled=true,jdk.SocketRead#threshold=0ms,jdk.SocketRead#throttle=off,\\
   jdk.SocketWrite#enabled=true,jdk.SocketWrite#threshold=0ms,jdk.SocketWrite#throttle=off,\\
   jdk.ThreadPark#enabled=true,jdk.ThreadPark#threshold=1ms,...`;

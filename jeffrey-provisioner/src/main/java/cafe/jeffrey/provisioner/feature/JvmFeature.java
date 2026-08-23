@@ -164,7 +164,7 @@ public sealed interface JvmFeature {
         static final String DISABLED = "none";
 
         private static final String OPTIONS_PREFIX =
-                "-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=15m,";
+                "-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,";
 
         @Override
         public Optional<String> render(Path sessionPath, Placeholders placeholders) {
