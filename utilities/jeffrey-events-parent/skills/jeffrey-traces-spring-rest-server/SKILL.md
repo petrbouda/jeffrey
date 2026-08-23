@@ -47,7 +47,7 @@ Tune it with `jeffrey.tracing.*`:
 | `jeffrey.tracing.order` | `HIGHEST_PRECEDENCE` | Filter order; keep it first so security, routing and data access all happen inside the span |
 | `jeffrey.tracing.jdbc-enabled` | `true` | Wrap every `DataSource` bean so statements are recorded |
 | `jeffrey.tracing.hikari-enabled` | `true` | Give HikariCP pools a Jeffrey metrics tracker |
-| `jeffrey.tracing.mybatis-enabled` | `false` | Name statements by their mapper method instead. Turning it on stands the `DataSource` wrapper down, so nothing is recorded twice — see `jeffrey-traces-mybatis` |
+| `jeffrey.tracing.mybatis-enabled` | `true` | Name statements by their mapper method instead, for an application with a `SqlSessionFactory`. It stands the `DataSource` wrapper down, so nothing is recorded twice; set it to `false` to keep the wrapper, which also sees JdbcTemplate — see `jeffrey-traces-mybatis` |
 | `jeffrey.tracing.mybatis-capture-parameters` | `true` | Record the values a MyBatis statement was bound with |
 | `jeffrey.tracing.mybatis-max-parameter-length` | `256` | Truncate longer parameter values |
 | `jeffrey.tracing.capture-query-params` | `false` | Record query-string parameters on the event |

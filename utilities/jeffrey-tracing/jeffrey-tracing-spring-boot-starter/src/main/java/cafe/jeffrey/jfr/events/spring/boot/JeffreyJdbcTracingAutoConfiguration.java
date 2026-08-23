@@ -35,12 +35,13 @@ import javax.sql.DataSource;
  * one, both or neither, and {@code jeffrey.tracing.jdbc-enabled=false} turns this half off without
  * touching request tracing.
  * <p>
- * It also backs off entirely once the MyBatis interceptor is registered — which happens only when
- * an application asks for it with {@code jeffrey.tracing.mybatis-enabled=true}. Both record the
- * same statements, so running the two would put every mapper call in the dashboard twice, once
- * under its mapper method and once under a name parsed out of its SQL. The trade-off comes with
- * that request: an application that uses MyBatis <em>and</em> a plain {@code JdbcTemplate} loses
- * the template's statements, and gets them back by leaving this half in charge.
+ * It also backs off entirely once the MyBatis interceptor is registered — which happens for any
+ * application with a {@code SqlSessionFactory}, unless it says
+ * {@code jeffrey.tracing.mybatis-enabled=false}. Both record the same statements, so running the
+ * two would put every mapper call in the dashboard twice, once under its mapper method and once
+ * under a name parsed out of its SQL. The trade-off is the reason that property exists: an
+ * application that uses MyBatis <em>and</em> a plain {@code JdbcTemplate} loses the template's
+ * statements, and gets them back by turning MyBatis off and leaving this half in charge.
  */
 @AutoConfiguration
 @ConditionalOnClass({DataSource.class, TracingDataSource.class})

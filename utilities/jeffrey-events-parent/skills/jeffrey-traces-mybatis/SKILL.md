@@ -55,16 +55,18 @@ The interceptor is `cafe.jeffrey.jfr.events.mybatis.JeffreyMyBatisInterceptor`. 
 That is the whole integration. MyBatis is intercepted at the `Executor`, so cached and batched
 execution are covered as well.
 
-On the Spring Boot starter there is no bean to declare — one property registers it:
+On the Spring Boot starter there is nothing to declare at all: an application with a
+`SqlSessionFactory` gets the interceptor by default. Opt out with
 
 ```properties
-jeffrey.tracing.mybatis-enabled=true
+jeffrey.tracing.mybatis-enabled=false
 ```
 
-It is a property rather than the default because the MyBatis jar on the classpath says nothing
-about whether the application uses it, and turning this on makes the `DataSource` wrapper stand
-down (§2). Guessed from the classpath, that rule would silently stop recording statements in an
-application that has the jar and no mappers.
+The factory is what the default keys on, not the jar. A transitive dependency is enough to put
+MyBatis on the classpath, and turning this on makes the `DataSource` wrapper stand down (§2), so
+keying it on the classpath would silently stop recording statements in an application that has the
+jar and no mappers. A built `SqlSessionFactory` is evidence of real use — and is what the
+interceptor is registered into, so without one it would record nothing anyway.
 
 ## 2. This module or the `DataSource` wrapper — one of the two
 
@@ -78,15 +80,16 @@ statement by parsing its SQL (`SELECT users`); this names it `UserMapper.selectB
 mapper method, stable however the SQL is assembled, and the name a developer would search for.
 
 Do not enable both: each records the same statement, so every mapper call appears twice, once under
-each name. On the Spring Boot starter this is handled for you — `jeffrey.tracing.mybatis-enabled=true`
-registers the interceptor *and* stands the `DataSource` wrapper down, so there is nothing to
-remember and no window where both are recording. Wiring MyBatis by hand (a bean, XML, or
+each name. On the Spring Boot starter this is handled for you — registering the interceptor *also*
+stands the `DataSource` wrapper down, so there is nothing to remember and no window where both are
+recording. Wiring MyBatis by hand (a bean, XML, or
 `@Import(JeffreyMyBatisTracingConfiguration.class)`) leaves that to you: set
 `jeffrey.tracing.jdbc-enabled=false`, or do not import `JeffreyJdbcTracingConfiguration`.
 
-The trade-off is worth seeing before you flip it: an application that uses MyBatis **and** a plain
-`JdbcTemplate` loses the template's statements, because only one recorder runs. Leave the wrapper in
-charge when the mixed coverage matters more than the better names.
+The trade-off is worth knowing, because on Boot you get it without asking: an application that uses
+MyBatis **and** a plain `JdbcTemplate` loses the template's statements, because only one recorder
+runs. Set `jeffrey.tracing.mybatis-enabled=false` to leave the wrapper in charge when the mixed
+coverage matters more than the better names.
 
 ## 3. What it records
 
@@ -222,7 +225,7 @@ enclosing class too.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Every mapper call appears twice | both this module and the `DataSource` wrapper are active | on Boot, `jeffrey.tracing.mybatis-enabled=true` does both halves; wiring by hand, also set `jeffrey.tracing.jdbc-enabled=false` |
+| Every mapper call appears twice | both this module and the `DataSource` wrapper are active | on Boot both halves are handled for you; wiring by hand, also set `jeffrey.tracing.jdbc-enabled=false` |
 | Duplicate events per query | interceptor registered twice (bean *and* XML) | register through exactly one mechanism |
 | Statements named after their SQL, not the mapper | the `DataSource` wrapper is recording them, not this | register the interceptor and disable the wrapper |
 | Statements present in the Database dashboard but not in Traces | committed with `commit()` (hand-written version) | `TracedEvents.emit`, or `commitSpan()` in the `finally` |

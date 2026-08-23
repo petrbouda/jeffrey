@@ -41,12 +41,14 @@ import java.util.List;
  *                         every mapper call twice
  * @param hikariEnabled    whether HikariCP pools get a Jeffrey metrics tracker
  * @param mybatisEnabled   whether MyBatis statements are recorded by their mapper method instead of
- *                         through the {@code DataSource} wrapper. Off by default and asked for
- *                         explicitly: MyBatis on the classpath is not evidence that the application
- *                         uses it, and backing the wrapper off on that guess would silently stop
- *                         recording statements. Turned on, it does take over from {@code
- *                         jdbcEnabled}, because a mapper method is a better name than one parsed
- *                         out of SQL
+ *                         through the {@code DataSource} wrapper. On by default, but only for an
+ *                         application that has a {@code SqlSessionFactory}: the jar on the
+ *                         classpath is not evidence that the application uses MyBatis, while a
+ *                         built factory is — and it is the factory the interceptor is registered
+ *                         into. It takes over from {@code jdbcEnabled} where it applies, because a
+ *                         mapper method is a better name than one parsed out of SQL. Set it to
+ *                         false to keep the wrapper in charge, which an application mixing mappers
+ *                         with a plain {@code JdbcTemplate} wants: the wrapper sees both
  * @param mybatisCaptureParameters record the values a MyBatis statement was bound with; on by
  *                         default, because they are what separates the slow call from the
  *                         thousands sharing its SQL — turn it off for an application whose mappers
@@ -80,7 +82,7 @@ public record JeffreyTracingProperties(
         order = order == null ? Ordered.HIGHEST_PRECEDENCE : order;
         jdbcEnabled = jdbcEnabled == null || jdbcEnabled;
         hikariEnabled = hikariEnabled == null || hikariEnabled;
-        mybatisEnabled = mybatisEnabled != null && mybatisEnabled;
+        mybatisEnabled = mybatisEnabled == null || mybatisEnabled;
         mybatisCaptureParameters = mybatisCaptureParameters == null || mybatisCaptureParameters;
         mybatisMaxParameterLength = mybatisMaxParameterLength == null
                 ? MyBatisStatementSettings.defaults().maxValueLength()

@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import cafe.jeffrey.jfr.events.mybatis.JeffreyMyBatisInterceptor;
 import cafe.jeffrey.jfr.events.mybatis.MyBatisStatementSettings;
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -169,9 +170,9 @@ class JeffreyTracingAutoConfigurationTest {
     }
 
     /**
-     * MyBatis names statements better than a {@code DataSource} proxy can, so once an application
-     * asks for it, it takes over — and that hand-over is what keeps a mapper call out of the
-     * dashboard twice.
+     * MyBatis names statements better than a {@code DataSource} proxy can, so it takes over wherever
+     * the application actually uses MyBatis — and that hand-over is what keeps a mapper call out of
+     * the dashboard twice. What marks "actually uses" is a {@code SqlSessionFactory}, not the jar.
      */
     @Nested
     @DisplayName("MyBatis")
@@ -180,12 +181,11 @@ class JeffreyTracingAutoConfigurationTest {
         private final WebApplicationContextRunner mybatisRunner = new WebApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         JeffreyMyBatisTracingAutoConfiguration.class, JeffreyJdbcTracingAutoConfiguration.class))
-                .withUserConfiguration(DataSources.PlainDataSource.class)
-                .withPropertyValues("jeffrey.tracing.mybatis-enabled=true");
+                .withUserConfiguration(DataSources.PlainDataSource.class, MyBatisInUse.class);
 
         @Test
-        @DisplayName("the interceptor is registered as a bean, which is the whole registration")
-        void registersTheInterceptor() {
+        @DisplayName("a SqlSessionFactory is enough — the interceptor bean registers without being asked")
+        void registersTheInterceptorForAnApplicationUsingMyBatis() {
             mybatisRunner.run(context -> {
                 assertThat(context).hasSingleBean(JeffreyMyBatisInterceptor.class);
                 assertThat(context.getBean(JeffreyMyBatisInterceptor.class).settings())
@@ -219,7 +219,7 @@ class JeffreyTracingAutoConfigurationTest {
 
         @Test
         @DisplayName("having MyBatis on the classpath is not by itself a reason to register anything")
-        void classpathAloneRegistersNothing() {
+        void classpathWithoutASessionFactoryRegistersNothing() {
             new WebApplicationContextRunner()
                     .withConfiguration(AutoConfigurations.of(
                             JeffreyMyBatisTracingAutoConfiguration.class, JeffreyJdbcTracingAutoConfiguration.class))
@@ -230,6 +230,26 @@ class JeffreyTracingAutoConfigurationTest {
                                 .as("a transitive MyBatis jar must not stop statements being recorded")
                                 .isInstanceOf(TracingDataSource.class);
                     });
+        }
+
+        @Test
+        @DisplayName("mybatis-enabled=false hands back to the DataSource wrapper, which sees JdbcTemplate too")
+        void canBeDisabledInFavourOfTheWrapper() {
+            mybatisRunner.withPropertyValues("jeffrey.tracing.mybatis-enabled=false")
+                    .run(context -> {
+                        assertThat(context).doesNotHaveBean(JeffreyMyBatisInterceptor.class);
+                        assertThat(context.getBean(DataSource.class)).isInstanceOf(TracingDataSource.class);
+                    });
+        }
+
+        /** Nested for the same reason as {@link DataSources.PlainDataSource}. */
+        @Configuration(proxyBeanMethods = false)
+        static class MyBatisInUse {
+
+            @Bean
+            SqlSessionFactory sqlSessionFactory() {
+                return Mockito.mock(SqlSessionFactory.class);
+            }
         }
     }
 
