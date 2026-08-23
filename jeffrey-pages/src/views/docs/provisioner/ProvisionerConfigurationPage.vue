@@ -137,7 +137,9 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
 
         <h2 id="configuration-options">Configuration Options</h2>
 
-        <p>Several path-style settings accept an environment-variable override when the HOCON entry is left blank — useful when the value is baked into a container image (see <router-link to="/docs/jib">Jeffrey JIB</router-link>) or supplied by the orchestrator at runtime. Resolution order is always <strong>HOCON value &rarr; environment variable &rarr; built-in default</strong>.</p>
+        <p>Every setting accepts an environment-variable override — useful when the value is baked into a container image (see <router-link to="/docs/jib">Jeffrey JIB</router-link>) or supplied by the orchestrator at runtime. Resolution order is always <strong>HOCON value &rarr; environment variable &rarr; built-in default</strong>, and the same rule applies to on/off flags as to paths and names. A key a HOCON file spells out but leaves blank counts as unset, so a config file can pre-declare every key and still take values from the environment.</p>
+
+        <p>Flags read <code>true</code> and <code>false</code> only, case-insensitive. Any other value is reported in the log and ignored, leaving the configured value in place — reading an unrecognized value as <code>false</code> would let a typo silently disable a feature. The one exception is <code>JEFFREY_HEAP_DUMP</code>, which takes <code>exit</code>, <code>crash</code> or <code>off</code> rather than a boolean.</p>
 
         <table>
           <thead>
@@ -158,7 +160,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
             <tr>
               <td><code>workspaces-dir</code></td>
               <td>One of</td>
-              <td>—</td>
+              <td><code>JEFFREY_WORKSPACES_DIR</code></td>
               <td>Points directly at an existing workspaces directory instead of deriving it from <code>jeffrey-home</code>. Mutually exclusive with <code>jeffrey-home</code>.</td>
             </tr>
             <tr>
@@ -209,7 +211,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
             <tr>
               <td><code>env-file</code></td>
               <td>No</td>
-              <td>—</td>
+              <td><code>JEFFREY_ENV_FILE</code></td>
               <td>Path to write the <code>.env</code> file with shell export statements</td>
             </tr>
             <tr>
@@ -221,7 +223,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
             <tr>
               <td><code>print-env</code></td>
               <td>No</td>
-              <td>—</td>
+              <td><code>JEFFREY_PRINT_ENV</code></td>
               <td>Print the <code>.env</code> file content to stdout (default: <code>false</code>)</td>
             </tr>
             <tr>
@@ -233,7 +235,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
             <tr>
               <td><code>repository-type</code></td>
               <td>No</td>
-              <td>—</td>
+              <td><code>JEFFREY_REPOSITORY_TYPE</code></td>
               <td>Recording repository type: <code>ASYNC_PROFILER</code> (default) or <code>JDK</code>.</td>
             </tr>
             <tr>
@@ -246,7 +248,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
               <td><code>provisioner-verbose</code></td>
               <td>No</td>
               <td><code>JEFFREY_PROVISIONER_VERBOSE</code></td>
-              <td>Enables DEBUG logging of the provisioner itself (accepts <code>1</code>/<code>true</code>/<code>yes</code>/<code>on</code>).</td>
+              <td>Enables DEBUG logging of the provisioner itself.</td>
             </tr>
             <tr>
               <td><code>attributes</code></td>
@@ -294,6 +296,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
             <h4>Debug Non-Safepoints</h4>
             <p>Enables precise profiling by recording method information at non-safepoint locations. Provides more accurate stack traces for CPU profiling. Enabled by default.</p>
             <code>debug-non-safepoints { enabled = true }</code>
+            <code>JEFFREY_DEBUG_NON_SAFEPOINTS=false</code>
           </div>
           <div class="feature-card perf">
             <div class="feature-icon"><i class="bi bi-speedometer2"></i></div>
@@ -336,6 +339,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
             <h4>JDK Java Options</h4>
             <p>Exports <code>JDK_JAVA_OPTIONS</code> environment variable. The JVM picks this up automatically.</p>
             <code>jdk-java-options { enabled = true }</code>
+            <code>JEFFREY_JDK_JAVA_OPTIONS=true</code>
           </div>
           <div class="feature-card jdk-options">
             <div class="feature-icon"><i class="bi bi-plus-circle"></i></div>
