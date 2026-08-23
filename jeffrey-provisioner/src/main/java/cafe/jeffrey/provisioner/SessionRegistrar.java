@@ -88,6 +88,11 @@ public class SessionRegistrar {
         }
 
         String projectId = IDGenerator.generate();
+        // The configured workspaces-dir, deliberately, and not the resolved path: in jeffrey-home
+        // mode it is null, which tells the hub to resolve the relative paths recorded alongside it
+        // against its own workspaces directory. Writing the absolute path this run computed would
+        // bake this container's mount point into a marker another container reads, and the two
+        // need not see the shared volume at the same place.
         repository.addProject(
                 projectId,
                 config.getProjectName(),
