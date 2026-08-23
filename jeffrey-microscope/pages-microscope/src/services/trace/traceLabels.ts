@@ -94,7 +94,7 @@ const CONTEXT_EXPLAINING_ROUTES: Record<string, string> = {
  * The context category a promoted blocking event belongs to, keyed by the JDK event type the
  * derivation synthesized the span from. Must match the backend's `BlockingLeafSpans` promoted set —
  * this is how a synthesized row borrows the category's colour, so a promoted Socket read bar, the
- * Socket I/O legend button and the threads timeline keep saying the same thing the same way.
+ * Socket I/O legend entry and the threads timeline keep saying the same thing the same way.
  */
 const PROMOTED_CATEGORY_BY_EVENT_TYPE: Record<string, TraceContextCategoryName> = {
   'jdk.SocketRead': 'SOCKET_IO',

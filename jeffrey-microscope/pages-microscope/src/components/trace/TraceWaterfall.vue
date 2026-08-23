@@ -57,12 +57,12 @@
         <button
           type="button"
           class="wf-switch-item"
-          :aria-pressed="bandCategories.length > 0 && !allContextHidden"
+          :aria-pressed="bandCategories.length > 0 && showContext"
           :disabled="bandCategories.length === 0"
           :title="contextToggleTitle"
-          @click="toggleAllContext"
+          @click="showContext = !showContext"
         >
-          <span class="wf-switch" :class="{ on: bandCategories.length > 0 && !allContextHidden }"></span>
+          <span class="wf-switch" :class="{ on: bandCategories.length > 0 && showContext }"></span>
           JVM context
           <span v-if="bandCategories.length === 0" class="wf-zero">0 events</span>
         </button>
@@ -430,22 +430,15 @@
       <span><i class="swatch swatch-critical"></i> on the critical path</span>
       <span><i class="swatch swatch-error"></i> error span</span>
       <!--
-        These entries filter rather than describe, so they are real buttons and are styled to look
-        clickable — a legend where half the items respond to a click and all of them look alike
-        teaches the reader nothing until they try one.
+        Descriptive, like every other entry here. These used to filter one category at a time, which
+        put a second control over the promoted rows in a place that reads as a key: the masters above
+        already answer "show me the waits or not", and two controls over one family only raised the
+        question of which one was in force.
       -->
-      <button
-        v-for="category in contextCategories"
-        :key="category"
-        type="button"
-        class="legend-toggle"
-        :class="{ off: !isContextVisible(category) }"
-        :title="`${isContextVisible(category) ? 'Hide' : 'Show'} ${contextLabel(category)}`"
-        @click="toggleContextCategory(category)"
-      >
+      <span v-for="category in contextCategories" :key="category">
         <i class="swatch" :style="{ background: contextColor(category) }"></i>
         {{ contextLabel(category) }}
-      </button>
+      </span>
       <span><i class="swatch swatch-server"></i> server</span>
       <span><i class="swatch swatch-client"></i> client</span>
       <span><i class="swatch swatch-internal"></i> internal</span>
@@ -515,8 +508,6 @@ const EMPTY_BAR: SpanBar = { leftPercent: 0, widthPercent: 0, selfSegments: [] }
 
 const collapsed = ref<Set<string>>(new Set());
 const criticalOnly = ref(false);
-/** Context categories the reader has switched off, by name. Empty means everything is drawn. */
-const hiddenCategories = ref<Set<string>>(new Set());
 
 // A different trace is a different tree, so nothing folded in the last one still applies -- and it
 // crossed different pauses, so carrying a hide over would drop bands nobody chose to drop.
@@ -525,7 +516,7 @@ watch(
   () => {
     collapsed.value = new Set();
     criticalOnly.value = false;
-    hiddenCategories.value = new Set();
+    showContext.value = true;
     showBlockingOps.value = true;
     showIoOps.value = true;
   }
@@ -553,6 +544,9 @@ const showBlockingOps = ref(true);
 
 /** Whether the promoted file and socket I/O rows are drawn — the other master of the same split. */
 const showIoOps = ref(true);
+
+/** Whether the global pause bands are drawn — the third master, over what the JVM did to the trace. */
+const showContext = ref(true);
 
 const promotedCount = computed(() => props.spans.filter(span => span.synthesized).length);
 
@@ -608,9 +602,9 @@ const allBands = computed(() =>
 const bandCategories = computed(() => bandLanes(allBands.value).map(lane => lane.category));
 
 /**
- * Every category the trace recorded, hidden or not — the legend is driven from this rather than from
- * what is currently drawn, or hiding a category would take away the control that brings it back.
- * Band categories first, then whatever categories the promoted rows add.
+ * Every category the trace recorded — what the legend decodes. Read from the trace rather than from
+ * what is currently drawn, so a master switched off does not also take away the key to the colours
+ * it hid. Band categories first, then whatever categories the promoted rows add.
  */
 const contextCategories = computed(() => {
   const categories = [...bandCategories.value];
@@ -626,54 +620,9 @@ const contextCategories = computed(() => {
   return categories;
 });
 
-const bands = computed(() =>
-  allBands.value.filter(band => !hiddenCategories.value.has(band.category))
-);
+const bands = computed(() => (showContext.value ? allBands.value : []));
 
 const laneGroups = computed(() => bandLanes(bands.value));
-
-/**
- * Derived rather than kept as its own flag, the way {@link allCollapsed} is. A separate boolean would
- * allow the state where the master reads "on" while every category is individually hidden — looking
- * off and saying on.
- */
-const allContextHidden = computed(
-  () => bandCategories.value.length > 0 && bands.value.length === 0
-);
-
-function isContextVisible(category: string): boolean {
-  return !hiddenCategories.value.has(category);
-}
-
-function toggleContextCategory(category: string): void {
-  const hidden = new Set(hiddenCategories.value);
-  if (hidden.has(category)) {
-    hidden.delete(category);
-  } else {
-    hidden.add(category);
-  }
-  hiddenCategories.value = hidden;
-}
-
-/**
- * Hides or restores the pause bands only. Working through the band categories rather than through
- * every legend category keeps this master away from the promoted rows, which "Blocking ops" and
- * "I/O" own — one switch per question, and a per-category choice on another family survives
- * flipping this one.
- */
-function toggleAllContext(): void {
-  const hidden = new Set(hiddenCategories.value);
-  if (allContextHidden.value) {
-    for (const category of bandCategories.value) {
-      hidden.delete(category);
-    }
-  } else {
-    for (const category of bandCategories.value) {
-      hidden.add(category);
-    }
-  }
-  hiddenCategories.value = hidden;
-}
 
 const contextToggleTitle = computed(() => {
   // The absent-categories claim is only true once the request has actually answered. Asserting it
@@ -687,9 +636,9 @@ const contextToggleTitle = computed(() => {
   if (bandCategories.value.length === 0) {
     return 'No GC pauses or safepoints crossed this trace';
   }
-  return allContextHidden.value
-    ? 'Show the GC pauses and safepoints that crossed this trace'
-    : 'Hide the pause bands drawn over the spans';
+  return showContext.value
+    ? 'Hide the pause bands drawn over the spans'
+    : 'Show the GC pauses and safepoints that crossed this trace';
 });
 
 // Counted once for the whole trace, like the bars and the child counts below: every parent row asks
@@ -883,17 +832,12 @@ const displayRows = computed<DisplayRow[]>(() => {
   return out;
 });
 
-/** Whether a row survives its family's master toggle and the per-category legend choices. */
+/** Whether a promoted row survives its family's master toggle; a recorded span always draws. */
 function isSpanDrawn(span: TraceSpanRow): boolean {
   if (!span.synthesized) {
     return true;
   }
-  const master = isPromotedIo(span) ? showIoOps.value : showBlockingOps.value;
-  if (!master) {
-    return false;
-  }
-  const category = promotedCategory(span.eventType);
-  return category === null || !hiddenCategories.value.has(category);
+  return isPromotedIo(span) ? showIoOps.value : showBlockingOps.value;
 }
 
 /**
@@ -1154,7 +1098,7 @@ function barStyle(span: TraceSpanRow) {
     left: geometry.leftPercent + '%',
     width: geometry.widthPercent + '%'
   };
-  // A promoted wait wears its category's colour -- the same one its legend button, the lanes and
+  // A promoted wait wears its category's colour -- the same one its legend entry, the lanes and
   // the threads timeline use -- rather than a span-kind pastel: it is context turned into a bar,
   // not a new kind of span.
   const category = promotedColorCategory(span);
@@ -1979,45 +1923,6 @@ function tooltip(span: TraceSpanRow): string {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-}
-
-/*
- * The filtering entries. Given a border and a hit area the descriptive swatches beside them do not
- * have, so the two kinds are told apart before the click rather than by it.
- */
-.legend-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.1rem 0.4rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
-  cursor: pointer;
-}
-
-.legend-toggle:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.legend-toggle:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-}
-
-/* Switched off: the row stays legible as a control, and its swatch stops asserting a colour. */
-.legend-toggle.off {
-  color: var(--color-text-light);
-  text-decoration: line-through;
-}
-
-.legend-toggle.off .swatch {
-  opacity: 0.3;
 }
 
 .swatch {
