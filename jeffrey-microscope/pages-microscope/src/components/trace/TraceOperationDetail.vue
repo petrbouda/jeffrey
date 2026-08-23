@@ -193,8 +193,8 @@ watch(activeTab, tab => {
   }
 });
 
-// The waterfall is opened here rather than by navigating to Slowest Traces: that page resolves a
-// trace from its own capped list, which need not contain this operation's traces.
+// The waterfall is opened here rather than on a page of its own: it belongs to the list that was
+// being read, and navigating away to it took that list with it.
 const spansShow = ref(false);
 const selectedTrace = ref<TraceRow | null>(null);
 

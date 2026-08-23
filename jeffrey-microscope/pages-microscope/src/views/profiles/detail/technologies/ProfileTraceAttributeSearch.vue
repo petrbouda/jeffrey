@@ -66,7 +66,7 @@
 
       <!--
         A sibling of the results rather than a child of them: the waterfall used to open by
-        navigating to the trace list, which swapped the search out from under the reader — the
+        navigating to a trace list page, which swapped the search out from under the reader — the
         conditions they had just built were gone the moment the dialog closed. GenericModal renders
         in place, so it stays out of any branch that can be hidden.
       -->

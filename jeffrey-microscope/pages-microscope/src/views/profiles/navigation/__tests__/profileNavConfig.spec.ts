@@ -213,6 +213,41 @@ describe('profileNavConfig', () => {
     });
   });
 
+  // The flat trace list was removed; the waterfall it used to host now opens on Search Traces, so
+  // that is where its links land — including the shared `?trace=` ones, which still open a waterfall.
+  describe('the removed trace list redirects to Search Traces', () => {
+    const tracesRedirect = () => {
+      const record = profileChildRoutes.find(route => route.path === 'technologies/traces');
+      expect(record, 'technologies/traces').toBeDefined();
+      return (
+        record as unknown as {
+          redirect: (to: {
+            params: { profileId: string };
+            query: Record<string, unknown>;
+          }) => { path: string; query: Record<string, unknown> };
+        }
+      ).redirect;
+    };
+
+    const search = `/profiles/${SAMPLE_PROFILE_ID}/technologies/traces/attributes/search`;
+
+    it('sends a bare link to the search page', () => {
+      const target = tracesRedirect()({ params: { profileId: SAMPLE_PROFILE_ID }, query: {} });
+
+      expect(target.path).toBe(search);
+    });
+
+    it('keeps a shared waterfall link opening its waterfall', () => {
+      const target = tracesRedirect()({
+        params: { profileId: SAMPLE_PROFILE_ID },
+        query: { trace: 'da67068e1a1a733e' }
+      });
+
+      expect(target.path).toBe(search);
+      expect(target.query).toEqual({ trace: 'da67068e1a1a733e' });
+    });
+  });
+
   it('derives the mode pill from a route path', () => {
     const profilePath = (subPath: string) => `/profiles/${SAMPLE_PROFILE_ID}${subPath}`;
 

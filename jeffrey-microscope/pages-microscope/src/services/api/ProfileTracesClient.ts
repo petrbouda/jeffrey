@@ -34,16 +34,13 @@ import {
 import type {
   TraceContext,
   TraceDetail,
-  TraceListQuery,
   TraceOperationId,
   TraceOperationListQuery,
   TraceOperationsPage,
   TraceOperationSummary,
   TraceOverview,
   TraceRow,
-  TraceSpanEvents,
-  TraceTimelineBucket,
-  TracesPage
+  TraceSpanEvents
 } from '@/services/api/model/trace/TraceModels';
 
 /**
@@ -65,7 +62,7 @@ function operationParams(operation: TraceOperationId): Record<string, string> {
  * made before it could be filtered at all.
  */
 function listParams(
-  query: TraceListQuery | TraceOperationListQuery
+  query: TraceOperationListQuery
 ): Record<string, string | number | boolean> {
   const params: Record<string, string | number | boolean> = {};
   for (const [key, value] of Object.entries(query)) {
@@ -81,24 +78,7 @@ export default class ProfileTracesClient extends BaseProfileClient {
     super(profileId, 'traces');
   }
 
-  /**
-   * A page of traces. Narrowing happens on the server because the list is capped: filtering the
-   * fetched page would only ever search the slowest few hundred traces, so a search for anything
-   * outside them comes back empty while the trace sits in the profile.
-   */
-  public getTraces(query: TraceListQuery = {}): Promise<TracesPage> {
-    return this.get<TracesPage>('', listParams(query));
-  }
-
-  /** How traces were spread over the recording, for the density strip above the list. */
-  public getTimeline(buckets?: number): Promise<TraceTimelineBucket[]> {
-    return this.get<TraceTimelineBucket[]>(
-      '/timeline',
-      buckets === undefined ? undefined : { buckets }
-    );
-  }
-
-  /** Profile-wide totals, which the capped trace list cannot be summed into. */
+  /** Profile-wide totals, which a capped page of operations cannot be summed into. */
   public getOverview(): Promise<TraceOverview> {
     return this.get<TraceOverview>('/overview');
   }

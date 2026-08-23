@@ -607,8 +607,8 @@ export function getTechnologyForPath(path: string, mode?: string): string | null
   if (path.includes('/technologies/async-profiler/')) {
     return 'async-profiler';
   }
-  // Slash-free (like jdbc) so the bare `/technologies/traces` matches too, not just
-  // `/technologies/traces/operations`. Cannot collide with method-tracing (`tracing` != `traces`).
+  // Slash-free (like jdbc) so the redirect at the bare `/technologies/traces` matches too, not
+  // just its sub-pages. Cannot collide with method-tracing (`tracing` != `traces`).
   if (path.includes('/technologies/traces')) {
     return 'traces';
   }

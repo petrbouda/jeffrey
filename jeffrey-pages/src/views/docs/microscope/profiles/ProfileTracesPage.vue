@@ -31,7 +31,6 @@ const headings = [
   { id: 'what-is-a-trace', text: 'What a Trace Is Here', level: 2 },
   { id: 'instrumenting', text: 'Instrumenting an Application', level: 2 },
   { id: 'auto-instrumented', text: 'Events That Already Carry Trace Identity', level: 2 },
-  { id: 'trace-list', text: 'Trace List', level: 2 },
   { id: 'waterfall', text: 'Waterfall', level: 2 },
   { id: 'blocking-ops', text: 'Blocking Operations as Spans', level: 2 },
   { id: 'jvm-context', text: 'Why a Trace Was Slow', level: 2 },
@@ -160,7 +159,7 @@ if (event.isEnabled()) {
         </tbody>
       </table>
 
-      <p>and a <strong>status</strong> — <code>UNSET</code>, <code>OK</code> or <code>ERROR</code>. A span that ends by throwing records <code>ERROR</code> and the exception's type; the trace list counts those so a failed run is visible without opening it.</p>
+      <p>and a <strong>status</strong> — <code>UNSET</code>, <code>OK</code> or <code>ERROR</code>. A span that ends by throwing records <code>ERROR</code> and the exception's type; the operation cards and the search results count those, so a failed run is visible without opening it.</p>
 
       <h2 id="instrumenting">Instrumenting an Application</h2>
 
@@ -219,12 +218,6 @@ if (event.isEnabled()) {
       <DocsCallout type="tip">
         The identity costs three zero-defaulted longs on an event you were already emitting — a varint-encoded zero is close to free, so events from an untraced code path are barely larger than before. An older recording whose events carry no ids simply produces no traces; the section stays hidden rather than showing empty roots.
       </DocsCallout>
-
-      <h2 id="trace-list">Trace List</h2>
-
-      <p>The Traces page opens with two tiles — how many traces and spans the profile holds, how many failed, and the P95 / P99 / slowest trace duration — over a list of trace roots ranked by duration, the "which runs were slow" view. Each row carries the root operation name, a duration bar scaled to the slowest trace in the profile, the kind, the failure count when there is one, the span count, the start time and the trace id. The gutter beside a failed trace turns red, so a bad run is visible before anything is read.</p>
-
-      <p>The list is searched, filtered, sorted and paged <strong>on the server</strong>: a name filter, an errors-only toggle, four sort orders (duration, most recent, span count, error count), fifty rows at a time with a "load more" continuation, and a density strip above showing where in the recording the traces landed. The filter travels in the URL, so "look at the failed traces" is a link rather than a set of instructions. <a href="#operations">Traces by Operation</a> is where you narrow to one endpoint or job.</p>
 
       <h2 id="waterfall">Waterfall</h2>
 
@@ -292,13 +285,13 @@ if (event.isEnabled()) {
 
       <h2 id="operations">Traces by Operation</h2>
 
-      <p>The trace list answers "which run was slow". Traces by Operation answers "which <em>kind</em> of run is slow, across every time it ran": one card per <strong>trace type</strong>, grouped from the <code>traces</code> table. An operation's name is derived from what the root did — <code>GET /api/internal/profiles/{profileId}</code>, <code>jeffrey.api.v1.ProjectService/List</code> — rather than read out of the recording, so the same endpoint is one operation whichever version of the library recorded it. A trace type is keyed by all three of that name, the root's kind and the event type that opened it — not by the name alone: an inbound <code>GET /orders</code> and an outbound call to the same path are named identically by the same convention, and they are not the same operation. Each card leads with the call count, then Spans / Total / P50 / P95 / Max badges; the name row carries the event type and the kind, and an error-count badge sits on the right when the type has failures. Sort by total, P95, max, call count or errors.</p>
+      <p>Traces by Operation is where a profile's traces are read from: it answers "which <em>kind</em> of run is slow, across every time it ran", where <a href="#attributes">Traces by Attributes</a> answers "which particular runs match this". One card per <strong>trace type</strong>, grouped from the <code>traces</code> table. An operation's name is derived from what the root did — <code>GET /api/internal/profiles/{profileId}</code>, <code>jeffrey.api.v1.ProjectService/List</code> — rather than read out of the recording, so the same endpoint is one operation whichever version of the library recorded it. A trace type is keyed by all three of that name, the root's kind and the event type that opened it — not by the name alone: an inbound <code>GET /orders</code> and an outbound call to the same path are named identically by the same convention, and they are not the same operation. Each card leads with the call count, then Spans / Total / P50 / P95 / Max badges; the name row carries the event type and the kind, and an error-count badge sits on the right when the type has failures. Sort by total, P95, max, call count or errors.</p>
 
       <DocsCallout type="info">
         <strong>Where did the nested spans go?</strong> This list used to be every span name in the profile — including names, like <code>chunk.parse</code> or <code>dominator</code>, that only ever occur nested inside another span and are never a trace root. Grouping by root name instead of span name dropped one reference profile's list from 105 rows to 36. A nested span is not lost: open the trace it belongs to and find it in the <a href="#waterfall">waterfall</a>, alongside every other span in that trace's tree.
       </DocsCallout>
 
-      <p>The tiles above the list all read the same profile-wide SQL aggregate, uncapped — the operation count with total traces and errors, and the slowest-trace / P99 durations. They deliberately do not fold the fetched rows, which are capped and re-cut by every filter: a tile that changed value when you sorted the list would be lying about the profile. The list itself is searched, filtered and paged on the server like the trace list, with the filter in the URL.</p>
+      <p>The tiles above the list all read the same profile-wide SQL aggregate, uncapped — the operation count with total traces and errors, and the slowest-trace / P99 durations. They deliberately do not fold the fetched rows, which are capped and re-cut by every filter: a tile that changed value when you sorted the list would be lying about the profile. The list itself is searched, filtered and paged on the server, with the filter in the URL — so "look at the failing operations" is a link rather than a set of instructions.</p>
 
       <p>Clicking a card opens a drill-down for that operation. The selection is kept in the URL — <code>?operation=</code> with <code>&amp;kind=</code> and <code>&amp;eventType=</code> alongside it, since all three identify the type — so it can be linked to directly. It has four tabs:</p>
 
@@ -306,7 +299,7 @@ if (event.isEnabled()) {
         <li><strong>Summary</strong> — the tab it opens on. Call count, latency percentiles, total time and the share of all trace time it accounts for, read from the same profile-wide aggregate the card above shows, so the two never disagree. Underneath: a latency histogram, the platform/virtual thread split, where the operation's time goes span by span, and its slowest runs. The histogram, the thread split and the concurrency figure are drawn from the fetched traces, which are capped — the card says so when they are.</li>
         <li><strong>Flamegraphs</strong> — every execution, wall-clock and allocation sample taken while a trace of this type was running, covering exactly the windows those traces ran in and no more. The scope is every span of every trace of the type, nested ones included. When all of them ran on virtual threads the tab stays and explains why it is empty, rather than vanishing — see <a href="#virtual-threads">Spans on virtual threads</a>.</li>
         <li><strong>Metrics Timeline</strong> — the slowest trace of this type and the trace count, bucketed over time.</li>
-        <li><strong>Slowest Traces</strong> — the same unfiltered ranked list as the <a href="#trace-list">Trace List</a> above, scoped to this operation's traces; opening a row shows that trace's waterfall. Like that list, it displays the 50 longest at a time. What the larger, 1,000-trace fetch behind it buys is not more rows on screen: it feeds the "Showing 50 of&nbsp;…" count, scales the duration bars against the true slowest of the type rather than just the 50 shown, and is the pool the cap note is counting against once a type reaches it.</li>
+        <li><strong>Slowest Traces</strong> — this operation's traces ranked by duration; opening a row shows that trace's <a href="#waterfall">waterfall</a>, in place, with the trace id added to the URL rather than a page of its own. It displays the 50 longest at a time. What the larger, 1,000-trace fetch behind it buys is not more rows on screen: it feeds the "Showing 50 of&nbsp;…" count, scales the duration bars against the true slowest of the type rather than just the 50 shown, and is the pool the cap note is counting against once a type reaches it.</li>
       </ul>
 
       <p>A stale or hand-edited operation in the URL is not rejected — the drill-down opens and its own panels come back empty. The list above is capped, so a link into an operation past the cap is a valid link, and refusing it would have broken more than it caught.</p>
@@ -375,7 +368,7 @@ if (event.isEnabled()) {
 
       <ul>
         <li><strong>A span's own event names the thread that ended it.</strong> JFR attributes a duration event to the thread that <em>commits</em> it, so a span closed somewhere other than where it opened is filed against the closing thread. Re-entered spans emit a <code>jeffrey.TraceScope</code> event per activation — bounded by one lambda, so it cannot straddle a thread — and the drill-down reads those, which is what keeps the thread-plus-window correlation honest. The span row itself still shows the closing thread.</li>
-        <li><strong>Background jobs are their own traces.</strong> A pipeline run forked onto its own thread appears as a separate root rather than a child of whatever request triggered it. That is deliberate — its lifetime is unrelated to the request — but worth remembering when reading the trace list.</li>
+        <li><strong>Background jobs are their own traces.</strong> A pipeline run forked onto its own thread appears as a separate root rather than a child of whatever request triggered it. That is deliberate — its lifetime is unrelated to the request — but worth remembering when reading a list of operations.</li>
         <li><strong>Trace ids are 64-bit</strong>, not the 128-bit W3C shape. Ample for a single JVM that mints all of its own ids, and a deliberate trade: it means an application already running OpenTelemetry cannot hand Jeffrey its real <code>traceparent</code> and expect the ids to match what Jaeger or Datadog display.</li>
         <li><strong>The waterfall is sized for tens to hundreds of spans</strong> per trace, and has no zoom or pan. Deep traces render fine; traces of several thousand spans would want a different substrate.</li>
       </ul>

@@ -236,37 +236,11 @@ export interface TraceContext {
   summary: TraceContextSlice[];
 }
 
-/** What a trace list can be ordered by; must match the backend's `TraceSortField`. */
-export type TraceSortField = 'DURATION' | 'START' | 'SPAN_COUNT' | 'ERROR_COUNT';
-
 /** What an operation list can be ordered by; must match the backend's `TraceOperationSortField`. */
 export type TraceOperationSortField =
   'TOTAL_TIME' | 'P50' | 'P95' | 'P99' | 'MAX' | 'COUNT' | 'ERRORS' | 'NAME';
 
-/**
- * How the trace list should be narrowed, ordered and paged. Every field is optional: what is left
- * out is left to the server's own default, so an empty query is the unfiltered slowest-first list.
- */
-export interface TraceListQuery {
-  /** Matched against the root span's name, case-insensitively, as a substring. */
-  search?: string;
-  errorsOnly?: boolean;
-  minDurationNanos?: number;
-  /**
-   * Operation filter — exact match on the whole identifying triple, and only applied when all
-   * three are sent: a partial triple would re-merge operations the grouping keeps apart.
-   */
-  name?: string;
-  kind?: string;
-  eventType?: string;
-  sort?: TraceSortField;
-  /** Whether the sort column runs high-to-low. */
-  desc?: boolean;
-  limit?: number;
-  offset?: number;
-}
-
-/** The operations counterpart of {@link TraceListQuery}. */
+/** How the operations list should be narrowed, ordered and paged; every field is optional. */
 export interface TraceOperationListQuery {
   search?: string;
   errorsOnly?: boolean;
@@ -276,35 +250,10 @@ export interface TraceOperationListQuery {
   offset?: number;
 }
 
-/**
- * One page of traces, with how many the same filter matched in total.
- *
- * The total is what lets a capped list say whether what it drew was all there was — the question a
- * reader looking at exactly 100 rows always has — and what makes "load more" possible at all.
- */
-export interface TracesPage {
-  traces: TraceRow[];
-  totalMatching: number;
-}
-
 /** One page of operations, with how many the same filter matched in total. */
 export interface TraceOperationsPage {
   operations: TraceOperationRow[];
   totalMatching: number;
-}
-
-/**
- * One slice of the recording, with what the traces starting inside it did.
- *
- * Aggregated on the server rather than bucketed from the fetched list, which holds only the slowest
- * traces: bucketing that would draw the shape of the tail and label it the shape of the profile.
- * Slices holding no trace are absent rather than zero.
- */
-export interface TraceTimelineBucket {
-  fromMillisFromBeginning: number;
-  count: number;
-  errorCount: number;
-  maxDurationNanos: number;
 }
 
 /**

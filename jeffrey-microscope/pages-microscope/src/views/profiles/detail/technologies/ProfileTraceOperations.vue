@@ -171,8 +171,8 @@ const SORT_KEYS = new Set<string>(['TOTAL_TIME', 'P95', 'P99', 'MAX', 'COUNT', '
 const DEFAULT_SORT: TraceOperationSortKey = 'TOTAL_TIME';
 
 /*
- * The filter lives in the URL, so a filtered list is shareable — same contract as the sibling
- * Slowest Traces page. Seeded here, mirrored back by the watcher below.
+ * The filter lives in the URL, so a filtered list is shareable — the same contract the sibling
+ * trace pages keep. Seeded here, mirrored back by the watcher below.
  */
 const initialQuery = route.query;
 const search = ref((initialQuery.q as string | undefined) ?? '');

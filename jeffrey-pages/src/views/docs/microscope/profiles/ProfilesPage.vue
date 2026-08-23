@@ -276,7 +276,7 @@ const folderStructure = `$JEFFREY_HOME/
         <DocsFeatureCard
           icon="bi bi-bezier2"
           title="Traces &amp; Spans"
-          description="Nested breakdown of one unit of work — a trace list, a waterfall of the span tree with split self/child bars, per-operation latency spread, and the flamegraph of what the JVM did inside a single span."
+          description="Nested breakdown of one unit of work — per-operation latency spread, search by what the spans recorded, a waterfall of the span tree with split self/child bars, and the flamegraph of what the JVM did inside a single span."
         />
         <DocsFeatureCard
           icon="bi bi-globe"

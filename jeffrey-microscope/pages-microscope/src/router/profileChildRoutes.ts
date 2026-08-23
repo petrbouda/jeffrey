@@ -569,10 +569,15 @@ const technologyRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    // The flat trace list this used to render is gone: every way in went through an operation or a
+    // search, and the waterfall those open now stays on the page that opened it. Old links keep
+    // working by landing on Search Traces, which reads `trace` from the query the same way — so a
+    // shared waterfall link still opens its waterfall, just over the search rather than the list.
     path: 'technologies/traces',
-    name: 'profile-technologies-traces',
-    component: () => import('@/views/profiles/detail/technologies/ProfileTraces.vue'),
-    meta: { layout: 'profile' }
+    redirect: (to: RouteLocationGeneric) => ({
+      path: `/profiles/${String(to.params.profileId)}/technologies/traces/attributes/search`,
+      query: to.query
+    })
   },
   {
     path: 'technologies/traces/operations',
