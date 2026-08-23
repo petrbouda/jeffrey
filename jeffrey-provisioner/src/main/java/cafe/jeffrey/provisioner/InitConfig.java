@@ -372,10 +372,6 @@ public class InitConfig {
         return (value == null || value.isBlank()) ? null : value;
     }
 
-    private static boolean isNullOrBlank(String value) {
-        return value == null || value.isBlank();
-    }
-
     // ==================== Accessors ====================
 
     public String getJeffreyHome() {
