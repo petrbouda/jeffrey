@@ -49,7 +49,15 @@ public abstract class TracingJfrEvents {
     private static final String THRESHOLD_SETTING = "threshold";
     private static final String THROTTLE_SETTING = "throttle";
     private static final String ENABLED_VALUE = "true";
-    private static final String THROTTLE_OFF = "off";
+
+    /**
+     * A rate no real emission reaches, spelled as a number because {@code off} cannot win: JFR
+     * resolves {@code throttle} across the active recordings to the highest <em>parseable</em>
+     * rate ({@code ThrottleSetting.combine}), and {@code off} parses as no rate at all — next to
+     * a recording that names {@code 100/s}, it loses. A large number out-votes it instead, the
+     * same way the {@code 0ms} thresholds out-vote the stock ones.
+     */
+    private static final String THROTTLE_LIFTED = "1000000/s";
 
     /**
      * One event, the threshold it is recorded at, and whether its rate limit is lifted.
@@ -62,13 +70,11 @@ public abstract class TracingJfrEvents {
 
         /**
          * Recorded in full, and its rate limit lifted. Java 25 rate-limits these to 100 events a
-         * second in {@code default.jfc}, which a threshold does not lift.
-         *
-         * <p>The lift only reaches as far as the other recordings allow. Unlike a threshold, where
-         * JFR takes the most verbose value across the active recordings, a rate limit resolves to
-         * the most restrictive one — so while the profiler records with a configuration that
-         * throttles, that cap holds for everyone and this setting has no effect. It applies when
-         * the profiler runs a configuration that does not throttle, which is every JDK before 25.
+         * second in {@code default.jfc}, which a threshold does not lift — the profiler records
+         * with that configuration ({@code jfrsync=default}), so without the lift its cap holds for
+         * every recording and a busy JVM silently drops the very I/O events a trace hangs its leaf
+         * spans on. The lift is the {@link #THROTTLE_LIFTED} rate, whose comment explains why it
+         * must be a number rather than {@code off}.
          */
         static EventThreshold io(String eventType) {
             return new EventThreshold(eventType, IO_THRESHOLD, true);
@@ -85,7 +91,7 @@ public abstract class TracingJfrEvents {
                     .append(SETTING_SEPARATOR)
                     .append(setting(THRESHOLD_SETTING, threshold));
             if (unthrottled) {
-                settings.append(SETTING_SEPARATOR).append(setting(THROTTLE_SETTING, THROTTLE_OFF));
+                settings.append(SETTING_SEPARATOR).append(setting(THROTTLE_SETTING, THROTTLE_LIFTED));
             }
             return settings.toString();
         }

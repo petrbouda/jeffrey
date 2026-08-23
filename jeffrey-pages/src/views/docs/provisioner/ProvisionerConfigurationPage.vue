@@ -54,8 +54,8 @@ JEFFREY_JVM_LOGGING="jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log"
 JEFFREY_ADDITIONAL_JVM_OPTIONS="-Xmx2g"`;
 
 const tracingThresholdsExample = `-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,\\
-  jdk.SocketRead#enabled=true,jdk.SocketRead#threshold=0ms,jdk.SocketRead#throttle=off,\\
-  jdk.SocketWrite#enabled=true,jdk.SocketWrite#threshold=0ms,jdk.SocketWrite#throttle=off,\\
+  jdk.SocketRead#enabled=true,jdk.SocketRead#threshold=0ms,jdk.SocketRead#throttle=1000000/s,\\
+  jdk.SocketWrite#enabled=true,jdk.SocketWrite#threshold=0ms,jdk.SocketWrite#throttle=1000000/s,\\
   jdk.ThreadPark#enabled=true,jdk.ThreadPark#threshold=1ms,...`;
 
 const minimalConfig = `jeffrey-home = "/opt/jeffrey"
@@ -437,12 +437,13 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
         <DocsCallout type="warning">
           <strong>Java 25 rate-limits I/O events.</strong> Its <code>default.jfc</code> caps
           <code>jdk.SocketRead</code>, <code>jdk.SocketWrite</code>, <code>jdk.FileRead</code> and
-          <code>jdk.FileWrite</code> at 100 events a second. A rate limit resolves to the most
-          restrictive value across the running recordings — the opposite of a threshold — so while
-          the profiler records with that configuration, I/O stays capped at 100/s however low the
-          threshold goes. The threshold still applies within that budget, so short operations do
-          reach the trace; recording every one of them past the cap needs the profiler's own
-          <code>jfrsync</code> configuration changed.
+          <code>jdk.FileWrite</code> at 100 events a second, and a busy JVM at that cap silently
+          drops the I/O a trace hangs its leaf spans on. JFR resolves the rate limit to the
+          highest <em>numeric</em> rate across the running recordings — <code>throttle=off</code>
+          never parses as a rate, so next to the profiler's <code>100/s</code> it loses. That is
+          why the thresholds recording lifts the cap with <code>1000000/s</code>: a number high
+          enough to out-vote the profiler's configuration the same way the lowered thresholds do,
+          without <code>jfrsync</code> being touched.
         </DocsCallout>
 
         <h2 id="placeholders">Placeholders</h2>

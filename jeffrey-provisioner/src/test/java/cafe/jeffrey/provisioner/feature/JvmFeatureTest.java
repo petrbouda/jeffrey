@@ -221,18 +221,21 @@ class JvmFeatureTest {
 
         /**
          * Java 25 rate-limits socket and file I/O to 100 events a second, which a threshold does
-         * not lift. {@code jdk.FileForce} has no such limit, and naming a setting an event does not
-         * have costs a JFR warning at startup.
+         * not lift. The lift must be a numeric rate: JFR resolves {@code throttle} to the highest
+         * parseable rate across the active recordings, and {@code off} never parses as one, so it
+         * loses to the {@code 100/s} the profiler's {@code default.jfc} recording carries.
+         * {@code jdk.FileForce} has no such limit, and naming a setting an event does not have
+         * costs a JFR warning at startup.
          */
         @Test
         void liftsTheRateLimitOnlyWhereThereIsOneToLift() {
             String options = render(
                     new JvmFeature.TracingEventThresholds(true, TracingJfrEvents.DEFAULT_SETTINGS));
 
-            assertTrue(options.contains("jdk.SocketRead#throttle=off"), options);
-            assertTrue(options.contains("jdk.SocketWrite#throttle=off"), options);
-            assertTrue(options.contains("jdk.FileRead#throttle=off"), options);
-            assertTrue(options.contains("jdk.FileWrite#throttle=off"), options);
+            assertTrue(options.contains("jdk.SocketRead#throttle=1000000/s"), options);
+            assertTrue(options.contains("jdk.SocketWrite#throttle=1000000/s"), options);
+            assertTrue(options.contains("jdk.FileRead#throttle=1000000/s"), options);
+            assertTrue(options.contains("jdk.FileWrite#throttle=1000000/s"), options);
             assertTrue(!options.contains("jdk.FileForce#throttle"), options);
             assertTrue(!options.contains("jdk.ThreadPark#throttle"), options);
         }
