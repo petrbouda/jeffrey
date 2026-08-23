@@ -66,12 +66,18 @@ public class InitConfig {
     private static final String ENV_ATTRIBUTES = "JEFFREY_ATTRIBUTES";
     private static final String ENV_HEAP_DUMP = "JEFFREY_HEAP_DUMP";
     private static final String ENV_PERF_COUNTERS = "JEFFREY_PERF_COUNTERS";
-    private static final String ENV_METHOD_TRACING = "JEFFREY_METHOD_TRACING";
+    /* Spelled exactly as the agent's own parameter (-javaagent:...=tracing.enabled=true):
+       this is the switch for that parameter and nothing else, so the two names match rather
+       than needing a translation table. The UI feature and its REST path stay "method-tracing". */
+    private static final String ENV_TRACING_ENABLED = "JEFFREY_TRACING_ENABLED";
     private static final String ENV_JVM_LOGGING = "JEFFREY_JVM_LOGGING";
     private static final String ENV_ADDITIONAL_JVM_OPTIONS = "JEFFREY_ADDITIONAL_JVM_OPTIONS";
 
     private static final String HEAP_DUMP_OFF = "off";
     private static final Set<String> HEAP_DUMP_TYPES = Set.of("exit", "crash");
+
+    private static final Set<String> BOOL_TRUE_VALUES = Set.of("1", "true", "yes", "on");
+    private static final Set<String> BOOL_FALSE_VALUES = Set.of("0", "false", "no", "off");
 
     private static final String ATTRIBUTE_PAIR_SEPARATOR = ",";
     private static final String ATTRIBUTE_KV_SEPARATOR = "=";
@@ -118,7 +124,10 @@ public class InitConfig {
             }
             attributes = {}
             perf-counters { enabled = false }
-            method-tracing { enabled = false }
+            # On by default, unlike the agent's own parameter: a provisioned JVM is one being
+            # profiled on purpose, and the weaver is inert without Java 25 and jeffrey-events on
+            # the class path. JEFFREY_TRACING_ENABLED=false opts a deployment out.
+            tracing { enabled = true }
             heap-dump { enabled = false, type = "exit" }
             jvm-logging { enabled = false, command = "" }
             agent-path = ""
@@ -240,9 +249,9 @@ public class InitConfig {
         perfCounters.setEnabled(resolveBoolWithEnv(perfCfg.getBoolean("enabled"), ENV_PERF_COUNTERS, envLookup));
         config.setPerfCounters(perfCounters);
 
-        Config tracingCfg = resolved.getConfig("method-tracing");
+        Config tracingCfg = resolved.getConfig("tracing");
         MethodTracingConfig methodTracing = new MethodTracingConfig();
-        methodTracing.setEnabled(resolveBoolWithEnv(tracingCfg.getBoolean("enabled"), ENV_METHOD_TRACING, envLookup));
+        methodTracing.setEnabled(resolveBoolWithEnv(tracingCfg.getBoolean("enabled"), ENV_TRACING_ENABLED, envLookup));
         config.setMethodTracing(methodTracing);
 
         Config heapCfg = resolved.getConfig("heap-dump");
@@ -368,22 +377,33 @@ public class InitConfig {
     }
 
     /**
-     * Returns {@code hoconValue} if true; otherwise consults the named environment variable
-     * and treats {@code "1"}, {@code "true"}, {@code "yes"}, {@code "on"} (case-insensitive)
-     * as {@code true}. Used for boolean toggles like {@code provisioner-verbose} that should also
-     * accept a {@code JEFFREY_PROVISIONER_VERBOSE=1} env var without needing to edit the HOCON file.
+     * The HOCON value, unless the named environment variable is set to a recognized boolean —
+     * {@code "1"}, {@code "true"}, {@code "yes"}, {@code "on"} or their negatives, case-insensitive
+     * — in which case the environment wins. The environment overriding <em>downwards</em> is what
+     * lets a toggle default to on and still be turned off by a container that mounts no config
+     * file: an on-by-default feature whose env var could only ever say "on" would have no off
+     * switch on the zero-file path at all.
+     *
+     * <p>A value that is neither is not read as false — that would let a typo silently disable a
+     * feature — so it is reported and the configured value stands.
      */
     private static boolean resolveBoolWithEnv(boolean hoconValue, String envName, Function<String, String> envLookup) {
-        if (hoconValue) {
-            return true;
-        }
         String envValue = envLookup.apply(envName);
         if (isNullOrBlank(envValue)) {
+            return hoconValue;
+        }
+
+        String normalized = envValue.trim().toLowerCase();
+        if (BOOL_TRUE_VALUES.contains(normalized)) {
+            return true;
+        }
+        if (BOOL_FALSE_VALUES.contains(normalized)) {
             return false;
         }
-        String normalized = envValue.trim().toLowerCase();
-        return normalized.equals("1") || normalized.equals("true")
-                || normalized.equals("yes") || normalized.equals("on");
+
+        LOG.warn("Unrecognized boolean environment value, keeping the configured one: name={} value={} configured={}",
+                envName, envValue, hoconValue);
+        return hoconValue;
     }
 
     private String envFilePath;
