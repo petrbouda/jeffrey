@@ -42,10 +42,6 @@ public record EnvPlaceholderSource(Function<String, String> envLookup) implement
         }
     }
 
-    public static EnvPlaceholderSource ofSystem() {
-        return new EnvPlaceholderSource(System::getenv);
-    }
-
     @Override
     public String type() {
         return TYPE;

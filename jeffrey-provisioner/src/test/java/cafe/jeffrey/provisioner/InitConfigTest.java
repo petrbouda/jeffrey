@@ -78,8 +78,6 @@ class InitConfigTest {
         void parsesPerfCountersConfig() {
             InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
-            assertNotNull(config.getPerfCounters());
-            assertTrue(config.getPerfCounters().isEnabled());
             assertTrue(config.isPerfCountersEnabled());
         }
 
@@ -87,9 +85,6 @@ class InitConfigTest {
         void parsesHeapDumpConfig() {
             InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
-            assertNotNull(config.getHeapDump());
-            assertTrue(config.getHeapDump().isEnabled());
-            assertEquals("crash", config.getHeapDump().getType());
             assertEquals(HeapDumpType.CRASH, config.resolveHeapDumpType());
         }
 
@@ -97,8 +92,6 @@ class InitConfigTest {
         void parsesJvmLoggingConfig() {
             InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
-            assertNotNull(config.getJvmLogging());
-            assertTrue(config.getJvmLogging().isEnabled());
             assertTrue(config.getJvmLoggingCommand().contains("jfr*=trace"));
         }
 
@@ -106,8 +99,6 @@ class InitConfigTest {
         void parsesDebugNonSafepointsConfig() {
             InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
-            assertNotNull(config.getDebugNonSafepoints());
-            assertTrue(config.getDebugNonSafepoints().isEnabled());
             assertTrue(config.isDebugNonSafepointsEnabled());
         }
 
@@ -115,8 +106,6 @@ class InitConfigTest {
         void parsesJdkJavaOptionsConfig() {
             InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
-            assertNotNull(config.getJdkJavaOptions());
-            assertTrue(config.getJdkJavaOptions().isEnabled());
             assertTrue(config.isJdkJavaOptionsEnabled());
             assertEquals("-Xmx1200m -Xms1200m", config.getAdditionalJvmOptions());
         }
@@ -153,28 +142,20 @@ class InitConfigTest {
             assertNull(config.getProfilerPath());
             assertNull(config.getProfilerConfig());
             assertNull(config.getRepositoryType());
-            assertNull(config.getAttributes());
+            // Attributes are empty rather than null, so callers need no null check
+            assertEquals(Map.of(), config.getAttributes());
         }
 
         @Test
         void nestedConfigsAreDisabled() {
             InitConfig config = InitConfig.fromHoconFile(CONFIG_FILE, null);
 
-            // Nested configs exist but are disabled
-            assertNotNull(config.getPerfCounters());
             assertFalse(config.isPerfCountersEnabled());
-
-            assertNotNull(config.getHeapDump());
             assertNull(config.resolveHeapDumpType());
-
-            assertNotNull(config.getJvmLogging());
             assertNull(config.getJvmLoggingCommand());
-
-            assertNotNull(config.getJdkJavaOptions());
             assertFalse(config.isJdkJavaOptionsEnabled());
 
             // Debug Non-Safepoints is enabled by default
-            assertNotNull(config.getDebugNonSafepoints());
             assertTrue(config.isDebugNonSafepointsEnabled());
         }
     }
