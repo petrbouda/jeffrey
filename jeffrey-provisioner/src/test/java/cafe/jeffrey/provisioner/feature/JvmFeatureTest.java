@@ -156,6 +156,112 @@ class JvmFeatureTest {
     }
 
     @Nested
+    class TracingEventThresholds {
+
+        private static final String SETTINGS =
+                "jdk.SocketRead#enabled=true,jdk.SocketRead#threshold=0ms";
+
+        @Test
+        void startsARecordingCarryingTheThresholds() {
+            String options = render(new JvmFeature.TracingEventThresholds(true, SETTINGS));
+
+            assertTrue(options.startsWith("-XX:StartFlightRecording:"), options);
+            assertTrue(options.endsWith(SETTINGS), options);
+        }
+
+        /**
+         * {@code settings=none} reads like the way to keep this recording bare, and instead makes
+         * the JVM discard every event setting given with it — the recording then carries nothing.
+         */
+        @Test
+        void neverNamesASettingsConfiguration() {
+            String options = render(
+                    new JvmFeature.TracingEventThresholds(true, TracingJfrEvents.DEFAULT_SETTINGS));
+
+            assertTrue(!options.contains("settings="), options);
+        }
+
+        /** An unbounded recording would pin repository chunks for the life of the JVM. */
+        @Test
+        void boundsHowLongItPinsChunks() {
+            String options = render(new JvmFeature.TracingEventThresholds(true, SETTINGS));
+
+            assertTrue(options.contains("maxage="), options);
+        }
+
+        /** The default list is what a session gets when nothing overrides it. */
+        @Test
+        void defaultSettingsCoverEveryPromotedEvent() {
+            String options = render(
+                    new JvmFeature.TracingEventThresholds(true, TracingJfrEvents.DEFAULT_SETTINGS));
+
+            assertTrue(options.contains("jdk.SocketRead#threshold=0ms"), options);
+            assertTrue(options.contains("jdk.SocketWrite#threshold=0ms"), options);
+            assertTrue(options.contains("jdk.FileRead#threshold=0ms"), options);
+            assertTrue(options.contains("jdk.FileWrite#threshold=0ms"), options);
+            assertTrue(options.contains("jdk.FileForce#threshold=0ms"), options);
+            assertTrue(options.contains("jdk.JavaMonitorEnter#threshold=1ms"), options);
+            assertTrue(options.contains("jdk.JavaMonitorWait#threshold=1ms"), options);
+            assertTrue(options.contains("jdk.ThreadPark#threshold=1ms"), options);
+            assertTrue(options.contains("jdk.ThreadSleep#threshold=1ms"), options);
+            assertTrue(options.contains("jdk.VirtualThreadPinned#threshold=1ms"), options);
+            assertTrue(options.contains("jdk.ZAllocationStall#threshold=0ms"), options);
+        }
+
+        /** A threshold is ignored for an event a custom profiler configuration switched off. */
+        @Test
+        void everyEventIsEnabledAlongsideItsThreshold() {
+            String options = render(
+                    new JvmFeature.TracingEventThresholds(true, TracingJfrEvents.DEFAULT_SETTINGS));
+
+            for (TracingJfrEvents.EventThreshold event : TracingJfrEvents.DEFAULT_EVENTS) {
+                assertTrue(options.contains(event.eventType() + "#enabled=true"), event.eventType());
+            }
+        }
+
+        /**
+         * Java 25 rate-limits socket and file I/O to 100 events a second, which a threshold does
+         * not lift. {@code jdk.FileForce} has no such limit, and naming a setting an event does not
+         * have costs a JFR warning at startup.
+         */
+        @Test
+        void liftsTheRateLimitOnlyWhereThereIsOneToLift() {
+            String options = render(
+                    new JvmFeature.TracingEventThresholds(true, TracingJfrEvents.DEFAULT_SETTINGS));
+
+            assertTrue(options.contains("jdk.SocketRead#throttle=off"), options);
+            assertTrue(options.contains("jdk.SocketWrite#throttle=off"), options);
+            assertTrue(options.contains("jdk.FileRead#throttle=off"), options);
+            assertTrue(options.contains("jdk.FileWrite#throttle=off"), options);
+            assertTrue(!options.contains("jdk.FileForce#throttle"), options);
+            assertTrue(!options.contains("jdk.ThreadPark#throttle"), options);
+        }
+
+        @Test
+        void rendersNothingWhenTracingIsOff() {
+            assertEquals(Optional.empty(),
+                    new JvmFeature.TracingEventThresholds(false, SETTINGS).render(SESSION, PLACEHOLDERS));
+        }
+
+        @Test
+        void rendersNothingWithoutSettings() {
+            assertEquals(Optional.empty(),
+                    new JvmFeature.TracingEventThresholds(true, null).render(SESSION, PLACEHOLDERS));
+            assertEquals(Optional.empty(),
+                    new JvmFeature.TracingEventThresholds(true, "  ").render(SESSION, PLACEHOLDERS));
+        }
+
+        /** The documented opt-out: keep method tracing, drop the extra recording. */
+        @Test
+        void rendersNothingForTheNoneOptOut() {
+            assertEquals(Optional.empty(),
+                    new JvmFeature.TracingEventThresholds(true, "none").render(SESSION, PLACEHOLDERS));
+            assertEquals(Optional.empty(),
+                    new JvmFeature.TracingEventThresholds(true, " NONE ").render(SESSION, PLACEHOLDERS));
+        }
+    }
+
+    @Nested
     class AdditionalOptions {
 
         @Test

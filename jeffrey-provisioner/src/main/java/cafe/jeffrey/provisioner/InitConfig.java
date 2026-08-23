@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.provisioner.config.ConfigLayers;
 import cafe.jeffrey.provisioner.config.ConfigPaths;
 import cafe.jeffrey.provisioner.config.EnvironmentLayer;
+import cafe.jeffrey.provisioner.feature.TracingJfrEvents;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.provisioner.placeholder.EnvPlaceholderSource;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
@@ -119,7 +120,9 @@ public class InitConfig {
             # On by default, unlike the agent's own parameter: a provisioned JVM is one being
             # profiled on purpose, and the weaver is inert without Java 25 and jeffrey-events on
             # the class path. JEFFREY_TRACING_ENABLED=false opts a deployment out.
-            tracing { enabled = true }
+            # jfr-event-settings left empty means the built-in event list
+            # (TracingJfrEvents.DEFAULT_SETTINGS); "none" opts out while leaving tracing on.
+            tracing { enabled = true, jfr-event-settings = "" }
             heap-dump { enabled = false, type = "exit" }
             jvm-logging { enabled = false, command = "" }
             agent-path = ""
@@ -226,6 +229,7 @@ public class InitConfig {
 
     private final boolean perfCountersEnabled;
     private final boolean methodTracingEnabled;
+    private final String tracingJfrEventSettings;
     private final boolean debugNonSafepointsEnabled;
     private final boolean jdkJavaOptionsEnabled;
     private final HeapDumpType heapDumpType;
@@ -275,6 +279,8 @@ public class InitConfig {
 
         this.perfCountersEnabled = resolved.getBoolean(ConfigPaths.PERF_COUNTERS_ENABLED);
         this.methodTracingEnabled = resolved.getBoolean(ConfigPaths.TRACING_ENABLED);
+        this.tracingJfrEventSettings = valueOrDefault(
+                resolved.getString(ConfigPaths.TRACING_JFR_EVENT_SETTINGS), TracingJfrEvents.DEFAULT_SETTINGS);
         this.debugNonSafepointsEnabled = resolved.getBoolean(ConfigPaths.DEBUG_NON_SAFEPOINTS_ENABLED);
         this.jdkJavaOptionsEnabled = resolved.getBoolean(ConfigPaths.JDK_JAVA_OPTIONS_ENABLED);
         this.heapDumpType = resolved.getBoolean(ConfigPaths.HEAP_DUMP_ENABLED)
@@ -372,6 +378,11 @@ public class InitConfig {
         return (value == null || value.isBlank()) ? null : value;
     }
 
+    private static String valueOrDefault(String value, String fallback) {
+        String configured = nullIfBlank(value);
+        return configured != null ? configured : fallback;
+    }
+
     // ==================== Accessors ====================
 
     public String getJeffreyHome() {
@@ -435,6 +446,15 @@ public class InitConfig {
     /** Whether the agent records {@code @Traced} methods as spans. */
     public boolean isMethodTracingEnabled() {
         return methodTracingEnabled;
+    }
+
+    /**
+     * The JFR event settings a traced session lowers its thresholds with, as
+     * {@code -XX:StartFlightRecording} spells them. Never blank: an unset value falls back to
+     * {@link TracingJfrEvents#DEFAULT_SETTINGS}, and {@code "none"} switches the recording off.
+     */
+    public String getTracingJfrEventSettings() {
+        return tracingJfrEventSettings;
     }
 
     public boolean isDebugNonSafepointsEnabled() {

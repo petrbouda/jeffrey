@@ -45,6 +45,7 @@ public abstract class ConfigPaths {
 
     public static final String PERF_COUNTERS_ENABLED = "perf-counters.enabled";
     public static final String TRACING_ENABLED = "tracing.enabled";
+    public static final String TRACING_JFR_EVENT_SETTINGS = "tracing.jfr-event-settings";
     public static final String JDK_JAVA_OPTIONS_ENABLED = "jdk-java-options.enabled";
     public static final String DEBUG_NON_SAFEPOINTS_ENABLED = "debug-non-safepoints.enabled";
     public static final String HEAP_DUMP_ENABLED = "heap-dump.enabled";
