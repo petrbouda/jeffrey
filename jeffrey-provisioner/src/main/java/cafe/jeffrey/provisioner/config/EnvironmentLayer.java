@@ -66,6 +66,7 @@ public abstract class EnvironmentLayer {
             new EnvBinding.Flag("JEFFREY_PROVISIONER_VERBOSE", ConfigPaths.PROVISIONER_VERBOSE),
             new EnvBinding.Flag("JEFFREY_PERF_COUNTERS", ConfigPaths.PERF_COUNTERS_ENABLED),
             new EnvBinding.Flag(ENV_TRACING_ENABLED, ConfigPaths.TRACING_ENABLED),
+            new EnvBinding.Value("JEFFREY_TRACING_JFR_EVENT_SETTINGS", ConfigPaths.TRACING_JFR_EVENT_SETTINGS),
             new EnvBinding.Flag("JEFFREY_JDK_JAVA_OPTIONS", ConfigPaths.JDK_JAVA_OPTIONS_ENABLED),
             new EnvBinding.Flag("JEFFREY_DEBUG_NON_SAFEPOINTS", ConfigPaths.DEBUG_NON_SAFEPOINTS_ENABLED),
             new EnvBinding.Attributes("JEFFREY_ATTRIBUTES", ConfigPaths.ATTRIBUTES),

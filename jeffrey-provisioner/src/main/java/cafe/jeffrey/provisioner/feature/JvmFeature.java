@@ -139,6 +139,45 @@ public sealed interface JvmFeature {
         }
     }
 
+    /**
+     * The JFR thresholds a traced session needs, carried by a recording of their own.
+     *
+     * <p>The profiler starts its recording from a stock JFR configuration that keeps these events
+     * above the durations a trace is read at, and that configuration arrives from whichever source
+     * won — the CLI, the hub, or the built-in default — so lowering the thresholds by rewriting it
+     * would have to be done three times over. A second recording sidesteps that: JFR applies the
+     * most verbose setting across every active recording, so this one lowers the thresholds for the
+     * profiler's recording as well without either knowing about the other.
+     *
+     * <p>The events all land in the same repository chunks, which is what puts them in both places
+     * they are read from — the dumped {@code .jfr} files and the stream the agent follows.
+     *
+     * <p>No {@code settings=} is given, which leaves this recording on the JVM's default
+     * configuration — the same one the profiler records with, so the union is unchanged by it.
+     * Naming {@code settings=none} to keep the recording bare is what a reader expects here and is
+     * exactly wrong: it drops the event settings spelled out beside it and the recording carries
+     * nothing at all. {@code maxage} bounds how long this recording pins repository chunks.
+     */
+    record TracingEventThresholds(boolean tracingEnabled, String eventSettings) implements JvmFeature {
+
+        /** Opts a deployment out while leaving tracing itself on. */
+        static final String DISABLED = "none";
+
+        private static final String OPTIONS_PREFIX =
+                "-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,";
+
+        @Override
+        public Optional<String> render(Path sessionPath, Placeholders placeholders) {
+            if (!tracingEnabled || eventSettings == null || eventSettings.isBlank()) {
+                return Optional.empty();
+            }
+            if (DISABLED.equalsIgnoreCase(eventSettings.trim())) {
+                return Optional.empty();
+            }
+            return Optional.of(OPTIONS_PREFIX + eventSettings.trim());
+        }
+    }
+
     /** Whatever else the deployment asked for. */
     record AdditionalOptions(String options) implements JvmFeature {
 

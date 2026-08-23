@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.io.TempDir;
+import cafe.jeffrey.provisioner.feature.TracingJfrEvents;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.shared.common.CliConstants;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
@@ -976,6 +977,48 @@ class InitConfigTest {
                     name -> name.equals("JEFFREY_TRACING_ENABLED") ? "false" : null);
 
             assertFalse(config.isMethodTracingEnabled());
+        }
+
+        @Test
+        void tracingJfrEventSettings_defaultsToTheBuiltInList() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"/tmp/jeffrey\"",
+                    "project { name = \"my-service\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> null);
+
+            assertEquals(TracingJfrEvents.DEFAULT_SETTINGS, config.getTracingJfrEventSettings());
+        }
+
+        @Test
+        void hoconTracingJfrEventSettings_winsOverTheBuiltInList() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"/tmp/jeffrey\"",
+                    "project { name = \"my-service\" }",
+                    "tracing { jfr-event-settings = \"jdk.SocketRead#threshold=0ms\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> null);
+
+            assertEquals("jdk.SocketRead#threshold=0ms", config.getTracingJfrEventSettings());
+        }
+
+        @Test
+        void envTracingJfrEventSettings_winsOverHocon() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"/tmp/jeffrey\"",
+                    "project { name = \"my-service\" }",
+                    "tracing { jfr-event-settings = \"jdk.SocketRead#threshold=0ms\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null,
+                    name -> name.equals("JEFFREY_TRACING_JFR_EVENT_SETTINGS") ? "none" : null);
+
+            assertEquals("none", config.getTracingJfrEventSettings());
         }
 
         @Test

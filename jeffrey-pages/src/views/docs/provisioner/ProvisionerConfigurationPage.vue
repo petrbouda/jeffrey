@@ -31,6 +31,7 @@ const headings = [
   { id: 'config-file', text: 'Configuration File', level: 2 },
   { id: 'configuration-options', text: 'Configuration Options', level: 2 },
   { id: 'features', text: 'Features', level: 2 },
+  { id: 'tracing-thresholds', text: 'Tracing Event Thresholds', level: 2 },
   { id: 'placeholders', text: 'Placeholders', level: 2 }
 ];
 
@@ -51,6 +52,11 @@ JEFFREY_HEAP_DUMP=crash              # exit | crash | off
 JEFFREY_PERF_COUNTERS=true
 JEFFREY_JVM_LOGGING="jfr*=trace:file=<<JEFFREY:CURRENT_SESSION>>/jfr-jvm.log"
 JEFFREY_ADDITIONAL_JVM_OPTIONS="-Xmx2g"`;
+
+const tracingThresholdsExample = `-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,\\
+  jdk.SocketRead#enabled=true,jdk.SocketRead#threshold=0ms,jdk.SocketRead#throttle=off,\\
+  jdk.SocketWrite#enabled=true,jdk.SocketWrite#threshold=0ms,jdk.SocketWrite#throttle=off,\\
+  jdk.ThreadPark#enabled=true,jdk.ThreadPark#threshold=1ms,...`;
 
 const minimalConfig = `jeffrey-home = "/opt/jeffrey"
 project {
@@ -269,6 +275,12 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
               <td><strong>On by default.</strong> Record methods annotated <code>@Traced</code> as spans. Needs Java 25 and <code>jeffrey-events</code> on the application's class path; without them the weaver stays inert. Set <code>JEFFREY_TRACING_ENABLED=false</code> to opt out</td>
             </tr>
             <tr>
+              <td><code>tracing.jfr-event-settings</code></td>
+              <td>No</td>
+              <td><code>JEFFREY_TRACING_JFR_EVENT_SETTINGS</code></td>
+              <td>JFR thresholds for the blocking and I/O events a trace is drawn from. Left empty, the <a href="#tracing-thresholds">built-in list</a> is used. Set to <code>none</code> to opt out while leaving method tracing on. Ignored when <code>tracing.enabled = false</code></td>
+            </tr>
+            <tr>
               <td><code>heap-dump</code></td>
               <td>No</td>
               <td><code>JEFFREY_HEAP_DUMP</code></td>
@@ -348,6 +360,90 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
             <code>additional-jvm-options = "-Xmx2g -Xms2g"</code>
           </div>
         </div>
+
+        <h2 id="tracing-thresholds">Tracing Event Thresholds</h2>
+        <p>
+          The Tracing view draws a span's blocked time from JDK events — socket and file I/O, lock
+          waits, parks, sleeps. The stock JFR configuration the profiler records with keeps those
+          events well above the durations a trace is read at: 20&nbsp;ms for lock waits and parks,
+          and 1&nbsp;ms for socket and file I/O on Java&nbsp;25. A trace then shows the method that
+          blocked, but not what it blocked on.
+        </p>
+        <p>
+          Whenever <code>tracing.enabled</code> is on, the provisioner adds a second JFR recording
+          that carries nothing but these thresholds:
+        </p>
+        <DocsCodeBlock :code="tracingThresholdsExample" language="bash" />
+        <p>
+          JFR applies the most verbose setting across every recording running in a JVM, and all
+          recordings write into the same repository chunks. So this one recording lowers the
+          thresholds for the profiler's recording as well, and the extra events reach both places
+          they are read from — the dumped <code>.jfr</code> files and the live stream — without the
+          profiler's own configuration being touched. That is why it works the same whether the
+          profiler settings came from the CLI, from the hub, or from the built-in default.
+        </p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Shown as</th>
+              <th>Recorded from</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>jdk.SocketRead</code>, <code>jdk.SocketWrite</code></td>
+              <td>Socket read / Socket write</td>
+              <td>0&nbsp;ms</td>
+            </tr>
+            <tr>
+              <td><code>jdk.FileRead</code>, <code>jdk.FileWrite</code>, <code>jdk.FileForce</code></td>
+              <td>File read / File write / File force</td>
+              <td>0&nbsp;ms</td>
+            </tr>
+            <tr>
+              <td><code>jdk.JavaMonitorEnter</code>, <code>jdk.JavaMonitorWait</code></td>
+              <td>Lock wait / Object.wait</td>
+              <td>1&nbsp;ms</td>
+            </tr>
+            <tr>
+              <td><code>jdk.ThreadPark</code>, <code>jdk.ThreadSleep</code></td>
+              <td>Parked / Sleeping</td>
+              <td>1&nbsp;ms</td>
+            </tr>
+            <tr>
+              <td><code>jdk.VirtualThreadPinned</code></td>
+              <td>VT pinned</td>
+              <td>1&nbsp;ms</td>
+            </tr>
+            <tr>
+              <td><code>jdk.ZAllocationStall</code></td>
+              <td>Allocation stall</td>
+              <td>0&nbsp;ms</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>
+          I/O is recorded in full, because every socket and file operation is a call the application
+          made on purpose and its duration is what the waterfall exists to show. Blocking starts at
+          1&nbsp;ms, because a parked or waiting thread is also how an idle thread pool spends its
+          life — at 0&nbsp;ms that churn would outweigh the waits worth reading. Set
+          <code>tracing.jfr-event-settings</code> to your own list to change that, or to
+          <code>none</code> to drop the recording while leaving method tracing on.
+        </p>
+
+        <DocsCallout type="warning">
+          <strong>Java 25 rate-limits I/O events.</strong> Its <code>default.jfc</code> caps
+          <code>jdk.SocketRead</code>, <code>jdk.SocketWrite</code>, <code>jdk.FileRead</code> and
+          <code>jdk.FileWrite</code> at 100 events a second. A rate limit resolves to the most
+          restrictive value across the running recordings — the opposite of a threshold — so while
+          the profiler records with that configuration, I/O stays capped at 100/s however low the
+          threshold goes. The threshold still applies within that budget, so short operations do
+          reach the trace; recording every one of them past the cap needs the profiler's own
+          <code>jfrsync</code> configuration changed.
+        </DocsCallout>
 
         <h2 id="placeholders">Placeholders</h2>
         <p>
