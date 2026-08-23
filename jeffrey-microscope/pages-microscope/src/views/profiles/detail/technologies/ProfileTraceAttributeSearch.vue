@@ -63,6 +63,19 @@
         @open="openTrace"
         @load-more="loadMore"
       />
+
+      <!--
+        A sibling of the results rather than a child of them: the waterfall used to open by
+        navigating to the trace list, which swapped the search out from under the reader — the
+        conditions they had just built were gone the moment the dialog closed. GenericModal renders
+        in place, so it stays out of any branch that can be hidden.
+      -->
+      <TraceSpansModal
+        v-model:show="spansShow"
+        :profile-id="profileId"
+        :trace-id="selectedTrace?.traceId ?? ''"
+        :root-name="selectedTrace?.rootName ?? ''"
+      />
     </div>
   </div>
 </template>
@@ -77,6 +90,7 @@ import LoadingState from '@shared/components/LoadingState.vue';
 import TracesDisabledFeatureAlert from '@/components/alerts/TracesDisabledFeatureAlert.vue';
 import TraceAttributeResults from '@/components/trace/TraceAttributeResults.vue';
 import TraceAttributeSearchBar from '@/components/trace/TraceAttributeSearchBar.vue';
+import TraceSpansModal from '@/components/trace/TraceSpansModal.vue';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
 import FeatureType from '@/services/api/model/FeatureType';
 import {
@@ -116,13 +130,17 @@ const timeline = ref<TraceAttributeTimelineBucket[]>([]);
 /*
  * The conditions and the scope live in the URL, so a filter is a link — "the failed traces of this
  * tenant" is something to paste into an issue rather than a set of instructions — and the browser's
- * Back button steps through the investigation instead of off the page.
+ * Back button steps through the investigation instead of off the page. Read in two steps: the raw
+ * `where` params first, because the refetch key below compares those rather than the parsed form.
  */
-const conditions = computed<TraceAttributeConditionModel[]>(() => {
+const whereParams = computed<string[]>(() => {
   const raw = route.query.where;
   const encoded = raw === undefined ? [] : Array.isArray(raw) ? raw : [raw];
-  return encoded
-    .filter((value): value is string => typeof value === 'string')
+  return encoded.filter((value): value is string => typeof value === 'string');
+});
+
+const conditions = computed<TraceAttributeConditionModel[]>(() => {
+  return whereParams.value
     .map(decodeCondition)
     .filter((condition): condition is TraceAttributeConditionModel => condition !== null);
 });
@@ -139,9 +157,42 @@ function applyScope(next: TraceAttributeScope): void {
   router.push({ query: { ...route.query, scope: next } });
 }
 
+const spansShow = ref(false);
+const selectedTrace = ref<TraceRow | null>(null);
+
 function openTrace(trace: TraceRow): void {
-  router.push(`/profiles/${profileId}/technologies/traces?trace=${trace.traceId}`);
+  selectedTrace.value = trace;
+  spansShow.value = true;
+  // The id joins the conditions already in the URL, so a waterfall reached from a search is as
+  // linkable as the search itself. Pushed so Back closes the dialog and leaves the reader on their
+  // matches, which is how they got here.
+  router.push({ query: { ...route.query, trace: trace.traceId } });
 }
+
+// Closing takes the trace back out again, so returning to the link does not reopen it.
+watch(spansShow, open => {
+  if (!open && route.query.trace) {
+    const query = { ...route.query };
+    delete query.trace;
+    router.replace({ query });
+  }
+});
+
+/**
+ * Reopens the trace named in the URL once the matches are in. A link can point at a trace beyond
+ * the loaded page, in which case no match is found here — the modal fetches everything it draws
+ * from the id alone, so it still opens, just without the row's own header values.
+ */
+watch([() => route.query.trace, search], ([traceId]) => {
+  if (!traceId) {
+    spansShow.value = false;
+    return;
+  }
+  const id = traceId as string;
+  selectedTrace.value =
+    search.value?.matches.find(match => match.trace.traceId === id)?.trace ?? null;
+  spansShow.value = true;
+});
 
 /**
  * The picker's first step: the event types that produced spans. Their keys are loaded by the
@@ -209,15 +260,20 @@ function loadMore(): void {
   runSearch(true);
 }
 
-watch(
-  () => [route.query.where, route.query.scope],
-  () => {
-    if (featureDisabled.value || loading.value) {
-      return;
-    }
-    runSearch();
+/**
+ * What the search is of, as text. Compared this way rather than by the query values themselves
+ * because a navigation rebuilds `route.query` wholesale: opening or closing the waterfall only adds
+ * and removes `trace`, but the fresh `where` array would read as a new filter and refetch the
+ * matches, dropping every page the reader had loaded.
+ */
+const searchKey = computed(() => JSON.stringify([whereParams.value, scope.value]));
+
+watch(searchKey, () => {
+  if (featureDisabled.value || loading.value) {
+    return;
   }
-);
+  runSearch();
+});
 
 onMounted(async () => {
   if (featureDisabled.value) {
