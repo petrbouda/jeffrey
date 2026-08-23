@@ -671,7 +671,18 @@ class InitConfigTest {
             assertEquals(Path.of("/tmp/jvm.args"), config.getArgFilePath());
             assertTrue(config.isDebugNonSafepointsEnabled());
             assertFalse(config.isPerfCountersEnabled());
+            assertFalse(config.isMethodTracingEnabled());
             assertNull(config.resolveHeapDumpType());
+        }
+
+        @Test
+        void tracingEnabled_readFromEnv() {
+            InitConfig config = InitConfig.fromEnvironment(env(Map.of(
+                    "JEFFREY_HOME", "/mnt/jeffrey",
+                    "JEFFREY_PROJECT_NAME", "my-service",
+                    "JEFFREY_TRACING_ENABLED", "true")));
+
+            assertTrue(config.isMethodTracingEnabled());
         }
 
         @Test
@@ -814,6 +825,20 @@ class InitConfigTest {
                     name -> name.equals("JEFFREY_PROJECT_NAME") ? "from-env" : null);
 
             assertEquals("from-hocon", config.getProjectName());
+        }
+
+        @Test
+        void hoconTracing_enabledWithoutEnv() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"/tmp/jeffrey\"",
+                    "project { name = \"my-service\" }",
+                    "tracing { enabled = true }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> null);
+
+            assertTrue(config.isMethodTracingEnabled());
         }
 
         @Test

@@ -66,7 +66,10 @@ public class InitConfig {
     private static final String ENV_ATTRIBUTES = "JEFFREY_ATTRIBUTES";
     private static final String ENV_HEAP_DUMP = "JEFFREY_HEAP_DUMP";
     private static final String ENV_PERF_COUNTERS = "JEFFREY_PERF_COUNTERS";
-    private static final String ENV_METHOD_TRACING = "JEFFREY_METHOD_TRACING";
+    /* Spelled exactly as the agent's own parameter (-javaagent:...=tracing.enabled=true):
+       this is the switch for that parameter and nothing else, so the two names match rather
+       than needing a translation table. The UI feature and its REST path stay "method-tracing". */
+    private static final String ENV_TRACING_ENABLED = "JEFFREY_TRACING_ENABLED";
     private static final String ENV_JVM_LOGGING = "JEFFREY_JVM_LOGGING";
     private static final String ENV_ADDITIONAL_JVM_OPTIONS = "JEFFREY_ADDITIONAL_JVM_OPTIONS";
 
@@ -118,7 +121,7 @@ public class InitConfig {
             }
             attributes = {}
             perf-counters { enabled = false }
-            method-tracing { enabled = false }
+            tracing { enabled = false }
             heap-dump { enabled = false, type = "exit" }
             jvm-logging { enabled = false, command = "" }
             agent-path = ""
@@ -240,9 +243,9 @@ public class InitConfig {
         perfCounters.setEnabled(resolveBoolWithEnv(perfCfg.getBoolean("enabled"), ENV_PERF_COUNTERS, envLookup));
         config.setPerfCounters(perfCounters);
 
-        Config tracingCfg = resolved.getConfig("method-tracing");
+        Config tracingCfg = resolved.getConfig("tracing");
         MethodTracingConfig methodTracing = new MethodTracingConfig();
-        methodTracing.setEnabled(resolveBoolWithEnv(tracingCfg.getBoolean("enabled"), ENV_METHOD_TRACING, envLookup));
+        methodTracing.setEnabled(resolveBoolWithEnv(tracingCfg.getBoolean("enabled"), ENV_TRACING_ENABLED, envLookup));
         config.setMethodTracing(methodTracing);
 
         Config heapCfg = resolved.getConfig("heap-dump");
