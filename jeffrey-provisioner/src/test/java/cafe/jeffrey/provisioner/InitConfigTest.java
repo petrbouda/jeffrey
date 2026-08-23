@@ -20,6 +20,8 @@ package cafe.jeffrey.provisioner;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.shared.common.CliConstants;
@@ -30,6 +32,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -447,6 +450,11 @@ class InitConfigTest {
         @TempDir
         Path tempDir;
 
+        /** An environment that has JEFFREY_HOME baked in and nothing else. */
+        private static Function<String, String> onlyJeffreyHome(String value) {
+            return name -> "JEFFREY_HOME".equals(name) ? value : null;
+        }
+
         @Test
         void usesEnvVarWhenConfigOmitsJeffreyHome() throws IOException {
             Path configFile = tempDir.resolve("config.conf");
@@ -454,7 +462,7 @@ class InitConfigTest {
                     "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
-            InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> "/opt/jeffrey");
+            InitConfig config = InitConfig.fromHoconFile(configFile, null, onlyJeffreyHome("/opt/jeffrey"));
             assertEquals("/opt/jeffrey", config.getJeffreyHome());
             assertTrue(config.useJeffreyHome());
         }
@@ -467,7 +475,7 @@ class InitConfigTest {
                     "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
-            InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> "/from-env");
+            InitConfig config = InitConfig.fromHoconFile(configFile, null, onlyJeffreyHome("/from-env"));
             assertEquals("/explicit", config.getJeffreyHome());
         }
 
@@ -482,7 +490,7 @@ class InitConfigTest {
                     "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
-            InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> "/opt/jeffrey");
+            InitConfig config = InitConfig.fromHoconFile(configFile, null, onlyJeffreyHome("/opt/jeffrey"));
             assertFalse(config.useJeffreyHome());
             assertEquals(workspacesDir.toString(), config.getWorkspacesDir());
         }
@@ -818,6 +826,87 @@ class InitConfigTest {
     }
 
     @Nested
+    class BooleanEnvVocabulary {
+
+        private static Function<String, String> envWith(String name, String value) {
+            Map<String, String> values = new HashMap<>(Map.of(
+                    "JEFFREY_HOME", "/mnt/jeffrey",
+                    "JEFFREY_PROJECT_NAME", "my-service"));
+            values.put(name, value);
+            return values::get;
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"true", "TRUE", "True", " true "})
+        void acceptsTrue(String value) {
+            assertTrue(InitConfig.fromEnvironment(envWith("JEFFREY_PERF_COUNTERS", value))
+                    .isPerfCountersEnabled());
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {"false", "FALSE", "False", " false "})
+        void acceptsFalse(String value) {
+            assertFalse(InitConfig.fromEnvironment(envWith("JEFFREY_TRACING_ENABLED", value))
+                    .isMethodTracingEnabled());
+        }
+
+        /**
+         * Only true and false are a boolean. Everything else — including the yes/no/on/off and
+         * 1/0 spellings this used to accept — is rejected rather than guessed at, because reading
+         * an unrecognized value as false would let a typo silently disable a feature.
+         */
+        @ParameterizedTest
+        @ValueSource(strings = {"yes", "no", "on", "off", "1", "0", "maybe", "TRUEISH"})
+        void rejectsEverythingElseAndKeepsTheConfiguredValue(String value) {
+            assertFalse(InitConfig.fromEnvironment(envWith("JEFFREY_PERF_COUNTERS", value))
+                    .isPerfCountersEnabled(), "perf-counters defaults to off and must stay off");
+            assertTrue(InitConfig.fromEnvironment(envWith("JEFFREY_TRACING_ENABLED", value))
+                    .isMethodTracingEnabled(), "tracing defaults to on and must stay on");
+        }
+    }
+
+    @Nested
+    class EnvironmentReachesEverySetting {
+
+        private static Function<String, String> env(Map<String, String> values) {
+            return values::get;
+        }
+
+        /**
+         * The zero-file path used to be unable to reach jdk-java-options, env-file, print-env,
+         * debug-non-safepoints, workspaces-dir or repository-type at all. jdk-java-options was the
+         * one that stung: it is how a JVM picks the settings up without an argfile.
+         */
+        @Test
+        void settingsThatUsedToHaveNoEnvVar() {
+            InitConfig config = InitConfig.fromEnvironment(env(Map.of(
+                    "JEFFREY_HOME", "/mnt/jeffrey",
+                    "JEFFREY_PROJECT_NAME", "my-service",
+                    "JEFFREY_JDK_JAVA_OPTIONS", "true",
+                    "JEFFREY_DEBUG_NON_SAFEPOINTS", "false",
+                    "JEFFREY_ENV_FILE", "/tmp/jeffrey.env",
+                    "JEFFREY_PRINT_ENV", "true",
+                    "JEFFREY_REPOSITORY_TYPE", "ASYNC_PROFILER")));
+
+            assertTrue(config.isJdkJavaOptionsEnabled());
+            assertFalse(config.isDebugNonSafepointsEnabled());
+            assertEquals(Path.of("/tmp/jeffrey.env"), config.getEnvFilePath());
+            assertTrue(config.isPrintEnv());
+            assertEquals("ASYNC_PROFILER", config.getRepositoryType());
+        }
+
+        @Test
+        void workspacesDirFromEnv() {
+            InitConfig config = InitConfig.fromEnvironment(env(Map.of(
+                    "JEFFREY_WORKSPACES_DIR", "/mnt/workspaces",
+                    "JEFFREY_PROJECT_NAME", "my-service")));
+
+            assertEquals("/mnt/workspaces", config.getWorkspacesDir());
+            assertFalse(config.useJeffreyHome());
+        }
+    }
+
+    @Nested
     class HoconEnvPrecedence {
 
         @TempDir
@@ -851,13 +940,37 @@ class InitConfigTest {
             assertFalse(config.isMethodTracingEnabled());
         }
 
+        /**
+         * A file declaring a setting wins over the environment, for flags exactly as for strings.
+         * Tracing used to be one of two settings the environment could override downwards, which
+         * contradicted the documented precedence and made the rule unexplainable in one sentence.
+         */
         @Test
-        void envTracing_winsOverHocon() throws IOException {
+        void hoconTracing_winsOverEnv() throws IOException {
             Path configFile = tempDir.resolve("config.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"/tmp/jeffrey\"",
                     "project { name = \"my-service\" }",
                     "tracing { enabled = true }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null,
+                    name -> name.equals("JEFFREY_TRACING_ENABLED") ? "false" : null);
+
+            assertTrue(config.isMethodTracingEnabled());
+        }
+
+        /**
+         * The case the downward override existed for: tracing defaults to on, and a deployment
+         * that mounts no config file must still be able to opt out. The environment beats the
+         * built-in default, so it can.
+         */
+        @Test
+        void envTracing_turnsOffAnOnByDefaultFlag() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"/tmp/jeffrey\"",
+                    "project { name = \"my-service\" }"
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null,
