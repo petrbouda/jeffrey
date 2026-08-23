@@ -426,7 +426,7 @@ class InitConfigTest {
     }
 
     @Nested
-    class JeffreyHomeEnvFallback {
+    class LocationPrecedence {
 
         @TempDir
         Path tempDir;
@@ -449,19 +449,24 @@ class InitConfigTest {
         }
 
         @Test
-        void prefersExplicitConfigOverEnvVar() throws IOException {
+        void envVarOverridesTheConfiguredJeffreyHome() throws IOException {
             Path configFile = tempDir.resolve("config.conf");
             Files.writeString(configFile, configWithOverrides(
-                    "jeffrey-home = \"/explicit\"",
+                    "jeffrey-home = \"/baked-into-the-image\"",
                     "project { workspace-ref-id = \"test\", name = \"test\" }"
             ));
 
-            InitConfig config = InitConfig.fromHoconFile(configFile, null, onlyJeffreyHome("/from-env"));
-            assertEquals("/explicit", config.getJeffreyHome());
+            InitConfig config = InitConfig.fromHoconFile(configFile, null, onlyJeffreyHome("/from-the-pod"));
+            assertEquals("/from-the-pod", config.getJeffreyHome());
         }
 
+        /**
+         * The two location settings are mutually exclusive, so the winning layer takes the pair as
+         * a unit. An environment naming jeffrey-home replaces a file's workspaces-dir outright,
+         * rather than adding to it and failing validation with "cannot specify both".
+         */
         @Test
-        void doesNotUseEnvVarWhenWorkspacesDirIsSet() throws IOException {
+        void envJeffreyHomeReplacesAConfiguredWorkspacesDir() throws IOException {
             Path configFile = tempDir.resolve("config.conf");
             Path workspacesDir = tempDir.resolve("workspaces");
             Files.createDirectories(workspacesDir);
@@ -472,6 +477,23 @@ class InitConfigTest {
             ));
 
             InitConfig config = InitConfig.fromHoconFile(configFile, null, onlyJeffreyHome("/opt/jeffrey"));
+            assertTrue(config.useJeffreyHome());
+            assertEquals("/opt/jeffrey", config.getJeffreyHome());
+            assertNull(config.getWorkspacesDir());
+        }
+
+        @Test
+        void configuredLocationStandsWhenTheEnvironmentNamesNone() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Path workspacesDir = tempDir.resolve("workspaces");
+            Files.createDirectories(workspacesDir);
+
+            Files.writeString(configFile, configWithOverrides(
+                    "workspaces-dir = \"" + workspacesDir + "\"",
+                    "project { workspace-ref-id = \"test\", name = \"test\" }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> null);
             assertFalse(config.useJeffreyHome());
             assertEquals(workspacesDir.toString(), config.getWorkspacesDir());
         }
@@ -894,7 +916,7 @@ class InitConfigTest {
         Path tempDir;
 
         @Test
-        void hoconProjectName_winsOverEnv() throws IOException {
+        void envProjectName_winsOverHocon() throws IOException {
             Path configFile = tempDir.resolve("config.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"/tmp/jeffrey\"",
@@ -904,7 +926,7 @@ class InitConfigTest {
             InitConfig config = InitConfig.fromHoconFile(configFile, null,
                     name -> name.equals("JEFFREY_PROJECT_NAME") ? "from-env" : null);
 
-            assertEquals("from-hocon", config.getProjectName());
+            assertEquals("from-env", config.getProjectName());
         }
 
         @Test
@@ -922,12 +944,12 @@ class InitConfigTest {
         }
 
         /**
-         * A file declaring a setting wins over the environment, for flags exactly as for strings.
-         * Tracing used to be one of two settings the environment could override downwards, which
-         * contradicted the documented precedence and made the rule unexplainable in one sentence.
+         * The environment wins over a file, for flags exactly as for strings. A config file is
+         * baked into the image; the environment is set on the pod, so it has to be able to
+         * override one setting without a rebuild.
          */
         @Test
-        void hoconTracing_winsOverEnv() throws IOException {
+        void envTracing_winsOverHocon() throws IOException {
             Path configFile = tempDir.resolve("config.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"/tmp/jeffrey\"",
@@ -938,14 +960,10 @@ class InitConfigTest {
             InitConfig config = InitConfig.fromHoconFile(configFile, null,
                     name -> name.equals("JEFFREY_TRACING_ENABLED") ? "false" : null);
 
-            assertTrue(config.isMethodTracingEnabled());
+            assertFalse(config.isMethodTracingEnabled());
         }
 
-        /**
-         * The case the downward override existed for: tracing defaults to on, and a deployment
-         * that mounts no config file must still be able to opt out. The environment beats the
-         * built-in default, so it can.
-         */
+        /** The same holds when no file declares the flag at all — the environment beats defaults. */
         @Test
         void envTracing_turnsOffAnOnByDefaultFlag() throws IOException {
             Path configFile = tempDir.resolve("config.conf");

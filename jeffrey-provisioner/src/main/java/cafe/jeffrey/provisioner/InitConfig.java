@@ -41,14 +41,18 @@ import java.util.regex.Pattern;
 
 /**
  * Provisioner initialization configuration, merged from four layers — highest priority first:
- * override HOCON file &gt; base HOCON file &gt; {@code JEFFREY_*} environment variables
- * ({@link cafe.jeffrey.provisioner.config.EnvironmentLayer}) &gt; built-in defaults.
+ * {@code JEFFREY_*} environment variables ({@link cafe.jeffrey.provisioner.config.EnvironmentLayer})
+ * &gt; override HOCON file &gt; base HOCON file &gt; built-in defaults.
  *
- * <p>The rule is the same for every setting, flags included: what a configuration file declares
- * wins, the environment fills in the rest, defaults answer what is left. Precedence lives in the
- * order the layers are stacked and nowhere else, so there is no per-setting exception to remember.
- * A key a file spells out but leaves blank counts as undeclared, which is what lets a file
- * pre-declare every key and still take values from the environment.
+ * <p>The rule is the same for every setting, flags included: the environment wins, then a
+ * configuration file, then the built-in defaults. Precedence lives in the order the layers are
+ * stacked and nowhere else, so there is no per-setting exception to remember.
+ *
+ * <p>The environment sits on top because of when each source is written. A configuration file is
+ * baked into the image at build time, usually by jeffrey-jib; environment variables are set at
+ * deploy time on the pod. Putting the file first would leave an operator no way to change a single
+ * setting without rebuilding the image. A key a file spells out but leaves blank counts as
+ * undeclared, so a file can pre-declare every key without shadowing the defaults.
  *
  * <p>The HOCON files are optional — a container can be fully configured through environment
  * variables alone ({@link #fromEnvironment()}), which removes the need to mount a config file for
@@ -180,8 +184,9 @@ public class InitConfig {
         Config declared = ConfigLayers.withoutBlanks(files);
         ConfigLayers.warnAboutUnknownKeys(declared, defaults);
 
-        Config resolved = declared
-                .withFallback(environmentFor(declared, envLookup))
+        Config environment = EnvironmentLayer.of(envLookup);
+        Config resolved = environment
+                .withFallback(filesFor(environment, declared))
                 .withFallback(defaults)
                 .resolve();
 
@@ -191,19 +196,18 @@ public class InitConfig {
     }
 
     /**
-     * The environment layer, minus whichever location setting would contradict the file. The two
-     * are mutually exclusive, so a config file that picks one must not be dragged into a conflict
-     * by an image that bakes the other into {@code JEFFREY_HOME}.
+     * The file layer, minus the location settings when the environment names one of its own.
+     * {@code jeffrey-home} and {@code workspaces-dir} are mutually exclusive, so the winning layer
+     * has to take the pair as a unit — otherwise a file that picks one and an environment that
+     * picks the other produce a config that fails validation instead of one overriding the other.
      */
-    private static Config environmentFor(Config declared, Function<String, String> envLookup) {
-        Config environment = EnvironmentLayer.of(envLookup);
-        if (declared.hasPath(ConfigPaths.WORKSPACES_DIR)) {
-            return environment.withoutPath(ConfigPaths.JEFFREY_HOME);
+    private static Config filesFor(Config environment, Config declared) {
+        if (environment.hasPath(ConfigPaths.JEFFREY_HOME) || environment.hasPath(ConfigPaths.WORKSPACES_DIR)) {
+            return declared
+                    .withoutPath(ConfigPaths.JEFFREY_HOME)
+                    .withoutPath(ConfigPaths.WORKSPACES_DIR);
         }
-        if (declared.hasPath(ConfigPaths.JEFFREY_HOME)) {
-            return environment.withoutPath(ConfigPaths.WORKSPACES_DIR);
-        }
-        return environment;
+        return declared;
     }
 
     private final String jeffreyHome;

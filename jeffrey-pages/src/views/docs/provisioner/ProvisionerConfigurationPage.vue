@@ -90,7 +90,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
       />
 
       <div class="docs-content">
-        <p>Jeffrey Provisioner can be configured two ways: entirely through <strong><code>JEFFREY_*</code> environment variables</strong> (the zero-file path — recommended for containers) or through a <strong>HOCON</strong> configuration file for advanced setups. Resolution order is always <strong>HOCON value &rarr; environment variable &rarr; built-in default</strong>, so a config file wins wherever it sets a value.</p>
+        <p>Jeffrey Provisioner can be configured two ways: entirely through <strong><code>JEFFREY_*</code> environment variables</strong> (the zero-file path — recommended for containers) or through a <strong>HOCON</strong> configuration file for advanced setups. Resolution order is always <strong>environment variable &rarr; HOCON value &rarr; built-in default</strong>, so an environment variable wins wherever it is set.</p>
 
         <h2 id="env-only">Environment-Only Configuration</h2>
         <p>When <code>provisioner init</code> runs without <code>--base-config</code> (or the jeffrey-jib entrypoint finds no config file), it configures itself from environment variables. Images built with the jeffrey-jib extension already bake <code>JEFFREY_HOME</code> and <code>JEFFREY_PROJECT_NAME</code> (derived from the Maven artifactId / Gradle project name), so the common case needs <em>no per-application configuration at all</em> beyond mounting the shared volume:</p>
@@ -137,7 +137,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
 
         <h2 id="configuration-options">Configuration Options</h2>
 
-        <p>Every setting accepts an environment-variable override — useful when the value is baked into a container image (see <router-link to="/docs/jib">Jeffrey JIB</router-link>) or supplied by the orchestrator at runtime. Resolution order is always <strong>HOCON value &rarr; environment variable &rarr; built-in default</strong>, and the same rule applies to on/off flags as to paths and names. A key a HOCON file spells out but leaves blank counts as unset, so a config file can pre-declare every key and still take values from the environment.</p>
+        <p>Every setting accepts an environment-variable override — useful when the value is baked into a container image (see <router-link to="/docs/jib">Jeffrey JIB</router-link>) or supplied by the orchestrator at runtime. Resolution order is always <strong>environment variable &rarr; HOCON value &rarr; built-in default</strong>, and the same rule applies to on/off flags as to paths and names. The environment sits on top because of when each source is written: a config file is baked into the image at build time, while environment variables are set at deploy time on the pod — so an operator can change one setting without rebuilding the image. A key a HOCON file spells out but leaves blank counts as unset, so a config file can pre-declare every key without shadowing the defaults.</p>
 
         <p>Flags read <code>true</code> and <code>false</code> only, case-insensitive. Any other value is reported in the log and ignored, leaving the configured value in place — reading an unrecognized value as <code>false</code> would let a typo silently disable a feature. The one exception is <code>JEFFREY_HEAP_DUMP</code>, which takes <code>exit</code>, <code>crash</code> or <code>off</code> rather than a boolean.</p>
 
@@ -155,7 +155,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
               <td><code>jeffrey-home</code></td>
               <td>One of</td>
               <td><code>JEFFREY_HOME</code></td>
-              <td>Base directory for Jeffrey data; <code>workspaces/</code> is created under it. Exactly one of <code>jeffrey-home</code> / <code>workspaces-dir</code> must be set. Falls back to the <code>JEFFREY_HOME</code> env var when neither is set in HOCON.</td>
+              <td>Base directory for Jeffrey data; <code>workspaces/</code> is created under it. Exactly one of <code>jeffrey-home</code> / <code>workspaces-dir</code> must be set. Because the two are mutually exclusive, an environment variable naming either one replaces both of them from the HOCON file rather than conflicting with it.</td>
             </tr>
             <tr>
               <td><code>workspaces-dir</code></td>
