@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.provisioner.placeholder;
 
+import cafe.jeffrey.provisioner.SessionLayout;
+
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,20 +51,6 @@ public record JeffreyPlaceholderSource(Map<String, String> values) implements Pl
     public static final String FILE_PATTERN = "FILE_PATTERN";
     public static final String PROFILER_PATH = "PROFILER_PATH";
 
-    /**
-     * Everything a completed {@code init} knows about where it put things. {@code jeffreyHome} is
-     * null when the run was configured with an explicit workspaces directory instead, and
-     * {@code profilerPath} is null when no profiler was resolved; both are simply left unbound.
-     */
-    public record Layout(
-            Path jeffreyHome,
-            Path workspaces,
-            Path workspace,
-            Path project,
-            Path session,
-            String profilerPath) {
-    }
-
     public JeffreyPlaceholderSource {
         if (values == null) {
             throw new IllegalArgumentException("values must not be null");
@@ -70,18 +58,23 @@ public record JeffreyPlaceholderSource(Map<String, String> values) implements Pl
         values = Map.copyOf(values);
     }
 
-    public static JeffreyPlaceholderSource of(Layout layout, String filePatternTemplate) {
+    /**
+     * Binds the names to the paths a run produced. {@code jeffreyHome} is absent when the run was
+     * configured with an explicit workspaces directory, and {@code profilerPath} when no profiler
+     * was resolved; both are simply left unbound.
+     */
+    public static JeffreyPlaceholderSource of(
+            SessionLayout layout, String profilerPath, String filePatternTemplate) {
+
         Map<String, String> values = new HashMap<>();
         put(values, HOME, layout.jeffreyHome());
         put(values, WORKSPACES, layout.workspaces());
         put(values, CURRENT_WORKSPACE, layout.workspace());
         put(values, CURRENT_PROJECT, layout.project());
         put(values, CURRENT_SESSION, layout.session());
-        if (layout.session() != null) {
-            put(values, FILE_PATTERN, layout.session().resolve(filePatternTemplate));
-        }
-        if (layout.profilerPath() != null && !layout.profilerPath().isBlank()) {
-            values.put(PROFILER_PATH, layout.profilerPath());
+        put(values, FILE_PATTERN, layout.recordingFilePattern(filePatternTemplate));
+        if (profilerPath != null && !profilerPath.isBlank()) {
+            values.put(PROFILER_PATH, profilerPath);
         }
         return new JeffreyPlaceholderSource(values);
     }

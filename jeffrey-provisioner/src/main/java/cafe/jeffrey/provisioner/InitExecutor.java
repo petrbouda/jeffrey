@@ -18,197 +18,84 @@
 
 package cafe.jeffrey.provisioner;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import cafe.jeffrey.provisioner.placeholder.JeffreyPlaceholderSource;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
-import cafe.jeffrey.shared.common.HeartbeatConstants;
-import cafe.jeffrey.shared.common.IDGenerator;
-import cafe.jeffrey.shared.common.JeffreyLayout;
-import cafe.jeffrey.shared.common.model.repository.RemoteProject;
-import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstance;
-import cafe.jeffrey.shared.common.model.repository.RemoteProjectInstanceSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Clock;
-import java.util.List;
-import java.util.Optional;
 
 /**
- * Executes the initialization of a Jeffrey project and session.
- * Contains all business logic extracted from command classes.
+ * Provisions a Jeffrey session for one JVM: lays down its directories, declares it to the hub,
+ * and writes the JVM options that arm the profiler.
  */
 public class InitExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(InitExecutor.class);
 
-    private static final Clock CLOCK = Clock.systemUTC();
+    private final Clock clock;
+    private final LayoutProvisioner layoutProvisioner;
+    private final ProfilerSettingsResolver profilerSettingsResolver;
+    private final OutputWriter outputWriter;
+
+    public InitExecutor(Clock clock) {
+        this.clock = clock;
+        this.layoutProvisioner = new LayoutProvisioner();
+        this.profilerSettingsResolver = new ProfilerSettingsResolver();
+        this.outputWriter = new OutputWriter();
+    }
 
     /**
-     * Executes the initialization with the given configuration.
-     *
      * @param config validated initialization configuration
      * @throws Exception if initialization fails
      */
     public void execute(InitConfig config) throws Exception {
-        LOG.debug("Executing provisioner init: workspaceRefId={} projectName={}", config.getWorkspaceRefId(), config.getProjectName());
-        Path jeffreyHome;
-        Path workspacesPath;
+        LOG.debug("Executing provisioner init: workspaceRefId={} projectName={}",
+                config.getWorkspaceRefId(), config.getProjectName());
 
-        if (config.useJeffreyHome()) {
-            jeffreyHome = createDirectories(Path.of(config.getJeffreyHome()));
-            workspacesPath = createDirectories(jeffreyHome.resolve(JeffreyLayout.WORKSPACES_DIR));
-        } else {
-            workspacesPath = createDirectories(Path.of(config.getWorkspacesDir()));
-            jeffreyHome = null;
-        }
+        ProjectLayout projectLayout = layoutProvisioner.provisionProject(config);
 
-        if (!workspacesPath.toFile().exists()) {
-            throw new RuntimeException("Cannot create parent directories: " + workspacesPath);
-        }
+        SessionRegistrar registrar = new SessionRegistrar(
+                new FileSystemRepository(clock, projectLayout.workspace()), layoutProvisioner);
+        ProvisionedSession session = registrar.openSession(config, projectLayout);
 
-        Path workspacePath = createDirectories(workspacesPath.resolve(config.getWorkspaceRefId()));
-        LOG.debug("Directories created: workspacesPath={} workspacePath={}", workspacesPath, workspacePath);
+        // Phase two of placeholder resolution: the layout only exists now that the session
+        // directory has been created, so this is where <<JEFFREY:...>> becomes answerable.
+        // Values carrying <<ENV:...>> were already resolved when the configuration was read.
+        Placeholders placeholders = Placeholders.of(
+                JeffreyPlaceholderSource.of(session.layout(), config.getProfilerPath(),
+                        EnvFileBuilder.DEFAULT_FILE_TEMPLATE));
 
-        FileSystemRepository repository = new FileSystemRepository(CLOCK, workspacePath);
+        String features = JvmFeatures.of(config, appIdentityFor(config, session))
+                .render(session.layout().session(), placeholders);
 
-        String projectId;
-        Path projectPath = workspacePath.resolve(config.getProjectName());
-
-        Optional<RemoteProject> projectOpt = repository.findProject(projectPath);
-        if (projectOpt.isPresent()) {
-            projectId = projectOpt.get().projectId();
-        } else {
-            projectId = IDGenerator.generate();
-
-            createDirectories(projectPath);
-            repository.addProject(
-                    projectId,
-                    config.getProjectName(),
-                    config.getProjectLabel(),
-                    config.getWorkspaceRefId(),
-                    config.getWorkspacesDir(),
-                    config.resolveRepositoryType(),
-                    config.getAttributes(),
-                    projectPath);
-        }
-
-        // Create instance folder (from config, HOSTNAME env var, or generated UUID)
-        String instanceId = config.getInstanceName();
-        Path instancePath = projectPath.resolve(instanceId);
-        Optional<RemoteProjectInstance> instanceOpt = repository.findInstance(instancePath);
-        if (instanceOpt.isEmpty()) {
-            createDirectories(instancePath);
-            repository.addInstance(
-                    instanceId,
-                    projectId,
-                    config.getWorkspaceRefId(),
-                    instancePath);
-        }
-
-        String sessionId = IDGenerator.generate();
-        Path newSessionPath = createDirectories(instancePath.resolve(sessionId));
-        LOG.debug("Session directory created: sessionId={} sessionPath={}", sessionId, newSessionPath);
-
-        createDirectories(newSessionPath.resolve(JeffreyLayout.STREAMING_REPO_DIR));
-        createDirectories(newSessionPath.resolve(HeartbeatConstants.HEARTBEAT_DIR));
-
-        // Calculate order: find max order from existing sessions + 1. Computed
-        // before building features so the agent can emit it in jeffrey.AppInformation.
-        List<RemoteProjectInstanceSession> existingSessions = repository.findSessionsInInstance(instancePath);
-        int maxOrder = existingSessions.stream()
-                .mapToInt(RemoteProjectInstanceSession::order)
-                .max()
-                .orElse(0);
-        int order = maxOrder + 1;
-
-        long provisionedAt = CLOCK.millis();
-        AppIdentity appIdentity = new AppIdentity(
-                config.getWorkspaceRefId(),
-                projectId,
-                config.getProjectName(),
-                config.getProjectLabel(),
-                instanceId,
-                sessionId,
-                order,
-                config.getAttributes(),
-                provisionedAt);
-
-        // Phase two: the layout only exists now that the session directory has been created, so
-        // this is where <<JEFFREY:...>> becomes answerable. Values carrying <<ENV:...>> were
-        // already resolved when the configuration was read.
-        Placeholders placeholders = Placeholders.of(JeffreyPlaceholderSource.of(
-                new JeffreyPlaceholderSource.Layout(
-                        jeffreyHome, workspacesPath, workspacePath, projectPath, newSessionPath,
-                        config.getProfilerPath()),
-                EnvFileBuilder.DEFAULT_FILE_TEMPLATE));
-
-        String features = new FeatureBuilder()
-                .setDebugNonSafepointsEnabled(config.isDebugNonSafepointsEnabled())
-                .setHeapDumpEnabled(config.resolveHeapDumpType())
-                .setPerfCountersEnabled(config.isPerfCountersEnabled())
-                .setMethodTracingEnabled(config.isMethodTracingEnabled())
-                .setJvmLogging(config.getJvmLoggingCommand())
-                .setAgentPath(config.getAgentPath())
-                .setAdditionalJvmOptions(config.getAdditionalJvmOptions())
-                .setAppIdentity(appIdentity)
-                .build(newSessionPath, placeholders);
-
-        ProfilerSettingsResolver.ResolvedProfilerSettings resolvedSettings = new ProfilerSettingsResolver().resolve(
+        ProfilerSettingsResolver.ResolvedProfilerSettings resolvedSettings = profilerSettingsResolver.resolve(
                 config.getProfilerConfig(),
-                workspacePath,
-                projectId,
+                session.layout().workspace(),
+                session.projectId(),
                 config.getProjectName(),
                 placeholders,
                 features);
-        String profilerSettings = resolvedSettings.command();
 
-        repository.addSession(
-                sessionId,
-                projectId,
-                config.getWorkspaceRefId(),
-                instanceId,
-                order,
-                newSessionPath,
-                resolvedSettings);
-
-        if (config.getEnvFilePath() != null || config.isPrintEnv()) {
-            String envContent = new EnvFileBuilder().build(new EnvFileBuilder.Context(
-                    jeffreyHome,
-                    workspacesPath,
-                    workspacePath,
-                    projectPath,
-                    newSessionPath,
-                    profilerSettings,
-                    config.useJeffreyHome(),
-                    config.isJdkJavaOptionsEnabled()));
-
-            if (config.getEnvFilePath() != null) {
-                Files.writeString(config.getEnvFilePath(), envContent);
-                LOG.debug("Env file written: envFile={}", config.getEnvFilePath());
-            }
-
-            if (config.isPrintEnv()) {
-                System.out.print(envContent);
-            }
-        }
-
-        if (config.getArgFilePath() != null) {
-            var argsContent = new JvmArgsFileBuilder()
-                    .build(new JvmArgsFileBuilder.Context(newSessionPath, profilerSettings));
-            Files.writeString(config.getArgFilePath(), argsContent);
-            LOG.debug("Arg file written: argFile={}", config.getArgFilePath());
-        }
+        registrar.recordSession(config, session, resolvedSettings);
+        outputWriter.write(config, session.layout(), resolvedSettings.command());
 
         // Single greppable verdict line — the one place that tells a user their setup works
         LOG.info("Jeffrey profiling ENABLED: project={} workspace={} instance={} session={} profiler_source={} arg_file={}",
-                config.getProjectName(), config.getWorkspaceRefId(), instanceId, sessionId,
+                config.getProjectName(), config.getWorkspaceRefId(), session.instanceId(), session.sessionId(),
                 resolvedSettings.source(), config.getArgFilePath());
     }
 
-    private static Path createDirectories(Path path) throws IOException {
-        return Files.exists(path) ? path : Files.createDirectories(path);
+    private AppIdentity appIdentityFor(InitConfig config, ProvisionedSession session) {
+        return new AppIdentity(
+                config.getWorkspaceRefId(),
+                session.projectId(),
+                config.getProjectName(),
+                config.getProjectLabel(),
+                session.instanceId(),
+                session.sessionId(),
+                session.order(),
+                config.getAttributes(),
+                clock.millis());
     }
 }

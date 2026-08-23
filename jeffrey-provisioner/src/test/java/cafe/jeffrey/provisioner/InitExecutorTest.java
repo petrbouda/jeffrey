@@ -27,6 +27,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -89,7 +90,7 @@ class InitExecutorTest {
 
         @Test
         void laysDownWorkspaceProjectInstanceAndSession() throws Exception {
-            new InitExecutor().execute(config());
+            new InitExecutor(Clock.systemUTC()).execute(config());
 
             Path workspace = workspacesDir.resolve(WORKSPACE_REF_ID);
             Path project = workspace.resolve(PROJECT_NAME);
@@ -103,7 +104,7 @@ class InitExecutorTest {
 
         @Test
         void createsTheStreamingAndHeartbeatDirectories() throws Exception {
-            new InitExecutor().execute(config());
+            new InitExecutor(Clock.systemUTC()).execute(config());
 
             assertTrue(Files.isDirectory(sessionPath().resolve(JeffreyLayout.STREAMING_REPO_DIR)));
             assertTrue(Files.isDirectory(sessionPath().resolve(HeartbeatConstants.HEARTBEAT_DIR)));
@@ -111,7 +112,7 @@ class InitExecutorTest {
 
         @Test
         void writesTheThreeMarkerFiles() throws Exception {
-            new InitExecutor().execute(config());
+            new InitExecutor(Clock.systemUTC()).execute(config());
 
             Path project = workspacesDir.resolve(WORKSPACE_REF_ID).resolve(PROJECT_NAME);
             assertTrue(Files.exists(project.resolve(JeffreyLayout.PROJECT_INFO_FILE)), "project marker");
@@ -122,7 +123,7 @@ class InitExecutorTest {
 
         @Test
         void leavesNoTemporaryMarkerFilesBehind() throws Exception {
-            new InitExecutor().execute(config());
+            new InitExecutor(Clock.systemUTC()).execute(config());
 
             try (Stream<Path> tree = Files.walk(workspacesDir)) {
                 List<Path> temps = tree.filter(path -> path.getFileName().toString().endsWith(".tmp")).toList();
@@ -136,7 +137,7 @@ class InitExecutorTest {
 
         @Test
         void argFileCarriesOneOptionPerLine() throws Exception {
-            new InitExecutor().execute(config());
+            new InitExecutor(Clock.systemUTC()).execute(config());
 
             List<String> options = Files.readString(argFile).lines()
                     .filter(line -> !line.isBlank() && !line.startsWith("#"))
@@ -150,7 +151,7 @@ class InitExecutorTest {
 
         @Test
         void argFileResolvesEveryPlaceholder() throws Exception {
-            new InitExecutor().execute(config());
+            new InitExecutor(Clock.systemUTC()).execute(config());
 
             String content = Files.readString(argFile);
             assertFalse(content.contains("<<"), () -> "unresolved placeholder in argfile: " + content);
@@ -159,7 +160,7 @@ class InitExecutorTest {
 
         @Test
         void envFileExportsTheSessionLayout() throws Exception {
-            new InitExecutor().execute(config());
+            new InitExecutor(Clock.systemUTC()).execute(config());
 
             String session = normalized(sessionPath().toString());
             List<String> layoutExports = normalized(Files.readString(envFile)).lines()
@@ -174,6 +175,7 @@ class InitExecutorTest {
                     "export JEFFREY_CURRENT_SESSION=" + session,
                     "export JEFFREY_FILE_PATTERN=" + session + "/profile-%t.jfr"),
                     layoutExports);
+            assertTrue(Files.readString(envFile).endsWith("\n"), "env file must be newline-terminated");
         }
     }
 
@@ -183,11 +185,11 @@ class InitExecutorTest {
         /** A second run reuses the project and instance and adds a session ordered after the first. */
         @Test
         void secondRunAddsASessionAndKeepsTheProject() throws Exception {
-            new InitExecutor().execute(config());
+            new InitExecutor(Clock.systemUTC()).execute(config());
             String firstProjectMarker = Files.readString(
                     workspacesDir.resolve(WORKSPACE_REF_ID).resolve(PROJECT_NAME).resolve(JeffreyLayout.PROJECT_INFO_FILE));
 
-            new InitExecutor().execute(config());
+            new InitExecutor(Clock.systemUTC()).execute(config());
 
             Path instancePath = workspacesDir.resolve(WORKSPACE_REF_ID).resolve(PROJECT_NAME).resolve(INSTANCE_NAME);
             try (Stream<Path> sessions = Files.list(instancePath)) {
@@ -201,8 +203,8 @@ class InitExecutorTest {
 
         @Test
         void sessionOrderIncrementsPerRun() throws Exception {
-            new InitExecutor().execute(config());
-            new InitExecutor().execute(config());
+            new InitExecutor(Clock.systemUTC()).execute(config());
+            new InitExecutor(Clock.systemUTC()).execute(config());
 
             Path instancePath = workspacesDir.resolve(WORKSPACE_REF_ID).resolve(PROJECT_NAME).resolve(INSTANCE_NAME);
             try (Stream<Path> sessions = Files.list(instancePath)) {

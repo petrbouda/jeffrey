@@ -19,6 +19,8 @@
 package cafe.jeffrey.provisioner;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Builds the content of the .env file with environment variables for Jeffrey sessions.
@@ -39,59 +41,58 @@ public class EnvFileBuilder {
     private static final String JEFFREY_PROFILER_CONFIG_PROP = "JEFFREY_PROFILER_CONFIG";
     private static final String JDK_JAVA_OPTIONS_PROP = "JDK_JAVA_OPTIONS";
 
+    private static final String EXPORT_PREFIX = "export ";
+    private static final String ASSIGN = "=";
+    private static final String LINE_SEPARATOR = "\n";
+
     /**
-     * Context containing all the paths and settings needed to build the ENV file.
+     * @param exportJdkJavaOptions also export the profiler command as {@code JDK_JAVA_OPTIONS},
+     *                             which the JVM picks up without an argfile
      */
     public record Context(
-            Path jeffreyHome,
-            Path workspacesPath,
-            Path workspacePath,
-            Path projectPath,
-            Path sessionPath,
+            SessionLayout layout,
             String profilerSettings,
-            boolean useJeffreyHome,
             boolean exportJdkJavaOptions
     ) {}
 
     /**
      * Builds the content of the .env file.
      *
-     * @param context the context containing all required paths and settings
+     * @param context the layout and settings to export
      * @return the content of the .env file with export statements
      */
     public String build(Context context) {
-        StringBuilder output = new StringBuilder();
+        SessionLayout layout = context.layout();
+        List<String> exports = new ArrayList<>();
 
-        if (context.useJeffreyHome()) {
-            appendVar(output, JEFFREY_HOME_PROP, context.jeffreyHome());
+        if (layout.hasJeffreyHome()) {
+            exports.add(export(JEFFREY_HOME_PROP, layout.jeffreyHome()));
         }
-
-        appendVar(output, JEFFREY_WORKSPACES_PROP, context.workspacesPath());
-        appendVar(output, JEFFREY_WORKSPACE_PROP, context.workspacePath());
-        appendVar(output, JEFFREY_PROJECT_PROP, context.projectPath());
-        appendVar(output, JEFFREY_SESSION_PROP, context.sessionPath());
-        appendVar(output, JEFFREY_FILE_PATTERN_PROP, context.sessionPath().resolve(DEFAULT_FILE_TEMPLATE));
+        exports.add(export(JEFFREY_WORKSPACES_PROP, layout.workspaces()));
+        exports.add(export(JEFFREY_WORKSPACE_PROP, layout.workspace()));
+        exports.add(export(JEFFREY_PROJECT_PROP, layout.project()));
+        exports.add(export(JEFFREY_SESSION_PROP, layout.session()));
+        exports.add(export(JEFFREY_FILE_PATTERN_PROP, layout.recordingFilePattern(DEFAULT_FILE_TEMPLATE)));
 
         if (context.profilerSettings() != null && !context.profilerSettings().isEmpty()) {
-            appendVar(output, JEFFREY_PROFILER_CONFIG_PROP, wrapQuotes(context.profilerSettings()));
+            String quoted = wrapQuotes(context.profilerSettings());
+            exports.add(export(JEFFREY_PROFILER_CONFIG_PROP, quoted));
             if (context.exportJdkJavaOptions()) {
-                appendVarNoNewline(output, JDK_JAVA_OPTIONS_PROP, wrapQuotes(context.profilerSettings()));
+                exports.add(export(JDK_JAVA_OPTIONS_PROP, quoted));
             }
         }
 
-        return output.toString();
+        // Always newline-terminated. The old builder omitted it in the one case where
+        // JDK_JAVA_OPTIONS was the last export, which no consumer relied on.
+        return String.join(LINE_SEPARATOR, exports) + LINE_SEPARATOR;
     }
 
-    private static void appendVar(StringBuilder sb, String name, Path value) {
-        appendVar(sb, name, value.toString());
+    private static String export(String name, Path value) {
+        return export(name, value.toString());
     }
 
-    private static void appendVar(StringBuilder sb, String name, String value) {
-        sb.append("export ").append(name).append("=").append(value).append("\n");
-    }
-
-    private static void appendVarNoNewline(StringBuilder sb, String name, String value) {
-        sb.append("export ").append(name).append("=").append(value);
+    private static String export(String name, String value) {
+        return EXPORT_PREFIX + name + ASSIGN + value;
     }
 
     private static String wrapQuotes(String value) {

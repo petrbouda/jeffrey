@@ -19,6 +19,7 @@
 package cafe.jeffrey.provisioner.placeholder;
 
 import cafe.jeffrey.provisioner.EnvFileBuilder;
+import cafe.jeffrey.provisioner.SessionLayout;
 import cafe.jeffrey.shared.common.CliConstants;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -105,13 +106,13 @@ class PlaceholdersTest {
 
         private static Placeholders full() {
             return Placeholders.of(JeffreyPlaceholderSource.of(
-                    new JeffreyPlaceholderSource.Layout(
+                    new SessionLayout(
                             Path.of("/mnt/jeffrey"),
                             Path.of("/workspaces"),
                             Path.of("/workspaces/ws"),
                             Path.of("/workspaces/ws/proj"),
-                            SESSION,
-                            "/libs/libasyncProfiler-amd64.so"),
+                            SESSION),
+                    "/libs/libasyncProfiler-amd64.so",
                     EnvFileBuilder.DEFAULT_FILE_TEMPLATE));
         }
 

@@ -28,6 +28,7 @@ import picocli.CommandLine.ExitCode;
 import picocli.CommandLine.Option;
 
 import java.nio.file.Path;
+import java.time.Clock;
 import java.util.concurrent.Callable;
 
 @Command(
@@ -61,7 +62,7 @@ public class InitCommand implements Callable<Integer> {
             if (config.isProvisionerVerbose()) {
                 VerboseLogging.enable();
             }
-            new InitExecutor().execute(config);
+            new InitExecutor(Clock.systemUTC()).execute(config);
             return ExitCode.OK;
         } catch (Exception e) {
             LOG.error("Init failed", e);

@@ -45,9 +45,11 @@ class ProfilerSettingsResolverTest {
             Path sessionPath,
             String features) {
 
-        Placeholders placeholders = Placeholders.of(JeffreyPlaceholderSource.of(
-                new JeffreyPlaceholderSource.Layout(null, null, workspacePath, null, sessionPath, profilerPath),
-                EnvFileBuilder.DEFAULT_FILE_TEMPLATE));
+        // Only the workspace and session matter here; the rest of the layout is never read back.
+        SessionLayout layout = new SessionLayout(
+                null, workspacePath, workspacePath, workspacePath.resolve(projectName), sessionPath);
+        Placeholders placeholders = Placeholders.of(
+                JeffreyPlaceholderSource.of(layout, profilerPath, EnvFileBuilder.DEFAULT_FILE_TEMPLATE));
 
         return new ProfilerSettingsResolver().resolve(
                 profilerConfig, workspacePath, PROJECT_ID, projectName, placeholders, features);
