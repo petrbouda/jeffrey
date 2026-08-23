@@ -64,7 +64,7 @@ class HeapDumpTypeTest {
                     IllegalArgumentException.class,
                     () -> HeapDumpType.resolve(null)
             );
-            assertEquals("Repository type cannot be null", exception.getMessage());
+            assertEquals("Heap dump type cannot be null", exception.getMessage());
         }
 
         @Test

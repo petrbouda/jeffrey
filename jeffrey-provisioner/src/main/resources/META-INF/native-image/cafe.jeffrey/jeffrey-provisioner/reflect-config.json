@@ -27,48 +27,6 @@
     "allDeclaredMethods": true
   },
   {
-    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
-    "name": "cafe.jeffrey.provisioner.InitConfig",
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
-    "name": "cafe.jeffrey.provisioner.InitConfig$ProjectConfig",
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
-    "name": "cafe.jeffrey.provisioner.InitConfig$PerfCountersConfig",
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
-    "name": "cafe.jeffrey.provisioner.InitConfig$HeapDumpConfig",
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
-    "name": "cafe.jeffrey.provisioner.InitConfig$JvmLoggingConfig",
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "condition": {"typeReachable": "com.typesafe.config.ConfigBeanFactory"},
-    "name": "cafe.jeffrey.provisioner.InitConfig$JdkJavaOptionsConfig",
-    "allDeclaredConstructors": true,
-    "allDeclaredMethods": true,
-    "allDeclaredFields": true
-  },
-  {
     "condition": {"typeReachable": "tools.jackson.databind.ObjectMapper"},
     "name": "cafe.jeffrey.shared.common.model.repository.RemoteProject",
     "allDeclaredConstructors": true,

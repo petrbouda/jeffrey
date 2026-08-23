@@ -7,7 +7,7 @@ public enum HeapDumpType {
 
     public static HeapDumpType resolve(String value) {
         if (value == null) {
-            throw new IllegalArgumentException("Repository type cannot be null");
+            throw new IllegalArgumentException("Heap dump type cannot be null");
         }
 
         return Arrays.stream(values())

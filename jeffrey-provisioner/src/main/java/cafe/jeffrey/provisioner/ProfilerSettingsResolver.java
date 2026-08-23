@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -30,15 +31,40 @@ public class ProfilerSettingsResolver {
 
     private static final String HUB_WORKSPACE_LEVEL = "WORKSPACE";
 
+    private static final char SETTINGS_FILENAME_TIMESTAMP_SEPARATOR = '-';
+    private static final char SETTINGS_FILENAME_EXTENSION_SEPARATOR = '.';
+
     private static final DateTimeFormatter TIMESTAMP_FORMATTER =
             DateTimeFormatter.ofPattern(JeffreyLayout.SETTINGS_TIMESTAMP_PATTERN).withZone(ZoneOffset.UTC);
 
+    /** Newest settings file first. A file whose name carries no readable timestamp sorts last. */
     private static final Comparator<Path> TIMESTAMP_FILE_COMPARATOR =
-            Comparator.comparing((Path path) -> {
-                String filename = path.toString();
-                String substring = filename.substring(filename.indexOf('-') + 1, filename.lastIndexOf('.'));
-                return Instant.from(TIMESTAMP_FORMATTER.parse(substring));
-            }).reversed();
+            Comparator.comparing(ProfilerSettingsResolver::timestampOf).reversed();
+
+    /**
+     * Reads the timestamp out of a {@code settings-<timestamp>.json} file name. Only the file name
+     * is inspected — reading the whole path would let a dash in any parent directory win the
+     * {@code indexOf} and corrupt the slice.
+     *
+     * <p>An unreadable name yields {@link Instant#MIN} rather than throwing: settings files are
+     * discovered from a directory the provisioner does not own, and one stray file must not stop a
+     * JVM from being provisioned.
+     */
+    private static Instant timestampOf(Path path) {
+        String filename = path.getFileName().toString();
+        int start = filename.indexOf(SETTINGS_FILENAME_TIMESTAMP_SEPARATOR) + 1;
+        int end = filename.lastIndexOf(SETTINGS_FILENAME_EXTENSION_SEPARATOR);
+        if (start <= 0 || end <= start) {
+            LOG.warn("Settings file name carries no timestamp, sorting it last: file={}", filename);
+            return Instant.MIN;
+        }
+        try {
+            return Instant.from(TIMESTAMP_FORMATTER.parse(filename.substring(start, end)));
+        } catch (DateTimeParseException e) {
+            LOG.warn("Unparseable timestamp in settings file name, sorting it last: file={}", filename);
+            return Instant.MIN;
+        }
+    }
 
     /**
      * The resolved profiler command together with its provenance: which source won

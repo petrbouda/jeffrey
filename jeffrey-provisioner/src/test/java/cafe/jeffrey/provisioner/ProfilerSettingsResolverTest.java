@@ -357,6 +357,61 @@ class ProfilerSettingsResolverTest {
     }
 
     @Nested
+    class SettingsFileOrdering {
+
+        @TempDir
+        Path tempDir;
+
+        private static String settingsWith(String marker) {
+            return """
+                    {
+                        "profiler": {
+                            "defaultSettings": "-agentpath:<<JEFFREY:PROFILER_PATH>>=%s",
+                            "defaultSettingsLevel": "WORKSPACE",
+                            "projectSettings": {}
+                        }
+                    }
+                    """.formatted(marker);
+        }
+
+        /**
+         * The workspace lives under a directory carrying a dash — the shape of every real
+         * install (~/.jeffrey-microscope, /opt/jeffrey-home). Reading the timestamp out of the
+         * full path instead of the file name slices from that dash and blows up the parse.
+         */
+        @Test
+        void picksTheNewestFileWhenAParentDirectoryContainsADash() throws IOException {
+            Path workspacePath = Files.createDirectories(tempDir.resolve("jeffrey-home").resolve("workspace"));
+            Path settingsDir = Files.createDirectories(workspacePath.resolve(".settings"));
+            Path sessionPath = tempDir.resolve("session");
+
+            Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsWith("older"));
+            Files.writeString(settingsDir.resolve("settings-2025-06-20T080000000000.json"), settingsWith("newer"));
+
+            ResolvedProfilerSettings resolved = resolve(
+                    "/profiler.so", null, workspacePath, "my-project", sessionPath, "");
+
+            assertTrue(resolved.command().contains("newer"), resolved.command());
+            assertEquals("settings-2025-06-20T080000000000.json", resolved.sourceDetail());
+        }
+
+        @Test
+        void sortsAFileWithAnUnparseableTimestampLast() throws IOException {
+            Path workspacePath = Files.createDirectories(tempDir.resolve("workspace"));
+            Path settingsDir = Files.createDirectories(workspacePath.resolve(".settings"));
+            Path sessionPath = tempDir.resolve("session");
+
+            Files.writeString(settingsDir.resolve("settings-not-a-timestamp.json"), settingsWith("malformed"));
+            Files.writeString(settingsDir.resolve("settings-2025-01-15T120000000000.json"), settingsWith("valid"));
+
+            ResolvedProfilerSettings resolved = resolve(
+                    "/profiler.so", null, workspacePath, "my-project", sessionPath, "");
+
+            assertTrue(resolved.command().contains("valid"), resolved.command());
+        }
+    }
+
+    @Nested
     class PlaceholderReplacement {
 
         @TempDir
