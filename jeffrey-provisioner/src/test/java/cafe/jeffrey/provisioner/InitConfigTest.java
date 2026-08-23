@@ -671,16 +671,26 @@ class InitConfigTest {
             assertEquals(Path.of("/tmp/jvm.args"), config.getArgFilePath());
             assertTrue(config.isDebugNonSafepointsEnabled());
             assertFalse(config.isPerfCountersEnabled());
-            assertFalse(config.isMethodTracingEnabled());
+            assertTrue(config.isMethodTracingEnabled());
             assertNull(config.resolveHeapDumpType());
         }
 
         @Test
-        void tracingEnabled_readFromEnv() {
+        void tracingDisabledFromEnv_noConfigFileNeeded() {
             InitConfig config = InitConfig.fromEnvironment(env(Map.of(
                     "JEFFREY_HOME", "/mnt/jeffrey",
                     "JEFFREY_PROJECT_NAME", "my-service",
-                    "JEFFREY_TRACING_ENABLED", "true")));
+                    "JEFFREY_TRACING_ENABLED", "false")));
+
+            assertFalse(config.isMethodTracingEnabled());
+        }
+
+        @Test
+        void unrecognizedBoolEnv_keepsTheConfiguredValue() {
+            InitConfig config = InitConfig.fromEnvironment(env(Map.of(
+                    "JEFFREY_HOME", "/mnt/jeffrey",
+                    "JEFFREY_PROJECT_NAME", "my-service",
+                    "JEFFREY_TRACING_ENABLED", "maybe")));
 
             assertTrue(config.isMethodTracingEnabled());
         }
@@ -828,7 +838,21 @@ class InitConfigTest {
         }
 
         @Test
-        void hoconTracing_enabledWithoutEnv() throws IOException {
+        void hoconTracing_disabledWithoutEnv() throws IOException {
+            Path configFile = tempDir.resolve("config.conf");
+            Files.writeString(configFile, configWithOverrides(
+                    "jeffrey-home = \"/tmp/jeffrey\"",
+                    "project { name = \"my-service\" }",
+                    "tracing { enabled = false }"
+            ));
+
+            InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> null);
+
+            assertFalse(config.isMethodTracingEnabled());
+        }
+
+        @Test
+        void envTracing_winsOverHocon() throws IOException {
             Path configFile = tempDir.resolve("config.conf");
             Files.writeString(configFile, configWithOverrides(
                     "jeffrey-home = \"/tmp/jeffrey\"",
@@ -836,9 +860,10 @@ class InitConfigTest {
                     "tracing { enabled = true }"
             ));
 
-            InitConfig config = InitConfig.fromHoconFile(configFile, null, name -> null);
+            InitConfig config = InitConfig.fromHoconFile(configFile, null,
+                    name -> name.equals("JEFFREY_TRACING_ENABLED") ? "false" : null);
 
-            assertTrue(config.isMethodTracingEnabled());
+            assertFalse(config.isMethodTracingEnabled());
         }
 
         @Test

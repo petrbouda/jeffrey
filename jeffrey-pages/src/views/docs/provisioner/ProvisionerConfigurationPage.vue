@@ -264,7 +264,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
               <td><code>tracing.enabled</code></td>
               <td>No</td>
               <td><code>JEFFREY_TRACING_ENABLED</code></td>
-              <td>Record methods annotated <code>@Traced</code> as spans. Needs Java 25 and <code>jeffrey-events</code> on the application's class path</td>
+              <td><strong>On by default.</strong> Record methods annotated <code>@Traced</code> as spans. Needs Java 25 and <code>jeffrey-events</code> on the application's class path; without them the weaver stays inert. Set <code>JEFFREY_TRACING_ENABLED=false</code> to opt out</td>
             </tr>
             <tr>
               <td><code>heap-dump</code></td>
@@ -304,8 +304,8 @@ additional-jvm-options = "-Xmx2g -Xms2g -Djeffrey.logging.trace-file.path=<<JEFF
           <div class="feature-card trace">
             <div class="feature-icon"><i class="bi bi-braces"></i></div>
             <h4>Method Tracing</h4>
-            <p>Tells the Jeffrey Agent to weave methods annotated <code>@Traced</code> into spans. Off by default, since it rewrites application bytecode as it loads.</p>
-            <code>tracing { enabled = true }</code>
+            <p>Tells the Jeffrey Agent to weave methods annotated <code>@Traced</code> into spans. On by default — a provisioned JVM is one being profiled on purpose — and inert on a JVM below 25 or without <code>jeffrey-events</code> on the class path.</p>
+            <code>tracing { enabled = false }</code>
           </div>
           <div class="feature-card heap">
             <div class="feature-icon"><i class="bi bi-memory"></i></div>
