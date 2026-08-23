@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -152,10 +151,5 @@ public sealed interface EnvBinding {
             entries.put(enabledPath, Boolean.TRUE);
             entries.put(commandPath, rawValue);
         }
-    }
-
-    /** Entries in declaration order, so a generated config reads like the binding table. */
-    static Map<String, Object> newEntries() {
-        return new LinkedHashMap<>();
     }
 }

@@ -21,6 +21,7 @@ package cafe.jeffrey.provisioner.config;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -75,7 +76,8 @@ public abstract class EnvironmentLayer {
      * its binding cannot read contributes nothing, leaving the setting to the layer below.
      */
     public static Config of(Function<String, String> envLookup) {
-        Map<String, Object> entries = EnvBinding.newEntries();
+        // Declaration order, so a generated config reads like the binding table above.
+        Map<String, Object> entries = new LinkedHashMap<>();
         for (EnvBinding binding : BINDINGS) {
             String rawValue = envLookup.apply(binding.envName());
             if (rawValue != null && !rawValue.isBlank()) {
