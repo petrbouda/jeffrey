@@ -152,6 +152,19 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                 // events are freshly written and before anything can ask for a trace.
                 Tracer.run(SPAN_TRACES_DERIVE, () -> {
                     TraceRepository traceRepository = profileRepositories.newTraceRepository(dataSource);
+
+                    // A recording that declares no span-carrying event type cannot yield a single
+                    // derived row: the blocking events the derivation would promote to leaf spans
+                    // are only ever attached as children of a recorded span on their own thread, so
+                    // with nothing to parent them to every table below comes out empty. Skipping is
+                    // not just cheaper, it is the same result -- and it costs a scan of every
+                    // socket, file, monitor and park event in the recording to arrive at otherwise.
+                    if (!traceRepository.hasSpanEventTypes()) {
+                        LOG.debug("No span-carrying event types, skipping trace derivation: profile_id={}",
+                                profileInfo.id());
+                        return;
+                    }
+
                     traceRepository.derive();
 
                     // Then flatten what those spans carry -- their attributes, their event type's

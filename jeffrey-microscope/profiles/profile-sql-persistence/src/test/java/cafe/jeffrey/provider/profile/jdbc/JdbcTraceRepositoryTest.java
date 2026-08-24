@@ -2124,4 +2124,55 @@ class JdbcTraceRepositoryTest {
             assertEquals(0, buckets.stream().mapToLong(TraceTimelineBucketRecord::count).sum());
         }
     }
+
+    @Nested
+    @DisplayName("Span event type detection")
+    class SpanEventTypeDetection {
+
+        private JdbcTraceRepository repository(DataSource dataSource) {
+            return new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+        }
+
+        @Test
+        @DisplayName("an event type declaring spanId makes the recording traced")
+        void spanCarryingEventTypeIsDetected(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+
+            assertTrue(repository(dataSource).hasSpanEventTypes());
+        }
+
+        @Test
+        @DisplayName("blocking event types alone do not make a recording traced")
+        void plainRecordingHasNoSpanEventTypes(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-blocking-only-events.sql");
+
+            assertFalse(repository(dataSource).hasSpanEventTypes());
+        }
+
+        @Test
+        @DisplayName("a profile with no event types at all has no span event types")
+        void emptyProfileHasNoSpanEventTypes(DataSource dataSource) {
+            assertFalse(repository(dataSource).hasSpanEventTypes());
+        }
+
+        /**
+         * The equivalence initialization relies on when it skips the derivation: a recording with
+         * blocking events but no span type derives nothing any reader can reach, because every
+         * promoted leaf span is attached by an inner join to a recorded span that does not exist.
+         * Running the derivation and not running it therefore leave the profile in the same state
+         * as far as the trace API is concerned -- so skipping costs nothing and saves a full scan
+         * of every socket, monitor and park event in the recording.
+         */
+        @Test
+        @DisplayName("deriving a plain recording produces nothing a reader can see")
+        void derivingAPlainRecordingIsAnExpensiveNoOp(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-blocking-only-events.sql");
+            JdbcTraceRepository repository = repository(dataSource);
+
+            repository.derive();
+
+            assertFalse(repository.hasTraces());
+            assertEquals(0, repository.traces(TraceListQuery.slowest(50)).traces().size());
+        }
+    }
 }

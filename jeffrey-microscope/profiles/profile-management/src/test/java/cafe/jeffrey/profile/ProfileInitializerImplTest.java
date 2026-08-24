@@ -49,6 +49,8 @@ import java.time.ZoneOffset;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -125,6 +127,7 @@ class ProfileInitializerImplTest {
     void derivesTracesAfterParsing() {
         ProfileInfo profileInfo = mock(ProfileInfo.class);
         when(profileInfo.id()).thenReturn("profile-1");
+        when(traceRepository.hasSpanEventTypes()).thenReturn(true);
 
         initializer(profileInfo).initialize(profileInfo, null, Path.of("recording.jfr"));
 
@@ -137,5 +140,24 @@ class ProfileInitializerImplTest {
         inOrder.verify(traceRepository).derive();
         inOrder.verify(traceAttributeRepository).derive();
         inOrder.verify(profileDataInitializer).initialize(any());
+    }
+
+    @Test
+    @DisplayName("skips the derivation entirely when the recording carries no spans")
+    void skipsDerivationWithoutSpanEventTypes() {
+        ProfileInfo profileInfo = mock(ProfileInfo.class);
+        when(profileInfo.id()).thenReturn("profile-1");
+        when(traceRepository.hasSpanEventTypes()).thenReturn(false);
+
+        initializer(profileInfo).initialize(profileInfo, null, Path.of("recording.jfr"));
+
+        // Both derivations read every event of the blocking types before they can conclude there is
+        // nothing to attach them to, so an ordinary profiling recording pays a full scan for an
+        // empty result. Asking first costs one row-less probe of event_types.
+        verify(traceRepository, never()).derive();
+        verify(traceAttributeRepository, never()).derive();
+
+        // The rest of the initialization is unaffected -- skipping traces is not skipping the profile.
+        verify(profileDataInitializer).initialize(any());
     }
 }
