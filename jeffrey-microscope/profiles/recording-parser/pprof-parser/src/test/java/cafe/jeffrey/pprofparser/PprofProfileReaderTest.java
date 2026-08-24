@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.pprofparser;
 
+import cafe.jeffrey.shared.common.Json;
+import tools.jackson.databind.JsonNode;
 import com.google.perftools.profiles.ProfileProto.Profile;
 import cafe.jeffrey.provider.profile.api.Event;
 import cafe.jeffrey.provider.profile.api.EventFrame;
@@ -144,8 +146,9 @@ class PprofProfileReaderTest {
 
         // labels are flattened into the event fields
         Event event = writer.events.get(0);
-        assertEquals(42L, event.fields().get("tid").asLong());
-        assertEquals("worker-1", event.fields().get("thread name").asText());
+        JsonNode fields = Json.mapper().readTree(event.fields());
+        assertEquals(42L, fields.get("tid").asLong());
+        assertEquals("worker-1", fields.get("thread name").asString());
     }
 
     @Test

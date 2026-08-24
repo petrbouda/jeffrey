@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.otlpparser;
 
+import cafe.jeffrey.shared.common.Json;
 import io.opentelemetry.proto.profiles.v1development.ProfilesData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -247,7 +248,7 @@ class OtlpProfileReaderTest {
             assertEquals(1, event.samples());
             assertEquals(4096L, event.weight());
             assertEquals("byte[]", event.weightEntity());
-            assertEquals("byte[]", event.fields().get("class").asString());
+            assertEquals("byte[]", Json.mapper().readTree(event.fields()).get("class").asString());
         }
     }
 

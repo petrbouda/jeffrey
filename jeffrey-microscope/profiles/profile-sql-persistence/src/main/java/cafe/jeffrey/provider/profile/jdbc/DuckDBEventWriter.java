@@ -80,8 +80,8 @@ public class DuckDBEventWriter extends DuckDBBatchingWriter<Event> {
                 nullableAppend(appender, event.stacktraceId());
                 // thread_hash - BIGINT (nullable) - hash value
                 nullableAppend(appender, event.threadId());
-                // fields - JSON (nullable)
-                nullableAppend(appender, event.fields() != null ? event.fields().toString() : null);
+                // fields - JSON (nullable), already written as text by the parser
+                nullableAppend(appender, event.fields());
                 // pooled_field - VARCHAR (nullable) - key of the field lifted out of `fields`
                 Event.PooledField pooled = event.pooledField();
                 nullableAppend(appender, pooled != null ? pooled.field() : null);
