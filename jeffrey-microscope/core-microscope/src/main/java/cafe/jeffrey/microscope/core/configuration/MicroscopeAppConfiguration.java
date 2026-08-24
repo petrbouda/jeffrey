@@ -47,6 +47,7 @@ import cafe.jeffrey.shared.ui.workspace.bridge.RemoteProjectAccess;
 import cafe.jeffrey.shared.ui.workspace.bridge.WorkspaceBrowserAccess;
 import cafe.jeffrey.shared.ui.workspace.config.WorkspacesFeatureConfiguration;
 import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.ProfileInitializerImpl;
 import cafe.jeffrey.profile.configuration.ProfilesConfiguration;
@@ -87,6 +88,9 @@ public class MicroscopeAppConfiguration {
             @Qualifier(ProfilesConfiguration.RECORDINGS_PATH) Path recordingsPath,
             ProfileManager.Factory profileManagerFactory,
             ProfileDataInitializer profileDataInitializer,
+            // The same registry the project-profile path uses: a Recordings profile is a profile
+            // like any other as far as progress is concerned, and both are keyed by profile id.
+            PipelineRunRegistry<String> profileInitRunRegistry,
             MicroscopeCorePersistenceProvider localCorePersistenceProvider,
             @Value("${jeffrey.microscope.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
 
@@ -108,6 +112,7 @@ public class MicroscopeAppConfiguration {
                 quickProvider.eventWriterFactory(),
                 profileManagerFactory,
                 profileDataInitializer,
+                profileInitRunRegistry,
                 clock);
 
         MicroscopeCoreRepositories repos = localCorePersistenceProvider.localCoreRepositories();
