@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jeffrey Microscope — span messages in the Trace Modal</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #e2e8f0;
+    background: radial-gradient(900px 500px at 20% 0%, rgba(56,189,248,.12), transparent 60%),
+                radial-gradient(900px 500px at 85% 100%, rgba(168,85,247,.14), transparent 60%), #0a0f1e;
+    min-height: 100vh; padding: 4rem 2rem; }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  h1 { font-size: 2rem; font-weight: 800; color: #fff; letter-spacing: -.02em; margin-bottom: .5rem; }
+  .sub { color: #94a3b8; margin-bottom: 2.4rem; line-height: 1.65; }
+  .sub strong { color: #cbd5e1; }
+  .list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.1rem; }
+  a.mk { display: flex; gap: 1rem; align-items: flex-start; text-decoration: none; padding: 1.3rem 1.4rem; border-radius: 14px;
+    background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.1); transition: transform .2s, border-color .2s, background .2s; }
+  a.mk:hover { transform: translateY(-4px); border-color: rgba(56,189,248,.45); background: rgba(255,255,255,.07); }
+  .num { width: 40px; height: 40px; flex-shrink: 0; border-radius: 11px; display: grid; place-items: center; font-weight: 800; color: #fff;
+    background: linear-gradient(135deg, #38bdf8, #6366f1); box-shadow: 0 6px 16px rgba(56,189,248,.4); }
+  .mk h3 { color: #fff; font-size: 1.04rem; font-weight: 700; margin-bottom: .25rem; }
+  .mk p { color: #94a3b8; font-size: .85rem; line-height: 1.5; }
+  a.mk.base { margin-bottom: 1.1rem; border-color: rgba(148,163,184,.28); background: rgba(255,255,255,.03); }
+  .num.zero { background: linear-gradient(135deg, #64748b, #475569); box-shadow: 0 6px 16px rgba(100,116,139,.35); }
+  .tag { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: .12rem .4rem;
+    border-radius: 4px; background: rgba(148,163,184,.18); color: #cbd5e1; vertical-align: middle; margin-left: .35rem; }
+  code { color: #7dd3fc; background: rgba(255,255,255,.06); padding: .1rem .35rem; border-radius: 5px; font-size: .84em; }
+  .facts { margin-top: 2rem; padding: 1.2rem 1.4rem; border-radius: 12px; background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08); }
+  .facts h4 { color: #e2e8f0; font-size: .92rem; font-weight: 700; margin-bottom: .65rem; display: flex; align-items: center; gap: .45rem; }
+  .facts h4 i { color: #7dd3fc; }
+  .facts ul { margin: 0; padding-left: 1.1rem; color: #94a3b8; font-size: .85rem; line-height: 1.8; }
+  .facts.warn { border-color: rgba(251,191,36,.28); background: rgba(251,191,36,.06); }
+  .facts.warn h4 i { color: #fbbf24; }
+  .fix { margin-top: 2rem; padding: 1.2rem 1.4rem; border-radius: 12px; background: rgba(56,189,248,.07);
+    border: 1px solid rgba(56,189,248,.25); }
+  .fix h4 { color: #e0f2fe; font-size: .92rem; font-weight: 700; margin-bottom: .65rem; display: flex; align-items: center; gap: .45rem; }
+  table.fx { width: 100%; border-collapse: collapse; font-size: .82rem; color: #cbd5e1; margin-top: .3rem; }
+  table.fx th { text-align: left; padding: .3rem .5rem .3rem 0; color: #64748b; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .05em; font-size: .68rem; border-bottom: 1px solid rgba(255,255,255,.1); }
+  table.fx td { padding: .33rem .5rem .33rem 0; border-bottom: 1px solid rgba(255,255,255,.06); vertical-align: top; }
+  table.fx td.m { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .78rem; color: #7dd3fc; white-space: nowrap; }
+  .sev { display: inline-block; padding: 0 .35rem; border-radius: 4px; font-size: .65rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .04em; }
+  .sev.c { background: rgba(185,28,28,.3); color: #fca5a5; }
+  .sev.h { background: rgba(230,55,87,.22); color: #fda4af; }
+  .sev.m { background: rgba(245,128,62,.22); color: #fdba74; }
+  .sev.l { background: rgba(119,128,191,.25); color: #c7d2fe; }
+  .foot { margin-top: 2.4rem; color: #64748b; font-size: .82rem; line-height: 1.7; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Span messages in the Trace Modal</h1>
+    <p class="sub">
+      <code>jeffrey.Message</code> and <code>jeffrey.Alert</code> already exist in
+      <code>utilities/jeffrey-events</code>, but they are deliberately outside tracing &mdash; the package
+      javadoc says so out loud: <em>"these are instants, not spans &hellip; they do not take part in
+      traces."</em> Attaching them to the open span is a small change (two <code>@Contextual</code> fields
+      stamped from <code>Tracer.current()</code>); <strong>what to do with them on screen is the open
+      question.</strong> Five directions below, plus today's behaviour as the baseline. Every page draws
+      the same trace and the same six messages, so what differs is layout, not data.
+    </p>
+
+    <a class="mk base" href="mockup-0-current.html">
+      <div class="num zero">0</div>
+      <div><h3>Current &mdash; as shipped <span class="tag">baseline</span></h3>
+        <p>The Trace Modal on <code>master</code>. Two of the six messages are reachable, two clicks deep, as
+          truncated JSON &mdash; and only because they happened on the same thread inside the span's window.</p></div>
+    </a>
+
+    <div class="list">
+      <a class="mk" href="mockup-1-message-lane.html">
+        <div class="num">1</div>
+        <div><h3>Message lane</h3><p>A lane of its own above the span rows, next to the GC and Safepoint lanes &mdash; but
+          diamonds instead of bands, because a message is an instant. Click opens it.</p></div>
+      </a>
+      <a class="mk" href="mockup-2-bar-pins.html">
+        <div class="num">2</div>
+        <div><h3>Pins on the bar</h3><p>Each message pinned to the bar that emitted it, a count badge on the span name,
+          and a new <em>Messages</em> region in the span detail panel.</p></div>
+      </a>
+      <a class="mk" href="mockup-3-tree-rows.html">
+        <div class="num">3</div>
+        <div><h3>Rows in the tree</h3><p>Every message is a row, indented under its span and folding with it &mdash; the
+          Jaeger/Zipkin "span logs" reading. Nothing needs opening.</p></div>
+      </a>
+      <a class="mk" href="mockup-4-log-pane.html">
+        <div class="num">4</div>
+        <div><h3>Split log pane</h3><p>Waterfall left, searchable message log docked right, cross-highlighted both ways.
+          Full text always visible; costs 25rem of bar width.</p></div>
+      </a>
+      <a class="mk" href="mockup-5-ribbon.html">
+        <div class="num">5</div>
+        <div><h3>Severity ribbon + callouts</h3><p>A density strip on the trace's own axis with callouts for what shouted,
+          and a table below. Answers "did anything go wrong" before "where".</p></div>
+      </a>
+    </div>
+
+    <div class="fix">
+      <h4><i class="bi bi-clipboard-data"></i> The fixture every page draws</h4>
+      <p style="color:#94a3b8;font-size:.85rem;line-height:1.6;margin-bottom:.6rem">
+        One <code>POST /api/orders</code> trace &mdash; 412 ms, six spans, one failed outbound charge, a promoted
+        <code>jdk.SocketRead</code>, two GC pauses crossing it &mdash; and six messages, two of them on the root span
+        rather than on a leaf.
+      </p>
+      <table class="fx">
+        <thead><tr><th>At</th><th>Severity</th><th>Type</th><th>Span</th><th>Event</th></tr></thead>
+        <tbody>
+          <tr><td class="m">+6 ms</td><td><span class="sev l">low</span></td><td class="m">CART_REPRICED</td><td>orders.validate</td><td class="m">jeffrey.Message</td></tr>
+          <tr><td class="m">+30 ms</td><td><span class="sev m">medium</span></td><td class="m">QUERY_PLAN_FALLBACK</td><td>SELECT orders</td><td class="m">jeffrey.Message</td></tr>
+          <tr><td class="m">+64 ms</td><td><span class="sev m">medium</span></td><td class="m">CONNECTION_POOL_PRESSURE</td><td>POST /api/orders <em>(root)</em></td><td class="m">jeffrey.Message</td></tr>
+          <tr><td class="m">+158 ms</td><td><span class="sev h">high</span></td><td class="m">PAYMENT_RETRY</td><td>payments.charge</td><td class="m">jeffrey.Alert</td></tr>
+          <tr><td class="m">+300 ms</td><td><span class="sev c">critical</span></td><td class="m">CIRCUIT_BREAKER_OPEN</td><td>payments.charge</td><td class="m">jeffrey.Alert</td></tr>
+          <tr><td class="m">+406 ms</td><td><span class="sev l">low</span></td><td class="m">FEATURE_FLAG_READ</td><td>POST /api/orders <em>(root)</em></td><td class="m">jeffrey.Message</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="facts">
+      <h4><i class="bi bi-tools"></i> What the backend would have to provide</h4>
+      <ul>
+        <li><code>MessageEvent</code> / <code>AlertEvent</code> gain <code>@Contextual long traceId</code> and
+          <code>long spanId</code>, stamped at commit from <code>Tracer.current()</code> &mdash; <code>0</code> when no
+          span is open, which is already the library's "no id" convention.</li>
+        <li>They must <strong>not</strong> extend <code>AbstractTracedEvent</code>: structural span discovery keys on a
+          declared <code>spanId</code> field, so that would turn every message into a span. This is exactly why
+          <code>TraceScopeEvent</code> calls its field <code>scopedSpanId</code>.</li>
+        <li>A derived <code>trace_messages</code> table filled beside <code>DERIVE_TRACE_SPANS</code> &mdash; typed columns,
+          not read-time JSON extraction, for the same reason <code>trace_spans</code> exists.</li>
+        <li><code>TraceDetail</code> carries the messages; <code>EVENTS_IN_SPAN</code> must exclude the message types the way
+          it already excludes span, scope and promoted blocking types, or every message is listed twice.</li>
+        <li>Nothing above depends on which direction wins. Only the last step &mdash; the component &mdash; does.</li>
+      </ul>
+    </div>
+
+    <div class="facts warn">
+      <h4><i class="bi bi-question-circle"></i> Two things worth deciding while you look</h4>
+      <ul>
+        <li><strong>The severity palette is provisional.</strong> These mockups use danger for CRITICAL/HIGH and warning
+          for MEDIUM &mdash; but danger is already the GC-pause band and warning is already the critical-path marker, and all
+          three appear in the same picture. Direction 5 hedges by encoding severity in height as well as hue; the others
+          rely on shape (a diamond is never a band).</li>
+        <li><strong>Is a message an annotation on a span, or a row in the tree?</strong> Directions 1, 2, 4 and 5 say
+          annotation. Direction 3 says row &mdash; and pays for it: look at rows 8-10 of that page, where
+          <code>PAYMENT_RETRY</code> at +158 ms is drawn <em>after</em> a sibling that was still running when it fired.</li>
+      </ul>
+    </div>
+
+    <p class="foot">
+      Static HTML, no build step &mdash; open any page directly. Colours are copied verbatim from
+      <code>shared/ui/common/src/assets/design-tokens.css</code> and the class shapes from
+      <code>components/trace/TraceWaterfall.vue</code>, so the comparison against the real waterfall is honest.
+      Each page ends with what the direction buys, what it costs and what it would take to build.
+    </p>
+  </div>
+</body>
+</html>
