@@ -39,10 +39,21 @@ public interface RecordingProfileInfoProvider {
      * @param profileCreatedAt when the profile was created (analyzed), as epoch millis; {@code 0} when the
      *                         recording has no profile. Lets the UI sort initialized recordings by analysis
      *                         time rather than upload time.
+     * @param initProgress     how far initialization has got, so the list can show a profile being
+     *                         built rather than only a profile that exists
      */
-    record ProfileInfo(long profileSizeInBytes, boolean profileModified, long profileCreatedAt) {
+    record ProfileInfo(
+            long profileSizeInBytes,
+            boolean profileModified,
+            long profileCreatedAt,
+            ProfileInitProgress initProgress) {
 
-        public static final ProfileInfo NONE = new ProfileInfo(0L, false, 0L);
+        public static final ProfileInfo NONE =
+                new ProfileInfo(0L, false, 0L, ProfileInitProgress.NONE);
+
+        public ProfileInfo {
+            initProgress = initProgress == null ? ProfileInitProgress.NONE : initProgress;
+        }
     }
 
     RecordingProfileInfoProvider NOOP = recording -> ProfileInfo.NONE;

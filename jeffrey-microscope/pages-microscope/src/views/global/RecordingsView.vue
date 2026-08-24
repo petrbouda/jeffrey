@@ -256,6 +256,8 @@
                 :profile-created-at="recording.profileCreatedAt"
                 :profile-modified="recording.profileModified"
                 :analyzing="analyzingRecordings.has(recording.id)"
+                :init-progress="recording.initProgress"
+                :tick-now="tickNow"
                 :draggable="true"
                 :origin="buildOrigin(recording)"
                 :file-count="recording.files?.length ?? 0"
@@ -327,7 +329,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import RecordingsClient from '@workspaces/services/api/RecordingsClient';
 import MainCard from '@shared/components/MainCard.vue';
@@ -909,9 +911,57 @@ const loadData = async () => {
   }
 };
 
+/**
+ * Refreshing while an initialization is in flight, and only then. The list is otherwise refreshed by
+ * the actions that change it; a profile being built changes underneath us with nothing to emit, so
+ * the stage chips need asking. The tick is separate and faster, because the chip showing the running
+ * stage counts up between refreshes rather than sitting still until the next one.
+ */
+const INIT_REFRESH_INTERVAL_MS = 2000;
+const INIT_TICK_INTERVAL_MS = 200;
+
+const tickNow = ref(Date.now());
+let initRefreshTimer: ReturnType<typeof setInterval> | null = null;
+let initTickTimer: ReturnType<typeof setInterval> | null = null;
+
+const anyInitializing = computed(() =>
+  allRecordings.value.some(recording => recording.initProgress?.state === 'running')
+);
+
+const stopInitWatch = () => {
+  if (initRefreshTimer !== null) {
+    clearInterval(initRefreshTimer);
+    initRefreshTimer = null;
+  }
+  if (initTickTimer !== null) {
+    clearInterval(initTickTimer);
+    initTickTimer = null;
+  }
+};
+
+const startInitWatch = () => {
+  if (initRefreshTimer !== null) {
+    return;
+  }
+  initRefreshTimer = setInterval(loadData, INIT_REFRESH_INTERVAL_MS);
+  initTickTimer = setInterval(() => {
+    tickNow.value = Date.now();
+  }, INIT_TICK_INTERVAL_MS);
+};
+
+watch(anyInitializing, initializing => {
+  if (initializing) {
+    startInitWatch();
+  } else {
+    stopInitWatch();
+  }
+});
+
 onMounted(() => {
   loadData();
 });
+
+onBeforeUnmount(stopInitWatch);
 
 // --- Drag and drop: recording card → group chip ---
 

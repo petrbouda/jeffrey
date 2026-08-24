@@ -174,8 +174,10 @@ public class MicroscopeAppConfiguration {
     }
 
     @Bean
-    public RecordingProfileInfoProvider recordingProfileInfoProvider(RecordingsManager recordingsManager) {
-        return new MicroscopeRecordingProfileInfoProvider(recordingsManager);
+    public RecordingProfileInfoProvider recordingProfileInfoProvider(
+            RecordingsManager recordingsManager,
+            PipelineRunRegistry<String> profileInitRunRegistry) {
+        return new MicroscopeRecordingProfileInfoProvider(recordingsManager, profileInitRunRegistry);
     }
 
     @Bean

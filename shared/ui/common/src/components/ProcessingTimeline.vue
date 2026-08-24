@@ -53,6 +53,7 @@
       >
         <div class="phase-icon">
           <i v-if="phaseStatus(phase) === 'done'" class="bi bi-check-lg"></i>
+          <i v-else-if="phaseStatus(phase) === 'failed'" class="bi bi-x-lg"></i>
           <span v-else>{{ phaseIdx + 1 }}</span>
         </div>
         <div class="phase-name">{{ phase.name }}</div>
@@ -131,6 +132,12 @@
 import { computed, ref } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
 import type { SubPhaseTiming, TimelinePhase, TimelineStep } from '@shared/types/processing';
+import {
+  type GroupStatus,
+  groupProgress,
+  groupStatus,
+  isTerminal
+} from '@shared/services/timelineStatus';
 
 const props = withDefaults(
   defineProps<{
@@ -195,35 +202,16 @@ const stageMeta = (step: TimelineStep | undefined): string => {
   return 'queued';
 };
 
-const isTerminal = (s: TimelineStep): boolean =>
-  s.status === 'completed' || s.status === 'skipped' || s.status === 'on_demand' || s.status === 'failed';
+// Shared with StageChips, so a set of steps cannot be called done by one renderer and pending by
+// the other. Note it reports a group containing a failed step as failed: this component used to
+// call such a phase done and give it a green tick.
+const stepIdsOf = (phase: TimelinePhase): string[] => phase.steps.map(s => s.id);
 
-const phaseStatus = (phase: TimelinePhase): 'done' | 'active' | 'pending' => {
-  const steps = phase.steps
-    .map(s => getStep(s.id))
-    .filter((s): s is TimelineStep => s !== undefined);
-  if (steps.length === 0) {
-    return 'pending';
-  }
-  if (steps.every(isTerminal)) {
-    return 'done';
-  }
-  if (steps.some(s => s.status === 'in_progress' || s.status === 'completed')) {
-    return 'active';
-  }
-  return 'pending';
-};
+const phaseStatus = (phase: TimelinePhase): GroupStatus =>
+  groupStatus(stepIdsOf(phase), props.steps);
 
-const phaseProgress = (phase: TimelinePhase): number => {
-  const steps = phase.steps
-    .map(s => getStep(s.id))
-    .filter((s): s is TimelineStep => s !== undefined);
-  if (steps.length === 0) {
-    return 0;
-  }
-  const done = steps.filter(isTerminal).length;
-  return (done / steps.length) * 100;
-};
+const phaseProgress = (phase: TimelinePhase): number =>
+  groupProgress(stepIdsOf(phase), props.steps);
 
 const overallProgress = computed(() => {
   const all = props.steps;
@@ -345,6 +333,11 @@ const totalElapsed = computed(() => {
   background: var(--color-success-light);
 }
 
+.phase-card.failed {
+  border-color: var(--color-danger);
+  background: var(--color-danger-light);
+}
+
 .phase-icon {
   width: 32px;
   height: 32px;
@@ -355,6 +348,12 @@ const totalElapsed = computed(() => {
   font-size: 0.78rem;
   font-weight: 700;
   margin-bottom: 10px;
+}
+
+.phase-card.failed .phase-icon {
+  background: var(--color-danger);
+  color: #fff;
+  border-color: var(--color-danger);
 }
 
 .phase-card.done .phase-icon {

@@ -19,6 +19,15 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
+import StageChips from '@shared/components/StageChips.vue';
+import type { ProfileInitProgress } from '../services/api/model/Recording';
+import {
+  PROFILE_INIT_CHIPS,
+  failedStageLabel,
+  hasFailed,
+  isInitializing,
+  toTimelineSteps
+} from './profileInitChips';
 
 interface RecordingOrigin {
   server: string;
@@ -36,7 +45,10 @@ interface Props {
   fileCount?: number;
   hasProfile: boolean;
   profileId?: string | null;
-  profileEnabled?: boolean;
+  /** How far initialization has got. Absent for a recording that has never been analysed. */
+  initProgress?: ProfileInitProgress;
+  /** Epoch millis the parent ticks while an initialization is running. */
+  tickNow?: number;
   profileSizeInBytes?: number;
   profileCreatedAt?: number;
   profileModified?: boolean;
@@ -50,7 +62,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  profileEnabled: true,
+  tickNow: 0,
   profileModified: false,
   analyzing: false,
   creatingProfile: false,
@@ -124,11 +136,16 @@ const typeTagClass = computed(() => {
   return 'rec-card__type--jfr';
 });
 
+const initializing = computed(() => isInitializing(props.initProgress));
+const initFailed = computed(() => hasFailed(props.initProgress));
+const initSteps = computed(() => toTimelineSteps(props.initProgress, props.tickNow));
+const failedStage = computed(() => failedStageLabel(props.initProgress));
+
+/** Shown whenever there is a run to show, whether it is still going or ended badly. */
+const showsChips = computed(() => initializing.value || initFailed.value);
+
 const isTransitional = () =>
-  props.analyzing ||
-  props.creatingProfile ||
-  props.deletingProfile ||
-  (props.hasProfile && !props.profileEnabled);
+  props.analyzing || props.creatingProfile || props.deletingProfile || initializing.value;
 
 const handleClick = () => {
   if (isTransitional()) {
@@ -195,9 +212,9 @@ onBeforeUnmount(() => {
     ref="cardRef"
     class="rec-card"
     :class="{
-      'rec-card--analyzed': hasProfile && profileEnabled && !deletingProfile,
-      'rec-card--analyzing':
-        analyzing || creatingProfile || (hasProfile && !profileEnabled && !deletingProfile),
+      'rec-card--analyzed': hasProfile && !initializing && !initFailed && !deletingProfile,
+      'rec-card--analyzing': analyzing || creatingProfile || (initializing && !deletingProfile),
+      'rec-card--failed': initFailed && !deletingProfile,
       'rec-card--deleting': deletingProfile,
       'rec-card--heap-dump': sourceType === 'HEAP_DUMP',
       'rec-card--pprof': sourceType === 'PPROF',
@@ -240,8 +257,12 @@ onBeforeUnmount(() => {
           <span class="rec-card__sep">&middot;</span>
           <span
             class="rec-card__meta"
-            :title="(showsInitializedTime ? 'Initialized ' : 'Uploaded ') + formatRelativeTime(displayedTime)"
-          >{{ formatRelativeTime(displayedTime) }}</span>
+            :title="
+              (showsInitializedTime ? 'Initialized ' : 'Uploaded ') +
+              formatRelativeTime(displayedTime)
+            "
+            >{{ formatRelativeTime(displayedTime) }}</span
+          >
           <template v-if="hasProfile && profileSizeInBytes && profileSizeInBytes > 0">
             <span class="rec-card__sep">&middot;</span>
             <span class="rec-card__profile-info">
@@ -261,14 +282,26 @@ onBeforeUnmount(() => {
             class="rec-card__hint"
             :class="{
               'rec-card__hint--analyze': !hasProfile,
-              'rec-card__hint--open': hasProfile && profileEnabled && sourceType !== 'HEAP_DUMP',
-              'rec-card__hint--open-heap':
-                hasProfile && profileEnabled && sourceType === 'HEAP_DUMP'
+              'rec-card__hint--open': hasProfile && sourceType !== 'HEAP_DUMP',
+              'rec-card__hint--open-heap': hasProfile && sourceType === 'HEAP_DUMP'
             }"
           >
             <template v-if="!hasProfile">Click to initialize</template>
             <template v-else>Open profile</template>
           </span>
+        </div>
+
+        <StageChips
+          v-if="showsChips"
+          class="rec-card__stages"
+          :groups="PROFILE_INIT_CHIPS"
+          :steps="initSteps"
+          :tick-now="tickNow"
+        />
+        <div v-if="initFailed" class="rec-card__init-error">
+          <i class="bi bi-exclamation-octagon-fill"></i>
+          <span v-if="failedStage">Initialization failed during {{ failedStage }}.</span>
+          <span v-else>Initialization failed.</span>
         </div>
       </div>
 
@@ -298,9 +331,12 @@ onBeforeUnmount(() => {
           <span class="rec-card__spinner rec-card__spinner--danger"></span>
           Deleting…
         </span>
-        <span v-else-if="hasProfile && !profileEnabled" class="rec-card__spinner-pill">
+        <span v-else-if="initializing" class="rec-card__spinner-pill">
           <span class="rec-card__spinner"></span>
           Initializing…
+        </span>
+        <span v-else-if="initFailed" class="rec-card__spinner-pill rec-card__spinner-pill--danger">
+          Failed
         </span>
 
         <!-- Actions toggle (⋯ / chevron) -->
@@ -460,20 +496,32 @@ onBeforeUnmount(() => {
   border-color: color-mix(in srgb, var(--color-teal) 30%, transparent);
   border-left-color: var(--color-teal);
   border-left-style: solid;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--color-teal) 4%, transparent), color-mix(in srgb, var(--color-teal) 2%, transparent));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-teal) 4%, transparent),
+    color-mix(in srgb, var(--color-teal) 2%, transparent)
+  );
   box-shadow: 0 2px 8px color-mix(in srgb, var(--color-teal) 12%, transparent);
 }
 
 /* pprof: analyzed */
 .rec-card--pprof.rec-card--analyzed {
   border-left: 3px solid var(--color-teal);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--color-teal) 3%, transparent), var(--color-white));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-teal) 3%, transparent),
+    var(--color-white)
+  );
 }
 
 .rec-card--pprof.rec-card--analyzed:hover {
   border-color: color-mix(in srgb, var(--color-teal) 30%, transparent);
   border-left-color: var(--color-teal-700);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--color-teal) 8%, transparent), color-mix(in srgb, var(--color-teal) 4%, transparent));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-teal) 8%, transparent),
+    color-mix(in srgb, var(--color-teal) 4%, transparent)
+  );
   box-shadow: 0 2px 8px color-mix(in srgb, var(--color-teal) 15%, transparent);
 }
 
@@ -495,20 +543,32 @@ onBeforeUnmount(() => {
   border-color: color-mix(in srgb, var(--color-orange) 30%, transparent);
   border-left-color: var(--color-orange);
   border-left-style: solid;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--color-orange) 4%, transparent), color-mix(in srgb, var(--color-orange) 2%, transparent));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-orange) 4%, transparent),
+    color-mix(in srgb, var(--color-orange) 2%, transparent)
+  );
   box-shadow: 0 2px 8px color-mix(in srgb, var(--color-orange) 12%, transparent);
 }
 
 /* OTLP: analyzed */
 .rec-card--otel.rec-card--analyzed {
   border-left: 3px solid var(--color-orange);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--color-orange) 3%, transparent), var(--color-white));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-orange) 3%, transparent),
+    var(--color-white)
+  );
 }
 
 .rec-card--otel.rec-card--analyzed:hover {
   border-color: color-mix(in srgb, var(--color-orange) 30%, transparent);
   border-left-color: var(--color-orange-accent);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--color-orange) 8%, transparent), color-mix(in srgb, var(--color-orange) 4%, transparent));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-orange) 8%, transparent),
+    color-mix(in srgb, var(--color-orange) 4%, transparent)
+  );
   box-shadow: 0 2px 8px color-mix(in srgb, var(--color-orange) 15%, transparent);
 }
 
@@ -924,5 +984,23 @@ onBeforeUnmount(() => {
   padding-left: 12px;
   border-left: 2px solid var(--color-border);
   margin-left: 10px;
+}
+
+.rec-card__stages {
+  margin-top: var(--spacing-1);
+}
+
+.rec-card--failed {
+  border-left: 3px solid var(--color-danger);
+  background: var(--color-danger-light);
+}
+
+.rec-card__init-error {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  margin-top: var(--spacing-1);
+  font-size: 0.7rem;
+  color: var(--color-danger);
 }
 </style>

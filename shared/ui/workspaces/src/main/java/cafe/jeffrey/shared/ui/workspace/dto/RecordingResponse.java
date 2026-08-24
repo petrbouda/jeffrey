@@ -21,6 +21,7 @@ package cafe.jeffrey.shared.ui.workspace.dto;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingFile;
+import cafe.jeffrey.shared.ui.workspace.bridge.ProfileInitProgress;
 import cafe.jeffrey.shared.ui.workspace.bridge.RecordingProfileInfoProvider.ProfileInfo;
 
 import java.util.List;
@@ -44,6 +45,7 @@ public record RecordingResponse(
         boolean profileModified,
         long profileCreatedAt,
         String profileName,
+        ProfileInitProgress initProgress,
         List<RecordingFileResponse> files,
         List<RecordingTagResponse> tags) {
 
@@ -77,6 +79,7 @@ public record RecordingResponse(
                 profileInfo.profileModified(),
                 profileInfo.profileCreatedAt(),
                 recording.profileName(),
+                profileInfo.initProgress(),
                 fileResponses,
                 tags.stream().map(RecordingTagResponse::from).toList());
     }
