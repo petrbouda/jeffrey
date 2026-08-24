@@ -117,19 +117,42 @@
           always slow" from "a fast span called a thousand times", which are different problems
           with different fixes — the Calls, P50 and Max columns say which one each row is, and
           they align down the list so spans can be compared against each other at a glance.
+
+          Each row opens with a rail in its category's colour and closes its name with the event
+          type it was made from, because the list mixes two kinds of thing: spans the application
+          instrumented, and waits the derivation promoted out of JDK events. Read as bare names,
+          "Socket read" sits among the mapper calls looking like a method somebody wrote.
         -->
         <div v-else class="span-grid">
           <div class="span-grid-head">
+            <span></span>
             <span>Span</span>
-            <span>Share of operation</span>
+            <span>Share</span>
             <span class="span-end">Total</span>
             <span class="span-end">Calls</span>
             <span class="span-end">{{ spanMode === 'total' ? 'Max' : 'Own' }}</span>
             <span class="span-end">P99</span>
             <span class="span-end">P50</span>
           </div>
-          <div v-for="span in rankedSpans" :key="span.name" class="span-grid-row">
-            <span class="span-name" :title="span.name">{{ span.name }}</span>
+          <div
+            v-for="span in rankedSpans"
+            :key="spanKey(span)"
+            class="span-grid-row"
+            :style="{ '--span-color': spanColor(span) }"
+          >
+            <span class="span-rail"></span>
+            <span class="span-name">
+              <!--
+                A promoted wait leaves the monospace face behind: "Socket read" is a label this
+                application wrote for a JDK event, not an identifier from anyone's source.
+              -->
+              <span
+                class="span-label"
+                :class="{ promoted: isPromoted(span) }"
+                :title="span.name"
+              >{{ span.name }}</span>
+              <span class="span-type" :title="spanTypeTitle(span)">{{ span.eventType }}</span>
+            </span>
             <span class="span-track">
               <span class="span-fill" :style="{ width: spanShare(span) }"></span>
             </span>
@@ -170,74 +193,15 @@
       </template>
     </MainCard>
 
-    <div class="slowest-cards">
-      <MetricCardList
-        :items="slowestTraces"
-        :item-key="(trace: TraceRow) => trace.traceId"
-        :count-class="durationSeverity"
-        :sort-options="[]"
-        server-ordered
-        @item-click="(trace: TraceRow) => emit('openTrace', trace)"
-      >
-        <template #count="{ item }">
-          <span class="zone-duration">
-            {{ duration(item.durationNanos) }}
-          </span>
-          <span class="zone-caption">Duration</span>
-        </template>
+    <TraceCardList
+      :items="slowestTraces"
+      :trace="(trace: TraceRow) => trace"
+      :p50-nanos="p50Nanos"
+      :p95-nanos="p95Nanos"
+      empty-description="This operation has no completed traces."
+      @open="(trace: TraceRow) => emit('openTrace', trace)"
+    />
 
-        <template #name="{ item }">
-          <div class="slowest-title">
-            <MetricName
-              :segments="parseOperationName(item.rootName, item.rootEventType)"
-              :title="item.rootName"
-            />
-            <span class="slowest-tags">
-              <Badge
-                :value="item.rootEventType"
-                variant="secondary"
-                size="s"
-                borderless
-                :uppercase="false"
-              />
-              <Badge
-                :value="item.rootKind"
-                :variant="spanKindVariant(item.rootKind)"
-                size="s"
-                borderless
-              />
-            </span>
-          </div>
-        </template>
-
-        <template #metrics="{ item }">
-          <Badge
-            key-label="Spans"
-            :value="FormattingService.formatNumber(item.spanCount)"
-            variant="secondary"
-            size="s"
-            borderless
-          />
-          <Badge
-            key-label="Started"
-            :value="`+${duration(item.startMillisFromBeginning * NANOS_PER_MILLI)}`"
-            variant="secondary"
-            size="s"
-            borderless
-          />
-        </template>
-
-        <template #right="{ item }">
-          <Badge
-            v-if="item.errorCount > 0"
-            :value="errorLabel(item.errorCount)"
-            variant="danger"
-            size="s"
-            icon="bi bi-exclamation-triangle"
-          />
-        </template>
-      </MetricCardList>
-    </div>
   </div>
 </template>
 
@@ -251,10 +215,8 @@ import LoadingState from '@shared/components/LoadingState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
 import FormattingService from '@shared/services/FormattingService';
+import TraceCardList from '@/components/trace/TraceCardList.vue';
 
-import Badge from '@shared/components/Badge.vue';
-import MetricCardList from '@shared/components/MetricCardList.vue';
-import MetricName from '@/components/common/MetricName.vue';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
 import {
   latencyHistogram,
@@ -270,10 +232,10 @@ import type {
   TraceRow
 } from '@/services/api/model/trace/TraceModels';
 import {
-  errorLabel,
+  contextColor,
+  contextLabel,
   operationKey,
-  parseOperationName,
-  spanKindVariant
+  promotedCategory
 } from '@/services/trace/traceLabels';
 
 /** Upper bound on histogram columns: past this they are too thin to read. */
@@ -282,8 +244,12 @@ const MAX_HISTOGRAM_BUCKETS = 24;
 const MIN_HISTOGRAM_BUCKETS = 6;
 /** The breakdown is a ranking, not a catalogue; the tail of a long list is never read. */
 const DISPLAYED_SPANS = 8;
-/** A summary shows the worst few; the Slowest Traces tab is where the whole ranking lives. */
-const SLOWEST_SHOWN = 5;
+/**
+  * A summary shows the worst few; the Slowest Traces tab is where the whole ranking lives. Twenty
+  * rather than five since the row went to one line — five was what fitted when a trace cost 98px,
+  * and at 40px twenty is the same amount of page.
+  */
+const SLOWEST_SHOWN = 20;
 /** Below this an own-work share rounds to 0%, where "<1%" is the more honest reading. */
 const MIN_REPORTED_SHARE_PERCENT = 1;
 
@@ -315,27 +281,9 @@ const spans = ref<TraceOperationSpanRow[]>([]);
 const threadsSummary = ref<TraceOperationThreads | null>(null);
 
 /*
- * Sorted here rather than left to the list: handing it a pre-cut five means cutting the right five.
+ * Sorted here rather than left to the list: handing it a pre-cut page means cutting the right one.
  */
 const slowestTraces = computed(() => slowestFirst(props.traces).slice(0, SLOWEST_SHOWN));
-
-/** The Started chip holds an offset in millis; the duration formatter reads nanos. */
-const NANOS_PER_MILLI = 1_000_000;
-
-/**
- * The tint of a trace's duration zone: how its duration sits within the operation. Green up to the
- * operation's median, the neutral brand tint in between, red past its P95 — the same reading the
- * Search Traces cards give, against this operation's own population percentiles.
- */
-function durationSeverity(trace: TraceRow): string | undefined {
-  if (trace.durationNanos > p95Nanos.value) {
-    return 'zone-slow';
-  }
-  if (trace.durationNanos <= p50Nanos.value) {
-    return 'zone-fast';
-  }
-  return undefined;
-}
 
 const durationsNanos = computed(() => props.traces.map(trace => trace.durationNanos));
 
@@ -562,6 +510,43 @@ const rankedSpans = computed(() =>
     .slice(0, MAX_SPAN_ROWS)
 );
 
+/**
+ * The colour an instrumented span is drawn in. The brand accent rather than a category colour: the
+ * context ramp names the ways a thread stops running, and code that is running is none of them.
+ */
+const APPLICATION_SPAN_COLOR = 'var(--color-primary)';
+
+/** Whether the row is a wait the derivation promoted rather than a span the application recorded. */
+function isPromoted(span: TraceOperationSpanRow): boolean {
+  return promotedCategory(span.eventType) !== null;
+}
+
+/**
+ * The row's rail and bar colour: its context category for a promoted wait — the same colour the
+ * waterfall, the legend and the threads timeline give that wait — and the accent for everything the
+ * application instrumented itself.
+ */
+function spanColor(span: TraceOperationSpanRow): string {
+  const category = promotedCategory(span.eventType);
+  return category === null ? APPLICATION_SPAN_COLOR : contextColor(category);
+}
+
+function spanTypeTitle(span: TraceOperationSpanRow): string {
+  const category = promotedCategory(span.eventType);
+  if (category === null) {
+    return `Recorded by ${span.eventType}`;
+  }
+  return `${contextLabel(category)}, promoted from the ${span.eventType} events inside these traces`;
+}
+
+/**
+ * A row's identity. The name alone is not one: the breakdown groups by event type as well, so a
+ * name recorded by two different events is two rows rather than one.
+ */
+function spanKey(span: TraceOperationSpanRow): string {
+  return `${span.eventType}|${span.name}`;
+}
+
 function spanShare(span: TraceOperationSpanRow): string {
   // Against the widest shown row, not the first: under a Max or P99 ranking the first row is not
   // necessarily the one with the most time, and a bar past 100% would run out of its lane.
@@ -639,60 +624,6 @@ watch(() => operationKey(props.operation), load, { immediate: true });
 .slowest-header-card :deep(.main-card-header) {
   border-bottom: 0;
   border-radius: var(--radius-md);
-}
-
-.zone-duration {
-  font-family: var(--font-family-monospace);
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1.15;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.zone-caption {
-  font-size: 0.56rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  opacity: 0.85;
-  margin-top: 4px;
-}
-
-/* One width for every zone, so each name starts at the same offset down the list. */
-.slowest-cards :deep(.mcl-count) {
-  width: 132px;
-  min-width: 132px;
-  padding: 0 var(--spacing-2);
-}
-
-.slowest-cards :deep(.mcl-count.zone-fast) {
-  background: var(--color-success-light);
-  color: var(--color-success-dark);
-}
-
-.slowest-cards :deep(.mcl-count.zone-slow) {
-  background: var(--color-danger-light);
-  color: var(--color-danger);
-}
-
-.slowest-title {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  min-width: 0;
-}
-
-.slowest-tags {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin-left: auto;
-  padding-left: var(--spacing-3);
-}
-
-.slowest-title :deep(.badge) {
-  flex-shrink: 0;
 }
 
 .card-note {
@@ -776,24 +707,33 @@ watch(() => operationKey(props.operation), load, { immediate: true });
   color: var(--color-text-muted);
 }
 
-/* A table without table chrome: every fact on one line, columns tabular-aligned down the list. */
+/*
+ * A table without table chrome: every fact on one line, columns tabular-aligned down the list.
+ * The leading 4px column is the category rail, which is why the head carries an empty cell.
+ *
+ * Horizontal padding on both head and rows, matched, so the hover tint has an edge to sit inside
+ * without the columns shifting between the two.
+ */
 .span-grid-head,
 .span-grid-row {
   display: grid;
-  grid-template-columns: minmax(10rem, 15rem) 1fr 120px 60px 110px 110px 110px;
-  gap: 0.8rem;
+  grid-template-columns: 4px minmax(10rem, 22rem) 1fr 6.5rem 4.5rem 6.5rem 6.5rem 6.5rem;
+  gap: 0.7rem;
   align-items: center;
-  padding: 0.4rem 0;
+  padding: 0.34rem var(--spacing-2);
+  margin: 0 calc(var(--spacing-2) * -1);
 }
 
 .span-grid-head {
   border-bottom: 1px solid var(--color-border);
+  padding-top: 0.3rem;
+  padding-bottom: 0.4rem;
 }
 
 .span-grid-head span {
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  letter-spacing: 0.05em;
+  font-size: 0.6rem;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--color-text-muted);
 }
@@ -802,22 +742,60 @@ watch(() => operationKey(props.operation), load, { immediate: true });
   border-top: 1px solid var(--color-border-light);
 }
 
+.span-grid-row:hover {
+  background: var(--color-bg-hover);
+}
+
 .span-end {
   text-align: right;
 }
 
+.span-rail {
+  height: 17px;
+  border-radius: var(--radius-xs);
+  background: var(--span-color);
+}
+
 .span-name {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.span-label {
   font-family: var(--font-family-monospace);
-  font-size: var(--font-size-base);
-  font-weight: 600;
+  font-size: 0.745rem;
+  font-weight: var(--font-weight-medium);
   color: var(--color-dark);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.span-label.promoted {
+  font-family: var(--font-family-base);
+  font-size: 0.775rem;
+}
+
+/*
+ * The event code verbatim — the prefix is half the fact, so it is never trimmed off.
+ *
+ * Mixed toward the ink rather than worn neat: the context ramp is a palette of fills, and several
+ * of its pastels (the monitor purple, the sleeping teal) vanish at this size on a white card. The
+ * rail and the bar keep the colour as it is; only the text, which has to be read, is darkened.
+ */
+.span-type {
+  flex: none;
+  font-family: var(--font-family-monospace);
+  font-size: 0.6rem;
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--span-color) 62%, var(--color-dark));
+}
+
 .span-track {
-  height: 8px;
+  height: 6px;
   background: var(--color-lighter);
   border-radius: var(--radius-sm);
   overflow: hidden;
@@ -826,15 +804,15 @@ watch(() => operationKey(props.operation), load, { immediate: true });
 .span-fill {
   display: block;
   height: 100%;
-  background: var(--color-primary);
-  opacity: 0.8;
+  background: var(--span-color);
+  opacity: 0.85;
   border-radius: var(--radius-sm);
 }
 
 .span-total {
   font-family: var(--font-family-monospace);
-  font-size: var(--font-size-base);
-  font-weight: 700;
+  font-size: 0.735rem;
+  font-weight: var(--font-weight-semibold);
   font-variant-numeric: tabular-nums;
   color: var(--color-dark);
   text-align: right;
@@ -843,9 +821,9 @@ watch(() => operationKey(props.operation), load, { immediate: true });
 
 .span-cell {
   font-family: var(--font-family-monospace);
-  font-size: var(--font-size-base);
+  font-size: 0.735rem;
   font-variant-numeric: tabular-nums;
-  color: var(--color-dark);
+  color: var(--color-text);
   text-align: right;
   white-space: nowrap;
 }

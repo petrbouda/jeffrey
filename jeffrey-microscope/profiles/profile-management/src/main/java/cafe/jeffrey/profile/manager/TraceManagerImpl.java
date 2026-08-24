@@ -50,6 +50,7 @@ import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
+import cafe.jeffrey.provider.profile.api.TraceTimelineBucketRecord;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 
 import java.util.ArrayDeque;
@@ -106,7 +107,16 @@ public class TraceManagerImpl implements TraceManager {
 
     @Override
     public List<TraceTimelineBucket> timeline(int buckets) {
-        return traceRepository.timeline(buckets).stream()
+        return toBuckets(traceRepository.timeline(buckets));
+    }
+
+    @Override
+    public List<TraceTimelineBucket> timelineOfOperation(TraceOperationId operation, int buckets) {
+        return toBuckets(traceRepository.timelineOfOperation(operation, buckets));
+    }
+
+    private static List<TraceTimelineBucket> toBuckets(List<TraceTimelineBucketRecord> records) {
+        return records.stream()
                 .map(bucket -> new TraceTimelineBucket(
                         bucket.fromMillisFromBeginning(),
                         bucket.count(),
@@ -396,6 +406,7 @@ public class TraceManagerImpl implements TraceManager {
         List<TraceOperationSpanRow> spans = traceRepository.spanBreakdownOfOperation(operation, spanLimit).stream()
                 .map(span -> new TraceOperationSpanRow(
                         span.name(),
+                        span.eventType(),
                         span.occurrences(),
                         span.traceCount(),
                         span.totalNanos(),

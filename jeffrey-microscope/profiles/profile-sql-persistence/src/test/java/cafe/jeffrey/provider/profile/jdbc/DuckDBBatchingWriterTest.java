@@ -62,7 +62,7 @@ class DuckDBBatchingWriterTest {
     private static final class TestWriter extends DuckDBBatchingWriter<String> {
 
         private TestWriter(DataSource dataSource) {
-            super(DIRECT_EXECUTOR, "events", dataSource, BATCH_SIZE, StatementLabel.INSERT_EVENTS);
+            super(DIRECT_EXECUTOR, "events_raw", dataSource, BATCH_SIZE, StatementLabel.INSERT_EVENTS);
         }
 
         @Override

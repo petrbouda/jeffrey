@@ -27,6 +27,7 @@ import cafe.jeffrey.provider.profile.api.EventTypeWithFields;
 import cafe.jeffrey.provider.profile.api.FieldDescription;
 import cafe.jeffrey.shared.common.model.EventSummary;
 import cafe.jeffrey.shared.common.model.SpanInterval;
+import cafe.jeffrey.shared.common.model.SpanScope;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
@@ -182,17 +183,66 @@ class JdbcProfileEventTypeRepositoryTest {
                     new JdbcProfileEventTypeRepository(SQL_FORMATTER, new DatabaseClientProvider(dataSource));
 
             List<Type> types = List.of(Type.fromCode("jdk.ExecutionSample"));
-            List<SpanInterval> intervals = List.of(
+            SpanScope scope = SpanScope.of(List.of(
                     new SpanInterval(2001, A_FROM, A_TO),
-                    new SpanInterval(2002, B_FROM, B_TO));
+                    new SpanInterval(2002, B_FROM, B_TO)));
 
             // Span-scoped: only the thread-2001 and thread-2002 in-window samples (GC + out-of-window excluded).
-            EventSummary scoped = repository.eventSummaries(types, intervals).get(0);
+            EventSummary scoped = repository.eventSummaries(types, scope).get(0);
             assertEquals(2, scoped.samples());
 
             // Profile-wide: all four execution samples.
             EventSummary all = repository.eventSummaries(types).get(0);
             assertEquals(4, all.samples());
+        }
+
+        /**
+         * A window wider than one bucket must still match. The scope relation carries a bucket column
+         * so the semi-join has an equality to hash on, and an interval spanning several buckets has to
+         * appear in each of them — get that expansion wrong and samples silently vanish from the
+         * middle of a long span.
+         */
+        @Test
+        void countsSamplesAcrossAWindowSpanningManyBuckets(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph.sql");
+            JdbcProfileEventTypeRepository repository =
+                    new JdbcProfileEventTypeRepository(SQL_FORMATTER, new DatabaseClientProvider(dataSource));
+
+            List<Type> types = List.of(Type.fromCode("jdk.ExecutionSample"));
+            SpanScope wide = SpanScope.of(List.of(
+                    new SpanInterval(2001, A_FROM, B_TO),
+                    new SpanInterval(2002, A_FROM, B_TO)));
+
+            assertEquals(2, repository.eventSummaries(types, wide).get(0).samples(),
+                    "the same two samples, now reached through a window several seconds wide");
+        }
+
+        /** An operation names its windows instead of listing them; the counts must not change. */
+        @Test
+        void countsTheSameSamplesWhenTheScopeIsNamedRatherThanListed(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            DatabaseClientProvider provider = new DatabaseClientProvider(dataSource);
+            new JdbcTraceRepository(provider).derive();
+            JdbcProfileEventTypeRepository repository =
+                    new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
+
+            List<Type> types = List.of(Type.fromCode("jdk.ExecutionSample"));
+            SpanScope operation = new SpanScope.Operation(
+                    "POST /api/internal/profiles/{profileId}/flamegraph", "SERVER", "jeffrey.HttpServerExchange");
+
+            List<EventSummary> named = repository.eventSummaries(types, operation);
+            List<EventSummary> listed = repository.eventSummaries(types, SpanScope.of(
+                    new JdbcTraceRepository(provider).operationIntervals(new TraceOperationId(
+                            "POST /api/internal/profiles/{profileId}/flamegraph", "SERVER",
+                            "jeffrey.HttpServerExchange"))));
+
+            // Stated outright rather than only compared, so the two agreeing on zero cannot pass for
+            // the two agreeing: the fixture's one execution sample lands 30ms into the exchange.
+            assertEquals(1, named.getFirst().samples());
+            assertEquals(
+                    listed.stream().map(EventSummary::samples).toList(),
+                    named.stream().map(EventSummary::samples).toList(),
+                    "deriving the windows and enumerating them must count the same samples");
         }
     }
 

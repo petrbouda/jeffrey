@@ -20,6 +20,7 @@ package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.provider.profile.api.EventQueryConfigurer;
 import cafe.jeffrey.shared.common.model.SpanInterval;
+import cafe.jeffrey.shared.common.model.SpanScope;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
@@ -53,12 +54,16 @@ class DuckDBFlamegraphSpanFilterTest {
     private static final long B_TO = Instant.parse("2025-01-15T10:00:02.200Z").toEpochMilli();
 
     private static long totalSamples(DatabaseClient client, List<SpanInterval> spanIntervals) {
+        return totalSamples(client, SpanScope.of(spanIntervals));
+    }
+
+    private static long totalSamples(DatabaseClient client, SpanScope scope) {
         EventQueryConfigurer configurer = new EventQueryConfigurer()
-                .withSpanIntervals(spanIntervals);
+                .withSpanScope(scope);
         String sql = DuckDBFlamegraphQueries.of(EVENT_TYPE, "").simple(configurer);
 
         MapSqlParameterSource params = new MapSqlParameterSource();
-        SpanIntervalParams.apply(params, spanIntervals);
+        SpanScopeSql.apply(params, scope);
 
         return client.query(StatementLabel.STREAM_EVENTS, sql, params, (rs, _) -> rs.getLong("total_samples"))
                 .stream()
@@ -100,6 +105,41 @@ class DuckDBFlamegraphSpanFilterTest {
         String sql = DuckDBFlamegraphQueries.of(EVENT_TYPE, "").simple(new EventQueryConfigurer());
         assertFalse(sql.contains("span_thread_hashes"));
 
-        assertEquals(4, totalSamples(client, null));
+        assertEquals(4, totalSamples(client, (SpanScope) null));
+    }
+
+    /**
+     * The scope's relation has to be declared in front of whatever the template opens with, and the
+     * templates differ: {@code SIMPLE} opens with a CTE of its own, {@code SIMPLE_OPTIMIZED} with a
+     * bare SELECT. Both are exercised, because getting that seam wrong yields SQL that does not
+     * parse — and because a scope that silently stopped filtering would still parse.
+     */
+    @Test
+    void theScopeRelationIsDeclaredAheadOfEitherTemplateShape(DataSource dataSource) throws SQLException {
+        TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph.sql");
+        DatabaseClient client = new DatabaseClientProvider(dataSource).provide(GroupLabel.PROFILE_EVENTS);
+
+        SpanScope scope = SpanScope.of(List.of(
+                new SpanInterval(2001L, A_FROM, A_TO),
+                new SpanInterval(2002L, B_FROM, B_TO)));
+        EventQueryConfigurer configurer = new EventQueryConfigurer().withSpanScope(scope);
+
+        String openingWithItsOwnCte = DuckDBFlamegraphQueries.of(EVENT_TYPE, "").simple(configurer);
+        String openingWithASelect = EventQueryFilters.splice(DuckDBFlamegraphQueries.SIMPLE_OPTIMIZED, configurer)
+                .replace("<<event_type>>", "'" + EVENT_TYPE + "'")
+                .replace("<<additional_filters>>", "");
+
+        for (String sql : List.of(openingWithItsOwnCte, openingWithASelect)) {
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            SpanScopeSql.apply(params, scope);
+
+            long samples = client
+                    .query(StatementLabel.STREAM_EVENTS, sql, params, (rs, _) -> rs.getLong("total_samples"))
+                    .stream()
+                    .mapToLong(Long::longValue)
+                    .sum();
+
+            assertEquals(2, samples, "the two in-window samples, however the query opens");
+        }
     }
 }

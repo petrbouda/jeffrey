@@ -19,7 +19,7 @@
 package cafe.jeffrey.profile.common.config;
 
 import cafe.jeffrey.shared.common.GraphType;
-import cafe.jeffrey.shared.common.model.SpanInterval;
+import cafe.jeffrey.shared.common.model.SpanScope;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.model.WeightUnit;
@@ -47,7 +47,7 @@ public record GraphParameters(
         List<Marker> markers,
         GraphType graphType,
         GraphComponents graphComponents,
-        List<SpanInterval> spanIntervals,
+        SpanScope spanScope,
         // How the sample weight is measured (bytes / duration / none). Resolved from the event type's
         // stored sample unit; drives builder + frame-processor selection for aggregated stack-sample
         // formats (pprof / OTLP). NONE for JFR (which is classified by the event-type Type instead).
@@ -99,7 +99,7 @@ public record GraphParameters(
                 .withMarkers(markers)
                 .withGraphType(graphType)
                 .withGraphComponents(graphComponents)
-                .withSpanIntervals(spanIntervals)
+                .withSpanScope(spanScope)
                 .withWeightUnit(weightUnit)
                 .withFlamegraphOnlyImport(flamegraphOnlyImport);
     }

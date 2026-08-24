@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.provider.profile.api;
 
-import cafe.jeffrey.shared.common.model.SpanInterval;
+import cafe.jeffrey.shared.common.model.SpanScope;
 import cafe.jeffrey.shared.common.model.StacktraceTag;
 import cafe.jeffrey.shared.common.model.StacktraceType;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
@@ -59,7 +59,7 @@ public class EventQueryConfigurer {
     private List<Type> eventTypes;
     private RelativeTimeRange timeRange;
     private String searchPattern;
-    private List<SpanInterval> spanIntervals;
+    private SpanScope spanScope;
     private boolean orderedByTime;
 
     /**
@@ -237,15 +237,15 @@ public class EventQueryConfigurer {
     }
 
     /**
-     * Scope the event-stream to the union of the given span windows. A sample is kept only if it was
-     * taken on a span's thread within that span's time window; samples are matched at most once even
-     * if several spans overlap. An empty/null list applies no span scoping.
+     * Narrow the event stream to a {@link SpanScope}. A sample is kept only if it was taken on one of
+     * the scope's threads inside one of that thread's windows; samples are matched at most once even
+     * where windows overlap. A null or empty scope applies no span scoping.
      *
-     * @param spanIntervals per-span (thread, time-window) intervals
+     * @param spanScope which windows on which threads to keep samples from
      * @return instance of the event-stream configurer
      */
-    public EventQueryConfigurer withSpanIntervals(List<SpanInterval> spanIntervals) {
-        this.spanIntervals = spanIntervals;
+    public EventQueryConfigurer withSpanScope(SpanScope spanScope) {
+        this.spanScope = spanScope;
         return this;
     }
 
@@ -312,8 +312,8 @@ public class EventQueryConfigurer {
         return searchPattern;
     }
 
-    public List<SpanInterval> spanIntervals() {
-        return spanIntervals;
+    public SpanScope spanScope() {
+        return spanScope;
     }
 
     public boolean isOrderedByTime() {

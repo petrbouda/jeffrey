@@ -23,18 +23,16 @@ import cafe.jeffrey.profile.resources.request.SpanFlamegraphOptions;
 import cafe.jeffrey.shared.common.GraphType;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.ProfilingStartEnd;
-import cafe.jeffrey.shared.common.model.SpanInterval;
+import cafe.jeffrey.shared.common.model.SpanScope;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 import cafe.jeffrey.shared.common.model.time.UndefinedTimeRange;
 
-import java.util.List;
-
 /**
- * Builds the {@link GraphParameters} for a flamegraph scoped to a set of intervals.
+ * Builds the {@link GraphParameters} for a flamegraph narrowed to a {@link SpanScope}.
  * <p>
  * Lives on its own rather than on either controller because two unrelated features ask for the same
  * graph: async-profiler spans, which are flat and selected by tag, and trace spans, which are
- * nested and selected from a tree. Only the rendering options and the intervals are common to both,
+ * nested and selected from a tree. Only the rendering options and the scope are common to both,
  * and neither feature should have to import the other to reach them.
  */
 abstract class SpanScopedGraphParameters {
@@ -43,10 +41,10 @@ abstract class SpanScopedGraphParameters {
     }
 
     static GraphParameters of(
-            ProfileInfo profileInfo, SpanFlamegraphOptions request, List<SpanInterval> intervals) {
+            ProfileInfo profileInfo, SpanFlamegraphOptions request, SpanScope scope) {
 
-        // Full-profile range so the timeseries can bucket over the whole timeline; the intervals
-        // (not the time range) are what scope the samples, so a null range would NPE the timeseries
+        // Full-profile range so the timeseries can bucket over the whole timeline; the scope (not
+        // the time range) is what narrows the samples, so a null range would NPE the timeseries
         // init.
         ProfilingStartEnd primaryStartEnd = new ProfilingStartEnd(
                 profileInfo.profilingStartedAt(), profileInfo.profilingFinishedAt());
@@ -63,7 +61,7 @@ abstract class SpanScopedGraphParameters {
                 .withParseLocation(true)
                 .withGraphType(GraphType.PRIMARY)
                 .withGraphComponents(request.components())
-                .withSpanIntervals(intervals)
+                .withSpanScope(scope)
                 .build();
     }
 }

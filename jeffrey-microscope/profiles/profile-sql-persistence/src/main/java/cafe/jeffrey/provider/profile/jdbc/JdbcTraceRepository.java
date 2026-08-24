@@ -123,6 +123,58 @@ public class JdbcTraceRepository implements TraceRepository {
                 CASE WHEN %s THEN '{%s,"status":null}' ELSE '{%s}' END) AS VARCHAR), '{}')"""
             .formatted(SpanConventions.recordedStatusIsSpanStatus(), PLUMBING_KEYS, PLUMBING_KEYS);
 
+    /**
+     * The {@code events} view's own splice, applied to a raw row aliased {@code e} joined to
+     * {@code field_texts t}.
+     * <p>
+     * The promotion below reads {@code events_raw} rather than the view — it mints span ids from
+     * {@code rowid}, which only a physical table has — but a promoted span's payload has to be the
+     * JSON the recording declared, pooled field included. Rehydrating here with the view's own
+     * expression is what keeps the payload this derivation hashes identical to the one a reader
+     * sees; without it, a blocking event whose largest field was pooled hashed to a payload row
+     * that was never written, and the span pointed at nothing.
+     */
+    private static final String REHYDRATED_FIELDS = """
+            CASE WHEN e.pooled_text_hash IS NULL
+                 THEN e.fields
+                 ELSE json_merge_patch(e.fields, json_object(e.pooled_field, t.text)) END""";
+
+    /*
+     * The distinct event_fields payloads, written before the spans so every reference the span
+     * insert computes has a row to land on. One row per distinct JSON text, keyed by the text's own
+     * hash: a million statement spans carry a few thousand distinct payloads, and storing the text
+     * once per payload instead of once per span is most of the difference between a trace table
+     * that fits in memory and one that dominates the profile file.
+     *
+     * Two branches, mirroring the two the span insert below assembles. Each reads its events
+     * exactly as that insert does -- the recorded branch through the view, the blocking branch off
+     * the raw table with the view's splice reapplied -- because the payload text hashed here and
+     * the payload text hashed there have to be the same string.
+     *
+     * The blocking branch admits every blocking event's payload, promoted into a span or not --
+     * deciding promotion needs the recorded spans in hand, and a few unreferenced payload rows are
+     * cheaper than running the promotion twice.
+     */
+    //language=SQL
+    private static final String DERIVE_SPAN_PAYLOADS = """
+            INSERT INTO trace_span_payloads (payload_id, payload)
+            SELECT DISTINCT CAST(mod(hash(payload), CAST(9223372036854775807 AS UBIGINT)) AS BIGINT), payload
+            FROM (
+                SELECT %s AS payload
+                FROM events
+                WHERE event_type IN (%s)
+                  AND COALESCE(json_extract_string(fields, '$.traceId')::BIGINT, 0) <> 0
+                  AND COALESCE(json_extract_string(fields, '$.spanId')::BIGINT, 0) <> 0
+                UNION ALL
+                SELECT NULLIF(CAST(json_merge_patch(<<rehydrated>>, '{%s}') AS VARCHAR), '{}') AS payload
+                FROM events_raw e
+                LEFT JOIN field_texts t ON t.text_hash = e.pooled_text_hash
+                WHERE e.event_type IN (:blocking_event_types)
+                  AND e.thread_hash IS NOT NULL
+            )
+            WHERE payload IS NOT NULL
+            """.replace("<<rehydrated>>", REHYDRATED_FIELDS);
+
     /*
      * The identity columns are a flat projection, because there is nothing left to work out: Tracer
      * minted every id in the JVM, so each is read straight out of the JSON. What used to be a
@@ -151,73 +203,36 @@ public class JdbcTraceRepository implements TraceRepository {
      * its earliest occurrence, which is the row the waterfall would have drawn anyway, and because
      * the dedupe happens before DERIVE_TRACES runs, span_count and error_count agree with the
      * waterfall by construction instead of over-counting rows nobody renders.
-     */
-    //language=SQL
-    private static final String DERIVE_TRACE_SPANS = """
-            INSERT INTO trace_spans (
-                trace_id, span_id, parent_span_id, name, kind, status, error_type,
-                start_timestamp, start_timestamp_from_beginning, duration, self_duration,
-                thread_hash, event_type, attributes, event_fields)
-            WITH spans AS (
-                SELECT
-                    e.*,
-                    json_extract_string(e.fields, '$.traceId')::BIGINT                  AS trace_id,
-                    json_extract_string(e.fields, '$.spanId')::BIGINT                   AS span_id,
-                    NULLIF(json_extract_string(e.fields, '$.parentSpanId')::BIGINT, 0)  AS parent_span_id
-                FROM events e
-                WHERE e.event_type IN (%s)
-                  AND COALESCE(trace_id, 0) <> 0
-                  AND COALESCE(span_id, 0) <> 0
-            )
-            SELECT
-                trace_id                                                        AS trace_id,
-                span_id                                                         AS span_id,
-                parent_span_id                                                  AS parent_span_id,
-                %s                                                              AS name,
-                %s                                                              AS kind,
-                %s                                                              AS status,
-                json_extract_string(fields, '$.errorType')                      AS error_type,
-                start_timestamp                                                 AS start_timestamp,
-                COALESCE(start_timestamp_from_beginning, 0)                     AS start_timestamp_from_beginning,
-                COALESCE(duration, 0)                                           AS duration,
-                -- Starts at the whole duration; SELF_DURATIONS then subtracts whatever the span's
-                -- same-thread children covered. A span with no such children is already correct
-                -- here, which is why that statement only has to touch the spans that have them.
-                COALESCE(duration, 0)                                           AS self_duration,
-                thread_hash                                                     AS thread_hash,
-                event_type                                                      AS event_type,
-                json_extract_string(fields, '$.attributes')                     AS attributes,
-                %s                                                              AS event_fields
-            FROM spans
-            QUALIFY ROW_NUMBER() OVER (PARTITION BY trace_id, span_id
-                                       ORDER BY start_timestamp, duration) = 1
-            """;
-
-    /**
-     * The keys a JDK blocking event carries as plumbing rather than as detail. Narrower than
-     * {@link #PLUMBING_KEYS}: a jdk.* event never declares the span shape, so only the JFR-filled
-     * columns are stripped and everything else — host, port, path, monitorClass, parkedClass — is
-     * the operation's own payload and survives into {@code event_fields}.
-     */
-    private static final String JDK_EVENT_PLUMBING_KEYS =
-            "\"startTime\":null,\"duration\":null,\"eventThread\":null";
-
-    /*
-     * Synthesizes one leaf span out of every JDK blocking event that began inside a span on its own
-     * thread -- the promotion that turns "this span carried 40ms of Socket I/O" from a summed count
-     * into a bar with a position, a duration and a payload. The promoted set, names and kinds live
-     * in BlockingLeafSpans; the mapping arrives as positional UNNEST lists so that class stays the
-     * only place it is written down.
      *
-     * Runs after DERIVE_TRACE_SPANS (the parents must be in the table to attribute against) and
-     * before SELF_DURATIONS and DERIVE_TRACES (a promoted wait must come out of its parent's self
-     * time, and span_count must agree with the waterfall).
+     * One statement rather than the two inserts and the self-duration UPDATE it used to be. The
+     * UPDATE rewrote nearly every row group of the table it had just filled -- the freed versions
+     * stayed dead space in the profile file -- and a second insert after the first foreclosed
+     * ordering the table as a whole. As CTEs over the same intermediates, the promotion still sees
+     * the recorded spans it attributes against, the self-time merge still sees every span, and the
+     * single INSERT writes each row once, ordered by (trace_id, start_timestamp) so a one-trace
+     * read prunes to a handful of row groups by zone map alone -- this table carries no secondary
+     * index to do it.
+     *
+     * The stages, in reading order:
+     *   spans/recorded  -- the recorded span events, deduped, shape projected (as before)
+     *   mapping..minted -- the JDK blocking events promoted to leaf spans (as before, joining
+     *                      `recorded` where the old statement joined the half-filled table)
+     *   all_spans       -- both, in one relation
+     *   clipped..covered -- the same-thread-children interval merge (the old SELF_DURATIONS pass)
+     *   final SELECT    -- self time subtracted where children covered it, payload hashed into
+     *                      its reference (the text itself lives in trace_span_payloads)
+     *
+     * The promotion stages (mapping through promoted) synthesize one leaf span out of every JDK
+     * blocking event that began inside a span on its own thread -- what turns "this span carried
+     * 40ms of Socket I/O" from a summed count into a bar with a position, a duration and a payload.
+     * The promoted set, names and kinds live in BlockingLeafSpans; the mapping arrives as
+     * positional UNNEST lists so that class stays the only place it is written down.
      *
      * The parent is the *innermost* span whose window contains the event's start on the same
      * thread: latest start wins, smallest window breaks the tie, span id makes it deterministic.
      * An event outside every span is not promoted at all -- there is no trace to hang it on.
      *
-     * The span id is minted, which the derivation otherwise deliberately no longer does: a jdk.*
+     * Its span id is minted, which the derivation otherwise deliberately no longer does: a jdk.*
      * event can never carry a recorded id, so the choice is a minted id or no bar. The id is a hash
      * of the event's identity folded into [1, 2^63-1] -- never 0, the wire encoding for "absent",
      * and never negative, so a minted id is recognisable in a pinch. rowid is in the hash so two
@@ -230,16 +245,52 @@ public class JdbcTraceRepository implements TraceRepository {
      * length the recording never claimed.
      */
     //language=SQL
-    private static final String DERIVE_BLOCKING_LEAF_SPANS = """
+    private static final String DERIVE_TRACE_SPANS = """
             INSERT INTO trace_spans (
                 trace_id, span_id, parent_span_id, name, kind, status, error_type,
                 start_timestamp, start_timestamp_from_beginning, duration, self_duration,
-                thread_hash, event_type, attributes, event_fields, synthesized)
-            WITH mapping AS (
+                thread_hash, event_type, attributes, event_fields_ref, synthesized)
+            WITH spans AS (
+                SELECT
+                    e.*,
+                    json_extract_string(e.fields, '$.traceId')::BIGINT                  AS trace_id,
+                    json_extract_string(e.fields, '$.spanId')::BIGINT                   AS span_id,
+                    NULLIF(json_extract_string(e.fields, '$.parentSpanId')::BIGINT, 0)  AS parent_span_id
+                FROM events e
+                WHERE e.event_type IN (%s)
+                  AND COALESCE(trace_id, 0) <> 0
+                  AND COALESCE(span_id, 0) <> 0
+            ),
+            recorded AS (
+                SELECT
+                    trace_id                                                        AS trace_id,
+                    span_id                                                         AS span_id,
+                    parent_span_id                                                  AS parent_span_id,
+                    %s                                                              AS name,
+                    %s                                                              AS kind,
+                    %s                                                              AS status,
+                    json_extract_string(fields, '$.errorType')                      AS error_type,
+                    start_timestamp                                                 AS start_timestamp,
+                    COALESCE(start_timestamp_from_beginning, 0)                     AS start_ms,
+                    COALESCE(duration, 0)                                           AS duration,
+                    thread_hash                                                     AS thread_hash,
+                    event_type                                                      AS event_type,
+                    json_extract_string(fields, '$.attributes')                     AS attributes,
+                    %s                                                              AS payload,
+                    FALSE                                                           AS synthesized
+                FROM spans
+                QUALIFY ROW_NUMBER() OVER (PARTITION BY trace_id, span_id
+                                           ORDER BY start_timestamp, duration) = 1
+            ),
+            mapping AS (
                 SELECT UNNEST([:blocking_event_types]) AS event_type,
                        UNNEST([:blocking_names])       AS name,
                        UNNEST([:blocking_kinds])       AS kind
             ),
+            -- events_raw rather than the events view, because rowid -- which the minted span id
+            -- below folds in -- exists only on a physical table. The pooled field is spliced back
+            -- by hand here (see REHYDRATED_FIELDS): a promoted wait's payload is the recording's
+            -- own JSON, and it has to hash to the row DERIVE_SPAN_PAYLOADS wrote.
             blocking AS (
                 SELECT
                     e.rowid                                         AS event_row,
@@ -248,11 +299,12 @@ public class JdbcTraceRepository implements TraceRepository {
                     COALESCE(e.start_timestamp_from_beginning, 0)   AS start_ms,
                     COALESCE(e.duration, 0)                         AS duration,
                     e.thread_hash                                   AS thread_hash,
-                    e.fields                                        AS fields,
+                    <<rehydrated>>                                  AS fields,
                     m.name                                          AS name,
                     m.kind                                          AS kind,
                     EPOCH_US(e.start_timestamp)                     AS start_us
-                FROM events e
+                FROM events_raw e
+                LEFT JOIN field_texts t ON t.text_hash = e.pooled_text_hash
                 JOIN mapping m ON m.event_type = e.event_type
                 WHERE e.event_type IN (:blocking_event_types)
                   AND e.thread_hash IS NOT NULL
@@ -263,7 +315,7 @@ public class JdbcTraceRepository implements TraceRepository {
                     s.trace_id  AS trace_id,
                     s.span_id   AS parent_span_id
                 FROM blocking b
-                JOIN trace_spans s
+                JOIN recorded s
                   ON s.thread_hash = b.thread_hash
                  AND b.start_us >= EPOCH_US(s.start_timestamp)
                  AND b.start_us <= EPOCH_US(s.start_timestamp) + s.duration // 1000
@@ -281,32 +333,131 @@ public class JdbcTraceRepository implements TraceRepository {
                                                 p.start_us, p.event_row)),
                             CAST(9223372036854775806 AS UBIGINT)) AS BIGINT) AS span_id
                 FROM parented p
+            ),
+            promoted AS (
+                SELECT
+                    m.trace_id                                          AS trace_id,
+                    m.span_id                                           AS span_id,
+                    m.parent_span_id                                    AS parent_span_id,
+                    m.name                                              AS name,
+                    m.kind                                              AS kind,
+                    'UNSET'                                             AS status,
+                    NULL                                                AS error_type,
+                    m.start_timestamp                                   AS start_timestamp,
+                    m.start_ms                                          AS start_ms,
+                    m.duration                                          AS duration,
+                    m.thread_hash                                       AS thread_hash,
+                    m.event_type                                        AS event_type,
+                    NULL                                                AS attributes,
+                    NULLIF(CAST(json_merge_patch(m.fields, '{%s}') AS VARCHAR), '{}') AS payload,
+                    TRUE                                                AS synthesized
+                FROM minted m
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM recorded t
+                    WHERE t.trace_id = m.trace_id AND t.span_id = m.span_id)
+                QUALIFY ROW_NUMBER() OVER (PARTITION BY m.trace_id, m.span_id
+                                           ORDER BY m.start_timestamp) = 1
+            ),
+            all_spans AS (
+                SELECT trace_id, span_id, parent_span_id, name, kind, status, error_type,
+                       start_timestamp, start_ms, duration, thread_hash, event_type,
+                       attributes, payload, synthesized
+                FROM recorded
+                UNION ALL
+                SELECT trace_id, span_id, parent_span_id, name, kind, status, error_type,
+                       start_timestamp, start_ms, duration, thread_hash, event_type,
+                       attributes, payload, synthesized
+                FROM promoted
+            ),
+            clipped AS (
+                SELECT
+                    c.trace_id                                          AS trace_id,
+                    c.parent_span_id                                    AS span_id,
+                    GREATEST(EPOCH_US(c.start_timestamp),
+                             EPOCH_US(p.start_timestamp))               AS from_us,
+                    LEAST(EPOCH_US(c.start_timestamp) + c.duration // 1000,
+                          EPOCH_US(p.start_timestamp) + p.duration // 1000) AS to_us
+                FROM all_spans c
+                JOIN all_spans p
+                  ON p.trace_id = c.trace_id
+                 AND p.span_id = c.parent_span_id
+                WHERE c.parent_span_id IS NOT NULL
+                  AND COALESCE(c.thread_hash, 0) = COALESCE(p.thread_hash, 0)
+            ),
+            windows AS (
+                SELECT * FROM clipped WHERE to_us > from_us
+            ),
+            numbered AS (
+                SELECT
+                    trace_id, span_id, from_us, to_us,
+                    CASE WHEN from_us > MAX(to_us) OVER (
+                             PARTITION BY trace_id, span_id
+                             ORDER BY from_us, to_us
+                             ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING)
+                         THEN 1 ELSE 0 END AS starts_island
+                FROM windows
+            ),
+            islands AS (
+                SELECT
+                    trace_id, span_id, from_us, to_us,
+                    SUM(starts_island) OVER (
+                        PARTITION BY trace_id, span_id
+                        ORDER BY from_us, to_us
+                        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS island
+                FROM numbered
+            ),
+            merged AS (
+                SELECT
+                    trace_id, span_id,
+                    MIN(from_us) AS from_us,
+                    MAX(to_us)   AS to_us
+                FROM islands
+                GROUP BY trace_id, span_id, island
+            ),
+            covered AS (
+                SELECT trace_id, span_id, SUM(to_us - from_us) AS covered_us
+                FROM merged
+                GROUP BY trace_id, span_id
             )
             SELECT
-                m.trace_id                                          AS trace_id,
-                m.span_id                                           AS span_id,
-                m.parent_span_id                                    AS parent_span_id,
-                m.name                                              AS name,
-                m.kind                                              AS kind,
-                'UNSET'                                             AS status,
-                NULL                                                AS error_type,
-                m.start_timestamp                                   AS start_timestamp,
-                m.start_ms                                          AS start_timestamp_from_beginning,
-                m.duration                                          AS duration,
-                -- A promoted event is a leaf by construction, so its self time is its whole duration.
-                m.duration                                          AS self_duration,
-                m.thread_hash                                       AS thread_hash,
-                m.event_type                                        AS event_type,
-                NULL                                                AS attributes,
-                NULLIF(CAST(json_merge_patch(m.fields, '{%s}') AS VARCHAR), '{}') AS event_fields,
-                TRUE                                                AS synthesized
-            FROM minted m
-            WHERE NOT EXISTS (
-                SELECT 1 FROM trace_spans t
-                WHERE t.trace_id = m.trace_id AND t.span_id = m.span_id)
-            QUALIFY ROW_NUMBER() OVER (PARTITION BY m.trace_id, m.span_id
-                                       ORDER BY m.start_timestamp) = 1
-            """.formatted(JDK_EVENT_PLUMBING_KEYS);
+                s.trace_id                                              AS trace_id,
+                s.span_id                                               AS span_id,
+                s.parent_span_id                                        AS parent_span_id,
+                s.name                                                  AS name,
+                s.kind                                                  AS kind,
+                s.status                                                AS status,
+                s.error_type                                            AS error_type,
+                s.start_timestamp                                       AS start_timestamp,
+                s.start_ms                                              AS start_timestamp_from_beginning,
+                s.duration                                              AS duration,
+                -- The span's own time: children on another thread run beside it, not instead of it,
+                -- so only the merged same-thread cover is subtracted; floored at zero because
+                -- microsecond rounding can make merged children marginally outlast their parent.
+                CASE WHEN c.covered_us IS NULL THEN s.duration
+                     ELSE GREATEST(0, s.duration - c.covered_us * 1000) END AS self_duration,
+                s.thread_hash                                           AS thread_hash,
+                s.event_type                                            AS event_type,
+                s.attributes                                            AS attributes,
+                CASE WHEN s.payload IS NULL THEN NULL
+                     ELSE CAST(mod(hash(s.payload),
+                                   CAST(9223372036854775807 AS UBIGINT)) AS BIGINT)
+                END                                                     AS event_fields_ref,
+                s.synthesized                                           AS synthesized
+            FROM all_spans s
+            LEFT JOIN covered c
+              ON c.trace_id = s.trace_id
+             AND c.span_id = s.span_id
+            ORDER BY s.trace_id, s.start_timestamp, s.span_id
+            """.replace("<<rehydrated>>", REHYDRATED_FIELDS);
+
+    /**
+     * The keys a JDK blocking event carries as plumbing rather than as detail. Narrower than
+     * {@link #PLUMBING_KEYS}: a jdk.* event never declares the span shape, so only the JFR-filled
+     * columns are stripped and everything else — host, port, path, monitorClass, parkedClass — is
+     * the operation's own payload and survives into the span's {@code trace_span_payloads} row.
+     */
+    private static final String JDK_EVENT_PLUMBING_KEYS =
+            "\"startTime\":null,\"duration\":null,\"eventThread\":null";
 
     /*
      * The root is the earliest span without a parent. The ordering falls back to the earliest span
@@ -363,91 +514,10 @@ public class JdbcTraceRepository implements TraceRepository {
     private static final String DELETE_TRACE_SPANS = "DELETE FROM trace_spans";
 
     //language=SQL
-    private static final String DELETE_TRACES = "DELETE FROM traces";
+    private static final String DELETE_SPAN_PAYLOADS = "DELETE FROM trace_span_payloads";
 
-    /*
-     * Subtracts from each span the stretches its children were covering, leaving the span's own
-     * time. Runs once, after the spans are inserted, because a span's self time is a fact about its
-     * children and nothing knows them until they are all in the table.
-     *
-     * Only children on the parent's own thread are subtracted: work handed to another thread runs
-     * beside the parent rather than instead of it, so cutting it out would charge the parent for
-     * time it never lost. Threads are compared through COALESCE so two spans whose thread did not
-     * resolve count as the same unknown thread, matching how every read of this table treats a null
-     * thread hash.
-     *
-     * Children are clipped to the parent's own window first -- a child recorded as outliving its
-     * parent costs it only the stretch the two shared -- and then merged with the same
-     * gaps-and-islands pass OPERATION_INTERVALS uses, so two children running concurrently are
-     * subtracted once rather than twice. The result is floored at zero: microsecond rounding can
-     * make merged children marginally longer than the parent they ran inside.
-     *
-     * A span with no same-thread children is not touched at all; the insert already set its self
-     * time to its whole duration.
-     *
-     * One shape this reads differently from the tree the waterfall assembles: a parent cycle. The
-     * assembly breaks a cycle by promoting its earliest member to a root, whereas this join lets
-     * both members subtract each other. Correct instrumentation cannot emit one -- a span's parent
-     * is fixed before the span is committed -- and the derivation dedupes on span id before the
-     * primary key enforces it.
-     */
     //language=SQL
-    private static final String SELF_DURATIONS = """
-            UPDATE trace_spans
-            SET self_duration = GREATEST(0, trace_spans.duration - covered.covered_us * 1000)
-            FROM (
-                WITH clipped AS (
-                    SELECT
-                        c.trace_id                                          AS trace_id,
-                        c.parent_span_id                                    AS span_id,
-                        GREATEST(EPOCH_US(c.start_timestamp),
-                                 EPOCH_US(p.start_timestamp))               AS from_us,
-                        LEAST(EPOCH_US(c.start_timestamp) + c.duration // 1000,
-                              EPOCH_US(p.start_timestamp) + p.duration // 1000) AS to_us
-                    FROM trace_spans c
-                    JOIN trace_spans p
-                      ON p.trace_id = c.trace_id
-                     AND p.span_id = c.parent_span_id
-                    WHERE c.parent_span_id IS NOT NULL
-                      AND COALESCE(c.thread_hash, 0) = COALESCE(p.thread_hash, 0)
-                ),
-                windows AS (
-                    SELECT * FROM clipped WHERE to_us > from_us
-                ),
-                numbered AS (
-                    SELECT
-                        trace_id, span_id, from_us, to_us,
-                        CASE WHEN from_us > MAX(to_us) OVER (
-                                 PARTITION BY trace_id, span_id
-                                 ORDER BY from_us, to_us
-                                 ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING)
-                             THEN 1 ELSE 0 END AS starts_island
-                    FROM windows
-                ),
-                islands AS (
-                    SELECT
-                        trace_id, span_id, from_us, to_us,
-                        SUM(starts_island) OVER (
-                            PARTITION BY trace_id, span_id
-                            ORDER BY from_us, to_us
-                            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS island
-                    FROM numbered
-                ),
-                merged AS (
-                    SELECT
-                        trace_id, span_id,
-                        MIN(from_us) AS from_us,
-                        MAX(to_us)   AS to_us
-                    FROM islands
-                    GROUP BY trace_id, span_id, island
-                )
-                SELECT trace_id, span_id, SUM(to_us - from_us) AS covered_us
-                FROM merged
-                GROUP BY trace_id, span_id
-            ) covered
-            WHERE trace_spans.trace_id = covered.trace_id
-              AND trace_spans.span_id = covered.span_id
-            """;
+    private static final String DELETE_TRACES = "DELETE FROM traces";
 
     //language=SQL
     private static final String TRACES_EXIST = """
@@ -535,10 +605,11 @@ public class JdbcTraceRepository implements TraceRepository {
                 COALESCE(t.is_virtual, FALSE)           AS is_virtual,
                 s.event_type                            AS event_type,
                 s.attributes                            AS attributes,
-                s.event_fields                          AS event_fields,
+                p.payload                               AS event_fields,
                 s.synthesized                           AS synthesized
             FROM trace_spans s
             LEFT JOIN threads t ON s.thread_hash = t.thread_hash
+            LEFT JOIN trace_span_payloads p ON p.payload_id = s.event_fields_ref
             WHERE s.trace_id = :trace_id
             ORDER BY s.start_timestamp
             """;
@@ -585,9 +656,13 @@ public class JdbcTraceRepository implements TraceRepository {
      * and therefore cannot straddle a thread, so a cross-thread span contributes one true window per
      * thread it actually occupied. Spans that were never re-entered emit no scopes and are unchanged
      * by this: their own row is already the only window they have.
+     *
+     * Package-private because {@link SpanScopeSql} embeds it: an operation-scoped query derives these
+     * windows inside itself rather than having them fetched and handed back as bind values. One
+     * definition of "the windows this operation occupied" for both readers.
      */
     //language=SQL
-    private static final String OPERATION_INTERVALS = """
+    static final String OPERATION_INTERVALS = """
             WITH matched AS (
                 SELECT s.trace_id, s.span_id, s.thread_hash, s.start_timestamp, s.duration
                 FROM trace_spans s
@@ -729,9 +804,22 @@ public class JdbcTraceRepository implements TraceRepository {
      *
      * Max duration per bucket, not average: a bucket holding one slow trace among two hundred fast
      * ones is exactly the bucket worth opening, and an average buries it.
+     *
+     * The slot grid is generated and left-joined rather than letting GROUP BY decide which buckets
+     * exist, so a stretch with no trace in it comes back as a zero instead of not coming back. The
+     * difference matters to whoever draws the result: a line drawn through the buckets that happen
+     * to exist slopes gently across a ten-minute silence, which reads as "traffic tailed off" rather
+     * than "traffic stopped".
+     *
+     * Bounds are taken over every trace, never over the narrowing below, so one operation's shape is
+     * drawn against the recording's own clock and two operations can be compared slot for slot.
+     *
+     * The `from_ms IS NOT NULL` guard is what keeps a profile with no traces at no buckets: without
+     * it the bounds are null, GREATEST still yields a width, and the grid comes back as a row of
+     * nulls per requested slot.
      */
     //language=SQL
-    private static final String TIMELINE = """
+    private static final String TIMELINE_TEMPLATE = """
             WITH bounds AS (
                 SELECT
                     MIN(start_timestamp_from_beginning) AS from_ms,
@@ -744,17 +832,42 @@ public class JdbcTraceRepository implements TraceRepository {
                     GREATEST(1, CAST(CEIL((to_ms - from_ms + 1) / CAST(:buckets AS DOUBLE)) AS BIGINT))
                         AS bucket_ms
                 FROM bounds
+                WHERE from_ms IS NOT NULL
+            ),
+            grid AS (
+                SELECT s.from_ms + slot * s.bucket_ms AS bucket_from_ms
+                FROM slicing s, range(0, CAST(:buckets AS BIGINT)) AS slots(slot)
+            ),
+            occupied AS (
+                SELECT
+                    s.from_ms + CAST(FLOOR((t.start_timestamp_from_beginning - s.from_ms) / s.bucket_ms)
+                        AS BIGINT) * s.bucket_ms                    AS bucket_from_ms,
+                    COUNT(*)                                        AS count,
+                    COUNT(*) FILTER (WHERE t.error_count > 0)       AS error_count,
+                    MAX(t.duration)                                 AS max_ns
+                FROM traces t, slicing s
+                %s
+                GROUP BY bucket_from_ms
             )
             SELECT
-                s.from_ms + CAST(FLOOR((t.start_timestamp_from_beginning - s.from_ms) / s.bucket_ms)
-                    AS BIGINT) * s.bucket_ms                        AS bucket_from_ms,
-                COUNT(*)                                            AS count,
-                COUNT(*) FILTER (WHERE t.error_count > 0)           AS error_count,
-                MAX(t.duration)                                     AS max_ns
-            FROM traces t, slicing s
-            GROUP BY bucket_from_ms
-            ORDER BY bucket_from_ms
+                g.bucket_from_ms                                    AS bucket_from_ms,
+                COALESCE(o.count, 0)                                AS count,
+                COALESCE(o.error_count, 0)                          AS error_count,
+                COALESCE(o.max_ns, 0)                               AS max_ns
+            FROM grid g
+            LEFT JOIN occupied o ON o.bucket_from_ms = g.bucket_from_ms
+            ORDER BY g.bucket_from_ms
             """;
+
+    private static final String TIMELINE = TIMELINE_TEMPLATE.formatted("");
+
+    /**
+     * The same shape for one trace type. Narrowed in SQL rather than by bucketing what the trace list
+     * fetched: that list is capped and ordered by start time, so bucketing it plots the recording's
+     * first thousand traces and labels the result an hour.
+     */
+    private static final String TIMELINE_OF_OPERATION =
+            TIMELINE_TEMPLATE.formatted("WHERE " + OPERATION_PREDICATE);
 
     /*
      * Where an operation spends its time, one row per span name across every trace of the type.
@@ -773,11 +886,18 @@ public class JdbcTraceRepository implements TraceRepository {
      * itself -- a handler that recurses, a retry that re-enters the same path -- matched every one
      * of its nested occurrences too and dropped them all, so the breakdown of the one operation most
      * worth breaking down came back missing its own recursion.
+     *
+     * Grouped by event type as well as by name, because the type is what the row is *made of*: a
+     * `jdk.SocketRead` the derivation promoted and a query the application instrumented are a wait
+     * and a call, and the breakdown says which without the reader having to recognise the name. One
+     * name under two types is then two rows rather than one row wearing whichever type won -- which
+     * is also the honest answer, since they are two different things that happen to share a name.
      */
     //language=SQL
     private static final String SPAN_BREAKDOWN_OF_OPERATION = """
             SELECT
                 s.name                                              AS name,
+                s.event_type                                        AS event_type,
                 COUNT(*)                                            AS occurrences,
                 COUNT(DISTINCT s.trace_id)                          AS trace_count,
                 SUM(s.duration)                                     AS total_ns,
@@ -791,7 +911,7 @@ public class JdbcTraceRepository implements TraceRepository {
             JOIN traces t ON t.trace_id = s.trace_id
             WHERE %s
               AND s.span_id <> t.root_span_id
-            GROUP BY s.name
+            GROUP BY s.name, s.event_type
             ORDER BY total_ns DESC, name
             LIMIT :limit
             """.formatted(OPERATION_PREDICATE);
@@ -958,7 +1078,10 @@ public class JdbcTraceRepository implements TraceRepository {
                     s.span_id                                       AS span_id,
                     m.category                                      AS category,
                     COALESCE(e.duration, 0)                         AS duration_ns
-                FROM events e
+                -- events_raw rather than the events view: rowid only exists on the physical table.
+                -- No rehydration needed here, unlike the promotion above -- this reads a duration
+                -- and a type, never the event's fields.
+                FROM events_raw e
                 JOIN mapping m ON m.event_type = e.event_type
                 JOIN spans s
                   ON s.thread_hash = e.thread_hash
@@ -986,40 +1109,46 @@ public class JdbcTraceRepository implements TraceRepository {
 
     @Override
     public void derive() {
-        // Both tables are wholly a function of `events`, so deriving twice must land where deriving
-        // once did. Without this a re-run doubled every span and then failed on the traces primary
-        // key, leaving the profile with spans that no trace header accounts for.
+        // All three tables are wholly a function of `events`, so deriving twice must land where
+        // deriving once did. Without this a re-run doubled every span and then failed on the traces
+        // primary key, leaving the profile with spans that no trace header accounts for.
         databaseClient.execute(StatementLabel.DERIVE_TRACES, DELETE_TRACES);
         databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, DELETE_TRACE_SPANS);
+        databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, DELETE_SPAN_PAYLOADS);
+
+        MapSqlParameterSource blockingParams = new MapSqlParameterSource()
+                .addValue("blocking_event_types", BlockingLeafSpans.eventTypes())
+                .addValue("blocking_names", BlockingLeafSpans.names())
+                .addValue("blocking_kinds", BlockingLeafSpans.kinds());
+
+        // Before the spans: the span insert stores payload references, and every reference it
+        // computes must have its text row in place.
+        databaseClient.insert(
+                StatementLabel.DERIVE_TRACE_SPANS,
+                DERIVE_SPAN_PAYLOADS.formatted(
+                        EVENT_FIELDS_PROJECTION,
+                        SPAN_EVENT_TYPES,
+                        JDK_EVENT_PLUMBING_KEYS),
+                blockingParams);
 
         // One template per event type -- built-ins overlaid by what the recording declares for
         // itself (@Span, stored in event_types.extras by the parser) -- rendered as one CASE.
         String nameTemplates = SpanNameTemplates.nameCase(databaseClient);
 
         // The placeholders in the order they appear: which event types are spans, the three span
-        // shape projections, and the event_fields stripping projection.
-        databaseClient.execute(
+        // shape projections, the event_fields stripping projection of the recorded branch, and the
+        // narrower plumbing strip of the promoted branch.
+        databaseClient.insert(
                 StatementLabel.DERIVE_TRACE_SPANS,
                 DERIVE_TRACE_SPANS.formatted(
                         SPAN_EVENT_TYPES,
                         SpanConventions.nameProjection(nameTemplates),
                         SpanConventions.kindProjection(),
                         SpanConventions.statusProjection(),
-                        EVENT_FIELDS_PROJECTION));
-        // After the recorded spans -- the parents the promotion attributes against -- and before
-        // SELF_DURATIONS and DERIVE_TRACES, so a promoted wait comes out of its parent's self time
-        // and span_count agrees with the waterfall.
-        databaseClient.insert(
-                StatementLabel.DERIVE_BLOCKING_SPANS,
-                DERIVE_BLOCKING_LEAF_SPANS,
-                new MapSqlParameterSource()
-                        .addValue("blocking_event_types", BlockingLeafSpans.eventTypes())
-                        .addValue("blocking_names", BlockingLeafSpans.names())
-                        .addValue("blocking_kinds", BlockingLeafSpans.kinds()));
+                        EVENT_FIELDS_PROJECTION,
+                        JDK_EVENT_PLUMBING_KEYS),
+                blockingParams);
 
-        // After the spans, before the headers: self time is a fact about a span's children, so
-        // every span has to be in the table before any of them can be resolved.
-        databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, SELF_DURATIONS);
         databaseClient.execute(StatementLabel.DERIVE_TRACES, DERIVE_TRACES);
     }
 
@@ -1352,17 +1481,29 @@ public class JdbcTraceRepository implements TraceRepository {
 
     @Override
     public List<TraceTimelineBucketRecord> timeline(int buckets) {
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("buckets", buckets);
-
         return databaseClient.query(
                 StatementLabel.TRACE_TIMELINE,
                 TIMELINE,
-                params,
-                (rs, _) -> new TraceTimelineBucketRecord(
-                        rs.getLong("bucket_from_ms"),
-                        rs.getLong("count"),
-                        rs.getLong("error_count"),
-                        rs.getLong("max_ns")));
+                new MapSqlParameterSource().addValue("buckets", buckets),
+                timelineMapper());
+    }
+
+    @Override
+    public List<TraceTimelineBucketRecord> timelineOfOperation(TraceOperationId operation, int buckets) {
+        return databaseClient.query(
+                StatementLabel.TRACE_OPERATION_TIMELINE,
+                TIMELINE_OF_OPERATION,
+                operationParams(operation).addValue("buckets", buckets),
+                timelineMapper());
+    }
+
+    /** One projection for both timelines — they differ in what they count, never in what they say. */
+    private static RowMapper<TraceTimelineBucketRecord> timelineMapper() {
+        return (rs, _) -> new TraceTimelineBucketRecord(
+                rs.getLong("bucket_from_ms"),
+                rs.getLong("count"),
+                rs.getLong("error_count"),
+                rs.getLong("max_ns"));
     }
 
     @Override
@@ -1375,6 +1516,7 @@ public class JdbcTraceRepository implements TraceRepository {
                 params,
                 (rs, _) -> new TraceOperationSpanRecord(
                         rs.getString("name"),
+                        rs.getString("event_type"),
                         rs.getLong("occurrences"),
                         rs.getLong("trace_count"),
                         rs.getLong("total_ns"),

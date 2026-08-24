@@ -1162,6 +1162,23 @@ class JdbcTraceRepositoryTest {
             assertEquals(40 * MS, slowest.maxNanos());
         }
 
+        /**
+         * Without the type, the breakdown cannot say whether a row is a call the application made or
+         * a wait the derivation promoted — the reader is left recognising {@code Socket read} by name.
+         */
+        @Test
+        @DisplayName("every breakdown row carries the event it was made from")
+        void breakdownRowsCarryTheirEventType(DataSource dataSource) throws SQLException {
+            Map<String, String> typeByName = derived(dataSource)
+                    .spanBreakdownOfOperation(FLAMEGRAPH_OPERATION, 10).stream()
+                    .collect(Collectors.toMap(
+                            TraceOperationSpanRecord::name, TraceOperationSpanRecord::eventType));
+
+            assertEquals("jeffrey.JdbcQuery", typeByName.get("listSpans"));
+            assertEquals("jeffrey.JdbcQuery", typeByName.get("countSpans"));
+            assertEquals("jeffrey.TraceSpan", typeByName.get("flamegraph.generate"));
+        }
+
         @Test
         @DisplayName("the thread split counts the spans a sample could be attributed to")
         void splitsAnOperationsSpansByThreadKind(DataSource dataSource) throws SQLException {
@@ -1758,6 +1775,65 @@ class JdbcTraceRepositoryTest {
         }
     }
 
+    /**
+     * A field the parser pooled out of {@code events.fields} has to reach the waterfall anyway.
+     * The recorded branch of the derivation reads the {@code events} view, which splices the text
+     * back; the promotion reads {@code events_raw} for its rowid and splices by hand. When only
+     * the first did, a promoted wait's payload hashed to a {@code trace_span_payloads} row that
+     * was never written and the span came back with no detail at all.
+     */
+    @Nested
+    @DisplayName("Pooled fields")
+    class PooledFields {
+
+        private static final long POOLED_TRACE = 9300L;
+        private static final long STATEMENT_SPAN = 701L;
+        private static final String POOLED_SQL =
+                "SELECT r.id, r.name, r.created_at FROM report r JOIN report_definition rd "
+                        + "ON rd.id = r.report_definition_id WHERE r.tenant_id = ? "
+                        + "ORDER BY r.created_at DESC";
+        private static final String POOLED_MONITOR_CLASS =
+                "com.example.deeply.nested.internal.concurrent.SharedRegistryLock$ExclusiveSection";
+
+        private static List<TraceSpanRecord> pooledSpans(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-pooled-field-events.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+            return repository.spansOf(POOLED_TRACE);
+        }
+
+        @Test
+        @DisplayName("a recorded span carries its pooled field")
+        void recordedSpanCarriesThePooledField(DataSource dataSource) throws SQLException {
+            TraceSpanRecord statement = pooledSpans(dataSource).stream()
+                    .filter(span -> span.spanId() == STATEMENT_SPAN)
+                    .findFirst()
+                    .orElseThrow();
+
+            assertNotNull(statement.eventFields(), "the statement declared fields of its own");
+            assertTrue(statement.eventFields().contains(POOLED_SQL),
+                    "the pooled sql belongs in the payload: " + statement.eventFields());
+            assertTrue(statement.eventFields().contains("ReportsMapper"),
+                    "the fields that were never pooled stay too: " + statement.eventFields());
+        }
+
+        @Test
+        @DisplayName("a promoted wait carries its pooled field")
+        void promotedWaitCarriesThePooledField(DataSource dataSource) throws SQLException {
+            TraceSpanRecord wait = pooledSpans(dataSource).stream()
+                    .filter(TraceSpanRecord::synthesized)
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("the monitor wait should have been promoted"));
+
+            assertNotNull(wait.eventFields(), "a promoted wait keeps the event's own payload");
+            assertTrue(wait.eventFields().contains(POOLED_MONITOR_CLASS),
+                    "the pooled monitor class belongs in the payload: " + wait.eventFields());
+            assertTrue(wait.eventFields().contains("worker-3"),
+                    "the fields that were never pooled stay too: " + wait.eventFields());
+        }
+    }
+
     @Nested
     @DisplayName("Blocking span promotion")
     class BlockingSpanPromotion {
@@ -1780,6 +1856,26 @@ class JdbcTraceRepositoryTest {
             return repository.spansOf(BLOCKING_TRACE).stream()
                     .filter(TraceSpanRecord::synthesized)
                     .toList();
+        }
+
+        /**
+         * The breakdown ranks a promoted wait beside the code that waited, and the JDK event type is
+         * how a reader tells the two apart — a name alone leaves {@code Socket read} looking like a
+         * method someone wrote.
+         */
+        @Test
+        @DisplayName("a promoted wait is broken down under the JDK event it came from")
+        void breakdownNamesTheJdkEventBehindAPromotedWait(DataSource dataSource) throws SQLException {
+            Map<String, String> typeByName = withBlockingEvents(dataSource)
+                    .spanBreakdownOfOperation(
+                            operation("exportReport", "SERVER", "jeffrey.TraceSpan"), 10).stream()
+                    .collect(Collectors.toMap(
+                            TraceOperationSpanRecord::name, TraceOperationSpanRecord::eventType));
+
+            assertEquals("jdk.SocketRead", typeByName.get("Socket read"));
+            assertEquals("jdk.ThreadPark", typeByName.get("Parked"));
+            assertEquals("jeffrey.TraceSpan", typeByName.get("loadRows"),
+                    "the span the application recorded is not a wait");
         }
 
         private static TraceSpanRecord spanOf(JdbcTraceRepository repository, long spanId) {
@@ -1971,6 +2067,61 @@ class JdbcTraceRepositoryTest {
             repository.derive();
 
             assertTrue(repository.timeline(10).isEmpty());
+        }
+
+        /**
+         * A stretch with no trace in it is a fact about the recording. Returned as a zero rather than
+         * left out, because a line drawn through only the occupied slices slopes across a silence
+         * instead of dropping to the floor.
+         */
+        @Test
+        @DisplayName("every slice comes back, including the empty ones")
+        void emptySlicesAreZeroesRatherThanGaps(DataSource dataSource) throws SQLException {
+            List<TraceTimelineBucketRecord> buckets = derived(dataSource).timeline(10);
+
+            assertEquals(10, buckets.size(), "as many slices as were asked for");
+            assertEquals(8, buckets.stream().filter(bucket -> bucket.count() == 0).count(),
+                    "the fixture's two traces occupy one slice each");
+            assertTrue(buckets.stream().allMatch(bucket -> bucket.count() > 0 || bucket.maxDurationNanos() == 0),
+                    "an empty slice has no slowest trace to report");
+        }
+
+        /**
+         * The narrowed timeline keeps the recording's own bounds, so an operation's shape sits where
+         * it happened. Bounding it by its own first and last trace instead would stretch a burst to
+         * fill the axis and make two operations impossible to compare slot for slot.
+         */
+        @Test
+        @DisplayName("one operation's timeline is the same grid, holding only its traces")
+        void operationTimelineNarrowsWithoutRescaling(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = derived(dataSource);
+
+            List<TraceTimelineBucketRecord> everything = repository.timeline(10);
+            List<TraceTimelineBucketRecord> flamegraph =
+                    repository.timelineOfOperation(FLAMEGRAPH_OPERATION, 10);
+
+            assertEquals(
+                    everything.stream().map(TraceTimelineBucketRecord::fromMillisFromBeginning).toList(),
+                    flamegraph.stream().map(TraceTimelineBucketRecord::fromMillisFromBeginning).toList(),
+                    "same slices, so the two can be read against each other");
+            assertEquals(2, everything.stream().mapToLong(TraceTimelineBucketRecord::count).sum());
+            assertEquals(1, flamegraph.stream().mapToLong(TraceTimelineBucketRecord::count).sum(),
+                    "only the flamegraph exchange, not the health check beside it");
+            assertEquals(120 * MS,
+                    flamegraph.stream()
+                            .mapToLong(TraceTimelineBucketRecord::maxDurationNanos)
+                            .max()
+                            .orElseThrow());
+        }
+
+        @Test
+        @DisplayName("an operation with no traces still spans the recording")
+        void unknownOperationIsAllZeroes(DataSource dataSource) throws SQLException {
+            List<TraceTimelineBucketRecord> buckets = derived(dataSource)
+                    .timelineOfOperation(operation("GET /nothing", "SERVER", HTTP_SERVER_EXCHANGE), 10);
+
+            assertEquals(10, buckets.size());
+            assertEquals(0, buckets.stream().mapToLong(TraceTimelineBucketRecord::count).sum());
         }
     }
 }

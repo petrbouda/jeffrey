@@ -13,7 +13,7 @@ VALUES
 
 -- Durations in nanoseconds. The profiling start (10:00:00.000) is the relative-time origin
 -- persisted in start_timestamp_from_beginning at ingest time.
-INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     ('profiler.Span',       '2025-01-15T10:00:00.000Z',    0, 300000000, 1, NULL, NULL, NULL, 2001, '{"tag":"profile.initialize"}'),
     ('profiler.Span',       '2025-01-15T10:00:00.100Z',  100, 120000000, 1, NULL, NULL, NULL, 2001, '{"tag":"jfr.parse_and_ingest"}'),

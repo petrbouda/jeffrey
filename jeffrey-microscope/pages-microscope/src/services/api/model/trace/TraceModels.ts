@@ -175,6 +175,21 @@ export interface TraceOperationRow extends TraceOperationId {
 }
 
 /**
+ * One slice of the recording: how many traces started inside it and how slow the worst of them was.
+ *
+ * Bucketed by the server over every trace, never by folding a fetched list — the lists are capped,
+ * and bucketing a cap plots the recording's first slice across the whole axis. Every slice comes
+ * back, empty ones as zeroes, so a stretch with no traffic is drawn as a floor rather than skipped
+ * and interpolated across.
+ */
+export interface TraceTimelineBucket {
+  fromMillisFromBeginning: number;
+  count: number;
+  errorCount: number;
+  maxDurationNanos: number;
+}
+
+/**
  * Why a span was not doing its own work. Must match the backend's `TraceContextCategory`, plus
  * `OWN_WORK` — the residual the summary reports for everything no category accounts for.
  */
@@ -295,6 +310,12 @@ export interface TraceSpanEvents {
  */
 export interface TraceOperationSpanRow {
   name: string;
+  /**
+   * The event the row was made from, verbatim — `jeffrey.JdbcQuery` for a span the application
+   * instrumented, `jdk.SocketRead` for a wait the derivation promoted into one. It is what lets the
+   * breakdown draw a blocking wait apart from a deliberate call instead of guessing from the name.
+   */
+  eventType: string;
   occurrences: number;
   traceCount: number;
   totalNanos: number;

@@ -7,7 +7,7 @@
 -- the whole population and only decides whether the operation is listed at all.
 --
 -- The three durations are far apart so a percentile taken over the wrong subset is obvious.
-INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     ('jeffrey.HttpServerExchange', '2025-01-15T10:00:05.000Z', 5000, 10000000, 1, NULL, NULL, NULL, 3001,
      '{"traceId":7101,"spanId":341,"parentSpanId":0,"name":"GET /mixed","kind":"SERVER","status":"OK","method":"GET","uri":"/mixed","statusCode":200}'),

@@ -30,9 +30,14 @@ public class EventDeduplicator {
     private final StripedLongSet frameUsed = new StripedLongSet();
     private final StripedLongSet stacktraceUsed = new StripedLongSet();
     private final StripedLongSet threadUsed = new StripedLongSet();
+    private final StripedLongSet fieldTextUsed = new StripedLongSet();
 
     public boolean checkAndAddFrame(long value) {
         return frameUsed.add(value);
+    }
+
+    public boolean checkAndAddFieldText(long value) {
+        return fieldTextUsed.add(value);
     }
 
     public boolean checkAndAddStacktrace(long value) {

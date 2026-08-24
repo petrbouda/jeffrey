@@ -120,6 +120,15 @@ public class SQLSingleThreadedEventWriter implements SingleThreadedEventWriter {
     }
 
     @Override
+    public long onFieldText(String text) {
+        long hash = hasher.hashText(text);
+        if (deduplicator.checkAndAddFieldText(hash)) {
+            writersProvider.fieldTexts().insert(new FieldTextWithHash(hash, text));
+        }
+        return hash;
+    }
+
+    @Override
     public long onEventThread(EventThread thread) {
         long hash = hasher.hashThread(thread);
         if (deduplicator.checkAndAddThread(hash)) {

@@ -27,6 +27,10 @@ package cafe.jeffrey.profile.manager.model.trace;
  * The two rankings routinely disagree, which is why the breakdown offers both.
  *
  * @param name         span name, as the waterfall shows it
+ * @param eventType    the event the row was made from, verbatim — {@code jeffrey.JdbcQuery} for an
+ *                     instrumented span, {@code jdk.SocketRead} for a wait the derivation promoted.
+ *                     It is what lets the breakdown draw a blocking wait apart from a call the
+ *                     application made on purpose, rather than guessing from the display name.
  * @param occurrences  how many spans of this name the operation's traces contain
  * @param traceCount   how many traces contain at least one
  * @param totalNanos   summed inclusive duration across all of them
@@ -39,6 +43,7 @@ package cafe.jeffrey.profile.manager.model.trace;
  */
 public record TraceOperationSpanRow(
         String name,
+        String eventType,
         long occurrences,
         long traceCount,
         long totalNanos,

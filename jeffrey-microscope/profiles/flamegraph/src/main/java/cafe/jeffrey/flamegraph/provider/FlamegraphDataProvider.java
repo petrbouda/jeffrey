@@ -109,7 +109,7 @@ public class FlamegraphDataProvider {
                 .withThreads(graphParameters.threadMode())
                 .withSpecifiedThreads(graphParameters.threads())
                 .withWeight(graphParameters.useWeight())
-                .withSpanIntervals(graphParameters.spanIntervals());
+                .withSpanScope(graphParameters.spanScope());
 
         // The query is its own span so a slow flamegraph can be attributed: time under
         // flamegraph.query is DuckDB, the remainder of flamegraph.generate is frame building.

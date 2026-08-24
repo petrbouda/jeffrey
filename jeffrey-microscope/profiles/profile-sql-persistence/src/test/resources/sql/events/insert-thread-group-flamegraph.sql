@@ -25,7 +25,7 @@ INSERT INTO stacktraces (stacktrace_hash, type_id, frame_hashes, tag_ids)
 VALUES
     (5001, 1, [9001], []);
 
-INSERT INTO events (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     -- KEPT by the group: a worker identified by its Java id
     ('jdk.ExecutionSample', '2025-01-15T10:00:00.050Z', NULL, 1, NULL, NULL, 5001, 3001, '{}'),

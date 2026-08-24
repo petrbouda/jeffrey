@@ -20,6 +20,7 @@ package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.provider.profile.api.TraceAttributeCondition;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
+import cafe.jeffrey.provider.profile.api.TraceAttributeOperator;
 import cafe.jeffrey.provider.profile.api.TraceAttributeSearchQuery;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
@@ -81,7 +82,7 @@ final class TraceAttributeQueries {
                 params.addValue("attr_owner_" + i, key.owner());
             }
 
-            String valueClause = condition.operator().predicate("attr_value_" + i);
+            String valueClause = valueClause(condition.operator(), "attr_value_" + i);
             if (condition.operator().needsValue()) {
                 params.addValue("attr_value_" + i, condition.value());
             }
@@ -90,6 +91,20 @@ final class TraceAttributeQueries {
                     .formatted(key.source().name(), ownerClause, keyParam, valueClause));
         }
         return predicates;
+    }
+
+    /**
+     * The value half of one condition's predicate. A text comparison runs against the value
+     * dictionary — the index stores only references — and comes back as a membership test over the
+     * references whose text matches; with a few thousand dictionary rows the lookup is a scan of
+     * nothing. Numeric comparisons and {@code EXISTS} read the index row itself, as before.
+     */
+    private static String valueClause(TraceAttributeOperator operator, String parameter) {
+        if (!operator.readsText()) {
+            return operator.predicate(parameter);
+        }
+        return "value_id IN (SELECT value_id FROM trace_attribute_values WHERE %s)"
+                .formatted(operator.predicate(parameter));
     }
 
     /**

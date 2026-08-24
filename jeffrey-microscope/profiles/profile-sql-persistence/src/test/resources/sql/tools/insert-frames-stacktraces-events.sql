@@ -37,7 +37,7 @@ INSERT INTO stacktraces (stacktrace_hash, type_id, frame_hashes, tag_ids)
 VALUES (2004, 1, [106, 104, 105], [2]);
 
 -- Events referencing stacktraces and threads
-INSERT INTO events (event_type, start_timestamp, duration, samples, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, duration, samples, stacktrace_hash, thread_hash, fields)
 VALUES
     ('jdk.ExecutionSample', '2025-01-15T10:00:00Z', 1000000, 1, 2001, 1001, NULL),
     ('jdk.ExecutionSample', '2025-01-15T10:00:01Z', 1000000, 1, 2001, 1001, NULL),

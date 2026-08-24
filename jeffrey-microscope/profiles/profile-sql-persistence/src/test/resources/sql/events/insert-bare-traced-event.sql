@@ -11,7 +11,7 @@ VALUES
     ('jeffrey.ThirdPartyEvent', 'Third Party Event', 5, 'stamped by someone else', '["Application"]', '1', NULL, false, NULL, NULL,
      '[{"field":"traceId","header":"Trace Id"},{"field":"spanId","header":"Span Id"},{"field":"parentSpanId","header":"Parent Span Id"},{"field":"payload","header":"Payload"}]');
 
-INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     ('jeffrey.ThirdPartyEvent', '2025-01-15T10:00:00.040Z', 40, 3000000, 1, NULL, NULL, NULL, 3001,
      '{"traceId":9223372036854775807,"spanId":444,"parentSpanId":111,"payload":"opaque"}');

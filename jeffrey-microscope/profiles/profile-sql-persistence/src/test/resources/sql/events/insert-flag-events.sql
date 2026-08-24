@@ -8,7 +8,7 @@ VALUES
     ('jdk.LongFlag', 'Long Flag', 2, 'Long JVM flag', '["JVM"]', '1', NULL, false, NULL, NULL, NULL);
 
 -- 2025-01-15T10:00:00Z = 1736935200000 epoch millis, 2025-01-15T10:05:00Z = 1736935500000.
-INSERT INTO events (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     ('jdk.BooleanFlag', '2025-01-15T10:00:00Z', NULL, 1, NULL, NULL, NULL, NULL, '{"name": "UseG1GC", "value": "true", "origin": "Default"}'),
     ('jdk.LongFlag',    '2025-01-15T10:00:00Z', NULL, 1, NULL, NULL, NULL, NULL, '{"name": "MaxHeapSize", "value": "1073741824", "origin": "Default"}'),

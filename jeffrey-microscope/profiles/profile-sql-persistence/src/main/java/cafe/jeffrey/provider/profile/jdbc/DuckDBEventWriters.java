@@ -34,6 +34,7 @@ public class DuckDBEventWriters implements EventWriters {
     private final DuckDBStacktraceWriter stacktraceWriter;
     private final DuckDBThreadWriter threadWriter;
     private final DuckDBFrameWriter frameWriter;
+    private final DuckDBFieldTextWriter fieldTextWriter;
 
     public DuckDBEventWriters(ExecutorService executor, DataSource dataSource, int batchSize, Instant profilingStartedAt) {
         this.eventWriter = new DuckDBEventWriter(executor, dataSource, batchSize, profilingStartedAt);
@@ -41,6 +42,7 @@ public class DuckDBEventWriters implements EventWriters {
         this.stacktraceWriter = new DuckDBStacktraceWriter(executor, dataSource, batchSize);
         this.threadWriter = new DuckDBThreadWriter(executor, dataSource, batchSize);
         this.frameWriter = new DuckDBFrameWriter(executor, dataSource, batchSize);
+        this.fieldTextWriter = new DuckDBFieldTextWriter(executor, dataSource, batchSize);
     }
 
     @Override
@@ -69,11 +71,17 @@ public class DuckDBEventWriters implements EventWriters {
     }
 
     @Override
+    public DatabaseWriter<FieldTextWithHash> fieldTexts() {
+        return fieldTextWriter;
+    }
+
+    @Override
     public void close() {
         eventTypeWriter.close();
         eventWriter.close();
         stacktraceWriter.close();
         threadWriter.close();
         frameWriter.close();
+        fieldTextWriter.close();
     }
 }

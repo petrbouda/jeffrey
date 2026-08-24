@@ -27,7 +27,7 @@ INSERT INTO threads (thread_hash, name, os_id, java_id, is_virtual)
 VALUES
     (6001, 'acme-worker-1', 91, 51, false);
 
-INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     -- The headline case: plain commit(), no name recorded, named by the declared template. The 503
     -- in deliveryCode is NOT read as a failure -- no verdict was recorded, so none exists.

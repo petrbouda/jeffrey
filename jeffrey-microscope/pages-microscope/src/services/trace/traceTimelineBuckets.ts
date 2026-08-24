@@ -32,8 +32,9 @@ export interface TimelineWindow {
 /**
  * Buckets timestamped items into a fixed number of equal columns.
  *
- * Shared by the async-profiler tag detail and the trace operation detail: both plot "how slow was
- * the worst one, and how many were there" over time, and differ only in what they are counting.
+ * For a list that is all of the items. The trace operation detail used to bucket its trace list
+ * here and stopped: that list is capped, and bucketing a cap draws the first slice of a recording
+ * across the whole axis. Where the server can aggregate, ask it — this is for what it cannot.
  *
  * @param items        the items to bucket; an empty list produces no buckets at all
  * @param startMillis  reads an item's start, in whatever unit {@code window} is expressed in

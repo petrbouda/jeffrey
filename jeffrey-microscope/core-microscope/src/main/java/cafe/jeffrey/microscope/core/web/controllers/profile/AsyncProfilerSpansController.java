@@ -46,6 +46,7 @@ import cafe.jeffrey.shared.common.GraphType;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.ProfilingStartEnd;
 import cafe.jeffrey.shared.common.model.SpanInterval;
+import cafe.jeffrey.shared.common.model.SpanScope;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 import cafe.jeffrey.shared.common.model.time.UndefinedTimeRange;
 
@@ -113,7 +114,8 @@ public class AsyncProfilerSpansController {
         LOG.debug("Building span-scoped flamegraph panels: profileId={} tag={}", profileId, tag);
         ProfileManager pm = resolver.resolve(profileId);
         List<SpanInterval> intervals = pm.spanManager().tagIntervals(tag);
-        return panelProvider.panels(pm.flamegraphManager().eventSummaries(intervals), PanelContext.PRIMARY);
+        return panelProvider.panels(
+                pm.flamegraphManager().eventSummaries(SpanScope.of(intervals)), PanelContext.PRIMARY);
     }
 
     @PostMapping(value = "/spans/flamegraph", produces = ProfileMediaTypes.PROTOBUF)
@@ -124,7 +126,7 @@ public class AsyncProfilerSpansController {
                 profileId, request.tag(), request.eventType());
         ProfileManager pm = resolver.resolve(profileId);
         List<SpanInterval> intervals = pm.spanManager().tagIntervals(request.tag());
-        GraphParameters params = SpanScopedGraphParameters.of(pm.info(), request, intervals);
+        GraphParameters params = SpanScopedGraphParameters.of(pm.info(), request, SpanScope.of(intervals));
         return pm.flamegraphManager().generate(params);
     }
 
@@ -137,7 +139,7 @@ public class AsyncProfilerSpansController {
         ProfileManager pm = resolver.resolve(profileId);
         List<SpanInterval> intervals = List.of(
                 new SpanInterval(request.threadHash(), request.fromMillis(), request.toMillis()));
-        GraphParameters params = SpanScopedGraphParameters.of(pm.info(), request, intervals);
+        GraphParameters params = SpanScopedGraphParameters.of(pm.info(), request, SpanScope.of(intervals));
         return pm.flamegraphManager().generate(params);
     }
 

@@ -13,7 +13,7 @@ VALUES
 
 -- Insert ThreadAllocationStatistics events with different weights
 -- Latest timestamp events (these should be returned)
-INSERT INTO events (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     ('jdk.ThreadAllocationStatistics', '2025-01-15T10:00:10Z', NULL, 1, 5000000, NULL, NULL, 1001, NULL),
     ('jdk.ThreadAllocationStatistics', '2025-01-15T10:00:10Z', NULL, 1, 3000000, NULL, NULL, 1002, NULL),
@@ -21,7 +21,7 @@ VALUES
     ('jdk.ThreadAllocationStatistics', '2025-01-15T10:00:10Z', NULL, 1, 500000, NULL, NULL, 1004, NULL);
 
 -- Older events (should NOT be returned)
-INSERT INTO events (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     ('jdk.ThreadAllocationStatistics', '2025-01-15T09:00:00Z', NULL, 1, 100000, NULL, NULL, 1001, NULL),
     ('jdk.ThreadAllocationStatistics', '2025-01-15T09:00:00Z', NULL, 1, 200000, NULL, NULL, 1002, NULL);

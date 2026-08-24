@@ -15,7 +15,7 @@ VALUES
     (1004, 'virtual-thread-1', NULL, 100, true);
 
 -- Insert events with JSON fields
-INSERT INTO events (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     ('jdk.ExecutionSample', '2025-01-15T10:00:00Z', 1000000, 1, NULL, NULL, 2001, 1001, '{"state": "RUNNABLE", "sampledThread": "main"}'),
     ('jdk.ExecutionSample', '2025-01-15T10:00:01Z', 1000000, 1, NULL, NULL, 2002, 1002, '{"state": "BLOCKED", "sampledThread": "worker-1"}'),

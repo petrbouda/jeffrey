@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @DuckDBTest(migration = "classpath:db/migration/profile")
 class EventsTableClusteringTest {
 
-    private static final String EVENTS_TABLE = "events";
+    private static final String EVENTS_TABLE = "events_raw";
     private static final List<String> CLUSTERING_COLUMNS = List.of("event_type", "start_timestamp_from_beginning");
 
     private static DatabaseClient client(DataSource dataSource) {

@@ -26,7 +26,7 @@ VALUES
 -- Events. weight carries the metric (bytes); samples=1 per event as an OTLP weight import would produce.
 -- Stack 4001: three events within second 0 (ms offsets 100, 500, 900); weights 10, 20, 30.
 -- Stack 4002: two events within second 1 (ms offsets 1100, 1200); weights 40, 50.
-INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     ('alloc', '2025-01-15T10:00:00Z', 100,  0, 1, 10, 'byte[]', 4001, 3001, NULL),
     ('alloc', '2025-01-15T10:00:00Z', 500,  0, 1, 20, 'byte[]', 4001, 3001, NULL),

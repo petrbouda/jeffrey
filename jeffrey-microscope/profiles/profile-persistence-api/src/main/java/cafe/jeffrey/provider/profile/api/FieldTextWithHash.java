@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -18,25 +18,10 @@
 
 package cafe.jeffrey.provider.profile.api;
 
-import cafe.jeffrey.provider.profile.api.*;
-
-public interface EventWriters extends AutoCloseable {
-
-    DatabaseWriter<EnhancedEventType> eventTypes();
-
-    DatabaseWriter<Event> events();
-
-    DatabaseWriter<EventStacktraceWithHash> stacktraces();
-
-    DatabaseWriter<EventThreadWithHash> threads();
-
-    DatabaseWriter<EventFrameWithHash> frames();
-
-    DatabaseWriter<FieldTextWithHash> fieldTexts();
-
-    /**
-     * Overridden to avoid handling the exception
-     */
-    @Override
-    void close();
+/**
+ * One distinct pooled field value, keyed by the hash of its content — the id events store in
+ * {@link Event.PooledField#textHash()}. Deduplicated before it reaches the writer, so each
+ * distinct text is written exactly once per profile.
+ */
+public record FieldTextWithHash(long hash, String text) {
 }

@@ -47,6 +47,7 @@ import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
 import cafe.jeffrey.provider.profile.api.TraceSortField;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.SpanInterval;
+import cafe.jeffrey.shared.common.model.SpanScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -205,8 +206,8 @@ public class TracesController {
     }
 
     /**
-     * The traces of one type. Feeds both the timeline and the slowest list of the operation
-     * drill-down, which is why it is ordered by time rather than by duration.
+     * The traces of one type. Feeds the slowest list of the operation drill-down, which is why it is
+     * ordered by time rather than by duration — the summary's histogram wants a chronological slice.
      * <p>
      * The name travels as a query parameter, not a path segment: operation names contain slashes
      * and braces ({@code GET /api/internal/profiles/{profileId}/heap/instances}).
@@ -222,6 +223,29 @@ public class TracesController {
                 profileId, name, kind, eventType, limit);
         return resolver.resolve(profileId).traceManager()
                 .tracesOfOperation(new TraceOperationId(name, kind, eventType), boundedLimit(limit));
+    }
+
+    /**
+     * How one type's traces were spread over the recording, for its metrics timeline.
+     * <p>
+     * Aggregated server-side for the same reason {@link #timeline} is, and it is the same reason the
+     * drill-down cannot answer this from the list it already holds: that list stops at the cap, so an
+     * operation running all hour would have its first thousand traces bucketed and the remaining
+     * fifty-nine minutes drawn as zero.
+     */
+    @GetMapping("/operation/timeline")
+    public List<TraceTimelineBucket> operationTimeline(
+            @PathVariable("profileId") String profileId,
+            @RequestParam("name") String name,
+            @RequestParam("kind") String kind,
+            @RequestParam("eventType") String eventType,
+            @RequestParam(value = "buckets", defaultValue = DEFAULT_TIMELINE_BUCKETS) int buckets) {
+        LOG.debug("Bucketing the traces of an operation: profile_id={} name={} kind={} event_type={} buckets={}",
+                profileId, name, kind, eventType, buckets);
+        return resolver.resolve(profileId).traceManager()
+                .timelineOfOperation(
+                        new TraceOperationId(name, kind, eventType),
+                        Math.clamp(buckets, 1, MAX_TIMELINE_BUCKETS));
     }
 
     /**
@@ -348,8 +372,8 @@ public class TracesController {
                 profileId, traceId, spanId, selfOnly);
         ProfileManager profileManager = resolver.resolve(profileId);
 
-        return panelsFor(profileManager, profileManager.traceManager()
-                .spanIntervals(parseId(traceId), parseId(spanId), selfOnly));
+        return panelsFor(profileManager, SpanScope.of(profileManager.traceManager()
+                .spanIntervals(parseId(traceId), parseId(spanId), selfOnly)));
     }
 
     /**
@@ -369,7 +393,7 @@ public class TracesController {
 
         List<SpanInterval> intervals = profileManager.traceManager()
                 .spanIntervals(parseId(traceId), parseId(spanId), request.selfOnly());
-        return flamegraphFor(profileManager, request, intervals,
+        return flamegraphFor(profileManager, request, SpanScope.of(intervals),
                 "Span has no samples to show: " + spanId);
     }
 
@@ -387,8 +411,9 @@ public class TracesController {
                 profileId, name, kind, eventType);
         ProfileManager profileManager = resolver.resolve(profileId);
 
-        return panelsFor(profileManager, profileManager.traceManager()
-                .operationIntervals(new TraceOperationId(name, kind, eventType)));
+        // Named, not enumerated: this operation's windows are one per trace, and a busy one has
+        // hundreds of thousands. Handing the query the name lets it derive them where they live.
+        return panelsFor(profileManager, new SpanScope.Operation(name, kind, eventType));
     }
 
     /**
@@ -403,9 +428,11 @@ public class TracesController {
                 profileId, request.name(), request.kind(), request.rootEventType());
         ProfileManager profileManager = resolver.resolve(profileId);
 
-        List<SpanInterval> intervals = profileManager.traceManager()
-                .operationIntervals(request.operationId());
-        return flamegraphFor(profileManager, request, intervals,
+        // Named rather than enumerated, exactly as the panels beside it are — see #operationPanels.
+        return flamegraphFor(
+                profileManager,
+                request,
+                new SpanScope.Operation(request.name(), request.kind(), request.rootEventType()),
                 "Operation has no samples to show: " + request.name());
     }
 
@@ -413,12 +440,12 @@ public class TracesController {
      * The flamegraph cards for a set of intervals, or none when the scope covers nothing. A scope
      * with no intervals is a normal answer here — the caller is asking what is available.
      */
-    private List<FlamegraphPanel> panelsFor(ProfileManager profileManager, List<SpanInterval> intervals) {
-        if (intervals.isEmpty()) {
+    private List<FlamegraphPanel> panelsFor(ProfileManager profileManager, SpanScope scope) {
+        if (scope.isEmpty()) {
             return List.of();
         }
         return panelProvider.panels(
-                profileManager.flamegraphManager().eventSummaries(intervals), PanelContext.PRIMARY);
+                profileManager.flamegraphManager().eventSummaries(scope), PanelContext.PRIMARY);
     }
 
     /**
@@ -428,13 +455,17 @@ public class TracesController {
     private static byte[] flamegraphFor(
             ProfileManager profileManager,
             SpanFlamegraphOptions request,
-            List<SpanInterval> intervals,
+            SpanScope scope,
             String notFoundMessage) {
 
-        if (intervals.isEmpty()) {
+        // A scope the caller enumerated can be seen to be empty; one it merely named cannot, and
+        // asking would cost the very query this scope exists to avoid. A named scope that turns out
+        // to cover nothing therefore yields an empty graph rather than this 404 — the panel that
+        // opens it only offers event types it has already counted samples for.
+        if (scope.isEmpty()) {
             throw Exceptions.resourceNotFound(notFoundMessage);
         }
-        GraphParameters params = SpanScopedGraphParameters.of(profileManager.info(), request, intervals);
+        GraphParameters params = SpanScopedGraphParameters.of(profileManager.info(), request, scope);
         return profileManager.flamegraphManager().generate(params);
     }
 

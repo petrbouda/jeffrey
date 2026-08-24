@@ -61,7 +61,7 @@ public class TimeseriesDataProvider {
                 .withWeight(graphParameters.useWeight())
                 .withSearchPattern(graphParameters.searchPattern())
                 .withSpecifiedThreads(graphParameters.threads())
-                .withSpanIntervals(graphParameters.spanIntervals());
+                .withSpanScope(graphParameters.spanScope());
 
         if (timeseriesType == TimeseriesType.SIMPLE) {
             return Tracer.call(SPAN_QUERY, () ->

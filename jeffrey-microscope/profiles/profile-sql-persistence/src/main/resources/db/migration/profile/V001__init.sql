@@ -75,8 +75,10 @@ CREATE TABLE IF NOT EXISTS stacktraces
 
 --
 -- EVENTS TABLE
+-- The physical table is `events_raw`; every read goes through the `events` view below, which is
+-- what keeps large pooled field values out of the stored rows without any reader knowing.
 --
-CREATE TABLE IF NOT EXISTS events
+CREATE TABLE IF NOT EXISTS events_raw
 (
     event_type      VARCHAR NOT NULL,
     start_timestamp TIMESTAMPTZ NOT NULL,
@@ -90,12 +92,59 @@ CREATE TABLE IF NOT EXISTS events
     weight_entity   VARCHAR,
     stacktrace_hash BIGINT,    -- Reference to stacktraces.stacktrace_hash
     thread_hash     BIGINT,    -- Hash value
-    fields          JSON       -- JSON fields for event-specific data
+    fields          JSON,      -- JSON fields for event-specific data, minus any pooled value below
+    -- The one field the parser pooled out of `fields`, and the reference to its text in
+    -- field_texts -- both NULL when nothing qualified. A recording holds the same large text (a
+    -- statement's SQL, a written file's path) on hundreds of thousands of events; the JFR constant
+    -- pool deduplicates it on disk, a row store does not. The parser knows no field names: it
+    -- lifts the largest string value over a size threshold, whichever key carries it, and the
+    -- `events` view splices it back -- so nothing downstream knows the pooling exists. One field
+    -- per event: in every recording observed, one field carries an order of magnitude more than
+    -- the rest, and one (key, reference) pair keeps this table and the view trivial.
+    pooled_field     VARCHAR,
+    pooled_text_hash BIGINT
 );
 
--- No ART indexes on events: analytical scans don't use them, they slow down ingest and bloat the
--- database file. Instead, the table is re-clustered after parsing (CTAS ordered by event_type,
+-- No ART indexes on events_raw: analytical scans don't use them, they slow down ingest and bloat
+-- the database file. Instead, the table is re-clustered after parsing (CTAS ordered by event_type,
 -- start_timestamp_from_beginning) so zone maps prune scans by event type and time range.
+
+--
+-- FIELD TEXTS TABLE
+-- The pooled field values, one row per distinct text, keyed by the text's own 64-bit hash -- the
+-- same convention stacktraces and threads use, so parallel parser threads agree on the id without
+-- coordination. A hash collision fails the primary key loudly instead of silently attaching the
+-- wrong text to an event.
+--
+CREATE TABLE IF NOT EXISTS field_texts
+(
+    text_hash BIGINT  NOT NULL PRIMARY KEY,
+    text      VARCHAR NOT NULL
+);
+
+--
+-- EVENTS VIEW
+-- What every reader queries as `events`. Splices each pooled field value back into `fields` under
+-- the key it was lifted from, so the JSON a reader extracts is what the recording declared; rows
+-- with nothing pooled pass through untouched. Reads that never project `fields` (flamegraphs,
+-- timeseries) pay only a LEFT JOIN against a table of a few dozen rows.
+--
+CREATE VIEW IF NOT EXISTS events AS
+SELECT
+    e.event_type,
+    e.start_timestamp,
+    e.start_timestamp_from_beginning,
+    e.duration,
+    e.samples,
+    e.weight,
+    e.weight_entity,
+    e.stacktrace_hash,
+    e.thread_hash,
+    CASE WHEN e.pooled_text_hash IS NULL
+         THEN e.fields
+         ELSE json_merge_patch(e.fields, json_object(e.pooled_field, t.text)) END AS fields
+FROM events_raw e
+LEFT JOIN field_texts t ON t.text_hash = e.pooled_text_hash;
 
 --
 -- THREADS TABLE
@@ -231,11 +280,14 @@ CREATE TABLE IF NOT EXISTS trace_spans
     -- are whatever the developer passed. Any traced event can carry one; in practice a hand-written
     -- span is what usually does.
     attributes                     VARCHAR,
-    -- What the event declared beyond the span shape, as a JSON object: a statement's sql, params and
-    -- rows, an exchange's uri, method and status code. These are schema, not attributes -- each is a
-    -- labelled field of its event type -- so they are kept apart from the map above. Null for an
-    -- event that declares nothing of its own, a hand-written span being the usual case.
-    event_fields                   VARCHAR,
+    -- What the event declared beyond the span shape -- a statement's sql, params and rows, an
+    -- exchange's uri, method and status code -- as a reference into trace_span_payloads. These are
+    -- schema, not attributes (each is a labelled field of its event type), so they are kept apart
+    -- from the map above. Stored as a reference because a million statement spans carry a few
+    -- thousand distinct payloads: the text lives once in the payload table and the waterfall joins
+    -- it back. Null for an event that declares nothing of its own, a hand-written span being the
+    -- usual case.
+    event_fields_ref               BIGINT,
     -- TRUE for a span the derivation synthesized out of a blocking JDK event (jdk.SocketRead,
     -- jdk.JavaMonitorEnter, ...) rather than read out of an instrumented span event. A synthesized
     -- span carries a minted id and is always a leaf under the innermost span open on its thread --
@@ -287,12 +339,24 @@ CREATE TABLE IF NOT EXISTS traces
     has_platform_span              BOOLEAN     NOT NULL
 );
 
--- Unlike `events`, these two are small, written once by the derivation and then read interactively
--- by every trace query, so the ingest-cost argument against ART indexes above does not apply here.
--- The single-column index exists alongside the composite primary key because every trace read
--- filters on trace_id alone, and the composite ART key is not a reliable substitute for a
--- prefix-only lookup.
-CREATE INDEX IF NOT EXISTS trace_spans_trace_id_idx ON trace_spans (trace_id);
+--
+-- TRACE SPAN PAYLOADS TABLE
+-- The distinct `event_fields` payloads, one row per distinct JSON text, keyed by the text's own
+-- 64-bit hash (DuckDB's hash(), cast to BIGINT) so the derivation can compute a span's reference
+-- inline without coordinating a sequence. A collision fails the primary key loudly during
+-- derivation instead of silently showing one span another span's payload.
+--
+CREATE TABLE IF NOT EXISTS trace_span_payloads
+(
+    payload_id BIGINT  NOT NULL PRIMARY KEY,
+    payload    VARCHAR NOT NULL
+);
+
+-- No secondary index on trace_spans: the derivation inserts it ordered by (trace_id,
+-- start_timestamp), so row-group zone maps prune a single-trace read as effectively as the ART
+-- index this table used to carry -- without the index's build time during derivation or its
+-- footprint in the file. The composite primary key stays: it states the one-span-per-id invariant
+-- the waterfall relies on.
 CREATE INDEX IF NOT EXISTS traces_operation_idx ON traces (root_name, root_kind, root_event_type);
 
 --
@@ -324,13 +388,32 @@ CREATE TABLE IF NOT EXISTS trace_span_attributes
     -- global. Nullable rather than a sentinel because it is compared with IS NULL, never with `=`.
     owner      VARCHAR,
     attr_key   VARCHAR NOT NULL,
-    value_text VARCHAR NOT NULL,
+    -- Reference into trace_attribute_values. The text lives once per distinct value rather than
+    -- once per row: a million statement spans carry a few dozen distinct SQL texts, and storing
+    -- each text inline multiplied this table's footprint by the repetition. Every read that shows
+    -- or compares text joins the value table; equality and ordering on the reference alone are
+    -- meaningless and no query performs them.
+    value_id   BIGINT  NOT NULL,
     value_num  DOUBLE,
     -- Which event type the span carrying this value was, copied from trace_spans at derivation.
     -- Distinct from `owner`: owner says which event type *declares* a key, and only EVENT_FIELD has
     -- one, while this says which event type a value was *recorded on*, which every row has. It is
     -- what lets `tenant` -- a key no event type declares -- be listed under the types that carry it.
     event_type VARCHAR NOT NULL
+);
+
+--
+-- TRACE ATTRIBUTE VALUES TABLE
+-- The distinct attribute value texts, one row per distinct text across every source and key,
+-- keyed by the text's own 64-bit hash (DuckDB's hash(), cast to BIGINT) so the derivation computes
+-- each row's reference inline. Shared across keys deliberately: `UNSET` recorded by ten thousand
+-- spans under three different keys is still one row here. A collision fails the primary key loudly
+-- during derivation instead of silently merging two values.
+--
+CREATE TABLE IF NOT EXISTS trace_attribute_values
+(
+    value_id   BIGINT  NOT NULL PRIMARY KEY,
+    value_text VARCHAR NOT NULL
 );
 
 --
@@ -375,11 +458,11 @@ CREATE TABLE IF NOT EXISTS trace_attribute_key_event_types
     trace_count     BIGINT  NOT NULL
 );
 
--- Written once by the derivation, then read interactively by every attribute query, so the same
--- reasoning applies as for the trace tables above. The key index serves the facet, latency and
--- difference reads; the trace index serves the search, which resolves a set of trace ids.
-CREATE INDEX IF NOT EXISTS trace_span_attributes_key_idx ON trace_span_attributes (attr_key, value_text);
-CREATE INDEX IF NOT EXISTS trace_span_attributes_trace_id_idx ON trace_span_attributes (trace_id);
+-- No indexes on trace_span_attributes: the derivation inserts it ordered by (trace_id, span_id),
+-- so zone maps prune the search's per-page hit lookup by trace id, and the facet reads -- grouped
+-- scans over one key -- never used an index selectively anyway. The two ART indexes this table
+-- used to carry cost more to build and store than every read they served; a full scan of the
+-- reference-encoded table answers each of those reads in well under an interactive budget.
 -- The picker's second step reads this by event type and nothing else.
 CREATE INDEX IF NOT EXISTS trace_attribute_key_event_types_idx
     ON trace_attribute_key_event_types (event_type);

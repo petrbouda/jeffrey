@@ -108,6 +108,16 @@ public class SingleThreadHasher {
     }
 
     /**
+     * Hash a pooled field value by its UTF-8 content. Deterministic across parser threads, so two
+     * threads seeing the same text agree on its id without coordination.
+     * Note: profile scoping is handled at database level (per-profile databases)
+     */
+    public long hashText(String text) {
+        byte[] bytes = safeGetBytes(text);
+        return HASHER.hash(bytes, 0, bytes.length, 0);
+    }
+
+    /**
      * Hash EventThread using name, osId, and javaId fields.
      * Note: profile scoping is handled at database level (per-profile databases)
      */

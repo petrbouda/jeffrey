@@ -22,7 +22,7 @@ INSERT INTO threads (thread_hash, name, os_id, java_id, is_virtual)
 VALUES
     (5001, 'tomcat-handler-1', 81, 41, false);
 
-INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     -- The same endpoint, recorded by two versions of the instrumentation.
     ('jeffrey.HttpServerExchange', '2025-01-15T10:00:00.000Z',   0, 10000000, 1, NULL, NULL, NULL, 5001,

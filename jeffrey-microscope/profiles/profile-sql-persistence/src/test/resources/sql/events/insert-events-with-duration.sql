@@ -12,7 +12,7 @@ VALUES
 -- plus 2 null-duration safepoint rows (must NOT be counted). Sum = (1+2+...+9+500) ms = 545 ms.
 -- Max = 500 ms. With 10 values, p99 via quantile_cont(0.99) interpolates between indices 8 and 9
 -- → 9 ms + 0.9 * (500 - 9) ms ≈ 450.9 ms.
-INSERT INTO events (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     ('jdk.SafepointBegin', '2025-01-15T10:00:00Z',   1000000, 1, NULL, NULL, NULL, NULL, '{}'),
     ('jdk.SafepointBegin', '2025-01-15T10:00:01Z',   2000000, 1, NULL, NULL, NULL, NULL, '{}'),

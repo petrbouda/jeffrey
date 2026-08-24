@@ -25,7 +25,7 @@ VALUES
     (5001, 1, [9001], []),
     (5002, 1, [9001], []);
 
-INSERT INTO events (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     -- KEPT: thread 2001 inside span A
     ('jdk.ExecutionSample', '2025-01-15T10:00:00.050Z', NULL, 1, NULL, NULL, 5001, 2001, '{}'),

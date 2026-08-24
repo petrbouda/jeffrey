@@ -31,6 +31,7 @@ import cafe.jeffrey.provider.profile.api.*;
 import cafe.jeffrey.shared.common.jfr.EventFieldsMapper;
 import cafe.jeffrey.shared.common.jfr.EventFieldsToJsonMapper;
 import cafe.jeffrey.profile.parser.fields.EventTypeUtils;
+import cafe.jeffrey.profile.parser.fields.PooledFieldExtractor;
 import cafe.jeffrey.profile.parser.stacktrace.StacktraceTypeResolver;
 import cafe.jeffrey.profile.parser.stacktrace.StacktraceTypeResolverImpl;
 import cafe.jeffrey.profile.parser.tag.IdleStacktraceTagResolver;
@@ -157,6 +158,7 @@ public class JfrEventReader implements EventProcessor<Void> {
         Duration duration = event.getDuration();
 
         ObjectNode eventFields = eventFieldsMapper.map(event);
+        Event.PooledField pooledField = poolLargestField(eventFields);
         Event newEvent = new Event(
                 type.code(),
                 startTime,
@@ -166,10 +168,28 @@ public class JfrEventReader implements EventProcessor<Void> {
                 weightEntity,
                 stacktraceId,
                 threadId,
-                eventFields);
+                eventFields,
+                pooledField);
 
         writer.onEvent(newEvent);
         return Result.CONTINUE;
+    }
+
+    /**
+     * Lifts the event's largest poolable field value out of its JSON and pools it through the
+     * writer — or returns {@code null} when nothing qualifies. A recording holds the same large
+     * text (a statement's SQL, a written file's path) on hundreds of thousands of events; the JFR
+     * constant pool deduplicates it on disk, a row store does not. Pooled, the text is stored once
+     * and the event keeps the field's key plus an 8-byte reference; the {@code events} view
+     * splices it back at read time. What qualifies is decided by size alone — see
+     * {@link PooledFieldExtractor}.
+     */
+    private Event.PooledField poolLargestField(ObjectNode eventFields) {
+        PooledFieldExtractor.PooledValue pooled = PooledFieldExtractor.extractLargest(eventFields);
+        if (pooled == null) {
+            return null;
+        }
+        return new Event.PooledField(pooled.field(), writer.onFieldText(pooled.text()));
     }
 
     private EventStacktrace mapStacktrace(Type type, EventThread eventThread, RecordedStackTrace stacktrace) {

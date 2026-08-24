@@ -25,7 +25,7 @@ VALUES
     ('jdk.GCPhasePauseLevel1', 'GC Phase Pause Level 1', 24, 'gc pause phase', '["Java Virtual Machine","GC"]', '1', NULL, false, NULL, NULL,
      '[{"field":"name","header":"Name"},{"field":"gcId","header":"GC Identifier"}]');
 
-INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     -- The span under test: 10:10:00.000 .. 10:10:00.300 on thread 3001.
     ('jeffrey.TraceSpan', '2025-01-15T10:10:00.000Z', 600000, 300000000, 1, NULL, NULL, NULL, 3001,

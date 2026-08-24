@@ -16,7 +16,7 @@ VALUES
     (3002, 'other', 92, 6, false),
     (3003, 'vt-worker', NULL, 7, true);
 
-INSERT INTO events (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     -- thread 91, inside the [00:00:00.500, 00:00:05.000] window → KEPT
     ('jdk.ExecutionSample', '2026-01-01T00:00:01.000Z',       NULL, 1, NULL, NULL, NULL, 3001, '{"state":"RUNNABLE"}'),

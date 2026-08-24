@@ -50,7 +50,9 @@ public class ProfileInitializerImpl implements ProfileInitializer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfileInitializerImpl.class);
 
-    private static final String EVENTS_TABLE = "events";
+    // The physical table behind the `events` view -- the CTAS re-cluster swaps the table
+    // underneath the view, which re-binds by name on the next read.
+    private static final String EVENTS_TABLE = "events_raw";
 
     private static final String SPAN_INITIALIZE = "profile.initialize";
     private static final String SPAN_PROFILE_INFO = "profile-info.insert";
@@ -132,6 +134,20 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                 Tracer.run(SPAN_RECORDING_PARSE, () -> recordingEventParser.start(eventWriter, recordingPath));
                 Tracer.run(SPAN_EVENTS_FLUSH, eventWriter::onComplete);
 
+                DatabaseClient infrastructureClient = profileRepositories.databaseClientProvider(dataSource)
+                        .provide(GroupLabel.INFRASTRUCTURE);
+
+                // Re-cluster the events table by (event_type, time) as soon as the writers are done.
+                // Row-group zone maps then prune scans by event type and time range — replacing the
+                // ART indexes. Before the trace derivation on purpose: the derivation scans events
+                // by event type several times and profits from the clustering, and the blocks freed
+                // by dropping the unclustered copy are reused by the trace tables written next,
+                // instead of staying dead space at the end of the file.
+                Duration clusteringElapsed = Measuring.r(() -> Tracer.run(SPAN_EVENTS_RECLUSTER,
+                        () -> infrastructureClient.recreateTableClustered(EVENTS_TABLE, EVENTS_CLUSTERING_COLUMNS)));
+                LOG.debug("Events table re-clustered: profile_id={} duration_in_ms={}",
+                        profileInfo.id(), clusteringElapsed.toMillis());
+
                 // Lift the spans hiding in `events` into the typed trace tables, once, while the
                 // events are freshly written and before anything can ask for a trace.
                 Tracer.run(SPAN_TRACES_DERIVE, () -> {
@@ -164,16 +180,6 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                         additionalFilesManager.processAdditionalFiles(recordingId);
                     });
                 }
-
-                DatabaseClient infrastructureClient = profileRepositories.databaseClientProvider(dataSource)
-                        .provide(GroupLabel.INFRASTRUCTURE);
-
-                // Re-cluster the events table by (event_type, time) once all writers are done. Row-group
-                // zone maps then prune scans by event type and time range — replacing the ART indexes.
-                Duration clusteringElapsed = Measuring.r(() -> Tracer.run(SPAN_EVENTS_RECLUSTER,
-                        () -> infrastructureClient.recreateTableClustered(EVENTS_TABLE, EVENTS_CLUSTERING_COLUMNS)));
-                LOG.debug("Events table re-clustered: profile_id={} duration_in_ms={}",
-                        profileInfo.id(), clusteringElapsed.toMillis());
 
                 // Ensure all data is flushed to disk - especially important for WAL mode databases
                 // WAL checkpointing merges the WAL (Write-Ahead Log) into the main database file

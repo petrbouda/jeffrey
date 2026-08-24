@@ -64,20 +64,22 @@
         <!--
           The rows are ranked here, not by the server: the fetch is ordered by start time on
           purpose, because the histogram, the timeline and the truncated percentiles all need a
-          chronological slice rather than a duration-biased one.
+          chronological slice rather than a duration-biased one. The list draws them exactly as
+          given, so this ranking is the one on screen.
 
-          server-ordered is still load-bearing — it means "draw these exactly as given", and
-          without it the shared list applies its own ordering and silently slices to its default
-          of 50, a tab named "Slowest Traces" quietly showing 5% of what was fetched. The
-          denominator is the operation's real call count, not the capped sample, so
-          "Showing X / Total Y" tells the truth for operations past the cap.
+          The denominator is the operation's real call count, not the capped sample, so
+          "Showing X / Total Y" tells the truth for operations past the cap. The tint reads against
+          the operation's own percentiles for the same reason — the capped page has its own.
         -->
-        <TraceSlowestList
-          :traces="rankedByDuration"
+        <TraceCardList
+          :items="rankedByDuration"
+          :trace="(trace: TraceRow) => trace"
+          :p50-nanos="totals?.p50Nanos"
+          :p95-nanos="totals?.p95Nanos"
           :total="totals?.count ?? traces.length"
           :note="capNote"
-          server-ordered
-          @row-click="openTrace"
+          empty-description="No traces for this filter."
+          @open="openTrace"
         />
       </div>
 
@@ -106,21 +108,20 @@ import ErrorState from '@shared/components/ErrorState.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import TabBar from '@shared/components/TabBar.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
-import TraceSlowestList from '@/components/trace/TraceSlowestList.vue';
+import TraceCardList from '@/components/trace/TraceCardList.vue';
 import TraceOperationSummary from '@/components/trace/TraceOperationSummary.vue';
 import TraceSpansModal from '@/components/trace/TraceSpansModal.vue';
 import TraceOperationFlamegraphs from '@/components/trace/TraceOperationFlamegraphs.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
-import { profileStore } from '@/stores/profileStore';
-import { timelineBuckets } from '@/services/trace/traceTimelineBuckets';
 import { slowestFirst } from '@/services/trace/traceOperationStats';
 import type { TabBarItem } from '@shared/components/TabBar.vue';
 import type {
   TraceOperationId,
   TraceOperationRow,
   TraceOverview,
-  TraceRow
+  TraceRow,
+  TraceTimelineBucket
 } from '@/services/api/model/trace/TraceModels';
 
 const TIMELINE_BUCKETS = 40;
@@ -149,13 +150,8 @@ const loading = ref(true);
 const error = ref<string | null>(null);
 const traces = ref<TraceRow[]>([]);
 const truncated = ref(false);
+const timeline = ref<TraceTimelineBucket[]>([]);
 
-// Null before the profile loads, and for a recording that never reported its bounds; the buckets
-// then fall back to the range the traces themselves cover.
-const recordingSpan = computed(() => {
-  const window = profileStore.recordingWindow.value;
-  return window === null ? undefined : { from: 0, to: window.durationMillis };
-});
 const TAB_IDS = new Set(['summary', 'flames', 'timeline', 'slowest']);
 
 /**
@@ -245,7 +241,7 @@ const rankedByDuration = computed(() => slowestFirst(traces.value));
 const tabs: TabBarItem[] = [
   { id: 'summary', label: 'Summary', icon: 'grid-1x2' },
   { id: 'flames', label: 'Flamegraphs', icon: 'fire' },
-  { id: 'timeline', label: 'Metrics Timeline', icon: 'graph-up' },
+  { id: 'timeline', label: 'Traces Timeline', icon: 'graph-up' },
   { id: 'slowest', label: 'Slowest Traces', icon: 'hourglass-split' }
 ];
 
@@ -254,19 +250,18 @@ const tabs: TabBarItem[] = [
  * are milliseconds from the recording's start, and the chart spans the whole recording rather than
  * the minute this operation happens to occupy. A burst then reads as a burst, in the place it
  * happened, instead of being stretched to fill the axis.
+ *
+ * The buckets come from the server, over every trace of the type. They used to be folded out of the
+ * `traces` list below, which is capped at TRACE_LIMIT and ordered by start time: for an operation
+ * called a third of a million times, that list is the recording's first twenty seconds, and the
+ * chart drew a spike at the origin and fifty-nine flat minutes after it.
  */
-const buckets = computed(() =>
-  timelineBuckets(
-    traces.value,
-    trace => trace.startMillisFromBeginning,
-    trace => trace.durationNanos,
-    TIMELINE_BUCKETS,
-    recordingSpan.value
-  )
+const primaryData = computed<number[][]>(() =>
+  timeline.value.map(bucket => [bucket.fromMillisFromBeginning, bucket.maxDurationNanos])
 );
-
-const primaryData = computed<number[][]>(() => buckets.value.map(b => [b.mid, b.maxDuration]));
-const secondaryData = computed<number[][]>(() => buckets.value.map(b => [b.mid, b.count]));
+const secondaryData = computed<number[][]>(() =>
+  timeline.value.map(bucket => [bucket.fromMillisFromBeginning, bucket.count])
+);
 
 // Silence about a cap reads as "this is all of them", which it would not be.
 const capNote = computed<string | undefined>(() => {
@@ -289,14 +284,20 @@ async function load(): Promise<void> {
   error.value = null;
   try {
     const client = new ProfileTracesClient(props.profileId);
+    // Together: the sample the tabs read from, and the aggregate the timeline needs precisely
+    // because that sample is one.
     // One past the cap, so a full page can be told apart from a page that merely filled it: an
     // operation with exactly TRACE_LIMIT traces must not claim it was truncated.
-    const operationTraces = await client.getOperationTraces(props.operation, TRACE_LIMIT + 1);
+    const [operationTraces, operationTimeline] = await Promise.all([
+      client.getOperationTraces(props.operation, TRACE_LIMIT + 1),
+      client.getOperationTimeline(props.operation, TIMELINE_BUCKETS)
+    ]);
     if (generation !== loadGeneration) {
       return;
     }
     truncated.value = operationTraces.length > TRACE_LIMIT;
     traces.value = truncated.value ? operationTraces.slice(0, TRACE_LIMIT) : operationTraces;
+    timeline.value = operationTimeline;
   } catch (e: unknown) {
     if (generation !== loadGeneration) {
       return;
@@ -305,6 +306,7 @@ async function load(): Promise<void> {
     error.value = 'Failed to load this operation.';
     traces.value = [];
     truncated.value = false;
+    timeline.value = [];
   } finally {
     if (generation === loadGeneration) {
       loading.value = false;

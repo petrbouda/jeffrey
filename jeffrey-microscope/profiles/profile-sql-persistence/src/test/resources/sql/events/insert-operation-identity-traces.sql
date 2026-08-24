@@ -11,7 +11,7 @@ VALUES
     ('jeffrey.HttpClientExchange', 'HTTP Client Exchange', 5, 'http client', '["Application","HTTP"]', '1', NULL, false, NULL, NULL,
      '[{"field":"traceId","header":"Trace Id"},{"field":"spanId","header":"Span Id"},{"field":"parentSpanId","header":"Parent Span Id"},{"field":"name","header":"Name"},{"field":"kind","header":"Kind"},{"field":"status","header":"Status"},{"field":"method","header":"HTTP Method"},{"field":"uri","header":"HTTP Uri"},{"field":"statusCode","header":"Response Status"}]');
 
-INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     -- The outbound call. Named identically to the inbound exchange in the base fixture.
     ('jeffrey.HttpClientExchange', '2025-01-15T10:00:03.000Z', 3000, 7000000, 1, NULL, NULL, NULL, 3002,

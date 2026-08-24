@@ -270,7 +270,8 @@ public class OtlpProfileReader {
                 weight != null ? weightEntity : null,
                 stacktraceId,
                 threadId,
-                fields);
+                fields,
+                null);
         writer.onEvent(event);
     }
 

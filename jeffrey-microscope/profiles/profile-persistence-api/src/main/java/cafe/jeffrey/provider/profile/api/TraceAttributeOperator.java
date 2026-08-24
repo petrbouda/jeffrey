@@ -65,4 +65,14 @@ public enum TraceAttributeOperator {
     public boolean isNumeric() {
         return this == GT || this == GTE || this == LT || this == LTE;
     }
+
+    /**
+     * Whether the predicate compares {@code value_text} — the column that lives in the value
+     * dictionary rather than in the attribute index. A query builder wraps such a predicate in a
+     * dictionary lookup; the numeric ones read {@code value_num} straight off the index, and
+     * {@link #EXISTS} reads nothing at all.
+     */
+    public boolean readsText() {
+        return this == EQ || this == NOT_EQ || this == CONTAINS;
+    }
 }

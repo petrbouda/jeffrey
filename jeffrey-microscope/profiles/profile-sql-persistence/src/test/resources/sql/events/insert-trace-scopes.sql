@@ -19,7 +19,7 @@ VALUES (3003, 'grpc-default-executor-0', 53, 23, false);
 
 -- Two activations of span 111. The first is on the thread the span already reports, so it must not
 -- widen that interval; the second is the one that would otherwise be lost.
-INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     ('jeffrey.TraceScope', '2025-01-15T10:00:00.005Z',  5, 10000000, 1, NULL, NULL, NULL, 3001,
      '{"traceId":9223372036854775807,"scopedSpanId":111}'),

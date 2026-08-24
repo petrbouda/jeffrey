@@ -83,9 +83,9 @@ public class JdbcProfileToolsRepository implements ProfileToolsRepository {
      */
     //language=SQL
     private static final String UPDATE_EVENTS_STACKTRACE_TEMPLATE = """
-            UPDATE events SET stacktrace_hash = m.new_hash
+            UPDATE events_raw SET stacktrace_hash = m.new_hash
             FROM (VALUES %s) AS m(old_hash, new_hash)
-            WHERE events.stacktrace_hash = m.old_hash""";
+            WHERE events_raw.stacktrace_hash = m.old_hash""";
 
     private static final int UPDATE_MAPPING_CHUNK_SIZE = 1000;
 
@@ -101,7 +101,7 @@ public class JdbcProfileToolsRepository implements ProfileToolsRepository {
 
     //language=SQL
     private static final String DELETE_EVENTS_BY_STACKTRACES = """
-            DELETE FROM events WHERE stacktrace_hash IN (:hashes)""";
+            DELETE FROM events_raw WHERE stacktrace_hash IN (:hashes)""";
 
     //language=SQL
     private static final String DELETE_ORPHANED_STACKTRACES = """

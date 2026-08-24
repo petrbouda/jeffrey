@@ -36,7 +36,7 @@ import java.util.List;
  * for stacktraces and {@code t} for threads):
  * <ul>
  *   <li>{@code <<time_filters>>} — sargable bounds on {@code e.start_timestamp_from_beginning}</li>
- *   <li>{@code <<span_filter>>} — span-scope semi-join (see {@link SpanIntervalParams})</li>
+ *   <li>{@code <<span_filter>>} — span-scope semi-join (see {@link SpanScopeSql})</li>
  *   <li>{@code <<stacktrace_filters>>} — stacktrace type and tag predicates on {@code s}</li>
  *   <li>{@code <<thread_filters>>} — specified-thread predicates on {@code t}</li>
  *   <li>{@code <<json_field_filter>>} — single JSON field equality on {@code e.fields}</li>
@@ -91,12 +91,16 @@ final class EventQueryFilters {
      * empty string, according to what the configurer requests for this particular query execution.
      */
     static String splice(String template, EventQueryConfigurer configurer) {
-        return template
+        String spliced = template
                 .replace(TIME_FILTERS, timeFilters(configurer.timeRange()))
                 .replace(SPAN_FILTER, spanFilter(configurer))
                 .replace(STACKTRACE_FILTERS, stacktraceFilters(configurer))
                 .replace(THREAD_FILTERS, threadFilters(configurer))
                 .replace(JSON_FIELD_FILTER, jsonFieldFilter(configurer));
+
+        // Last, and on the whole statement: the predicate above reads a relation that has to be
+        // declared in front of whatever the template opens with.
+        return SpanScopeSql.withScopeCte(spliced, configurer.spanScope());
     }
 
     private static String timeFilters(RelativeTimeRange timeRange) {
@@ -115,10 +119,7 @@ final class EventQueryFilters {
     }
 
     private static String spanFilter(EventQueryConfigurer configurer) {
-        if (!SpanIntervalParams.enabled(configurer.spanIntervals())) {
-            return "";
-        }
-        return SpanIntervalParams.semiJoinFragment(EVENTS_ALIAS);
+        return SpanScopeSql.predicate(configurer.spanScope(), EVENTS_ALIAS);
     }
 
     private static String stacktraceFilters(EventQueryConfigurer configurer) {

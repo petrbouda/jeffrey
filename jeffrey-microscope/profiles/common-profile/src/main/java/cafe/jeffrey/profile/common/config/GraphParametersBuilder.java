@@ -19,7 +19,7 @@
 package cafe.jeffrey.profile.common.config;
 
 import cafe.jeffrey.shared.common.GraphType;
-import cafe.jeffrey.shared.common.model.SpanInterval;
+import cafe.jeffrey.shared.common.model.SpanScope;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.model.WeightUnit;
@@ -43,7 +43,7 @@ public class GraphParametersBuilder {
     private List<Marker> markers;
     private GraphType graphType;
     private GraphComponents graphComponents;
-    private List<SpanInterval> spanIntervals;
+    private SpanScope spanScope;
     private WeightUnit weightUnit = WeightUnit.NONE;
     private boolean flamegraphOnlyImport;
 
@@ -119,8 +119,8 @@ public class GraphParametersBuilder {
         return this;
     }
 
-    public GraphParametersBuilder withSpanIntervals(List<SpanInterval> spanIntervals) {
-        this.spanIntervals = spanIntervals;
+    public GraphParametersBuilder withSpanScope(SpanScope spanScope) {
+        this.spanScope = spanScope;
         return this;
     }
 
@@ -149,7 +149,7 @@ public class GraphParametersBuilder {
                 markers,
                 graphType,
                 graphComponents,
-                spanIntervals,
+                spanScope,
                 weightUnit,
                 flamegraphOnlyImport);
     }

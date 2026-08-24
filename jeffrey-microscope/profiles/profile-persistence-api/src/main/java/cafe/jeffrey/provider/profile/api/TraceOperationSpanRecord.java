@@ -30,6 +30,10 @@ package cafe.jeffrey.provider.profile.api;
  * list and barely registers on the second.
  *
  * @param name         the span name, as it appears in the waterfall
+ * @param eventType    the event the spans of this row were made from — an instrumented
+ *                     {@code jeffrey.*} span event, or the {@code jdk.*} blocking event the
+ *                     derivation promoted into a leaf span. Rows are grouped by it as well as by
+ *                     name, so a row is one kind of thing rather than a name shared by two.
  * @param occurrences  how many spans of this name the operation's traces contain in total
  * @param traceCount   how many of those traces contain at least one
  * @param totalNanos   summed inclusive duration across all of them
@@ -43,6 +47,7 @@ package cafe.jeffrey.provider.profile.api;
  */
 public record TraceOperationSpanRecord(
         String name,
+        String eventType,
         long occurrences,
         long traceCount,
         long totalNanos,

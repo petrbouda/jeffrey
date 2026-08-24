@@ -8,7 +8,7 @@
 -- Durations are nanoseconds. The micro-precision timestamps in trace 8005 are deliberate: a span
 -- shorter than a millisecond is the ordinary case for a JDBC statement, and rounding its window to
 -- whole milliseconds is what used to hand its parent back time the child had spent.
-INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     -- 8001 sequential: one child inside the parent, nothing overlapping.
     -- parent 0..100ms, child 10..40ms  ->  parent self 70ms

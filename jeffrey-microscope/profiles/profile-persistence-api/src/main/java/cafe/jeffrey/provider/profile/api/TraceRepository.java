@@ -124,15 +124,25 @@ public interface TraceRepository {
     TraceOperationPage operations(TraceOperationListQuery query);
 
     /**
-     * How traces were spread over the recording, as at most {@code buckets} equal slices.
+     * How traces were spread over the recording, as {@code buckets} equal slices.
      * <p>
      * Aggregated in SQL for the same reason {@link #overview()} is: the trace list is capped, so
-     * bucketing what it fetched would plot the slowest traces and call it the trace rate. Buckets
-     * holding no trace are omitted rather than returned as zeroes.
+     * bucketing what it fetched would plot the slowest traces and call it the trace rate. Every slice
+     * comes back, including the ones holding no trace — a stretch of silence is a fact about the
+     * recording, and a reader that only receives the occupied slices cannot tell it from a gap in
+     * the data. A profile with no traces at all has no slices rather than a row of zeroes.
      *
      * @param buckets how many slices to divide the recording into; at least 1
      */
     List<TraceTimelineBucketRecord> timeline(int buckets);
+
+    /**
+     * The same slices for one trace type, over the same recording-wide bounds, so an operation's
+     * shape can be read against the profile's clock and against another operation's.
+     *
+     * @param buckets how many slices to divide the recording into; at least 1
+     */
+    List<TraceTimelineBucketRecord> timelineOfOperation(TraceOperationId operation, int buckets);
 
     /**
      * Returns what the JVM was doing on a span's thread while the span was open — CPU samples,

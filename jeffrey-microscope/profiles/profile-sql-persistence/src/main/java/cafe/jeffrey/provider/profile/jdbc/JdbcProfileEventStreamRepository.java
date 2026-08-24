@@ -299,7 +299,7 @@ public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepos
                     .addValue("excluded_tags", null);
         }
 
-        SpanIntervalParams.apply(baseParams, configurer.spanIntervals());
+        SpanScopeSql.apply(baseParams, configurer.spanScope());
 
         return baseParams;
     }

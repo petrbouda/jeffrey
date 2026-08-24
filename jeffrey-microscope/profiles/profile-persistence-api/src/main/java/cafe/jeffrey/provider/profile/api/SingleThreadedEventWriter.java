@@ -104,6 +104,19 @@ public interface SingleThreadedEventWriter {
     }
 
     /**
+     * Called for every event with a field value the reader pools instead of writing inline. May be
+     * called many times with the same text; the implementation deduplicates by content hash and
+     * persists each distinct text once. The returned id is stored via {@link Event#pooledField()}
+     * and the text is spliced back into the event's fields at read time.
+     *
+     * @param text the field value lifted out of the event's fields
+     * @return ID of the pooled text, later referenced by {@link Event.PooledField#textHash()}
+     */
+    default long onFieldText(String text) {
+        throw new UnsupportedOperationException("This writer does not pool field texts");
+    }
+
+    /**
      * This method is called when the thread that pushes the data to persist finishes.
      * All threads that participates needs to call this method.
      */

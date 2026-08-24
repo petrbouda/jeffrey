@@ -69,11 +69,20 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
             {'attr_key': 'eventType', 'value_text': event_type}""";
 
     /*
-     * Flattens one JSON payload column into one row per (span, key).
+     * Every attribute row of the profile as one relation, before it is split into the value
+     * dictionary and the reference-encoded index. Shared by the two derivation inserts below, so
+     * the dictionary and the index cannot disagree about what a value is.
      *
-     * The path is built per row rather than bound, because DuckDB's list-of-paths overload requires
-     * a constant and the keys are not known until the recording is read -- which is the whole point
-     * of the feature: an event type instrumented tomorrow appears here with no change on this side.
+     * The JSON path is built per row rather than bound, because DuckDB's list-of-paths overload
+     * requires a constant and the keys are not known until the recording is read -- which is the
+     * whole point of the feature: an event type instrumented tomorrow appears here with no change
+     * on this side.
+     *
+     * The EVENT_FIELD branch flattens the payload *dictionary* and joins the spans to it, rather
+     * than parsing each span's payload: a million statement spans share a few thousand distinct
+     * payloads, so the JSON work happens once per distinct payload instead of once per span.
+     * The ATTRIBUTE branch stays per span -- the open map is whatever the developer passed and is
+     * rarely present at all.
      *
      * Objects and arrays are dropped. A nested object is not a value anybody facets by, and letting
      * one through would put `{"a":1}` in a list of tenants.
@@ -82,44 +91,112 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
      * places without the derivation knowing which key is which.
      */
     //language=SQL
-    private static final String DERIVE_FROM_JSON = """
-            INSERT INTO trace_span_attributes (
-                trace_id, span_id, source, owner, attr_key, value_text, value_num, event_type)
-            WITH pairs AS (
+    private static final String FLAT_ATTRIBUTES = """
+            WITH attribute_pairs AS (
                 SELECT
                     trace_id,
                     span_id,
                     event_type,
-                    <<owner>>                                       AS owner,
-                    <<payload>>                                     AS payload,
-                    UNNEST(json_keys(<<payload>>))                  AS attr_key
+                    attributes                                     AS payload,
+                    UNNEST(json_keys(attributes))                  AS attr_key
                 FROM trace_spans
-                WHERE <<payload>> IS NOT NULL
+                WHERE attributes IS NOT NULL
+            ),
+            payload_pairs AS (
+                SELECT
+                    payload_id,
+                    payload,
+                    UNNEST(json_keys(payload))                     AS attr_key
+                FROM trace_span_payloads
+            ),
+            payload_values AS (
+                SELECT
+                    payload_id,
+                    attr_key,
+                    json_extract_string(payload, <<path>>)                     AS value_text,
+                    TRY_CAST(json_extract_string(payload, <<path>>) AS DOUBLE) AS value_num
+                FROM payload_pairs
+                WHERE attr_key NOT LIKE '%"%'
+                  AND json_type(payload, <<path>>) NOT IN ('OBJECT', 'ARRAY')
+                  AND NULLIF(json_extract_string(payload, <<path>>), '') IS NOT NULL
+            ),
+            flat AS (
+                SELECT
+                    trace_id,
+                    span_id,
+                    '<<attribute_source>>'                                     AS source,
+                    NULL                                                       AS owner,
+                    attr_key,
+                    json_extract_string(payload, <<path>>)                     AS value_text,
+                    TRY_CAST(json_extract_string(payload, <<path>>) AS DOUBLE) AS value_num,
+                    event_type
+                FROM attribute_pairs
+                WHERE attr_key NOT LIKE '%"%'
+                  AND json_type(payload, <<path>>) NOT IN ('OBJECT', 'ARRAY')
+                  AND NULLIF(json_extract_string(payload, <<path>>), '') IS NOT NULL
+                UNION ALL
+                SELECT
+                    s.trace_id,
+                    s.span_id,
+                    '<<event_field_source>>'                                   AS source,
+                    s.event_type                                               AS owner,
+                    v.attr_key,
+                    v.value_text,
+                    v.value_num,
+                    s.event_type
+                FROM trace_spans s
+                JOIN payload_values v ON v.payload_id = s.event_fields_ref
+                UNION ALL
+                SELECT
+                    trace_id,
+                    span_id,
+                    '<<shape_source>>'                                         AS source,
+                    NULL                                                       AS owner,
+                    shape.attr_key,
+                    shape.value_text,
+                    NULL                                                       AS value_num,
+                    event_type
+                FROM trace_spans,
+                     UNNEST([<<shape_keys>>]) AS columns(shape)
+                WHERE shape.value_text IS NOT NULL
             )
+            """;
+
+    /*
+     * The value dictionary, keyed by the text's own hash so the index insert below computes each
+     * row's reference inline -- the same convention the span payload table uses. Distinct texts
+     * hashing to the same id would fail the primary key loudly rather than silently merging two
+     * values.
+     */
+    //language=SQL
+    private static final String DERIVE_VALUES = """
+            INSERT INTO trace_attribute_values (value_id, value_text)
+            <<flat>>
+            SELECT DISTINCT CAST(mod(hash(value_text), CAST(9223372036854775807 AS UBIGINT)) AS BIGINT), value_text
+            FROM flat
+            """;
+
+    /*
+     * The index itself, ordered by (trace_id, span_id) so the search's per-page hit lookup prunes
+     * by zone map -- this table carries no index to do it.
+     */
+    //language=SQL
+    private static final String DERIVE_ATTRIBUTES = """
+            INSERT INTO trace_span_attributes (
+                trace_id, span_id, source, owner, attr_key, value_id, value_num, event_type)
+            <<flat>>
             SELECT
                 trace_id,
                 span_id,
-                '<<source>>',
+                source,
                 owner,
                 attr_key,
-                json_extract_string(payload, <<path>>),
-                TRY_CAST(json_extract_string(payload, <<path>>) AS DOUBLE),
+                CAST(mod(hash(value_text), CAST(9223372036854775807 AS UBIGINT)) AS BIGINT),
+                value_num,
                 event_type
-            FROM pairs
-            WHERE attr_key NOT LIKE '%"%'
-              AND json_type(payload, <<path>>) NOT IN ('OBJECT', 'ARRAY')
-              AND NULLIF(json_extract_string(payload, <<path>>), '') IS NOT NULL
+            FROM flat
+            ORDER BY trace_id, span_id
             """;
-
-    //language=SQL
-    private static final String DERIVE_FROM_SHAPE = """
-            INSERT INTO trace_span_attributes (
-                trace_id, span_id, source, owner, attr_key, value_text, value_num, event_type)
-            SELECT trace_id, span_id, '%s', NULL, shape.attr_key, shape.value_text, NULL, event_type
-            FROM trace_spans,
-                 UNNEST([%s]) AS columns(shape)
-            WHERE shape.value_text IS NOT NULL
-            """.formatted(TraceAttributeSource.SPAN_SHAPE.name(), SHAPE_KEYS);
 
     /*
      * The catalog, summarised from the index in one pass.
@@ -134,19 +211,20 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
             INSERT INTO trace_attribute_keys (
                 source, owner, attr_key, value_kind, distinct_values, span_count, trace_count)
             SELECT
-                source,
-                owner,
-                attr_key,
+                a.source,
+                a.owner,
+                a.attr_key,
                 CASE
-                    WHEN BOOL_AND(lower(value_text) IN ('true', 'false')) THEN 'BOOLEAN'
-                    WHEN COUNT(*) = COUNT(value_num)                      THEN 'NUMBER'
+                    WHEN BOOL_AND(lower(v.value_text) IN ('true', 'false')) THEN 'BOOLEAN'
+                    WHEN COUNT(*) = COUNT(a.value_num)                      THEN 'NUMBER'
                     ELSE 'STRING'
                 END                                                 AS value_kind,
-                COUNT(DISTINCT value_text)                          AS distinct_values,
+                COUNT(DISTINCT a.value_id)                          AS distinct_values,
                 COUNT(*)                                            AS span_count,
-                COUNT(DISTINCT trace_id)                            AS trace_count
-            FROM trace_span_attributes
-            GROUP BY source, owner, attr_key
+                COUNT(DISTINCT a.trace_id)                          AS trace_count
+            FROM trace_span_attributes a
+            JOIN trace_attribute_values v ON v.value_id = a.value_id
+            GROUP BY a.source, a.owner, a.attr_key
             """;
 
     /*
@@ -166,7 +244,7 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
                 source,
                 owner,
                 attr_key,
-                COUNT(DISTINCT value_text)                          AS distinct_values,
+                COUNT(DISTINCT value_id)                            AS distinct_values,
                 COUNT(*)                                            AS span_count,
                 COUNT(DISTINCT trace_id)                            AS trace_count
             FROM trace_span_attributes
@@ -228,6 +306,7 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
             """;
 
     private static final String DELETE_ATTRIBUTES = "DELETE FROM trace_span_attributes";
+    private static final String DELETE_VALUES = "DELETE FROM trace_attribute_values";
     private static final String DELETE_CATALOG = "DELETE FROM trace_attribute_keys";
     private static final String DELETE_KEY_EVENT_TYPES =
             "DELETE FROM trace_attribute_key_event_types";
@@ -288,13 +367,19 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
      * every match would be unbounded work for rows nobody is looking at, and the page is the only
      * place they are drawn.
      */
+    // The predicates run against the bare index (subselect), the dictionary joined only for the
+    // survivors' display text -- also what keeps `value_id` unambiguous in the predicate scope.
     //language=SQL
     private static final String MATCH_HITS = """
-            SELECT trace_id, span_id, attr_key, value_text
-            FROM trace_span_attributes
-            WHERE trace_id IN (:trace_ids)
-              AND (%s)
-            ORDER BY trace_id, span_id, attr_key
+            SELECT h.trace_id, h.span_id, h.attr_key, v.value_text
+            FROM (
+                SELECT trace_id, span_id, attr_key, value_id
+                FROM trace_span_attributes
+                WHERE trace_id IN (:trace_ids)
+                  AND (%s)
+            ) h
+            JOIN trace_attribute_values v ON v.value_id = h.value_id
+            ORDER BY h.trace_id, h.span_id, h.attr_key
             """;
 
     /*
@@ -341,12 +426,12 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
     //language=SQL
     private static final String VALUES_OF_KEY = """
             WITH carriers AS (
-                SELECT DISTINCT a.trace_id, a.value_text
+                SELECT DISTINCT a.trace_id, a.value_id
                 FROM trace_span_attributes a
                 WHERE a.source = :source AND a.attr_key = :attr_key AND %s
             )
             SELECT
-                c.value_text                                        AS value,
+                v.value_text                                        AS value,
                 COUNT(*)                                            AS trace_count,
                 SUM(t.duration)                                     AS total_nanos,
                 CAST(quantile_cont(t.duration, 0.5) AS BIGINT)      AS p50_nanos,
@@ -355,7 +440,8 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
                 COUNT(*) FILTER (WHERE t.error_count > 0)           AS error_traces
             FROM carriers c
             JOIN traces t ON t.trace_id = c.trace_id
-            GROUP BY c.value_text
+            JOIN trace_attribute_values v ON v.value_id = c.value_id
+            GROUP BY v.value_text
             ORDER BY %s
                 LIMIT :limit
             """;
@@ -377,27 +463,30 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
      * is the same width whatever the recording holds -- a caller draws a fixed axis and fills what
      * it is given, rather than re-laying out its columns per key.
      */
+    // The tie-break on the ranked values stays on the text (joined from the dictionary), so equal
+    // counts pick the same values into the top-N as they did when the text was stored inline.
     //language=SQL
     private static final String LATENCY = """
             WITH carriers AS (
-                SELECT DISTINCT a.trace_id, a.value_text
+                SELECT DISTINCT a.trace_id, a.value_id
                 FROM trace_span_attributes a
                 WHERE a.source = :source AND a.attr_key = :attr_key AND %s
             ),
             ranked AS (
-                SELECT value_text
-                FROM carriers
-                GROUP BY value_text
-                ORDER BY COUNT(*) DESC, value_text
+                SELECT c.value_id, v.value_text
+                FROM carriers c
+                JOIN trace_attribute_values v ON v.value_id = c.value_id
+                GROUP BY c.value_id, v.value_text
+                ORDER BY COUNT(*) DESC, v.value_text
                 LIMIT :max_values
             )
             SELECT
-                c.value_text                                        AS value,
+                r.value_text                                        AS value,
                 LEAST(GREATEST(CAST(FLOOR(LOG10(GREATEST(t.duration, 1)) * 2) AS INTEGER), %d), %d)
                                                                     AS bucket,
                 COUNT(*)                                            AS trace_count
             FROM carriers c
-            JOIN ranked r ON r.value_text = c.value_text
+            JOIN ranked r ON r.value_id = c.value_id
             JOIN traces t ON t.trace_id = c.trace_id
             GROUP BY 1, 2
             ORDER BY 1, 2
@@ -423,14 +512,12 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
         databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DELETE_CATALOG);
         databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DELETE_KEY_EVENT_TYPES);
         databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DELETE_ATTRIBUTES);
+        databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DELETE_VALUES);
 
-        databaseClient.execute(
-                StatementLabel.DERIVE_TRACE_ATTRIBUTES,
-                deriveFromJson("NULL", "attributes", TraceAttributeSource.ATTRIBUTE));
-        databaseClient.execute(
-                StatementLabel.DERIVE_TRACE_ATTRIBUTES,
-                deriveFromJson("event_type", "event_fields", TraceAttributeSource.EVENT_FIELD));
-        databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DERIVE_FROM_SHAPE);
+        // The dictionary first: the index insert computes each row's reference by hashing the same
+        // text, so every reference it writes has its dictionary row in place.
+        databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, withFlat(DERIVE_VALUES));
+        databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, withFlat(DERIVE_ATTRIBUTES));
 
         // Both catalogs summarise the index, so every row has to be in it first.
         databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DERIVE_CATALOG);
@@ -469,12 +556,15 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
                         rs.getLong("trace_count")));
     }
 
-    private static String deriveFromJson(String ownerExpression, String payload, TraceAttributeSource source) {
-        return DERIVE_FROM_JSON
-                .replace("<<owner>>", ownerExpression)
-                .replace("<<payload>>", payload)
-                .replace("<<source>>", source.name())
-                .replace("<<path>>", TraceAttributeQueries.KEY_PATH);
+    /** Renders one derivation statement with the shared flattening pipeline spliced in. */
+    private static String withFlat(String statement) {
+        String flat = FLAT_ATTRIBUTES
+                .replace("<<path>>", TraceAttributeQueries.KEY_PATH)
+                .replace("<<attribute_source>>", TraceAttributeSource.ATTRIBUTE.name())
+                .replace("<<event_field_source>>", TraceAttributeSource.EVENT_FIELD.name())
+                .replace("<<shape_source>>", TraceAttributeSource.SPAN_SHAPE.name())
+                .replace("<<shape_keys>>", SHAPE_KEYS);
+        return statement.replace("<<flat>>", flat);
     }
 
     @Override

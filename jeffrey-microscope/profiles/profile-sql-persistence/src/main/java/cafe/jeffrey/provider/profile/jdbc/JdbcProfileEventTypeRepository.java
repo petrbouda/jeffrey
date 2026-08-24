@@ -27,7 +27,7 @@ import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.EventSubtype;
 import cafe.jeffrey.shared.common.model.EventSummary;
-import cafe.jeffrey.shared.common.model.SpanInterval;
+import cafe.jeffrey.shared.common.model.SpanScope;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.provider.profile.api.EventTypeWithFields;
 import cafe.jeffrey.provider.profile.api.FieldDescription;
@@ -96,19 +96,20 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
             "SELECT columns FROM event_types WHERE name = (:code) LIMIT 1";
 
     private static final String PLACEHOLDER_SPAN_FILTER = "<<span_filter>>";
-    private static final String EVENTS_TABLE = "events";
+    private static final String PLACEHOLDER_SPAN_CTE = "<<span_cte>>";
+    private static final String EVENTS_ALIAS = "e";
 
     //language=SQL
     private static final String EVENT_SUMMARIES_BY_CODES = """
-            WITH aggregated_events AS (
+            WITH <<span_cte>>aggregated_events AS (
                 SELECT
-                    event_type,
-                    SUM(samples) as samples,
-                    SUM(weight) as weight
-                FROM events
-                WHERE event_type IN (:codes)
+                    e.event_type,
+                    SUM(e.samples) as samples,
+                    SUM(e.weight) as weight
+                FROM events e
+                WHERE e.event_type IN (:codes)
                     <<span_filter>>
-                GROUP BY event_type
+                GROUP BY e.event_type
             )
             SELECT
                 et.name,
@@ -238,7 +239,7 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
 
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("codes", codes);
-        SpanIntervalParams.apply(paramSource, null);
+        SpanScopeSql.apply(paramSource, null);
 
         List<EventSummary> eventSummaries = databaseClient.query(
                 StatementLabel.EVENT_SUMMARIES, eventSummariesByCodesSql(null), paramSource, EVENT_SUMMARY_MAPPER);
@@ -253,29 +254,28 @@ public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepositor
     }
 
     @Override
-    public List<EventSummary> eventSummaries(List<Type> types, List<SpanInterval> spanIntervals) {
+    public List<EventSummary> eventSummaries(List<Type> types, SpanScope spanScope) {
         List<String> codes = types.stream()
                 .map(Type::code)
                 .toList();
 
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("codes", codes);
-        SpanIntervalParams.apply(paramSource, spanIntervals);
+        SpanScopeSql.apply(paramSource, spanScope);
 
         // Calculated (non-DB) summaries are profile-wide and cannot be span-scoped, so they are omitted here.
         return databaseClient.query(
-                StatementLabel.EVENT_SUMMARIES, eventSummariesByCodesSql(spanIntervals), paramSource, EVENT_SUMMARY_MAPPER);
+                StatementLabel.EVENT_SUMMARIES, eventSummariesByCodesSql(spanScope), paramSource, EVENT_SUMMARY_MAPPER);
     }
 
     /**
-     * Splices the span-scope semi-join into the summaries query only when span intervals are present;
-     * without span scoping, the clause is absent entirely.
+     * Splices the scope's CTE and its semi-join into the summaries query only when a scope is
+     * present; without one, both clauses are absent entirely and the query is profile-wide.
      */
-    private static String eventSummariesByCodesSql(List<SpanInterval> spanIntervals) {
-        String spanFilter = SpanIntervalParams.enabled(spanIntervals)
-                ? SpanIntervalParams.semiJoinFragment(EVENTS_TABLE)
-                : "";
-        return EVENT_SUMMARIES_BY_CODES.replace(PLACEHOLDER_SPAN_FILTER, spanFilter);
+    private static String eventSummariesByCodesSql(SpanScope spanScope) {
+        return EVENT_SUMMARIES_BY_CODES
+                .replace(PLACEHOLDER_SPAN_CTE, SpanScopeSql.cte(spanScope))
+                .replace(PLACEHOLDER_SPAN_FILTER, SpanScopeSql.predicate(spanScope, EVENTS_ALIAS));
     }
 
     @Override

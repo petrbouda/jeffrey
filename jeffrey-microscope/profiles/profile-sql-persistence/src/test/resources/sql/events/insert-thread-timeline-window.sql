@@ -20,7 +20,7 @@ VALUES
     (4003, 'http-nio-8080-exec-3', 53, -1, false),
     (4004, 'main', 54, 1, false);
 
-INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     -- Millisecond 100: three events, one per pool worker. A window over this millisecond alone has
     -- to report three, not the lane's whole total.

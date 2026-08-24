@@ -31,5 +31,16 @@ public record Event(
         String weightEntity,
         Long stacktraceId,
         Long threadId,
-        ObjectNode fields) {
+        ObjectNode fields,
+        // The one field the reader pooled out of `fields`, or null when nothing qualified.
+        // See SingleThreadedEventWriter#onFieldText.
+        PooledField pooledField) {
+
+    /**
+     * Which field was lifted out of {@link #fields()} and where its text lives — the field's key
+     * and the pooled text's id. The reader decides what to pool by size alone, so the key can be
+     * anything an event type declares.
+     */
+    public record PooledField(String field, long textHash) {
+    }
 }

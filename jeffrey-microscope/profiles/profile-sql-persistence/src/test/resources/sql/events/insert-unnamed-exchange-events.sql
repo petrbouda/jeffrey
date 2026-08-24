@@ -31,7 +31,7 @@ VALUES
 -- Two requests of the same endpoint, one of which answered 500, and one gRPC call that failed. The
 -- statements carry a name of their own -- that field a statement always had -- so what is missing
 -- from them is the kind and the outcome, not the name.
-INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     ('jeffrey.HttpServerExchange', '2025-01-15T10:00:00.000Z',   0, 30000000, 1, NULL, NULL, NULL, 4001,
      '{"traceId":501,"spanId":5011,"parentSpanId":0,"method":"GET","uri":"/api/internal/health","status":200}'),

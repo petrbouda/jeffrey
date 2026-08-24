@@ -34,7 +34,7 @@ VALUES
 
 -- Durations in nanoseconds. Trace 9223372036854775807 is Long.MAX_VALUE; the hand-written span
 -- carries a negative span id, which must survive the round trip with its sign.
-INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     ('jeffrey.HttpServerExchange', '2025-01-15T10:00:00.000Z',   0, 120000000, 1, NULL, NULL, NULL, 3001,
      '{"traceId":9223372036854775807,"spanId":111,"parentSpanId":0,"name":"POST /api/internal/profiles/{profileId}/flamegraph","kind":"SERVER","status":"UNSET","method":"POST","uri":"/api/internal/profiles/{profileId}/flamegraph","statusCode":200}'),

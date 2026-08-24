@@ -26,7 +26,7 @@ VALUES
     (4103, 1, [306], []);
 
 -- Events: one per stack, all in second 0.
-INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     ('alloc', '2025-01-15T10:00:00Z', 100, 0, 1, 10, 'byte[]', 4101, 3001, NULL),
     ('alloc', '2025-01-15T10:00:00Z', 500, 0, 1, 20, 'byte[]', 4102, 3001, NULL),

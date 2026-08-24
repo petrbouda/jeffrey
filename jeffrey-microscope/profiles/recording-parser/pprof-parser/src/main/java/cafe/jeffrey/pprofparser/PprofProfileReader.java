@@ -152,7 +152,8 @@ public final class PprofProfileReader {
                     null,
                     stacktraceId,
                     threadId,
-                    fields);
+                    fields,
+                    null);
             writer.onEvent(event);
         }
     }

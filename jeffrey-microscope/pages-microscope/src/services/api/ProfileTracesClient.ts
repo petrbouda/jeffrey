@@ -40,7 +40,8 @@ import type {
   TraceOperationSummary,
   TraceOverview,
   TraceRow,
-  TraceSpanEvents
+  TraceSpanEvents,
+  TraceTimelineBucket
 } from '@/services/api/model/trace/TraceModels';
 
 /**
@@ -105,13 +106,28 @@ export default class ProfileTracesClient extends BaseProfileClient {
   }
 
   /**
-   * The traces of one type, chronologically. One call feeds both the timeline and the slowest list
-   * of the operation drill-down.
+   * The traces of one type, chronologically. Feeds the slowest list and the summary's histogram —
+   * both of which want a chronological slice, and both of which say out loud that it is one.
    */
   public getOperationTraces(operation: TraceOperationId, limit?: number): Promise<TraceRow[]> {
     return this.get<TraceRow[]>('/operation/traces', {
       ...operationParams(operation),
       ...(limit === undefined ? {} : { limit })
+    });
+  }
+
+  /**
+   * When one type's traces ran and how slow the worst of each slice was, bucketed over the whole
+   * recording. Aggregated server-side over every trace of the type — the capped list above cannot
+   * answer it, because for a busy operation that list is the recording's first few seconds.
+   */
+  public getOperationTimeline(
+    operation: TraceOperationId,
+    buckets?: number
+  ): Promise<TraceTimelineBucket[]> {
+    return this.get<TraceTimelineBucket[]>('/operation/timeline', {
+      ...operationParams(operation),
+      ...(buckets === undefined ? {} : { buckets })
     });
   }
 

@@ -10,7 +10,7 @@ VALUES
     ('jdk.ExecutionSample', 'Execution Sample', 3, 'CPU execution sample', '["Profiling"]', '1', NULL, true, NULL, NULL, NULL);
 
 -- 4 captured samples, 3 loss events carrying 2 + 5 + 1 = 8 lost samples.
-INSERT INTO events (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     ('jdk.CPUTimeSample', '2025-01-15T10:00:00Z', NULL, 1, 10000000, NULL, NULL, NULL, '{"samplingPeriod":10000000,"failed":false,"biased":false}'),
     ('jdk.CPUTimeSample', '2025-01-15T10:00:01Z', NULL, 1, 10000000, NULL, NULL, NULL, '{"samplingPeriod":10000000,"failed":false,"biased":false}'),

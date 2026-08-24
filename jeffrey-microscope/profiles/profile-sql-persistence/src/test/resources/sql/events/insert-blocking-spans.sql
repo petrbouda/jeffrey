@@ -28,7 +28,7 @@ VALUES
     ('jdk.Deoptimization', 'Deoptimization', 34, 'deopt', '["Java Virtual Machine","Compiler"]', '1', NULL, true, NULL, NULL,
      '[{"field":"reason","header":"Reason"}]');
 
-INSERT INTO events (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     -- The two recorded spans: parent 601 and its same-thread child 602.
     ('jeffrey.TraceSpan', '2025-01-15T11:00:00.000Z', 3600000, 400000000, 1, NULL, NULL, NULL, 3002,

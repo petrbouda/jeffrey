@@ -63,6 +63,17 @@ public interface TraceManager {
     List<TraceTimelineBucket> timeline(int buckets);
 
     /**
+     * The same, for one trace type — the metrics timeline of an operation's drill-down.
+     *
+     * <p>Aggregated here rather than folded out of {@link #tracesOfOperation}: that list is capped
+     * and ordered by start time, so an operation with more traces than the cap would have the
+     * recording's first few seconds bucketed and drawn across the whole axis.
+     *
+     * @param buckets how many slices to divide the recording into
+     */
+    List<TraceTimelineBucket> timelineOfOperation(TraceOperationId operation, int buckets);
+
+    /**
      * @param operation the trace type to list
      * @param limit     maximum number of traces to return
      * @return the traces of one type, in the order they ran
