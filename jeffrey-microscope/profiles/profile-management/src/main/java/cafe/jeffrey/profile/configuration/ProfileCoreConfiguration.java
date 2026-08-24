@@ -21,6 +21,9 @@ package cafe.jeffrey.profile.configuration;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import cafe.jeffrey.profile.ProfileInitStages;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.ProfileInitializerImpl;
 import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
@@ -222,10 +225,22 @@ public class ProfileCoreConfiguration {
         };
     }
 
+    /**
+     * Tracks profile-initialization runs by profile id, so progress can be read while one is in
+     * flight. Unbounded: initialization is scheduled by whoever created the profile and runs on that
+     * caller's thread, so there is nothing here to ration.
+     */
+    @Bean
+    public PipelineRunRegistry<String> profileInitRunRegistry(Clock clock) {
+        return new PipelineRunRegistry<>(
+                ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), clock);
+    }
+
     @Bean
     public ProfileInitializer profileInitializer(
             ProfileManager.Factory profileManagerFactory,
             ProfileDataInitializer profileDataInitializer,
+            PipelineRunRegistry<String> profileInitRunRegistry,
             TempDirFactory tempDirFactory,
             Clock clock) {
         RecordingEventParser jfrParser =
@@ -243,6 +258,7 @@ public class ProfileCoreConfiguration {
                 eventWriterFactory,
                 profileManagerFactory,
                 profileDataInitializer,
+                profileInitRunRegistry,
                 clock);
     }
 

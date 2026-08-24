@@ -18,6 +18,12 @@
 
 package cafe.jeffrey.profile;
 
+import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
+import cafe.jeffrey.profile.common.pipeline.PipelineState;
+import cafe.jeffrey.profile.common.pipeline.StageProgress;
+import cafe.jeffrey.profile.common.pipeline.StageStatus;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.action.ProfileDataInitializer;
 import cafe.jeffrey.provider.profile.api.EventWriter;
@@ -32,6 +38,7 @@ import cafe.jeffrey.shared.persistence.DatabaseManager;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
@@ -48,8 +55,12 @@ import java.time.ZoneOffset;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -67,6 +78,8 @@ import static org.mockito.Mockito.when;
 class ProfileInitializerImplTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-01-15T10:00:00Z"), ZoneOffset.UTC);
+
+    private static final String PROFILE_ID = "profile-1";
 
     @Mock
     ProfileRepositories profileRepositories;
@@ -95,6 +108,9 @@ class ProfileInitializerImplTest {
     @Mock
     RecordingEventParser recordingEventParser;
 
+    private final PipelineRunRegistry<String> runRegistry =
+            new PipelineRunRegistry<>(ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK);
+
     private ProfileInitializerImpl initializer(ProfileInfo profileInfo) {
         DataSource dataSource = mock(DataSource.class);
         DatabaseLease lease = mock(DatabaseLease.class);
@@ -117,8 +133,11 @@ class ProfileInitializerImplTest {
                 databaseManager,
                 recordingEventParserResolver,
                 eventWriterFactory,
-                _ -> mock(ProfileManager.class),
+                // Deep stubs: initialization reaches through the manager to the additional-files
+                // manager, and every one of those hops would otherwise be a null.
+                _ -> mock(ProfileManager.class, RETURNS_DEEP_STUBS),
                 profileDataInitializer,
+                runRegistry,
                 CLOCK);
     }
 
@@ -126,7 +145,7 @@ class ProfileInitializerImplTest {
     @DisplayName("derives the trace tables once the events are written")
     void derivesTracesAfterParsing() {
         ProfileInfo profileInfo = mock(ProfileInfo.class);
-        when(profileInfo.id()).thenReturn("profile-1");
+        when(profileInfo.id()).thenReturn(PROFILE_ID);
         when(traceRepository.hasSpanEventTypes()).thenReturn(true);
 
         initializer(profileInfo).initialize(profileInfo, null, Path.of("recording.jfr"));
@@ -146,7 +165,7 @@ class ProfileInitializerImplTest {
     @DisplayName("skips the derivation entirely when the recording carries no spans")
     void skipsDerivationWithoutSpanEventTypes() {
         ProfileInfo profileInfo = mock(ProfileInfo.class);
-        when(profileInfo.id()).thenReturn("profile-1");
+        when(profileInfo.id()).thenReturn(PROFILE_ID);
         when(traceRepository.hasSpanEventTypes()).thenReturn(false);
 
         initializer(profileInfo).initialize(profileInfo, null, Path.of("recording.jfr"));
@@ -159,5 +178,86 @@ class ProfileInitializerImplTest {
 
         // The rest of the initialization is unaffected -- skipping traces is not skipping the profile.
         verify(profileDataInitializer).initialize(any());
+    }
+
+    @Nested
+    @DisplayName("Progress")
+    class Progress {
+
+        private StageProgress stage(String id) {
+            return runRegistry.progress(PROFILE_ID).stages().stream()
+                    .filter(stage -> stage.id().equals(id))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("No such stage: " + id));
+        }
+
+        @Test
+        @DisplayName("records every stage of a successful initialization")
+        void recordsEveryStage() {
+            ProfileInfo profileInfo = mock(ProfileInfo.class);
+            when(profileInfo.id()).thenReturn(PROFILE_ID);
+            when(traceRepository.hasSpanEventTypes()).thenReturn(true);
+
+            initializer(profileInfo).initialize(profileInfo, "recording-1", Path.of("recording.jfr"));
+
+            PipelineProgress progress = runRegistry.progress(PROFILE_ID);
+            assertEquals(PipelineState.COMPLETED, progress.state());
+            assertEquals(StageStatus.COMPLETED, stage(ProfileInitStages.PARSE).status());
+            assertEquals(StageStatus.COMPLETED, stage(ProfileInitStages.TRACES).status());
+            assertEquals(StageStatus.COMPLETED, stage(ProfileInitStages.WARMUP).status());
+        }
+
+        /**
+         * The difference worth surfacing: a recording with no spans did not have a fast trace
+         * derivation, it had none at all, and the progress should say so rather than leaving the
+         * reader to infer it from a suspiciously short duration.
+         */
+        @Test
+        @DisplayName("reports a recording without spans as a skipped derivation")
+        void reportsSkippedTraceDerivation() {
+            ProfileInfo profileInfo = mock(ProfileInfo.class);
+            when(profileInfo.id()).thenReturn(PROFILE_ID);
+            when(traceRepository.hasSpanEventTypes()).thenReturn(false);
+
+            initializer(profileInfo).initialize(profileInfo, "recording-1", Path.of("recording.jfr"));
+
+            assertEquals(StageStatus.SKIPPED, stage(ProfileInitStages.TRACES).status());
+            assertEquals(PipelineState.COMPLETED, runRegistry.progress(PROFILE_ID).state());
+        }
+
+        @Test
+        @DisplayName("a profile with no project skips the context stage rather than pretending to run it")
+        void reportsSkippedProfileInfo() {
+            ProfileInfo profileInfo = mock(ProfileInfo.class);
+            when(profileInfo.id()).thenReturn(PROFILE_ID);
+
+            initializer(profileInfo).initialize(profileInfo, null, Path.of("recording.jfr"));
+
+            assertEquals(StageStatus.SKIPPED, stage(ProfileInitStages.PROFILE_INFO).status());
+            assertEquals(StageStatus.SKIPPED, stage(ProfileInitStages.ADDITIONAL_FILES).status());
+        }
+
+        /**
+         * The gap this closes: a failed initialization used to leave the profile row disabled with
+         * nothing anywhere recording why, because the exception went into a future nobody held.
+         */
+        @Test
+        @DisplayName("a failing stage fails the run, names itself, and still reaches the caller")
+        void failureIsRecordedAndPropagated() {
+            ProfileInfo profileInfo = mock(ProfileInfo.class);
+            when(profileInfo.id()).thenReturn(PROFILE_ID);
+            doThrow(new IllegalStateException("recording is corrupt"))
+                    .when(recordingEventParser).start(any(), any());
+
+            ProfileInitializerImpl initializer = initializer(profileInfo);
+
+            IllegalStateException thrown = assertThrows(IllegalStateException.class,
+                    () -> initializer.initialize(profileInfo, "recording-1", Path.of("recording.jfr")));
+            assertEquals("recording is corrupt", thrown.getMessage());
+
+            PipelineProgress progress = runRegistry.progress(PROFILE_ID);
+            assertEquals(PipelineState.FAILED, progress.state());
+            assertEquals(StageStatus.FAILED, stage(ProfileInitStages.PARSE).status());
+        }
     }
 }
