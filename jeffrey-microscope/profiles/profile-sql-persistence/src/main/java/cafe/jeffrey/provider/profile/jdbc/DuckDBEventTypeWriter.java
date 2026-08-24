@@ -35,8 +35,8 @@ import static cafe.jeffrey.provider.profile.jdbc.DuckDBAppenderUtils.nullableApp
 
 public class DuckDBEventTypeWriter extends DuckDBBatchingWriter<EnhancedEventType> {
 
-    public DuckDBEventTypeWriter(Executor executor, DataSource dataSource, int batchSize) {
-        super(executor, "event_types", dataSource, batchSize, StatementLabel.INSERT_EVENT_TYPES);
+    public DuckDBEventTypeWriter(Executor executor, DataSource dataSource, int batchSize, BatchFlushLimit flushLimit) {
+        super(executor, "event_types", dataSource, batchSize, StatementLabel.INSERT_EVENT_TYPES, flushLimit);
     }
 
     @Override

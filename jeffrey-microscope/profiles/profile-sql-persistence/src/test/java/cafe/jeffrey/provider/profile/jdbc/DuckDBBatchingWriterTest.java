@@ -59,10 +59,13 @@ class DuckDBBatchingWriterTest {
         }
     }
 
+    /** Wide enough never to be the thing under test here; the bound has its own test. */
+    private static final BatchFlushLimit FLUSH_LIMIT = BatchFlushLimit.ofSlots(64);
+
     private static final class TestWriter extends DuckDBBatchingWriter<String> {
 
         private TestWriter(DataSource dataSource) {
-            super(DIRECT_EXECUTOR, "events_raw", dataSource, BATCH_SIZE, StatementLabel.INSERT_EVENTS);
+            super(DIRECT_EXECUTOR, "events_raw", dataSource, BATCH_SIZE, StatementLabel.INSERT_EVENTS, FLUSH_LIMIT);
         }
 
         @Override

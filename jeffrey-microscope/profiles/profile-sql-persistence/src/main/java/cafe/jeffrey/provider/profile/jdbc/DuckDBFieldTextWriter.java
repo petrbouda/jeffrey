@@ -30,8 +30,8 @@ import java.util.concurrent.Executor;
 
 public class DuckDBFieldTextWriter extends DuckDBBatchingWriter<FieldTextWithHash> {
 
-    public DuckDBFieldTextWriter(Executor executor, DataSource dataSource, int batchSize) {
-        super(executor, "field_texts", dataSource, batchSize, StatementLabel.INSERT_FIELD_TEXTS);
+    public DuckDBFieldTextWriter(Executor executor, DataSource dataSource, int batchSize, BatchFlushLimit flushLimit) {
+        super(executor, "field_texts", dataSource, batchSize, StatementLabel.INSERT_FIELD_TEXTS, flushLimit);
     }
 
     @Override

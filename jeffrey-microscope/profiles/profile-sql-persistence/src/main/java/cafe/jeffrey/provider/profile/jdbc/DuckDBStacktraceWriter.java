@@ -31,8 +31,8 @@ import java.util.concurrent.Executor;
 
 public class DuckDBStacktraceWriter extends DuckDBBatchingWriter<EventStacktraceWithHash> {
 
-    public DuckDBStacktraceWriter(Executor executor, DataSource dataSource, int batchSize) {
-        super(executor, "stacktraces", dataSource, batchSize, StatementLabel.INSERT_STACKTRACES);
+    public DuckDBStacktraceWriter(Executor executor, DataSource dataSource, int batchSize, BatchFlushLimit flushLimit) {
+        super(executor, "stacktraces", dataSource, batchSize, StatementLabel.INSERT_STACKTRACES, flushLimit);
     }
 
     @Override

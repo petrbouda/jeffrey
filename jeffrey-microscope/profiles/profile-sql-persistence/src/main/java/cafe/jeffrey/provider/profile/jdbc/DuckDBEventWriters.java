@@ -36,13 +36,23 @@ public class DuckDBEventWriters implements EventWriters {
     private final DuckDBFrameWriter frameWriter;
     private final DuckDBFieldTextWriter fieldTextWriter;
 
-    public DuckDBEventWriters(ExecutorService executor, DataSource dataSource, int batchSize, Instant profilingStartedAt) {
-        this.eventWriter = new DuckDBEventWriter(executor, dataSource, batchSize, profilingStartedAt);
-        this.eventTypeWriter = new DuckDBEventTypeWriter(executor, dataSource, batchSize);
-        this.stacktraceWriter = new DuckDBStacktraceWriter(executor, dataSource, batchSize);
-        this.threadWriter = new DuckDBThreadWriter(executor, dataSource, batchSize);
-        this.frameWriter = new DuckDBFrameWriter(executor, dataSource, batchSize);
-        this.fieldTextWriter = new DuckDBFieldTextWriter(executor, dataSource, batchSize);
+    /**
+     * @param flushLimit shared with every other writer set of the same profile, so the bound is on
+     *                   what one ingest has in flight rather than on what one table does
+     */
+    public DuckDBEventWriters(
+            ExecutorService executor,
+            DataSource dataSource,
+            int batchSize,
+            Instant profilingStartedAt,
+            BatchFlushLimit flushLimit) {
+
+        this.eventWriter = new DuckDBEventWriter(executor, dataSource, batchSize, profilingStartedAt, flushLimit);
+        this.eventTypeWriter = new DuckDBEventTypeWriter(executor, dataSource, batchSize, flushLimit);
+        this.stacktraceWriter = new DuckDBStacktraceWriter(executor, dataSource, batchSize, flushLimit);
+        this.threadWriter = new DuckDBThreadWriter(executor, dataSource, batchSize, flushLimit);
+        this.frameWriter = new DuckDBFrameWriter(executor, dataSource, batchSize, flushLimit);
+        this.fieldTextWriter = new DuckDBFieldTextWriter(executor, dataSource, batchSize, flushLimit);
     }
 
     @Override

@@ -34,8 +34,8 @@ import static cafe.jeffrey.provider.profile.jdbc.DuckDBAppenderUtils.nullableApp
 
 public class DuckDBThreadWriter extends DuckDBBatchingWriter<EventThreadWithHash> {
 
-    public DuckDBThreadWriter(Executor executor, DataSource dataSource, int batchSize) {
-        super(executor, "threads", dataSource, batchSize, StatementLabel.INSERT_THREADS);
+    public DuckDBThreadWriter(Executor executor, DataSource dataSource, int batchSize, BatchFlushLimit flushLimit) {
+        super(executor, "threads", dataSource, batchSize, StatementLabel.INSERT_THREADS, flushLimit);
     }
 
     @Override
