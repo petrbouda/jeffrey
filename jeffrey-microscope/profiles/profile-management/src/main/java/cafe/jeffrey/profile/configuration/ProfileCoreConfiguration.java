@@ -59,6 +59,7 @@ import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.RecordingEventParser;
 import cafe.jeffrey.provider.profile.api.RecordingEventParserResolver;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
+import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
@@ -66,6 +67,7 @@ import cafe.jeffrey.shared.persistence.DatabaseManager;
 import cafe.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
@@ -244,17 +246,20 @@ public class ProfileCoreConfiguration {
                 clock);
     }
 
+    /**
+     * The blocking/concurrent switches are gone with the work itself: the warming no longer holds
+     * the profile back, so there is nothing left to decide about how long to wait for it. It runs on
+     * the bulk pool, which exists so an import cannot queue ahead of an interactive request.
+     */
     @Bean
     public ProfileDataInitializer profileDataInitializer(
-            @Value("${jeffrey.microscope.profile.data-initializer.enabled:true}") boolean enabled,
-            @Value("${jeffrey.microscope.profile.data-initializer.blocking:true}") boolean blocking,
-            @Value("${jeffrey.microscope.profile.data-initializer.concurrent:true}") boolean concurrent) {
+            @Value("${jeffrey.microscope.profile.data-initializer.enabled:true}") boolean enabled) {
 
         if (enabled) {
-            return new ProfileDataInitializerImpl(blocking, concurrent);
+            return new ProfileDataInitializerImpl(
+                    profileDatabaseProvider, Schedulers.sharedBulkParallel());
         } else {
-            return _ -> {
-            };
+            return _ -> CompletableFuture.completedFuture(null);
         }
     }
 }

@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -33,6 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -77,9 +79,11 @@ class BatchFlushLimitTest {
             assertTrue(writer.started.await(2, TimeUnit.SECONDS), "the first batch never reached the writer");
 
             // The first batch holds the only slot and is parked inside execute(). The second insert
-            // is therefore waiting in acquire() and has not been handed to the pool.
-            Thread.sleep(200);
-            assertEquals(1, writer.entered.get());
+            // is therefore waiting in acquire() and has not been handed to the pool -- and must stay
+            // that way for as long as nothing frees the slot, which is what during() asserts.
+            await().during(Duration.ofMillis(200))
+                    .atMost(Duration.ofSeconds(2))
+                    .untilAsserted(() -> assertEquals(1, writer.entered.get()));
 
             releaseWriters.countDown();
             parsing.get(5, TimeUnit.SECONDS);

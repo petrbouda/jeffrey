@@ -178,12 +178,6 @@ public class ProfileInitializerImpl implements ProfileInitializer {
 
                 ProfileManager profileManager = profileManagerFactory.apply(profileInfo);
 
-                // Initialize profile data (Event Viewer, Thread Viewer, Guardian, ...)
-                // initializer works with already inserted events in the database
-                // so it must be done after parsing is complete.
-                // It's mainly used to pre-generate various views and analyses and use caching for faster access later.
-                Tracer.run(SPAN_DATA_INIT, () -> profileDataInitializer.initialize(profileManager));
-
                 // Process additional files (like logs, metrics, heap-dumps, perf-counters etc.)
                 // Currently only perf-counters are supported
                 // Skip for Recordings where recordingId is null
@@ -195,8 +189,18 @@ public class ProfileInitializerImpl implements ProfileInitializer {
                 }
 
                 // Ensure all data is flushed to disk - especially important for WAL mode databases
-                // WAL checkpointing merges the WAL (Write-Ahead Log) into the main database file
+                // WAL checkpointing merges the WAL (Write-Ahead Log) into the main database file.
+                // Before the warming below, not after: the checkpoint wants the writes it is merging
+                // to be finished, and the warming only ever writes cache entries it can rebuild.
                 Tracer.run(SPAN_WAL_CHECKPOINT, infrastructureClient::walCheckpoint);
+
+                // Last, and deliberately not waited for. Everything above leaves the profile
+                // queryable -- events, traces, event types, threads are all written -- so this is
+                // the point the profile is usable, and the caller enables it as soon as we return.
+                // The Guardian's frame trees and the thread bands are caches: warming them is worth
+                // doing eagerly, but making every user wait for them before they can open a
+                // flamegraph is not. The warming takes its own lease and releases it when done.
+                Tracer.run(SPAN_DATA_INIT, () -> profileDataInitializer.initialize(profileManager));
 
                 long elapsedMs = clock.instant().toEpochMilli() - startedAt.toEpochMilli();
                 LOG.info("Profile parsed and initialized: profile_id={} profile_name={} elapsed_ms={}",

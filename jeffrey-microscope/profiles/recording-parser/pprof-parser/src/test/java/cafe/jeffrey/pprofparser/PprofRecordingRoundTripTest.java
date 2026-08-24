@@ -21,6 +21,7 @@ package cafe.jeffrey.pprofparser;
 import com.google.perftools.profiles.ProfileProto.Profile;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import cafe.jeffrey.provider.profile.jdbc.BatchFlushLimit;
 import cafe.jeffrey.provider.profile.jdbc.DuckDBEventWriters;
 import cafe.jeffrey.provider.profile.jdbc.DuckDBSQLFormatter;
 import cafe.jeffrey.provider.profile.jdbc.JdbcProfileEventTypeRepository;
@@ -82,7 +83,9 @@ class PprofRecordingRoundTripTest {
 
         Instant profilingStartedAt = Instant.ofEpochSecond(0, BASE_TIME_NANOS);
         EventWriter eventWriter = new SQLEventWriter(
-                () -> new DuckDBEventWriters(Schedulers.sharedDbWriter(), dataSource, BATCH_SIZE, profilingStartedAt));
+                () -> new DuckDBEventWriters(
+                        Schedulers.sharedDbWriter(), dataSource, BATCH_SIZE, profilingStartedAt,
+                        BatchFlushLimit.ofSlots(Schedulers.DB_WRITER_THREADS)));
 
         new PprofRecordingEventParser().start(eventWriter, recording);
         eventWriter.onComplete();
