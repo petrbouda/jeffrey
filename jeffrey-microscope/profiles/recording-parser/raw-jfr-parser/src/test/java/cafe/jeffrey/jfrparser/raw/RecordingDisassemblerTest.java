@@ -30,6 +30,7 @@ import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -58,6 +59,36 @@ class RecordingDisassemblerTest implements JfrChunkConstants {
             assertEquals(2, chunks.size());
             assertArrayEquals(firstChunk, Files.readAllBytes(chunks.get(0)));
             assertArrayEquals(secondChunk, Files.readAllBytes(chunks.get(1)));
+        }
+
+        /**
+         * The callback is what lets the caller parse chunk N while chunk N+1 is still being copied,
+         * so each chunk has to be announced in order and, crucially, be complete on disk by the time
+         * it is — a reader handed a half-written chunk would fail or silently read short.
+         */
+        @Test
+        void announcesEachChunkCompleteAndInOrder() throws IOException {
+            byte[] firstChunk = syntheticChunk(FIRST_CHUNK_PAYLOAD_SIZE, (byte) 0x0A);
+            byte[] secondChunk = syntheticChunk(SECOND_CHUNK_PAYLOAD_SIZE, (byte) 0x0B);
+            Path recording = writeRecording("recording.jfr", firstChunk, secondChunk);
+
+            List<byte[]> announced = new ArrayList<>();
+            List<Path> chunks = RecordingDisassembler.disassemble(
+                    recording,
+                    tempDir.resolve("chunks"),
+                    chunk -> announced.add(readQuietly(chunk)));
+
+            assertEquals(chunks.size(), announced.size());
+            assertArrayEquals(firstChunk, announced.get(0));
+            assertArrayEquals(secondChunk, announced.get(1));
+        }
+
+        private static byte[] readQuietly(Path chunk) {
+            try {
+                return Files.readAllBytes(chunk);
+            } catch (IOException e) {
+                throw new IllegalStateException("Chunk was not readable when announced: " + chunk, e);
+            }
         }
     }
 
