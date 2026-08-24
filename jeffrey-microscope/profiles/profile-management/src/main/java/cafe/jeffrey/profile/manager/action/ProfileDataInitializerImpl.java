@@ -34,7 +34,6 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfileDataInitializerImpl.class);
 
-    private static final String SPAN_EVENT_VIEWER = "eventviewer.tree";
     private static final String SPAN_GUARDIAN = "guardian.results";
     private static final String SPAN_THREAD_VIEWER = "threads.rows";
 
@@ -69,14 +68,11 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
         // re-establishes it inside each task. Without this the three views below would each start
         // their own trace instead of appearing under the initialization that asked for them.
 
-        // Create and cache data for EventViewer
-        var viewerFuture = CompletableFuture
-                .runAsync(Tracer.fork(SPAN_EVENT_VIEWER, () -> {
-                    profileManager.eventViewerManager().eventTypesTree();
-                    LOG.info("Event Viewer has been initialized: profile_id={} profile_name={}",
-                            profileInfo.id(), profileInfo.name());
-                }), executor)
-                .exceptionally(toException("EventViewer", profileInfo));
+        // The Event Viewer is deliberately absent. Its tree was built here and then dropped on the
+        // floor -- nothing wrapped it in a caching decorator, so the controller recomputed it on
+        // every request regardless. What made it slow was the profile-wide event summaries
+        // underneath it, and those are now cached by CachingProfileEventTypeRepository, which the
+        // Guardian below warms on its way past.
 
         // Create Guardian results
         var guardianFuture = CompletableFuture
@@ -97,11 +93,7 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
                 .exceptionally(toException("ThreadViewer", profileInfo));
 
         if (blocking) {
-            CompletableFuture.allOf(
-                    viewerFuture,
-                    guardianFuture,
-                    threadsFuture
-            ).join();
+            CompletableFuture.allOf(guardianFuture, threadsFuture).join();
         }
     }
 
