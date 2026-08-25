@@ -628,7 +628,6 @@ function percent(part: number, whole: number): string {
   flex-wrap: wrap;
 }
 
-/* Worn like a badge, muted like a footnote: provenance, not a state to react to. */
 /*
  * Sized to `.table td` in assets/styles.scss -- 0.8rem is what every data table in Jeffrey sets, so
  * the panel reads as part of the app rather than as a zoomed-in inset over the 0.7rem bars.
