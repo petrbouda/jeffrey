@@ -6,7 +6,7 @@
 <title>Exception stack traces — Disclosure in place</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <style>
-/* ---- shared by every span-stacktrace mockup ---- */
+/* ---- shared by every span-stacktrace mockup; inlined so each page opens standalone ---- */
 /* Shared by every span-stacktrace mockup, so the five pages differ in layout and in nothing else.
    The token block is copied verbatim from shared/ui/common/src/assets/design-tokens.css. */
 
@@ -196,6 +196,12 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 .scrolls::after { content: ''; position: sticky; display: block; bottom: 0; height: 1.6rem;
   margin-bottom: -1.6rem; background: linear-gradient(transparent, var(--color-white)); }
 
+/* A pane that scrolls needs to say so: a hard cut at the last visible frame reads as truncation,
+   which would misrepresent the directions that do not truncate. */
+.scrolls { position: relative; overflow-y: auto; }
+.scrolls::after { content: ''; position: sticky; display: block; bottom: 0; height: 1.6rem;
+  margin-bottom: -1.6rem; background: linear-gradient(transparent, var(--color-white)); }
+
 .stack-head { display: flex; align-items: center; gap: .5rem; padding: .3rem .4rem .35rem;
   border-bottom: 1px solid var(--color-border-light); margin-bottom: .2rem;
   font-size: var(--font-size-xs); color: var(--color-text-muted); font-family: -apple-system, sans-serif; }
@@ -222,7 +228,7 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 </head>
 <body>
   <div class="wrap">
-    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All five directions</a>
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
     <h1><span class="n">1</span>Disclosure in place</h1>
     <p class="lede">The throw row grows a caret. Clicking it unfolds the frames underneath, inside the Exceptions region the reader is already looking at &mdash; nothing new opens, nothing moves, and the panel stays a single scroll. Two throws here stay collapsed and one is open, which is the state a reader actually lands in: the escaped one is the one you expand. The stack keeps the caught throws' rows one line each, so the list still reads as a list.</p>
 

@@ -6,7 +6,7 @@
 <title>Exception stack traces — The stack, minus the noise</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <style>
-/* ---- shared by every span-stacktrace mockup ---- */
+/* ---- shared by every span-stacktrace mockup; inlined so each page opens standalone ---- */
 /* Shared by every span-stacktrace mockup, so the five pages differ in layout and in nothing else.
    The token block is copied verbatim from shared/ui/common/src/assets/design-tokens.css. */
 
@@ -196,6 +196,12 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 .scrolls::after { content: ''; position: sticky; display: block; bottom: 0; height: 1.6rem;
   margin-bottom: -1.6rem; background: linear-gradient(transparent, var(--color-white)); }
 
+/* A pane that scrolls needs to say so: a hard cut at the last visible frame reads as truncation,
+   which would misrepresent the directions that do not truncate. */
+.scrolls { position: relative; overflow-y: auto; }
+.scrolls::after { content: ''; position: sticky; display: block; bottom: 0; height: 1.6rem;
+  margin-bottom: -1.6rem; background: linear-gradient(transparent, var(--color-white)); }
+
 .stack-head { display: flex; align-items: center; gap: .5rem; padding: .3rem .4rem .35rem;
   border-bottom: 1px solid var(--color-border-light); margin-bottom: .2rem;
   font-size: var(--font-size-xs); color: var(--color-text-muted); font-family: -apple-system, sans-serif; }
@@ -235,7 +241,7 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 </head>
 <body>
   <div class="wrap">
-    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All five directions</a>
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
     <h1><span class="n">5</span>The stack, minus the noise</h1>
     <p class="lede">The direction that attacks the actual problem rather than where to put it. Of these 45 frames, <b>eight</b> are the reader's own code; the rest are Tomcat, Spring, reflection and the streams runtime carrying it. So runs of consecutive library frames collapse into one expandable bar &mdash; <code>&#9656; 15 frames in org.apache.catalina</code> &mdash; and what stays visible is the throwing frame, the application frames, and the shape of what sits between them. Rendered inline like direction 1, so the two are directly comparable; the fold is orthogonal and could be dropped into any of the five. The side-by-side below is the whole argument.</p>
 

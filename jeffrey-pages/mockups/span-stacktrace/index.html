@@ -38,6 +38,14 @@
   .facts ul b { color: #cbd5e1; }
   .facts.ok { border-color: rgba(34,197,94,.28); background: rgba(34,197,94,.06); }
   .facts.ok h4 i { color: #4ade80; }
+  a.mk.final { border-color: rgba(34,197,94,.4); background: linear-gradient(135deg, rgba(34,197,94,.1), rgba(56,189,248,.06));
+    padding: 1.5rem 1.6rem; margin-bottom: 2.2rem; }
+  a.mk.final:hover { border-color: rgba(34,197,94,.7); }
+  a.mk.final h3 { font-size: 1.2rem; }
+  a.mk.final p { color: #cbd5e1; font-size: .88rem; }
+  .num.pick { background: linear-gradient(135deg, #22c55e, #0ea5e9); box-shadow: 0 6px 16px rgba(34,197,94,.4); font-size: 1.1rem; }
+  .tag.pick { background: rgba(34,197,94,.22); color: #86efac; }
+  .tag.in { background: rgba(34,197,94,.16); color: #86efac; }
   h2.sec { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .09em;
     color: #64748b; margin: 2.2rem 0 1rem; display: flex; align-items: center; gap: .7rem; }
   h2.sec::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,.09); }
@@ -53,10 +61,23 @@
       escaped. What it cannot show is <em>where</em> it was thrown, so a reader who gets that far still has to leave
       the trace to find out. <strong>The data is already there</strong>: <code>stacktraceId</code> is on
       <code>TraceExceptionRow</code> and already reaches the browser, and nothing consumes it yet. What is missing is
-      one repository read, one endpoint, and a decision about the screen &mdash; which is what these five are for.
+      one repository read, one endpoint, and a decision about the screen &mdash; which is what these five were for.
       Every page draws the same span, the same three throws, and the same 45-frame stack, so the only variable is
-      layout.
+      layout. <strong>The answer is a combination of two of them</strong> &mdash; the final design is first below,
+      with the five it came from underneath it.
     </p>
+
+    <a class="mk final" href="mockup-6-final-fold-and-popover.html">
+      <div class="num pick"><i class="bi bi-check-lg"></i></div>
+      <div><h3>Final &mdash; folded stack, previewed on the rail <span class="tag pick">chosen</span></h3>
+        <p>Directions 3 and 5, which were never rivals: one is <em>where a stack is glimpsed</em>, the other is
+          <em>how a stack is drawn</em>. Each one&rsquo;s weakness is the other&rsquo;s strength. A four-line popover
+          preview is wasted when three of those lines are <code>java.util.stream</code> &mdash; folding fixes that.
+          An inline stack was ruled out because 45 frames wreck the panel &mdash; folding fixes that too, at 9 rows.
+          So neither of the extra windows the other three needed has to be built, and the trace never leaves the
+          screen. Carries the fold rule stated once, and the library-only floor that keeps it from folding a stack
+          down to nothing.</p></div>
+    </a>
 
     <div class="facts ok">
       <h4><i class="bi bi-check-circle-fill"></i> Already in place, so none of the five has to build it</h4>
@@ -68,7 +89,7 @@
       </ul>
     </div>
 
-    <h2 class="sec">Where the stack goes</h2>
+    <h2 class="sec">The five it came from</h2>
     <div class="list">
       <a class="mk" href="mockup-1-inline-expand.html">
         <div class="num">1</div>
@@ -86,7 +107,7 @@
       </a>
       <a class="mk" href="mockup-3-popover-preview.html">
         <div class="num">3</div>
-        <div><h3>The stack reaches the timeline <span class="tag combo">composes</span></h3>
+        <div><h3>The stack reaches the timeline <span class="tag in">in the final</span></h3>
           <p>The rail&rsquo;s existing cross popover gains the top four frames, so the answer arrives on hover with no
             click and no span opened. A preview is all it can be &mdash; the popover is capped at <code>13rem</code>
             &mdash; so this is a front door for one of the others, not a rival to them.</p></div>
@@ -100,7 +121,7 @@
       </a>
       <a class="mk" href="mockup-5-folded-stack.html">
         <div class="num">5</div>
-        <div><h3>The stack, minus the noise <span class="tag combo">orthogonal</span></h3>
+        <div><h3>The stack, minus the noise <span class="tag in">in the final</span></h3>
           <p>Attacks the problem rather than its placement: 45 frames of which eight are the reader&rsquo;s own code, so
             runs of library frames collapse into one expandable bar each. 9 rows instead of 45, nothing lost, one
             click to see any of it. Includes a side-by-side of both stacks.</p></div>
@@ -110,16 +131,17 @@
     <div class="facts">
       <h4><i class="bi bi-signpost-split-fill"></i> How they relate, before you pick</h4>
       <ul>
-        <li><b>1, 2 and 4 are alternatives</b> &mdash; they answer the same question, &ldquo;where does the stack live&rdquo;, and only one can win.</li>
-        <li><b>3 and 5 are not.</b> The popover preview sits in front of whichever of the three is chosen, and the fold applies inside any of them. Picking 5 with 1 is a real combination, and is arguably the strongest one: folding is what makes inline expansion fit.</li>
-        <li><b>The honest ordering by effort</b> is 1 &lt; 5 &lt; 3 &lt; 2 &lt; 4, and by capability it is roughly the reverse.</li>
+        <li><b>1, 2 and 4 were the alternatives</b> &mdash; they answer the same question, &ldquo;where does the stack live&rdquo;, and only one could win. The final answers it with 1&rsquo;s placement, which only became viable once 5 made the stack short enough to sit there.</li>
+        <li><b>3 and 5 were never in that contest</b>, which is why they combine instead. The popover is a place, the fold is a rendering; putting the second inside the first costs nothing and makes both better.</li>
+        <li><b>What the final gives up</b> is direction 4&rsquo;s room &mdash; there is still nowhere good for copy-as-text, and no per-frame IDE link surface beyond the hover affordance. That is the trade, stated on the final page rather than buried here.</li>
       </ul>
     </div>
 
     <p class="foot">
       Static mockups &mdash; no production code changes. The <a href="../span-notifications/index.html">span notifications
-      set</a> next door settled the rails and the detail regions these build on. Once a direction is picked, the backend
-      is one repository read and one endpoint on <code>TracesController</code>, sized against whichever wins.
+      set</a> next door settled the rails and the detail regions these build on. With the direction settled, the backend
+      is one repository read and one endpoint on <code>TracesController</code>: resolve a <code>stacktraceId</code> to
+      its frames, newest frame first. The fold is a frontend concern &mdash; the endpoint returns every frame.
     </p>
   </div>
 </body>
