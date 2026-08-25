@@ -333,13 +333,12 @@
     font-size: var(--font-size-xs); font-weight: 700; font-variant-numeric: tabular-nums; }
   .exc-count.is-folded { background: transparent; border: 1px dashed var(--exc); }
 
-  .sd-region.is-exc { border-color: var(--color-danger-input-border); }
+  .sd-region.is-exc { border-color: var(--color-danger-input-border); border-left: 3px solid var(--exc); }
   .sd-region.is-exc .sd-region-head { background: var(--color-danger-light); color: var(--color-danger); }
   .sd-exc { display: grid; grid-template-columns: 4.2rem 1fr; gap: .5rem; align-items: baseline;
     padding: .38rem .4rem; margin: 0 -.4rem; border-bottom: 1px solid var(--color-border-light); }
   .sd-exc:last-child { border-bottom: 0; }
-  .sd-exc.is-escaped { background: var(--color-danger-bg-lighter); border-radius: var(--radius-sm);
-    box-shadow: inset 2px 0 0 var(--color-danger); }
+  .sd-exc.is-escaped { background: var(--color-danger-bg-lighter); border-radius: var(--radius-sm); }
   .sd-exc-cls { font-family: var(--font-family-monospace); font-size: var(--font-size-sm);
     font-weight: 600; color: var(--color-dark); }
   .sd-exc-msg { font-size: var(--font-size-sm); color: #475569; line-height: 1.5; margin-top: .1rem; }
@@ -388,15 +387,14 @@
     padding: .38rem .4rem; margin: 0 -.4rem; border-bottom: 1px solid var(--color-border-light); }
   .sd-ntf:last-child { border-bottom: 0; }
   /* The row the rail arrived at, so the click lands somewhere visible rather than just opening a panel. */
-  .sd-ntf.is-target { background: var(--sev-bg); border-radius: var(--radius-sm);
-    box-shadow: inset 2px 0 0 var(--sev); }
+  .sd-ntf.is-target { background: var(--sev-bg); border-radius: var(--radius-sm); }
   .sd-ntf-at { font-variant-numeric: tabular-nums; font-size: var(--font-size-xs); color: var(--color-text-muted); }
   .sd-ntf-main { min-width: 0; }
   .sd-ntf-title { font-size: var(--font-size-sm); font-weight: 600; color: var(--color-dark); }
   .sd-ntf-text { font-size: var(--font-size-sm); color: #475569; line-height: 1.5; margin-top: .1rem; }
   .sd-ntf-foot { font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: .18rem;
     font-family: var(--font-family-monospace); }
-  .sd-region.is-ntf { border-color: var(--color-primary-border); }
+  .sd-region.is-ntf { border-color: var(--color-primary-border); border-left: 3px solid var(--sev); }
   .sd-region.is-ntf .sd-region-head { background: var(--color-primary-light); color: var(--color-primary); }
 
   /* ============================================================ page furniture */
@@ -425,6 +423,16 @@
   .sd-ntf.is-target { --accent: var(--sev); }
   .sd-exc.is-escaped { --accent: var(--exc); }
 
+  /* Reset each stage to the pre-decision base: 1px region borders and no row accent. Every variant
+     block below then adds exactly one thing, which is the only difference between the stages. */
+  .stage .sd-region.is-ntf, .stage .sd-region.is-exc { border-left-width: 1px; }
+  .stage .sd-region.is-ntf { border-left-color: var(--color-primary-border); }
+  .stage .sd-region.is-exc { border-left-color: var(--color-danger-input-border); }
+
+  /* ---------------------------------------------------------------- 0 -- what it used to be */
+  .v0 .sd-ntf.is-target { box-shadow: inset 2px 0 0 var(--sev); }
+  .v0 .sd-exc.is-escaped { box-shadow: inset 2px 0 0 var(--exc); }
+
   .stage { background: var(--color-light); border: 1px solid var(--color-border);
     border-radius: var(--radius-md); padding: .85rem 1rem .6rem; }
   .stage .sd-region:last-child { margin-bottom: 0; }
@@ -436,6 +444,9 @@
     font-size: .75rem; font-weight: 800; }
   .v-key.zero { background: var(--color-text-light); }
   .v-name { font-size: 1rem; font-weight: 700; color: var(--color-dark); }
+  .variant.picked .v-key { background: var(--color-success); }
+  .variant.picked .v-tag { background: var(--color-success-light); color: #0a7a4a; }
+  .variant.picked .stage { border-color: var(--color-success); box-shadow: 0 0 0 3px var(--color-success-light); }
   .v-tag { font-size: var(--font-size-xs); font-weight: 700; text-transform: uppercase;
     letter-spacing: .05em; padding: .1rem .4rem; border-radius: var(--radius-sm);
     background: var(--color-lighter); color: var(--color-text-muted); }
@@ -463,8 +474,8 @@
      The accent moves up a level: the region says what it contains, and the row inside keeps only its
      tint. Reads at panel scale from across the detail view. */
   .v3 .sd-ntf.is-target, .v3 .sd-exc.is-escaped { box-shadow: none; }
-  .v3 .sd-region.is-ntf { border-left: 3px solid var(--sev-critical); }
-  .v3 .sd-region.is-exc { border-left: 3px solid var(--color-danger); }
+  .v3 .sd-region.is-ntf { border-left: 3px solid var(--sev); }
+  .v3 .sd-region.is-exc { border-left: 3px solid var(--exc); }
 
   /* ---------------------------------------------------------------- 4 -- gutter tick
      Subtraction: no tint, no bar, just a short tick outside the content. The CRITICAL pill and the
@@ -497,7 +508,7 @@
       </div>
       <p class="v-why">A 2px <span class="v-css">inset box-shadow</span> inside a rounded row, plus the tint. It works, but the bar is clipped by the row&rsquo;s own corner radius, so it thins out at both ends &mdash; and the same device says <b>selected</b> elsewhere in the app, which is not what either of these rows means.</p>
       <div class="stage v0">
-            <div class="sd-region is-ntf">
+            <div class="sd-region is-ntf sev-critical">
               <div class="sd-region-head"><i class="bi bi-chat-square-dots-fill"></i> Notifications <span class="sd-src">2 &middot; jeffrey.Notification</span></div>
               <div class="sd-region-body">
                 <div class="sd-ntf sev-high">
@@ -520,7 +531,7 @@
                 </div>
               </div>
             </div>
-            <div class="sd-region is-exc">
+            <div class="sd-region is-exc is-escaped">
               <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions <span class="sd-src">1 &middot; jdk.JavaExceptionThrow</span></div>
               <div class="sd-region-body">
                 <div class="sd-exc is-escaped">
@@ -548,7 +559,7 @@
       </div>
       <p class="v-why">The same reading, built as a real element rather than an inset shadow: 3px, its own pill radius, stopping 5px short at top and bottom. Nothing is clipped, and the bar looks deliberate instead of like an edge that got cut.</p>
       <div class="stage v1">
-            <div class="sd-region is-ntf">
+            <div class="sd-region is-ntf sev-critical">
               <div class="sd-region-head"><i class="bi bi-chat-square-dots-fill"></i> Notifications <span class="sd-src">2 &middot; jeffrey.Notification</span></div>
               <div class="sd-region-body">
                 <div class="sd-ntf sev-high">
@@ -571,7 +582,7 @@
                 </div>
               </div>
             </div>
-            <div class="sd-region is-exc">
+            <div class="sd-region is-exc is-escaped">
               <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions <span class="sd-src">1 &middot; jdk.JavaExceptionThrow</span></div>
               <div class="sd-region-body">
                 <div class="sd-exc is-escaped">
@@ -599,7 +610,7 @@
       </div>
       <p class="v-why">Square on the left, rounded on the right, 4px. The row reads as <b>tabbed off the panel edge</b> rather than as a pill with a line drawn inside it. Loudest of the five &mdash; which may be right for a CRITICAL and an escaped throw.</p>
       <div class="stage v2">
-            <div class="sd-region is-ntf">
+            <div class="sd-region is-ntf sev-critical">
               <div class="sd-region-head"><i class="bi bi-chat-square-dots-fill"></i> Notifications <span class="sd-src">2 &middot; jeffrey.Notification</span></div>
               <div class="sd-region-body">
                 <div class="sd-ntf sev-high">
@@ -622,7 +633,7 @@
                 </div>
               </div>
             </div>
-            <div class="sd-region is-exc">
+            <div class="sd-region is-exc is-escaped">
               <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions <span class="sd-src">1 &middot; jdk.JavaExceptionThrow</span></div>
               <div class="sd-region-body">
                 <div class="sd-exc is-escaped">
@@ -642,15 +653,15 @@
             </div>
       </div>
     </div>
-    <div class="variant">
+    <div class="variant picked">
       <div class="v-head">
         <span class="v-key">3</span>
         <span class="v-name">Panel edge</span>
-        <span class="v-tag">changes scale</span>
+        <span class="v-tag">chosen</span>
       </div>
-      <p class="v-why">The accent moves up a level: the <b>region</b> carries it, and the row keeps only its tint. The panel announces what it holds before you read a row, at the cost of no longer pointing at <em>which</em> row.</p>
+      <p class="v-why">The accent moves up a level: the <b>region</b> carries it, and the row keeps only its tint. The panel announces what it holds before you read a row, at the cost of no longer pointing at <em>which</em> row. <b>This is the one on the final mockup.</b> The edge takes the colour of the worst entry its region holds, so it is derived from the data rather than hard-coded &mdash; the same worst-of walk the row badges already do.</p>
       <div class="stage v3">
-            <div class="sd-region is-ntf">
+            <div class="sd-region is-ntf sev-critical">
               <div class="sd-region-head"><i class="bi bi-chat-square-dots-fill"></i> Notifications <span class="sd-src">2 &middot; jeffrey.Notification</span></div>
               <div class="sd-region-body">
                 <div class="sd-ntf sev-high">
@@ -673,7 +684,7 @@
                 </div>
               </div>
             </div>
-            <div class="sd-region is-exc">
+            <div class="sd-region is-exc is-escaped">
               <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions <span class="sd-src">1 &middot; jdk.JavaExceptionThrow</span></div>
               <div class="sd-region-body">
                 <div class="sd-exc is-escaped">
@@ -701,7 +712,7 @@
       </div>
       <p class="v-why">Subtraction. No tint, no bar &mdash; a short tick outside the content. The <b>CRITICAL</b> pill and the <b>ESCAPED THIS SPAN</b> tag are already in the row saying exactly this; the accent stops saying it a third time.</p>
       <div class="stage v4">
-            <div class="sd-region is-ntf">
+            <div class="sd-region is-ntf sev-critical">
               <div class="sd-region-head"><i class="bi bi-chat-square-dots-fill"></i> Notifications <span class="sd-src">2 &middot; jeffrey.Notification</span></div>
               <div class="sd-region-body">
                 <div class="sd-ntf sev-high">
@@ -724,7 +735,7 @@
                 </div>
               </div>
             </div>
-            <div class="sd-region is-exc">
+            <div class="sd-region is-exc is-escaped">
               <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions <span class="sd-src">1 &middot; jdk.JavaExceptionThrow</span></div>
               <div class="sd-region-body">
                 <div class="sd-exc is-escaped">
@@ -752,7 +763,7 @@
       </div>
       <p class="v-why">No left border at all: the offset column becomes the marker. The thing wearing the colour is also the thing the reader wants next &mdash; <b>when</b> it happened &mdash; so the emphasis carries information instead of decorating.</p>
       <div class="stage v5">
-            <div class="sd-region is-ntf">
+            <div class="sd-region is-ntf sev-critical">
               <div class="sd-region-head"><i class="bi bi-chat-square-dots-fill"></i> Notifications <span class="sd-src">2 &middot; jeffrey.Notification</span></div>
               <div class="sd-region-body">
                 <div class="sd-ntf sev-high">
@@ -775,7 +786,7 @@
                 </div>
               </div>
             </div>
-            <div class="sd-region is-exc">
+            <div class="sd-region is-exc is-escaped">
               <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions <span class="sd-src">1 &middot; jdk.JavaExceptionThrow</span></div>
               <div class="sd-region-body">
                 <div class="sd-exc is-escaped">
