@@ -75,6 +75,12 @@ export interface StackFrameEntry {
   throwing: boolean;
   /** Whether this frame is the reader's own code, by {@link isApplicationFrame}. */
   application: boolean;
+  /**
+   * True only for a frame that is in view because the reader opened the bar that hid it. The panel
+   * bands these rows together: spread back into the list they would otherwise be indistinguishable
+   * from the library frames the fold rule kept, and the run a bar stands for would lose its edges.
+   */
+  restored: boolean;
 }
 
 /** A collapsed run of consecutive library frames. */
@@ -200,7 +206,8 @@ function frameEntry(
     frame,
     depth,
     throwing: depth === throwingIndex,
-    application: isApplicationFrame(frame)
+    application: isApplicationFrame(frame),
+    restored: false
   };
 }
 
@@ -224,7 +231,10 @@ export function expandFold(fold: StackFoldEntry): StackFrameEntry[] {
   // A bar only ever holds frames the fold rule declined to keep, and the throwing frame is always
   // kept — so nothing inside a bar can be it, whatever the throwing index turns out to be.
   const noneAreThrowing = -1;
-  return fold.frames.map((frame, index) => frameEntry(frame, fold.depth + index, noneAreThrowing));
+  return fold.frames.map((frame, index) => ({
+    ...frameEntry(frame, fold.depth + index, noneAreThrowing),
+    restored: true
+  }));
 }
 
 /**

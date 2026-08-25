@@ -106,7 +106,11 @@
             </span>
           </button>
 
-          <div v-else class="st-fr" :class="{ app: entry.application, throwing: entry.throwing }">
+          <div
+            v-else
+            class="st-fr"
+            :class="{ app: entry.application, throwing: entry.throwing, opened: entry.restored }"
+          >
             <span class="st-sig">
               <span v-if="framePkg(entry.frame)" class="st-pkg">{{ framePkg(entry.frame) }}.</span
               ><span class="st-cls">{{ frameSimpleName(entry.frame) }}</span
@@ -342,6 +346,27 @@ async function copy(): Promise<void> {
 
 .st-fr:hover {
   background: var(--color-primary-lighter);
+}
+
+/*
+ * A run put back by opening a bar stays one run. The band alone would only say "these are related";
+ * the rail is what says where the run ends, which a tint cannot once a reader has two bars open in
+ * the same stack. Square corners so consecutive rows read as one block rather than a stack of chips.
+ */
+.st-fr.opened {
+  background: var(--color-light);
+  border-left: 2px solid var(--color-border-input);
+  border-radius: 0;
+  padding-left: 0.9rem;
+}
+
+/*
+ * Hover has to be mixed rather than laid over: --color-primary-lighter is translucent, so on a
+ * banded row it would composite against the card behind it and take the band away at exactly the
+ * moment the reader points at it.
+ */
+.st-fr.opened:hover {
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-light));
 }
 
 .st-sig {
