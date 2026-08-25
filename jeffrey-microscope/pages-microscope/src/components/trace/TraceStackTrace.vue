@@ -364,8 +364,15 @@ async function copy(): Promise<void> {
   font-weight: 600;
 }
 
+/*
+ * The package yields to what it prefixes. An application frame sets its signature at 600 and the
+ * package rode along at that weight in near-ink, which made every row's first 20 characters compete
+ * with the class name a reader is actually scanning for. Back to normal weight and one step down
+ * the neutral ramp: still readable when the package is the question, no longer loud when it is not.
+ */
 .st-fr.app .st-pkg {
-  color: var(--color-text-muted);
+  color: var(--color-text-soft);
+  font-weight: 400;
 }
 
 .st-fr.app .st-src {
@@ -382,6 +389,15 @@ async function copy(): Promise<void> {
 .st-fr.throwing .st-pkg,
 .st-fr.throwing .st-src {
   color: var(--color-danger);
+}
+
+/*
+ * The one row that keeps its package at full weight. Everywhere else the prefix is what the reader
+ * scans past; on the throwing frame the whole line is the answer they opened the stack for, and
+ * splitting it into a bold class and a quiet package would break it into two statements.
+ */
+.st-fr.throwing .st-pkg {
+  font-weight: 700;
 }
 
 .st-fold {

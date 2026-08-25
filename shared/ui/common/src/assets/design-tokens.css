@@ -303,6 +303,8 @@
   --color-dark: #0b1727;
   --color-text: #5e6e82;
   --color-text-muted: #748194;
+  /* Between muted and light: for text that must stay readable while yielding to what it prefixes. */
+  --color-text-soft: #97a3b4;
   --color-text-light: #b6c1d2;
   
   /* Border Colors */
