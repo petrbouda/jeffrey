@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Span messages — final: two rails + bar pins</title>
+<title>Span notifications — final: two rails + bar pins</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -223,7 +223,7 @@
   .sev-meter i { display: block; height: 100%; }
   .lane-rule { position: absolute; inset: 50% 0 auto 0; height: 1px; background: var(--color-border-light); }
 
-  /* A message is an instant, so the rail carries a mark, not a band -- shape says "moment" the way
+  /* A notification is an instant, so the rail carries a mark, not a band -- shape says "moment" the way
      the pause lanes' rectangles say "stretch". */
   .msg-mark { position: absolute; top: 50%; width: .62rem; height: .62rem; margin-left: -.31rem;
     transform: translateY(-50%) rotate(45deg); border-radius: 1px; background: var(--sev);
@@ -241,7 +241,7 @@
     background: var(--sev); transform: rotate(45deg); box-shadow: 0 0 0 1.5px var(--color-white); }
   .msg-pin.sev-critical b { width: 9px; height: 9px; left: -1px; }
   .msg-pin.sev-critical i { left: 3px; width: 1.5px; }
-  /* The other end of the same click: the pin for the message the rail selected. */
+  /* The other end of the same click: the pin for the notification the rail selected. */
   .msg-pin.active b { box-shadow: 0 0 0 1.5px var(--color-white), 0 0 0 3.5px var(--sev-critical-bg);
     outline: 1.5px solid var(--color-dark); outline-offset: 1px; }
   .msg-pin.active i { width: 2px; left: 2.5px; }
@@ -255,23 +255,23 @@
 
   /* ============================================================ the popover, back from direction 1
      It is not a competing surface any more: it is the fast read, and its footer is the bridge into the
-     slow one. Click a rail mark and the message is on screen immediately; click the footer and the
+     slow one. Click a rail mark and the notification is on screen immediately; click the footer and the
      span opens underneath with its events, its flamegraph and the rest of what it carries.
 
      Anchored on the mark rather than at a fixed offset, and pulled 70% of its own width to the left,
      so a mark near the right edge cannot push it over the Duration column.
 
-     It opens toward the chrome, not toward the bars. From the message rail that means upward, over
-     the toolbar and the pause lane -- nobody is reading those while they read a message, and opening
+     It opens toward the chrome, not toward the bars. From the notification rail that means upward, over
+     the toolbar and the pause lane -- nobody is reading those while they read a notification, and opening
      downward would bury the exception rail, the scale and the first three spans. From the exception
-     rail, which has the message rail directly above it, downward is the only direction that does not
+     rail, which has the notification rail directly above it, downward is the only direction that does not
      cover another rail. Either way something is hidden; the rule is that it should be something the
      reader is not currently using. */
   .pop { position: absolute; z-index: 6; width: 22rem; padding: .55rem .7rem .6rem;
     background: var(--color-white); border: 1px solid var(--color-border-input);
     border-radius: var(--radius-md); box-shadow: var(--shadow-lg); text-align: left;
     transform: translateX(-70%); cursor: default; }
-  .pop.on-message { border-left: 3px solid var(--sev); }
+  .pop.on-notification { border-left: 3px solid var(--sev); }
   .pop.on-exception { border-left: 3px solid var(--exc); }
   .pop-down { top: 1.35rem; }
   .pop-up { bottom: 1.35rem; }
@@ -296,7 +296,7 @@
   .pop-link em { font-style: normal; font-weight: 400; color: var(--color-text-muted); }
 
   /* ============================================================ the exception family
-     A second rail and a second pin family, split from messages the way the toolbar already splits
+     A second rail and a second pin family, split from notifications the way the toolbar already splits
      Blocking ops from I/O ops: "what the application said" and "what was thrown at it" are different
      suspicions, so hiding one must not take the other down with it.
 
@@ -425,7 +425,7 @@
   <div class="wrap">
     <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
     <h1><span class="n">&#10003;</span>Final &mdash; two rails + bar pins</h1>
-    <p class="lede">Directions 1 and 2 combined, and extended to a second family. Every instant is drawn twice on purpose: once on a rail above the span rows, which nothing can fold or filter away, and once as a pin on the bar of the span it belongs to. Clicking a rail mark opens direction 1’s popover for the immediate read, and its footer is the bridge into the deep one: it selects the span underneath, which opens with the same entry highlighted in its detail panel. <strong>Two families, two rails:</strong> <code>jeffrey.Message</code> (diamonds, coloured by severity) and <code>jdk.JavaExceptionThrow</code> (crosses, hollow when caught, red when they escaped) &mdash; split the way the toolbar already splits Blocking ops from I/O ops. <code>jeffrey.Alert</code> is gone: severity already says how serious a message is. Shown having clicked the CRITICAL mark on the message rail.</p>
+    <p class="lede">Directions 1 and 2 combined, and extended to a second family. Every instant is drawn twice on purpose: once on a rail above the span rows, which nothing can fold or filter away, and once as a pin on the bar of the span it belongs to. Clicking a rail mark opens direction 1’s popover for the immediate read, and its footer is the bridge into the deep one: it selects the span underneath, which opens with the same entry highlighted in its detail panel. <strong>Two families, two rails:</strong> <code>jeffrey.Notification</code> (diamonds, coloured by severity) and <code>jdk.JavaExceptionThrow</code> (crosses, hollow when caught, red when they escaped) &mdash; split the way the toolbar already splits Blocking ops from I/O ops. <code>jeffrey.Alert</code> is gone: severity already says how serious a notification is. Shown having clicked the CRITICAL mark on the notification rail.</p>
     <div class="frame">
       <div class="frame-head">
         <i class="bi bi-diagram-3"></i>
@@ -441,7 +441,7 @@
         <span class="chip"><i class="bi bi-cpu"></i> http-nio-8080-exec-3</span>
         <span class="chip"><i class="bi bi-signpost-split"></i> payments.charge &middot; 64% critical</span>
         <span class="chip mono">3f9c1a2b4d5e6f70</span>
-        <span class="chip msg"><i class="bi bi-chat-square-dots-fill"></i> 6 messages</span>
+        <span class="chip msg"><i class="bi bi-chat-square-dots-fill"></i> 6 notifications</span>
         <span class="chip" style="border-color:var(--color-danger-input-border);background:var(--color-danger-light);color:var(--color-danger);font-weight:600"><i class="bi bi-x-octagon-fill"></i> 3 exceptions</span>
         </div>
         <div class="trace-actions">
@@ -457,7 +457,7 @@
             <span class="wf-switch-item"><span class="wf-switch on"></span> JVM context</span>
             <span class="wf-switch-item"><span class="wf-switch on"></span> Blocking ops</span>
             <span class="wf-switch-item"><span class="wf-switch on"></span> I/O ops</span>
-            <span class="wf-switch-item"><span class="wf-switch on"></span> Messages</span>
+            <span class="wf-switch-item"><span class="wf-switch on"></span> Notifications</span>
             <span class="wf-switch-item"><span class="wf-switch on"></span> Exceptions</span>
           </span>
         </div>
@@ -475,7 +475,7 @@
         </div>
         <div class="wf-lane msg-lane">
           <span class="lane-label">
-            <span style="display:flex;align-items:center;gap:.35rem"><i class="lane-dot" style="background:var(--sev-critical);transform:rotate(45deg);border-radius:1px"></i> Messages</span>
+            <span style="display:flex;align-items:center;gap:.35rem"><i class="lane-dot" style="background:var(--sev-critical);transform:rotate(45deg);border-radius:1px"></i> Notifications</span>
             <span class="sev-meter">
               <i style="width:17%;background:var(--sev-critical)"></i>
               <i style="width:17%;background:var(--sev-high)"></i>
@@ -492,7 +492,7 @@
             <span class="msg-mark sev-high" style="left:38.35%" title="PAYMENT_RETRY &middot; Retrying charge after gateway timeout &middot; click to select payments.charge"></span>
             <span class="msg-mark sev-critical active" style="left:72.82%" title="CIRCUIT_BREAKER_OPEN &middot; Payment circuit breaker opened &middot; click to select payments.charge"></span>
             <span class="msg-mark sev-low" style="left:98.54%" title="FEATURE_FLAG_READ &middot; Flag orders.async-persist evaluated false &middot; click to select POST /api/orders"></span>
-            <div class="pop pop-up on-message sev-critical" style="left:72.82%">
+            <div class="pop pop-up on-notification sev-critical" style="left:72.82%">
               <div class="pop-head">
                 <span class="sev-pill sev-critical">critical</span>
                 <span class="mtype">CIRCUIT_BREAKER_OPEN</span>
@@ -500,7 +500,7 @@
               </div>
               <div class="pop-title">Payment circuit breaker opened</div>
               <p class="pop-body">5 of the last 6 calls to acme-pay failed. The breaker is open for 30 s; every charge in that window fails fast.</p>
-              <div class="pop-meta"><span>AVAILABILITY</span><span>payments-client</span><span>jeffrey.Message</span></div>
+              <div class="pop-meta"><span>AVAILABILITY</span><span>payments-client</span><span>jeffrey.Notification</span></div>
               <a class="pop-link" href="#"><i class="bi bi-arrow-return-right"></i> Select payments.charge <em>&mdash; the span it was emitted in</em></a>
             </div>
           </span>
@@ -543,7 +543,7 @@
               <span class="wf-twist"><i class="bi bi-caret-down-fill"></i></span>
               <span class="wf-kind kind-server"></span>
               <span class="wf-label">POST /api/orders</span>
-              <span class="msg-count sev-medium" title="2 messages in this span, worst medium"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 2</span>
+              <span class="msg-count sev-medium" title="2 notifications in this span, worst medium"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 2</span>
             </span>
             <span class="wf-track">
               <span class="wf-bar bar-server" style="left:0.0%;width:100.0%"><span class="wf-self" style="left:0.0%;width:0.97%"></span><span class="wf-self" style="left:5.34%;width:0.97%"></span><span class="wf-self" style="left:14.81%;width:1.21%"></span><span class="wf-self" style="left:80.34%;width:1.21%"></span><span class="wf-self" style="left:97.57%;width:2.43%"></span></span>
@@ -558,7 +558,7 @@
               <span class="wf-twist"></span>
               <span class="wf-kind kind-internal"></span>
               <span class="wf-label">orders.validate</span>
-              <span class="msg-count sev-low" title="1 messages in this span, worst low"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 1</span>
+              <span class="msg-count sev-low" title="1 notifications in this span, worst low"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 1</span>
               <span class="exc-count is-caught" title="1 thrown here, all caught"><i class="bi bi-x-octagon-fill" style="font-size:.55rem"></i> 1</span>
             </span>
             <span class="wf-track">
@@ -574,7 +574,7 @@
               <span class="wf-twist"></span>
               <span class="wf-kind kind-internal"></span>
               <span class="wf-label">SELECT orders</span>
-              <span class="msg-count sev-medium" title="1 messages in this span, worst medium"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 1</span>
+              <span class="msg-count sev-medium" title="1 notifications in this span, worst medium"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 1</span>
             </span>
             <span class="wf-track">
               <span class="wf-bar bar-internal" style="left:6.31%;width:8.5%"><span class="wf-self" style="left:0%;width:100%"></span></span>
@@ -589,7 +589,7 @@
               <span class="wf-kind kind-client"></span>
               <span class="wf-label">payments.charge</span>
               <span class="badge-err">error</span>
-              <span class="msg-count sev-critical" title="2 messages in this span, worst critical"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 2</span>
+              <span class="msg-count sev-critical" title="2 notifications in this span, worst critical"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 2</span>
               <span class="exc-count is-escaped" title="1 thrown here, one of which escaped the span"><i class="bi bi-x-octagon-fill" style="font-size:.55rem"></i> 1</span>
             </span>
             <span class="wf-track">
@@ -633,7 +633,7 @@
               </div>
             </div>
             <div class="sd-region is-msg">
-              <div class="sd-region-head"><i class="bi bi-chat-square-dots-fill"></i> Messages <span class="sd-src">2 &middot; jeffrey.Message</span></div>
+              <div class="sd-region-head"><i class="bi bi-chat-square-dots-fill"></i> Notifications <span class="sd-src">2 &middot; jeffrey.Notification</span></div>
               <div class="sd-region-body">
                 <div class="sd-msg sev-high">
                   <span class="sd-msg-at">+92 ms</span>
@@ -709,7 +709,7 @@
         <span><i class="ln-num">2</i> the owning row is selected <em>&mdash; which span said it</em></span>
         <span><i class="ln-num">3</i> its pin is emphasised <em>&mdash; where inside that span</em></span>
         <span><i class="ln-num">4</i> the popover reads it out <em>&mdash; what it said, without leaving the rail</em></span>
-        <span><i class="ln-num">5</i> its footer opens the span, Messages row highlighted <em>&mdash; and everything else the span carries</em></span>
+        <span><i class="ln-num">5</i> its footer opens the span, Notifications row highlighted <em>&mdash; and everything else the span carries</em></span>
         <span class="lead">And one row further down:</span>
         <span><i class="ln-num" style="background:var(--color-danger)">&#215;</i> the escaped throw carries the stack behind the <code style="font-family:var(--font-family-monospace);font-size:.9em">GatewayTimeoutException</code> badge <em>&mdash; why the span failed</em></span>
       </div>
@@ -718,7 +718,7 @@
     <div class="fold-panel">
       <div class="fold-cap">
         <i class="bi bi-arrows-collapse"></i>
-        <span><b>The same trace with the root collapsed.</b> Every pin inside the fold went with it, so the row has to say what it swallowed &mdash; <span class="k">&#10022; 2</span> messages of its own, <code style="font-family:var(--font-family-monospace);font-size:.85em">+5</code> spans folded, one of them failed, and four more messages and three throws inside, both drawn hollow. That is five indicators on one row, which is the honest cost of folding. <b>Both rails carry exactly the same marks as the frame above</b> &mdash; nothing on them moved, and that is the whole reason they are there. The popover here is on the exception rail, to show its other half: from a fold this deep it is the only way to that throw at all.</span>
+        <span><b>The same trace with the root collapsed.</b> Every pin inside the fold went with it, so the row has to say what it swallowed &mdash; <span class="k">&#10022; 2</span> notifications of its own, <code style="font-family:var(--font-family-monospace);font-size:.85em">+5</code> spans folded, one of them failed, and four more notifications and three throws inside, both drawn hollow. That is five indicators on one row, which is the honest cost of folding. <b>Both rails carry exactly the same marks as the frame above</b> &mdash; nothing on them moved, and that is the whole reason they are there. The popover here is on the exception rail, to show its other half: from a fold this deep it is the only way to that throw at all.</span>
       </div>
       <div class="wf-card">
         <div class="wf-lane">
@@ -735,7 +735,7 @@
         </div>
         <div class="wf-lane msg-lane">
           <span class="lane-label">
-            <span style="display:flex;align-items:center;gap:.35rem"><i class="lane-dot" style="background:var(--sev-critical);transform:rotate(45deg);border-radius:1px"></i> Messages</span>
+            <span style="display:flex;align-items:center;gap:.35rem"><i class="lane-dot" style="background:var(--sev-critical);transform:rotate(45deg);border-radius:1px"></i> Notifications</span>
             <span class="sev-meter">
               <i style="width:17%;background:var(--sev-critical)"></i>
               <i style="width:17%;background:var(--sev-high)"></i>
@@ -802,10 +802,10 @@
               <span class="wf-twist"><i class="bi bi-caret-right-fill"></i></span>
               <span class="wf-kind kind-server"></span>
               <span class="wf-label">POST /api/orders</span>
-              <span class="msg-count sev-medium" title="2 messages in this span, worst medium"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 2</span>
+              <span class="msg-count sev-medium" title="2 notifications in this span, worst medium"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 2</span>
             <span class="wf-folded" title="5 spans folded into this row">+5</span>
             <i class="wf-folded-error" title="A failed span is hidden in this fold"></i>
-            <span class="msg-count is-folded sev-critical" title="4 more messages are inside the fold, the worst of them critical"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 4</span>
+            <span class="msg-count is-folded sev-critical" title="4 more notifications are inside the fold, the worst of them critical"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 4</span>
             <span class="exc-count is-folded is-escaped" title="3 exceptions are inside the fold, one of which escaped its span"><i class="bi bi-x-octagon-fill" style="font-size:.55rem"></i> 3</span>
             </span>
             <span class="wf-track">
@@ -824,7 +824,7 @@
         <ul>
           <li>Both readings in one picture: the rail answers <em>did anything happen during this request, and when</em>; the pin and the badge answer <em>which span it happened in</em>. Neither direction could do both alone.</li>
           <li>The popover is the fast read and the detail row is the slow one, and they are one gesture rather than two surfaces competing for the same click: the popover answers <em>what did it say</em> on the spot, its footer opens the span, and everything the span carries &mdash; events, flamegraph, the stack behind the throw &mdash; is one click further on.</li>
-          <li>Both rails share the popover, with the content each family needs: severity, type, category and source for a message; the thrown class, the top frame and a way into the stack for an exception.</li>
+          <li>Both rails share the popover, with the content each family needs: severity, type, category and source for a notification; the thrown class, the top frame and a way into the stack for an exception.</li>
           <li>The rail is the safety net for everything the pins cannot draw: a folded subtree, a critical-path filter, a 2 ms span at the 0.4% floor width.</li>
           <li>The pattern took a second family for free. Exceptions get their own rail, their own glyph and their own switch &mdash; the same split the toolbar already makes between Blocking ops and I/O ops, for the same reason: different suspicions, so hiding one must not take the other down with it.</li>
           <li><strong>The escaped throw is the real prize.</strong> Today <code>trace_spans.error_type</code> is a bare class name. Matched to its throw it gains a message, an instant and a stack &mdash; the span stops saying <em>it failed</em> and starts saying <em>here is where</em>.</li>
@@ -835,11 +835,11 @@
         <h4><i class="bi bi-exclamation-circle"></i> What it still costs</h4>
         <ul>
           <li>Every instant is now drawn twice. One source of truth and one shared hover state, or the rail and the pin will eventually disagree &mdash; and a picture that contradicts itself is worse than either half.</li>
-          <li><strong>The popover costs a layer.</strong> It is a third surface inside a fullscreen modal, so Escape has three meanings again, and whatever it hangs over is hidden while it is open. Two placement rules keep the damage in the chrome rather than in the drawing: it is anchored on its own mark and pulled 70% of its width to the left, so a mark near the right edge cannot push it over the Duration column; and it opens toward the chrome &mdash; upward from the message rail over the toolbar, downward from the exception rail, which has another rail directly above it. A mark in the last few percent of the track still needs the horizontal flip.</li>
+          <li><strong>The popover costs a layer.</strong> It is a third surface inside a fullscreen modal, so Escape has three meanings again, and whatever it hangs over is hidden while it is open. Two placement rules keep the damage in the chrome rather than in the drawing: it is anchored on its own mark and pulled 70% of its width to the left, so a mark near the right edge cannot push it over the Duration column; and it opens toward the chrome &mdash; upward from the notification rail over the toolbar, downward from the exception rail, which has another rail directly above it. A mark in the last few percent of the track still needs the horizontal flip.</li>
           <li><strong>Exception volume is the real risk.</strong> A service that throws for control flow produces thousands per request; <code>jdk.ExceptionStatistics</code> exists precisely because throws are cheap to make and expensive to record. The rail needs a cap and a cluster mark before it meets one, and the caught/escaped split is what keeps the noise quiet meanwhile.</li>
           <li>Row badges are getting crowded: <span style="white-space:nowrap">&#10022; N</span> and <span style="white-space:nowrap">&#10005; N</span> beside the error badge, and five indicators on a folded row (look at the panel above). Past two families this needs a different answer.</li>
           <li>The severity ramp still shares danger with the GC-pause band and warning with the critical-path marker. Shape carries the difference today &mdash; diamond, cross, band &mdash; and a fourth thing in that palette would break it.</li>
-          <li>A rail is per-thread-agnostic but a pin is not: a message stamped with a <code>spanId</code> from another thread pins correctly, an exception attributed by thread window does not travel. That asymmetry is invisible on screen.</li>
+          <li>A rail is per-thread-agnostic but a pin is not: a notification stamped with a <code>spanId</code> from another thread pins correctly, an exception attributed by thread window does not travel. That asymmetry is invisible on screen.</li>
         </ul>
       </div>
       <div class="note build">
@@ -847,7 +847,7 @@
         <ul>
           <li>One <code>.wf-lane</code> block per family and two overlay switches, all beside the three that exist; pins inside the existing <code>.wf-track</code>; two badges in <code>.wf-name</code>; two <code>.sd-region</code>s in <code>TraceSpanInlineDetail.vue</code>.</li>
           <li>The folded aggregates reuse the machinery already there for <code>foldedCounts</code> and <code>errorDescendantCounts</code> &mdash; same walk, two more accumulators.</li>
-          <li><strong>Messages need the ids; exceptions do not.</strong> A message can be committed off-thread, so it must carry <code>traceId</code>/<code>spanId</code> from <code>Tracer.current()</code>. A throw is always on the throwing thread, so <code>thread_hash</code> plus innermost-containing-window is a sound attribution &mdash; the same interval arithmetic <code>ThreadWindowEvents</code> already does.</li>
+          <li><strong>Notifications need the ids; exceptions do not.</strong> A notification can be committed off-thread, so it must carry <code>traceId</code>/<code>spanId</code> from <code>Tracer.current()</code>. A throw is always on the throwing thread, so <code>thread_hash</code> plus innermost-containing-window is a sound attribution &mdash; the same interval arithmetic <code>ThreadWindowEvents</code> already does.</li>
           <li>Both land in one derived table beside <code>DERIVE_TRACE_SPANS</code>, with a <code>kind</code> column. The escaped flag is a match between the throw’s <code>thrownClass</code> and <code>trace_spans.error_type</code>, computed once at derivation rather than in the UI.</li>
           <li>A rail mark opens the popover locally; its footer emits the existing <code>select</code> event plus the entry id, so <code>TraceSpansModal</code> opens the span and the region scrolls to the row. The popover is the only genuinely new component in the design.</li>
         </ul>

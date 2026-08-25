@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Span messages — 1. Message lane</title>
+<title>Span notifications — 5. Severity ribbon and callouts</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -215,48 +215,76 @@
   .note code { font-family: var(--font-family-monospace); font-size: .86em; background: #f1f5f9;
     padding: .05rem .28rem; border-radius: var(--radius-sm); }
 
-  .msg-lane { padding-top: .3rem; padding-bottom: .35rem; }
-  .msg-lane .lane-track { height: 1.15rem; }
-  .sev-meter { flex: 1; display: flex; height: .3rem; border-radius: var(--radius-pill); overflow: hidden;
-    min-width: 2rem; background: var(--color-lighter); }
-  .sev-meter i { display: block; height: 100%; }
+  .ribbon-wrap { display: grid; grid-template-columns: 20rem 1fr 5.5rem; gap: .5rem;
+    padding: .2rem 1rem .5rem; }
+  .ribbon-label { display: flex; flex-direction: column; justify-content: flex-end; gap: .2rem;
+    font-size: var(--font-size-xs); color: var(--color-text-muted); }
+  .ribbon-label b { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-dark);
+    text-transform: none; letter-spacing: 0; display: flex; align-items: center; gap: .35rem; }
+  .ribbon-label b i.g { width: .45rem; height: .45rem; background: var(--sev-critical);
+    transform: rotate(45deg); border-radius: 1px; }
+  .ribbon-mix { display: flex; gap: .18rem; }
+  .ribbon-mix span { display: inline-flex; align-items: center; gap: .2rem; font-variant-numeric: tabular-nums; }
+  .ribbon-mix i { width: .4rem; height: .4rem; border-radius: 1px; transform: rotate(45deg); }
 
-  /* A message is an instant, so it is a mark, not a band: a diamond on the lane's own rule.
-     Shape carries "instant" the way the pause lanes' rectangles carry "stretch". */
-  .msg-mark { position: absolute; top: 50%; width: .62rem; height: .62rem; margin-left: -.31rem;
-    transform: translateY(-50%) rotate(45deg); border-radius: 1px; background: var(--sev);
-    box-shadow: 0 0 0 2px var(--color-white); cursor: pointer; }
-  .msg-mark.sev-low, .msg-mark.sev-medium { width: .5rem; height: .5rem; margin-left: -.25rem; }
-  .msg-mark.sev-critical { box-shadow: 0 0 0 2px var(--color-white), 0 0 0 5px var(--sev-critical-bg); }
-  .msg-mark.active { outline: 2px solid var(--color-dark); outline-offset: 2px; }
-  .lane-rule { position: absolute; inset: 50% 0 auto 0; height: 1px; background: var(--color-border-light); }
+  .ribbon { position: relative; height: 6.4rem; }
+  .ribbon-floor { position: absolute; left: 0; right: 0; bottom: 0; height: 1.5rem;
+    background: var(--color-light); border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+  .ribbon-tick { position: absolute; bottom: 0; width: 3px; margin-left: -1.5px; border-radius: 1px 1px 0 0;
+    background: var(--sev); }
+  .ribbon-tick.sev-critical { width: 5px; margin-left: -2.5px; }
 
-  /* the popover a click opens */
-  .msg-pop { position: absolute; top: 1.4rem; left: 72.82%; transform: translateX(-70%);
-    width: 24rem; z-index: 5;
-    background: var(--color-white); border: 1px solid var(--color-border-input);
-    border-left: 3px solid var(--sev-critical); border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg); padding: .7rem .85rem; text-align: left; }
-  .msg-pop::before { content: ''; position: absolute; top: -6px; left: 70%; width: 10px; height: 10px;
-    background: var(--color-white); border-left: 1px solid var(--color-border-input);
-    border-top: 1px solid var(--color-border-input); transform: rotate(45deg); }
-  .mp-head { display: flex; align-items: center; gap: .4rem; margin-bottom: .35rem; flex-wrap: wrap; }
-  .mp-title { font-size: var(--font-size-base); font-weight: 700; color: var(--color-dark); }
-  .mp-body { font-size: var(--font-size-sm); color: #475569; line-height: 1.55; margin-bottom: .55rem; }
-  .mp-meta { display: flex; gap: .9rem; flex-wrap: wrap; font-size: var(--font-size-xs);
-    color: var(--color-text-muted); border-top: 1px solid var(--color-border-light); padding-top: .45rem; }
-  .mp-meta b { color: var(--color-dark); font-weight: 600; }
-  .mp-meta .k { text-transform: uppercase; letter-spacing: .04em; }
-  .mp-link { display: inline-flex; align-items: center; gap: .3rem; color: var(--color-primary);
-    font-size: var(--font-size-sm); margin-top: .5rem; text-decoration: none; }
-  .wf-row.msg-owner { background: color-mix(in srgb, var(--sev-critical) 5%, transparent); }
+  /* callouts for the two that a reader must not miss */
+  .callout-bubble { position: absolute; bottom: 1.85rem; width: 14rem; padding: .4rem .55rem;
+    transform: translateX(-50%);
+    border-radius: var(--radius-base); background: var(--color-white);
+    border: 1px solid var(--color-border-input); border-left: 3px solid var(--sev);
+    box-shadow: var(--shadow-md); text-align: left; }
+  .callout-bubble::after { content: ''; position: absolute; bottom: -5px; left: 50%;
+    width: 8px; height: 8px; margin-left: -4px; background: var(--color-white);
+    border-right: 1px solid var(--color-border-input); border-bottom: 1px solid var(--color-border-input);
+    transform: rotate(45deg); }
+  .cb-line { display: flex; align-items: center; gap: .3rem; margin-bottom: .12rem; }
+  .cb-h { font-size: var(--font-size-sm); font-weight: 600; color: var(--color-dark); line-height: 1.3; }
+  .cb-sub { font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: .15rem;
+    font-family: var(--font-family-monospace); }
+  .ribbon-axis { position: absolute; left: 0; right: 0; bottom: -.9rem; display: flex;
+    justify-content: space-between; font-size: var(--font-size-xs); color: var(--color-text-light);
+    font-variant-numeric: tabular-nums; }
+  .ribbon-count { display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-end;
+    font-size: var(--font-size-xs); color: var(--color-text-muted); }
+  .ribbon-count b { font-size: 1.1rem; font-weight: 800; color: var(--sev-critical); line-height: 1; }
+
+  /* the table under the waterfall */
+  .msg-table-card { margin-top: .9rem; border: 1px solid var(--color-border); border-radius: var(--radius-md);
+    overflow: hidden; }
+  .mt-head { display: flex; align-items: center; gap: .5rem; padding: .55rem .9rem;
+    background: var(--color-lighter); font-size: var(--font-size-base); font-weight: 700; }
+  .mt-head i.bi { color: var(--color-primary); }
+  .mt-head .caret { margin-left: auto; color: var(--color-text-muted); }
+  table.mt { width: 100%; border-collapse: collapse; font-size: var(--font-size-sm); }
+  table.mt th { text-align: left; padding: .4rem .9rem; color: var(--color-text-muted);
+    font-size: var(--font-size-xs); text-transform: uppercase; letter-spacing: .04em;
+    border-bottom: 1px solid var(--color-border); font-weight: 600; }
+  table.mt td { padding: .45rem .9rem; border-bottom: 1px solid var(--color-border-light); vertical-align: top; }
+  table.mt tr:last-child td { border-bottom: 0; }
+  td.at { font-variant-numeric: tabular-nums; color: var(--color-text-muted); white-space: nowrap; }
+  td.ty { font-family: var(--font-family-monospace); font-size: var(--font-size-xs);
+    color: var(--color-dark); white-space: nowrap; }
+  td.ti b { font-weight: 600; }
+  td.ti p { color: #475569; font-size: var(--font-size-xs); line-height: 1.5; margin-top: .12rem; }
+  td.sp { white-space: nowrap; }
+  td.sp span { display: inline-flex; align-items: center; gap: .3rem; color: var(--color-primary);
+    font-size: var(--font-size-xs); }
+  td.sp i.k { width: .35rem; height: .35rem; border-radius: 50%; }
+  td.src { color: var(--color-text-muted); font-size: var(--font-size-xs); white-space: nowrap; }
 </style>
 </head>
 <body>
   <div class="wrap">
     <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
-    <h1><span class="n">1</span>Message lane</h1>
-    <p class="lede">A lane of its own above the span rows, mirroring the pause lanes the waterfall already draws &mdash; but with diamonds instead of bands, because a message is an instant, not a stretch. Colour is severity, the label carries the mix and the count, and a click opens the message. Shown here with the CRITICAL alert open.</p>
+    <h1><span class="n">5</span>Severity ribbon + callouts</h1>
+    <p class="lede">A strip between the pause lanes and the span rows: one tick per notification, coloured and sized by severity, so the shape of the trace and the shape of what it said sit on the same axis. The two that matter get callouts in words; the rest live in a table below the waterfall, closed by default.</p>
     <div class="frame">
       <div class="frame-head">
         <i class="bi bi-diagram-3"></i>
@@ -272,7 +300,7 @@
         <span class="chip"><i class="bi bi-cpu"></i> http-nio-8080-exec-3</span>
         <span class="chip"><i class="bi bi-signpost-split"></i> payments.charge &middot; 64% critical</span>
         <span class="chip mono">3f9c1a2b4d5e6f70</span>
-        <span class="chip msg"><i class="bi bi-chat-square-dots-fill"></i> 6 messages</span>
+        <span class="chip msg"><i class="bi bi-chat-square-dots-fill"></i> 6 notifications</span>
         </div>
         <div class="trace-actions">
           <a class="op-link" href="#"><i class="bi bi-bar-chart-steps"></i> All POST /api/orders traces</a>
@@ -287,7 +315,6 @@
             <span class="wf-switch-item"><span class="wf-switch on"></span> JVM context</span>
             <span class="wf-switch-item"><span class="wf-switch on"></span> Blocking ops</span>
             <span class="wf-switch-item"><span class="wf-switch on"></span> I/O ops</span>
-            <span class="wf-switch-item"><span class="wf-switch on"></span> Messages</span>
           </span>
         </div>
         <div class="wf-lane">
@@ -302,42 +329,36 @@
           </span>
           <span class="wf-duration">19 ms</span>
         </div>
-        <div class="wf-lane msg-lane">
-          <span class="lane-label">
-            <span style="display:flex;align-items:center;gap:.35rem"><i class="lane-dot" style="background:var(--sev-critical);transform:rotate(45deg);border-radius:1px"></i> Messages</span>
-            <span class="sev-meter">
-              <i style="width:17%;background:var(--sev-critical)"></i>
-              <i style="width:17%;background:var(--sev-high)"></i>
-              <i style="width:33%;background:var(--sev-medium)"></i>
-              <i style="width:33%;background:var(--sev-low)"></i>
+        <div class="ribbon-wrap">
+          <div class="ribbon-label">
+            <b><i class="g"></i> Notifications</b>
+            <span class="ribbon-mix">
+              <span><i style="background:var(--sev-critical)"></i>1</span>
+              <span><i style="background:var(--sev-high)"></i>1</span>
+              <span><i style="background:var(--sev-medium)"></i>2</span>
+              <span><i style="background:var(--sev-low)"></i>2</span>
             </span>
-            <span class="lane-stat">1 crit &middot; 6&times;</span>
-          </span>
-          <span class="lane-track">
-            <span class="lane-rule"></span>
-            <span class="msg-mark sev-low" style="left:1.46%" title="CART_REPRICED &middot; Cart repriced before validation"></span>
-            <span class="msg-mark sev-medium" style="left:7.28%" title="QUERY_PLAN_FALLBACK &middot; Query fell back to a sequential scan"></span>
-            <span class="msg-mark sev-medium" style="left:15.53%" title="CONNECTION_POOL_PRESSURE &middot; Pool at 92% of max"></span>
-            <span class="msg-mark sev-high" style="left:38.35%" title="PAYMENT_RETRY &middot; Retrying charge after gateway timeout"></span>
-            <span class="msg-mark sev-critical active" style="left:72.82%" title="CIRCUIT_BREAKER_OPEN &middot; Payment circuit breaker opened"></span>
-            <span class="msg-mark sev-low" style="left:98.54%" title="FEATURE_FLAG_READ &middot; Flag orders.async-persist evaluated false"></span>
-            <div class="msg-pop">
-              <div class="mp-head">
-                <span class="sev-pill sev-critical">critical</span>
-                <span class="mtype">CIRCUIT_BREAKER_OPEN</span>
-              </div>
-              <div class="mp-title">Payment circuit breaker opened</div>
-              <p class="mp-body">5 of the last 6 calls to acme-pay failed. The breaker is open for 30 s; every charge in that window fails fast.</p>
-              <div class="mp-meta">
-                <span class="k">source</span> <b>payments-client</b>
-                <span class="k">category</span> <b>AVAILABILITY</b>
-                <span class="k">at</span> <b>+300 ms</b>
-                <span class="k">event</span> <b>jeffrey.Message</b>
-              </div>
-              <a class="mp-link" href="#"><i class="bi bi-arrow-return-right"></i> Select payments.charge &mdash; the span it was emitted in</a>
+          </div>
+          <div class="ribbon">
+            <div class="ribbon-floor"></div>
+            <span class="ribbon-tick sev-low" style="left:1.46%;height:1.0rem" title="CART_REPRICED"></span>
+            <span class="ribbon-tick sev-medium" style="left:7.28%;height:1.5rem" title="QUERY_PLAN_FALLBACK"></span>
+            <span class="ribbon-tick sev-medium" style="left:15.53%;height:1.5rem" title="CONNECTION_POOL_PRESSURE"></span>
+            <span class="ribbon-tick sev-high" style="left:38.35%;height:2.2rem" title="PAYMENT_RETRY"></span>
+            <span class="ribbon-tick sev-critical" style="left:72.82%;height:2.9rem" title="CIRCUIT_BREAKER_OPEN"></span>
+            <span class="ribbon-tick sev-low" style="left:98.54%;height:1.0rem" title="FEATURE_FLAG_READ"></span>
+            <div class="callout-bubble sev-high" style="left:38.35%;--anchor:50%">
+              <div class="cb-line"><span class="sev-pill sev-high">high</span><span class="mtype">+158 ms</span></div>
+              <div class="cb-h">Retrying charge after gateway timeout</div>
+              <div class="cb-sub">PAYMENT_RETRY &middot; in payments.charge</div>
             </div>
-          </span>
-          <span class="wf-duration">6</span>
+            <div class="callout-bubble sev-critical" style="left:72.82%;--anchor:50%">
+              <div class="cb-line"><span class="sev-pill sev-critical">critical</span><span class="mtype">+300 ms</span></div>
+              <div class="cb-h">Payment circuit breaker opened</div>
+              <div class="cb-sub">CIRCUIT_BREAKER_OPEN &middot; in payments.charge</div>
+            </div>
+          </div>
+          <div class="ribbon-count"><b>1</b> critical</div>
         </div>
         <div class="wf-head">
           <span>Span</span>
@@ -389,7 +410,7 @@
             </span>
             <span class="wf-duration">35 ms</span>
           </div>
-          <div class="wf-row critical msg-owner">
+          <div class="wf-row critical">
             <span class="wf-name">
               <span class="wf-indent" style="width:1.1rem"></span>
               <span class="wf-twist"><i class="bi bi-caret-down-fill"></i></span>
@@ -429,33 +450,89 @@
           </div>
         </div>
       </div>
+      <div class="msg-table-card">
+        <div class="mt-head"><i class="bi bi-chat-square-dots-fill"></i> All 6 notifications<span class="caret"><i class="bi bi-caret-up-fill"></i></span></div>
+        <table class="mt">
+          <thead><tr><th>At</th><th>Severity</th><th>Type</th><th>Notification</th><th>Span</th><th>Source</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="at">+6 ms</td>
+              <td><span class="sev-pill sev-low">low</span></td>
+              <td class="ty">CART_REPRICED</td>
+              <td class="ti"><b>Cart repriced before validation</b><p>Two of five lines moved to the September promo price; the basket total changed by -4.20 EUR.</p></td>
+              <td class="sp"><span><i class="k kind-internal"></i> orders.validate</span></td>
+              <td class="src">orders-api</td>
+            </tr>
+            <tr>
+              <td class="at">+30 ms</td>
+              <td><span class="sev-pill sev-medium">medium</span></td>
+              <td class="ty">QUERY_PLAN_FALLBACK</td>
+              <td class="ti"><b>Query fell back to a sequential scan</b><p>orders_customer_idx was not usable for this predicate; planner chose a sequential scan over 1.2M rows.</p></td>
+              <td class="sp"><span><i class="k kind-internal"></i> SELECT orders</span></td>
+              <td class="src">orders-repo</td>
+            </tr>
+            <tr>
+              <td class="at">+64 ms</td>
+              <td><span class="sev-pill sev-medium">medium</span></td>
+              <td class="ty">CONNECTION_POOL_PRESSURE</td>
+              <td class="ti"><b>Pool at 92% of max</b><p>HikariPool-1 handed out 46 of 50 connections; 3 threads are already queued for one.</p></td>
+              <td class="sp"><span><i class="k kind-server"></i> POST /api/orders</span></td>
+              <td class="src">hikari</td>
+            </tr>
+            <tr>
+              <td class="at">+158 ms</td>
+              <td><span class="sev-pill sev-high">high</span></td>
+              <td class="ty">PAYMENT_RETRY</td>
+              <td class="ti"><b>Retrying charge after gateway timeout</b><p>Attempt 1 to acme-pay timed out after 90 ms with no response body. Retrying once.</p></td>
+              <td class="sp"><span><i class="k kind-client"></i> payments.charge</span></td>
+              <td class="src">payments-client</td>
+            </tr>
+            <tr>
+              <td class="at">+300 ms</td>
+              <td><span class="sev-pill sev-critical">critical</span></td>
+              <td class="ty">CIRCUIT_BREAKER_OPEN</td>
+              <td class="ti"><b>Payment circuit breaker opened</b><p>5 of the last 6 calls to acme-pay failed. The breaker is open for 30 s; every charge in that window fails fast.</p></td>
+              <td class="sp"><span><i class="k kind-client"></i> payments.charge</span></td>
+              <td class="src">payments-client</td>
+            </tr>
+            <tr>
+              <td class="at">+406 ms</td>
+              <td><span class="sev-pill sev-low">low</span></td>
+              <td class="ty">FEATURE_FLAG_READ</td>
+              <td class="ti"><b>Flag orders.async-persist evaluated false</b><p>Rollout cohort 12 is not in the async-persist bucket, so the write stayed on the request thread.</p></td>
+              <td class="sp"><span><i class="k kind-server"></i> POST /api/orders</span></td>
+              <td class="src">flags</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       </div>
     </div>
     <div class="notes">
       <div class="note good">
         <h4><i class="bi bi-check-circle"></i> What it buys</h4>
         <ul>
-          <li>Reuses the lane the waterfall already has &mdash; same grid, same label-meter-track shape as GC pause and Safepoint, so it needs no new visual vocabulary.</li>
-          <li>One glance answers "did anything shout during this request, and when" before any span is opened.</li>
-          <li>The lane sits outside the span rows, so folding, filtering and the critical-path toggle cannot hide a CRITICAL alert.</li>
-          <li>It scales: 200 messages are 200 marks on one rail, not 200 rows.</li>
+          <li>Answers the triage question first: <em>did anything shout during this request</em>, and roughly when &mdash; before the reader has to read a single span.</li>
+          <li>Severity is encoded twice, in hue and in height, so the one CRITICAL is the tallest thing in the strip whatever the palette does.</li>
+          <li>Callouts put the two that matter in words at trace scope; the table underneath carries the other four in full, sortable, and closed by default.</li>
+          <li>The waterfall itself is untouched &mdash; no new column, no new rows, no pins on the bars.</li>
         </ul>
       </div>
       <div class="note cost">
         <h4><i class="bi bi-exclamation-circle"></i> What it costs</h4>
         <ul>
-          <li>The mark says <em>when</em>, never <em>which span</em> &mdash; the link between the two exists only in the popover, or as the row tint shown here.</li>
-          <li>Marks collide. Six are comfortable; twenty in one millisecond need clustering, and a cluster badge is a second design.</li>
-          <li>A popover inside a fullscreen modal is a third layer of surface. Escape now has three meanings.</li>
-          <li>Severity by hue reuses danger (already GC pause) and warning (already the critical-path marker).</li>
+          <li>Weakest span attribution of the five: the callout names the span in text, but nothing on screen draws the line to the row.</li>
+          <li>Callouts need placement logic and will collide &mdash; two CRITICALs 8 ms apart cannot both have a 14rem bubble.</li>
+          <li>Two places now list notifications (ribbon and table), and neither is where the reader is looking when they open a span.</li>
+          <li>A trace with 40 LOW notes and no CRITICAL gets a strip of grey ticks that says almost nothing.</li>
         </ul>
       </div>
       <div class="note build">
         <h4><i class="bi bi-tools"></i> What it takes to build</h4>
         <ul>
-          <li>One <code>.wf-lane</code> block in <code>TraceWaterfall.vue</code> and a <code>Messages</code> overlay switch beside the three that exist.</li>
-          <li>A <code>messages</code> array on <code>TraceDetail</code>; positions come from the same <code>traceWindow()</code> the bars use.</li>
-          <li>The popover is the only genuinely new component. Smallest diff of the five.</li>
+          <li>A <code>NotificationRibbon.vue</code> above <code>.wf-head</code> plus a <code>DataTable</code> below the waterfall &mdash; both additive, neither touching <code>displayRows</code>.</li>
+          <li>The table is the one place a shared component drops straight in: <code>DataTable</code> + <code>TableToolbar</code> + <code>Badge</code>, per the <code>/data-table</code> pattern.</li>
+          <li>Callout placement is the only real algorithm: rank by severity, take the top two or three, push apart on collision.</li>
         </ul>
       </div>
     </div>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Span messages — 2. Pins on the bar</title>
+<title>Span notifications — 4. Split log pane</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -215,64 +215,68 @@
   .note code { font-family: var(--font-family-monospace); font-size: .86em; background: #f1f5f9;
     padding: .05rem .28rem; border-radius: var(--radius-sm); }
 
-  /* A pin sits on the bar it belongs to. The stem crosses the bar so the instant is exact;
-     the head sits above it so it survives a bar three pixels wide. */
-  .msg-pin { position: absolute; top: -.15rem; height: 1.25rem; width: 7px; margin-left: -3px;
-    cursor: pointer; }
-  .msg-pin i { position: absolute; left: 3px; top: .3rem; bottom: 0; width: 1px; background: var(--sev); }
-  .msg-pin b { position: absolute; left: 0; top: 0; width: 7px; height: 7px; border-radius: 2px;
-    background: var(--sev); transform: rotate(45deg); box-shadow: 0 0 0 1.5px var(--color-white); }
-  .msg-pin.sev-critical b { width: 9px; height: 9px; left: -1px; }
-  .msg-pin.sev-critical i { left: 3px; width: 1.5px; }
+  .trace-body { display: grid; grid-template-columns: minmax(0, 1fr) 25rem; gap: .9rem; align-items: start; }
+  @media (max-width: 1080px) { .trace-body { grid-template-columns: minmax(0, 1fr); } }
 
-  .msg-count { display: inline-flex; align-items: center; gap: .18rem; flex: none; padding: 0 .3rem;
-    border-radius: var(--radius-sm); background: var(--sev-bg); color: var(--sev);
-    font-size: var(--font-size-xs); font-weight: 700; font-variant-numeric: tabular-nums; }
-
-  /* ---- TraceSpanInlineDetail, with the new Messages region ---- */
-  .span-detail { background: var(--color-light); border-bottom: 1px solid var(--color-border-light);
-    padding: .8rem 1rem .9rem 3.5rem; }
-  .sd-head { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .7rem; }
-  .sd-vitals { font-size: var(--font-size-sm); color: var(--color-text-muted); }
-  .sd-vitals strong { color: var(--color-dark); }
-  .sd-actions { margin-left: auto; display: flex; gap: .4rem; }
-  .sd-btn { display: inline-flex; align-items: center; gap: .3rem; padding: .18rem .55rem;
+  /* the docked log */
+  .msg-pane { border: 1px solid var(--color-border); border-radius: var(--radius-md);
+    background: var(--color-bg-card); display: flex; flex-direction: column; max-height: 26rem; }
+  .mp-top { padding: .6rem .75rem; border-bottom: 1px solid var(--color-border); }
+  .mp-title-row { display: flex; align-items: center; gap: .4rem; margin-bottom: .5rem; }
+  .mp-title-row h3 { font-size: var(--font-size-base); font-weight: 700; flex: 1; }
+  .mp-title-row i.bi { color: var(--color-primary); }
+  .mp-n { font-size: var(--font-size-xs); color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+  .mp-search { display: flex; align-items: center; gap: .4rem; padding: .28rem .55rem;
     border: 1px solid var(--color-border-input); border-radius: var(--radius-pill);
-    background: var(--color-white); color: var(--color-text-muted); font-size: var(--font-size-sm); }
-  .sd-region { border: 1px solid var(--color-border); border-radius: var(--radius-base);
-    background: var(--color-white); margin-bottom: .55rem; overflow: hidden; }
-  .sd-region-head { display: flex; align-items: center; gap: .5rem; padding: .35rem .7rem;
-    background: var(--color-lighter); font-size: var(--font-size-xs); font-weight: 700;
-    text-transform: uppercase; letter-spacing: .05em; color: var(--color-text-muted); }
-  .sd-src { margin-left: auto; font-family: var(--font-family-monospace); font-weight: 400;
-    text-transform: none; letter-spacing: 0; }
-  .sd-region-body { padding: .3rem .7rem .45rem; }
-  .sd-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: .6rem; }
-  .sd-table { width: 100%; border-collapse: collapse; font-size: var(--font-size-sm); }
-  .sd-table td { padding: .2rem 0; border-bottom: 1px solid var(--color-border-light); }
-  .sd-k { color: var(--color-text-muted); width: 8rem; }
-  .sd-v { color: var(--color-dark); font-family: var(--font-family-monospace); font-size: var(--font-size-xs); }
+    background: var(--color-white); color: var(--color-text-light); font-size: var(--font-size-sm);
+    margin-bottom: .45rem; }
+  .mp-filters { display: flex; gap: .3rem; flex-wrap: wrap; }
+  .mp-f { display: inline-flex; align-items: center; gap: .25rem; padding: .08rem .45rem;
+    border: 1px solid var(--color-border-input); border-radius: var(--radius-pill);
+    font-size: var(--font-size-xs); font-weight: 600; color: var(--color-text-muted);
+    background: var(--color-white); }
+  .mp-f i.sw { width: .4rem; height: .4rem; border-radius: 1px; transform: rotate(45deg); background: var(--sev); }
+  .mp-f.on { border-color: var(--sev); color: var(--sev); background: var(--sev-bg); }
+  .mp-f.scoped { margin-left: auto; border-color: var(--color-primary); background: var(--color-primary-light);
+    color: var(--color-primary); }
 
-  /* the new region */
-  .sd-msg { display: grid; grid-template-columns: 4.2rem 5.5rem 1fr; gap: .5rem; align-items: baseline;
-    padding: .38rem 0; border-bottom: 1px solid var(--color-border-light); }
-  .sd-msg:last-child { border-bottom: 0; }
-  .sd-msg-at { font-variant-numeric: tabular-nums; font-size: var(--font-size-xs);
-    color: var(--color-text-muted); }
-  .sd-msg-main { min-width: 0; }
-  .sd-msg-title { font-size: var(--font-size-sm); font-weight: 600; color: var(--color-dark); }
-  .sd-msg-text { font-size: var(--font-size-sm); color: #475569; line-height: 1.5; margin-top: .1rem; }
-  .sd-msg-foot { font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: .18rem;
-    font-family: var(--font-family-monospace); }
-  .sd-region.is-msg { border-color: var(--color-primary-border); }
-  .sd-region.is-msg .sd-region-head { background: var(--color-primary-light); color: var(--color-primary); }
+  .mp-list { overflow-y: auto; }
+  .mp-item { display: grid; grid-template-columns: 3.4rem 1fr; gap: .5rem; padding: .5rem .75rem;
+    border-bottom: 1px solid var(--color-border-light); border-left: 3px solid var(--sev); cursor: pointer; }
+  .mp-item:hover { background: var(--color-bg-hover-alt); }
+  .mp-item.active { background: var(--sev-bg); }
+  .mp-item.dim { opacity: .42; }
+  .mp-at { font-size: var(--font-size-xs); color: var(--color-text-muted); font-variant-numeric: tabular-nums;
+    padding-top: .1rem; }
+  .mp-main { min-width: 0; }
+  .mp-line1 { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; margin-bottom: .12rem; }
+  .mp-h { font-size: var(--font-size-sm); font-weight: 600; color: var(--color-dark); line-height: 1.35; }
+  .mp-txt { font-size: var(--font-size-xs); color: #475569; line-height: 1.5; margin-top: .15rem; }
+  .mp-span { display: inline-flex; align-items: center; gap: .25rem; margin-top: .28rem;
+    font-size: var(--font-size-xs); color: var(--color-primary); font-family: var(--font-family-monospace); }
+  .mp-span i.k { width: .35rem; height: .35rem; border-radius: 50%; }
+
+  /* the cross-highlight the hovered log line draws into the waterfall */
+  .wf-cursor { position: absolute; inset: 0; pointer-events: none; display: grid;
+    grid-template-columns: 20rem 1fr 5.5rem; gap: .5rem; padding: 0 1rem; z-index: 2; }
+  .wf-cursor-track { position: relative; height: 100%; }
+  .wf-cursor-line { position: absolute; top: .9rem; bottom: 0; width: 2px; margin-left: -1px;
+    background: var(--sev-critical); z-index: 4; }
+  .wf-cursor-line::after { content: '+300 ms'; position: absolute; top: -1.05rem; left: 50%;
+    transform: translateX(-50%); padding: 0 .3rem; border-radius: var(--radius-sm);
+    background: var(--sev-critical); color: #fff; font-size: var(--font-size-xs); font-weight: 700;
+    white-space: nowrap; }
+  .wf-row.linked { background: var(--sev-critical-bg); box-shadow: inset 0 0 0 1px var(--sev-critical); }
+  .msg-dot { position: absolute; top: 50%; width: .45rem; height: .45rem; margin-left: -.225rem;
+    transform: translateY(-50%) rotate(45deg); border-radius: 1px; background: var(--sev);
+    box-shadow: 0 0 0 1.5px var(--color-white); }
 </style>
 </head>
 <body>
   <div class="wrap">
     <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
-    <h1><span class="n">2</span>Pins on the bar</h1>
-    <p class="lede">Each message is pinned to the bar of the span that emitted it, at its own instant. The span name carries a count badge coloured by the worst severity it holds, and the inline detail panel grows a <strong>Messages</strong> region beside Attributes and Event fields. Shown with <code>payments.charge</code> selected.</p>
+    <h1><span class="n">4</span>Split log pane</h1>
+    <p class="lede">The waterfall keeps the left, a chronological notification log docks on the right. Hovering a log line drops a time cursor into the waterfall and outlines the span that emitted it; selecting a span narrows the log to that subtree. Search and severity filters live in the pane. Shown with the CRITICAL alert hovered and LOW dimmed.</p>
     <div class="frame">
       <div class="frame-head">
         <i class="bi bi-diagram-3"></i>
@@ -288,13 +292,15 @@
         <span class="chip"><i class="bi bi-cpu"></i> http-nio-8080-exec-3</span>
         <span class="chip"><i class="bi bi-signpost-split"></i> payments.charge &middot; 64% critical</span>
         <span class="chip mono">3f9c1a2b4d5e6f70</span>
-        <span class="chip msg"><i class="bi bi-chat-square-dots-fill"></i> 6 messages</span>
+        <span class="chip msg"><i class="bi bi-chat-square-dots-fill"></i> 6 notifications</span>
         </div>
         <div class="trace-actions">
           <a class="op-link" href="#"><i class="bi bi-bar-chart-steps"></i> All POST /api/orders traces</a>
         </div>
       </div>
-      <div class="wf-card">
+      <div class="trace-body">
+        <div>
+        <div class="wf-card">
         <div class="wf-toolbar">
           <span class="wf-toggle"><i class="bi bi-signpost-split"></i> Critical path only</span>
           <span class="wf-toggle"><i class="bi bi-arrows-collapse"></i> Collapse all</span>
@@ -303,9 +309,8 @@
             <span class="wf-switch-item"><span class="wf-switch on"></span> JVM context</span>
             <span class="wf-switch-item"><span class="wf-switch on"></span> Blocking ops</span>
             <span class="wf-switch-item"><span class="wf-switch on"></span> I/O ops</span>
-            <span class="wf-switch-item"><span class="wf-switch on"></span> Messages</span>
           </span>
-        </div>
+          </div>
         <div class="wf-lane">
           <span class="lane-label">
             <span style="display:flex;align-items:center;gap:.35rem"><i class="lane-dot" style="background:var(--color-danger)"></i> GC pause</span>
@@ -317,12 +322,12 @@
             <span class="lane-band" style="left:69.9%;width:1.94%;background:var(--color-danger)"></span>
           </span>
           <span class="wf-duration">19 ms</span>
-        </div>
+          </div>
         <div class="wf-head">
           <span>Span</span>
           <span class="wf-scale"><span>0</span><span>412 ms</span></span>
           <span class="wf-duration">Duration</span>
-        </div>
+          </div>
         <div class="wf-rows">
           <div class="wf-stripes">
             <span></span>
@@ -331,122 +336,69 @@
               <span class="wf-stripe" style="left:69.9%;width:1.94%"></span>
             </span>
             <span></span>
-          </div>
+            </div>
+          <div class="wf-cursor">
+            <span></span>
+            <span class="wf-cursor-track">
+              <span class="wf-cursor-line sev-critical" style="left:72.82%"></span>
+            </span>
+            <span></span>
+            </div>
           <div class="wf-row critical">
             <span class="wf-name">
               <span class="wf-indent" style="width:0.0rem"></span>
               <span class="wf-twist"><i class="bi bi-caret-down-fill"></i></span>
               <span class="wf-kind kind-server"></span>
               <span class="wf-label">POST /api/orders</span>
-              <span class="msg-count sev-medium" title="2 messages, worst medium"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 2</span>
             </span>
             <span class="wf-track">
               <span class="wf-bar bar-server" style="left:0.0%;width:100.0%"><span class="wf-self" style="left:0.0%;width:0.97%"></span><span class="wf-self" style="left:5.34%;width:0.97%"></span><span class="wf-self" style="left:14.81%;width:1.21%"></span><span class="wf-self" style="left:80.34%;width:1.21%"></span><span class="wf-self" style="left:97.57%;width:2.43%"></span></span>
-            <span class="msg-pin sev-medium" style="left:15.53%" title="CONNECTION_POOL_PRESSURE &middot; Pool at 92% of max"><b></b><i></i></span>
-            <span class="msg-pin sev-low" style="left:98.54%" title="FEATURE_FLAG_READ &middot; Flag orders.async-persist evaluated false"><b></b><i></i></span>
+            <span class="msg-dot sev-medium" style="left:15.53%"></span>
+            <span class="msg-dot sev-low" style="left:98.54%"></span>
             </span>
             <span class="wf-duration">412 ms</span>
-          </div>
+            </div>
           <div class="wf-row">
             <span class="wf-name">
               <span class="wf-indent" style="width:1.1rem"></span>
               <span class="wf-twist"></span>
               <span class="wf-kind kind-internal"></span>
               <span class="wf-label">orders.validate</span>
-              <span class="msg-count sev-low" title="1 messages, worst low"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 1</span>
             </span>
             <span class="wf-track">
               <span class="wf-bar bar-internal" style="left:0.97%;width:4.37%"><span class="wf-self" style="left:0%;width:100%"></span></span>
-            <span class="msg-pin sev-low" style="left:1.46%" title="CART_REPRICED &middot; Cart repriced before validation"><b></b><i></i></span>
+            <span class="msg-dot sev-low" style="left:1.46%"></span>
             </span>
             <span class="wf-duration">18 ms</span>
-          </div>
+            </div>
           <div class="wf-row">
             <span class="wf-name">
               <span class="wf-indent" style="width:1.1rem"></span>
               <span class="wf-twist"></span>
               <span class="wf-kind kind-internal"></span>
               <span class="wf-label">SELECT orders</span>
-              <span class="msg-count sev-medium" title="1 messages, worst medium"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 1</span>
             </span>
             <span class="wf-track">
               <span class="wf-bar bar-internal" style="left:6.31%;width:8.5%"><span class="wf-self" style="left:0%;width:100%"></span></span>
-            <span class="msg-pin sev-medium" style="left:7.28%" title="QUERY_PLAN_FALLBACK &middot; Query fell back to a sequential scan"><b></b><i></i></span>
+            <span class="msg-dot sev-medium" style="left:7.28%"></span>
             </span>
             <span class="wf-duration">35 ms</span>
-          </div>
-          <div class="wf-row critical selected">
+            </div>
+          <div class="wf-row critical linked sev-critical">
             <span class="wf-name">
               <span class="wf-indent" style="width:1.1rem"></span>
               <span class="wf-twist"><i class="bi bi-caret-down-fill"></i></span>
               <span class="wf-kind kind-client"></span>
               <span class="wf-label">payments.charge</span>
               <span class="badge-err">error</span>
-              <span class="msg-count sev-critical" title="2 messages, worst critical"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 2</span>
             </span>
             <span class="wf-track">
               <span class="wf-bar bar-error" style="left:16.02%;width:64.32%"><span class="wf-self" style="left:0%;width:3.02%"></span><span class="wf-self" style="left:98.11%;width:1.89%"></span></span>
-            <span class="msg-pin sev-high" style="left:38.35%" title="PAYMENT_RETRY &middot; Retrying charge after gateway timeout"><b></b><i></i></span>
-            <span class="msg-pin sev-critical" style="left:72.82%" title="CIRCUIT_BREAKER_OPEN &middot; Payment circuit breaker opened"><b></b><i></i></span>
+            <span class="msg-dot sev-high" style="left:38.35%"></span>
+            <span class="msg-dot sev-critical" style="left:72.82%"></span>
             </span>
             <span class="wf-duration">265 ms</span>
-          </div>
-          <div class="span-detail">
-            <div class="sd-head">
-              <span class="sev-pill" style="background:var(--color-info);color:#fff">client</span>
-              <span class="badge-err">GatewayTimeoutException</span>
-              <span class="sd-vitals">Ran for <strong>265 ms</strong>, <strong>13 ms</strong> of it its own work &mdash; <strong>64%</strong> of the trace, all of it on the critical path.</span>
-              <span class="sd-actions">
-                <span class="sd-btn"><i class="bi bi-list-ul"></i> Events in span</span>
-                <span class="sd-btn"><i class="bi bi-fire"></i> Flamegraph</span>
-              </span>
             </div>
-            <div class="sd-cols">
-              <div class="sd-region">
-                <div class="sd-region-head"><i class="bi bi-fingerprint"></i> Span &middot; identity</div>
-                <div class="sd-region-body">
-                  <table class="sd-table">
-                    <tr><td class="sd-k">span id</td><td class="sd-v">a41c0d9e77b2</td></tr>
-                    <tr><td class="sd-k">thread</td><td class="sd-v">http-nio-8080-exec-3</td></tr>
-                    <tr><td class="sd-k">source event</td><td class="sd-v">jeffrey.HttpClientExchange</td></tr>
-                  </table>
-                </div>
-              </div>
-              <div class="sd-region">
-                <div class="sd-region-head"><i class="bi bi-braces"></i> Event fields <span class="sd-src">jeffrey.HttpClientExchange</span></div>
-                <div class="sd-region-body">
-                  <table class="sd-table">
-                    <tr><td class="sd-k">URI</td><td class="sd-v">https://pay.acme.io/v2/charges</td></tr>
-                    <tr><td class="sd-k">Method</td><td class="sd-v">POST</td></tr>
-                    <tr><td class="sd-k">Status code</td><td class="sd-v">504</td></tr>
-                  </table>
-                </div>
-              </div>
-            </div>
-            <div class="sd-region is-msg">
-              <div class="sd-region-head"><i class="bi bi-chat-square-dots-fill"></i> Messages <span class="sd-src">2 &middot; jeffrey.Message</span></div>
-              <div class="sd-region-body">
-                <div class="sd-msg">
-                  <span class="sd-msg-at">+92 ms</span>
-                  <span class="sev-pill sev-high">high</span>
-                  <span class="sd-msg-main">
-                    <span class="sd-msg-title">Retrying charge after gateway timeout</span>
-                    <div class="sd-msg-text">Attempt 1 to acme-pay timed out after 90 ms with no response body. Retrying once.</div>
-                    <div class="sd-msg-foot">PAYMENT_RETRY &middot; AVAILABILITY &middot; payments-client</div>
-                  </span>
-                </div>
-                <div class="sd-msg">
-                  <span class="sd-msg-at">+234 ms</span>
-                  <span class="sev-pill sev-critical">critical</span>
-                  <span class="sd-msg-main">
-                    <span class="sd-msg-title">Payment circuit breaker opened</span>
-                    <div class="sd-msg-text">5 of the last 6 calls to acme-pay failed. The breaker is open for 30 s; every charge in that window fails fast.</div>
-                    <div class="sd-msg-foot">CIRCUIT_BREAKER_OPEN &middot; AVAILABILITY &middot; payments-client</div>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
           <div class="wf-row critical">
             <span class="wf-name">
               <span class="wf-indent" style="width:2.2rem"></span>
@@ -459,7 +411,7 @@
               <span class="wf-bar bar-synthesized" style="left:17.96%;width:61.17%;background:var(--chart-series-8)"></span>
             </span>
             <span class="wf-duration">252 ms</span>
-          </div>
+            </div>
           <div class="wf-row critical">
             <span class="wf-name">
               <span class="wf-indent" style="width:1.1rem"></span>
@@ -471,8 +423,101 @@
               <span class="wf-bar bar-internal" style="left:81.55%;width:16.02%"><span class="wf-self" style="left:0%;width:100%"></span></span>
             </span>
             <span class="wf-duration">66 ms</span>
+            </div>
           </div>
         </div>
+        </div>
+        <aside class="msg-pane">
+          <div class="mp-top">
+            <div class="mp-title-row">
+              <i class="bi bi-chat-square-dots-fill"></i>
+              <h3>Notifications</h3>
+              <span class="mp-n">6 of 6</span>
+            </div>
+            <div class="mp-search"><i class="bi bi-search"></i> Filter by type, title or source</div>
+            <div class="mp-filters">
+              <span class="mp-f on sev-critical"><i class="sw"></i> 1</span>
+              <span class="mp-f on sev-high"><i class="sw"></i> 1</span>
+              <span class="mp-f on sev-medium"><i class="sw"></i> 2</span>
+              <span class="mp-f on sev-low"><i class="sw"></i> 2</span>
+              <span class="mp-f scoped"><i class="bi bi-diagram-3"></i> whole trace</span>
+            </div>
+          </div>
+          <div class="mp-list">
+            <div class="mp-item sev-low dim">
+              <span class="mp-at">+6 ms</span>
+              <span class="mp-main">
+                <span class="mp-line1">
+                  <span class="sev-pill sev-low">low</span>
+                  <span class="mtype">CART_REPRICED</span>
+                </span>
+                <div class="mp-h">Cart repriced before validation</div>
+                <div class="mp-txt">Two of five lines moved to the September promo price; the basket total changed by -4.20 EUR.</div>
+                <span class="mp-span"><i class="k kind-internal"></i> orders.validate</span>
+              </span>
+            </div>
+            <div class="mp-item sev-medium">
+              <span class="mp-at">+30 ms</span>
+              <span class="mp-main">
+                <span class="mp-line1">
+                  <span class="sev-pill sev-medium">medium</span>
+                  <span class="mtype">QUERY_PLAN_FALLBACK</span>
+                </span>
+                <div class="mp-h">Query fell back to a sequential scan</div>
+                <div class="mp-txt">orders_customer_idx was not usable for this predicate; planner chose a sequential scan over 1.2M rows.</div>
+                <span class="mp-span"><i class="k kind-internal"></i> SELECT orders</span>
+              </span>
+            </div>
+            <div class="mp-item sev-medium">
+              <span class="mp-at">+64 ms</span>
+              <span class="mp-main">
+                <span class="mp-line1">
+                  <span class="sev-pill sev-medium">medium</span>
+                  <span class="mtype">CONNECTION_POOL_PRESSURE</span>
+                </span>
+                <div class="mp-h">Pool at 92% of max</div>
+                <div class="mp-txt">HikariPool-1 handed out 46 of 50 connections; 3 threads are already queued for one.</div>
+                <span class="mp-span"><i class="k kind-server"></i> POST /api/orders</span>
+              </span>
+            </div>
+            <div class="mp-item sev-high">
+              <span class="mp-at">+158 ms</span>
+              <span class="mp-main">
+                <span class="mp-line1">
+                  <span class="sev-pill sev-high">high</span>
+                  <span class="mtype">PAYMENT_RETRY</span>
+                </span>
+                <div class="mp-h">Retrying charge after gateway timeout</div>
+                <div class="mp-txt">Attempt 1 to acme-pay timed out after 90 ms with no response body. Retrying once.</div>
+                <span class="mp-span"><i class="k kind-client"></i> payments.charge</span>
+              </span>
+            </div>
+            <div class="mp-item sev-critical active">
+              <span class="mp-at">+300 ms</span>
+              <span class="mp-main">
+                <span class="mp-line1">
+                  <span class="sev-pill sev-critical">critical</span>
+                  <span class="mtype">CIRCUIT_BREAKER_OPEN</span>
+                </span>
+                <div class="mp-h">Payment circuit breaker opened</div>
+                <div class="mp-txt">5 of the last 6 calls to acme-pay failed. The breaker is open for 30 s; every charge in that window fails fast.</div>
+                <span class="mp-span"><i class="k kind-client"></i> payments.charge</span>
+              </span>
+            </div>
+            <div class="mp-item sev-low dim">
+              <span class="mp-at">+406 ms</span>
+              <span class="mp-main">
+                <span class="mp-line1">
+                  <span class="sev-pill sev-low">low</span>
+                  <span class="mtype">FEATURE_FLAG_READ</span>
+                </span>
+                <div class="mp-h">Flag orders.async-persist evaluated false</div>
+                <div class="mp-txt">Rollout cohort 12 is not in the async-persist bucket, so the write stayed on the request thread.</div>
+                <span class="mp-span"><i class="k kind-server"></i> POST /api/orders</span>
+              </span>
+            </div>
+          </div>
+        </aside>
       </div>
       </div>
     </div>
@@ -480,27 +525,27 @@
       <div class="note good">
         <h4><i class="bi bi-check-circle"></i> What it buys</h4>
         <ul>
-          <li>The one direction where a message never loses its span: it is drawn <em>on</em> the bar that emitted it.</li>
-          <li>Two readings from one picture &mdash; where in the trace a message landed, and how many each span carries, before anything is opened.</li>
-          <li>The detail panel already has a region grammar (Attributes, Event fields). Messages is a third region, not a new surface.</li>
-          <li>Nothing overlays anything: no popover, no second pane, no extra Escape level.</li>
+          <li>Full text, always &mdash; the only direction that shows every notification body without a click, at any trace size.</li>
+          <li>The pane is a real surface: search, severity filters, and a scope switch between the whole trace and the selected subtree.</li>
+          <li>Cross-highlighting works both ways &mdash; hover a line to get the cursor and the span, select a span to narrow the list.</li>
+          <li>Chatty traces get better here, not worse: the log scrolls, and the waterfall keeps its shape.</li>
         </ul>
       </div>
       <div class="note cost">
         <h4><i class="bi bi-exclamation-circle"></i> What it costs</h4>
         <ul>
-          <li>A pin needs a bar to sit on. A 2 ms span is drawn at the 0.4% floor width &mdash; three pins on it are one smudge.</li>
-          <li>Fold a subtree and its messages fold with it. A CRITICAL alert can hide three folds deep, the way an error already can.</li>
-          <li>Reading a message costs two clicks: select the span, then read the region.</li>
-          <li>The bars are already carrying self/children shading, the critical-path border and the pause wash. Pins are a fourth layer on the same 0.8rem.</li>
+          <li>It takes 25rem off the waterfall, which is what the modal is for. On a laptop the bars lose about a quarter of their width.</li>
+          <li>Below ~1080px the pane has to drop underneath, and the cross-highlight stops being visible in the same glance.</li>
+          <li>Two lists to keep in sync, and a hover-to-highlight relationship that no keyboard path serves for free.</li>
+          <li>The modal already has four modes and a layered Escape. This adds a fifth surface next to them.</li>
         </ul>
       </div>
       <div class="note build">
         <h4><i class="bi bi-tools"></i> What it takes to build</h4>
         <ul>
-          <li>Pins go in the existing <code>.wf-track</code> beside <code>.wf-bar</code>; the count badge in <code>.wf-name</code> beside the error badge.</li>
-          <li>One new region in <code>TraceSpanInlineDetail.vue</code>, following the <code>.sd-region</code> pattern the file already has twice.</li>
-          <li>Needs messages keyed by span id &mdash; <code>Record&lt;spanId, TraceMessageRow[]&gt;</code>, the shape <code>TraceContext.spanWaits</code> already uses.</li>
+          <li>A new <code>NotificationLogPane.vue</code> plus a layout change in <code>TraceSpansModal.vue</code>: <code>.trace-body</code> becomes two columns.</li>
+          <li>Selection has to become shared state between the pane and <code>TraceWaterfall</code> &mdash; a hovered notification id alongside the selected span id.</li>
+          <li>Argues for its own endpoint, <code>GET /{traceId}/notifications</code>, since the pane wants paging and filtering the waterfall does not.</li>
         </ul>
       </div>
     </div>

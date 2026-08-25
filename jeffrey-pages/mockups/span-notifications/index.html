@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jeffrey Microscope — span messages in the Trace Modal</title>
+<title>Jeffrey Microscope — span notifications in the Trace Modal</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -65,17 +65,17 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Span messages in the Trace Modal</h1>
+    <h1>Span notifications in the Trace Modal</h1>
     <p class="sub">
-      <code>jeffrey.Message</code> already exists in <code>utilities/jeffrey-events</code>, but it is
+      <code>jeffrey.Notification</code> already exists in <code>utilities/jeffrey-events</code>, but it is
       deliberately outside tracing &mdash; the package javadoc says so out loud: <em>"these are instants, not
       spans &hellip; they do not take part in traces."</em> Attaching them to the open span is a small change (two <code>@Contextual</code> fields
       stamped from <code>Tracer.current()</code>); <strong>what to do with them on screen is the open
       question.</strong> Five directions were drawn, and the answer is a combination of two of them &mdash; the
       <strong>final design</strong> is first below, with the five it came from underneath it and today's behaviour as
-      the baseline. Every page draws the same trace and the same six messages, so what differs is layout, not data.
+      the baseline. Every page draws the same trace and the same six notifications, so what differs is layout, not data.
       The final page carries two further decisions: <strong><code>jeffrey.Alert</code> is dropped</strong> &mdash;
-      <code>severity</code> already says how serious a message is, and a second event type can only disagree with it
+      <code>severity</code> already says how serious a notification is, and a second event type can only disagree with it
       &mdash; and <strong>exceptions join the trace too</strong>, on a rail of their own.
     </p>
 
@@ -90,7 +90,7 @@
           highlighted. The popover opens toward the chrome rather than the bars, so what it hides is the toolbar, not
           the drawing.</p>
         <p style="margin-top:.6rem"><strong style="color:#e2e8f0">Two families, two rails.</strong>
-          <code>jeffrey.Message</code> as diamonds coloured by severity, and <code>jdk.JavaExceptionThrow</code> as
+          <code>jeffrey.Notification</code> as diamonds coloured by severity, and <code>jdk.JavaExceptionThrow</code> as
           crosses &mdash; hollow when caught, red when they escaped &mdash; split the way the toolbar already splits
           Blocking ops from I/O ops. The escaped throw is matched to <code>trace_spans.error_type</code>, which turns
           today's bare class name into a class name with a stack behind it.</p></div>
@@ -101,29 +101,29 @@
     <a class="mk base" href="mockup-0-current.html">
       <div class="num zero">0</div>
       <div><h3>Current &mdash; as shipped <span class="tag">baseline</span></h3>
-        <p>The Trace Modal on <code>master</code>. Two of the six messages are reachable, two clicks deep, as
+        <p>The Trace Modal on <code>master</code>. Two of the six notifications are reachable, two clicks deep, as
           truncated JSON &mdash; and only because they happened on the same thread inside the span's window.</p></div>
     </a>
 
     <div class="list">
-      <a class="mk" href="mockup-1-message-lane.html">
+      <a class="mk" href="mockup-1-notification-lane.html">
         <div class="num">1</div>
-        <div><h3>Message lane <span class="tag gone">in the final</span></h3><p>A lane of its own above the span rows, next to the GC and Safepoint lanes &mdash; but
-          diamonds instead of bands, because a message is an instant. Click opens it.</p></div>
+        <div><h3>Notification lane <span class="tag gone">in the final</span></h3><p>A lane of its own above the span rows, next to the GC and Safepoint lanes &mdash; but
+          diamonds instead of bands, because a notification is an instant. Click opens it.</p></div>
       </a>
       <a class="mk" href="mockup-2-bar-pins.html">
         <div class="num">2</div>
-        <div><h3>Pins on the bar <span class="tag gone">in the final</span></h3><p>Each message pinned to the bar that emitted it, a count badge on the span name,
-          and a new <em>Messages</em> region in the span detail panel.</p></div>
+        <div><h3>Pins on the bar <span class="tag gone">in the final</span></h3><p>Each notification pinned to the bar that emitted it, a count badge on the span name,
+          and a new <em>Notifications</em> region in the span detail panel.</p></div>
       </a>
       <a class="mk" href="mockup-3-tree-rows.html">
         <div class="num">3</div>
-        <div><h3>Rows in the tree</h3><p>Every message is a row, indented under its span and folding with it &mdash; the
+        <div><h3>Rows in the tree</h3><p>Every notification is a row, indented under its span and folding with it &mdash; the
           Jaeger/Zipkin "span logs" reading. Nothing needs opening.</p></div>
       </a>
       <a class="mk" href="mockup-4-log-pane.html">
         <div class="num">4</div>
-        <div><h3>Split log pane</h3><p>Waterfall left, searchable message log docked right, cross-highlighted both ways.
+        <div><h3>Split log pane</h3><p>Waterfall left, searchable notification log docked right, cross-highlighted both ways.
           Full text always visible; costs 25rem of bar width.</p></div>
       </a>
       <a class="mk" href="mockup-5-ribbon.html">
@@ -137,18 +137,18 @@
       <h4><i class="bi bi-clipboard-data"></i> The fixture every page draws</h4>
       <p style="color:#94a3b8;font-size:.85rem;line-height:1.6;margin-bottom:.6rem">
         One <code>POST /api/orders</code> trace &mdash; 412 ms, six spans, one failed outbound charge, a promoted
-        <code>jdk.SocketRead</code>, two GC pauses crossing it &mdash; and six messages, two of them on the root span
+        <code>jdk.SocketRead</code>, two GC pauses crossing it &mdash; and six notifications, two of them on the root span
         rather than on a leaf.
       </p>
       <table class="fx">
         <thead><tr><th>At</th><th>Severity</th><th>Type</th><th>Span</th><th>Event</th></tr></thead>
         <tbody>
-          <tr><td class="m">+6 ms</td><td><span class="sev l">low</span></td><td class="m">CART_REPRICED</td><td>orders.validate</td><td class="m">jeffrey.Message</td></tr>
-          <tr><td class="m">+30 ms</td><td><span class="sev m">medium</span></td><td class="m">QUERY_PLAN_FALLBACK</td><td>SELECT orders</td><td class="m">jeffrey.Message</td></tr>
-          <tr><td class="m">+64 ms</td><td><span class="sev m">medium</span></td><td class="m">CONNECTION_POOL_PRESSURE</td><td>POST /api/orders <em>(root)</em></td><td class="m">jeffrey.Message</td></tr>
-          <tr><td class="m">+158 ms</td><td><span class="sev h">high</span></td><td class="m">PAYMENT_RETRY</td><td>payments.charge</td><td class="m">jeffrey.Message</td></tr>
-          <tr><td class="m">+300 ms</td><td><span class="sev c">critical</span></td><td class="m">CIRCUIT_BREAKER_OPEN</td><td>payments.charge</td><td class="m">jeffrey.Message</td></tr>
-          <tr><td class="m">+406 ms</td><td><span class="sev l">low</span></td><td class="m">FEATURE_FLAG_READ</td><td>POST /api/orders <em>(root)</em></td><td class="m">jeffrey.Message</td></tr>
+          <tr><td class="m">+6 ms</td><td><span class="sev l">low</span></td><td class="m">CART_REPRICED</td><td>orders.validate</td><td class="m">jeffrey.Notification</td></tr>
+          <tr><td class="m">+30 ms</td><td><span class="sev m">medium</span></td><td class="m">QUERY_PLAN_FALLBACK</td><td>SELECT orders</td><td class="m">jeffrey.Notification</td></tr>
+          <tr><td class="m">+64 ms</td><td><span class="sev m">medium</span></td><td class="m">CONNECTION_POOL_PRESSURE</td><td>POST /api/orders <em>(root)</em></td><td class="m">jeffrey.Notification</td></tr>
+          <tr><td class="m">+158 ms</td><td><span class="sev h">high</span></td><td class="m">PAYMENT_RETRY</td><td>payments.charge</td><td class="m">jeffrey.Notification</td></tr>
+          <tr><td class="m">+300 ms</td><td><span class="sev c">critical</span></td><td class="m">CIRCUIT_BREAKER_OPEN</td><td>payments.charge</td><td class="m">jeffrey.Notification</td></tr>
+          <tr><td class="m">+406 ms</td><td><span class="sev l">low</span></td><td class="m">FEATURE_FLAG_READ</td><td>POST /api/orders <em>(root)</em></td><td class="m">jeffrey.Notification</td></tr>
           <tr><td colspan="5" style="padding-top:.9rem;color:#64748b;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600">and, on the final page only, three throws</td></tr>
           <tr><td class="m">+12 ms</td><td><span class="sev l">caught</span></td><td class="m">java.lang.NumberFormatException</td><td>orders.validate</td><td class="m">jdk.JavaExceptionThrow</td></tr>
           <tr><td class="m">+156 ms</td><td><span class="sev l">caught</span></td><td class="m">java.net.SocketTimeoutException</td><td>jdk.SocketRead <em>(promoted)</em></td><td class="m">jdk.JavaExceptionThrow</td></tr>
@@ -160,11 +160,11 @@
     <div class="facts">
       <h4><i class="bi bi-tools"></i> What the backend would have to provide</h4>
       <ul>
-        <li><code>MessageEvent</code> gains <code>@Contextual long traceId</code> and <code>long spanId</code>, stamped
+        <li><code>NotificationEvent</code> gains <code>@Contextual long traceId</code> and <code>long spanId</code>, stamped
           at commit from <code>Tracer.current()</code> &mdash; <code>0</code> when no span is open, which is already the
           library's "no id" convention.</li>
         <li><strong><code>AlertEvent</code> is removed.</strong> It is field-for-field identical to
-          <code>MessageEvent</code>, and its only claim &mdash; "this one is serious" &mdash; is what
+          <code>NotificationEvent</code>, and its only claim &mdash; "this one is serious" &mdash; is what
           <code>severity</code> already carries, so the two can contradict each other (an Alert with
           <code>severity=LOW</code>). Only two call sites emit it, both already passing a Severity. The reader keeps
           recognising <code>jeffrey.Alert</code> for recordings that already contain it; what goes is the second way to
@@ -173,17 +173,17 @@
           <code>jdk.JavaErrorThrow</code> are already parsed and already power the Exceptions view, landing in
           <code>events</code> with a <code>thread_hash</code>, a <code>stacktrace_hash</code> and
           <code>{thrownClass, message}</code>. A throw is always on the throwing thread, so <code>thread_hash</code> +
-          innermost-containing-window is a <em>sound</em> attribution &mdash; unlike a message, which can be committed
+          innermost-containing-window is a <em>sound</em> attribution &mdash; unlike a notification, which can be committed
           off-thread and therefore has to carry the ids.</li>
         <li>They must <strong>not</strong> extend <code>AbstractTracedEvent</code>: structural span discovery keys on a
-          declared <code>spanId</code> field, so that would turn every message into a span. This is exactly why
+          declared <code>spanId</code> field, so that would turn every notification into a span. This is exactly why
           <code>TraceScopeEvent</code> calls its field <code>scopedSpanId</code>.</li>
         <li>One derived table filled beside <code>DERIVE_TRACE_SPANS</code>, with a <code>kind</code> column for the two
           families &mdash; typed columns, not read-time JSON extraction, for the same reason <code>trace_spans</code>
           exists. The escaped flag is a match between a throw's <code>thrownClass</code> and
           <code>trace_spans.error_type</code>, computed once at derivation.</li>
-        <li><code>TraceDetail</code> carries the messages; <code>EVENTS_IN_SPAN</code> must exclude the message types the way
-          it already excludes span, scope and promoted blocking types, or every message is listed twice.</li>
+        <li><code>TraceDetail</code> carries the notifications; <code>EVENTS_IN_SPAN</code> must exclude the notification types the way
+          it already excludes span, scope and promoted blocking types, or every notification is listed twice.</li>
         <li>Nothing above depends on which direction wins. Only the last step &mdash; the component &mdash; does.</li>
       </ul>
     </div>
@@ -195,11 +195,11 @@
           for MEDIUM &mdash; but danger is already the GC-pause band and warning is already the critical-path marker, and all
           three appear in the same picture. Direction 5 hedges by encoding severity in height as well as hue; the others
           rely on shape (a diamond is never a band).</li>
-        <li><strong>Is a message an annotation on a span, or a row in the tree?</strong> Directions 1, 2, 4 and 5 say
+        <li><strong>Is a notification an annotation on a span, or a row in the tree?</strong> Directions 1, 2, 4 and 5 say
           annotation. Direction 3 says row &mdash; and pays for it: look at rows 8-10 of that page, where
           <code>PAYMENT_RETRY</code> at +158 ms is drawn <em>after</em> a sibling that was still running when it fired.
           <em>Settled: annotation.</em></li>
-        <li><strong>Every message is now drawn twice.</strong> The rail mark and the pin are one message, so they need one
+        <li><strong>Every notification is now drawn twice.</strong> The rail mark and the pin are one notification, so they need one
           source of truth and one shared hover state &mdash; a picture that contradicts itself is worse than either half
           of it alone.</li>
       </ul>

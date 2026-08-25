@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Span messages — 0. Current, as shipped</title>
+<title>Span notifications — 3. Rows in the tree</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -215,33 +215,38 @@
   .note code { font-family: var(--font-family-monospace); font-size: .86em; background: #f1f5f9;
     padding: .05rem .28rem; border-radius: var(--radius-sm); }
 
-  .ev-card { margin-top: 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
-  .ev-bar { display: flex; align-items: center; gap: .6rem; padding: .6rem .9rem;
-    border-bottom: 1px solid var(--color-border); font-size: var(--font-size-base); }
-  .ev-back { display: inline-flex; align-items: center; gap: .35rem; color: var(--color-primary); }
-  .ev-scope { color: var(--color-text-muted); font-size: var(--font-size-sm); }
-  table.ev { width: 100%; border-collapse: collapse; font-size: var(--font-size-sm); }
-  table.ev th { text-align: left; padding: .45rem .9rem; background: var(--color-light);
-    color: var(--color-text-muted); font-size: var(--font-size-xs); text-transform: uppercase;
-    letter-spacing: .04em; border-bottom: 1px solid var(--color-border); }
-  table.ev td { padding: .4rem .9rem; border-bottom: 1px solid var(--color-border-light);
-    vertical-align: top; }
-  table.ev td.t { font-family: var(--font-family-monospace); color: var(--color-dark); white-space: nowrap; }
-  table.ev td.o { font-variant-numeric: tabular-nums; color: var(--color-text-muted); white-space: nowrap; }
-  table.ev td.f { font-family: var(--font-family-monospace); color: var(--color-text-muted);
-    font-size: var(--font-size-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40rem; }
-  tr.is-msg td.t { color: var(--color-primary); }
-  tr.is-msg { background: var(--color-primary-lighter); }
-  .callout { margin-top: 1rem; padding: .8rem 1rem; border-radius: var(--radius-md);
-    border: 1px dashed var(--color-warning); background: var(--color-warning-light);
-    color: #7c4a1d; font-size: .84rem; line-height: 1.6; }
+  .wf-row.msg-row { border-bottom: 1px dashed var(--color-border-light); background: var(--sev-bg); }
+  .msg-row .wf-label { color: #334155; font-size: var(--font-size-sm); }
+  .msg-row .wf-duration { color: var(--sev); font-weight: 600; }
+  .msg-glyph { flex: none; width: .45rem; height: .45rem; background: var(--sev); border-radius: 1px;
+    transform: rotate(45deg); }
+  .msg-row .wf-track::before { background: transparent; }
+  .msg-tick { position: absolute; top: 50%; width: .55rem; height: .55rem; margin-left: -.275rem;
+    transform: translateY(-50%) rotate(45deg); border-radius: 1px; background: var(--sev);
+    box-shadow: 0 0 0 2px var(--color-white); }
+  .msg-lead { position: absolute; top: 50%; height: 1px; background: var(--sev); opacity: .35; }
+  .msg-src { flex: none; font-size: var(--font-size-xs); color: var(--color-text-muted);
+    font-family: var(--font-family-monospace); }
+  .msg-row.sev-critical { box-shadow: inset 2px 0 0 var(--sev-critical); }
+  .msg-more { flex: none; color: var(--color-text-light); font-size: .65rem; }
+  .wf-row.msg-row.is-open { background: var(--color-white); border-bottom: 0; }
+  .msg-expand { padding: .1rem 1rem .6rem 1rem; border-bottom: 1px dashed var(--color-border-light);
+    background: var(--color-white); }
+  .msg-expand-in { margin-left: 4.4rem; padding: .55rem .75rem; border-radius: var(--radius-base);
+    border: 1px solid var(--color-border); border-left: 3px solid var(--sev-critical);
+    background: var(--color-light); max-width: 52rem; }
+  .msg-expand-in p { font-size: var(--font-size-sm); color: #475569; line-height: 1.55; }
+  .msg-expand-in dl { display: flex; gap: 1.1rem; flex-wrap: wrap; margin-top: .5rem;
+    padding-top: .45rem; border-top: 1px solid var(--color-border-light);
+    font-size: var(--font-size-xs); color: var(--color-text-muted); }
+  .msg-expand-in dl b { color: var(--color-dark); }
 </style>
 </head>
 <body>
   <div class="wrap">
     <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
-    <h1><span class="n">0</span>Current &mdash; as shipped <span style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:.15rem .45rem;border-radius:4px;background:#e2e8f0;color:#475569;vertical-align:3px">baseline</span></h1>
-    <p class="lede">The Trace Modal on <code>master</code> today, drawn with the same fixture trace the five directions use. Six messages were emitted inside this request. The waterfall shows none of them; the events drill-down shows two, as raw JSON.</p>
+    <h1><span class="n">3</span>Rows in the tree</h1>
+    <p class="lede">Every notification becomes a row of its own, indented one level under the span that emitted it and folded with it &mdash; the "span logs" reading. The severity and the title sit on the row, the Duration column becomes the offset, and the track carries a tick at the instant. The stable <code>type</code> did not fit in a 20rem name column, so it moved into the expansion. Shown with the CRITICAL alert expanded.</p>
     <div class="frame">
       <div class="frame-head">
         <i class="bi bi-diagram-3"></i>
@@ -257,6 +262,7 @@
         <span class="chip"><i class="bi bi-cpu"></i> http-nio-8080-exec-3</span>
         <span class="chip"><i class="bi bi-signpost-split"></i> payments.charge &middot; 64% critical</span>
         <span class="chip mono">3f9c1a2b4d5e6f70</span>
+        <span class="chip msg"><i class="bi bi-chat-square-dots-fill"></i> 6 notifications</span>
         </div>
         <div class="trace-actions">
           <a class="op-link" href="#"><i class="bi bi-bar-chart-steps"></i> All POST /api/orders traces</a>
@@ -271,6 +277,7 @@
             <span class="wf-switch-item"><span class="wf-switch on"></span> JVM context</span>
             <span class="wf-switch-item"><span class="wf-switch on"></span> Blocking ops</span>
             <span class="wf-switch-item"><span class="wf-switch on"></span> I/O ops</span>
+            <span class="wf-switch-item"><span class="wf-switch on"></span> Notifications</span>
           </span>
         </div>
         <div class="wf-lane">
@@ -323,6 +330,21 @@
             </span>
             <span class="wf-duration">18 ms</span>
           </div>
+          <div class="wf-row msg-row sev-low">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:2.2rem"></span>
+              <span class="wf-twist"></span>
+              <span class="msg-glyph"></span>
+              <span class="sev-pill sev-low">low</span>
+              <span class="wf-label">Cart repriced before validation</span>
+              <span class="msg-more"><i class="bi bi-three-dots"></i></span>
+            </span>
+            <span class="wf-track">
+              <span class="msg-lead" style="left:0;width:1.46%"></span>
+              <span class="msg-tick" style="left:1.46%"></span>
+            </span>
+            <span class="wf-duration">+6 ms</span>
+          </div>
           <div class="wf-row">
             <span class="wf-name">
               <span class="wf-indent" style="width:1.1rem"></span>
@@ -334,6 +356,36 @@
               <span class="wf-bar bar-internal" style="left:6.31%;width:8.5%"><span class="wf-self" style="left:0%;width:100%"></span></span>
             </span>
             <span class="wf-duration">35 ms</span>
+          </div>
+          <div class="wf-row msg-row sev-medium">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:2.2rem"></span>
+              <span class="wf-twist"></span>
+              <span class="msg-glyph"></span>
+              <span class="sev-pill sev-medium">medium</span>
+              <span class="wf-label">Query fell back to a sequential scan</span>
+              <span class="msg-more"><i class="bi bi-three-dots"></i></span>
+            </span>
+            <span class="wf-track">
+              <span class="msg-lead" style="left:0;width:7.28%"></span>
+              <span class="msg-tick" style="left:7.28%"></span>
+            </span>
+            <span class="wf-duration">+30 ms</span>
+          </div>
+          <div class="wf-row msg-row sev-medium">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:1.1rem"></span>
+              <span class="wf-twist"></span>
+              <span class="msg-glyph"></span>
+              <span class="sev-pill sev-medium">medium</span>
+              <span class="wf-label">Pool at 92% of max</span>
+              <span class="msg-more"><i class="bi bi-three-dots"></i></span>
+            </span>
+            <span class="wf-track">
+              <span class="msg-lead" style="left:0;width:15.53%"></span>
+              <span class="msg-tick" style="left:15.53%"></span>
+            </span>
+            <span class="wf-duration">+64 ms</span>
           </div>
           <div class="wf-row critical">
             <span class="wf-name">
@@ -361,6 +413,42 @@
             </span>
             <span class="wf-duration">252 ms</span>
           </div>
+          <div class="wf-row msg-row sev-high">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:2.2rem"></span>
+              <span class="wf-twist"></span>
+              <span class="msg-glyph"></span>
+              <span class="sev-pill sev-high">high</span>
+              <span class="wf-label">Retrying charge after gateway timeout</span>
+              <span class="msg-more"><i class="bi bi-three-dots"></i></span>
+            </span>
+            <span class="wf-track">
+              <span class="msg-lead" style="left:0;width:38.35%"></span>
+              <span class="msg-tick" style="left:38.35%"></span>
+            </span>
+            <span class="wf-duration">+158 ms</span>
+          </div>
+          <div class="wf-row msg-row sev-critical is-open">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:2.2rem"></span>
+              <span class="wf-twist"></span>
+              <span class="msg-glyph"></span>
+              <span class="sev-pill sev-critical">critical</span>
+              <span class="wf-label">Payment circuit breaker opened</span>
+              <span class="msg-more"><i class="bi bi-caret-down-fill"></i></span>
+            </span>
+            <span class="wf-track">
+              <span class="msg-lead" style="left:0;width:72.82%"></span>
+              <span class="msg-tick" style="left:72.82%"></span>
+            </span>
+            <span class="wf-duration">+300 ms</span>
+          </div>
+          <div class="msg-expand">
+            <div class="msg-expand-in">
+              <p>5 of the last 6 calls to acme-pay failed. The breaker is open for 30 s; every charge in that window fails fast.</p>
+              <dl><span>event <b>jeffrey.Notification</b></span><span>category <b>AVAILABILITY</b></span><span>source <b>payments-client</b></span><span>thread <b>http-nio-8080-exec-3</b></span></dl>
+            </div>
+          </div>
           <div class="wf-row critical">
             <span class="wf-name">
               <span class="wf-indent" style="width:1.1rem"></span>
@@ -373,43 +461,51 @@
             </span>
             <span class="wf-duration">66 ms</span>
           </div>
+          <div class="wf-row msg-row sev-low">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:1.1rem"></span>
+              <span class="wf-twist"></span>
+              <span class="msg-glyph"></span>
+              <span class="sev-pill sev-low">low</span>
+              <span class="wf-label">Flag orders.async-persist evaluated false</span>
+              <span class="msg-more"><i class="bi bi-three-dots"></i></span>
+            </span>
+            <span class="wf-track">
+              <span class="msg-lead" style="left:0;width:98.54%"></span>
+              <span class="msg-tick" style="left:98.54%"></span>
+            </span>
+            <span class="wf-duration">+406 ms</span>
+          </div>
         </div>
       </div>
-      <div class="ev-card">
-        <div class="ev-bar">
-          <span class="ev-back"><i class="bi bi-arrow-left"></i> Back to spans</span>
-          <span><i class="bi bi-list-ul"></i> payments.charge <span class="ev-scope">events on http-nio-8080-exec-3</span></span>
-        </div>
-        <table class="ev">
-          <thead><tr><th>Type</th><th>+Offset</th><th>Duration</th><th>Fields</th></tr></thead>
-          <tbody>
-            <tr><td class="t">jdk.ExecutionSample</td><td class="o">+31 ms</td><td class="o">&mdash;</td><td class="f">{"sampledThread":"http-nio-8080-exec-3","state":"STATE_RUNNABLE"}</td></tr>
-            <tr class="is-msg"><td class="t">jeffrey.Message</td><td class="o">+92 ms</td><td class="o">&mdash;</td><td class="f">{"type":"PAYMENT_RETRY","title":"Retrying charge after gateway timeout","severity":"HIGH","cate...</td></tr>
-            <tr><td class="t">jdk.GCPhasePause</td><td class="o">+46 ms</td><td class="o">11 ms</td><td class="f">{"name":"Pause Young (Normal) (G1 Evacuation Pause)"}</td></tr>
-            <tr><td class="t">jdk.SocketRead</td><td class="o">+8 ms</td><td class="o">252 ms</td><td class="f">{"host":"pay.acme.io","port":443,"bytesRead":0,"endOfStream":true}</td></tr>
-            <tr class="is-msg"><td class="t">jeffrey.Message</td><td class="o">+234 ms</td><td class="o">&mdash;</td><td class="f">{"type":"CIRCUIT_BREAKER_OPEN","title":"Payment circuit breaker opened","severity":"CRITICAL",...</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="callout"><i class="bi bi-exclamation-triangle"></i> <strong>This is the whole of it today.</strong> The waterfall has no idea a message exists. The two alerts only appear because they happened on the same thread inside the span window &mdash; matched by <code>thread_hash</code> and a time range, not by span identity &mdash; so a message emitted on a pool thread, a virtual thread or a callback is lost, and a message from a sibling span on the same thread would show here as if it belonged to this one. The payload is raw JSON, truncated at 80 characters.</p>
       </div>
     </div>
     <div class="notes">
-      <div class="note cost">
-        <h4><i class="bi bi-x-circle"></i> Why this is not enough</h4>
+      <div class="note good">
+        <h4><i class="bi bi-check-circle"></i> What it buys</h4>
         <ul>
-          <li>Two of the six messages are reachable at all, and only after two clicks into a drill-down.</li>
-          <li>Correlation is <code>thread_hash</code> + window, not <code>spanId</code>: off-thread messages vanish, same-thread siblings bleed in.</li>
-          <li>Severity is a string inside a truncated JSON blob &mdash; a CRITICAL alert looks exactly like a debug note.</li>
-          <li>Nothing at trace level says "something shouted during this request".</li>
+          <li>Nothing is hidden: every notification is on screen with its text, at trace scope, with no click.</li>
+          <li>Parentage is structural, not inferred &mdash; the indent <em>is</em> the span it belongs to.</li>
+          <li>The tree already folds. Collapsing a span takes its notifications with it, which is the behaviour a reader expects.</li>
+          <li>This is what Jaeger and Zipkin do with span logs, so it needs no explaining.</li>
+        </ul>
+      </div>
+      <div class="note cost">
+        <h4><i class="bi bi-exclamation-circle"></i> What it costs</h4>
+        <ul>
+          <li>Six notifications add six rows to a six-span trace. A chatty request doubles the waterfall, and the shape of the trace &mdash; the thing the waterfall exists to show &mdash; is what pays.</li>
+          <li>Ordering is honestly awkward: <code>PAYMENT_RETRY</code> at +158 ms is drawn <em>after</em> <code>jdk.SocketRead</code>, which was still running when it fired. Look at rows 8-10 above.</li>
+          <li>A zero-duration row in a duration chart is a category error &mdash; the Duration column has to change meaning to <code>+offset</code> for these rows.</li>
+          <li>The 20rem name column cannot hold indent, severity, title <em>and</em> the stable <code>type</code>. The type had to move into the expansion, so the row alone no longer identifies the notification.</li>
+          <li>The run-collapsing machinery (5+ same-named siblings become one row) would have to learn about notifications too, or a retry loop floods the tree.</li>
         </ul>
       </div>
       <div class="note build">
-        <h4><i class="bi bi-tools"></i> What the other five assume</h4>
+        <h4><i class="bi bi-tools"></i> What it takes to build</h4>
         <ul>
-          <li><code>MessageEvent</code> and <code>AlertEvent</code> gain <code>traceId</code> / <code>spanId</code>, stamped from <code>Tracer.current()</code>.</li>
-          <li>A derived <code>trace_messages</code> table, filled beside <code>DERIVE_TRACE_SPANS</code>.</li>
-          <li><code>TraceDetail</code> carries a <code>messages</code> array; <code>EVENTS_IN_SPAN</code> stops double-listing them.</li>
+          <li>Touches the most load-bearing code of the five: <code>displayRows</code>, <code>visibleSpans</code>, <code>traceTree.ts</code>, fold state, run detection and the critical-path filter all assume a row is a span.</li>
+          <li>Either a discriminated union in <code>displayRows</code> (<code>{run} | {span} | {notification}</code>) or synthetic span rows &mdash; and the latter re-opens exactly the mistake <code>TraceScopeEvent</code> avoids by not naming its field <code>spanId</code>.</li>
+          <li>Largest diff of the five, and the one most likely to regress the waterfall itself.</li>
         </ul>
       </div>
     </div>
