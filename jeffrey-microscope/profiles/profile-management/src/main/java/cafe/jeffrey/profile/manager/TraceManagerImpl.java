@@ -37,6 +37,8 @@ import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceTimelineBucket;
 import cafe.jeffrey.profile.manager.model.trace.TracesPage;
+import cafe.jeffrey.profile.manager.model.trace.TraceStacktrace;
+import cafe.jeffrey.profile.manager.model.trace.TraceStackFrameRow;
 import cafe.jeffrey.provider.profile.api.EventFieldRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceListQuery;
@@ -55,6 +57,7 @@ import cafe.jeffrey.provider.profile.api.TraceNotificationRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.provider.profile.api.TraceTimelineBucketRecord;
+import cafe.jeffrey.provider.profile.api.EventFrame;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 
 import java.util.ArrayDeque;
@@ -823,6 +826,29 @@ public class TraceManagerImpl implements TraceManager {
                 notification.category(),
                 notification.source(),
                 toHex(notification.threadHash()));
+    }
+
+    @Override
+    public TraceStacktrace stacktrace(long stacktraceId) {
+        List<TraceStackFrameRow> frames = traceRepository.stacktraceOf(stacktraceId).stream()
+                .map(TraceManagerImpl::toRow)
+                .toList();
+
+        return new TraceStacktrace(toHex(stacktraceId), frames);
+    }
+
+    /**
+     * A line number of zero is JFR saying it had none rather than saying line zero, and the same
+     * goes for a bytecode index; carrying the zero through would have the UI render
+     * {@code Foo.java:0} as though it were a location.
+     */
+    private static TraceStackFrameRow toRow(EventFrame frame) {
+        long line = frame.line();
+        return new TraceStackFrameRow(
+                frame.clazz(),
+                frame.method(),
+                frame.type(),
+                line > 0 ? (int) line : null);
     }
 
     private static TraceExceptionRow toRow(TraceExceptionRecord exception) {

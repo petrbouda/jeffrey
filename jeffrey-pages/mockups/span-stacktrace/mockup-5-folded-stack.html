@@ -424,7 +424,7 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 
 
     <div class="pair">
-      <div class="note buys"><h4><i class="bi bi-check-circle-fill"></i> What it buys</h4><p><b>9 rows instead of 45, with nothing lost.</b> Every folded frame is one click away, so this is not truncation &mdash; it is ordering by what the reader came for. It also makes direction 1 viable: at this height a stack fits inline without pushing the panel apart. The classification already exists in the parser &mdash; <code>StacktraceTypeResolver</code> and <code>LambdaMatchUtils</code> already decide what counts as application code.</p></div>
+      <div class="note buys"><h4><i class="bi bi-check-circle-fill"></i> What it buys</h4><p><b>9 rows instead of 45, with nothing lost.</b> Every folded frame is one click away, so this is not truncation &mdash; it is ordering by what the reader came for. It also makes direction 1 viable: at this height a stack fits inline without pushing the panel apart. The classification has to be written, though: <code>StacktraceTypeResolver</code> sorts whole stacks by thread, not frames by owner.</p></div>
       <div class="note costs"><h4><i class="bi bi-exclamation-triangle-fill"></i> What it costs</h4><p><b>It has an opinion, and opinions are wrong sometimes.</b> A reader debugging inside Spring wants the frames this hides, and the fold makes them work for it. The rule also has to be right about what "the application" is &mdash; a stack that is <em>all</em> library frames folds to almost nothing, which reads as a bug rather than as an answer, so that case needs handling explicitly.</p></div>
     </div>
   </div>

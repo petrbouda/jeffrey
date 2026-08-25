@@ -331,6 +331,20 @@
           </div>
           <p class="pop-title mono">{{ openException.thrownClass }}</p>
           <p v-if="openException.message" class="pop-body">{{ openException.message }}</p>
+          <!--
+            The top of the stack, folded. Four raw frames would often be four frames of the streams
+            runtime and tell the reader nothing; folded, the preview opens on the throwing frame and
+            the application frames around it. Only ever a preview -- the popover is capped, and the
+            footer below hands off to the span for the rest.
+          -->
+          <TraceStackTrace
+            v-if="openException.stacktraceId"
+            class="pop-stack"
+            preview
+            :profile-id="profileId"
+            :stacktrace-id="openException.stacktraceId"
+            :preview-rows="5"
+          />
           <button type="button" class="pop-link" @click="selectSpanOf(openException.spanId)">
             <i class="bi bi-arrow-return-right"></i>
             Select {{ spanNameOf(openException.spanId) }}
@@ -663,6 +677,7 @@
       -->
         <TraceSpanInlineDetail
           v-if="span.spanId === selectedSpanId"
+          :profile-id="profileId"
           :span="span"
           :fields="eventFields[span.eventType] ?? []"
           :child-count="childCounts.get(span.spanId) ?? 0"
@@ -724,6 +739,7 @@ import Badge from '@shared/components/Badge.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import FormattingService from '@shared/services/FormattingService';
 import TraceSpanInlineDetail from '@/components/trace/TraceSpanInlineDetail.vue';
+import TraceStackTrace from '@/components/trace/TraceStackTrace.vue';
 import type {
   EventFieldRow,
   TraceContext,
@@ -760,6 +776,8 @@ import {
 
 const props = withDefaults(
   defineProps<{
+    /** Which profile to read a throw's stack from, for the popover preview and the opened span. */
+    profileId: string;
     spans: TraceSpanRow[];
     selectedSpanId?: string | null;
     /** Field metadata per event type, so an opened span can label and format what its event recorded. */
@@ -2303,6 +2321,13 @@ function tooltip(span: TraceSpanRow): string {
 
 .rail-pop.down {
   top: 1.35rem;
+}
+
+/* The preview is dense monospace under prose; a rule and a little air keep the two apart. */
+.pop-stack {
+  margin-top: 0.4rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .pop-head {

@@ -281,7 +281,30 @@
                   value="escaped this span"
                 />
                 <template v-else>caught</template>
+                <!--
+                  Only offered where there is a stack to offer: a throw JFR sampled without one
+                  would open a panel that could say nothing.
+                -->
+                <button
+                  v-if="exception.stacktraceId"
+                  type="button"
+                  class="sd-stack-toggle"
+                  :class="{ on: openStacks.has(exception.exceptionId) }"
+                  @click.stop="toggleStack(exception.exceptionId)"
+                >
+                  <i
+                    class="bi"
+                    :class="openStacks.has(exception.exceptionId) ? 'bi-chevron-down' : 'bi-chevron-right'"
+                  ></i>
+                  stack
+                </button>
               </span>
+              <TraceStackTrace
+                v-if="exception.stacktraceId && openStacks.has(exception.exceptionId)"
+                class="sd-stack"
+                :profile-id="profileId"
+                :stacktrace-id="exception.stacktraceId"
+              />
             </span>
           </div>
         </div>
@@ -300,8 +323,9 @@
 
 <script setup lang="ts">
 import { NANOS_PER_MICRO, NANOS_PER_MILLI } from '@/services/trace/timeUnits';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import Badge from '@shared/components/Badge.vue';
+import TraceStackTrace from '@/components/trace/TraceStackTrace.vue';
 import FormattingService from '@shared/services/FormattingService';
 import type {
   EventFieldRow,
@@ -355,7 +379,25 @@ const props = defineProps<{
   notifications?: TraceNotificationRow[];
   /** Every throw recorded inside this span, oldest first. Empty draws nothing, for the same reason. */
   exceptions?: TraceExceptionRow[];
+  /** Which profile to read a throw's stack from. */
+  profileId: string;
 }>();
+
+/**
+ * Which throws have their stack open. By exception id rather than a single "the open one", so a
+ * span with three throws can have two stacks side by side for comparison.
+ */
+const openStacks = ref(new Set<string>());
+
+function toggleStack(exceptionId: string): void {
+  const next = new Set(openStacks.value);
+  if (next.has(exceptionId)) {
+    next.delete(exceptionId);
+  } else {
+    next.add(exceptionId);
+  }
+  openStacks.value = next;
+}
 
 const notifications = computed(() => props.notifications ?? []);
 const exceptions = computed(() => props.exceptions ?? []);
@@ -470,6 +512,35 @@ function percent(part: number, whole: number): string {
 </script>
 
 <style scoped>
+/* The stack sits under the throw it belongs to and is indented to say so, with a rule down the
+   left so a long stack cannot be mistaken for the next throw in the list. */
+.sd-stack {
+  margin: 0.35rem 0 0.1rem;
+  padding-left: 0.55rem;
+  border-left: 2px solid var(--color-border-input);
+}
+
+.sd-stack-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0 0.3rem;
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sd-stack-toggle.on {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-white);
+}
+
 /*
  * Reads as a branch of the row above rather than as a panel of its own: the accent rail on the left
  * lines up with the indent, and the sunken ground separates it from the bars without a hard border.

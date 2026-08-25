@@ -37,6 +37,7 @@ import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
 import cafe.jeffrey.profile.manager.model.trace.TraceTimelineBucket;
 import cafe.jeffrey.profile.manager.model.trace.TracesPage;
+import cafe.jeffrey.profile.manager.model.trace.TraceStacktrace;
 import cafe.jeffrey.profile.resources.request.GenerateTraceOperationFlamegraphRequest;
 import cafe.jeffrey.profile.resources.request.GenerateTraceSpanFlamegraphRequest;
 import cafe.jeffrey.profile.resources.request.SpanFlamegraphOptions;
@@ -356,6 +357,22 @@ public class TracesController {
                 profileId, traceId, spanId);
         return resolver.resolve(profileId).traceManager()
                 .eventsInSpan(parseId(traceId), parseId(spanId));
+    }
+
+    /**
+     * The stack behind one throw, topmost frame first.
+     * <p>
+     * Keyed by the stack and not by the throw or its span: identical stacks are stored once, so the
+     * same call site throwing in ten spans is one response the browser can cache ten times over.
+     * The {@code stacktraceId} comes straight off the {@code TraceExceptionRow} the caller is
+     * already holding, and a throw whose id is null has no stack to ask for.
+     */
+    @GetMapping("/stacktraces/{stacktraceId}")
+    public TraceStacktrace stacktrace(
+            @PathVariable("profileId") String profileId,
+            @PathVariable("stacktraceId") String stacktraceId) {
+        LOG.debug("Reading a throw's stack: profile_id={} stacktrace_id={}", profileId, stacktraceId);
+        return resolver.resolve(profileId).traceManager().stacktrace(parseId(stacktraceId));
     }
 
     /**

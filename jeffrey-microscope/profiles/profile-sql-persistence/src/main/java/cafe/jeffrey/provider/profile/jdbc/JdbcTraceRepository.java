@@ -19,6 +19,7 @@
 package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.provider.profile.api.EventFieldRecord;
+import cafe.jeffrey.provider.profile.api.EventFrame;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceContextCategory;
@@ -621,6 +622,31 @@ public class JdbcTraceRepository implements TraceRepository {
             FROM trace_exceptions
             WHERE trace_id = :trace_id
             ORDER BY start_timestamp, exception_id
+            """;
+
+    /*
+     * One stack, resolved to frames, topmost first.
+     *
+     * The array is stored root-first -- JfrEventReader writes getFrames().reversed() -- so the
+     * ordinal has to come along and the result is ordered by it descending. Unnesting alone would
+     * lose the order entirely: a bag of frame hashes says who is on the stack and nothing about who
+     * called whom, and the two frames a reader actually wants are the ones at the ends.
+     *
+     * generate_subscripts pairs each element with its 1-based position in the same projection, so
+     * the ordinal survives the unnest without a second scan of the array.
+     */
+    //language=SQL
+    private static final String STACKTRACE_FRAMES = """
+            WITH positioned AS (
+                SELECT unnest(frame_hashes)                  AS frame_hash,
+                       generate_subscripts(frame_hashes, 1)  AS depth
+                FROM stacktraces
+                WHERE stacktrace_hash = :stacktrace_hash
+            )
+            SELECT f.class_name, f.method_name, f.frame_type, f.bytecode_index, f.line_number
+            FROM positioned p
+            JOIN frames f ON f.frame_hash = p.frame_hash
+            ORDER BY p.depth DESC
             """;
 
     //language=SQL
@@ -1589,6 +1615,20 @@ public class JdbcTraceRepository implements TraceRepository {
                         rs.getBoolean("escaped"),
                         nullableLong(rs, "stacktrace_hash"),
                         rs.getLong("thread_hash")));
+    }
+
+    @Override
+    public List<EventFrame> stacktraceOf(long stacktraceHash) {
+        return databaseClient.query(
+                StatementLabel.TRACE_STACKTRACE,
+                STACKTRACE_FRAMES,
+                new MapSqlParameterSource().addValue("stacktrace_hash", stacktraceHash),
+                (rs, _) -> new EventFrame(
+                        rs.getString("class_name"),
+                        rs.getString("method_name"),
+                        rs.getString("frame_type"),
+                        rs.getLong("bytecode_index"),
+                        rs.getLong("line_number")));
     }
 
     @Override

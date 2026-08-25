@@ -28,6 +28,20 @@ VALUES
     ('jdk.JavaErrorThrow', 'Java Error Throw', 42, 'error thrown', '["Java Application"]', '1', NULL, true, NULL, NULL,
      '[{"field":"message","header":"Message"},{"field":"thrownClass","header":"Class"}]');
 
+-- Frames for the one throw the exceptions above give a stack to. Stored ROOT-FIRST, because the
+-- parser writes getFrames().reversed() -- so Thread.run is element 1 and the throwing frame is last.
+-- A read that returns them in this order has the stack upside down, which is what the test pins.
+INSERT INTO frames (frame_hash, class_name, method_name, frame_type, line_number, bytecode_index)
+VALUES
+    (8001, 'java.lang.Thread', 'run', 'Interpreted', 1583, 0),
+    (8002, 'java.util.concurrent.ThreadPoolExecutor$Worker', 'run', 'JIT', 642, 12),
+    (8003, 'cafe.jeffrey.flamegraph.FlamegraphGenerator', 'generate', 'JIT', 88, 4),
+    (8004, 'cafe.jeffrey.flamegraph.FrameTree', 'build', 'Interpreted', 214, 31);
+
+INSERT INTO stacktraces (stacktrace_hash, type_id, frame_hashes, tag_ids)
+VALUES
+    (7003, 100, [8001, 8002, 8003, 8004], []);
+
 INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     -- ---------------------------------------------------------------- notifications

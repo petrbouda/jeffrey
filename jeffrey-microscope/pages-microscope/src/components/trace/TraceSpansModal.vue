@@ -160,6 +160,7 @@
         <div v-show="mode === 'spans'" class="trace-body">
           <div class="waterfall-pane">
             <TraceWaterfall
+              :profile-id="profileId"
               :spans="detail.spans"
               :selected-span-id="selected?.spanId ?? null"
               :event-fields="detail.eventFields ?? {}"

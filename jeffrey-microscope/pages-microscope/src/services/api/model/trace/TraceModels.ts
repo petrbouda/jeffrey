@@ -182,6 +182,28 @@ export interface TraceExceptionRow {
   threadHash: string;
 }
 
+/** One frame of a throw's stack. */
+export interface TraceStackFrameRow {
+  /** Null for a native frame the recording could not attribute to a class. */
+  className: string | null;
+  methodName: string;
+  /** JIT, Interpreted, Native or C++. */
+  frameType: string;
+  /** Null when the recording captured no line, which is why it is not rendered as `:0`. */
+  lineNumber: number | null;
+}
+
+/**
+ * The stack behind one throw, **topmost frame first** — the throwing frame at index 0 and
+ * `Thread.run` last. Every frame is returned; folding is the reader's concern, so that it can be
+ * undone without another round trip.
+ */
+export interface TraceStacktrace {
+  stacktraceId: string;
+  /** Empty when the recording captured no stack, which is ordinary rather than an error. */
+  frames: TraceStackFrameRow[];
+}
+
 export interface TraceDetail {
   trace: TraceRow;
   spans: TraceSpanRow[];

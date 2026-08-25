@@ -41,6 +41,7 @@ import type {
   TraceOverview,
   TraceRow,
   TraceSpanEvents,
+  TraceStacktrace,
   TraceTimelineBucket
 } from '@/services/api/model/trace/TraceModels';
 
@@ -142,6 +143,16 @@ export default class ProfileTracesClient extends BaseProfileClient {
   /** Which event types recorded samples inside the traces of one type, with their real counts. */
   public getOperationPanels(operation: TraceOperationId): Promise<FlamegraphPanel[]> {
     return this.get<FlamegraphPanel[]>('/operation/panels', operationParams(operation));
+  }
+
+  /**
+   * The stack behind one throw, topmost frame first.
+   *
+   * Keyed by the stack rather than the throw, because identical stacks are stored once: the same
+   * call site throwing in ten spans is one request, and the browser caches it once.
+   */
+  public getStacktrace(stacktraceId: string): Promise<TraceStacktrace> {
+    return this.get<TraceStacktrace>(`/stacktraces/${stacktraceId}`);
   }
 
   /**

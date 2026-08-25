@@ -424,8 +424,9 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
       <div class="rule-card">
         <h4><i class="bi bi-funnel-fill"></i> One fold rule, learned once</h4>
         <p>A run of consecutive frames the profile does not consider application code collapses into one bar. The
-          classification is not new &mdash; <code>StacktraceTypeResolver</code> and <code>LambdaMatchUtils</code>
-          already decide this for flamegraphs, so a frame folds here exactly when it is dimmed there.</p>
+          classification is <b>new</b>: <code>StacktraceTypeResolver</code> looks like it would serve, but it sorts a
+          <em>whole stack by its thread</em> &mdash; JVM, JIT, GC, JFR or application &mdash; and says nothing about an
+          individual frame. So the rule is a package-prefix list, and it is a heuristic on purpose.</p>
         <p>Because the rule is the same in the popover and in the span, the reader learns it once and it holds
           everywhere a stack appears. <b>Nothing is ever dropped</b>: every folded frame is one click from view, and
           <code>Fold libraries</code> turns the whole thing off.</p>

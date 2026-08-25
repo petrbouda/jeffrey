@@ -29,6 +29,7 @@ import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import cafe.jeffrey.jfr.events.trace.TraceSpanEvent;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.shared.common.model.SpanConventionKeys;
+import cafe.jeffrey.provider.profile.api.EventFrame;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceContextCategory;
@@ -2049,6 +2050,37 @@ class JdbcTraceRepositoryTest {
             assertFalse(types.contains(EventTypeName.NOTIFICATION), types.toString());
             assertFalse(types.contains(EventTypeName.JAVA_EXCEPTION_THROW), types.toString());
             assertFalse(types.contains(EventTypeName.JAVA_ERROR_THROW), types.toString());
+        }
+
+        @Test
+        @DisplayName("reads a throw's stack topmost frame first, reversing how it is stored")
+        void readsTheStackTopFrameFirst(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            Long hash = thrownOfClass(repository, "java.lang.IllegalStateException").stacktraceHash();
+            List<EventFrame> frames = repository.stacktraceOf(hash);
+
+            // The fixture stores this root-first. Reading it back in that order would put Thread.run
+            // at the top of every stack in the UI, so the reversal is the contract, not a detail.
+            assertEquals(
+                    List.of("cafe.jeffrey.flamegraph.FrameTree",
+                            "cafe.jeffrey.flamegraph.FlamegraphGenerator",
+                            "java.util.concurrent.ThreadPoolExecutor$Worker",
+                            "java.lang.Thread"),
+                    frames.stream().map(EventFrame::clazz).toList());
+            assertEquals("build", frames.getFirst().method());
+            assertEquals(214, frames.getFirst().line());
+        }
+
+        @Test
+        @DisplayName("a throw with no captured stack reads as empty rather than failing")
+        void readsAnAbsentStackAsEmpty(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            // 7001 is referenced by a throw but has no stacktraces row: the recording sampled the
+            // throw without one. The drill-down renders that as "no stack", so the read must not
+            // fail and must not invent frames.
+            assertTrue(repository.stacktraceOf(7001L).isEmpty());
         }
 
         @Test
