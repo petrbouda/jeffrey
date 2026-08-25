@@ -215,29 +215,29 @@
   .note code { font-family: var(--font-family-monospace); font-size: .86em; background: #f1f5f9;
     padding: .05rem .28rem; border-radius: var(--radius-sm); }
 
-  .msg-lane { padding-top: .3rem; padding-bottom: .35rem; }
-  .msg-lane .lane-track { height: 1.15rem; }
+  .ntf-lane { padding-top: .3rem; padding-bottom: .35rem; }
+  .ntf-lane .lane-track { height: 1.15rem; }
   .sev-meter { flex: 1; display: flex; height: .3rem; border-radius: var(--radius-pill); overflow: hidden;
     min-width: 2rem; background: var(--color-lighter); }
   .sev-meter i { display: block; height: 100%; }
 
   /* A notification is an instant, so it is a mark, not a band: a diamond on the lane's own rule.
      Shape carries "instant" the way the pause lanes' rectangles carry "stretch". */
-  .msg-mark { position: absolute; top: 50%; width: .62rem; height: .62rem; margin-left: -.31rem;
+  .ntf-mark { position: absolute; top: 50%; width: .62rem; height: .62rem; margin-left: -.31rem;
     transform: translateY(-50%) rotate(45deg); border-radius: 1px; background: var(--sev);
     box-shadow: 0 0 0 2px var(--color-white); cursor: pointer; }
-  .msg-mark.sev-low, .msg-mark.sev-medium { width: .5rem; height: .5rem; margin-left: -.25rem; }
-  .msg-mark.sev-critical { box-shadow: 0 0 0 2px var(--color-white), 0 0 0 5px var(--sev-critical-bg); }
-  .msg-mark.active { outline: 2px solid var(--color-dark); outline-offset: 2px; }
+  .ntf-mark.sev-low, .ntf-mark.sev-medium { width: .5rem; height: .5rem; margin-left: -.25rem; }
+  .ntf-mark.sev-critical { box-shadow: 0 0 0 2px var(--color-white), 0 0 0 5px var(--sev-critical-bg); }
+  .ntf-mark.active { outline: 2px solid var(--color-dark); outline-offset: 2px; }
   .lane-rule { position: absolute; inset: 50% 0 auto 0; height: 1px; background: var(--color-border-light); }
 
   /* the popover a click opens */
-  .msg-pop { position: absolute; top: 1.4rem; left: 72.82%; transform: translateX(-70%);
+  .ntf-pop { position: absolute; top: 1.4rem; left: 72.82%; transform: translateX(-70%);
     width: 24rem; z-index: 5;
     background: var(--color-white); border: 1px solid var(--color-border-input);
     border-left: 3px solid var(--sev-critical); border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg); padding: .7rem .85rem; text-align: left; }
-  .msg-pop::before { content: ''; position: absolute; top: -6px; left: 70%; width: 10px; height: 10px;
+  .ntf-pop::before { content: ''; position: absolute; top: -6px; left: 70%; width: 10px; height: 10px;
     background: var(--color-white); border-left: 1px solid var(--color-border-input);
     border-top: 1px solid var(--color-border-input); transform: rotate(45deg); }
   .mp-head { display: flex; align-items: center; gap: .4rem; margin-bottom: .35rem; flex-wrap: wrap; }
@@ -249,7 +249,7 @@
   .mp-meta .k { text-transform: uppercase; letter-spacing: .04em; }
   .mp-link { display: inline-flex; align-items: center; gap: .3rem; color: var(--color-primary);
     font-size: var(--font-size-sm); margin-top: .5rem; text-decoration: none; }
-  .wf-row.msg-owner { background: color-mix(in srgb, var(--sev-critical) 5%, transparent); }
+  .wf-row.ntf-owner { background: color-mix(in srgb, var(--sev-critical) 5%, transparent); }
 </style>
 </head>
 <body>
@@ -302,7 +302,7 @@
           </span>
           <span class="wf-duration">19 ms</span>
         </div>
-        <div class="wf-lane msg-lane">
+        <div class="wf-lane ntf-lane">
           <span class="lane-label">
             <span style="display:flex;align-items:center;gap:.35rem"><i class="lane-dot" style="background:var(--sev-critical);transform:rotate(45deg);border-radius:1px"></i> Notifications</span>
             <span class="sev-meter">
@@ -315,13 +315,13 @@
           </span>
           <span class="lane-track">
             <span class="lane-rule"></span>
-            <span class="msg-mark sev-low" style="left:1.46%" title="CART_REPRICED &middot; Cart repriced before validation"></span>
-            <span class="msg-mark sev-medium" style="left:7.28%" title="QUERY_PLAN_FALLBACK &middot; Query fell back to a sequential scan"></span>
-            <span class="msg-mark sev-medium" style="left:15.53%" title="CONNECTION_POOL_PRESSURE &middot; Pool at 92% of max"></span>
-            <span class="msg-mark sev-high" style="left:38.35%" title="PAYMENT_RETRY &middot; Retrying charge after gateway timeout"></span>
-            <span class="msg-mark sev-critical active" style="left:72.82%" title="CIRCUIT_BREAKER_OPEN &middot; Payment circuit breaker opened"></span>
-            <span class="msg-mark sev-low" style="left:98.54%" title="FEATURE_FLAG_READ &middot; Flag orders.async-persist evaluated false"></span>
-            <div class="msg-pop">
+            <span class="ntf-mark sev-low" style="left:1.46%" title="CART_REPRICED &middot; Cart repriced before validation"></span>
+            <span class="ntf-mark sev-medium" style="left:7.28%" title="QUERY_PLAN_FALLBACK &middot; Query fell back to a sequential scan"></span>
+            <span class="ntf-mark sev-medium" style="left:15.53%" title="CONNECTION_POOL_PRESSURE &middot; Pool at 92% of max"></span>
+            <span class="ntf-mark sev-high" style="left:38.35%" title="PAYMENT_RETRY &middot; Retrying charge after gateway timeout"></span>
+            <span class="ntf-mark sev-critical active" style="left:72.82%" title="CIRCUIT_BREAKER_OPEN &middot; Payment circuit breaker opened"></span>
+            <span class="ntf-mark sev-low" style="left:98.54%" title="FEATURE_FLAG_READ &middot; Flag orders.async-persist evaluated false"></span>
+            <div class="ntf-pop">
               <div class="mp-head">
                 <span class="sev-pill sev-critical">critical</span>
                 <span class="mtype">CIRCUIT_BREAKER_OPEN</span>
@@ -389,7 +389,7 @@
             </span>
             <span class="wf-duration">35 ms</span>
           </div>
-          <div class="wf-row critical msg-owner">
+          <div class="wf-row critical ntf-owner">
             <span class="wf-name">
               <span class="wf-indent" style="width:1.1rem"></span>
               <span class="wf-twist"><i class="bi bi-caret-down-fill"></i></span>

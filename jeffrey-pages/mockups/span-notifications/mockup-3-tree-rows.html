@@ -215,31 +215,31 @@
   .note code { font-family: var(--font-family-monospace); font-size: .86em; background: #f1f5f9;
     padding: .05rem .28rem; border-radius: var(--radius-sm); }
 
-  .wf-row.msg-row { border-bottom: 1px dashed var(--color-border-light); background: var(--sev-bg); }
-  .msg-row .wf-label { color: #334155; font-size: var(--font-size-sm); }
-  .msg-row .wf-duration { color: var(--sev); font-weight: 600; }
-  .msg-glyph { flex: none; width: .45rem; height: .45rem; background: var(--sev); border-radius: 1px;
+  .wf-row.ntf-row { border-bottom: 1px dashed var(--color-border-light); background: var(--sev-bg); }
+  .ntf-row .wf-label { color: #334155; font-size: var(--font-size-sm); }
+  .ntf-row .wf-duration { color: var(--sev); font-weight: 600; }
+  .ntf-glyph { flex: none; width: .45rem; height: .45rem; background: var(--sev); border-radius: 1px;
     transform: rotate(45deg); }
-  .msg-row .wf-track::before { background: transparent; }
-  .msg-tick { position: absolute; top: 50%; width: .55rem; height: .55rem; margin-left: -.275rem;
+  .ntf-row .wf-track::before { background: transparent; }
+  .ntf-tick { position: absolute; top: 50%; width: .55rem; height: .55rem; margin-left: -.275rem;
     transform: translateY(-50%) rotate(45deg); border-radius: 1px; background: var(--sev);
     box-shadow: 0 0 0 2px var(--color-white); }
-  .msg-lead { position: absolute; top: 50%; height: 1px; background: var(--sev); opacity: .35; }
-  .msg-src { flex: none; font-size: var(--font-size-xs); color: var(--color-text-muted);
+  .ntf-lead { position: absolute; top: 50%; height: 1px; background: var(--sev); opacity: .35; }
+  .ntf-src { flex: none; font-size: var(--font-size-xs); color: var(--color-text-muted);
     font-family: var(--font-family-monospace); }
-  .msg-row.sev-critical { box-shadow: inset 2px 0 0 var(--sev-critical); }
-  .msg-more { flex: none; color: var(--color-text-light); font-size: .65rem; }
-  .wf-row.msg-row.is-open { background: var(--color-white); border-bottom: 0; }
-  .msg-expand { padding: .1rem 1rem .6rem 1rem; border-bottom: 1px dashed var(--color-border-light);
+  .ntf-row.sev-critical { box-shadow: inset 2px 0 0 var(--sev-critical); }
+  .ntf-more { flex: none; color: var(--color-text-light); font-size: .65rem; }
+  .wf-row.ntf-row.is-open { background: var(--color-white); border-bottom: 0; }
+  .ntf-expand { padding: .1rem 1rem .6rem 1rem; border-bottom: 1px dashed var(--color-border-light);
     background: var(--color-white); }
-  .msg-expand-in { margin-left: 4.4rem; padding: .55rem .75rem; border-radius: var(--radius-base);
+  .ntf-expand-in { margin-left: 4.4rem; padding: .55rem .75rem; border-radius: var(--radius-base);
     border: 1px solid var(--color-border); border-left: 3px solid var(--sev-critical);
     background: var(--color-light); max-width: 52rem; }
-  .msg-expand-in p { font-size: var(--font-size-sm); color: #475569; line-height: 1.55; }
-  .msg-expand-in dl { display: flex; gap: 1.1rem; flex-wrap: wrap; margin-top: .5rem;
+  .ntf-expand-in p { font-size: var(--font-size-sm); color: #475569; line-height: 1.55; }
+  .ntf-expand-in dl { display: flex; gap: 1.1rem; flex-wrap: wrap; margin-top: .5rem;
     padding-top: .45rem; border-top: 1px solid var(--color-border-light);
     font-size: var(--font-size-xs); color: var(--color-text-muted); }
-  .msg-expand-in dl b { color: var(--color-dark); }
+  .ntf-expand-in dl b { color: var(--color-dark); }
 </style>
 </head>
 <body>
@@ -330,18 +330,18 @@
             </span>
             <span class="wf-duration">18 ms</span>
           </div>
-          <div class="wf-row msg-row sev-low">
+          <div class="wf-row ntf-row sev-low">
             <span class="wf-name">
               <span class="wf-indent" style="width:2.2rem"></span>
               <span class="wf-twist"></span>
-              <span class="msg-glyph"></span>
+              <span class="ntf-glyph"></span>
               <span class="sev-pill sev-low">low</span>
               <span class="wf-label">Cart repriced before validation</span>
-              <span class="msg-more"><i class="bi bi-three-dots"></i></span>
+              <span class="ntf-more"><i class="bi bi-three-dots"></i></span>
             </span>
             <span class="wf-track">
-              <span class="msg-lead" style="left:0;width:1.46%"></span>
-              <span class="msg-tick" style="left:1.46%"></span>
+              <span class="ntf-lead" style="left:0;width:1.46%"></span>
+              <span class="ntf-tick" style="left:1.46%"></span>
             </span>
             <span class="wf-duration">+6 ms</span>
           </div>
@@ -357,33 +357,33 @@
             </span>
             <span class="wf-duration">35 ms</span>
           </div>
-          <div class="wf-row msg-row sev-medium">
+          <div class="wf-row ntf-row sev-medium">
             <span class="wf-name">
               <span class="wf-indent" style="width:2.2rem"></span>
               <span class="wf-twist"></span>
-              <span class="msg-glyph"></span>
+              <span class="ntf-glyph"></span>
               <span class="sev-pill sev-medium">medium</span>
               <span class="wf-label">Query fell back to a sequential scan</span>
-              <span class="msg-more"><i class="bi bi-three-dots"></i></span>
+              <span class="ntf-more"><i class="bi bi-three-dots"></i></span>
             </span>
             <span class="wf-track">
-              <span class="msg-lead" style="left:0;width:7.28%"></span>
-              <span class="msg-tick" style="left:7.28%"></span>
+              <span class="ntf-lead" style="left:0;width:7.28%"></span>
+              <span class="ntf-tick" style="left:7.28%"></span>
             </span>
             <span class="wf-duration">+30 ms</span>
           </div>
-          <div class="wf-row msg-row sev-medium">
+          <div class="wf-row ntf-row sev-medium">
             <span class="wf-name">
               <span class="wf-indent" style="width:1.1rem"></span>
               <span class="wf-twist"></span>
-              <span class="msg-glyph"></span>
+              <span class="ntf-glyph"></span>
               <span class="sev-pill sev-medium">medium</span>
               <span class="wf-label">Pool at 92% of max</span>
-              <span class="msg-more"><i class="bi bi-three-dots"></i></span>
+              <span class="ntf-more"><i class="bi bi-three-dots"></i></span>
             </span>
             <span class="wf-track">
-              <span class="msg-lead" style="left:0;width:15.53%"></span>
-              <span class="msg-tick" style="left:15.53%"></span>
+              <span class="ntf-lead" style="left:0;width:15.53%"></span>
+              <span class="ntf-tick" style="left:15.53%"></span>
             </span>
             <span class="wf-duration">+64 ms</span>
           </div>
@@ -413,38 +413,38 @@
             </span>
             <span class="wf-duration">252 ms</span>
           </div>
-          <div class="wf-row msg-row sev-high">
+          <div class="wf-row ntf-row sev-high">
             <span class="wf-name">
               <span class="wf-indent" style="width:2.2rem"></span>
               <span class="wf-twist"></span>
-              <span class="msg-glyph"></span>
+              <span class="ntf-glyph"></span>
               <span class="sev-pill sev-high">high</span>
               <span class="wf-label">Retrying charge after gateway timeout</span>
-              <span class="msg-more"><i class="bi bi-three-dots"></i></span>
+              <span class="ntf-more"><i class="bi bi-three-dots"></i></span>
             </span>
             <span class="wf-track">
-              <span class="msg-lead" style="left:0;width:38.35%"></span>
-              <span class="msg-tick" style="left:38.35%"></span>
+              <span class="ntf-lead" style="left:0;width:38.35%"></span>
+              <span class="ntf-tick" style="left:38.35%"></span>
             </span>
             <span class="wf-duration">+158 ms</span>
           </div>
-          <div class="wf-row msg-row sev-critical is-open">
+          <div class="wf-row ntf-row sev-critical is-open">
             <span class="wf-name">
               <span class="wf-indent" style="width:2.2rem"></span>
               <span class="wf-twist"></span>
-              <span class="msg-glyph"></span>
+              <span class="ntf-glyph"></span>
               <span class="sev-pill sev-critical">critical</span>
               <span class="wf-label">Payment circuit breaker opened</span>
-              <span class="msg-more"><i class="bi bi-caret-down-fill"></i></span>
+              <span class="ntf-more"><i class="bi bi-caret-down-fill"></i></span>
             </span>
             <span class="wf-track">
-              <span class="msg-lead" style="left:0;width:72.82%"></span>
-              <span class="msg-tick" style="left:72.82%"></span>
+              <span class="ntf-lead" style="left:0;width:72.82%"></span>
+              <span class="ntf-tick" style="left:72.82%"></span>
             </span>
             <span class="wf-duration">+300 ms</span>
           </div>
-          <div class="msg-expand">
-            <div class="msg-expand-in">
+          <div class="ntf-expand">
+            <div class="ntf-expand-in">
               <p>5 of the last 6 calls to acme-pay failed. The breaker is open for 30 s; every charge in that window fails fast.</p>
               <dl><span>event <b>jeffrey.Notification</b></span><span>category <b>AVAILABILITY</b></span><span>source <b>payments-client</b></span><span>thread <b>http-nio-8080-exec-3</b></span></dl>
             </div>
@@ -461,18 +461,18 @@
             </span>
             <span class="wf-duration">66 ms</span>
           </div>
-          <div class="wf-row msg-row sev-low">
+          <div class="wf-row ntf-row sev-low">
             <span class="wf-name">
               <span class="wf-indent" style="width:1.1rem"></span>
               <span class="wf-twist"></span>
-              <span class="msg-glyph"></span>
+              <span class="ntf-glyph"></span>
               <span class="sev-pill sev-low">low</span>
               <span class="wf-label">Flag orders.async-persist evaluated false</span>
-              <span class="msg-more"><i class="bi bi-three-dots"></i></span>
+              <span class="ntf-more"><i class="bi bi-three-dots"></i></span>
             </span>
             <span class="wf-track">
-              <span class="msg-lead" style="left:0;width:98.54%"></span>
-              <span class="msg-tick" style="left:98.54%"></span>
+              <span class="ntf-lead" style="left:0;width:98.54%"></span>
+              <span class="ntf-tick" style="left:98.54%"></span>
             </span>
             <span class="wf-duration">+406 ms</span>
           </div>

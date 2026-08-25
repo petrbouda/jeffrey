@@ -217,15 +217,15 @@
 
   /* A pin sits on the bar it belongs to. The stem crosses the bar so the instant is exact;
      the head sits above it so it survives a bar three pixels wide. */
-  .msg-pin { position: absolute; top: -.15rem; height: 1.25rem; width: 7px; margin-left: -3px;
+  .ntf-pin { position: absolute; top: -.15rem; height: 1.25rem; width: 7px; margin-left: -3px;
     cursor: pointer; }
-  .msg-pin i { position: absolute; left: 3px; top: .3rem; bottom: 0; width: 1px; background: var(--sev); }
-  .msg-pin b { position: absolute; left: 0; top: 0; width: 7px; height: 7px; border-radius: 2px;
+  .ntf-pin i { position: absolute; left: 3px; top: .3rem; bottom: 0; width: 1px; background: var(--sev); }
+  .ntf-pin b { position: absolute; left: 0; top: 0; width: 7px; height: 7px; border-radius: 2px;
     background: var(--sev); transform: rotate(45deg); box-shadow: 0 0 0 1.5px var(--color-white); }
-  .msg-pin.sev-critical b { width: 9px; height: 9px; left: -1px; }
-  .msg-pin.sev-critical i { left: 3px; width: 1.5px; }
+  .ntf-pin.sev-critical b { width: 9px; height: 9px; left: -1px; }
+  .ntf-pin.sev-critical i { left: 3px; width: 1.5px; }
 
-  .msg-count { display: inline-flex; align-items: center; gap: .18rem; flex: none; padding: 0 .3rem;
+  .ntf-count { display: inline-flex; align-items: center; gap: .18rem; flex: none; padding: 0 .3rem;
     border-radius: var(--radius-sm); background: var(--sev-bg); color: var(--sev);
     font-size: var(--font-size-xs); font-weight: 700; font-variant-numeric: tabular-nums; }
 
@@ -257,12 +257,12 @@
   .sd-msg { display: grid; grid-template-columns: 4.2rem 5.5rem 1fr; gap: .5rem; align-items: baseline;
     padding: .38rem 0; border-bottom: 1px solid var(--color-border-light); }
   .sd-msg:last-child { border-bottom: 0; }
-  .sd-msg-at { font-variant-numeric: tabular-nums; font-size: var(--font-size-xs);
+  .sd-ntf-at { font-variant-numeric: tabular-nums; font-size: var(--font-size-xs);
     color: var(--color-text-muted); }
-  .sd-msg-main { min-width: 0; }
-  .sd-msg-title { font-size: var(--font-size-sm); font-weight: 600; color: var(--color-dark); }
-  .sd-msg-text { font-size: var(--font-size-sm); color: #475569; line-height: 1.5; margin-top: .1rem; }
-  .sd-msg-foot { font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: .18rem;
+  .sd-ntf-main { min-width: 0; }
+  .sd-ntf-title { font-size: var(--font-size-sm); font-weight: 600; color: var(--color-dark); }
+  .sd-ntf-text { font-size: var(--font-size-sm); color: #475569; line-height: 1.5; margin-top: .1rem; }
+  .sd-ntf-foot { font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: .18rem;
     font-family: var(--font-family-monospace); }
   .sd-region.is-msg { border-color: var(--color-primary-border); }
   .sd-region.is-msg .sd-region-head { background: var(--color-primary-light); color: var(--color-primary); }
@@ -338,12 +338,12 @@
               <span class="wf-twist"><i class="bi bi-caret-down-fill"></i></span>
               <span class="wf-kind kind-server"></span>
               <span class="wf-label">POST /api/orders</span>
-              <span class="msg-count sev-medium" title="2 notifications, worst medium"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 2</span>
+              <span class="ntf-count sev-medium" title="2 notifications, worst medium"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 2</span>
             </span>
             <span class="wf-track">
               <span class="wf-bar bar-server" style="left:0.0%;width:100.0%"><span class="wf-self" style="left:0.0%;width:0.97%"></span><span class="wf-self" style="left:5.34%;width:0.97%"></span><span class="wf-self" style="left:14.81%;width:1.21%"></span><span class="wf-self" style="left:80.34%;width:1.21%"></span><span class="wf-self" style="left:97.57%;width:2.43%"></span></span>
-            <span class="msg-pin sev-medium" style="left:15.53%" title="CONNECTION_POOL_PRESSURE &middot; Pool at 92% of max"><b></b><i></i></span>
-            <span class="msg-pin sev-low" style="left:98.54%" title="FEATURE_FLAG_READ &middot; Flag orders.async-persist evaluated false"><b></b><i></i></span>
+            <span class="ntf-pin sev-medium" style="left:15.53%" title="CONNECTION_POOL_PRESSURE &middot; Pool at 92% of max"><b></b><i></i></span>
+            <span class="ntf-pin sev-low" style="left:98.54%" title="FEATURE_FLAG_READ &middot; Flag orders.async-persist evaluated false"><b></b><i></i></span>
             </span>
             <span class="wf-duration">412 ms</span>
           </div>
@@ -353,11 +353,11 @@
               <span class="wf-twist"></span>
               <span class="wf-kind kind-internal"></span>
               <span class="wf-label">orders.validate</span>
-              <span class="msg-count sev-low" title="1 notifications, worst low"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 1</span>
+              <span class="ntf-count sev-low" title="1 notifications, worst low"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 1</span>
             </span>
             <span class="wf-track">
               <span class="wf-bar bar-internal" style="left:0.97%;width:4.37%"><span class="wf-self" style="left:0%;width:100%"></span></span>
-            <span class="msg-pin sev-low" style="left:1.46%" title="CART_REPRICED &middot; Cart repriced before validation"><b></b><i></i></span>
+            <span class="ntf-pin sev-low" style="left:1.46%" title="CART_REPRICED &middot; Cart repriced before validation"><b></b><i></i></span>
             </span>
             <span class="wf-duration">18 ms</span>
           </div>
@@ -367,11 +367,11 @@
               <span class="wf-twist"></span>
               <span class="wf-kind kind-internal"></span>
               <span class="wf-label">SELECT orders</span>
-              <span class="msg-count sev-medium" title="1 notifications, worst medium"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 1</span>
+              <span class="ntf-count sev-medium" title="1 notifications, worst medium"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 1</span>
             </span>
             <span class="wf-track">
               <span class="wf-bar bar-internal" style="left:6.31%;width:8.5%"><span class="wf-self" style="left:0%;width:100%"></span></span>
-            <span class="msg-pin sev-medium" style="left:7.28%" title="QUERY_PLAN_FALLBACK &middot; Query fell back to a sequential scan"><b></b><i></i></span>
+            <span class="ntf-pin sev-medium" style="left:7.28%" title="QUERY_PLAN_FALLBACK &middot; Query fell back to a sequential scan"><b></b><i></i></span>
             </span>
             <span class="wf-duration">35 ms</span>
           </div>
@@ -382,12 +382,12 @@
               <span class="wf-kind kind-client"></span>
               <span class="wf-label">payments.charge</span>
               <span class="badge-err">error</span>
-              <span class="msg-count sev-critical" title="2 notifications, worst critical"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 2</span>
+              <span class="ntf-count sev-critical" title="2 notifications, worst critical"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 2</span>
             </span>
             <span class="wf-track">
               <span class="wf-bar bar-error" style="left:16.02%;width:64.32%"><span class="wf-self" style="left:0%;width:3.02%"></span><span class="wf-self" style="left:98.11%;width:1.89%"></span></span>
-            <span class="msg-pin sev-high" style="left:38.35%" title="PAYMENT_RETRY &middot; Retrying charge after gateway timeout"><b></b><i></i></span>
-            <span class="msg-pin sev-critical" style="left:72.82%" title="CIRCUIT_BREAKER_OPEN &middot; Payment circuit breaker opened"><b></b><i></i></span>
+            <span class="ntf-pin sev-high" style="left:38.35%" title="PAYMENT_RETRY &middot; Retrying charge after gateway timeout"><b></b><i></i></span>
+            <span class="ntf-pin sev-critical" style="left:72.82%" title="CIRCUIT_BREAKER_OPEN &middot; Payment circuit breaker opened"><b></b><i></i></span>
             </span>
             <span class="wf-duration">265 ms</span>
           </div>
@@ -427,21 +427,21 @@
               <div class="sd-region-head"><i class="bi bi-chat-square-dots-fill"></i> Notifications <span class="sd-src">2 &middot; jeffrey.Notification</span></div>
               <div class="sd-region-body">
                 <div class="sd-msg">
-                  <span class="sd-msg-at">+92 ms</span>
+                  <span class="sd-ntf-at">+92 ms</span>
                   <span class="sev-pill sev-high">high</span>
-                  <span class="sd-msg-main">
-                    <span class="sd-msg-title">Retrying charge after gateway timeout</span>
-                    <div class="sd-msg-text">Attempt 1 to acme-pay timed out after 90 ms with no response body. Retrying once.</div>
-                    <div class="sd-msg-foot">PAYMENT_RETRY &middot; AVAILABILITY &middot; payments-client</div>
+                  <span class="sd-ntf-main">
+                    <span class="sd-ntf-title">Retrying charge after gateway timeout</span>
+                    <div class="sd-ntf-text">Attempt 1 to acme-pay timed out after 90 ms with no response body. Retrying once.</div>
+                    <div class="sd-ntf-foot">PAYMENT_RETRY &middot; AVAILABILITY &middot; payments-client</div>
                   </span>
                 </div>
                 <div class="sd-msg">
-                  <span class="sd-msg-at">+234 ms</span>
+                  <span class="sd-ntf-at">+234 ms</span>
                   <span class="sev-pill sev-critical">critical</span>
-                  <span class="sd-msg-main">
-                    <span class="sd-msg-title">Payment circuit breaker opened</span>
-                    <div class="sd-msg-text">5 of the last 6 calls to acme-pay failed. The breaker is open for 30 s; every charge in that window fails fast.</div>
-                    <div class="sd-msg-foot">CIRCUIT_BREAKER_OPEN &middot; AVAILABILITY &middot; payments-client</div>
+                  <span class="sd-ntf-main">
+                    <span class="sd-ntf-title">Payment circuit breaker opened</span>
+                    <div class="sd-ntf-text">5 of the last 6 calls to acme-pay failed. The breaker is open for 30 s; every charge in that window fails fast.</div>
+                    <div class="sd-ntf-foot">CIRCUIT_BREAKER_OPEN &middot; AVAILABILITY &middot; payments-client</div>
                   </span>
                 </div>
               </div>

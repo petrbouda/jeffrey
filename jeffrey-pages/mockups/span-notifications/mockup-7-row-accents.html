@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Span notifications — final: two rails + bar pins</title>
+<title>Span notifications — row accent variants</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -419,219 +419,84 @@
   .fold-panel .wf-card { border-radius: 0 0 var(--radius-md) var(--radius-md); }
   .k { display: inline-flex; align-items: center; padding: 0 .3rem; border-radius: var(--radius-sm);
     background: var(--sev-medium-bg); color: var(--sev-medium); font-size: var(--font-size-xs); font-weight: 700; }
+
+  /* Both accents resolve through one custom property, so a variant is written once and applies to
+     the CRITICAL notification and the escaped throw alike. */
+  .sd-ntf.is-target { --accent: var(--sev); }
+  .sd-exc.is-escaped { --accent: var(--exc); }
+
+  .stage { background: var(--color-light); border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); padding: .85rem 1rem .6rem; }
+  .stage .sd-region:last-child { margin-bottom: 0; }
+
+  .variant { margin-bottom: 1.5rem; }
+  .v-head { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; margin-bottom: .5rem; }
+  .v-key { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; flex: none;
+    border-radius: var(--radius-sm); background: var(--color-primary); color: #fff;
+    font-size: .75rem; font-weight: 800; }
+  .v-key.zero { background: var(--color-text-light); }
+  .v-name { font-size: 1rem; font-weight: 700; color: var(--color-dark); }
+  .v-tag { font-size: var(--font-size-xs); font-weight: 700; text-transform: uppercase;
+    letter-spacing: .05em; padding: .1rem .4rem; border-radius: var(--radius-sm);
+    background: var(--color-lighter); color: var(--color-text-muted); }
+  .v-why { font-size: .84rem; color: #475569; line-height: 1.6; margin: 0 0 .6rem; max-width: 92ch; }
+  .v-why b { color: var(--color-dark); }
+  .v-css { font-family: var(--font-family-monospace); font-size: var(--font-size-xs);
+    color: var(--color-text-muted); background: var(--color-lighter); padding: .1rem .35rem;
+    border-radius: var(--radius-sm); }
+
+  /* ---------------------------------------------------------------- 1 -- softened bar
+     The same idea, built properly: a real element instead of an inset shadow, so it can have its own
+     radius and stop short of the row's corners rather than being clipped by them. */
+  .v1 .sd-ntf.is-target, .v1 .sd-exc.is-escaped { box-shadow: none; position: relative; }
+  .v1 .sd-ntf.is-target::before, .v1 .sd-exc.is-escaped::before {
+    content: ''; position: absolute; left: 2px; top: 5px; bottom: 5px; width: 3px;
+    border-radius: var(--radius-pill); background: var(--accent); }
+
+  /* ---------------------------------------------------------------- 2 -- flush tab
+     Square on the left, rounded on the right, so the row reads as tabbed off the panel edge rather
+     than as a pill someone drew a line inside. */
+  .v2 .sd-ntf.is-target, .v2 .sd-exc.is-escaped {
+    box-shadow: inset 4px 0 0 var(--accent); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+
+  /* ---------------------------------------------------------------- 3 -- panel edge
+     The accent moves up a level: the region says what it contains, and the row inside keeps only its
+     tint. Reads at panel scale from across the detail view. */
+  .v3 .sd-ntf.is-target, .v3 .sd-exc.is-escaped { box-shadow: none; }
+  .v3 .sd-region.is-ntf { border-left: 3px solid var(--sev-critical); }
+  .v3 .sd-region.is-exc { border-left: 3px solid var(--color-danger); }
+
+  /* ---------------------------------------------------------------- 4 -- gutter tick
+     Subtraction: no tint, no bar, just a short tick outside the content. The CRITICAL pill and the
+     ESCAPED tag are already in the row saying the same thing -- this stops saying it a third time. */
+  .v4 .sd-ntf.is-target, .v4 .sd-exc.is-escaped {
+    background: transparent; box-shadow: none; position: relative; }
+  .v4 .sd-ntf.is-target::before, .v4 .sd-exc.is-escaped::before {
+    content: ''; position: absolute; left: -1px; top: 50%; margin-top: -.5rem; height: 1rem; width: 2px;
+    border-radius: var(--radius-pill); background: var(--accent); }
+
+  /* ---------------------------------------------------------------- 5 -- stamped instant
+     Relocation rather than decoration: the offset column becomes the marker, so the thing carrying
+     the colour is also the thing the reader wants -- when it happened. */
+  .v5 .sd-ntf.is-target, .v5 .sd-exc.is-escaped { background: transparent; box-shadow: none; }
+  .v5 .sd-ntf.is-target .sd-ntf-at, .v5 .sd-exc.is-escaped .sd-ntf-at {
+    background: var(--accent); color: var(--color-white); font-weight: 700;
+    border-radius: var(--radius-sm); padding: .1rem .3rem; text-align: center; }
 </style>
 </head>
 <body>
   <div class="wrap">
     <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
-    <h1><span class="n">&#10003;</span>Final &mdash; two rails + bar pins</h1>
-    <p class="lede">Directions 1 and 2 combined, and extended to a second family. Every instant is drawn twice on purpose: once on a rail above the span rows, which nothing can fold or filter away, and once as a pin on the bar of the span it belongs to. Clicking a rail mark opens direction 1’s popover for the immediate read, and its footer is the bridge into the deep one: it selects the span underneath, which opens with the same entry highlighted in its detail panel. <strong>Two families, two rails:</strong> <code>jeffrey.Notification</code> (diamonds, coloured by severity) and <code>jdk.JavaExceptionThrow</code> (crosses, hollow when caught, red when they escaped) &mdash; split the way the toolbar already splits Blocking ops from I/O ops. <code>jeffrey.Alert</code> is gone: severity already says how serious a notification is. Shown having clicked the CRITICAL mark on the notification rail.</p>
-    <div class="frame">
-      <div class="frame-head">
-        <i class="bi bi-diagram-3"></i>
-        <h2>POST /api/orders</h2>
-        <span class="x"><i class="bi bi-x-lg"></i></span>
+    <h1><span class="n">&#9776;</span>Row accent &mdash; five variants</h1>
+    <p class="lede">Just the left edge of the two highlighted rows inside the detail panel: the <strong>CRITICAL</strong> notification and the <strong>escaped exception</strong>. Everything else on the final mockup stays as it is. Same two panels rendered six times down the page &mdash; today&rsquo;s treatment first, then five alternatives, so the only difference between them is the accent itself.</p>
+    <div class="variant">
+      <div class="v-head">
+        <span class="v-key zero">0</span>
+        <span class="v-name">Current</span>
+        <span class="v-tag">baseline</span>
       </div>
-      <div class="frame-body">
-      <div class="trace-meta">
-        <div class="chips">
-        <span class="chip"><i class="bi bi-diagram-3"></i> 6 spans</span>
-        <span class="chip err"><i class="bi bi-exclamation-triangle-fill"></i> 1 error</span>
-        <span class="chip"><i class="bi bi-stopwatch"></i> 412 ms</span>
-        <span class="chip"><i class="bi bi-cpu"></i> http-nio-8080-exec-3</span>
-        <span class="chip"><i class="bi bi-signpost-split"></i> payments.charge &middot; 64% critical</span>
-        <span class="chip mono">3f9c1a2b4d5e6f70</span>
-        <span class="chip msg"><i class="bi bi-chat-square-dots-fill"></i> 6 notifications</span>
-        <span class="chip" style="border-color:var(--color-danger-input-border);background:var(--color-danger-light);color:var(--color-danger);font-weight:600"><i class="bi bi-x-octagon-fill"></i> 3 exceptions</span>
-        </div>
-        <div class="trace-actions">
-          <a class="op-link" href="#"><i class="bi bi-bar-chart-steps"></i> All POST /api/orders traces</a>
-        </div>
-      </div>
-      <div class="wf-card">
-        <div class="wf-toolbar">
-          <span class="wf-toggle"><i class="bi bi-signpost-split"></i> Critical path only</span>
-          <span class="wf-toggle"><i class="bi bi-arrows-collapse"></i> Collapse all</span>
-          <span class="wf-overlays">
-            <span class="wf-overlays-label">Overlays</span>
-            <span class="wf-switch-item"><span class="wf-switch on"></span> JVM context</span>
-            <span class="wf-switch-item"><span class="wf-switch on"></span> Blocking ops</span>
-            <span class="wf-switch-item"><span class="wf-switch on"></span> I/O ops</span>
-            <span class="wf-switch-item"><span class="wf-switch on"></span> Notifications</span>
-            <span class="wf-switch-item"><span class="wf-switch on"></span> Exceptions</span>
-          </span>
-        </div>
-        <div class="wf-lane">
-          <span class="lane-label">
-            <span style="display:flex;align-items:center;gap:.35rem"><i class="lane-dot" style="background:var(--color-danger)"></i> GC pause</span>
-            <span class="lane-meter"><i style="width:5%;background:var(--color-danger)"></i></span>
-            <span class="lane-stat">4.6% &middot; 2&times;</span>
-          </span>
-          <span class="lane-track">
-            <span class="lane-band" style="left:27.18%;width:2.67%;background:var(--color-danger)"></span>
-            <span class="lane-band" style="left:69.9%;width:1.94%;background:var(--color-danger)"></span>
-          </span>
-          <span class="wf-duration">19 ms</span>
-        </div>
-        <div class="wf-lane rail-lane">
-          <span class="lane-label">
-            <span style="display:flex;align-items:center;gap:.35rem"><i class="lane-dot" style="background:var(--sev-critical);transform:rotate(45deg);border-radius:1px"></i> Notifications</span>
-            <span class="sev-meter">
-              <i style="width:17%;background:var(--sev-critical)"></i>
-              <i style="width:17%;background:var(--sev-high)"></i>
-              <i style="width:33%;background:var(--sev-medium)"></i>
-              <i style="width:33%;background:var(--sev-low)"></i>
-            </span>
-            <span class="lane-stat">1 crit &middot; 6&times;</span>
-          </span>
-          <span class="lane-track">
-            <span class="lane-rule"></span>
-            <span class="ntf-mark sev-low" style="left:1.46%" title="CART_REPRICED &middot; Cart repriced before validation &middot; click to select orders.validate"></span>
-            <span class="ntf-mark sev-medium" style="left:7.28%" title="QUERY_PLAN_FALLBACK &middot; Query fell back to a sequential scan &middot; click to select SELECT orders"></span>
-            <span class="ntf-mark sev-medium" style="left:15.53%" title="CONNECTION_POOL_PRESSURE &middot; Pool at 92% of max &middot; click to select POST /api/orders"></span>
-            <span class="ntf-mark sev-high" style="left:38.35%" title="PAYMENT_RETRY &middot; Retrying charge after gateway timeout &middot; click to select payments.charge"></span>
-            <span class="ntf-mark sev-critical active" style="left:72.82%" title="CIRCUIT_BREAKER_OPEN &middot; Payment circuit breaker opened &middot; click to select payments.charge"></span>
-            <span class="ntf-mark sev-low" style="left:98.54%" title="FEATURE_FLAG_READ &middot; Flag orders.async-persist evaluated false &middot; click to select POST /api/orders"></span>
-            <div class="pop pop-up on-notification sev-critical" style="left:72.82%">
-              <div class="pop-head">
-                <span class="sev-pill sev-critical">critical</span>
-                <span class="mtype">CIRCUIT_BREAKER_OPEN</span>
-                <span class="pop-at">+300 ms</span>
-              </div>
-              <div class="pop-title">Payment circuit breaker opened</div>
-              <p class="pop-body">5 of the last 6 calls to acme-pay failed. The breaker is open for 30 s; every charge in that window fails fast.</p>
-              <div class="pop-meta"><span>AVAILABILITY</span><span>payments-client</span><span>jeffrey.Notification</span></div>
-              <a class="pop-link" href="#"><i class="bi bi-arrow-return-right"></i> Select payments.charge <em>&mdash; the span it was emitted in</em></a>
-            </div>
-          </span>
-          <span class="wf-duration">6</span>
-        </div>
-        <div class="wf-lane rail-lane exc-lane">
-          <span class="lane-label">
-            <span style="display:flex;align-items:center;gap:.35rem"><i class="lane-dot" style="background:var(--color-danger);border-radius:1px"></i> Exceptions</span>
-            <span class="sev-meter">
-              <i style="width:33%;background:var(--color-danger)"></i>
-              <i style="width:67%;background:var(--color-text-light)"></i>
-            </span>
-            <span class="lane-stat">1 escaped &middot; 3&times;</span>
-          </span>
-          <span class="lane-track">
-            <span class="lane-rule"></span>
-            <span class="exc-mark is-caught" style="left:2.91%" title="java.lang.NumberFormatException &middot; caught in orders.validate"></span>
-            <span class="exc-mark is-caught" style="left:37.86%" title="java.net.SocketTimeoutException &middot; caught in jdk.SocketRead"></span>
-            <span class="exc-mark is-escaped" style="left:80.1%" title="com.acme.pay.GatewayTimeoutException &middot; escaped payments.charge"></span>
-          </span>
-          <span class="wf-duration">3</span>
-        </div>
-        <div class="wf-head">
-          <span>Span</span>
-          <span class="wf-scale"><span>0</span><span>412 ms</span></span>
-          <span class="wf-duration">Duration</span>
-        </div>
-        <div class="wf-rows">
-          <div class="wf-stripes">
-            <span></span>
-            <span class="wf-stripes-track">
-              <span class="wf-stripe" style="left:27.18%;width:2.67%"></span>
-              <span class="wf-stripe" style="left:69.9%;width:1.94%"></span>
-            </span>
-            <span></span>
-          </div>
-          <div class="wf-row critical">
-            <span class="wf-name">
-              <span class="wf-indent" style="width:0.0rem"></span>
-              <span class="wf-twist"><i class="bi bi-caret-down-fill"></i></span>
-              <span class="wf-kind kind-server"></span>
-              <span class="wf-label">POST /api/orders</span>
-              <span class="ntf-count sev-medium" title="2 notifications in this span, worst medium"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 2</span>
-            </span>
-            <span class="wf-track">
-              <span class="wf-bar bar-server" style="left:0.0%;width:100.0%"><span class="wf-self" style="left:0.0%;width:0.97%"></span><span class="wf-self" style="left:5.34%;width:0.97%"></span><span class="wf-self" style="left:14.81%;width:1.21%"></span><span class="wf-self" style="left:80.34%;width:1.21%"></span><span class="wf-self" style="left:97.57%;width:2.43%"></span></span>
-            <span class="ntf-pin sev-medium" style="left:15.53%" title="CONNECTION_POOL_PRESSURE &middot; Pool at 92% of max"><b></b><i></i></span>
-            <span class="ntf-pin sev-low" style="left:98.54%" title="FEATURE_FLAG_READ &middot; Flag orders.async-persist evaluated false"><b></b><i></i></span>
-            </span>
-            <span class="wf-duration">412 ms</span>
-          </div>
-          <div class="wf-row">
-            <span class="wf-name">
-              <span class="wf-indent" style="width:1.1rem"></span>
-              <span class="wf-twist"></span>
-              <span class="wf-kind kind-internal"></span>
-              <span class="wf-label">orders.validate</span>
-              <span class="ntf-count sev-low" title="1 notifications in this span, worst low"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 1</span>
-              <span class="exc-count is-caught" title="1 thrown here, all caught"><i class="bi bi-x-octagon-fill" style="font-size:.55rem"></i> 1</span>
-            </span>
-            <span class="wf-track">
-              <span class="wf-bar bar-internal" style="left:0.97%;width:4.37%"><span class="wf-self" style="left:0%;width:100%"></span></span>
-            <span class="ntf-pin sev-low" style="left:1.46%" title="CART_REPRICED &middot; Cart repriced before validation"><b></b><i></i></span>
-            <span class="exc-pin is-caught" style="left:2.91%" title="java.lang.NumberFormatException: For input string: "1,299.00""><b></b><i></i></span>
-            </span>
-            <span class="wf-duration">18 ms</span>
-          </div>
-          <div class="wf-row">
-            <span class="wf-name">
-              <span class="wf-indent" style="width:1.1rem"></span>
-              <span class="wf-twist"></span>
-              <span class="wf-kind kind-internal"></span>
-              <span class="wf-label">SELECT orders</span>
-              <span class="ntf-count sev-medium" title="1 notifications in this span, worst medium"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 1</span>
-            </span>
-            <span class="wf-track">
-              <span class="wf-bar bar-internal" style="left:6.31%;width:8.5%"><span class="wf-self" style="left:0%;width:100%"></span></span>
-            <span class="ntf-pin sev-medium" style="left:7.28%" title="QUERY_PLAN_FALLBACK &middot; Query fell back to a sequential scan"><b></b><i></i></span>
-            </span>
-            <span class="wf-duration">35 ms</span>
-          </div>
-          <div class="wf-row critical selected ntf-target">
-            <span class="wf-name">
-              <span class="wf-indent" style="width:1.1rem"></span>
-              <span class="wf-twist"><i class="bi bi-caret-down-fill"></i></span>
-              <span class="wf-kind kind-client"></span>
-              <span class="wf-label">payments.charge</span>
-              <span class="badge-err">error</span>
-              <span class="ntf-count sev-critical" title="2 notifications in this span, worst critical"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 2</span>
-              <span class="exc-count is-escaped" title="1 thrown here, one of which escaped the span"><i class="bi bi-x-octagon-fill" style="font-size:.55rem"></i> 1</span>
-            </span>
-            <span class="wf-track">
-              <span class="wf-bar bar-error" style="left:16.02%;width:64.32%"><span class="wf-self" style="left:0%;width:3.02%"></span><span class="wf-self" style="left:98.11%;width:1.89%"></span></span>
-            <span class="ntf-pin sev-high" style="left:38.35%" title="PAYMENT_RETRY &middot; Retrying charge after gateway timeout"><b></b><i></i></span>
-            <span class="ntf-pin sev-critical active" style="left:72.82%" title="CIRCUIT_BREAKER_OPEN &middot; Payment circuit breaker opened"><b></b><i></i></span>
-            <span class="exc-pin is-escaped" style="left:80.1%" title="com.acme.pay.GatewayTimeoutException: acme-pay did not respond within 265 ms"><b></b><i></i></span>
-            </span>
-            <span class="wf-duration">265 ms</span>
-          </div>
-          <div class="span-detail">
-            <div class="sd-head">
-              <span class="sev-pill" style="background:var(--color-info);color:#fff">client</span>
-              <span class="badge-err">GatewayTimeoutException</span>
-              <span class="sd-vitals">Ran for <strong>265 ms</strong>, <strong>13 ms</strong> of it its own work &mdash; <strong>64%</strong> of the trace, all of it on the critical path.</span>
-              <span class="sd-actions">
-                <span class="sd-btn"><i class="bi bi-list-ul"></i> Events in span</span>
-                <span class="sd-btn"><i class="bi bi-fire"></i> Flamegraph</span>
-              </span>
-            </div>
-            <div class="sd-cols">
-              <div class="sd-region">
-                <div class="sd-region-head"><i class="bi bi-fingerprint"></i> Span &middot; identity</div>
-                <div class="sd-region-body">
-                  <table class="sd-table">
-                    <tr><td class="sd-k">span id</td><td class="sd-v">a41c0d9e77b2</td></tr>
-                    <tr><td class="sd-k">thread</td><td class="sd-v">http-nio-8080-exec-3</td></tr>
-                    <tr><td class="sd-k">source event</td><td class="sd-v">jeffrey.HttpClientExchange</td></tr>
-                  </table>
-                </div>
-              </div>
-              <div class="sd-region">
-                <div class="sd-region-head"><i class="bi bi-braces"></i> Event fields <span class="sd-src">jeffrey.HttpClientExchange</span></div>
-                <div class="sd-region-body">
-                  <table class="sd-table">
-                    <tr><td class="sd-k">URI</td><td class="sd-v">https://pay.acme.io/v2/charges</td></tr>
-                    <tr><td class="sd-k">Method</td><td class="sd-v">POST</td></tr>
-                    <tr><td class="sd-k">Status code</td><td class="sd-v">504</td></tr>
-                  </table>
-                </div>
-              </div>
-            </div>
+      <p class="v-why">A 2px <span class="v-css">inset box-shadow</span> inside a rounded row, plus the tint. It works, but the bar is clipped by the row&rsquo;s own corner radius, so it thins out at both ends &mdash; and the same device says <b>selected</b> elsewhere in the app, which is not what either of these rows means.</p>
+      <div class="stage v0">
             <div class="sd-region is-ntf">
               <div class="sd-region-head"><i class="bi bi-chat-square-dots-fill"></i> Notifications <span class="sd-src">2 &middot; jeffrey.Notification</span></div>
               <div class="sd-region-body">
@@ -673,183 +538,278 @@
                 <p class="exc-link">This is the throw behind the header’s <b>GatewayTimeoutException</b> badge. Today <code>trace_spans.error_type</code> is a bare class name with nothing behind it; matching it to the throw on the same thread inside the same window gives it a stack trace, a message and an instant.</p>
               </div>
             </div>
-          </div>
-          <div class="wf-row critical">
-            <span class="wf-name">
-              <span class="wf-indent" style="width:2.2rem"></span>
-              <span class="wf-twist"></span>
-              <span class="wf-kind kind-internal" style="background:var(--chart-series-8)"></span>
-              <span class="wf-label">jdk.SocketRead</span>
-              <span class="badge-prom">promoted</span>
-              <span class="exc-count is-caught" title="1 thrown here, all caught"><i class="bi bi-x-octagon-fill" style="font-size:.55rem"></i> 1</span>
-            </span>
-            <span class="wf-track">
-              <span class="wf-bar bar-synthesized" style="left:17.96%;width:61.17%;background:var(--chart-series-8)"></span>
-            <span class="exc-pin is-caught" style="left:37.86%" title="java.net.SocketTimeoutException: Read timed out"><b></b><i></i></span>
-            </span>
-            <span class="wf-duration">252 ms</span>
-          </div>
-          <div class="wf-row critical">
-            <span class="wf-name">
-              <span class="wf-indent" style="width:1.1rem"></span>
-              <span class="wf-twist"></span>
-              <span class="wf-kind kind-internal"></span>
-              <span class="wf-label">orders.persist</span>
-            </span>
-            <span class="wf-track">
-              <span class="wf-bar bar-internal" style="left:81.55%;width:16.02%"><span class="wf-self" style="left:0%;width:100%"></span></span>
-            </span>
-            <span class="wf-duration">66 ms</span>
-          </div>
-        </div>
-      </div>
-      <div class="link-note">
-        <span class="lead">One click on the rail, and:</span>
-        <span><i class="ln-num">1</i> the rail mark is active <em>&mdash; where it happened</em></span>
-        <span><i class="ln-num">2</i> the owning row is selected <em>&mdash; which span said it</em></span>
-        <span><i class="ln-num">3</i> its pin is emphasised <em>&mdash; where inside that span</em></span>
-        <span><i class="ln-num">4</i> the popover reads it out <em>&mdash; what it said, without leaving the rail</em></span>
-        <span><i class="ln-num">5</i> its footer opens the span, Notifications row highlighted <em>&mdash; and everything else the span carries</em></span>
-        <span class="lead">And one row further down:</span>
-        <span><i class="ln-num" style="background:var(--color-danger)">&#215;</i> the escaped throw carries the stack behind the <code style="font-family:var(--font-family-monospace);font-size:.9em">GatewayTimeoutException</code> badge <em>&mdash; why the span failed</em></span>
-      </div>
       </div>
     </div>
-    <div class="fold-panel">
-      <div class="fold-cap">
-        <i class="bi bi-arrows-collapse"></i>
-        <span><b>The same trace with the root collapsed.</b> Every pin inside the fold went with it, so the row has to say what it swallowed &mdash; <span class="k">&#10022; 2</span> notifications of its own, <code style="font-family:var(--font-family-monospace);font-size:.85em">+5</code> spans folded, one of them failed, and four more notifications and three throws inside, both drawn hollow. That is five indicators on one row, which is the honest cost of folding. <b>Both rails carry exactly the same marks as the frame above</b> &mdash; nothing on them moved, and that is the whole reason they are there. The popover here is on the exception rail, to show its other half: from a fold this deep it is the only way to that throw at all.</span>
+    <div class="variant">
+      <div class="v-head">
+        <span class="v-key">1</span>
+        <span class="v-name">Softened bar</span>
+        <span class="v-tag">closest to current</span>
       </div>
-      <div class="wf-card">
-        <div class="wf-lane">
-          <span class="lane-label">
-            <span style="display:flex;align-items:center;gap:.35rem"><i class="lane-dot" style="background:var(--color-danger)"></i> GC pause</span>
-            <span class="lane-meter"><i style="width:5%;background:var(--color-danger)"></i></span>
-            <span class="lane-stat">4.6% &middot; 2&times;</span>
-          </span>
-          <span class="lane-track">
-            <span class="lane-band" style="left:27.18%;width:2.67%;background:var(--color-danger)"></span>
-            <span class="lane-band" style="left:69.9%;width:1.94%;background:var(--color-danger)"></span>
-          </span>
-          <span class="wf-duration">19 ms</span>
-        </div>
-        <div class="wf-lane rail-lane">
-          <span class="lane-label">
-            <span style="display:flex;align-items:center;gap:.35rem"><i class="lane-dot" style="background:var(--sev-critical);transform:rotate(45deg);border-radius:1px"></i> Notifications</span>
-            <span class="sev-meter">
-              <i style="width:17%;background:var(--sev-critical)"></i>
-              <i style="width:17%;background:var(--sev-high)"></i>
-              <i style="width:33%;background:var(--sev-medium)"></i>
-              <i style="width:33%;background:var(--sev-low)"></i>
-            </span>
-            <span class="lane-stat">1 crit &middot; 6&times;</span>
-          </span>
-          <span class="lane-track">
-            <span class="lane-rule"></span>
-            <span class="ntf-mark sev-low" style="left:1.46%" title="CART_REPRICED &middot; Cart repriced before validation &middot; click to select orders.validate"></span>
-            <span class="ntf-mark sev-medium" style="left:7.28%" title="QUERY_PLAN_FALLBACK &middot; Query fell back to a sequential scan &middot; click to select SELECT orders"></span>
-            <span class="ntf-mark sev-medium" style="left:15.53%" title="CONNECTION_POOL_PRESSURE &middot; Pool at 92% of max &middot; click to select POST /api/orders"></span>
-            <span class="ntf-mark sev-high" style="left:38.35%" title="PAYMENT_RETRY &middot; Retrying charge after gateway timeout &middot; click to select payments.charge"></span>
-            <span class="ntf-mark sev-critical active" style="left:72.82%" title="CIRCUIT_BREAKER_OPEN &middot; Payment circuit breaker opened &middot; click to select payments.charge"></span>
-            <span class="ntf-mark sev-low" style="left:98.54%" title="FEATURE_FLAG_READ &middot; Flag orders.async-persist evaluated false &middot; click to select POST /api/orders"></span>
-          </span>
-          <span class="wf-duration">6</span>
-        </div>
-        <div class="wf-lane rail-lane exc-lane">
-          <span class="lane-label">
-            <span style="display:flex;align-items:center;gap:.35rem"><i class="lane-dot" style="background:var(--color-danger);border-radius:1px"></i> Exceptions</span>
-            <span class="sev-meter">
-              <i style="width:33%;background:var(--color-danger)"></i>
-              <i style="width:67%;background:var(--color-text-light)"></i>
-            </span>
-            <span class="lane-stat">1 escaped &middot; 3&times;</span>
-          </span>
-          <span class="lane-track">
-            <span class="lane-rule"></span>
-            <span class="exc-mark is-caught" style="left:2.91%" title="java.lang.NumberFormatException &middot; caught in orders.validate"></span>
-            <span class="exc-mark is-caught" style="left:37.86%" title="java.net.SocketTimeoutException &middot; caught in jdk.SocketRead"></span>
-            <span class="exc-mark is-escaped" style="left:80.1%" title="com.acme.pay.GatewayTimeoutException &middot; escaped payments.charge"></span>
-            <div class="pop pop-down on-exception is-escaped" style="left:80.1%">
-              <div class="pop-head">
-                <span class="escaped-tag"><i class="bi bi-box-arrow-up-right"></i> escaped</span>
-                <span class="pop-at">+330 ms</span>
+      <p class="v-why">The same reading, built as a real element rather than an inset shadow: 3px, its own pill radius, stopping 5px short at top and bottom. Nothing is clipped, and the bar looks deliberate instead of like an edge that got cut.</p>
+      <div class="stage v1">
+            <div class="sd-region is-ntf">
+              <div class="sd-region-head"><i class="bi bi-chat-square-dots-fill"></i> Notifications <span class="sd-src">2 &middot; jeffrey.Notification</span></div>
+              <div class="sd-region-body">
+                <div class="sd-ntf sev-high">
+                  <span class="sd-ntf-at">+92 ms</span>
+                  <span class="sev-pill sev-high">high</span>
+                  <span class="sd-ntf-main">
+                    <span class="sd-ntf-title">Retrying charge after gateway timeout</span>
+                    <div class="sd-ntf-text">Attempt 1 to acme-pay timed out after 90 ms with no response body. Retrying once.</div>
+                    <div class="sd-ntf-foot">PAYMENT_RETRY &middot; AVAILABILITY &middot; payments-client</div>
+                  </span>
+                </div>
+                <div class="sd-ntf sev-critical is-target">
+                  <span class="sd-ntf-at">+234 ms</span>
+                  <span class="sev-pill sev-critical">critical</span>
+                  <span class="sd-ntf-main">
+                    <span class="sd-ntf-title">Payment circuit breaker opened</span>
+                    <div class="sd-ntf-text">5 of the last 6 calls to acme-pay failed. The breaker is open for 30 s; every charge in that window fails fast.</div>
+                    <div class="sd-ntf-foot">CIRCUIT_BREAKER_OPEN &middot; AVAILABILITY &middot; payments-client</div>
+                  </span>
+                </div>
               </div>
-              <div class="pop-title mono">com.acme.pay.GatewayTimeoutException</div>
-              <p class="pop-body">acme-pay did not respond within 265 ms</p>
-              <div class="pop-meta"><span>com.acme.pay.AcmePayClient.charge(AcmePayClient.java:214)</span></div>
-              <a class="pop-link" href="#"><i class="bi bi-list-nested"></i> Open the 52-frame stack <em>&mdash; and expand to payments.charge</em></a>
             </div>
-          </span>
-          <span class="wf-duration">3</span>
-        </div>
-        <div class="wf-head">
-          <span>Span</span>
-          <span class="wf-scale"><span>0</span><span>412 ms</span></span>
-          <span class="wf-duration">Duration</span>
-        </div>
-        <div class="wf-rows">
-          <div class="wf-stripes">
-            <span></span>
-            <span class="wf-stripes-track">
-              <span class="wf-stripe" style="left:27.18%;width:2.67%"></span>
-              <span class="wf-stripe" style="left:69.9%;width:1.94%"></span>
-            </span>
-            <span></span>
-          </div>
-          <div class="wf-row critical">
-            <span class="wf-name">
-              <span class="wf-indent" style="width:0.0rem"></span>
-              <span class="wf-twist"><i class="bi bi-caret-right-fill"></i></span>
-              <span class="wf-kind kind-server"></span>
-              <span class="wf-label">POST /api/orders</span>
-              <span class="ntf-count sev-medium" title="2 notifications in this span, worst medium"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 2</span>
-            <span class="wf-folded" title="5 spans folded into this row">+5</span>
-            <i class="wf-folded-error" title="A failed span is hidden in this fold"></i>
-            <span class="ntf-count is-folded sev-critical" title="4 more notifications are inside the fold, the worst of them critical"><i class="bi bi-chat-square-dots-fill" style="font-size:.55rem"></i> 4</span>
-            <span class="exc-count is-folded is-escaped" title="3 exceptions are inside the fold, one of which escaped its span"><i class="bi bi-x-octagon-fill" style="font-size:.55rem"></i> 3</span>
-            </span>
-            <span class="wf-track">
-              <span class="wf-bar bar-server" style="left:0.0%;width:100.0%"><span class="wf-self" style="left:0.0%;width:0.97%"></span><span class="wf-self" style="left:5.34%;width:0.97%"></span><span class="wf-self" style="left:14.81%;width:1.21%"></span><span class="wf-self" style="left:80.34%;width:1.21%"></span><span class="wf-self" style="left:97.57%;width:2.43%"></span></span>
-            <span class="ntf-pin sev-medium" style="left:15.53%" title="CONNECTION_POOL_PRESSURE &middot; Pool at 92% of max"><b></b><i></i></span>
-            <span class="ntf-pin sev-low" style="left:98.54%" title="FEATURE_FLAG_READ &middot; Flag orders.async-persist evaluated false"><b></b><i></i></span>
-            </span>
-            <span class="wf-duration">412 ms</span>
-          </div>
-        </div>
+            <div class="sd-region is-exc">
+              <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions <span class="sd-src">1 &middot; jdk.JavaExceptionThrow</span></div>
+              <div class="sd-region-body">
+                <div class="sd-exc is-escaped">
+                  <span class="sd-ntf-at">+264 ms</span>
+                  <span class="sd-ntf-main">
+                    <span class="sd-exc-cls">com.acme.pay.GatewayTimeoutException</span>
+                    <div class="sd-exc-msg">acme-pay did not respond within 265 ms</div>
+                    <div class="sd-exc-foot">
+                      <span class="escaped-tag"><i class="bi bi-box-arrow-up-right"></i> escaped this span</span>
+                      <span>com.acme.pay.AcmePayClient.charge(AcmePayClient.java:214)</span>
+                      <span class="sd-exc-stack"><i class="bi bi-list-nested"></i> 52 frames</span>
+                    </div>
+                  </span>
+                </div>
+                <p class="exc-link">This is the throw behind the header’s <b>GatewayTimeoutException</b> badge. Today <code>trace_spans.error_type</code> is a bare class name with nothing behind it; matching it to the throw on the same thread inside the same window gives it a stack trace, a message and an instant.</p>
+              </div>
+            </div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="v-head">
+        <span class="v-key">2</span>
+        <span class="v-name">Flush tab</span>
+        <span class="v-tag">strongest</span>
+      </div>
+      <p class="v-why">Square on the left, rounded on the right, 4px. The row reads as <b>tabbed off the panel edge</b> rather than as a pill with a line drawn inside it. Loudest of the five &mdash; which may be right for a CRITICAL and an escaped throw.</p>
+      <div class="stage v2">
+            <div class="sd-region is-ntf">
+              <div class="sd-region-head"><i class="bi bi-chat-square-dots-fill"></i> Notifications <span class="sd-src">2 &middot; jeffrey.Notification</span></div>
+              <div class="sd-region-body">
+                <div class="sd-ntf sev-high">
+                  <span class="sd-ntf-at">+92 ms</span>
+                  <span class="sev-pill sev-high">high</span>
+                  <span class="sd-ntf-main">
+                    <span class="sd-ntf-title">Retrying charge after gateway timeout</span>
+                    <div class="sd-ntf-text">Attempt 1 to acme-pay timed out after 90 ms with no response body. Retrying once.</div>
+                    <div class="sd-ntf-foot">PAYMENT_RETRY &middot; AVAILABILITY &middot; payments-client</div>
+                  </span>
+                </div>
+                <div class="sd-ntf sev-critical is-target">
+                  <span class="sd-ntf-at">+234 ms</span>
+                  <span class="sev-pill sev-critical">critical</span>
+                  <span class="sd-ntf-main">
+                    <span class="sd-ntf-title">Payment circuit breaker opened</span>
+                    <div class="sd-ntf-text">5 of the last 6 calls to acme-pay failed. The breaker is open for 30 s; every charge in that window fails fast.</div>
+                    <div class="sd-ntf-foot">CIRCUIT_BREAKER_OPEN &middot; AVAILABILITY &middot; payments-client</div>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="sd-region is-exc">
+              <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions <span class="sd-src">1 &middot; jdk.JavaExceptionThrow</span></div>
+              <div class="sd-region-body">
+                <div class="sd-exc is-escaped">
+                  <span class="sd-ntf-at">+264 ms</span>
+                  <span class="sd-ntf-main">
+                    <span class="sd-exc-cls">com.acme.pay.GatewayTimeoutException</span>
+                    <div class="sd-exc-msg">acme-pay did not respond within 265 ms</div>
+                    <div class="sd-exc-foot">
+                      <span class="escaped-tag"><i class="bi bi-box-arrow-up-right"></i> escaped this span</span>
+                      <span>com.acme.pay.AcmePayClient.charge(AcmePayClient.java:214)</span>
+                      <span class="sd-exc-stack"><i class="bi bi-list-nested"></i> 52 frames</span>
+                    </div>
+                  </span>
+                </div>
+                <p class="exc-link">This is the throw behind the header’s <b>GatewayTimeoutException</b> badge. Today <code>trace_spans.error_type</code> is a bare class name with nothing behind it; matching it to the throw on the same thread inside the same window gives it a stack trace, a message and an instant.</p>
+              </div>
+            </div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="v-head">
+        <span class="v-key">3</span>
+        <span class="v-name">Panel edge</span>
+        <span class="v-tag">changes scale</span>
+      </div>
+      <p class="v-why">The accent moves up a level: the <b>region</b> carries it, and the row keeps only its tint. The panel announces what it holds before you read a row, at the cost of no longer pointing at <em>which</em> row.</p>
+      <div class="stage v3">
+            <div class="sd-region is-ntf">
+              <div class="sd-region-head"><i class="bi bi-chat-square-dots-fill"></i> Notifications <span class="sd-src">2 &middot; jeffrey.Notification</span></div>
+              <div class="sd-region-body">
+                <div class="sd-ntf sev-high">
+                  <span class="sd-ntf-at">+92 ms</span>
+                  <span class="sev-pill sev-high">high</span>
+                  <span class="sd-ntf-main">
+                    <span class="sd-ntf-title">Retrying charge after gateway timeout</span>
+                    <div class="sd-ntf-text">Attempt 1 to acme-pay timed out after 90 ms with no response body. Retrying once.</div>
+                    <div class="sd-ntf-foot">PAYMENT_RETRY &middot; AVAILABILITY &middot; payments-client</div>
+                  </span>
+                </div>
+                <div class="sd-ntf sev-critical is-target">
+                  <span class="sd-ntf-at">+234 ms</span>
+                  <span class="sev-pill sev-critical">critical</span>
+                  <span class="sd-ntf-main">
+                    <span class="sd-ntf-title">Payment circuit breaker opened</span>
+                    <div class="sd-ntf-text">5 of the last 6 calls to acme-pay failed. The breaker is open for 30 s; every charge in that window fails fast.</div>
+                    <div class="sd-ntf-foot">CIRCUIT_BREAKER_OPEN &middot; AVAILABILITY &middot; payments-client</div>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="sd-region is-exc">
+              <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions <span class="sd-src">1 &middot; jdk.JavaExceptionThrow</span></div>
+              <div class="sd-region-body">
+                <div class="sd-exc is-escaped">
+                  <span class="sd-ntf-at">+264 ms</span>
+                  <span class="sd-ntf-main">
+                    <span class="sd-exc-cls">com.acme.pay.GatewayTimeoutException</span>
+                    <div class="sd-exc-msg">acme-pay did not respond within 265 ms</div>
+                    <div class="sd-exc-foot">
+                      <span class="escaped-tag"><i class="bi bi-box-arrow-up-right"></i> escaped this span</span>
+                      <span>com.acme.pay.AcmePayClient.charge(AcmePayClient.java:214)</span>
+                      <span class="sd-exc-stack"><i class="bi bi-list-nested"></i> 52 frames</span>
+                    </div>
+                  </span>
+                </div>
+                <p class="exc-link">This is the throw behind the header’s <b>GatewayTimeoutException</b> badge. Today <code>trace_spans.error_type</code> is a bare class name with nothing behind it; matching it to the throw on the same thread inside the same window gives it a stack trace, a message and an instant.</p>
+              </div>
+            </div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="v-head">
+        <span class="v-key">4</span>
+        <span class="v-name">Gutter tick</span>
+        <span class="v-tag">quietest</span>
+      </div>
+      <p class="v-why">Subtraction. No tint, no bar &mdash; a short tick outside the content. The <b>CRITICAL</b> pill and the <b>ESCAPED THIS SPAN</b> tag are already in the row saying exactly this; the accent stops saying it a third time.</p>
+      <div class="stage v4">
+            <div class="sd-region is-ntf">
+              <div class="sd-region-head"><i class="bi bi-chat-square-dots-fill"></i> Notifications <span class="sd-src">2 &middot; jeffrey.Notification</span></div>
+              <div class="sd-region-body">
+                <div class="sd-ntf sev-high">
+                  <span class="sd-ntf-at">+92 ms</span>
+                  <span class="sev-pill sev-high">high</span>
+                  <span class="sd-ntf-main">
+                    <span class="sd-ntf-title">Retrying charge after gateway timeout</span>
+                    <div class="sd-ntf-text">Attempt 1 to acme-pay timed out after 90 ms with no response body. Retrying once.</div>
+                    <div class="sd-ntf-foot">PAYMENT_RETRY &middot; AVAILABILITY &middot; payments-client</div>
+                  </span>
+                </div>
+                <div class="sd-ntf sev-critical is-target">
+                  <span class="sd-ntf-at">+234 ms</span>
+                  <span class="sev-pill sev-critical">critical</span>
+                  <span class="sd-ntf-main">
+                    <span class="sd-ntf-title">Payment circuit breaker opened</span>
+                    <div class="sd-ntf-text">5 of the last 6 calls to acme-pay failed. The breaker is open for 30 s; every charge in that window fails fast.</div>
+                    <div class="sd-ntf-foot">CIRCUIT_BREAKER_OPEN &middot; AVAILABILITY &middot; payments-client</div>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="sd-region is-exc">
+              <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions <span class="sd-src">1 &middot; jdk.JavaExceptionThrow</span></div>
+              <div class="sd-region-body">
+                <div class="sd-exc is-escaped">
+                  <span class="sd-ntf-at">+264 ms</span>
+                  <span class="sd-ntf-main">
+                    <span class="sd-exc-cls">com.acme.pay.GatewayTimeoutException</span>
+                    <div class="sd-exc-msg">acme-pay did not respond within 265 ms</div>
+                    <div class="sd-exc-foot">
+                      <span class="escaped-tag"><i class="bi bi-box-arrow-up-right"></i> escaped this span</span>
+                      <span>com.acme.pay.AcmePayClient.charge(AcmePayClient.java:214)</span>
+                      <span class="sd-exc-stack"><i class="bi bi-list-nested"></i> 52 frames</span>
+                    </div>
+                  </span>
+                </div>
+                <p class="exc-link">This is the throw behind the header’s <b>GatewayTimeoutException</b> badge. Today <code>trace_spans.error_type</code> is a bare class name with nothing behind it; matching it to the throw on the same thread inside the same window gives it a stack trace, a message and an instant.</p>
+              </div>
+            </div>
+      </div>
+    </div>
+    <div class="variant">
+      <div class="v-head">
+        <span class="v-key">5</span>
+        <span class="v-name">Stamped instant</span>
+        <span class="v-tag">relocates it</span>
+      </div>
+      <p class="v-why">No left border at all: the offset column becomes the marker. The thing wearing the colour is also the thing the reader wants next &mdash; <b>when</b> it happened &mdash; so the emphasis carries information instead of decorating.</p>
+      <div class="stage v5">
+            <div class="sd-region is-ntf">
+              <div class="sd-region-head"><i class="bi bi-chat-square-dots-fill"></i> Notifications <span class="sd-src">2 &middot; jeffrey.Notification</span></div>
+              <div class="sd-region-body">
+                <div class="sd-ntf sev-high">
+                  <span class="sd-ntf-at">+92 ms</span>
+                  <span class="sev-pill sev-high">high</span>
+                  <span class="sd-ntf-main">
+                    <span class="sd-ntf-title">Retrying charge after gateway timeout</span>
+                    <div class="sd-ntf-text">Attempt 1 to acme-pay timed out after 90 ms with no response body. Retrying once.</div>
+                    <div class="sd-ntf-foot">PAYMENT_RETRY &middot; AVAILABILITY &middot; payments-client</div>
+                  </span>
+                </div>
+                <div class="sd-ntf sev-critical is-target">
+                  <span class="sd-ntf-at">+234 ms</span>
+                  <span class="sev-pill sev-critical">critical</span>
+                  <span class="sd-ntf-main">
+                    <span class="sd-ntf-title">Payment circuit breaker opened</span>
+                    <div class="sd-ntf-text">5 of the last 6 calls to acme-pay failed. The breaker is open for 30 s; every charge in that window fails fast.</div>
+                    <div class="sd-ntf-foot">CIRCUIT_BREAKER_OPEN &middot; AVAILABILITY &middot; payments-client</div>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="sd-region is-exc">
+              <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions <span class="sd-src">1 &middot; jdk.JavaExceptionThrow</span></div>
+              <div class="sd-region-body">
+                <div class="sd-exc is-escaped">
+                  <span class="sd-ntf-at">+264 ms</span>
+                  <span class="sd-ntf-main">
+                    <span class="sd-exc-cls">com.acme.pay.GatewayTimeoutException</span>
+                    <div class="sd-exc-msg">acme-pay did not respond within 265 ms</div>
+                    <div class="sd-exc-foot">
+                      <span class="escaped-tag"><i class="bi bi-box-arrow-up-right"></i> escaped this span</span>
+                      <span>com.acme.pay.AcmePayClient.charge(AcmePayClient.java:214)</span>
+                      <span class="sd-exc-stack"><i class="bi bi-list-nested"></i> 52 frames</span>
+                    </div>
+                  </span>
+                </div>
+                <p class="exc-link">This is the throw behind the header’s <b>GatewayTimeoutException</b> badge. Today <code>trace_spans.error_type</code> is a bare class name with nothing behind it; matching it to the throw on the same thread inside the same window gives it a stack trace, a message and an instant.</p>
+              </div>
+            </div>
       </div>
     </div>
     <div class="notes">
-      <div class="note good">
-        <h4><i class="bi bi-check-circle"></i> What combining buys</h4>
+      <div class="note build">
+        <h4><i class="bi bi-info-circle"></i> What is identical in all six</h4>
         <ul>
-          <li>Both readings in one picture: the rail answers <em>did anything happen during this request, and when</em>; the pin and the badge answer <em>which span it happened in</em>. Neither direction could do both alone.</li>
-          <li>The popover is the fast read and the detail row is the slow one, and they are one gesture rather than two surfaces competing for the same click: the popover answers <em>what did it say</em> on the spot, its footer opens the span, and everything the span carries &mdash; events, flamegraph, the stack behind the throw &mdash; is one click further on.</li>
-          <li>Both rails share the popover, with the content each family needs: severity, type, category and source for a notification; the thrown class, the top frame and a way into the stack for an exception.</li>
-          <li>The rail is the safety net for everything the pins cannot draw: a folded subtree, a critical-path filter, a 2 ms span at the 0.4% floor width.</li>
-          <li>The pattern took a second family for free. Exceptions get their own rail, their own glyph and their own switch &mdash; the same split the toolbar already makes between Blocking ops and I/O ops, for the same reason: different suspicions, so hiding one must not take the other down with it.</li>
-          <li><strong>The escaped throw is the real prize.</strong> Today <code>trace_spans.error_type</code> is a bare class name. Matched to its throw it gains a message, an instant and a stack &mdash; the span stops saying <em>it failed</em> and starts saying <em>here is where</em>.</li>
-          <li>Nothing new has to be ingested: <code>jdk.JavaExceptionThrow</code> is already parsed and already powers the Exceptions view. This is a correlation, not a new pipeline.</li>
+          <li>The panels are rendered from the same builders the final mockup uses, so the only thing that differs down the page is the accent CSS.</li>
+          <li>Both rows resolve their colour through one <code>--accent</code> property &mdash; the CRITICAL notification takes the severity ramp, the escaped throw takes danger &mdash; so whichever wins is written once and applies to both.</li>
+          <li>Everything else on the final page is unchanged.</li>
         </ul>
       </div>
       <div class="note cost">
-        <h4><i class="bi bi-exclamation-circle"></i> What it still costs</h4>
+        <h4><i class="bi bi-eye"></i> What to look for</h4>
         <ul>
-          <li>Every instant is now drawn twice. One source of truth and one shared hover state, or the rail and the pin will eventually disagree &mdash; and a picture that contradicts itself is worse than either half.</li>
-          <li><strong>The popover costs a layer.</strong> It is a third surface inside a fullscreen modal, so Escape has three meanings again, and whatever it hangs over is hidden while it is open. Two placement rules keep the damage in the chrome rather than in the drawing: it is anchored on its own mark and pulled 70% of its width to the left, so a mark near the right edge cannot push it over the Duration column; and it opens toward the chrome &mdash; upward from the notification rail over the toolbar, downward from the exception rail, which has another rail directly above it. A mark in the last few percent of the track still needs the horizontal flip.</li>
-          <li><strong>Exception volume is the real risk.</strong> A service that throws for control flow produces thousands per request; <code>jdk.ExceptionStatistics</code> exists precisely because throws are cheap to make and expensive to record. The rail needs a cap and a cluster mark before it meets one, and the caught/escaped split is what keeps the noise quiet meanwhile.</li>
-          <li>Row badges are getting crowded: <span style="white-space:nowrap">&#10022; N</span> and <span style="white-space:nowrap">&#10005; N</span> beside the error badge, and five indicators on a folded row (look at the panel above). Past two families this needs a different answer.</li>
-          <li>The severity ramp still shares danger with the GC-pause band and warning with the critical-path marker. Shape carries the difference today &mdash; diamond, cross, band &mdash; and a fourth thing in that palette would break it.</li>
-          <li>A rail is per-thread-agnostic but a pin is not: a notification stamped with a <code>spanId</code> from another thread pins correctly, an exception attributed by thread window does not travel. That asymmetry is invisible on screen.</li>
-        </ul>
-      </div>
-      <div class="note build">
-        <h4><i class="bi bi-tools"></i> What it takes to build</h4>
-        <ul>
-          <li>One <code>.wf-lane</code> block per family and two overlay switches, all beside the three that exist; pins inside the existing <code>.wf-track</code>; two badges in <code>.wf-name</code>; two <code>.sd-region</code>s in <code>TraceSpanInlineDetail.vue</code>.</li>
-          <li>The folded aggregates reuse the machinery already there for <code>foldedCounts</code> and <code>errorDescendantCounts</code> &mdash; same walk, two more accumulators.</li>
-          <li><strong>Notifications need the ids; exceptions do not.</strong> A notification can be committed off-thread, so it must carry <code>traceId</code>/<code>spanId</code> from <code>Tracer.current()</code>. A throw is always on the throwing thread, so <code>thread_hash</code> plus innermost-containing-window is a sound attribution &mdash; the same interval arithmetic <code>ThreadWindowEvents</code> already does.</li>
-          <li>Both land in one derived table beside <code>DERIVE_TRACE_SPANS</code>, with a <code>kind</code> column. The escaped flag is a match between the throw’s <code>thrownClass</code> and <code>trace_spans.error_type</code>, computed once at derivation rather than in the UI.</li>
-          <li>A rail mark opens the popover locally; its footer emits the existing <code>select</code> event plus the entry id, so <code>TraceSpansModal</code> opens the span and the region scrolls to the row. The popover is the only genuinely new component in the design.</li>
+          <li>Do the two rows still read as <em>different kinds of severe</em>? A CRITICAL notification is the application talking; an escaped throw is the reason the span failed.</li>
+          <li>Does the accent still register with the row tint removed (4 and 5), where the pill and the tag carry it alone?</li>
+          <li>Would it survive a panel holding four severe rows rather than one? 3 stops distinguishing them; 2 starts to stripe.</li>
         </ul>
       </div>
     </div>
