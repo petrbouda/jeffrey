@@ -94,6 +94,7 @@
             v-if="entry.kind === 'fold'"
             type="button"
             class="st-fold"
+            :class="{ open: opened.has(entry.depth) }"
             @click.stop="toggleFold(entry.depth)"
           >
             <i
@@ -349,15 +350,28 @@ async function copy(): Promise<void> {
 }
 
 /*
- * A run put back by opening a bar stays one run. The band alone would only say "these are related";
- * the rail is what says where the run ends, which a tint cannot once a reader has two bars open in
- * the same stack. Square corners so consecutive rows read as one block rather than a stack of chips.
+ * A run put back by opening a bar keeps the bar's own grey, so the two are one block rather than a
+ * control and some rows that happen to follow it. No rail and no new colour: the bar already says
+ * "this is the folded run", and continuing it downward is the whole statement.
+ *
+ * Square corners in the middle of the run -- rounding every row would read as a stack of chips --
+ * and the block is closed off at both ends by the two rules below.
  */
 .st-fr.opened {
-  background: var(--color-light);
-  border-left: 2px solid var(--color-border-input);
+  background: var(--color-lighter);
   border-radius: 0;
-  padding-left: 0.9rem;
+}
+
+/*
+ * The foot of the block. `:has` rather than a second flag on the entry: the rows a bar restores are
+ * always contiguous and always directly under it, so "the last one" is a fact about the list the
+ * stylesheet can see for itself. The next thing along is another bar or an ordinary frame; where
+ * the run ends the stack, there is no next thing at all.
+ */
+.st-fr.opened:last-child,
+.st-fr.opened:has(+ :not(.opened)) {
+  border-radius: 0 0 var(--radius-xs) var(--radius-xs);
+  margin-bottom: 0.1rem;
 }
 
 /*
@@ -366,7 +380,7 @@ async function copy(): Promise<void> {
  * moment the reader points at it.
  */
 .st-fr.opened:hover {
-  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-light));
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-lighter));
 }
 
 .st-sig {
@@ -477,6 +491,15 @@ async function copy(): Promise<void> {
   font-size: var(--font-size-sm);
   text-align: left;
   cursor: pointer;
+}
+
+/*
+ * An open bar is the head of the block its frames form: it gives up the gap and the corners between
+ * itself and the first row it restored, and the run below closes the shape off again.
+ */
+.st-fold.open {
+  margin-bottom: 0;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
 }
 
 .st-fold:hover {
