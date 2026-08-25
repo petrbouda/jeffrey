@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Docked strip contrast</title>
+<title>Docked strip proportions</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <style>
 /* Shared by every span-stacktrace mockup, so the five pages differ in layout and in nothing else.
@@ -286,7 +286,7 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
   /* ---- the size reduction, identical in all five ---- */
   .exc-dock.is-small .dock-head { padding: .26rem .5rem; }
   .exc-dock.is-small .dock-close { width: 1.2rem; height: 1.2rem; }
-  .exc-dock.is-small .dock-stack { padding: .25rem .5rem .35rem; max-height: 17rem; }
+  .exc-dock.is-small .dock-stack { padding: .25rem .5rem .35rem; }
   .exc-dock.is-small .st-head { padding: .22rem .3rem .28rem; margin-bottom: .15rem; }
   .exc-dock.is-small .st-fr, .exc-dock.is-small .st-fold { padding-top: .05rem;
     padding-bottom: .05rem; }
@@ -330,38 +330,27 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
   .sel-outline { background: var(--color-white); border-color: var(--color-primary);
     color: var(--color-primary); max-width: 22rem; overflow: hidden; text-overflow: ellipsis; }
 
-  /* ---- 1: sunken ---- */
-  .dock-sunken { background: var(--color-lighter);
-    box-shadow: inset 0 1px 3px rgba(11,23,39,.07); }
-  .dock-sunken .dock-head { background: var(--color-lighter);
-    border-bottom-color: var(--color-border-input); }
-  .dock-sunken .st-fold { background: var(--color-white); }
-  .dock-sunken .st-thrown { background: var(--color-white); }
+  /* ---- Option 2, settled: raised. Identical in every panel below. ---- */
+  .dock-raised { box-shadow: var(--shadow-md); border-color: var(--color-secondary); }
 
-  /* ---- 2: raised ---- */
-  .dock-raised { box-shadow: var(--shadow-md); border-color: var(--color-secondary);
-    margin: .25rem 0 .65rem; }
+  /* ---- the five, varying only X and Y ---- */
+  .geo-today { margin: 0 0 .4rem; }
+  .exc-dock.geo-today .dock-stack { max-height: 17rem; }
 
-  /* ---- 3: severity wash ---- */
-  .dock-wash { background: var(--color-danger-bg-lighter);
-    border-color: var(--color-danger-input-border); }
-  .dock-wash .dock-head { background: var(--color-danger-light); border-bottom-color:
-    var(--color-danger-input-border); }
-  .dock-wash .st-fold { background: var(--color-white); }
-  .dock-wash .st-thrown { background: var(--color-white); }
+  .geo-a { margin: .3rem 1.5rem .7rem; }
+  .exc-dock.geo-a .dock-stack { max-height: 22rem; }
 
-  /* ---- 4: banded header ---- */
-  .dock-band { border-color: var(--color-danger-input-border); }
-  .dock-band .dock-head { background: var(--color-danger); border-bottom-color:
-    var(--color-danger); }
-  .dock-band .pop-sev, .dock-band .dock-close { color: var(--color-white); }
+  .geo-b { margin: .35rem 3rem .8rem; }
+  .exc-dock.geo-b .dock-stack { max-height: 24rem; }
 
-  /* ---- 5: framed in the mark ---- */
-  .dock-framed { background: var(--color-light); border: 1px solid var(--color-danger);
-    border-left-width: 4px; box-shadow: none; }
-  .dock-framed .dock-head { background: var(--color-danger-light);
-    border-bottom-color: var(--color-danger-input-border); }
-  .dock-framed .st-fold { background: var(--color-white); }
+  .geo-c { margin: .4rem 6rem .9rem; }
+  .exc-dock.geo-c .dock-stack { max-height: 26rem; }
+
+  .geo-d { margin: .35rem auto .8rem; max-width: 68rem; width: calc(100% - 2rem); }
+  .exc-dock.geo-d .dock-stack { max-height: 24rem; }
+
+  .geo-e { margin: .35rem 3rem .8rem; }
+  .exc-dock.geo-e .dock-stack { max-height: 30rem; }
 
   .verdict-box { margin-top: 2rem; padding: 1.1rem 1.3rem; border-radius: var(--radius-md);
     border: 1px solid rgba(0,210,122,.4); background: rgba(0,210,122,.06); }
@@ -379,26 +368,28 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 <body>
   <div class="wrap">
     <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
-    <h1><span class="n"><i class="bi bi-layers-half"></i></span>The docked strip: smaller, and told apart</h1>
+    <h1><span class="n"><i class="bi bi-layers-half"></i></span>The docked strip: narrower, and taller</h1>
     <p class="lede">
-      <b>Option 1 is settled</b> &mdash; <code>Select &hellip;</code> is <code>btn-outline-primary</code>
-      in the toolbar, and it is drawn that way in every panel here. What varies is the strip itself:
-      each one is <b>the same size reduction</b> with a different answer to &ldquo;tell it apart from
-      the card&rdquo;. Drawn <b>inside the real card</b>, with the toolbar above and bars below, because
-      contrast against nothing is not contrast. The chips are measured by the page as it loads.
+      <b>Option 2 is settled</b> &mdash; the strip is raised: white body,
+      <code>--shadow-md</code>, a <code>--color-secondary</code> border. What varies here is
+      <b>proportion</b>: narrower on X, taller on Y. Option 1&rsquo;s
+      <code>btn-outline-primary</code> Select and last round&rsquo;s size reduction are in every
+      panel, and the stack is <b>33 frames</b> so the height cap is the thing that actually binds.
+      Drawn inside the real card, with the toolbar above and bars below. Chips measured by the page
+      as it loads.
     </p>
 
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">0</span>
-        <span class="stage-name">Today</span><span class="stage-tag now">the problem</span>
+        <span class="stage-name">Where we left it</span>
         <span class="stage-px"></span></div>
-      <p class="stage-why"><code>.exc-dock</code> is <code>--color-bg-card</code> and so is <code>.wf-card</code> under it &mdash; <b>the strip body and the card are the same white</b>, told apart by a 1px <code>--color-border-input</code> line and a <code>--shadow-sm</code> you have to look for. The chips say it: body <b>same</b>, and only the header carries a faint 1.04:1 tint. Every panel below also applies the size reduction, so this one is the only one at today&rsquo;s padding.</p>
+      <p class="stage-why">Option 2 &mdash; <b>raised</b>: white body, <code>--shadow-md</code>, a <code>--color-secondary</code> border. Drawn here at the width and cap it has today: <b>edge to edge</b> across the card, and <code>max-height: 17rem</code>. Spanning the full width is what stops it reading as raised &mdash; a panel with no shadow at its left and right cannot float. Every panel below is the same treatment; only X and Y change.</p>
       <div class="wf-card">
         <div class="wf-toolbar">
           <span class="wf-toggle">Critical path only</span>
           <span class="wf-toggle">Collapse all</span>
         </div>
-        <div class="exc-dock is-today dock-today">
+        <div class="exc-dock is-small dock-raised geo-today">
           <div class="dock-head">
             <span class="pop-sev">Caught</span>
             <button type="button" class="dock-close"><i class="bi bi-x-lg"></i></button>
@@ -416,8 +407,37 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
             <div class="st-fold"><i class="bi bi-chevron-right"></i><span>2 frames in java.io</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>FillBuff</b></span><span class="st-src">JavaCharStream.java:144</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>ReadByte</b></span><span class="st-src">JavaCharStream.java:172</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>readChar</b></span><span class="st-src">JavaCharStream.java:275</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>BeginToken</b></span><span class="st-src">JavaCharStream.java:194</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParserTokenManager.<b>getNextToken</b></span><span class="st-src">OgnlParserTokenManager.java:1343</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>jj_ntk_f</b></span><span class="st-src">OgnlParser.java:3287</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>navigationChain</b></span><span class="st-src">OgnlParser.java:1314</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>unaryExpression</b></span><span class="st-src">OgnlParser.java:1261</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>multiplicativeExpression</b></span><span class="st-src">OgnlParser.java:1027</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>additiveExpression</b></span><span class="st-src">OgnlParser.java:947</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>shiftExpression</b></span><span class="st-src">OgnlParser.java:793</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>relationalExpression</b></span><span class="st-src">OgnlParser.java:536</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>equalityExpression</b></span><span class="st-src">OgnlParser.java:462</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>andExpression</b></span><span class="st-src">OgnlParser.java:370</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>exclusiveOrExpression</b></span><span class="st-src">OgnlParser.java:314</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>inclusiveOrExpression</b></span><span class="st-src">OgnlParser.java:258</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>logicalAndExpression</b></span><span class="st-src">OgnlParser.java:202</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>logicalOrExpression</b></span><span class="st-src">OgnlParser.java:146</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>conditionalTestExpression</b></span><span class="st-src">OgnlParser.java:106</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>assignmentExpression</b></span><span class="st-src">OgnlParser.java:68</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>topLevelExpression</b></span><span class="st-src">OgnlParser.java:18</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>Ognl.<b>parseExpression</b></span><span class="st-src">Ognl.java:138</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>OgnlCache.<b>parseExpression</b></span><span class="st-src">OgnlCache.java:56</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>OgnlCache.<b>getValue</b></span><span class="st-src">OgnlCache.java:47</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>ExpressionEvaluator.<b>evaluateBoolean</b></span><span class="st-src">ExpressionEvaluator.java:34</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>IfSqlNode.<b>apply</b></span><span class="st-src">IfSqlNode.java:33</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>MixedSqlNode.<b>lambda$apply$0</b></span><span class="st-src">MixedSqlNode.java:32</span></div>
+            <div class="st-fold"><i class="bi bi-chevron-right"></i><span>1 frames in java.util</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>MixedSqlNode.<b>apply</b></span><span class="st-src">MixedSqlNode.java:32</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>DynamicSqlSource.<b>getBoundSql</b></span><span class="st-src">DynamicSqlSource.java:39</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.mapping.</span>MappedStatement.<b>getBoundSql</b></span><span class="st-src">MappedStatement.java:320</span></div>
             <div class="st-fr app"><span class="st-sig"><span class="st-pkg">com.acme.reports.</span>EventReportService.<b>loadTemplate</b></span><span class="st-src">EventReportService.java:154</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.executor.</span>CachingExecutor.<b>query</b></span><span class="st-src">CachingExecutor.java:88</span></div>
           </div>
         </div>
         <div class="wf-rows">
@@ -431,15 +451,15 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">1</span>
-        <span class="stage-name">Sunken</span><span class="stage-tag rec">recommended</span>
+        <span class="stage-name">Inset 1.5rem &middot; cap 22rem</span>
         <span class="stage-px"></span></div>
-      <p class="stage-why">The strip drops to <code>--color-lighter</code> (#edf2f9) with an inset shadow, so it reads as a well cut into the card rather than a card lying on a card &mdash; which is what it physically is: the bars part to make room for it. The fold bars and the JVM line flip to white so they stay visible against the new ground. <code>--color-light</code> (#f9fafd) is the softer sibling if this is a step too far &mdash; it measures 1.04:1 where this measures 1.12:1.</p>
+      <p class="stage-why">The gentlest inset that still puts shadow on all four sides. Barely narrower, so the frame rows lose almost nothing &mdash; and barely floating, so it is closer to a band with rounded ends than to a panel over the waterfall.</p>
       <div class="wf-card">
         <div class="wf-toolbar">
           <span class="wf-toggle">Critical path only</span>
           <span class="wf-toggle">Collapse all</span>
         </div>
-        <div class="exc-dock is-small dock-sunken">
+        <div class="exc-dock is-small dock-raised geo-a">
           <div class="dock-head">
             <span class="pop-sev">Caught</span>
             <button type="button" class="dock-close"><i class="bi bi-x-lg"></i></button>
@@ -457,8 +477,37 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
             <div class="st-fold"><i class="bi bi-chevron-right"></i><span>2 frames in java.io</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>FillBuff</b></span><span class="st-src">JavaCharStream.java:144</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>ReadByte</b></span><span class="st-src">JavaCharStream.java:172</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>readChar</b></span><span class="st-src">JavaCharStream.java:275</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>BeginToken</b></span><span class="st-src">JavaCharStream.java:194</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParserTokenManager.<b>getNextToken</b></span><span class="st-src">OgnlParserTokenManager.java:1343</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>jj_ntk_f</b></span><span class="st-src">OgnlParser.java:3287</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>navigationChain</b></span><span class="st-src">OgnlParser.java:1314</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>unaryExpression</b></span><span class="st-src">OgnlParser.java:1261</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>multiplicativeExpression</b></span><span class="st-src">OgnlParser.java:1027</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>additiveExpression</b></span><span class="st-src">OgnlParser.java:947</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>shiftExpression</b></span><span class="st-src">OgnlParser.java:793</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>relationalExpression</b></span><span class="st-src">OgnlParser.java:536</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>equalityExpression</b></span><span class="st-src">OgnlParser.java:462</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>andExpression</b></span><span class="st-src">OgnlParser.java:370</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>exclusiveOrExpression</b></span><span class="st-src">OgnlParser.java:314</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>inclusiveOrExpression</b></span><span class="st-src">OgnlParser.java:258</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>logicalAndExpression</b></span><span class="st-src">OgnlParser.java:202</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>logicalOrExpression</b></span><span class="st-src">OgnlParser.java:146</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>conditionalTestExpression</b></span><span class="st-src">OgnlParser.java:106</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>assignmentExpression</b></span><span class="st-src">OgnlParser.java:68</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>topLevelExpression</b></span><span class="st-src">OgnlParser.java:18</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>Ognl.<b>parseExpression</b></span><span class="st-src">Ognl.java:138</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>OgnlCache.<b>parseExpression</b></span><span class="st-src">OgnlCache.java:56</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>OgnlCache.<b>getValue</b></span><span class="st-src">OgnlCache.java:47</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>ExpressionEvaluator.<b>evaluateBoolean</b></span><span class="st-src">ExpressionEvaluator.java:34</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>IfSqlNode.<b>apply</b></span><span class="st-src">IfSqlNode.java:33</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>MixedSqlNode.<b>lambda$apply$0</b></span><span class="st-src">MixedSqlNode.java:32</span></div>
+            <div class="st-fold"><i class="bi bi-chevron-right"></i><span>1 frames in java.util</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>MixedSqlNode.<b>apply</b></span><span class="st-src">MixedSqlNode.java:32</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>DynamicSqlSource.<b>getBoundSql</b></span><span class="st-src">DynamicSqlSource.java:39</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.mapping.</span>MappedStatement.<b>getBoundSql</b></span><span class="st-src">MappedStatement.java:320</span></div>
             <div class="st-fr app"><span class="st-sig"><span class="st-pkg">com.acme.reports.</span>EventReportService.<b>loadTemplate</b></span><span class="st-src">EventReportService.java:154</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.executor.</span>CachingExecutor.<b>query</b></span><span class="st-src">CachingExecutor.java:88</span></div>
           </div>
         </div>
         <div class="wf-rows">
@@ -472,15 +521,15 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">2</span>
-        <span class="stage-name">Raised</span>
+        <span class="stage-name">Inset 3rem &middot; cap 24rem</span><span class="stage-tag rec">recommended</span>
         <span class="stage-px"></span></div>
-      <p class="stage-why">Keeps the white but earns its edge instead: <code>--shadow-md</code> in place of <code>--shadow-sm</code>, a <code>--color-secondary</code> border, and a little air above and below. Reads as floating over the waterfall. <b>The one that does not fix the measured problem</b> &mdash; the grounds are still identical, so it depends entirely on the shadow surviving whatever is behind it.</p>
+      <p class="stage-why">Enough gutter for the shadow to read as depth rather than as a seam, and a cap that shows about half again what today&rsquo;s does. <b>The pick</b>: the inset is visible without being a margin, and it is the widest of the three that still leaves the panel looking like a panel rather than a page with margins. The frames cost nothing at this width &mdash; the chip says zero of 33 clipped.</p>
       <div class="wf-card">
         <div class="wf-toolbar">
           <span class="wf-toggle">Critical path only</span>
           <span class="wf-toggle">Collapse all</span>
         </div>
-        <div class="exc-dock is-small dock-raised">
+        <div class="exc-dock is-small dock-raised geo-b">
           <div class="dock-head">
             <span class="pop-sev">Caught</span>
             <button type="button" class="dock-close"><i class="bi bi-x-lg"></i></button>
@@ -498,8 +547,37 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
             <div class="st-fold"><i class="bi bi-chevron-right"></i><span>2 frames in java.io</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>FillBuff</b></span><span class="st-src">JavaCharStream.java:144</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>ReadByte</b></span><span class="st-src">JavaCharStream.java:172</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>readChar</b></span><span class="st-src">JavaCharStream.java:275</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>BeginToken</b></span><span class="st-src">JavaCharStream.java:194</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParserTokenManager.<b>getNextToken</b></span><span class="st-src">OgnlParserTokenManager.java:1343</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>jj_ntk_f</b></span><span class="st-src">OgnlParser.java:3287</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>navigationChain</b></span><span class="st-src">OgnlParser.java:1314</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>unaryExpression</b></span><span class="st-src">OgnlParser.java:1261</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>multiplicativeExpression</b></span><span class="st-src">OgnlParser.java:1027</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>additiveExpression</b></span><span class="st-src">OgnlParser.java:947</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>shiftExpression</b></span><span class="st-src">OgnlParser.java:793</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>relationalExpression</b></span><span class="st-src">OgnlParser.java:536</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>equalityExpression</b></span><span class="st-src">OgnlParser.java:462</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>andExpression</b></span><span class="st-src">OgnlParser.java:370</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>exclusiveOrExpression</b></span><span class="st-src">OgnlParser.java:314</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>inclusiveOrExpression</b></span><span class="st-src">OgnlParser.java:258</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>logicalAndExpression</b></span><span class="st-src">OgnlParser.java:202</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>logicalOrExpression</b></span><span class="st-src">OgnlParser.java:146</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>conditionalTestExpression</b></span><span class="st-src">OgnlParser.java:106</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>assignmentExpression</b></span><span class="st-src">OgnlParser.java:68</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>topLevelExpression</b></span><span class="st-src">OgnlParser.java:18</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>Ognl.<b>parseExpression</b></span><span class="st-src">Ognl.java:138</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>OgnlCache.<b>parseExpression</b></span><span class="st-src">OgnlCache.java:56</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>OgnlCache.<b>getValue</b></span><span class="st-src">OgnlCache.java:47</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>ExpressionEvaluator.<b>evaluateBoolean</b></span><span class="st-src">ExpressionEvaluator.java:34</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>IfSqlNode.<b>apply</b></span><span class="st-src">IfSqlNode.java:33</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>MixedSqlNode.<b>lambda$apply$0</b></span><span class="st-src">MixedSqlNode.java:32</span></div>
+            <div class="st-fold"><i class="bi bi-chevron-right"></i><span>1 frames in java.util</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>MixedSqlNode.<b>apply</b></span><span class="st-src">MixedSqlNode.java:32</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>DynamicSqlSource.<b>getBoundSql</b></span><span class="st-src">DynamicSqlSource.java:39</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.mapping.</span>MappedStatement.<b>getBoundSql</b></span><span class="st-src">MappedStatement.java:320</span></div>
             <div class="st-fr app"><span class="st-sig"><span class="st-pkg">com.acme.reports.</span>EventReportService.<b>loadTemplate</b></span><span class="st-src">EventReportService.java:154</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.executor.</span>CachingExecutor.<b>query</b></span><span class="st-src">CachingExecutor.java:88</span></div>
           </div>
         </div>
         <div class="wf-rows">
@@ -513,15 +591,15 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">3</span>
-        <span class="stage-name">Severity wash</span>
+        <span class="stage-name">Inset 6rem &middot; cap 26rem</span>
         <span class="stage-px"></span></div>
-      <p class="stage-why">The strip takes a wash of the colour of the throw it belongs to &mdash; <code>--color-danger-bg-lighter</code> here, and the escaped case would be stronger. Ties the panel to the mark on the rail that opened it, which nothing currently does. The cost is that a red-tinted panel says &ldquo;error&rdquo; about the whole strip, when most of what is in it is ordinary library frames.</p>
+      <p class="stage-why">The most obviously floating of the five. A frame row is <code>1fr auto</code> with an ellipsised signature, so the gutter is paid for out of the frame names &mdash; but <b>measured, it is not paid at all here</b>: this clips nothing until the browser window drops under about 950px. The real cost is plainer than that. Ninety-seven pixels of white on each side is a lot of margin inside a panel whose whole job is to hold a wide list.</p>
       <div class="wf-card">
         <div class="wf-toolbar">
           <span class="wf-toggle">Critical path only</span>
           <span class="wf-toggle">Collapse all</span>
         </div>
-        <div class="exc-dock is-small dock-wash">
+        <div class="exc-dock is-small dock-raised geo-c">
           <div class="dock-head">
             <span class="pop-sev">Caught</span>
             <button type="button" class="dock-close"><i class="bi bi-x-lg"></i></button>
@@ -539,8 +617,37 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
             <div class="st-fold"><i class="bi bi-chevron-right"></i><span>2 frames in java.io</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>FillBuff</b></span><span class="st-src">JavaCharStream.java:144</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>ReadByte</b></span><span class="st-src">JavaCharStream.java:172</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>readChar</b></span><span class="st-src">JavaCharStream.java:275</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>BeginToken</b></span><span class="st-src">JavaCharStream.java:194</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParserTokenManager.<b>getNextToken</b></span><span class="st-src">OgnlParserTokenManager.java:1343</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>jj_ntk_f</b></span><span class="st-src">OgnlParser.java:3287</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>navigationChain</b></span><span class="st-src">OgnlParser.java:1314</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>unaryExpression</b></span><span class="st-src">OgnlParser.java:1261</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>multiplicativeExpression</b></span><span class="st-src">OgnlParser.java:1027</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>additiveExpression</b></span><span class="st-src">OgnlParser.java:947</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>shiftExpression</b></span><span class="st-src">OgnlParser.java:793</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>relationalExpression</b></span><span class="st-src">OgnlParser.java:536</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>equalityExpression</b></span><span class="st-src">OgnlParser.java:462</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>andExpression</b></span><span class="st-src">OgnlParser.java:370</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>exclusiveOrExpression</b></span><span class="st-src">OgnlParser.java:314</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>inclusiveOrExpression</b></span><span class="st-src">OgnlParser.java:258</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>logicalAndExpression</b></span><span class="st-src">OgnlParser.java:202</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>logicalOrExpression</b></span><span class="st-src">OgnlParser.java:146</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>conditionalTestExpression</b></span><span class="st-src">OgnlParser.java:106</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>assignmentExpression</b></span><span class="st-src">OgnlParser.java:68</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>topLevelExpression</b></span><span class="st-src">OgnlParser.java:18</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>Ognl.<b>parseExpression</b></span><span class="st-src">Ognl.java:138</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>OgnlCache.<b>parseExpression</b></span><span class="st-src">OgnlCache.java:56</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>OgnlCache.<b>getValue</b></span><span class="st-src">OgnlCache.java:47</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>ExpressionEvaluator.<b>evaluateBoolean</b></span><span class="st-src">ExpressionEvaluator.java:34</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>IfSqlNode.<b>apply</b></span><span class="st-src">IfSqlNode.java:33</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>MixedSqlNode.<b>lambda$apply$0</b></span><span class="st-src">MixedSqlNode.java:32</span></div>
+            <div class="st-fold"><i class="bi bi-chevron-right"></i><span>1 frames in java.util</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>MixedSqlNode.<b>apply</b></span><span class="st-src">MixedSqlNode.java:32</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>DynamicSqlSource.<b>getBoundSql</b></span><span class="st-src">DynamicSqlSource.java:39</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.mapping.</span>MappedStatement.<b>getBoundSql</b></span><span class="st-src">MappedStatement.java:320</span></div>
             <div class="st-fr app"><span class="st-sig"><span class="st-pkg">com.acme.reports.</span>EventReportService.<b>loadTemplate</b></span><span class="st-src">EventReportService.java:154</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.executor.</span>CachingExecutor.<b>query</b></span><span class="st-src">CachingExecutor.java:88</span></div>
           </div>
         </div>
         <div class="wf-rows">
@@ -554,15 +661,15 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">4</span>
-        <span class="stage-name">Banded header</span>
+        <span class="stage-name">Centred, max 68rem &middot; cap 24rem</span>
         <span class="stage-px"></span></div>
-      <p class="stage-why">Body stays white; the header becomes a solid <code>--color-danger</code> band with the label and the close in white. Maximum separation for minimum area &mdash; a single strong line the eye lands on, and the stack below is untouched. Also the loudest thing in the dialog by some margin, for a panel the reader opened deliberately.</p>
+      <p class="stage-why">A cap rather than an inset, and the difference is not cosmetic: <b>an inset keeps growing with the dialog, a max-width stops</b>. The trace modal is near-fullscreen, so on a wide screen this is the only one of the five where the strip stops widening while the bars behind it keep going. That either reads as a deliberate reading column or as a panel that failed to fill its space.</p>
       <div class="wf-card">
         <div class="wf-toolbar">
           <span class="wf-toggle">Critical path only</span>
           <span class="wf-toggle">Collapse all</span>
         </div>
-        <div class="exc-dock is-small dock-band">
+        <div class="exc-dock is-small dock-raised geo-d">
           <div class="dock-head">
             <span class="pop-sev">Caught</span>
             <button type="button" class="dock-close"><i class="bi bi-x-lg"></i></button>
@@ -580,8 +687,37 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
             <div class="st-fold"><i class="bi bi-chevron-right"></i><span>2 frames in java.io</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>FillBuff</b></span><span class="st-src">JavaCharStream.java:144</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>ReadByte</b></span><span class="st-src">JavaCharStream.java:172</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>readChar</b></span><span class="st-src">JavaCharStream.java:275</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>BeginToken</b></span><span class="st-src">JavaCharStream.java:194</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParserTokenManager.<b>getNextToken</b></span><span class="st-src">OgnlParserTokenManager.java:1343</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>jj_ntk_f</b></span><span class="st-src">OgnlParser.java:3287</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>navigationChain</b></span><span class="st-src">OgnlParser.java:1314</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>unaryExpression</b></span><span class="st-src">OgnlParser.java:1261</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>multiplicativeExpression</b></span><span class="st-src">OgnlParser.java:1027</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>additiveExpression</b></span><span class="st-src">OgnlParser.java:947</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>shiftExpression</b></span><span class="st-src">OgnlParser.java:793</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>relationalExpression</b></span><span class="st-src">OgnlParser.java:536</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>equalityExpression</b></span><span class="st-src">OgnlParser.java:462</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>andExpression</b></span><span class="st-src">OgnlParser.java:370</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>exclusiveOrExpression</b></span><span class="st-src">OgnlParser.java:314</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>inclusiveOrExpression</b></span><span class="st-src">OgnlParser.java:258</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>logicalAndExpression</b></span><span class="st-src">OgnlParser.java:202</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>logicalOrExpression</b></span><span class="st-src">OgnlParser.java:146</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>conditionalTestExpression</b></span><span class="st-src">OgnlParser.java:106</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>assignmentExpression</b></span><span class="st-src">OgnlParser.java:68</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>topLevelExpression</b></span><span class="st-src">OgnlParser.java:18</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>Ognl.<b>parseExpression</b></span><span class="st-src">Ognl.java:138</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>OgnlCache.<b>parseExpression</b></span><span class="st-src">OgnlCache.java:56</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>OgnlCache.<b>getValue</b></span><span class="st-src">OgnlCache.java:47</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>ExpressionEvaluator.<b>evaluateBoolean</b></span><span class="st-src">ExpressionEvaluator.java:34</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>IfSqlNode.<b>apply</b></span><span class="st-src">IfSqlNode.java:33</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>MixedSqlNode.<b>lambda$apply$0</b></span><span class="st-src">MixedSqlNode.java:32</span></div>
+            <div class="st-fold"><i class="bi bi-chevron-right"></i><span>1 frames in java.util</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>MixedSqlNode.<b>apply</b></span><span class="st-src">MixedSqlNode.java:32</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>DynamicSqlSource.<b>getBoundSql</b></span><span class="st-src">DynamicSqlSource.java:39</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.mapping.</span>MappedStatement.<b>getBoundSql</b></span><span class="st-src">MappedStatement.java:320</span></div>
             <div class="st-fr app"><span class="st-sig"><span class="st-pkg">com.acme.reports.</span>EventReportService.<b>loadTemplate</b></span><span class="st-src">EventReportService.java:154</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.executor.</span>CachingExecutor.<b>query</b></span><span class="st-src">CachingExecutor.java:88</span></div>
           </div>
         </div>
         <div class="wf-rows">
@@ -595,15 +731,15 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">5</span>
-        <span class="stage-name">Framed in the mark</span>
+        <span class="stage-name">Inset 3rem &middot; cap 30rem</span>
         <span class="stage-px"></span></div>
-      <p class="stage-why">The 3px left rail becomes a full frame in the mark colour, over a <code>--color-light</code> ground, and the shadow goes. Definite without a fill: the panel is bounded rather than shaded. A full red rectangle is a strong border for a panel that is mostly not about the error.</p>
+      <p class="stage-why">Same width as <b>2</b>, taller still &mdash; here to isolate Y. Thirty rem is most of a laptop viewport, so the strip starts pushing the waterfall it is supposed to sit inside off the screen. The question this one answers is where "taller" stops being useful.</p>
       <div class="wf-card">
         <div class="wf-toolbar">
           <span class="wf-toggle">Critical path only</span>
           <span class="wf-toggle">Collapse all</span>
         </div>
-        <div class="exc-dock is-small dock-framed">
+        <div class="exc-dock is-small dock-raised geo-e">
           <div class="dock-head">
             <span class="pop-sev">Caught</span>
             <button type="button" class="dock-close"><i class="bi bi-x-lg"></i></button>
@@ -621,8 +757,37 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
             <div class="st-fold"><i class="bi bi-chevron-right"></i><span>2 frames in java.io</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>FillBuff</b></span><span class="st-src">JavaCharStream.java:144</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>ReadByte</b></span><span class="st-src">JavaCharStream.java:172</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>readChar</b></span><span class="st-src">JavaCharStream.java:275</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>BeginToken</b></span><span class="st-src">JavaCharStream.java:194</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParserTokenManager.<b>getNextToken</b></span><span class="st-src">OgnlParserTokenManager.java:1343</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>jj_ntk_f</b></span><span class="st-src">OgnlParser.java:3287</span></div>
             <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>navigationChain</b></span><span class="st-src">OgnlParser.java:1314</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>unaryExpression</b></span><span class="st-src">OgnlParser.java:1261</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>multiplicativeExpression</b></span><span class="st-src">OgnlParser.java:1027</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>additiveExpression</b></span><span class="st-src">OgnlParser.java:947</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>shiftExpression</b></span><span class="st-src">OgnlParser.java:793</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>relationalExpression</b></span><span class="st-src">OgnlParser.java:536</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>equalityExpression</b></span><span class="st-src">OgnlParser.java:462</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>andExpression</b></span><span class="st-src">OgnlParser.java:370</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>exclusiveOrExpression</b></span><span class="st-src">OgnlParser.java:314</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>inclusiveOrExpression</b></span><span class="st-src">OgnlParser.java:258</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>logicalAndExpression</b></span><span class="st-src">OgnlParser.java:202</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>logicalOrExpression</b></span><span class="st-src">OgnlParser.java:146</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>conditionalTestExpression</b></span><span class="st-src">OgnlParser.java:106</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>assignmentExpression</b></span><span class="st-src">OgnlParser.java:68</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>OgnlParser.<b>topLevelExpression</b></span><span class="st-src">OgnlParser.java:18</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.ognl.</span>Ognl.<b>parseExpression</b></span><span class="st-src">Ognl.java:138</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>OgnlCache.<b>parseExpression</b></span><span class="st-src">OgnlCache.java:56</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>OgnlCache.<b>getValue</b></span><span class="st-src">OgnlCache.java:47</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>ExpressionEvaluator.<b>evaluateBoolean</b></span><span class="st-src">ExpressionEvaluator.java:34</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>IfSqlNode.<b>apply</b></span><span class="st-src">IfSqlNode.java:33</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>MixedSqlNode.<b>lambda$apply$0</b></span><span class="st-src">MixedSqlNode.java:32</span></div>
+            <div class="st-fold"><i class="bi bi-chevron-right"></i><span>1 frames in java.util</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>MixedSqlNode.<b>apply</b></span><span class="st-src">MixedSqlNode.java:32</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.scripting.xmltags.</span>DynamicSqlSource.<b>getBoundSql</b></span><span class="st-src">DynamicSqlSource.java:39</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.mapping.</span>MappedStatement.<b>getBoundSql</b></span><span class="st-src">MappedStatement.java:320</span></div>
             <div class="st-fr app"><span class="st-sig"><span class="st-pkg">com.acme.reports.</span>EventReportService.<b>loadTemplate</b></span><span class="st-src">EventReportService.java:154</span></div>
+            <div class="st-fr"><span class="st-sig"><span class="st-pkg">org.apache.ibatis.executor.</span>CachingExecutor.<b>query</b></span><span class="st-src">CachingExecutor.java:88</span></div>
           </div>
         </div>
         <div class="wf-rows">
@@ -635,69 +800,46 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
     </div>
 
     <div class="verdict-box">
-      <h4>The pick, and what "smaller" actually costs</h4>
-      <p><b>1, sunken.</b> The strip pushes the bars apart to make room for itself, so a well cut
-        into the card is what it physically is &mdash; and <code>--color-lighter</code> against
-        <code>--color-bg-card</code> is a separation the app already uses everywhere else, not a new
-        idea. <b>2</b> is the one to avoid if the ask is contrast: its grounds stay identical, and
-        the chip above it says so.</p>
-      <p><b>3, 4 and 5 all spend the danger colour</b> on a panel whose content is mostly ordinary
-        library frames. They are the right answer only if you want the strip to keep announcing
-        which rail mark opened it &mdash; which is a real thing nothing currently does, just not the
-        thing that was asked for.</p>
-      <p><b>The numbers are small, and that is worth knowing before reading them.</b> A light ground
-        against white is a <b>perceptual</b> separation, not a high-ratio one: the sunken variant
-        measures <b>1.12:1</b> and the softer <code>--color-light</code> only 1.04:1, while the solid
-        band in <b>4</b> is the only option here that produces a large number (<b>4.16:1</b>). So the
-        chips rank the options honestly but they do not say "1.12 is barely anything" &mdash; at these
-        values the border and the white fold bars inside do as much separating as the fill. If what
-        you want is a step change rather than a seam, <b>4</b> is the only one of the five that
-        delivers it.</p>
-      <p><b>The size reduction is the same in all five</b>, so the chips compare like with like:
-        header padding <code>0.4/0.6rem</code> to <code>0.26/0.5rem</code>, stack padding
-        <code>0.35/0.6/0.5</code> to <code>0.25/0.5/0.35</code>, the close button
-        <code>1.4rem</code> to <code>1.2rem</code>, the frame rows a hair tighter, and the scroll cap
-        <code>20rem</code> to <code>17rem</code>. The cap is the only one with a real cost: a long
-        stack scrolls sooner. Everything else is padding the strip was not using.</p>
+      <h4>The pick, and what X actually costs</h4>
+      <p><b>2 &mdash; inset 3rem, cap 24rem.</b> The inset is what makes Option 2 work: shadow on
+        four sides instead of two, so the strip reads as raised over the bars rather than as a band
+        cut into them. The cap goes from <code>17rem</code> to <code>24rem</code>, about 40% more
+        stack per screenful, which is the dimension that was actually short &mdash; the content is a
+        253-frame list.</p>
+      <p><b>I expected X to be bounded by the frames. Measured, it is not.</b> A frame row is
+        <code>grid-template-columns: 1fr auto</code> with an ellipsised signature, so I assumed the
+        gutter would start eating frame names &mdash; the chips count them, and <b>all five clip zero
+        of 33</b> at any realistic width. Sweeping the viewport from 1920px down, the first clip
+        appears at a strip width near <b>700px</b>, which none of these reach until the browser window
+        is under about 950px. So the inset is free, and the choice between them is a judgement about
+        how much white belongs inside the panel &mdash; not a trade against the content.</p>
+      <p><b>Y is bounded by the waterfall.</b> The strip pushes the bars down rather than covering
+        them, so height it takes is height they lose. <b>5</b> is there to show where that stops
+        being a good trade &mdash; 30rem is most of a laptop viewport, and the panel starts crowding
+        out the thing it belongs to.</p>
     </div>
 
   </div>
 
 <script>
-// Read off the drawing, not typed into it. Two things matter and they are different surfaces: the
-// strip's body, and its header band. And a half-transparent fill has to be composited over the card
-// before it is measured, or a 10%-red header reads as solid red.
-function parse(c) {
-  const n = c.match(/[\d.]+/g).map(Number);
-  return { r: n[0], g: n[1], b: n[2], a: n.length > 3 ? n[3] : 1 };
-}
-function over(fg, bg) {
-  const f = parse(fg), b = parse(bg);
-  return [0, 1, 2].map(i => [f.r, f.g, f.b][i] * f.a + [b.r, b.g, b.b][i] * (1 - f.a));
-}
-function lum(rgb) {
-  const [r, g, b] = rgb.map(v => {
-    const s = v / 255;
-    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-function ratio(fg, bg) {
-  const [hi, lo] = [lum(over(fg, bg)), lum(over(bg, bg))].sort((x, y) => y - x);
-  return (hi + 0.05) / (lo + 0.05);
-}
+// Read off the drawing. Two of these are the whole point of the page: whether the stack really
+// scrolls (or the Y column compares nothing), and how many frame signatures the narrower X clips.
 for (const stage of document.querySelectorAll('.stage')) {
   const dock = stage.querySelector('.exc-dock');
   if (!dock) { continue; }
-  const cardBg = getComputedStyle(stage.querySelector('.wf-card')).backgroundColor;
-  const body = ratio(getComputedStyle(dock).backgroundColor, cardBg);
-  const head = ratio(getComputedStyle(stage.querySelector('.dock-head')).backgroundColor, cardBg);
-  const fmt = r => r < 1.005 ? 'same' : r.toFixed(2) + ':1';
-  // The body is the surface the reader sees most of, so it is the one that carries the verdict.
+  const card = stage.querySelector('.wf-card');
+  const r = dock.getBoundingClientRect();
+  const cr = card.getBoundingClientRect();
+  const stack = stage.querySelector('.dock-stack');
+  const scrolls = stack.scrollHeight > stack.clientHeight + 1;
+  const cut = [...stage.querySelectorAll('.st-sig')]
+    .filter(x => x.scrollWidth > x.clientWidth + 1).length;
+  const total = stage.querySelectorAll('.st-sig').length;
   stage.querySelector('.stage-px').innerHTML =
-    `<span>strip ${Math.round(dock.getBoundingClientRect().height)}px</span>` +
-    `<span class="${body < 1.005 ? 'warn' : 'good'}">body ${fmt(body)}</span>` +
-    `<span class="${head < 1.005 ? 'warn' : 'good'}">header ${fmt(head)}</span>`;
+    `<span>${Math.round(r.width)} &times; ${Math.round(r.height)}px</span>` +
+    `<span>inset ${Math.round(r.left - cr.left)}px</span>` +
+    `<span class="${scrolls ? 'good' : 'warn'}">${scrolls ? 'scrolls' : 'no scroll'}</span>` +
+    `<span class="${cut ? 'warn' : 'good'}">${cut}/${total} clipped</span>`;
 }
 </script>
 
