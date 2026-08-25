@@ -2363,17 +2363,21 @@ function tooltip(span: TraceSpanRow): string {
  * The docked strip. Full width by virtue of being a block in the waterfall's own column rather than
  * an absolutely positioned panel over it, so nothing has to be told how wide the dialog is.
  *
- * Sunken, and flush, on purpose. The strip does not float: it sits in the flow and pushes the bars
+ * Sunken rather than raised. The strip does not float: it sits in the flow and pushes the bars
  * down, which is the whole reason it docks instead of hovering — a panel wide enough for a fully
- * qualified frame would otherwise cover the bars being compared. A raised, inset treatment says the
+ * qualified frame would otherwise cover the bars being compared. An *outer* shadow says the
  * opposite of that, so it is the wrong costume however good it looks.
  *
- * The separation it does need comes from the ground instead: the strip and the card were both
- * --color-bg-card, told apart by a hairline. --color-lighter over an inset shadow reads as a well
- * cut into the card, which is what the parted rows above and below already say.
+ * The inset from the sides is a separate question and survives: a recess narrower than the card is
+ * still a recess, and the gutters are what give it an edge on four sides instead of two. Measured,
+ * they cost the frame rows nothing — nothing clips until the strip is under ~700px wide.
+ *
+ * The separation itself comes from the ground: the strip and the card were both --color-bg-card,
+ * told apart by a hairline. --color-lighter over an inset shadow reads as a well cut into the card,
+ * which is what the parted rows above and below already say.
  */
 .exc-dock {
-  margin: 0 0 0.4rem;
+  margin: 0.4rem 6rem 0.9rem;
   border: 1px solid var(--color-border-input);
   border-left: 3px solid var(--mark);
   border-radius: var(--radius-md);
