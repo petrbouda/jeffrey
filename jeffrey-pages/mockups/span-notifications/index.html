@@ -173,9 +173,12 @@
     <div class="facts">
       <h4><i class="bi bi-tools"></i> What the backend would have to provide</h4>
       <ul>
-        <li><code>NotificationEvent</code> gains <code>@Contextual long traceId</code> and <code>long spanId</code>, stamped
-          at commit from <code>Tracer.current()</code> &mdash; <code>0</code> when no span is open, which is already the
-          library's "no id" convention.</li>
+        <li><code>NotificationEvent</code> gains <code>@Contextual long traceId</code> and
+          <code>long enclosingSpanId</code>, stamped at commit from <code>Tracer.current()</code> &mdash; <code>0</code>
+          when no span is open, which is already the library's "no id" convention.
+          <em>As built:</em> the field could not be called <code>spanId</code>, see the next point &mdash; that turned
+          out to be a hard constraint rather than a preference, and the stamping happens in a new <code>emit()</code>
+          rather than in <code>commit()</code>.</li>
         <li><strong><code>AlertEvent</code> is removed.</strong> It is field-for-field identical to
           <code>NotificationEvent</code>, and its only claim &mdash; "this one is serious" &mdash; is what
           <code>severity</code> already carries, so the two can contradict each other (an Alert with
@@ -191,10 +194,12 @@
         <li>They must <strong>not</strong> extend <code>AbstractTracedEvent</code>: structural span discovery keys on a
           declared <code>spanId</code> field, so that would turn every notification into a span. This is exactly why
           <code>TraceScopeEvent</code> calls its field <code>scopedSpanId</code>.</li>
-        <li>One derived table filled beside <code>DERIVE_TRACE_SPANS</code>, with a <code>kind</code> column for the two
-          families &mdash; typed columns, not read-time JSON extraction, for the same reason <code>trace_spans</code>
-          exists. The escaped flag is a match between a throw's <code>thrownClass</code> and
-          <code>trace_spans.error_type</code>, computed once at derivation.</li>
+        <li>Derived tables filled beside <code>DERIVE_TRACE_SPANS</code> &mdash; typed columns, not read-time JSON
+          extraction, for the same reason <code>trace_spans</code> exists. The escaped flag is a match between a throw's
+          <code>thrownClass</code> and <code>trace_spans.error_type</code>, computed once at derivation.
+          <em>As built:</em> two tables, <code>trace_notifications</code> and <code>trace_exceptions</code>, not one with
+          a <code>kind</code> column. The two agree on when and where and on almost nothing else, so one table would
+          have been half NULLs and every read would have had to know which half applied.</li>
         <li><code>TraceDetail</code> carries the notifications; <code>EVENTS_IN_SPAN</code> must exclude the notification types the way
           it already excludes span, scope and promoted blocking types, or every notification is listed twice.</li>
         <li>Nothing above depends on which direction wins. Only the last step &mdash; the component &mdash; does.</li>

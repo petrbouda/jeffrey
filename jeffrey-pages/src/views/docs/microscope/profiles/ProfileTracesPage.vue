@@ -34,6 +34,7 @@ const headings = [
   { id: 'waterfall', text: 'Waterfall', level: 2 },
   { id: 'blocking-ops', text: 'Blocking Operations as Spans', level: 2 },
   { id: 'jvm-context', text: 'Why a Trace Was Slow', level: 2 },
+  { id: 'instants', text: 'Notifications and Exceptions', level: 2 },
   { id: 'span-drill-down', text: 'Span Drill-Down', level: 2 },
   { id: 'operations', text: 'Traces by Operation', level: 2 },
   { id: 'attributes', text: 'Traces by Attributes', level: 2 },
@@ -233,6 +234,28 @@ if (event.isEnabled()) {
 
       <DocsCallout type="tip">
         Nothing is instrumented for this and nothing new is recorded — the promotion is pure analysis over events every recording already contains, so it applies retroactively to existing profiles. What bounds it is the recording itself: these JDK events carry thresholds (typically 10–20&nbsp;ms by default), so only waits long enough to be recorded are long enough to become bars. An event that began outside every span stays an ordinary event.
+      </DocsCallout>
+
+      <h2 id="instants">Notifications and Exceptions</h2>
+
+      <p>Two things happen inside a trace that are not spans and never will be: what the application <em>said</em> while it ran, and what was <em>thrown</em> at it. Both are instants — a moment, no duration — and both are drawn on rails of their own above the span rows, with a matching pin on the bar of the span they belong to.</p>
+
+      <p>Each is drawn twice on purpose. The rail sits outside the rows, so folding a subtree, filtering to the critical path or drawing a span at the minimum bar width can never take a mark away; the pin says <em>which</em> span, which the rail cannot. Clicking a rail mark opens the entry for an immediate read, and its footer selects the span underneath — unfolding whatever hid it — where the same entry is listed in the detail panel beside everything else that span carries. A folded row reports what it swallowed with hollow counts beside the <code>+N</code> and the hidden-error dot.</p>
+
+      <h3>Notifications</h3>
+
+      <p>A <code>jeffrey.Notification</code> is a note your code writes into its own recording: a threshold crossed, a cache warmed, a feature flag flipped, a circuit breaker opened. It carries a stable <code>type</code>, a <code>title</code>, a <code>message</code>, a <code>severity</code>, a <code>category</code> and the <code>source</code> that raised it. Calling <code>emit()</code> rather than <code>commit()</code> stamps the enclosing span's ids onto the event, which is what lets the analysis draw it against that span rather than guessing from the thread and the clock — a notification can be raised on a pool thread or a callback for work that belongs somewhere else entirely, and thread-and-window would file it against whatever happened to be running.</p>
+
+      <p><code>severity</code> is the whole of "how serious is this". There is deliberately no second event type for the serious ones: two types carrying the same six fields could disagree with each other, and every reader already ranks by severity.</p>
+
+      <h3>Exceptions</h3>
+
+      <p>Throws need no instrumentation and no ids at all. <code>jdk.JavaExceptionThrow</code> and <code>jdk.JavaErrorThrow</code> are already recorded and already power the Exceptions view; a throw is always recorded on the thread that threw it, at the instant it threw, so the derivation attributes it to the innermost span whose window contains that instant on that thread — the same rule promoted blocking spans follow. Nothing new is recorded, so this applies retroactively to existing profiles.</p>
+
+      <p>One throw per failed span gets marked <strong>escaped</strong>: the one whose class matches the span's own error type. That is the throw that failed the span, and it is what turns a bare class name into a class name with a message, an instant and a stack behind it. Everything else was caught — which is most of them, since a service that throws for control flow produces thousands per request — and stays drawn quietly.</p>
+
+      <DocsCallout type="tip">
+        A notification is a diamond and a throw is a cross, because shape has to carry the family before colour does: a CRITICAL notification and an escaped throw are both red and mean entirely different things. Each family has its own toolbar toggle, for the same reason Blocking ops and I/O have separate ones — silencing the chatter must not silence the failure.
       </DocsCallout>
 
       <h2 id="jvm-context">Why a Trace Was Slow</h2>
