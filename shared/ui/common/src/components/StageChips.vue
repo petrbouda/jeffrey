@@ -129,7 +129,7 @@ const titleOf = (group: StageChipGroup): string => {
 
 .stage-chips__arrow {
   color: var(--color-text-muted);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   line-height: 1;
 }
 
@@ -137,11 +137,12 @@ const titleOf = (group: StageChipGroup): string => {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-1);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 500;
-  line-height: 1.4;
-  padding: 0.1rem 0.45rem;
+  line-height: 1.5;
+  padding: 0.2rem 0.55rem;
   border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
   background: var(--color-bg-card);
   color: var(--color-text-muted);
   white-space: nowrap;
@@ -172,19 +173,19 @@ const titleOf = (group: StageChipGroup): string => {
 .stage-chip__mark {
   display: inline-flex;
   align-items: center;
-  font-size: 0.6rem;
+  font-size: 0.65rem;
 }
 
 .stage-chip__time {
   font-family: var(--font-family-monospace);
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   font-variant-numeric: tabular-nums;
   opacity: 0.85;
 }
 
 .stage-chip__spinner {
-  width: 0.5rem;
-  height: 0.5rem;
+  width: 0.55rem;
+  height: 0.55rem;
   border: 1.5px solid currentColor;
   border-right-color: transparent;
   border-radius: var(--radius-circle);
