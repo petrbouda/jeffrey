@@ -283,7 +283,7 @@
         <span class="lane-name">
           <i
             class="rail-glyph exc"
-            :style="{ background: exceptionColor(escapedExceptionCount > 0) }"
+            :style="{ color: exceptionColor(escapedExceptionCount > 0) }"
           ></i>
           Exceptions
         </span>
@@ -2102,7 +2102,31 @@ function tooltip(span: TraceSpanRow): string {
 }
 
 .rail-glyph.exc {
-  border-radius: var(--radius-circle);
+  position: relative;
+  width: 0.55rem;
+  height: 0.55rem;
+  background: transparent;
+}
+
+.rail-glyph.exc::before,
+.rail-glyph.exc::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  margin-left: -0.75px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.rail-glyph.exc::before {
+  transform: rotate(45deg);
+}
+
+.rail-glyph.exc::after {
+  transform: rotate(-45deg);
 }
 
 /* The rail's own hairline, so a mark sits on something rather than floating in the gap. */
@@ -2264,6 +2288,13 @@ function tooltip(span: TraceSpanRow): string {
   box-shadow: var(--shadow-lg);
   text-align: left;
   cursor: default;
+  /*
+   * The rails sit directly under the toolbar, so upward there is only the dialog's own chrome to
+   * grow into. A long message scrolls inside the popover instead of running off the top of the
+   * dialog, where it could not be read or dismissed.
+   */
+  max-height: 13rem;
+  overflow-y: auto;
 }
 
 .rail-pop.up {
