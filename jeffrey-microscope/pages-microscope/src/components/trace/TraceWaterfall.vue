@@ -354,6 +354,7 @@
         class="dock-stack"
         :profile-id="profileId"
         :stacktrace-id="openException.stacktraceId"
+        :thrown-class="openException.thrownClass"
       />
       <p v-else class="dock-none">The recording captured no stack for this throw.</p>
     </div>

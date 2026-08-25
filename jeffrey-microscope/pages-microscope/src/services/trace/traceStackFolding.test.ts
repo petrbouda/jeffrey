@@ -21,6 +21,7 @@ import type { TraceStackFrameRow } from '@/services/api/model/trace/TraceModels'
 import {
   expandFold,
   foldedStack,
+  throwingFrameIndex,
   framePackage,
   isApplicationFrame,
   shownFrameCount,
@@ -181,6 +182,137 @@ describe('foldedStack', () => {
 
     expect(shownFrameCount(foldedStack(allMine))).toBe(3);
     expect(foldedStack(allMine).some(entry => entry.kind === 'fold')).toBe(false);
+  });
+});
+
+describe('throwingFrameIndex', () => {
+  // The shape JFR produces, because the throw event is emitted from inside Throwable's
+  // constructor: one <init> per level of the exception's own hierarchy, then the real frame.
+  const ognl = [
+    frame('java.lang.Throwable', '<init>', 266),
+    frame('java.lang.Exception', '<init>', 113),
+    frame('java.io.IOException', '<init>', 62),
+    frame('org.apache.ibatis.ognl.JavaCharStream', 'fillBuff', 148),
+    frame('com.acme.reports.ReportEventsMapper', 'getReportEvents', 88),
+    frame('java.lang.Thread', 'run', 1583)
+  ];
+
+  it('points past the constructor chain, at the frame that contained the throw', () => {
+    expect(throwingFrameIndex(ognl, 'java.io.IOException')).toBe(3);
+  });
+
+  it('absorbs fillInStackTrace, which sits above the constructors', () => {
+    const withFill = [frame('java.lang.Throwable', 'fillInStackTrace', 1072), ...ognl];
+
+    expect(throwingFrameIndex(withFill, 'java.io.IOException')).toBe(4);
+  });
+
+  it('keeps an <init> that is the real answer, when the throw came from a constructor', () => {
+    // A blanket "strip every leading <init>" eats com.acme.Foo.<init>. Matching on the thrown
+    // class ends the chain at the exception's own constructor and no further.
+    const inConstructor = [
+      frame('java.lang.Throwable', '<init>', 266),
+      frame('java.lang.Exception', '<init>', 113),
+      frame('com.acme.MyException', '<init>', 12),
+      frame('com.acme.Foo', '<init>', 40),
+      frame('java.lang.Thread', 'run', 1583)
+    ];
+
+    expect(throwingFrameIndex(inConstructor, 'com.acme.MyException')).toBe(3);
+  });
+
+  it('stays at 0 when the stack does not have the shape it reads', () => {
+    // Nothing to be confident about, so nothing moves -- better a mark in the old place than a
+    // mark somewhere invented.
+    expect(throwingFrameIndex(ognl, 'com.acme.SomethingElse')).toBe(0);
+    expect(throwingFrameIndex(ognl, null)).toBe(0);
+    expect(throwingFrameIndex(ognl, undefined)).toBe(0);
+    expect(throwingFrameIndex([], 'java.io.IOException')).toBe(0);
+  });
+
+  it('stays at 0 when the whole stack is the chain, leaving no frame to mark', () => {
+    const nothingElse = [
+      frame('java.lang.Throwable', '<init>', 266),
+      frame('java.io.IOException', '<init>', 62)
+    ];
+
+    expect(throwingFrameIndex(nothingElse, 'java.io.IOException')).toBe(0);
+  });
+
+  it('ends the chain at the last frame naming the thrown class, not the first', () => {
+    const repeated = [
+      frame('java.lang.Throwable', '<init>', 266),
+      frame('com.acme.MyException', '<init>', 12),
+      frame('com.acme.MyException', '<init>', 18),
+      frame('com.acme.Service', 'call', 40)
+    ];
+
+    expect(throwingFrameIndex(repeated, 'com.acme.MyException')).toBe(3);
+  });
+});
+
+describe('foldedStack with a constructor chain', () => {
+  const ognl = [
+    frame('java.lang.Throwable', '<init>', 266),
+    frame('java.lang.Exception', '<init>', 113),
+    frame('java.io.IOException', '<init>', 62),
+    frame('org.apache.ibatis.ognl.JavaCharStream', 'fillBuff', 148),
+    frame('com.acme.reports.ReportEventsMapper', 'getReportEvents', 88),
+    frame('java.lang.Thread', 'run', 1583)
+  ];
+
+  it('marks the frame that threw and folds the chain away', () => {
+    const entries = foldedStack(ognl, 'java.io.IOException');
+
+    expect(shape(entries)).toEqual([
+      'fold(3: java.lang,java.io)',
+      'org.apache.ibatis.ognl.JavaCharStream.fillBuff',
+      'com.acme.reports.ReportEventsMapper.getReportEvents',
+      'java.lang.Thread.run'
+    ]);
+    const throwing = entries.filter(e => e.kind === 'frame' && e.throwing);
+    expect(throwing).toHaveLength(1);
+    expect(throwing[0].kind === 'frame' && throwing[0].frame.methodName).toBe('fillBuff');
+  });
+
+  it('does not leave an application exception constructor standing above the throw', () => {
+    // com.acme.MyException is the reader's own package, so the application rule would keep its
+    // <init> -- a stray row above the frame that actually threw.
+    const appException = [
+      frame('java.lang.Throwable', '<init>', 266),
+      frame('com.acme.MyException', '<init>', 12),
+      frame('com.acme.Service', 'call', 40),
+      frame('java.lang.Thread', 'run', 1583)
+    ];
+
+    expect(shape(foldedStack(appException, 'com.acme.MyException'))).toEqual([
+      'fold(2: java.lang,com.acme)',
+      'com.acme.Service.call',
+      'java.lang.Thread.run'
+    ]);
+  });
+
+  it('marks nothing inside an opened bar as the throwing frame', () => {
+    const fold = foldedStack(ognl, 'java.io.IOException').find(
+      (e): e is StackFoldEntry => e.kind === 'fold'
+    );
+    if (!fold) {
+      throw new Error('the chain should fold');
+    }
+
+    expect(expandFold(fold).some(entry => entry.throwing)).toBe(false);
+  });
+
+  it('marks the same frame with folding off', () => {
+    const entries = unfoldedStack(ognl, 'java.io.IOException');
+
+    expect(entries.findIndex(e => e.kind === 'frame' && e.throwing)).toBe(3);
+  });
+
+  it('behaves exactly as before when no thrown class is given', () => {
+    expect(foldedStack(ognl)).toEqual(foldedStack(ognl, null));
+    const first = foldedStack(ognl)[0];
+    expect(first.kind === 'frame' && first.throwing).toBe(true);
   });
 });
 

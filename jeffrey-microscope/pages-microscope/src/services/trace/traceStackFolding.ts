@@ -140,19 +140,77 @@ function packagesOf(frames: TraceStackFrameRow[]): string[] {
   return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([pkg]) => pkg);
 }
 
-function frameEntry(frame: TraceStackFrameRow, depth: number): StackFrameEntry {
+/**
+ * Methods that only ever appear while an exception is building its own stack.
+ *
+ * The same pair the project's "Exception Overhead" guard anchors on
+ * (`V002__guardians_seed.sql`), for the same reason: they sit on top of every throw.
+ */
+const CONSTRUCTOR_CHAIN_METHODS: readonly string[] = ['<init>', 'fillInStackTrace'];
+
+/**
+ * Where the stack actually starts — the first frame below the exception's constructor chain.
+ *
+ * `jdk.JavaExceptionThrow` and `jdk.JavaErrorThrow` are emitted from inside `Throwable`'s
+ * constructor, so every throw's stack opens with one `<init>` per level of the exception's own
+ * hierarchy: `Throwable.<init>`, `Exception.<init>`, `IOException.<init>`, and only then the frame
+ * that contained the `throw`. Treating index 0 as the throwing frame puts the mark on JDK plumbing
+ * every single time.
+ *
+ * The boundary is found rather than guessed, because `thrownClass` names exactly the most-derived
+ * constructor in that chain. Which is what makes the awkward case come out right: a throw from
+ * *inside* a constructor leaves an `<init>` frame that is the real answer, and a blanket "strip
+ * every leading `<init>`" would eat it.
+ *
+ * @returns the index of the throwing frame, or 0 when the stack does not have this shape — a stack
+ *          this rule cannot read is one it should not move the mark on
+ */
+export function throwingFrameIndex(
+  frames: TraceStackFrameRow[],
+  thrownClass?: string | null
+): number {
+  if (!thrownClass || frames.length === 0) {
+    return 0;
+  }
+
+  let chainEnd = -1;
+  for (let index = 0; index < frames.length; index++) {
+    const frame = frames[index];
+    if (!CONSTRUCTOR_CHAIN_METHODS.includes(frame.methodName)) {
+      break;
+    }
+    if (frame.className === thrownClass) {
+      // Not a break: a chain can name the same class more than once, and it is the last of them
+      // that ends it.
+      chainEnd = index;
+    }
+  }
+
+  // The whole stack being the chain would leave no frame to mark, so the mark stays where it is.
+  return chainEnd >= 0 && chainEnd + 1 < frames.length ? chainEnd + 1 : 0;
+}
+
+function frameEntry(
+  frame: TraceStackFrameRow,
+  depth: number,
+  throwingIndex: number
+): StackFrameEntry {
   return {
     kind: 'frame',
     frame,
     depth,
-    throwing: depth === 0,
+    throwing: depth === throwingIndex,
     application: isApplicationFrame(frame)
   };
 }
 
 /** Every frame, unfolded, in stack order. What `Fold libraries` off produces. */
-export function unfoldedStack(frames: TraceStackFrameRow[]): StackEntry[] {
-  return frames.map(frameEntry);
+export function unfoldedStack(
+  frames: TraceStackFrameRow[],
+  thrownClass?: string | null
+): StackEntry[] {
+  const throwingIndex = throwingFrameIndex(frames, thrownClass);
+  return frames.map((frame, index) => frameEntry(frame, index, throwingIndex));
 }
 
 /**
@@ -163,7 +221,10 @@ export function unfoldedStack(frames: TraceStackFrameRow[]): StackEntry[] {
  * that threw, and paint a `java.util.stream` frame in the throwing frame's red.
  */
 export function expandFold(fold: StackFoldEntry): StackFrameEntry[] {
-  return fold.frames.map((frame, index) => frameEntry(frame, fold.depth + index));
+  // A bar only ever holds frames the fold rule declined to keep, and the throwing frame is always
+  // kept — so nothing inside a bar can be it, whatever the throwing index turns out to be.
+  const noneAreThrowing = -1;
+  return fold.frames.map((frame, index) => frameEntry(frame, fold.depth + index, noneAreThrowing));
 }
 
 /**
@@ -179,10 +240,15 @@ export function expandFold(fold: StackFoldEntry): StackFrameEntry[] {
  * so folding would leave a bar and nothing else — which reads as a broken panel rather than as an
  * answer. When that would happen, folding does not run and the stack renders in full.
  */
-export function foldedStack(frames: TraceStackFrameRow[]): StackEntry[] {
+export function foldedStack(
+  frames: TraceStackFrameRow[],
+  thrownClass?: string | null
+): StackEntry[] {
   if (frames.length === 0) {
     return [];
   }
+
+  const throwingIndex = throwingFrameIndex(frames, thrownClass);
 
   // The floor: a throw from inside a library has no frames of the reader's own anywhere, so
   // folding would leave bars and the two structural frames — a panel that looks broken rather
@@ -191,13 +257,19 @@ export function foldedStack(frames: TraceStackFrameRow[]): StackEntry[] {
   // Asked of every frame including the throwing one and the root: if the reader's own code threw,
   // folding the framework beneath it is exactly the useful case, even when nothing else is theirs.
   if (!frames.some(isApplicationFrame)) {
-    return unfoldedStack(frames);
+    return unfoldedStack(frames, thrownClass);
   }
 
   const lastIndex = frames.length - 1;
-  const keep = frames.map(
-    (frame, index) => index === 0 || index === lastIndex || isApplicationFrame(frame)
-  );
+  const keep = frames.map((frame, index) => {
+    // Chain frames never stand, whatever their package. An application exception type puts
+    // `com.acme.MyException.<init>` in the chain, and the application rule would otherwise keep it
+    // hanging above the frame that actually threw.
+    if (index < throwingIndex) {
+      return false;
+    }
+    return index === throwingIndex || index === lastIndex || isApplicationFrame(frame);
+  });
 
   const entries: StackEntry[] = [];
   let run: TraceStackFrameRow[] = [];
@@ -214,7 +286,7 @@ export function foldedStack(frames: TraceStackFrameRow[]): StackEntry[] {
   frames.forEach((frame, index) => {
     if (keep[index]) {
       flushRun();
-      entries.push(frameEntry(frame, index));
+      entries.push(frameEntry(frame, index, throwingIndex));
       return;
     }
     if (run.length === 0) {

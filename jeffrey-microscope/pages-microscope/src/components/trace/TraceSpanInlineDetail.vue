@@ -304,6 +304,7 @@
                 class="sd-stack"
                 :profile-id="profileId"
                 :stacktrace-id="exception.stacktraceId"
+                :thrown-class="exception.thrownClass"
               />
             </span>
           </div>

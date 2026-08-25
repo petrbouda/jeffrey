@@ -114,6 +114,12 @@ const props = defineProps<{
   /** Null when the throw carried no stack, which renders as a sentence rather than as nothing. */
   stacktraceId: string | null;
   /**
+   * The class that was thrown. Not decoration: it is what locates the end of the constructor chain
+   * JFR puts on top of every throw, and so which frame wears the throwing mark. Without it the mark
+   * falls back to the top frame, which is `Throwable.<init>`.
+   */
+  thrownClass?: string | null;
+  /**
    * Preview mode: the top few frames only, no header, no controls. What the rail's popover shows,
    * where there is room for about six rows before it starts scrolling.
    */
@@ -139,9 +145,9 @@ watch(stacktraceId, () => {
 /** The stack as the fold rule leaves it, with the reader's opened bars put back. */
 const entries = computed<StackEntry[]>(() => {
   if (!folding.value) {
-    return unfoldedStack(frames.value);
+    return unfoldedStack(frames.value, props.thrownClass);
   }
-  return foldedStack(frames.value).flatMap(entry => {
+  return foldedStack(frames.value, props.thrownClass).flatMap(entry => {
     if (entry.kind === 'fold' && opened.value.has(entry.depth)) {
       // The bar stays above what it opened, so the reader can see what they opened and close it.
       return [entry, ...expandFold(entry)];
