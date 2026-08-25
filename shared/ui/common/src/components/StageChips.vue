@@ -142,7 +142,6 @@ const titleOf = (group: StageChipGroup): string => {
   line-height: 1.4;
   padding: 0.1rem 0.45rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
   background: var(--color-bg-card);
   color: var(--color-text-muted);
   white-space: nowrap;
