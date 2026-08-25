@@ -182,9 +182,10 @@
         <li><strong><code>AlertEvent</code> is removed.</strong> It is field-for-field identical to
           <code>NotificationEvent</code>, and its only claim &mdash; "this one is serious" &mdash; is what
           <code>severity</code> already carries, so the two can contradict each other (an Alert with
-          <code>severity=LOW</code>). Only two call sites emit it, both already passing a Severity. The reader keeps
-          recognising <code>jeffrey.Alert</code> for recordings that already contain it; what goes is the second way to
-          write one.</li>
+          <code>severity=LOW</code>). Only two call sites emit it, both already passing a Severity. Neither
+          <code>jeffrey.Alert</code> nor <code>jeffrey.Message</code> survives anywhere in the reader either: no
+          constant, no catalog entry, no derivation names them. An older recording that still contains them parses
+          exactly as before &mdash; the parser is generic &mdash; they simply carry no special meaning any more.</li>
         <li><strong>Exceptions need no new ids and no new ingestion.</strong> <code>jdk.JavaExceptionThrow</code> and
           <code>jdk.JavaErrorThrow</code> are already parsed and already power the Exceptions view, landing in
           <code>events</code> with a <code>thread_hash</code>, a <code>stacktrace_hash</code> and

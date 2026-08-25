@@ -100,7 +100,7 @@ onMounted(() => {
             <li>Instances (Java applications) and recording sessions</li>
             <li>Profiler-settings configurations</li>
             <li>The durable workspace-event queue and its consumer offsets</li>
-            <li>Alerts, messages, and lifecycle state</li>
+            <li>Notifications and lifecycle state</li>
           </ul>
         </div>
       </div>

@@ -407,8 +407,8 @@
       <div class="note build">
         <h4><i class="bi bi-tools"></i> What the other five assume</h4>
         <ul>
-          <li><code>NotificationEvent</code> and <code>AlertEvent</code> gain <code>traceId</code> / <code>spanId</code>, stamped from <code>Tracer.current()</code>.</li>
-          <li>A derived <code>trace_notifications</code> table, filled beside <code>DERIVE_TRACE_SPANS</code>.</li>
+          <li><code>NotificationEvent</code> gains <code>traceId</code> / <code>enclosingSpanId</code>, stamped from <code>Tracer.current()</code>. There is no second event type for the serious ones.</li>
+          <li>Derived <code>trace_notifications</code> and <code>trace_exceptions</code> tables, filled beside <code>DERIVE_TRACE_SPANS</code>.</li>
           <li><code>TraceDetail</code> carries a <code>notifications</code> array; <code>EVENTS_IN_SPAN</code> stops double-listing them.</li>
         </ul>
       </div>

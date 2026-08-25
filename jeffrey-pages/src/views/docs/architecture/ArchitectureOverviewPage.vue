@@ -120,7 +120,7 @@ onMounted(() => {
                 </div>
                 <div class="arch-layer">
                   <div class="arch-chip server-feat"><i class="bi bi-sliders"></i> Profiler Settings</div>
-                  <div class="arch-chip server-feat"><i class="bi bi-bell"></i> Alerts & Messages</div>
+                  <div class="arch-chip server-feat"><i class="bi bi-bell"></i> Notifications</div>
                 </div>
                 <div class="arch-layer">
                   <div class="arch-chip server-feat"><i class="bi bi-lock"></i> Blocking & Lifecycle</div>
