@@ -350,14 +350,40 @@ async function copy(): Promise<void> {
   white-space: nowrap;
 }
 
-/* Tier one: where the class lives. The quietest thing on any row, application or not. */
+/*
+ * A frame is read in three parts and each one gets its own tier, on every row: the package it
+ * lives in, the class, and the method that ran. The hues are the ones JsonHighlight.vue already
+ * paints code with in this app -- a key in --color-primary-hover, a string value in --color-teal --
+ * because a frame has the same shape: the class is the key, the method is what it holds.
+ *
+ * Weight says which tier leads and colour agrees with it. The class is the heaviest at 700: in a
+ * 253-frame stack a reader scans for OgnlParser before they scan for jjMoveStringLiteralDfa3_0.
+ */
 .st-pkg {
   color: var(--color-text-soft);
+  font-weight: 400;
 }
 
-/* Tier three: the method that ran, which is what a reader opens a fold to find. */
+.st-cls {
+  color: var(--color-primary-hover);
+  font-weight: 700;
+}
+
+.st-sig b {
+  color: var(--color-teal);
+  font-weight: 500;
+}
+
+/*
+ * A library row takes the same two hues pulled back toward the neutral ramp rather than two hues of
+ * its own: mixed, not replaced, so "mine" and "not mine" stay one palette read at two distances.
+ */
+.st-fr:not(.app) .st-cls {
+  color: color-mix(in srgb, var(--color-primary-hover) 62%, var(--color-text-soft));
+}
+
 .st-fr:not(.app) .st-sig b {
-  color: var(--color-text);
+  color: color-mix(in srgb, var(--color-teal) 62%, var(--color-text-soft));
 }
 
 .st-src {
@@ -366,24 +392,13 @@ async function copy(): Promise<void> {
   white-space: nowrap;
 }
 
-/* Application frames carry the ink; everything else recedes. The reader only ever needs
-   "mine" against "not mine", so this is two weights and not a palette. */
+/*
+ * Application frames carry the ink; everything else recedes. With every part of the signature now
+ * painted by tier, this is the row's own colour -- what the separators and anything unlabelled take
+ * -- and the ground the tier hues are read against.
+ */
 .st-fr.app {
   color: var(--color-dark);
-}
-
-.st-fr.app .st-sig {
-  font-weight: 600;
-}
-
-/*
- * The package yields to what it prefixes. An application frame sets its signature at 600 and the
- * package rode along at that weight, which made every row's first 20 characters compete with the
- * class name a reader is actually scanning for. Its colour is the shared one every package takes;
- * only the weight has to be undone here, because only an application row sets one.
- */
-.st-fr.app .st-pkg {
-  font-weight: 400;
 }
 
 .st-fr.app .st-src {
@@ -408,6 +423,17 @@ async function copy(): Promise<void> {
  * splitting it into a bold class and a quiet package would break it into two statements.
  */
 .st-fr.throwing .st-pkg {
+  font-weight: 700;
+}
+
+/*
+ * The one row that is not painted by tier. A stack has exactly one throwing frame and the whole
+ * line is the answer the reader opened it for, so it stays a single red statement rather than a
+ * class and a method in two different hues.
+ */
+.st-fr.throwing .st-cls,
+.st-fr.throwing .st-sig b {
+  color: var(--color-danger);
   font-weight: 700;
 }
 
