@@ -50,20 +50,51 @@
   .sev.m { background: rgba(245,128,62,.22); color: #fdba74; }
   .sev.l { background: rgba(119,128,191,.25); color: #c7d2fe; }
   .foot { margin-top: 2.4rem; color: #64748b; font-size: .82rem; line-height: 1.7; }
+  a.mk.final { border-color: rgba(34,197,94,.4); background: linear-gradient(135deg, rgba(34,197,94,.1), rgba(56,189,248,.06));
+    padding: 1.5rem 1.6rem; margin-bottom: 2.2rem; }
+  a.mk.final:hover { border-color: rgba(34,197,94,.7); }
+  a.mk.final h3 { font-size: 1.2rem; }
+  a.mk.final p { color: #cbd5e1; font-size: .88rem; }
+  .num.pick { background: linear-gradient(135deg, #22c55e, #0ea5e9); box-shadow: 0 6px 16px rgba(34,197,94,.4); font-size: 1.1rem; }
+  .tag.pick { background: rgba(34,197,94,.22); color: #86efac; }
+  .tag.gone { background: rgba(148,163,184,.14); color: #94a3b8; }
+  h2.sec { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .09em;
+    color: #64748b; margin: 0 0 1rem; display: flex; align-items: center; gap: .7rem; }
+  h2.sec::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,.09); }
 </style>
 </head>
 <body>
   <div class="wrap">
     <h1>Span messages in the Trace Modal</h1>
     <p class="sub">
-      <code>jeffrey.Message</code> and <code>jeffrey.Alert</code> already exist in
-      <code>utilities/jeffrey-events</code>, but they are deliberately outside tracing &mdash; the package
-      javadoc says so out loud: <em>"these are instants, not spans &hellip; they do not take part in
-      traces."</em> Attaching them to the open span is a small change (two <code>@Contextual</code> fields
+      <code>jeffrey.Message</code> already exists in <code>utilities/jeffrey-events</code>, but it is
+      deliberately outside tracing &mdash; the package javadoc says so out loud: <em>"these are instants, not
+      spans &hellip; they do not take part in traces."</em> Attaching them to the open span is a small change (two <code>@Contextual</code> fields
       stamped from <code>Tracer.current()</code>); <strong>what to do with them on screen is the open
-      question.</strong> Five directions below, plus today's behaviour as the baseline. Every page draws
-      the same trace and the same six messages, so what differs is layout, not data.
+      question.</strong> Five directions were drawn, and the answer is a combination of two of them &mdash; the
+      <strong>final design</strong> is first below, with the five it came from underneath it and today's behaviour as
+      the baseline. Every page draws the same trace and the same six messages, so what differs is layout, not data.
+      The final page carries two further decisions: <strong><code>jeffrey.Alert</code> is dropped</strong> &mdash;
+      <code>severity</code> already says how serious a message is, and a second event type can only disagree with it
+      &mdash; and <strong>exceptions join the trace too</strong>, on a rail of their own.
     </p>
+
+    <a class="mk final" href="mockup-6-final-lane-and-pins.html">
+      <div class="num pick"><i class="bi bi-check-lg"></i></div>
+      <div><h3>Final &mdash; two rails + bar pins <span class="tag pick">chosen</span></h3>
+        <p>Directions 1 and 2 combined, because each one's main cost is the other's strength. Every instant is drawn
+          twice on purpose: once on a rail above the span rows, which folding, filtering and critical-path-only cannot
+          touch, and once as a pin on the bar of the span it belongs to, with a count badge on the span name and its own
+          region in the detail panel. Clicking a rail mark selects that span and highlights the entry inside it &mdash;
+          so the popover direction 1 needed is gone, and the design adds no new surface at all.</p>
+        <p style="margin-top:.6rem"><strong style="color:#e2e8f0">Two families, two rails.</strong>
+          <code>jeffrey.Message</code> as diamonds coloured by severity, and <code>jdk.JavaExceptionThrow</code> as
+          crosses &mdash; hollow when caught, red when they escaped &mdash; split the way the toolbar already splits
+          Blocking ops from I/O ops. The escaped throw is matched to <code>trace_spans.error_type</code>, which turns
+          today's bare class name into a class name with a stack behind it.</p></div>
+    </a>
+
+    <h2 class="sec">The five it came from</h2>
 
     <a class="mk base" href="mockup-0-current.html">
       <div class="num zero">0</div>
@@ -75,12 +106,12 @@
     <div class="list">
       <a class="mk" href="mockup-1-message-lane.html">
         <div class="num">1</div>
-        <div><h3>Message lane</h3><p>A lane of its own above the span rows, next to the GC and Safepoint lanes &mdash; but
+        <div><h3>Message lane <span class="tag gone">in the final</span></h3><p>A lane of its own above the span rows, next to the GC and Safepoint lanes &mdash; but
           diamonds instead of bands, because a message is an instant. Click opens it.</p></div>
       </a>
       <a class="mk" href="mockup-2-bar-pins.html">
         <div class="num">2</div>
-        <div><h3>Pins on the bar</h3><p>Each message pinned to the bar that emitted it, a count badge on the span name,
+        <div><h3>Pins on the bar <span class="tag gone">in the final</span></h3><p>Each message pinned to the bar that emitted it, a count badge on the span name,
           and a new <em>Messages</em> region in the span detail panel.</p></div>
       </a>
       <a class="mk" href="mockup-3-tree-rows.html">
@@ -113,9 +144,13 @@
           <tr><td class="m">+6 ms</td><td><span class="sev l">low</span></td><td class="m">CART_REPRICED</td><td>orders.validate</td><td class="m">jeffrey.Message</td></tr>
           <tr><td class="m">+30 ms</td><td><span class="sev m">medium</span></td><td class="m">QUERY_PLAN_FALLBACK</td><td>SELECT orders</td><td class="m">jeffrey.Message</td></tr>
           <tr><td class="m">+64 ms</td><td><span class="sev m">medium</span></td><td class="m">CONNECTION_POOL_PRESSURE</td><td>POST /api/orders <em>(root)</em></td><td class="m">jeffrey.Message</td></tr>
-          <tr><td class="m">+158 ms</td><td><span class="sev h">high</span></td><td class="m">PAYMENT_RETRY</td><td>payments.charge</td><td class="m">jeffrey.Alert</td></tr>
-          <tr><td class="m">+300 ms</td><td><span class="sev c">critical</span></td><td class="m">CIRCUIT_BREAKER_OPEN</td><td>payments.charge</td><td class="m">jeffrey.Alert</td></tr>
+          <tr><td class="m">+158 ms</td><td><span class="sev h">high</span></td><td class="m">PAYMENT_RETRY</td><td>payments.charge</td><td class="m">jeffrey.Message</td></tr>
+          <tr><td class="m">+300 ms</td><td><span class="sev c">critical</span></td><td class="m">CIRCUIT_BREAKER_OPEN</td><td>payments.charge</td><td class="m">jeffrey.Message</td></tr>
           <tr><td class="m">+406 ms</td><td><span class="sev l">low</span></td><td class="m">FEATURE_FLAG_READ</td><td>POST /api/orders <em>(root)</em></td><td class="m">jeffrey.Message</td></tr>
+          <tr><td colspan="5" style="padding-top:.9rem;color:#64748b;font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;font-weight:600">and, on the final page only, three throws</td></tr>
+          <tr><td class="m">+12 ms</td><td><span class="sev l">caught</span></td><td class="m">java.lang.NumberFormatException</td><td>orders.validate</td><td class="m">jdk.JavaExceptionThrow</td></tr>
+          <tr><td class="m">+156 ms</td><td><span class="sev l">caught</span></td><td class="m">java.net.SocketTimeoutException</td><td>jdk.SocketRead <em>(promoted)</em></td><td class="m">jdk.JavaExceptionThrow</td></tr>
+          <tr><td class="m">+330 ms</td><td><span class="sev c">escaped</span></td><td class="m">com.acme.pay.GatewayTimeoutException</td><td>payments.charge</td><td class="m">jdk.JavaExceptionThrow</td></tr>
         </tbody>
       </table>
     </div>
@@ -123,14 +158,28 @@
     <div class="facts">
       <h4><i class="bi bi-tools"></i> What the backend would have to provide</h4>
       <ul>
-        <li><code>MessageEvent</code> / <code>AlertEvent</code> gain <code>@Contextual long traceId</code> and
-          <code>long spanId</code>, stamped at commit from <code>Tracer.current()</code> &mdash; <code>0</code> when no
-          span is open, which is already the library's "no id" convention.</li>
+        <li><code>MessageEvent</code> gains <code>@Contextual long traceId</code> and <code>long spanId</code>, stamped
+          at commit from <code>Tracer.current()</code> &mdash; <code>0</code> when no span is open, which is already the
+          library's "no id" convention.</li>
+        <li><strong><code>AlertEvent</code> is removed.</strong> It is field-for-field identical to
+          <code>MessageEvent</code>, and its only claim &mdash; "this one is serious" &mdash; is what
+          <code>severity</code> already carries, so the two can contradict each other (an Alert with
+          <code>severity=LOW</code>). Only two call sites emit it, both already passing a Severity. The reader keeps
+          recognising <code>jeffrey.Alert</code> for recordings that already contain it; what goes is the second way to
+          write one.</li>
+        <li><strong>Exceptions need no new ids and no new ingestion.</strong> <code>jdk.JavaExceptionThrow</code> and
+          <code>jdk.JavaErrorThrow</code> are already parsed and already power the Exceptions view, landing in
+          <code>events</code> with a <code>thread_hash</code>, a <code>stacktrace_hash</code> and
+          <code>{thrownClass, message}</code>. A throw is always on the throwing thread, so <code>thread_hash</code> +
+          innermost-containing-window is a <em>sound</em> attribution &mdash; unlike a message, which can be committed
+          off-thread and therefore has to carry the ids.</li>
         <li>They must <strong>not</strong> extend <code>AbstractTracedEvent</code>: structural span discovery keys on a
           declared <code>spanId</code> field, so that would turn every message into a span. This is exactly why
           <code>TraceScopeEvent</code> calls its field <code>scopedSpanId</code>.</li>
-        <li>A derived <code>trace_messages</code> table filled beside <code>DERIVE_TRACE_SPANS</code> &mdash; typed columns,
-          not read-time JSON extraction, for the same reason <code>trace_spans</code> exists.</li>
+        <li>One derived table filled beside <code>DERIVE_TRACE_SPANS</code>, with a <code>kind</code> column for the two
+          families &mdash; typed columns, not read-time JSON extraction, for the same reason <code>trace_spans</code>
+          exists. The escaped flag is a match between a throw's <code>thrownClass</code> and
+          <code>trace_spans.error_type</code>, computed once at derivation.</li>
         <li><code>TraceDetail</code> carries the messages; <code>EVENTS_IN_SPAN</code> must exclude the message types the way
           it already excludes span, scope and promoted blocking types, or every message is listed twice.</li>
         <li>Nothing above depends on which direction wins. Only the last step &mdash; the component &mdash; does.</li>
@@ -146,7 +195,11 @@
           rely on shape (a diamond is never a band).</li>
         <li><strong>Is a message an annotation on a span, or a row in the tree?</strong> Directions 1, 2, 4 and 5 say
           annotation. Direction 3 says row &mdash; and pays for it: look at rows 8-10 of that page, where
-          <code>PAYMENT_RETRY</code> at +158 ms is drawn <em>after</em> a sibling that was still running when it fired.</li>
+          <code>PAYMENT_RETRY</code> at +158 ms is drawn <em>after</em> a sibling that was still running when it fired.
+          <em>Settled: annotation.</em></li>
+        <li><strong>Every message is now drawn twice.</strong> The rail mark and the pin are one message, so they need one
+          source of truth and one shared hover state &mdash; a picture that contradicts itself is worse than either half
+          of it alone.</li>
       </ul>
     </div>
 
