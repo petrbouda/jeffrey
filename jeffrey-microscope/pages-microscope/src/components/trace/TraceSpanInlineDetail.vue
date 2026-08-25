@@ -195,25 +195,41 @@
         <header>
           Event fields
           <span class="sd-src">{{ span.eventType }}</span>
-          <!--
-            A statement is the one field here nobody reads to the end on screen: it scrolls inside
-            its own block and is usually on its way to an editor or a ticket. The button belongs to
-            the region rather than floating over the text, so it never covers the first line of the
-            very statement it is there to hand over.
-          -->
-          <button
-            v-if="detail.sql"
-            type="button"
-            class="sd-copy"
-            :title="copiedSql ? 'Copied to the clipboard' : 'Copy the statement'"
-            @click="copySql"
-          >
-            <i class="bi" :class="copiedSql ? 'bi-check-lg' : 'bi-clipboard'"></i>
-            {{ copiedSql ? 'Copied' : 'Copy' }}
-          </button>
         </header>
         <div class="sd-region-body">
-          <pre v-if="detail.sql" class="sd-sql">{{ detail.sql }}</pre>
+          <!--
+            A statement is the one field here nobody reads to the end on screen: it scrolls inside
+            its own block and is usually on its way to an editor or a ticket. So the block itself
+            hands it over — the whole surface copies, which is a target nobody can miss and costs
+            the panel neither height nor a covered first line.
+
+            A click that lands on a selection is not a copy request: someone who dragged out one
+            clause wants that clause, and taking the whole statement out from under them would be
+            the surface overriding a decision they already made.
+          -->
+          <div
+            v-if="detail.sql"
+            class="sd-stmt"
+            :class="{ 'is-copied': copiedSql }"
+            @click="copyUnlessSelecting"
+          >
+            <pre class="sd-sql">{{ detail.sql }}</pre>
+            <!--
+              A real button rather than a hint painted on the surface: a div that copies is
+              unreachable by keyboard and unnameable to a screen reader, and the accessible name
+              here would otherwise be the entire statement. It doubles as the visible instruction
+              that the block is clickable at all — that is what it says, in words, on hover.
+            -->
+            <button
+              type="button"
+              class="sd-stmt-copy"
+              aria-label="Copy the statement"
+              @click.stop="copySql"
+            >
+              <i class="bi" :class="copiedSql ? 'bi-check-lg' : 'bi-clipboard'"></i>
+              {{ copiedSql ? 'Copied' : 'Click to copy' }}
+            </button>
+          </div>
           <table v-if="detail.eventFields.length > 0" class="sd-table">
             <tbody>
               <tr v-for="row in detail.eventFields" :key="row.key">
@@ -495,6 +511,19 @@ async function copySql(): Promise<void> {
     // A denied clipboard is the browser's decision, not a fault to report — the reader can still
     // select the statement by hand. Leaving the button unchanged says "that did not happen".
   }
+}
+
+/**
+ * The surface's own handler: the block copies on a click that was a click, and stays out of the
+ * way of one that ended a drag. The button beside it calls copySql directly, so the deliberate
+ * control still works while a clause is selected.
+ */
+function copyUnlessSelecting(): void {
+  const selection = window.getSelection();
+  if (selection !== null && selection.toString().length > 0) {
+    return;
+  }
+  copySql();
 }
 
 /** A hand-written span has no event view: its own fields are already the span's. */
@@ -983,30 +1012,75 @@ function percent(part: number, whole: number): string {
 }
 
 /*
- * Scaled to the header it sits in rather than to btn-sm: this row is 0.4rem of padding around a
- * --font-size-sm label, and a standard small button would set the region's height on its own. It
- * takes the region's teal by inheritance, so it stays part of the header rather than an object
- * dropped onto it.
+ * The statement and the control that copies it, as one object. The wrapper exists to anchor the
+ * button over the block -- the block itself scrolls, and a control inside a scroller travels with
+ * the text away from the corner it was placed in.
  */
-.sd-copy {
+.sd-stmt {
+  position: relative;
+  cursor: pointer;
+}
+
+.sd-stmt .sd-sql {
+  transition: all var(--transition-base);
+}
+
+/*
+ * The whole surface answers the hover, not just the corner: that tint is the only thing saying the
+ * block is a target before the button fades in beside it. The copied state holds the same teal at
+ * full strength on the border, so the confirmation is visible even with the pointer already gone.
+ */
+.sd-stmt:hover .sd-sql,
+.sd-stmt:focus-within .sd-sql {
+  border-color: var(--color-teal-lighter);
+  background: var(--color-teal-light);
+}
+
+.sd-stmt.is-copied .sd-sql {
+  border-color: var(--color-teal);
+  background: var(--color-teal-light);
+}
+
+.sd-stmt-copy {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.4rem;
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  margin-left: 0.5rem;
-  padding: 0.05rem 0.35rem;
+  padding: 0.1rem 0.35rem;
   border: 1px solid var(--color-teal-lighter);
   border-radius: var(--radius-sm);
   background: var(--color-bg-card);
-  color: inherit;
+  color: var(--color-teal);
   font-size: var(--font-size-xs);
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   cursor: pointer;
+  /*
+   * Hidden until the reader is at the block, because it sits over the end of the first line and a
+   * statement is read far more often than it is copied. Hover, keyboard focus and the moment after
+   * a copy each bring it back -- so it is never the case that a copy happened with nothing saying
+   * so, and never the case that a tabbing reader lands on a control they cannot see.
+   */
+  opacity: 0;
+  transition: all var(--transition-base);
 }
 
-.sd-copy:hover {
+.sd-stmt:hover .sd-stmt-copy,
+.sd-stmt-copy:focus-visible,
+.sd-stmt.is-copied .sd-stmt-copy {
+  opacity: 1;
+}
+
+.sd-stmt-copy:hover {
   background: var(--color-teal-light);
+}
+
+.sd-stmt-copy:focus-visible {
+  outline: 2px solid var(--color-teal);
+  outline-offset: 1px;
 }
 
 .sd-sql {
