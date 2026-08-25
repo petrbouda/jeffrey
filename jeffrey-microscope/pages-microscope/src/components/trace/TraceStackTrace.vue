@@ -236,9 +236,15 @@ async function copy(): Promise<void> {
 </script>
 
 <style scoped>
+/*
+ * 0.78rem over 0.68rem is not an arbitrary pair and not a missing token: it is what
+ * ProfileHeapDumpThreads draws its thread-dump frame list at, for this same content. Two stack views
+ * in one app that disagree about how big a frame is would be the actual defect, so these follow it
+ * rather than the nearest token. Do not "fix" them back to --font-size-sm / --font-size-xs.
+ */
 .st {
   font-family: var(--font-family-monospace);
-  font-size: var(--font-size-sm);
+  font-size: 0.78rem;
   line-height: 1.5;
 }
 
@@ -246,7 +252,7 @@ async function copy(): Promise<void> {
   padding: 0.3rem 0.4rem;
   color: var(--color-text-muted);
   font-family: inherit;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
 }
 
 .st-note.is-error {
@@ -260,7 +266,6 @@ async function copy(): Promise<void> {
   margin: 0 0 0.15rem;
   border-left: 2px solid var(--color-danger);
   background: var(--color-danger-bg-lighter);
-  font-size: var(--font-size-sm);
   line-height: 1.5;
 }
 
@@ -281,7 +286,7 @@ async function copy(): Promise<void> {
   margin-bottom: 0.2rem;
   border-bottom: 1px solid var(--color-border-light);
   font-family: inherit;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 }
 
@@ -337,8 +342,8 @@ async function copy(): Promise<void> {
 }
 
 .st-src {
-  color: var(--color-text-light);
-  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
   white-space: nowrap;
 }
 
@@ -384,7 +389,7 @@ async function copy(): Promise<void> {
   background: var(--color-lighter);
   color: var(--color-text-muted);
   font-family: inherit;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   text-align: left;
   cursor: pointer;
 }
