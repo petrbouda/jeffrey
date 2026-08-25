@@ -230,7 +230,8 @@
     box-shadow: 0 0 0 2px var(--color-white); cursor: pointer; }
   .msg-mark.sev-low, .msg-mark.sev-medium { width: .5rem; height: .5rem; margin-left: -.25rem; }
   .msg-mark.sev-critical { box-shadow: 0 0 0 2px var(--color-white), 0 0 0 5px var(--sev-critical-bg); }
-  /* The one the reader clicked. No popover opens -- the click selects the span underneath. */
+  /* The one the reader clicked: it opens the popover below and selects the span underneath, so the
+     fast read and the deep one are one gesture rather than two competing ones. */
   .msg-mark.active { outline: 2px solid var(--color-dark); outline-offset: 2px; }
 
   /* ============================================================ the pins (from direction 2) */
@@ -251,6 +252,48 @@
   /* What a fold swallowed, drawn hollow beside the +N count the waterfall already shows -- the same
      place, and the same job, as the red dot that marks a hidden error. */
   .msg-count.is-folded { background: transparent; border: 1px dashed var(--sev); }
+
+  /* ============================================================ the popover, back from direction 1
+     It is not a competing surface any more: it is the fast read, and its footer is the bridge into the
+     slow one. Click a rail mark and the message is on screen immediately; click the footer and the
+     span opens underneath with its events, its flamegraph and the rest of what it carries.
+
+     Anchored on the mark rather than at a fixed offset, and pulled 70% of its own width to the left,
+     so a mark near the right edge cannot push it over the Duration column.
+
+     It opens toward the chrome, not toward the bars. From the message rail that means upward, over
+     the toolbar and the pause lane -- nobody is reading those while they read a message, and opening
+     downward would bury the exception rail, the scale and the first three spans. From the exception
+     rail, which has the message rail directly above it, downward is the only direction that does not
+     cover another rail. Either way something is hidden; the rule is that it should be something the
+     reader is not currently using. */
+  .pop { position: absolute; z-index: 6; width: 22rem; padding: .55rem .7rem .6rem;
+    background: var(--color-white); border: 1px solid var(--color-border-input);
+    border-radius: var(--radius-md); box-shadow: var(--shadow-lg); text-align: left;
+    transform: translateX(-70%); cursor: default; }
+  .pop.on-message { border-left: 3px solid var(--sev); }
+  .pop.on-exception { border-left: 3px solid var(--exc); }
+  .pop-down { top: 1.35rem; }
+  .pop-up { bottom: 1.35rem; }
+  .pop-up::before { content: ''; position: absolute; bottom: -6px; left: 70%; width: 10px; height: 10px;
+    background: var(--color-white); border-right: 1px solid var(--color-border-input);
+    border-bottom: 1px solid var(--color-border-input); transform: rotate(45deg); }
+  .pop-down::before { content: ''; position: absolute; top: -6px; left: 70%; width: 10px; height: 10px;
+    background: var(--color-white); border-left: 1px solid var(--color-border-input);
+    border-top: 1px solid var(--color-border-input); transform: rotate(45deg); }
+  .pop-head { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin-bottom: .25rem; }
+  .pop-at { margin-left: auto; font-family: var(--font-family-monospace); font-size: var(--font-size-xs);
+    color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+  .pop-title { font-size: var(--font-size-base); font-weight: 700; color: var(--color-dark); line-height: 1.3; }
+  .pop-title.mono { font-family: var(--font-family-monospace); font-size: var(--font-size-sm); }
+  .pop-body { font-size: var(--font-size-sm); color: #475569; line-height: 1.5; margin-top: .2rem; }
+  .pop-meta { display: flex; gap: .8rem; flex-wrap: wrap; margin-top: .4rem; padding-top: .35rem;
+    border-top: 1px solid var(--color-border-light); font-size: var(--font-size-xs);
+    color: var(--color-text-muted); font-family: var(--font-family-monospace); }
+  .pop-link { display: flex; align-items: center; gap: .3rem; margin-top: .35rem; padding-top: .35rem;
+    border-top: 1px solid var(--color-border-light); color: var(--color-primary);
+    font-size: var(--font-size-sm); font-weight: 600; text-decoration: none; }
+  .pop-link em { font-style: normal; font-weight: 400; color: var(--color-text-muted); }
 
   /* ============================================================ the exception family
      A second rail and a second pin family, split from messages the way the toolbar already splits
@@ -382,7 +425,7 @@
   <div class="wrap">
     <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
     <h1><span class="n">&#10003;</span>Final &mdash; two rails + bar pins</h1>
-    <p class="lede">Directions 1 and 2 combined, and extended to a second family. Every instant is drawn twice on purpose: once on a rail above the span rows, which nothing can fold or filter away, and once as a pin on the bar of the span it belongs to. Clicking a rail mark selects that span and highlights the entry inside its detail panel &mdash; so the popover direction 1 needed is gone, and the design adds no new surface. <strong>Two families, two rails:</strong> <code>jeffrey.Message</code> (diamonds, coloured by severity) and <code>jdk.JavaExceptionThrow</code> (crosses, hollow when caught, red when they escaped) &mdash; split the way the toolbar already splits Blocking ops from I/O ops. <code>jeffrey.Alert</code> is gone: severity already says how serious a message is. Shown having clicked the CRITICAL mark on the message rail.</p>
+    <p class="lede">Directions 1 and 2 combined, and extended to a second family. Every instant is drawn twice on purpose: once on a rail above the span rows, which nothing can fold or filter away, and once as a pin on the bar of the span it belongs to. Clicking a rail mark opens direction 1’s popover for the immediate read, and its footer is the bridge into the deep one: it selects the span underneath, which opens with the same entry highlighted in its detail panel. <strong>Two families, two rails:</strong> <code>jeffrey.Message</code> (diamonds, coloured by severity) and <code>jdk.JavaExceptionThrow</code> (crosses, hollow when caught, red when they escaped) &mdash; split the way the toolbar already splits Blocking ops from I/O ops. <code>jeffrey.Alert</code> is gone: severity already says how serious a message is. Shown having clicked the CRITICAL mark on the message rail.</p>
     <div class="frame">
       <div class="frame-head">
         <i class="bi bi-diagram-3"></i>
@@ -449,6 +492,17 @@
             <span class="msg-mark sev-high" style="left:38.35%" title="PAYMENT_RETRY &middot; Retrying charge after gateway timeout &middot; click to select payments.charge"></span>
             <span class="msg-mark sev-critical active" style="left:72.82%" title="CIRCUIT_BREAKER_OPEN &middot; Payment circuit breaker opened &middot; click to select payments.charge"></span>
             <span class="msg-mark sev-low" style="left:98.54%" title="FEATURE_FLAG_READ &middot; Flag orders.async-persist evaluated false &middot; click to select POST /api/orders"></span>
+            <div class="pop pop-up on-message sev-critical" style="left:72.82%">
+              <div class="pop-head">
+                <span class="sev-pill sev-critical">critical</span>
+                <span class="mtype">CIRCUIT_BREAKER_OPEN</span>
+                <span class="pop-at">+300 ms</span>
+              </div>
+              <div class="pop-title">Payment circuit breaker opened</div>
+              <p class="pop-body">5 of the last 6 calls to acme-pay failed. The breaker is open for 30 s; every charge in that window fails fast.</p>
+              <div class="pop-meta"><span>AVAILABILITY</span><span>payments-client</span><span>jeffrey.Message</span></div>
+              <a class="pop-link" href="#"><i class="bi bi-arrow-return-right"></i> Select payments.charge <em>&mdash; the span it was emitted in</em></a>
+            </div>
           </span>
           <span class="wf-duration">6</span>
         </div>
@@ -650,11 +704,12 @@
         </div>
       </div>
       <div class="link-note">
-        <span class="lead">One click, four things move:</span>
+        <span class="lead">One click on the rail, and:</span>
         <span><i class="ln-num">1</i> the rail mark is active <em>&mdash; where it happened</em></span>
         <span><i class="ln-num">2</i> the owning row is selected <em>&mdash; which span said it</em></span>
         <span><i class="ln-num">3</i> its pin is emphasised <em>&mdash; where inside that span</em></span>
-        <span><i class="ln-num">4</i> the Messages row is highlighted <em>&mdash; what it said</em></span>
+        <span><i class="ln-num">4</i> the popover reads it out <em>&mdash; what it said, without leaving the rail</em></span>
+        <span><i class="ln-num">5</i> its footer opens the span, Messages row highlighted <em>&mdash; and everything else the span carries</em></span>
         <span class="lead">And one row further down:</span>
         <span><i class="ln-num" style="background:var(--color-danger)">&#215;</i> the escaped throw carries the stack behind the <code style="font-family:var(--font-family-monospace);font-size:.9em">GatewayTimeoutException</code> badge <em>&mdash; why the span failed</em></span>
       </div>
@@ -663,7 +718,7 @@
     <div class="fold-panel">
       <div class="fold-cap">
         <i class="bi bi-arrows-collapse"></i>
-        <span><b>The same trace with the root collapsed.</b> Every pin inside the fold went with it, so the row has to say what it swallowed &mdash; <span class="k">&#10022; 2</span> messages of its own, <code style="font-family:var(--font-family-monospace);font-size:.85em">+5</code> spans folded, one of them failed, and four more messages and three throws inside, both drawn hollow. That is five indicators on one row, which is the honest cost of folding. <b>The two rails above are identical to the ones in the frame above it</b> &mdash; nothing on them moved, and that is the whole reason they are there.</span>
+        <span><b>The same trace with the root collapsed.</b> Every pin inside the fold went with it, so the row has to say what it swallowed &mdash; <span class="k">&#10022; 2</span> messages of its own, <code style="font-family:var(--font-family-monospace);font-size:.85em">+5</code> spans folded, one of them failed, and four more messages and three throws inside, both drawn hollow. That is five indicators on one row, which is the honest cost of folding. <b>Both rails carry exactly the same marks as the frame above</b> &mdash; nothing on them moved, and that is the whole reason they are there. The popover here is on the exception rail, to show its other half: from a fold this deep it is the only way to that throw at all.</span>
       </div>
       <div class="wf-card">
         <div class="wf-lane">
@@ -714,6 +769,16 @@
             <span class="exc-mark is-caught" style="left:2.91%" title="java.lang.NumberFormatException &middot; caught in orders.validate"></span>
             <span class="exc-mark is-caught" style="left:37.86%" title="java.net.SocketTimeoutException &middot; caught in jdk.SocketRead"></span>
             <span class="exc-mark is-escaped" style="left:80.1%" title="com.acme.pay.GatewayTimeoutException &middot; escaped payments.charge"></span>
+            <div class="pop pop-down on-exception is-escaped" style="left:80.1%">
+              <div class="pop-head">
+                <span class="escaped-tag"><i class="bi bi-box-arrow-up-right"></i> escaped</span>
+                <span class="pop-at">+330 ms</span>
+              </div>
+              <div class="pop-title mono">com.acme.pay.GatewayTimeoutException</div>
+              <p class="pop-body">acme-pay did not respond within 265 ms</p>
+              <div class="pop-meta"><span>com.acme.pay.AcmePayClient.charge(AcmePayClient.java:214)</span></div>
+              <a class="pop-link" href="#"><i class="bi bi-list-nested"></i> Open the 52-frame stack <em>&mdash; and expand to payments.charge</em></a>
+            </div>
           </span>
           <span class="wf-duration">3</span>
         </div>
@@ -758,7 +823,8 @@
         <h4><i class="bi bi-check-circle"></i> What combining buys</h4>
         <ul>
           <li>Both readings in one picture: the rail answers <em>did anything happen during this request, and when</em>; the pin and the badge answer <em>which span it happened in</em>. Neither direction could do both alone.</li>
-          <li>The popover is gone. A rail click reuses the selection path the waterfall already has, so the design adds no surface at all &mdash; Escape keeps its existing two meanings.</li>
+          <li>The popover is the fast read and the detail row is the slow one, and they are one gesture rather than two surfaces competing for the same click: the popover answers <em>what did it say</em> on the spot, its footer opens the span, and everything the span carries &mdash; events, flamegraph, the stack behind the throw &mdash; is one click further on.</li>
+          <li>Both rails share the popover, with the content each family needs: severity, type, category and source for a message; the thrown class, the top frame and a way into the stack for an exception.</li>
           <li>The rail is the safety net for everything the pins cannot draw: a folded subtree, a critical-path filter, a 2 ms span at the 0.4% floor width.</li>
           <li>The pattern took a second family for free. Exceptions get their own rail, their own glyph and their own switch &mdash; the same split the toolbar already makes between Blocking ops and I/O ops, for the same reason: different suspicions, so hiding one must not take the other down with it.</li>
           <li><strong>The escaped throw is the real prize.</strong> Today <code>trace_spans.error_type</code> is a bare class name. Matched to its throw it gains a message, an instant and a stack &mdash; the span stops saying <em>it failed</em> and starts saying <em>here is where</em>.</li>
@@ -769,6 +835,7 @@
         <h4><i class="bi bi-exclamation-circle"></i> What it still costs</h4>
         <ul>
           <li>Every instant is now drawn twice. One source of truth and one shared hover state, or the rail and the pin will eventually disagree &mdash; and a picture that contradicts itself is worse than either half.</li>
+          <li><strong>The popover costs a layer.</strong> It is a third surface inside a fullscreen modal, so Escape has three meanings again, and whatever it hangs over is hidden while it is open. Two placement rules keep the damage in the chrome rather than in the drawing: it is anchored on its own mark and pulled 70% of its width to the left, so a mark near the right edge cannot push it over the Duration column; and it opens toward the chrome &mdash; upward from the message rail over the toolbar, downward from the exception rail, which has another rail directly above it. A mark in the last few percent of the track still needs the horizontal flip.</li>
           <li><strong>Exception volume is the real risk.</strong> A service that throws for control flow produces thousands per request; <code>jdk.ExceptionStatistics</code> exists precisely because throws are cheap to make and expensive to record. The rail needs a cap and a cluster mark before it meets one, and the caught/escaped split is what keeps the noise quiet meanwhile.</li>
           <li>Row badges are getting crowded: <span style="white-space:nowrap">&#10022; N</span> and <span style="white-space:nowrap">&#10005; N</span> beside the error badge, and five indicators on a folded row (look at the panel above). Past two families this needs a different answer.</li>
           <li>The severity ramp still shares danger with the GC-pause band and warning with the critical-path marker. Shape carries the difference today &mdash; diamond, cross, band &mdash; and a fourth thing in that palette would break it.</li>
@@ -782,7 +849,7 @@
           <li>The folded aggregates reuse the machinery already there for <code>foldedCounts</code> and <code>errorDescendantCounts</code> &mdash; same walk, two more accumulators.</li>
           <li><strong>Messages need the ids; exceptions do not.</strong> A message can be committed off-thread, so it must carry <code>traceId</code>/<code>spanId</code> from <code>Tracer.current()</code>. A throw is always on the throwing thread, so <code>thread_hash</code> plus innermost-containing-window is a sound attribution &mdash; the same interval arithmetic <code>ThreadWindowEvents</code> already does.</li>
           <li>Both land in one derived table beside <code>DERIVE_TRACE_SPANS</code>, with a <code>kind</code> column. The escaped flag is a match between the throw’s <code>thrownClass</code> and <code>trace_spans.error_type</code>, computed once at derivation rather than in the UI.</li>
-          <li>A rail mark emits the existing <code>select</code> event plus the entry id, so <code>TraceSpansModal</code> opens the span and the region scrolls to the row.</li>
+          <li>A rail mark opens the popover locally; its footer emits the existing <code>select</code> event plus the entry id, so <code>TraceSpansModal</code> opens the span and the region scrolls to the row. The popover is the only genuinely new component in the design.</li>
         </ul>
       </div>
     </div>
