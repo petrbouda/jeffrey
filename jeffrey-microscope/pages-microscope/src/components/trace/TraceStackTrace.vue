@@ -39,17 +39,28 @@
           <template v-else>{{ frames.length }} frames</template>
         </span>
         <span class="st-acts">
+          <!--
+            The application's own button vocabulary rather than a local chip: btn-sm, and a toggle
+            expressed as a variant swap between btn-primary and btn-outline-secondary, which is how
+            every other profile view renders one.
+          -->
           <button
             type="button"
-            class="st-chip"
-            :class="{ on: folding }"
+            class="btn btn-sm"
+            :class="folding ? 'btn-primary' : 'btn-outline-secondary'"
+            :aria-pressed="folding"
             :title="folding ? 'Show every frame' : 'Fold library frames away'"
             @click.stop="folding = !folding"
           >
             <i class="bi" :class="folding ? 'bi-funnel-fill' : 'bi-funnel'"></i>
             Fold libraries
           </button>
-          <button type="button" class="st-chip" title="Copy the whole stack" @click.stop="copy">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-secondary"
+            title="Copy the whole stack"
+            @click.stop="copy"
+          >
             <i class="bi" :class="copied ? 'bi-check-lg' : 'bi-clipboard'"></i>
             {{ copied ? 'Copied' : 'Copy' }}
           </button>
@@ -287,28 +298,18 @@ async function copy(): Promise<void> {
 .st-acts {
   margin-left: auto;
   display: flex;
-  gap: 0.35rem;
+  gap: 0.4rem;
+  align-items: center;
 }
 
-.st-chip {
+/*
+ * The buttons are the app's global .btn classes, so nothing is styled here beyond the icon gap
+ * Bootstrap does not give them.
+ */
+.st-acts .btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0 0.35rem;
-  border: 1px solid var(--color-border-input);
-  border-radius: var(--radius-pill);
-  background: var(--color-white);
-  color: var(--color-primary);
-  font-family: inherit;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.st-chip.on {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-white);
+  gap: 0.3rem;
 }
 
 .st-fr {

@@ -265,49 +265,64 @@
             :class="{ severe: exception.escaped }"
             :style="{ '--entry': exceptionColor(exception.escaped) }"
           >
-            <span class="sd-entry-at">{{ offsetInSpan(exception.startEpochMicros) }}</span>
-            <span class="sd-entry-main">
-              <span class="sd-entry-class">{{ exception.thrownClass }}</span>
-              <span v-if="exception.message" class="sd-entry-text">{{ exception.message }}</span>
-              <span class="sd-entry-foot">
-                <!--
-                  The one that escaped is why the span failed, which the header already states as a
-                  bare class name. Saying so here is what gives that badge a message and an instant.
-                -->
-                <Badge
-                  v-if="exception.escaped"
-                  variant="danger"
-                  size="xs"
-                  value="escaped this span"
-                />
-                <template v-else>caught</template>
-                <!--
-                  Only offered where there is a stack to offer: a throw JFR sampled without one
-                  would open a panel that could say nothing.
-                -->
-                <button
+            <!--
+              The row is the control. A pill beside the verdict was a third thing to aim at in a row
+              that already carries a class, a message and a badge, and its target was a few pixels of
+              text; the head is the whole width. Only the head, not the entry: a click inside the
+              opened stack must not fold it away again.
+            -->
+            <div
+              class="sd-exc-head"
+              :role="exception.stacktraceId ? 'button' : undefined"
+              :tabindex="exception.stacktraceId ? 0 : undefined"
+              :aria-expanded="
+                exception.stacktraceId ? openStacks.has(exception.exceptionId) : undefined
+              "
+              @click="exception.stacktraceId && toggleStack(exception.exceptionId)"
+              @keydown.enter.prevent="exception.stacktraceId && toggleStack(exception.exceptionId)"
+              @keydown.space.prevent="exception.stacktraceId && toggleStack(exception.exceptionId)"
+            >
+              <!--
+                The chevron is what says the row opens; without it the row is a click target nobody
+                knows is there. A throw JFR sampled without a stack keeps the empty cell, so the
+                columns of a mixed list still line up.
+              -->
+              <span class="sd-entry-caret">
+                <i
                   v-if="exception.stacktraceId"
-                  type="button"
-                  class="sd-stack-toggle"
-                  :class="{ on: openStacks.has(exception.exceptionId) }"
-                  @click.stop="toggleStack(exception.exceptionId)"
-                >
-                  <i
-                    class="bi"
-                    :class="openStacks.has(exception.exceptionId) ? 'bi-chevron-down' : 'bi-chevron-right'"
-                  ></i>
-                  stack
-                </button>
+                  class="bi"
+                  :class="
+                    openStacks.has(exception.exceptionId) ? 'bi-chevron-down' : 'bi-chevron-right'
+                  "
+                ></i>
               </span>
-              <TraceStackTrace
-                v-if="exception.stacktraceId && openStacks.has(exception.exceptionId)"
-                class="sd-stack"
-                :profile-id="profileId"
-                :stacktrace-id="exception.stacktraceId"
-                :thrown-class="exception.thrownClass"
-                :message="exception.message"
-              />
-            </span>
+              <span class="sd-entry-at">{{ offsetInSpan(exception.startEpochMicros) }}</span>
+              <span class="sd-entry-main">
+                <span class="sd-entry-class">{{ exception.thrownClass }}</span>
+                <span v-if="exception.message" class="sd-entry-text">{{ exception.message }}</span>
+                <span class="sd-entry-foot">
+                  <!--
+                    The one that escaped is why the span failed, which the header already states as a
+                    bare class name. Saying so here is what gives that badge a message and an instant.
+                  -->
+                  <Badge
+                    v-if="exception.escaped"
+                    variant="danger"
+                    size="xs"
+                    value="escaped this span"
+                  />
+                  <template v-else>caught</template>
+                </span>
+              </span>
+            </div>
+            <TraceStackTrace
+              v-if="exception.stacktraceId && openStacks.has(exception.exceptionId)"
+              class="sd-stack"
+              :profile-id="profileId"
+              :stacktrace-id="exception.stacktraceId"
+              :thrown-class="exception.thrownClass"
+              :message="exception.message"
+            />
           </div>
         </div>
       </section>
@@ -522,25 +537,45 @@ function percent(part: number, whole: number): string {
   border-left: 2px solid var(--color-border-input);
 }
 
-.sd-stack-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  padding: 0 0.3rem;
-  border: 1px solid var(--color-border-input);
-  border-radius: var(--radius-pill);
-  background: var(--color-white);
-  color: var(--color-primary);
-  font-family: inherit;
-  font-size: var(--font-size-xs);
-  font-weight: 600;
+/*
+ * A throw is a disclosure now, so the entry stops being the grid and its head becomes one — the
+ * stack hangs below rather than sitting in a fourth grid column.
+ */
+.sd-entry.is-exc-entry {
+  display: block;
+}
+
+.sd-exc-head {
+  display: grid;
+  grid-template-columns: 1rem 4.5rem 1fr;
+  gap: 0.5rem;
+  align-items: baseline;
+  /* Its own box within the entry's padding, so the hover and focus states have something to fill. */
+  padding: 0.15rem 0.4rem;
+  margin: -0.15rem -0.4rem;
+  border-radius: var(--radius-sm);
+}
+
+.sd-exc-head[role='button'] {
   cursor: pointer;
 }
 
-.sd-stack-toggle.on {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-white);
+.sd-exc-head[role='button']:hover {
+  background: var(--color-primary-light);
+}
+
+.sd-exc-head:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -1px;
+}
+
+.sd-entry-caret {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-light);
+}
+
+.sd-exc-head[aria-expanded='true'] .sd-entry-caret {
+  color: var(--color-primary);
 }
 
 /*
@@ -983,11 +1018,6 @@ function percent(part: number, whole: number): string {
   padding: 0.4rem 0.5rem;
   margin: 0 -0.5rem;
   border-bottom: 1px solid var(--color-border-light);
-}
-
-/* A throw has no severity column: it has two states, and the row says which in its own footer. */
-.sd-entry.is-exc-entry {
-  grid-template-columns: 4.5rem 1fr;
 }
 
 .sd-entry:last-child {
