@@ -45,14 +45,23 @@
       <!--
         A synthesized span says so up front: its bar came out of a JDK event, not out of anyone's
         instrumentation, and a reader deciding where to add spans of their own needs the difference.
+
+        `secondary` and not `light`: in key/value mode `light` has no palette of its own and falls
+        back to `--color-light`, which is exactly this panel's own background — borderless, that
+        draws no badge at all, just floating text. `secondary` is the quietest variant that actually
+        paints. The title rides through on attribute fallthrough: Badge has one root element and
+        does not disable it.
       -->
-      <span
+      <Badge
         v-if="span.synthesized"
-        class="sd-promoted"
+        key-label="Promoted from"
+        :value="span.eventType"
+        icon="bi bi-link-45deg"
+        variant="secondary"
+        size="s"
+        borderless
         title="This span was synthesized from a JDK blocking event during analysis — nothing was instrumented"
-      >
-        <i class="bi bi-link-45deg"></i> promoted from {{ span.eventType }}
-      </span>
+      />
       <!--
         The span's two numbers in the app's own metric vocabulary: Badge in key/value mode, the
         same call shape TraceOperationList and the other metric rows use, down to the variants —
@@ -620,18 +629,6 @@ function percent(part: number, whole: number): string {
 }
 
 /* Worn like a badge, muted like a footnote: provenance, not a state to react to. */
-.sd-promoted {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  padding: 0.05rem 0.4rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-pill);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  white-space: nowrap;
-}
-
 /*
  * Sized to `.table td` in assets/styles.scss -- 0.8rem is what every data table in Jeffrey sets, so
  * the panel reads as part of the app rather than as a zoomed-in inset over the 0.7rem bars.
