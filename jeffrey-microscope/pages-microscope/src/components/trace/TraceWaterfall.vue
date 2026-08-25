@@ -330,7 +330,6 @@
       <div class="dock-head">
         <Badge v-if="openException.escaped" variant="danger" size="xs" value="escaped" />
         <span v-else class="pop-sev">Caught</span>
-        <span class="dock-cls mono">{{ openException.thrownClass }}</span>
         <span class="pop-at">{{ offsetIntoTrace(openException.startEpochMicros) }}</span>
         <button
           type="button"
@@ -348,15 +347,25 @@
           <i class="bi bi-x-lg"></i>
         </button>
       </div>
-      <p v-if="openException.message" class="dock-msg">{{ openException.message }}</p>
+      <!--
+        No class or message here: the stack opens with the line a JVM prints, which says both. The
+        header keeps only what that line cannot — whether the throw escaped, and when it happened.
+      -->
       <TraceStackTrace
         v-if="openException.stacktraceId"
         class="dock-stack"
         :profile-id="profileId"
         :stacktrace-id="openException.stacktraceId"
         :thrown-class="openException.thrownClass"
+        :message="openException.message"
       />
-      <p v-else class="dock-none">The recording captured no stack for this throw.</p>
+      <div v-else class="dock-none">
+        <p class="dock-none-cls mono">
+          {{ openException.thrownClass
+          }}<template v-if="openException.message">: {{ openException.message }}</template>
+        </p>
+        <p>The recording captured no stack for this throw.</p>
+      </div>
     </div>
 
     <div class="wf-head">
@@ -781,7 +790,7 @@ import {
 
 const props = withDefaults(
   defineProps<{
-    /** Which profile to read a throw's stack from, for the popover preview and the opened span. */
+    /** Which profile to read a throw's stack from, for the docked strip and the opened span. */
     profileId: string;
     spans: TraceSpanRow[];
     selectedSpanId?: string | null;
@@ -2346,19 +2355,6 @@ function tooltip(span: TraceSpanRow): string {
   background: var(--color-light);
 }
 
-.dock-cls {
-  /* min-width: 0 or the ellipsis never fires -- a flex item will not shrink below its content,
-     so a long class name would push the actions off the end instead of truncating. */
-  min-width: 0;
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  color: var(--color-dark);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* The two actions sit at the far end together, so the class name gets the room it needs. */
 .dock-head .pop-at {
   margin-left: auto;
   flex: none;
@@ -2402,13 +2398,6 @@ function tooltip(span: TraceSpanRow): string {
   color: var(--color-dark);
 }
 
-.dock-msg {
-  padding: 0.35rem 0.6rem 0;
-  font-size: var(--font-size-sm);
-  color: #475569;
-  line-height: 1.5;
-}
-
 /*
  * The stack scrolls inside the strip rather than growing it without limit: a 253-frame stack
  * unfolded is taller than the dialog, and a strip that pushed the whole waterfall off the bottom
@@ -2420,10 +2409,21 @@ function tooltip(span: TraceSpanRow): string {
   padding: 0.35rem 0.6rem 0.5rem;
 }
 
+/*
+ * With no stack there is no JVM line either, so this is the one place the strip still has to name
+ * the throw itself — otherwise it would say only that something was caught.
+ */
 .dock-none {
   padding: 0.35rem 0.6rem 0.5rem;
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
+}
+
+.dock-none-cls {
+  margin-bottom: 0.2rem;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-danger);
 }
 
 .pop-head {

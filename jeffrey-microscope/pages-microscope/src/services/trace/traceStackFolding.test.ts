@@ -21,6 +21,8 @@ import type { TraceStackFrameRow } from '@/services/api/model/trace/TraceModels'
 import {
   expandFold,
   foldedStack,
+  frameLocation,
+  stackTraceText,
   throwingFrameIndex,
   framePackage,
   isApplicationFrame,
@@ -354,5 +356,81 @@ describe('shownFrameCount', () => {
 
     expect(shownFrameCount(foldedStack(stack))).toBe(2);
     expect(shownFrameCount(unfoldedStack(stack))).toBe(4);
+  });
+});
+
+describe('frameLocation', () => {
+  it('names the file after the outer class, since that is where the source lives', () => {
+    expect(frameLocation(frame('org.apache.ibatis.ognl.JavaCharStream$1', 'accept', 148))).toBe(
+      'JavaCharStream.java:148'
+    );
+  });
+
+  it('says the frame type when the recording captured no line', () => {
+    const native: TraceStackFrameRow = {
+      className: null,
+      methodName: 'clone3',
+      frameType: 'Native',
+      lineNumber: null
+    };
+
+    expect(frameLocation(native)).toBe('Native');
+  });
+});
+
+describe('stackTraceText', () => {
+  const frames = [
+    frame('org.apache.ibatis.ognl.JavaCharStream', 'fillBuff', 148),
+    frame('com.acme.reports.ReportEventsMapper', 'getReportEvents', 88)
+  ];
+
+  it('leads with the header line a JVM prints, so the result is a stack trace and not a list', () => {
+    expect(stackTraceText(frames, 'java.io.IOException', 'Stream closed')).toBe(
+      [
+        'java.io.IOException: Stream closed',
+        '\tat org.apache.ibatis.ognl.JavaCharStream.fillBuff(JavaCharStream.java:148)',
+        '\tat com.acme.reports.ReportEventsMapper.getReportEvents(ReportEventsMapper.java:88)'
+      ].join('\n')
+    );
+  });
+
+  it('drops the colon when the throw carried no message, as the JVM does', () => {
+    expect(stackTraceText(frames, 'java.io.IOException', null).split('\n')[0]).toBe(
+      'java.io.IOException'
+    );
+  });
+
+  it('copies every frame, not the folded reading', () => {
+    // Someone pasting this into an issue wants the evidence, not what the panel chose to show.
+    const deep = [...frames, frame('java.lang.Thread', 'run', 1583)];
+
+    expect(stackTraceText(deep, 'java.io.IOException', 'x').split('\n')).toHaveLength(4);
+  });
+
+  it('drops the constructor chain, because a JVM does not print it either', () => {
+    // fillInStackTrace captures the stack below the constructors, so a real trace starts at the
+    // frame that threw. Leaving them in emits something no JVM produces, and an IDE parsing it
+    // would jump to Throwable.java.
+    const withChain = [
+      frame('java.lang.Throwable', '<init>', 266),
+      frame('java.io.IOException', '<init>', 62),
+      ...frames
+    ];
+
+    const lines = stackTraceText(withChain, 'java.io.IOException', 'Stream closed').split('\n');
+
+    expect(lines[0]).toBe('java.io.IOException: Stream closed');
+    expect(lines[1]).toContain('JavaCharStream.fillBuff');
+    expect(lines.some(line => line.includes('Throwable.<init>'))).toBe(false);
+  });
+
+  it('keeps every frame when the chain cannot be located', () => {
+    const withChain = [frame('java.lang.Throwable', '<init>', 266), ...frames];
+
+    expect(stackTraceText(withChain, 'com.acme.Unrelated', null)).toContain('Throwable.<init>');
+  });
+
+  it('falls back to frames alone when there is no class to head them with', () => {
+    expect(stackTraceText(frames).startsWith('\tat ')).toBe(true);
   });
 });

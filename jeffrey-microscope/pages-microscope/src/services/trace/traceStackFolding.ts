@@ -299,6 +299,60 @@ export function foldedStack(
   return entries;
 }
 
+/**
+ * Where a frame is, as `Foo.java:148` — or its type when the recording captured no line.
+ *
+ * `Native` in that column says why a frame has no location, where a blank would read as missing
+ * data. The nested-class suffix is dropped because the file is named for the outer class:
+ * `JavaCharStream$1` lives in `JavaCharStream.java`.
+ */
+export function frameLocation(frame: TraceStackFrameRow): string {
+  if (frame.lineNumber === null) {
+    return frame.frameType;
+  }
+  const className = frame.className;
+  if (!className) {
+    return String(frame.lineNumber);
+  }
+  const simple = className.slice(className.lastIndexOf('.') + 1).split('$')[0];
+  return `${simple}.java:${frame.lineNumber}`;
+}
+
+/**
+ * The stack as a JVM prints it, for pasting into an issue.
+ *
+ * The header line is not decoration: `class: message` followed by `\tat …` lines is the shape every
+ * log scraper, IDE stack-trace parser and issue tracker recognises. Frames alone are not a stack
+ * trace, they are a list.
+ *
+ * Every frame from the throw downwards, never what the fold left standing — someone pasting this
+ * into an issue wants the evidence, not the reading.
+ *
+ * The constructor chain is the one thing dropped, because a JVM does not print it either:
+ * `fillInStackTrace` captures the stack *below* the constructors, so a real trace starts at the
+ * frame that threw. Leaving it in would produce something no JVM ever emits and send an IDE that
+ * parsed it to `Throwable.java`.
+ */
+export function stackTraceText(
+  frames: TraceStackFrameRow[],
+  thrownClass?: string | null,
+  message?: string | null
+): string {
+  const lines = frames
+    .slice(throwingFrameIndex(frames, thrownClass))
+    .map(
+      frame => `\tat ${frame.className ?? '(native)'}.${frame.methodName}(${frameLocation(frame)})`
+    );
+
+  if (!thrownClass) {
+    return lines.join('\n');
+  }
+  // No message is `java.io.IOException` on its own, exactly as the JVM prints a throw without one —
+  // a trailing colon would be a colon with nothing after it.
+  const header = message ? `${thrownClass}: ${message}` : thrownClass;
+  return [header, ...lines].join('\n');
+}
+
 /** How many frames a rendering actually puts on screen — fold bars do not count as frames. */
 export function shownFrameCount(entries: StackEntry[]): number {
   return entries.filter(entry => entry.kind === 'frame').length;

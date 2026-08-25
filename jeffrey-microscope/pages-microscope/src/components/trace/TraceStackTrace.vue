@@ -30,7 +30,7 @@
         a bar changes it, and a number that disagreed with the rows under it would be worse than
         no number at all.
       -->
-      <div v-if="!preview" class="st-head">
+      <div class="st-head">
         <span class="st-t">Stack</span>
         <span class="st-meta">
           <template v-if="shown < frames.length">
@@ -56,8 +56,21 @@
         </span>
       </div>
 
-      <div class="st-rows" :class="{ 'is-preview': preview }">
-        <template v-for="entry in visible" :key="entry.kind + '-' + entry.depth">
+      <!--
+        The line a JVM prints above the frames. Not chrome repeated inside the panel: `class: message`
+        followed by indented frames is the shape every stack-trace reader knows, and without it what
+        is below is a list of frames rather than a stack trace. It is also the one row here that is
+        not a frame, so it is not indented under `at` and does not carry a source column.
+      -->
+      <div v-if="thrownClass" class="st-thrown">
+        <span class="st-thrown-cls">{{ thrownClass }}</span
+        ><template v-if="message"
+          >: <span class="st-thrown-msg">{{ message }}</span></template
+        >
+      </div>
+
+      <div class="st-rows">
+        <template v-for="entry in entries" :key="entry.kind + '-' + entry.depth">
           <!-- A bar stands in for the frames it hid; clicking it puts them back in place. -->
           <button
             v-if="entry.kind === 'fold'"
@@ -81,17 +94,9 @@
               ><span class="st-cls">{{ frameSimpleName(entry.frame) }}</span
               >.<b>{{ entry.frame.methodName }}</b>
             </span>
-            <span class="st-src">{{ frameSource(entry.frame) }}</span>
+            <span class="st-src">{{ frameLocation(entry.frame) }}</span>
           </div>
         </template>
-      </div>
-
-      <!--
-        The preview shows the top of the stack only. Saying how much is not shown keeps it honest:
-        a four-line preview that looked like the whole stack would be worse than no preview.
-      -->
-      <div v-if="preview && frames.length > shown" class="st-note is-more">
-        Open the span for the full stack — {{ frames.length }} frames
       </div>
     </template>
   </div>
@@ -104,6 +109,8 @@ import { useTraceStacktrace } from '@/composables/useTraceStacktrace';
 import {
   expandFold,
   foldedStack,
+  frameLocation,
+  stackTraceText,
   shownFrameCount,
   unfoldedStack,
   type StackEntry
@@ -119,13 +126,8 @@ const props = defineProps<{
    * falls back to the top frame, which is `Throwable.<init>`.
    */
   thrownClass?: string | null;
-  /**
-   * Preview mode: the top few frames only, no header, no controls. What the rail's popover shows,
-   * where there is room for about six rows before it starts scrolling.
-   */
-  preview?: boolean;
-  /** How many entries a preview draws. Ignored outside preview mode. */
-  previewRows?: number;
+  /** The throw's message, which the JVM line carries after the class. Null is common and fine. */
+  message?: string | null;
 }>();
 
 const stacktraceId = computed(() => props.stacktraceId);
@@ -156,11 +158,7 @@ const entries = computed<StackEntry[]>(() => {
   });
 });
 
-const visible = computed(() =>
-  props.preview ? entries.value.slice(0, props.previewRows ?? 6) : entries.value
-);
-
-const shown = computed(() => shownFrameCount(visible.value));
+const shown = computed(() => shownFrameCount(entries.value));
 
 /** How many packages a bar names before the rest become a count. Two fit; six is a wall of text. */
 const BAR_PACKAGE_LIMIT = 2;
@@ -209,34 +207,14 @@ function framePkg(frame: TraceStackFrameRow): string {
   return lastDot < 0 ? '' : className.slice(0, lastDot);
 }
 
-/**
- * The source location, or the frame type when there is none — `Native` says why a frame has no
- * line, where a blank column would look like missing data.
- */
-function frameSource(frame: TraceStackFrameRow): string {
-  const simple = frameSimpleName(frame).split('$')[0];
-  if (frame.lineNumber === null) {
-    return frame.frameType;
-  }
-  return `${simple}.java:${frame.lineNumber}`;
-}
-
 const copied = ref(false);
 
-/** The whole stack as text, in the shape a JVM prints it, for pasting into an issue. */
+/** Hands the whole stack to the clipboard in the shape a JVM prints it. */
 async function copy(): Promise<void> {
-  const text = frames.value
-    .map(frame => {
-      const where =
-        frame.lineNumber === null
-          ? frame.frameType
-          : `${frameSimpleName(frame).split('$')[0]}.java:${frame.lineNumber}`;
-      return `\tat ${frame.className ?? '(native)'}.${frame.methodName}(${where})`;
-    })
-    .join('\n');
-
   try {
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(
+      stackTraceText(frames.value, props.thrownClass, props.message)
+    );
     copied.value = true;
     window.setTimeout(() => (copied.value = false), 1500);
   } catch {
@@ -264,12 +242,24 @@ async function copy(): Promise<void> {
   color: var(--color-danger);
 }
 
-.st-note.is-more {
-  margin-top: 0.25rem;
-  padding-top: 0.3rem;
-  border-top: 1px solid var(--color-border-light);
-  color: var(--color-primary);
-  font-weight: 600;
+/* The throw itself, above the frames. Red because it is the throw and not a frame, and set flush
+   left because the frames beneath it are the ones standing in for `at` lines. */
+.st-thrown {
+  padding: 0.18rem 0.4rem 0.22rem;
+  margin: 0 0 0.15rem;
+  border-left: 2px solid var(--color-danger);
+  background: var(--color-danger-bg-lighter);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+}
+
+.st-thrown-cls {
+  font-weight: 700;
+  color: var(--color-danger);
+}
+
+.st-thrown-msg {
+  color: #475569;
 }
 
 .st-head {
@@ -319,11 +309,6 @@ async function copy(): Promise<void> {
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: var(--color-white);
-}
-
-.st-rows.is-preview {
-  max-height: 7rem;
-  overflow-y: auto;
 }
 
 .st-fr {

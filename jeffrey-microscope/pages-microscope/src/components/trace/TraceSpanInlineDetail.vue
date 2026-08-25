@@ -305,6 +305,7 @@
                 :profile-id="profileId"
                 :stacktrace-id="exception.stacktraceId"
                 :thrown-class="exception.thrownClass"
+                :message="exception.message"
               />
             </span>
           </div>
