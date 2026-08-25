@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Span timing block</title>
+<title>Span head badges</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <style>
 /* Shared by every span-stacktrace mockup, so the five pages differ in layout and in nothing else.
@@ -222,7 +222,8 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 @media (max-width: 900px) { .pair { grid-template-columns: 1fr; } }
 
   :root { --flamegraph-color-green: #c9e7a5; --color-bg-card: #ffffff; --color-text: #5e6e82;
-    --color-bg-hover: #f9fafd; }
+    --color-bg-hover: #f9fafd; --color-info-bg-alt: #ddf2f6; --color-info-border-alt: #7dd3e8;
+    --color-secondary-border: #9ba3d4; }
   .stage { margin-bottom: 2.2rem; }
   .stage-cap { display: flex; align-items: baseline; gap: .55rem; margin-bottom: .4rem; }
   .stage-key { display: inline-grid; place-items: center; width: 1.35rem; height: 1.35rem; flex: none;
@@ -239,20 +240,15 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
     padding: .05rem .3rem; border-radius: var(--radius-sm); }
   .stage-why b { color: var(--color-dark); }
 
-  /* The panel, copied rule for rule from TraceSpanInlineDetail so the drawing is the component. */
+  /* The panel, copied rule for rule from TraceSpanInlineDetail. */
   .span-detail { border: 1px solid var(--color-border); border-left: 3px solid var(--color-primary);
     border-radius: var(--radius-base); background: var(--color-light);
     padding: .7rem .9rem .8rem; display: flex; flex-direction: column; gap: .7rem; }
   .sd-head { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
-  .sd-kind { padding: .1rem .4rem; border-radius: var(--radius-sm);
-    background: var(--color-secondary-bg); color: var(--color-secondary);
-    font-size: var(--font-size-xs); font-weight: 700; letter-spacing: .04em; }
+  .span-detail:has(.mark-landed) .sd-head { margin-top: .7rem; }
   .sd-vitals { margin: 0; display: flex; align-items: baseline; gap: .35rem; flex-wrap: wrap;
     font-variant-numeric: tabular-nums; font-size: .8rem; color: var(--color-text-muted); }
   .sd-vitals strong { color: var(--color-dark); font-weight: 600; }
-  .sd-sep { color: var(--color-text-light); }
-  .sd-vitals b { font-family: var(--font-family-monospace); font-variant-numeric: tabular-nums;
-    color: var(--color-text); font-weight: 500; }
   .sd-actions { margin-left: auto; display: flex; gap: .35rem; }
   .sd-btn { display: inline-flex; align-items: center; gap: .3rem; font-size: .75rem;
     font-weight: 600; color: var(--color-primary); background: var(--color-bg-card);
@@ -267,6 +263,7 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
   .sd-dot { width: .5rem; height: .5rem; border-radius: var(--radius-circle);
     background: var(--color-primary); flex: none; }
   .sd-meter { display: flex; flex-direction: column; gap: .45rem; }
+  .stage[data-marked] .sd-meter { padding-bottom: 1.1rem; }
   .sd-bar { height: .75rem; border-radius: var(--radius-pill);
     background: color-mix(in srgb, var(--flamegraph-color-green) 40%, transparent);
     overflow: hidden; }
@@ -298,22 +295,57 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
   .sd-k { width: 13rem; font-size: .8rem; color: var(--color-text); font-weight: 500; }
   .sd-v { font-family: var(--font-family-monospace); font-size: .8rem; color: var(--color-dark); }
 
-  /* What moves, marked on the drawing rather than described beside it. */
-  .mark-gone { position: relative; outline: 2px dashed var(--color-danger); outline-offset: 3px;
-    border-radius: var(--radius-sm); }
-  .mark-gone::after { content: 'removed'; position: absolute; right: -.2rem; top: -1.15rem;
+  /* Badge, copied from shared/ui/common/src/components/Badge.vue so the drawing is the component. */
+  .badge { display: inline-flex; align-items: center; justify-content: center; font-weight: 600;
+    text-transform: uppercase; border-radius: 5px; border: 1px solid transparent;
+    flex-shrink: 0; vertical-align: middle; }
+  .badge-xs { padding: .2rem .4rem; font-size: .65rem; min-height: 1rem; line-height: 1.2; }
+  .badge-s { padding: .25rem .5rem; font-size: .7rem; min-height: 1.25rem; line-height: 1.2;
+    padding-top: .3rem; padding-bottom: .2rem; }
+  .badge-secondary { background: var(--color-secondary-bg); color: var(--color-secondary); }
+  .badge.badge-key-value { display: inline-flex; align-items: center; gap: .25rem;
+    background-color: var(--color-light); border-radius: .25rem;
+    border: 1px solid var(--color-border-light); text-transform: none; font-weight: 500;
+    justify-content: flex-start; }
+  .badge.badge-key-value.badge-xs { padding: .2rem .4rem; font-size: .65rem; gap: .15rem; }
+  .badge.badge-key-value.badge-s { padding: .25rem .5rem; font-size: .7rem; gap: .2rem; }
+  .badge.badge-key-value.badge-info { background: var(--color-info-bg-alt);
+    border: 1px solid var(--color-info-border-alt); }
+  .badge.badge-key-value.badge-secondary { background: var(--color-secondary-bg);
+    border: 1px solid var(--color-secondary-border); }
+  .badge.badge-borderless { border-color: transparent !important; }
+  .badge-key { color: var(--color-text-muted); font-weight: 500; }
+  .badge-value { color: var(--color-dark); font-weight: 600; }
+
+  /* What changes, marked on the drawing rather than described beside it. */
+  /* Three marks on three consecutive rows, so they stagger rather than stack: the first label
+     sits above its row, the other two below theirs, and they start from opposite edges. */
+  .mark-gone, .mark-gone2 { position: relative; outline: 2px dashed var(--color-danger);
+    outline-offset: 3px; border-radius: var(--radius-sm); }
+  .mark-gone::after, .mark-gone2::after { content: 'removed'; position: absolute;
     font-family: -apple-system, sans-serif; font-size: .6rem; font-weight: 800;
-    text-transform: uppercase; letter-spacing: .05em; color: var(--color-danger); }
-  .mark-move { position: relative; outline: 2px dashed var(--color-primary); outline-offset: 3px;
+    text-transform: uppercase; letter-spacing: .05em; color: var(--color-danger);
+    white-space: nowrap; }
+  .mark-gone::after { right: -.2rem; top: -1.15rem; }
+  .mark-gone2::after { right: -.2rem; bottom: -1.25rem; }
+  .mark-badge { position: relative; outline: 2px dashed var(--color-primary); outline-offset: 3px;
     border-radius: var(--radius-sm); }
-  .mark-move::after { content: 'moves up'; position: absolute; right: 0; top: -1.15rem;
+  .mark-badge::after { content: 'becomes a badge'; position: absolute; left: 0; bottom: -1.25rem;
     font-family: -apple-system, sans-serif; font-size: .6rem; font-weight: 800;
-    text-transform: uppercase; letter-spacing: .05em; color: var(--color-primary); }
+    text-transform: uppercase; letter-spacing: .05em; color: var(--color-primary);
+    white-space: nowrap; }
   .mark-landed { position: relative; outline: 2px dashed #05925a; outline-offset: 3px;
     border-radius: var(--radius-sm); }
-  .mark-landed::after { content: 'landed here'; position: absolute; left: 0; top: -1.15rem;
-    font-family: -apple-system, sans-serif; font-size: .6rem; font-weight: 800;
-    text-transform: uppercase; letter-spacing: .05em; color: #05925a; }
+  .mark-landed.captioned::after { content: 'landed here'; position: absolute; left: 0;
+    top: -1.2rem; font-family: -apple-system, sans-serif; font-size: .6rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .05em; color: #05925a; white-space: nowrap; }
+
+  /* The size strip. */
+  .size-row { display: flex; align-items: center; gap: .8rem; margin-bottom: .5rem; }
+  .size-tag { width: 4.5rem; flex: none; font-family: var(--font-family-monospace);
+    font-size: .72rem; color: var(--color-text-muted); }
+  .size-strip { border: 1px solid var(--color-border); border-radius: var(--radius-base);
+    background: var(--color-light); padding: .7rem .9rem; }
 
   .note-box { margin-top: 2rem; padding: 1.1rem 1.3rem; border-radius: var(--radius-md);
     border: 1px solid rgba(245,128,62,.45); background: var(--color-warning-light); }
@@ -331,21 +363,22 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 <body>
   <div class="wrap">
     <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
-    <h1><span class="n"><i class="bi bi-stopwatch"></i></span>Span timing: one line out, one line up</h1>
+    <h1><span class="n"><i class="bi bi-stopwatch"></i></span>Span head: duration and children as badges</h1>
     <p class="lede">
-      Two changes to the <b>Span &middot; timing</b> block, drawn on the panel from the screenshot.
-      The critical-path line comes out; the recording offset moves out of the foot and up beside the
-      duration in the header. Everything else is untouched, and the panel below is the component&rsquo;s
-      own CSS rule for rule rather than a sketch of it.
+      The critical-path line and the recording offset come out of the <b>Span &middot; timing</b>
+      block. The duration stops being a bare <code>&lt;strong&gt;</code> and the children count stops
+      being a sentence: both become <code>Badge</code> in <b>key/value mode</b>, the shared component
+      the app&rsquo;s metric rows already use. Panel and badge below are drawn with the real CSS,
+      rule for rule, rather than sketched.
     </p>
 
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">0</span>
         <span class="stage-name">Today</span></div>
-      <p class="stage-why">Three lines under the meter. The critical-path line is <b>marked for removal</b>; the offset is <b>marked to move</b> &mdash; it currently sits at the far right of the foot, a whole panel away from the duration it is an offset of.</p>
+      <p class="stage-why">Four facts, in three different treatments and two different places. The duration is a bare <code>&lt;strong&gt;</code> in the head; the children count and the recording offset are plain text at either end of the foot, a whole panel below it. <b>The critical-path line and the offset come out</b>; <b>the children count becomes a badge</b> and moves up to join the duration.</p>
       <div class="span-detail">
         <div class="sd-head">
-          <span class="sd-kind">CLIENT</span>
+          <span class="badge badge-xs badge-secondary sd-kind">CLIENT</span>
           <p class="sd-vitals"><strong>49ms 982us</strong></p>
           <div class="sd-actions">
             <span class="sd-btn"><i class="bi bi-list-ul"></i> Events in span</span>
@@ -364,11 +397,12 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
                 <span class="sd-leg"><i class="sd-sw children"></i><b>19ms 576us</b>
                   <span>in children &middot; 39%</span></span>
               </div>
-            <p class="sd-crit mark-gone">
-              <i class="bi bi-signpost-split-fill"></i>
-              <span><b>30ms 406us</b> on the critical path &middot; 18% of the trace</span>
-            </p>
-              <p class="sd-foot"><span>7 children</span><span class="mark-move">started <b>23s 325ms</b> into the recording</span></p>
+              <p class="sd-crit ">
+                <i class="bi bi-signpost-split-fill"></i>
+                <span><b>30ms 406us</b> on the critical path &middot; 18% of the trace</span>
+              </p>
+              <p class="sd-foot"><span class="">7 children</span>
+                <span class="">started <b>23s 325ms</b> into the recording</span></p>
             </div>
           </section>
           <section class="sd-block">
@@ -391,11 +425,11 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">1</span>
         <span class="stage-name">After</span><span class="stage-tag rec">proposed</span></div>
-      <p class="stage-why">The critical-path line is gone, so <code>7 children</code> rises to sit directly under the legend. The offset joins the duration in the header, which is where it belongs: <code>49ms 982us</code> is how long the span took and <code>started 23s 325ms into the recording</code> is when it took it &mdash; one fact in two halves, now read as one. <code>.sd-vitals</code> needed almost no new CSS: it is already a wrapping flex row with a gap, muted text and a dark <code>strong</code>, built for exactly this. The one addition is the <b>&middot; separator</b> &mdash; without it <code>49ms 982us started 23s 325ms</code> reads as one run of numbers for a moment. It is the same dot the legend beside it already uses, and it is a one-character call to drop if you would rather have the plain gap.</p>
+      <p class="stage-why">Both numbers are now <code>Badge</code> in key/value mode &mdash; the same component and the same call shape the metric rows already use: <code>&lt;Badge key-label="Total" :value="…" variant="info" size="s" borderless /&gt;</code> in <code>TraceOperationList</code>, <code>JdbcGroupList</code>, <code>HttpEndpointList</code> and <code>GrpcServiceList</code>. Durations are <code>info</code> there and counts are <code>secondary</code>, so a duration and a count here take the same two variants. Nothing new is imported: <code>Badge</code> is already in this file for the span-kind chip beside them.</p>
       <div class="span-detail">
         <div class="sd-head">
-          <span class="sd-kind">CLIENT</span>
-          <p class="sd-vitals"><strong>49ms 982us</strong><span class="sd-sep">&middot;</span><span class="mark-landed">started <b>23s 325ms</b> into the recording</span></p>
+          <span class="badge badge-xs badge-secondary sd-kind">CLIENT</span>
+          <span class="badge badge-s badge-info badge-key-value badge-borderless mark-landed captioned"><span class="badge-key">Duration:</span><span class="badge-value">49ms 982us</span></span><span class="badge badge-s badge-secondary badge-key-value badge-borderless mark-landed"><span class="badge-key">Children:</span><span class="badge-value">7</span></span>
           <div class="sd-actions">
             <span class="sd-btn"><i class="bi bi-list-ul"></i> Events in span</span>
             <span class="sd-btn"><i class="bi bi-fire"></i> Flamegraph</span>
@@ -413,7 +447,12 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
                 <span class="sd-leg"><i class="sd-sw children"></i><b>19ms 576us</b>
                   <span>in children &middot; 39%</span></span>
               </div>
-              <p class="sd-foot"><span>7 children</span></p>
+              <p class="sd-crit mark-gone">
+                <i class="bi bi-signpost-split-fill"></i>
+                <span><b>30ms 406us</b> on the critical path &middot; 18% of the trace</span>
+              </p>
+              <p class="sd-foot"><span class="mark-badge">7 children</span>
+                <span class="mark-gone2">started <b>23s 325ms</b> into the recording</span></p>
             </div>
           </section>
           <section class="sd-block">
@@ -439,8 +478,8 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
       <p class="stage-why">The same panel without the annotations, at the width the modal gives it.</p>
       <div class="span-detail">
         <div class="sd-head">
-          <span class="sd-kind">CLIENT</span>
-          <p class="sd-vitals"><strong>49ms 982us</strong><span class="sd-sep">&middot;</span><span class="">started <b>23s 325ms</b> into the recording</span></p>
+          <span class="badge badge-xs badge-secondary sd-kind">CLIENT</span>
+          <span class="badge badge-s badge-info badge-key-value badge-borderless "><span class="badge-key">Duration:</span><span class="badge-value">49ms 982us</span></span><span class="badge badge-s badge-secondary badge-key-value badge-borderless "><span class="badge-key">Children:</span><span class="badge-value">7</span></span>
           <div class="sd-actions">
             <span class="sd-btn"><i class="bi bi-list-ul"></i> Events in span</span>
             <span class="sd-btn"><i class="bi bi-fire"></i> Flamegraph</span>
@@ -458,7 +497,6 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
                 <span class="sd-leg"><i class="sd-sw children"></i><b>19ms 576us</b>
                   <span>in children &middot; 39%</span></span>
               </div>
-              <p class="sd-foot"><span>7 children</span></p>
             </div>
           </section>
           <section class="sd-block">
@@ -478,24 +516,44 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
       </div>
     </div>
 
+    <div class="stage">
+      <div class="stage-cap"><span class="stage-key">3</span>
+        <span class="stage-name">Which size, against the kind chip</span></div>
+      <p class="stage-why">The span-kind chip is <code>size="xs"</code>; the metric rows this borrows
+        from are <code>size="s"</code>. Both drawn here so the pairing can be looked at rather than
+        argued about. <b><code>s</code> is the proposal</b> &mdash; a measurement you read is not a
+        label you glance at, and the step in size is what says so.</p>
+      <div class="size-strip">
+        <div class="size-row"><span class="size-tag">xs</span>
+          <span class="badge badge-xs badge-secondary sd-kind">CLIENT</span>
+          <span class="badge badge-xs badge-info badge-key-value badge-borderless "><span class="badge-key">Duration:</span><span class="badge-value">49ms 982us</span></span><span class="badge badge-xs badge-secondary badge-key-value badge-borderless "><span class="badge-key">Children:</span><span class="badge-value">7</span></span></div>
+        <div class="size-row" style="margin-bottom: 0"><span class="size-tag">s</span>
+          <span class="badge badge-xs badge-secondary sd-kind">CLIENT</span>
+          <span class="badge badge-s badge-info badge-key-value badge-borderless "><span class="badge-key">Duration:</span><span class="badge-value">49ms 982us</span></span><span class="badge badge-s badge-secondary badge-key-value badge-borderless "><span class="badge-key">Children:</span><span class="badge-value">7</span></span></div>
+      </div>
+    </div>
+
     <div class="note-box">
-      <h4>What the removal actually costs</h4>
-      <p><b>The fact survives; the numbers do not.</b> Whether a span is on the critical path stays
-        visible in the waterfall itself &mdash; rows carry a <code>critical</code> class, the legend
-        has an <b>on the critical path</b> swatch, and the toolbar has a <b>Critical path only</b>
-        filter. What the span detail stops saying is <b>how much</b> of the span was on the path and
-        <b>what share of the trace</b> that was: <code>30ms 406us</code> and <code>18%</code> have
-        nowhere else to appear.</p>
-      <p>The other half of the line goes too &mdash; its off state, <i>&ldquo;not on the critical
-        path &mdash; it ran beside work that outlasted it&rdquo;</i>, which is the sentence that
-        explained a span&rsquo;s absence from the path rather than just marking its presence.</p>
-      <p><b>The panel does not get shorter</b>, which I assumed until measuring it: all three
-        drawings above are 256px tall. <code>.sd-cols</code> is a grid, and its height is set by the
-        identity table&rsquo;s five rows, not by the timing column &mdash; so the line comes out of a
-        column that had room to spare. What is gained is one less line to read and a header that
-        states one whole fact about time, not the panel&rsquo;s height.</p>
-      <p>If the share turns out to be missed, it fits in the header too &mdash;
-        <code>.sd-vitals</code> wraps.</p>
+      <h4>What the removals cost, and what the badge quietly keeps</h4>
+      <p><b>The critical path.</b> Whether a span is on it stays visible in the waterfall &mdash;
+        rows carry a <code>critical</code> class, the legend has an <b>on the critical path</b>
+        swatch, and the toolbar has a <b>Critical path only</b> filter. What goes is <b>how much</b>
+        of the span was on the path and <b>what share of the trace</b> that was, and the off-state
+        sentence <i>&ldquo;not on the critical path &mdash; it ran beside work that outlasted
+        it&rdquo;</i>.</p>
+      <p><b>The children count keeps more than it looks.</b> The line it replaces said three
+        different things &mdash; <i>&ldquo;a leaf &mdash; nothing ran inside it&rdquo;</i>,
+        <i>&ldquo;7 children, all on other threads&rdquo;</i>, or plain <i>&ldquo;7
+        children&rdquo;</i> &mdash; and its comment explains the middle case exists because a full
+        green bar would otherwise read as a leaf. The badge still separates them:
+        <code>Children: 0</code> is a leaf, and <code>Children: 7</code> beside a legend reading
+        <b>all of it its own</b> says the children ran somewhere else. The prose goes; the
+        distinction does not.</p>
+      <p><b>The panel does not get shorter</b>, which I assumed last round until measuring it: the
+        drawings above are the same height. <code>.sd-cols</code> is a grid taking its height from
+        the identity table&rsquo;s five rows, not from the timing column &mdash; so two lines come
+        out of a column that had room to spare. What is gained is a head that states both numbers in
+        the app&rsquo;s own vocabulary, and a timing block that is only the meter.</p>
     </div>
 
   </div>
