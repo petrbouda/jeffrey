@@ -307,51 +307,55 @@
           @click="toggleEntry(mark.entry.exceptionId)"
         ></button>
 
-        <!--
-          Downward here, not upward: the notification rail sits directly above this one, and a
-          popover that covers another rail is worse than one that covers a few bars.
-        -->
-        <div
-          v-if="openException !== null"
-          class="rail-pop down"
-          :style="{
-            left: offsetPercent(openException.startEpochMicros, traceWindow(spans)) + '%',
-            '--mark': exceptionColor(openException.escaped)
-          }"
-        >
-          <div class="pop-head">
-            <Badge
-              v-if="openException.escaped"
-              variant="danger"
-              size="xs"
-              value="escaped"
-            />
-            <span v-else class="pop-sev">Caught</span>
-            <span class="pop-at">{{ offsetIntoTrace(openException.startEpochMicros) }}</span>
-          </div>
-          <p class="pop-title mono">{{ openException.thrownClass }}</p>
-          <p v-if="openException.message" class="pop-body">{{ openException.message }}</p>
-          <!--
-            The top of the stack, folded. Four raw frames would often be four frames of the streams
-            runtime and tell the reader nothing; folded, the preview opens on the throwing frame and
-            the application frames around it. Only ever a preview -- the popover is capped, and the
-            footer below hands off to the span for the rest.
-          -->
-          <TraceStackTrace
-            v-if="openException.stacktraceId"
-            class="pop-stack"
-            preview
-            :profile-id="profileId"
-            :stacktrace-id="openException.stacktraceId"
-            :preview-rows="5"
-          />
-          <button type="button" class="pop-link" @click="selectSpanOf(openException.spanId)">
-            <i class="bi bi-arrow-return-right"></i>
-            Select {{ spanNameOf(openException.spanId) }}
-          </button>
-        </div>
       </span>
       <span class="wf-duration">{{ exceptionMarks.length }}</span>
+    </div>
+
+    <!--
+      A throw's stack is the one thing on this screen that will not fit in a popover: 253 frames on a
+      real trace, and a floating panel wide enough to hold a fully qualified frame covers the bars
+      the reader is comparing against. So it docks instead -- a strip the full width of the dialog,
+      between the rail it belongs to and the waterfall, pushing the bars down rather than over them.
+      It stays until dismissed, which is what lets the stack be scrolled and read rather than held
+      open by the cursor.
+
+      Notifications keep their popover on purpose: a title and a sentence fit in one, and docking
+      something that small would spend the width for nothing.
+    -->
+    <div
+      v-if="openException !== null"
+      class="exc-dock"
+      :style="{ '--mark': exceptionColor(openException.escaped) }"
+    >
+      <div class="dock-head">
+        <Badge v-if="openException.escaped" variant="danger" size="xs" value="escaped" />
+        <span v-else class="pop-sev">Caught</span>
+        <span class="dock-cls mono">{{ openException.thrownClass }}</span>
+        <span class="pop-at">{{ offsetIntoTrace(openException.startEpochMicros) }}</span>
+        <button
+          type="button"
+          class="dock-link"
+          @click="selectSpanOf(openException.spanId)"
+        >
+          <i class="bi bi-arrow-return-right"></i>
+          Select {{ spanNameOf(openException.spanId) }}
+        </button>
+        <!--
+          A docked strip does not go away when the cursor leaves, so it has to offer a way out that
+          is not "find the cross you clicked".
+        -->
+        <button type="button" class="dock-close" title="Close" @click="openEntryId = null">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <p v-if="openException.message" class="dock-msg">{{ openException.message }}</p>
+      <TraceStackTrace
+        v-if="openException.stacktraceId"
+        class="dock-stack"
+        :profile-id="profileId"
+        :stacktrace-id="openException.stacktraceId"
+      />
+      <p v-else class="dock-none">The recording captured no stack for this throw.</p>
     </div>
 
     <div class="wf-head">
@@ -2319,15 +2323,106 @@ function tooltip(span: TraceSpanRow): string {
   bottom: 1.35rem;
 }
 
-.rail-pop.down {
-  top: 1.35rem;
+/*
+ * The docked strip. Full width by virtue of being a block in the waterfall's own column rather than
+ * an absolutely positioned panel over it, so nothing has to be told how wide the dialog is.
+ */
+.exc-dock {
+  margin: 0 0 0.4rem;
+  border: 1px solid var(--color-border-input);
+  border-left: 3px solid var(--mark);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-sm);
 }
 
-/* The preview is dense monospace under prose; a rule and a little air keep the two apart. */
-.pop-stack {
-  margin-top: 0.4rem;
-  padding-top: 0.35rem;
-  border-top: 1px solid var(--color-border-light);
+.dock-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-light);
+}
+
+.dock-cls {
+  /* min-width: 0 or the ellipsis never fires -- a flex item will not shrink below its content,
+     so a long class name would push the actions off the end instead of truncating. */
+  min-width: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The two actions sit at the far end together, so the class name gets the room it needs. */
+.dock-head .pop-at {
+  margin-left: auto;
+  flex: none;
+}
+
+.dock-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: none;
+  padding: 0 0.4rem;
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--color-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/*
+ * The strip does not close itself, so this is the only way out and has to look like one: a real
+ * target rather than a glyph, in the muted ink the rest of the header uses rather than the lightest
+ * one on the palette.
+ */
+.dock-close {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.dock-close:hover {
+  background: var(--color-lighter);
+  color: var(--color-dark);
+}
+
+.dock-msg {
+  padding: 0.35rem 0.6rem 0;
+  font-size: var(--font-size-sm);
+  color: #475569;
+  line-height: 1.5;
+}
+
+/*
+ * The stack scrolls inside the strip rather than growing it without limit: a 253-frame stack
+ * unfolded is taller than the dialog, and a strip that pushed the whole waterfall off the bottom
+ * would have traded one covered drawing for another.
+ */
+.dock-stack {
+  max-height: 20rem;
+  overflow-y: auto;
+  padding: 0.35rem 0.6rem 0.5rem;
+}
+
+.dock-none {
+  padding: 0.35rem 0.6rem 0.5rem;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 }
 
 .pop-head {
