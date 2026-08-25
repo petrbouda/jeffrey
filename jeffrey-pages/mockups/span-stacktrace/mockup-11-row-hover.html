@@ -233,10 +233,23 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
     background: var(--color-lighter); color: var(--color-text-muted); }
   .stage-tag.now { background: rgba(230,55,87,.14); color: var(--color-danger); }
   .stage-tag.rec { background: rgba(0,210,122,.16); color: #05925a; }
-  .stage-why { font-size: .87rem; color: #475569; line-height: 1.6; max-width: 88ch; margin-bottom: .7rem; }
+  .stage-why { font-size: .87rem; color: #475569; line-height: 1.6; max-width: 92ch; margin-bottom: .6rem; }
   .stage-why code { font-family: var(--font-family-monospace); font-size: .84em; background: #e2e8f0;
     padding: .05rem .3rem; border-radius: var(--radius-sm); }
   .stage-why b { color: var(--color-dark); }
+
+  /* The ledger: what each variant still needs, and what it deletes. */
+  .ledger { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .6rem; }
+  .bx { display: inline-flex; align-items: center; gap: .35rem; padding: .18rem .5rem;
+    border: 1px solid var(--color-border-input); border-radius: var(--radius-pill);
+    background: var(--color-white); font-size: var(--font-size-sm); color: #475569; }
+  .bx code { font-family: var(--font-family-monospace); font-size: var(--font-size-xs);
+    color: var(--color-dark); }
+  .bx.gone { border-style: dashed; border-color: rgba(0,210,122,.5);
+    background: rgba(0,210,122,.07); color: #05925a; }
+  .bx.part { border-style: dashed; border-color: rgba(245,128,62,.55);
+    background: var(--color-warning-light); color: #b45309; }
+  .bx.gone s { text-decoration-thickness: 1px; }
 
   .sd-region { border: 1px solid var(--color-border); border-radius: var(--radius-base);
     background: var(--color-white); overflow: hidden; }
@@ -247,15 +260,15 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
     font-size: var(--font-size-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
   .sd-src { margin-left: auto; font-family: var(--font-family-monospace); font-weight: 400;
     text-transform: none; letter-spacing: 0; }
-  .sd-region-body { padding: .3rem .7rem .45rem; }
+  .sd-region-body { padding: .6rem .75rem .7rem; }
 
+  /* The pre-existing row box, shared with notification rows. */
   .sd-entry { padding: .4rem .5rem; margin: 0 -.5rem;
     border-bottom: 1px solid var(--color-border-light); }
   .sd-entry:last-child { border-bottom: 0; }
   .sd-entry.severe { background: var(--color-danger-bg-lighter); border-radius: var(--radius-sm); }
   .sd-exc-head { display: grid; grid-template-columns: 1rem 4.5rem 1fr; gap: .5rem;
-    align-items: baseline; padding: .15rem .4rem; margin: -.15rem -.4rem;
-    border-radius: var(--radius-sm); cursor: pointer; }
+    align-items: baseline; cursor: pointer; }
   .sd-entry-caret { font-size: var(--font-size-xs); color: var(--color-text-light); }
   .sd-entry-at { font-variant-numeric: tabular-nums; font-size: var(--font-size-xs);
     color: var(--color-text-muted); }
@@ -272,33 +285,36 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
     font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
     font-family: -apple-system, sans-serif; }
 
-  /* ------------------------------------------------ 0: today */
-  .hv-today .is-hover { background: var(--color-primary-light); }
+  /* ---------------- 0: today. The head carries a second box purely to be filled. */
+  .hv-today .sd-exc-head { padding: .15rem .4rem; margin: -.15rem -.4rem;
+    border-radius: var(--radius-sm); }
+  .hv-today .is-hover .sd-exc-head { background: var(--color-primary-light); }
 
-  /* 1: the token trace-row and span-grid-row already use */
-  .hv-token .is-hover { background: var(--color-bg-hover); }
-  .hv-token .is-hover .sd-entry-caret { color: var(--color-primary); }
+  /* 1: the row already has a box -- light that one instead of building a second. */
+  .hv-row.is-exc .is-hover { background: var(--color-bg-hover); border-radius: var(--radius-sm); }
+  .hv-row .is-hover .sd-entry-caret { color: var(--color-primary); }
 
-  /* 2: the waterfall's own row hover -- a pair of hairlines, no fill */
+  /* 2: hairlines need no box at all. */
   .hv-rules .is-hover { box-shadow: inset 0 1px 0 var(--color-primary),
     inset 0 -1px 0 var(--color-primary); }
   .hv-rules .is-hover .sd-entry-caret { color: var(--color-primary); }
 
-  /* 3: an edge where the row starts, plus the app's fill */
+  /* 3: an edge, drawn inside the row's existing box. */
   .hv-edge .is-hover { background: var(--color-bg-hover);
-    box-shadow: inset 2px 0 0 var(--color-primary); }
+    box-shadow: inset 2px 0 0 var(--color-primary); border-radius: var(--radius-sm); }
   .hv-edge .is-hover .sd-entry-caret { color: var(--color-primary); }
 
-  /* 4: nothing on the row -- only the control reacts */
+  /* 4: nothing is filled, so nothing needs a box. */
   .hv-caret .is-hover .sd-entry-caret { color: var(--color-primary); }
-  .hv-caret .is-hover .sd-entry-caret i { background: var(--color-primary-light);
-    border-radius: var(--radius-circle); padding: .18rem; margin: -.18rem; }
   .hv-caret .is-hover .sd-entry-class { color: var(--color-primary); }
 
-  /* 5: the tint stops where the content does */
-  .hv-fit .is-hover { background: linear-gradient(to right,
-    var(--color-bg-hover-alt) 0 38rem, transparent 38rem); }
-  .hv-fit .is-hover .sd-entry-caret { color: var(--color-primary); }
+  /* 5: both boxes gone. Rows sit inside the body padding and separate with their own border. */
+  .hv-flat .sd-entry { padding: .45rem 0; margin: 0; }
+  .hv-flat .sd-entry.severe { padding-left: .5rem; padding-right: .5rem;
+    margin-left: -.5rem; margin-right: -.5rem; }
+  .hv-flat .is-hover .sd-entry-caret { color: var(--color-primary); }
+  .hv-flat .is-hover { box-shadow: inset 0 1px 0 var(--color-primary),
+    inset 0 -1px 0 var(--color-primary); }
 
   .verdict-box { margin-top: 2rem; padding: 1.1rem 1.3rem; border-radius: var(--radius-md);
     border: 1px solid rgba(0,210,122,.4); background: rgba(0,210,122,.06); }
@@ -310,7 +326,6 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
   .verdict-box code { font-family: var(--font-family-monospace); font-size: .84em;
     background: var(--color-white); padding: .05rem .3rem; border-radius: var(--radius-sm); }
 
-  /* The panel is this wide in a real trace modal, which is what makes today's fill a slab. */
   .wrap { max-width: 1900px; }
 </style>
 </head>
@@ -319,22 +334,24 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
     <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
     <h1><span class="n"><i class="bi bi-hand-index"></i></span>Throw row hover</h1>
     <p class="lede">
-      The first row in each panel is drawn hovered, at the width a real trace modal gives this region
-      &mdash; which is the width that makes today&rsquo;s version look like a slab. Everything else is
-      identical.
+      The first row of each panel is drawn hovered, at the width a real trace modal gives this region.
+      The chips above each panel are the ledger: <b>what boxes that variant still needs, and what it
+      deletes</b>. The hover and the padding are one question, not two &mdash; the head&rsquo;s
+      negative-margin pair exists only to be filled, so a treatment that does not fill it does not need it.
     </p>
 
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">0</span>
         <span class="stage-name">Today</span><span class="stage-tag now">the problem</span></div>
-      <p class="stage-why">The first row is hovered. Two things are wrong and neither is the idea. The tint is <code>--color-primary-light</code> &mdash; a saturated lavender &mdash; where <b>the app hovers rows with <code>--color-bg-hover</code></b>, a near-white <code>#f9fafd</code>, in both <code>TraceCardList</code> and <code>TraceOperationSummary</code>. And the row is the full width of the panel while its content occupies the first fifth. Measured at this width: the highlight is <b>1886px wide and the ink ends at 238px</b>, so <b>87% of it is empty</b> &mdash; a saturated fill at that ratio is a slab with a little text stranded at the left. Blue in a red region does not help either.</p>
+      <p class="stage-why"><b>Two nested negative-margin pairs.</b> The row already had one; I added a second on the head purely so the hover would have something to fill. That is the whole reason it exists &mdash; and it is why the fill runs the panel width: measured here, the highlight is <b>1886px wide while the ink ends at 238px</b>, so <b>87% of it is empty</b>. The tint is <code>--color-primary-light</code> as well, where the app hovers rows with <code>--color-bg-hover</code> in both <code>TraceCardList</code> and <code>TraceOperationSummary</code>.</p>
+      <div class="ledger"><span class="bx">head padding/margin <code>.15rem .4rem / -.15rem -.4rem</code></span><span class="bx">row padding/margin <code>.4rem .5rem / 0 -.5rem</code></span></div>
       <div class="sd-region is-exc hv-today">
         <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions
           <span class="sd-src">6 &middot; jdk.JavaExceptionThrow</span>
         </div>
         <div class="sd-region-body">
-            <div class="sd-entry">
-              <div class="sd-exc-head is-hover" role="button" aria-expanded="false">
+            <div class="sd-entry is-hover">
+              <div class="sd-exc-head" role="button" aria-expanded="false">
                 <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
                 <span class="sd-entry-at">+633us</span>
                 <span class="sd-entry-main">
@@ -383,15 +400,16 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">1</span>
-        <span class="stage-name">The app's row hover</span><span class="stage-tag rec">recommended</span></div>
-      <p class="stage-why">Exactly what <code>.trace-row</code> and <code>.span-grid-row</code> already do: <code>--color-bg-hover</code>. Near-white, so width stops mattering &mdash; a slab of #f9fafd reads as a lit row rather than a block of colour. The caret takes the primary tint, which is where the affordance belongs anyway.</p>
-      <div class="sd-region is-exc hv-token">
+        <span class="stage-name">Light the row that already has a box</span><span class="stage-tag rec">recommended</span></div>
+      <p class="stage-why"><b>The head&rsquo;s pair is deleted outright.</b> The row has had a box all along, so the hover goes there and the second one was never needed. Same rule as before: <code>:has()</code> is not even required &mdash; the state lives on the row and the head stays the click target. Fill is the app&rsquo;s own <code>--color-bg-hover</code>, near-white, so the width stops mattering.</p>
+      <div class="ledger"><span class="bx gone"><s>head padding/margin</s></span><span class="bx">row padding/margin <code>.4rem .5rem / 0 -.5rem</code></span></div>
+      <div class="sd-region is-exc hv-row">
         <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions
           <span class="sd-src">6 &middot; jdk.JavaExceptionThrow</span>
         </div>
         <div class="sd-region-body">
-            <div class="sd-entry">
-              <div class="sd-exc-head is-hover" role="button" aria-expanded="false">
+            <div class="sd-entry is-hover">
+              <div class="sd-exc-head" role="button" aria-expanded="false">
                 <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
                 <span class="sd-entry-at">+633us</span>
                 <span class="sd-entry-main">
@@ -440,15 +458,16 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">2</span>
-        <span class="stage-name">The waterfall's hairlines</span></div>
-      <p class="stage-why">The convention of the component this panel lives inside: <code>.wf-row:hover</code> draws <b>no fill at all</b>, just an inset hairline top and bottom in primary. Immune to width by construction, and a reader who has been hovering span rows all along has already learned it. Two lines across a wide panel can read as a divider rather than a highlight.</p>
+        <span class="stage-name">Hairlines</span></div>
+      <p class="stage-why">Also deletes the head&rsquo;s pair, and needs no fill either: an inset hairline top and bottom, which is what <code>.wf-row:hover</code> does in the waterfall this panel sits inside. Immune to width by construction. Two lines across a wide panel can read as a divider rather than a highlight.</p>
+      <div class="ledger"><span class="bx gone"><s>head padding/margin</s></span><span class="bx">row padding/margin <code>.4rem .5rem / 0 -.5rem</code></span></div>
       <div class="sd-region is-exc hv-rules">
         <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions
           <span class="sd-src">6 &middot; jdk.JavaExceptionThrow</span>
         </div>
         <div class="sd-region-body">
-            <div class="sd-entry">
-              <div class="sd-exc-head is-hover" role="button" aria-expanded="false">
+            <div class="sd-entry is-hover">
+              <div class="sd-exc-head" role="button" aria-expanded="false">
                 <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
                 <span class="sd-entry-at">+633us</span>
                 <span class="sd-entry-main">
@@ -498,14 +517,15 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">3</span>
         <span class="stage-name">Edge and fill</span></div>
-      <p class="stage-why">The app&rsquo;s fill plus a 2px primary bar at the left edge, where the caret and the row both start. Anchors the highlight to the end you are reading from rather than letting it float across the width. Costs a second signal for one state.</p>
+      <p class="stage-why">The app&rsquo;s fill plus a 2px bar at the row&rsquo;s left edge, both drawn inside the box the row already owns. Anchors the highlight where you start reading. Costs two signals for one state.</p>
+      <div class="ledger"><span class="bx gone"><s>head padding/margin</s></span><span class="bx">row padding/margin <code>.4rem .5rem / 0 -.5rem</code></span></div>
       <div class="sd-region is-exc hv-edge">
         <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions
           <span class="sd-src">6 &middot; jdk.JavaExceptionThrow</span>
         </div>
         <div class="sd-region-body">
-            <div class="sd-entry">
-              <div class="sd-exc-head is-hover" role="button" aria-expanded="false">
+            <div class="sd-entry is-hover">
+              <div class="sd-exc-head" role="button" aria-expanded="false">
                 <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
                 <span class="sd-entry-at">+633us</span>
                 <span class="sd-entry-main">
@@ -555,14 +575,15 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">4</span>
         <span class="stage-name">Only the control reacts</span></div>
-      <p class="stage-why">Nothing happens to the row: the chevron takes colour and a soft disc, and the class name tints. Width becomes irrelevant because nothing is filled. The quietest option by a distance &mdash; and the one most likely to be missed, since the pointer is rarely over the caret when it enters the row.</p>
+      <p class="stage-why">Nothing is filled, so <b>nothing needs a box at all</b> &mdash; the purest answer to the question. The chevron and the class name take the primary tint and that is the whole treatment. Also the easiest to miss, since the pointer is rarely over the caret when it enters the row.</p>
+      <div class="ledger"><span class="bx gone"><s>head padding/margin</s></span><span class="bx">row padding/margin <code>.4rem .5rem / 0 -.5rem</code></span></div>
       <div class="sd-region is-exc hv-caret">
         <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions
           <span class="sd-src">6 &middot; jdk.JavaExceptionThrow</span>
         </div>
         <div class="sd-region-body">
-            <div class="sd-entry">
-              <div class="sd-exc-head is-hover" role="button" aria-expanded="false">
+            <div class="sd-entry is-hover">
+              <div class="sd-exc-head" role="button" aria-expanded="false">
                 <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
                 <span class="sd-entry-at">+633us</span>
                 <span class="sd-entry-main">
@@ -611,15 +632,16 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">5</span>
-        <span class="stage-name">Fill only the content</span></div>
-      <p class="stage-why">Attacks the complaint literally: the tint stops after the content instead of running the panel width. Fixes the slab while keeping a visible fill. But the stopping point is a guess &mdash; a long class name or message runs past it &mdash; so it trades a slab for a ragged edge that moves with the data.</p>
-      <div class="sd-region is-exc hv-fit">
+        <span class="stage-name">Both boxes gone</span><span class="stage-tag ">most removed</span></div>
+      <p class="stage-why"><b>Every padding and margin deleted from both.</b> Rows sit inside the region body&rsquo;s own padding and separate with their border alone; nothing overhangs anything. The trade is visible in the drawing: the separators no longer reach across the region, so the list reads as narrower than the panel holding it &mdash; and <code>.sd-entry</code> is shared with notification rows, so this restyles those too. The escaped row keeps a small pair, because its tint has to reach past the text to look like a highlighted row rather than a highlighted paragraph.</p>
+      <div class="ledger"><span class="bx gone"><s>head padding/margin</s></span><span class="bx part">row padding/margin <code>escaped rows only</code></span></div>
+      <div class="sd-region is-exc hv-flat">
         <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions
           <span class="sd-src">6 &middot; jdk.JavaExceptionThrow</span>
         </div>
         <div class="sd-region-body">
-            <div class="sd-entry">
-              <div class="sd-exc-head is-hover" role="button" aria-expanded="false">
+            <div class="sd-entry is-hover">
+              <div class="sd-exc-head" role="button" aria-expanded="false">
                 <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
                 <span class="sd-entry-at">+633us</span>
                 <span class="sd-entry-main">
@@ -667,16 +689,18 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
     </div>
 
     <div class="verdict-box">
-      <h4>If you want one answer</h4>
-      <p><b>1.</b> The row was not wrong to highlight; it was wrong about <em>which</em> highlight. The
-        app already has a row-hover token and two other components already use it. At
-        <code>#f9fafd</code> the width stops being a problem on its own, without inventing a shape.</p>
-      <p><b>2 is the better argument</b> if you weigh consistency with the immediate surroundings over
-        consistency with the app: these rows sit inside the waterfall, and the waterfall hovers its own
-        rows with hairlines and no fill. Picking it makes the span detail agree with the thing it is
-        nested in rather than with lists elsewhere.</p>
-      <p><b>5 is the trap.</b> It fixes exactly the thing that looks wrong, and introduces an edge whose
-        position depends on how long the class name happens to be.</p>
+      <h4>So: can the padding and margin go?</h4>
+      <p><b>The head&rsquo;s pair, yes &mdash; entirely, in every variant.</b> It only ever existed to give
+        the hover a box, and the row underneath already had one. That is a straight deletion with nothing
+        to weigh: variants 1&ndash;5 all drop it.</p>
+      <p><b>The row&rsquo;s pair is a different question</b>, because it predates this work and is shared
+        with notification rows. Variant 5 shows what removing it looks like: tidier CSS, and a list that
+        no longer spans its own region. Worth doing only if you like that reading better &mdash; it is a
+        visual change, not a cleanup.</p>
+      <p><b>1</b> is the recommendation: the head&rsquo;s box deleted, the hover moved onto the box that
+        was already there, and the app&rsquo;s own row-hover token instead of a lavender the app does not
+        use for rows. <b>4</b> is the answer if you want no box to exist anywhere &mdash; nothing is
+        filled, so nothing needs one.</p>
     </div>
 
   </div>
