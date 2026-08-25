@@ -19,6 +19,9 @@
 package cafe.jeffrey.jfrparser.jdk;
 
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
+import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -135,6 +138,32 @@ public abstract class JdkRecordingIterators {
         Function<Path, RecordingFileIterator<PARTIAL, PARTIAL>> singleIterator =
                 recording -> new JdkRecordingFileIterator<>(recording, processorSupplier.get());
         return new ParallelRecordingFileIterator<>(recordings, singleIterator);
+    }
+
+    /**
+     * Name of the span each chunk's parse is recorded under. Shared with
+     * {@link ParallelRecordingFileIterator} so a chunk reads the same in a trace however it was
+     * scheduled.
+     */
+    static final String SPAN_CHUNK_PARSE = "chunk.parse";
+
+    /**
+     * Parses one chunk on the bulk pool and reports when it is done.
+     * <p>
+     * Used when chunks arrive one at a time rather than as a finished list — a recording being
+     * split can start parsing its first chunk long before its last one has been written.
+     *
+     * @param processor the processor for this chunk; each chunk needs its own, they are stateful
+     */
+    public static CompletableFuture<Void> parseAsync(Path chunk, EventProcessor<Void> processor) {
+        // fork captures the enclosing span here, on the submitting thread: the workers run on a
+        // shared pool, which ScopedValue does not reach.
+        return CompletableFuture.runAsync(
+                Tracer.fork(SPAN_CHUNK_PARSE, () -> {
+                    RecordingFileIterator<Void, Void> iterator = single(chunk, processor);
+                    iterator.collect(new NoopCollector());
+                }),
+                Schedulers.sharedBulkParallel());
     }
 
     public static class NoopCollector implements Collector<Void, Void> {

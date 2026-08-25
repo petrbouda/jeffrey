@@ -18,12 +18,21 @@
 
 package cafe.jeffrey.shared.common.jfr;
 
-import tools.jackson.databind.node.ObjectNode;
 import jdk.jfr.EventType;
 import jdk.jfr.consumer.RecordedEvent;
 
 import java.util.List;
 
+/**
+ * Turns a recorded event's fields into the JSON stored against it.
+ * <p>
+ * This runs once per event in the recording, which is what shapes the contract: it produces JSON
+ * <em>text</em> rather than a tree, because the only thing downstream ever did with a tree was
+ * serialize it. It also picks the one value worth pooling on the way past, because deciding that
+ * needs the same values and would otherwise mean walking everything a second time.
+ * <p>
+ * Implementations are stateful and not thread-safe — one per parsing thread.
+ */
 public interface EventFieldsMapper {
 
     /**
@@ -34,10 +43,10 @@ public interface EventFieldsMapper {
     void update(List<EventType> eventTypes);
 
     /**
-     * Maps the fields of the {@link RecordedEvent} to the JSON object.
+     * Maps the fields of the {@link RecordedEvent} to JSON.
      *
      * @param event the event to be mapped
-     * @return the JSON object with the fields of the event
+     * @return the event's fields as JSON, plus whichever value was lifted out for pooling
      */
-    ObjectNode map(RecordedEvent event);
+    MappedFields map(RecordedEvent event);
 }

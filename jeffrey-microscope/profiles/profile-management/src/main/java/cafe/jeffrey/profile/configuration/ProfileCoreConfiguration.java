@@ -21,6 +21,9 @@ package cafe.jeffrey.profile.configuration;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import cafe.jeffrey.profile.ProfileInitStages;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.ProfileInitializerImpl;
 import cafe.jeffrey.profile.manager.additional.AdditionalFilesManager;
@@ -59,6 +62,7 @@ import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.RecordingEventParser;
 import cafe.jeffrey.provider.profile.api.RecordingEventParserResolver;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
+import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
@@ -66,6 +70,7 @@ import cafe.jeffrey.shared.persistence.DatabaseManager;
 import cafe.jeffrey.storage.recording.api.RecordingStorage;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;
@@ -220,10 +225,22 @@ public class ProfileCoreConfiguration {
         };
     }
 
+    /**
+     * Tracks profile-initialization runs by profile id, so progress can be read while one is in
+     * flight. Unbounded: initialization is scheduled by whoever created the profile and runs on that
+     * caller's thread, so there is nothing here to ration.
+     */
+    @Bean
+    public PipelineRunRegistry<String> profileInitRunRegistry(Clock clock) {
+        return new PipelineRunRegistry<>(
+                ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), clock);
+    }
+
     @Bean
     public ProfileInitializer profileInitializer(
             ProfileManager.Factory profileManagerFactory,
             ProfileDataInitializer profileDataInitializer,
+            PipelineRunRegistry<String> profileInitRunRegistry,
             TempDirFactory tempDirFactory,
             Clock clock) {
         RecordingEventParser jfrParser =
@@ -241,20 +258,24 @@ public class ProfileCoreConfiguration {
                 eventWriterFactory,
                 profileManagerFactory,
                 profileDataInitializer,
+                profileInitRunRegistry,
                 clock);
     }
 
+    /**
+     * The blocking/concurrent switches are gone with the work itself: the warming no longer holds
+     * the profile back, so there is nothing left to decide about how long to wait for it. It runs on
+     * the bulk pool, which exists so an import cannot queue ahead of an interactive request.
+     */
     @Bean
     public ProfileDataInitializer profileDataInitializer(
-            @Value("${jeffrey.microscope.profile.data-initializer.enabled:true}") boolean enabled,
-            @Value("${jeffrey.microscope.profile.data-initializer.blocking:true}") boolean blocking,
-            @Value("${jeffrey.microscope.profile.data-initializer.concurrent:true}") boolean concurrent) {
+            @Value("${jeffrey.microscope.profile.data-initializer.enabled:true}") boolean enabled) {
 
         if (enabled) {
-            return new ProfileDataInitializerImpl(blocking, concurrent);
+            return new ProfileDataInitializerImpl(
+                    profileDatabaseProvider, Schedulers.sharedBulkParallel());
         } else {
-            return _ -> {
-            };
+            return _ -> CompletableFuture.completedFuture(null);
         }
     }
 }

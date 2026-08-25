@@ -138,6 +138,52 @@ public final class PipelineRunRegistry<K> {
     }
 
     /** Live progress of the current (or last finished) run; idle when none exists. */
+    /**
+     * Runs the work on the calling thread, tracked exactly like a run {@link #start} would have
+     * queued: same key, same root span, same completion and failure handling, same stored result.
+     * <p>
+     * For pipelines whose caller already owns the scheduling and needs the outcome before it can
+     * carry on — profile initialization is scheduled by the manager that created the profile, and
+     * has to enable the profile once the run is done. Handing that to the registry's own executor
+     * would only mean immediately waiting for it again.
+     * <p>
+     * Concurrency slots are deliberately not taken. They exist to bound how much work the registry
+     * itself sets going; a caller running on its own thread has already made that decision.
+     *
+     * @return false when a run for this key is already in flight, in which case nothing ran
+     * @throws RuntimeException whatever the work threw, after the run has been marked failed
+     */
+    public boolean runInline(PipelineRunRequest<K> request) {
+        TrackedRun candidate = new TrackedRun(new PipelineRun(definition, request.scopeId(), clock));
+        TrackedRun current = runsByKey.compute(request.key(), (_, existing) ->
+                existing != null && existing.run.isRunning() ? existing : candidate);
+
+        if (current != candidate) {
+            LOG.debug("Pipeline run already in flight: pipeline_id={} key={}",
+                    definition.pipelineId(), request.key());
+            return false;
+        }
+
+        candidate.worker = Thread.currentThread();
+        Throwable failure;
+        try {
+            failure = driveWork(request, candidate.run);
+        } finally {
+            candidate.worker = null;
+            notifyFinished(request, candidate.run);
+        }
+
+        // Unlike the queued path, this one has a caller waiting on the outcome: a profile whose
+        // initialization failed must not be enabled, so the failure has to reach it rather than
+        // only being recorded on the run.
+        if (failure != null) {
+            throw failure instanceof RuntimeException runtime
+                    ? runtime
+                    : new IllegalStateException("Pipeline run failed: " + definition.pipelineId(), failure);
+        }
+        return true;
+    }
+
     public PipelineProgress progress(K key) {
         TrackedRun tracked = runsByKey.get(key);
         return tracked == null ? PipelineProgress.idle(definition.pipelineId()) : tracked.run.progress();
@@ -194,6 +240,28 @@ public final class PipelineRunRegistry<K> {
             return;
         }
 
+        try {
+            driveWork(request, run);
+        } finally {
+            tracked.worker = null;
+            // Absorb a cancellation interrupt that landed after the work returned, so storing the
+            // terminal result below is not sabotaged by a flag meant for the work.
+            Thread.interrupted();
+            slots.release();
+            notifyFinished(request, run);
+        }
+    }
+
+    /**
+     * Runs the work under the run's root span and records how it ended. Shared by the queued path
+     * and by {@link #runInline}, which differ in who schedules the work and in what they do with a
+     * failure, and in nothing else that happens to the run.
+     *
+     * @return what the work threw, or {@code null} when it completed. {@link Error} still propagates
+     * from here; anything else is returned so the caller decides whether it matters. The queued path
+     * has nobody to tell, {@link #runInline} has a caller waiting on the outcome.
+     */
+    private Throwable driveWork(PipelineRunRequest<K> request, PipelineRun run) {
         // The root span of this run's trace. Stages opened by PipelineRun.runStage nest under it.
         // The event is built here rather than left to Tracer.run because a pipeline knows things a
         // generic span does not: which profile the run was for, and whether it actually succeeded.
@@ -202,9 +270,10 @@ public final class PipelineRunRegistry<K> {
         span.kind = SpanKind.INTERNAL.name();
         span.begin();
 
+        Throwable failure = null;
         try {
             // Scoped to the work itself rather than the whole method so the span measures execution,
-            // not the time spent queueing for a slot above.
+            // not the time spent queueing for a slot.
             Tracer.inSpanOf(span, () -> request.work().accept(run));
             run.complete();
             // OK rather than UNSET: a pipeline reaching complete() is a success the code observed,
@@ -214,6 +283,7 @@ public final class PipelineRunRegistry<K> {
                     definition.pipelineId(), request.key(),
                     Duration.between(run.startedAt(), clock.instant()).toMillis());
         } catch (Throwable e) {
+            failure = e;
             span.status = SpanStatus.ERROR.name();
             span.errorType = e.getClass().getName();
             // Errors are marked too — otherwise an OutOfMemoryError would leave the run RUNNING and
@@ -237,13 +307,8 @@ public final class PipelineRunRegistry<K> {
                         "scopeId", request.scopeId()));
                 span.commit();
             }
-            tracked.worker = null;
-            // Absorb a cancellation interrupt that landed after the work returned, so storing the
-            // terminal result below is not sabotaged by a flag meant for the work.
-            Thread.interrupted();
-            slots.release();
-            notifyFinished(request, run);
         }
+        return failure;
     }
 
     /**

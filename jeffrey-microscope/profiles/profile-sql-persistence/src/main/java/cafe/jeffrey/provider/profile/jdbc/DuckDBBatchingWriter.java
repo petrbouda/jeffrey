@@ -45,6 +45,7 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
     private final DataSource dataSource;
     private final int batchSize;
     private final StatementLabel statementLabel;
+    private final BatchFlushLimit flushLimit;
 
     private final List<T> batch = new ArrayList<>();
     private final List<CompletableFuture<Void>> pendingBatches = new ArrayList<>();
@@ -58,13 +59,15 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
             String tableName,
             DataSource dataSource,
             int batchSize,
-            StatementLabel statementLabel) {
+            StatementLabel statementLabel,
+            BatchFlushLimit flushLimit) {
 
         this.executor = executor;
         this.tableName = tableName;
         this.dataSource = dataSource;
         this.batchSize = batchSize;
         this.statementLabel = statementLabel;
+        this.flushLimit = flushLimit;
     }
 
     @Override
@@ -98,23 +101,37 @@ public abstract class DuckDBBatchingWriter<T> implements DatabaseWriter<T> {
         }
 
         List<T> copiedBatch = List.copyOf(batch);
-        CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
-            long start = System.nanoTime();
 
-            try (Connection conn = dataSource.getConnection()) {
-                DuckDBConnection duckDBConnection = DataSourceUtils.unwrapConnection(conn, DuckDBConnection.class);
-                execute(duckDBConnection, copiedBatch);
-            } catch (Exception e) {
-                LOG.error("Failed to insert batch of items: type={} size={}",
-                        tableName, copiedBatch.size(), e);
-                firstFailure.compareAndSet(null, e);
-                return;
-            }
+        // Blocks the parsing thread once this profile already has as many batches in flight as the
+        // writer pool can work on. The slot is given back below, on the writer pool.
+        flushLimit.acquire();
 
-            long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
-            LOG.debug("Batch of items has been flushed: type={} size={} elapsed_ms={}",
-                    tableName, copiedBatch.size(), millis);
-        }, executor);
+        CompletableFuture<Void> future;
+        try {
+            future = CompletableFuture.runAsync(() -> {
+                long start = System.nanoTime();
+
+                try (Connection conn = dataSource.getConnection()) {
+                    DuckDBConnection duckDBConnection = DataSourceUtils.unwrapConnection(conn, DuckDBConnection.class);
+                    execute(duckDBConnection, copiedBatch);
+                } catch (Exception e) {
+                    LOG.error("Failed to insert batch of items: type={} size={}",
+                            tableName, copiedBatch.size(), e);
+                    firstFailure.compareAndSet(null, e);
+                    return;
+                } finally {
+                    flushLimit.release();
+                }
+
+                long millis = Duration.ofNanos(System.nanoTime() - start).toMillis();
+                LOG.debug("Batch of items has been flushed: type={} size={} elapsed_ms={}",
+                        tableName, copiedBatch.size(), millis);
+            }, executor);
+        } catch (RuntimeException e) {
+            // The task never ran, so nothing else will hand the slot back.
+            flushLimit.release();
+            throw e;
+        }
 
         pendingBatches.removeIf(CompletableFuture::isDone);
         pendingBatches.add(future);

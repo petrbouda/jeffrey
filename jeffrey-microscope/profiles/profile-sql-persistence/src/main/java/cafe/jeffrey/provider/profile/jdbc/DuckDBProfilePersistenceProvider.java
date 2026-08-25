@@ -60,8 +60,15 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
 
     @Override
     public EventWriter.Factory eventWriterFactory() {
-        return (dataSource, profilingStartedAt) -> new SQLEventWriter(
-                () -> new DuckDBEventWriters(Schedulers.sharedDbWriter(), dataSource, batchSize, profilingStartedAt));
+        return (dataSource, profilingStartedAt) -> {
+            // One limit per profile initialization, shared by every parsing thread's writers: the
+            // thing worth bounding is how much of this recording is queued for the disk at once,
+            // which no single table or thread can see on its own. Sized to the writer pool, so it
+            // stays saturated without ever building a backlog behind it.
+            BatchFlushLimit flushLimit = BatchFlushLimit.ofSlots(Schedulers.DB_WRITER_THREADS);
+            return new SQLEventWriter(() -> new DuckDBEventWriters(
+                    Schedulers.sharedDbWriter(), dataSource, batchSize, profilingStartedAt, flushLimit));
+        };
     }
 
     @Override

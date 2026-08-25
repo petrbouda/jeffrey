@@ -83,6 +83,14 @@ public class JdbcTraceRepository implements TraceRepository {
             SELECT name FROM event_types
             WHERE list_contains(json_extract_string(columns, '$[*].field'), 'spanId')""";
 
+    /**
+     * Existence probe over {@link #SPAN_EVENT_TYPES}, formatted from it rather than written out
+     * again so the two can never disagree about what makes an event type a span.
+     */
+    //language=SQL
+    private static final String SPAN_EVENT_TYPES_EXIST =
+            "SELECT COUNT(*) FROM (%s LIMIT 1) probe".formatted(SPAN_EVENT_TYPES);
+
 
     /**
      * Crossing from the microseconds a span is measured in into the milliseconds the events table is
@@ -1155,6 +1163,12 @@ public class JdbcTraceRepository implements TraceRepository {
     @Override
     public boolean hasTraces() {
         return databaseClient.queryExists(StatementLabel.TRACES_EXIST, TRACES_EXIST, new MapSqlParameterSource());
+    }
+
+    @Override
+    public boolean hasSpanEventTypes() {
+        return databaseClient.queryExists(
+                StatementLabel.SPAN_EVENT_TYPES_EXIST, SPAN_EVENT_TYPES_EXIST, new MapSqlParameterSource());
     }
 
     @Override

@@ -256,6 +256,8 @@
                 :profile-created-at="recording.profileCreatedAt"
                 :profile-modified="recording.profileModified"
                 :analyzing="analyzingRecordings.has(recording.id)"
+                :init-progress="recording.initProgress"
+                :tick-now="tickNow"
                 :draggable="true"
                 :origin="buildOrigin(recording)"
                 :file-count="recording.files?.length ?? 0"
@@ -327,7 +329,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import RecordingsClient from '@workspaces/services/api/RecordingsClient';
 import MainCard from '@shared/components/MainCard.vue';
@@ -342,6 +344,7 @@ import FormattingService from '@shared/services/FormattingService';
 import ToastService from '@shared/services/ToastService';
 import type RecordingGroup from '@workspaces/services/api/model/RecordingGroup';
 import type Recording from '@workspaces/services/api/model/Recording';
+import { isInitializing } from '@workspaces/components/profileInitChips';
 import {
   HEAP_DUMP_SOURCE,
   OTEL_SOURCE,
@@ -581,7 +584,10 @@ const recordingColumns = computed<RecordingColumn[]>(() => {
   const notInitialized: Recording[] = [];
   const initialized: Recording[] = [];
   for (const recording of visibleRecordings.value) {
-    (recording.hasProfile ? initialized : notInitialized).push(recording);
+    // A recording whose profile row exists only because its initialization is running belongs on the
+    // left with its stage chips, not on the right among the profiles you can open.
+    const built = recording.hasProfile && !isInitializing(recording.initProgress);
+    (built ? initialized : notInitialized).push(recording);
   }
   // Not-initialized: newest upload first. Initialized: most recently analyzed first (falling back to
   // upload time) so a recording you just analyzed surfaces at the top instead of sinking to its upload slot.
@@ -909,9 +915,61 @@ const loadData = async () => {
   }
 };
 
+/**
+ * Refreshing while an initialization is in flight, and only then. The list is otherwise refreshed by
+ * the actions that change it; a profile being built changes underneath us with nothing to emit, so
+ * the stage chips need asking. The tick is separate and faster, because the chip showing the running
+ * stage counts up between refreshes rather than sitting still until the next one.
+ */
+const INIT_REFRESH_INTERVAL_MS = 2000;
+const INIT_TICK_INTERVAL_MS = 200;
+
+const tickNow = ref(Date.now());
+let initRefreshTimer: ReturnType<typeof setInterval> | null = null;
+let initTickTimer: ReturnType<typeof setInterval> | null = null;
+
+const anyInitializing = computed(
+  () =>
+    // The client-side set counts too: the analyze request does not return until the pipeline is
+    // done, so without it nothing refreshes the list to discover the run it just started.
+    analyzingRecordings.value.size > 0 ||
+    allRecordings.value.some(recording => recording.initProgress?.state === 'running')
+);
+
+const stopInitWatch = () => {
+  if (initRefreshTimer !== null) {
+    clearInterval(initRefreshTimer);
+    initRefreshTimer = null;
+  }
+  if (initTickTimer !== null) {
+    clearInterval(initTickTimer);
+    initTickTimer = null;
+  }
+};
+
+const startInitWatch = () => {
+  if (initRefreshTimer !== null) {
+    return;
+  }
+  initRefreshTimer = setInterval(loadData, INIT_REFRESH_INTERVAL_MS);
+  initTickTimer = setInterval(() => {
+    tickNow.value = Date.now();
+  }, INIT_TICK_INTERVAL_MS);
+};
+
+watch(anyInitializing, initializing => {
+  if (initializing) {
+    startInitWatch();
+  } else {
+    stopInitWatch();
+  }
+});
+
 onMounted(() => {
   loadData();
 });
+
+onBeforeUnmount(stopInitWatch);
 
 // --- Drag and drop: recording card → group chip ---
 

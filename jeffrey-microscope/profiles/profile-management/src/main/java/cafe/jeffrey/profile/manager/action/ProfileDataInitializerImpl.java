@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -21,98 +21,92 @@ package cafe.jeffrey.profile.manager.action;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.jfr.events.trace.Tracer;
-import cafe.jeffrey.shared.common.Schedulers;
-import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.shared.persistence.DatabaseLease;
+import cafe.jeffrey.shared.persistence.DatabaseManager;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.function.Function;
+import java.util.concurrent.Executor;
 
 public class ProfileDataInitializerImpl implements ProfileDataInitializer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfileDataInitializerImpl.class);
 
-    private static final String SPAN_EVENT_VIEWER = "eventviewer.tree";
     private static final String SPAN_GUARDIAN = "guardian.results";
     private static final String SPAN_THREAD_VIEWER = "threads.rows";
 
-    private final boolean blocking;
-    private final boolean concurrent;
+    private final DatabaseManager databaseManager;
+    private final Executor executor;
 
-    public ProfileDataInitializerImpl(boolean blocking, boolean concurrent) {
-        this.blocking = blocking;
-        this.concurrent = concurrent;
+    /**
+     * @param executor where the warming runs. In production this is the bulk pool, never the
+     *                 interactive one: a profile that has just been imported must not push a
+     *                 flamegraph someone is waiting on out of the way.
+     */
+    public ProfileDataInitializerImpl(DatabaseManager databaseManager, Executor executor) {
+        this.databaseManager = databaseManager;
+        this.executor = executor;
     }
 
     @Override
-    public void initialize(ProfileManager profileManager) {
+    public CompletableFuture<Void> initialize(ProfileManager profileManager) {
         ProfileInfo profileInfo = profileManager.info();
 
-        LOG.info("Start initializing data of the profile: profile_id={} profile_name={} blocking={} concurrent={}",
-                profileInfo.id(), profileInfo.name(), blocking, concurrent);
-
-        // pprof/OTLP profiles are stack-sample imports visualized only as flamegraphs (generated on demand).
-        // The pre-computed views below — event viewer, guardian, thread viewer — are JFR-specific and read
+        // pprof/OTLP profiles are stack-sample imports visualized only as flamegraphs (generated on
+        // demand). The views below -- guardian, thread viewer -- are JFR-specific and read
         // JFR-shaped fields these imports don't have, so they are skipped for such sources.
         if (profileInfo.eventSource().isFlamegraphOnlyImport()) {
             LOG.info("Skipping JFR-specific initialization for a flamegraph-only profile: "
                             + "profile_id={} profile_name={} event_source={}",
                     profileInfo.id(), profileInfo.name(), profileInfo.eventSource());
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
-        ExecutorService executor = this.concurrent ? Schedulers.sharedParallel() : Schedulers.sharedSingle();
+        LOG.info("Start warming the cached views of the profile: profile_id={} profile_name={}",
+                profileInfo.id(), profileInfo.name());
 
-        // ScopedValue does not cross an executor boundary; fork captures the enclosing span here and
-        // re-establishes it inside each task. Without this the three views below would each start
-        // their own trace instead of appearing under the initialization that asked for them.
+        // Taken here, on the initializing thread, while the pool is demonstrably alive -- the parse
+        // has just finished writing through it. Acquiring from inside the warming task instead would
+        // leave a window in which the pool could be idle-evicted between this method returning and
+        // the task actually starting.
+        DatabaseLease lease = databaseManager.acquire(profileInfo.id());
 
-        // Create and cache data for EventViewer
-        var viewerFuture = CompletableFuture
-                .runAsync(Tracer.fork(SPAN_EVENT_VIEWER, () -> {
-                    profileManager.eventViewerManager().eventTypesTree();
-                    LOG.info("Event Viewer has been initialized: profile_id={} profile_name={}",
+        CompletableFuture<Void> guardian = warm(SPAN_GUARDIAN, "Guardian", profileInfo,
+                () -> profileManager.guardianManager().guardResults());
+
+        CompletableFuture<Void> threads = warm(SPAN_THREAD_VIEWER, "Thread Viewer", profileInfo,
+                () -> profileManager.threadManager().threadRows());
+
+        return CompletableFuture.allOf(guardian, threads)
+                .whenComplete((_, _) -> {
+                    lease.close();
+                    LOG.info("Cached views of the profile have been warmed: profile_id={} profile_name={}",
                             profileInfo.id(), profileInfo.name());
-                }), executor)
-                .exceptionally(toException("EventViewer", profileInfo));
-
-        // Create Guardian results
-        var guardianFuture = CompletableFuture
-                .runAsync(Tracer.fork(SPAN_GUARDIAN, () -> {
-                    profileManager.guardianManager().guardResults();
-                    LOG.info("Guardian Results has been generated: profile_id={} profile_name={}",
-                            profileInfo.id(), profileInfo.name());
-                }), executor)
-                .exceptionally(toException("Guardian", profileInfo));
-
-        // Create Thread View
-        var threadsFuture = CompletableFuture
-                .runAsync(Tracer.fork(SPAN_THREAD_VIEWER, () -> {
-                    profileManager.threadManager().threadRows();
-                    LOG.info("Thread Viewer has been generated: profile_id={} profile_name={}",
-                            profileInfo.id(), profileInfo.name());
-                }), executor)
-                .exceptionally(toException("ThreadViewer", profileInfo));
-
-        if (blocking) {
-            CompletableFuture.allOf(
-                    viewerFuture,
-                    guardianFuture,
-                    threadsFuture
-            ).join();
-        }
+                });
     }
 
-    private static Function<Throwable, Void> toException(String component, ProfileInfo profileInfo) {
-        return throwable -> {
-            String message = "Failed to generate %s: profile_id=%s profile_name=%s"
-                    .formatted(component, profileInfo.id(), profileInfo.name());
-            if (throwable instanceof Error error) {
-                throw error;
-            }
-            throw Exceptions.internal(message, (Exception) throwable);
-        };
+    /**
+     * Runs one view's warm-up.
+     * <p>
+     * A failure is logged and swallowed rather than propagated. Both views are computed on demand
+     * when the cache misses, so a profile whose Guardian failed to warm is a slower profile, not a
+     * broken one -- and letting it fail the batch would take the other view's result and the lease's
+     * release down with it.
+     */
+    private CompletableFuture<Void> warm(
+            String span, String component, ProfileInfo profileInfo, Runnable work) {
+
+        // ScopedValue does not cross an executor boundary; fork captures the enclosing span here, on
+        // the submitting thread, and re-establishes it inside the task. Without it each view would
+        // start a trace of its own rather than appearing under the initialization that asked for it.
+        return CompletableFuture
+                .runAsync(Tracer.fork(span, work), executor)
+                .exceptionally(throwable -> {
+                    LOG.warn("Failed to warm a cached view, it will be computed on demand: "
+                                    + "component={} profile_id={} profile_name={}",
+                            component, profileInfo.id(), profileInfo.name(), throwable);
+                    return null;
+                });
     }
 }

@@ -202,8 +202,10 @@ public class ProfileRecordingsManager implements RecordingsManager {
                 recordingInfo.recordingFinishedAt(),
                 createdAt, false, false, recording.id());
 
-        profileInitializer.initialize(profileInfo, null, filePath);
-
+        // Insert the profile row before initializing, the way the project path does. The recordings
+        // list reaches a run's progress through the recording's profile, so a row that appears only
+        // once the pipeline has finished leaves the whole run invisible -- the card can say nothing
+        // but "Initializing..." for as long as it takes.
         ProfileRepository profileRepository = localCoreRepositories.newProfileRepository(profileId);
         profileRepository.insert(ProfileRepository.InsertProfile.quickProfile(
                 file.filename(),
@@ -211,6 +213,15 @@ public class ProfileRecordingsManager implements RecordingsManager {
                 recording.id(),
                 recordingInfo.recordingStartedAt(),
                 recordingInfo.recordingFinishedAt()));
+
+        try {
+            profileInitializer.initialize(profileInfo, null, filePath);
+        } catch (RuntimeException e) {
+            // Drop the row again so a failed initialization does not leave the recording looking
+            // analyzed, holding a profile that was never built.
+            profileRepository.delete();
+            throw e;
+        }
         profileRepository.enableProfile(createdAt);
 
         return profileId;

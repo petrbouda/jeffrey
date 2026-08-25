@@ -270,7 +270,9 @@ public class OtlpProfileReader {
                 weight != null ? weightEntity : null,
                 stacktraceId,
                 threadId,
-                fields,
+                // Serialized here now that Event carries text: this importer builds a tree of its
+                // own, and the writer no longer converts one on its way past.
+                fields.toString(),
                 null);
         writer.onEvent(event);
     }

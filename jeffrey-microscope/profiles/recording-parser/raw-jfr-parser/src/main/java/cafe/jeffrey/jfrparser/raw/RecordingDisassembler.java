@@ -33,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.WRITE;
@@ -56,16 +57,32 @@ public abstract class RecordingDisassembler implements JfrChunkConstants {
      * @return List of paths to created chunk files
      */
     public static List<Path> disassemble(Path recording, Path outputDir) {
+        return disassemble(recording, outputDir, _ -> {
+        });
+    }
+
+    /**
+     * Disassembles a recording, calling {@code onChunkWritten} with each chunk file as soon as it is
+     * complete and closed.
+     * <p>
+     * Splitting the recording is a full read of it and a full write of the same bytes back out, and
+     * nothing about the last chunk is needed to start reading the first. A caller that parses on the
+     * callback overlaps its parse with the rest of the copy instead of waiting out the whole thing.
+     *
+     * @param onChunkWritten called on the disassembling thread, in chunk order, before the next
+     *                       chunk is read
+     */
+    public static List<Path> disassemble(Path recording, Path outputDir, Consumer<Path> onChunkWritten) {
         LOG.debug("Disassembling recording: {} to {}", recording, outputDir);
 
         if (Lz4Compressor.isLz4Compressed(recording)) {
             try (InputStream input = Lz4Compressor.decompressStream(recording)) {
-                return disassembleStream(input, outputDir);
+                return disassembleStream(input, outputDir, onChunkWritten);
             } catch (IOException e) {
                 throw new JfrChunkParsingException("Failed to disassemble LZ4 recording: " + recording, e);
             }
         } else {
-            return disassembleFile(recording, outputDir);
+            return disassembleFile(recording, outputDir, onChunkWritten);
         }
     }
 
@@ -78,6 +95,12 @@ public abstract class RecordingDisassembler implements JfrChunkConstants {
      * @return List of paths to created chunk files
      */
     public static List<Path> disassembleStream(InputStream input, Path outputDir) {
+        return disassembleStream(input, outputDir, _ -> {
+        });
+    }
+
+    public static List<Path> disassembleStream(
+            InputStream input, Path outputDir, Consumer<Path> onChunkWritten) {
         List<Path> chunkFiles = new ArrayList<>();
         byte[] headerBytes = new byte[CHUNK_HEADER_SIZE];
         byte[] copyBuffer = new byte[BUFFER_SIZE];
@@ -127,6 +150,7 @@ public abstract class RecordingDisassembler implements JfrChunkConstants {
                 }
 
                 chunkFiles.add(outputPath);
+                onChunkWritten.accept(outputPath);
                 chunkIndex++;
             }
         } catch (IOException e) {
@@ -144,7 +168,7 @@ public abstract class RecordingDisassembler implements JfrChunkConstants {
      * @param outputDir Directory to write chunk files
      * @return List of paths to created chunk files
      */
-    private static List<Path> disassembleFile(Path recording, Path outputDir) {
+    private static List<Path> disassembleFile(Path recording, Path outputDir, Consumer<Path> onChunkWritten) {
         List<Path> chunkFiles = new ArrayList<>();
         ByteBuffer buffer = ByteBuffer.allocate(CHUNK_HEADER_SIZE);
         buffer.order(ByteOrder.BIG_ENDIAN);
@@ -199,6 +223,7 @@ public abstract class RecordingDisassembler implements JfrChunkConstants {
                 }
 
                 chunkFiles.add(outputPath);
+                onChunkWritten.accept(outputPath);
 
                 // Move to next chunk
                 channel.position(chunkStart + chunkSize);

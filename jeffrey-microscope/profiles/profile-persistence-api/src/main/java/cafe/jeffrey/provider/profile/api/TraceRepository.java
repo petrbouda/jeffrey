@@ -47,6 +47,21 @@ public interface TraceRepository {
     boolean hasTraces();
 
     /**
+     * Whether the recording declares any span-carrying event type, i.e. an event type with a
+     * {@code spanId} field.
+     * <p>
+     * This is what {@link #derive()} has to find before it can produce a single row. The derivation
+     * promotes blocking JDK events (socket reads, monitor waits, parks) to leaf spans, but only ever
+     * as children of a recorded span on the same thread — so with no span-carrying event type there
+     * is nothing to parent them to, and every table the derivation builds comes out empty. Callers
+     * use this to skip the derivation entirely rather than pay a full scan of the events table to
+     * produce nothing.
+     *
+     * @return whether any event type declares a {@code spanId} field
+     */
+    boolean hasSpanEventTypes();
+
+    /**
      * Lists traces for the trace list, narrowed, ordered and paged as the query asks.
      * <p>
      * Narrowing happens here rather than over a fetched list because the list is capped: filtering

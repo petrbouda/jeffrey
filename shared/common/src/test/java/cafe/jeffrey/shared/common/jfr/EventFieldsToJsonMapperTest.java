@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.shared.common.jfr;
 
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 import jdk.jfr.AnnotationElement;
 import jdk.jfr.Event;
@@ -144,7 +145,7 @@ class EventFieldsToJsonMapperTest {
             EventFieldsToJsonMapper mapper = new EventFieldsToJsonMapper();
             mapper.update(recordedEventTypes);
 
-            ObjectNode node = mapper.map(probeEvent());
+            ObjectNode node = fullTree(mapper.map(probeEvent()));
 
             assertEquals(1_750_000_000_123L, node.get("markedTimestamp").asLong());
             assertEquals(1_234_567L, node.get("markedTimespan").asLong());
@@ -163,7 +164,7 @@ class EventFieldsToJsonMapperTest {
             EventFieldsToJsonMapper mapper = new EventFieldsToJsonMapper();
             mapper.update(recordedEventTypes);
 
-            ObjectNode node = mapper.map(probeEvent());
+            ObjectNode node = fullTree(mapper.map(probeEvent()));
 
             assertFalse(node.has("stackTrace"));
         }
@@ -175,13 +176,22 @@ class EventFieldsToJsonMapperTest {
 
             EventFieldsToJsonMapper withoutMetadata = new EventFieldsToJsonMapper();
 
-            assertEquals(withMetadata.map(probeEvent()), withoutMetadata.map(probeEvent()));
+            assertEquals(fullTree(withMetadata.map(probeEvent())), fullTree(withoutMetadata.map(probeEvent())));
         }
     }
 
     @Nested
     class ConformanceWithLegacyImplementation {
 
+        /**
+         * Compares the stored text, not a re-parsed tree: {@code 3415} read back out of JSON is an
+         * int node where the tree had a long one, so trees that serialize identically are not equal.
+         * The text is what lands in the database and what every reader sees, so that is the thing
+         * that has to be unchanged.
+         * <p>
+         * The expectation replays what the old pipeline did in two steps — build the whole tree,
+         * then lift the largest poolable string out of it — against what the mapper now does in one.
+         */
         @Test
         void everyRecordedEventMapsIdenticallyToLegacyAlgorithm() {
             EventFieldsToJsonMapper mapper = new EventFieldsToJsonMapper();
@@ -191,10 +201,18 @@ class EventFieldsToJsonMapperTest {
             legacy.update(recordedEventTypes);
 
             for (RecordedEvent event : recordedEvents) {
-                assertEquals(
-                        legacy.map(event),
-                        mapper.map(event),
-                        () -> "Mismatch for event type: " + event.getEventType().getName());
+                ObjectNode legacyNode = legacy.map(event);
+                LegacyPooledValue pooled = legacyExtractLargest(legacyNode);
+                String expectedJson = legacyNode.toString();
+
+                MappedFields actual = mapper.map(event);
+
+                assertEquals(expectedJson, actual.json(),
+                        () -> "JSON mismatch for event type: " + event.getEventType().getName());
+                assertEquals(pooled == null ? null : pooled.field(), actual.pooledField(),
+                        () -> "Pooled field mismatch for event type: " + event.getEventType().getName());
+                assertEquals(pooled == null ? null : pooled.text(), actual.pooledText(),
+                        () -> "Pooled text mismatch for event type: " + event.getEventType().getName());
             }
         }
 
@@ -209,7 +227,7 @@ class EventFieldsToJsonMapperTest {
             assertFalse(activeSettings.isEmpty(), "Recording is expected to contain jdk.ActiveSetting events");
 
             for (RecordedEvent event : activeSettings) {
-                ObjectNode node = mapper.map(event);
+                ObjectNode node = fullTree(mapper.map(event));
                 assertTrue(node.has("id"));
                 assertTrue(node.has("label"));
             }
@@ -246,7 +264,7 @@ class EventFieldsToJsonMapperTest {
 
             boolean sawJavaBase = false;
             for (RecordedEvent event : requires) {
-                ObjectNode node = mapper.map(event);
+                ObjectNode node = fullTree(mapper.map(event));
                 // requiredModule is a Module struct; it must flatten to a plain name, not a RecordedObject dump.
                 if (node.hasNonNull("requiredModule")) {
                     String required = node.get("requiredModule").asString();
@@ -297,7 +315,7 @@ class EventFieldsToJsonMapperTest {
             EventFieldsToJsonMapper mapper = new EventFieldsToJsonMapper();
             mapper.update(eventTypes);
 
-            ObjectNode node = mapper.map(evacuations.getFirst());
+            ObjectNode node = fullTree(mapper.map(evacuations.getFirst()));
             // The nested struct must be flattened to dotted numeric keys, not a toString() blob.
             assertTrue(node.has("statistics.allocated"), "expected flattened statistics.allocated key");
             assertTrue(node.get("statistics.allocated").isNumber(), "statistics.allocated must be numeric");
@@ -310,6 +328,57 @@ class EventFieldsToJsonMapperTest {
      * Verbatim copy of the original per-event implementation, used as the
      * behavioral reference for the conformance test above.
      */
+
+
+    /** The size threshold the old extractor used, mirrored here so the oracle is self-contained. */
+    private static final int LEGACY_MIN_POOLED_LENGTH = 64;
+
+    private record LegacyPooledValue(String field, String text) {
+    }
+
+    /**
+     * The pooling step as it was: walk the finished tree, take the largest string at or over the
+     * threshold, remove it. Kept here as the other half of the legacy oracle now that the mapper
+     * decides this while it reads the fields instead of afterwards.
+     */
+    private static LegacyPooledValue legacyExtractLargest(ObjectNode eventFields) {
+        String largestField = null;
+        String largestText = null;
+        for (Map.Entry<String, JsonNode> property : eventFields.properties()) {
+            JsonNode value = property.getValue();
+            if (!value.isString()) {
+                continue;
+            }
+            String text = value.asString();
+            if (text.length() < LEGACY_MIN_POOLED_LENGTH) {
+                continue;
+            }
+            if (largestText == null || text.length() > largestText.length()) {
+                largestField = property.getKey();
+                largestText = text;
+            }
+        }
+
+        if (largestField == null) {
+            return null;
+        }
+        eventFields.remove(largestField);
+        return new LegacyPooledValue(largestField, largestText);
+    }
+
+    /**
+     * The complete field tree the mapper produced: its JSON with the pooled value spliced back under
+     * the key it was lifted from. That splice is what the {@code events} view does at read time, so
+     * comparing this against the legacy tree compares what a reader actually sees.
+     */
+    private static ObjectNode fullTree(MappedFields mapped) {
+        ObjectNode node = (ObjectNode) Json.mapper().readTree(mapped.json());
+        if (mapped.hasPooledField()) {
+            node.put(mapped.pooledField(), mapped.pooledText());
+        }
+        return node;
+    }
+
     private static final class LegacyEventFieldsMapper {
 
         private static final String TIMESTAMP_TYPE_NAME = Timestamp.class.getTypeName();

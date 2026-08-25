@@ -45,8 +45,14 @@ public class DuckDBEventWriter extends DuckDBBatchingWriter<Event> {
     /** The physical table behind the {@code events} view — the appender writes past the view. */
     private static final String EVENTS_TABLE = "events_raw";
 
-    public DuckDBEventWriter(Executor executor, DataSource dataSource, int batchSize, Instant profilingStartedAt) {
-        super(executor, EVENTS_TABLE, dataSource, batchSize, StatementLabel.INSERT_EVENTS);
+    public DuckDBEventWriter(
+            Executor executor,
+            DataSource dataSource,
+            int batchSize,
+            Instant profilingStartedAt,
+            BatchFlushLimit flushLimit) {
+
+        super(executor, EVENTS_TABLE, dataSource, batchSize, StatementLabel.INSERT_EVENTS, flushLimit);
         Objects.requireNonNull(profilingStartedAt, "profilingStartedAt must be provided to compute relative event timestamps");
         this.profilingStartedAtMillis = profilingStartedAt.toEpochMilli();
     }
@@ -74,8 +80,8 @@ public class DuckDBEventWriter extends DuckDBBatchingWriter<Event> {
                 nullableAppend(appender, event.stacktraceId());
                 // thread_hash - BIGINT (nullable) - hash value
                 nullableAppend(appender, event.threadId());
-                // fields - JSON (nullable)
-                nullableAppend(appender, event.fields() != null ? event.fields().toString() : null);
+                // fields - JSON (nullable), already written as text by the parser
+                nullableAppend(appender, event.fields());
                 // pooled_field - VARCHAR (nullable) - key of the field lifted out of `fields`
                 Event.PooledField pooled = event.pooledField();
                 nullableAppend(appender, pooled != null ? pooled.field() : null);

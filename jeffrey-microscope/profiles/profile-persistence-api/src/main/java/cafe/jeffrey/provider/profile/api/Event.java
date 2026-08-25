@@ -18,8 +18,6 @@
 
 package cafe.jeffrey.provider.profile.api;
 
-import tools.jackson.databind.node.ObjectNode;
-
 import java.time.Instant;
 
 public record Event(
@@ -31,7 +29,9 @@ public record Event(
         String weightEntity,
         Long stacktraceId,
         Long threadId,
-        ObjectNode fields,
+        // The event's fields as JSON text. Text rather than a tree because that is all the
+        // writer ever needed: a tree was built per event only to be serialized again here.
+        String fields,
         // The one field the reader pooled out of `fields`, or null when nothing qualified.
         // See SingleThreadedEventWriter#onFieldText.
         PooledField pooledField) {

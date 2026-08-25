@@ -66,6 +66,15 @@ public abstract class JfrParser {
         return RecordingDisassembler.disassemble(recording, outputDir);
     }
 
+    /**
+     * Disassembles a recording, handing each chunk to {@code onChunkWritten} as soon as it is
+     * written — so a caller can start parsing chunk N while chunk N+1 is still being copied.
+     */
+    public static List<Path> disassemble(Path recording, Path outputDir, Consumer<Path> onChunkWritten) {
+        validateRecording(recording);
+        return RecordingDisassembler.disassemble(recording, outputDir, onChunkWritten);
+    }
+
     // ========== Recording Information ==========
 
     /**
