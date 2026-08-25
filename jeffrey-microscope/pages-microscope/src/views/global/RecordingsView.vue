@@ -344,6 +344,7 @@ import FormattingService from '@shared/services/FormattingService';
 import ToastService from '@shared/services/ToastService';
 import type RecordingGroup from '@workspaces/services/api/model/RecordingGroup';
 import type Recording from '@workspaces/services/api/model/Recording';
+import { isInitializing } from '@workspaces/components/profileInitChips';
 import {
   HEAP_DUMP_SOURCE,
   OTEL_SOURCE,
@@ -583,7 +584,10 @@ const recordingColumns = computed<RecordingColumn[]>(() => {
   const notInitialized: Recording[] = [];
   const initialized: Recording[] = [];
   for (const recording of visibleRecordings.value) {
-    (recording.hasProfile ? initialized : notInitialized).push(recording);
+    // A recording whose profile row exists only because its initialization is running belongs on the
+    // left with its stage chips, not on the right among the profiles you can open.
+    const built = recording.hasProfile && !isInitializing(recording.initProgress);
+    (built ? initialized : notInitialized).push(recording);
   }
   // Not-initialized: newest upload first. Initialized: most recently analyzed first (falling back to
   // upload time) so a recording you just analyzed surfaces at the top instead of sinking to its upload slot.
@@ -924,8 +928,12 @@ const tickNow = ref(Date.now());
 let initRefreshTimer: ReturnType<typeof setInterval> | null = null;
 let initTickTimer: ReturnType<typeof setInterval> | null = null;
 
-const anyInitializing = computed(() =>
-  allRecordings.value.some(recording => recording.initProgress?.state === 'running')
+const anyInitializing = computed(
+  () =>
+    // The client-side set counts too: the analyze request does not return until the pipeline is
+    // done, so without it nothing refreshes the list to discover the run it just started.
+    analyzingRecordings.value.size > 0 ||
+    allRecordings.value.some(recording => recording.initProgress?.state === 'running')
 );
 
 const stopInitWatch = () => {
