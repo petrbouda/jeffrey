@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.support.TransactionOperations;
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
-import cafe.jeffrey.hub.core.jfr.JfrMessageEmitter;
+import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
 import cafe.jeffrey.hub.core.streaming.SessionFinisher;
@@ -215,7 +215,7 @@ public class WorkspaceReconciler {
 
         LOG.info("Project materialized from workspace directory: project_id={} origin_project_id={} name={}",
                 projectManager.info().id(), marker.projectId(), marker.projectName());
-        JfrMessageEmitter.projectCreated(marker.projectName(), projectManager.info().id());
+        JfrNotificationEmitter.projectCreated(marker.projectName(), projectManager.info().id());
         return projectManager;
     }
 
@@ -281,7 +281,7 @@ public class WorkspaceReconciler {
 
         LOG.info("Instance materialized from workspace directory: instance_id={} project_id={}",
                 marker.instanceId(), projectManager.info().id());
-        JfrMessageEmitter.instanceCreated(marker.instanceId(), projectManager.info().name(), projectManager.info().id());
+        JfrNotificationEmitter.instanceCreated(marker.instanceId(), projectManager.info().name(), projectManager.info().id());
     }
 
     private int reconcileSessions(
@@ -345,7 +345,7 @@ public class WorkspaceReconciler {
 
         LOG.info("Session materialized from workspace directory: project_id={} instance_id={} session_id={}",
                 projectInfo.id(), marker.instanceId(), marker.sessionId());
-        JfrMessageEmitter.sessionCreated(marker.sessionId(), marker.instanceId(), marker.order(), projectInfo.id());
+        JfrNotificationEmitter.sessionCreated(marker.sessionId(), marker.instanceId(), marker.order(), projectInfo.id());
     }
 
     /**

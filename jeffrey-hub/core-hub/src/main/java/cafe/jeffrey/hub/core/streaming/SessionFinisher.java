@@ -20,7 +20,7 @@ package cafe.jeffrey.hub.core.streaming;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.core.jfr.JfrMessageEmitter;
+import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.hub.persistence.api.ProjectInstanceRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepositoryRepository;
@@ -83,7 +83,7 @@ public class SessionFinisher {
                     sessionInfo.instanceId(), projectInfo.id());
         }
 
-        JfrMessageEmitter.sessionFinished(sessionInfo.sessionId(), projectInfo.id());
+        JfrNotificationEmitter.sessionFinished(sessionInfo.sessionId(), projectInfo.id());
     }
 
     /**

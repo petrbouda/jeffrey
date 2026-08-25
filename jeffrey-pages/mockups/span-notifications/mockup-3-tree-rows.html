@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Span notifications — 3. Rows in the tree</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    /* Copied verbatim from shared/ui/common/src/assets/design-tokens.css so the mockups and the
+       real waterfall cannot drift apart on colour. */
+    --color-primary: #5e64ff;
+    --color-primary-hover: #4c52db;
+    --color-primary-light: rgba(94, 100, 255, 0.1);
+    --color-primary-lighter: rgba(94, 100, 255, 0.05);
+    --color-primary-bg: #e2e7fd;
+    --color-primary-border: #9ba8ff;
+    --color-secondary: #7780bf;
+    --color-secondary-bg: #e7eafd;
+    --color-success: #00d27a;
+    --color-danger: #e63757;
+    --color-danger-light: rgba(230, 55, 87, 0.1);
+    --color-danger-dark: #b91c1c;
+    --color-danger-bg-lighter: #fef2f2;
+    --color-warning: #f5803e;
+    --color-warning-light: rgba(245, 128, 62, 0.1);
+    --color-warning-hover: #e4702d;
+    --color-info: #39afd1;
+    --color-goldenrod: #b8860b;
+    --chart-series-8: #f86624;
+    --chart-series-9: #9c27b0;
+    --flamegraph-color-red: #ff9d9d;
+    --flamegraph-color-green: #c9e7a5;
+    --flamegraph-color-cyan: #9dddff;
+    --flamegraph-color-blue: #9db5ff;
+    --color-white: #ffffff;
+    --color-light: #f9fafd;
+    --color-lighter: #edf2f9;
+    --color-dark: #0b1727;
+    --color-text-muted: #748194;
+    --color-text-light: #b6c1d2;
+    --color-border: #eaedf1;
+    --color-border-light: #edf2f9;
+    --color-border-input: #d8e2ef;
+    --color-bg-card: #ffffff;
+    --color-bg-hover-alt: #f2f5fc;
+    --font-family-monospace: ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace;
+    --font-size-xs: 0.6rem;
+    --font-size-sm: 0.7rem;
+    --font-size-base: 0.875rem;
+    --radius-xs: 0.125rem;
+    --radius-sm: 0.25rem;
+    --radius-base: 0.375rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-circle: 50%;
+    --radius-pill: 999px;
+    --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --shadow-md: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+
+    /* PROPOSED severity ramp -- the one thing here that is not already in the token file.
+       See the open question on the index page: danger is already GC pause and warning is already
+       the critical-path marker, so this ramp shares hues with things in the same picture. */
+    --sev-critical: #b91c1c;
+    --sev-high: #e63757;
+    --sev-medium: #f5803e;
+    --sev-low: #7780bf;
+    --sev-critical-bg: #fef2f2;
+    --sev-high-bg: rgba(230, 55, 87, 0.1);
+    --sev-medium-bg: rgba(245, 128, 62, 0.1);
+    --sev-low-bg: #e7eafd;
+  }
+
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #f1f5f9; color: var(--color-dark); padding: 2.5rem 1.5rem 5rem; }
+  .wrap { max-width: 1220px; margin: 0 auto; }
+  .back { display: inline-flex; align-items: center; gap: .4rem; color: #64748b; text-decoration: none;
+    font-size: .85rem; margin-bottom: 1.1rem; }
+  .back:hover { color: var(--color-dark); }
+  h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; margin-bottom: .45rem; }
+  h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem; border-radius: var(--radius-md);
+    background: var(--color-primary); color: #fff; font-size: .95rem; margin-right: .5rem; vertical-align: 2px; }
+  .lede { color: #475569; font-size: .92rem; line-height: 1.65; max-width: 78ch; margin-bottom: 1.6rem; }
+  .lede code { font-family: var(--font-family-monospace); font-size: .84em; background: #e2e8f0;
+    padding: .05rem .3rem; border-radius: var(--radius-sm); }
+
+  /* ---- the modal shell (GenericModal, size=fullscreen) ---- */
+  .frame { background: var(--color-white); border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; }
+  .frame-head { display: flex; align-items: center; gap: .6rem; padding: .85rem 1.15rem;
+    border-bottom: 1px solid var(--color-border); }
+  .frame-head > i { color: var(--color-primary); font-size: 1.05rem; }
+  .frame-head h2 { font-size: .98rem; font-weight: 700; flex: 1; }
+  .frame-head .x { color: var(--color-text-light); font-size: 1.1rem; }
+  .frame-body { padding: 1rem 1.15rem 1.25rem; }
+
+  /* ---- .trace-meta ---- */
+  .trace-meta { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: .9rem; }
+  .chips { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+  .chip { display: inline-flex; align-items: center; gap: .3rem; padding: .16rem .55rem;
+    border: 1px solid var(--color-border-input); border-radius: var(--radius-pill);
+    background: var(--color-light); color: var(--color-text-muted); font-size: var(--font-size-sm); }
+  .chip i { font-size: .72rem; }
+  .chip.err { border-color: #f1aeb5; background: var(--color-danger-light); color: var(--color-danger); font-weight: 600; }
+  .chip.msg { border-color: var(--color-primary-border); background: var(--color-primary-light);
+    color: var(--color-primary); font-weight: 600; }
+  .chip.mono { font-family: var(--font-family-monospace); font-size: var(--font-size-xs); }
+  .trace-actions { margin-left: auto; display: flex; gap: .5rem; }
+  .op-link { display: inline-flex; align-items: center; gap: .35rem; font-size: var(--font-size-sm);
+    color: var(--color-primary); text-decoration: none; }
+
+  /* ---- .wf-card ---- */
+  .wf-card { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-card); }
+  .wf-toolbar { display: flex; align-items: center; gap: .4rem; padding: .5rem 1rem 1.1rem; flex-wrap: wrap; }
+  .wf-toggle { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .75rem;
+    border: 1px solid var(--color-border-input); border-radius: var(--radius-pill); background: var(--color-white);
+    color: var(--color-text-muted); font-size: var(--font-size-base); font-weight: 500; }
+  .wf-toggle.active { background: var(--color-primary-light); border-color: var(--color-primary);
+    box-shadow: inset 0 0 0 1px var(--color-primary); color: var(--color-primary); font-weight: 600; }
+  .wf-overlays { display: inline-flex; align-items: center; gap: .55rem; padding: .25rem .75rem;
+    border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-light); }
+  .wf-overlays-label { font-size: var(--font-size-xs); font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--color-text-light); }
+  .wf-switch-item { display: inline-flex; align-items: center; gap: .4rem; font-size: var(--font-size-base);
+    color: var(--color-dark); }
+  .wf-switch { position: relative; width: 30px; height: 17px; border-radius: var(--radius-pill);
+    background: var(--color-border-input); flex-shrink: 0; }
+  .wf-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px;
+    border-radius: var(--radius-circle); background: #fff; box-shadow: var(--shadow-sm); }
+  .wf-switch.on { background: var(--color-primary); }
+  .wf-switch.on::after { left: 15px; }
+
+  /* the shared row grid -- lanes, header, rows and overlays all use it */
+  .wf-head, .wf-row, .wf-lane, .wf-stripes { display: grid; grid-template-columns: 20rem 1fr 5.5rem;
+    align-items: center; gap: .5rem; }
+
+  .wf-lane { padding: .15rem 1rem; border-left: 2px solid transparent; }
+  .lane-label { display: flex; align-items: center; gap: .5rem; font-size: var(--font-size-xs);
+    letter-spacing: .03em; text-transform: uppercase; color: var(--color-text-muted); }
+  .lane-dot { width: .45rem; height: .45rem; border-radius: var(--radius-circle); flex: none; display: inline-block; }
+  .lane-meter { flex: 1; height: .3rem; border-radius: var(--radius-pill); background: var(--color-lighter);
+    overflow: hidden; min-width: 2rem; }
+  .lane-meter i { display: block; height: 100%; }
+  .lane-stat { font-variant-numeric: tabular-nums; flex: none; }
+  .lane-track { position: relative; height: .7rem; }
+  .lane-band { position: absolute; top: .1rem; height: .5rem; border-radius: var(--radius-xs); min-width: 2px; }
+
+  .wf-head { padding: .55rem 1rem .4rem; border-left: 2px solid transparent; font-size: var(--font-size-xs);
+    letter-spacing: .04em; text-transform: uppercase; color: var(--color-text-muted); font-weight: 600; }
+  .wf-scale { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+  .wf-duration { text-align: right; font-size: var(--font-size-sm); color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums; }
+
+  .wf-rows { position: relative; display: flex; flex-direction: column; }
+  .wf-row { width: 100%; padding: .28rem 1rem; border-bottom: 1px solid var(--color-border-light);
+    border-left: 2px solid transparent; background: transparent; font-size: var(--font-size-sm);
+    text-align: left; cursor: pointer; }
+  .wf-row.critical { border-left-color: var(--color-warning); }
+  .wf-row.selected { background: var(--color-primary-light); }
+  .wf-name { display: flex; align-items: center; gap: .4rem; min-width: 0; }
+  .wf-indent { flex: none; }
+  .wf-twist { flex: none; width: .8rem; font-size: .6rem; line-height: 1; color: var(--color-text-muted); }
+  .wf-kind { width: .45rem; height: .45rem; border-radius: var(--radius-circle); flex: none; }
+  .kind-server { background: var(--color-primary); }
+  .kind-client { background: var(--color-info); }
+  .kind-internal { background: var(--color-secondary); }
+  .wf-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-dark); }
+  .wf-track { position: relative; height: 1.1rem; }
+  .wf-track::before { content: ''; position: absolute; inset: .5rem 0 auto 0; height: 1px;
+    background: var(--color-border-light); }
+  .wf-bar { position: absolute; top: .15rem; height: .8rem; border-radius: var(--radius-xs); display: block; }
+  .wf-self { position: absolute; top: 0; height: 100%; }
+  .bar-server { background: color-mix(in srgb, var(--flamegraph-color-blue) 35%, transparent); }
+  .bar-server .wf-self { background: var(--flamegraph-color-blue); }
+  .bar-client { background: color-mix(in srgb, var(--flamegraph-color-cyan) 35%, transparent); }
+  .bar-client .wf-self { background: var(--flamegraph-color-cyan); }
+  .bar-internal { background: color-mix(in srgb, var(--flamegraph-color-green) 40%, transparent); }
+  .bar-internal .wf-self { background: var(--flamegraph-color-green); }
+  .bar-error { background: var(--color-danger-light); }
+  .bar-error .wf-self { background: var(--flamegraph-color-red); }
+  .bar-synthesized { opacity: .9; }
+
+  .badge-err { padding: 0 .3rem; border-radius: var(--radius-sm); background: var(--color-danger);
+    color: #fff; font-size: var(--font-size-xs); font-weight: 700; flex: none; }
+  .badge-prom { padding: 0 .3rem; border-radius: var(--radius-sm); background: var(--color-lighter);
+    color: var(--color-text-muted); font-size: var(--font-size-xs); flex: none; }
+
+  /* stripes wash behind rows, for the GC pause */
+  .wf-stripes { position: absolute; inset: 0; pointer-events: none; }
+  .wf-stripes-track { position: relative; height: 100%; }
+  .wf-stripe { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--color-danger) 7%, transparent); }
+
+  /* ---- severity vocabulary, shared by every direction ---- */
+  .sev-critical { --sev: var(--sev-critical); --sev-bg: var(--sev-critical-bg); }
+  .sev-high { --sev: var(--sev-high); --sev-bg: var(--sev-high-bg); }
+  .sev-medium { --sev: var(--sev-medium); --sev-bg: var(--sev-medium-bg); }
+  .sev-low { --sev: var(--sev-low); --sev-bg: var(--sev-low-bg); }
+  .sev-pill { display: inline-flex; align-items: center; padding: 0 .35rem; border-radius: var(--radius-sm);
+    background: var(--sev-bg); color: var(--sev); font-size: var(--font-size-xs); font-weight: 700;
+    letter-spacing: .04em; text-transform: uppercase; flex: none; }
+  .mtype { font-family: var(--font-family-monospace); font-size: var(--font-size-xs);
+    color: var(--color-text-muted); flex: none; }
+
+  /* ---- the notes block under every mockup ---- */
+  .notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; margin-top: 1.6rem; }
+  .note { background: #fff; border: 1px solid #e2e8f0; border-radius: var(--radius-lg); padding: 1rem 1.15rem; }
+  .note h4 { font-size: .82rem; font-weight: 700; margin-bottom: .5rem; display: flex; align-items: center; gap: .4rem; }
+  .note.good h4 { color: #15803d; }
+  .note.cost h4 { color: var(--color-warning-hover); }
+  .note.build h4 { color: var(--color-primary); }
+  .note ul { margin: 0; padding-left: 1.05rem; color: #475569; font-size: .82rem; line-height: 1.65; }
+  .note code { font-family: var(--font-family-monospace); font-size: .86em; background: #f1f5f9;
+    padding: .05rem .28rem; border-radius: var(--radius-sm); }
+
+  .wf-row.ntf-row { border-bottom: 1px dashed var(--color-border-light); background: var(--sev-bg); }
+  .ntf-row .wf-label { color: #334155; font-size: var(--font-size-sm); }
+  .ntf-row .wf-duration { color: var(--sev); font-weight: 600; }
+  .ntf-glyph { flex: none; width: .45rem; height: .45rem; background: var(--sev); border-radius: 1px;
+    transform: rotate(45deg); }
+  .ntf-row .wf-track::before { background: transparent; }
+  .ntf-tick { position: absolute; top: 50%; width: .55rem; height: .55rem; margin-left: -.275rem;
+    transform: translateY(-50%) rotate(45deg); border-radius: 1px; background: var(--sev);
+    box-shadow: 0 0 0 2px var(--color-white); }
+  .ntf-lead { position: absolute; top: 50%; height: 1px; background: var(--sev); opacity: .35; }
+  .ntf-src { flex: none; font-size: var(--font-size-xs); color: var(--color-text-muted);
+    font-family: var(--font-family-monospace); }
+  .ntf-row.sev-critical { box-shadow: inset 2px 0 0 var(--sev-critical); }
+  .ntf-more { flex: none; color: var(--color-text-light); font-size: .65rem; }
+  .wf-row.ntf-row.is-open { background: var(--color-white); border-bottom: 0; }
+  .ntf-expand { padding: .1rem 1rem .6rem 1rem; border-bottom: 1px dashed var(--color-border-light);
+    background: var(--color-white); }
+  .ntf-expand-in { margin-left: 4.4rem; padding: .55rem .75rem; border-radius: var(--radius-base);
+    border: 1px solid var(--color-border); border-left: 3px solid var(--sev-critical);
+    background: var(--color-light); max-width: 52rem; }
+  .ntf-expand-in p { font-size: var(--font-size-sm); color: #475569; line-height: 1.55; }
+  .ntf-expand-in dl { display: flex; gap: 1.1rem; flex-wrap: wrap; margin-top: .5rem;
+    padding-top: .45rem; border-top: 1px solid var(--color-border-light);
+    font-size: var(--font-size-xs); color: var(--color-text-muted); }
+  .ntf-expand-in dl b { color: var(--color-dark); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
+    <h1><span class="n">3</span>Rows in the tree</h1>
+    <p class="lede">Every notification becomes a row of its own, indented one level under the span that emitted it and folded with it &mdash; the "span logs" reading. The severity and the title sit on the row, the Duration column becomes the offset, and the track carries a tick at the instant. The stable <code>type</code> did not fit in a 20rem name column, so it moved into the expansion. Shown with the CRITICAL alert expanded.</p>
+    <div class="frame">
+      <div class="frame-head">
+        <i class="bi bi-diagram-3"></i>
+        <h2>POST /api/orders</h2>
+        <span class="x"><i class="bi bi-x-lg"></i></span>
+      </div>
+      <div class="frame-body">
+      <div class="trace-meta">
+        <div class="chips">
+        <span class="chip"><i class="bi bi-diagram-3"></i> 6 spans</span>
+        <span class="chip err"><i class="bi bi-exclamation-triangle-fill"></i> 1 error</span>
+        <span class="chip"><i class="bi bi-stopwatch"></i> 412 ms</span>
+        <span class="chip"><i class="bi bi-cpu"></i> http-nio-8080-exec-3</span>
+        <span class="chip"><i class="bi bi-signpost-split"></i> payments.charge &middot; 64% critical</span>
+        <span class="chip mono">3f9c1a2b4d5e6f70</span>
+        <span class="chip msg"><i class="bi bi-chat-square-dots-fill"></i> 6 notifications</span>
+        </div>
+        <div class="trace-actions">
+          <a class="op-link" href="#"><i class="bi bi-bar-chart-steps"></i> All POST /api/orders traces</a>
+        </div>
+      </div>
+      <div class="wf-card">
+        <div class="wf-toolbar">
+          <span class="wf-toggle"><i class="bi bi-signpost-split"></i> Critical path only</span>
+          <span class="wf-toggle"><i class="bi bi-arrows-collapse"></i> Collapse all</span>
+          <span class="wf-overlays">
+            <span class="wf-overlays-label">Overlays</span>
+            <span class="wf-switch-item"><span class="wf-switch on"></span> JVM context</span>
+            <span class="wf-switch-item"><span class="wf-switch on"></span> Blocking ops</span>
+            <span class="wf-switch-item"><span class="wf-switch on"></span> I/O ops</span>
+            <span class="wf-switch-item"><span class="wf-switch on"></span> Notifications</span>
+          </span>
+        </div>
+        <div class="wf-lane">
+          <span class="lane-label">
+            <span style="display:flex;align-items:center;gap:.35rem"><i class="lane-dot" style="background:var(--color-danger)"></i> GC pause</span>
+            <span class="lane-meter"><i style="width:5%;background:var(--color-danger)"></i></span>
+            <span class="lane-stat">4.6% &middot; 2&times;</span>
+          </span>
+          <span class="lane-track">
+            <span class="lane-band" style="left:27.18%;width:2.67%;background:var(--color-danger)"></span>
+            <span class="lane-band" style="left:69.9%;width:1.94%;background:var(--color-danger)"></span>
+          </span>
+          <span class="wf-duration">19 ms</span>
+        </div>
+        <div class="wf-head">
+          <span>Span</span>
+          <span class="wf-scale"><span>0</span><span>412 ms</span></span>
+          <span class="wf-duration">Duration</span>
+        </div>
+        <div class="wf-rows">
+          <div class="wf-stripes">
+            <span></span>
+            <span class="wf-stripes-track">
+              <span class="wf-stripe" style="left:27.18%;width:2.67%"></span>
+              <span class="wf-stripe" style="left:69.9%;width:1.94%"></span>
+            </span>
+            <span></span>
+          </div>
+          <div class="wf-row critical">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:0.0rem"></span>
+              <span class="wf-twist"><i class="bi bi-caret-down-fill"></i></span>
+              <span class="wf-kind kind-server"></span>
+              <span class="wf-label">POST /api/orders</span>
+            </span>
+            <span class="wf-track">
+              <span class="wf-bar bar-server" style="left:0.0%;width:100.0%"><span class="wf-self" style="left:0.0%;width:0.97%"></span><span class="wf-self" style="left:5.34%;width:0.97%"></span><span class="wf-self" style="left:14.81%;width:1.21%"></span><span class="wf-self" style="left:80.34%;width:1.21%"></span><span class="wf-self" style="left:97.57%;width:2.43%"></span></span>
+            </span>
+            <span class="wf-duration">412 ms</span>
+          </div>
+          <div class="wf-row">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:1.1rem"></span>
+              <span class="wf-twist"></span>
+              <span class="wf-kind kind-internal"></span>
+              <span class="wf-label">orders.validate</span>
+            </span>
+            <span class="wf-track">
+              <span class="wf-bar bar-internal" style="left:0.97%;width:4.37%"><span class="wf-self" style="left:0%;width:100%"></span></span>
+            </span>
+            <span class="wf-duration">18 ms</span>
+          </div>
+          <div class="wf-row ntf-row sev-low">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:2.2rem"></span>
+              <span class="wf-twist"></span>
+              <span class="ntf-glyph"></span>
+              <span class="sev-pill sev-low">low</span>
+              <span class="wf-label">Cart repriced before validation</span>
+              <span class="ntf-more"><i class="bi bi-three-dots"></i></span>
+            </span>
+            <span class="wf-track">
+              <span class="ntf-lead" style="left:0;width:1.46%"></span>
+              <span class="ntf-tick" style="left:1.46%"></span>
+            </span>
+            <span class="wf-duration">+6 ms</span>
+          </div>
+          <div class="wf-row">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:1.1rem"></span>
+              <span class="wf-twist"></span>
+              <span class="wf-kind kind-internal"></span>
+              <span class="wf-label">SELECT orders</span>
+            </span>
+            <span class="wf-track">
+              <span class="wf-bar bar-internal" style="left:6.31%;width:8.5%"><span class="wf-self" style="left:0%;width:100%"></span></span>
+            </span>
+            <span class="wf-duration">35 ms</span>
+          </div>
+          <div class="wf-row ntf-row sev-medium">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:2.2rem"></span>
+              <span class="wf-twist"></span>
+              <span class="ntf-glyph"></span>
+              <span class="sev-pill sev-medium">medium</span>
+              <span class="wf-label">Query fell back to a sequential scan</span>
+              <span class="ntf-more"><i class="bi bi-three-dots"></i></span>
+            </span>
+            <span class="wf-track">
+              <span class="ntf-lead" style="left:0;width:7.28%"></span>
+              <span class="ntf-tick" style="left:7.28%"></span>
+            </span>
+            <span class="wf-duration">+30 ms</span>
+          </div>
+          <div class="wf-row ntf-row sev-medium">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:1.1rem"></span>
+              <span class="wf-twist"></span>
+              <span class="ntf-glyph"></span>
+              <span class="sev-pill sev-medium">medium</span>
+              <span class="wf-label">Pool at 92% of max</span>
+              <span class="ntf-more"><i class="bi bi-three-dots"></i></span>
+            </span>
+            <span class="wf-track">
+              <span class="ntf-lead" style="left:0;width:15.53%"></span>
+              <span class="ntf-tick" style="left:15.53%"></span>
+            </span>
+            <span class="wf-duration">+64 ms</span>
+          </div>
+          <div class="wf-row critical">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:1.1rem"></span>
+              <span class="wf-twist"><i class="bi bi-caret-down-fill"></i></span>
+              <span class="wf-kind kind-client"></span>
+              <span class="wf-label">payments.charge</span>
+              <span class="badge-err">error</span>
+            </span>
+            <span class="wf-track">
+              <span class="wf-bar bar-error" style="left:16.02%;width:64.32%"><span class="wf-self" style="left:0%;width:3.02%"></span><span class="wf-self" style="left:98.11%;width:1.89%"></span></span>
+            </span>
+            <span class="wf-duration">265 ms</span>
+          </div>
+          <div class="wf-row critical">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:2.2rem"></span>
+              <span class="wf-twist"></span>
+              <span class="wf-kind kind-internal" style="background:var(--chart-series-8)"></span>
+              <span class="wf-label">jdk.SocketRead</span>
+              <span class="badge-prom">promoted</span>
+            </span>
+            <span class="wf-track">
+              <span class="wf-bar bar-synthesized" style="left:17.96%;width:61.17%;background:var(--chart-series-8)"></span>
+            </span>
+            <span class="wf-duration">252 ms</span>
+          </div>
+          <div class="wf-row ntf-row sev-high">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:2.2rem"></span>
+              <span class="wf-twist"></span>
+              <span class="ntf-glyph"></span>
+              <span class="sev-pill sev-high">high</span>
+              <span class="wf-label">Retrying charge after gateway timeout</span>
+              <span class="ntf-more"><i class="bi bi-three-dots"></i></span>
+            </span>
+            <span class="wf-track">
+              <span class="ntf-lead" style="left:0;width:38.35%"></span>
+              <span class="ntf-tick" style="left:38.35%"></span>
+            </span>
+            <span class="wf-duration">+158 ms</span>
+          </div>
+          <div class="wf-row ntf-row sev-critical is-open">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:2.2rem"></span>
+              <span class="wf-twist"></span>
+              <span class="ntf-glyph"></span>
+              <span class="sev-pill sev-critical">critical</span>
+              <span class="wf-label">Payment circuit breaker opened</span>
+              <span class="ntf-more"><i class="bi bi-caret-down-fill"></i></span>
+            </span>
+            <span class="wf-track">
+              <span class="ntf-lead" style="left:0;width:72.82%"></span>
+              <span class="ntf-tick" style="left:72.82%"></span>
+            </span>
+            <span class="wf-duration">+300 ms</span>
+          </div>
+          <div class="ntf-expand">
+            <div class="ntf-expand-in">
+              <p>5 of the last 6 calls to acme-pay failed. The breaker is open for 30 s; every charge in that window fails fast.</p>
+              <dl><span>event <b>jeffrey.Notification</b></span><span>category <b>AVAILABILITY</b></span><span>source <b>payments-client</b></span><span>thread <b>http-nio-8080-exec-3</b></span></dl>
+            </div>
+          </div>
+          <div class="wf-row critical">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:1.1rem"></span>
+              <span class="wf-twist"></span>
+              <span class="wf-kind kind-internal"></span>
+              <span class="wf-label">orders.persist</span>
+            </span>
+            <span class="wf-track">
+              <span class="wf-bar bar-internal" style="left:81.55%;width:16.02%"><span class="wf-self" style="left:0%;width:100%"></span></span>
+            </span>
+            <span class="wf-duration">66 ms</span>
+          </div>
+          <div class="wf-row ntf-row sev-low">
+            <span class="wf-name">
+              <span class="wf-indent" style="width:1.1rem"></span>
+              <span class="wf-twist"></span>
+              <span class="ntf-glyph"></span>
+              <span class="sev-pill sev-low">low</span>
+              <span class="wf-label">Flag orders.async-persist evaluated false</span>
+              <span class="ntf-more"><i class="bi bi-three-dots"></i></span>
+            </span>
+            <span class="wf-track">
+              <span class="ntf-lead" style="left:0;width:98.54%"></span>
+              <span class="ntf-tick" style="left:98.54%"></span>
+            </span>
+            <span class="wf-duration">+406 ms</span>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+    <div class="notes">
+      <div class="note good">
+        <h4><i class="bi bi-check-circle"></i> What it buys</h4>
+        <ul>
+          <li>Nothing is hidden: every notification is on screen with its text, at trace scope, with no click.</li>
+          <li>Parentage is structural, not inferred &mdash; the indent <em>is</em> the span it belongs to.</li>
+          <li>The tree already folds. Collapsing a span takes its notifications with it, which is the behaviour a reader expects.</li>
+          <li>This is what Jaeger and Zipkin do with span logs, so it needs no explaining.</li>
+        </ul>
+      </div>
+      <div class="note cost">
+        <h4><i class="bi bi-exclamation-circle"></i> What it costs</h4>
+        <ul>
+          <li>Six notifications add six rows to a six-span trace. A chatty request doubles the waterfall, and the shape of the trace &mdash; the thing the waterfall exists to show &mdash; is what pays.</li>
+          <li>Ordering is honestly awkward: <code>PAYMENT_RETRY</code> at +158 ms is drawn <em>after</em> <code>jdk.SocketRead</code>, which was still running when it fired. Look at rows 8-10 above.</li>
+          <li>A zero-duration row in a duration chart is a category error &mdash; the Duration column has to change meaning to <code>+offset</code> for these rows.</li>
+          <li>The 20rem name column cannot hold indent, severity, title <em>and</em> the stable <code>type</code>. The type had to move into the expansion, so the row alone no longer identifies the notification.</li>
+          <li>The run-collapsing machinery (5+ same-named siblings become one row) would have to learn about notifications too, or a retry loop floods the tree.</li>
+        </ul>
+      </div>
+      <div class="note build">
+        <h4><i class="bi bi-tools"></i> What it takes to build</h4>
+        <ul>
+          <li>Touches the most load-bearing code of the five: <code>displayRows</code>, <code>visibleSpans</code>, <code>traceTree.ts</code>, fold state, run detection and the critical-path filter all assume a row is a span.</li>
+          <li>Either a discriminated union in <code>displayRows</code> (<code>{run} | {span} | {notification}</code>) or synthetic span rows &mdash; and the latter re-opens exactly the mistake <code>TraceScopeEvent</code> avoids by not naming its field <code>spanId</code>.</li>
+          <li>Largest diff of the five, and the one most likely to regress the waterfall itself.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

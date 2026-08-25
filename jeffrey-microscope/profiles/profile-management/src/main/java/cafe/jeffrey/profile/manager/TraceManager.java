@@ -26,6 +26,7 @@ import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
+import cafe.jeffrey.profile.manager.model.trace.TraceStacktrace;
 import cafe.jeffrey.profile.manager.model.trace.TraceTimelineBucket;
 import cafe.jeffrey.profile.manager.model.trace.TracesPage;
 import cafe.jeffrey.provider.profile.api.TraceListQuery;
@@ -166,4 +167,15 @@ public interface TraceManager {
      *         the window held more than the row cap allowed
      */
     TraceSpanEvents eventsInSpan(long traceId, long spanId);
+
+    /**
+     * The stack behind one throw, topmost frame first.
+     * <p>
+     * Keyed by the stack rather than by the throw: identical stacks are stored once, so two throws
+     * from the same call site share a hash, and asking by throw would read the same rows twice.
+     *
+     * @param stacktraceId the hex id a {@link cafe.jeffrey.profile.manager.model.trace.TraceExceptionRow}
+     *                     carries; a throw whose {@code stacktraceId} is null has no stack to ask for
+     */
+    TraceStacktrace stacktrace(long stacktraceId);
 }

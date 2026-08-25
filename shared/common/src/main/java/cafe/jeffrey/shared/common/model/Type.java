@@ -225,9 +225,8 @@ public record Type(String code, boolean calculated) {
     public static final Type CONTAINER_MEMORY_USAGE = new Type(EventTypeName.CONTAINER_MEMORY_USAGE);
     public static final Type CONTAINER_IO_USAGE = new Type(EventTypeName.CONTAINER_IO_USAGE);
 
-    // Message and Alert
-    public static final Type MESSAGE = new Type(EventTypeName.MESSAGE);
-    public static final Type ALERT = new Type(EventTypeName.ALERT);
+    // Application notifications
+    public static final Type NOTIFICATION = new Type(EventTypeName.NOTIFICATION);
 
     private static final Set<Type> BLOCKING_EVENTS =
             Set.of(JAVA_MONITOR_ENTER, JAVA_MONITOR_WAIT, THREAD_PARK, THREAD_SLEEP);

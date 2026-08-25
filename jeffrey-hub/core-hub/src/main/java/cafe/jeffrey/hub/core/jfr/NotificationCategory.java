@@ -16,32 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.shared.common.model;
+package cafe.jeffrey.hub.core.jfr;
 
-/**
- * Severity levels for important messages.
- * Matches cafe.jeffrey.jfr.events.message.Severity
- */
-public enum Severity {
-    CRITICAL,
-    HIGH,
-    MEDIUM,
-    LOW;
-
-    /**
-     * Parses severity from string, defaulting to MEDIUM if unknown.
-     *
-     * @param value the string value to parse
-     * @return the Severity enum value
-     */
-    public static Severity fromString(String value) {
-        if (value == null) {
-            return MEDIUM;
-        }
-        try {
-            return valueOf(value.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return MEDIUM;
-        }
-    }
+public enum NotificationCategory {
+    PROJECT,
+    INSTANCE,
+    SESSION,
+    SYSTEM
 }

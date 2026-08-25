@@ -24,8 +24,7 @@ import cafe.jeffrey.jfr.events.http.HttpClientExchangeEvent;
 import cafe.jeffrey.jfr.events.http.HttpServerExchangeEvent;
 import cafe.jeffrey.jfr.events.jdbc.pool.*;
 import cafe.jeffrey.jfr.events.jdbc.statement.*;
-import cafe.jeffrey.jfr.events.message.AlertEvent;
-import cafe.jeffrey.jfr.events.message.MessageEvent;
+import cafe.jeffrey.jfr.events.notification.NotificationEvent;
 import cafe.jeffrey.jfr.events.trace.TraceSpanEvent;
 import jdk.jfr.Event;
 
@@ -46,8 +45,7 @@ public abstract class JeffreyEventRegistry {
             GrpcServerExchangeEvent.class,
             HttpClientExchangeEvent.class,
             HttpServerExchangeEvent.class,
-            AlertEvent.class,
-            MessageEvent.class,
+            NotificationEvent.class,
             JdbcExecuteEvent.class,
             JdbcInsertEvent.class,
             JdbcDeleteEvent.class,

@@ -19,9 +19,11 @@
 package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.provider.profile.api.EventFieldRecord;
+import cafe.jeffrey.provider.profile.api.EventFrame;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceContextCategory;
+import cafe.jeffrey.provider.profile.api.TraceExceptionRecord;
 import cafe.jeffrey.provider.profile.api.TraceListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
@@ -30,6 +32,7 @@ import cafe.jeffrey.provider.profile.api.TraceOperationRecord;
 import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
 import cafe.jeffrey.provider.profile.api.TraceOperationSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceOperationThreadsRecord;
+import cafe.jeffrey.provider.profile.api.TraceNotificationRecord;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TracePage;
 import cafe.jeffrey.provider.profile.api.TracePauseRecord;
@@ -39,6 +42,7 @@ import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.provider.profile.api.TraceTimelineBucketRecord;
+import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
@@ -51,6 +55,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_TRACES;
 
@@ -79,6 +84,70 @@ public class JdbcTraceRepository implements TraceRepository {
      * waterfall, not in the list of what happened inside one.
      */
     //language=SQL
+    /**
+     * The event types that record a single throw. Both feed trace_exceptions: the reader tells an
+     * Error from an Exception by the event type it kept, not by guessing from the class name.
+     */
+    private static final List<String> THROW_EVENT_TYPES =
+            List.of(EventTypeName.JAVA_EXCEPTION_THROW, EventTypeName.JAVA_ERROR_THROW);
+
+    /**
+     * The same types as a SQL literal list, for the drill-down's exclusion predicate, whose other
+     * exclusions are literals too.
+     */
+    private static final String THROW_EVENT_TYPES_SQL =
+            THROW_EVENT_TYPES.stream().map(type -> "'" + type + "'").collect(Collectors.joining(", "));
+
+    /**
+     * Throws that mean the JVM or JDK failed to resolve or link something. Three closed hierarchies,
+     * enumerated because SQL cannot ask about a class hierarchy: {@link LinkageError}, the
+     * {@code java.lang.invoke} throwables, and {@link ReflectiveOperationException}.
+     * <p>
+     * The MethodHandle layer raises these by the handful while linking an {@code invokedynamic} call
+     * site, and a library probing for an optional dependency does the same through
+     * {@code Class.forName}. They land on the request thread inside the span that triggered the work,
+     * so the attribution is right — they are just not something a reader of a trace can act on.
+     * <p>
+     * Only ever drops a throw the code <em>caught</em>: an escaped one survives the filter, because a
+     * throw that failed its span is the story whoever threw it.
+     * <p>
+     * Taken as the closure of the three roots over every module in the JDK, so a new entry is only
+     * needed if the JDK itself adds one. Deliberately absent: cancellation and timeouts, the resource
+     * errors, and ordinary application logic — those are what a trace reader is looking for.
+     */
+    private static final List<String> RESOLUTION_FAILURE_CLASSES = List.of(
+            // java.lang.LinkageError and every subclass
+            "java.lang.LinkageError",
+            "java.lang.BootstrapMethodError",
+            "java.lang.ClassCircularityError",
+            "java.lang.ClassFormatError",
+            "java.lang.UnsupportedClassVersionError",
+            "java.lang.ExceptionInInitializerError",
+            "java.lang.IncompatibleClassChangeError",
+            "java.lang.AbstractMethodError",
+            "java.lang.IllegalAccessError",
+            "java.lang.InstantiationError",
+            "java.lang.NoSuchFieldError",
+            "java.lang.NoSuchMethodError",
+            "java.lang.NoClassDefFoundError",
+            "java.lang.UnsatisfiedLinkError",
+            "java.lang.VerifyError",
+            "java.lang.reflect.GenericSignatureFormatError",
+            // java.lang.invoke throwables
+            "java.lang.invoke.WrongMethodTypeException",
+            "java.lang.invoke.LambdaConversionException",
+            "java.lang.invoke.StringConcatException",
+            "java.lang.invoke.InvokerBytecodeGenerator$BytecodeGenerationException",
+            // java.lang.ReflectiveOperationException and every subclass
+            "java.lang.ReflectiveOperationException",
+            "java.lang.ClassNotFoundException",
+            "java.lang.IllegalAccessException",
+            "java.lang.InstantiationException",
+            "java.lang.NoSuchFieldException",
+            "java.lang.NoSuchMethodException",
+            "java.lang.reflect.InvocationTargetException",
+            "java.lang.reflect.Proxy$InvocationException");
+
     private static final String SPAN_EVENT_TYPES = """
             SELECT name FROM event_types
             WHERE list_contains(json_extract_string(columns, '$[*].field'), 'spanId')""";
@@ -527,6 +596,201 @@ public class JdbcTraceRepository implements TraceRepository {
     //language=SQL
     private static final String DELETE_TRACES = "DELETE FROM traces";
 
+    /*
+     * Both reads are ordered by their own instant, which is what lets the rails draw them without
+     * sorting, and the detail regions list them in the order they happened.
+     */
+    //language=SQL
+    private static final String NOTIFICATIONS_OF_TRACE = """
+            SELECT trace_id, span_id, notification_id,
+                   start_timestamp_from_beginning AS start_ms,
+                   EPOCH_US(start_timestamp)      AS start_epoch_us,
+                   type, title, message, severity, category, source,
+                   COALESCE(thread_hash, 0)       AS thread_hash
+            FROM trace_notifications
+            WHERE trace_id = :trace_id
+            ORDER BY start_timestamp, notification_id
+            """;
+
+    //language=SQL
+    private static final String EXCEPTIONS_OF_TRACE = """
+            SELECT trace_id, span_id, exception_id,
+                   start_timestamp_from_beginning AS start_ms,
+                   EPOCH_US(start_timestamp)      AS start_epoch_us,
+                   event_type, thrown_class, message, escaped, stacktrace_hash,
+                   COALESCE(thread_hash, 0)       AS thread_hash
+            FROM trace_exceptions
+            WHERE trace_id = :trace_id
+            ORDER BY start_timestamp, exception_id
+            """;
+
+    /*
+     * One stack, resolved to frames, topmost first.
+     *
+     * The array is stored root-first -- JfrEventReader writes getFrames().reversed() -- so the
+     * ordinal has to come along and the result is ordered by it descending. Unnesting alone would
+     * lose the order entirely: a bag of frame hashes says who is on the stack and nothing about who
+     * called whom, and the two frames a reader actually wants are the ones at the ends.
+     *
+     * generate_subscripts pairs each element with its 1-based position in the same projection, so
+     * the ordinal survives the unnest without a second scan of the array.
+     */
+    //language=SQL
+    private static final String STACKTRACE_FRAMES = """
+            WITH positioned AS (
+                SELECT unnest(frame_hashes)                  AS frame_hash,
+                       generate_subscripts(frame_hashes, 1)  AS depth
+                FROM stacktraces
+                WHERE stacktrace_hash = :stacktrace_hash
+            )
+            SELECT f.class_name, f.method_name, f.frame_type, f.bytecode_index, f.line_number
+            FROM positioned p
+            JOIN frames f ON f.frame_hash = p.frame_hash
+            ORDER BY p.depth DESC
+            """;
+
+    //language=SQL
+    private static final String DELETE_TRACE_NOTIFICATIONS = "DELETE FROM trace_notifications";
+
+    //language=SQL
+    private static final String DELETE_TRACE_EXCEPTIONS = "DELETE FROM trace_exceptions";
+
+    /*
+     * What the application said while a trace ran.
+     *
+     * A notification stamps the enclosing span's ids onto itself at commit time, so this is a copy,
+     * not an inference -- which is the whole reason the fields exist. Thread plus window would be
+     * wrong here in a way it is not for a throw: a notification can be raised on a pool thread or a
+     * callback for work that belongs to another span entirely.
+     *
+     * events_raw rather than the events view, and the pooled field spliced back by hand, because a
+     * notification's `message` is exactly the kind of long string the parser pools -- and because
+     * rowid, which becomes the notification's id, exists only on a physical table.
+     *
+     * The LEFT JOIN nulls a span id that names a span this profile does not hold: below a JFR
+     * threshold, or in a chunk that was never ingested. A dangling id would make `span_id IS NOT
+     * NULL` stop meaning "there is a bar to draw this on", which is the one thing the reader asks it.
+     */
+    //language=SQL
+    private static final String DERIVE_TRACE_NOTIFICATIONS = """
+            INSERT INTO trace_notifications (trace_id, span_id, notification_id, start_timestamp,
+                                             start_timestamp_from_beginning, type, title, message,
+                                             severity, category, source, thread_hash)
+            WITH raised AS (
+                SELECT
+                    e.rowid                                       AS notification_id,
+                    e.start_timestamp                             AS start_timestamp,
+                    COALESCE(e.start_timestamp_from_beginning, 0)  AS start_ms,
+                    e.thread_hash                                 AS thread_hash,
+                    <<rehydrated>>                                AS fields
+                FROM events_raw e
+                LEFT JOIN field_texts t ON t.text_hash = e.pooled_text_hash
+                WHERE e.event_type = :notification_event_type
+            ),
+            identified AS (
+                SELECT
+                    CAST(json_extract_string(fields, '$.traceId') AS BIGINT)         AS trace_id,
+                    NULLIF(CAST(json_extract_string(fields, '$.enclosingSpanId') AS BIGINT), 0) AS span_id,
+                    notification_id,
+                    start_timestamp,
+                    start_ms,
+                    json_extract_string(fields, '$.type')                            AS type,
+                    json_extract_string(fields, '$.title')                           AS title,
+                    json_extract_string(fields, '$.message')                         AS message,
+                    json_extract_string(fields, '$.severity')                        AS severity,
+                    json_extract_string(fields, '$.category')                        AS category,
+                    json_extract_string(fields, '$.source')                          AS source,
+                    thread_hash
+                FROM raised
+                WHERE COALESCE(CAST(json_extract_string(fields, '$.traceId') AS BIGINT), 0) <> 0
+            )
+            SELECT n.trace_id, s.span_id, n.notification_id, n.start_timestamp, n.start_ms,
+                   n.type, n.title, n.message, n.severity, n.category, n.source, n.thread_hash
+            FROM identified n
+            JOIN traces tr ON tr.trace_id = n.trace_id
+            LEFT JOIN trace_spans s ON s.trace_id = n.trace_id AND s.span_id = n.span_id
+            ORDER BY n.trace_id, n.start_timestamp
+            """.replace("<<rehydrated>>", REHYDRATED_FIELDS);
+
+    /*
+     * The throws that happened inside a trace.
+     *
+     * Nothing new is ingested: jdk.JavaExceptionThrow and jdk.JavaErrorThrow are already parsed and
+     * already power the Exceptions view. What is derived is the correlation, and unlike a
+     * notification a throw needs no ids to correlate -- it is always recorded on the thread that
+     * threw it, at the instant it threw. The span is the innermost one containing that instant on
+     * that thread: the narrowest containing window wins, which is the same rule the promoted
+     * blocking spans follow.
+     *
+     * The window comparison runs in microseconds because that is the resolution a span start is
+     * kept at; `duration` is nanoseconds, hence the divide. A span of zero duration therefore
+     * contains nothing, which is correct -- an instant cannot have happened inside it.
+     *
+     * `escaped` says this throw is why its span failed, decided by matching the thrown class
+     * against the span's own error_type. A throw caught inside the span leaves it FALSE, which is
+     * most of them.
+     */
+    //language=SQL
+    private static final String DERIVE_TRACE_EXCEPTIONS = """
+            INSERT INTO trace_exceptions (trace_id, span_id, exception_id, start_timestamp,
+                                          start_timestamp_from_beginning, event_type, thrown_class,
+                                          message, escaped, stacktrace_hash, thread_hash)
+            WITH thrown AS (
+                SELECT
+                    e.rowid                                       AS exception_id,
+                    e.event_type                                  AS event_type,
+                    e.start_timestamp                             AS start_timestamp,
+                    COALESCE(e.start_timestamp_from_beginning, 0)  AS start_ms,
+                    EPOCH_US(e.start_timestamp)                   AS start_us,
+                    e.thread_hash                                 AS thread_hash,
+                    e.stacktrace_hash                             AS stacktrace_hash,
+                    <<rehydrated>>                                AS fields
+                FROM events_raw e
+                LEFT JOIN field_texts t ON t.text_hash = e.pooled_text_hash
+                WHERE e.event_type IN (:exception_event_types)
+                  AND e.thread_hash IS NOT NULL
+            ),
+            attributed AS (
+                SELECT
+                    x.exception_id,
+                    x.event_type,
+                    x.start_timestamp,
+                    x.start_ms,
+                    x.thread_hash,
+                    x.stacktrace_hash,
+                    json_extract_string(x.fields, '$.thrownClass') AS thrown_class,
+                    json_extract_string(x.fields, '$.message')     AS message,
+                    s.trace_id                                     AS trace_id,
+                    s.span_id                                      AS span_id,
+                    s.error_type                                   AS error_type
+                FROM thrown x
+                JOIN trace_spans s
+                  ON s.thread_hash = x.thread_hash
+                 AND EPOCH_US(s.start_timestamp) <= x.start_us
+                 AND x.start_us < EPOCH_US(s.start_timestamp) + (s.duration / 1000)
+                -- The innermost containing span: shortest window first, latest start to break a tie.
+                QUALIFY ROW_NUMBER() OVER (PARTITION BY x.exception_id
+                                           ORDER BY s.duration, s.start_timestamp DESC) = 1
+            ),
+            classified AS (
+                SELECT
+                    a.*,
+                    -- error_type IS NOT NULL first: `x = NULL` is NULL, not false, and a NULL
+                    -- would fail the column's NOT NULL rather than reading as "did not escape".
+                    -- Most spans succeed, so most rows take exactly that branch.
+                    a.error_type IS NOT NULL AND a.thrown_class = a.error_type AS escaped
+                FROM attributed a
+            )
+            SELECT trace_id, span_id, exception_id, start_timestamp, start_ms, event_type,
+                   thrown_class, message, escaped, stacktrace_hash, thread_hash
+            FROM classified
+            WHERE thrown_class IS NOT NULL
+              -- `escaped` first, and never NULL: a throw that failed its span is the story
+              -- whoever threw it, so only a caught resolution failure is ever dropped.
+              AND (escaped OR thrown_class NOT IN (:resolution_failure_classes))
+            ORDER BY trace_id, start_timestamp
+            """.replace("<<rehydrated>>", REHYDRATED_FIELDS);
+
     //language=SQL
     private static final String TRACES_EXIST = """
             SELECT COUNT(*) FROM (SELECT 1 FROM traces LIMIT 1) probe
@@ -961,8 +1225,10 @@ public class JdbcTraceRepository implements TraceRepository {
     private static final String EVENTS_IN_SPAN = ThreadWindowEvents.excluding("""
             NOT EXISTS (SELECT 1 FROM (%s) span_types WHERE span_types.name = e.event_type)
             AND NOT EXISTS (SELECT 1 FROM (%s) scope_types WHERE scope_types.name = e.event_type)
+            AND e.event_type NOT IN (%s)
             AND e.event_type NOT IN (%s)"""
-            .formatted(SPAN_EVENT_TYPES, SCOPE_EVENT_TYPES, BlockingLeafSpans.sqlQuotedEventTypes()));
+            .formatted(SPAN_EVENT_TYPES, SCOPE_EVENT_TYPES, BlockingLeafSpans.sqlQuotedEventTypes(),
+                    "'" + EventTypeName.NOTIFICATION + "', " + THROW_EVENT_TYPES_SQL));
 
     /*
      * How the recording described each field of an event type. `columns` is a JSON array the parser
@@ -1117,9 +1383,11 @@ public class JdbcTraceRepository implements TraceRepository {
 
     @Override
     public void derive() {
-        // All three tables are wholly a function of `events`, so deriving twice must land where
-        // deriving once did. Without this a re-run doubled every span and then failed on the traces
-        // primary key, leaving the profile with spans that no trace header accounts for.
+        // Every one of these tables is wholly a function of `events`, so deriving twice must land
+        // where deriving once did. Without this a re-run doubled every span and then failed on the
+        // traces primary key, leaving the profile with spans that no trace header accounts for.
+        databaseClient.execute(StatementLabel.DERIVE_TRACE_EXCEPTIONS, DELETE_TRACE_EXCEPTIONS);
+        databaseClient.execute(StatementLabel.DERIVE_TRACE_NOTIFICATIONS, DELETE_TRACE_NOTIFICATIONS);
         databaseClient.execute(StatementLabel.DERIVE_TRACES, DELETE_TRACES);
         databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, DELETE_TRACE_SPANS);
         databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, DELETE_SPAN_PAYLOADS);
@@ -1158,6 +1426,21 @@ public class JdbcTraceRepository implements TraceRepository {
                 blockingParams);
 
         databaseClient.execute(StatementLabel.DERIVE_TRACES, DERIVE_TRACES);
+
+        // After the spans and the trace headers, which both of these join against: a notification
+        // resolves its recorded span id through trace_spans, and a throw finds its span by walking
+        // the windows on its own thread.
+        databaseClient.insert(
+                StatementLabel.DERIVE_TRACE_NOTIFICATIONS,
+                DERIVE_TRACE_NOTIFICATIONS,
+                new MapSqlParameterSource().addValue("notification_event_type", EventTypeName.NOTIFICATION));
+
+        databaseClient.insert(
+                StatementLabel.DERIVE_TRACE_EXCEPTIONS,
+                DERIVE_TRACE_EXCEPTIONS,
+                new MapSqlParameterSource()
+                        .addValue("exception_event_types", THROW_EVENT_TYPES)
+                        .addValue("resolution_failure_classes", RESOLUTION_FAILURE_CLASSES));
     }
 
     @Override
@@ -1291,6 +1574,61 @@ public class JdbcTraceRepository implements TraceRepository {
                 SPANS_OF_TRACE,
                 params,
                 traceSpanMapper());
+    }
+
+    @Override
+    public List<TraceNotificationRecord> notificationsOf(long traceId) {
+        return databaseClient.query(
+                StatementLabel.TRACE_NOTIFICATIONS,
+                NOTIFICATIONS_OF_TRACE,
+                new MapSqlParameterSource().addValue("trace_id", traceId),
+                (rs, _) -> new TraceNotificationRecord(
+                        rs.getLong("trace_id"),
+                        nullableLong(rs, "span_id"),
+                        rs.getLong("notification_id"),
+                        rs.getLong("start_ms"),
+                        rs.getLong("start_epoch_us"),
+                        rs.getString("type"),
+                        rs.getString("title"),
+                        rs.getString("message"),
+                        rs.getString("severity"),
+                        rs.getString("category"),
+                        rs.getString("source"),
+                        rs.getLong("thread_hash")));
+    }
+
+    @Override
+    public List<TraceExceptionRecord> exceptionsOf(long traceId) {
+        return databaseClient.query(
+                StatementLabel.TRACE_EXCEPTIONS,
+                EXCEPTIONS_OF_TRACE,
+                new MapSqlParameterSource().addValue("trace_id", traceId),
+                (rs, _) -> new TraceExceptionRecord(
+                        rs.getLong("trace_id"),
+                        rs.getLong("span_id"),
+                        rs.getLong("exception_id"),
+                        rs.getLong("start_ms"),
+                        rs.getLong("start_epoch_us"),
+                        rs.getString("event_type"),
+                        rs.getString("thrown_class"),
+                        rs.getString("message"),
+                        rs.getBoolean("escaped"),
+                        nullableLong(rs, "stacktrace_hash"),
+                        rs.getLong("thread_hash")));
+    }
+
+    @Override
+    public List<EventFrame> stacktraceOf(long stacktraceHash) {
+        return databaseClient.query(
+                StatementLabel.TRACE_STACKTRACE,
+                STACKTRACE_FRAMES,
+                new MapSqlParameterSource().addValue("stacktrace_hash", stacktraceHash),
+                (rs, _) -> new EventFrame(
+                        rs.getString("class_name"),
+                        rs.getString("method_name"),
+                        rs.getString("frame_type"),
+                        rs.getLong("bytecode_index"),
+                        rs.getLong("line_number")));
     }
 
     @Override

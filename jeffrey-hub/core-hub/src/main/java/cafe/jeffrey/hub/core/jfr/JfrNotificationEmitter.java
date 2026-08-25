@@ -18,95 +18,83 @@
 
 package cafe.jeffrey.hub.core.jfr;
 
-import cafe.jeffrey.jfr.events.message.AlertEvent;
-import cafe.jeffrey.jfr.events.message.MessageEvent;
-import cafe.jeffrey.jfr.events.message.Severity;
+import cafe.jeffrey.jfr.events.notification.NotificationEvent;
+import cafe.jeffrey.jfr.events.notification.Severity;
 
-public abstract class JfrMessageEmitter {
+public abstract class JfrNotificationEmitter {
 
     // ==================== PROJECT events (HIGH severity) ====================
 
     public static void projectCreated(String projectName, String projectId) {
-        emitMessage(MessageType.PROJECT_CREATED,
+        emit(NotificationType.PROJECT_CREATED,
                 "Project created: projectName=" + projectName + " projectId=" + projectId,
-                Severity.HIGH, MessageCategory.PROJECT);
+                Severity.HIGH, NotificationCategory.PROJECT);
     }
 
     public static void projectDeleted(String projectId) {
-        emitMessage(MessageType.PROJECT_DELETED,
+        emit(NotificationType.PROJECT_DELETED,
                 "Project deleted: projectId=" + projectId,
-                Severity.HIGH, MessageCategory.PROJECT);
+                Severity.HIGH, NotificationCategory.PROJECT);
     }
 
     // ==================== INSTANCE events (MEDIUM severity) ====================
 
     public static void instanceCreated(String instanceId, String projectName, String projectId) {
-        emitMessage(MessageType.INSTANCE_CREATED,
+        emit(NotificationType.INSTANCE_CREATED,
                 "New instance started: instanceId=" + instanceId + " projectName=" + projectName + " projectId=" + projectId,
-                Severity.MEDIUM, MessageCategory.INSTANCE);
+                Severity.MEDIUM, NotificationCategory.INSTANCE);
     }
 
     // ==================== SESSION events ====================
 
     public static void sessionCreated(String sessionId, String instanceId, int order, String projectId) {
-        emitMessage(MessageType.SESSION_CREATED,
+        emit(NotificationType.SESSION_CREATED,
                 "New recording session started: sessionId=" + sessionId + " instanceId=" + instanceId + " order=" + order + " projectId=" + projectId,
-                Severity.LOW, MessageCategory.SESSION);
+                Severity.LOW, NotificationCategory.SESSION);
     }
 
     public static void sessionFinished(String sessionId, String projectId) {
-        emitMessage(MessageType.SESSION_FINISHED,
+        emit(NotificationType.SESSION_FINISHED,
                 "Recording session finished: sessionId=" + sessionId + " projectId=" + projectId,
-                Severity.LOW, MessageCategory.SESSION);
+                Severity.LOW, NotificationCategory.SESSION);
     }
 
     public static void sessionDeleted(String sessionId, String projectId) {
-        emitMessage(MessageType.SESSION_DELETED,
+        emit(NotificationType.SESSION_DELETED,
                 "Recording session deleted: sessionId=" + sessionId + " projectId=" + projectId,
-                Severity.LOW, MessageCategory.SESSION);
+                Severity.LOW, NotificationCategory.SESSION);
     }
 
     public static void sessionsCleaned(String projectName, int count) {
-        emitMessage(MessageType.SESSIONS_CLEANED,
+        emit(NotificationType.SESSIONS_CLEANED,
                 "Cleaned up expired recording sessions: projectName=" + projectName + " count=" + count,
-                Severity.LOW, MessageCategory.SESSION);
+                Severity.LOW, NotificationCategory.SESSION);
     }
 
-    // ==================== ALERTS ====================
+    // ==================== CRITICAL and HIGH ====================
 
     public static void jvmCrashDetected(String sessionId, String instanceId, String projectId) {
-        emitAlert(MessageType.JVM_CRASH_DETECTED,
+        emit(NotificationType.JVM_CRASH_DETECTED,
                 "Session finished due to HotSpot JVM error, hs_err log detected: sessionId=" + sessionId + " instanceId=" + instanceId + " projectId=" + projectId,
-                Severity.CRITICAL, MessageCategory.SESSION);
+                Severity.CRITICAL, NotificationCategory.SESSION);
     }
 
     public static void eventProcessingFailed(String eventType, String projectId, String errorMessage) {
-        emitAlert(MessageType.EVENT_PROCESSING_FAILED,
+        emit(NotificationType.EVENT_PROCESSING_FAILED,
                 "Failed to process workspace event: eventType=" + eventType + " projectId=" + projectId + " error=" + errorMessage,
-                Severity.HIGH, MessageCategory.SYSTEM);
+                Severity.HIGH, NotificationCategory.SYSTEM);
     }
 
     // ==================== Private helpers ====================
 
-    private static void emitMessage(MessageType type, String message, Severity severity, MessageCategory category) {
-        MessageEvent event = new MessageEvent();
+    private static void emit(NotificationType type, String message, Severity severity, NotificationCategory category) {
+        NotificationEvent event = new NotificationEvent();
         event.type = type.name();
         event.title = type.title();
         event.message = message;
         event.severity = severity.name();
         event.category = category.name();
         event.source = "jeffrey-platform";
-        event.commit();
-    }
-
-    private static void emitAlert(MessageType type, String message, Severity severity, MessageCategory category) {
-        AlertEvent event = new AlertEvent();
-        event.type = type.name();
-        event.title = type.title();
-        event.message = message;
-        event.severity = severity.name();
-        event.category = category.name();
-        event.source = "jeffrey-platform";
-        event.commit();
+        event.emit();
     }
 }

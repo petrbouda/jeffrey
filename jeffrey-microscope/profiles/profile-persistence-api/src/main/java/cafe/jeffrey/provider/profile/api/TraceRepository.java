@@ -122,6 +122,21 @@ public interface TraceRepository {
     List<TraceSpanRecord> spansOf(long traceId);
 
     /**
+     * Everything the application said during one trace, oldest first.
+     * <p>
+     * Read apart from the spans because it is a different question about the same trace, and
+     * because a notification is not a span: it has no place in the tree {@link #spansOf(long)}
+     * feeds.
+     */
+    List<TraceNotificationRecord> notificationsOf(long traceId);
+
+    /**
+     * Every throw recorded inside one trace, oldest first, each already attributed to the innermost
+     * span open on its thread at the instant it was thrown.
+     */
+    List<TraceExceptionRecord> exceptionsOf(long traceId);
+
+    /**
      * The windows one operation occupied, merged per {@code (trace, thread)} with idle gaps
      * preserved — what a flamegraph scoped to a whole trace type is built from.
      * <p>
@@ -210,4 +225,17 @@ public interface TraceRepository {
      *                   describing every event type in the recording
      */
     List<EventFieldRecord> eventFieldsOf(List<String> eventTypes);
+
+    /**
+     * The frames of one recorded stack, <strong>topmost frame first</strong> — the throwing frame at
+     * index 0, {@code Thread.run} last. That is the reverse of how they are stored: the parser writes
+     * {@code getFrames().reversed()}, so {@code stacktraces.frame_hashes} is root-first.
+     * <p>
+     * Reached from a throw's {@link TraceExceptionRecord#stacktraceHash()}. Returns an empty list
+     * when the recording captured no stack for it, which is a real case rather than an error — JFR
+     * omits the stack whenever a throw is sampled without one.
+     *
+     * @param stacktraceHash the hash a throw carries, never null at the call site
+     */
+    List<EventFrame> stacktraceOf(long stacktraceHash);
 }

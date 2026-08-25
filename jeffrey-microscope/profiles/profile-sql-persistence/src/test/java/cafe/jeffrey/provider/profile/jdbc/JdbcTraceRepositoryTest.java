@@ -29,9 +29,12 @@ import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import cafe.jeffrey.jfr.events.trace.TraceSpanEvent;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.shared.common.model.SpanConventionKeys;
+import cafe.jeffrey.provider.profile.api.EventFrame;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceContextCategory;
+import cafe.jeffrey.provider.profile.api.TraceExceptionRecord;
+import cafe.jeffrey.provider.profile.api.TraceNotificationRecord;
 import cafe.jeffrey.provider.profile.api.TraceListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
@@ -1831,6 +1834,266 @@ class JdbcTraceRepositoryTest {
                     "the pooled monitor class belongs in the payload: " + wait.eventFields());
             assertTrue(wait.eventFields().contains("worker-3"),
                     "the fields that were never pooled stay too: " + wait.eventFields());
+        }
+    }
+
+    @Nested
+    @DisplayName("Notification and exception derivation")
+    class NotificationAndExceptionDerivation {
+
+        private static final long JDBC_SPAN = 112L;
+        private static final long SHORT_JDBC_SPAN = 113L;
+        /** The span this fixture adds so an escaped throw can carry a class the filter would drop. */
+        private static final long FAILED_PLUGIN_SPAN = 114L;
+
+        private static JdbcTraceRepository withEntries(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-notifications.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+            return repository;
+        }
+
+        private static TraceNotificationRecord notificationOfType(
+                JdbcTraceRepository repository, String type) {
+            return repository.notificationsOf(SLOW_TRACE).stream()
+                    .filter(notification -> type.equals(notification.type()))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("no notification of type " + type));
+        }
+
+        private static TraceExceptionRecord thrownOfClass(
+                JdbcTraceRepository repository, String thrownClass) {
+            return repository.exceptionsOf(SLOW_TRACE).stream()
+                    .filter(thrown -> thrownClass.equals(thrown.thrownClass()))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("no throw of class " + thrownClass));
+        }
+
+        @Test
+        @DisplayName("a notification is not discovered as a span")
+        void notificationIsNotASpan(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            // The whole reason the field is called enclosingSpanId rather than spanId: discovery is
+            // structural, and a notification named the other way would be built into a nameless,
+            // durationless span under everything that ever said anything.
+            assertTrue(
+                    repository.spansOf(SLOW_TRACE).stream()
+                            .noneMatch(span -> EventTypeName.NOTIFICATION.equals(span.eventType())),
+                    "notifications must not become spans: " + repository.spansOf(SLOW_TRACE));
+        }
+
+        @Test
+        @DisplayName("keeps the span a notification named")
+        void keepsTheRecordedSpan(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            TraceNotificationRecord notification = notificationOfType(repository, "QUERY_PLAN_FALLBACK");
+
+            assertEquals(JDBC_SPAN, notification.spanId());
+            assertEquals("MEDIUM", notification.severity());
+            assertEquals("orders-repo", notification.source());
+        }
+
+        @Test
+        @DisplayName("leaves a notification span-less when none was open, and when the one it named is absent")
+        void nullsSpanWithNothingToDrawOn(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            // Two different causes, one reading: it belongs to the trace, and there is no bar for it.
+            assertNull(notificationOfType(repository, "FEATURE_FLAG_READ").spanId());
+            assertNull(notificationOfType(repository, "POOL_PRESSURE").spanId());
+        }
+
+        @Test
+        @DisplayName("keeps two notifications raised at the same instant on the same span apart")
+        void keepsSimultaneousNotificationsApart(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            List<TraceNotificationRecord> warmed = repository.notificationsOf(SLOW_TRACE).stream()
+                    .filter(notification -> "CACHE_WARMED".equals(notification.type()))
+                    .toList();
+
+            assertEquals(2, warmed.size(), "two events are two notifications");
+            assertEquals(
+                    2,
+                    warmed.stream().map(TraceNotificationRecord::notificationId).distinct().count(),
+                    "and they need ids of their own to stay apart");
+        }
+
+        @Test
+        @DisplayName("drops a notification that belongs to no trace of this profile")
+        void dropsUntracedNotifications(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            List<String> types = repository.notificationsOf(SLOW_TRACE).stream()
+                    .map(TraceNotificationRecord::type)
+                    .toList();
+
+            assertFalse(types.contains("STARTUP_COMPLETE"), "no trace was open when it fired");
+            assertFalse(types.contains("ORPHANED"), "its trace id matches no trace here");
+        }
+
+        @Test
+        @DisplayName("attributes a throw to the innermost span open on its thread")
+        void attributesToTheInnermostSpan(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            // Inside the root and the JDBC span: the 40ms one wins over the 120ms one.
+            assertEquals(JDBC_SPAN, thrownOfClass(repository, "java.lang.NumberFormatException").spanId());
+            // Inside three windows: the five-millisecond one wins over both.
+            assertEquals(SHORT_JDBC_SPAN, thrownOfClass(repository, "java.io.IOException").spanId());
+        }
+
+        @Test
+        @DisplayName("marks the throw that escaped, and only that one")
+        void marksTheEscapedThrow(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            TraceExceptionRecord escaped = thrownOfClass(repository, "java.lang.IllegalStateException");
+            TraceExceptionRecord caught = thrownOfClass(repository, "java.util.NoSuchElementException");
+
+            assertTrue(escaped.escaped(), "its class is what its span reports as its error type");
+            assertEquals(NEGATIVE_SPAN_ID, escaped.spanId());
+            assertFalse(
+                    caught.escaped(),
+                    "a throw inside a failed span is not the reason it failed unless it matches");
+        }
+
+        @Test
+        @DisplayName("keeps the event type, so an Error is not mistaken for an Exception")
+        void keepsTheThrowEventType(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            assertEquals(
+                    EventTypeName.JAVA_ERROR_THROW,
+                    thrownOfClass(repository, "java.lang.StackOverflowError").eventType());
+            assertEquals(
+                    EventTypeName.JAVA_EXCEPTION_THROW,
+                    thrownOfClass(repository, "java.io.IOException").eventType());
+        }
+
+        @Test
+        @DisplayName("keeps the stack reference when the recording captured one")
+        void keepsTheStackReference(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            assertNotNull(
+                    thrownOfClass(repository, "java.lang.IllegalStateException").stacktraceHash(),
+                    "which is what decides whether the drill-down can offer a stack at all");
+            assertNull(thrownOfClass(repository, "java.util.NoSuchElementException").stacktraceHash());
+        }
+
+        @Test
+        @DisplayName("drops a throw no span window contains")
+        void dropsUncontainedThrows(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            List<String> classes = repository.exceptionsOf(SLOW_TRACE).stream()
+                    .map(TraceExceptionRecord::thrownClass)
+                    .toList();
+
+            assertFalse(
+                    classes.contains("java.lang.RuntimeException"),
+                    "one was thrown after the trace ended and one on a thread that ran no span: "
+                            + classes);
+        }
+
+        @Test
+        @DisplayName("drops a caught resolution failure, whichever of the three families it came from")
+        void dropsCaughtResolutionFailures(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            List<String> classes = repository.exceptionsOf(SLOW_TRACE).stream()
+                    .map(TraceExceptionRecord::thrownClass)
+                    .toList();
+
+            assertFalse(
+                    classes.contains("java.lang.ClassNotFoundException"),
+                    "Class.forName feature detection is not what a trace reader is diagnosing: " + classes);
+            assertFalse(
+                    classes.contains("java.lang.invoke.WrongMethodTypeException"),
+                    "nor is the MethodHandle layer's own Exception side: " + classes);
+            assertTrue(
+                    classes.contains("java.util.NoSuchElementException"),
+                    "and a caught throw outside the three families stays: " + classes);
+        }
+
+        @Test
+        @DisplayName("keeps a resolution failure that escaped, and drops the one that was caught")
+        void escapedResolutionFailureSurvives(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            // Two NoSuchMethodErrors were recorded: the MethodHandle layer's caught probe inside the
+            // JDBC span, and the one that failed span 114. Only the second is a story.
+            List<TraceExceptionRecord> thrown = repository.exceptionsOf(SLOW_TRACE).stream()
+                    .filter(record -> "java.lang.NoSuchMethodError".equals(record.thrownClass()))
+                    .toList();
+
+            assertEquals(1, thrown.size(), "the caught probe goes, the escaped one stays: " + thrown);
+            assertTrue(thrown.getFirst().escaped());
+            assertEquals(FAILED_PLUGIN_SPAN, thrown.getFirst().spanId());
+        }
+
+        @Test
+        @DisplayName("does not list what the rails already draw in the events drill-down")
+        void excludesEntriesFromTheDrillDown(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            ThreadWindowEventsPage page = repository.eventsInSpan(3001L, 0L, 200L);
+            List<String> types = page.events().stream()
+                    .map(ThreadWindowEventRecord::eventType)
+                    .distinct()
+                    .toList();
+
+            assertFalse(types.contains(EventTypeName.NOTIFICATION), types.toString());
+            assertFalse(types.contains(EventTypeName.JAVA_EXCEPTION_THROW), types.toString());
+            assertFalse(types.contains(EventTypeName.JAVA_ERROR_THROW), types.toString());
+        }
+
+        @Test
+        @DisplayName("reads a throw's stack topmost frame first, reversing how it is stored")
+        void readsTheStackTopFrameFirst(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            Long hash = thrownOfClass(repository, "java.lang.IllegalStateException").stacktraceHash();
+            List<EventFrame> frames = repository.stacktraceOf(hash);
+
+            // The fixture stores this root-first. Reading it back in that order would put Thread.run
+            // at the top of every stack in the UI, so the reversal is the contract, not a detail.
+            assertEquals(
+                    List.of("cafe.jeffrey.flamegraph.FrameTree",
+                            "cafe.jeffrey.flamegraph.FlamegraphGenerator",
+                            "java.util.concurrent.ThreadPoolExecutor$Worker",
+                            "java.lang.Thread"),
+                    frames.stream().map(EventFrame::clazz).toList());
+            assertEquals("build", frames.getFirst().method());
+            assertEquals(214, frames.getFirst().line());
+        }
+
+        @Test
+        @DisplayName("a throw with no captured stack reads as empty rather than failing")
+        void readsAnAbsentStackAsEmpty(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            // 7001 is referenced by a throw but has no stacktraces row: the recording sampled the
+            // throw without one. The drill-down renders that as "no stack", so the read must not
+            // fail and must not invent frames.
+            assertTrue(repository.stacktraceOf(7001L).isEmpty());
+        }
+
+        @Test
+        @DisplayName("deriving twice lands where deriving once did")
+        void derivationIsIdempotent(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+            int notifications = repository.notificationsOf(SLOW_TRACE).size();
+            int exceptions = repository.exceptionsOf(SLOW_TRACE).size();
+
+            repository.derive();
+
+            assertEquals(notifications, repository.notificationsOf(SLOW_TRACE).size());
+            assertEquals(exceptions, repository.exceptionsOf(SLOW_TRACE).size());
         }
     }
 

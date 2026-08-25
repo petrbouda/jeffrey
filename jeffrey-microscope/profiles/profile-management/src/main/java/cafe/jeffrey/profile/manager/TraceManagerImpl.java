@@ -22,6 +22,8 @@ import cafe.jeffrey.profile.manager.model.trace.EventFieldRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceContextSlice;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TraceExceptionRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceNotificationRow;
 import cafe.jeffrey.profile.manager.model.trace.TracePause;
 import cafe.jeffrey.profile.manager.model.trace.TraceEventRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
@@ -35,6 +37,8 @@ import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceTimelineBucket;
 import cafe.jeffrey.profile.manager.model.trace.TracesPage;
+import cafe.jeffrey.profile.manager.model.trace.TraceStacktrace;
+import cafe.jeffrey.profile.manager.model.trace.TraceStackFrameRow;
 import cafe.jeffrey.provider.profile.api.EventFieldRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceListQuery;
@@ -48,9 +52,12 @@ import cafe.jeffrey.provider.profile.api.TracePage;
 import cafe.jeffrey.provider.profile.api.TraceContextCategory;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
+import cafe.jeffrey.provider.profile.api.TraceExceptionRecord;
+import cafe.jeffrey.provider.profile.api.TraceNotificationRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.provider.profile.api.TraceTimelineBucketRecord;
+import cafe.jeffrey.provider.profile.api.EventFrame;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 
 import java.util.ArrayDeque;
@@ -159,7 +166,12 @@ public class TraceManagerImpl implements TraceManager {
         // truncated span bounds made the same trace report one duration in the list and a shorter
         // one in its own detail.
         return traceRepository.summaryOf(traceId)
-                .map(summary -> new TraceDetail(toRow(summary), assemble(spans), eventFieldsOf(spans)));
+                .map(summary -> new TraceDetail(
+                        toRow(summary),
+                        assemble(spans),
+                        traceRepository.notificationsOf(traceId).stream().map(TraceManagerImpl::toRow).toList(),
+                        traceRepository.exceptionsOf(traceId).stream().map(TraceManagerImpl::toRow).toList(),
+                        eventFieldsOf(spans)));
     }
 
     /**
@@ -800,6 +812,60 @@ public class TraceManagerImpl implements TraceManager {
      * Ids cross the wire as 16-char hex: a 64-bit value exceeds JavaScript's safe integer range, and
      * hex is also how every other tracer renders them.
      */
+    private static TraceNotificationRow toRow(TraceNotificationRecord notification) {
+        Long spanId = notification.spanId();
+        return new TraceNotificationRow(
+                spanId == null ? null : toHex(spanId),
+                toHex(notification.notificationId()),
+                notification.startMillisFromBeginning(),
+                notification.startEpochMicros(),
+                notification.type(),
+                notification.title(),
+                notification.message(),
+                notification.severity(),
+                notification.category(),
+                notification.source(),
+                toHex(notification.threadHash()));
+    }
+
+    @Override
+    public TraceStacktrace stacktrace(long stacktraceId) {
+        List<TraceStackFrameRow> frames = traceRepository.stacktraceOf(stacktraceId).stream()
+                .map(TraceManagerImpl::toRow)
+                .toList();
+
+        return new TraceStacktrace(toHex(stacktraceId), frames);
+    }
+
+    /**
+     * A line number of zero is JFR saying it had none rather than saying line zero, and the same
+     * goes for a bytecode index; carrying the zero through would have the UI render
+     * {@code Foo.java:0} as though it were a location.
+     */
+    private static TraceStackFrameRow toRow(EventFrame frame) {
+        long line = frame.line();
+        return new TraceStackFrameRow(
+                frame.clazz(),
+                frame.method(),
+                frame.type(),
+                line > 0 ? (int) line : null);
+    }
+
+    private static TraceExceptionRow toRow(TraceExceptionRecord exception) {
+        Long stacktraceHash = exception.stacktraceHash();
+        return new TraceExceptionRow(
+                toHex(exception.spanId()),
+                toHex(exception.exceptionId()),
+                exception.startMillisFromBeginning(),
+                exception.startEpochMicros(),
+                exception.eventType(),
+                exception.thrownClass(),
+                exception.message(),
+                exception.escaped(),
+                stacktraceHash == null ? null : toHex(stacktraceHash),
+                toHex(exception.threadHash()));
+    }
+
     private static String toHex(long id) {
         return TraceIds.hex(id);
     }

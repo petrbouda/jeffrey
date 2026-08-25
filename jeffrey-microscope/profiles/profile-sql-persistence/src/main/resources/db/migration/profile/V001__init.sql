@@ -340,6 +340,87 @@ CREATE TABLE IF NOT EXISTS traces
 );
 
 --
+-- TRACE NOTIFICATIONS TABLE
+-- What the application said while a trace was running: jeffrey.Notification events, derived into
+-- typed columns for the same reason spans are -- the waterfall reads them per trace, and it should
+-- not re-parse JSON to do it.
+--
+-- A notification is an instant, not a span. It stamps the enclosing span's ids onto itself at
+-- commit time, so the attribution here is a copy rather than an inference: unlike a throw, a
+-- notification can be raised on a pool thread or a callback for work that belongs elsewhere, and
+-- thread plus window would file it against whatever happened to be running.
+--
+-- `span_id` is NULL when the notification carried a trace but no span, and also when the span it
+-- named was never recorded (below a JFR threshold, or from a chunk this profile does not hold).
+-- Both mean the same thing to a reader: it belongs to the trace, but there is no bar to draw it on.
+-- Nulling the second case rather than keeping a dangling id is what makes `span_id IS NOT NULL`
+-- mean "this can be drawn against a span".
+--
+-- `notification_id` is the source event's rowid, which is unique within the recording and stable
+-- for the life of a derivation. Two notifications of the same type, on the same span, in the same
+-- microsecond are still two rows.
+--
+CREATE TABLE IF NOT EXISTS trace_notifications
+(
+    trace_id                       BIGINT      NOT NULL,
+    span_id                        BIGINT,
+    notification_id                BIGINT      NOT NULL,
+    start_timestamp                TIMESTAMPTZ NOT NULL,
+    -- Same zero point as events.start_timestamp_from_beginning and trace_spans, so a notification
+    -- lines up against the bars without converting.
+    start_timestamp_from_beginning BIGINT      NOT NULL,
+    type                           VARCHAR,
+    title                          VARCHAR,
+    message                        VARCHAR,
+    severity                       VARCHAR,
+    category                       VARCHAR,
+    source                         VARCHAR,
+    thread_hash                    BIGINT,
+    PRIMARY KEY (trace_id, notification_id)
+);
+
+--
+-- TRACE EXCEPTIONS TABLE
+-- The throws that happened inside a trace: jdk.JavaExceptionThrow and jdk.JavaErrorThrow, which the
+-- parser already stores and the Exceptions view already reads. Nothing new is ingested here; what
+-- is derived is the correlation to a span.
+--
+-- Attribution is by thread and window, and that is sound here in a way it is not for a
+-- notification: a throw is always recorded on the thread that threw it, at the instant it threw.
+-- The span chosen is the innermost one containing that instant on that thread -- the narrowest
+-- window wins -- which is the same "innermost open span" rule the promoted blocking spans use.
+--
+-- `escaped` is TRUE when the thrown class matches the attributed span's own `error_type`: this
+-- throw is the reason that span failed. It is what turns a bare class name in trace_spans into a
+-- class name with a message, an instant and a stack behind it. A throw that was caught inside the
+-- span leaves it FALSE, which is most of them -- exceptions are cheap to make and services throw
+-- them for control flow.
+--
+-- Kept apart from trace_notifications rather than sharing one table with a `kind` column: the two
+-- agree on when and where and on almost nothing else, so one table would be half NULLs and every
+-- read would have to know which half applied.
+--
+CREATE TABLE IF NOT EXISTS trace_exceptions
+(
+    trace_id                       BIGINT      NOT NULL,
+    span_id                        BIGINT      NOT NULL,
+    exception_id                   BIGINT      NOT NULL,
+    start_timestamp                TIMESTAMPTZ NOT NULL,
+    start_timestamp_from_beginning BIGINT      NOT NULL,
+    -- The event type it came from, so an Error can be told from an Exception without a class-name
+    -- heuristic.
+    event_type                     VARCHAR     NOT NULL,
+    thrown_class                   VARCHAR     NOT NULL,
+    message                        VARCHAR,
+    escaped                        BOOLEAN     NOT NULL DEFAULT FALSE,
+    -- Reference into stacktraces, so the drill-down can open the throw's stack. NULL when the
+    -- recording captured no stack for it.
+    stacktrace_hash                BIGINT,
+    thread_hash                    BIGINT,
+    PRIMARY KEY (trace_id, exception_id)
+);
+
+--
 -- TRACE SPAN PAYLOADS TABLE
 -- The distinct `event_fields` payloads, one row per distinct JSON text, keyed by the text's own
 -- 64-bit hash (DuckDB's hash(), cast to BIGINT) so the derivation can compute a span's reference

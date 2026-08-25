@@ -212,9 +212,8 @@ public abstract class EventTypeName {
     // Tracing events
     public static final String TRACE_SPAN = "jeffrey.TraceSpan";
 
-    // Streaming events
-    public static final String MESSAGE = "jeffrey.Message";
-    public static final String ALERT = "jeffrey.Alert";
+    // Application notifications
+    public static final String NOTIFICATION = "jeffrey.Notification";
 
     // Container events
     public static final String CONTAINER_CONFIGURATION = "jdk.ContainerConfiguration";

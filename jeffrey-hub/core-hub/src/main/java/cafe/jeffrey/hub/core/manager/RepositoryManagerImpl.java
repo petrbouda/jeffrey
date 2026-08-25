@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.core.project.repository.InstanceEnvironmentParser;
 import cafe.jeffrey.hub.core.project.repository.MergedRecording;
-import cafe.jeffrey.hub.core.jfr.JfrMessageEmitter;
+import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.shared.common.model.repository.InstanceStats;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
@@ -239,7 +239,7 @@ public class RepositoryManagerImpl implements RepositoryManager {
 
         if (deleted) {
             LOG.info("Deleted recording session: sessionId={} projectId={}", recordingSessionId, projectInfo.id());
-            JfrMessageEmitter.sessionDeleted(recordingSessionId, projectInfo.id());
+            JfrNotificationEmitter.sessionDeleted(recordingSessionId, projectInfo.id());
         }
     }
 

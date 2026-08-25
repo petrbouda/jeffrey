@@ -21,7 +21,7 @@ package cafe.jeffrey.hub.core.manager.project;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.support.TransactionOperations;
-import cafe.jeffrey.hub.core.jfr.JfrMessageEmitter;
+import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.manager.LiveProfilerSettingsManager;
 import cafe.jeffrey.hub.core.manager.ProfilerSettingsManager;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
@@ -153,6 +153,6 @@ public class HubProjectManager implements ProjectManager {
         }
 
         LOG.info("Deleted project: projectId={}", projectInfo.id());
-        JfrMessageEmitter.projectDeleted(projectInfo.id());
+        JfrNotificationEmitter.projectDeleted(projectInfo.id());
     }
 }

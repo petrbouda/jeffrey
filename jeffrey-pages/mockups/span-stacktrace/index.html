@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jeffrey Microscope — exception stack traces in the Trace Modal</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #e2e8f0;
+    background: radial-gradient(900px 500px at 20% 0%, rgba(56,189,248,.12), transparent 60%),
+                radial-gradient(900px 500px at 85% 100%, rgba(230,55,87,.13), transparent 60%), #0a0f1e;
+    min-height: 100vh; padding: 4rem 2rem; }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  h1 { font-size: 2rem; font-weight: 800; color: #fff; letter-spacing: -.02em; margin-bottom: .5rem; }
+  .sub { color: #94a3b8; margin-bottom: 2.4rem; line-height: 1.65; }
+  .sub strong { color: #cbd5e1; }
+  .sub em { color: #cbd5e1; font-style: italic; }
+  .list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.1rem; }
+  a.mk { display: flex; gap: 1rem; align-items: flex-start; text-decoration: none; padding: 1.3rem 1.4rem; border-radius: 14px;
+    background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.1); transition: transform .2s, border-color .2s, background .2s; }
+  a.mk:hover { transform: translateY(-4px); border-color: rgba(56,189,248,.45); background: rgba(255,255,255,.07); }
+  .num { width: 40px; height: 40px; flex-shrink: 0; border-radius: 11px; display: grid; place-items: center; font-weight: 800; color: #fff;
+    background: linear-gradient(135deg, #38bdf8, #6366f1); box-shadow: 0 6px 16px rgba(56,189,248,.4); }
+  .mk h3 { color: #fff; font-size: 1.04rem; font-weight: 700; margin-bottom: .25rem; }
+  .mk p { color: #94a3b8; font-size: .85rem; line-height: 1.5; }
+  .tag { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: .12rem .4rem;
+    border-radius: 4px; background: rgba(148,163,184,.18); color: #cbd5e1; vertical-align: middle; margin-left: .35rem; }
+  .tag.cheap { background: rgba(34,197,94,.2); color: #86efac; }
+  .tag.most { background: rgba(56,189,248,.2); color: #7dd3fc; }
+  .tag.combo { background: rgba(168,85,247,.22); color: #d8b4fe; }
+  code { color: #7dd3fc; background: rgba(255,255,255,.06); padding: .1rem .35rem; border-radius: 5px; font-size: .84em; }
+  .facts { margin-top: 2rem; padding: 1.2rem 1.4rem; border-radius: 12px; background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08); }
+  .facts h4 { color: #e2e8f0; font-size: .92rem; font-weight: 700; margin-bottom: .65rem; display: flex; align-items: center; gap: .45rem; }
+  .facts h4 i { color: #7dd3fc; }
+  .facts ul { margin: 0; padding-left: 1.1rem; color: #94a3b8; font-size: .85rem; line-height: 1.8; }
+  .facts ul b { color: #cbd5e1; }
+  .facts.ok { border-color: rgba(34,197,94,.28); background: rgba(34,197,94,.06); }
+  .facts.ok h4 i { color: #4ade80; }
+  a.mk.final { border-color: rgba(34,197,94,.4); background: linear-gradient(135deg, rgba(34,197,94,.1), rgba(56,189,248,.06));
+    padding: 1.5rem 1.6rem; margin-bottom: 2.2rem; }
+  a.mk.final:hover { border-color: rgba(34,197,94,.7); }
+  a.mk.final h3 { font-size: 1.2rem; }
+  a.mk.final p { color: #cbd5e1; font-size: .88rem; }
+  .num.pick { background: linear-gradient(135deg, #22c55e, #0ea5e9); box-shadow: 0 6px 16px rgba(34,197,94,.4); font-size: 1.1rem; }
+  .tag.pick { background: rgba(34,197,94,.22); color: #86efac; }
+  .tag.in { background: rgba(34,197,94,.16); color: #86efac; }
+  h2.sec { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .09em;
+    color: #64748b; margin: 2.2rem 0 1rem; display: flex; align-items: center; gap: .7rem; }
+  h2.sec::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,.09); }
+  .foot { margin-top: 2.4rem; color: #64748b; font-size: .82rem; line-height: 1.7; }
+  .foot a { color: #7dd3fc; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Exception stack traces in the Trace Modal</h1>
+    <p class="sub">
+      The trace modal already shows every throw attributed to a span &mdash; class, message, offset, and whether it
+      escaped. What it cannot show is <em>where</em> it was thrown, so a reader who gets that far still has to leave
+      the trace to find out. <strong>The data is already there</strong>: <code>stacktraceId</code> is on
+      <code>TraceExceptionRow</code> and already reaches the browser, and nothing consumes it yet. What is missing is
+      one repository read, one endpoint, and a decision about the screen &mdash; which is what these five were for.
+      Every page draws the same span, the same three throws, and the same 45-frame stack, so the only variable is
+      layout. <strong>The answer is a combination of two of them</strong> &mdash; the final design is first below,
+      with the five it came from underneath it.
+    </p>
+
+    <a class="mk final" href="mockup-6-final-fold-and-popover.html">
+      <div class="num pick"><i class="bi bi-check-lg"></i></div>
+      <div><h3>Final &mdash; folded stack, previewed on the rail <span class="tag pick">chosen</span></h3>
+        <p>Directions 3 and 5, which were never rivals: one is <em>where a stack is glimpsed</em>, the other is
+          <em>how a stack is drawn</em>. Each one&rsquo;s weakness is the other&rsquo;s strength. A four-line popover
+          preview is wasted when three of those lines are <code>java.util.stream</code> &mdash; folding fixes that.
+          An inline stack was ruled out because 45 frames wreck the panel &mdash; folding fixes that too, at 9 rows.
+          So neither of the extra windows the other three needed has to be built, and the trace never leaves the
+          screen. Carries the fold rule stated once, and the library-only floor that keeps it from folding a stack
+          down to nothing.</p></div>
+    </a>
+
+    <div class="facts ok">
+      <h4><i class="bi bi-check-circle-fill"></i> Already in place, so none of the five has to build it</h4>
+      <ul>
+        <li><b>The reference.</b> <code>trace_exceptions.stacktrace_hash</code> is derived and stored; its javadoc calls it &ldquo;what decides whether the drill-down offers a stack at all&rdquo;.</li>
+        <li><b>The frames.</b> <code>stacktraces.frame_hashes</code> joined to <code>frames</code>, with the <code>unnest(...) JOIN frames</code> idiom already used in <code>JdbcProfileToolsRepository</code>.</li>
+        <li><b>The order.</b> The parser stores <code>getFrames().reversed()</code>, so the array is root-first and the <em>last</em> element is the throwing frame. A top-down stack reads it backwards.</li>
+        <li><b>The IDE.</b> <code>IdeClient.fetchSource()</code>, <code>IdeButtonGate.hasClass()</code> and <code>SourceViewerModal</code> already exist and are profile-scoped &mdash; frames here can open real source, which no other stack display in the product does.</li>
+      </ul>
+    </div>
+
+    <h2 class="sec">The five it came from</h2>
+    <div class="list">
+      <a class="mk" href="mockup-1-inline-expand.html">
+        <div class="num">1</div>
+        <div><h3>Disclosure in place <span class="tag cheap">cheapest</span></h3>
+          <p>A caret on the throw row unfolds the frames underneath, in the region the reader is already looking at.
+            Nothing new opens. The cost is height: 45 frames push everything below off screen, and truncating just
+            moves the question to &ldquo;how many is enough&rdquo;.</p></div>
+      </a>
+      <a class="mk" href="mockup-2-split-pane.html">
+        <div class="num">2</div>
+        <div><h3>List left, stack right</h3>
+          <p>Two columns: the throws stay a compact list, the selected one&rsquo;s stack fills a pane that scrolls on
+            its own. The region&rsquo;s height stops depending on stack depth. Costs horizontal room the panel does
+            not have, and earns nothing on a span with a single throw.</p></div>
+      </a>
+      <a class="mk" href="mockup-3-popover-preview.html">
+        <div class="num">3</div>
+        <div><h3>The stack reaches the timeline <span class="tag in">in the final</span></h3>
+          <p>The rail&rsquo;s existing cross popover gains the top four frames, so the answer arrives on hover with no
+            click and no span opened. A preview is all it can be &mdash; the popover is capped at <code>13rem</code>
+            &mdash; so this is a front door for one of the others, not a rival to them.</p></div>
+      </a>
+      <a class="mk" href="mockup-4-stack-modal.html">
+        <div class="num">4</div>
+        <div><h3>A window of its own <span class="tag most">most capable</span></h3>
+          <p>The wide near-fullscreen pattern over the trace modal. Room for the whole stack plus the things a cramped
+            panel cannot host: copy-as-text, an app-frames filter, and per-frame open-in-IntelliJ. Costs a modal on a
+            modal &mdash; and the timing context behind it is what you lose while reading.</p></div>
+      </a>
+      <a class="mk" href="mockup-5-folded-stack.html">
+        <div class="num">5</div>
+        <div><h3>The stack, minus the noise <span class="tag in">in the final</span></h3>
+          <p>Attacks the problem rather than its placement: 45 frames of which eight are the reader&rsquo;s own code, so
+            runs of library frames collapse into one expandable bar each. 9 rows instead of 45, nothing lost, one
+            click to see any of it. Includes a side-by-side of both stacks.</p></div>
+      </a>
+    </div>
+
+    <h2 class="sec">Since it shipped</h2>
+    <div class="list">
+      <a class="mk" href="mockup-16-dock-contrast.html">
+        <div class="num"><i class="bi bi-layers-half"></i></div>
+        <div><h3>The docked strip: narrower, and taller</h3>
+          <p>The raised treatment is settled; these five settle its proportions. Drawn inside the
+            real card over a 33-frame stack, so the height cap actually binds — and each measures its
+            own width, height and how many frame names it clips.</p></div>
+      </a>
+      <a class="mk" href="mockup-15-select-button.html">
+        <div class="num"><i class="bi bi-box-arrow-in-right"></i></div>
+        <div><h3>The Select button, moved into the toolbar</h3>
+          <p>The offset leaves the dock header for good and <code>Select …</code> comes down beside
+            <code>Fold libraries</code> — same <code>btn btn-sm</code> box, five colour treatments,
+            plus the two readings of "left of".</p></div>
+      </a>
+      <a class="mk" href="mockup-14-span-timing.html">
+        <div class="num"><i class="bi bi-stopwatch"></i></div>
+        <div><h3>Span timing: one line out, one line up</h3>
+          <p>The critical-path line comes out of the timing block, and the recording offset moves from
+            the far right of the foot up beside the duration it is an offset of. Drawn on the
+            component's own CSS, with a note on what the removal costs.</p></div>
+      </a>
+      <a class="mk" href="mockup-13-source-size.html">
+        <div class="num"><i class="bi bi-type"></i></div>
+        <div><h3>How big the source column should be</h3>
+          <p>The right-hand <code>Reader.java:175</code> column renders at <b>9.6px</b> in the app's
+            palest text token. Five treatments on the OGNL stack that prompted it, each measuring its
+            own resolved size and how many signatures it clips.</p></div>
+      </a>
+      <a class="mk" href="mockup-12-expand-button.html">
+        <div class="num"><i class="bi bi-chevron-bar-expand"></i></div>
+        <div><h3>Expand button, under the time offset</h3>
+          <p>The row stays clickable and gains one button, stacked in the gutter <b>below the offset</b>
+            &mdash; space the layout was already throwing away, so it is free on any throw that carries a
+            message. Five skins for it, including one whose label is the frame count.</p></div>
+      </a>
+      <a class="mk" href="mockup-11-row-hover.html">
+        <div class="num"><i class="bi bi-hand-index"></i></div>
+        <div><h3>Throw row hover</h3>
+          <p>The hover fills 1886px for 238px of ink &mdash; 87% empty &mdash; in a lavender the app does not use
+            for rows. Five treatments, each with a ledger of which padding and margin it deletes: the
+            head&rsquo;s negative-margin pair exists only to be filled, so a treatment that does not fill it
+            does not need it.</p></div>
+      </a>
+      <a class="mk" href="mockup-10-buttons.html">
+        <div class="num"><i class="bi bi-ui-radios"></i></div>
+        <div><h3>Stack toolbar buttons</h3>
+          <p>Option 1&rsquo;s rows with five treatments of <code>Fold libraries</code> and <code>Copy</code>.
+            The chips are off-system three ways, not just small &mdash; smaller than the app&rsquo;s smallest
+            button and pill-shaped where every other is square. Sizes are measured from the rendered box.</p></div>
+      </a>
+      <a class="mk" href="mockup-9-expanding.html">
+        <div class="num"><i class="bi bi-chevron-expand"></i></div>
+        <div><h3>Opening a throw&rsquo;s stack</h3>
+          <p>Dropping the <code>stack</code> pill &mdash; a third control in a row that already carries a
+            class, a message and a verdict, with a target a few pixels wide. Five replacements, from
+            &ldquo;the row is the control&rdquo; to no control at all.</p></div>
+      </a>
+      <a class="mk" href="mockup-8-thrown-class.html">
+        <div class="num"><i class="bi bi-exclamation-octagon"></i></div>
+        <div><h3>The thrown exception, in the stack</h3>
+          <p>Folding the constructor chain took <code>IOException.&lt;init&gt;</code> with it &mdash; the one
+            place the thrown class appeared <em>inside</em> the stack. Where does it go now? Each variant shows
+            what its <strong>Copy</strong> button would put on the clipboard, which is where the difference
+            stops being cosmetic.</p></div>
+      </a>
+      <a class="mk" href="mockup-7-popover-size.html">
+        <div class="num"><i class="bi bi-arrows-angle-expand"></i></div>
+        <div><h3>The popover, at five sizes</h3>
+          <p>Drawn against a real 253-frame stack from a MyBatis/OGNL throw. Size is only one of the
+            three things wrong with the shipped popover &mdash; the worst is that the row truncates from the
+            <em>right</em>, so the package survives and the class and method, the half worth reading, do not.</p></div>
+      </a>
+    </div>
+
+    <div class="facts">
+      <h4><i class="bi bi-signpost-split-fill"></i> How they relate, before you pick</h4>
+      <ul>
+        <li><b>1, 2 and 4 were the alternatives</b> &mdash; they answer the same question, &ldquo;where does the stack live&rdquo;, and only one could win. The final answers it with 1&rsquo;s placement, which only became viable once 5 made the stack short enough to sit there.</li>
+        <li><b>3 and 5 were never in that contest</b>, which is why they combine instead. The popover is a place, the fold is a rendering; putting the second inside the first costs nothing and makes both better.</li>
+        <li><b>What the final gives up</b> is direction 4&rsquo;s room &mdash; there is still nowhere good for copy-as-text, and no per-frame IDE link surface beyond the hover affordance. That is the trade, stated on the final page rather than buried here.</li>
+      </ul>
+    </div>
+
+    <p class="foot">
+      Static mockups &mdash; no production code changes. The <a href="../span-notifications/index.html">span notifications
+      set</a> next door settled the rails and the detail regions these build on. With the direction settled, the backend
+      is one repository read and one endpoint on <code>TracesController</code>: resolve a <code>stacktraceId</code> to
+      its frames, newest frame first. The fold is a frontend concern &mdash; the endpoint returns every frame.
+    </p>
+  </div>
+</body>
+</html>

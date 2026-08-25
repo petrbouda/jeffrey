@@ -16,26 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.hub.core.jfr;
+package cafe.jeffrey.jfr.events.notification;
 
-public enum MessageType {
-    PROJECT_CREATED("Project Created"),
-    PROJECT_DELETED("Project Deleted"),
-    INSTANCE_CREATED("Instance Started"),
-    SESSION_CREATED("Recording Session Started"),
-    SESSION_FINISHED("Recording Session Finished"),
-    SESSION_DELETED("Recording Session Deleted"),
-    SESSIONS_CLEANED("Sessions Cleaned Up"),
-    JVM_CRASH_DETECTED("JVM Crash Detected"),
-    EVENT_PROCESSING_FAILED("Event Processing Failed");
-
-    private final String title;
-
-    MessageType(String title) {
-        this.title = title;
-    }
-
-    public String title() {
-        return title;
-    }
+public enum Severity {
+    CRITICAL,
+    HIGH,
+    MEDIUM,
+    LOW
 }

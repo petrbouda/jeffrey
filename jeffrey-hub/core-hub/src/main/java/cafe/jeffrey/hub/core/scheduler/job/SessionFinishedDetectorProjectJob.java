@@ -20,7 +20,7 @@ package cafe.jeffrey.hub.core.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.core.jfr.JfrMessageEmitter;
+import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
@@ -127,7 +127,7 @@ public class SessionFinishedDetectorProjectJob extends RepositoryProjectJob<Sess
         if (finished) {
             // Check for hs_err log (JVM crash) - emit specific alert
             if (containsHsErrLog(sessionPath)) {
-                JfrMessageEmitter.jvmCrashDetected(sessionInfo.sessionId(), sessionInfo.instanceId(), projectInfo.id());
+                JfrNotificationEmitter.jvmCrashDetected(sessionInfo.sessionId(), sessionInfo.instanceId(), projectInfo.id());
 
                 // A crashed session is the evidence someone will come looking for. Pin it so
                 // no retention job can reclaim it before anyone has had a chance to analyse it;

@@ -367,6 +367,8 @@
   --shadow-base: 0 0 0.375rem 0 rgba(0, 0, 0, 0.1);
   --shadow-md: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+  /* Recessed rather than raised: for a surface set into the one behind it, not floating over it. */
+  --shadow-inset: inset 0 1px 3px rgba(0, 0, 0, 0.07);
   
   /* Focus Ring */
   --focus-ring: 0 0 0 0.2rem rgba(94, 100, 255, 0.25);

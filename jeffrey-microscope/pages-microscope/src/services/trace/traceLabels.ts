@@ -70,6 +70,47 @@ export const CONTEXT_CATEGORIES: Record<string, { label: string; color: string }
 };
 
 /**
+ * How each notification severity is named and coloured, in one place so the rail mark, the pin, the
+ * count badge and the detail panel's edge cannot describe the same notification four ways.
+ *
+ * The ramp deliberately reuses danger and warning, which the context ramp also uses -- and that is
+ * survivable only because shape carries the family first: a notification is a diamond, a throw is a
+ * cross, a pause is a band. If a fourth thing ever joins that picture, this is the ramp that has to
+ * move, not the shapes.
+ */
+export const NOTIFICATION_SEVERITIES: Record<string, { label: string; color: string }> = {
+  CRITICAL: { label: 'Critical', color: 'var(--color-danger-dark)' },
+  HIGH: { label: 'High', color: 'var(--color-danger)' },
+  MEDIUM: { label: 'Medium', color: 'var(--color-warning)' },
+  LOW: { label: 'Low', color: 'var(--color-secondary)' }
+};
+
+/** A severity's display name, falling back to the raw value for one this build does not know. */
+export function severityLabel(severity: string | null): string {
+  if (severity === null) {
+    return 'Unknown';
+  }
+  return NOTIFICATION_SEVERITIES[severity]?.label ?? severity;
+}
+
+export function severityColor(severity: string | null): string {
+  if (severity === null) {
+    return 'var(--color-text-muted)';
+  }
+  return NOTIFICATION_SEVERITIES[severity]?.color ?? 'var(--color-text-muted)';
+}
+
+/**
+ * A throw has two states worth drawing, not a ramp. One that escaped is the reason its span failed,
+ * so it wears the same danger red the span's own error badge already does -- the same fact, said
+ * once. One that was caught is routine, and a service that throws for control flow produces
+ * thousands, so it stays grey and quiet.
+ */
+export function exceptionColor(escaped: boolean): string {
+  return escaped ? 'var(--color-danger)' : 'var(--color-text-muted)';
+}
+
+/**
  * The profile view that explains each category, as a route name. The why-slow panel names a culprit
  * — "this trace lost 800ms to GC" — and every culprit has a whole view dedicated to it elsewhere in
  * the profile; this is the edge between the finding and the place that explains it.
