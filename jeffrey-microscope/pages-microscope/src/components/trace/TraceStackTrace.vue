@@ -427,9 +427,20 @@ async function copy(): Promise<void> {
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * The packages a bar stands in for are packages like any other, so they take the same neutral the
+ * frame rows give a prefix. The bar's own words keep the darker one: "3 frames in" is what the
+ * control says about itself, and it is the row a reader clicks.
+ */
 .st-pkgs {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--color-text-soft);
+}
+
+/* On hover the whole bar goes primary, packages included -- the row lights up as one control. */
+.st-fold:hover .st-pkgs {
+  color: inherit;
 }
 </style>
