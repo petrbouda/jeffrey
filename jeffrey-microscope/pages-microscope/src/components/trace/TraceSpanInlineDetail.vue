@@ -27,12 +27,20 @@
   -->
   <div class="span-detail" :style="{ paddingLeft: indentRem(span.depth) + 2.4 + 'rem' }">
     <div class="sd-head">
-      <Badge :variant="kindVariant" size="xs" :value="span.kind" />
+      <!--
+        Every chip in this row is one badge in the same key/value shape and the same size, so the
+        head reads as one strip of facts rather than a label followed by measurements. The kind
+        keeps its own variant — SERVER, CLIENT and the rest still differ by colour, which is the
+        one thing the key label does not say.
+      -->
+      <Badge key-label="Kind" :variant="kindVariant" size="s" :value="span.kind" borderless />
       <Badge
         v-if="span.status === 'ERROR'"
+        key-label="Error"
         variant="danger"
-        size="xs"
+        size="s"
         :value="span.errorType ?? 'error'"
+        borderless
       />
       <!--
         A synthesized span says so up front: its bar came out of a JDK event, not out of anyone's
