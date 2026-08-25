@@ -40,6 +40,13 @@
         </span>
         <span class="st-acts">
           <!--
+            Whatever the host wants to put before this panel's own two controls. The stack knows how
+            to fold and copy itself and nothing else — a button that leaves for somewhere else, like
+            the dock's "select the span this threw in", belongs to whoever knows where it goes. The
+            span detail simply passes nothing, and the slot draws nothing.
+          -->
+          <slot name="lead"></slot>
+          <!--
             The application's own button vocabulary rather than a local chip: btn-sm, and a toggle
             expressed as a variant swap between btn-primary and btn-outline-secondary, which is how
             every other profile view renders one.

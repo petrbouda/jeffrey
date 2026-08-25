@@ -330,15 +330,6 @@
       <div class="dock-head">
         <Badge v-if="openException.escaped" variant="danger" size="xs" value="escaped" />
         <span v-else class="pop-sev">Caught</span>
-        <span class="pop-at">{{ offsetIntoTrace(openException.startEpochMicros) }}</span>
-        <button
-          type="button"
-          class="dock-link"
-          @click="selectSpanOf(openException.spanId)"
-        >
-          <i class="bi bi-arrow-return-right"></i>
-          Select {{ spanNameOf(openException.spanId) }}
-        </button>
         <!--
           A docked strip does not go away when the cursor leaves, so it has to offer a way out that
           is not "find the cross you clicked".
@@ -358,13 +349,43 @@
         :stacktrace-id="openException.stacktraceId"
         :thrown-class="openException.thrownClass"
         :message="openException.message"
-      />
+      >
+        <template #lead>
+          <!--
+            Guarded like the notification popover's own Select: a throw with no span open when it
+            fired has no bar to select, and `spanNameOf(null)` would label the button "Select ".
+          -->
+          <button
+            v-if="openException.spanId !== null"
+            type="button"
+            class="btn btn-sm btn-outline-primary dock-select"
+            @click="selectSpanOf(openException.spanId)"
+          >
+            <i class="bi bi-arrow-return-right"></i>
+            Select {{ spanNameOf(openException.spanId) }}
+          </button>
+        </template>
+      </TraceStackTrace>
+      <!--
+        The same button again, because a throw JFR sampled without a stack has no toolbar to put it
+        in — and "which span was this?" is exactly as reasonable a question when the stack is
+        missing. Two call sites rather than one control that has to know about both shapes.
+      -->
       <div v-else class="dock-none">
         <p class="dock-none-cls mono">
           {{ openException.thrownClass
           }}<template v-if="openException.message">: {{ openException.message }}</template>
         </p>
         <p>The recording captured no stack for this throw.</p>
+        <button
+          v-if="openException.spanId !== null"
+          type="button"
+          class="btn btn-sm btn-outline-primary dock-select"
+          @click="selectSpanOf(openException.spanId)"
+        >
+          <i class="bi bi-arrow-return-right"></i>
+          Select {{ spanNameOf(openException.spanId) }}
+        </button>
       </div>
     </div>
 
@@ -2342,42 +2363,42 @@ function tooltip(span: TraceSpanRow): string {
  * The docked strip. Full width by virtue of being a block in the waterfall's own column rather than
  * an absolutely positioned panel over it, so nothing has to be told how wide the dialog is.
  */
+/*
+ * Raised rather than flush: the strip and the card under it are both --color-bg-card, so edge to
+ * edge it read as a band cut into the card with a hairline for a seam. Inset from both sides with a
+ * deeper shadow, it has an edge on all four and reads as a panel over the bars instead. The inset
+ * costs the frame rows nothing — measured, nothing clips until the strip is under ~700px wide.
+ */
 .exc-dock {
-  margin: 0 0 0.4rem;
-  border: 1px solid var(--color-border-input);
+  margin: 0.4rem 6rem 0.9rem;
+  border: 1px solid var(--color-secondary);
   border-left: 3px solid var(--mark);
   border-radius: var(--radius-md);
   background: var(--color-bg-card);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
 }
 
 .dock-head {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.6rem;
+  padding: 0.26rem 0.5rem;
   border-bottom: 1px solid var(--color-border-light);
   background: var(--color-light);
 }
 
-.dock-head .pop-at {
-  margin-left: auto;
-  flex: none;
-}
-
-.dock-link {
+/*
+ * A span name is arbitrarily long, so the button is capped and ellipsised rather than allowed to
+ * push the panel's own two controls off the end of the row.
+ */
+.dock-select {
+  max-width: 22rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  flex: none;
-  padding: 0 0.4rem;
-  border: 1px solid var(--color-border-input);
-  border-radius: var(--radius-pill);
-  background: var(--color-white);
-  color: var(--color-primary);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  cursor: pointer;
+  gap: 0.3rem;
 }
 
 /*
@@ -2389,8 +2410,10 @@ function tooltip(span: TraceSpanRow): string {
   display: inline-grid;
   place-items: center;
   flex: none;
-  width: 1.4rem;
-  height: 1.4rem;
+  /* The offset used to push this right; with that gone the button takes the job itself. */
+  margin-left: auto;
+  width: 1.2rem;
+  height: 1.2rem;
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -2409,9 +2432,9 @@ function tooltip(span: TraceSpanRow): string {
  * would have traded one covered drawing for another.
  */
 .dock-stack {
-  max-height: 20rem;
+  max-height: 26rem;
   overflow-y: auto;
-  padding: 0.35rem 0.6rem 0.5rem;
+  padding: 0.25rem 0.5rem 0.35rem;
 }
 
 /*
@@ -2419,7 +2442,7 @@ function tooltip(span: TraceSpanRow): string {
  * the throw itself — otherwise it would say only that something was caught.
  */
 .dock-none {
-  padding: 0.35rem 0.6rem 0.5rem;
+  padding: 0.25rem 0.5rem 0.45rem;
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
