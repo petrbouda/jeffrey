@@ -8,6 +8,10 @@
 --   113  thread 3001  .020 .. .025   JDBC query, inside 111 and overlapping 112
 --   -8113938001533374712  thread 3002  .060750 .. .080750  ERROR, java.lang.IllegalStateException
 --
+-- Plus one this fixture adds itself, because the resolution-failure cases need a span that failed
+-- with a class the filter would otherwise drop:
+--   114  thread 3002  .090 .. .095   ERROR, java.lang.NoSuchMethodError
+--
 -- Notifications carry their own ids, so every case here is about what those ids resolve to.
 -- Exceptions carry none, so every case there is about which window wins.
 
@@ -83,4 +87,31 @@ VALUES
 
     -- On a thread that ran no span at all.
     ('jdk.JavaExceptionThrow', '2025-01-15T10:00:00.015Z', 15, NULL, 1, NULL, NULL, NULL, 9999,
-     '{"thrownClass":"java.lang.RuntimeException","message":"unrelated thread"}');
+     '{"thrownClass":"java.lang.RuntimeException","message":"unrelated thread"}'),
+
+    -- ---------------------------------------------------------------- resolution failures
+    -- A span that failed with a linkage error, so the escaped case has an error type to match. It
+    -- runs on 3002 outside the window of the span already there, which leaves it the only candidate
+    -- for anything thrown between .090 and .095.
+    ('jeffrey.TraceSpan', '2025-01-15T10:00:00.090Z', 90, 5000000, 1, NULL, NULL, NULL, 3002,
+     '{"traceId":9223372036854775807,"spanId":114,"parentSpanId":111,"name":"plugin.load","kind":"INTERNAL","status":"ERROR","errorType":"java.lang.NoSuchMethodError"}'),
+
+    -- The case from the screenshot: the MethodHandle layer probing for a pre-generated invoker
+    -- species inside span 112, throwing and catching its own miss. Attributed correctly and worth
+    -- nothing to a reader, which is the whole reason the filter exists.
+    ('jdk.JavaErrorThrow', '2025-01-15T10:00:00.037Z', 37, NULL, 1, NULL, NULL, NULL, 3001,
+     '{"thrownClass":"java.lang.NoSuchMethodError","message":"java.lang.Object java.lang.invoke.DelegatingMethodHandle$Holder.reinvoke_L(java.lang.Object, java.lang.Object)"}'),
+
+    -- Class.forName feature detection: the ReflectiveOperationException half of the same category,
+    -- and the one that fills a rail once the profile preset turns jdk.JavaExceptionThrow on.
+    ('jdk.JavaExceptionThrow', '2025-01-15T10:00:00.038Z', 38, NULL, 1, NULL, NULL, NULL, 3001,
+     '{"thrownClass":"java.lang.ClassNotFoundException","message":"com.example.OptionalModule"}'),
+
+    -- The java.lang.invoke package's own Exception side.
+    ('jdk.JavaExceptionThrow', '2025-01-15T10:00:00.039Z', 39, NULL, 1, NULL, NULL, NULL, 3001,
+     '{"thrownClass":"java.lang.invoke.WrongMethodTypeException","message":"cannot convert MethodHandle(Object)Object to ()void"}'),
+
+    -- The same class as the caught one above, but this one is what failed span 114. Escaped beats
+    -- the class list, so exactly one of the two NoSuchMethodErrors survives -- and it is this one.
+    ('jdk.JavaErrorThrow', '2025-01-15T10:00:00.091Z', 91, NULL, 1, NULL, NULL, NULL, 3002,
+     '{"thrownClass":"java.lang.NoSuchMethodError","message":"com.example.Plugin.start()"}');

@@ -1842,6 +1842,8 @@ class JdbcTraceRepositoryTest {
 
         private static final long JDBC_SPAN = 112L;
         private static final long SHORT_JDBC_SPAN = 113L;
+        /** The span this fixture adds so an escaped throw can carry a class the filter would drop. */
+        private static final long FAILED_PLUGIN_SPAN = 114L;
 
         private static JdbcTraceRepository withEntries(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
@@ -1995,6 +1997,42 @@ class JdbcTraceRepositoryTest {
                     classes.contains("java.lang.RuntimeException"),
                     "one was thrown after the trace ended and one on a thread that ran no span: "
                             + classes);
+        }
+
+        @Test
+        @DisplayName("drops a caught resolution failure, whichever of the three families it came from")
+        void dropsCaughtResolutionFailures(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            List<String> classes = repository.exceptionsOf(SLOW_TRACE).stream()
+                    .map(TraceExceptionRecord::thrownClass)
+                    .toList();
+
+            assertFalse(
+                    classes.contains("java.lang.ClassNotFoundException"),
+                    "Class.forName feature detection is not what a trace reader is diagnosing: " + classes);
+            assertFalse(
+                    classes.contains("java.lang.invoke.WrongMethodTypeException"),
+                    "nor is the MethodHandle layer's own Exception side: " + classes);
+            assertTrue(
+                    classes.contains("java.util.NoSuchElementException"),
+                    "and a caught throw outside the three families stays: " + classes);
+        }
+
+        @Test
+        @DisplayName("keeps a resolution failure that escaped, and drops the one that was caught")
+        void escapedResolutionFailureSurvives(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            // Two NoSuchMethodErrors were recorded: the MethodHandle layer's caught probe inside the
+            // JDBC span, and the one that failed span 114. Only the second is a story.
+            List<TraceExceptionRecord> thrown = repository.exceptionsOf(SLOW_TRACE).stream()
+                    .filter(record -> "java.lang.NoSuchMethodError".equals(record.thrownClass()))
+                    .toList();
+
+            assertEquals(1, thrown.size(), "the caught probe goes, the escaped one stays: " + thrown);
+            assertTrue(thrown.getFirst().escaped());
+            assertEquals(FAILED_PLUGIN_SPAN, thrown.getFirst().spanId());
         }
 
         @Test

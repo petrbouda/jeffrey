@@ -97,6 +97,56 @@ public class JdbcTraceRepository implements TraceRepository {
     private static final String THROW_EVENT_TYPES_SQL =
             THROW_EVENT_TYPES.stream().map(type -> "'" + type + "'").collect(Collectors.joining(", "));
 
+    /**
+     * Throws that mean the JVM or JDK failed to resolve or link something. Three closed hierarchies,
+     * enumerated because SQL cannot ask about a class hierarchy: {@link LinkageError}, the
+     * {@code java.lang.invoke} throwables, and {@link ReflectiveOperationException}.
+     * <p>
+     * The MethodHandle layer raises these by the handful while linking an {@code invokedynamic} call
+     * site, and a library probing for an optional dependency does the same through
+     * {@code Class.forName}. They land on the request thread inside the span that triggered the work,
+     * so the attribution is right — they are just not something a reader of a trace can act on.
+     * <p>
+     * Only ever drops a throw the code <em>caught</em>: an escaped one survives the filter, because a
+     * throw that failed its span is the story whoever threw it.
+     * <p>
+     * Taken as the closure of the three roots over every module in the JDK, so a new entry is only
+     * needed if the JDK itself adds one. Deliberately absent: cancellation and timeouts, the resource
+     * errors, and ordinary application logic — those are what a trace reader is looking for.
+     */
+    private static final List<String> RESOLUTION_FAILURE_CLASSES = List.of(
+            // java.lang.LinkageError and every subclass
+            "java.lang.LinkageError",
+            "java.lang.BootstrapMethodError",
+            "java.lang.ClassCircularityError",
+            "java.lang.ClassFormatError",
+            "java.lang.UnsupportedClassVersionError",
+            "java.lang.ExceptionInInitializerError",
+            "java.lang.IncompatibleClassChangeError",
+            "java.lang.AbstractMethodError",
+            "java.lang.IllegalAccessError",
+            "java.lang.InstantiationError",
+            "java.lang.NoSuchFieldError",
+            "java.lang.NoSuchMethodError",
+            "java.lang.NoClassDefFoundError",
+            "java.lang.UnsatisfiedLinkError",
+            "java.lang.VerifyError",
+            "java.lang.reflect.GenericSignatureFormatError",
+            // java.lang.invoke throwables
+            "java.lang.invoke.WrongMethodTypeException",
+            "java.lang.invoke.LambdaConversionException",
+            "java.lang.invoke.StringConcatException",
+            "java.lang.invoke.InvokerBytecodeGenerator$BytecodeGenerationException",
+            // java.lang.ReflectiveOperationException and every subclass
+            "java.lang.ReflectiveOperationException",
+            "java.lang.ClassNotFoundException",
+            "java.lang.IllegalAccessException",
+            "java.lang.InstantiationException",
+            "java.lang.NoSuchFieldException",
+            "java.lang.NoSuchMethodException",
+            "java.lang.reflect.InvocationTargetException",
+            "java.lang.reflect.Proxy$InvocationException");
+
     private static final String SPAN_EVENT_TYPES = """
             SELECT name FROM event_types
             WHERE list_contains(json_extract_string(columns, '$[*].field'), 'spanId')""";
@@ -695,16 +745,23 @@ public class JdbcTraceRepository implements TraceRepository {
                 -- The innermost containing span: shortest window first, latest start to break a tie.
                 QUALIFY ROW_NUMBER() OVER (PARTITION BY x.exception_id
                                            ORDER BY s.duration, s.start_timestamp DESC) = 1
+            ),
+            classified AS (
+                SELECT
+                    a.*,
+                    -- error_type IS NOT NULL first: `x = NULL` is NULL, not false, and a NULL
+                    -- would fail the column's NOT NULL rather than reading as "did not escape".
+                    -- Most spans succeed, so most rows take exactly that branch.
+                    a.error_type IS NOT NULL AND a.thrown_class = a.error_type AS escaped
+                FROM attributed a
             )
             SELECT trace_id, span_id, exception_id, start_timestamp, start_ms, event_type,
-                   thrown_class, message,
-                   -- error_type IS NOT NULL first: `x = NULL` is NULL, not false, and a NULL
-                   -- would fail the column's NOT NULL rather than reading as "did not escape".
-                   -- Most spans succeed, so most rows take exactly that branch.
-                   error_type IS NOT NULL AND thrown_class = error_type AS escaped,
-                   stacktrace_hash, thread_hash
-            FROM attributed
+                   thrown_class, message, escaped, stacktrace_hash, thread_hash
+            FROM classified
             WHERE thrown_class IS NOT NULL
+              -- `escaped` first, and never NULL: a throw that failed its span is the story
+              -- whoever threw it, so only a caught resolution failure is ever dropped.
+              AND (escaped OR thrown_class NOT IN (:resolution_failure_classes))
             ORDER BY trace_id, start_timestamp
             """.replace("<<rehydrated>>", REHYDRATED_FIELDS);
 
@@ -1355,7 +1412,9 @@ public class JdbcTraceRepository implements TraceRepository {
         databaseClient.insert(
                 StatementLabel.DERIVE_TRACE_EXCEPTIONS,
                 DERIVE_TRACE_EXCEPTIONS,
-                new MapSqlParameterSource().addValue("exception_event_types", THROW_EVENT_TYPES));
+                new MapSqlParameterSource()
+                        .addValue("exception_event_types", THROW_EVENT_TYPES)
+                        .addValue("resolution_failure_classes", RESOLUTION_FAILURE_CLASSES));
     }
 
     @Override

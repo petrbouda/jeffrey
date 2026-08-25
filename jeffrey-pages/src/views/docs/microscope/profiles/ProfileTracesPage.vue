@@ -254,6 +254,10 @@ if (event.isEnabled()) {
 
       <p>One throw per failed span gets marked <strong>escaped</strong>: the one whose class matches the span's own error type. That is the throw that failed the span, and it is what turns a bare class name into a class name with a message, an instant and a stack behind it. Everything else was caught — which is most of them, since a service that throws for control flow produces thousands per request — and stays drawn quietly.</p>
 
+      <p><strong>Caught resolution failures are filtered out.</strong> The JVM throws at itself constantly while it works: the MethodHandle layer probes for a pre-generated invoker species and catches its own <code>NoSuchMethodError</code>, a library probes for an optional dependency with <code>Class.forName</code> and catches the <code>ClassNotFoundException</code>. Those really did happen on the request thread inside that span — the request is what triggered the linkage — but they say nothing about the request. Every throw in the <code>LinkageError</code>, <code>ReflectiveOperationException</code> and <code>java.lang.invoke</code> hierarchies is dropped from a trace, and only ever when it was caught: one that escaped and failed its span is kept whatever its class, because that one is the story. Everything else is untouched — cancellation, timeouts, resource errors and ordinary application throws all stay.</p>
+
+      <p>This applies to traces alone. The <router-link to="/docs/microscope/profiles/exceptions">Exceptions</router-link> view still counts and lists every throw the recording holds, since its job is the whole picture rather than one request's.</p>
+
       <DocsCallout type="tip">
         A notification is a diamond and a throw is a cross, because shape has to carry the family before colour does: a CRITICAL notification and an escaped throw are both red and mean entirely different things. Each family has its own toolbar toggle, for the same reason Blocking ops and I/O have separate ones — silencing the chatter must not silence the failure.
       </DocsCallout>
