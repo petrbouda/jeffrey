@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Expand button for a throw</title>
+<title>Expand button under the offset</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 <style>
 /* Shared by every span-stacktrace mockup, so the five pages differ in layout and in nothing else.
@@ -221,8 +221,9 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 @media (max-width: 900px) { .pair { grid-template-columns: 1fr; } }
 
-  :root { --color-bg-hover: #f9fafd; --spacing-1: .25rem; --spacing-3: .75rem;
-    --font-weight-medium: 500; --transition-base: .2s ease-in-out; }
+  :root { --spacing-1: .25rem; --spacing-2: .5rem; --spacing-3: .75rem; --spacing-4: 1rem;
+    --font-weight-medium: 500; --transition-base: .2s ease-in-out;
+    --color-bg-hover: #f9fafd; }
   .stage { margin-bottom: 2.1rem; }
   .stage-cap { display: flex; align-items: baseline; gap: .55rem; margin-bottom: .4rem; }
   .stage-key { display: inline-grid; place-items: center; width: 1.35rem; height: 1.35rem; flex: none;
@@ -254,20 +255,21 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
     border-bottom: 1px solid var(--color-border-light); }
   .sd-entry:last-child { border-bottom: 0; }
   .sd-entry.severe { background: var(--color-danger-bg-lighter); border-radius: var(--radius-sm); }
-  /* Quiet, because the button is the affordance now -- the row only has to look live. */
+  /* The row still lights, quietly, because it is still the click target -- but it no longer has to
+     carry the whole affordance on its own. */
   .sd-entry.is-hover { background: var(--color-bg-hover); border-radius: var(--radius-sm); }
   .sd-entry.severe.is-hover { background: #fdecee; }
 
-  /* The button goes in the column the row was wasting. */
-  .sd-exc-head { display: grid; grid-template-columns: 1rem 4.5rem 1fr auto; gap: .5rem;
-    align-items: center; cursor: pointer; }
-  .sd-entry-caret { font-size: var(--font-size-xs); color: var(--color-text-light);
-    align-self: start; padding-top: .15rem; }
-  .sd-entry.is-open .sd-entry-caret { color: var(--color-primary); }
+  /*
+   * The change this page is about: two columns, not three. The caret column is gone, and the
+   * offset column became a gutter that stacks the offset over the button.
+   */
+  .sd-exc-head { display: grid; grid-template-columns: 4.5rem 1fr; gap: .5rem;
+    align-items: start; cursor: pointer; }
+  .sd-entry-gut { display: flex; flex-direction: column; align-items: flex-start; gap: .25rem; }
   .sd-entry-at { font-variant-numeric: tabular-nums; font-size: var(--font-size-xs);
-    color: var(--color-text-muted); align-self: start; padding-top: .1rem; }
+    color: var(--color-text-muted); padding-top: .1rem; }
   .sd-entry-main { min-width: 0; }
-  .sd-entry-act { display: flex; justify-content: flex-end; }
   .sd-entry-class { font-family: var(--font-family-monospace); font-size: var(--font-size-sm);
     font-weight: 600; color: var(--color-dark); }
   .sd-entry-text { display: block; font-size: var(--font-size-sm); color: #475569;
@@ -275,12 +277,15 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
   .sd-entry-foot { display: flex; align-items: center; gap: .5rem; margin-top: .22rem;
     font-size: var(--font-size-xs); color: var(--color-text-muted);
     font-family: var(--font-family-monospace); }
+  .verdict { color: var(--color-text-muted); }
   .badge-esc { display: inline-flex; padding: 0 .35rem; border-radius: var(--radius-sm);
     background: var(--color-danger); color: #fff; font-size: var(--font-size-xs);
     font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
     font-family: -apple-system, sans-serif; }
 
-  .sd-stack { margin: .5rem 0 .1rem 1.5rem; padding-left: .55rem;
+  /* The stack indents under the main column, not under the gutter, so it lines up with the class
+     name it belongs to rather than with the button that opened it. */
+  .sd-stack { margin: .5rem 0 .1rem 5rem; padding-left: .55rem;
     border-left: 2px solid var(--color-border-input);
     font-family: var(--font-family-monospace); font-size: var(--font-size-sm); line-height: 1.5; }
   .st-thrown { padding: .18rem .4rem .22rem; margin: 0 0 .15rem;
@@ -288,40 +293,50 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
   .st-thrown-cls { font-weight: 700; color: var(--color-danger); }
   .st-thrown-msg { color: #475569; }
 
-  /* ---- the app's btn, for the variants that use it ---- */
-  .btn { display: inline-flex; align-items: center; gap: .3rem; cursor: pointer;
-    border: 1px solid transparent; border-radius: var(--radius-sm);
-    font-weight: var(--font-weight-medium); padding: var(--spacing-1) var(--spacing-3);
-    font-size: var(--font-size-sm); line-height: 1.4; white-space: nowrap;
-    transition: all var(--transition-base); }
-  .btn-outline-secondary { background: var(--color-white); border-color: var(--color-border-input);
-    color: #5e6e82; }
-  .sd-entry.is-hover .btn-outline-secondary { border-color: var(--color-primary);
-    color: var(--color-primary); }
-  .xp-caret { font-size: .6rem; opacity: .7; margin-left: .1rem; }
-
-  /* 1: a ghost icon button -- no label, no border until it is wanted */
-  .xp { display: inline-flex; align-items: center; justify-content: center; gap: .3rem;
+  /* ---- the button, shared shell; the five skins differ below ---- */
+  .xb { display: inline-flex; align-items: center; justify-content: center; gap: .25rem;
     border: 1px solid transparent; background: transparent; cursor: pointer;
-    color: var(--color-text-muted); transition: all var(--transition-base); }
-  .xp-ghost { width: 1.75rem; height: 1.75rem; border-radius: var(--radius-circle);
-    font-size: .8rem; }
-  .sd-entry.is-hover .xp-ghost { background: var(--color-white);
-    border-color: var(--color-border-input); color: var(--color-primary); }
+    font-family: -apple-system, sans-serif; font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium); color: var(--color-text-muted);
+    transition: all var(--transition-base); }
 
-  /* 4: nothing at rest, a real button on hover */
-  .xp-reveal { padding: var(--spacing-1) var(--spacing-3); border-radius: var(--radius-sm);
-    font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);
-    opacity: 0; pointer-events: none; }
-  .sd-entry.is-hover .xp-reveal, .xp-reveal.is-on { opacity: 1; pointer-events: auto;
-    background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
-
-  /* 5: the gutter caret becomes the button */
-  .xp-gutter { width: 1.4rem; height: 1.4rem; border-radius: var(--radius-sm);
-    font-size: .7rem; align-self: start; }
-  .sd-entry.is-hover .xp-gutter { background: var(--color-white);
+  /* 1: ghost -- no frame at all until the row is live */
+  .xb-ghost { width: 1.5rem; height: 1.5rem; border-radius: var(--radius-sm); font-size: .72rem; }
+  .demo-ghost .sd-entry.is-hover .xb-ghost { background: var(--color-white);
     border-color: var(--color-border-input); color: var(--color-primary); }
-  .sd-entry.is-open .xp-gutter { color: var(--color-primary); }
+  .demo-ghost .sd-entry.is-open .xb-ghost { background: var(--color-primary);
+    border-color: var(--color-primary); color: #fff; }
+
+  /* 2: outline -- the app's own btn-sm chrome, always drawn */
+  .xb-outline { width: 1.5rem; height: 1.5rem; border-radius: var(--radius-sm); font-size: .72rem;
+    background: var(--color-white); border-color: var(--color-border-input); color: #5e6e82; }
+  .demo-outline .sd-entry.is-hover .xb-outline { border-color: var(--color-primary);
+    color: var(--color-primary); }
+  .demo-outline .sd-entry.is-open .xb-outline { background: var(--color-primary);
+    border-color: var(--color-primary); color: #fff; }
+
+  /* 3: soft -- a filled tint, no border to draw a box down the gutter */
+  .xb-soft { width: 1.5rem; height: 1.5rem; border-radius: var(--radius-sm); font-size: .72rem;
+    background: var(--color-lighter); color: #5e6e82; }
+  .demo-soft .sd-entry.is-hover .xb-soft { background: var(--color-primary-bg);
+    color: var(--color-primary); }
+  .demo-soft .sd-entry.is-open .xb-soft { background: var(--color-primary); color: #fff; }
+
+  /* 4: the count is the label */
+  .xb-count { height: 1.5rem; padding: 0 var(--spacing-2); border-radius: var(--radius-sm);
+    background: var(--color-white); border-color: var(--color-border-input); color: #5e6e82;
+    font-variant-numeric: tabular-nums; }
+  .demo-count .sd-entry.is-hover .xb-count { border-color: var(--color-primary);
+    color: var(--color-primary); }
+  .demo-count .sd-entry.is-open .xb-count { background: var(--color-primary);
+    border-color: var(--color-primary); color: #fff; }
+
+  /* 5: a labelled bar filling the gutter, so every button is the same width */
+  .xb-bar { width: 100%; height: 1.5rem; padding: 0 var(--spacing-1);
+    border-radius: var(--radius-sm); background: var(--color-lighter); color: #5e6e82; }
+  .demo-bar .sd-entry.is-hover .xb-bar { background: var(--color-primary-bg);
+    color: var(--color-primary); }
+  .demo-bar .sd-entry.is-open .xb-bar { background: var(--color-primary); color: #fff; }
 
   .verdict-box { margin-top: 2rem; padding: 1.1rem 1.3rem; border-radius: var(--radius-md);
     border: 1px solid rgba(0,210,122,.4); background: rgba(0,210,122,.06); }
@@ -339,20 +354,20 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 <body>
   <div class="wrap">
     <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
-    <h1><span class="n"><i class="bi bi-chevron-bar-expand"></i></span>Expand button for a throw</h1>
-
+    <h1><span class="n"><i class="bi bi-chevron-bar-expand"></i></span>Expand button, under the time offset</h1>
     <p class="lede">
-      The row stays clickable &mdash; the button is an <em>additional</em> affordance, not a replacement,
-      so a reader can hit either. All five put it at the <b>far right</b>, which is the point: that empty
-      stretch was what made the hover look like a slab, and a control there gives the width a reason to
-      exist. In each panel the first row is hovered and the last is open, so both states are visible.
-      Hover is the same quiet <code>--color-bg-hover</code> everywhere; only the button varies.
+      Option 5&rsquo;s idea &mdash; <b>one affordance per row, in the gutter</b> &mdash; with the button
+      moved off the caret line and stacked <b>under the offset</b>. The row stays clickable; the button
+      is what says so. Five skins for that button, all in the same place. In each panel the first row
+      is drawn hovered, the second has <b>no stack at all</b> so the gutter shows what a row without a
+      control looks like, the third is a throw <b>with no message</b> &mdash; the short row, and the
+      only one the stacked gutter makes taller &mdash; and the last is open.
     </p>
 
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">1</span>
-        <span class="stage-name">Ghost icon button</span><span class="stage-tag rec">recommended</span></div>
-      <p class="stage-why">A round icon button at the row&rsquo;s end: invisible frame at rest, gaining a border and the primary tint when the row lights up. No label, because the region header already says these are exceptions and the chevron says the rest. The quietest thing that is still unmistakably a button &mdash; and at the right edge it reads as "this row opens" rather than as decoration.</p>
+        <span class="stage-name">Ghost</span><span class="stage-tag rec">recommended</span></div>
+      <p class="stage-why">No frame at rest, so the gutter at rest is what it always was &mdash; a column of timestamps. The button draws itself when the row lights up and stays filled while its stack is open, which is the same rest/hover/on progression the ghost variant had at the right edge, only now it costs no width from the message column. <b>The quietest of the five</b>, and the one whose resting list is closest to today&rsquo;s.</p>
       <div class="sd-region is-exc demo-ghost">
         <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions
           <span class="sd-src">6 &middot; jdk.JavaExceptionThrow</span>
@@ -360,58 +375,62 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
         <div class="sd-region-body">
             <div class="sd-entry is-hover">
               <div class="sd-exc-head" role="button" aria-expanded="false">
-                <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
-                <span class="sd-entry-at">+633us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+633us</span>
+                  <button type="button" class="xb xb-ghost" aria-label="Show stack"><i class="bi bi-chevron-down"></i></button>
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">java.io.IOException</span>
                   <span class="sd-entry-text">Stream closed</span>
                   <span class="sd-entry-foot"><span class="verdict">caught</span></span>
                 </span>
-                <span class="sd-entry-act"><button type="button" class="xp xp-ghost" aria-label="Show stack"><i class="bi bi-chevron-down"></i></button></span>
               </div>
             </div>
             <div class="sd-entry">
               <div class="sd-exc-head" role="button" aria-expanded="false">
-                <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
-                <span class="sd-entry-at">+1ms 113us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+1ms 113us</span>
+                  
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">java.io.IOException</span>
                   <span class="sd-entry-text">Stream closed</span>
                   <span class="sd-entry-foot"><span class="verdict">caught</span></span>
                 </span>
-                <span class="sd-entry-act"><button type="button" class="xp xp-ghost" aria-label="Show stack"><i class="bi bi-chevron-down"></i></button></span>
               </div>
             </div>
             <div class="sd-entry">
               <div class="sd-exc-head" role="button" aria-expanded="false">
-                <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
-                <span class="sd-entry-at">+1ms 183us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+1ms 183us</span>
+                  <button type="button" class="xb xb-ghost" aria-label="Show stack"><i class="bi bi-chevron-down"></i></button>
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">java.io.IOException</span>
                   
                   <span class="sd-entry-foot"><span class="verdict">caught</span></span>
                 </span>
-                <span class="sd-entry-act"><button type="button" class="xp xp-ghost" aria-label="Show stack"><i class="bi bi-chevron-down"></i></button></span>
               </div>
             </div>
             <div class="sd-entry severe is-open">
               <div class="sd-exc-head" role="button" aria-expanded="true">
-                <span class="sd-entry-caret"><i class="bi bi-chevron-down"></i></span>
-                <span class="sd-entry-at">+1ms 230us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+1ms 230us</span>
+                  <button type="button" class="xb xb-ghost" aria-label="Show stack"><i class="bi bi-chevron-up"></i></button>
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">com.acme.reports.ReportRenderException</span>
                   <span class="sd-entry-text">renderer produced no output</span>
                   <span class="sd-entry-foot"><span class="badge-esc">escaped this span</span></span>
                 </span>
-                <span class="sd-entry-act"><button type="button" class="xp xp-ghost" aria-label="Show stack"><i class="bi bi-chevron-up"></i></button></span>
               </div>
                 <div class="sd-stack">
-                  <div class="st-thrown"><span class="st-thrown-cls">java.io.IOException</span>:
-                    <span class="st-thrown-msg">Stream closed</span></div>
+                  <div class="st-thrown"><span class="st-thrown-cls">com.acme.reports.ReportRenderException</span>:
+                    <span class="st-thrown-msg">renderer produced no output</span></div>
                   <div class="fold"><i class="bi bi-chevron-right"></i><b>3</b> frames in
                     <span>java.lang &middot; java.io</span></div>
-                  <div class="fr throw"><span class="sig"><span class="pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>fillBuff</b></span><span class="src">JavaCharStream.java:148</span></div>
-                  <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.</span>ReportEventsMapper.<b>getReportEvents</b></span><span class="src">ReportEventsMapper.java:88</span></div>
+                  <div class="fr throw"><span class="sig"><span class="pkg">com.acme.reports.render.</span>PdfRenderer.<b>finish</b></span><span class="src">PdfRenderer.java:214</span></div>
+                  <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.</span>EventReportService.<b>load</b></span><span class="src">EventReportService.java:154</span></div>
                 </div>
             </div>
         </div>
@@ -420,8 +439,8 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">2</span>
-        <span class="stage-name">Labelled outline button</span></div>
-      <p class="stage-why">The app&rsquo;s own <code>btn btn-sm btn-outline-secondary</code> with a word on it. Nothing to learn and nothing to guess &mdash; and it borrows its border colour from the row on hover, so it belongs to the row rather than floating on it. Four of these down a list is four bordered boxes, which is a lot of furniture for a panel whose job is the text on the left.</p>
+        <span class="stage-name">Outline</span></div>
+      <p class="stage-why">The app&rsquo;s <code>btn-outline-secondary</code> chrome, drawn at rest rather than on hover. Nothing to discover: every row that has a stack visibly says so, and a row without one visibly does not. The cost is a column of four small boxes running down the left of a panel whose subject is the text on the right.</p>
       <div class="sd-region is-exc demo-outline">
         <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions
           <span class="sd-src">6 &middot; jdk.JavaExceptionThrow</span>
@@ -429,58 +448,62 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
         <div class="sd-region-body">
             <div class="sd-entry is-hover">
               <div class="sd-exc-head" role="button" aria-expanded="false">
-                <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
-                <span class="sd-entry-at">+633us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+633us</span>
+                  <button type="button" class="xb xb-outline" aria-label="Show stack"><i class="bi bi-chevron-down"></i></button>
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">java.io.IOException</span>
                   <span class="sd-entry-text">Stream closed</span>
                   <span class="sd-entry-foot"><span class="verdict">caught</span></span>
                 </span>
-                <span class="sd-entry-act"><button type="button" class="btn btn-sm btn-outline-secondary xp-btn"><i class="bi bi-list-nested"></i> Stack<i class="bi bi-chevron-down xp-caret"></i></button></span>
               </div>
             </div>
             <div class="sd-entry">
               <div class="sd-exc-head" role="button" aria-expanded="false">
-                <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
-                <span class="sd-entry-at">+1ms 113us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+1ms 113us</span>
+                  
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">java.io.IOException</span>
                   <span class="sd-entry-text">Stream closed</span>
                   <span class="sd-entry-foot"><span class="verdict">caught</span></span>
                 </span>
-                <span class="sd-entry-act"><button type="button" class="btn btn-sm btn-outline-secondary xp-btn"><i class="bi bi-list-nested"></i> Stack<i class="bi bi-chevron-down xp-caret"></i></button></span>
               </div>
             </div>
             <div class="sd-entry">
               <div class="sd-exc-head" role="button" aria-expanded="false">
-                <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
-                <span class="sd-entry-at">+1ms 183us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+1ms 183us</span>
+                  <button type="button" class="xb xb-outline" aria-label="Show stack"><i class="bi bi-chevron-down"></i></button>
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">java.io.IOException</span>
                   
                   <span class="sd-entry-foot"><span class="verdict">caught</span></span>
                 </span>
-                <span class="sd-entry-act"><button type="button" class="btn btn-sm btn-outline-secondary xp-btn"><i class="bi bi-list-nested"></i> Stack<i class="bi bi-chevron-down xp-caret"></i></button></span>
               </div>
             </div>
             <div class="sd-entry severe is-open">
               <div class="sd-exc-head" role="button" aria-expanded="true">
-                <span class="sd-entry-caret"><i class="bi bi-chevron-down"></i></span>
-                <span class="sd-entry-at">+1ms 230us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+1ms 230us</span>
+                  <button type="button" class="xb xb-outline" aria-label="Show stack"><i class="bi bi-chevron-up"></i></button>
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">com.acme.reports.ReportRenderException</span>
                   <span class="sd-entry-text">renderer produced no output</span>
                   <span class="sd-entry-foot"><span class="badge-esc">escaped this span</span></span>
                 </span>
-                <span class="sd-entry-act"><button type="button" class="btn btn-sm btn-outline-secondary xp-btn"><i class="bi bi-list-nested"></i> Hide<i class="bi bi-chevron-up xp-caret"></i></button></span>
               </div>
                 <div class="sd-stack">
-                  <div class="st-thrown"><span class="st-thrown-cls">java.io.IOException</span>:
-                    <span class="st-thrown-msg">Stream closed</span></div>
+                  <div class="st-thrown"><span class="st-thrown-cls">com.acme.reports.ReportRenderException</span>:
+                    <span class="st-thrown-msg">renderer produced no output</span></div>
                   <div class="fold"><i class="bi bi-chevron-right"></i><b>3</b> frames in
                     <span>java.lang &middot; java.io</span></div>
-                  <div class="fr throw"><span class="sig"><span class="pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>fillBuff</b></span><span class="src">JavaCharStream.java:148</span></div>
-                  <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.</span>ReportEventsMapper.<b>getReportEvents</b></span><span class="src">ReportEventsMapper.java:88</span></div>
+                  <div class="fr throw"><span class="sig"><span class="pkg">com.acme.reports.render.</span>PdfRenderer.<b>finish</b></span><span class="src">PdfRenderer.java:214</span></div>
+                  <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.</span>EventReportService.<b>load</b></span><span class="src">EventReportService.java:154</span></div>
                 </div>
             </div>
         </div>
@@ -489,67 +512,71 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">3</span>
-        <span class="stage-name">The count is the label</span><span class="stage-tag warn">needs backend</span></div>
-      <p class="stage-why">The same button, carrying a fact instead of a word: <code>18 frames</code>. The reader learns how deep the stack is before deciding to open it, and a one-frame stack stops being worth a click. <b>It needs a backend change</b>: a row knows its <code>stacktraceId</code> but not its frame count, so this means adding the count to the <code>trace_exceptions</code> derivation &mdash; cheap, but not free, and not something the frontend can do alone.</p>
-      <div class="sd-region is-exc demo-count">
+        <span class="stage-name">Soft fill</span></div>
+      <p class="stage-why">A filled tint instead of a border. Present at rest like variant 2, but without an outline it reads as a shaded patch rather than as furniture, so four of them down the gutter are much quieter than four boxes. Slightly less obviously a button for it.</p>
+      <div class="sd-region is-exc demo-soft">
         <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions
           <span class="sd-src">6 &middot; jdk.JavaExceptionThrow</span>
         </div>
         <div class="sd-region-body">
             <div class="sd-entry is-hover">
               <div class="sd-exc-head" role="button" aria-expanded="false">
-                <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
-                <span class="sd-entry-at">+633us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+633us</span>
+                  <button type="button" class="xb xb-soft" aria-label="Show stack"><i class="bi bi-chevron-down"></i></button>
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">java.io.IOException</span>
                   <span class="sd-entry-text">Stream closed</span>
                   <span class="sd-entry-foot"><span class="verdict">caught</span></span>
                 </span>
-                <span class="sd-entry-act"><button type="button" class="btn btn-sm btn-outline-secondary xp-btn"><i class="bi bi-list-nested"></i> 18 frames<i class="bi bi-chevron-down xp-caret"></i></button></span>
               </div>
             </div>
             <div class="sd-entry">
               <div class="sd-exc-head" role="button" aria-expanded="false">
-                <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
-                <span class="sd-entry-at">+1ms 113us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+1ms 113us</span>
+                  
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">java.io.IOException</span>
                   <span class="sd-entry-text">Stream closed</span>
                   <span class="sd-entry-foot"><span class="verdict">caught</span></span>
                 </span>
-                <span class="sd-entry-act"><button type="button" class="btn btn-sm btn-outline-secondary xp-btn"><i class="bi bi-list-nested"></i> 18 frames<i class="bi bi-chevron-down xp-caret"></i></button></span>
               </div>
             </div>
             <div class="sd-entry">
               <div class="sd-exc-head" role="button" aria-expanded="false">
-                <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
-                <span class="sd-entry-at">+1ms 183us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+1ms 183us</span>
+                  <button type="button" class="xb xb-soft" aria-label="Show stack"><i class="bi bi-chevron-down"></i></button>
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">java.io.IOException</span>
                   
                   <span class="sd-entry-foot"><span class="verdict">caught</span></span>
                 </span>
-                <span class="sd-entry-act"><button type="button" class="btn btn-sm btn-outline-secondary xp-btn"><i class="bi bi-list-nested"></i> 12 frames<i class="bi bi-chevron-down xp-caret"></i></button></span>
               </div>
             </div>
             <div class="sd-entry severe is-open">
               <div class="sd-exc-head" role="button" aria-expanded="true">
-                <span class="sd-entry-caret"><i class="bi bi-chevron-down"></i></span>
-                <span class="sd-entry-at">+1ms 230us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+1ms 230us</span>
+                  <button type="button" class="xb xb-soft" aria-label="Show stack"><i class="bi bi-chevron-up"></i></button>
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">com.acme.reports.ReportRenderException</span>
                   <span class="sd-entry-text">renderer produced no output</span>
                   <span class="sd-entry-foot"><span class="badge-esc">escaped this span</span></span>
                 </span>
-                <span class="sd-entry-act"><button type="button" class="btn btn-sm btn-outline-secondary xp-btn"><i class="bi bi-list-nested"></i> 45 frames<i class="bi bi-chevron-up xp-caret"></i></button></span>
               </div>
                 <div class="sd-stack">
-                  <div class="st-thrown"><span class="st-thrown-cls">java.io.IOException</span>:
-                    <span class="st-thrown-msg">Stream closed</span></div>
+                  <div class="st-thrown"><span class="st-thrown-cls">com.acme.reports.ReportRenderException</span>:
+                    <span class="st-thrown-msg">renderer produced no output</span></div>
                   <div class="fold"><i class="bi bi-chevron-right"></i><b>3</b> frames in
                     <span>java.lang &middot; java.io</span></div>
-                  <div class="fr throw"><span class="sig"><span class="pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>fillBuff</b></span><span class="src">JavaCharStream.java:148</span></div>
-                  <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.</span>ReportEventsMapper.<b>getReportEvents</b></span><span class="src">ReportEventsMapper.java:88</span></div>
+                  <div class="fr throw"><span class="sig"><span class="pkg">com.acme.reports.render.</span>PdfRenderer.<b>finish</b></span><span class="src">PdfRenderer.java:214</span></div>
+                  <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.</span>EventReportService.<b>load</b></span><span class="src">EventReportService.java:154</span></div>
                 </div>
             </div>
         </div>
@@ -558,67 +585,71 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">4</span>
-        <span class="stage-name">Nothing until you point at it</span></div>
-      <p class="stage-why">Absent at rest, a solid primary button on hover, and stays solid while its stack is open. The list at rest is nothing but the throws &mdash; the cleanest reading of the four rows &mdash; and the control appears exactly when it can be used. The cost is real: a control you cannot see is a control a reader may never learn is there, and it does nothing at all for touch.</p>
-      <div class="sd-region is-exc demo-reveal">
+        <span class="stage-name">The count is the label</span><span class="stage-tag warn">needs backend</span></div>
+      <p class="stage-why">The same button carrying the frame count. Under the offset the label costs nothing that was being used &mdash; the gutter is 4.5rem wide because a timestamp needs it, and <code>&#8963; 18</code> fits inside that. The reader knows how deep a stack is before opening it. <b>It needs a backend change</b>: a row carries a <code>stacktraceId</code> and not a count, so the count has to be added to the <code>trace_exceptions</code> derivation.</p>
+      <div class="sd-region is-exc demo-count">
         <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions
           <span class="sd-src">6 &middot; jdk.JavaExceptionThrow</span>
         </div>
         <div class="sd-region-body">
             <div class="sd-entry is-hover">
               <div class="sd-exc-head" role="button" aria-expanded="false">
-                <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
-                <span class="sd-entry-at">+633us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+633us</span>
+                  <button type="button" class="xb xb-count" aria-label="Show stack"><i class="bi bi-chevron-down"></i> 18</button>
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">java.io.IOException</span>
                   <span class="sd-entry-text">Stream closed</span>
                   <span class="sd-entry-foot"><span class="verdict">caught</span></span>
                 </span>
-                <span class="sd-entry-act"><button type="button" class="xp xp-reveal"><i class="bi bi-chevron-down"></i> Show stack</button></span>
               </div>
             </div>
             <div class="sd-entry">
               <div class="sd-exc-head" role="button" aria-expanded="false">
-                <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
-                <span class="sd-entry-at">+1ms 113us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+1ms 113us</span>
+                  
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">java.io.IOException</span>
                   <span class="sd-entry-text">Stream closed</span>
                   <span class="sd-entry-foot"><span class="verdict">caught</span></span>
                 </span>
-                <span class="sd-entry-act"><button type="button" class="xp xp-reveal"><i class="bi bi-chevron-down"></i> Show stack</button></span>
               </div>
             </div>
             <div class="sd-entry">
               <div class="sd-exc-head" role="button" aria-expanded="false">
-                <span class="sd-entry-caret"><i class="bi bi-chevron-right"></i></span>
-                <span class="sd-entry-at">+1ms 183us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+1ms 183us</span>
+                  <button type="button" class="xb xb-count" aria-label="Show stack"><i class="bi bi-chevron-down"></i> 12</button>
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">java.io.IOException</span>
                   
                   <span class="sd-entry-foot"><span class="verdict">caught</span></span>
                 </span>
-                <span class="sd-entry-act"><button type="button" class="xp xp-reveal"><i class="bi bi-chevron-down"></i> Show stack</button></span>
               </div>
             </div>
             <div class="sd-entry severe is-open">
               <div class="sd-exc-head" role="button" aria-expanded="true">
-                <span class="sd-entry-caret"><i class="bi bi-chevron-down"></i></span>
-                <span class="sd-entry-at">+1ms 230us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+1ms 230us</span>
+                  <button type="button" class="xb xb-count" aria-label="Show stack"><i class="bi bi-chevron-up"></i> 45</button>
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">com.acme.reports.ReportRenderException</span>
                   <span class="sd-entry-text">renderer produced no output</span>
                   <span class="sd-entry-foot"><span class="badge-esc">escaped this span</span></span>
                 </span>
-                <span class="sd-entry-act"><button type="button" class="xp xp-reveal is-on"><i class="bi bi-chevron-up"></i> Hide stack</button></span>
               </div>
                 <div class="sd-stack">
-                  <div class="st-thrown"><span class="st-thrown-cls">java.io.IOException</span>:
-                    <span class="st-thrown-msg">Stream closed</span></div>
+                  <div class="st-thrown"><span class="st-thrown-cls">com.acme.reports.ReportRenderException</span>:
+                    <span class="st-thrown-msg">renderer produced no output</span></div>
                   <div class="fold"><i class="bi bi-chevron-right"></i><b>3</b> frames in
                     <span>java.lang &middot; java.io</span></div>
-                  <div class="fr throw"><span class="sig"><span class="pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>fillBuff</b></span><span class="src">JavaCharStream.java:148</span></div>
-                  <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.</span>ReportEventsMapper.<b>getReportEvents</b></span><span class="src">ReportEventsMapper.java:88</span></div>
+                  <div class="fr throw"><span class="sig"><span class="pkg">com.acme.reports.render.</span>PdfRenderer.<b>finish</b></span><span class="src">PdfRenderer.java:214</span></div>
+                  <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.</span>EventReportService.<b>load</b></span><span class="src">EventReportService.java:154</span></div>
                 </div>
             </div>
         </div>
@@ -627,67 +658,71 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
 
     <div class="stage">
       <div class="stage-cap"><span class="stage-key">5</span>
-        <span class="stage-name">The gutter caret becomes the button</span></div>
-      <p class="stage-why">No second control: the chevron already at the left edge grows a frame and becomes the button. The row keeps exactly one affordance, and it sits where a tree or an accordion would put it. But it puts the target back at the narrow end and leaves the right side as empty as it was &mdash; which is the thing that started this.</p>
-      <div class="sd-region is-exc demo-gutter">
+        <span class="stage-name">Labelled bar</span></div>
+      <p class="stage-why">The button fills the gutter&rsquo;s width, so every one of them is the same size and the word <code>stack</code> says what it does. The most legible and the most furniture &mdash; a filled bar under every timestamp is a second column of blocks, and it makes the gutter look like the row&rsquo;s subject rather than its margin.</p>
+      <div class="sd-region is-exc demo-bar">
         <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions
           <span class="sd-src">6 &middot; jdk.JavaExceptionThrow</span>
         </div>
         <div class="sd-region-body">
             <div class="sd-entry is-hover">
               <div class="sd-exc-head" role="button" aria-expanded="false">
-                <button type="button" class="xp xp-gutter" aria-label="Show stack"><i class="bi bi-chevron-right"></i></button>
-                <span class="sd-entry-at">+633us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+633us</span>
+                  <button type="button" class="xb xb-bar" aria-label="Show stack"><i class="bi bi-chevron-down"></i> stack</button>
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">java.io.IOException</span>
                   <span class="sd-entry-text">Stream closed</span>
                   <span class="sd-entry-foot"><span class="verdict">caught</span></span>
                 </span>
-                <span class="sd-entry-act"></span>
               </div>
             </div>
             <div class="sd-entry">
               <div class="sd-exc-head" role="button" aria-expanded="false">
-                <button type="button" class="xp xp-gutter" aria-label="Show stack"><i class="bi bi-chevron-right"></i></button>
-                <span class="sd-entry-at">+1ms 113us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+1ms 113us</span>
+                  
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">java.io.IOException</span>
                   <span class="sd-entry-text">Stream closed</span>
                   <span class="sd-entry-foot"><span class="verdict">caught</span></span>
                 </span>
-                <span class="sd-entry-act"></span>
               </div>
             </div>
             <div class="sd-entry">
               <div class="sd-exc-head" role="button" aria-expanded="false">
-                <button type="button" class="xp xp-gutter" aria-label="Show stack"><i class="bi bi-chevron-right"></i></button>
-                <span class="sd-entry-at">+1ms 183us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+1ms 183us</span>
+                  <button type="button" class="xb xb-bar" aria-label="Show stack"><i class="bi bi-chevron-down"></i> stack</button>
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">java.io.IOException</span>
                   
                   <span class="sd-entry-foot"><span class="verdict">caught</span></span>
                 </span>
-                <span class="sd-entry-act"></span>
               </div>
             </div>
             <div class="sd-entry severe is-open">
               <div class="sd-exc-head" role="button" aria-expanded="true">
-                <button type="button" class="xp xp-gutter" aria-label="Show stack"><i class="bi bi-chevron-down"></i></button>
-                <span class="sd-entry-at">+1ms 230us</span>
+                <span class="sd-entry-gut">
+                  <span class="sd-entry-at">+1ms 230us</span>
+                  <button type="button" class="xb xb-bar" aria-label="Show stack"><i class="bi bi-chevron-up"></i> hide</button>
+                </span>
                 <span class="sd-entry-main">
                   <span class="sd-entry-class">com.acme.reports.ReportRenderException</span>
                   <span class="sd-entry-text">renderer produced no output</span>
                   <span class="sd-entry-foot"><span class="badge-esc">escaped this span</span></span>
                 </span>
-                <span class="sd-entry-act"></span>
               </div>
                 <div class="sd-stack">
-                  <div class="st-thrown"><span class="st-thrown-cls">java.io.IOException</span>:
-                    <span class="st-thrown-msg">Stream closed</span></div>
+                  <div class="st-thrown"><span class="st-thrown-cls">com.acme.reports.ReportRenderException</span>:
+                    <span class="st-thrown-msg">renderer produced no output</span></div>
                   <div class="fold"><i class="bi bi-chevron-right"></i><b>3</b> frames in
                     <span>java.lang &middot; java.io</span></div>
-                  <div class="fr throw"><span class="sig"><span class="pkg">org.apache.ibatis.ognl.</span>JavaCharStream.<b>fillBuff</b></span><span class="src">JavaCharStream.java:148</span></div>
-                  <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.</span>ReportEventsMapper.<b>getReportEvents</b></span><span class="src">ReportEventsMapper.java:88</span></div>
+                  <div class="fr throw"><span class="sig"><span class="pkg">com.acme.reports.render.</span>PdfRenderer.<b>finish</b></span><span class="src">PdfRenderer.java:214</span></div>
+                  <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.</span>EventReportService.<b>load</b></span><span class="src">EventReportService.java:154</span></div>
                 </div>
             </div>
         </div>
@@ -695,17 +730,23 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
     </div>
 
     <div class="verdict-box">
-      <h4>If you want one answer</h4>
-      <p><b>1.</b> It is a button, so the row stops relying on a reader guessing it is clickable, and it
-        goes in the space that was making the hover look wrong &mdash; the fill now has something at its
-        far end instead of running out into nothing. Quiet enough that four of them down a list do not
-        become the loudest thing in the panel.</p>
-      <p><b>3 is the one to want</b> if you are willing to spend a backend change on it. Knowing a stack
-        is 45 frames versus 3 before clicking is worth more than any styling on this page, and the count
-        is already sitting in the derivation one column away.</p>
-      <p><b>4 looks the best in a screenshot and is the riskiest in use</b> &mdash; hover-only controls
-        are invisible to anyone who does not already know they exist. <b>5</b> is the tidiest markup and
-        does nothing about the width.</p>
+      <h4>What moving it under the offset actually bought</h4>
+      <p><b>The objection to Option 5 was its position, not its idea.</b> One affordance per row is the
+        right shape; putting it at the left edge inline with the offset was what pinned it into a 1rem
+        column and left the right side of the row as empty as before. Stacking it <b>under</b> the
+        offset keeps the single affordance and drops the 1rem caret column entirely &mdash; the grid
+        goes from <code>1rem 4.5rem 1fr</code> to <code>4.5rem 1fr</code>.</p>
+      <p><b>Measured, not assumed.</b> On a throw with a message the row is 51px tall and the stacked
+        gutter comes to 41px, so the button sits entirely in space the layout was already throwing away
+        &mdash; <b>zero added height</b>. On a throw with <b>no</b> message the text is only 33px, and
+        the gutter&rsquo;s 41px becomes the taller of the two: <b>that row grows by 8px</b>. It is the
+        third row in every panel above, drawn short on purpose. So the move is free on the common row
+        and costs eight pixels on the short one &mdash; which is the whole bill, and it is the same bill
+        for all five skins, since every button here is 24px tall.</p>
+      <p><b>1</b> is the recommendation: nothing is added to the resting list, and the control appears
+        on the row you are pointing at. <b>3</b> if you would rather every row that has a stack say so
+        without being pointed at. <b>4</b> is the most useful of the five and the only one that is not
+        purely a frontend change.</p>
     </div>
 
   </div>
