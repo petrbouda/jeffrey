@@ -55,7 +55,7 @@ class TraceAiMarkdownBuilderTest {
                 span("03", "02", "select inventory", "CLIENT", 105, 35, 35, 0, 2),
                 span("04", "02", "update inventory", "CLIENT", 250, 70, 70, 0, 2));
 
-        return new TraceDetail(trace, spans, Map.of());
+        return new TraceDetail(trace, spans, List.of(), List.of(), Map.of());
     }
 
     private static TraceSpanRow span(
@@ -178,7 +178,7 @@ class TraceAiMarkdownBuilderTest {
                     335, 335_000L, 65 * MS, 65 * MS, 0, 1, "3001", "http-1", false,
                     "jeffrey.TraceSpan", null, null, false);
             TraceDetail withError = new TraceDetail(
-                    detail().trace(), List.of(failing), Map.of());
+                    detail().trace(), List.of(failing), List.of(), List.of(), Map.of());
 
             String out = new TraceAiMarkdownBuilder(withError, context()).build();
 
@@ -192,7 +192,7 @@ class TraceAiMarkdownBuilderTest {
             for (int i = 0; i < 500; i++) {
                 many.add(span("s" + i, null, "span-" + i, "INTERNAL", i, 1, 1, 0, 0));
             }
-            TraceDetail huge = new TraceDetail(detail().trace(), many, Map.of());
+            TraceDetail huge = new TraceDetail(detail().trace(), many, List.of(), List.of(), Map.of());
 
             String out = new TraceAiMarkdownBuilder(huge, context()).build();
 
@@ -242,7 +242,7 @@ class TraceAiMarkdownBuilderTest {
         @Test
         @DisplayName("a trace with no spans does not produce a broken document")
         void survivesEmptyTrace() {
-            TraceDetail empty = new TraceDetail(detail().trace(), List.of(), Map.of());
+            TraceDetail empty = new TraceDetail(detail().trace(), List.of(), List.of(), List.of(), Map.of());
 
             assertTrue(new TraceAiMarkdownBuilder(empty, TraceContext.EMPTY).build()
                     .contains("this trace has no spans"));

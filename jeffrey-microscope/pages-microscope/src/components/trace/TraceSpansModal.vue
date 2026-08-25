@@ -166,6 +166,8 @@
               :context="context"
               :context-state="contextState"
               :trace-duration-nanos="detail.trace.durationNanos"
+              :notifications="detail.notifications ?? []"
+              :exceptions="detail.exceptions ?? []"
               @select="select"
               @view-events="openEvents"
               @view-flamegraph="openFlamegraphPicker"
@@ -326,6 +328,28 @@ const chips = computed<MetaChip[]>(() => {
     text: threads.size === 1 ? (threadName ?? 'unknown') : `${threads.size} threads`
   });
   result.push({ icon: 'diagram-2', text: trace.rootKind });
+
+  // What the trace carried beside its spans, counted in the header so a reader knows there is
+  // something on the rails before they look at them. Absent when there is nothing, rather than
+  // reported as zero: most traces say nothing and throw nothing, and two zeroes on every header
+  // would be noise.
+  const notifications = detail.value.notifications ?? [];
+  if (notifications.length > 0) {
+    result.push({
+      icon: 'chat-square-dots',
+      text: notifications.length === 1 ? '1 notification' : `${notifications.length} notifications`,
+      tone: 'strong'
+    });
+  }
+  const exceptions = detail.value.exceptions ?? [];
+  if (exceptions.length > 0) {
+    const escaped = exceptions.filter(exception => exception.escaped).length;
+    result.push({
+      icon: 'x-octagon',
+      text: exceptions.length === 1 ? '1 throw' : `${exceptions.length} throws`,
+      tone: escaped > 0 ? 'danger' : undefined
+    });
+  }
 
   // Which span decided the trace's duration -- the first thing worth knowing about a slow trace, and
   // not something the bars give up at a glance once there is any concurrency in them.

@@ -122,9 +122,73 @@ export interface EventFieldRow {
   contentType: string | null;
 }
 
+export type NotificationSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+
+/**
+ * One thing the application said while the trace was running -- a `jeffrey.Notification`.
+ *
+ * An instant, not a span: it has no duration and no place in the tree. It carries the ids of the
+ * span that was open when it fired, stamped onto the event at commit time, so this is what the
+ * recording said rather than what a thread-and-window guess inferred.
+ */
+export interface TraceNotificationRow {
+  /**
+   * The span it was raised in, or null when there is no bar to draw it against -- either no span
+   * was open, or the one it named is not in this profile. Both read the same way: it belongs to the
+   * trace, and the rail is the only place it can appear.
+   */
+  spanId: string | null;
+  /** Identifies it within the trace, so a rail mark can point the detail panel at one entry. */
+  notificationId: string;
+  startMillisFromBeginning: number;
+  /** The same microseconds a span start carries, so the rail and the bars share one axis. */
+  startEpochMicros: number;
+  /** A stable identifier for this kind of notification, e.g. `CONNECTION_POOL_EXHAUSTED`. */
+  type: string | null;
+  title: string | null;
+  message: string | null;
+  /** The whole of "how serious is this" -- there is no second event type for the serious ones. */
+  severity: NotificationSeverity | null;
+  category: string | null;
+  source: string | null;
+  threadHash: string;
+}
+
+/**
+ * One throw recorded inside the trace -- a `jdk.JavaExceptionThrow` or `jdk.JavaErrorThrow`.
+ *
+ * Unlike a notification, a throw carries no ids and needs none: it is always recorded on the thread
+ * that threw it, at the instant it threw, so the derivation attributes it to the innermost span
+ * whose window contains that instant on that thread.
+ */
+export interface TraceExceptionRow {
+  /** Never null: a throw with no containing span is not part of the trace and is not derived. */
+  spanId: string;
+  exceptionId: string;
+  startMillisFromBeginning: number;
+  startEpochMicros: number;
+  /** Which of the two throw events it came from, so an Error is told apart without guessing. */
+  eventType: string;
+  thrownClass: string;
+  message: string | null;
+  /**
+   * Whether this throw is why its span failed, decided by matching the thrown class against that
+   * span's own `errorType`. It is what lets a bare class name be shown with a message, an instant
+   * and a stack behind it. False for a throw caught inside the span, which is most of them.
+   */
+  escaped: boolean;
+  /** Null when the recording captured no stack, which is what decides whether one can be opened. */
+  stacktraceId: string | null;
+  threadHash: string;
+}
+
 export interface TraceDetail {
   trace: TraceRow;
   spans: TraceSpanRow[];
+  /** What the application said while the trace ran, oldest first. */
+  notifications: TraceNotificationRow[];
+  /** Every throw recorded inside the trace, oldest first, each already attributed to a span. */
+  exceptions: TraceExceptionRow[];
   /** Field metadata for the event types these spans came from, keyed by event type. */
   eventFields: Record<string, EventFieldRow[]>;
 }

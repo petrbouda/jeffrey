@@ -90,6 +90,46 @@
           I/O ops
           <span v-if="promotedIoCount === 0" class="wf-zero">0 events</span>
         </button>
+        <!--
+          The two instant families, each with its own switch for the same reason Blocking ops and
+          I/O ops have theirs: they answer different questions, so silencing one must not silence
+          the other.
+        -->
+        <button
+          type="button"
+          class="wf-switch-item"
+          :aria-pressed="showNotifications && notifications.length > 0"
+          :disabled="notifications.length === 0"
+          :title="
+            notifications.length === 0
+              ? 'This trace recorded no notifications'
+              : 'Show what the application said while this trace ran'
+          "
+          @click="showNotifications = !showNotifications"
+        >
+          <span
+            class="wf-switch"
+            :class="{ on: showNotifications && notifications.length > 0 }"
+          ></span>
+          Notifications
+          <span v-if="notifications.length === 0" class="wf-zero">0 events</span>
+        </button>
+        <button
+          type="button"
+          class="wf-switch-item"
+          :aria-pressed="showExceptions && exceptions.length > 0"
+          :disabled="exceptions.length === 0"
+          :title="
+            exceptions.length === 0
+              ? 'This trace recorded no throws'
+              : 'Show the throws recorded inside this trace'
+          "
+          @click="showExceptions = !showExceptions"
+        >
+          <span class="wf-switch" :class="{ on: showExceptions && exceptions.length > 0 }"></span>
+          Exceptions
+          <span v-if="exceptions.length === 0" class="wf-zero">0 events</span>
+        </button>
       </span>
       <!--
         Only when there is an error to jump to: in a 200-span trace the one red badge can sit three
@@ -154,6 +194,150 @@
         </span>
       </span>
       <span class="wf-duration">{{ laneTotal(lane.bands) }}</span>
+    </div>
+
+
+    <!--
+      One rail per instant family, above the span rows and outside them. Nothing that rearranges the
+      rows can take a mark away: fold a subtree, filter to the critical path, draw a span at the
+      minimum bar width, and the rail is unchanged. That is the whole reason it exists, and it is
+      what lets the pins on the bars be the *other* half of the reading rather than the only one.
+
+      A mark is a shape before it is a colour -- a diamond for what the application said, a cross
+      for what was thrown at it -- because a CRITICAL notification and an escaped throw are both red
+      and mean entirely different things.
+    -->
+    <div v-if="showNotifications && notificationMarks.length > 0" class="wf-lane wf-rail">
+      <span class="lane-label">
+        <span class="lane-name">
+          <i class="rail-glyph ntf" :style="{ background: severityColor(worstNotificationSeverity) }"></i>
+          Notifications
+        </span>
+        <span class="lane-stat">
+          <template v-if="worstNotificationSeverity !== null">
+            {{ severityLabel(worstNotificationSeverity).toLowerCase() }} &middot;
+          </template>
+          {{ notificationMarks.length }}&times;
+        </span>
+      </span>
+      <span class="lane-track">
+        <span class="rail-rule"></span>
+        <button
+          v-for="mark in notificationMarks"
+          :key="mark.entry.notificationId"
+          type="button"
+          class="rail-mark ntf"
+          :class="{ open: openEntryId === mark.entry.notificationId }"
+          :style="{ left: mark.leftPercent + '%', '--mark': mark.color }"
+          :title="`${mark.entry.title ?? mark.entry.type ?? 'Notification'} — ${offsetIntoTrace(mark.entry.startEpochMicros)}`"
+          @click="toggleEntry(mark.entry.notificationId)"
+        ></button>
+
+        <!--
+          The popover opens upward, over the toolbar and the pause lanes. Opening downward buries
+          the exception rail, the scale and the first rows -- the drawing the reader is here for.
+          Whatever it hides should be something they are not using.
+        -->
+        <div
+          v-if="openNotification !== null"
+          class="rail-pop up"
+          :style="{
+            left: offsetPercent(openNotification.startEpochMicros, traceWindow(spans)) + '%',
+            '--mark': severityColor(openNotification.severity)
+          }"
+        >
+          <div class="pop-head">
+            <span class="pop-sev">{{ severityLabel(openNotification.severity) }}</span>
+            <span class="pop-type">{{ openNotification.type }}</span>
+            <span class="pop-at">{{ offsetIntoTrace(openNotification.startEpochMicros) }}</span>
+          </div>
+          <p class="pop-title">{{ openNotification.title ?? openNotification.type }}</p>
+          <p v-if="openNotification.message" class="pop-body">{{ openNotification.message }}</p>
+          <p class="pop-meta">
+            <span v-if="openNotification.category">{{ openNotification.category }}</span>
+            <span v-if="openNotification.source">{{ openNotification.source }}</span>
+          </p>
+          <!--
+            The bridge from the fast read to the slow one: the popover answers "what did it say",
+            this opens the span where the same entry sits beside everything else it carries.
+          -->
+          <button
+            v-if="openNotification.spanId !== null"
+            type="button"
+            class="pop-link"
+            @click="selectSpanOf(openNotification.spanId)"
+          >
+            <i class="bi bi-arrow-return-right"></i>
+            Select {{ spanNameOf(openNotification.spanId) }}
+          </button>
+          <p v-else class="pop-orphan">
+            No span was open when this fired, so there is no bar to select.
+          </p>
+        </div>
+      </span>
+      <span class="wf-duration">{{ notificationMarks.length }}</span>
+    </div>
+
+    <div v-if="showExceptions && exceptionMarks.length > 0" class="wf-lane wf-rail">
+      <span class="lane-label">
+        <span class="lane-name">
+          <i
+            class="rail-glyph exc"
+            :style="{ background: exceptionColor(escapedExceptionCount > 0) }"
+          ></i>
+          Exceptions
+        </span>
+        <span class="lane-stat">
+          <template v-if="escapedExceptionCount > 0">
+            {{ escapedExceptionCount }} escaped &middot;
+          </template>
+          {{ exceptionMarks.length }}&times;
+        </span>
+      </span>
+      <span class="lane-track">
+        <span class="rail-rule"></span>
+        <button
+          v-for="mark in exceptionMarks"
+          :key="mark.entry.exceptionId"
+          type="button"
+          class="rail-mark exc"
+          :class="{ open: openEntryId === mark.entry.exceptionId, escaped: mark.entry.escaped }"
+          :style="{ left: mark.leftPercent + '%', '--mark': mark.color }"
+          :title="`${mark.entry.thrownClass} — ${offsetIntoTrace(mark.entry.startEpochMicros)}`"
+          @click="toggleEntry(mark.entry.exceptionId)"
+        ></button>
+
+        <!--
+          Downward here, not upward: the notification rail sits directly above this one, and a
+          popover that covers another rail is worse than one that covers a few bars.
+        -->
+        <div
+          v-if="openException !== null"
+          class="rail-pop down"
+          :style="{
+            left: offsetPercent(openException.startEpochMicros, traceWindow(spans)) + '%',
+            '--mark': exceptionColor(openException.escaped)
+          }"
+        >
+          <div class="pop-head">
+            <Badge
+              v-if="openException.escaped"
+              variant="danger"
+              size="xs"
+              value="escaped"
+            />
+            <span v-else class="pop-sev">Caught</span>
+            <span class="pop-at">{{ offsetIntoTrace(openException.startEpochMicros) }}</span>
+          </div>
+          <p class="pop-title mono">{{ openException.thrownClass }}</p>
+          <p v-if="openException.message" class="pop-body">{{ openException.message }}</p>
+          <button type="button" class="pop-link" @click="selectSpanOf(openException.spanId)">
+            <i class="bi bi-arrow-return-right"></i>
+            Select {{ spanNameOf(openException.spanId) }}
+          </button>
+        </div>
+      </span>
+      <span class="wf-duration">{{ exceptionMarks.length }}</span>
     </div>
 
     <div class="wf-head">
@@ -356,6 +540,31 @@
             <span class="wf-kind" :class="kindClass(span)" :style="kindStyle(span)"></span>
             <span class="wf-label" :title="span.name">{{ span.name }}</span>
             <Badge v-if="span.status === 'ERROR'" variant="danger" size="xs" value="error" />
+            <!--
+              What this span itself carries, coloured by the worst of it. Its own entries stay
+              pinned to its bar whether or not it is folded -- folding hides a span's children, not
+              the span -- so this count never changes as the tree opens and closes.
+            -->
+            <span
+              v-if="showNotifications && (notificationsBySpan.get(span.spanId)?.length ?? 0) > 0"
+              class="wf-count ntf"
+              :style="{
+                '--mark': severityColor(worstSeverity(notificationsBySpan.get(span.spanId) ?? []))
+              }"
+              :title="notificationCountTitle(span)"
+            >
+              {{ notificationsBySpan.get(span.spanId)!.length }}
+            </span>
+            <span
+              v-if="showExceptions && (exceptionsBySpan.get(span.spanId)?.length ?? 0) > 0"
+              class="wf-count exc"
+              :style="{
+                '--mark': exceptionColor(anyEscaped(exceptionsBySpan.get(span.spanId) ?? []))
+              }"
+              :title="exceptionCountTitle(span)"
+            >
+              {{ exceptionsBySpan.get(span.spanId)!.length }}
+            </span>
             <span v-if="collapsed.has(span.spanId)" class="wf-folded">
               +{{ foldedCounts.get(span.spanId) ?? 0 }}
             </span>
@@ -365,6 +574,33 @@
               class="wf-folded-error"
               :title="hiddenErrorTitle(span)"
             ></i>
+            <!--
+              And a fold that swallows instants has to say so too, for the same reason: their pins
+              went into the fold with their spans, and only the rail still shows them. Drawn hollow,
+              so what is hidden never reads as what is here.
+            -->
+            <span
+              v-if="
+                showNotifications &&
+                collapsed.has(span.spanId) &&
+                (foldedNotificationCounts.get(span.spanId) ?? 0) > 0
+              "
+              class="wf-count ntf folded"
+              :title="`${foldedNotificationCounts.get(span.spanId)} notifications are inside this fold`"
+            >
+              {{ foldedNotificationCounts.get(span.spanId) }}
+            </span>
+            <span
+              v-if="
+                showExceptions &&
+                collapsed.has(span.spanId) &&
+                (foldedExceptionCounts.get(span.spanId) ?? 0) > 0
+              "
+              class="wf-count exc folded"
+              :title="`${foldedExceptionCounts.get(span.spanId)} throws are inside this fold`"
+            >
+              {{ foldedExceptionCounts.get(span.spanId) }}
+            </span>
           </span>
 
           <span class="wf-track">
@@ -381,6 +617,38 @@
                 :style="{ left: segment.leftPercent + '%', width: segment.widthPercent + '%' }"
               ></span>
             </span>
+
+            <!--
+              The other half of the rail's reading: the same instants, on the bar that raised them.
+              Positioned against the whole track rather than the bar, so a pin and its rail mark sit
+              at the same x and the two readings visibly line up.
+
+              Inert to the pointer -- the row underneath is the click target, and it opens the panel
+              where these are listed in full. A pin is a mark, not a control.
+            -->
+            <template v-if="showNotifications">
+              <span
+                v-for="notification in notificationsBySpan.get(span.spanId) ?? []"
+                :key="notification.notificationId"
+                class="wf-pin ntf"
+                :style="{
+                  left: offsetPercent(notification.startEpochMicros, traceWindow(spans)) + '%',
+                  '--mark': severityColor(notification.severity)
+                }"
+              ></span>
+            </template>
+            <template v-if="showExceptions">
+              <span
+                v-for="exception in exceptionsBySpan.get(span.spanId) ?? []"
+                :key="exception.exceptionId"
+                class="wf-pin exc"
+                :class="{ escaped: exception.escaped }"
+                :style="{
+                  left: offsetPercent(exception.startEpochMicros, traceWindow(spans)) + '%',
+                  '--mark': exceptionColor(exception.escaped)
+                }"
+              ></span>
+            </template>
           </span>
 
           <span class="wf-duration">{{
@@ -400,6 +668,8 @@
           :child-count="childCounts.get(span.spanId) ?? 0"
           :trace-duration-nanos="traceDurationNanos ?? windowNanos"
           :waits="context?.spanWaits?.[span.spanId] ?? []"
+          :notifications="notificationsBySpan.get(span.spanId) ?? []"
+          :exceptions="exceptionsBySpan.get(span.spanId) ?? []"
           @view-events="$emit('viewEvents')"
           @view-flamegraph="$emit('viewFlamegraph')"
         />
@@ -457,6 +727,8 @@ import TraceSpanInlineDetail from '@/components/trace/TraceSpanInlineDetail.vue'
 import type {
   EventFieldRow,
   TraceContext,
+  TraceExceptionRow,
+  TraceNotificationRow,
   TraceSpanRow
 } from '@/services/api/model/trace/TraceModels';
 import type { SpanBar } from '@/services/trace/TraceWaterfallLayout';
@@ -469,7 +741,22 @@ import {
   contextBands,
   mergedDurationNanos
 } from '@/services/trace/TraceContextBands';
-import { contextColor, contextLabel, isIoCategory, promotedCategory } from '@/services/trace/traceLabels';
+import {
+  contextColor,
+  contextLabel,
+  exceptionColor,
+  isIoCategory,
+  promotedCategory,
+  severityColor,
+  severityLabel
+} from '@/services/trace/traceLabels';
+import {
+  anyEscaped,
+  bySpan,
+  descendantEntryCounts,
+  offsetPercent,
+  worstSeverity
+} from '@/services/trace/traceEntries';
 
 const props = withDefaults(
   defineProps<{
@@ -493,8 +780,19 @@ const props = withDefaults(
      * using both meant one span's share read as two different percentages in the same dialog.
      */
     traceDurationNanos?: number | null;
+    /** What the application said while the trace ran, oldest first. */
+    notifications?: TraceNotificationRow[];
+    /** Every throw recorded inside the trace, oldest first, each attributed to a span. */
+    exceptions?: TraceExceptionRow[];
   }>(),
-  { selectedSpanId: null, context: null, contextState: 'ready', traceDurationNanos: null }
+  {
+    selectedSpanId: null,
+    context: null,
+    contextState: 'ready',
+    traceDurationNanos: null,
+    notifications: () => [],
+    exceptions: () => []
+  }
 );
 
 const emit = defineEmits<{
@@ -502,6 +800,136 @@ const emit = defineEmits<{
   (event: 'viewEvents'): void;
   (event: 'viewFlamegraph'): void;
 }>();
+
+/*
+ * ---------------------------------------------------------------------------------------------
+ * The two rails.
+ *
+ * Notifications and exceptions are instants, not spans, so they are drawn twice on purpose: once
+ * on a rail above the rows, which folding, the critical-path filter and a two-millisecond span
+ * cannot take away, and once as a pin on the bar they belong to, which is the only place that says
+ * *which* span. Neither reading works alone -- the rail cannot say which span, the pin disappears
+ * into a fold -- and each one covers the other's blind spot.
+ *
+ * They are split into two families for the same reason Blocking ops and I/O ops are: "what the
+ * application said" and "what was thrown at it" are different suspicions, so hiding one must not
+ * take the other down with it.
+ */
+
+const showNotifications = ref(true);
+const showExceptions = ref(true);
+
+const notificationMarks = computed(() =>
+  props.notifications.map(notification => ({
+    entry: notification,
+    leftPercent: offsetPercent(notification.startEpochMicros, traceWindow(props.spans)),
+    color: severityColor(notification.severity)
+  }))
+);
+
+const exceptionMarks = computed(() =>
+  props.exceptions.map(exception => ({
+    entry: exception,
+    leftPercent: offsetPercent(exception.startEpochMicros, traceWindow(props.spans)),
+    color: exceptionColor(exception.escaped)
+  }))
+);
+
+const notificationsBySpan = computed(() => bySpan(props.notifications));
+const exceptionsBySpan = computed(() => bySpan(props.exceptions));
+
+/** What a fold swallowed, so a collapsed row can say it the way it already says +N and a red dot. */
+const foldedNotificationCounts = computed(() =>
+  descendantEntryCounts(props.spans, props.notifications)
+);
+const foldedExceptionCounts = computed(() => descendantEntryCounts(props.spans, props.exceptions));
+
+const worstNotificationSeverity = computed(() => worstSeverity(props.notifications));
+
+const escapedExceptionCount = computed(
+  () => props.exceptions.filter(exception => exception.escaped).length
+);
+
+/**
+ * The entry whose popover is open, by id. One at a time: it is a third surface inside a fullscreen
+ * dialog, and two of them open at once would be a fourth.
+ */
+const openEntryId = ref<string | null>(null);
+
+const openNotification = computed(
+  () =>
+    props.notifications.find(
+      notification => notification.notificationId === openEntryId.value
+    ) ?? null
+);
+
+const openException = computed(
+  () => props.exceptions.find(exception => exception.exceptionId === openEntryId.value) ?? null
+);
+
+function toggleEntry(entryId: string): void {
+  openEntryId.value = openEntryId.value === entryId ? null : entryId;
+}
+
+/**
+ * The popover's footer: the bridge from the fast read to the slow one. Selecting the span opens its
+ * detail panel underneath, where the same entry is listed with everything else the span carries.
+ */
+function selectSpanOf(spanId: string | null): void {
+  openEntryId.value = null;
+  if (spanId === null) {
+    return;
+  }
+  const span = props.spans.find(candidate => candidate.spanId === spanId);
+  if (span === undefined) {
+    return;
+  }
+  // Unfold everything hiding it first, or selecting a span inside a collapsed subtree opens a
+  // detail panel for a row that is not on screen.
+  revealSpan(span);
+  emit('select', span);
+}
+
+/** Opens every ancestor of a span, so a row reached from a rail is actually visible. */
+function revealSpan(span: TraceSpanRow): void {
+  const byId = new Map(props.spans.map(candidate => [candidate.spanId, candidate]));
+  const next = new Set(collapsed.value);
+  let parentId = span.parentSpanId;
+  while (parentId !== null) {
+    next.delete(parentId);
+    parentId = byId.get(parentId)?.parentSpanId ?? null;
+  }
+  collapsed.value = next;
+}
+
+function notificationCountTitle(span: TraceSpanRow): string {
+  const entries = notificationsBySpan.value.get(span.spanId) ?? [];
+  const worst = worstSeverity(entries);
+  const count = entries.length === 1 ? '1 notification' : `${entries.length} notifications`;
+  return worst === null
+    ? `${count} in this span`
+    : `${count} in this span, worst ${severityLabel(worst).toLowerCase()}`;
+}
+
+function exceptionCountTitle(span: TraceSpanRow): string {
+  const entries = exceptionsBySpan.value.get(span.spanId) ?? [];
+  const count = entries.length === 1 ? '1 throw' : `${entries.length} throws`;
+  return anyEscaped(entries)
+    ? `${count} in this span, one of which escaped it`
+    : `${count} in this span, all caught`;
+}
+
+function spanNameOf(spanId: string | null): string | null {
+  if (spanId === null) {
+    return null;
+  }
+  return props.spans.find(span => span.spanId === spanId)?.name ?? null;
+}
+
+function offsetIntoTrace(startEpochMicros: number): string {
+  const micros = Math.max(0, startEpochMicros - traceWindow(props.spans).startMicros);
+  return '+' + FormattingService.formatDuration2Units(micros * NANOS_PER_MICRO);
+}
 
 /** A span with no geometry cannot happen for a span that is being drawn, but must not throw. */
 const EMPTY_BAR: SpanBar = { leftPercent: 0, widthPercent: 0, selfSegments: [] };
@@ -1649,6 +2077,286 @@ function tooltip(span: TraceSpanRow): string {
 }
 
 /* The dot that says a fold is hiding a failure — visible at a glance, explained on hover. */
+/*
+ * ---------------------------------------------------------------------------------------------
+ * The instant rails, their pins and their popovers.
+ *
+ * Shape carries the family before colour does: a notification is a diamond, a throw is a cross, a
+ * pause is a band. That is what keeps the severity ramp survivable while it shares danger with the
+ * GC lane and warning with the critical-path marker.
+ */
+.wf-rail .lane-track {
+  height: 1.15rem;
+}
+
+.rail-glyph {
+  width: 0.45rem;
+  height: 0.45rem;
+  flex: none;
+  display: inline-block;
+}
+
+.rail-glyph.ntf {
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+
+.rail-glyph.exc {
+  border-radius: var(--radius-circle);
+}
+
+/* The rail's own hairline, so a mark sits on something rather than floating in the gap. */
+.rail-rule {
+  position: absolute;
+  inset: 50% 0 auto 0;
+  height: 1px;
+  background: var(--color-border-light);
+}
+
+.rail-mark {
+  position: absolute;
+  top: 50%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.rail-mark.ntf {
+  width: 0.55rem;
+  height: 0.55rem;
+  margin: -0.275rem 0 0 -0.275rem;
+  border-radius: 1px;
+  background: var(--mark);
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 2px var(--color-bg-card);
+}
+
+.rail-mark.exc {
+  width: 0.7rem;
+  height: 0.7rem;
+  margin: -0.35rem 0 0 -0.35rem;
+}
+
+.rail-mark.exc::before,
+.rail-mark.exc::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1.5px;
+  margin-left: -0.75px;
+  border-radius: 1px;
+  background: var(--mark);
+}
+
+.rail-mark.exc::before {
+  transform: rotate(45deg);
+}
+
+.rail-mark.exc::after {
+  transform: rotate(-45deg);
+}
+
+/* An escaped throw is the reason a span failed, so it is drawn as heavily as that fact deserves. */
+.rail-mark.exc.escaped::before,
+.rail-mark.exc.escaped::after {
+  width: 2px;
+  margin-left: -1px;
+}
+
+.rail-mark:focus-visible,
+.rail-mark.open {
+  outline: 2px solid var(--color-dark);
+  outline-offset: 2px;
+}
+
+/*
+ * A pin is the same instant on the bar that raised it. Positioned against the track, not the bar,
+ * so it shares an x with its rail mark and the two readings line up down the column.
+ *
+ * Inert to the pointer: the row is the click target, and the panel it opens lists these in full.
+ */
+.wf-pin {
+  position: absolute;
+  top: 0;
+  height: 1.1rem;
+  width: 7px;
+  margin-left: -3.5px;
+  pointer-events: none;
+}
+
+.wf-pin::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0.35rem;
+  bottom: 0.1rem;
+  width: 1px;
+  background: var(--mark);
+  opacity: 0.75;
+}
+
+.wf-pin::after {
+  content: '';
+  position: absolute;
+  left: 0.5px;
+  top: 0.1rem;
+  width: 6px;
+  height: 6px;
+  background: var(--mark);
+  box-shadow: 0 0 0 1.5px var(--color-bg-card);
+}
+
+.wf-pin.ntf::after {
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+
+.wf-pin.exc::after {
+  border-radius: var(--radius-circle);
+}
+
+.wf-pin.exc.escaped::after {
+  width: 7px;
+  height: 7px;
+  left: 0;
+}
+
+.wf-count {
+  flex: none;
+  padding: 0 0.3rem;
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--mark) 14%, transparent);
+  color: var(--mark);
+  font-size: 0.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * What a fold swallowed, drawn hollow beside the +N count and the hidden-error dot -- the same
+ * place and the same job. Hollow so it never reads as what this span itself carries.
+ */
+.wf-count.folded {
+  background: transparent;
+  border: 1px dashed var(--mark);
+  color: var(--color-text-muted);
+  --mark: var(--color-text-light);
+}
+
+/*
+ * The fast read. Anchored on its own mark and pulled most of its width to the left, so a mark near
+ * the right edge cannot push the panel over the Duration column.
+ */
+.rail-pop {
+  position: absolute;
+  z-index: 6;
+  width: 22rem;
+  max-width: 60vw;
+  padding: 0.55rem 0.7rem 0.6rem;
+  transform: translateX(-70%);
+  border: 1px solid var(--color-border-input);
+  border-left: 3px solid var(--mark);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-lg);
+  text-align: left;
+  cursor: default;
+}
+
+.rail-pop.up {
+  bottom: 1.35rem;
+}
+
+.rail-pop.down {
+  top: 1.35rem;
+}
+
+.pop-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.2rem;
+}
+
+.pop-sev {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mark);
+}
+
+.pop-type,
+.pop-at {
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.pop-at {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.pop-title {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--color-dark);
+  line-height: 1.3;
+}
+
+.pop-title.mono {
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.pop-body {
+  margin-top: 0.2rem;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.pop-meta {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.pop-link {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+  padding: 0.3rem 0 0;
+  border: 0;
+  border-top: 1px solid var(--color-border-light);
+  background: transparent;
+  color: var(--color-primary);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+
+.pop-orphan {
+  margin-top: 0.4rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid var(--color-border-light);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
 .wf-folded-error {
   flex: none;
   width: 0.4rem;

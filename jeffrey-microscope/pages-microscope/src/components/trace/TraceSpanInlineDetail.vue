@@ -204,6 +204,90 @@
       </section>
 
       <!--
+        What the span said, and what was thrown at it. Both regions carry their accent on the left
+        edge of the region rather than on the severe row inside it: the panel announces what it
+        holds before a row is read. The colour is derived from the worst entry each holds, so a
+        panel of LOW notes stays quiet and one holding a CRITICAL does not.
+
+        The severe row keeps only its tint. Drawing the edge on both would say the same thing twice
+        while a panel with one severe row among four still could not say which.
+      -->
+      <section
+        v-if="notifications.length > 0"
+        class="sd-region is-ntf"
+        :style="{ '--edge': notificationEdge }"
+      >
+        <header>
+          Notifications
+          <span class="sd-src">{{ notifications.length }} &middot; jeffrey.Notification</span>
+        </header>
+        <div class="sd-region-body">
+          <div
+            v-for="notification in notifications"
+            :key="notification.notificationId"
+            class="sd-entry"
+            :class="{ severe: notification.severity === 'CRITICAL' }"
+            :style="{ '--entry': severityColor(notification.severity) }"
+          >
+            <span class="sd-entry-at">{{ offsetInSpan(notification.startEpochMicros) }}</span>
+            <span class="sd-entry-sev">{{ severityLabel(notification.severity) }}</span>
+            <span class="sd-entry-main">
+              <span class="sd-entry-title">{{ notification.title ?? notification.type }}</span>
+              <span v-if="notification.message" class="sd-entry-text">{{
+                notification.message
+              }}</span>
+              <span class="sd-entry-foot">
+                <template v-if="notification.type">{{ notification.type }}</template>
+                <template v-if="notification.category">
+                  &middot; {{ notification.category }}</template
+                >
+                <template v-if="notification.source"> &middot; {{ notification.source }}</template>
+              </span>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section
+        v-if="exceptions.length > 0"
+        class="sd-region is-exc"
+        :style="{ '--edge': exceptionEdge }"
+      >
+        <header>
+          Exceptions
+          <span class="sd-src">{{ exceptions.length }} &middot; {{ exceptionSources }}</span>
+        </header>
+        <div class="sd-region-body">
+          <div
+            v-for="exception in exceptions"
+            :key="exception.exceptionId"
+            class="sd-entry is-exc-entry"
+            :class="{ severe: exception.escaped }"
+            :style="{ '--entry': exceptionColor(exception.escaped) }"
+          >
+            <span class="sd-entry-at">{{ offsetInSpan(exception.startEpochMicros) }}</span>
+            <span class="sd-entry-main">
+              <span class="sd-entry-class">{{ exception.thrownClass }}</span>
+              <span v-if="exception.message" class="sd-entry-text">{{ exception.message }}</span>
+              <span class="sd-entry-foot">
+                <!--
+                  The one that escaped is why the span failed, which the header already states as a
+                  bare class name. Saying so here is what gives that badge a message and an instant.
+                -->
+                <Badge
+                  v-if="exception.escaped"
+                  variant="danger"
+                  size="xs"
+                  value="escaped this span"
+                />
+                <template v-else>caught</template>
+              </span>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!--
         Said plainly rather than left blank: a hand-written span that passed no attributes is the
         ordinary case, not a sign that the panel failed to load.
       -->
@@ -215,16 +299,26 @@
 </template>
 
 <script setup lang="ts">
-import { NANOS_PER_MILLI } from '@/services/trace/timeUnits';
+import { NANOS_PER_MICRO, NANOS_PER_MILLI } from '@/services/trace/timeUnits';
 import { computed } from 'vue';
 import Badge from '@shared/components/Badge.vue';
 import FormattingService from '@shared/services/FormattingService';
 import type {
   EventFieldRow,
   TraceContextSlice,
+  TraceExceptionRow,
+  TraceNotificationRow,
   TraceSpanRow
 } from '@/services/api/model/trace/TraceModels';
-import { contextColor, contextLabel, spanKindVariant } from '@/services/trace/traceLabels';
+import {
+  contextColor,
+  contextLabel,
+  exceptionColor,
+  severityColor,
+  severityLabel,
+  spanKindVariant
+} from '@/services/trace/traceLabels';
+import { anyEscaped, worstSeverity } from '@/services/trace/traceEntries';
 import type { SpanDetailRow } from '@/services/trace/spanAttributes';
 import { spanDetail } from '@/services/trace/spanAttributes';
 import { indentRem } from '@/services/trace/TraceWaterfallLayout';
@@ -254,7 +348,37 @@ const props = defineProps<{
    * an empty section claiming the span never waited.
    */
   waits?: TraceContextSlice[];
+  /**
+   * What this span said while it ran, oldest first. Empty is the common case and draws nothing:
+   * most spans say nothing at all, and an empty section claiming so would be noise on every one.
+   */
+  notifications?: TraceNotificationRow[];
+  /** Every throw recorded inside this span, oldest first. Empty draws nothing, for the same reason. */
+  exceptions?: TraceExceptionRow[];
 }>();
+
+const notifications = computed(() => props.notifications ?? []);
+const exceptions = computed(() => props.exceptions ?? []);
+
+/**
+ * The colour each region's left edge takes: the worst thing that region holds. Derived from the
+ * same list the rows are drawn from, so the edge and the rows cannot disagree -- and derived rather
+ * than hard-coded, so a panel holding only LOW notes does not shout in critical red.
+ */
+const notificationEdge = computed(() => severityColor(worstSeverity(notifications.value)));
+const exceptionEdge = computed(() => exceptionColor(anyEscaped(exceptions.value)));
+
+/** How long after the span opened an instant landed. The offsets everything in these regions uses. */
+function offsetInSpan(startEpochMicros: number): string {
+  const micros = Math.max(0, startEpochMicros - props.span.startEpochMicros);
+  return '+' + FormattingService.formatDuration2Units(micros * NANOS_PER_MICRO);
+}
+
+/** The event type each region labels itself with, when every entry in it came from the same one. */
+const exceptionSources = computed(() => {
+  const types = new Set(exceptions.value.map(exception => exception.eventType));
+  return [...types].join(' · ');
+});
 
 defineEmits<{
   (event: 'viewEvents'): void;
@@ -759,6 +883,102 @@ function percent(part: number, whole: number): string {
   white-space: pre;
   max-height: 14rem;
   overflow-y: auto;
+}
+
+/*
+ * The two entry regions. Every .sd-region already carries a 3px left edge -- these two just take
+ * their colour from the worst thing they hold instead of the primary accent, which is what makes
+ * the panel say "there is something critical in here" before a row is read.
+ */
+.sd-region.is-ntf,
+.sd-region.is-exc {
+  border-left-color: var(--edge);
+}
+
+.sd-region.is-ntf > header,
+.sd-region.is-exc > header {
+  background: color-mix(in srgb, var(--edge) 8%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--edge) 22%, transparent);
+  color: var(--edge);
+}
+
+.sd-entry {
+  display: grid;
+  grid-template-columns: 4.5rem 4.5rem 1fr;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.4rem 0.5rem;
+  margin: 0 -0.5rem;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+/* A throw has no severity column: it has two states, and the row says which in its own footer. */
+.sd-entry.is-exc-entry {
+  grid-template-columns: 4.5rem 1fr;
+}
+
+.sd-entry:last-child {
+  border-bottom: 0;
+}
+
+/*
+ * Only the tint. The left edge belongs to the region -- drawing it here too would say the same
+ * thing twice, and a panel holding four severe rows still could not say which one mattered.
+ */
+.sd-entry.severe {
+  background: color-mix(in srgb, var(--entry) 8%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.sd-entry-at {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.sd-entry-sev {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--entry);
+}
+
+.sd-entry-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.sd-entry-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-dark);
+}
+
+.sd-entry-class {
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-dark);
+  overflow-wrap: anywhere;
+}
+
+.sd-entry-text {
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.sd-entry-foot {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 }
 
 .sd-none {

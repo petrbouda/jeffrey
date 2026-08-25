@@ -22,6 +22,8 @@ import cafe.jeffrey.profile.manager.model.trace.EventFieldRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceContextSlice;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TraceExceptionRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceNotificationRow;
 import cafe.jeffrey.profile.manager.model.trace.TracePause;
 import cafe.jeffrey.profile.manager.model.trace.TraceEventRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
@@ -48,6 +50,8 @@ import cafe.jeffrey.provider.profile.api.TracePage;
 import cafe.jeffrey.provider.profile.api.TraceContextCategory;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
+import cafe.jeffrey.provider.profile.api.TraceExceptionRecord;
+import cafe.jeffrey.provider.profile.api.TraceNotificationRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import cafe.jeffrey.provider.profile.api.TraceTimelineBucketRecord;
@@ -159,7 +163,12 @@ public class TraceManagerImpl implements TraceManager {
         // truncated span bounds made the same trace report one duration in the list and a shorter
         // one in its own detail.
         return traceRepository.summaryOf(traceId)
-                .map(summary -> new TraceDetail(toRow(summary), assemble(spans), eventFieldsOf(spans)));
+                .map(summary -> new TraceDetail(
+                        toRow(summary),
+                        assemble(spans),
+                        traceRepository.notificationsOf(traceId).stream().map(TraceManagerImpl::toRow).toList(),
+                        traceRepository.exceptionsOf(traceId).stream().map(TraceManagerImpl::toRow).toList(),
+                        eventFieldsOf(spans)));
     }
 
     /**
@@ -800,6 +809,37 @@ public class TraceManagerImpl implements TraceManager {
      * Ids cross the wire as 16-char hex: a 64-bit value exceeds JavaScript's safe integer range, and
      * hex is also how every other tracer renders them.
      */
+    private static TraceNotificationRow toRow(TraceNotificationRecord notification) {
+        Long spanId = notification.spanId();
+        return new TraceNotificationRow(
+                spanId == null ? null : toHex(spanId),
+                toHex(notification.notificationId()),
+                notification.startMillisFromBeginning(),
+                notification.startEpochMicros(),
+                notification.type(),
+                notification.title(),
+                notification.message(),
+                notification.severity(),
+                notification.category(),
+                notification.source(),
+                toHex(notification.threadHash()));
+    }
+
+    private static TraceExceptionRow toRow(TraceExceptionRecord exception) {
+        Long stacktraceHash = exception.stacktraceHash();
+        return new TraceExceptionRow(
+                toHex(exception.spanId()),
+                toHex(exception.exceptionId()),
+                exception.startMillisFromBeginning(),
+                exception.startEpochMicros(),
+                exception.eventType(),
+                exception.thrownClass(),
+                exception.message(),
+                exception.escaped(),
+                stacktraceHash == null ? null : toHex(stacktraceHash),
+                toHex(exception.threadHash()));
+    }
+
     private static String toHex(long id) {
         return TraceIds.hex(id);
     }
