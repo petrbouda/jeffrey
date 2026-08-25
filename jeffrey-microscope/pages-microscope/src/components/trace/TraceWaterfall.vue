@@ -695,7 +695,6 @@
           :span="span"
           :fields="eventFields[span.eventType] ?? []"
           :child-count="childCounts.get(span.spanId) ?? 0"
-          :trace-duration-nanos="traceDurationNanos ?? windowNanos"
           :waits="context?.spanWaits?.[span.spanId] ?? []"
           :notifications="notificationsBySpan.get(span.spanId) ?? []"
           :exceptions="exceptionsBySpan.get(span.spanId) ?? []"

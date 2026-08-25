@@ -45,9 +45,24 @@
       >
         <i class="bi bi-link-45deg"></i> promoted from {{ span.eventType }}
       </span>
-      <p class="sd-vitals">
-        <strong>{{ FormattingService.formatDuration2Units(span.durationNanos) }}</strong>
-      </p>
+      <!--
+        The span's two numbers in the app's own metric vocabulary: Badge in key/value mode, the
+        same call shape TraceOperationList and the other metric rows use, down to the variants —
+        a duration is `info` there and a count is `secondary`.
+      -->
+      <Badge
+        key-label="Duration"
+        :value="FormattingService.formatDuration2Units(span.durationNanos)"
+        variant="info"
+        size="s"
+        borderless
+      />
+      <!--
+        The count carries what a sentence used to: zero is a leaf, and a count beside a legend
+        reading "all of it its own" says the children ran on other threads rather than inside this
+        span. The bar alone cannot tell those two apart.
+      -->
+      <Badge key-label="Children" :value="childCount" variant="secondary" size="s" borderless />
       <div class="sd-actions">
         <button type="button" class="sd-btn" @click="$emit('viewEvents')">
           <i class="bi bi-list-ul"></i> Events in span
@@ -86,22 +101,6 @@
             </div>
 
             <!--
-              The critical path is a different question from the meter above it -- not "where did
-              this span's time go" but "did this span decide how long the trace took" -- so it gets
-              its own line rather than a third slice of a bar that is already fully accounted for.
-            -->
-            <p class="sd-crit" :class="{ off: span.criticalPathNanos === 0 }">
-              <i
-                :class="span.criticalPathNanos > 0 ? 'bi bi-signpost-split-fill' : 'bi bi-signpost'"
-              ></i>
-              <span v-if="span.criticalPathNanos > 0">
-                <b>{{ FormattingService.formatDuration2Units(span.criticalPathNanos) }}</b>
-                on the critical path{{ criticalShareOfTrace }}
-              </span>
-              <span v-else> not on the critical path — it ran beside work that outlasted it </span>
-            </p>
-
-            <!--
               What the thread was waiting on inside this span. Sits under the meter because it
               explains the solid green rather than competing with it: self time says how much was
               the span's own, this says how much of that was spent not running.
@@ -112,13 +111,6 @@
                 {{ contextLabel(wait.category) }}
                 <b>{{ FormattingService.formatDuration2Units(wait.totalNanos) }}</b>
               </span>
-            </p>
-
-            <p class="sd-foot">
-              <span>{{ shape }}</span>
-              <span
-                >started <b>{{ startedAt }}</b> into the recording</span
-              >
             </p>
           </div>
         </section>
@@ -348,7 +340,7 @@
 </template>
 
 <script setup lang="ts">
-import { NANOS_PER_MICRO, NANOS_PER_MILLI } from '@/services/trace/timeUnits';
+import { NANOS_PER_MICRO } from '@/services/trace/timeUnits';
 import { computed, ref } from 'vue';
 import Badge from '@shared/components/Badge.vue';
 import TraceStackTrace from '@/components/trace/TraceStackTrace.vue';
@@ -386,12 +378,6 @@ const props = defineProps<{
    * thread has no child time to show and is still not a leaf.
    */
   childCount: number;
-  /**
-   * The trace's end-to-end duration, only so the span's critical-path share can be stated as a
-   * percentage. Zero when the caller has nothing to compare against, which drops the percentage
-   * rather than dividing by it.
-   */
-  traceDurationNanos?: number;
   /**
    * What this span's thread spent waiting on, longest first. Empty for a span that only ever ran —
    * and also before the context request lands, which is why its absence draws nothing rather than
@@ -484,30 +470,10 @@ const selfLegend = computed(() => {
   return `its own · ${percent(props.span.selfDurationNanos, props.span.durationNanos)}`;
 });
 
-/**
- * What kind of span this is, said in words the bar cannot. The forked case is called out because a
- * full green bar would otherwise read as "a leaf" for a span that has children — they simply ran
- * somewhere else, and none of this span's time went into them.
- */
-const shape = computed(() => {
-  if (props.childCount === 0) {
-    return 'a leaf — nothing ran inside it';
-  }
-  const children = props.childCount === 1 ? '1 child' : `${props.childCount} children`;
-  if (childrenNanos.value === 0) {
-    return `${children}, all on other threads`;
-  }
-  return children;
-});
-
 const meterTitle = computed(
   () =>
     `${FormattingService.formatDuration2Units(props.span.selfDurationNanos)} its own of ` +
     `${FormattingService.formatDuration2Units(props.span.durationNanos)} total`
-);
-
-const startedAt = computed(() =>
-  FormattingService.formatDuration2Units(props.span.startMillisFromBeginning * NANOS_PER_MILLI)
 );
 
 /** Anything that came to nothing is dropped: a category with no time is not a finding. */
@@ -517,15 +483,6 @@ function waitTitle(wait: TraceContextSlice): string {
   const events = wait.occurrences === 1 ? '1 event' : `${wait.occurrences} events`;
   return `${contextLabel(wait.category)} · ${events} while this span was open`;
 }
-
-/** The share of the whole trace this span decided, when the caller knows the trace's duration. */
-const criticalShareOfTrace = computed(() => {
-  const traceNanos = props.traceDurationNanos ?? 0;
-  if (traceNanos <= 0) {
-    return '';
-  }
-  return ` · ${percent(props.span.criticalPathNanos, traceNanos)} of the trace`;
-});
 
 function keyCount(rows: SpanDetailRow[]): string {
   return rows.length === 1 ? '1 key' : `${rows.length} keys`;
@@ -671,22 +628,6 @@ function percent(part: number, whole: number): string {
  * Sized to `.table td` in assets/styles.scss -- 0.8rem is what every data table in Jeffrey sets, so
  * the panel reads as part of the app rather than as a zoomed-in inset over the 0.7rem bars.
  */
-.sd-vitals {
-  margin: 0;
-  display: flex;
-  align-items: baseline;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-  font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-}
-
-.sd-vitals strong {
-  color: var(--color-dark);
-  font-weight: 600;
-}
-
 .sd-actions {
   margin-left: auto;
   display: flex;
@@ -852,41 +793,6 @@ function percent(part: number, whole: number): string {
   font-variant-numeric: tabular-nums;
   color: var(--color-text);
   font-weight: 600;
-}
-
-/* Same weight as the footer below it, with the accent the waterfall marks critical rows in. */
-.sd-crit {
-  margin: 0 0 0.35rem;
-  display: flex;
-  align-items: baseline;
-  gap: 0.35rem;
-  font-size: 0.8rem;
-  color: var(--color-warning);
-}
-.sd-crit.off {
-  color: var(--color-text-muted);
-}
-.sd-crit b {
-  font-family: var(--font-family-monospace);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-}
-
-.sd-foot {
-  margin: 0;
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-}
-
-.sd-foot b {
-  font-family: var(--font-family-monospace);
-  font-variant-numeric: tabular-nums;
-  color: var(--color-text);
-  font-weight: 500;
 }
 
 /* ------------------------------------------------------------------ table */
