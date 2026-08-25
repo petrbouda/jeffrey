@@ -1653,7 +1653,12 @@ function tooltip(span: TraceSpanRow): string {
   background: var(--color-white);
   color: var(--color-text-muted);
   font-family: inherit;
-  font-size: var(--font-size-base);
+  /*
+   * The house small button. This padding is already `.btn-sm`'s, and `.scope-toggle button` in
+   * TraceAttributeSearchBar is the same pill with the same padding at this size — the toolbar was
+   * the one place still pairing that padding with full-size text.
+   */
+  font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
 }
@@ -1710,15 +1715,15 @@ function tooltip(span: TraceSpanRow): string {
   border: 0;
   background: transparent;
   font-family: inherit;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-sm);
   color: var(--color-dark);
   cursor: pointer;
 }
 
 .wf-switch {
   position: relative;
-  width: 30px;
-  height: 17px;
+  width: 26px;
+  height: 15px;
   border-radius: var(--radius-pill);
   background: var(--color-border-input);
   flex-shrink: 0;
@@ -1729,8 +1734,8 @@ function tooltip(span: TraceSpanRow): string {
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 13px;
-  height: 13px;
+  width: 11px;
+  height: 11px;
   border-radius: var(--radius-circle);
   background: var(--color-white);
   box-shadow: var(--shadow-sm);
@@ -1740,8 +1745,9 @@ function tooltip(span: TraceSpanRow): string {
   background: var(--color-primary);
 }
 
+/* Pill width less the knob and the 2px inset it rests in at the other end: 26 - 11 - 2. */
 .wf-switch.on::after {
-  left: 15px;
+  left: 13px;
 }
 
 .wf-switch-item:disabled {
