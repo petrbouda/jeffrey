@@ -2362,20 +2362,23 @@ function tooltip(span: TraceSpanRow): string {
 /*
  * The docked strip. Full width by virtue of being a block in the waterfall's own column rather than
  * an absolutely positioned panel over it, so nothing has to be told how wide the dialog is.
- */
-/*
- * Raised rather than flush: the strip and the card under it are both --color-bg-card, so edge to
- * edge it read as a band cut into the card with a hairline for a seam. Inset from both sides with a
- * deeper shadow, it has an edge on all four and reads as a panel over the bars instead. The inset
- * costs the frame rows nothing — measured, nothing clips until the strip is under ~700px wide.
+ *
+ * Sunken, and flush, on purpose. The strip does not float: it sits in the flow and pushes the bars
+ * down, which is the whole reason it docks instead of hovering — a panel wide enough for a fully
+ * qualified frame would otherwise cover the bars being compared. A raised, inset treatment says the
+ * opposite of that, so it is the wrong costume however good it looks.
+ *
+ * The separation it does need comes from the ground instead: the strip and the card were both
+ * --color-bg-card, told apart by a hairline. --color-lighter over an inset shadow reads as a well
+ * cut into the card, which is what the parted rows above and below already say.
  */
 .exc-dock {
-  margin: 0.4rem 6rem 0.9rem;
-  border: 1px solid var(--color-secondary);
+  margin: 0 0 0.4rem;
+  border: 1px solid var(--color-border-input);
   border-left: 3px solid var(--mark);
   border-radius: var(--radius-md);
-  background: var(--color-bg-card);
-  box-shadow: var(--shadow-md);
+  background: var(--color-lighter);
+  box-shadow: var(--shadow-inset);
 }
 
 .dock-head {
@@ -2383,8 +2386,8 @@ function tooltip(span: TraceSpanRow): string {
   align-items: center;
   gap: 0.5rem;
   padding: 0.26rem 0.5rem;
-  border-bottom: 1px solid var(--color-border-light);
-  background: var(--color-light);
+  border-bottom: 1px solid var(--color-border-input);
+  background: transparent;
 }
 
 /*
@@ -2435,6 +2438,15 @@ function tooltip(span: TraceSpanRow): string {
   max-height: 26rem;
   overflow-y: auto;
   padding: 0.25rem 0.5rem 0.35rem;
+}
+
+/*
+ * The fold bars are --color-lighter, which was a tint against the white the stack normally sits on
+ * and is invisible against the sunken ground this one gives it. The panel that changed the ground
+ * is the one that owes them a new one.
+ */
+.dock-stack :deep(.st-fold) {
+  background: var(--color-bg-card);
 }
 
 /*
