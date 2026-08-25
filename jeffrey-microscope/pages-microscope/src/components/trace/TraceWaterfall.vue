@@ -311,6 +311,21 @@
       <span class="wf-duration">{{ exceptionMarks.length }}</span>
     </div>
 
+    <div class="wf-head">
+      <span>Span</span>
+      <span class="wf-scale">
+        <span>0</span>
+        <span>{{ FormattingService.formatDuration2Units(windowNanos) }}</span>
+      </span>
+      <span class="wf-duration">Duration</span>
+    </div>
+
+    <!--
+      The same intervals again, washed across the span rows so it is visible which spans a pause
+      actually crossed. Inert to the pointer and behind the bars: it is background, and the rows
+      underneath stay clickable.
+    -->
+    <div class="wf-rows" @pointermove="trackCursor" @pointerleave="clearCursor">
     <!--
       A throw's stack is the one thing on this screen that will not fit in a popover: 253 frames on a
       real trace, and a floating panel wide enough to hold a fully qualified frame covers the bars
@@ -388,22 +403,6 @@
         </button>
       </div>
     </div>
-
-    <div class="wf-head">
-      <span>Span</span>
-      <span class="wf-scale">
-        <span>0</span>
-        <span>{{ FormattingService.formatDuration2Units(windowNanos) }}</span>
-      </span>
-      <span class="wf-duration">Duration</span>
-    </div>
-
-    <!--
-      The same intervals again, washed across the span rows so it is visible which spans a pause
-      actually crossed. Inert to the pointer and behind the bars: it is background, and the rows
-      underneath stay clickable.
-    -->
-    <div class="wf-rows" @pointermove="trackCursor" @pointerleave="clearCursor">
       <!--
         Laid out with the row grid rather than at a measured offset, so the stripes track the name
         and duration columns however those are sized — no pixel arithmetic, and nothing to recompute
@@ -1817,6 +1816,18 @@ function tooltip(span: TraceSpanRow): string {
 }
 
 /*
+ * An absolutely positioned panel does not stretch its container, so on a short trace the strip hung
+ * out of the bottom of the card. This reserves room for it — but only when the rows are shorter than
+ * the strip, which is the one case that needs it. A real trace has more rows than the strip is tall,
+ * so the reservation never bites and nothing grows.
+ *
+ * 28rem is the strip's ceiling: its header plus the stack's own 26rem cap plus borders.
+ */
+.wf-rows:has(> .exc-dock) {
+  min-height: 28rem;
+}
+
+/*
  * Everything in the block sits above the stripe wash. The rule is here rather than on each child
  * because the wash is stretched by a parent that also holds the open detail panel and the empty
  * state: a child that does not claim a layer is painted over by it, positioned elements being drawn
@@ -1826,7 +1837,7 @@ function tooltip(span: TraceSpanRow): string {
  * The two overlays are excluded because they place themselves: the wash below the rows, the cursor
  * above them.
  */
-.wf-rows > :not(.wf-stripes, .wf-cursor) {
+.wf-rows > :not(.wf-stripes, .wf-cursor, .exc-dock) {
   position: relative;
   z-index: 1;
 }
@@ -2360,29 +2371,28 @@ function tooltip(span: TraceSpanRow): string {
 }
 
 /*
- * The docked strip. Full width by virtue of being a block in the waterfall's own column rather than
- * an absolutely positioned panel over it, so nothing has to be told how wide the dialog is.
+ * The stack panel, laid over the rows rather than above them. It used to be a block in the card's
+ * column, which meant opening a stack shoved the whole timeline down — and the timeline is what the
+ * reader is holding their place in. Absolute over `.wf-rows` leaves every bar exactly where it was.
  *
- * Sunken rather than raised. The strip does not float: it sits in the flow and pushes the bars
- * down, which is the whole reason it docks instead of hovering — a panel wide enough for a fully
- * qualified frame would otherwise cover the bars being compared. An *outer* shadow says the
- * opposite of that, so it is the wrong costume however good it looks.
+ * Raised is now the honest costume: it genuinely floats, so an outer shadow says what it does. The
+ * old objection to floating was that a panel wide enough for a fully qualified frame covers the
+ * bars being compared — still true, and the inset is the answer to it: gutters leave the bars
+ * visible either side, and the panel is dismissed with a click rather than held open by the cursor.
  *
- * The inset from the sides is a separate question and survives: a recess narrower than the card is
- * still a recess, and the gutters are what give it an edge on four sides instead of two. Measured,
- * they cost the frame rows nothing — nothing clips until the strip is under ~700px wide.
- *
- * The separation itself comes from the ground: the strip and the card were both --color-bg-card,
- * told apart by a hairline. --color-lighter over an inset shadow reads as a well cut into the card,
- * which is what the parted rows above and below already say.
+ * Measured, the gutters cost the frame rows nothing: nothing clips until the strip is under ~700px.
  */
 .exc-dock {
-  margin: 0.4rem 6rem 0.9rem;
-  border: 1px solid var(--color-border-input);
+  position: absolute;
+  top: 0;
+  left: 6rem;
+  right: 6rem;
+  z-index: 4;
+  border: 1px solid var(--color-secondary);
   border-left: 3px solid var(--mark);
   border-radius: var(--radius-md);
-  background: var(--color-lighter);
-  box-shadow: var(--shadow-inset);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-lg);
 }
 
 .dock-head {
@@ -2390,8 +2400,8 @@ function tooltip(span: TraceSpanRow): string {
   align-items: center;
   gap: 0.5rem;
   padding: 0.26rem 0.5rem;
-  border-bottom: 1px solid var(--color-border-input);
-  background: transparent;
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-light);
 }
 
 /*
@@ -2442,15 +2452,6 @@ function tooltip(span: TraceSpanRow): string {
   max-height: 26rem;
   overflow-y: auto;
   padding: 0.25rem 0.5rem 0.35rem;
-}
-
-/*
- * The fold bars are --color-lighter, which was a tint against the white the stack normally sits on
- * and is invisible against the sunken ground this one gives it. The panel that changed the ground
- * is the one that owes them a new one.
- */
-.dock-stack :deep(.st-fold) {
-  background: var(--color-bg-card);
 }
 
 /*
