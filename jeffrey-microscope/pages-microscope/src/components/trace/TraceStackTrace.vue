@@ -331,7 +331,13 @@ async function copy(): Promise<void> {
   align-items: baseline;
   padding: 0.09rem 0.4rem;
   border-radius: var(--radius-xs);
-  color: var(--color-text-light);
+  /*
+   * A library frame is read in three tiers, quietest first: the package it lives in, the class, and
+   * the method that actually ran. This is the middle one. It used to be --color-text-light for the
+   * whole row, which at 1.8:1 against the card was a frame a reader could see but not read -- and a
+   * fold is opened precisely to read what is inside it.
+   */
+  color: var(--color-text-muted);
 }
 
 .st-fr:hover {
@@ -344,8 +350,14 @@ async function copy(): Promise<void> {
   white-space: nowrap;
 }
 
+/* Tier one: where the class lives. The quietest thing on any row, application or not. */
 .st-pkg {
-  color: var(--color-text-light);
+  color: var(--color-text-soft);
+}
+
+/* Tier three: the method that ran, which is what a reader opens a fold to find. */
+.st-fr:not(.app) .st-sig b {
+  color: var(--color-text);
 }
 
 .st-src {
@@ -366,12 +378,11 @@ async function copy(): Promise<void> {
 
 /*
  * The package yields to what it prefixes. An application frame sets its signature at 600 and the
- * package rode along at that weight in near-ink, which made every row's first 20 characters compete
- * with the class name a reader is actually scanning for. Back to normal weight and one step down
- * the neutral ramp: still readable when the package is the question, no longer loud when it is not.
+ * package rode along at that weight, which made every row's first 20 characters compete with the
+ * class name a reader is actually scanning for. Its colour is the shared one every package takes;
+ * only the weight has to be undone here, because only an application row sets one.
  */
 .st-fr.app .st-pkg {
-  color: var(--color-text-soft);
   font-weight: 400;
 }
 
