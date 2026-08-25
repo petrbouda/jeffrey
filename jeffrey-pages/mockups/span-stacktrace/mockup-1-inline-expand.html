@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exception stack traces — Disclosure in place</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="stack.css">
+<style>
+
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All five directions</a>
+    <h1><span class="n">1</span>Disclosure in place</h1>
+    <p class="lede">The throw row grows a caret. Clicking it unfolds the frames underneath, inside the Exceptions region the reader is already looking at &mdash; nothing new opens, nothing moves, and the panel stays a single scroll. Two throws here stay collapsed and one is open, which is the state a reader actually lands in: the escaped one is the one you expand. The stack keeps the caught throws' rows one line each, so the list still reads as a list.</p>
+
+    <div class="modal">
+      <div class="modal-head">
+        <i class="bi bi-diagram-3-fill" style="color:var(--color-primary)"></i>
+        <span class="ttl">POST /api/v1/reports/&#123;reportId&#125;/events</span>
+        <span class="sub">406 ms &middot; trace 7f3a91c4e8b20d55</span>
+        <i class="bi bi-x-lg x"></i>
+      </div>
+
+      <div class="exc-lane">
+        <div class="lane-name"><i class="bi bi-x-lg" style="font-size:.55rem"></i> Exceptions</div>
+        <div class="lane-track">
+          <span class="exc-mark is-caught" style="left:27.6%"></span>
+          <span class="exc-mark is-caught" style="left:65.0%"></span>
+          <span class="exc-mark" style="left:96.3%"></span>
+        </div>
+      </div>
+
+      <div class="wf">
+        <div class="wf-row sel">
+          <span class="wf-label"><span class="dep"></span><i class="bi bi-caret-down-fill" style="font-size:.5rem;color:var(--color-text-muted)"></i>
+            <span class="nm">POST /api/v1/reports/&#123;reportId&#125;/events</span>
+            <span class="exc-count"><i class="bi bi-x-lg" style="font-size:.45rem"></i>3</span></span>
+          <span class="wf-track"><span class="wf-bar srv" style="left:0;width:100%"></span></span>
+        </div>
+        <div class="wf-row">
+          <span class="wf-label"><span class="dep" style="width:1rem"></span><span class="nm">loadReportLayout</span></span>
+          <span class="wf-track"><span class="wf-bar cli" style="left:6%;width:24%"></span></span>
+        </div>
+        <div class="wf-row">
+          <span class="wf-label"><span class="dep" style="width:1rem"></span><span class="nm">fetchEventBatch</span></span>
+          <span class="wf-track"><span class="wf-bar cli" style="left:33%;width:34%"></span></span>
+        </div>
+        <div class="wf-row">
+          <span class="wf-label"><span class="dep" style="width:1rem"></span><span class="nm">render.pdf</span>
+            <span class="exc-count"><i class="bi bi-x-lg" style="font-size:.45rem"></i>1</span></span>
+          <span class="wf-track"><span class="wf-bar err" style="left:70%;width:30%"></span></span>
+        </div>
+      </div>
+
+      <div class="span-detail">
+        <div class="sd-head"><span class="sd-vitals"><strong>POST /api/v1/reports/&#123;reportId&#125;/events</strong> &middot; SERVER &middot; 406 ms &middot; <strong>ERROR</strong></span></div>
+        <div class="sd-region is-exc">
+          <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions <span class="sd-src">3 &middot; jdk.JavaExceptionThrow</span></div>
+          <div class="sd-region-body">
+            <div class="sd-exc">
+              <span class="sd-exc-at">+112 ms</span>
+              <span class="sd-exc-main">
+                <span class="sd-exc-cls">java.util.NoSuchElementException</span>
+                <div class="sd-exc-msg">no cached layout for report 4417</div>
+                <div class="sd-exc-foot">
+                  <span>caught</span>
+                  <span class="chip"><i class="bi bi-chevron-right"></i> 31 frames</span>
+                </div>
+              </span>
+            </div>
+            <div class="sd-exc">
+              <span class="sd-exc-at">+264 ms</span>
+              <span class="sd-exc-main">
+                <span class="sd-exc-cls">java.net.SocketTimeoutException</span>
+                <div class="sd-exc-msg">Read timed out</div>
+                <div class="sd-exc-foot">
+                  <span>caught</span>
+                  <span class="chip"><i class="bi bi-chevron-right"></i> 38 frames</span>
+                </div>
+              </span>
+            </div>
+            <div class="sd-exc is-escaped">
+              <span class="sd-exc-at">+391 ms</span>
+              <span class="sd-exc-main">
+                <span class="sd-exc-cls">com.acme.reports.ReportRenderException</span>
+                <div class="sd-exc-msg">renderer produced no output for report 4417</div>
+                <div class="sd-exc-foot">
+                  <span class="escaped-tag"><i class="bi bi-box-arrow-up-right"></i> escaped this span</span>
+                  <span class="chip on"><i class="bi bi-chevron-down"></i> 45 frames</span>
+                </div>
+                <div class="stack" style="margin-top:.45rem;border-top:1px solid var(--color-border-light);padding-top:.35rem">
+                  <div class="stack-head">
+                    <span class="t">Stack</span>
+                    <span>45 frames &middot; thread <b>http-nio-8080-exec-4</b></span>
+                    <span class="acts"><span class="chip"><i class="bi bi-funnel"></i> App only</span><span class="chip"><i class="bi bi-clipboard"></i> Copy</span></span>
+                  </div>
+                  <div class="fr throw"><span class="sig"><span class="pkg">com.acme.reports.render.</span>PdfRenderer.<b>finish</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">PdfRenderer.java:214</span></div>
+                  <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.render.</span>PdfRenderer.<b>render</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">PdfRenderer.java:139</span></div>
+                  <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.render.</span>RenderPipeline.<b>lambda$run$3</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">RenderPipeline.java:88</span></div>
+                  <div class="fr lib"><span class="sig"><span class="pkg">java.util.stream.</span>ReferencePipeline$3$1.<b>accept</b></span><span class="src">ReferencePipeline.java:197</span></div>
+                  <div class="fr lib"><span class="sig"><span class="pkg">java.util.stream.</span>AbstractPipeline.<b>copyInto</b></span><span class="src">AbstractPipeline.java:509</span></div>
+                  <div class="fr lib"><span class="sig"><span class="pkg">java.util.stream.</span>AbstractPipeline.<b>wrapAndCopyInto</b></span><span class="src">AbstractPipeline.java:499</span></div>
+                  <div class="fr lib"><span class="sig"><span class="pkg">java.util.stream.</span>ReduceOps$ReduceOp.<b>evaluateSequential</b></span><span class="src">ReduceOps.java:921</span></div>
+                  <div class="fr lib"><span class="sig"><span class="pkg">java.util.stream.</span>AbstractPipeline.<b>evaluate</b></span><span class="src">AbstractPipeline.java:234</span></div>
+                  <div class="fr lib"><span class="sig"><span class="pkg">java.util.stream.</span>ReferencePipeline.<b>collect</b></span><span class="src">ReferencePipeline.java:682</span></div>
+                  <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.render.</span>RenderPipeline.<b>run</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">RenderPipeline.java:86</span></div>
+                  <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.</span>EventReportService.<b>render</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">EventReportService.java:271</span></div>
+                  <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.</span>EventReportService.<b>append</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">EventReportService.java:154</span></div>
+                  <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.web.</span>EventsController.<b>append</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">EventsController.java:73</span></div>
+                  <div class="fr lib"><span class="sig"><span class="pkg">jdk.internal.reflect.</span>DirectMethodHandleAccessor.<b>invoke</b></span><span class="src">DirectMethodHandleAccessor.java:103</span></div>
+                  <div class="fold" style="justify-content:center"><i class="bi bi-three-dots"></i> 31 more frames</div>
+                </div>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+
+    <div class="pair">
+      <div class="note buys"><h4><i class="bi bi-check-circle-fill"></i> What it buys</h4><p><b>Cheapest to build and the least disruptive.</b> It is one <code>v-if</code> and one fetch inside a component that already renders the row. Nothing about the modal's layout changes, so it cannot break the panel at narrow widths. The reader never loses their place in the trace.</p></div>
+      <div class="note costs"><h4><i class="bi bi-exclamation-triangle-fill"></i> What it costs</h4><p><b>45 frames is a lot of panel.</b> Fully expanded, this stack is taller than everything else in the detail put together, and anything below it &mdash; a second span's attributes, the notifications region &mdash; is pushed off screen. The truncation shown here (<code>31 more frames</code>) is a patch, not a fix: it just moves the question to &ldquo;how many is enough&rdquo;.</p></div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exception stack traces — The stack reaches the timeline</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="stack.css">
+<style>
+  .pop-stage { position: relative; }
+  /* The rail sits at the foot of the waterfall and the popover opens upward over the span rows,
+     which is what the real one does -- so the room it needs comes from inside the card. This page
+     draws a deeper trace than the others for exactly that reason: what is being judged here is the
+     popover covering real spans, which a blank band would not show. */
+  .pop { position: absolute; left: 58%; bottom: 3.1rem; width: 30rem; z-index: 5;
+    background: var(--color-white); border: 1px solid var(--color-border-input);
+    border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: .5rem .6rem .55rem; }
+  .pop::after { content: ''; position: absolute; left: 1.6rem; top: 100%; border: 6px solid transparent;
+    border-top-color: var(--color-white); filter: drop-shadow(0 1px 0 var(--color-border-input)); }
+  .pop-head { display: flex; align-items: baseline; gap: .4rem; margin-bottom: .3rem; }
+  .pop-cls { font-family: var(--font-family-monospace); font-size: var(--font-size-sm);
+    font-weight: 700; color: var(--color-danger); }
+  .pop-at { margin-left: auto; font-size: var(--font-size-xs); color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums; }
+  .pop-msg { font-size: var(--font-size-sm); color: #475569; margin-bottom: .35rem; line-height: 1.45; }
+  .pop .stack { border-top: 1px solid var(--color-border-light); padding-top: .3rem; }
+  .pop-more { display: flex; align-items: center; gap: .4rem; margin-top: .35rem; padding-top: .35rem;
+    border-top: 1px solid var(--color-border-light); font-size: var(--font-size-xs);
+    color: var(--color-primary); font-weight: 600; cursor: pointer; }
+  .pop-more .rest { margin-left: auto; color: var(--color-text-light); font-weight: 400; }
+  .exc-mark.hot { color: var(--color-danger); transform: scale(1.35); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All five directions</a>
+    <h1><span class="n">3</span>The stack reaches the timeline</h1>
+    <p class="lede">The rail's cross already has a popover. It gains the top frames &mdash; the throwing line and the three above it &mdash; so the reader gets the <em>where</em> without opening the span, without leaving the timeline, and without a click. A "full stack" line hands off to whichever of the other directions is built for the whole thing, so this composes with any of them rather than competing.</p>
+
+    <div class="modal pop-stage">
+      <div class="modal-head">
+        <i class="bi bi-diagram-3-fill" style="color:var(--color-primary)"></i>
+        <span class="ttl">POST /api/v1/reports/&#123;reportId&#125;/events</span>
+        <span class="sub">406 ms &middot; trace 7f3a91c4e8b20d55</span>
+        <i class="bi bi-x-lg x"></i>
+      </div>
+
+      <div class="wf">
+        <div class="wf-row">
+          <span class="wf-label"><span class="dep"></span><span class="nm">POST /api/v1/reports/&#123;reportId&#125;/events</span>
+            <span class="exc-count"><i class="bi bi-x-lg" style="font-size:.45rem"></i>3</span></span>
+          <span class="wf-track"><span class="wf-bar srv" style="left:0;width:100%"></span></span>
+        </div>
+        <div class="wf-row">
+          <span class="wf-label"><span class="dep" style="width:1rem"></span><span class="nm">loadReportLayout</span></span>
+          <span class="wf-track"><span class="wf-bar cli" style="left:6%;width:24%"></span></span>
+        </div>
+        <div class="wf-row">
+          <span class="wf-label"><span class="dep" style="width:2rem"></span><span class="nm">SELECT layout FROM report_layouts</span></span>
+          <span class="wf-track"><span class="wf-bar cli" style="left:9%;width:12%"></span></span>
+        </div>
+        <div class="wf-row">
+          <span class="wf-label"><span class="dep" style="width:2rem"></span><span class="nm">layoutCache.put</span></span>
+          <span class="wf-track"><span class="wf-bar int" style="left:24%;width:5%"></span></span>
+        </div>
+        <div class="wf-row">
+          <span class="wf-label"><span class="dep" style="width:1rem"></span><span class="nm">fetchEventBatch</span></span>
+          <span class="wf-track"><span class="wf-bar cli" style="left:33%;width:34%"></span></span>
+        </div>
+        <div class="wf-row">
+          <span class="wf-label"><span class="dep" style="width:2rem"></span><span class="nm">GET events-api/v1/batch</span></span>
+          <span class="wf-track"><span class="wf-bar cli" style="left:36%;width:29%"></span></span>
+        </div>
+        <div class="wf-row">
+          <span class="wf-label"><span class="dep" style="width:3rem"></span><span class="nm">Socket read</span></span>
+          <span class="wf-track"><span class="wf-bar int" style="left:38%;width:26%"></span></span>
+        </div>
+        <div class="wf-row">
+          <span class="wf-label"><span class="dep" style="width:1rem"></span><span class="nm">render.pdf</span>
+            <span class="exc-count"><i class="bi bi-x-lg" style="font-size:.45rem"></i>1</span></span>
+          <span class="wf-track"><span class="wf-bar err" style="left:70%;width:30%"></span></span>
+        </div>
+        <div class="wf-row">
+          <span class="wf-label"><span class="dep" style="width:2rem"></span><span class="nm">PdfRenderer.render</span></span>
+          <span class="wf-track"><span class="wf-bar err" style="left:73%;width:26%"></span></span>
+        </div>
+      </div>
+
+      <div class="exc-lane" style="border-top:1px solid var(--color-border-light);border-bottom:0;padding-top:.4rem">
+        <div class="lane-name"><i class="bi bi-x-lg" style="font-size:.55rem"></i> Exceptions</div>
+        <div class="lane-track">
+          <span class="exc-mark is-caught" style="left:27.6%"></span>
+          <span class="exc-mark is-caught" style="left:65.0%"></span>
+          <span class="exc-mark hot" style="left:96.3%"></span>
+        </div>
+      </div>
+
+        <div class="pop">
+          <div class="pop-head">
+            <span class="pop-cls">com.acme.reports.ReportRenderException</span>
+            <span class="pop-at">+391 ms</span>
+          </div>
+          <div class="pop-msg">renderer produced no output for report 4417</div>
+          <div class="stack">
+            <div class="fr throw"><span class="sig"><span class="pkg">com.acme.reports.render.</span>PdfRenderer.<b>finish</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">PdfRenderer.java:214</span></div>
+            <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.render.</span>PdfRenderer.<b>render</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">PdfRenderer.java:139</span></div>
+            <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.render.</span>RenderPipeline.<b>lambda$run$3</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">RenderPipeline.java:88</span></div>
+            <div class="fr lib"><span class="sig"><span class="pkg">java.util.stream.</span>ReferencePipeline$3$1.<b>accept</b></span><span class="src">ReferencePipeline.java:197</span></div>
+          </div>
+          <div class="pop-more"><i class="bi bi-list-nested"></i> Full stack &mdash; 45 frames
+            <span class="rest">opens the span below</span></div>
+        </div>
+    </div>
+
+
+    <div class="pair">
+      <div class="note buys"><h4><i class="bi bi-check-circle-fill"></i> What it buys</h4><p><b>The answer arrives on hover.</b> Nine times out of ten the reader wants one line &mdash; which of their own methods threw &mdash; and this is the only direction that delivers it without a click. It also works from the rail, which folding and critical-path-only cannot hide.</p></div>
+      <div class="note costs"><h4><i class="bi bi-exclamation-triangle-fill"></i> What it costs</h4><p><b>A preview is all it can ever be.</b> The popover is capped at <code>13rem</code> with internal scroll (that cap was added because it had nowhere to grow), so 45 frames will not fit and should not. On its own this is not a stack-trace feature; it is a good front door for one, and something else has to be the room behind it.</p></div>
+    </div>
+  </div>
+</body>
+</html>

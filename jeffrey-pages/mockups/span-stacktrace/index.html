@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jeffrey Microscope — exception stack traces in the Trace Modal</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #e2e8f0;
+    background: radial-gradient(900px 500px at 20% 0%, rgba(56,189,248,.12), transparent 60%),
+                radial-gradient(900px 500px at 85% 100%, rgba(230,55,87,.13), transparent 60%), #0a0f1e;
+    min-height: 100vh; padding: 4rem 2rem; }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  h1 { font-size: 2rem; font-weight: 800; color: #fff; letter-spacing: -.02em; margin-bottom: .5rem; }
+  .sub { color: #94a3b8; margin-bottom: 2.4rem; line-height: 1.65; }
+  .sub strong { color: #cbd5e1; }
+  .sub em { color: #cbd5e1; font-style: italic; }
+  .list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.1rem; }
+  a.mk { display: flex; gap: 1rem; align-items: flex-start; text-decoration: none; padding: 1.3rem 1.4rem; border-radius: 14px;
+    background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.1); transition: transform .2s, border-color .2s, background .2s; }
+  a.mk:hover { transform: translateY(-4px); border-color: rgba(56,189,248,.45); background: rgba(255,255,255,.07); }
+  .num { width: 40px; height: 40px; flex-shrink: 0; border-radius: 11px; display: grid; place-items: center; font-weight: 800; color: #fff;
+    background: linear-gradient(135deg, #38bdf8, #6366f1); box-shadow: 0 6px 16px rgba(56,189,248,.4); }
+  .mk h3 { color: #fff; font-size: 1.04rem; font-weight: 700; margin-bottom: .25rem; }
+  .mk p { color: #94a3b8; font-size: .85rem; line-height: 1.5; }
+  .tag { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: .12rem .4rem;
+    border-radius: 4px; background: rgba(148,163,184,.18); color: #cbd5e1; vertical-align: middle; margin-left: .35rem; }
+  .tag.cheap { background: rgba(34,197,94,.2); color: #86efac; }
+  .tag.most { background: rgba(56,189,248,.2); color: #7dd3fc; }
+  .tag.combo { background: rgba(168,85,247,.22); color: #d8b4fe; }
+  code { color: #7dd3fc; background: rgba(255,255,255,.06); padding: .1rem .35rem; border-radius: 5px; font-size: .84em; }
+  .facts { margin-top: 2rem; padding: 1.2rem 1.4rem; border-radius: 12px; background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08); }
+  .facts h4 { color: #e2e8f0; font-size: .92rem; font-weight: 700; margin-bottom: .65rem; display: flex; align-items: center; gap: .45rem; }
+  .facts h4 i { color: #7dd3fc; }
+  .facts ul { margin: 0; padding-left: 1.1rem; color: #94a3b8; font-size: .85rem; line-height: 1.8; }
+  .facts ul b { color: #cbd5e1; }
+  .facts.ok { border-color: rgba(34,197,94,.28); background: rgba(34,197,94,.06); }
+  .facts.ok h4 i { color: #4ade80; }
+  h2.sec { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .09em;
+    color: #64748b; margin: 2.2rem 0 1rem; display: flex; align-items: center; gap: .7rem; }
+  h2.sec::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,.09); }
+  .foot { margin-top: 2.4rem; color: #64748b; font-size: .82rem; line-height: 1.7; }
+  .foot a { color: #7dd3fc; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Exception stack traces in the Trace Modal</h1>
+    <p class="sub">
+      The trace modal already shows every throw attributed to a span &mdash; class, message, offset, and whether it
+      escaped. What it cannot show is <em>where</em> it was thrown, so a reader who gets that far still has to leave
+      the trace to find out. <strong>The data is already there</strong>: <code>stacktraceId</code> is on
+      <code>TraceExceptionRow</code> and already reaches the browser, and nothing consumes it yet. What is missing is
+      one repository read, one endpoint, and a decision about the screen &mdash; which is what these five are for.
+      Every page draws the same span, the same three throws, and the same 45-frame stack, so the only variable is
+      layout.
+    </p>
+
+    <div class="facts ok">
+      <h4><i class="bi bi-check-circle-fill"></i> Already in place, so none of the five has to build it</h4>
+      <ul>
+        <li><b>The reference.</b> <code>trace_exceptions.stacktrace_hash</code> is derived and stored; its javadoc calls it &ldquo;what decides whether the drill-down offers a stack at all&rdquo;.</li>
+        <li><b>The frames.</b> <code>stacktraces.frame_hashes</code> joined to <code>frames</code>, with the <code>unnest(...) JOIN frames</code> idiom already used in <code>JdbcProfileToolsRepository</code>.</li>
+        <li><b>The order.</b> The parser stores <code>getFrames().reversed()</code>, so the array is root-first and the <em>last</em> element is the throwing frame. A top-down stack reads it backwards.</li>
+        <li><b>The IDE.</b> <code>IdeClient.fetchSource()</code>, <code>IdeButtonGate.hasClass()</code> and <code>SourceViewerModal</code> already exist and are profile-scoped &mdash; frames here can open real source, which no other stack display in the product does.</li>
+      </ul>
+    </div>
+
+    <h2 class="sec">Where the stack goes</h2>
+    <div class="list">
+      <a class="mk" href="mockup-1-inline-expand.html">
+        <div class="num">1</div>
+        <div><h3>Disclosure in place <span class="tag cheap">cheapest</span></h3>
+          <p>A caret on the throw row unfolds the frames underneath, in the region the reader is already looking at.
+            Nothing new opens. The cost is height: 45 frames push everything below off screen, and truncating just
+            moves the question to &ldquo;how many is enough&rdquo;.</p></div>
+      </a>
+      <a class="mk" href="mockup-2-split-pane.html">
+        <div class="num">2</div>
+        <div><h3>List left, stack right</h3>
+          <p>Two columns: the throws stay a compact list, the selected one&rsquo;s stack fills a pane that scrolls on
+            its own. The region&rsquo;s height stops depending on stack depth. Costs horizontal room the panel does
+            not have, and earns nothing on a span with a single throw.</p></div>
+      </a>
+      <a class="mk" href="mockup-3-popover-preview.html">
+        <div class="num">3</div>
+        <div><h3>The stack reaches the timeline <span class="tag combo">composes</span></h3>
+          <p>The rail&rsquo;s existing cross popover gains the top four frames, so the answer arrives on hover with no
+            click and no span opened. A preview is all it can be &mdash; the popover is capped at <code>13rem</code>
+            &mdash; so this is a front door for one of the others, not a rival to them.</p></div>
+      </a>
+      <a class="mk" href="mockup-4-stack-modal.html">
+        <div class="num">4</div>
+        <div><h3>A window of its own <span class="tag most">most capable</span></h3>
+          <p>The wide near-fullscreen pattern over the trace modal. Room for the whole stack plus the things a cramped
+            panel cannot host: copy-as-text, an app-frames filter, and per-frame open-in-IntelliJ. Costs a modal on a
+            modal &mdash; and the timing context behind it is what you lose while reading.</p></div>
+      </a>
+      <a class="mk" href="mockup-5-folded-stack.html">
+        <div class="num">5</div>
+        <div><h3>The stack, minus the noise <span class="tag combo">orthogonal</span></h3>
+          <p>Attacks the problem rather than its placement: 45 frames of which eight are the reader&rsquo;s own code, so
+            runs of library frames collapse into one expandable bar each. 9 rows instead of 45, nothing lost, one
+            click to see any of it. Includes a side-by-side of both stacks.</p></div>
+      </a>
+    </div>
+
+    <div class="facts">
+      <h4><i class="bi bi-signpost-split-fill"></i> How they relate, before you pick</h4>
+      <ul>
+        <li><b>1, 2 and 4 are alternatives</b> &mdash; they answer the same question, &ldquo;where does the stack live&rdquo;, and only one can win.</li>
+        <li><b>3 and 5 are not.</b> The popover preview sits in front of whichever of the three is chosen, and the fold applies inside any of them. Picking 5 with 1 is a real combination, and is arguably the strongest one: folding is what makes inline expansion fit.</li>
+        <li><b>The honest ordering by effort</b> is 1 &lt; 5 &lt; 3 &lt; 2 &lt; 4, and by capability it is roughly the reverse.</li>
+      </ul>
+    </div>
+
+    <p class="foot">
+      Static mockups &mdash; no production code changes. The <a href="../span-notifications/index.html">span notifications
+      set</a> next door settled the rails and the detail regions these build on. Once a direction is picked, the backend
+      is one repository read and one endpoint on <code>TracesController</code>, sized against whichever wins.
+    </p>
+  </div>
+</body>
+</html>

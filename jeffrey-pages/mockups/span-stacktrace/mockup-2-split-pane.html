@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exception stack traces — List left, stack right</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="stack.css">
+<style>
+  .sd-split { display: grid; grid-template-columns: 19rem 1fr; gap: 0; }
+  .sd-split-list { border-right: 1px solid var(--color-border-light); padding: .3rem .55rem .45rem; }
+  .sd-split-list .sd-exc { grid-template-columns: 1fr; margin: 0 -.2rem; padding: .35rem .35rem; cursor: pointer; }
+  .sd-split-list .sd-exc.sel { background: var(--color-primary-light); border-radius: var(--radius-sm); }
+  .sd-split-list .sd-exc.sel.is-escaped { background: var(--color-danger-bg-lighter);
+    box-shadow: inset 2px 0 0 var(--color-danger); }
+  .sd-split-list .sd-exc-at { display: block; margin-bottom: .1rem; }
+  .sd-split-pane { padding: .3rem .55rem .45rem; min-width: 0; }
+  .sd-split-pane .stack { max-height: 17rem; }
+  /* .stack-head .t uppercases, which suits the word "Stack" and mangles a fully qualified class. */
+  .sd-split-pane .stack-head .cls { font-family: var(--font-family-monospace); font-weight: 700;
+    color: var(--color-danger); text-transform: none; letter-spacing: 0; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All five directions</a>
+    <h1><span class="n">2</span>List left, stack right</h1>
+    <p class="lede">The Exceptions region becomes two columns. The throws stay a compact list on the left &mdash; class, message, offset &mdash; and the selected one's stack fills a pane on the right that scrolls on its own. The region's height stops depending on how deep the stack is, which is the whole point: switching between three throws never moves anything except the right-hand pane.</p>
+
+    <div class="modal">
+      <div class="modal-head">
+        <i class="bi bi-diagram-3-fill" style="color:var(--color-primary)"></i>
+        <span class="ttl">POST /api/v1/reports/&#123;reportId&#125;/events</span>
+        <span class="sub">406 ms &middot; trace 7f3a91c4e8b20d55</span>
+        <i class="bi bi-x-lg x"></i>
+      </div>
+
+      <div class="exc-lane">
+        <div class="lane-name"><i class="bi bi-x-lg" style="font-size:.55rem"></i> Exceptions</div>
+        <div class="lane-track">
+          <span class="exc-mark is-caught" style="left:27.6%"></span>
+          <span class="exc-mark is-caught" style="left:65.0%"></span>
+          <span class="exc-mark" style="left:96.3%"></span>
+        </div>
+      </div>
+
+      <div class="wf">
+        <div class="wf-row sel">
+          <span class="wf-label"><span class="dep"></span><i class="bi bi-caret-down-fill" style="font-size:.5rem;color:var(--color-text-muted)"></i>
+            <span class="nm">POST /api/v1/reports/&#123;reportId&#125;/events</span>
+            <span class="exc-count"><i class="bi bi-x-lg" style="font-size:.45rem"></i>3</span></span>
+          <span class="wf-track"><span class="wf-bar srv" style="left:0;width:100%"></span></span>
+        </div>
+        <div class="wf-row">
+          <span class="wf-label"><span class="dep" style="width:1rem"></span><span class="nm">loadReportLayout</span></span>
+          <span class="wf-track"><span class="wf-bar cli" style="left:6%;width:24%"></span></span>
+        </div>
+        <div class="wf-row">
+          <span class="wf-label"><span class="dep" style="width:1rem"></span><span class="nm">fetchEventBatch</span></span>
+          <span class="wf-track"><span class="wf-bar cli" style="left:33%;width:34%"></span></span>
+        </div>
+        <div class="wf-row">
+          <span class="wf-label"><span class="dep" style="width:1rem"></span><span class="nm">render.pdf</span>
+            <span class="exc-count"><i class="bi bi-x-lg" style="font-size:.45rem"></i>1</span></span>
+          <span class="wf-track"><span class="wf-bar err" style="left:70%;width:30%"></span></span>
+        </div>
+      </div>
+
+      <div class="span-detail">
+        <div class="sd-head"><span class="sd-vitals"><strong>POST /api/v1/reports/&#123;reportId&#125;/events</strong> &middot; SERVER &middot; 406 ms &middot; <strong>ERROR</strong></span></div>
+        <div class="sd-region is-exc">
+          <div class="sd-region-head"><i class="bi bi-x-octagon-fill"></i> Exceptions <span class="sd-src">3 &middot; jdk.JavaExceptionThrow</span></div>
+          <div class="sd-split">
+            <div class="sd-split-list">
+              <div class="sd-exc">
+                <span class="sd-exc-at">+112 ms &middot; caught</span>
+                <span class="sd-exc-main"><span class="sd-exc-cls">NoSuchElementException</span>
+                  <div class="sd-exc-msg">no cached layout for report 4417</div></span>
+              </div>
+              <div class="sd-exc">
+                <span class="sd-exc-at">+264 ms &middot; caught</span>
+                <span class="sd-exc-main"><span class="sd-exc-cls">SocketTimeoutException</span>
+                  <div class="sd-exc-msg">Read timed out</div></span>
+              </div>
+              <div class="sd-exc is-escaped sel">
+                <span class="sd-exc-at">+391 ms</span>
+                <span class="sd-exc-main"><span class="sd-exc-cls">ReportRenderException</span>
+                  <div class="sd-exc-msg">renderer produced no output for report 4417</div>
+                  <div class="sd-exc-foot"><span class="escaped-tag"><i class="bi bi-box-arrow-up-right"></i> escaped</span></div></span>
+              </div>
+            </div>
+            <div class="sd-split-pane">
+              <div class="stack-head">
+                <span class="cls">com.acme.reports.ReportRenderException</span>
+                <span>45 frames</span>
+                <span class="acts"><span class="chip"><i class="bi bi-funnel"></i> App only</span><span class="chip"><i class="bi bi-clipboard"></i> Copy</span></span>
+              </div>
+              <div class="stack scrolls">
+                <div class="fr throw"><span class="sig"><span class="pkg">com.acme.reports.render.</span>PdfRenderer.<b>finish</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">PdfRenderer.java:214</span></div>
+                <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.render.</span>PdfRenderer.<b>render</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">PdfRenderer.java:139</span></div>
+                <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.render.</span>RenderPipeline.<b>lambda$run$3</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">RenderPipeline.java:88</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">java.util.stream.</span>ReferencePipeline$3$1.<b>accept</b></span><span class="src">ReferencePipeline.java:197</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">java.util.stream.</span>AbstractPipeline.<b>copyInto</b></span><span class="src">AbstractPipeline.java:509</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">java.util.stream.</span>AbstractPipeline.<b>wrapAndCopyInto</b></span><span class="src">AbstractPipeline.java:499</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">java.util.stream.</span>ReduceOps$ReduceOp.<b>evaluateSequential</b></span><span class="src">ReduceOps.java:921</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">java.util.stream.</span>AbstractPipeline.<b>evaluate</b></span><span class="src">AbstractPipeline.java:234</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">java.util.stream.</span>ReferencePipeline.<b>collect</b></span><span class="src">ReferencePipeline.java:682</span></div>
+                <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.render.</span>RenderPipeline.<b>run</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">RenderPipeline.java:86</span></div>
+                <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.</span>EventReportService.<b>render</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">EventReportService.java:271</span></div>
+                <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.</span>EventReportService.<b>append</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">EventReportService.java:154</span></div>
+                <div class="fr app"><span class="sig"><span class="pkg">com.acme.reports.web.</span>EventsController.<b>append</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">EventsController.java:73</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">jdk.internal.reflect.</span>DirectMethodHandleAccessor.<b>invoke</b></span><span class="src">DirectMethodHandleAccessor.java:103</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">java.lang.reflect.</span>Method.<b>invoke</b></span><span class="src">Method.java:565</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.springframework.web.method.support.</span>InvocableHandlerMethod.<b>doInvoke</b></span><span class="src">InvocableHandlerMethod.java:255</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.springframework.web.method.support.</span>InvocableHandlerMethod.<b>invokeForRequest</b></span><span class="src">InvocableHandlerMethod.java:188</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.springframework.web.servlet.mvc.method.annotation.</span>ServletInvocableHandlerMethod.<b>invokeAndHandle</b></span><span class="src">ServletInvocableHandlerMethod.java:118</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.springframework.web.servlet.mvc.method.annotation.</span>RequestMappingHandlerAdapter.<b>invokeHandlerMethod</b></span><span class="src">RequestMappingHandlerAdapter.java:986</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.springframework.web.servlet.mvc.method.annotation.</span>RequestMappingHandlerAdapter.<b>handleInternal</b></span><span class="src">RequestMappingHandlerAdapter.java:891</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.springframework.web.servlet.mvc.method.</span>AbstractHandlerMethodAdapter.<b>handle</b></span><span class="src">AbstractHandlerMethodAdapter.java:87</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.springframework.web.servlet.</span>DispatcherServlet.<b>doDispatch</b></span><span class="src">DispatcherServlet.java:1089</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.springframework.web.servlet.</span>DispatcherServlet.<b>doService</b></span><span class="src">DispatcherServlet.java:979</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.springframework.web.servlet.</span>FrameworkServlet.<b>processRequest</b></span><span class="src">FrameworkServlet.java:1014</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.springframework.web.servlet.</span>FrameworkServlet.<b>doPost</b></span><span class="src">FrameworkServlet.java:914</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">jakarta.servlet.http.</span>HttpServlet.<b>service</b></span><span class="src">HttpServlet.java:590</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.springframework.web.servlet.</span>FrameworkServlet.<b>service</b></span><span class="src">FrameworkServlet.java:885</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">jakarta.servlet.http.</span>HttpServlet.<b>service</b></span><span class="src">HttpServlet.java:658</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.apache.catalina.core.</span>ApplicationFilterChain.<b>internalDoFilter</b></span><span class="src">ApplicationFilterChain.java:205</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.apache.catalina.core.</span>ApplicationFilterChain.<b>doFilter</b></span><span class="src">ApplicationFilterChain.java:149</span></div>
+                <div class="fr app"><span class="sig"><span class="pkg">cafe.jeffrey.events.servlet.</span>TracingFilter.<b>doFilter</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">TracingFilter.java:64</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.apache.catalina.core.</span>ApplicationFilterChain.<b>internalDoFilter</b></span><span class="src">ApplicationFilterChain.java:174</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.apache.catalina.core.</span>ApplicationFilterChain.<b>doFilter</b></span><span class="src">ApplicationFilterChain.java:149</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.apache.catalina.core.</span>StandardWrapperValve.<b>invoke</b></span><span class="src">StandardWrapperValve.java:167</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.apache.catalina.core.</span>StandardContextValve.<b>invoke</b></span><span class="src">StandardContextValve.java:90</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.apache.catalina.authenticator.</span>AuthenticatorBase.<b>invoke</b></span><span class="src">AuthenticatorBase.java:483</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.apache.catalina.core.</span>StandardHostValve.<b>invoke</b></span><span class="src">StandardHostValve.java:115</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.apache.catalina.valves.</span>ErrorReportValve.<b>invoke</b></span><span class="src">ErrorReportValve.java:93</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.apache.catalina.core.</span>StandardEngineValve.<b>invoke</b></span><span class="src">StandardEngineValve.java:74</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.apache.catalina.connector.</span>CoyoteAdapter.<b>service</b></span><span class="src">CoyoteAdapter.java:344</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.apache.coyote.http11.</span>Http11Processor.<b>service</b></span><span class="src">Http11Processor.java:391</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.apache.coyote.</span>AbstractProcessorLight.<b>process</b></span><span class="src">AbstractProcessorLight.java:63</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.apache.tomcat.util.net.</span>NioEndpoint$SocketProcessor.<b>doRun</b></span><span class="src">NioEndpoint.java:1740</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">org.apache.tomcat.util.threads.</span>ThreadPoolExecutor$Worker.<b>run</b></span><span class="src">ThreadPoolExecutor.java:1189</span></div>
+                <div class="fr lib"><span class="sig"><span class="pkg">java.lang.</span>Thread.<b>run</b></span><span class="src">Thread.java:1583</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+
+    <div class="pair">
+      <div class="note buys"><h4><i class="bi bi-check-circle-fill"></i> What it buys</h4><p><b>Built for a span with several throws.</b> Comparing where two of them came from is one click, not two expand-and-scroll cycles, and the list stays legible while you do it. The region has a fixed height whatever the stack depth, so nothing below it ever jumps.</p></div>
+      <div class="note costs"><h4><i class="bi bi-exclamation-triangle-fill"></i> What it costs</h4><p><b>It spends horizontal room the panel does not have.</b> The detail already carries an event-fields table; at a realistic modal width the left column squeezes the class names down to their simple names, which is exactly the information a reader scans by. It also earns nothing on the common case &mdash; a span with a single throw shows an empty-feeling list beside one stack.</p></div>
+    </div>
+  </div>
+</body>
+</html>
