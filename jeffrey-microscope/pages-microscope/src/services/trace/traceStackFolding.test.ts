@@ -115,6 +115,11 @@ describe('foldedStack', () => {
     ]);
   });
 
+  it('leaves the frames it keeps unmarked -- only an opened bar restores anything', () => {
+    const frames = foldedStack(stack).filter(entry => entry.kind === 'frame');
+    expect(frames.some(entry => entry.restored)).toBe(false);
+  });
+
   it('keeps the throwing frame and the thread root even though the root is library code', () => {
     const entries = foldedStack(stack);
     const first = entries[0];
@@ -336,6 +341,10 @@ describe('expandFold', () => {
 
   it('restores each frame at its real depth, not counting from zero again', () => {
     expect(expandFold(onlyFold()).map(entry => entry.depth)).toEqual([1, 2]);
+  });
+
+  it('marks every frame it restores, so the panel can band the run it came from', () => {
+    expect(expandFold(onlyFold()).every(entry => entry.restored)).toBe(true);
   });
 
   it('never announces an expanded frame as the one that threw', () => {

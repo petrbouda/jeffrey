@@ -94,6 +94,7 @@
             v-if="entry.kind === 'fold'"
             type="button"
             class="st-fold"
+            :class="{ open: opened.has(entry.depth) }"
             @click.stop="toggleFold(entry.depth)"
           >
             <i
@@ -106,7 +107,11 @@
             </span>
           </button>
 
-          <div v-else class="st-fr" :class="{ app: entry.application, throwing: entry.throwing }">
+          <div
+            v-else
+            class="st-fr"
+            :class="{ app: entry.application, throwing: entry.throwing, opened: entry.restored }"
+          >
             <span class="st-sig">
               <span v-if="framePkg(entry.frame)" class="st-pkg">{{ framePkg(entry.frame) }}.</span
               ><span class="st-cls">{{ frameSimpleName(entry.frame) }}</span
@@ -331,11 +336,51 @@ async function copy(): Promise<void> {
   align-items: baseline;
   padding: 0.09rem 0.4rem;
   border-radius: var(--radius-xs);
-  color: var(--color-text-light);
+  /*
+   * A library frame is read in three tiers, quietest first: the package it lives in, the class, and
+   * the method that actually ran. This is the middle one. It used to be --color-text-light for the
+   * whole row, which at 1.8:1 against the card was a frame a reader could see but not read -- and a
+   * fold is opened precisely to read what is inside it.
+   */
+  color: var(--color-text-muted);
 }
 
 .st-fr:hover {
   background: var(--color-primary-lighter);
+}
+
+/*
+ * A run put back by opening a bar keeps the bar's own grey, so the two are one block rather than a
+ * control and some rows that happen to follow it. No rail and no new colour: the bar already says
+ * "this is the folded run", and continuing it downward is the whole statement.
+ *
+ * Square corners in the middle of the run -- rounding every row would read as a stack of chips --
+ * and the block is closed off at both ends by the two rules below.
+ */
+.st-fr.opened {
+  background: var(--color-lighter);
+  border-radius: 0;
+}
+
+/*
+ * The foot of the block. `:has` rather than a second flag on the entry: the rows a bar restores are
+ * always contiguous and always directly under it, so "the last one" is a fact about the list the
+ * stylesheet can see for itself. The next thing along is another bar or an ordinary frame; where
+ * the run ends the stack, there is no next thing at all.
+ */
+.st-fr.opened:last-child,
+.st-fr.opened:has(+ :not(.opened)) {
+  border-radius: 0 0 var(--radius-xs) var(--radius-xs);
+  margin-bottom: 0.1rem;
+}
+
+/*
+ * Hover has to be mixed rather than laid over: --color-primary-lighter is translucent, so on a
+ * banded row it would composite against the card behind it and take the band away at exactly the
+ * moment the reader points at it.
+ */
+.st-fr.opened:hover {
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-lighter));
 }
 
 .st-sig {
@@ -344,8 +389,40 @@ async function copy(): Promise<void> {
   white-space: nowrap;
 }
 
+/*
+ * A frame is read in three parts and each one gets its own tier, on every row: the package it
+ * lives in, the class, and the method that ran. The hues are the ones JsonHighlight.vue already
+ * paints code with in this app -- a key in --color-primary-hover, a string value in --color-teal --
+ * because a frame has the same shape: the class is the key, the method is what it holds.
+ *
+ * Weight says which tier leads and colour agrees with it. The class is the heaviest at 700: in a
+ * 253-frame stack a reader scans for OgnlParser before they scan for jjMoveStringLiteralDfa3_0.
+ */
 .st-pkg {
-  color: var(--color-text-light);
+  color: var(--color-text-soft);
+  font-weight: 400;
+}
+
+.st-cls {
+  color: var(--color-primary-hover);
+  font-weight: 700;
+}
+
+.st-sig b {
+  color: var(--color-teal);
+  font-weight: 500;
+}
+
+/*
+ * A library row takes the same two hues pulled back toward the neutral ramp rather than two hues of
+ * its own: mixed, not replaced, so "mine" and "not mine" stay one palette read at two distances.
+ */
+.st-fr:not(.app) .st-cls {
+  color: color-mix(in srgb, var(--color-primary-hover) 62%, var(--color-text-soft));
+}
+
+.st-fr:not(.app) .st-sig b {
+  color: color-mix(in srgb, var(--color-teal) 62%, var(--color-text-soft));
 }
 
 .st-src {
@@ -354,18 +431,13 @@ async function copy(): Promise<void> {
   white-space: nowrap;
 }
 
-/* Application frames carry the ink; everything else recedes. The reader only ever needs
-   "mine" against "not mine", so this is two weights and not a palette. */
+/*
+ * Application frames carry the ink; everything else recedes. With every part of the signature now
+ * painted by tier, this is the row's own colour -- what the separators and anything unlabelled take
+ * -- and the ground the tier hues are read against.
+ */
 .st-fr.app {
   color: var(--color-dark);
-}
-
-.st-fr.app .st-sig {
-  font-weight: 600;
-}
-
-.st-fr.app .st-pkg {
-  color: var(--color-text-muted);
 }
 
 .st-fr.app .st-src {
@@ -382,6 +454,26 @@ async function copy(): Promise<void> {
 .st-fr.throwing .st-pkg,
 .st-fr.throwing .st-src {
   color: var(--color-danger);
+}
+
+/*
+ * The one row that keeps its package at full weight. Everywhere else the prefix is what the reader
+ * scans past; on the throwing frame the whole line is the answer they opened the stack for, and
+ * splitting it into a bold class and a quiet package would break it into two statements.
+ */
+.st-fr.throwing .st-pkg {
+  font-weight: 700;
+}
+
+/*
+ * The one row that is not painted by tier. A stack has exactly one throwing frame and the whole
+ * line is the answer the reader opened it for, so it stays a single red statement rather than a
+ * class and a method in two different hues.
+ */
+.st-fr.throwing .st-cls,
+.st-fr.throwing .st-sig b {
+  color: var(--color-danger);
+  font-weight: 700;
 }
 
 .st-fold {
@@ -401,6 +493,15 @@ async function copy(): Promise<void> {
   cursor: pointer;
 }
 
+/*
+ * An open bar is the head of the block its frames form: it gives up the gap and the corners between
+ * itself and the first row it restored, and the run below closes the shape off again.
+ */
+.st-fold.open {
+  margin-bottom: 0;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+}
+
 .st-fold:hover {
   background: var(--color-primary-light);
   color: var(--color-primary);
@@ -411,9 +512,20 @@ async function copy(): Promise<void> {
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * The packages a bar stands in for are packages like any other, so they take the same neutral the
+ * frame rows give a prefix. The bar's own words keep the darker one: "3 frames in" is what the
+ * control says about itself, and it is the row a reader clicks.
+ */
 .st-pkgs {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--color-text-soft);
+}
+
+/* On hover the whole bar goes primary, packages included -- the row lights up as one control. */
+.st-fold:hover .st-pkgs {
+  color: inherit;
 }
 </style>
