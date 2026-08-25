@@ -916,8 +916,15 @@ function percent(part: number, whole: number): string {
   background: var(--color-bg-hover);
 }
 
+/*
+ * 13rem, not a round 10: measured against every @Label the project's own events declare plus the
+ * JDK labels that commonly land on a span — 78 of them. 10rem wrapped 11, including ordinary ones
+ * like "Label for Statement Grouping" and "Affected/Returned Rows"; 13rem wraps one, the 35-char
+ * "Acquiring Pooled Connection Timeout", and fitting that alone would cost another 2rem of every
+ * table for every short label. The wrap stays available underneath for whatever a recording brings.
+ */
 .sd-k {
-  width: 10rem;
+  width: 13rem;
   font-size: 0.8rem;
   color: var(--color-text);
   font-weight: 500;
