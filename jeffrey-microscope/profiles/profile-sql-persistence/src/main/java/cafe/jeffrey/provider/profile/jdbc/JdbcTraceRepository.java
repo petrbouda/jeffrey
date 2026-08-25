@@ -698,7 +698,10 @@ public class JdbcTraceRepository implements TraceRepository {
             )
             SELECT trace_id, span_id, exception_id, start_timestamp, start_ms, event_type,
                    thrown_class, message,
-                   thrown_class IS NOT NULL AND thrown_class = error_type AS escaped,
+                   -- error_type IS NOT NULL first: `x = NULL` is NULL, not false, and a NULL
+                   -- would fail the column's NOT NULL rather than reading as "did not escape".
+                   -- Most spans succeed, so most rows take exactly that branch.
+                   error_type IS NOT NULL AND thrown_class = error_type AS escaped,
                    stacktrace_hash, thread_hash
             FROM attributed
             WHERE thrown_class IS NOT NULL
