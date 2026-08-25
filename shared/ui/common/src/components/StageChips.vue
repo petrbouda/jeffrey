@@ -135,12 +135,17 @@ const titleOf = (group: StageChipGroup): string => {
 
 .stage-chip {
   display: inline-flex;
-  align-items: center;
+  /* The label and the time share a baseline: they are different sizes in different families, so
+     centring their boxes leaves the monospace digits sitting below the label. The mark centres
+     itself instead -- a tick has no baseline worth aligning to. */
+  align-items: baseline;
   gap: var(--spacing-1);
   font-size: 0.7rem;
   font-weight: 500;
-  line-height: 1.5;
-  padding: 0.2rem 0.55rem;
+  /* Each part's box hugs its own glyphs, so the leading around them cannot push the baseline
+     around. The height that leading used to add is paid by the padding instead. */
+  line-height: 1;
+  padding: 0.35rem 0.55rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: var(--color-bg-card);
@@ -173,12 +178,15 @@ const titleOf = (group: StageChipGroup): string => {
 .stage-chip__mark {
   display: inline-flex;
   align-items: center;
+  align-self: center;
   font-size: 0.65rem;
+  line-height: 1;
 }
 
 .stage-chip__time {
   font-family: var(--font-family-monospace);
   font-size: 0.65rem;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
   opacity: 0.85;
 }
