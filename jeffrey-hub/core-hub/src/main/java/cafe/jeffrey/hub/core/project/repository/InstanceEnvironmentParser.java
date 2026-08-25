@@ -27,6 +27,7 @@ import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.shared.common.jfr.EventFieldsToJsonMapper;
+import cafe.jeffrey.shared.common.jfr.MappedFields;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 
 import java.io.IOException;
@@ -105,7 +106,7 @@ public class InstanceEnvironmentParser {
             stream.onMetadata(metadata -> mapper.update(metadata.getEventTypes()));
             for (String type : needed) {
                 stream.onEvent(type, e -> {
-                    ObjectNode node = mapper.map(e);
+                    ObjectNode node = toFullTree(mapper.map(e));
                     // Drop the inherited jdk.jfr.Event fields — the environment
                     // cards show configuration data, not event-emission
                     // metadata. Without this, jdk.JVMInformation ends up with
@@ -130,6 +131,20 @@ public class InstanceEnvironmentParser {
                     path, iterableKeys(result), e);
         }
         return result;
+    }
+
+    /**
+     * Rebuilds the event's complete field tree from what the mapper produced: its JSON with the
+     * pooled value spliced back under the key it was lifted from. The mapper lifts the single
+     * largest text field out of the JSON so the parser can pool it in the profile database; the
+     * environment cards read the event directly and need that value back in place.
+     */
+    private static ObjectNode toFullTree(MappedFields mapped) {
+        ObjectNode node = Json.readObjectNode(mapped.json());
+        if (mapped.hasPooledField()) {
+            node.put(mapped.pooledField(), mapped.pooledText());
+        }
+        return node;
     }
 
     private static String iterableKeys(ObjectNode node) {
