@@ -195,6 +195,22 @@
         <header>
           Event fields
           <span class="sd-src">{{ span.eventType }}</span>
+          <!--
+            A statement is the one field here nobody reads to the end on screen: it scrolls inside
+            its own block and is usually on its way to an editor or a ticket. The button belongs to
+            the region rather than floating over the text, so it never covers the first line of the
+            very statement it is there to hand over.
+          -->
+          <button
+            v-if="detail.sql"
+            type="button"
+            class="sd-copy"
+            :title="copiedSql ? 'Copied to the clipboard' : 'Copy the statement'"
+            @click="copySql"
+          >
+            <i class="bi" :class="copiedSql ? 'bi-check-lg' : 'bi-clipboard'"></i>
+            {{ copiedSql ? 'Copied' : 'Copy' }}
+          </button>
         </header>
         <div class="sd-region-body">
           <pre v-if="detail.sql" class="sd-sql">{{ detail.sql }}</pre>
@@ -459,6 +475,27 @@ defineEmits<{
 const detail = computed(() =>
   spanDetail(props.span.attributes, props.span.eventFields, props.fields)
 );
+
+const copiedSql = ref(false);
+
+/**
+ * Hands the statement over verbatim — what the block shows, not a re-wrapped copy of it, so what
+ * lands in an editor is the text the recording carried.
+ */
+async function copySql(): Promise<void> {
+  const sql = detail.value.sql;
+  if (sql === null) {
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(sql);
+    copiedSql.value = true;
+    window.setTimeout(() => (copiedSql.value = false), 1500);
+  } catch {
+    // A denied clipboard is the browser's decision, not a fault to report — the reader can still
+    // select the statement by hand. Leaving the button unchanged says "that did not happen".
+  }
+}
 
 /** A hand-written span has no event view: its own fields are already the span's. */
 const hasEventView = computed(
@@ -942,6 +979,33 @@ function percent(part: number, whole: number): string {
 }
 
 .sd-region.is-evt .sd-table tr:nth-child(even) td {
+  background: var(--color-teal-light);
+}
+
+/*
+ * Scaled to the header it sits in rather than to btn-sm: this row is 0.4rem of padding around a
+ * --font-size-sm label, and a standard small button would set the region's height on its own. It
+ * takes the region's teal by inheritance, so it stays part of the header rather than an object
+ * dropped onto it.
+ */
+.sd-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--color-teal-lighter);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.sd-copy:hover {
   background: var(--color-teal-light);
 }
 
