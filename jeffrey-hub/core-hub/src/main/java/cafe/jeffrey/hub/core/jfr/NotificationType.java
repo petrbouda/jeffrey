@@ -18,9 +18,24 @@
 
 package cafe.jeffrey.hub.core.jfr;
 
-public enum MessageCategory {
-    PROJECT,
-    INSTANCE,
-    SESSION,
-    SYSTEM
+public enum NotificationType {
+    PROJECT_CREATED("Project Created"),
+    PROJECT_DELETED("Project Deleted"),
+    INSTANCE_CREATED("Instance Started"),
+    SESSION_CREATED("Recording Session Started"),
+    SESSION_FINISHED("Recording Session Finished"),
+    SESSION_DELETED("Recording Session Deleted"),
+    SESSIONS_CLEANED("Sessions Cleaned Up"),
+    JVM_CRASH_DETECTED("JVM Crash Detected"),
+    EVENT_PROCESSING_FAILED("Event Processing Failed");
+
+    private final String title;
+
+    NotificationType(String title) {
+        this.title = title;
+    }
+
+    public String title() {
+        return title;
+    }
 }

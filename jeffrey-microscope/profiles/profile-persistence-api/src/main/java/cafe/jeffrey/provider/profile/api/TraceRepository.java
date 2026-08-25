@@ -122,6 +122,21 @@ public interface TraceRepository {
     List<TraceSpanRecord> spansOf(long traceId);
 
     /**
+     * Everything the application said during one trace, oldest first.
+     * <p>
+     * Read apart from the spans because it is a different question about the same trace, and
+     * because a notification is not a span: it has no place in the tree {@link #spansOf(long)}
+     * feeds.
+     */
+    List<TraceNotificationRecord> notificationsOf(long traceId);
+
+    /**
+     * Every throw recorded inside one trace, oldest first, each already attributed to the innermost
+     * span open on its thread at the instant it was thrown.
+     */
+    List<TraceExceptionRecord> exceptionsOf(long traceId);
+
+    /**
      * The windows one operation occupied, merged per {@code (trace, thread)} with idle gaps
      * preserved — what a flamegraph scoped to a whole trace type is built from.
      * <p>

@@ -19,8 +19,8 @@
 package cafe.jeffrey.shared.common.model;
 
 /**
- * Severity levels for important messages.
- * Matches cafe.jeffrey.jfr.events.message.Severity
+ * Severity levels for application notifications.
+ * Matches cafe.jeffrey.jfr.events.notification.Severity
  */
 public enum Severity {
     CRITICAL,

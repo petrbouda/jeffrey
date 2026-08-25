@@ -16,11 +16,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.jfr.events.message;
+package cafe.jeffrey.hub.core.jfr;
 
-public enum Severity {
-    CRITICAL,
-    HIGH,
-    MEDIUM,
-    LOW
+public enum NotificationCategory {
+    PROJECT,
+    INSTANCE,
+    SESSION,
+    SYSTEM
 }

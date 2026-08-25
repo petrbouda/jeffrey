@@ -23,7 +23,7 @@ module cafe.jeffrey.jfr.events {
     exports cafe.jeffrey.jfr.events.http;
     exports cafe.jeffrey.jfr.events.jdbc.pool;
     exports cafe.jeffrey.jfr.events.jdbc.statement;
-    exports cafe.jeffrey.jfr.events.message;
+    exports cafe.jeffrey.jfr.events.notification;
     exports cafe.jeffrey.jfr.events.trace;
 
     // JFR rewrites event-class bytecode at registration through
@@ -33,6 +33,6 @@ module cafe.jeffrey.jfr.events {
     opens cafe.jeffrey.jfr.events.http to jdk.jfr;
     opens cafe.jeffrey.jfr.events.jdbc.pool to jdk.jfr;
     opens cafe.jeffrey.jfr.events.jdbc.statement to jdk.jfr;
-    opens cafe.jeffrey.jfr.events.message to jdk.jfr;
+    opens cafe.jeffrey.jfr.events.notification to jdk.jfr;
     opens cafe.jeffrey.jfr.events.trace to jdk.jfr;
 }

@@ -159,7 +159,7 @@ dashboards.
 | `jeffrey.TraceSpan` | `trace.TraceSpanEvent` | interior span, emitted by `Tracer.run`/`call`/`continueIn` and by `@Traced` |
 | `jeffrey.TraceScope` | `trace.TraceScopeEvent` | where a re-entered span ran; emitted by `Tracer.reenter` only |
 | `jeffrey.JdbcPoolStatistics` + `PooledJdbcConnection*` | `jdbc.pool.*` | not spans: pool gauges and durations |
-| `jeffrey.Message` / `jeffrey.Alert` | `message.*` | not spans: operational notes and alerts |
+| `jeffrey.Notification` | `notification.NotificationEvent` | not a span: an instant, but it records the span it fired in |
 
 Each package's `package-info` documents its emit patterns in detail; the `trace.Tracer` javadoc
 covers the tracing model itself.

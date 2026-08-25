@@ -20,7 +20,7 @@ package cafe.jeffrey.hub.core.scheduler.job;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.hub.core.jfr.JfrMessageEmitter;
+import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
@@ -138,7 +138,7 @@ public class ProjectInstanceSessionCleanerJob extends RepositoryProjectJob<Proje
                         .deleteRecordingSession(session.id()));
 
         if (!candidatesForDeletion.isEmpty()) {
-            JfrMessageEmitter.sessionsCleaned(projectName, candidatesForDeletion.size());
+            JfrNotificationEmitter.sessionsCleaned(projectName, candidatesForDeletion.size());
         }
     }
 

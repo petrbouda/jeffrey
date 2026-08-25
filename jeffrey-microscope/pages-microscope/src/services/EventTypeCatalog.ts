@@ -411,13 +411,12 @@ const EVENT_TYPE_CATALOG: EventTypeCategory[] = [
       { name: 'jeffrey.JdbcPoolStatistics', description: 'Connection pool stats' }
     ]
   },
-  // ── Jeffrey: Messaging ──
+  // ── Jeffrey: Notifications ──
   {
-    label: 'Messaging',
+    label: 'Notifications',
     badge: 'jeffrey',
     events: [
-      { name: 'jeffrey.Message', description: 'Application messages' },
-      { name: 'jeffrey.Alert', description: 'Application alerts' }
+      { name: 'jeffrey.Notification', description: 'Application notifications, ranked by severity' }
     ]
   },
   // ── Profiler ──
