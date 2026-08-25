@@ -50,6 +50,12 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 
 // Button styles using design tokens
 .btn {
+  // Bootstrap ships `.btn { font-family: var(--bs-btn-font-family) }` with that variable empty, so
+  // the declaration drops and the property falls back to `inherit`. Every other button in the app
+  // gets the right face by accident of `body` carrying it -- but one mounted inside a monospace
+  // container (the trace stack panel) inherits the monospace instead. Stating it here is what makes
+  // a button's face independent of where it is mounted.
+  font-family: var(--font-family-base);
   border-radius: var(--radius-sm);
   font-weight: var(--font-weight-medium);
   padding: var(--spacing-2) var(--spacing-4);
