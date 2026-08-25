@@ -266,37 +266,46 @@
             :style="{ '--entry': exceptionColor(exception.escaped) }"
           >
             <!--
-              The row is the control. A pill beside the verdict was a third thing to aim at in a row
-              that already carries a class, a message and a badge, and its target was a few pixels of
-              text; the head is the whole width. Only the head, not the entry: a click inside the
-              opened stack must not fold it away again.
+              The whole head stays a click target, because aiming at a few pixels of text in a row
+              this wide was the problem to begin with. Only the head, not the entry: a click inside
+              the opened stack must not fold it away again.
             -->
             <div
               class="sd-exc-head"
-              :role="exception.stacktraceId ? 'button' : undefined"
-              :tabindex="exception.stacktraceId ? 0 : undefined"
-              :aria-expanded="
-                exception.stacktraceId ? openStacks.has(exception.exceptionId) : undefined
-              "
+              :class="{ clickable: exception.stacktraceId }"
               @click="exception.stacktraceId && toggleStack(exception.exceptionId)"
-              @keydown.enter.prevent="exception.stacktraceId && toggleStack(exception.exceptionId)"
-              @keydown.space.prevent="exception.stacktraceId && toggleStack(exception.exceptionId)"
             >
               <!--
-                The chevron is what says the row opens; without it the row is a click target nobody
-                knows is there. A throw JFR sampled without a stack keeps the empty cell, so the
-                columns of a mixed list still line up.
+                The gutter stacks the button under the offset, in space the row was already spending:
+                the column is 4.5rem wide because a timestamp needs it and one line tall in a row
+                three lines tall. A throw JFR sampled without a stack simply has no button, which is
+                how the list says which rows open.
+
+                The button carries the semantics rather than the head — a div holding a real button
+                cannot itself be `role="button"`, and this way the control is the thing that takes
+                focus and answers the keyboard.
               -->
-              <span class="sd-entry-caret">
-                <i
+              <span class="sd-entry-gut">
+                <span class="sd-entry-at">{{ offsetInSpan(exception.startEpochMicros) }}</span>
+                <button
                   v-if="exception.stacktraceId"
-                  class="bi"
-                  :class="
-                    openStacks.has(exception.exceptionId) ? 'bi-chevron-down' : 'bi-chevron-right'
+                  type="button"
+                  class="sd-entry-expand"
+                  :class="{ open: openStacks.has(exception.exceptionId) }"
+                  :aria-expanded="openStacks.has(exception.exceptionId)"
+                  :aria-label="
+                    openStacks.has(exception.exceptionId) ? 'Hide the stack' : 'Show the stack'
                   "
-                ></i>
+                  @click.stop="toggleStack(exception.exceptionId)"
+                >
+                  <i
+                    class="bi"
+                    :class="
+                      openStacks.has(exception.exceptionId) ? 'bi-chevron-up' : 'bi-chevron-down'
+                    "
+                  ></i>
+                </button>
               </span>
-              <span class="sd-entry-at">{{ offsetInSpan(exception.startEpochMicros) }}</span>
               <span class="sd-entry-main">
                 <span class="sd-entry-class">{{ exception.thrownClass }}</span>
                 <span v-if="exception.message" class="sd-entry-text">{{ exception.message }}</span>
@@ -530,9 +539,10 @@ function percent(part: number, whole: number): string {
 
 <style scoped>
 /* The stack sits under the throw it belongs to and is indented to say so, with a rule down the
-   left so a long stack cannot be mistaken for the next throw in the list. */
+   left so a long stack cannot be mistaken for the next throw in the list. It lines up with the
+   class name it belongs to rather than with the button that opened it. */
 .sd-stack {
-  margin: 0.35rem 0 0.1rem;
+  margin: 0.35rem 0 0.1rem 5rem;
   padding-left: 0.55rem;
   border-left: 2px solid var(--color-border-input);
 }
@@ -545,37 +555,79 @@ function percent(part: number, whole: number): string {
   display: block;
 }
 
-.sd-exc-head {
-  display: grid;
-  grid-template-columns: 1rem 4.5rem 1fr;
-  gap: 0.5rem;
-  align-items: baseline;
-  /* Its own box within the entry's padding, so the hover and focus states have something to fill. */
-  padding: 0.15rem 0.4rem;
-  margin: -0.15rem -0.4rem;
+/*
+ * The hover lives on the entry, which has had a box of its own all along; the head needed no second
+ * negative-margin pair to have something to fill. Tint is the app's own row-hover token, the one
+ * TraceCardList and TraceOperationSummary use, rather than a lavender no row in the app wears.
+ */
+.sd-entry.is-exc-entry:has(.sd-exc-head.clickable):hover {
+  background: var(--color-bg-hover);
   border-radius: var(--radius-sm);
 }
 
-.sd-exc-head[role='button'] {
+/* A severe row is already tinted, so its hover deepens that tint rather than replacing it with the
+   neutral one — going grey on hover would read as the row losing its verdict. */
+.sd-entry.is-exc-entry.severe:has(.sd-exc-head.clickable):hover {
+  background: color-mix(in srgb, var(--entry) 14%, transparent);
+}
+
+.sd-exc-head {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  gap: 0.5rem;
+  align-items: start;
+}
+
+.sd-exc-head.clickable {
   cursor: pointer;
 }
 
-.sd-exc-head[role='button']:hover {
-  background: var(--color-primary-light);
+/* Offset over button, both left-aligned so the timestamps still read as a column. */
+.sd-entry-gut {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
 }
 
-.sd-exc-head:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -1px;
+/*
+ * No frame at rest, so a list of throws is a list of throws; the button draws itself when the row
+ * is pointed at and stays filled while its stack is open. Focus is a resting state too — a keyboard
+ * reader tabbing through never sees the hover.
+ */
+.sd-entry-expand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
 }
 
-.sd-entry-caret {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-light);
-}
-
-.sd-exc-head[aria-expanded='true'] .sd-entry-caret {
+.sd-entry.is-exc-entry:hover .sd-entry-expand,
+.sd-entry-expand:focus-visible {
+  background: var(--color-white);
+  border-color: var(--color-border-input);
   color: var(--color-primary);
+}
+
+.sd-entry-expand:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.sd-entry-expand.open,
+.sd-entry.is-exc-entry:hover .sd-entry-expand.open {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-white);
 }
 
 /*
