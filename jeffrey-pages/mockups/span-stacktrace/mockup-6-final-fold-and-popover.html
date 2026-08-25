@@ -362,8 +362,10 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
       <p class="stage-why">The handoff lands here, in the Exceptions region the reader already knows. <b>The fold is
         what makes inline placement possible at all</b>: 45 raw frames would push everything below off screen,
         which is what ruled that placement out on its own. At 9 rows and 4 bars it fits, so no second
-        window is needed and the trace never leaves the screen. One bar is shown open &mdash; expanding is in place
-        and reversible, so nothing is ever hidden, only ordered.</p>
+        window is needed and the trace never leaves the screen.</p>
+      <p class="stage-why"><b>Drawn one click in, not at rest.</b> The panel lands at 9 rows and 4 bars;
+        here the <code>java.util.stream</code> bar has been opened, so 15 frames are showing and both counts
+        say so. Expanding happens in place and reverses &mdash; nothing is hidden, only ordered.</p>
       <div class="modal">
         <div class="modal-head">
           <i class="bi bi-diagram-3-fill" style="color:var(--color-primary)"></i>
@@ -383,12 +385,12 @@ h1 .n { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem
                   <div class="sd-exc-msg">renderer produced no output for report 4417</div>
                   <div class="sd-exc-foot">
                     <span class="escaped-tag"><i class="bi bi-box-arrow-up-right"></i> escaped this span</span>
-                    <span class="chip on"><i class="bi bi-chevron-down"></i> 9 of 45 frames</span>
+                    <span class="chip on"><i class="bi bi-chevron-down"></i> 15 of 45 frames</span>
                   </div>
                   <div class="stack" style="margin-top:.45rem;border-top:1px solid var(--color-border-light);padding-top:.35rem">
                     <div class="stack-head">
                       <span class="t">Stack</span>
-                      <span>thread <b>http-nio-8080-exec-4</b></span>
+                      <span><b>15</b> of 45 shown &middot; opened <b>java.util.stream</b> &middot; thread <b>http-nio-8080-exec-4</b></span>
                       <span class="acts"><span class="chip on"><i class="bi bi-funnel-fill"></i> Fold libraries</span><span class="chip"><i class="bi bi-clipboard"></i> Copy</span></span>
                     </div>
                     <div class="fr throw"><span class="sig"><span class="pkg">com.acme.reports.render.</span>PdfRenderer.<b>finish</b><i class="bi bi-box-arrow-up-right ide" title="Open in IntelliJ"></i></span><span class="src">PdfRenderer.java:214</span></div>
