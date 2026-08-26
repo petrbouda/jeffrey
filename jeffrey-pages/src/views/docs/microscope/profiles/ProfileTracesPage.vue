@@ -244,9 +244,42 @@ if (event.isEnabled()) {
 
       <h3>Notifications</h3>
 
-      <p>A <code>jeffrey.Notification</code> is a note your code writes into its own recording: a threshold crossed, a cache warmed, a feature flag flipped, a circuit breaker opened. It carries a stable <code>type</code>, a <code>title</code>, a <code>message</code>, a <code>severity</code>, a <code>category</code> and the <code>source</code> that raised it. Calling <code>emit()</code> rather than <code>commit()</code> stamps the enclosing span's ids onto the event, which is what lets the analysis draw it against that span rather than guessing from the thread and the clock — a notification can be raised on a pool thread or a callback for work that belongs somewhere else entirely, and thread-and-window would file it against whatever happened to be running.</p>
+      <p>A <code>jeffrey.Notification</code> is a note your code writes into its own recording: a threshold crossed, a cache warmed, a feature flag flipped, a circuit breaker opened. It carries a stable <code>type</code>, a <code>message</code>, a <code>severity</code>, a <code>category</code> and the <code>source</code> that raised it. The <code>type</code> is the notification's name as well as its identity — there is deliberately no separate title, because a short label for a kind of notification is a function of its type and nothing else, so recording one per event would store what the type already said. Calling <code>emit()</code> rather than <code>commit()</code> stamps the enclosing span's ids onto the event, which is what lets the analysis draw it against that span rather than guessing from the thread and the clock — a notification can be raised on a pool thread or a callback for work that belongs somewhere else entirely, and thread-and-window would file it against whatever happened to be running.</p>
 
-      <p><code>severity</code> is the whole of "how serious is this". There is deliberately no second event type for the serious ones: two types carrying the same six fields could disagree with each other, and every reader already ranks by severity.</p>
+      <p><code>severity</code> is the whole of "how serious is this". There is deliberately no second event type for the serious ones: two types carrying the same five fields could disagree with each other, and every reader already ranks by severity.</p>
+
+      <p>Those five fields are the shape every notification has, so they stay low-cardinality. What varies per occurrence — the pool that ran dry, the tenant it happened to, the threshold that was crossed — goes in <code>attributes</code>, the same open JSON map a span carries and the same <code>EventAttributes</code> builder fills:</p>
+
+      <pre><code>NotificationEvent notification = new NotificationEvent();
+notification.type = "CONNECTION_POOL_EXHAUSTED";
+notification.severity = Severity.HIGH.name();
+notification.category = "RESOURCE";
+notification.source = "hikari";
+notification.attributes = EventAttributes.create()
+        .put("pool", "orders")
+        .put("inUse", 46)
+        .json();
+notification.emit();</code></pre>
+
+      <p><strong>Keep the five shaped fields constant, and put what varies in <code>attributes</code>.</strong> JFR interns every distinct string in its per-chunk constant pool, so ten thousand notifications of one kind cost a single pool entry per field &mdash; unless the message is assembled per call, in which case each one is a new entry and the recording grows accordingly. The same split decides what you can search for: attributes are flattened into the profile's index one row per distinct value, so an id put in an attribute is queryable and the same id spliced into a message is not.</p>
+
+      <pre><code>// Wrong: a new constant-pool entry every time, and nothing can search for one profile
+notification.message = "Could not build profile " + profileId + " after " + ms + "ms";
+
+// Right: one entry however often it is raised, and both values are searchable
+notification.message = "Building a profile threw on a background thread";
+notification.attributes = EventAttributes.create()
+        .put("profileId", profileId)
+        .put("durationMs", ms)
+        .json();</code></pre>
+
+      <p>Jeffrey stores the text accordingly: on the way into a profile each distinct message goes into a hash-keyed dictionary and every notification keeps a reference to it, so a recording that raises one kind ten thousand times holds that sentence once. A message assembled per call turns that dictionary into one row per notification.</p>
+
+      <p>The rule in one line: <em>the message says what kind of thing happened, the attributes say which one</em>. If two occurrences need to say different things, they are two <code>type</code>s rather than one type with two messages &mdash; which is also why a message that just restates its own type name is wasted space, since the type is already shown beside it.</p>
+
+      <p>The map is rendered under the notification wherever it is drawn — in the span's detail region and, capped, in the rail's popover. Both the map and the six shaped fields are searchable from <strong>Traces by Attributes</strong>: pick <code>jeffrey.Notification</code> in the first step and its keys appear in the second, beside the ones spans carry. A notification condition narrows the <em>trace</em> result set, exactly as a span condition does, and a match is shown on the row as a <code>notification</code> hit rather than a span one.</p>
+
+      <p>The two are indexed apart on purpose. A notification's <code>severity</code> says something went wrong somewhere; a span's <code>status</code> says that span failed. Searching for <code>status = ERROR</code> therefore never matches a notification that merely said so — and under <em>All on one span</em>, each notification condition has to be satisfied by the same single notification, not merely by the same trace.</p>
 
       <h3>Exceptions</h3>
 
@@ -348,9 +381,9 @@ if (event.isEnabled()) {
       <p>The three readings are three pages, listed under <strong>Traces by Attributes</strong> in the sidebar. The conditions, the scope and the selected key all live in the URL, so a filter is a link rather than a set of instructions — and the key travels between the pages, so a key opened in Attribute Values is still the one Latency draws:</p>
 
       <ul>
-        <li><strong>Search Traces</strong> <code>/technologies/traces/attributes/search</code> — conditions built from the catalog and ANDed together, with <code>=</code>, <code>≠</code>, <code>contains</code>, the four numeric comparisons and "is present". Only the operators a key's values can answer are offered; the comparisons read a numeric column filled only where the value is a number, so <code>rows&nbsp;&gt;&nbsp;9</code> never compares <code>"9"</code> against <code>"10000"</code> as text. This is the one page without the key rail — its subject is traces rather than a key, and it is the only one that works with none selected — so the builder's own key list carries what the rail would have said: the source it came from, how many values it has, and whether it is search only. Above the results: how many traces matched and how their percentiles compare with the profile's, and a density strip drawing the matches against every trace as a backdrop. Each result row shows <em>which span</em> matched and what it held, so the list is usually the whole answer rather than the start of one.</li>
-        <li><strong>Attribute Values</strong> <code>/technologies/traces/attributes/values</code> — one key of one event type, broken down into every value it took, ranked by total time rather than by call count: a busy value and an expensive value are rarely the same value. Each row carries the traces holding it, their P50, P95 and max, and their error rate. A trace that recorded two values of one key counts towards both, so the rows do not sum to the profile — and traces where no span carried the key at all get a row of their own rather than being silently dropped.</li>
-        <li><strong>Latency by Attributes</strong> <code>/technologies/traces/attributes/latency</code> — each value's traces spread over log-spaced duration buckets. Percentiles hide bimodality: a value whose traces are either fast or catastrophic has the same median as one that is uniformly mediocre, and it is the first that is worth looking at. Colour is normalised inside each row, so the shapes are comparable even where one value ran ten times as often.</li>
+        <li><strong>Search Traces</strong> <code>/traces/attributes/search</code> — conditions built from the catalog and ANDed together, with <code>=</code>, <code>≠</code>, <code>contains</code>, the four numeric comparisons and "is present". Only the operators a key's values can answer are offered; the comparisons read a numeric column filled only where the value is a number, so <code>rows&nbsp;&gt;&nbsp;9</code> never compares <code>"9"</code> against <code>"10000"</code> as text. This is the one page without the key rail — its subject is traces rather than a key, and it is the only one that works with none selected — so the builder's own key list carries what the rail would have said: the source it came from, how many values it has, and whether it is search only. Above the results: how many traces matched and how their percentiles compare with the profile's, and a density strip drawing the matches against every trace as a backdrop. Each result row shows <em>which span</em> matched and what it held, so the list is usually the whole answer rather than the start of one.</li>
+        <li><strong>Attribute Values</strong> <code>/traces/attributes/values</code> — one key of one event type, broken down into every value it took, ranked by total time rather than by call count: a busy value and an expensive value are rarely the same value. Each row carries the traces holding it, their P50, P95 and max, and their error rate. A trace that recorded two values of one key counts towards both, so the rows do not sum to the profile — and traces where no span carried the key at all get a row of their own rather than being silently dropped.</li>
+        <li><strong>Latency by Attributes</strong> <code>/traces/attributes/latency</code> — each value's traces spread over log-spaced duration buckets. Percentiles hide bimodality: a value whose traces are either fast or catastrophic has the same median as one that is uniformly mediocre, and it is the first that is worth looking at. Colour is normalised inside each row, so the shapes are comparable even where one value ran ten times as often.</li>
       </ul>
 
       <DocsCallout type="info">

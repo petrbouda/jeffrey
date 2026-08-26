@@ -23,7 +23,7 @@ import cafe.jeffrey.profile.manager.model.trace.TraceAttributeLatency;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeSearchResult;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeTimelineBucket;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeValues;
-import cafe.jeffrey.profile.manager.model.trace.TraceSpanTypeRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceEventTypeRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
 import cafe.jeffrey.provider.profile.api.TraceAttributeLatencyQuery;
@@ -31,7 +31,7 @@ import cafe.jeffrey.provider.profile.api.TraceAttributeKeyRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeRepository;
 import cafe.jeffrey.provider.profile.api.TraceAttributeSearchQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueQuery;
-import cafe.jeffrey.provider.profile.api.TraceSpanTypeRecord;
+import cafe.jeffrey.provider.profile.api.TraceEventTypeRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 
 import java.util.ArrayList;
@@ -72,8 +72,8 @@ public class TraceAttributesManagerImpl implements TraceAttributesManager {
     }
 
     @Override
-    public List<TraceSpanTypeRow> spanEventTypes() {
-        return repository.spanEventTypes(SEARCH_ONLY_ABOVE).stream()
+    public List<TraceEventTypeRow> attributeEventTypes() {
+        return repository.attributeEventTypes(SEARCH_ONLY_ABOVE).stream()
                 .map(TraceAttributesManagerImpl::toRow)
                 .toList();
     }
@@ -125,8 +125,11 @@ public class TraceAttributesManagerImpl implements TraceAttributesManager {
             List<TraceAttributeSearchResult.Hit> traceHits =
                     grouped.computeIfAbsent(hit.traceId(), _ -> new ArrayList<>());
             if (traceHits.size() < MAX_HITS_PER_TRACE) {
+                // A notification that fired outside any span has no id to hex — and that is the
+                // answer, not a gap: it belongs to the trace, with no bar to point at.
+                String spanId = hit.spanId() == null ? null : TraceIds.hex(hit.spanId());
                 traceHits.add(new TraceAttributeSearchResult.Hit(
-                        TraceIds.hex(hit.spanId()), hit.key(), hit.value()));
+                        hit.carrier(), spanId, hit.key(), hit.value()));
             }
         }
         return grouped;
@@ -203,12 +206,13 @@ public class TraceAttributesManagerImpl implements TraceAttributesManager {
                 .orElse(0L);
     }
 
-    private static TraceSpanTypeRow toRow(TraceSpanTypeRecord type) {
-        return new TraceSpanTypeRow(
+    private static TraceEventTypeRow toRow(TraceEventTypeRecord type) {
+        return new TraceEventTypeRow(
                 type.eventType(),
-                type.spanCount(),
+                type.carrier(),
+                type.carrierCount(),
                 type.traceCount(),
-                type.errorSpans(),
+                type.errorCarriers(),
                 type.attributeCount(),
                 type.breakableCount());
     }
@@ -220,7 +224,7 @@ public class TraceAttributesManagerImpl implements TraceAttributesManager {
                 key.id().key(),
                 key.valueKind().name(),
                 key.distinctValues(),
-                key.spanCount(),
+                key.carrierCount(),
                 key.traceCount(),
                 key.distinctValues() > SEARCH_ONLY_ABOVE);
     }

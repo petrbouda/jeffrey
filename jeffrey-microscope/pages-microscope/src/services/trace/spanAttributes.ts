@@ -121,6 +121,17 @@ export function spanDetail(
 }
 
 /**
+ * The rows of a bare attribute map, for a carrier that has nothing else to show.
+ *
+ * A notification carries the same open map a span does, built by the same `EventAttributes` builder,
+ * so it is read by the same parser rather than a second one that could drift from it — the key order
+ * the emitter chose is preserved, and unparseable text still surfaces as a visible `raw` row.
+ */
+export function attributeRows(json: string | null | undefined): SpanDetailRow[] {
+  return spanDetail(json, null).attributes;
+}
+
+/**
  * The object's own entries, or a single `raw` entry when the text is not a JSON object — including
  * when it is valid JSON of some other shape, which is equally unrenderable as key/value rows.
  */

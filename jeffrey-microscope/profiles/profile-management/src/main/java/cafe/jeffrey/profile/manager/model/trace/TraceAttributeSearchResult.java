@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.profile.manager.model.trace;
 
+import cafe.jeffrey.provider.profile.api.TraceAttributeCarrier;
+
 import java.util.List;
 
 /**
@@ -36,19 +38,23 @@ public record TraceAttributeSearchResult(
      * One matched trace, with what matched it.
      *
      * @param trace the trace itself, exactly as the trace list would show it
-     * @param hits  the spans that satisfied a condition, capped: a trace where four hundred spans
+     * @param hits  the carriers that satisfied a condition, capped: a trace where four hundred spans
      *              carry the value is answered by the first few, and the rest would bury the row
      */
     public record Match(TraceRow trace, List<Hit> hits) {
     }
 
     /**
-     * One span that satisfied a condition, and what it held. This is what keeps the answer in the
+     * One carrier that satisfied a condition, and what it held. This is what keeps the answer in the
      * list — without it, finding out which span carried the value means opening the trace.
      *
-     * @param spanId the span, as a hex string for the same reason a trace id is one
+     * @param carrier whether a span or a notification matched, so the row can say which it was
+     *                rather than calling a notification a span
+     * @param spanId  the span, as a hex string for the same reason a trace id is one; {@code null}
+     *                when a notification matched outside any span, which is an answer rather than a
+     *                missing value
      */
-    public record Hit(String spanId, String key, String value) {
+    public record Hit(TraceAttributeCarrier carrier, String spanId, String key, String value) {
     }
 
     /** The matched traces summarised, aggregated over every match rather than over the page. */

@@ -159,7 +159,7 @@ dashboards.
 | `jeffrey.TraceSpan` | `trace.TraceSpanEvent` | interior span, emitted by `Tracer.run`/`call`/`continueIn` and by `@Traced` |
 | `jeffrey.TraceScope` | `trace.TraceScopeEvent` | where a re-entered span ran; emitted by `Tracer.reenter` only |
 | `jeffrey.JdbcPoolStatistics` + `PooledJdbcConnection*` | `jdbc.pool.*` | not spans: pool gauges and durations |
-| `jeffrey.Notification` | `notification.NotificationEvent` | not a span: an instant, but it records the span it fired in |
+| `jeffrey.Notification` | `notification.NotificationEvent` | not a span: an instant (`trace.AbstractTracedInstant`), but it records the span it fired in |
 
 Each package's `package-info` documents its emit patterns in detail; the `trace.Tracer` javadoc
 covers the tracing model itself.
@@ -185,6 +185,75 @@ covers the tracing model itself.
    re-establish it with `Tracer.continueIn(parent, ...)`. For one operation arriving in callback
    pieces on foreign threads, open with `Tracer.openSpanOf(event)` and wrap each callback in
    `Tracer.reenter(ctx, ...)`.
+
+## Instants
+
+A trace is made of two things. A **span** is an interval — it has a name, a kind, an outcome, a
+duration and a place in the tree. An **instant** (`trace.AbstractTracedInstant`) is a moment: it has
+none of those, and the only structural thing it carries is which span was open when it fired.
+`jeffrey.Notification` is the one instant today.
+
+An instant commits through **`emit()`**, not `commitSpan()`. It stamps the enclosing span's ids onto
+the event and commits; ids the caller already set are left alone, so an instant raised on a pool
+thread for work belonging elsewhere carries the context it was handed rather than the one it happens
+to be running in. A plain `commit()` still records it — simply with no trace context.
+
+Instants carry the same open `attributes` map spans do, built by the same `EventAttributes` builder
+and encoded identically, so one reader renders both and one index searches both:
+
+```java
+NotificationEvent notification = new NotificationEvent();
+notification.type = "CONNECTION_POOL_EXHAUSTED";
+notification.severity = Severity.HIGH.name();
+notification.category = "RESOURCE";
+notification.source = "hikari";
+notification.attributes = EventAttributes.create()
+        .put("pool", "orders")
+        .put("inUse", 46)
+        .json();
+notification.emit();
+```
+
+### Keep the constant fields constant
+
+`type`, `severity`, `category` and `message` are the low-cardinality half of a notification, and they
+have to stay that way. **JFR interns every distinct string in the per-chunk constant pool** and stores
+each event's field as an index into it, so ten thousand notifications of one kind cost *one* pool
+entry per field and ten thousand varints. Splice an id into the message and it is a new entry every
+time — the fastest way there is to make a recording enormous.
+
+```java
+// Wrong: a new constant-pool entry per occurrence, and nothing can search for "profile 4f2a"
+notification.message = "Could not build profile " + profileId + " after " + ms + "ms";
+
+// Right: one entry however often it is raised, and both values are searchable
+notification.message = "Building a profile threw on a background thread";
+notification.attributes = EventAttributes.create()
+        .put("profileId", profileId)
+        .put("durationMs", ms)
+        .json();
+```
+
+The same split decides what is *queryable*. Attributes are flattened into the profile's searchable
+index — one row per distinct value text, keyed by its hash — so an id in an attribute can be searched
+and the same id inside a message cannot. It is also what keeps `message` usable as a search key at
+all: a key with one distinct value per occurrence is marked search-only and can never be broken down.
+
+And it is what lets Jeffrey store the text once. On the way into a profile the message goes into a
+hash-keyed dictionary (`trace_notification_messages`) and each notification keeps a reference, so a
+recording that raises one kind ten thousand times holds that sentence a single time. A message that
+varies per occurrence turns that dictionary into one row per notification and the saving is gone.
+
+So: **the message says what kind of thing happened; the attributes say which one.** If two occurrences
+genuinely need to say different things, they are two kinds, not one kind with two messages.
+
+Jeffrey's own emitter (`shared/notifications`) enforces this by construction — the message lives on
+the `NotificationType` constant and there is no way to set it per call.
+
+The identity field is called `enclosingSpanId`, never `spanId` — span discovery is structural, by the
+declared `spanId` column, so an instant naming its field that way would be built into a nameless,
+durationless span under everything that ever said anything. `TraceScopeEvent` spells its own
+`scopedSpanId` for the same reason, and is deliberately *not* an instant: a scope carries a duration.
 
 ## Volume control
 

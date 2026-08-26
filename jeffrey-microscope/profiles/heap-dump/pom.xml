@@ -30,6 +30,10 @@
     <artifactId>heap-dump</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>cafe.jeffrey</groupId>
+            <artifactId>notifications</artifactId>
+        </dependency>
         <!-- Project dependencies -->
         <dependency>
             <groupId>${project.groupId}</groupId>

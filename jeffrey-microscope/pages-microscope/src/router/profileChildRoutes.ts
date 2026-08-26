@@ -12,13 +12,6 @@ function redirectTo(targetSubPath: string) {
   return (to: RouteLocationGeneric) => `/profiles/${String(to.params.profileId)}/${targetSubPath}`;
 }
 
-/** Where each of the old `?view=` tabs of Traces by Attributes now lives. */
-const ATTRIBUTE_VIEW_SUB_PATHS: Record<string, string> = {
-  search: 'search',
-  values: 'values',
-  latency: 'latency'
-};
-
 // Overview, analysis, and event browsing
 const analysisRoutes = [
   {
@@ -569,58 +562,6 @@ const technologyRoutes = [
     meta: { layout: 'profile' }
   },
   {
-    // The flat trace list this used to render is gone: every way in went through an operation or a
-    // search, and the waterfall those open now stays on the page that opened it. Old links keep
-    // working by landing on Search Traces, which reads `trace` from the query the same way — so a
-    // shared waterfall link still opens its waterfall, just over the search rather than the list.
-    path: 'technologies/traces',
-    redirect: (to: RouteLocationGeneric) => ({
-      path: `/profiles/${String(to.params.profileId)}/technologies/traces/attributes/search`,
-      query: to.query
-    })
-  },
-  {
-    path: 'technologies/traces/operations',
-    name: 'profile-technologies-traces-operations',
-    component: () => import('@/views/profiles/detail/technologies/ProfileTraceOperations.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    // The three attribute views used to be tabs of one route, switched by `?view=`. Old links keep
-    // working: the view name picks the sub-path, and the rest of the query — the selected key, the
-    // conditions, the scope — travels with it rather than being dropped on the way.
-    path: 'technologies/traces/attributes',
-    redirect: (to: RouteLocationGeneric) => {
-      const { view, ...query } = to.query;
-      const subPath = ATTRIBUTE_VIEW_SUB_PATHS[String(view)] ?? 'search';
-      return {
-        path: `/profiles/${String(to.params.profileId)}/technologies/traces/attributes/${subPath}`,
-        query
-      };
-    }
-  },
-  {
-    path: 'technologies/traces/attributes/search',
-    name: 'profile-technologies-traces-attributes-search',
-    component: () =>
-      import('@/views/profiles/detail/technologies/ProfileTraceAttributeSearch.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'technologies/traces/attributes/values',
-    name: 'profile-technologies-traces-attributes-values',
-    component: () =>
-      import('@/views/profiles/detail/technologies/ProfileTraceAttributeValues.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'technologies/traces/attributes/latency',
-    name: 'profile-technologies-traces-attributes-latency',
-    component: () =>
-      import('@/views/profiles/detail/technologies/ProfileTraceAttributeLatency.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
     path: 'technologies/grpc/overview',
     name: 'profile-technologies-grpc-overview',
     component: () => import('@/views/profiles/detail/technologies/ProfileGrpcOverview.vue'),
@@ -740,6 +681,34 @@ const advisorRoutes = [
   }
 ];
 
+// Traces — a top-level feature of its own, not one of the technologies
+const traceRoutes = [
+  {
+    path: 'traces/operations',
+    name: 'profile-traces-operations',
+    component: () => import('@/views/profiles/detail/traces/ProfileTraceOperations.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'traces/attributes/search',
+    name: 'profile-traces-attributes-search',
+    component: () => import('@/views/profiles/detail/traces/ProfileTraceAttributeSearch.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'traces/attributes/values',
+    name: 'profile-traces-attributes-values',
+    component: () => import('@/views/profiles/detail/traces/ProfileTraceAttributeValues.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
+    path: 'traces/attributes/latency',
+    name: 'profile-traces-attributes-latency',
+    component: () => import('@/views/profiles/detail/traces/ProfileTraceAttributeLatency.vue'),
+    meta: { layout: 'profile' }
+  }
+];
+
 export const profileChildRoutes = [
   ...analysisRoutes,
   ...visualizationRoutes,
@@ -750,6 +719,7 @@ export const profileChildRoutes = [
   ...runtimeRoutes,
   ...heapDumpRoutes,
   ...technologyRoutes,
+  ...traceRoutes,
   ...toolsRoutes,
   ...advisorRoutes
 ];

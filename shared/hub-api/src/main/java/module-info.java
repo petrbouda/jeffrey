@@ -15,6 +15,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+// protobuf and the gRPC jars are automatic modules (named only by their jar manifests), so javac
+// warns that re-exporting them is fragile. Re-exported deliberately: the generated stubs and
+// messages ARE this module's exported API, and no caller can use them without these types.
+@SuppressWarnings("requires-transitive-automatic")
 module cafe.jeffrey.shared.hub.api {
     requires transitive com.google.protobuf;
     requires transitive io.grpc;

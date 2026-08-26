@@ -33,6 +33,7 @@
 
     <modules>
         <module>common</module>
+        <module>notifications</module>
         <module>persistence</module>
         <module>hub-api</module>
         <module>test</module>

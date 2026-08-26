@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
+import cafe.jeffrey.provider.profile.api.TraceAttributeCarrier;
 import cafe.jeffrey.provider.profile.api.TraceAttributeCondition;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyRecord;
@@ -29,26 +30,32 @@ import cafe.jeffrey.provider.profile.api.TraceAttributeSource;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueKind;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueRecord;
-import cafe.jeffrey.provider.profile.api.TraceSpanTypeRecord;
+import cafe.jeffrey.provider.profile.api.TraceEventTypeRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
+import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_TRACES;
 
 /**
- * Reads a profile's span attributes as queryable dimensions, over the flat index
- * {@link #derive()} builds out of {@code trace_spans}.
+ * Reads a profile's trace attributes as queryable dimensions, over the two flat indexes
+ * {@link #derive()} builds out of {@code trace_spans} and {@code trace_notifications}.
  * <p>
- * The index exists because the alternative does not scale to a screen: every read here would
- * otherwise extract JSON per span per query, and a facet or a correlation is a scan of every span
- * the recording holds. Flattening once turns all of them into ordinary grouped SQL over two indexed
- * columns.
+ * The indexes exist because the alternative does not scale to a screen: every read here would
+ * otherwise extract JSON per carrier per query, and a facet or a correlation is a scan of everything
+ * the recording holds. Flattening once turns all of them into ordinary grouped SQL.
+ * <p>
+ * One index per carrier rather than one shared table: a span and a notification are grouped by
+ * different keys and mean different things, and a search for a span's outcome must never be answered
+ * by something that merely said so. The value dictionary is shared, since a text is a text.
  */
 public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
 
@@ -67,6 +74,29 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
             {'attr_key': 'status',    'value_text': status},
             {'attr_key': 'errorType', 'value_text': error_type},
             {'attr_key': 'eventType', 'value_text': event_type}""";
+
+    /**
+     * The notification columns exposed as queryable keys, the same way {@link #SHAPE_KEYS} exposes a
+     * span's.
+     * <p>
+     * Note the one that reads like a mistake and is not: {@code source} is a notification's own field
+     * -- the component that raised it -- while {@code source} is also the column this index uses to
+     * say where a key came from. A row for the field therefore reads
+     * {@code source = 'NOTIFICATION_SHAPE' AND attr_key = 'source'}. The key keeps the event's
+     * spelling on purpose, so that what the search offers matches what the detail panel showed.
+     * <p>
+     * {@code message} is here despite being free text and high-cardinality. The catalog's
+     * {@code distinct_values} will mark it search-only so it never becomes a facet list, and
+     * "notifications whose message mentions the circuit breaker" is the query this most exists for.
+     * If the value dictionary ever suffers for it, removing this one line is the whole reversal.
+     */
+    //language=SQL
+    private static final String NOTIFICATION_SHAPE_KEYS = """
+            {'attr_key': 'type',     'value_text': type},
+            {'attr_key': 'message',  'value_text': message},
+            {'attr_key': 'severity', 'value_text': severity},
+            {'attr_key': 'category', 'value_text': category},
+            {'attr_key': 'source',   'value_text': source}""";
 
     /*
      * Every attribute row of the profile as one relation, before it is split into the value
@@ -163,17 +193,109 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
             """;
 
     /*
+     * The same relation, for the other carrier: every attribute row a notification produced, before
+     * it is split into the shared value dictionary and its own reference-encoded index.
+     *
+     * Two branches rather than the span pipeline's three -- a notification declares no owned fields,
+     * so there is no EVENT_FIELD analogue and `owner` is always NULL. Everything else matches the
+     * span branches exactly, including the three guards that decide what is a value at all: a key
+     * containing a quote would break the JSON path built for it, an object or array is structure
+     * rather than a value, and an empty string is a key that was set to nothing.
+     *
+     * Kept per notification rather than flattened through a payload dictionary the way EVENT_FIELD
+     * is. That trade only pays when many carriers share one payload -- a million statement spans and
+     * a few thousand distinct SQL texts -- and notification attributes are per occurrence, so there
+     * is nothing to share.
+     */
+    //language=SQL
+    private static final String FLAT_NOTIFICATION_ATTRIBUTES = """
+            notification_attribute_pairs AS (
+                SELECT
+                    trace_id,
+                    notification_id,
+                    span_id,
+                    event_type,
+                    attributes                                     AS payload,
+                    UNNEST(json_keys(attributes))                  AS attr_key
+                FROM notification_carriers
+                WHERE attributes IS NOT NULL
+            ),
+            notification_flat AS (
+                SELECT
+                    trace_id,
+                    notification_id,
+                    span_id,
+                    '<<notification_attribute_source>>'                        AS source,
+                    NULL                                                       AS owner,
+                    attr_key,
+                    json_extract_string(payload, <<path>>)                     AS value_text,
+                    TRY_CAST(json_extract_string(payload, <<path>>) AS DOUBLE) AS value_num,
+                    event_type
+                FROM notification_attribute_pairs
+                WHERE attr_key NOT LIKE '%"%'
+                  AND json_type(payload, <<path>>) NOT IN ('OBJECT', 'ARRAY')
+                  AND NULLIF(json_extract_string(payload, <<path>>), '') IS NOT NULL
+                UNION ALL
+                SELECT
+                    trace_id,
+                    notification_id,
+                    span_id,
+                    '<<notification_shape_source>>'                            AS source,
+                    NULL                                                       AS owner,
+                    shape.attr_key,
+                    shape.value_text,
+                    TRY_CAST(shape.value_text AS DOUBLE)                       AS value_num,
+                    event_type
+                FROM notification_carriers,
+                     UNNEST([<<notification_shape_keys>>]) AS columns(shape)
+                WHERE shape.value_text IS NOT NULL
+            )
+            """;
+
+    /*
+     * The notifications this index is built from, named once so both branches above read the same
+     * rows and the event type is stated in exactly one place.
+     */
+    //language=SQL
+    private static final String NOTIFICATION_CARRIERS = """
+            notification_carriers AS (
+                SELECT
+                    n.trace_id,
+                    n.notification_id,
+                    n.span_id,
+                    n.type,
+                    -- Joined back from the dictionary: the message is stored once per distinct text,
+                    -- and this index wants the text itself so the search can match on it.
+                    m.message_text AS message,
+                    n.severity,
+                    n.category,
+                    n.source,
+                    n.attributes,
+                    '<<notification_event_type>>' AS event_type
+                FROM trace_notifications n
+                LEFT JOIN trace_notification_messages m ON m.message_id = n.message_ref
+            )
+            """;
+
+    /*
      * The value dictionary, keyed by the text's own hash so the index insert below computes each
      * row's reference inline -- the same convention the span payload table uses. Distinct texts
      * hashing to the same id would fail the primary key loudly rather than silently merging two
      * values.
+     *
+     * Fed from both carriers, which is what makes the shared value_id legal: a text recorded by a
+     * span and by a notification is one row here, and either index can reference it.
      */
     //language=SQL
     private static final String DERIVE_VALUES = """
             INSERT INTO trace_attribute_values (value_id, value_text)
             <<flat>>
             SELECT DISTINCT CAST(mod(hash(value_text), CAST(9223372036854775807 AS UBIGINT)) AS BIGINT), value_text
-            FROM flat
+            FROM (
+                SELECT value_text FROM flat
+                UNION ALL
+                SELECT value_text FROM notification_flat
+            )
             """;
 
     /*
@@ -199,6 +321,30 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
             """;
 
     /*
+     * The notification index, ordered by (trace_id, notification_id) for the same reason its span
+     * counterpart is ordered by (trace_id, span_id): the per-page hit lookup prunes by zone map, and
+     * this table carries no index either.
+     */
+    //language=SQL
+    private static final String DERIVE_NOTIFICATION_ATTRIBUTES = """
+            INSERT INTO trace_notification_attributes (
+                trace_id, notification_id, span_id, source, owner, attr_key, value_id, value_num, event_type)
+            <<flat>>
+            SELECT
+                trace_id,
+                notification_id,
+                span_id,
+                source,
+                owner,
+                attr_key,
+                CAST(mod(hash(value_text), CAST(9223372036854775807 AS UBIGINT)) AS BIGINT),
+                value_num,
+                event_type
+            FROM notification_flat
+            ORDER BY trace_id, notification_id
+            """;
+
+    /*
      * The catalog, summarised from the index in one pass.
      *
      * The kind is inferred from the values rather than declared, because nothing declares it: an
@@ -209,7 +355,8 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
     //language=SQL
     private static final String DERIVE_CATALOG = """
             INSERT INTO trace_attribute_keys (
-                source, owner, attr_key, value_kind, distinct_values, span_count, trace_count)
+                source, owner, attr_key, value_kind, distinct_values, carrier_count, trace_count)
+            <<indexed>>
             SELECT
                 a.source,
                 a.owner,
@@ -220,9 +367,9 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
                     ELSE 'STRING'
                 END                                                 AS value_kind,
                 COUNT(DISTINCT a.value_id)                          AS distinct_values,
-                COUNT(*)                                            AS span_count,
+                COUNT(*)                                            AS carrier_count,
                 COUNT(DISTINCT a.trace_id)                          AS trace_count
-            FROM trace_span_attributes a
+            FROM indexed a
             JOIN trace_attribute_values v ON v.value_id = a.value_id
             GROUP BY a.source, a.owner, a.attr_key
             """;
@@ -238,45 +385,91 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
     //language=SQL
     private static final String DERIVE_KEY_EVENT_TYPES = """
             INSERT INTO trace_attribute_key_event_types (
-                event_type, source, owner, attr_key, distinct_values, span_count, trace_count)
+                event_type, source, owner, attr_key, distinct_values, carrier_count, trace_count)
+            <<indexed>>
             SELECT
                 event_type,
                 source,
                 owner,
                 attr_key,
                 COUNT(DISTINCT value_id)                            AS distinct_values,
-                COUNT(*)                                            AS span_count,
+                COUNT(*)                                            AS carrier_count,
                 COUNT(DISTINCT trace_id)                            AS trace_count
-            FROM trace_span_attributes
+            FROM indexed
             GROUP BY event_type, source, owner, attr_key
             """;
 
     /*
-     * The event types that produced spans -- the picker's first step.
+     * Both indexes as one relation, for the two catalogs to summarise.
      *
-     * Read from trace_spans rather than from the attribute index: a span with no attributes at all
-     * still produced a span, and a type that vanished from the first step because none of its spans
-     * carried a payload would be a type the reader cannot explain the absence of. The shape keys
-     * mean this is unlikely, but the list is about spans, so it is counted from spans.
+     * Only the columns the summaries group and count by: what identifies the key, what it valued, and
+     * which trace it was on. The carrier's own id is deliberately not among them -- a catalog row is
+     * about a key, and neither summary asks which span or which notification carried it.
      */
     //language=SQL
-    private static final String SPAN_EVENT_TYPES = """
-            SELECT
-                s.event_type                                        AS event_type,
-                COUNT(*)                                            AS span_count,
-                COUNT(DISTINCT s.trace_id)                          AS trace_count,
-                COUNT(*) FILTER (WHERE s.status = 'ERROR')          AS error_spans,
-                (SELECT COUNT(*)
-                   FROM trace_attribute_key_event_types k
-                  WHERE k.event_type = s.event_type)                AS attribute_count,
-                (SELECT COUNT(*)
-                   FROM trace_attribute_key_event_types k
-                  WHERE k.event_type = s.event_type
-                    AND k.distinct_values <= :search_only_above)    AS breakable_count
-            FROM trace_spans s
-            GROUP BY s.event_type
-            ORDER BY span_count DESC
+    private static final String INDEXED_ATTRIBUTES = """
+            WITH indexed AS (
+                SELECT trace_id, source, owner, attr_key, value_id, value_num, event_type
+                FROM trace_span_attributes
+                UNION ALL
+                SELECT trace_id, source, owner, attr_key, value_id, value_num, event_type
+                FROM trace_notification_attributes
+            )
             """;
+
+    /*
+     * The event types whose carriers can be searched -- the picker's first step.
+     *
+     * Read from trace_spans and trace_notifications rather than from the attribute index: a span with
+     * no attributes at all still produced a span, and a type that vanished from the first step
+     * because none of its carriers held a payload would be a type the reader cannot explain the
+     * absence of. The shape keys mean this is unlikely, but the list is about carriers, so it is
+     * counted from them.
+     *
+     * jeffrey.Notification is a row here for one concrete reason: the picker's second step asks for
+     * the keys of a chosen event type, so a notification key that exists in the catalog but whose
+     * type never appears in this list is a key no reader can reach.
+     *
+     * error_carriers is 0 for the notification branch, not a count of CRITICAL ones. A severity says
+     * something went wrong somewhere; it does not say this event failed, and conflating the two would
+     * put a red count on a row where nothing failed at all.
+     */
+    //language=SQL
+    private static final String ATTRIBUTE_EVENT_TYPES = """
+            WITH carriers AS (
+                SELECT
+                    s.event_type                                    AS event_type,
+                    '<<span_carrier>>'                              AS carrier,
+                    s.trace_id                                      AS trace_id,
+                    CASE WHEN s.status = 'ERROR' THEN 1 ELSE 0 END  AS is_error
+                FROM trace_spans s
+                UNION ALL
+                SELECT
+                    :notification_event_type                        AS event_type,
+                    '<<notification_carrier>>'                      AS carrier,
+                    n.trace_id                                      AS trace_id,
+                    0                                               AS is_error
+                FROM trace_notifications n
+            )
+            SELECT
+                c.event_type                                        AS event_type,
+                ANY_VALUE(c.carrier)                                AS carrier,
+                COUNT(*)                                            AS carrier_count,
+                COUNT(DISTINCT c.trace_id)                          AS trace_count,
+                SUM(c.is_error)                                     AS error_carriers,
+                (SELECT COUNT(*)
+                   FROM trace_attribute_key_event_types k
+                  WHERE k.event_type = c.event_type)                AS attribute_count,
+                (SELECT COUNT(*)
+                   FROM trace_attribute_key_event_types k
+                  WHERE k.event_type = c.event_type
+                    AND k.distinct_values <= :search_only_above)    AS breakable_count
+            FROM carriers c
+            GROUP BY c.event_type
+            ORDER BY carrier_count DESC
+            """
+            .replace("<<span_carrier>>", TraceAttributeCarrier.SPAN.name())
+            .replace("<<notification_carrier>>", TraceAttributeCarrier.NOTIFICATION.name());
 
     /*
      * The keys one event type carries, with that type's own counts.
@@ -294,7 +487,7 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
                 t.attr_key                                          AS attr_key,
                 k.value_kind                                        AS value_kind,
                 t.distinct_values                                   AS distinct_values,
-                t.span_count                                        AS span_count,
+                t.carrier_count                                     AS carrier_count,
                 t.trace_count                                       AS trace_count
             FROM trace_attribute_key_event_types t
             JOIN trace_attribute_keys k
@@ -306,6 +499,8 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
             """;
 
     private static final String DELETE_ATTRIBUTES = "DELETE FROM trace_span_attributes";
+    private static final String DELETE_NOTIFICATION_ATTRIBUTES =
+            "DELETE FROM trace_notification_attributes";
     private static final String DELETE_VALUES = "DELETE FROM trace_attribute_values";
     private static final String DELETE_CATALOG = "DELETE FROM trace_attribute_keys";
     private static final String DELETE_KEY_EVENT_TYPES =
@@ -313,7 +508,7 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
 
     //language=SQL
     private static final String KEYS = """
-            SELECT source, owner, attr_key, value_kind, distinct_values, span_count, trace_count
+            SELECT source, owner, attr_key, value_kind, distinct_values, carrier_count, trace_count
             FROM trace_attribute_keys
             ORDER BY source, attr_key, owner
             """;
@@ -363,9 +558,13 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
             """;
 
     /*
-     * Which spans satisfied which condition, for the traces on the page only. Resolving them for
+     * Which carriers satisfied which condition, for the traces on the page only. Resolving them for
      * every match would be unbounded work for rows nobody is looking at, and the page is the only
      * place they are drawn.
+     *
+     * One statement per carrier, run only when that carrier has a condition -- the table it reads is
+     * the one %s the caller fills. A notification's span_id is nullable here, and a NULL is a real
+     * answer: it fired inside the trace with no span to point at.
      */
     // The predicates run against the bare index (subselect), the dictionary joined only for the
     // survivors' display text -- also what keeps `value_id` unambiguous in the predicate scope.
@@ -374,7 +573,7 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
             SELECT h.trace_id, h.span_id, h.attr_key, v.value_text
             FROM (
                 SELECT trace_id, span_id, attr_key, value_id
-                FROM trace_span_attributes
+                FROM %s
                 WHERE trace_id IN (:trace_ids)
                   AND (%s)
             ) h
@@ -427,7 +626,7 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
     private static final String VALUES_OF_KEY = """
             WITH carriers AS (
                 SELECT DISTINCT a.trace_id, a.value_id
-                FROM trace_span_attributes a
+                FROM %s a
                 WHERE a.source = :source AND a.attr_key = :attr_key AND %s
             )
             SELECT
@@ -449,14 +648,32 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
     //language=SQL
     private static final String TRACES_WITHOUT_KEY = """
             SELECT %s - COUNT(DISTINCT a.trace_id) AS absent
-            FROM trace_span_attributes a
+            FROM %s a
             WHERE a.source = :source AND a.attr_key = :attr_key AND %s
             """;
 
-    /** Traces in the profile, or — once the read is scoped — traces holding a span of that type. */
+    /**
+     * How hits from the two carriers are interleaved before the caller caps them per trace: by trace,
+     * then by carrier, then by key. Deterministic and carrier-balanced, so a trace's cap is not spent
+     * on whichever table was read first.
+     */
+    private static final Comparator<Hit> HIT_ORDER = Comparator
+            .comparingLong(Hit::traceId)
+            .thenComparing(Hit::carrier)
+            .thenComparing(Hit::key);
+
+    /** Traces in the profile, or — once the read is scoped — traces holding a carrier of that type. */
     private static final String ALL_TRACES = "(SELECT COUNT(*) FROM traces)";
     private static final String TRACES_OF_EVENT_TYPE =
             "(SELECT COUNT(DISTINCT trace_id) FROM trace_spans WHERE event_type = :event_type)";
+
+    /*
+     * The denominator for a notification key: every trace that held a notification at all. The span
+     * form above filters by event type because many types produce spans; there is one notification
+     * type, so scoping by it would be the same count written less directly.
+     */
+    private static final String TRACES_WITH_NOTIFICATIONS =
+            "(SELECT COUNT(DISTINCT trace_id) FROM trace_notifications)";
 
     /*
      * The heatmap's cells. Buckets are half-decades of nanoseconds, clamped at both ends so the grid
@@ -469,7 +686,7 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
     private static final String LATENCY = """
             WITH carriers AS (
                 SELECT DISTINCT a.trace_id, a.value_id
-                FROM trace_span_attributes a
+                FROM %s a
                 WHERE a.source = :source AND a.attr_key = :attr_key AND %s
             ),
             ranked AS (
@@ -508,33 +725,44 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
 
     @Override
     public void derive() {
-        // Wholly a function of trace_spans, so deriving twice has to land where deriving once did.
+        // Wholly a function of trace_spans and trace_notifications, so deriving twice has to land
+        // where deriving once did.
         databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DELETE_CATALOG);
         databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DELETE_KEY_EVENT_TYPES);
         databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DELETE_ATTRIBUTES);
+        databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DELETE_NOTIFICATION_ATTRIBUTES);
         databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DELETE_VALUES);
 
-        // The dictionary first: the index insert computes each row's reference by hashing the same
-        // text, so every reference it writes has its dictionary row in place.
+        // The dictionary first, and fed from both carriers: each index insert computes its references
+        // by hashing the same text, so every reference either one writes has its row in place.
         databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, withFlat(DERIVE_VALUES));
         databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, withFlat(DERIVE_ATTRIBUTES));
+        databaseClient.execute(
+                StatementLabel.DERIVE_TRACE_ATTRIBUTES, withFlat(DERIVE_NOTIFICATION_ATTRIBUTES));
 
-        // Both catalogs summarise the index, so every row has to be in it first.
-        databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DERIVE_CATALOG);
-        databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DERIVE_KEY_EVENT_TYPES);
+        // Both catalogs summarise both indexes, so every row has to be in one of them first.
+        databaseClient.execute(
+                StatementLabel.DERIVE_TRACE_ATTRIBUTES, withIndexed(DERIVE_CATALOG));
+        databaseClient.execute(
+                StatementLabel.DERIVE_TRACE_ATTRIBUTES, withIndexed(DERIVE_KEY_EVENT_TYPES));
     }
 
     @Override
-    public List<TraceSpanTypeRecord> spanEventTypes(long searchOnlyAbove) {
+    public List<TraceEventTypeRecord> attributeEventTypes(long searchOnlyAbove) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("search_only_above", searchOnlyAbove)
+                .addValue("notification_event_type", EventTypeName.NOTIFICATION);
+
         return databaseClient.query(
-                StatementLabel.TRACE_SPAN_EVENT_TYPES,
-                SPAN_EVENT_TYPES,
-                new MapSqlParameterSource().addValue("search_only_above", searchOnlyAbove),
-                (rs, _) -> new TraceSpanTypeRecord(
+                StatementLabel.TRACE_ATTRIBUTE_EVENT_TYPES,
+                ATTRIBUTE_EVENT_TYPES,
+                params,
+                (rs, _) -> new TraceEventTypeRecord(
                         rs.getString("event_type"),
-                        rs.getLong("span_count"),
+                        TraceAttributeCarrier.valueOf(rs.getString("carrier")),
+                        rs.getLong("carrier_count"),
                         rs.getLong("trace_count"),
-                        rs.getLong("error_spans"),
+                        rs.getLong("error_carriers"),
                         rs.getInt("attribute_count"),
                         rs.getInt("breakable_count")));
     }
@@ -552,11 +780,18 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
                                 rs.getString("attr_key")),
                         TraceAttributeValueKind.valueOf(rs.getString("value_kind")),
                         rs.getLong("distinct_values"),
-                        rs.getLong("span_count"),
+                        rs.getLong("carrier_count"),
                         rs.getLong("trace_count")));
     }
 
-    /** Renders one derivation statement with the shared flattening pipeline spliced in. */
+    /**
+     * Renders one derivation statement with the shared flattening pipeline spliced in.
+     * <p>
+     * One {@code WITH} defines both carriers' relations, so the three inserts that use it cannot
+     * disagree about what a value is — the dictionary reads both, and each index reads its own.
+     * DuckDB does not materialize a CTE nothing selects from, so an insert touching one carrier pays
+     * nothing for the other being defined.
+     */
     private static String withFlat(String statement) {
         String flat = FLAT_ATTRIBUTES
                 .replace("<<path>>", TraceAttributeQueries.KEY_PATH)
@@ -564,7 +799,26 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
                 .replace("<<event_field_source>>", TraceAttributeSource.EVENT_FIELD.name())
                 .replace("<<shape_source>>", TraceAttributeSource.SPAN_SHAPE.name())
                 .replace("<<shape_keys>>", SHAPE_KEYS);
-        return statement.replace("<<flat>>", flat);
+
+        String notificationFlat = FLAT_NOTIFICATION_ATTRIBUTES
+                .replace("<<path>>", TraceAttributeQueries.KEY_PATH)
+                .replace("<<notification_attribute_source>>",
+                        TraceAttributeSource.NOTIFICATION_ATTRIBUTE.name())
+                .replace("<<notification_shape_source>>",
+                        TraceAttributeSource.NOTIFICATION_SHAPE.name())
+                .replace("<<notification_shape_keys>>", NOTIFICATION_SHAPE_KEYS);
+
+        String carriers = NOTIFICATION_CARRIERS
+                .replace("<<notification_event_type>>", EventTypeName.NOTIFICATION);
+
+        // FLAT_ATTRIBUTES opens the WITH; the other two are further CTEs in the same one.
+        return statement.replace(
+                "<<flat>>", flat.stripTrailing() + ",\n" + carriers.stripTrailing() + ",\n" + notificationFlat);
+    }
+
+    /** Renders a catalog statement with the two indexes spliced in as one relation. */
+    private static String withIndexed(String statement) {
+        return statement.replace("<<indexed>>", INDEXED_ATTRIBUTES);
     }
 
     @Override
@@ -580,7 +834,7 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
                                 rs.getString("attr_key")),
                         TraceAttributeValueKind.valueOf(rs.getString("value_kind")),
                         rs.getLong("distinct_values"),
-                        rs.getLong("span_count"),
+                        rs.getLong("carrier_count"),
                         rs.getLong("trace_count")));
     }
 
@@ -628,10 +882,14 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
     }
 
     /**
-     * Which spans satisfied which condition, for the traces of one page.
+     * Which carriers satisfied which condition, for the traces of one page.
      * <p>
-     * Empty when nothing was filtered: with no condition there is nothing a span could be said to
+     * Empty when nothing was filtered: with no condition there is nothing a carrier could be said to
      * have matched, and returning every attribute of every span instead would bury the page.
+     * <p>
+     * One read per carrier that has a condition, then sorted together. Sorting before the caller caps
+     * the list per trace is what keeps a trace's cap from being spent entirely on whichever carrier
+     * the database happened to return first.
      */
     private List<Hit> hitsOf(List<TraceSummaryRecord> traces, List<TraceAttributeCondition> conditions) {
         if (traces.isEmpty() || conditions.isEmpty()) {
@@ -640,15 +898,35 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("trace_ids", traces.stream().map(TraceSummaryRecord::traceId).toList());
-        String matching = String.join(" OR ", TraceAttributeQueries.predicates(conditions, params));
+        TraceAttributeQueries.Predicates predicates =
+                TraceAttributeQueries.predicates(conditions, params);
+
+        List<Hit> hits = new ArrayList<>();
+        for (TraceAttributeCarrier carrier : TraceAttributeCarrier.values()) {
+            List<String> carrierPredicates = predicates.of(carrier);
+            if (!carrierPredicates.isEmpty()) {
+                hits.addAll(hitsOfCarrier(carrier, carrierPredicates, params));
+            }
+        }
+        hits.sort(HIT_ORDER);
+        return hits;
+    }
+
+    private List<Hit> hitsOfCarrier(
+            TraceAttributeCarrier carrier, List<String> predicates, MapSqlParameterSource params) {
+
+        String table = carrier == TraceAttributeCarrier.SPAN
+                ? TraceAttributeQueries.SPAN_ATTRIBUTES_TABLE
+                : TraceAttributeQueries.NOTIFICATION_ATTRIBUTES_TABLE;
 
         return databaseClient.query(
                 StatementLabel.TRACE_ATTRIBUTE_SEARCH_HITS,
-                MATCH_HITS.formatted(matching),
+                MATCH_HITS.formatted(table, String.join(" OR ", predicates)),
                 params,
                 (rs, _) -> new Hit(
                         rs.getLong("trace_id"),
-                        rs.getLong("span_id"),
+                        carrier,
+                        JdbcNulls.longOrNull(rs, "span_id"),
                         rs.getString("attr_key"),
                         rs.getString("value_text")));
     }
@@ -680,6 +958,7 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
         List<TraceAttributeValueRecord> values = databaseClient.query(
                 StatementLabel.TRACE_ATTRIBUTE_VALUES,
                 VALUES_OF_KEY.formatted(
+                        carrierTable(query.key()),
                         scopedClause(query.key(), query.eventType()),
                         "%s %s".formatted(query.sort().column(), query.descending() ? "DESC" : "ASC")),
                 params,
@@ -698,7 +977,8 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
         long absent = databaseClient.querySingle(
                         StatementLabel.TRACE_ATTRIBUTE_VALUES,
                         TRACES_WITHOUT_KEY.formatted(
-                                query.eventType() == null ? ALL_TRACES : TRACES_OF_EVENT_TYPE,
+                                denominator(query.key(), query.eventType()),
+                                carrierTable(query.key()),
                                 scopedClause(query.key(), query.eventType())),
                         params,
                         (rs, _) -> rs.getLong("absent"))
@@ -715,6 +995,7 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
         return databaseClient.query(
                 StatementLabel.TRACE_ATTRIBUTE_LATENCY,
                 LATENCY.formatted(
+                        carrierTable(query.key()),
                         scopedClause(query.key(), query.eventType()),
                         MIN_LATENCY_BUCKET,
                         MAX_LATENCY_BUCKET),
@@ -735,6 +1016,30 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
         return eventType == null
                 ? ownerClause(key)
                 : ownerClause(key) + " AND a.event_type = :event_type";
+    }
+
+    /**
+     * Which index table holds a key, decided by the key's own source rather than by anything a caller
+     * passed — so a condition can never be pointed at the wrong table. The result is a constant of
+     * this class and never caller text, which is what makes it safe to splice into SQL.
+     */
+    private static String carrierTable(TraceAttributeKeyId key) {
+        return switch (key.source().carrier()) {
+            case SPAN -> TraceAttributeQueries.SPAN_ATTRIBUTES_TABLE;
+            case NOTIFICATION -> TraceAttributeQueries.NOTIFICATION_ATTRIBUTES_TABLE;
+        };
+    }
+
+    /**
+     * What "every trace that could have had this key" means for the carrier it belongs to, so the
+     * absent count is measured against the traces the key could have appeared on rather than against
+     * the whole profile.
+     */
+    private static String denominator(TraceAttributeKeyId key, String eventType) {
+        if (key.source().carrier() == TraceAttributeCarrier.NOTIFICATION) {
+            return TRACES_WITH_NOTIFICATIONS;
+        }
+        return eventType == null ? ALL_TRACES : TRACES_OF_EVENT_TYPE;
     }
 
     private static MapSqlParameterSource scopedParams(TraceAttributeKeyId key, String eventType) {

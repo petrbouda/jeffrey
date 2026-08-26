@@ -164,6 +164,11 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
             frameBuilder.setBeforeMarker(true);
         }
 
+        // Mark frames whose class exists only for this run, so the tooltip can say so
+        if (frame.hidden()) {
+            frameBuilder.setHidden(true);
+        }
+
         // Add position if available
         if (frame.bci() > 0 || frame.lineNumber() > 0) {
             FramePosition.Builder posBuilder = FramePosition.newBuilder();
@@ -275,7 +280,6 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
             case ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC;
             case ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC;
             case BLOCKING_OBJECT_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC;
-            case LAMBDA_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_LAMBDA_SYNTHETIC;
             case COLLAPSED_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_COLLAPSED_SYNTHETIC;
             case TRUNCATED_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_TRUNCATED_SYNTHETIC;
             case HIGHLIGHTED_WARNING -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_HIGHLIGHTED_WARNING;

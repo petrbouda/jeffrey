@@ -15,6 +15,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+// com.google.protobuf is an automatic module (named only by its jar manifest), so javac warns that
+// re-exporting it is fragile. Re-exported deliberately: the generated flamegraph messages are the
+// exported API, and every caller that builds or parses one reads protobuf types directly.
+@SuppressWarnings("requires-transitive-automatic")
 module cafe.jeffrey.microscope.profile.flamegraph {
     requires transitive cafe.jeffrey.shared.common;
     requires transitive cafe.jeffrey.microscope.profile.frame.ir;

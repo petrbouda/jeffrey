@@ -25,7 +25,7 @@ import cafe.jeffrey.profile.manager.model.trace.TraceAttributeLatency;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeSearchResult;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeTimelineBucket;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeValues;
-import cafe.jeffrey.profile.manager.model.trace.TraceSpanTypeRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceEventTypeRow;
 import cafe.jeffrey.provider.profile.api.TraceAttributeCondition;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
 import cafe.jeffrey.provider.profile.api.TraceAttributeLatencyQuery;
@@ -48,7 +48,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * Serves the Traces by Attributes views: the event types that produced spans and the keys each of
+ * Serves the Traces by Attributes views: the event types whose carriers can be searched and the keys each of
  * them carried, a search over what spans recorded, and one key's values broken down and distributed.
  * <p>
  * Sits alongside {@link TracesController} rather than inside it: every path here has a literal first
@@ -116,15 +116,15 @@ public class TraceAttributesController {
     }
 
     /**
-     * The event types that produced spans — the attribute picker's first step.
+     * The event types whose carriers can be searched — the attribute picker's first step.
      * <p>
      * A recording carries hundreds of JFR event types; these are the ones that opened spans, which
      * is what makes choosing one a reasonable first move rather than a search through a catalog.
      */
     @GetMapping("/event-types")
-    public List<TraceSpanTypeRow> eventTypes(@PathVariable("profileId") String profileId) {
+    public List<TraceEventTypeRow> eventTypes(@PathVariable("profileId") String profileId) {
         LOG.debug("Listing span-producing event types: profile_id={}", profileId);
-        return manager(profileId).spanEventTypes();
+        return manager(profileId).attributeEventTypes();
     }
 
     /**

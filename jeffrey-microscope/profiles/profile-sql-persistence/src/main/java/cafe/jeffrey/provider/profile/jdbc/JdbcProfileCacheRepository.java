@@ -23,7 +23,7 @@ import cafe.jeffrey.provider.profile.api.*;
 import tools.jackson.core.type.TypeReference;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.support.SqlLobValue;
+import org.springframework.jdbc.core.support.SqlBinaryValue;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.StatementLabel;
@@ -65,7 +65,11 @@ public class JdbcProfileCacheRepository implements ProfileCacheRepository {
     public void put(String key, Object content) {
         MapSqlParameterSource paramSource = new MapSqlParameterSource()
                 .addValue("key", key)
-                .addValue("content", new SqlLobValue(Json.toByteArray(content)), Types.BLOB);
+                // VARBINARY, not BLOB, even though the column is a BLOB: SqlBinaryValue binds
+                // Types.BLOB through PreparedStatement.setBlob, which the DuckDB driver does not
+                // implement. Every other type goes through setBytes — the same call the deprecated
+                // SqlLobValue made via DefaultLobHandler.
+                .addValue("content", new SqlBinaryValue(Json.toByteArray(content)), Types.VARBINARY);
 
         databaseClient.insertWithLob(StatementLabel.INSERT_CACHE_ENTRY, INSERT, paramSource);
     }

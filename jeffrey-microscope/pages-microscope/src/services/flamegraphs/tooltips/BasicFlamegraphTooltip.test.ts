@@ -184,3 +184,59 @@ describe('BasicFlamegraphTooltip — header escaping', () => {
     expect(html).toContain('data-fqn="com.google.gson.stream.JsonReader"');
   });
 });
+
+describe('BasicFlamegraphTooltip — hidden class badge', () => {
+  beforeEach(() => {
+    isEnabledMock.mockReset();
+    isEnabledMock.mockReturnValue(false);
+    isJfrProfilerModeMock.mockReset();
+    isJfrProfilerModeMock.mockReturnValue(false);
+  });
+
+  function hiddenLambdaFrame(): Frame {
+    return new Frame(
+      0,
+      21523,
+      'org.springframework.security.web.FilterChainProxy$$Lambda#doFilter',
+      'INLINED',
+      0,
+      0,
+      0,
+      { bci: 10, line: 0 },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true
+    );
+  }
+
+  it('renders the HIDDEN CLASS badge for a frame on a hidden class', () => {
+    const tooltip = new BasicFlamegraphTooltip('jdk.ExecutionSample', false, null, null, true);
+    const html = tooltip.generate(hiddenLambdaFrame(), 42568, 0);
+
+    expect(html).toContain('HIDDEN CLASS');
+  });
+
+  it('keeps the frame-type badge alongside the hidden badge', () => {
+    const tooltip = new BasicFlamegraphTooltip('jdk.ExecutionSample', false, null, null, true);
+    const html = tooltip.generate(hiddenLambdaFrame(), 42568, 0);
+
+    expect(html).toContain('Inlined (JAVA)');
+  });
+
+  it('shows no address in the title — the parser strips it before the wire', () => {
+    const tooltip = new BasicFlamegraphTooltip('jdk.ExecutionSample', false, null, null, true);
+    const html = tooltip.generate(hiddenLambdaFrame(), 42568, 0);
+
+    expect(html).not.toContain('0x');
+    expect(html).toContain('FilterChainProxy$$Lambda');
+  });
+
+  it('omits the badge for an ordinary frame', () => {
+    const tooltip = new BasicFlamegraphTooltip('jdk.ExecutionSample', false, null, null, true);
+    const html = tooltip.generate(javaFrame(), 100000, 0);
+
+    expect(html).not.toContain('HIDDEN CLASS');
+  });
+});

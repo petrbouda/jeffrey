@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instance Timeline — 4. Fleet lanes</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .conc { position: absolute; bottom: 0; background: var(--color-primary);
+    opacity: .55; border-radius: 1px 1px 0 0; }
+  .conc.zero { background: var(--color-danger); opacity: .9; height: 3px !important; }
+  .deploy-flag { position: absolute; top: -.05rem; transform: translateX(-50%);
+    font-size: .5rem; color: var(--deploy-mark); white-space: nowrap; }
+  .lane-rule { border-top: 1px solid var(--color-border); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
+    <h1><span class="n">4</span>Fleet lanes</h1>
+    <p class="lede">
+      The Trace waterfall puts <em>GC pause</em> and <em>Safepoint</em> in lanes above the spans, and washes their
+      columns down behind every row. The same move here: three aggregate lanes above the instances —
+      <strong>Instances running</strong>, <strong>Crash loops</strong>, and <strong>Deploys</strong>. The deploy
+      boundaries are not new data: the pod names already carry the replicaset hash, so
+      <code>5c4b1e77 → 86dd87c8ff → 74bd9b8c8d</code> is derivable today and drawn as a wash straight down the page.
+      The payoff is the question no per-instance row can answer — <strong>how many were up at once</strong>.
+      <span id="lede-fleet"></span>
+    </p>
+    <div id="app"></div>
+    <div id="notes"></div>
+  </div>
+
+<script src="data.js"></script>
+<script>
+  const win = windowOf('7d');
+
+  /* ---- concurrency: a step series over the window ----
+     Sampled, then consecutive equal levels are merged into one band. Drawing one rect per sample
+     leaves hairline gaps between them and the lane reads as a picket fence. */
+  const STEPS = 480;
+  const stepMs = win.ms / STEPS;
+  /* the fleet did not exist before its first instance — that is not "at zero", it is "no data" */
+  const firstStart = Math.min(...FLEET.map(i => i.start));
+
+  const conc = [];
+  for (let i = 0; i < STEPS; i++) {
+    const t = win.start + i * stepMs;
+    conc.push(t < firstStart
+      ? null
+      : FLEET.filter(inst => inst.start <= t && (inst.end ?? NOW) > t && inst.status !== 'PENDING').length);
+  }
+  const peak = Math.max(...conc.filter(n => n !== null));
+
+  const runs = [];
+  for (let i = 0; i < STEPS; i++) {
+    const last = runs[runs.length - 1];
+    if (last && last.n === conc[i]) { last.to = i + 1; }
+    else { runs.push({ n: conc[i], from: i, to: i + 1 }); }
+  }
+
+  const concBands = runs.filter(r => r.n !== null).map(r => {
+    const left = (r.from / STEPS) * 100;
+    const w = ((r.to - r.from) / STEPS) * 100;
+    if (r.n === 0) {
+      return `<span class="conc zero" style="left:${left}%;width:${Math.max(w, 0.35)}%" title="nothing running"></span>`;
+    }
+    return `<span class="conc" style="left:${left}%;width:${w}%;height:${(r.n / peak) * 100}%" title="${r.n} running"></span>`;
+  }).join('');
+
+  const zeroRuns = runs.filter(r => r.n === 0);
+  const currently = conc[conc.length - 1];
+
+  /* ---- crash loops ---- */
+  const crashes = FLEET.flatMap(inst => {
+    const f = inst.sessions.filter(s => s.failed);
+    if (!f.length) { return []; }
+    return [{ from: Math.min(...f.map(s => s.start)), to: Math.max(...f.map(s => s.end)), n: f.length, inst: inst.name }];
+  });
+  const crashBands = crashes.map(c => {
+    const g = barGeom(c.from, c.to, win);
+    return `<span class="lane-band" style="left:${g.left}%;width:${Math.max(g.width, 0.6)}%;background:var(--color-danger)"
+      title="${c.inst}\n${c.n} zero-byte sessions"></span>`;
+  }).join('');
+
+  /* ---- deploys ---- (flags stagger vertically; two rollouts 11h apart collide on a 7-day axis) */
+  const deployMarks = FLEET_DEPLOYS.map((d, i) =>
+    `<span class="wf-pin deploy" style="left:${pct(d.at, win)}%;--mark:var(--deploy-mark)"
+      title="${d.from} → ${d.to}\n${fmtUTC(d.at)}"></span>
+     <span class="deploy-flag" style="left:${pct(d.at, win)}%;top:${i % 2 ? '.62rem' : '-.18rem'}">${d.to}</span>`).join('');
+
+  /* the wash behind every row */
+  const stripes = `<div class="wf-stripes"><span></span><span class="wf-stripes-track">
+    ${FLEET_DEPLOYS.map(d => `<span class="wf-stripe-line" style="left:${pct(d.at, win)}%;--stripe-color:var(--deploy-mark)"></span>`).join('')}
+    ${crashes.map(c => { const g = barGeom(c.from, c.to, win);
+      return `<span class="wf-stripe" style="left:${g.left}%;width:${Math.max(g.width, 0.6)}%;--stripe-color:var(--color-danger)"></span>`; }).join('')}
+  </span><span></span></div>`;
+
+  const rows = FLEET.map(inst => {
+    const cls = inst.status.toLowerCase();
+    const g = barGeom(inst.start, inst.end, win);
+    const failed = inst.sessions.some(s => s.failed);
+    return `<div class="wf-row${cls === 'active' ? ' is-active' : ''}">
+      <span class="wf-name">
+        <span class="wf-twist"><i class="bi bi-caret-right-fill"></i></span>
+        <span class="wf-kind kind-${failed ? 'failed' : cls}"></span>
+        <span class="wf-label">${inst.name}</span>
+        <span class="badge badge-${cls}">${inst.status}</span>
+      </span>
+      <span class="wf-track">${g.outside ? '' :
+        `<span class="wf-bar bar-${failed ? 'failed' : cls}" style="left:${g.left}%;width:${g.width}%"></span>`}</span>
+      <span class="wf-duration">${fmtDur(durationOf(inst))}</span>
+    </div>`;
+  }).join('');
+
+  const lanes = `
+    <div class="wf-lane">
+      <span class="lane-label"><span class="lane-dot" style="background:var(--color-primary)"></span>
+        Instances running <span class="lane-stat">peak ${peak} · now ${currently}</span></span>
+      <span class="lane-track">${concBands}</span>
+      <span class="wf-duration">${peak} max</span>
+    </div>
+    <div class="wf-lane">
+      <span class="lane-label"><span class="lane-dot" style="background:var(--color-danger)"></span>
+        Crash loops <span class="lane-stat">${crashes.reduce((n, c) => n + c.n, 0)} sessions</span></span>
+      <span class="lane-track">${crashBands}</span>
+      <span class="wf-duration">${crashes.length}×</span>
+    </div>
+    <div class="wf-lane">
+      <span class="lane-label"><span class="lane-dot" style="background:var(--deploy-mark)"></span>
+        Deploys <span class="lane-stat">replicaset</span></span>
+      <span class="lane-track">${deployMarks}</span>
+      <span class="wf-duration">${FLEET_DEPLOYS.length}×</span>
+    </div>`;
+
+  const body = `
+    <div class="wf-card">
+      ${lanes}
+      <div class="lane-rule"></div>
+      ${rulerRow(win)}
+      <div class="wf-rows">${stripes}${rows}</div>
+    </div>
+    <div class="wf-legend">
+      <span class="lg"><span class="sw" style="background:var(--color-primary);opacity:.55"></span> concurrency</span>
+      <span class="lg"><span class="sw" style="background:var(--color-danger);height:3px"></span> fleet at zero (${zeroRuns.length}×)</span>
+      <span class="lg"><span class="sw" style="background:var(--deploy-mark);width:2px"></span> deploy boundary, washed down the page</span>
+    </div>`;
+
+  document.getElementById('app').innerHTML = pageChrome('Instance Timeline',
+    `<div class="tl-toolbar">${rangeGroup('7d')}
+       <span class="chip"><i class="bi bi-layers-half"></i> Overlays: concurrency · crashes · deploys</span>
+       ${countChip(FLEET.length, FLEET.reduce((n, i) => n + i.sessions.length, 0),
+                   FLEET.reduce((n, i) => n + i.sessions.filter(s => s.failed).length, 0))}</div>`, body);
+
+  /* the lede quotes what the lanes actually drew, so the prose cannot drift from the picture */
+  document.getElementById('lede-fleet').innerHTML =
+    `Here it shows the fleet peaking at <strong>${peak}</strong> concurrent instances across the ` +
+    `<code>${FLEET_DEPLOYS[FLEET_DEPLOYS.length - 1].to}</code> rollout, sitting at <strong>${currently}</strong> now, and ` +
+    (zeroRuns.length
+      ? `dropping to <strong>zero</strong> ${zeroRuns.length === 1 ? 'once' : zeroRuns.length + ' times'}.`
+      : `never dropping to zero.`);
+
+  document.getElementById('notes').innerHTML = notesBlock(
+    ['Answers fleet-level questions the current page cannot ask: how many were up, when was it zero, when did we ship.',
+     'Deploy boundaries need no new backend data — the replicaset hash is already in the pod name.',
+     'The wash lets you read "this instance died at the rollout" without moving your eyes off the row.',
+     'Lanes are the shipped <code>.wf-lane</code> markup, so they cost almost nothing to add.'],
+    ['Only earns its space on projects with more than a handful of instances — on the real three it is three flat lanes.',
+     'Concurrency is a derived series; it needs computing client-side or a new hub endpoint.',
+     'Three lanes plus a rule is ~80px of chrome before the first instance.',
+     'The deploy hash is a Kubernetes naming convention, not a guarantee — it will be wrong for non-k8s deployments.'],
+    ['Copy <code>.wf-lane</code>/<code>.lane-band</code>/<code>.wf-stripes</code> from <code>TraceWaterfall.vue</code>.',
+     'Derive the concurrency step series from the instance list already in memory — no new API for a first cut.',
+     'Parse the replicaset segment out of <code>instanceName</code>; gate the Deploys lane on it actually varying.',
+     'Follow the trace waterfall\'s rule for washes: fill only, never a 1px edge, or many bands draw a picket fence.']
+  );
+</script>
+</body>
+</html>

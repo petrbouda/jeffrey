@@ -15,6 +15,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+// The Spring AI jars are automatic modules (no module-info of their own), so javac warns that
+// re-exporting them is fragile. Re-exported deliberately: the exported assistant configuration
+// returns ChatClient and model types to whoever wires it up.
+@SuppressWarnings("requires-transitive-automatic")
 module cafe.jeffrey.microscope.profile.ai.oql {
     requires transitive cafe.jeffrey.microscope.profile.ai.config;
     requires transitive cafe.jeffrey.microscope.profile.heapdump;

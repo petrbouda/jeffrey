@@ -27,13 +27,14 @@ package cafe.jeffrey.provider.profile.api;
  * @param distinctValues how many values it ever took — the number every guard in this feature keys
  *                       off: above the cap a key is search-only, because a facet list, a heatmap
  *                       axis and a difference ranking are all meaningless at eighteen thousand rows
- * @param spanCount      how many spans carry it
- * @param traceCount     how many traces have at least one span carrying it
+ * @param carrierCount   how many carriers hold it — spans for a span source, notifications for a
+ *                       notification one
+ * @param traceCount     how many traces have at least one carrier holding it
  */
 public record TraceAttributeKeyRecord(
         TraceAttributeKeyId id,
         TraceAttributeValueKind valueKind,
         long distinctValues,
-        long spanCount,
+        long carrierCount,
         long traceCount) {
 }

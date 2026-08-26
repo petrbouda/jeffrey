@@ -26,6 +26,7 @@ import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.frameir.RecordsFrameIterator;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.profile.common.event.GarbageCollectorType;
+import cafe.jeffrey.profile.common.analysis.AnalysisResult;
 import cafe.jeffrey.shared.common.model.EventSourceResolver;
 import cafe.jeffrey.shared.common.model.EventSummary;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -54,6 +55,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import cafe.jeffrey.shared.notification.NotificationCategory;
+import cafe.jeffrey.shared.notification.NotificationType;
+import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.jfr.events.notification.Severity;
 
 public class Guardian {
 
@@ -135,7 +140,30 @@ public class Guardian {
                     evaluateEventType(entry.getKey(), entry.getValue(), samplesByEventType, preconditions)));
         }
 
+        notifyWarnings(results);
         return results;
+    }
+
+    /**
+     * Says how many guards had something to report, once, at the end.
+     *
+     * <p>One summary rather than one notification per warning: a profile can trip a dozen guards, and
+     * twelve marks on the rail would say "Guardian ran" twelve times over rather than saying anything
+     * a reader could act on. The count is the finding; the panel is where the detail already lives.
+     */
+    private static void notifyWarnings(List<GuardianResult> results) {
+        long warningCount = results.stream()
+                .filter(result -> result.analysisItem().severity() == AnalysisResult.Severity.WARNING)
+                .count();
+
+        if (warningCount == 0) {
+            return;
+        }
+
+        Notifications.of(NotificationType.GUARDIAN_WARNINGS)
+                .attribute("warningCount", warningCount)
+                .attribute("guardCount", results.size())
+                .emit();
     }
 
     private List<GuardianResult> evaluateEventType(

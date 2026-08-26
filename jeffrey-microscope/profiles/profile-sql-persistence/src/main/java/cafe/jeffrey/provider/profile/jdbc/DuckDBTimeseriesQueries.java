@@ -161,7 +161,8 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
                         method_name := method_name,
                         frame_type := frame_type,
                         line_number := line_number,
-                        bytecode_index := bytecode_index
+                        bytecode_index := bytecode_index,
+                        hidden_class_id := hidden_class_id
                     )})
                 ) AS frames_map
                 FROM frames
@@ -207,7 +208,8 @@ public class DuckDBTimeseriesQueries implements ComplexQueries.Timeseries {
                         method_name := method_name,
                         frame_type := frame_type,
                         line_number := line_number,
-                        bytecode_index := bytecode_index
+                        bytecode_index := bytecode_index,
+                        hidden_class_id := hidden_class_id
                     )})
                 ) AS frames_map
                 FROM frames

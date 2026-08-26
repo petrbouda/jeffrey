@@ -66,7 +66,7 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 
 **jeffrey-microscope/profiles/** (profile analysis, used only by jeffrey-microscope):
 - `profile-management` — Profile analysis features + REST resources (Flamegraph, Timeseries, Guardian, GC, Threads, HeapDump, AI)
-- `recording-parser/` — JFR parsing (jfr-parser-api, jdk-jfr-parser, db-jfr-parser)
+- `recording-parser/` — recording parsing (jfr-parser-api, jdk-jfr-parser, raw-jfr-parser, otlp-parser, pprof-parser)
 - `profile-sql-persistence` — Per-profile DuckDB persistence (isolated database per profile)
 - `profile-persistence-api` — Persistence interfaces for profile domain
 - `common-profile` — Shared profile utilities
@@ -150,10 +150,12 @@ jeffrey/
 │       │   └── src/.../profile/
 │       │       ├── manager/           # Profile managers
 │       │       └── resources/         # Profile REST resources (Flamegraph, Timeseries, etc.)
-│       ├── recording-parser/          # JFR parsing
+│       ├── recording-parser/          # Recording parsing
 │       │   ├── jfr-parser-api/        # Parser interfaces
-│       │   ├── jdk-jfr-parser/        # JDK-based parser
-│       │   └── db-jfr-parser/         # Database-based parser
+│       │   ├── jdk-jfr-parser/        # JDK-based JFR parser
+│       │   ├── raw-jfr-parser/        # Raw JFR chunk/metadata parser
+│       │   ├── otlp-parser/           # OTLP profiles parser
+│       │   └── pprof-parser/          # pprof parser
 │       ├── profile-persistence-api/   # Profile persistence interfaces
 │       ├── profile-sql-persistence/   # Per-profile DuckDB persistence
 │       ├── common-profile/            # Shared profile utilities

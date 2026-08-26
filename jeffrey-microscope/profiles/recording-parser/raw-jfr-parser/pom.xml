@@ -32,6 +32,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>cafe.jeffrey</groupId>
+            <artifactId>notifications</artifactId>
+        </dependency>
+        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>common</artifactId>
         </dependency>

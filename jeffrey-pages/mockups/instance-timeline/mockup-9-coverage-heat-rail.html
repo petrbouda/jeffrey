@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instance Timeline — 9. Coverage heat rail</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .heat { display: flex; gap: 1px; height: .85rem; }
+  .cell { flex: 1 1 0; border-radius: 1px; background: var(--coverage-0); min-width: 0; }
+  .cell.c1 { background: var(--coverage-1); }
+  .cell.c2 { background: var(--coverage-2); }
+  .cell.c3 { background: var(--coverage-3); }
+  .cell.c4 { background: var(--coverage-4); }
+  .cell.crash { background: repeating-linear-gradient(135deg,
+      color-mix(in srgb, var(--color-danger) 45%, transparent) 0 3px,
+      color-mix(in srgb, var(--color-danger) 12%, transparent) 3px 6px); }
+  .cell.act { background: var(--color-amber); }
+  .cell.act-partial { background: color-mix(in srgb, var(--color-amber) 55%, var(--coverage-0)); }
+  .ramp { display: inline-flex; gap: 1px; vertical-align: middle; }
+  .ramp i { width: .7rem; height: .5rem; border-radius: 1px; display: block; }
+  .cmp-note { font-size: var(--font-size-xs); color: var(--color-text-muted); margin: .5rem 0 0; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
+    <h1><span class="n">9</span>Coverage heat rail</h1>
+    <p class="lede">
+      At <code>7D</code> and <code>30D</code> a proportional bar stops working: an hour is 0.14% of a month, so every
+      short instance collapses into the same 2-pixel sliver and the picture becomes a row of dashes. This swaps the
+      representation at long ranges the way <code>traceTimelineBuckets.ts</code> already does for traces — bucket the
+      window and shade <strong>one cell per bucket by how much of it was recorded</strong>. Density stops depending on
+      duration, so a 37-minute crash-loop is as visible as a four-day run. Meant to
+      <strong>pair</strong> with direction 1 or 2, not replace them: the app picks bars under 24 hours and cells above.
+    </p>
+    <div id="app"></div>
+    <div id="notes"></div>
+  </div>
+
+<script src="data.js"></script>
+<script>
+  const win = windowOf('30d');
+  const BUCKETS = 60;                     /* 12 hours each over 30 days */
+  const bucketMs = win.ms / BUCKETS;
+
+  function cellsFor(inst) {
+    const out = [];
+    for (let i = 0; i < BUCKETS; i++) {
+      const from = win.start + i * bucketMs;
+      const to = from + bucketMs;
+      let covered = 0;
+      let crashed = false;
+      let live = false;
+      for (const s of inst.sessions) {
+        const sFrom = Math.max(s.start, from);
+        const sTo = Math.min(s.end ?? NOW, to);
+        if (sTo <= sFrom) { continue; }
+        if (s.failed) { crashed = true; continue; }
+        covered += sTo - sFrom;
+        if (s.active) { live = true; }
+      }
+      const frac = covered / bucketMs;
+      let cls = 'cell';
+      if (crashed) { cls += ' crash'; }
+      else if (live) { cls += frac > 0.9 ? ' act' : ' act-partial'; }
+      else if (frac >= 0.9) { cls += ' c4'; }
+      else if (frac >= 0.6) { cls += ' c3'; }
+      else if (frac >= 0.3) { cls += ' c2'; }
+      else if (frac > 0) { cls += ' c1'; }
+      out.push(`<span class="${cls}" title="${fmtDayClock(from)} → ${fmtDayClock(to)}\n${(frac * 100).toFixed(0)}% recorded${crashed ? '\ncrash loop' : ''}"></span>`);
+    }
+    return out.join('');
+  }
+
+  const rows = FLEET.map(inst => {
+    const cls = inst.status.toLowerCase();
+    const failed = inst.sessions.some(s => s.failed);
+    const recorded = inst.sessions.filter(s => !s.failed).reduce((n, s) => n + ((s.end ?? NOW) - s.start), 0);
+    return `<div class="wf-row${cls === 'active' ? ' is-active' : ''}">
+      <span class="wf-name">
+        <span class="wf-twist"><i class="bi bi-caret-right-fill"></i></span>
+        <span class="wf-kind kind-${failed ? 'failed' : cls}"></span>
+        <span class="wf-label">${inst.name}</span>
+        <span class="badge badge-${cls}">${inst.status}</span>
+      </span>
+      <span class="heat">${cellsFor(inst)}</span>
+      <span class="wf-duration">${fmtDur(recorded)}</span>
+    </div>`;
+  }).join('');
+
+  /* the same 60 buckets, aggregated across the fleet */
+  const fleetCells = (() => {
+    const out = [];
+    for (let i = 0; i < BUCKETS; i++) {
+      const from = win.start + i * bucketMs;
+      const to = from + bucketMs;
+      let n = 0;
+      for (const inst of FLEET) {
+        if (inst.start < to && (inst.end ?? NOW) > from && inst.status !== 'PENDING') { n++; }
+      }
+      const cls = n === 0 ? 'cell' : n >= 4 ? 'cell c4' : n >= 3 ? 'cell c3' : n >= 2 ? 'cell c2' : 'cell c1';
+      out.push(`<span class="${cls}" title="${fmtDayClock(from)}\n${n} instance${n === 1 ? '' : 's'} up"></span>`);
+    }
+    return out.join('');
+  })();
+
+  const dayTicks = [[0, '-30d'], [0.25, '-3w'], [0.5, '-2w'], [0.75, '-1w'], [1, 'Now']];
+
+  const body = `
+    <div class="wf-card">
+      <div class="wf-head">
+        <span>Instance</span>
+        <span class="wf-scale">${dayTicks.map(([f, l]) => `<span style="left:${f * 100}%">${l}</span>`).join('')}</span>
+        <span class="wf-duration">Recorded</span>
+      </div>
+      <div class="wf-lane" style="padding-bottom:.3rem">
+        <span class="lane-label"><span class="lane-dot" style="background:var(--color-primary)"></span>
+          Fleet <span class="lane-stat">instances up per 12h</span></span>
+        <span class="heat">${fleetCells}</span>
+        <span class="wf-duration"></span>
+      </div>
+      <div style="border-top:1px solid var(--color-border)"></div>
+      <div class="wf-rows">${rows}</div>
+    </div>
+    <div class="wf-legend">
+      <span class="lg">recorded per 12h bucket
+        <span class="ramp"><i style="background:var(--coverage-0)"></i><i style="background:var(--coverage-1)"></i><i style="background:var(--coverage-2)"></i><i style="background:var(--coverage-3)"></i><i style="background:var(--coverage-4)"></i></span>
+        0% → 100%</span>
+      <span class="lg"><span class="sw" style="background:var(--color-amber);width:.7rem"></span> still recording</span>
+      <span class="lg"><span class="sw" style="width:.7rem;background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--color-danger) 45%,transparent) 0 3px,color-mix(in srgb,var(--color-danger) 12%,transparent) 3px 6px)"></span> crash loop</span>
+      <span class="lg" style="margin-left:auto">60 buckets × 12h</span>
+    </div>
+    <p class="cmp-note"><i class="bi bi-info-circle"></i>
+      Same data as direction 1, drawn as proportional bars over 30 days, for comparison:</p>
+    <div class="wf-card" style="margin-top:.35rem">
+      <div class="wf-rows">${FLEET.slice(0, 4).map(inst => {
+        const g = barGeom(inst.start, inst.end, win);
+        return `<div class="wf-row"><span class="wf-name">
+          <span class="wf-twist is-leaf"></span><span class="wf-label">${inst.name}</span></span>
+          <span class="wf-track">${g.outside ? '' : `<span class="wf-bar bar-finished" style="left:${g.left}%;width:${g.width}%"></span>`}</span>
+          <span class="wf-duration">${fmtDur(durationOf(inst))}</span></div>`;
+      }).join('')}</div>
+    </div>`;
+
+  document.getElementById('app').innerHTML = pageChrome('Instance Timeline',
+    `<div class="tl-toolbar">${rangeGroup('30d')}
+       <span class="chip"><i class="bi bi-grid-3x2"></i> Bucketed — proportional bars unreadable at this range</span>
+       ${countChip(FLEET.length, FLEET.reduce((n, i) => n + i.sessions.length, 0),
+                   FLEET.reduce((n, i) => n + i.sessions.filter(s => s.failed).length, 0))}</div>`, body);
+
+  document.getElementById('notes').innerHTML = notesBlock(
+    ['Makes 7D and 30D usable, which today they are not — the comparison strip at the bottom shows what bars do at this range.',
+     'A short-lived instance is as legible as a long one, so crash loops stop hiding at long ranges.',
+     'Encodes recording <em>quality</em>, not just presence — a half-recorded day is visibly paler.',
+     'Cheap to compute and cheap to fetch: it is a fixed-size array per instance, not a full session list.'],
+    ['Loses exact edges — you can see a bucket was 40% recorded, not when inside it.',
+     'Introduces a second visual language to the same page, so the range switch changes how the picture reads.',
+     'Needs a five-step ramp that does not exist in <code>design-tokens.css</code> yet (proposed on the index page).',
+     'Bucket boundaries are arbitrary; an instance that straddles two reads as two half-cells.'],
+    ['Follow <code>traceTimelineBuckets.ts</code> — the bucketing shape is already written and unit-tested there.',
+     'Switch representation on <code>selectedRange</code>: bars at ≤24h, cells above, with the threshold in a named constant.',
+     'Add the <code>--coverage-0…4</code> ramp to <code>design-tokens.css</code>; do not inline the hexes.']
+  );
+</script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instance Timeline — 10. Fleet area + rows</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .area-row { display: grid; grid-template-columns: 20rem 1fr 5.5rem; align-items: stretch; gap: .5rem;
+    padding: .5rem 1rem .3rem; border-left: 2px solid transparent; }
+  .area-side { display: flex; flex-direction: column; justify-content: center; gap: .15rem; }
+  .area-title { font-size: var(--font-size-xs); text-transform: uppercase; letter-spacing: .05em;
+    color: var(--color-text-muted); font-weight: 600; }
+  .area-big { font-size: 1.5rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
+    color: var(--color-dark); }
+  .area-sub { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+  .area-wrap { position: relative; height: 74px; }
+  .area-wrap svg { width: 100%; height: 100%; display: block; }
+  .zero-flag { position: absolute; transform: translateX(-50%); bottom: -2px;
+    font-size: .5rem; font-weight: 700; color: var(--color-danger); white-space: nowrap; }
+  .area-scale { display: flex; flex-direction: column; justify-content: space-between;
+    font-size: var(--font-size-xs); color: var(--color-text-light);
+    font-variant-numeric: tabular-nums; text-align: right; padding: 2px 0; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
+    <h1><span class="n">10</span>Fleet area + rows</h1>
+    <p class="lede">
+      Every other direction draws instances. This one draws the <strong>fleet</strong>: a stepped area of how many
+      instances were up at each moment, sitting on the <em>same axis</em> as the rows underneath, so a dip in the shape
+      and the row that caused it line up vertically. It answers the only question that is genuinely about the whole
+      project rather than any one instance — <strong>was there ever a moment with nothing running?</strong>
+      <span id="lede-fleet"></span>
+    </p>
+    <div id="app"></div>
+    <div id="notes"></div>
+  </div>
+
+<script src="data.js"></script>
+<script>
+  const win = windowOf('7d');
+  const W = 1000, H = 74;
+  const STEPS = 500;
+
+  /* The fleet did not exist before its first instance; that stretch is "no data", not "at zero". */
+  const firstStart = Math.min(...FLEET.map(i => i.start));
+  const firstIdx = Math.max(0, Math.ceil(((firstStart - win.start) / win.ms) * STEPS));
+
+  const upAt = t => FLEET.filter(inst =>
+    inst.start <= t && (inst.end ?? Infinity) > t && inst.status !== 'PENDING').length;
+
+  const series = [];
+  for (let i = 0; i <= STEPS; i++) {
+    /* sample just inside the window: at exactly win.end a running instance would test as ended */
+    const t = Math.min(win.start + (i / STEPS) * win.ms, win.end - 1);
+    series.push(i < firstIdx ? null : upAt(t));
+  }
+  const peak = Math.max(...series.filter(n => n !== null));
+  const yOf = n => H - (n / peak) * (H - 6);
+
+  /* a stepped path: hold each level until the next sample, starting where the fleet begins */
+  const x0 = (firstIdx / STEPS) * W;
+  let d = `M ${x0} ${H} L ${x0} ${yOf(series[firstIdx])}`;
+  for (let i = firstIdx + 1; i <= STEPS; i++) {
+    const x = (i / STEPS) * W;
+    d += ` L ${x} ${yOf(series[i - 1])} L ${x} ${yOf(series[i])}`;
+  }
+  d += ` L ${W} ${H} Z`;
+
+  let line = `M ${x0} ${yOf(series[firstIdx])}`;
+  for (let i = firstIdx + 1; i <= STEPS; i++) {
+    const x = (i / STEPS) * W;
+    line += ` L ${x} ${yOf(series[i - 1])} L ${x} ${yOf(series[i])}`;
+  }
+
+  /* runs of zero — only inside the stretch where the fleet actually exists */
+  const zeros = [];
+  let runStart = null;
+  for (let i = firstIdx; i <= STEPS; i++) {
+    if (series[i] === 0 && runStart === null) { runStart = i; }
+    if (series[i] !== 0 && runStart !== null) { zeros.push([runStart, i]); runStart = null; }
+  }
+  if (runStart !== null) { zeros.push([runStart, STEPS]); }
+
+  const zeroRects = zeros.map(([a, b]) =>
+    `<rect x="${(a / STEPS) * W}" y="0" width="${Math.max(((b - a) / STEPS) * W, 2)}" height="${H}"
+      fill="var(--color-danger)" opacity="0.12"></rect>`).join('');
+
+  const zeroFlags = zeros.map(([a, b]) => {
+    const mid = ((a + b) / 2 / STEPS) * 100;
+    const at = win.start + ((a + b) / 2 / STEPS) * win.ms;
+    return `<span class="zero-flag" style="left:${mid}%" title="${fmtUTC(at)}">▲ 0</span>`;
+  }).join('');
+
+  const gridLines = [1, 2, 3, 4, 5].filter(n => n <= peak).map(n =>
+    `<line x1="0" y1="${yOf(n)}" x2="${W}" y2="${yOf(n)}" stroke="var(--color-border-light)" stroke-width="1"></line>`).join('');
+
+  const deployLines = FLEET_DEPLOYS.map(dp =>
+    `<line x1="${pct(dp.at, win) / 100 * W}" y1="0" x2="${pct(dp.at, win) / 100 * W}" y2="${H}"
+      stroke="var(--deploy-mark)" stroke-width="1" opacity="0.5" stroke-dasharray="3 2"></line>`).join('');
+
+  const areaBlock = `<div class="area-row">
+    <div class="area-side">
+      <span class="area-title">Instances running</span>
+      <span class="area-big">${series[series.length - 1]}</span>
+      <span class="area-sub">now · peak ${peak} · ${zeros.length} gap${zeros.length === 1 ? '' : 's'} at zero</span>
+    </div>
+    <div class="area-wrap">
+      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+        ${gridLines}${zeroRects}${deployLines}
+        <path d="${d}" fill="var(--color-primary)" opacity="0.16"></path>
+        <path d="${line}" fill="none" stroke="var(--color-primary)" stroke-width="1.5"
+          vector-effect="non-scaling-stroke"></path>
+      </svg>
+      ${zeroFlags}
+    </div>
+    <div class="area-scale"><span>${peak}</span><span>0</span></div>
+  </div>`;
+
+  const stripes = `<div class="wf-stripes"><span></span><span class="wf-stripes-track">
+    ${zeros.map(([a, b]) => `<span class="wf-stripe" style="left:${(a / STEPS) * 100}%;width:${Math.max(((b - a) / STEPS) * 100, 0.3)}%;--stripe-color:var(--color-danger)"></span>`).join('')}
+    ${FLEET_DEPLOYS.map(dp => `<span class="wf-stripe-line" style="left:${pct(dp.at, win)}%;--stripe-color:var(--deploy-mark)"></span>`).join('')}
+  </span><span></span></div>`;
+
+  const rows = FLEET.map(inst => {
+    const cls = inst.status.toLowerCase();
+    const g = barGeom(inst.start, inst.end, win);
+    const failed = inst.sessions.some(s => s.failed);
+    return `<div class="wf-row${cls === 'active' ? ' is-active' : ''}">
+      <span class="wf-name">
+        <span class="wf-twist"><i class="bi bi-caret-right-fill"></i></span>
+        <span class="wf-kind kind-${failed ? 'failed' : cls}"></span>
+        <span class="wf-label">${inst.name}</span>
+        <span class="badge badge-${cls}">${inst.status}</span>
+      </span>
+      <span class="wf-track">${g.outside ? '' :
+        `<span class="wf-bar bar-${failed ? 'failed' : cls}" style="left:${g.left}%;width:${g.width}%"></span>`}</span>
+      <span class="wf-duration">${fmtDur(durationOf(inst))}</span>
+    </div>`;
+  }).join('');
+
+  const body = `
+    <div class="wf-card">
+      ${areaBlock}
+      ${rulerRow(win)}
+      <div class="wf-rows">${stripes}${rows}</div>
+    </div>
+    <div class="wf-legend">
+      <span class="lg"><span class="sw" style="background:var(--color-primary);opacity:.3"></span> instances up</span>
+      <span class="lg"><span class="sw" style="background:var(--color-danger);opacity:.25"></span> fleet at zero, washed down the rows${zeros.length ? '' : ' — none in this window'}</span>
+      <span class="lg"><span class="sw" style="width:2px;background:var(--deploy-mark)"></span> deploy</span>
+      <span class="lg" style="margin-left:auto">the area and the rows share one axis</span>
+    </div>`;
+
+  document.getElementById('app').innerHTML = pageChrome('Instance Timeline',
+    `<div class="tl-toolbar">${rangeGroup('7d')}
+       ${countChip(FLEET.length, FLEET.reduce((n, i) => n + i.sessions.length, 0),
+                   FLEET.reduce((n, i) => n + i.sessions.filter(s => s.failed).length, 0))}</div>`, body);
+
+  /* the lede quotes what the chart actually drew */
+  document.getElementById('lede-fleet').innerHTML =
+    (zeros.length
+      ? `For this project the answer is <strong>yes, ${zeros.length === 1 ? 'once' : zeros.length + ' times'}</strong>, marked in red. `
+      : `For this project the answer is <strong>no</strong>. `) +
+    `It also makes rollouts legible as shape: the <code>${FLEET_DEPLOYS[FLEET_DEPLOYS.length - 1].to}</code> deploy ` +
+    `shows as a ramp to <strong>${peak}</strong> concurrent instances, then a decay back to steady state.`;
+
+  document.getElementById('notes').innerHTML = notesBlock(
+    ['The only direction that answers a whole-project question: was anything running, and how many.',
+     'Rollout shape is readable at a glance — a ramp up and a decay, rather than twelve rows you have to correlate by eye.',
+     'Sharing the axis with the rows means a dip and its cause line up vertically, no cross-referencing.',
+     'Zero-coverage windows are washed down every row, so you cannot miss them.'],
+    ['Adds ~90px of chart above the list, which is dead weight on a single-instance project — and the real one here would be a flat line at 1.',
+     'A chart plus a waterfall is two things to read; the eye has to learn which one to look at first.',
+     'The step series must be recomputed on every range change and every poll.',
+     'ApexCharts is the house chart library but is wrong here — the axis must match the waterfall exactly, so this is hand-drawn SVG.'],
+    ['Derive the series client-side from the instance list already in memory; sample at ~500 points, not per-millisecond.',
+     'Draw as inline SVG with <code>preserveAspectRatio="none"</code> so it stretches to the same track width as the rows.',
+     'Reuse <code>.wf-stripes</code> for the zero wash — fill only, no strokes.']
+  );
+</script>
+</body>
+</html>

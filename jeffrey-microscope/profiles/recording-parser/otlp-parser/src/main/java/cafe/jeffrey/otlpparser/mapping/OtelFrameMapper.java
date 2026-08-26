@@ -27,6 +27,7 @@ import io.opentelemetry.proto.profiles.v1development.Function;
 import cafe.jeffrey.otlpparser.dictionary.OtlpDictionary;
 import cafe.jeffrey.profile.common.model.FrameType;
 import cafe.jeffrey.provider.profile.api.EventFrame;
+import cafe.jeffrey.shared.common.HiddenClassName;
 import cafe.jeffrey.shared.common.model.StacktraceType;
 
 import java.util.ArrayList;
@@ -136,12 +137,14 @@ public final class OtelFrameMapper {
 
         if (jvmFrame) {
             FunctionNameSplitter.SplitName splitName = FunctionNameSplitter.split(functionName);
+            HiddenClassName clazz = HiddenClassName.split(splitName.clazz());
             return new EventFrame(
-                    splitName.clazz(),
+                    clazz.className(),
                     splitName.method(),
                     frameType.code(),
                     UNKNOWN_BYTECODE_INDEX,
-                    line.getLine());
+                    line.getLine(),
+                    clazz.hiddenClassId());
         }
         return new EventFrame(
                 module,

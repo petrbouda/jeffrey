@@ -18,23 +18,30 @@
 
 package cafe.jeffrey.profile.manager.model.trace;
 
+import cafe.jeffrey.provider.profile.api.TraceAttributeCarrier;
+
 /**
- * One row of the attribute picker's first step: an event type that produced spans.
+ * One row of the attribute picker's first step: an event type whose carriers can be searched.
  *
  * @param eventType      the event type, as recorded — {@code jeffrey.HttpServerExchange}
- * @param spanCount      spans of this type
+ * @param carrier        whether this type produced spans or notifications, so the step can say which
+ *                       it is listing rather than calling a notification a span
+ * @param carrierCount      carriers of this type — spans, or notifications
  * @param traceCount     traces holding at least one
- * @param errorSpans     how many of those spans ended in {@code ERROR}
- * @param attributeCount keys its spans carried, so the row can say how much the second step holds
+ * @param errorCarriers     how many of those spans ended in {@code ERROR}; always {@code 0} for a
+ *                       notification type, whose severity says something went wrong somewhere and
+ *                       not that this event failed
+ * @param attributeCount keys its carriers held, so the row can say how much the second step holds
  * @param breakableCount of those, how many have few enough values to break down — the rest are
  *                       search-only, and a row promising twelve attributes that opens onto three
  *                       usable ones is a row that lied
  */
-public record TraceSpanTypeRow(
+public record TraceEventTypeRow(
         String eventType,
-        long spanCount,
+        TraceAttributeCarrier carrier,
+        long carrierCount,
         long traceCount,
-        long errorSpans,
+        long errorCarriers,
         int attributeCount,
         int breakableCount) {
 }

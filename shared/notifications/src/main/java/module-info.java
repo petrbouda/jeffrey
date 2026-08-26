@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2024 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published by
@@ -15,20 +15,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+module cafe.jeffrey.shared.notifications {
+    // Transitive: a caller names a Severity constant on every emit, so it would otherwise have to
+    // require the events module itself just to say how serious something is.
+    requires transitive cafe.jeffrey.jfr.events;
 
-package cafe.jeffrey.frameir.frame;
-
-import cafe.jeffrey.jfrparser.api.type.JfrStackFrame;
-
-import java.util.List;
-
-public class LambdaMatcher {
-
-    public boolean match(List<? extends JfrStackFrame> stacktrace, Integer currIndex) {
-        return LambdaMatchUtils.matchLambdaFrames(stacktrace, currIndex);
-    }
-
-    public boolean doesNotMatch(List<? extends JfrStackFrame> stacktrace, Integer currIndex) {
-        return !match(stacktrace, currIndex);
-    }
+    exports cafe.jeffrey.shared.notification;
 }

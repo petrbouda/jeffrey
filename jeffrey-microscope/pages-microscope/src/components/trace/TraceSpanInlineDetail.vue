@@ -273,16 +273,30 @@
             <span class="sd-entry-at">{{ offsetInSpan(notification.startEpochMicros) }}</span>
             <span class="sd-entry-sev">{{ severityLabel(notification.severity) }}</span>
             <span class="sd-entry-main">
-              <span class="sd-entry-title">{{ notification.title ?? notification.type }}</span>
+              <span class="sd-entry-title">{{ notification.type ?? 'Notification' }}</span>
               <span v-if="notification.message" class="sd-entry-text">{{
                 notification.message
               }}</span>
-              <span class="sd-entry-foot">
-                <template v-if="notification.type">{{ notification.type }}</template>
-                <template v-if="notification.category">
-                  &middot; {{ notification.category }}</template
+              <span
+                v-if="notificationAttributes.get(notification.notificationId)?.length"
+                class="sd-entry-attrs"
+              >
+                <span
+                  v-for="row in notificationAttributes.get(notification.notificationId)"
+                  :key="row.key"
+                  class="sd-entry-attr"
                 >
-                <template v-if="notification.source"> &middot; {{ notification.source }}</template>
+                  <span class="sd-entry-attr-k">{{ row.label }}</span>
+                  <span class="sd-entry-attr-v">{{ row.value }}</span>
+                </span>
+              </span>
+              <!-- The type is the heading now, so the foot carries only what it does not say. -->
+              <span class="sd-entry-foot">
+                <template v-if="notification.category">{{ notification.category }}</template>
+                <template v-if="notification.source">
+                  <template v-if="notification.category"> &middot; </template
+                  >{{ notification.source }}</template
+                >
               </span>
             </span>
           </div>
@@ -411,7 +425,7 @@ import {
 } from '@/services/trace/traceLabels';
 import { anyEscaped, worstSeverity } from '@/services/trace/traceEntries';
 import type { SpanDetailRow } from '@/services/trace/spanAttributes';
-import { spanDetail } from '@/services/trace/spanAttributes';
+import { attributeRows, spanDetail } from '@/services/trace/spanAttributes';
 import { indentRem } from '@/services/trace/TraceWaterfallLayout';
 
 /** Below this, a share rounds to 0% and the number itself says more than the percentage. */
@@ -491,6 +505,21 @@ defineEmits<{
 const detail = computed(() =>
   spanDetail(props.span.attributes, props.span.eventFields, props.fields)
 );
+
+/**
+ * Each notification's attribute rows, keyed by its id.
+ *
+ * Parsed once per notification per data change rather than once per render: the template reads this
+ * inside a v-for, and parsing there would re-run the JSON for every notification on every re-render
+ * of the drawer.
+ */
+const notificationAttributes = computed(() => {
+  const rows = new Map<string, SpanDetailRow[]>();
+  for (const notification of notifications.value) {
+    rows.set(notification.notificationId, attributeRows(notification.attributes));
+  }
+  return rows;
+});
 
 const copiedSql = ref(false);
 
@@ -1179,6 +1208,38 @@ function percent(part: number, whole: number): string {
   font-size: var(--font-size-sm);
   color: var(--color-text);
   line-height: 1.5;
+}
+
+/*
+ * What the notification attached, between what it said and where it came from. Chips rather than a
+ * table: there are usually two or three, and a table under every entry would out-weigh the message
+ * the entry exists to show.
+ */
+.sd-entry-attrs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.4rem;
+}
+
+.sd-entry-attr {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-light);
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+.sd-entry-attr-k {
+  color: var(--color-text-muted);
+}
+
+.sd-entry-attr-v {
+  color: var(--color-dark);
+  font-weight: 600;
 }
 
 .sd-entry-foot {

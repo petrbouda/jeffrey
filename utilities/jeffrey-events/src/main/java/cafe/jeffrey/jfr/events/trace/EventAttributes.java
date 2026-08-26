@@ -21,13 +21,17 @@ package cafe.jeffrey.jfr.events.trace;
 import java.util.Objects;
 
 /**
- * Builds the JSON object string the {@link AbstractTracedEvent#attributes} field carries, without
- * pulling a JSON library into instrumentation — this library's zero-dependency promise is exactly
- * why emitters were hand-concatenating JSON, and hand-concatenated JSON breaks on the first value
- * containing a quote.
+ * Builds the JSON object string an {@code attributes} field carries — {@link
+ * AbstractTracedEvent#attributes} on a span, {@link AbstractTracedInstant#attributes} on an instant
+ * — without pulling a JSON library into instrumentation. This library's zero-dependency promise is
+ * exactly why emitters were hand-concatenating JSON, and hand-concatenated JSON breaks on the first
+ * value containing a quote.
+ * <p>
+ * Either family's field is encoded identically, so one reader renders both and one index searches
+ * both.
  *
  * <pre>{@code
- * event.attributes = SpanAttributes.create()
+ * event.attributes = EventAttributes.create()
  *         .put("cache", "miss")
  *         .put("retries", 2)
  *         .put("fallback", true)
@@ -47,7 +51,7 @@ import java.util.Objects;
  * Keys are written in the order given and are not de-duplicated; give each key once. This builder
  * is single-use and not thread-safe, like the event it fills.
  */
-public final class SpanAttributes {
+public final class EventAttributes {
 
     private static final String NULL_LITERAL = "null";
 
@@ -56,17 +60,17 @@ public final class SpanAttributes {
 
     private final StringBuilder pairs = new StringBuilder();
 
-    private SpanAttributes() {
+    private EventAttributes() {
     }
 
-    public static SpanAttributes create() {
-        return new SpanAttributes();
+    public static EventAttributes create() {
+        return new EventAttributes();
     }
 
     /**
      * Records a string value; {@code null} is recorded as JSON {@code null}.
      */
-    public SpanAttributes put(String key, String value) {
+    public EventAttributes put(String key, String value) {
         appendKey(key);
         if (value == null) {
             pairs.append(NULL_LITERAL);
@@ -76,7 +80,7 @@ public final class SpanAttributes {
         return this;
     }
 
-    public SpanAttributes put(String key, long value) {
+    public EventAttributes put(String key, long value) {
         appendKey(key);
         pairs.append(value);
         return this;
@@ -86,7 +90,7 @@ public final class SpanAttributes {
      * Records a numeric value. JSON has no encoding for {@code NaN} or an infinity, so a
      * non-finite value is recorded as JSON {@code null}.
      */
-    public SpanAttributes put(String key, double value) {
+    public EventAttributes put(String key, double value) {
         appendKey(key);
         if (Double.isFinite(value)) {
             pairs.append(value);
@@ -96,7 +100,7 @@ public final class SpanAttributes {
         return this;
     }
 
-    public SpanAttributes put(String key, boolean value) {
+    public EventAttributes put(String key, boolean value) {
         appendKey(key);
         pairs.append(value);
         return this;

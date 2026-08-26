@@ -30,6 +30,10 @@
     <artifactId>recordings-core</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>notifications</artifactId>
+        </dependency>
         <!-- Remote gRPC client wrappers + DTOs + TempDirProvider/RepositoryManager -->
         <dependency>
             <groupId>${project.groupId}</groupId>

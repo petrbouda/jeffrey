@@ -22,7 +22,15 @@ package cafe.jeffrey.jfrparser.api.type;
  * Plain in-memory {@link JfrMethod}. Shared by every parser path (DB row mappers, in-memory JFR
  * parsing) so a class/method pair has a single canonical carrier.
  */
-public record JfrMethodImpl(String className, String methodName) implements JfrMethod, JfrClass {
+public record JfrMethodImpl(String className, String methodName, String hiddenClassId)
+        implements JfrMethod, JfrClass {
+
+    /**
+     * A method on an ordinary (non-hidden) class.
+     */
+    public JfrMethodImpl(String className, String methodName) {
+        this(className, methodName, null);
+    }
 
     /**
      * Parses an entity of the form {@code Class#method} (or just {@code Class}) into a method.

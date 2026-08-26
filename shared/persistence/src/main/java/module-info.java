@@ -15,6 +15,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+// spring.jdbc and duckdb.jdbc are automatic modules (their jars carry no module-info), so javac
+// warns that re-exporting them ties us to a name derived from a file name. Re-exported deliberately:
+// DatabaseClient hands back RowMapper and SqlParameterSource, and the DuckDB driver types travel
+// with the DataSource, so every consumer of this module reads them too.
+@SuppressWarnings("requires-transitive-automatic")
 module cafe.jeffrey.shared.persistence {
     requires transitive java.sql;
     requires transitive duckdb.jdbc;

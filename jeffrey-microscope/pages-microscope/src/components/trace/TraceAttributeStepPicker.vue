@@ -17,9 +17,10 @@
   -->
 
 <!--
-  The two-step picker of the attribute pages: which spans, then which of the things those spans
-  carried. Two numbered chips, each opening a dropdown — one component, so Search Traces, Attribute
-  Values and Latency by Attributes all ask the two questions the same way.
+  The two-step picker of the attribute pages: which event type, then which of the things its carriers
+  held. A carrier is a span or a notification, and step one says which of the two a row lists rather
+  than calling a notification a span. Two numbered chips, each opening a dropdown — one component, so
+  Search Traces, Attribute Values and Latency by Attributes all ask the two questions the same way.
 
   Controlled by the caller: the chips show what the props say is chosen, and picking emits rather
   than mutates — the search page keeps the selection as a draft, the breakdown pages keep it in the
@@ -49,7 +50,7 @@
       <div v-if="openPicker === 'type'" class="picker-pop">
         <div class="pop-head">
           <span class="chip-step">1</span>
-          Which spans carry the {{ lowerKeyWord }}?
+          Which events carry the {{ lowerKeyWord }}?
         </div>
         <button
           v-for="type in eventTypes"
@@ -64,8 +65,8 @@
             ><span class="item-leaf">{{ leafOf(type.eventType) }}</span>
           </span>
           <span class="item-meta">
-            <span class="item-count">{{ FormattingService.formatNumber(type.spanCount) }}</span>
-            spans ·
+            <span class="item-count">{{ FormattingService.formatNumber(type.carrierCount) }}</span>
+            {{ carrierNoun(type) }} ·
             <span class="item-count">{{ keyCountOf(type) }}</span>
             {{ lowerKeyWord }}s
           </span>
@@ -95,7 +96,8 @@
       <div v-if="openPicker === 'key'" class="picker-pop">
         <div class="pop-head">
           <span class="chip-step">2</span>
-          {{ keyWord }}s on <span class="pop-head-type">{{ selectedType }}</span> spans
+          {{ keyWord }}s on <span class="pop-head-type">{{ selectedType }}</span>
+          {{ selectedCarrierNoun }}
         </div>
 
         <p v-if="keysLoading" class="pop-note">Loading {{ lowerKeyWord }}s…</p>
@@ -106,7 +108,8 @@
         </p>
 
         <p v-else-if="offeredKeys.length === 0" class="pop-note">
-          Spans of this event type carried no attribute, declared field or shape to offer here.
+          {{ selectedCarrierNoun === 'notifications' ? 'Notifications' : 'Spans' }} of this event
+          type carried no attribute, declared field or shape to offer here.
         </p>
 
         <template v-else>
@@ -156,12 +159,12 @@ import {
   keyToken,
   type TraceAttributeKeyRow,
   type TraceAttributeSource,
-  type TraceSpanTypeRow
+  type TraceEventTypeRow
 } from '@/services/api/model/trace/TraceAttributeModels';
 
 const props = withDefaults(
   defineProps<{
-    eventTypes: TraceSpanTypeRow[];
+    eventTypes: TraceEventTypeRow[];
     /** The chosen event type, or null before one is chosen. The caller owns where it lives. */
     selectedType: string | null;
     /** The chosen key's name — identity beyond the name is the caller's business. */
@@ -182,7 +185,7 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  pickType: [type: TraceSpanTypeRow];
+  pickType: [type: TraceEventTypeRow];
   pickKey: [key: TraceAttributeKeyRow];
 }>();
 
@@ -190,7 +193,11 @@ const emit = defineEmits<{
 const SOURCE_LABELS: Record<TraceAttributeSource, string> = {
   ATTRIBUTE: 'attribute',
   EVENT_FIELD: 'event field',
-  SPAN_SHAPE: 'span shape'
+  SPAN_SHAPE: 'span shape',
+  NOTIFICATION_ATTRIBUTE: 'notification attribute',
+  // Worded as the carrier rather than after the enum, so the notification field spelled `source`
+  // does not render as `source · source`.
+  NOTIFICATION_SHAPE: 'notification'
 };
 
 const route = useRoute();
@@ -215,9 +222,25 @@ const offeredKeys = computed(() =>
 const hiddenSearchOnlyCount = computed(() => keys.value.length - offeredKeys.value.length);
 
 /** The step-1 meta only promises what step 2 will actually offer. */
-function keyCountOf(type: TraceSpanTypeRow): number {
+function keyCountOf(type: TraceEventTypeRow): number {
   return props.includeSearchOnly ? type.attributeCount : type.breakableCount;
 }
+
+/**
+ * What a row of step 1 is counting. A notification is not a span, and a list that called it one
+ * would be the same conflation the separate attribute index exists to prevent.
+ */
+function carrierNoun(type: TraceEventTypeRow): string {
+  return type.carrier === 'NOTIFICATION' ? 'notifications' : 'spans';
+}
+
+const selectedCarrierNoun = computed(() => {
+  const type = props.eventTypes.find(candidate => candidate.eventType === props.selectedType);
+  if (type === undefined) {
+    return 'spans';
+  }
+  return carrierNoun(type);
+});
 
 /*
  * The namespace repeats down the whole list while the leaf is what tells the rows apart, so the
@@ -243,7 +266,7 @@ function togglePicker(picker: 'type' | 'key'): void {
  * current type is not a change and is not emitted — the caller would otherwise drop a key that is
  * still valid.
  */
-function pickType(type: TraceSpanTypeRow): void {
+function pickType(type: TraceEventTypeRow): void {
   if (type.eventType !== props.selectedType) {
     emit('pickType', type);
   }
@@ -514,6 +537,13 @@ onBeforeUnmount(() => {
 .item-source.source-event_field {
   color: var(--color-info-text);
   background: var(--color-info-light);
+}
+
+/* The notification sources share a tint of their own, so a carrier is told apart at a glance. */
+.item-source.source-notification_attribute,
+.item-source.source-notification_shape {
+  color: var(--color-warning-text);
+  background: var(--color-warning-light);
 }
 
 .item-meta {

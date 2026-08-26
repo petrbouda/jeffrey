@@ -820,11 +820,11 @@ public class TraceManagerImpl implements TraceManager {
                 notification.startMillisFromBeginning(),
                 notification.startEpochMicros(),
                 notification.type(),
-                notification.title(),
                 notification.message(),
                 notification.severity(),
                 notification.category(),
                 notification.source(),
+                notification.attributes(),
                 toHex(notification.threadHash()));
     }
 

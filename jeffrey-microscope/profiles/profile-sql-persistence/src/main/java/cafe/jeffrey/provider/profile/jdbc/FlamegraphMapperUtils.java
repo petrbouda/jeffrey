@@ -27,6 +27,7 @@ public abstract class FlamegraphMapperUtils {
                 frames.add(new JfrStackFrameImpl(
                         (String) attrs[0],  // class_name
                         (String) attrs[1],  // method_name
+                        (String) attrs[5],  // hidden_class_id
                         (String) attrs[2],  // type
                         (Integer) attrs[3], // line
                         (Integer) attrs[4]  // bci

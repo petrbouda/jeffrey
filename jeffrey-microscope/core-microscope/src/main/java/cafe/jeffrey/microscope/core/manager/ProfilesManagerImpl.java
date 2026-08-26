@@ -38,6 +38,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import cafe.jeffrey.shared.notification.NotificationCategory;
+import cafe.jeffrey.shared.notification.NotificationType;
+import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.jfr.events.notification.Severity;
 
 public class ProfilesManagerImpl implements ProfilesManager {
 
@@ -93,6 +97,16 @@ public class ProfilesManagerImpl implements ProfilesManager {
                 .exceptionally(ex -> {
                     LOG.error("Could not create profile for recording: recording_id={} message={}",
                             recordingId, ex.getMessage(), ex);
+
+                    // This runs on a virtual thread long after the response went out, so nothing on
+                    // the other side of the wire is still listening: the profile simply never turns
+                    // up. Recording it is the only way the attempt leaves a trace at all.
+                    Notifications.of(NotificationType.PROFILE_CREATION_FAILED)
+                            .attribute("recordingId", recordingId)
+                            .attribute("projectId", projectInfo.id())
+                            .errorType(ex)
+                            .emit();
+
                     throw new RuntimeException("Could not create profile for recording: " + recordingId, ex);
                 });
     }

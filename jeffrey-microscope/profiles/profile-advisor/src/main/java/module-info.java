@@ -15,6 +15,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+// spring.ai.client.chat is an automatic module (no module-info of its own), so javac warns that
+// re-exporting it is fragile. Re-exported deliberately: the advisor's exported API takes and returns
+// ChatClient types, so every consumer reads them too.
+@SuppressWarnings("requires-transitive-automatic")
 module cafe.jeffrey.microscope.profile.advisor {
     requires transitive cafe.jeffrey.shared.common;
     requires transitive cafe.jeffrey.microscope.profile.ai.config;

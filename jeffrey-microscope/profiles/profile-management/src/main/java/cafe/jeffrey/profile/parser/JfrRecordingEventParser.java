@@ -28,6 +28,10 @@ import cafe.jeffrey.provider.profile.api.RecordingEventParser;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
+import cafe.jeffrey.shared.notification.NotificationCategory;
+import cafe.jeffrey.shared.notification.NotificationType;
+import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.jfr.events.notification.Severity;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -102,6 +106,13 @@ public class JfrRecordingEventParser implements RecordingEventParser {
             CompletableFuture.allOf(parsing.toArray(CompletableFuture[]::new)).join();
         } catch (RuntimeException suppressed) {
             LOG.debug("A chunk parse also failed while unwinding a failed disassembly", suppressed);
+
+            // At DEBUG this failure is invisible in practice, and it is the second of two: whatever
+            // ends up reported to the user is the disassembly error, not this. Recording it keeps the
+            // real first cause reachable when the reported one turns out to be a symptom.
+            Notifications.of(NotificationType.RECORDING_CHUNK_FAILURE_SWALLOWED)
+                    .errorType(suppressed)
+                    .emit();
         }
     }
 
@@ -120,6 +131,14 @@ public class JfrRecordingEventParser implements RecordingEventParser {
             // from the failed streaming attempt cannot leak into the result.
             LOG.warn("Streaming LZ4 disassembly failed, falling back to eager decompression: recording={}",
                     recording, e);
+
+            // Recovered, but not for free: the fallback writes the whole decompressed recording to
+            // disk before reading any of it, so a parse that took twice as long and needed the space
+            // has an explanation here rather than looking like an unexplained outlier.
+            Notifications.of(NotificationType.RECORDING_DECOMPRESSION_FALLBACK)
+                    .attribute("recording", String.valueOf(recording))
+                    .errorType(e)
+                    .emit();
             Path decompressed = lz4Compressor.decompressToDir(recording, tempDir.path());
             return JfrParser.disassemble(decompressed, tempDir.path().resolve(CHUNKS_FALLBACK_DIR));
         }

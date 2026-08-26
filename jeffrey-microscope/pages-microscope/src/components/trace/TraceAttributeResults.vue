@@ -83,8 +83,12 @@
         <template #footer="{ item }">
           <div v-if="item.hits.length > 0" class="match-footer">
             <span class="match-footer-label">Matched on</span>
-            <span v-for="hit in item.hits" :key="hit.spanId + hit.key" class="match-hit">
-              <span class="hit-span">span {{ shortSpanId(hit.spanId) }}</span>
+            <span
+              v-for="hit in item.hits"
+              :key="`${hit.carrier}-${hit.spanId ?? ''}-${hit.key}`"
+              class="match-hit"
+            >
+              <span class="hit-span">{{ hitCarrier(hit) }}</span>
               {{ hit.key }}=<b>{{ hit.value }}</b>
             </span>
           </div>
@@ -116,6 +120,7 @@ import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import type { TraceRow } from '@/services/api/model/trace/TraceModels';
 import type {
+  TraceAttributeHit,
   TraceAttributeMatch,
   TraceAttributeStats,
   TraceAttributeTimelineBucket
@@ -139,6 +144,17 @@ const SHORT_SPAN_ID_DIGITS = 6;
 /** The tail of a span id, which is what the matched-on band shows beside each hit. */
 function shortSpanId(spanId: string): string {
   return spanId.slice(-SHORT_SPAN_ID_DIGITS);
+}
+
+/**
+ * What matched, named on the row. A notification that fired outside any span has no id to show, and
+ * saying so is the honest answer — it belongs to the trace, with no bar to point at.
+ */
+function hitCarrier(hit: TraceAttributeHit): string {
+  if (hit.carrier === 'NOTIFICATION') {
+    return hit.spanId === null ? 'notification' : `notification @ ${shortSpanId(hit.spanId)}`;
+  }
+  return hit.spanId === null ? 'span' : `span ${shortSpanId(hit.spanId)}`;
 }
 
 const matchedSeries = computed<number[][]>(() =>

@@ -17,6 +17,7 @@
  */
 module cafe.jeffrey.microscope.profile.common {
     requires transitive cafe.jeffrey.shared.common;
+    requires cafe.jeffrey.shared.notifications;
     requires transitive tools.jackson.databind;
     requires org.slf4j;
     requires cafe.jeffrey.jfr.events;

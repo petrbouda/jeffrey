@@ -59,6 +59,7 @@ public class FramesCache {
                         new JfrStackFrameImpl(
                                 rs.getString("class_name"),
                                 rs.getString("method_name"),
+                                rs.getString("hidden_class_id"),
                                 rs.getString("frame_type"),
                                 rs.getInt("line_number"),
                                 rs.getInt("bytecode_index")

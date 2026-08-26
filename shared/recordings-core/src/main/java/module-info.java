@@ -17,6 +17,7 @@
  */
 module cafe.jeffrey.recordings.core {
     requires transitive cafe.jeffrey.hub.client;
+    requires cafe.jeffrey.shared.notifications;
     requires transitive cafe.jeffrey.microscope.persistence.api;
     requires transitive cafe.jeffrey.shared.common;
     requires spring.core;

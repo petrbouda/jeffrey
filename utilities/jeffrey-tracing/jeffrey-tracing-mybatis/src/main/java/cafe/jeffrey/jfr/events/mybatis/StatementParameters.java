@@ -19,7 +19,7 @@
 package cafe.jeffrey.jfr.events.mybatis;
 
 import cafe.jeffrey.jfr.events.trace.AttributeValues;
-import cafe.jeffrey.jfr.events.trace.SpanAttributes;
+import cafe.jeffrey.jfr.events.trace.EventAttributes;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.ParameterMapping;
@@ -67,7 +67,7 @@ final class StatementParameters {
 
         Configuration configuration = statement.getConfiguration();
         Object parameterObject = boundSql.getParameterObject();
-        SpanAttributes attributes = SpanAttributes.create();
+        EventAttributes attributes = EventAttributes.create();
         Set<String> written = new HashSet<>();
 
         for (ParameterMapping mapping : mappings) {
@@ -77,7 +77,7 @@ final class StatementParameters {
             }
             String property = mapping.getProperty();
             // The same property twice ("a = #{id} OR b = #{id}") resolves to the same value both
-            // times, and SpanAttributes writes keys in the order given without de-duplicating them.
+            // times, and EventAttributes writes keys in the order given without de-duplicating them.
             if (!written.add(property)) {
                 continue;
             }
@@ -107,7 +107,7 @@ final class StatementParameters {
      * Content that would have to be read to be rendered is named rather than read; everything else
      * is written the way every other emitter writes a captured value.
      */
-    private static void put(SpanAttributes attributes, String key, Object value, int maxValueLength) {
+    private static void put(EventAttributes attributes, String key, Object value, int maxValueLength) {
         if (LOB_TYPES.stream().anyMatch(type -> type.isInstance(value))) {
             attributes.put(key, LOB_PLACEHOLDER);
             return;

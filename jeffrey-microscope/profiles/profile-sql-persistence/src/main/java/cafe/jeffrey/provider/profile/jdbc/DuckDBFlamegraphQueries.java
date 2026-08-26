@@ -111,7 +111,8 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                         method_name := f.method_name,
                         frame_type := f.frame_type,
                         line_number := f.line_number,
-                        bytecode_index := f.bytecode_index
+                        bytecode_index := f.bytecode_index,
+                        hidden_class_id := f.hidden_class_id
                     )})
                 ) AS frames_map
                 FROM frames f
@@ -180,7 +181,8 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                         method_name := f.method_name,
                         frame_type := f.frame_type,
                         line_number := f.line_number,
-                        bytecode_index := f.bytecode_index
+                        bytecode_index := f.bytecode_index,
+                        hidden_class_id := f.hidden_class_id
                     )})
                 ) AS frames_map
                 FROM frames f
@@ -223,7 +225,7 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
      */
     //language=SQL
     public static final String ALL_FRAMES = """
-            SELECT frame_hash, class_name, method_name, frame_type, line_number, bytecode_index
+            SELECT frame_hash, class_name, method_name, frame_type, line_number, bytecode_index, hidden_class_id
             FROM frames
             """;
 
@@ -266,7 +268,8 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                         method_name := f.method_name,
                         frame_type := f.frame_type,
                         line_number := f.line_number,
-                        bytecode_index := f.bytecode_index
+                        bytecode_index := f.bytecode_index,
+                        hidden_class_id := f.hidden_class_id
                     )})
                 ) AS frames_map
                 FROM frames f
@@ -323,7 +326,8 @@ public class DuckDBFlamegraphQueries implements ComplexQueries.Flamegraph {
                         method_name := f.method_name,
                         frame_type := f.frame_type,
                         line_number := f.line_number,
-                        bytecode_index := f.bytecode_index
+                        bytecode_index := f.bytecode_index,
+                        hidden_class_id := f.hidden_class_id
                     )})
                 ) AS frames_map
                 FROM frames f

@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.parser;
 
 import tools.jackson.databind.JsonNode;
 import jdk.jfr.consumer.*;
+import cafe.jeffrey.shared.common.HiddenClassName;
 import cafe.jeffrey.shared.common.model.StacktraceTag;
 import cafe.jeffrey.shared.common.model.StacktraceType;
 import cafe.jeffrey.shared.common.model.Type;
@@ -196,12 +197,16 @@ public class JfrEventReader implements EventProcessor<Void> {
         List<EventFrame> eventFrames = new ArrayList<>();
         for (RecordedFrame recordedFrame : stacktrace.getFrames().reversed()) {
             RecordedMethod method = recordedFrame.getMethod();
+            // A hidden class carries the JVM's address in its own name, redrawn on every run. Split
+            // it here so the stable part is what the rest of Jeffrey ever sees as the class name.
+            HiddenClassName clazz = HiddenClassName.split(method.getType().getName());
             EventFrame eventFrame = new EventFrame(
-                    method.getType().getName(),
+                    clazz.className(),
                     method.getName(),
                     recordedFrame.getType(),
                     recordedFrame.getBytecodeIndex(),
-                    recordedFrame.getLineNumber());
+                    recordedFrame.getLineNumber(),
+                    clazz.hiddenClassId());
 
             eventFrames.add(eventFrame);
             stacktraceTypeResolver.applyFrame(eventFrame);

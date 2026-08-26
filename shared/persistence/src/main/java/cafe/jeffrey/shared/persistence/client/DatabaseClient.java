@@ -27,7 +27,7 @@ import org.springframework.jdbc.core.namedparam.EmptySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import org.springframework.jdbc.core.support.SqlLobValue;
+import org.springframework.jdbc.core.support.SqlBinaryValue;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -283,7 +283,7 @@ public class DatabaseClient {
     }
 
     private static String resolveParamValue(Object value) {
-        if (value instanceof SqlLobValue) {
+        if (value instanceof SqlBinaryValue) {
             return "<lob-value>";
         } else {
             return value == null ? null : value.toString();

@@ -27,18 +27,13 @@
         not match "all on one span" — attributes are per-span and are never inherited — so the
         choice is stated in words rather than left for a reader to infer from the results.
       -->
-      <div class="scope-toggle" role="group" aria-label="Condition scope">
-        <button
-          v-for="option in SCOPES"
-          :key="option.scope"
-          type="button"
-          :class="{ on: scope === option.scope }"
-          :title="option.hint"
-          @click="$emit('update:scope', option.scope)"
-        >
-          {{ option.label }}
-        </button>
-      </div>
+      <SegmentedSwitch
+        class="scope-switch"
+        :model-value="scope"
+        :options="SCOPES"
+        group-label="Condition scope"
+        @update:model-value="$emit('update:scope', $event)"
+      />
     </div>
 
     <!--
@@ -83,7 +78,7 @@
       </span>
 
       <!--
-        The shared two-step picker: which spans, then which of the things those spans carried. The
+        The shared two-step picker: which event type, then which of the things its carriers held. The
         selection stays a draft here — it becomes real only when the condition is added.
       -->
       <TraceAttributeStepPicker
@@ -96,10 +91,10 @@
       />
 
       <!--
-        Asleep, not merely disabled, until a key is chosen: the controls that cannot be used yet
-        drop to a whisper so the one control that can be is the loudest thing in the row.
+        Not usable until a key is chosen, and marked the way the picker marks its not-yet-takeable
+        step: dashed on a grey ground rather than faded out.
       -->
-      <span class="builder-rest" :class="{ asleep: draftKey === null }">
+      <span class="builder-rest">
         <select
           v-model="draftOperator"
           class="form-select form-select-sm builder-operator"
@@ -153,6 +148,8 @@
 import { computed, ref, watch } from 'vue';
 
 import MainCard from '@shared/components/MainCard.vue';
+import SegmentedSwitch from '@shared/components/SegmentedSwitch.vue';
+import type { SegmentedOption } from '@shared/components/SegmentedSwitch.vue';
 import FormattingService from '@shared/services/FormattingService';
 import TraceAttributeStepPicker from '@/components/trace/TraceAttributeStepPicker.vue';
 import type {
@@ -161,11 +158,11 @@ import type {
   TraceAttributeOperator,
   TraceAttributeScope,
   TraceAttributeSource,
-  TraceSpanTypeRow
+  TraceEventTypeRow
 } from '@/services/api/model/trace/TraceAttributeModels';
 
 const props = defineProps<{
-  eventTypes: TraceSpanTypeRow[];
+  eventTypes: TraceEventTypeRow[];
   conditions: TraceAttributeConditionModel[];
   scope: TraceAttributeScope;
 }>();
@@ -175,16 +172,16 @@ const emit = defineEmits<{
   'update:scope': [scope: TraceAttributeScope];
 }>();
 
-const SCOPES: Array<{ scope: TraceAttributeScope; label: string; hint: string }> = [
+const SCOPES: SegmentedOption<TraceAttributeScope>[] = [
   {
-    scope: 'TRACE',
+    id: 'TRACE',
     label: 'Anywhere in the trace',
-    hint: 'Each condition may be satisfied by a different span'
+    title: 'Each condition may be satisfied by a different span or notification'
   },
   {
-    scope: 'SPAN',
+    id: 'SPAN',
     label: 'All on one span',
-    hint: 'Every condition has to be satisfied by the same single span'
+    title: 'Every condition on the same single span, and every notification condition on the same notification'
   }
 ];
 
@@ -192,7 +189,11 @@ const SCOPES: Array<{ scope: TraceAttributeScope; label: string; hint: string }>
 const SOURCE_LABELS: Record<TraceAttributeSource, string> = {
   ATTRIBUTE: 'attribute',
   EVENT_FIELD: 'event field',
-  SPAN_SHAPE: 'span shape'
+  SPAN_SHAPE: 'span shape',
+  NOTIFICATION_ATTRIBUTE: 'notification attribute',
+  // Worded as the carrier rather than after the enum, so the notification field spelled `source`
+  // does not render as `source · source`.
+  NOTIFICATION_SHAPE: 'notification'
 };
 
 const OPERATOR_SYMBOLS: Record<TraceAttributeOperator, string> = {
@@ -230,7 +231,7 @@ const draftValue = ref('');
  * A different event type may not carry the chosen key at all, and the ones that do carry it under
  * different counts — so the key is dropped rather than kept pointing at another type's numbers.
  */
-function onPickType(type: TraceSpanTypeRow): void {
+function onPickType(type: TraceEventTypeRow): void {
   draftType.value = type.eventType;
   draftKey.value = null;
 }
@@ -346,32 +347,9 @@ function remove(index: number): void {
   color: var(--color-text-muted);
 }
 
-.scope-toggle {
+/* The switcher's own look belongs to SegmentedSwitch; only where it sits is this card's business. */
+.scope-switch {
   margin-left: auto;
-  display: inline-flex;
-  gap: 2px;
-  padding: 3px;
-  background: var(--color-lighter);
-  border-radius: var(--radius-pill);
-}
-
-.scope-toggle button {
-  border: 0;
-  background: transparent;
-  border-radius: var(--radius-pill);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  color: var(--color-text-muted);
-  padding: var(--spacing-1) var(--spacing-3);
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.scope-toggle button.on {
-  background: var(--color-white);
-  color: var(--color-primary);
-  font-weight: 600;
-  box-shadow: var(--shadow-sm);
 }
 
 .clause-row {
@@ -443,6 +421,13 @@ function remove(index: number): void {
   background: var(--color-info-light);
 }
 
+/* The notification sources share a tint of their own, so a carrier is told apart at a glance. */
+.expr-source.source-notification_attribute,
+.expr-source.source-notification_shape {
+  color: var(--color-warning-text);
+  background: var(--color-warning-light);
+}
+
 .expr-operator {
   color: var(--color-primary);
   font-weight: 700;
@@ -508,8 +493,20 @@ function remove(index: number): void {
   flex-wrap: wrap;
 }
 
-.builder-rest.asleep {
-  opacity: 0.4;
+/*
+ * Not yet usable, but never faded — the same contract as the picker's not-yet-takeable step: a
+ * dashed border on a grey ground, text left at full contrast, with the dashes carrying the
+ * "not yet". The 0.4 opacity this replaces dropped the whole group below reading contrast,
+ * including the operator list, which is the clearest statement of what a condition can ask.
+ */
+.builder-operator:disabled,
+.builder-value:disabled,
+.clause-add-btn:disabled {
+  cursor: default;
+  opacity: 1;
+  border: 1px dashed var(--color-border-input);
+  background: var(--color-lighter);
+  color: var(--color-slate-text);
 }
 
 /* Fixed rather than max widths: Bootstrap's width:100% inside the inline-flex group wraps the row. */

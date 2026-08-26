@@ -53,6 +53,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
 
 import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.shared.notification.NotificationCategory;
+import cafe.jeffrey.shared.notification.NotificationType;
+import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.jfr.events.notification.Severity;
 
 public class RemoteRecordingsDownloadManager implements RecordingsDownloadManager {
 
@@ -308,6 +312,16 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                             } catch (Exception e) {
                                 LOG.warn("Failed to download artifact: file={} error={}", artifactFile.name(), e.getMessage());
                                 progressCallback.onFileError(artifactFile.name(), e.getMessage());
+
+                                // Returning null drops this artifact out of the collected result and
+                                // the download still reports success -- so a recording can arrive
+                                // complete-looking with its heap dump or its log quietly absent.
+                                Notifications.of(NotificationType.DOWNLOAD_ARTIFACT_MISSING)
+                                        .attribute("file", artifactFile.name())
+                                        .attribute("sessionId", recordingSessionId)
+                                        .errorType(e)
+                                        .emit();
+
                                 return null;
                             }
                         }, Schedulers.sharedVirtual()))
@@ -346,6 +360,14 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
         } catch (Exception e) {
             LOG.error("Download failed: sessionId={} error={}", recordingSessionId, e.getMessage(), e);
             progressCallback.onError(e.getMessage());
+
+            // Whoever asked for this has usually navigated away by now: the progress channel is the
+            // only thing that carries the error, and it dies with the page that was watching it.
+            Notifications.of(NotificationType.DOWNLOAD_FAILED)
+                    .attribute("sessionId", recordingSessionId)
+                    .errorType(e)
+                    .emit();
+
             throw e;
         }
     }

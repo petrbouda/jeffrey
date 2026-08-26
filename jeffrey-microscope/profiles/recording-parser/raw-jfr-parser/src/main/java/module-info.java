@@ -17,6 +17,7 @@
  */
 module cafe.jeffrey.microscope.profile.parser.raw {
     requires transitive cafe.jeffrey.shared.common;
+    requires cafe.jeffrey.shared.notifications;
     requires transitive cafe.jeffrey.microscope.profile.persistence.api;
     requires jdk.jfr;
     requires org.slf4j;

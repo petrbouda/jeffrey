@@ -25,6 +25,9 @@ import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
+import cafe.jeffrey.shared.notification.NotificationType;
+import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.jfr.events.notification.Severity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -217,6 +220,16 @@ public final class PipelineRunRegistry<K> {
             worker.interrupt();
         }
         LOG.info("Cancelled pipeline run: pipeline_id={} key={}", definition.pipelineId(), key);
+
+        // No span to pin to: the run's root span belongs to the worker thread, and this is whoever
+        // pressed cancel. It belongs to the trace of that request instead, which is where the reader
+        // asking "why did this stop" actually is.
+        Notifications.of(NotificationType.PIPELINE_CANCELLED)
+                .attribute("pipelineId", definition.pipelineId())
+                .attribute("profileId", String.valueOf(key))
+                .attribute("wasRunning", worker != null)
+                .emit();
+
         return true;
     }
 
@@ -279,9 +292,19 @@ public final class PipelineRunRegistry<K> {
             // OK rather than UNSET: a pipeline reaching complete() is a success the code observed,
             // not merely the absence of a thrown exception.
             span.status = SpanStatus.OK.name();
+            long durationMs = Duration.between(run.startedAt(), clock.instant()).toMillis();
             LOG.info("Pipeline run completed: pipeline_id={} key={} duration_in_ms={}",
-                    definition.pipelineId(), request.key(),
-                    Duration.between(run.startedAt(), clock.instant()).toMillis());
+                    definition.pipelineId(), request.key(), durationMs);
+
+            // Pinned to the span explicitly: inSpanOf's scope closed when the work returned, so the
+            // ambient context is already empty here and emit() would file this under no trace.
+            Notifications.of(NotificationType.PIPELINE_COMPLETED)
+                    .inSpanOf(span)
+                    .attribute("pipelineId", definition.pipelineId())
+                    .attribute("profileId", String.valueOf(request.key()))
+                    .attribute("scopeId", request.scopeId())
+                    .attribute("durationMs", durationMs)
+                    .emit();
         } catch (Throwable e) {
             failure = e;
             span.status = SpanStatus.ERROR.name();
@@ -293,6 +316,18 @@ public final class PipelineRunRegistry<K> {
             // ("Failed to obtain JDBC Connection") whose actual cause is only in the cause chain.
             LOG.warn("Pipeline run failed: pipeline_id={} key={} error_code={} error={}",
                     definition.pipelineId(), request.key(), errorCodeOf(e), e.getMessage(), e);
+
+            // The stage that broke is named by PipelineRun.runStage; this says the run as a whole
+            // did not happen, which is the fact that outlives the in-memory progress.
+            Notifications.of(NotificationType.PIPELINE_FAILED)
+                    .inSpanOf(span)
+                    .attribute("pipelineId", definition.pipelineId())
+                    .attribute("profileId", String.valueOf(request.key()))
+                    .attribute("scopeId", request.scopeId())
+                    .attribute("errorCode", errorCodeOf(e))
+                    .errorType(e)
+                    .emit();
+
             if (e instanceof Error error) {
                 throw error;
             }

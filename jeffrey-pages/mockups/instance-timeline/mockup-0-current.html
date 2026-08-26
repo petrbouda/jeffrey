@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instance Timeline — 0. Current, as shipped</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  /* Transcribed from InstancesTimeline.vue so the baseline is the real thing, including the
+     hardcoded rgba() that have drifted off-token. Nothing here is proposed — this is what ships. */
+  .card-stack { display: flex; flex-direction: column; gap: .6rem; }
+  .instance-card { border: 1px solid var(--color-border); border-radius: var(--radius-md);
+    border-left: 3px solid transparent; overflow: hidden; }
+  .instance-card.active   { background-color: rgba(245,158,11,.06); border-left-color: var(--color-amber); }
+  .instance-card.finished { background-color: rgba(16,185,129,.04); border-left-color: #10b981; }
+
+  .instance-card-head { display: flex; align-items: center; gap: .5rem; padding: .5rem .75rem; }
+  .head-iconbox { display: grid; place-items: center; width: 1.4rem; height: 1.4rem;
+    border-radius: var(--radius-sm); background: var(--color-white); border: 1px solid var(--color-border);
+    color: var(--color-text-muted); font-size: .7rem; }
+  .head-name { font-family: var(--font-family-monospace); font-size: .78rem; font-weight: 600;
+    word-break: break-all; }
+  .head-chips { margin-left: auto; display: flex; align-items: center; gap: .4rem; }
+  .head-chip { display: inline-flex; align-items: center; gap: .3rem; padding: .1rem .45rem;
+    border: 1px solid rgba(94,100,255,.35); border-radius: var(--radius-pill);
+    background: rgba(94,100,255,.08); color: var(--color-primary); font-size: var(--font-size-sm); }
+  .head-chevron { color: var(--color-text-light); font-size: .7rem; }
+
+  .instance-meta-strip { display: flex; align-items: center; gap: .35rem; padding: 0 .75rem .35rem;
+    font-family: var(--font-family-monospace); font-size: .66rem; color: var(--color-text-muted); }
+  .meta-k { font-size: .56rem; text-transform: uppercase; letter-spacing: .05em; color: var(--color-text-light); }
+  .meta-v { color: var(--color-text); }
+  .meta-running { color: var(--color-amber-highlight); font-weight: 600; }
+  .meta-sep { color: var(--color-text-light); }
+
+  .instance-card-body { padding: 0 .75rem .6rem; }
+  /* the per-card axis — repeated once per instance, and inverted: Now at 0%, oldest at 100% */
+  .time-axis { position: relative; height: 1rem; }
+  .axis-tick { position: absolute; transform: translateX(-50%); font-size: .6rem;
+    color: var(--color-text-light); font-family: var(--font-family-monospace); }
+  .lane { position: relative; margin-top: 6px; height: 32px; }
+  .lane-bg { position: absolute; inset: 0; background: var(--color-neutral-light);
+    border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+  .session-bar { position: absolute; top: 4px; bottom: 4px; border-left: 2px solid var(--color-bg-card);
+    box-sizing: border-box; z-index: 1; }
+  .session-bar.first { border-left: none; }
+  .session-bar.finished-strong { background: var(--color-success-hover); }
+  .session-bar.finished-light  { background: var(--color-success); }
+  .session-bar.active-strong   { background: var(--color-amber-highlight); }
+
+  .timeline-legend { display: flex; gap: .75rem; font-size: var(--font-size-xs); color: var(--color-text-muted); }
+  .legend-chip { display: inline-flex; align-items: center; gap: .2rem; }
+  .legend-sw { width: 14px; height: 8px; border-radius: 2px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
+    <h1><span class="n" style="background:var(--color-text-muted)">0</span>Current — as shipped</h1>
+    <p class="lede">
+      <code>InstancesTimeline.vue</code> on <code>master</code>, drawn from the same three instances every other
+      page here uses. Kept as the baseline so the comparison is honest. Note what the picture does:
+      <strong>time runs right-to-left</strong> — <code>Now</code> is pinned at the left edge and the oldest edge of
+      the window sits at the right, so the instance that finished two days ago draws on the <em>right</em>. Every card
+      carries <strong>its own copy of the ruler</strong>, so the three bars cannot be compared with each other. The third
+      instance finished before the 24-hour window opens, so its lane renders <strong>empty</strong> at full card
+      height, with nothing saying why. And the legend explains <code>strong</code> vs <code>light</code> shading that
+      carries no meaning at all — it is index parity, so two touching bars stay distinguishable.
+    </p>
+    <div id="app"></div>
+    <div id="notes"></div>
+  </div>
+
+<script src="data.js"></script>
+<script>
+  const win = windowOf('24h');
+
+  /* The shipped geometry, verbatim: left is the AGE of the session's end. */
+  function currentBarStyle(session) {
+    const startPercent = Math.max(0, Math.min(((NOW - session.start) / win.ms) * 100, 100));
+    const endPercent = session.active || !session.end
+      ? 0
+      : Math.max(0, Math.min(((NOW - session.end) / win.ms) * 100, 100));
+    const left = endPercent;
+    const width = Math.max(startPercent - endPercent, 0.3);
+    return `left:${left}%;width:${Math.min(width, 100 - left)}%`;
+  }
+
+  const TICKS = ['Now', '-6h', '-12h', '-18h', '-24h'];
+
+  const cards = INSTANCES.map(inst => {
+    const cls = inst.status.toLowerCase();
+    const bars = inst.sessions.map((s, idx) => {
+      const kind = s.active ? 'active' : 'finished';
+      const shade = idx % 2 === 0 ? 'strong' : 'light';
+      return `<div class="session-bar ${kind}-${shade}${idx === 0 ? ' first' : ''}" style="${currentBarStyle(s)}"></div>`;
+    }).join('');
+
+    return `
+    <div class="instance-card ${cls}">
+      <div class="instance-card-head">
+        <span class="head-iconbox"><i class="bi bi-box"></i></span>
+        <span class="head-name">${inst.name}</span>
+        <span class="badge badge-${cls}">${inst.status}</span>
+        <span class="head-chips">
+          <span class="head-chip"><i class="bi bi-layers"></i> ${inst.sessions.length} session
+            <i class="bi bi-arrow-up-right" style="font-size:.55rem"></i></span>
+          <i class="bi bi-chevron-right head-chevron"></i>
+        </span>
+      </div>
+      <div class="instance-meta-strip">
+        <span class="meta-k">Started</span><span class="meta-v">${fmtUTC(inst.start)}</span>
+        <span class="meta-sep">→</span>
+        ${inst.end
+          ? `<span class="meta-k">Finished</span><span class="meta-v">${fmtUTC(inst.end)}</span>`
+          : '<span class="meta-v meta-running">Running</span>'}
+        <span class="meta-sep">·</span>
+        <span class="meta-k">Duration</span><span class="meta-v">${fmtDur(durationOf(inst))}</span>
+      </div>
+      <div class="instance-card-body">
+        <div class="time-axis">
+          ${TICKS.map((t, i) => `<span class="axis-tick" style="left:${(i / (TICKS.length - 1)) * 100}%">${t}</span>`).join('')}
+        </div>
+        <div class="lane"><div class="lane-bg"></div>${bars}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const toolbar = `<div class="tl-toolbar">
+      ${rangeGroup('24h')}
+      <span class="timeline-legend">
+        <span class="legend-chip"><span class="legend-sw" style="background:var(--color-success-hover)"></span>
+          <span class="legend-sw" style="background:var(--color-success)"></span> adjacent finished</span>
+        <span class="legend-chip"><span class="legend-sw" style="background:var(--color-amber-highlight)"></span>
+          <span class="legend-sw" style="background:var(--color-amber)"></span> adjacent active</span>
+      </span>
+      ${countChip(3, 3)}
+    </div>`;
+
+  document.getElementById('app').innerHTML =
+    pageChrome('Instance Timeline', toolbar, `<div class="card-stack">${cards}</div>`);
+
+  document.getElementById('notes').innerHTML = notesBlock(
+    ['The card header, the status badge and the meta strip are all clear and readable on their own.',
+     'The session drawer behind the chevron is genuinely good and is kept unchanged everywhere.'],
+    ['Time runs right-to-left, against every other time view in Jeffrey.',
+     'One ruler per card means the three instances cannot be compared to each other.',
+     '~140px per instance — three fill the viewport; twenty are unusable.',
+     'An instance outside the window draws a full-height empty card with no explanation.',
+     'The legend documents index parity, not data.',
+     'Status is encoded four times over on the ACTIVE card.'],
+    ['Nothing — this is what ships today.']
+  );
+</script>
+</body>
+</html>

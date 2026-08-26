@@ -23,7 +23,7 @@ import cafe.jeffrey.profile.manager.model.trace.TraceAttributeLatency;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeSearchResult;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeTimelineBucket;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeValues;
-import cafe.jeffrey.profile.manager.model.trace.TraceSpanTypeRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceEventTypeRow;
 import cafe.jeffrey.provider.profile.api.TraceAttributeLatencyQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeSearchQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueQuery;
@@ -66,9 +66,9 @@ public interface TraceAttributesManager {
     List<TraceAttributeKeyRow> keys();
 
     /**
-     * The event types that produced spans — the first step of the attribute picker.
+     * The event types whose carriers can be searched — the first step of the attribute picker.
      */
-    List<TraceSpanTypeRow> spanEventTypes();
+    List<TraceEventTypeRow> attributeEventTypes();
 
     /**
      * The keys spans of one event type carried, with that type's own counts — the second step.

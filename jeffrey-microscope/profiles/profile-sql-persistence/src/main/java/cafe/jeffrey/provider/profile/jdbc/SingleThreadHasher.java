@@ -50,13 +50,17 @@ public class SingleThreadHasher {
         byte[] classBytes = safeGetBytes(frame.clazz());
         byte[] methodBytes = safeGetBytes(frame.method());
         byte[] typeBytes = safeGetBytes(frame.type());
+        // Part of the identity: two lambdas of the same host class share a class name and differ
+        // only here, and dropping it would collapse them into one row with an arbitrary address.
+        byte[] hiddenClassIdBytes = safeGetBytes(frame.hiddenClassId());
 
         // Calculate total size needed
-        int totalSize = 4 + classBytes.length    // length (4 bytes) + class string
-                + 4 + methodBytes.length   // length (4 bytes) + method string
-                + 4 + typeBytes.length     // length (4 bytes) + type string
-                + 8                        // line (8 bytes)
-                + 8;                       // bci (8 bytes)
+        int totalSize = 4 + classBytes.length          // length (4 bytes) + class string
+                + 4 + methodBytes.length         // length (4 bytes) + method string
+                + 4 + typeBytes.length           // length (4 bytes) + type string
+                + 4 + hiddenClassIdBytes.length  // length (4 bytes) + hidden class id string
+                + 8                              // line (8 bytes)
+                + 8;                             // bci (8 bytes)
 
         // Grow buffer if needed (rare after warmup)
         if (buffer.length < totalSize) {
@@ -75,6 +79,9 @@ public class SingleThreadHasher {
 
         // Write type string (length + bytes)
         offset = writeString(buffer, offset, typeBytes);
+
+        // Write hidden class id string (length + bytes)
+        offset = writeString(buffer, offset, hiddenClassIdBytes);
 
         // Write bci (8 bytes, little-endian)
         offset = writeLong(buffer, offset, frame.bci());

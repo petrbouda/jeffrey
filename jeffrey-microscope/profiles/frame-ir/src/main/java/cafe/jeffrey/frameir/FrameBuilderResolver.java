@@ -43,8 +43,10 @@ public class FrameBuilderResolver {
     }
 
     public FrameBuilder resolve() {
-        // Handling/Fixing lambdas is only supported in differential mode
-        boolean handleLambdas = differentialMode;
+        // A hidden class carries the JVM's address in its name, redrawn on every run, so the same
+        // lambda is a different frame in every recording. Only the differential compares two
+        // recordings, so only the differential has to drop those frames.
+        boolean excludeHiddenFrames = differentialMode;
 
         // Aggregated stack-sample formats (pprof/OTLP) select the top-frame processor by their weight unit
         // (bytes -> allocation type leaf, duration -> blocking entity leaf); both are no-ops when the
@@ -52,11 +54,11 @@ public class FrameBuilderResolver {
         // imported profiles that event-code fallback is skipped, so a NONE-unit count stays a plain graph.
         boolean jfrClassified = !flamegraphOnlyImport;
         if (weightUnit == WeightUnit.BYTES || (jfrClassified && weightUnit == WeightUnit.NONE && type.isAllocationEvent())) {
-            return new FrameBuilder(handleLambdas, threadMode, parseLocations, new AllocationTopFrameProcessor());
+            return new FrameBuilder(excludeHiddenFrames, threadMode, parseLocations, new AllocationTopFrameProcessor());
         } else if (weightUnit == WeightUnit.DURATION || (jfrClassified && weightUnit == WeightUnit.NONE && type.isBlockingEvent())) {
-            return new FrameBuilder(handleLambdas, threadMode, parseLocations, new BlockingTopFrameProcessor());
+            return new FrameBuilder(excludeHiddenFrames, threadMode, parseLocations, new BlockingTopFrameProcessor());
         } else {
-            return new FrameBuilder(handleLambdas, threadMode, parseLocations, null);
+            return new FrameBuilder(excludeHiddenFrames, threadMode, parseLocations, null);
         }
     }
 }

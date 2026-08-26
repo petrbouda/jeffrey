@@ -33,6 +33,7 @@ const headings = [
   { id: 'summary-dashboard', text: 'Summary Dashboard', level: 2 },
   { id: 'visualization', text: 'Visualization', level: 2 },
   { id: 'jvm-internals', text: 'JVM Internals', level: 2 },
+  { id: 'traces', text: 'Traces', level: 2 },
   { id: 'technologies', text: 'Technologies', level: 2 },
   { id: 'heap-dump-analysis', text: 'Heap Dump Analysis', level: 2 },
   { id: 'tools', text: 'Tools', level: 2 }
@@ -103,7 +104,7 @@ const folderStructure = `$JEFFREY_HOME/
         <DocsFeatureCard
           icon="bi bi-file-diff"
           title="Differential Flamegraphs"
-          description="Compare two profiles side-by-side. Red frames show increased time in the primary profile, blue frames show decreases."
+          description="Compare two profiles side-by-side. Red frames show increased time in the primary profile, blue frames show decreases. Frames from JVM hidden classes — lambda proxies, method-handle forms, string concatenation — are dropped, because the JVM redraws their names on every run and they would otherwise never match."
         />
         <DocsFeatureCard
           icon="bi bi-bar-chart"
@@ -269,8 +270,8 @@ const folderStructure = `$JEFFREY_HOME/
         <router-link to="/docs/microscope/profiles/system">Read the System &amp; Host reference &rarr;</router-link>
       </p>
 
-      <h2 id="technologies">Technologies</h2>
-      <p>Application-specific analysis — how your code interacts with external systems. Requires <router-link to="/docs/events/overview">Jeffrey Events</router-link> library to be added to your application.</p>
+      <h2 id="traces">Traces</h2>
+      <p>One unit of work — a request or a background job — broken into its nested spans. Requires <router-link to="/docs/events/overview">Jeffrey Events</router-link> library to be added to your application.</p>
 
       <div class="docs-grid docs-grid-2">
         <DocsFeatureCard
@@ -278,6 +279,16 @@ const folderStructure = `$JEFFREY_HOME/
           title="Traces &amp; Spans"
           description="Nested breakdown of one unit of work — per-operation latency spread, search by what the spans recorded, a waterfall of the span tree with split self/child bars, and the flamegraph of what the JVM did inside a single span."
         />
+      </div>
+
+      <p class="docs-read-more">
+        <router-link to="/docs/microscope/profiles/traces">Read the Traces &amp; Spans reference &rarr;</router-link>
+      </p>
+
+      <h2 id="technologies">Technologies</h2>
+      <p>Application-specific analysis — how your code interacts with external systems. Requires <router-link to="/docs/events/overview">Jeffrey Events</router-link> library to be added to your application.</p>
+
+      <div class="docs-grid docs-grid-2">
         <DocsFeatureCard
           icon="bi bi-globe"
           title="HTTP Server & Client"
@@ -304,10 +315,6 @@ const folderStructure = `$JEFFREY_HOME/
           description="Span-level latency from async-profiler spans — overview by tag with total, average, P95 and max duration, slowest spans ranked by duration, per-span CPU / Wall-Clock / Allocation flame graphs, and the events that ran during a span."
         />
       </div>
-
-      <p class="docs-read-more">
-        <router-link to="/docs/microscope/profiles/traces">Read the Traces &amp; Spans reference &rarr;</router-link>
-      </p>
 
       <h2 id="heap-dump-analysis">Heap Dump Analysis</h2>
       <p>Memory analysis from heap dump snapshots (.hprof files). Requires a heap dump to be associated with the profile.</p>

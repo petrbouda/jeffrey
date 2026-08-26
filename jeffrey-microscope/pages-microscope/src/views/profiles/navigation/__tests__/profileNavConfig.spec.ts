@@ -71,10 +71,10 @@ describe('profileNavConfig', () => {
 
   it('collects a sane number of nav items', () => {
     // 7 Overview (incl. Dashboards) + 19 JVM (incl. GC/JIT submenu parents + children)
-    // + 16 Application (incl. Memory Issues submenu) + 4 Visualization + 17 HeapDump
-    // + 4 Tools + 4 Advisor + 39 Technologies (34 + Traces by Operation + Search Traces
-    // + the Attributes parent and its two sub-pages)
-    expect(allItems.length).toBe(110);
+    // + 16 Application (incl. Memory Issues submenu) + 4 Traces (Traces by Operation,
+    // Search Traces, Attribute Values, Latency by Attributes) + 4 Visualization
+    // + 17 HeapDump + 4 Tools + 4 Advisor + 34 Technologies
+    expect(allItems.length).toBe(109);
   });
 
   it('every item has a label and a bootstrap icon', () => {
@@ -160,94 +160,6 @@ describe('profileNavConfig', () => {
     }
   });
 
-  // The attribute views moved from `?view=` tabs of one route to three routes. Its redirect answers
-  // with a location rather than a string, so it is checked here instead of in LEGACY_REDIRECTS.
-  describe('the attributes route redirects its old tab links', () => {
-    const attributesRedirect = () => {
-      const record = profileChildRoutes.find(
-        route => route.path === 'technologies/traces/attributes'
-      );
-      expect(record, 'technologies/traces/attributes').toBeDefined();
-      return (
-        record as unknown as {
-          redirect: (to: {
-            params: { profileId: string };
-            query: Record<string, unknown>;
-          }) => { path: string; query: Record<string, unknown> };
-        }
-      ).redirect;
-    };
-
-    const base = `/profiles/${SAMPLE_PROFILE_ID}/technologies/traces/attributes`;
-
-    it.each([
-      ['search', `${base}/search`],
-      ['values', `${base}/values`],
-      ['latency', `${base}/latency`]
-    ])('sends ?view=%s to its own page', (view, expected) => {
-      const target = attributesRedirect()({
-        params: { profileId: SAMPLE_PROFILE_ID },
-        query: { view }
-      });
-
-      expect(target.path).toBe(expected);
-    });
-
-    it('opens on Search for a missing view, and for one the page no longer has', () => {
-      const redirect = attributesRedirect();
-      const params = { profileId: SAMPLE_PROFILE_ID };
-
-      expect(redirect({ params, query: {} }).path).toBe(`${base}/search`);
-      // `differences` was a fourth tab until it was removed; its links are still out there.
-      expect(redirect({ params, query: { view: 'differences' } }).path).toBe(`${base}/search`);
-    });
-
-    it('carries the rest of the query and drops only the view', () => {
-      const target = attributesRedirect()({
-        params: { profileId: SAMPLE_PROFILE_ID },
-        query: { view: 'values', source: 'ATTRIBUTE', key: 'tenant', where: ['a~~b~EQ~c'] }
-      });
-
-      expect(target.path).toBe(`${base}/values`);
-      expect(target.query).toEqual({ source: 'ATTRIBUTE', key: 'tenant', where: ['a~~b~EQ~c'] });
-    });
-  });
-
-  // The flat trace list was removed; the waterfall it used to host now opens on Search Traces, so
-  // that is where its links land — including the shared `?trace=` ones, which still open a waterfall.
-  describe('the removed trace list redirects to Search Traces', () => {
-    const tracesRedirect = () => {
-      const record = profileChildRoutes.find(route => route.path === 'technologies/traces');
-      expect(record, 'technologies/traces').toBeDefined();
-      return (
-        record as unknown as {
-          redirect: (to: {
-            params: { profileId: string };
-            query: Record<string, unknown>;
-          }) => { path: string; query: Record<string, unknown> };
-        }
-      ).redirect;
-    };
-
-    const search = `/profiles/${SAMPLE_PROFILE_ID}/technologies/traces/attributes/search`;
-
-    it('sends a bare link to the search page', () => {
-      const target = tracesRedirect()({ params: { profileId: SAMPLE_PROFILE_ID }, query: {} });
-
-      expect(target.path).toBe(search);
-    });
-
-    it('keeps a shared waterfall link opening its waterfall', () => {
-      const target = tracesRedirect()({
-        params: { profileId: SAMPLE_PROFILE_ID },
-        query: { trace: 'da67068e1a1a733e' }
-      });
-
-      expect(target.path).toBe(search);
-      expect(target.query).toEqual({ trace: 'da67068e1a1a733e' });
-    });
-  });
-
   it('derives the mode pill from a route path', () => {
     const profilePath = (subPath: string) => `/profiles/${SAMPLE_PROFILE_ID}${subPath}`;
 
@@ -267,6 +179,10 @@ describe('profileNavConfig', () => {
     expect(getModeForPath(profilePath('/garbage-collection'))).toBe('JVM');
     expect(getModeForPath(profilePath('/string-symbol-tables'))).toBe('JVM');
     expect(getModeForPath(profilePath('/technologies/hub'))).toBe('Technologies');
+    // Traces is its own mode now, and `method-tracing` must stay a technology despite the near-name.
+    expect(getModeForPath(profilePath('/traces/operations'))).toBe('Traces');
+    expect(getModeForPath(profilePath('/traces/attributes/search'))).toBe('Traces');
+    expect(getModeForPath(profilePath('/technologies/method-tracing/slowest'))).toBe('Technologies');
     expect(getModeForPath(profilePath('/flamegraphs/primary'))).toBe('Visualization');
     expect(getModeForPath(profilePath('/subsecond/primary'))).toBe('Visualization');
     expect(getModeForPath(profilePath('/heap-dump/settings'))).toBe('HeapDump');

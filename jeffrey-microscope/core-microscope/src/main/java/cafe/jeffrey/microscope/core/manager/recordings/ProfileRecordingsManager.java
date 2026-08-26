@@ -51,6 +51,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import cafe.jeffrey.shared.notification.NotificationCategory;
+import cafe.jeffrey.shared.notification.NotificationType;
+import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.jfr.events.notification.Severity;
 
 /**
  * Microscope's profile-aware {@link RecordingsManager}. Delegates all deployment-agnostic recording
@@ -220,6 +224,15 @@ public class ProfileRecordingsManager implements RecordingsManager {
             // Drop the row again so a failed initialization does not leave the recording looking
             // analyzed, holding a profile that was never built.
             profileRepository.delete();
+
+            // Said before the row goes: afterwards there is nothing left pointing at this attempt,
+            // and the recording is back to looking as though it was never analysed at all.
+            Notifications.of(NotificationType.PROFILE_ANALYSIS_FAILED)
+                    .attribute("recordingId", recording.id())
+                    .attribute("profileId", profileId)
+                    .errorType(e)
+                    .emit();
+
             throw e;
         }
         profileRepository.enableProfile(createdAt);

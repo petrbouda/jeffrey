@@ -22,7 +22,7 @@ VALUES
     -- that ever said anything. It declares enclosingSpanId instead, and one of the tests proves the
     -- discovery leaves it alone.
     ('jeffrey.Notification', 'Notification', 40, 'application notification', '["Application","Notification"]', '1', NULL, false, NULL, NULL,
-     '[{"field":"traceId","header":"Trace Id"},{"field":"enclosingSpanId","header":"Enclosing Span Id"},{"field":"type","header":"Type"},{"field":"title","header":"Title"},{"field":"message","header":"Message"},{"field":"severity","header":"Severity"},{"field":"category","header":"Category"},{"field":"source","header":"Source"}]'),
+     '[{"field":"traceId","header":"Trace Id"},{"field":"enclosingSpanId","header":"Enclosing Span Id"},{"field":"type","header":"Type"},{"field":"message","header":"Message"},{"field":"severity","header":"Severity"},{"field":"category","header":"Category"},{"field":"source","header":"Source"},{"field":"attributes","header":"Attributes"}]'),
     ('jdk.JavaExceptionThrow', 'Java Exception Throw', 41, 'exception thrown', '["Java Application"]', '1', NULL, true, NULL, NULL,
      '[{"field":"message","header":"Message"},{"field":"thrownClass","header":"Class"}]'),
     ('jdk.JavaErrorThrow', 'Java Error Throw', 42, 'error thrown', '["Java Application"]', '1', NULL, true, NULL, NULL,
@@ -46,32 +46,47 @@ INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginn
 VALUES
     -- ---------------------------------------------------------------- notifications
     -- Raised inside span 112 and saying so. The ordinary case.
+    --
+    -- It also carries an attribute map, which is what the notification attribute index is built from.
+    -- `rows` is numeric, so value_num is filled for it and `rows > 100` is answerable; `cache.hit`
+    -- has a dot in the key, which only resolves because the JSON path is quoted -- unquoted it would
+    -- read as a nested object named `hit` that no recording has, and silently come back null.
     ('jeffrey.Notification', '2025-01-15T10:00:00.012Z', 12, NULL, 1, NULL, NULL, NULL, 3001,
-     '{"traceId":9223372036854775807,"enclosingSpanId":112,"type":"QUERY_PLAN_FALLBACK","title":"Query fell back to a sequential scan","message":"orders_customer_idx was not usable for this predicate","severity":"MEDIUM","category":"PERFORMANCE","source":"orders-repo"}'),
+     '{"traceId":9223372036854775807,"enclosingSpanId":112,"type":"QUERY_PLAN_FALLBACK","message":"orders_customer_idx was not usable for this predicate","severity":"MEDIUM","category":"PERFORMANCE","source":"orders-repo","attributes":"{\"rows\":41887,\"cache.hit\":\"false\",\"tenant\":\"acme\"}"}'),
 
     -- Two at the very same instant on the very same span. They are two things, and the derivation
     -- has to keep them apart without a natural key to do it with.
+    --
+    -- They carry the *same* message, which is the rule rather than a coincidence: a message says what
+    -- kind of thing happened, so every occurrence of a kind repeats it word for word. That is what
+    -- the message dictionary exists to collapse, and what one of the tests below pins.
+    --
+    -- The first carries a nested object under `plan`, which is structure rather than a value and must
+    -- be dropped from the index -- while the scalar beside it is kept, so the guard rejects a key and
+    -- not the whole map.
     ('jeffrey.Notification', '2025-01-15T10:00:00.030Z', 30, NULL, 1, NULL, NULL, NULL, 3001,
-     '{"traceId":9223372036854775807,"enclosingSpanId":111,"type":"CACHE_WARMED","title":"Cache warmed","message":"first","severity":"LOW","category":"PERFORMANCE","source":"cache"}'),
+     '{"traceId":9223372036854775807,"enclosingSpanId":111,"type":"CACHE_WARMED","message":"The cache was warmed after the profile finished initializing","severity":"LOW","category":"PERFORMANCE","source":"cache","attributes":"{\"plan\":{\"nested\":true},\"region\":\"eu-west\"}"}'),
     ('jeffrey.Notification', '2025-01-15T10:00:00.030Z', 30, NULL, 1, NULL, NULL, NULL, 3001,
-     '{"traceId":9223372036854775807,"enclosingSpanId":111,"type":"CACHE_WARMED","title":"Cache warmed","message":"second","severity":"LOW","category":"PERFORMANCE","source":"cache"}'),
+     '{"traceId":9223372036854775807,"enclosingSpanId":111,"type":"CACHE_WARMED","message":"The cache was warmed after the profile finished initializing","severity":"LOW","category":"PERFORMANCE","source":"cache"}'),
 
     -- In the trace, but no span was open: it belongs to the trace and to no bar.
     ('jeffrey.Notification', '2025-01-15T10:00:00.100Z', 100, NULL, 1, NULL, NULL, NULL, 3001,
-     '{"traceId":9223372036854775807,"enclosingSpanId":0,"type":"FEATURE_FLAG_READ","title":"Flag evaluated","message":"async-persist off","severity":"LOW","category":"CONFIGURATION","source":"flags"}'),
+     '{"traceId":9223372036854775807,"enclosingSpanId":0,"type":"FEATURE_FLAG_READ","message":"async-persist off","severity":"LOW","category":"CONFIGURATION","source":"flags"}'),
 
     -- Names a span this profile does not hold -- below a threshold, or from a chunk never ingested.
     -- Must read exactly like the one above: in the trace, nothing to draw it on.
+    -- Carries attributes too, so a hit on a notification with no drawable span is exercised: the
+    -- search must still name it, with a null span id rather than a missing row.
     ('jeffrey.Notification', '2025-01-15T10:00:00.105Z', 105, NULL, 1, NULL, NULL, NULL, 3001,
-     '{"traceId":9223372036854775807,"enclosingSpanId":987654321,"type":"POOL_PRESSURE","title":"Pool at 92% of max","message":"46 of 50 handed out","severity":"MEDIUM","category":"RESOURCE","source":"hikari"}'),
+     '{"traceId":9223372036854775807,"enclosingSpanId":987654321,"type":"POOL_PRESSURE","message":"46 of 50 handed out","severity":"MEDIUM","category":"RESOURCE","source":"hikari","attributes":"{\"pool\":\"orders\",\"inUse\":46}"}'),
 
     -- No trace was open. Belongs to no trace, so no trace should ever show it.
     ('jeffrey.Notification', '2025-01-15T10:00:00.110Z', 110, NULL, 1, NULL, NULL, NULL, 3001,
-     '{"traceId":0,"enclosingSpanId":0,"type":"STARTUP_COMPLETE","title":"Startup finished","message":"untraced","severity":"LOW","category":"LIFECYCLE","source":"boot"}'),
+     '{"traceId":0,"enclosingSpanId":0,"type":"STARTUP_COMPLETE","message":"untraced","severity":"LOW","category":"LIFECYCLE","source":"boot"}'),
 
     -- Carries a trace id no trace in this profile has.
     ('jeffrey.Notification', '2025-01-15T10:00:00.111Z', 111, NULL, 1, NULL, NULL, NULL, 3001,
-     '{"traceId":424242,"enclosingSpanId":0,"type":"ORPHANED","title":"Orphaned","message":"no such trace","severity":"HIGH","category":"SYSTEM","source":"ghost"}'),
+     '{"traceId":424242,"enclosingSpanId":0,"type":"ORPHANED","message":"no such trace","severity":"HIGH","category":"SYSTEM","source":"ghost"}'),
 
     -- ---------------------------------------------------------------- exceptions
     -- Inside 111 and 112. The innermost is 112, and the 120ms root must not claim it.

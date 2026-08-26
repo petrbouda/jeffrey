@@ -52,13 +52,13 @@ public interface TraceAttributeRepository {
     List<TraceAttributeKeyRecord> keys();
 
     /**
-     * The event types that produced spans, most spans first — the picker's first step.
+     * The event types whose carriers can be searched, busiest first — the picker's first step.
      *
      * @param searchOnlyAbove the cardinality past which a key cannot be broken down. Passed in rather
      *                        than known here, because it is the caller's policy; it decides only how
      *                        the returned counts are split, never which types come back
      */
-    List<TraceSpanTypeRecord> spanEventTypes(long searchOnlyAbove);
+    List<TraceEventTypeRecord> attributeEventTypes(long searchOnlyAbove);
 
     /**
      * The keys spans of one event type carried, with that type's own counts.
@@ -115,8 +115,8 @@ public interface TraceAttributeRepository {
      * A page of matched traces, the spans that matched them, and what the whole match set looks like.
      *
      * @param traces the page's traces, ordered as the query asked
-     * @param hits   which spans matched, for the traces on this page only — resolving them for every
-     *               match would be unbounded work for rows nobody is looking at
+     * @param hits   which carriers matched, for the traces on this page only — resolving them for
+     *               every match would be unbounded work for rows nobody is looking at
      * @param total  how many traces matched in total, so a capped page can say it is one
      * @param stats  the whole match set summarised, which the page cannot be summed into
      */
@@ -131,14 +131,21 @@ public interface TraceAttributeRepository {
     }
 
     /**
-     * One span that satisfied one condition, and what it held.
+     * One carrier that satisfied one condition, and what it held.
+     * <p>
+     * Every condition that narrowed the result is represented here, notifications included. A
+     * condition that changed which traces came back but is never pointed at is exactly the drift
+     * between what was asked and what is shown that resolving hits at all exists to prevent.
      *
-     * @param traceId the trace the span belongs to
-     * @param spanId  the span that matched
+     * @param traceId the trace the carrier belongs to
+     * @param carrier what matched — a span, or a notification
+     * @param spanId  the span that matched, or for a notification the span it fired in;
+     *                {@code null} when a notification carried no span, which is a real answer and
+     *                not a missing one
      * @param key     the key that matched
-     * @param value   what that span recorded for it
+     * @param value   what that carrier recorded for it
      */
-    record Hit(long traceId, long spanId, String key, String value) {
+    record Hit(long traceId, TraceAttributeCarrier carrier, Long spanId, String key, String value) {
     }
 
     /**

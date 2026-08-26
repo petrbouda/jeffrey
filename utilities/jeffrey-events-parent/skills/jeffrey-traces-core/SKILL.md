@@ -156,13 +156,13 @@ Field notes:
   You never construct it — `Tracer` does.
 - **`attributes`** (any traced event): operation-specific detail as a JSON
   object string — per-request values (an entity id, a retry count) that must
-  never go into the span *name*. Build it with `SpanAttributes` rather than
+  never go into the span *name*. Build it with `EventAttributes` rather than
   concatenating JSON by hand — it escapes
   quotes, backslashes and control characters — and only inside the
   `shouldCommit()` block, so an event under threshold pays nothing:
 
   ```java
-  event.attributes = SpanAttributes.create()
+  event.attributes = EventAttributes.create()
           .put("cache", "miss")
           .put("retries", 2)
           .json();

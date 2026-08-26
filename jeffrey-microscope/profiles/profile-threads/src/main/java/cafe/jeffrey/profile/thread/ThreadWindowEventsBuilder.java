@@ -25,6 +25,7 @@ import tools.jackson.databind.JsonNode;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -181,9 +182,7 @@ public class ThreadWindowEventsBuilder implements RecordBuilder<GenericRecord, T
      */
     private static List<Object> fieldValues(Object... values) {
         List<Object> fields = new ArrayList<>(values.length);
-        for (Object value : values) {
-            fields.add(value);
-        }
+        Collections.addAll(fields, values);
         return fields;
     }
 
@@ -204,7 +203,7 @@ public class ThreadWindowEventsBuilder implements RecordBuilder<GenericRecord, T
     }
 
     private static String safeToString(GenericRecord event, String fieldName) {
-        return safeBySupplier(event.jsonFields().get(fieldName), JsonNode::asText);
+        return safeBySupplier(event.jsonFields().get(fieldName), JsonNode::asString);
     }
 
     private static Long safeToLong(GenericRecord event, String fieldName) {

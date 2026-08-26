@@ -22,6 +22,10 @@ import cafe.jeffrey.profile.common.pipeline.SubPhaseTiming;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
 import cafe.jeffrey.shared.common.measure.Elapsed;
+import cafe.jeffrey.shared.notification.NotificationCategory;
+import cafe.jeffrey.shared.notification.NotificationType;
+import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.jfr.events.notification.Severity;
 import cafe.jeffrey.shared.common.measure.Measuring;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import org.slf4j.Logger;
@@ -297,6 +301,23 @@ public final class HprofIndex {
         boolean truncated = ParseWarning.anyError(top.warnings)
                 || ParseWarning.anyError(classes.warnings())
                 || ParseWarning.anyError(passB.warnings());
+
+        // Both numbers are already written into the index metadata, where nothing reads them back to
+        // the reader. A dump indexed from a file the JVM never finished writing analyses cleanly and
+        // is missing objects, so every retained size computed from it is a floor, not a total.
+        //
+        // Two kinds rather than one with two messages: a file that stopped early is missing objects,
+        // while warnings mean the parse skipped records it did not understand. Different findings,
+        // different severities, so different types -- which is also what keeps each message constant.
+        if (truncated) {
+            Notifications.of(NotificationType.HEAP_DUMP_TRUNCATED)
+                    .attribute("warningCount", warningCount)
+                    .emit();
+        } else if (warningCount > 0) {
+            Notifications.of(NotificationType.HEAP_DUMP_PARSE_WARNINGS)
+                    .attribute("warningCount", warningCount)
+                    .emit();
+        }
         emit(subPhases, listener, PHASE_WALK_PASS_B, passBE.duration().toMillis(),
                 passB.instanceCount() + " inst, "
                         + passB.outboundRefCount() + " edges, "

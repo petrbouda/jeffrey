@@ -43,11 +43,11 @@ function notification(
     startMillisFromBeginning: 0,
     startEpochMicros,
     type: 'CART_REPRICED',
-    title: 'Cart repriced',
     message: null,
     severity,
     category: null,
     source: null,
+    attributes: null,
     threadHash: 't1'
   };
 }

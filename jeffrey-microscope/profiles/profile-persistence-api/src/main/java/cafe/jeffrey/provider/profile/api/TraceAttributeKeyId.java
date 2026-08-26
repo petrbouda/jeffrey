@@ -43,10 +43,18 @@ public record TraceAttributeKeyId(TraceAttributeSource source, String owner, Str
         if (source == TraceAttributeSource.EVENT_FIELD && owner == null) {
             throw new IllegalArgumentException("an event field must name the event type declaring it: " + key);
         }
+        if (source.carrier() == TraceAttributeCarrier.NOTIFICATION && owner != null) {
+            throw new IllegalArgumentException("a notification key is global and cannot name an owner: " + key);
+        }
     }
 
     /** An attribute-map key, which no event type owns. */
     public static TraceAttributeKeyId attribute(String key) {
         return new TraceAttributeKeyId(TraceAttributeSource.ATTRIBUTE, null, key);
+    }
+
+    /** A key from a notification's attribute map, which no event type owns either. */
+    public static TraceAttributeKeyId notificationAttribute(String key) {
+        return new TraceAttributeKeyId(TraceAttributeSource.NOTIFICATION_ATTRIBUTE, null, key);
     }
 }

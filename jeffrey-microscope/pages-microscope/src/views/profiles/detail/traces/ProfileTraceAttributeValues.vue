@@ -124,7 +124,7 @@ function applySort(
  */
 function filterByValue(key: TraceAttributeKeyId, row: TraceAttributeValueRow): void {
   router.push({
-    path: `/profiles/${profileId}/technologies/traces/attributes/search`,
+    path: `/profiles/${profileId}/traces/attributes/search`,
     query: { where: [encodeCondition({ ...key, operator: 'EQ', value: row.value })] }
   });
 }

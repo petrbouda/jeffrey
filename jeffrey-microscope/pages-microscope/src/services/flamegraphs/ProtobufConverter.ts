@@ -53,7 +53,6 @@ const FRAME_TYPE_MAP: Record<number, string> = {
   [FrameTypeEnum.FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC]:
     FrameType.ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC,
   [FrameTypeEnum.FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC]: FrameType.BLOCKING_OBJECT_SYNTHETIC,
-  [FrameTypeEnum.FRAME_TYPE_LAMBDA_SYNTHETIC]: FrameType.LAMBDA_SYNTHETIC,
   [FrameTypeEnum.FRAME_TYPE_COLLAPSED_SYNTHETIC]: FrameType.COLLAPSED_SYNTHETIC,
   [FrameTypeEnum.FRAME_TYPE_TRUNCATED_SYNTHETIC]: FrameType.TRUNCATED_SYNTHETIC,
   [FrameTypeEnum.FRAME_TYPE_HIGHLIGHTED_WARNING]: FrameType.HIGHLIGHTED_WARNING
@@ -145,7 +144,8 @@ export default class ProtobufConverter {
       sampleTypes,
       diffDetails,
       proto.beforeMarker || undefined,
-      proto.prunedChildrenCount || undefined
+      proto.prunedChildrenCount || undefined,
+      proto.hidden || undefined
     );
   }
 

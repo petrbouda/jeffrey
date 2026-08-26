@@ -23,6 +23,10 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.EventSourceResolver;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
+import cafe.jeffrey.shared.notification.NotificationCategory;
+import cafe.jeffrey.shared.notification.NotificationType;
+import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.jfr.events.notification.Severity;
 import cafe.jeffrey.provider.profile.api.RecordingInformation;
 
 import java.io.InputStream;
@@ -223,6 +227,11 @@ public abstract class JfrParser {
     private static RecordingInformation buildRecordingInfo(List<JfrChunk> chunks) {
         if (chunks.isEmpty()) {
             LOG.warn("Recording does not contain any chunks");
+
+            // An empty profile is indistinguishable from one whose application did nothing, and the
+            // two want completely different next steps from whoever is looking at it.
+            Notifications.of(NotificationType.RECORDING_HAS_NO_CHUNKS)
+                    .emit();
             return new RecordingInformation(0, RecordingEventSource.JDK, null, null);
         }
 

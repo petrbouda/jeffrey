@@ -34,7 +34,6 @@ public enum FrameType {
     ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC("Allocated in New TLAB (Synthetic)"),
     ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC("Allocated Outside TLAB (Synthetic)"),
     BLOCKING_OBJECT_SYNTHETIC("Blocking Object (Synthetic)"),
-    LAMBDA_SYNTHETIC("Lambda (Synthetic)"),
     COLLAPSED_SYNTHETIC("Collapsed", false, "Collapsed (Synthetic)", true),
     TRUNCATED_SYNTHETIC("Truncated", false, "Truncated (Synthetic)", true),
     UNKNOWN("Unknown", false, "Unknown"),

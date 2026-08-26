@@ -55,6 +55,8 @@ public class DuckDBFrameWriter extends DuckDBBatchingWriter<EventFrameWithHash> 
                 appender.append((int) frame.line());
                 // bytecode_index - INTEGER
                 appender.append((int) frame.bci());
+                // hidden_class_id - VARCHAR (NULL for ordinary classes)
+                appender.append(frame.hiddenClassId());
                 appender.endRow();
             }
         }

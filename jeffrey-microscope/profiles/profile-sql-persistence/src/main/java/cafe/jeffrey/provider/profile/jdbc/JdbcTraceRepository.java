@@ -50,8 +50,6 @@ import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -605,9 +603,11 @@ public class JdbcTraceRepository implements TraceRepository {
             SELECT trace_id, span_id, notification_id,
                    start_timestamp_from_beginning AS start_ms,
                    EPOCH_US(start_timestamp)      AS start_epoch_us,
-                   type, title, message, severity, category, source,
+                   type, m.message_text            AS message,
+                   severity, category, source, attributes,
                    COALESCE(thread_hash, 0)       AS thread_hash
-            FROM trace_notifications
+            FROM trace_notifications n
+            LEFT JOIN trace_notification_messages m ON m.message_id = n.message_ref
             WHERE trace_id = :trace_id
             ORDER BY start_timestamp, notification_id
             """;
@@ -643,7 +643,7 @@ public class JdbcTraceRepository implements TraceRepository {
                 FROM stacktraces
                 WHERE stacktrace_hash = :stacktrace_hash
             )
-            SELECT f.class_name, f.method_name, f.frame_type, f.bytecode_index, f.line_number
+            SELECT f.class_name, f.method_name, f.frame_type, f.bytecode_index, f.line_number, f.hidden_class_id
             FROM positioned p
             JOIN frames f ON f.frame_hash = p.frame_hash
             ORDER BY p.depth DESC
@@ -670,12 +670,47 @@ public class JdbcTraceRepository implements TraceRepository {
      * The LEFT JOIN nulls a span id that names a span this profile does not hold: below a JFR
      * threshold, or in a chunk that was never ingested. A dangling id would make `span_id IS NOT
      * NULL` stop meaning "there is a bar to draw this on", which is the one thing the reader asks it.
+     *
+     * The event type is bound rather than discovered, which is the one place this derivation is not
+     * structural the way SPAN_EVENT_TYPES is. That is deliberate. Discovery pays off when the reader
+     * can do something with a type it has never seen, and for a span it can -- a discovered span gets
+     * a bar, a name, a kind and a duration from columns AbstractTracedEvent guarantees. For an
+     * instant it cannot: the rail mark's colour, the popover's title and the severity ranking all
+     * come from the notification-shaped columns below, which a generic instant does not have. A
+     * discovered one would draw an unlabelled mark over a row of NULLs.
+     *
+     * When a second instant family does arrive, the shape is a generic trace_instants table filled by
+     * discovery on the declared `enclosingSpanId` column -- the marker AbstractTracedInstant exists to
+     * make a contract rather than a spelling -- with this table as its notification-shaped projection.
      */
+    /*
+     * The distinct message texts, before the notifications that reference them.
+     *
+     * Same shape as DERIVE_SPAN_PAYLOADS: hash the text, insert each distinct one once, and let the
+     * notification insert below compute the same hash inline rather than joining back to find it.
+     */
+    //language=SQL
+    private static final String DERIVE_TRACE_NOTIFICATION_MESSAGES = """
+            INSERT INTO trace_notification_messages (message_id, message_text)
+            SELECT DISTINCT CAST(mod(hash(message), CAST(9223372036854775807 AS UBIGINT)) AS BIGINT), message
+            FROM (
+                SELECT json_extract_string(<<rehydrated>>, '$.message') AS message
+                FROM events_raw e
+                LEFT JOIN field_texts t ON t.text_hash = e.pooled_text_hash
+                WHERE e.event_type = :notification_event_type
+            )
+            WHERE message IS NOT NULL
+            """.replace("<<rehydrated>>", REHYDRATED_FIELDS);
+
+    //language=SQL
+    private static final String DELETE_TRACE_NOTIFICATION_MESSAGES =
+            "DELETE FROM trace_notification_messages";
+
     //language=SQL
     private static final String DERIVE_TRACE_NOTIFICATIONS = """
             INSERT INTO trace_notifications (trace_id, span_id, notification_id, start_timestamp,
-                                             start_timestamp_from_beginning, type, title, message,
-                                             severity, category, source, thread_hash)
+                                             start_timestamp_from_beginning, type, message_ref,
+                                             severity, category, source, attributes, thread_hash)
             WITH raised AS (
                 SELECT
                     e.rowid                                       AS notification_id,
@@ -695,17 +730,19 @@ public class JdbcTraceRepository implements TraceRepository {
                     start_timestamp,
                     start_ms,
                     json_extract_string(fields, '$.type')                            AS type,
-                    json_extract_string(fields, '$.title')                           AS title,
-                    json_extract_string(fields, '$.message')                         AS message,
+                    CAST(mod(hash(json_extract_string(fields, '$.message')),
+                             CAST(9223372036854775807 AS UBIGINT)) AS BIGINT)        AS message_ref,
                     json_extract_string(fields, '$.severity')                        AS severity,
                     json_extract_string(fields, '$.category')                        AS category,
                     json_extract_string(fields, '$.source')                          AS source,
+                    json_extract_string(fields, '$.attributes')                      AS attributes,
                     thread_hash
                 FROM raised
                 WHERE COALESCE(CAST(json_extract_string(fields, '$.traceId') AS BIGINT), 0) <> 0
             )
             SELECT n.trace_id, s.span_id, n.notification_id, n.start_timestamp, n.start_ms,
-                   n.type, n.title, n.message, n.severity, n.category, n.source, n.thread_hash
+                   n.type, n.message_ref, n.severity, n.category, n.source, n.attributes,
+                   n.thread_hash
             FROM identified n
             JOIN traces tr ON tr.trace_id = n.trace_id
             LEFT JOIN trace_spans s ON s.trace_id = n.trace_id AND s.span_id = n.span_id
@@ -1388,6 +1425,8 @@ public class JdbcTraceRepository implements TraceRepository {
         // traces primary key, leaving the profile with spans that no trace header accounts for.
         databaseClient.execute(StatementLabel.DERIVE_TRACE_EXCEPTIONS, DELETE_TRACE_EXCEPTIONS);
         databaseClient.execute(StatementLabel.DERIVE_TRACE_NOTIFICATIONS, DELETE_TRACE_NOTIFICATIONS);
+        databaseClient.execute(
+                StatementLabel.DERIVE_TRACE_NOTIFICATIONS, DELETE_TRACE_NOTIFICATION_MESSAGES);
         databaseClient.execute(StatementLabel.DERIVE_TRACES, DELETE_TRACES);
         databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, DELETE_TRACE_SPANS);
         databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, DELETE_SPAN_PAYLOADS);
@@ -1430,6 +1469,13 @@ public class JdbcTraceRepository implements TraceRepository {
         // After the spans and the trace headers, which both of these join against: a notification
         // resolves its recorded span id through trace_spans, and a throw finds its span by walking
         // the windows on its own thread.
+        // The message dictionary first: the notification insert computes each reference by hashing the
+        // same text, so every reference it writes already has its row.
+        databaseClient.insert(
+                StatementLabel.DERIVE_TRACE_NOTIFICATIONS,
+                DERIVE_TRACE_NOTIFICATION_MESSAGES,
+                new MapSqlParameterSource().addValue("notification_event_type", EventTypeName.NOTIFICATION));
+
         databaseClient.insert(
                 StatementLabel.DERIVE_TRACE_NOTIFICATIONS,
                 DERIVE_TRACE_NOTIFICATIONS,
@@ -1584,16 +1630,16 @@ public class JdbcTraceRepository implements TraceRepository {
                 new MapSqlParameterSource().addValue("trace_id", traceId),
                 (rs, _) -> new TraceNotificationRecord(
                         rs.getLong("trace_id"),
-                        nullableLong(rs, "span_id"),
+                        JdbcNulls.longOrNull(rs, "span_id"),
                         rs.getLong("notification_id"),
                         rs.getLong("start_ms"),
                         rs.getLong("start_epoch_us"),
                         rs.getString("type"),
-                        rs.getString("title"),
                         rs.getString("message"),
                         rs.getString("severity"),
                         rs.getString("category"),
                         rs.getString("source"),
+                        rs.getString("attributes"),
                         rs.getLong("thread_hash")));
     }
 
@@ -1613,7 +1659,7 @@ public class JdbcTraceRepository implements TraceRepository {
                         rs.getString("thrown_class"),
                         rs.getString("message"),
                         rs.getBoolean("escaped"),
-                        nullableLong(rs, "stacktrace_hash"),
+                        JdbcNulls.longOrNull(rs, "stacktrace_hash"),
                         rs.getLong("thread_hash")));
     }
 
@@ -1628,7 +1674,8 @@ public class JdbcTraceRepository implements TraceRepository {
                         rs.getString("method_name"),
                         rs.getString("frame_type"),
                         rs.getLong("bytecode_index"),
-                        rs.getLong("line_number")));
+                        rs.getLong("line_number"),
+                        rs.getString("hidden_class_id")));
     }
 
     @Override
@@ -1670,7 +1717,7 @@ public class JdbcTraceRepository implements TraceRepository {
         return (rs, _) -> new TraceSpanRecord(
                 rs.getLong("trace_id"),
                 rs.getLong("span_id"),
-                nullableLong(rs, "parent_span_id"),
+                JdbcNulls.longOrNull(rs, "parent_span_id"),
                 rs.getString("name"),
                 rs.getString("kind"),
                 rs.getString("status"),
@@ -1933,12 +1980,4 @@ public class JdbcTraceRepository implements TraceRepository {
                         rs.getString("content_type")));
     }
 
-    /**
-     * A root span's parent is SQL NULL, which {@code getLong} would flatten to 0 -- the very value
-     * the derivation normalised away.
-     */
-    private static Long nullableLong(ResultSet rs, String column) throws SQLException {
-        long value = rs.getLong(column);
-        return rs.wasNull() ? null : value;
-    }
 }

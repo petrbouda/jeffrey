@@ -13,7 +13,7 @@ Produce a CPU-optimisation report: which methods are burning on-CPU time, distin
    - `[INT]` on a hot method — not JITted at all. Almost always a bug: method excluded, deopt churn, or class-init lock.
    - `[INL]` — inlined into caller; no separate runtime frame. Confirms the JIT did the work.
 4. **Native / kernel frames** — `[NATIVE]` and `[KERNEL]` tags on heavy frames mean compute is leaving the JVM. Different investigation (syscalls, native libs).
-5. **Synthetic frames** — `[SYNTHETIC]` markers (thread names, lambda pseudo-frames) are structural; don't treat them as work.
+5. **Synthetic frames** — `[SYNTHETIC]` markers (thread names, allocated/blocking-object placeholders, collapsed and truncated subtrees) are structural; don't treat them as work.
 
 ### How to ground claims
 

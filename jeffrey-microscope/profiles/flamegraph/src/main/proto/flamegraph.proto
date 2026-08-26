@@ -75,6 +75,11 @@ message Frame {
     DiffDetails diff_details = 10;
     bool before_marker = 11;            // For guardian analysis coloring
     int32 pruned_children_count = 12;   // Only set for FRAME_TYPE_TRUNCATED_SYNTHETIC
+    // The frame's class is a JVM hidden class (JEP 371) -- a lambda proxy, a method-handle form,
+    // an indified string concatenation. Such a name carries the JVM's address and is redrawn on
+    // every run; the address is already stripped from the title, this marks what it was stripped
+    // from. Never set on differential frames, which drop hidden frames altogether.
+    bool hidden = 13;
 }
 
 // Frame type enumeration matching FrameType.java
@@ -92,7 +97,8 @@ enum FrameType {
     FRAME_TYPE_ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC = 10;
     FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC = 11;
     FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC = 12;
-    FRAME_TYPE_LAMBDA_SYNTHETIC = 13;
+    // 13 was FRAME_TYPE_LAMBDA_SYNTHETIC, emitted by the lambda-collapsing workaround that
+    // differentials used before hidden-class frames were dropped outright.
     FRAME_TYPE_HIGHLIGHTED_WARNING = 14;
     FRAME_TYPE_COLLAPSED_SYNTHETIC = 15;
     FRAME_TYPE_TRUNCATED_SYNTHETIC = 16;

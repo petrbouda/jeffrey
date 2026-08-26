@@ -33,7 +33,9 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FrameBuilderTest {
@@ -43,7 +45,11 @@ class FrameBuilderTest {
     private static final String ALLOCATED_CLASS = "java.lang.String";
     private static final String BLOCKING_CLASS = "java.lang.Object";
 
-    private record TestClass(String className) implements JfrClass {
+    private record TestClass(String className, String hiddenClassId) implements JfrClass {
+
+        TestClass(String className) {
+            this(className, null);
+        }
     }
 
     private record TestMethod(JfrClass clazz, String methodName) implements JfrMethod {
@@ -62,6 +68,15 @@ class FrameBuilderTest {
 
     private static JfrStackFrame frame(String className, String methodName) {
         return new TestFrame(JIT_COMPILED_CODE, -1, -1, new TestMethod(new TestClass(className), methodName));
+    }
+
+    /**
+     * A frame on a hidden class. {@code className} is already address-free -- the parser splits the
+     * JVM's per-run address into {@code hiddenClassId} before anything reaches the frame tree.
+     */
+    private static JfrStackFrame hiddenFrame(String className, String methodName, String hiddenClassId) {
+        return new TestFrame(
+                JIT_COMPILED_CODE, -1, -1, new TestMethod(new TestClass(className, hiddenClassId), methodName));
     }
 
     private static String frameName(String className, String methodName) {
@@ -293,6 +308,122 @@ class FrameBuilderTest {
             assertEquals(List.of(), root.framePath());
             assertEquals(List.of(frameName("com.Foo", "a")), frameA.framePath());
             assertEquals(List.of(frameName("com.Foo", "a"), frameName("com.Foo", "b")), frameB.framePath());
+        }
+    }
+
+    @Nested
+    class HiddenFrames {
+
+        private static final String LAMBDA_CLASS = "com.Foo$$Lambda";
+        private static final String LAMBDA_ADDRESS = "0x0000000011cb1be8";
+
+        @Test
+        void areKeptAndMarkedWhenExclusionIsOff() {
+            FrameBuilder builder = new FrameBuilder(false, false, false, null);
+            builder.onRecord(executionRecord(mainThread(),
+                    frame("com.Foo", "caller"),
+                    hiddenFrame(LAMBDA_CLASS, "run", LAMBDA_ADDRESS),
+                    frame("com.Bar", "callee")));
+
+            Frame caller = builder.build().get(frameName("com.Foo", "caller"));
+            Frame lambda = caller.get(frameName(LAMBDA_CLASS, "run"));
+
+            assertNotNull(lambda, "The hidden frame must stay in the tree when exclusion is off");
+            assertTrue(lambda.hidden());
+            assertNotNull(lambda.get(frameName("com.Bar", "callee")));
+        }
+
+        @Test
+        void ordinaryFramesAreNotMarkedHidden() {
+            FrameBuilder builder = new FrameBuilder(false, false, false, null);
+            builder.onRecord(executionRecord(mainThread(), frame("com.Foo", "caller")));
+
+            assertFalse(builder.build().get(frameName("com.Foo", "caller")).hidden());
+        }
+
+        @Test
+        void areDroppedAndTheirCallerAdoptsTheCalleeWhenExclusionIsOn() {
+            FrameBuilder builder = new FrameBuilder(true, false, false, null);
+            builder.onRecord(executionRecord(mainThread(),
+                    frame("com.Foo", "caller"),
+                    hiddenFrame(LAMBDA_CLASS, "run", LAMBDA_ADDRESS),
+                    frame("com.Bar", "callee")));
+
+            Frame caller = builder.build().get(frameName("com.Foo", "caller"));
+
+            assertNull(caller.get(frameName(LAMBDA_CLASS, "run")));
+            assertNotNull(caller.get(frameName("com.Bar", "callee")),
+                    "Dropping the hidden frame must join the caller straight to the callee");
+        }
+
+        @Test
+        void consecutiveHiddenFramesAreAllDropped() {
+            FrameBuilder builder = new FrameBuilder(true, false, false, null);
+            builder.onRecord(executionRecord(mainThread(),
+                    frame("com.Foo", "caller"),
+                    hiddenFrame(LAMBDA_CLASS, "run", LAMBDA_ADDRESS),
+                    hiddenFrame("java.lang.invoke.LambdaForm$DMH", "invokeVirtual", "0x0000000011cecc00"),
+                    frame("com.Bar", "callee")));
+
+            Frame caller = builder.build().get(frameName("com.Foo", "caller"));
+
+            assertEquals(1, caller.size());
+            assertNotNull(caller.get(frameName("com.Bar", "callee")));
+        }
+
+        @Test
+        void aStackOfNothingButHiddenFramesContributesNoFrames() {
+            FrameBuilder builder = new FrameBuilder(true, false, false, null);
+            builder.onRecord(executionRecord(mainThread(),
+                    hiddenFrame(LAMBDA_CLASS, "run", LAMBDA_ADDRESS),
+                    hiddenFrame("java.lang.invoke.LambdaForm$MH", "invoke", "0x0000000011dff000")));
+
+            assertTrue(builder.build().isEmpty());
+        }
+
+        /**
+         * The reason exclusion exists: the JVM redraws a hidden class's address on every run, so
+         * without it the two recordings share no node from the lambda downwards.
+         */
+        @Test
+        void twoRunsOfTheSameLambdaDiffAsFullyShared() {
+            Frame runA = buildRun("0x0000000011cb1be8");
+            Frame runB = buildRun("0x0000000028cb5fc8");
+
+            DiffFrame diff = new DiffTreeGenerator(runA, runB).generate();
+
+            assertAllShared(diff);
+            DiffFrame caller = diff.get(frameName("com.Foo", "caller"));
+            assertNotNull(caller);
+            assertNotNull(caller.get(frameName("com.Bar", "callee")));
+        }
+
+        private static Frame buildRun(String lambdaAddress) {
+            FrameBuilder builder = new FrameBuilder(true, false, false, null);
+            builder.onRecord(executionRecord(mainThread(),
+                    frame("com.Foo", "caller"),
+                    hiddenFrame(LAMBDA_CLASS, "run", lambdaAddress),
+                    frame("com.Bar", "callee")));
+            return builder.build();
+        }
+
+        private static void assertAllShared(DiffFrame diffFrame) {
+            assertEquals(DiffFrame.Type.SHARED, diffFrame.type,
+                    "Every node must match across the two runs: " + diffFrame.methodName);
+            for (DiffFrame child : diffFrame.values()) {
+                assertAllShared(child);
+            }
+        }
+
+        @Test
+        void samplesAreStillConservedAfterExclusion() {
+            FrameBuilder builder = new FrameBuilder(true, false, false, null);
+            builder.onRecord(executionRecord(mainThread(),
+                    frame("com.Foo", "caller"),
+                    hiddenFrame(LAMBDA_CLASS, "run", LAMBDA_ADDRESS),
+                    frame("com.Bar", "callee")));
+
+            assertSampleConservation(builder.build());
         }
     }
 }

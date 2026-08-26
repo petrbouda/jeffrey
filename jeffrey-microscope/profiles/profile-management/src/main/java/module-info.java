@@ -18,6 +18,7 @@
 module cafe.jeffrey.microscope.profile.management {
     // Intra-monorepo
     requires transitive cafe.jeffrey.microscope.profile.common;
+    requires cafe.jeffrey.shared.notifications;
     requires transitive cafe.jeffrey.microscope.persistence.api;
     requires transitive cafe.jeffrey.microscope.profile.persistence.api;
     requires cafe.jeffrey.microscope.profile.persistence.jdbc;

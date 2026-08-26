@@ -28,6 +28,10 @@ import cafe.jeffrey.shared.persistence.DatabaseManager;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import cafe.jeffrey.shared.notification.NotificationCategory;
+import cafe.jeffrey.shared.notification.NotificationType;
+import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.jfr.events.notification.Severity;
 
 public class ProfileDataInitializerImpl implements ProfileDataInitializer {
 
@@ -106,6 +110,16 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
                     LOG.warn("Failed to warm a cached view, it will be computed on demand: "
                                     + "component={} profile_id={} profile_name={}",
                             component, profileInfo.id(), profileInfo.name(), throwable);
+
+                    // LOW: nothing is lost, the view is simply computed when someone opens it. Worth
+                    // saying only because the cost moves -- the first reader pays what the import was
+                    // meant to have paid, and this is the only thing that connects the two.
+                    Notifications.of(NotificationType.GUARDIAN_WARMUP_FAILED)
+                            .attribute("component", component)
+                            .attribute("profileId", profileInfo.id())
+                            .errorType(throwable)
+                            .emit();
+
                     return null;
                 });
     }

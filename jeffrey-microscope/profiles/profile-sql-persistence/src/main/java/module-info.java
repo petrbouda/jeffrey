@@ -15,6 +15,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+// spring.jdbc is an automatic module (its jar carries no module-info), so javac warns that
+// re-exporting it is fragile. Re-exported deliberately: the exported repositories take RowMapper
+// and MapSqlParameterSource in their own signatures.
+@SuppressWarnings("requires-transitive-automatic")
 module cafe.jeffrey.microscope.profile.persistence.jdbc {
     requires transitive cafe.jeffrey.microscope.profile.persistence.api;
     requires transitive cafe.jeffrey.shared.persistence;

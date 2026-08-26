@@ -21,7 +21,8 @@ package cafe.jeffrey.profile.manager;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeKeyRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeSearchResult;
 import cafe.jeffrey.profile.manager.model.trace.TraceAttributeValues;
-import cafe.jeffrey.profile.manager.model.trace.TraceSpanTypeRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceEventTypeRow;
+import cafe.jeffrey.provider.profile.api.TraceAttributeCarrier;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeRepository;
@@ -32,7 +33,7 @@ import cafe.jeffrey.provider.profile.api.TraceAttributeValueKind;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueSortField;
-import cafe.jeffrey.provider.profile.api.TraceSpanTypeRecord;
+import cafe.jeffrey.provider.profile.api.TraceEventTypeRecord;
 import cafe.jeffrey.provider.profile.api.TraceSortField;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
 import org.junit.jupiter.api.DisplayName;
@@ -135,7 +136,8 @@ class TraceAttributesManagerImplTest {
         @Test
         @DisplayName("ids cross the wire as hex, not as numbers")
         void idsAreHex() {
-            searchReturns(List.of(new TraceAttributeRepository.Hit(TRACE, SPAN, "tenant", "acme")));
+            searchReturns(List.of(new TraceAttributeRepository.Hit(
+                    TRACE, TraceAttributeCarrier.SPAN, SPAN, "tenant", "acme")));
 
             TraceAttributeSearchResult result = manager().search(search());
 
@@ -148,8 +150,8 @@ class TraceAttributesManagerImplTest {
         @DisplayName("the hits are gathered onto the trace they belong to")
         void hitsAreGrouped() {
             searchReturns(List.of(
-                    new TraceAttributeRepository.Hit(TRACE, SPAN, "tenant", "acme"),
-                    new TraceAttributeRepository.Hit(TRACE, SPAN + 1, "cache.hit", "false")));
+                    new TraceAttributeRepository.Hit(TRACE, TraceAttributeCarrier.SPAN, SPAN, "tenant", "acme"),
+                    new TraceAttributeRepository.Hit(TRACE, TraceAttributeCarrier.SPAN, SPAN + 1, "cache.hit", "false")));
 
             TraceAttributeSearchResult result = manager().search(search());
 
@@ -166,7 +168,7 @@ class TraceAttributesManagerImplTest {
         void hitsAreCappedPerTrace() {
             searchReturns(LongStream.range(0, 50)
                     .mapToObj(index -> new TraceAttributeRepository.Hit(
-                            TRACE, SPAN + index, "tenant", "acme"))
+                            TRACE, TraceAttributeCarrier.SPAN, SPAN + index, "tenant", "acme"))
                     .toList());
 
             TraceAttributeSearchResult result = manager().search(search());
@@ -197,12 +199,12 @@ class TraceAttributesManagerImplTest {
         @Test
         @DisplayName("the cardinality cap the manager owns is what splits breakable from search-only")
         void capIsPassedDown() {
-            when(repository.spanEventTypes(anyLong())).thenReturn(List.of(
-                    new TraceSpanTypeRecord(HTTP, 900, 120, 4, 11, 8)));
+            when(repository.attributeEventTypes(anyLong())).thenReturn(List.of(
+                    new TraceEventTypeRecord(HTTP, TraceAttributeCarrier.SPAN, 900, 120, 4, 11, 8)));
 
-            List<TraceSpanTypeRow> rows = manager().spanEventTypes();
+            List<TraceEventTypeRow> rows = manager().attributeEventTypes();
 
-            verify(repository).spanEventTypes(TraceAttributesManager.SEARCH_ONLY_ABOVE);
+            verify(repository).attributeEventTypes(TraceAttributesManager.SEARCH_ONLY_ABOVE);
             assertEquals(1, rows.size());
             assertEquals(HTTP, rows.getFirst().eventType());
             assertEquals(11, rows.getFirst().attributeCount());

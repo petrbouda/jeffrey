@@ -71,7 +71,7 @@ import {
   eventTypeFromQuery,
   keyFromQuery,
   type TraceAttributeKeyRow,
-  type TraceSpanTypeRow
+  type TraceEventTypeRow
 } from '@/services/api/model/trace/TraceAttributeModels';
 
 const route = useRoute();
@@ -80,7 +80,7 @@ const client = new ProfileTracesClient(route.params.profileId as string);
 
 const loading = ref(true);
 const error = ref<string | null>(null);
-const eventTypes = ref<TraceSpanTypeRow[]>([]);
+const eventTypes = ref<TraceEventTypeRow[]>([]);
 
 const selectedType = computed(() => eventTypeFromQuery(route.query));
 const selectedKey = computed(() => keyFromQuery(route.query));
@@ -97,7 +97,7 @@ const stepBadge = computed(() => {
  * different counts — so the key is dropped rather than kept pointing at a breakdown that belongs to
  * the type just left behind. The picker only emits on an actual change.
  */
-function pickType(type: TraceSpanTypeRow): void {
+function pickType(type: TraceEventTypeRow): void {
   const query: LocationQuery = { ...route.query, eventType: type.eventType };
   delete query.key;
   delete query.owner;

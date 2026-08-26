@@ -17,7 +17,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { spanDetail } from '@/services/trace/spanAttributes';
+import { attributeRows, spanDetail } from '@/services/trace/spanAttributes';
 import type { EventFieldRow } from '@/services/api/model/trace/TraceModels';
 
 function field(
@@ -174,6 +174,26 @@ describe('spanDetail', () => {
       const detail = spanDetail(null, '{"pathParams":{"recordingId":"019ffc3c"}}');
 
       expect(detail.eventFields[0].value).toBe('{"recordingId":"019ffc3c"}');
+    });
+  });
+  describe('attributeRows', () => {
+    it('reads a bare map, keeping the order the emitter chose', () => {
+      const rows = attributeRows('{"upstream":"acme-pay","failures":5,"open":true}');
+
+      expect(rows.map((row) => row.key)).toEqual(['upstream', 'failures', 'open']);
+      expect(rows.map((row) => row.value)).toEqual(['acme-pay', '5', 'true']);
+    });
+
+    it('reads nothing from a carrier that attached nothing', () => {
+      expect(attributeRows(null)).toEqual([]);
+      expect(attributeRows(undefined)).toEqual([]);
+      expect(attributeRows('{}')).toEqual([]);
+    });
+
+    it('surfaces text it cannot parse, the same way a span\'s attributes do', () => {
+      expect(attributeRows('not json at all')).toEqual([
+        { key: 'raw', label: 'raw', description: null, value: 'not json at all', absent: false }
+      ]);
     });
   });
 });

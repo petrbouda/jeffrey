@@ -22,6 +22,9 @@ import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
+import cafe.jeffrey.shared.notification.NotificationType;
+import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.jfr.events.notification.Severity;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -112,6 +115,21 @@ public final class PipelineRun {
             completeStage(id, elapsed.duration().toMillis(), elapsed.entity());
         } catch (RuntimeException e) {
             updateStage(id, StageStatus.FAILED, null, null);
+
+            // Which stage broke. The registry's PIPELINE_FAILED says the run ended; only this says at
+            // which of the thirteen heap-dump stages it ended, and it is the one fact the in-memory
+            // progress loses on restart.
+            //
+            // No span is handed in on purpose: the stage's own Tracer.call scope has closed by the
+            // time this catch runs, but the run's root span is still bound -- runStage is called from
+            // inside the registry's inSpanOf body -- so the ambient context pins this to the run.
+            // Which stage it was is in the attribute, where it can be searched.
+            Notifications.of(NotificationType.PIPELINE_STAGE_FAILED)
+                    .attribute("pipelineId", definition.pipelineId())
+                    .attribute("stageId", id)
+                    .errorType(e)
+                    .emit();
+
             throw e;
         } finally {
             clearActiveStage();

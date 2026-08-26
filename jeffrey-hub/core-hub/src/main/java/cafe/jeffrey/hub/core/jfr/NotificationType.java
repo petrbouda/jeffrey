@@ -18,24 +18,21 @@
 
 package cafe.jeffrey.hub.core.jfr;
 
+/**
+ * The kinds of notification the hub raises.
+ *
+ * <p>The constant's own name is what reaches the recording, so these are the vocabulary a reader
+ * groups and filters by — and the notification's name as well, since a notification carries no
+ * separate label.
+ */
 public enum NotificationType {
-    PROJECT_CREATED("Project Created"),
-    PROJECT_DELETED("Project Deleted"),
-    INSTANCE_CREATED("Instance Started"),
-    SESSION_CREATED("Recording Session Started"),
-    SESSION_FINISHED("Recording Session Finished"),
-    SESSION_DELETED("Recording Session Deleted"),
-    SESSIONS_CLEANED("Sessions Cleaned Up"),
-    JVM_CRASH_DETECTED("JVM Crash Detected"),
-    EVENT_PROCESSING_FAILED("Event Processing Failed");
-
-    private final String title;
-
-    NotificationType(String title) {
-        this.title = title;
-    }
-
-    public String title() {
-        return title;
-    }
+    PROJECT_CREATED,
+    PROJECT_DELETED,
+    INSTANCE_CREATED,
+    SESSION_CREATED,
+    SESSION_FINISHED,
+    SESSION_DELETED,
+    SESSIONS_CLEANED,
+    JVM_CRASH_DETECTED,
+    EVENT_PROCESSING_FAILED
 }

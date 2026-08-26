@@ -145,12 +145,16 @@ export interface TraceNotificationRow {
   startEpochMicros: number;
   /** A stable identifier for this kind of notification, e.g. `CONNECTION_POOL_EXHAUSTED`. */
   type: string | null;
-  title: string | null;
   message: string | null;
   /** The whole of "how serious is this" -- there is no second event type for the serious ones. */
   severity: NotificationSeverity | null;
   category: string | null;
   source: string | null;
+  /**
+   * The open JSON map it attached to itself, verbatim, or null when it attached none. The same
+   * encoding a span's attributes use, so one parser reads both — see `attributeRows`.
+   */
+  attributes: string | null;
   threadHash: string;
 }
 

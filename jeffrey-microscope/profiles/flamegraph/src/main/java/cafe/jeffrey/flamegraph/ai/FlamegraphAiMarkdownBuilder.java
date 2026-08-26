@@ -112,9 +112,9 @@ public final class FlamegraphAiMarkdownBuilder {
               threads, safepoint machinery — C++ inside the JVM).
             - `[KERNEL]` — kernel-space samples (syscalls).
             - `[UNKNOWN]` — frame type couldn't be classified.
-            - `[SYNTHETIC]` — structural markers (thread names, lambda
-              pseudo-frames, allocated/blocking-object placeholders); do
-              not treat these as real call frames.
+            - `[SYNTHETIC]` — structural markers (thread names,
+              allocated/blocking-object placeholders, collapsed and truncated
+              subtrees); do not treat these as real call frames.
 
             ## Unit semantics
 
@@ -405,7 +405,6 @@ public final class FlamegraphAiMarkdownBuilder {
                  ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC,
                  ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC,
                  BLOCKING_OBJECT_SYNTHETIC,
-                 LAMBDA_SYNTHETIC,
                  COLLAPSED_SYNTHETIC,
                  TRUNCATED_SYNTHETIC,
                  HIGHLIGHTED_WARNING -> TAG_SYNTHETIC;

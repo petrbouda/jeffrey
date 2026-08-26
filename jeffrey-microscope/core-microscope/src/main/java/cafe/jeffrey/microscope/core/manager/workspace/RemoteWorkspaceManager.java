@@ -35,6 +35,10 @@ import cafe.jeffrey.shared.common.model.workspace.WorkspaceStatus;
 
 import java.util.List;
 import java.util.Optional;
+import cafe.jeffrey.shared.notification.NotificationCategory;
+import cafe.jeffrey.shared.notification.NotificationType;
+import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.jfr.events.notification.Severity;
 
 public class RemoteWorkspaceManager implements WorkspaceManager {
 
@@ -128,6 +132,13 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
         } catch (Exception e) {
             LOG.warn("Remote DeleteWorkspace failed; continuing with local cleanup: workspaceId={}",
                     workspaceInfo.id(), e);
+
+            // The caller gets 204 either way, so from the outside this delete looks complete while
+            // the hub still holds the workspace. Reconnecting later brings it straight back.
+            Notifications.of(NotificationType.WORKSPACE_DELETE_PARTIAL)
+                    .attribute("workspaceId", workspaceInfo.id())
+                    .errorType(e)
+                    .emit();
         }
 
         // Local cleanup: profiles/recordings/profiler_settings tied to this workspace.
@@ -137,6 +148,14 @@ public class RemoteWorkspaceManager implements WorkspaceManager {
                 FileSystemUtils.removeDirectory(jeffreyDirs.profileDir(profileId));
             } catch (Exception e) {
                 LOG.warn("Failed to delete profile directory: profileId={}", profileId, e);
+
+                // The row is already gone, so nothing points at this directory any more: it will sit
+                // on disk taking space until somebody goes looking for it by hand.
+                Notifications.of(NotificationType.PROFILE_DIR_ORPHANED)
+                        .attribute("profileId", profileId)
+                        .attribute("workspaceId", workspaceInfo.id())
+                        .errorType(e)
+                        .emit();
             }
         }
 

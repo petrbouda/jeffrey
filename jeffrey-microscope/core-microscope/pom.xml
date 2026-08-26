@@ -36,6 +36,10 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>cafe.jeffrey</groupId>
+            <artifactId>notifications</artifactId>
+        </dependency>
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

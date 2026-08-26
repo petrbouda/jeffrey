@@ -38,12 +38,16 @@ package cafe.jeffrey.provider.profile.api;
  *                                 either being rounded to the other
  * @param type                     stable identifier for this kind of notification, e.g.
  *                                 {@code CONNECTION_POOL_EXHAUSTED}
- * @param title                    short summary
  * @param message                  the detail
  * @param severity                 name of a {@code Severity} constant — the whole of "how serious
  *                                 is this"
  * @param category                 e.g. {@code PERFORMANCE}, {@code AVAILABILITY}
  * @param source                   the component that raised it
+ * @param attributes               the open JSON map it attached to itself, verbatim as the recording
+ *                                 held it, or {@code null} when it attached none. Passed through as
+ *                                 text rather than parsed here for the same reason a span's is: the
+ *                                 UI renders it generically, and the searchable form lives in
+ *                                 {@code trace_notification_attributes}
  * @param threadHash               identity hash of the thread it was committed on
  */
 public record TraceNotificationRecord(
@@ -53,10 +57,10 @@ public record TraceNotificationRecord(
         long startMillisFromBeginning,
         long startEpochMicros,
         String type,
-        String title,
         String message,
         String severity,
         String category,
         String source,
+        String attributes,
         long threadHash) {
 }

@@ -21,6 +21,10 @@ package cafe.jeffrey.jfrparser.raw;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
+import cafe.jeffrey.shared.notification.NotificationCategory;
+import cafe.jeffrey.shared.notification.NotificationType;
+import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.jfr.events.notification.Severity;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -121,6 +125,7 @@ public abstract class RecordingDisassembler implements JfrChunkConstants {
                 }
                 if (headerRead < CHUNK_HEADER_SIZE) {
                     LOG.warn("Incomplete chunk header at chunk {}: read {} bytes", chunkIndex, headerRead);
+                    chunkDropped(chunkIndex, headerRead);
                     break;
                 }
 
@@ -190,6 +195,7 @@ public abstract class RecordingDisassembler implements JfrChunkConstants {
                 int read = channel.read(buffer);
                 if (read < CHUNK_HEADER_SIZE) {
                     LOG.warn("Incomplete chunk header at position {}", chunkStart);
+                    chunkDropped(chunkIndex, read);
                     break;
                 }
 
@@ -202,6 +208,17 @@ public abstract class RecordingDisassembler implements JfrChunkConstants {
                 if (chunkSize > remainingInFile) {
                     LOG.warn("Chunk extends beyond file, truncating: chunkIndex={} position={} claimedSize={} remainingBytes={}",
                             chunkIndex, chunkStart, chunkSize, remainingInFile);
+
+                    // The profile that comes out of this parses cleanly and is missing events, which
+                    // is the worst shape a recording can arrive in: nothing downstream can tell it
+                    // apart from a complete one, so the fact has to be recorded here or not at all.
+                    Notifications.of(NotificationType.RECORDING_CHUNK_TRUNCATED)
+                            .attribute("chunkIndex", chunkIndex)
+                            .attribute("position", chunkStart)
+                            .attribute("claimedSize", chunkSize)
+                            .attribute("remainingBytes", remainingInFile)
+                            .emit();
+
                     chunkSize = remainingInFile;
                 }
 
@@ -260,5 +277,16 @@ public abstract class RecordingDisassembler implements JfrChunkConstants {
         }
 
         return size;
+    }
+    /**
+     * A chunk header that could not be read ends the walk, so this chunk and every chunk after it is
+     * absent from the profile. Said out loud because nothing downstream can tell that shortened
+     * recording apart from one that simply ended there.
+     */
+    private static void chunkDropped(int chunkIndex, int bytesRead) {
+        Notifications.of(NotificationType.RECORDING_CHUNK_DROPPED)
+                .attribute("chunkIndex", chunkIndex)
+                .attribute("bytesRead", bytesRead)
+                .emit();
     }
 }

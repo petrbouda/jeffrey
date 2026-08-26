@@ -53,7 +53,7 @@ public final class AttributeValues {
      *
      * @param maxValueLength longest text recorded before it is truncated and marked
      */
-    public static void put(SpanAttributes attributes, String key, Object value, int maxValueLength) {
+    public static void put(EventAttributes attributes, String key, Object value, int maxValueLength) {
         switch (value) {
             case null -> attributes.put(key, (String) null);
             case Boolean flag -> attributes.put(key, (boolean) flag);

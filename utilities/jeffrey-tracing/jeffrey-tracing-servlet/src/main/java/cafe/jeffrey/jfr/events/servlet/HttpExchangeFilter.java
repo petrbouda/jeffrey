@@ -19,7 +19,7 @@
 package cafe.jeffrey.jfr.events.servlet;
 
 import cafe.jeffrey.jfr.events.http.HttpServerExchangeEvent;
-import cafe.jeffrey.jfr.events.trace.SpanAttributes;
+import cafe.jeffrey.jfr.events.trace.EventAttributes;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import jakarta.servlet.AsyncEvent;
 import jakarta.servlet.AsyncListener;
@@ -180,7 +180,7 @@ public class HttpExchangeFilter implements Filter {
         if (values == null || values.isEmpty()) {
             return null;
         }
-        SpanAttributes attributes = SpanAttributes.create();
+        EventAttributes attributes = EventAttributes.create();
         values.forEach(attributes::put);
         return attributes.json();
     }

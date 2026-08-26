@@ -39,24 +39,22 @@ public class FrameBuilder implements RecordBuilder<FlamegraphRecord, Frame> {
     private final Frame root = Frame.emptyFrame();
 
     private final List<FrameProcessor> processors;
+    private final boolean excludeHiddenFrames;
 
     public FrameBuilder(
-            boolean lambdaFrameHandling,
+            boolean excludeHiddenFrames,
             boolean threadModeEnabled,
             boolean parseLocations,
             FrameProcessor topFrameProcessor) {
+
+        this.excludeHiddenFrames = excludeHiddenFrames;
 
         this.processors = new ArrayList<>();
         if (threadModeEnabled) {
             processors.add(new ThreadFrameProcessor());
         }
 
-        if (lambdaFrameHandling) {
-            processors.add(new LambdaFrameProcessor(new LambdaMatcher()));
-            processors.add(new NormalFrameProcessor(new LambdaMatcher(), parseLocations));
-        } else {
-            processors.add(new NormalFrameProcessor(parseLocations));
-        }
+        processors.add(new NormalFrameProcessor(parseLocations));
 
         if (topFrameProcessor != null) {
             processors.add(topFrameProcessor);
@@ -94,6 +92,14 @@ public class FrameBuilder implements RecordBuilder<FlamegraphRecord, Frame> {
     private List<NewFrame> collectNewFrames(FlamegraphRecord record, List<? extends JfrStackFrame> frames) {
         List<NewFrame> newFrames = new ArrayList<>();
         for (int i = 0; i < frames.size(); ) {
+            // Hidden classes (lambda proxies, method-handle forms, indified string concatenation)
+            // exist only for the run that created them. Dropping them here joins the caller directly
+            // to the callee, which is what makes two recordings of the same application comparable.
+            if (excludeHiddenFrames && frames.get(i).method().clazz().isHidden()) {
+                i++;
+                continue;
+            }
+
             int consumedStackFrames = 0;
             for (FrameProcessor processor : processors) {
                 ProcessedFrames processed = processor.checkAndProcess(record, frames, i);
@@ -115,7 +121,12 @@ public class FrameBuilder implements RecordBuilder<FlamegraphRecord, Frame> {
     private static Frame addFrameToLayer(NewFrame newFrame, Frame parent, boolean isTopFrame) {
         Frame resolvedFrame = parent.get(newFrame.methodName());
         if (resolvedFrame == null) {
-            resolvedFrame = new Frame(parent, newFrame.methodName(), newFrame.lineNumber(), newFrame.bytecodeIndex());
+            resolvedFrame = new Frame(
+                    parent,
+                    newFrame.methodName(),
+                    newFrame.lineNumber(),
+                    newFrame.bytecodeIndex(),
+                    newFrame.hidden());
             parent.put(newFrame.methodName(), resolvedFrame);
         }
 

@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
+import cafe.jeffrey.provider.profile.api.TraceAttributeCarrier;
 import cafe.jeffrey.provider.profile.api.TraceAttributeCondition;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyRecord;
@@ -33,13 +34,15 @@ import cafe.jeffrey.provider.profile.api.TraceAttributeValueQuery;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueRecord;
 import cafe.jeffrey.provider.profile.api.TraceAttributeValueSortField;
 import cafe.jeffrey.provider.profile.api.TraceSortField;
-import cafe.jeffrey.provider.profile.api.TraceSpanTypeRecord;
+import cafe.jeffrey.provider.profile.api.TraceEventTypeRecord;
+import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
 import cafe.jeffrey.test.TestUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
@@ -49,6 +52,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -79,15 +83,64 @@ class JdbcTraceAttributeRepositoryTest {
     private static final TraceAttributeKeyId HTTP_STATUS_CODE =
             new TraceAttributeKeyId(TraceAttributeSource.EVENT_FIELD, HTTP_SERVER_EXCHANGE, "statusCode");
 
+    private static final String NOTIFICATION = EventTypeName.NOTIFICATION;
+
+    /** Keys from the maps the notification fixture's notifications attached. */
+    private static final TraceAttributeKeyId NOTIFICATION_TENANT =
+            TraceAttributeKeyId.notificationAttribute("tenant");
+    private static final TraceAttributeKeyId NOTIFICATION_ROWS =
+            TraceAttributeKeyId.notificationAttribute("rows");
+    /** A key with a dot in it, which only resolves because the JSON path is quoted. */
+    private static final TraceAttributeKeyId NOTIFICATION_CACHE_HIT =
+            TraceAttributeKeyId.notificationAttribute("cache.hit");
+    private static final TraceAttributeKeyId NOTIFICATION_REGION =
+            TraceAttributeKeyId.notificationAttribute("region");
+    /** The nested object beside it, which is structure rather than a value. */
+    private static final TraceAttributeKeyId NOTIFICATION_PLAN =
+            TraceAttributeKeyId.notificationAttribute("plan");
+    private static final TraceAttributeKeyId NOTIFICATION_POOL =
+            TraceAttributeKeyId.notificationAttribute("pool");
+
+    /** The notification's own columns, exposed the way a span's shape is. */
+    private static final TraceAttributeKeyId NOTIFICATION_SEVERITY =
+            new TraceAttributeKeyId(TraceAttributeSource.NOTIFICATION_SHAPE, null, "severity");
+    private static final TraceAttributeKeyId NOTIFICATION_TYPE =
+            new TraceAttributeKeyId(TraceAttributeSource.NOTIFICATION_SHAPE, null, "type");
+    /**
+     * The one whose key is spelled the same as the column saying where a key came from. A row for it
+     * reads {@code source = 'NOTIFICATION_SHAPE' AND attr_key = 'source'}, and pinning it here is what
+     * keeps someone from "fixing" the collision by renaming the key out from under the detail panel.
+     */
+    private static final TraceAttributeKeyId NOTIFICATION_SOURCE =
+            new TraceAttributeKeyId(TraceAttributeSource.NOTIFICATION_SHAPE, null, "source");
+
     /** Both traces of the fixture: the slow one, and the fast one that failed. */
     private static final int TRACES = 2;
 
     private static JdbcTraceAttributeRepository derived(DataSource dataSource) throws SQLException {
         TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+        return deriveAll(dataSource);
+    }
 
+    /**
+     * The same profile with the notification fixture layered on.
+     * <p>
+     * A separate helper rather than folding the notifications into {@link #derived} because that
+     * fixture also adds a span of its own, and the span-side expectations above are counted from the
+     * spans the span fixture holds.
+     */
+    private static JdbcTraceAttributeRepository derivedWithNotifications(DataSource dataSource)
+            throws SQLException {
+
+        TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+        TestUtils.executeSql(dataSource, "sql/events/insert-trace-notifications.sql");
+        return deriveAll(dataSource);
+    }
+
+    private static JdbcTraceAttributeRepository deriveAll(DataSource dataSource) {
         DatabaseClientProvider provider = new DatabaseClientProvider(dataSource);
-        // The attribute index is derived from trace_spans, so the trace derivation runs first --
-        // the same order ProfileInitializerImpl uses.
+        // The attribute index is derived from trace_spans and trace_notifications, so the trace
+        // derivation runs first -- the same order ProfileInitializerImpl uses.
         new JdbcTraceRepository(provider).derive();
 
         JdbcTraceAttributeRepository repository = new JdbcTraceAttributeRepository(provider);
@@ -241,7 +294,7 @@ class JdbcTraceAttributeRepositoryTest {
 
         @Test
         @DisplayName("the matching spans come back with the page")
-        void hitsNameTheSpanThatMatched(DataSource dataSource) throws SQLException {
+        void hitsNameTheCarrierThatMatched(DataSource dataSource) throws SQLException {
             TraceAttributeRepository.SearchPage page = derived(dataSource)
                     .search(search(TraceAttributeScope.TRACE, holds(JDBC_ROWS, "42")));
 
@@ -344,18 +397,18 @@ class JdbcTraceAttributeRepositoryTest {
         private static final long NO_CAP = 1_000;
 
         @Test
-        @DisplayName("every event type that produced spans is listed, busiest first")
-        void spanEventTypesAreListed(DataSource dataSource) throws SQLException {
-            List<TraceSpanTypeRecord> types = derived(dataSource).spanEventTypes(NO_CAP);
+        @DisplayName("every event type whose carriers can be searched is listed, busiest first")
+        void attributeEventTypesAreListed(DataSource dataSource) throws SQLException {
+            List<TraceEventTypeRecord> types = derived(dataSource).attributeEventTypes(NO_CAP);
 
             assertFalse(types.isEmpty());
             assertTrue(
-                    types.stream().map(TraceSpanTypeRecord::eventType).toList()
+                    types.stream().map(TraceEventTypeRecord::eventType).toList()
                             .containsAll(List.of(HTTP_SERVER_EXCHANGE, JDBC_QUERY, TRACE_SPAN)),
                     "the fixture's three span-producing types");
 
             for (int i = 1; i < types.size(); i++) {
-                assertTrue(types.get(i - 1).spanCount() >= types.get(i).spanCount(),
+                assertTrue(types.get(i - 1).carrierCount() >= types.get(i).carrierCount(),
                         "listed busiest first");
             }
             assertTrue(types.stream().allMatch(type -> type.attributeCount() > 0),
@@ -367,7 +420,7 @@ class JdbcTraceAttributeRepositoryTest {
         void breakableExcludesSearchOnly(DataSource dataSource) throws SQLException {
             // A cap of zero makes every key search-only, which is the only cap-independent assertion
             // available on a fixture whose keys all have one or two values.
-            List<TraceSpanTypeRecord> capped = derived(dataSource).spanEventTypes(0);
+            List<TraceEventTypeRecord> capped = derived(dataSource).attributeEventTypes(0);
 
             assertTrue(capped.stream().allMatch(type -> type.breakableCount() == 0));
             assertTrue(capped.stream().anyMatch(type -> type.attributeCount() > 0),
@@ -463,6 +516,293 @@ class JdbcTraceAttributeRepositoryTest {
             List<TraceAttributeLatencyRecord> cells = derived(dataSource).latency(new TraceAttributeLatencyQuery(SHAPE_EVENT_TYPE, 1, null));
 
             assertEquals(1, cells.stream().map(TraceAttributeLatencyRecord::value).distinct().count());
+        }
+    }
+
+    @Nested
+    @DisplayName("Notification attributes")
+    class NotificationAttributes {
+
+        @Test
+        @DisplayName("the map a notification attached is flattened one key per entry")
+        void attributeMapIsFlattened(DataSource dataSource) throws SQLException {
+            JdbcTraceAttributeRepository repository = derivedWithNotifications(dataSource);
+
+            assertTrue(keyOf(repository, NOTIFICATION_TENANT).isPresent());
+            assertTrue(keyOf(repository, NOTIFICATION_ROWS).isPresent());
+            assertTrue(keyOf(repository, NOTIFICATION_POOL).isPresent());
+        }
+
+        @Test
+        @DisplayName("a notification's own columns are queryable, the way a span's shape is")
+        void shapeColumnsAreExposed(DataSource dataSource) throws SQLException {
+            JdbcTraceAttributeRepository repository = derivedWithNotifications(dataSource);
+
+            assertTrue(keyOf(repository, NOTIFICATION_SEVERITY).isPresent());
+            assertTrue(keyOf(repository, NOTIFICATION_TYPE).isPresent());
+            assertTrue(keyOf(repository, NOTIFICATION_SOURCE).isPresent(),
+                    "the key spelled like the column that says where a key came from is still a key");
+        }
+
+        /** A dot in a key only survives because the JSON path is quoted; unquoted it reads as null. */
+        @Test
+        @DisplayName("a dotted key resolves to its own value")
+        void dottedKeyResolves(DataSource dataSource) throws SQLException {
+            TraceAttributeRepository.Values values = derivedWithNotifications(dataSource)
+                    .values(new TraceAttributeValueQuery(
+                            NOTIFICATION_CACHE_HIT, TraceAttributeValueSortField.TRACES, true, 10, null));
+
+            assertEquals(1, values.values().size());
+            assertEquals("false", values.values().getFirst().value());
+        }
+
+        @Test
+        @DisplayName("a nested object is dropped, and the scalar beside it is kept")
+        void nestedObjectIsDropped(DataSource dataSource) throws SQLException {
+            JdbcTraceAttributeRepository repository = derivedWithNotifications(dataSource);
+
+            assertTrue(keyOf(repository, NOTIFICATION_PLAN).isEmpty(),
+                    "an object is structure, not a value");
+            assertTrue(keyOf(repository, NOTIFICATION_REGION).isPresent(),
+                    "the guard rejects a key, not the whole map");
+        }
+
+        @Test
+        @DisplayName("the kind is inferred from the values, so a number compares as one")
+        void valueKindIsInferred(DataSource dataSource) throws SQLException {
+            JdbcTraceAttributeRepository repository = derivedWithNotifications(dataSource);
+
+            assertEquals(TraceAttributeValueKind.NUMBER,
+                    keyOf(repository, NOTIFICATION_ROWS).orElseThrow().valueKind());
+            assertEquals(TraceAttributeValueKind.STRING,
+                    keyOf(repository, NOTIFICATION_TENANT).orElseThrow().valueKind());
+        }
+
+        @Test
+        @DisplayName("deriving twice lands where deriving once did")
+        void derivationIsIdempotent(DataSource dataSource) throws SQLException {
+            JdbcTraceAttributeRepository repository = derivedWithNotifications(dataSource);
+            long before = keyOf(repository, NOTIFICATION_TENANT).orElseThrow().carrierCount();
+
+            repository.derive();
+
+            assertEquals(before, keyOf(repository, NOTIFICATION_TENANT).orElseThrow().carrierCount());
+        }
+
+        @Test
+        @DisplayName("a profile with no notifications carries no notification keys")
+        void profileWithoutNotificationsStaysEmpty(DataSource dataSource) throws SQLException {
+            JdbcTraceAttributeRepository repository = derived(dataSource);
+
+            assertTrue(repository.keys().stream()
+                            .noneMatch(key -> key.id().source().carrier() == TraceAttributeCarrier.NOTIFICATION),
+                    "nothing said anything, so there is nothing to search");
+        }
+    }
+
+    @Nested
+    @DisplayName("Notification search")
+    class NotificationSearch {
+
+        @Test
+        @DisplayName("a notification condition narrows to the traces it fired in")
+        void severityNarrowsTraces(DataSource dataSource) throws SQLException {
+            TraceAttributeRepository.SearchPage page = derivedWithNotifications(dataSource)
+                    .search(search(TraceAttributeScope.TRACE, holds(NOTIFICATION_SEVERITY, "MEDIUM")));
+
+            assertEquals(1, page.total());
+            assertEquals(1, page.stats().traces());
+        }
+
+        /**
+         * The guarantee the separate index exists for. A notification's {@code severity} says
+         * something went wrong somewhere; the span shape's {@code status} says this span failed. A
+         * search for one must never be answered by the other.
+         */
+        @Test
+        @DisplayName("a span-shape condition matches no notification")
+        void spanShapeDoesNotMatchNotifications(DataSource dataSource) throws SQLException {
+            JdbcTraceAttributeRepository repository = derivedWithNotifications(dataSource);
+
+            TraceAttributeRepository.SearchPage page = repository.search(search(
+                    TraceAttributeScope.TRACE,
+                    new TraceAttributeCondition(
+                            new TraceAttributeKeyId(TraceAttributeSource.SPAN_SHAPE, null, "status"),
+                            TraceAttributeOperator.EQ,
+                            "ERROR")));
+
+            assertTrue(page.hits().stream()
+                            .allMatch(hit -> hit.carrier() == TraceAttributeCarrier.SPAN),
+                    "a notification is not a span that failed");
+        }
+
+        @Test
+        @DisplayName("a hit names the carrier, and the span only when there is one")
+        void hitNamesTheCarrier(DataSource dataSource) throws SQLException {
+            TraceAttributeRepository.SearchPage page = derivedWithNotifications(dataSource)
+                    .search(search(TraceAttributeScope.TRACE, holds(NOTIFICATION_TENANT, "acme")));
+
+            assertEquals(1, page.hits().size());
+            TraceAttributeRepository.Hit hit = page.hits().getFirst();
+            assertEquals(TraceAttributeCarrier.NOTIFICATION, hit.carrier());
+            assertEquals("tenant", hit.key());
+            assertEquals("acme", hit.value());
+            assertNotNull(hit.spanId(), "this one fired inside span 112");
+        }
+
+        @Test
+        @DisplayName("a notification that fired outside any span still answers, with no span id")
+        void hitWithoutSpanIsStillAHit(DataSource dataSource) throws SQLException {
+            TraceAttributeRepository.SearchPage page = derivedWithNotifications(dataSource)
+                    .search(search(TraceAttributeScope.TRACE, holds(NOTIFICATION_POOL, "orders")));
+
+            assertEquals(1, page.hits().size());
+            TraceAttributeRepository.Hit hit = page.hits().getFirst();
+            assertEquals(TraceAttributeCarrier.NOTIFICATION, hit.carrier());
+            assertNull(hit.spanId(),
+                    "it named a span this profile does not hold, which is an answer and not a gap");
+        }
+
+        @Test
+        @DisplayName("span and notification conditions have to hold in the same trace")
+        void mixedConditionsIntersect(DataSource dataSource) throws SQLException {
+            JdbcTraceAttributeRepository repository = derivedWithNotifications(dataSource);
+
+            TraceAttributeCondition onASpan = holds(JDBC_ROWS, "42");
+            TraceAttributeCondition onANotification = holds(NOTIFICATION_TENANT, "acme");
+
+            assertEquals(1, repository.search(
+                    search(TraceAttributeScope.TRACE, onASpan, onANotification)).total(),
+                    "both hold in the slow trace");
+            assertEquals(0, repository.search(search(
+                    TraceAttributeScope.TRACE, onASpan, holds(NOTIFICATION_TENANT, "globex"))).total(),
+                    "no notification said globex, so the intersection is empty");
+        }
+
+        @Test
+        @DisplayName("a numeric notification attribute compares as a number")
+        void numericNotificationAttribute(DataSource dataSource) throws SQLException {
+            JdbcTraceAttributeRepository repository = derivedWithNotifications(dataSource);
+
+            assertEquals(1, repository.search(search(TraceAttributeScope.TRACE,
+                    new TraceAttributeCondition(
+                            NOTIFICATION_ROWS, TraceAttributeOperator.GT, "1000"))).total());
+            assertEquals(0, repository.search(search(TraceAttributeScope.TRACE,
+                    new TraceAttributeCondition(
+                            NOTIFICATION_ROWS, TraceAttributeOperator.GT, "99999"))).total());
+        }
+
+        /**
+         * The cost guard. A search naming only spans has to emit the statement it always did — one
+         * grouped scan of one table — so that notifications existing costs nothing to a reader who
+         * never mentions them.
+         */
+        @Test
+        @DisplayName("a span-only search reads one table and does not intersect")
+        void spanOnlySearchIsUnchanged() {
+            String sql = TraceAttributeQueries.matchingTraces(
+                    search(TraceAttributeScope.TRACE, holds(JDBC_ROWS, "42")),
+                    new MapSqlParameterSource());
+
+            assertFalse(sql.contains("INTERSECT"), "one carrier is one branch: " + sql);
+            assertTrue(sql.contains(TraceAttributeQueries.SPAN_ATTRIBUTES_TABLE));
+            assertFalse(sql.contains(TraceAttributeQueries.NOTIFICATION_ATTRIBUTES_TABLE));
+        }
+
+        @Test
+        @DisplayName("a mixed search reads both tables and intersects them")
+        void mixedSearchIntersects() {
+            String sql = TraceAttributeQueries.matchingTraces(
+                    search(TraceAttributeScope.TRACE,
+                            holds(JDBC_ROWS, "42"), holds(NOTIFICATION_TENANT, "acme")),
+                    new MapSqlParameterSource());
+
+            assertTrue(sql.contains("INTERSECT"));
+            assertTrue(sql.contains(TraceAttributeQueries.SPAN_ATTRIBUTES_TABLE));
+            assertTrue(sql.contains(TraceAttributeQueries.NOTIFICATION_ATTRIBUTES_TABLE));
+        }
+
+        /** Under SPAN scope a notification is grouped by itself, not by the span it fired in. */
+        @Test
+        @DisplayName("span scope groups notifications by the notification")
+        void spanScopeGroupsNotificationsByThemselves() {
+            String sql = TraceAttributeQueries.matchingTraces(
+                    search(TraceAttributeScope.SPAN, holds(NOTIFICATION_TENANT, "acme")),
+                    new MapSqlParameterSource());
+
+            assertTrue(sql.contains("GROUP BY trace_id, notification_id"), sql);
+        }
+    }
+
+    @Nested
+    @DisplayName("Notification catalog")
+    class NotificationCatalog {
+
+        @Test
+        @DisplayName("the picker's first step lists the notification type, labelled as one")
+        void eventTypesIncludeNotifications(DataSource dataSource) throws SQLException {
+            TraceEventTypeRecord notifications = derivedWithNotifications(dataSource)
+                    .attributeEventTypes(50).stream()
+                    .filter(type -> NOTIFICATION.equals(type.eventType()))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError(
+                            "without this row the second step cannot be reached, so the keys exist "
+                                    + "and no reader can get to them"));
+
+            assertEquals(TraceAttributeCarrier.NOTIFICATION, notifications.carrier());
+            assertEquals(5, notifications.carrierCount(), "the five notifications that belong to a trace");
+            assertEquals(0, notifications.errorCarriers(),
+                    "a severity is not an outcome: nothing here failed");
+            assertTrue(notifications.attributeCount() > 0);
+        }
+
+        @Test
+        @DisplayName("the second step lists the notification's keys under its event type")
+        void keysOfNotificationType(DataSource dataSource) throws SQLException {
+            List<TraceAttributeKeyId> keys = derivedWithNotifications(dataSource)
+                    .keysOf(NOTIFICATION).stream()
+                    .map(TraceAttributeKeyRecord::id)
+                    .toList();
+
+            assertTrue(keys.contains(NOTIFICATION_TENANT));
+            assertTrue(keys.contains(NOTIFICATION_SEVERITY));
+        }
+
+        @Test
+        @DisplayName("the profile-wide catalog carries both carriers' keys side by side")
+        void catalogCarriesBoth(DataSource dataSource) throws SQLException {
+            JdbcTraceAttributeRepository repository = derivedWithNotifications(dataSource);
+
+            assertTrue(keyOf(repository, JDBC_ROWS).isPresent(), "a span key");
+            assertTrue(keyOf(repository, NOTIFICATION_TENANT).isPresent(), "a notification key");
+        }
+
+        /**
+         * {@code rows} is a JDBC statement's declared field and also a key one notification attached.
+         * They are different keys that share a name, and the source is what keeps them apart.
+         */
+        @Test
+        @DisplayName("the same name under two carriers stays two keys")
+        void sameNameDifferentCarrier(DataSource dataSource) throws SQLException {
+            JdbcTraceAttributeRepository repository = derivedWithNotifications(dataSource);
+
+            long rows = repository.keys().stream()
+                    .filter(key -> "rows".equals(key.id().key()))
+                    .count();
+
+            assertEquals(2, rows, "one declared by a JDBC query, one attached by a notification");
+        }
+
+        @Test
+        @DisplayName("the absent count is measured against the traces that said anything")
+        void valuesUseTheNotificationDenominator(DataSource dataSource) throws SQLException {
+            TraceAttributeRepository.Values values = derivedWithNotifications(dataSource)
+                    .values(new TraceAttributeValueQuery(
+                            NOTIFICATION_TENANT, TraceAttributeValueSortField.TRACES, true, 10, null));
+
+            assertEquals(1, values.values().size());
+            assertEquals(0, values.tracesWithoutKey(),
+                    "one trace holds every notification, and it carried the key");
         }
     }
 }

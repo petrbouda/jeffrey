@@ -30,6 +30,10 @@
     <artifactId>profile-guardian</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>cafe.jeffrey</groupId>
+            <artifactId>notifications</artifactId>
+        </dependency>
         <!-- Tracer: each event type's guard evaluation is recorded as a span -->
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>

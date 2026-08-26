@@ -25,6 +25,10 @@ import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.recordings.core.manager.RecordingProfileCleanup;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.model.Recording;
+import cafe.jeffrey.shared.notification.NotificationCategory;
+import cafe.jeffrey.shared.notification.NotificationType;
+import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.jfr.events.notification.Severity;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -37,6 +41,10 @@ import java.nio.file.Path;
 public class MicroscopeProfileCleanup implements RecordingProfileCleanup {
 
     private static final Logger LOG = LoggerFactory.getLogger(MicroscopeProfileCleanup.class);
+
+    /** Why the profile went: asked for on its own, or taken along by its recording. */
+    private static final String CAUSE_REQUESTED = "REQUESTED";
+    private static final String CAUSE_RECORDING_DELETED = "RECORDING_DELETED";
 
     private final MicroscopeJeffreyDirs jeffreyDirs;
     private final MicroscopeCoreRepositories localCoreRepositories;
@@ -52,11 +60,26 @@ public class MicroscopeProfileCleanup implements RecordingProfileCleanup {
     @Override
     public void onRecordingDeleted(Recording recording) {
         if (recording.hasProfile()) {
-            deleteProfile(recording.profileId());
+            deleteProfile(recording.profileId(), recording.id());
         }
     }
 
+    /**
+     * Deletes a profile the caller asked for by itself, with the recording left in place.
+     */
     public void deleteProfile(String profileId) {
+        deleteProfile(profileId, null);
+    }
+
+    /**
+     * Deletes a profile's database row and its whole directory.
+     *
+     * @param recordingId the recording whose deletion took this profile with it, or {@code null} when
+     *                    the profile was deleted on its own. It is only carried to answer the one
+     *                    question a reader has when a profile is gone -- whether the recording went
+     *                    too, or whether it is still there to analyse again
+     */
+    public void deleteProfile(String profileId, String recordingId) {
         Path profileDir = jeffreyDirs.profileDir(profileId);
 
         localCoreRepositories.newProfileRepository(profileId).delete();
@@ -66,5 +89,11 @@ public class MicroscopeProfileCleanup implements RecordingProfileCleanup {
         }
 
         LOG.info("Profile deleted: profileId={}", profileId);
+
+        Notifications.of(NotificationType.PROFILE_DELETED)
+                .attribute("profileId", profileId)
+                .attribute("recordingId", recordingId)
+                .attribute("cause", recordingId == null ? CAUSE_REQUESTED : CAUSE_RECORDING_DELETED)
+                .emit();
     }
 }

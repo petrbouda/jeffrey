@@ -31,6 +31,10 @@ import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.model.RecordingFile;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+import cafe.jeffrey.shared.notification.NotificationCategory;
+import cafe.jeffrey.shared.notification.NotificationType;
+import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.jfr.events.notification.Severity;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -103,6 +107,13 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
         recordingRepository.deleteGroup(groupId);
 
         LOG.info("Quick analysis group deleted: groupId={} recordingsDeleted={}", groupId, recordings.size());
+
+        // A cascade rather than one deliberate delete: one click took every recording in the group,
+        // so it is raised a level above RECORDING_DELETED even though each step was routine.
+        Notifications.of(NotificationType.RECORDING_GROUP_DELETED)
+                .attribute("groupId", groupId)
+                .attribute("recordingsDeleted", recordings.size())
+                .emit();
     }
 
     // --- Recording operations ---
@@ -297,6 +308,17 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
         recordingTagsRepository.deleteForRecording(recordingId);
 
         LOG.info("Quick analysis recording deleted: recordingId={}", recordingId);
+
+        // Said as well as logged, because this destroys files and cannot be undone: the log line is
+        // gone with the next rotation, and a notification is still in the recording afterwards.
+        Notifications.of(NotificationType.RECORDING_DELETED)
+                .attribute("recordingId", recordingId)
+                .attribute("recordingName", recording.recordingName())
+                .attribute("groupId", recording.groupId())
+                .attribute("fileCount", recording.files().size())
+                .attribute("hadProfile", recording.hasProfile())
+                .attribute("profileId", recording.profileId())
+                .emit();
     }
 
     @Override

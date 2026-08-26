@@ -98,16 +98,6 @@ interface TechnologyCard {
 
 const technologies = [
   {
-    id: 'traces',
-    name: 'Traces',
-    description:
-      'Requests and background jobs broken into nested spans, with the JVM activity inside each one',
-    icon: 'bi-diagram-3',
-    colorClass: 'color-spans',
-    route: `/profiles/${profileId}/technologies/traces/operations`,
-    featureType: FeatureType.TRACES
-  },
-  {
     id: 'async-profiler',
     name: 'Async-Profiler Spans',
     description: 'Span-level latency intervals from async-profiler — by-tag breakdown and slowest spans',

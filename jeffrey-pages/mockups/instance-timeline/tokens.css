@@ -1,0 +1,466 @@
+/*
+ * Instance Timeline mockups — shared stylesheet.
+ *
+ * One file so the eleven pages cannot drift apart on colour or geometry. The :root block below is
+ * copied verbatim from shared/ui/common/src/assets/design-tokens.css; the .wf-* vocabulary below it
+ * is copied from the shipped TraceWaterfall.vue, which is the whole point of the exercise — the
+ * Instance Timeline should speak the same language as the Trace modal.
+ *
+ * Anything NOT already in the token file is marked PROPOSED and listed on index.html.
+ */
+
+:root {
+  /* ---- brand / semantic ---- */
+  --color-primary: #5e64ff;
+  --color-primary-hover: #4c52db;
+  --color-primary-light: rgba(94, 100, 255, 0.1);
+  --color-primary-lighter: rgba(94, 100, 255, 0.05);
+  --color-primary-bg: #e2e7fd;
+  --color-primary-border: #9ba8ff;
+  --color-secondary: #7780bf;
+  --color-secondary-bg: #e7eafd;
+  --color-success: #00d27a;
+  --color-success-hover: #00b368;
+  --color-success-light: rgba(0, 210, 122, 0.1);
+  --color-danger: #e63757;
+  --color-danger-hover: #d12548;
+  --color-danger-light: rgba(230, 55, 87, 0.1);
+  --color-danger-dark: #b91c1c;
+  --color-danger-bg-lighter: #fef2f2;
+  --color-warning: #f5803e;
+  --color-warning-hover: #e4702d;
+  --color-warning-light: rgba(245, 128, 62, 0.1);
+  --color-info: #39afd1;
+  --color-goldenrod: #b8860b;
+
+  /* ---- neutral / text / border / background ---- */
+  --color-white: #ffffff;
+  --color-light: #f9fafd;
+  --color-lighter: #edf2f9;
+  --color-dark: #0b1727;
+  --color-text: #5e6e82;
+  --color-text-muted: #748194;
+  --color-text-soft: #97a3b4;
+  --color-text-light: #b6c1d2;
+  --color-border: #eaedf1;
+  --color-border-light: #edf2f9;
+  --color-border-input: #d8e2ef;
+  --color-bg-body: #edf2f9;
+  --color-bg-card: #ffffff;
+  --color-bg-hover: #f9fafd;
+  --color-bg-hover-alt: #f2f5fc;
+  --color-neutral-light: #f1f5f9;
+  --color-slate-lighter: #e2e8f0;
+
+  /* ---- status badges ----
+     Not new colours: these are the values Badge.vue's `badge-status-active` / `badge-status-finished`
+     variants already resolve to, named locally so the mockups can use them without pulling in the
+     whole Badge component. `--color-status-active-*` == `--color-amber-light` / `--color-amber-highlight`. */
+  --color-status-active-bg: #fef3c7;
+  --color-status-active-text: #d97706;
+  --color-status-finished-bg: #dcfce7;
+  --color-status-finished-text: #059669;
+  --color-status-unknown-bg: #f9fafd;
+  --color-status-unknown-text: #748194;
+  --color-amber: #f59e0b;
+  --color-amber-highlight: #d97706;
+
+  /* ---- chart / flamegraph palettes ---- */
+  --chart-series-1: #2e93fa;
+  --chart-series-3: #546e7a;
+  --chart-series-8: #f86624;
+  --chart-series-9: #9c27b0;
+  --flamegraph-color-red: #ff9d9d;
+  --flamegraph-color-orange: #ffbf9d;
+  --flamegraph-color-peach: #ffd19d;
+  --flamegraph-color-green: #c9e7a5;
+  --flamegraph-color-cyan: #9dddff;
+  --flamegraph-color-blue: #9db5ff;
+  --flamegraph-color-purple: #cc99ff;
+  --flamegraph-color-teal: #9dffee;
+
+  /* ---- type ----
+     The only deliberate departure from design-tokens.css: the real token leads with 'Poppins', but
+     nothing in the app ever loads it — there is no @font-face and no font link for Poppins anywhere
+     in the repo. So the shipped UI renders in the system fallback, and the mockups match what users
+     actually see rather than what the token intends. */
+  --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-monospace: ui-monospace, 'JetBrains Mono', Menlo, Consolas, monospace;
+  --font-size-xs: 0.6rem;
+  --font-size-sm: 0.7rem;
+  --font-size-base: 0.875rem;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-base: 1.5;
+
+  /* ---- radii / shadow / spacing ---- */
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.25rem;
+  --radius-base: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-circle: 50%;
+  --radius-pill: 999px;
+  --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  --shadow-base: 0 0 0.375rem 0 rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.25rem;
+  --transition-fast: 0.15s ease-in-out;
+  --transition-base: 0.2s ease-in-out;
+
+  /* ---- PROPOSED: none of the below exist in design-tokens.css yet ---- */
+  /* A deploy/rollout boundary. Deliberately not primary, danger or warning — each of those already
+     means something else in this picture (selection, crash, critical path). */
+  --deploy-mark: #7780bf;
+  /* Recording-coverage ramp for the heat rail (direction 9): one hue, five steps. */
+  --coverage-0: #f1f5f9;
+  --coverage-1: #d7f5e6;
+  --coverage-2: #9fe9c6;
+  --coverage-3: #5bd8a3;
+  --coverage-4: #00d27a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+  color: var(--color-dark);
+  background: #f1f5f9;
+  padding: 2.25rem 1.5rem 4rem;
+}
+
+.wrap { max-width: 1240px; margin: 0 auto; }
+
+.back {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  color: var(--color-text-muted); text-decoration: none;
+  font-size: var(--font-size-base); margin-bottom: 1.1rem;
+}
+.back:hover { color: var(--color-dark); }
+
+h1 { font-size: 1.5rem; font-weight: var(--font-weight-bold); letter-spacing: -0.02em; margin-bottom: 0.45rem; }
+h1 .n {
+  display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem;
+  border-radius: var(--radius-md); background: var(--color-primary);
+  color: #fff; font-size: 0.95rem; margin-right: 0.5rem; vertical-align: 2px;
+}
+.lede { color: var(--color-text); font-size: 0.92rem; line-height: 1.65; max-width: 82ch; margin-bottom: 1.5rem; }
+.lede code, .notes code, .facts code {
+  font-family: var(--font-family-monospace); font-size: 0.84em;
+  background: var(--color-lighter); padding: 0.05rem 0.3rem; border-radius: var(--radius-sm);
+}
+.lede strong { color: var(--color-dark); }
+
+/* ===================================================================
+   Page chrome — MainCard + MainCardHeader, as shipped
+   =================================================================== */
+
+.main-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-base);
+  overflow: hidden;
+}
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, var(--color-light), var(--color-white));
+  border-bottom: 1px solid rgba(94, 100, 255, 0.08);
+  gap: 12px;
+}
+.page-header-info { display: flex; align-items: center; gap: 8px; }
+.page-header-icon { font-size: 1.1rem; color: var(--color-primary); }
+.page-header-title { font-size: 0.95rem; font-weight: var(--font-weight-semibold); color: var(--color-text); }
+.page-header-actions { display: flex; align-items: center; gap: 8px; }
+.main-card-content { padding: var(--spacing-5); }
+
+/* breadcrumb + project tabs, so each mockup reads as the real page */
+.proj-crumb {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-size: var(--font-size-sm); color: var(--color-text-muted);
+  padding: 0.5rem 1rem 0; margin-bottom: 0.15rem;
+}
+.proj-crumb b { color: var(--color-dark); font-weight: var(--font-weight-semibold); }
+.proj-tabs {
+  display: flex; gap: 0.15rem; padding: 0 0.6rem;
+  border-bottom: 1px solid var(--color-border); background: var(--color-white);
+}
+.proj-tab {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 0.5rem 0.9rem 0.45rem; border-bottom: 2px solid transparent;
+  color: var(--color-text-muted); font-size: var(--font-size-sm); white-space: nowrap;
+}
+.proj-tab i { font-size: 0.95rem; }
+.proj-tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+.frame { border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  background: var(--color-white); box-shadow: var(--shadow-base); overflow: hidden; }
+
+/* ===================================================================
+   Toolbar — range presets, count chip
+   =================================================================== */
+
+.tl-toolbar { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
+.range-group { display: inline-flex; border: 1px solid var(--color-border-input); border-radius: var(--radius-base); overflow: hidden; }
+.range-btn {
+  padding: 0.22rem 0.6rem; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);
+  color: var(--color-text-muted); background: var(--color-white);
+  border: 0; border-right: 1px solid var(--color-border-input); cursor: pointer;
+}
+.range-btn:last-child { border-right: 0; }
+.range-btn.active { background: var(--color-primary); color: #fff; }
+
+.count-chip {
+  display: inline-flex; align-items: center; gap: 0.35rem; margin-left: auto;
+  padding: 0.2rem 0.6rem; border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-pill); background: var(--color-light);
+  color: var(--color-text-muted); font-size: var(--font-size-sm);
+}
+.count-chip b { color: var(--color-dark); font-variant-numeric: tabular-nums; font-weight: var(--font-weight-semibold); }
+.count-chip .sep { color: var(--color-text-light); }
+.count-chip .fail { color: var(--color-danger); }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.16rem 0.55rem; border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-pill); background: var(--color-light);
+  color: var(--color-text-muted); font-size: var(--font-size-sm);
+}
+.chip.mono { font-family: var(--font-family-monospace); font-size: var(--font-size-xs); }
+
+.badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0.15rem 0.3rem; font-size: var(--font-size-xs); min-height: 0.8rem; line-height: 1;
+  font-weight: var(--font-weight-semibold); text-transform: uppercase;
+  border-radius: 5px; border: 1px solid transparent; flex: none; letter-spacing: 0.02em;
+}
+.badge-active   { background: var(--color-status-active-bg);   color: var(--color-status-active-text); }
+.badge-finished { background: var(--color-status-finished-bg); color: var(--color-status-finished-text); }
+.badge-failed   { background: var(--color-danger-light);       color: var(--color-danger); }
+.badge-pending  { background: var(--color-primary-bg);         color: var(--color-primary); }
+
+/* ===================================================================
+   The waterfall vocabulary — lifted from TraceWaterfall.vue
+   One grid shared by header, data rows, lane rows and overlay layers, so the wash, the cursor
+   line and the bars agree on the track column with zero measurement.
+   =================================================================== */
+
+.wf-head, .wf-row, .wf-lane, .wf-stripes, .wf-cursor {
+  display: grid;
+  grid-template-columns: 20rem 1fr 5.5rem;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wf-card { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-card); }
+
+.wf-head {
+  padding: 0.55rem 1rem 0.4rem;
+  border-left: 2px solid transparent;
+  font-size: var(--font-size-xs); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--color-text-muted); font-weight: var(--font-weight-semibold);
+}
+.wf-scale { position: relative; height: 0.85rem; font-variant-numeric: tabular-nums; }
+.wf-scale span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.wf-scale span:first-child { transform: none; }
+.wf-scale span:last-child { transform: translateX(-100%); }
+
+.wf-rows { position: relative; display: flex; flex-direction: column; }
+.wf-rows > :not(.wf-stripes, .wf-cursor) { position: relative; z-index: 1; }
+
+.wf-row {
+  width: 100%;
+  padding: 0.28rem 1rem;
+  border: 0;
+  border-bottom: 1px solid var(--color-border-light);
+  border-left: 2px solid transparent;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  text-align: left;
+  cursor: pointer;
+}
+.wf-row:last-child { border-bottom: 0; }
+/* Hover is two inset rules, not a fill — a fill paints out the deploy wash underneath. */
+.wf-row:hover { box-shadow: inset 0 1px 0 var(--color-primary), inset 0 -1px 0 var(--color-primary); }
+.wf-row.selected { background: var(--color-primary-light); }
+.wf-row.is-active { border-left-color: var(--color-amber); }
+
+.wf-name { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
+.wf-indent { flex: none; }
+.wf-twist { flex: none; width: 0.8rem; font-size: 0.6rem; line-height: 1; color: var(--color-text-muted); cursor: pointer; }
+.wf-twist.is-leaf { cursor: inherit; }
+.wf-kind { width: 0.45rem; height: 0.45rem; border-radius: var(--radius-circle); flex: none; }
+.kind-active   { background: var(--color-amber); }
+.kind-finished { background: var(--color-success); }
+.kind-failed   { background: var(--color-danger); }
+.kind-pending  { background: var(--color-primary); }
+.wf-label {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--color-dark); font-family: var(--font-family-monospace);
+  font-weight: var(--font-weight-medium);
+}
+.wf-sub { color: var(--color-text-muted); font-family: var(--font-family-monospace); font-size: var(--font-size-xs); }
+
+.wf-track { position: relative; height: 1.1rem; }
+.wf-track::before {
+  content: ''; position: absolute; inset: 0.5rem 0 auto 0;
+  height: 1px; background: var(--color-border-light);
+}
+
+.wf-bar { position: absolute; top: 0.15rem; height: 0.8rem; border-radius: var(--radius-xs); overflow: hidden; display: block; }
+.wf-self { position: absolute; top: 0; height: 100%; }
+
+.bar-active   { background: var(--color-amber); }
+.bar-finished { background: var(--color-success); }
+.bar-failed   { background: var(--flamegraph-color-red); }
+.bar-pending  { background: var(--color-primary-border); }
+
+/*
+ * `.split` opts a bar into the trace waterfall's total-vs-self encoding: the pale body is the
+ * instance's whole lifetime, the solid stretches are the time actually covered by a recording
+ * session, drawn where it happened. Only direction 6 uses it.
+ */
+.wf-bar.split.bar-active   { background: color-mix(in srgb, var(--color-amber) 26%, transparent); }
+.wf-bar.split.bar-active .wf-self   { background: var(--color-amber); }
+.wf-bar.split.bar-finished { background: color-mix(in srgb, var(--color-success) 26%, transparent); }
+.wf-bar.split.bar-finished .wf-self { background: var(--color-success); }
+.wf-bar.split.bar-failed   { background: var(--color-danger-light); }
+.wf-bar.split.bar-failed .wf-self   { background: var(--flamegraph-color-red); }
+
+.wf-duration {
+  font-family: var(--font-family-monospace); font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap;
+  color: var(--color-text);
+}
+
+/* clamp chevron: "this instance continues past the edge of the window" */
+.wf-clamp {
+  position: absolute; top: 0.15rem; height: 0.8rem; width: 0.55rem;
+  display: grid; place-items: center; font-size: 0.5rem; line-height: 1;
+  color: var(--color-text-muted); pointer-events: none;
+}
+.wf-clamp.left { left: -0.7rem; }
+.wf-clamp.right { right: -0.7rem; }
+/* an instance entirely outside the window — a ghost, not an empty card */
+.wf-row.is-outside .wf-label,
+.wf-row.is-outside .wf-duration { color: var(--color-text-light); }
+.wf-outside-note {
+  position: absolute; left: 0; top: 0.15rem; height: 0.8rem;
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  padding: 0 0.35rem; border-radius: var(--radius-xs);
+  border: 1px dashed var(--color-border-input);
+  color: var(--color-text-light); font-size: var(--font-size-xs); white-space: nowrap;
+}
+
+/* lanes */
+.wf-lane { padding: 0.15rem 1rem; border-left: 2px solid transparent; }
+.wf-lane + .wf-lane { border-top: 1px dashed var(--color-border-light); }
+.lane-label {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: var(--font-size-xs); letter-spacing: 0.03em; text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.lane-dot { width: 0.45rem; height: 0.45rem; border-radius: var(--radius-circle); flex: none; display: inline-block; }
+.lane-stat { flex: none; margin-left: auto; font-variant-numeric: tabular-nums; }
+.lane-track { position: relative; height: 0.9rem; }
+.lane-band { position: absolute; top: 0.08rem; height: 0.72rem; border-radius: var(--radius-xs); min-width: 2px; }
+
+/* overlay wash: fill only, never strokes — 1px edges on many bands draw a picket fence */
+.wf-stripes { position: absolute; inset: 0; padding: 0 1rem; border-left: 2px solid transparent; pointer-events: none; z-index: 0; }
+.wf-stripes-track { position: relative; height: 100%; }
+.wf-stripe { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--stripe-color) 7%, transparent); }
+.wf-stripe-line { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--stripe-color); opacity: 0.35; }
+
+/* pins — positioned against the TRACK, not the bar, so a pin and a rail mark share an x */
+.wf-pin { position: absolute; top: 0; height: 1.1rem; width: 7px; margin-left: -3.5px; }
+.wf-pin::before {
+  content: ''; position: absolute; left: 3px; top: 0.35rem; bottom: 0.1rem;
+  width: 1px; background: var(--mark); opacity: 0.75;
+}
+.wf-pin::after {
+  content: ''; position: absolute; left: 0.5px; top: 0.1rem; width: 6px; height: 6px;
+  background: var(--mark); box-shadow: 0 0 0 1.5px var(--color-bg-card);
+}
+.wf-pin.start::after  { border-radius: var(--radius-circle); }
+.wf-pin.deploy::after { border-radius: 1px; transform: rotate(45deg); }
+.wf-pin.crash::after  { border-radius: 1px; }
+.wf-pin.stop::after   { border-radius: 1px; width: 2px; left: 2.5px; height: 8px; top: 0.05rem; }
+
+.wf-count {
+  flex: none; padding: 0 0.3rem; border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--mark) 14%, transparent);
+  color: var(--mark); font-size: 0.6rem; font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* legend */
+.wf-legend {
+  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  margin-top: 0.75rem; padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  background: var(--color-light); font-size: var(--font-size-xs); color: var(--color-text-muted);
+}
+.wf-legend .lg { display: inline-flex; align-items: center; gap: 0.35rem; }
+.wf-legend .sw { width: 1.6rem; height: 0.5rem; border-radius: var(--radius-xs); }
+
+/* ===================================================================
+   Inline detail — the drawer, unchanged in every direction
+   =================================================================== */
+
+.span-detail {
+  background: var(--color-bg-hover);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
+  padding: 0.7rem 1rem 0.85rem;
+  display: flex; flex-direction: column; gap: 0.75rem;
+}
+.sd-head { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.sd-actions { margin-left: auto; display: flex; gap: 0.35rem; }
+.sd-act {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.15rem 0.5rem; border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-sm); background: var(--color-white);
+  color: var(--color-text-muted); font-size: var(--font-size-sm);
+}
+.sd-act.primary { color: var(--color-primary); border-color: var(--color-primary-border); background: var(--color-primary-light); }
+.sd-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 0.75rem 1.4rem; }
+.sd-card { border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-white); }
+.sd-card-head {
+  padding: 0.3rem 0.6rem; border-bottom: 1px solid var(--color-border-light);
+  font-size: var(--font-size-xs); text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--color-text-muted); font-weight: var(--font-weight-semibold);
+}
+.sd-card-body { padding: 0.35rem 0.6rem 0.5rem; }
+.kv { display: flex; gap: 0.5rem; padding: 0.12rem 0; font-size: var(--font-size-sm); }
+.kv .k { color: var(--color-text-muted); flex: none; min-width: 7.5rem; }
+.kv .v { color: var(--color-dark); font-family: var(--font-family-monospace); font-size: var(--font-size-xs); }
+
+/* ===================================================================
+   The notes block under every direction
+   =================================================================== */
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+.note { background: var(--color-white); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 1rem 1.15rem; }
+.note h4 { font-size: 0.82rem; font-weight: var(--font-weight-bold); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem; }
+.note.good h4 { color: var(--color-status-finished-text); }
+.note.cost h4 { color: var(--color-warning-hover); }
+.note.build h4 { color: var(--color-primary); }
+.note ul { margin: 0; padding-left: 1.05rem; color: var(--color-text); font-size: 0.82rem; line-height: 1.65; }
+.note li + li { margin-top: 0.25rem; }
+
+.section-label {
+  font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); text-transform: uppercase;
+  letter-spacing: 0.09em; color: var(--color-text-muted);
+  margin: 1.6rem 0 0.6rem; display: flex; align-items: center; gap: 0.7rem;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: var(--color-border); }

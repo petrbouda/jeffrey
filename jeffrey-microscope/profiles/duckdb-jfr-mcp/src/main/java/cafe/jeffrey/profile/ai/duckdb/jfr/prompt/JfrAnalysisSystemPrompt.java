@@ -59,7 +59,10 @@ public final class JfrAnalysisSystemPrompt {
                 - **event_types**: Event type metadata with name, label, description, categories
                 - **threads**: Thread information with thread_hash, name, os_id, java_id, is_virtual
                 - **stacktraces**: Stack trace data with stacktrace_hash, type_id, frame_hashes (array)
-                - **frames**: Code frame information with frame_hash, class_name, method_name, frame_type, line_number
+                - **frames**: Code frame information with frame_hash, class_name, method_name, frame_type, line_number,
+                  bytecode_index and hidden_class_id. class_name never contains a hidden-class address; for a hidden
+                  class (lambda proxy, method-handle form, indified string concat) the per-run address lives in
+                  hidden_class_id, so `hidden_class_id IS NOT NULL` selects hidden frames.
 
                 Use describe_table to inspect any table before querying it.
 

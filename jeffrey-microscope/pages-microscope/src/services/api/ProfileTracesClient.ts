@@ -29,7 +29,7 @@ import {
   type TraceAttributeTimelineBucket,
   type TraceAttributeValues,
   type TraceAttributeValueSortField,
-  type TraceSpanTypeRow
+  type TraceEventTypeRow
 } from '@/services/api/model/trace/TraceAttributeModels';
 import type {
   TraceContext,
@@ -233,9 +233,9 @@ export default class ProfileTracesClient extends BaseProfileClient {
     });
   }
 
-  /** The event types that produced spans — the attribute picker's first step. */
-  public getSpanEventTypes(): Promise<TraceSpanTypeRow[]> {
-    return this.get<TraceSpanTypeRow[]>('/attributes/event-types');
+  /** The event types whose carriers can be searched — the attribute picker's first step. */
+  public getSpanEventTypes(): Promise<TraceEventTypeRow[]> {
+    return this.get<TraceEventTypeRow[]>('/attributes/event-types');
   }
 
   /** How each of the key's values is distributed over trace duration. */

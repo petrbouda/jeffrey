@@ -33,6 +33,11 @@ public class Frame extends TreeMap<String, Frame> {
     private final String methodName;
     private final int lineNumber;
     private final int bci;
+    /**
+     * The frame's class is a JVM hidden class. A property of the frame's name, so every record
+     * merging into this node agrees on it.
+     */
+    private final boolean hidden;
 
     private FrameType syntheticFrameType;
     private Severity marker;
@@ -55,10 +60,15 @@ public class Frame extends TreeMap<String, Frame> {
     private final Frame parent;
 
     public Frame(Frame parent, String methodName, int lineNumber, int bci) {
+        this(parent, methodName, lineNumber, bci, false);
+    }
+
+    public Frame(Frame parent, String methodName, int lineNumber, int bci, boolean hidden) {
         this.parent = parent;
         this.methodName = methodName;
         this.lineNumber = lineNumber;
         this.bci = bci;
+        this.hidden = hidden;
     }
 
     public void merge(Frame frame) {
@@ -98,7 +108,6 @@ public class Frame extends TreeMap<String, Frame> {
                  ALLOCATED_OBJECT_SYNTHETIC,
                  ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC,
                  ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC,
-                 LAMBDA_SYNTHETIC,
                  BLOCKING_OBJECT_SYNTHETIC,
                  COLLAPSED_SYNTHETIC,
                  TRUNCATED_SYNTHETIC -> syntheticFrameType = type;
@@ -177,6 +186,14 @@ public class Frame extends TreeMap<String, Frame> {
 
     public String methodName() {
         return methodName;
+    }
+
+    /**
+     * Whether this frame's class is a JVM hidden class (JEP 371) -- a lambda proxy, a method-handle
+     * form, an indified string concatenation, and so on.
+     */
+    public boolean hidden() {
+        return hidden;
     }
 
     public int lineNumber() {

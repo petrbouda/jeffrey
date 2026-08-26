@@ -27,21 +27,10 @@ import java.util.List;
 public class NormalFrameProcessor extends SingleFrameProcessor {
 
     private final FrameNameBuilder frameNameBuilder = new FrameNameBuilder();
-    private final LambdaMatcher lambdaMatcher;
     private final boolean parseLocations;
 
     public NormalFrameProcessor(boolean parseLocations) {
-        this(null, parseLocations);
-    }
-
-    public NormalFrameProcessor(LambdaMatcher lambdaMatcher, boolean parseLocations) {
-        this.lambdaMatcher = lambdaMatcher;
         this.parseLocations = parseLocations;
-    }
-
-    @Override
-    public boolean isApplicable(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
-        return lambdaMatcher == null || lambdaMatcher.doesNotMatch(stacktrace, currIndex);
     }
 
     @Override
@@ -53,7 +42,8 @@ public class NormalFrameProcessor extends SingleFrameProcessor {
                 parseLocations ? currFrame.bytecodeIndex() : -1,
                 frameType,
                 record.samples(),
-                record.weight());
+                record.weight(),
+                currFrame.method().clazz().isHidden());
     }
 
     @Override

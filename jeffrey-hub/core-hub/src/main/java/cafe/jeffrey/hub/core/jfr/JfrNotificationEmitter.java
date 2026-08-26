@@ -90,7 +90,6 @@ public abstract class JfrNotificationEmitter {
     private static void emit(NotificationType type, String message, Severity severity, NotificationCategory category) {
         NotificationEvent event = new NotificationEvent();
         event.type = type.name();
-        event.title = type.title();
         event.message = message;
         event.severity = severity.name();
         event.category = category.name();

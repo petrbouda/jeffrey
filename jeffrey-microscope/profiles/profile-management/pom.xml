@@ -32,6 +32,10 @@
     <description>Profile management: ProfileManager, analysis features (Flamegraph, Timeseries, Guardian, etc.)</description>
 
     <dependencies>
+        <dependency>
+            <groupId>cafe.jeffrey</groupId>
+            <artifactId>notifications</artifactId>
+        </dependency>
         <!-- Tracer: profile initialization is recorded as a trace of its stages -->
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>

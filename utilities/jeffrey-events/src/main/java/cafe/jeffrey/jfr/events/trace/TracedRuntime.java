@@ -198,7 +198,7 @@ public final class TracedRuntime {
             return null;
         }
 
-        SpanAttributes rendered = SpanAttributes.create();
+        EventAttributes rendered = EventAttributes.create();
         for (Attribute attribute : attributes) {
             rendered.put(attribute.key(), attribute.value());
         }
@@ -219,7 +219,7 @@ public final class TracedRuntime {
                 return prebuiltAttributes;
             }
 
-            SpanAttributes rendered = SpanAttributes.create();
+            EventAttributes rendered = EventAttributes.create();
             for (Attribute attribute : staticAttributes) {
                 rendered.put(attribute.key(), attribute.value());
             }

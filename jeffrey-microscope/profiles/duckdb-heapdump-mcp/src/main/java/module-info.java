@@ -15,6 +15,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+// spring.ai.client.chat is an automatic module (no module-info of its own), so javac warns that
+// re-exporting it is fragile. Re-exported deliberately: the exported MCP configuration returns
+// ChatClient-facing types to whoever wires the toolset up.
+@SuppressWarnings("requires-transitive-automatic")
 module cafe.jeffrey.microscope.profile.ai.mcp.duckdb.heapdump {
     requires transitive cafe.jeffrey.microscope.profile.heapdump;
     requires transitive cafe.jeffrey.microscope.profile.ai.config;

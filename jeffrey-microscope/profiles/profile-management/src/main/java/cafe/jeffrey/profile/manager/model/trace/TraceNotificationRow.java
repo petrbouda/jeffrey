@@ -33,6 +33,9 @@ package cafe.jeffrey.profile.manager.model.trace;
  * @param startEpochMicros         when it fired, in the same microseconds a span start carries, so
  *                                 the rail and the bars share one axis
  * @param severity                 {@code CRITICAL}, {@code HIGH}, {@code MEDIUM} or {@code LOW}
+ * @param attributes               the open JSON map it attached to itself, verbatim, or {@code null}
+ *                                 when it attached none — the same encoding a span's attributes use,
+ *                                 so one renderer draws both
  */
 public record TraceNotificationRow(
         String spanId,
@@ -40,10 +43,10 @@ public record TraceNotificationRow(
         long startMillisFromBeginning,
         long startEpochMicros,
         String type,
-        String title,
         String message,
         String severity,
         String category,
         String source,
+        String attributes,
         String threadHash) {
 }

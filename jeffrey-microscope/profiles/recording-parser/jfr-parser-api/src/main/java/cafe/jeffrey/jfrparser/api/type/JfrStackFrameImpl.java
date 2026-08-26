@@ -26,6 +26,17 @@ public record JfrStackFrameImpl(
         JfrMethodImpl method, String type, int lineNumber, int bytecodeIndex) implements JfrStackFrame {
 
     public JfrStackFrameImpl(String className, String methodName, String type, int lineNumber, int bytecodeIndex) {
-        this(new JfrMethodImpl(className, methodName), type, lineNumber, bytecodeIndex);
+        this(className, methodName, null, type, lineNumber, bytecodeIndex);
+    }
+
+    public JfrStackFrameImpl(
+            String className,
+            String methodName,
+            String hiddenClassId,
+            String type,
+            int lineNumber,
+            int bytecodeIndex) {
+
+        this(new JfrMethodImpl(className, methodName, hiddenClassId), type, lineNumber, bytecodeIndex);
     }
 }

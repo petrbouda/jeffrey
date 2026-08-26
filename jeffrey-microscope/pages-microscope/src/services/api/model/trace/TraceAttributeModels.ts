@@ -22,11 +22,38 @@
 import type { TraceRow } from '@/services/api/model/trace/TraceModels';
 
 /**
- * Where a key came from. The three are kept apart everywhere they are shown: a value a developer
+ * Where a key came from. They are kept apart everywhere they are shown: a value a developer
  * attached at a call site and a field an event type declares about itself do not mean the same
  * thing, and a flat list of both reads as one convention badly applied.
+ *
+ * The source also decides which carrier a key belongs to — see `carrierOf`. That is what keeps a
+ * search for `SPAN_SHAPE status = ERROR` from matching a notification that merely said so.
  */
-export type TraceAttributeSource = 'ATTRIBUTE' | 'EVENT_FIELD' | 'SPAN_SHAPE';
+export type TraceAttributeSource =
+  | 'ATTRIBUTE'
+  | 'EVENT_FIELD'
+  | 'SPAN_SHAPE'
+  | 'NOTIFICATION_ATTRIBUTE'
+  | 'NOTIFICATION_SHAPE';
+
+/**
+ * What kind of thing carried an attribute — the two halves a trace is made of. A span is an interval
+ * of work; a notification is an instant that merely records the span that was open when it fired.
+ */
+export type TraceAttributeCarrier = 'SPAN' | 'NOTIFICATION';
+
+const NOTIFICATION_SOURCES: ReadonlySet<TraceAttributeSource> = new Set([
+  'NOTIFICATION_ATTRIBUTE',
+  'NOTIFICATION_SHAPE'
+]);
+
+/** Which carrier a key belongs to. Derived from the source, never chosen separately. */
+export function carrierOf(source: TraceAttributeSource): TraceAttributeCarrier {
+  if (NOTIFICATION_SOURCES.has(source)) {
+    return 'NOTIFICATION';
+  }
+  return 'SPAN';
+}
 
 export type TraceAttributeValueKind = 'STRING' | 'NUMBER' | 'BOOLEAN';
 
@@ -55,7 +82,8 @@ export interface TraceAttributeKeyId {
 export interface TraceAttributeKeyRow extends TraceAttributeKeyId {
   valueKind: TraceAttributeValueKind;
   distinctValues: number;
-  spanCount: number;
+  /** How many carriers hold it — spans, or notifications. */
+  carrierCount: number;
   traceCount: number;
   /**
    * Whether the key has too many values to break down. A `user.id` on sixty thousand spans is
@@ -76,7 +104,13 @@ export interface TraceAttributeConditionModel {
 
 /** One span that satisfied a condition, and what it held. */
 export interface TraceAttributeHit {
-  spanId: string;
+  /** Whether a span or a notification matched, so the row can say which it was. */
+  carrier: TraceAttributeCarrier;
+  /**
+   * The span that matched, or for a notification the span it fired in. Null when a notification
+   * fired outside any span — an answer, not a missing value.
+   */
+  spanId: string | null;
   key: string;
   value: string;
 }
@@ -147,16 +181,20 @@ export interface TraceAttributeLatency {
 }
 
 /**
- * One row of the picker's first step: an event type that produced spans.
+ * One row of the picker's first step: an event type whose carriers can be searched.
  *
  * `breakableCount` is the subset of `attributeCount` narrow enough to break down — both travel,
  * because a row promising twelve attributes that opens onto three usable ones is a row that lied.
  */
-export interface TraceSpanTypeRow {
+export interface TraceEventTypeRow {
   eventType: string;
-  spanCount: number;
+  /** Whether this type produced spans or notifications, so the step says which it is listing. */
+  carrier: TraceAttributeCarrier;
+  /** Carriers of this type — spans, or notifications. */
+  carrierCount: number;
   traceCount: number;
-  errorSpans: number;
+  /** Always 0 for a notification type: a severity is not an outcome. */
+  errorCarriers: number;
   attributeCount: number;
   breakableCount: number;
 }

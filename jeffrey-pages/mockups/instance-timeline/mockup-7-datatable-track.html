@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instance Timeline — 7. DataTable with an inline track</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .dt-toolbar { display: flex; align-items: center; gap: .6rem; padding: 0 0 .75rem; flex-wrap: wrap; }
+  .search { display: flex; align-items: center; gap: 6px; padding: 6px var(--spacing-3);
+    background: var(--color-light); border: 1px solid var(--color-border);
+    border-radius: var(--radius-base); font-size: var(--font-size-sm); width: 220px;
+    color: var(--color-text-light); }
+  .filter-sel { background: var(--color-light); border: 1px solid var(--color-border);
+    border-radius: 6px; padding: 4px 10px; font-size: .75rem; height: 30px; color: var(--color-text); }
+
+  table.dt { width: 100%; border-collapse: collapse; font-size: var(--font-size-sm); }
+  table.dt th { text-align: left; padding: .4rem .6rem; background: var(--color-light);
+    border-bottom: 1px solid var(--color-border); color: var(--color-text-muted);
+    font-size: var(--font-size-xs); text-transform: uppercase; letter-spacing: .04em;
+    font-weight: 600; white-space: nowrap; }
+  table.dt th i { color: var(--color-text-light); font-size: .55rem; margin-left: .2rem; }
+  table.dt th.sorted { color: var(--color-primary); }
+  table.dt th.sorted i { color: var(--color-primary); }
+  table.dt td { padding: .28rem .6rem; border-bottom: 1px solid var(--color-border-light); vertical-align: middle; }
+  table.dt tbody tr:hover { background: var(--color-light); }
+  table.dt tbody tr.selected { background: var(--color-primary-light); }
+  .num { font-family: var(--font-family-monospace); font-variant-numeric: tabular-nums; text-align: right; }
+  .nm { font-family: var(--font-family-monospace); font-weight: 500; color: var(--color-dark); white-space: nowrap; }
+  .tcell { width: 42%; min-width: 18rem; }
+  .ttrack { position: relative; height: 1.05rem; }
+  .ttrack::before { content: ''; position: absolute; inset: .48rem 0 auto 0; height: 1px; background: var(--color-border-light); }
+  .thead-scale { position: relative; height: .8rem; font-variant-numeric: tabular-nums;
+    font-weight: 400; letter-spacing: 0; text-transform: none; }
+  .thead-scale span { position: absolute; transform: translateX(-50%); }
+  .thead-scale span:first-child { transform: none; }
+  .thead-scale span:last-child { transform: translateX(-100%); }
+  .dt-footer { padding: .6rem; text-align: center; border-top: 1px solid var(--color-border); }
+  .showmore { display: inline-flex; align-items: center; gap: .35rem; padding: .2rem .8rem;
+    border: 1px solid var(--color-border-input); border-radius: var(--radius-pill);
+    background: var(--color-white); color: var(--color-text-muted); font-size: var(--font-size-sm); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
+    <h1><span class="n">7</span>DataTable with an inline track</h1>
+    <p class="lede">
+      Stop treating this as a bespoke chart and make it what every other list page in Jeffrey already is: a
+      <code>DataTable</code> with a <code>TableToolbar</code>, sortable headers, and a <code>TableShowMore</code> footer —
+      where <strong>one column happens to be a timeline track</strong> sharing a ruler in its header. The densest option
+      here and the most consistent with the rest of the app, and it buys the things a chart cannot: search by pod name,
+      <strong>filter by status or replicaset</strong>, and <strong>sort by storage or duration</strong> to find the
+      instance eating the disk. Sorted by storage here, <span id="lede-top"></span>
+    </p>
+    <div id="app"></div>
+    <div id="notes"></div>
+  </div>
+
+<script src="data.js"></script>
+<script>
+  const win = windowOf('7d');
+  const sorted = FLEET.slice().sort((a, b) => b.bytes - a.bytes);
+
+  const rows = sorted.map((inst, i) => {
+    const cls = inst.status.toLowerCase();
+    const g = barGeom(inst.start, inst.end, win);
+    const failed = inst.sessions.some(s => s.failed);
+    return `<tr class="${i === 0 ? 'selected' : ''}">
+      <td class="nm">${inst.name}</td>
+      <td><span class="badge badge-${cls}">${inst.status}</span></td>
+      <td><span class="chip mono" style="padding:.05rem .35rem">${inst.rs}</span></td>
+      <td class="tcell"><div class="ttrack">
+        ${g.outside ? '<span class="wf-outside-note"><i class="bi bi-chevron-double-left"></i> before window</span>' :
+          `${g.clampLeft ? '<span class="wf-clamp left"><i class="bi bi-chevron-double-left"></i></span>' : ''}
+           <span class="wf-bar bar-${failed ? 'failed' : cls}" style="left:${g.left}%;width:${g.width}%"
+             title="${fmtUTC(inst.start)}"></span>`}
+      </div></td>
+      <td class="num">${fmtDur(durationOf(inst))}</td>
+      <td class="num">${inst.sessions.length}${failed ? ' <span style="color:var(--color-danger)">✕' + inst.sessions.filter(s => s.failed).length + '</span>' : ''}</td>
+      <td class="num">${inst.files}</td>
+      <td class="num" style="${i === 0 ? 'color:var(--color-primary);font-weight:700' : ''}">${fmtBytes(inst.bytes)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('lede-top').innerHTML =
+    `so the <strong>${fmtBytes(sorted[0].bytes)}</strong> recording on <code>${sorted[0].id}</code> is the first row ` +
+    `rather than something you find by reading every card.`;
+
+  const scale = axisTicks(win).map(t => `<span style="left:${t.pos}%">${t.label}</span>`).join('');
+
+  const body = `
+    <div class="dt-toolbar">
+      <span class="search"><i class="bi bi-search"></i> Search instances…</span>
+      <select class="filter-sel"><option>All statuses</option><option>Active</option><option>Finished</option></select>
+      <select class="filter-sel"><option>All replicasets</option><option>74bd9b8c8d</option><option>86dd87c8ff</option><option>5c4b1e77</option></select>
+      ${rangeGroup('7d')}
+      ${countChip(FLEET.length, FLEET.reduce((n, i) => n + i.sessions.length, 0),
+                  FLEET.reduce((n, i) => n + i.sessions.filter(s => s.failed).length, 0))}
+    </div>
+    <div style="border:1px solid var(--color-border);border-radius:var(--radius-md);overflow:hidden">
+      <table class="dt">
+        <thead><tr>
+          <th>Instance <i class="bi bi-arrow-down-up"></i></th>
+          <th>Status <i class="bi bi-arrow-down-up"></i></th>
+          <th>Replicaset</th>
+          <th class="tcell"><div class="thead-scale">${scale}</div></th>
+          <th class="num" style="text-align:right">Duration <i class="bi bi-arrow-down-up"></i></th>
+          <th class="num" style="text-align:right">Sess. <i class="bi bi-arrow-down-up"></i></th>
+          <th class="num" style="text-align:right">Files <i class="bi bi-arrow-down-up"></i></th>
+          <th class="num sorted" style="text-align:right">Storage <i class="bi bi-caret-down-fill"></i></th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="dt-footer"><span class="showmore"><i class="bi bi-chevron-down"></i> Show more</span></div>
+    </div>`;
+
+  document.getElementById('app').innerHTML = pageChrome('Instance Timeline', '', body);
+
+  document.getElementById('notes').innerHTML = notesBlock(
+    ['The densest layout of the ten — ~26px rows with seven columns of facts alongside the bar.',
+     'Search, status/replicaset filters and sorting come free with the <code>DataTable</code> family.',
+     'Sorting by storage or duration answers operational questions the chart shapes cannot.',
+     'Identical to every other list page in Jeffrey, so it needs no learning and almost no new CSS.'],
+    ['A table row is a weaker home for a bar than a waterfall row — the track competes with seven columns for width.',
+     'Sorting by anything other than time destroys the visual ordering that makes a timeline readable.',
+     'The instance→session relationship has nowhere natural to live; sessions need a nested row or a separate view.',
+     'The header ruler must stay pinned to one column width, so responsive behaviour is fiddlier than a grid.'],
+    ['Use <code>DataTable</code> + <code>TableToolbar</code> + <code>SortableTableHeader</code> + <code>TableShowMore</code> as-is; the <code>/data-table</code> skill scaffolds it.',
+     'The only new component is the track cell — reuse <code>.wf-track</code>/<code>.wf-bar</code> inside a <code>&lt;td&gt;</code>.',
+     'Reference <code>views/profiles/detail/ProfileThreadDumps.vue</code> for the shipped pattern.']
+  );
+</script>
+</body>
+</html>

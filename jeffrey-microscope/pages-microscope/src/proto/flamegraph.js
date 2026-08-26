@@ -1,5 +1,5 @@
-/*eslint-disable block-scoped-var, id-length, no-control-regex, no-magic-numbers, no-prototype-builtins, no-redeclare, no-shadow, no-var, sort-vars*/
-import * as $protobuf from "protobufjs/minimal";
+/*eslint-disable block-scoped-var, id-length, no-control-regex, no-magic-numbers, no-mixed-operators, no-prototype-builtins, no-redeclare, no-shadow, no-var, sort-vars, default-case, jsdoc/require-param*/
+import $protobuf from "protobufjs/minimal.js";
 
 // Common aliases
 const $Reader = $protobuf.Reader, $Writer = $protobuf.Writer, $util = $protobuf.util;
@@ -47,30 +47,43 @@ export const cafe = $root.cafe = (() => {
 
                     /**
                      * Properties of a GraphData.
+                     * @typedef {Object} cafe.jeffrey.flamegraph.proto.GraphData.$Properties
+                     * @property {cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties|null} [flamegraph] GraphData flamegraph
+                     * @property {cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties|null} [timeseries] GraphData timeseries
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
+                     */
+
+                    /**
+                     * Properties of a GraphData.
                      * @memberof cafe.jeffrey.flamegraph.proto
                      * @interface IGraphData
-                     * @property {cafe.jeffrey.flamegraph.proto.IFlamegraphData|null} [flamegraph] GraphData flamegraph
-                     * @property {cafe.jeffrey.flamegraph.proto.ITimeseriesData|null} [timeseries] GraphData timeseries
+                     * @augments cafe.jeffrey.flamegraph.proto.GraphData.$Properties
+                     * @deprecated Use cafe.jeffrey.flamegraph.proto.GraphData.$Properties instead.
+                     */
+
+                    /**
+                     * Shape of a GraphData.
+                     * @typedef {cafe.jeffrey.flamegraph.proto.GraphData.$Properties} cafe.jeffrey.flamegraph.proto.GraphData.$Shape
                      */
 
                     /**
                      * Constructs a new GraphData.
                      * @memberof cafe.jeffrey.flamegraph.proto
                      * @classdesc Represents a GraphData.
-                     * @implements IGraphData
                      * @constructor
-                     * @param {cafe.jeffrey.flamegraph.proto.IGraphData=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.GraphData.$Properties=} [properties] Properties to set
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
                      */
                     function GraphData(properties) {
                         if (properties)
                             for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                                if (properties[keys[i]] != null)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
 
                     /**
                      * GraphData flamegraph.
-                     * @member {cafe.jeffrey.flamegraph.proto.IFlamegraphData|null|undefined} flamegraph
+                     * @member {cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties|null|undefined} flamegraph
                      * @memberof cafe.jeffrey.flamegraph.proto.GraphData
                      * @instance
                      */
@@ -78,7 +91,7 @@ export const cafe = $root.cafe = (() => {
 
                     /**
                      * GraphData timeseries.
-                     * @member {cafe.jeffrey.flamegraph.proto.ITimeseriesData|null|undefined} timeseries
+                     * @member {cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties|null|undefined} timeseries
                      * @memberof cafe.jeffrey.flamegraph.proto.GraphData
                      * @instance
                      */
@@ -89,8 +102,12 @@ export const cafe = $root.cafe = (() => {
                      * @function create
                      * @memberof cafe.jeffrey.flamegraph.proto.GraphData
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IGraphData=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.GraphData.$Properties=} [properties] Properties to set
                      * @returns {cafe.jeffrey.flamegraph.proto.GraphData} GraphData instance
+                     * @type {{
+                     *   (properties: cafe.jeffrey.flamegraph.proto.GraphData.$Shape): cafe.jeffrey.flamegraph.proto.GraphData & cafe.jeffrey.flamegraph.proto.GraphData.$Shape;
+                     *   (properties?: cafe.jeffrey.flamegraph.proto.GraphData.$Properties): cafe.jeffrey.flamegraph.proto.GraphData;
+                     * }}
                      */
                     GraphData.create = function create(properties) {
                         return new GraphData(properties);
@@ -101,17 +118,24 @@ export const cafe = $root.cafe = (() => {
                      * @function encode
                      * @memberof cafe.jeffrey.flamegraph.proto.GraphData
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IGraphData} message GraphData message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.GraphData.$Properties} message GraphData message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
-                    GraphData.encode = function encode(message, writer) {
+                    GraphData.encode = function encode(message, writer, _depth) {
                         if (!writer)
                             writer = $Writer.create();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         if (message.flamegraph != null && Object.hasOwnProperty.call(message, "flamegraph"))
-                            $root.cafe.jeffrey.flamegraph.proto.FlamegraphData.encode(message.flamegraph, writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+                            $root.cafe.jeffrey.flamegraph.proto.FlamegraphData.encode(message.flamegraph, writer.uint32(/* id 1, wireType 2 =*/10).fork(), _depth + 1).ldelim();
                         if (message.timeseries != null && Object.hasOwnProperty.call(message, "timeseries"))
-                            $root.cafe.jeffrey.flamegraph.proto.TimeseriesData.encode(message.timeseries, writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+                            $root.cafe.jeffrey.flamegraph.proto.TimeseriesData.encode(message.timeseries, writer.uint32(/* id 2, wireType 2 =*/18).fork(), _depth + 1).ldelim();
+                        if (message.$unknowns != null && Object.hasOwnProperty.call(message, "$unknowns"))
+                            for (let i = 0; i < message.$unknowns.length; ++i)
+                                writer.raw(message.$unknowns[i]);
                         return writer;
                     };
 
@@ -120,12 +144,12 @@ export const cafe = $root.cafe = (() => {
                      * @function encodeDelimited
                      * @memberof cafe.jeffrey.flamegraph.proto.GraphData
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IGraphData} message GraphData message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.GraphData.$Properties} message GraphData message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
                     GraphData.encodeDelimited = function encodeDelimited(message, writer) {
-                        return this.encode(message, writer).ldelim();
+                        return this.encode(message, writer && writer.len ? writer.fork() : writer).ldelim();
                     };
 
                     /**
@@ -135,32 +159,46 @@ export const cafe = $root.cafe = (() => {
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
                      * @param {number} [length] Message length if known beforehand
-                     * @returns {cafe.jeffrey.flamegraph.proto.GraphData} GraphData
+                     * @returns {cafe.jeffrey.flamegraph.proto.GraphData & cafe.jeffrey.flamegraph.proto.GraphData.$Shape} GraphData
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    GraphData.decode = function decode(reader, length, error) {
+                    GraphData.decode = function decode(reader, length, _end, _depth, _target) {
                         if (!(reader instanceof $Reader))
                             reader = $Reader.create(reader);
-                        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.cafe.jeffrey.flamegraph.proto.GraphData();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $Reader.recursionLimit)
+                            throw Error("max depth exceeded");
+                        let end = length === undefined ? reader.len : reader.pos + length, message = _target || new $root.cafe.jeffrey.flamegraph.proto.GraphData(), value;
                         while (reader.pos < end) {
-                            let tag = reader.uint32();
-                            if (tag === error)
-                                break;
-                            switch (tag >>> 3) {
-                            case 1: {
-                                    message.flamegraph = $root.cafe.jeffrey.flamegraph.proto.FlamegraphData.decode(reader, reader.uint32());
-                                    break;
-                                }
-                            case 2: {
-                                    message.timeseries = $root.cafe.jeffrey.flamegraph.proto.TimeseriesData.decode(reader, reader.uint32());
-                                    break;
-                                }
-                            default:
-                                reader.skipType(tag & 7);
+                            let start = reader.pos;
+                            let tag = reader.tag();
+                            if (tag === _end) {
+                                _end = undefined;
                                 break;
                             }
+                            let wireType = tag & 7;
+                            switch (tag >>>= 3) {
+                            case 1: {
+                                    if (wireType !== 2)
+                                        break;
+                                    message.flamegraph = $root.cafe.jeffrey.flamegraph.proto.FlamegraphData.decode(reader, reader.uint32(), undefined, _depth + 1, message.flamegraph);
+                                    continue;
+                                }
+                            case 2: {
+                                    if (wireType !== 2)
+                                        break;
+                                    message.timeseries = $root.cafe.jeffrey.flamegraph.proto.TimeseriesData.decode(reader, reader.uint32(), undefined, _depth + 1, message.timeseries);
+                                    continue;
+                                }
+                            }
+                            reader.skipType(wireType, _depth, tag);
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
                         }
+                        if (_end !== undefined)
+                            throw Error("missing end group");
                         return message;
                     };
 
@@ -170,7 +208,7 @@ export const cafe = $root.cafe = (() => {
                      * @memberof cafe.jeffrey.flamegraph.proto.GraphData
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-                     * @returns {cafe.jeffrey.flamegraph.proto.GraphData} GraphData
+                     * @returns {cafe.jeffrey.flamegraph.proto.GraphData & cafe.jeffrey.flamegraph.proto.GraphData.$Shape} GraphData
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
@@ -188,16 +226,20 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} message Plain object to verify
                      * @returns {string|null} `null` if valid, otherwise the reason why it is not
                      */
-                    GraphData.verify = function verify(message) {
+                    GraphData.verify = function verify(message, _depth) {
                         if (typeof message !== "object" || message === null)
                             return "object expected";
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            return "max depth exceeded";
                         if (message.flamegraph != null && message.hasOwnProperty("flamegraph")) {
-                            let error = $root.cafe.jeffrey.flamegraph.proto.FlamegraphData.verify(message.flamegraph);
+                            let error = $root.cafe.jeffrey.flamegraph.proto.FlamegraphData.verify(message.flamegraph, _depth + 1);
                             if (error)
                                 return "flamegraph." + error;
                         }
                         if (message.timeseries != null && message.hasOwnProperty("timeseries")) {
-                            let error = $root.cafe.jeffrey.flamegraph.proto.TimeseriesData.verify(message.timeseries);
+                            let error = $root.cafe.jeffrey.flamegraph.proto.TimeseriesData.verify(message.timeseries, _depth + 1);
                             if (error)
                                 return "timeseries." + error;
                         }
@@ -212,19 +254,23 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} object Plain object
                      * @returns {cafe.jeffrey.flamegraph.proto.GraphData} GraphData
                      */
-                    GraphData.fromObject = function fromObject(object) {
+                    GraphData.fromObject = function fromObject(object, _depth) {
                         if (object instanceof $root.cafe.jeffrey.flamegraph.proto.GraphData)
                             return object;
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let message = new $root.cafe.jeffrey.flamegraph.proto.GraphData();
                         if (object.flamegraph != null) {
                             if (typeof object.flamegraph !== "object")
                                 throw TypeError(".cafe.jeffrey.flamegraph.proto.GraphData.flamegraph: object expected");
-                            message.flamegraph = $root.cafe.jeffrey.flamegraph.proto.FlamegraphData.fromObject(object.flamegraph);
+                            message.flamegraph = $root.cafe.jeffrey.flamegraph.proto.FlamegraphData.fromObject(object.flamegraph, _depth + 1);
                         }
                         if (object.timeseries != null) {
                             if (typeof object.timeseries !== "object")
                                 throw TypeError(".cafe.jeffrey.flamegraph.proto.GraphData.timeseries: object expected");
-                            message.timeseries = $root.cafe.jeffrey.flamegraph.proto.TimeseriesData.fromObject(object.timeseries);
+                            message.timeseries = $root.cafe.jeffrey.flamegraph.proto.TimeseriesData.fromObject(object.timeseries, _depth + 1);
                         }
                         return message;
                     };
@@ -238,18 +284,22 @@ export const cafe = $root.cafe = (() => {
                      * @param {$protobuf.IConversionOptions} [options] Conversion options
                      * @returns {Object.<string,*>} Plain object
                      */
-                    GraphData.toObject = function toObject(message, options) {
+                    GraphData.toObject = function toObject(message, options, _depth) {
                         if (!options)
                             options = {};
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let object = {};
                         if (options.defaults) {
                             object.flamegraph = null;
                             object.timeseries = null;
                         }
                         if (message.flamegraph != null && message.hasOwnProperty("flamegraph"))
-                            object.flamegraph = $root.cafe.jeffrey.flamegraph.proto.FlamegraphData.toObject(message.flamegraph, options);
+                            object.flamegraph = $root.cafe.jeffrey.flamegraph.proto.FlamegraphData.toObject(message.flamegraph, options, _depth + 1);
                         if (message.timeseries != null && message.hasOwnProperty("timeseries"))
-                            object.timeseries = $root.cafe.jeffrey.flamegraph.proto.TimeseriesData.toObject(message.timeseries, options);
+                            object.timeseries = $root.cafe.jeffrey.flamegraph.proto.TimeseriesData.toObject(message.timeseries, options, _depth + 1);
                         return object;
                     };
 
@@ -265,18 +315,17 @@ export const cafe = $root.cafe = (() => {
                     };
 
                     /**
-                     * Gets the default type url for GraphData
+                     * Gets the type url for GraphData
                      * @function getTypeUrl
                      * @memberof cafe.jeffrey.flamegraph.proto.GraphData
                      * @static
-                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns {string} The default type url
+                     * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns {string} The type url
                      */
-                    GraphData.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
-                        if (typeUrlPrefix === undefined) {
-                            typeUrlPrefix = "type.googleapis.com";
-                        }
-                        return typeUrlPrefix + "/cafe.jeffrey.flamegraph.proto.GraphData";
+                    GraphData.getTypeUrl = function getTypeUrl(prefix) {
+                        if (prefix === undefined)
+                            prefix = "type.googleapis.com";
+                        return prefix + "/cafe.jeffrey.flamegraph.proto.GraphData";
                     };
 
                     return GraphData;
@@ -286,27 +335,40 @@ export const cafe = $root.cafe = (() => {
 
                     /**
                      * Properties of a FlamegraphData.
+                     * @typedef {Object} cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties
+                     * @property {number|null} [depth] FlamegraphData depth
+                     * @property {Array.<cafe.jeffrey.flamegraph.proto.Level.$Properties>|null} [levels] FlamegraphData levels
+                     * @property {Array.<string>|null} [titlePool] FlamegraphData titlePool
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
+                     */
+
+                    /**
+                     * Properties of a FlamegraphData.
                      * @memberof cafe.jeffrey.flamegraph.proto
                      * @interface IFlamegraphData
-                     * @property {number|null} [depth] FlamegraphData depth
-                     * @property {Array.<cafe.jeffrey.flamegraph.proto.ILevel>|null} [levels] FlamegraphData levels
-                     * @property {Array.<string>|null} [titlePool] FlamegraphData titlePool
+                     * @augments cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties
+                     * @deprecated Use cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties instead.
+                     */
+
+                    /**
+                     * Shape of a FlamegraphData.
+                     * @typedef {cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties} cafe.jeffrey.flamegraph.proto.FlamegraphData.$Shape
                      */
 
                     /**
                      * Constructs a new FlamegraphData.
                      * @memberof cafe.jeffrey.flamegraph.proto
                      * @classdesc Represents a FlamegraphData.
-                     * @implements IFlamegraphData
                      * @constructor
-                     * @param {cafe.jeffrey.flamegraph.proto.IFlamegraphData=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties=} [properties] Properties to set
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
                      */
                     function FlamegraphData(properties) {
                         this.levels = [];
                         this.titlePool = [];
                         if (properties)
                             for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                                if (properties[keys[i]] != null)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
 
@@ -320,7 +382,7 @@ export const cafe = $root.cafe = (() => {
 
                     /**
                      * FlamegraphData levels.
-                     * @member {Array.<cafe.jeffrey.flamegraph.proto.ILevel>} levels
+                     * @member {Array.<cafe.jeffrey.flamegraph.proto.Level.$Properties>} levels
                      * @memberof cafe.jeffrey.flamegraph.proto.FlamegraphData
                      * @instance
                      */
@@ -339,8 +401,12 @@ export const cafe = $root.cafe = (() => {
                      * @function create
                      * @memberof cafe.jeffrey.flamegraph.proto.FlamegraphData
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IFlamegraphData=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties=} [properties] Properties to set
                      * @returns {cafe.jeffrey.flamegraph.proto.FlamegraphData} FlamegraphData instance
+                     * @type {{
+                     *   (properties: cafe.jeffrey.flamegraph.proto.FlamegraphData.$Shape): cafe.jeffrey.flamegraph.proto.FlamegraphData & cafe.jeffrey.flamegraph.proto.FlamegraphData.$Shape;
+                     *   (properties?: cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties): cafe.jeffrey.flamegraph.proto.FlamegraphData;
+                     * }}
                      */
                     FlamegraphData.create = function create(properties) {
                         return new FlamegraphData(properties);
@@ -351,21 +417,28 @@ export const cafe = $root.cafe = (() => {
                      * @function encode
                      * @memberof cafe.jeffrey.flamegraph.proto.FlamegraphData
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IFlamegraphData} message FlamegraphData message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties} message FlamegraphData message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
-                    FlamegraphData.encode = function encode(message, writer) {
+                    FlamegraphData.encode = function encode(message, writer, _depth) {
                         if (!writer)
                             writer = $Writer.create();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         if (message.depth != null && Object.hasOwnProperty.call(message, "depth"))
                             writer.uint32(/* id 1, wireType 0 =*/8).int32(message.depth);
                         if (message.levels != null && message.levels.length)
                             for (let i = 0; i < message.levels.length; ++i)
-                                $root.cafe.jeffrey.flamegraph.proto.Level.encode(message.levels[i], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+                                $root.cafe.jeffrey.flamegraph.proto.Level.encode(message.levels[i], writer.uint32(/* id 2, wireType 2 =*/18).fork(), _depth + 1).ldelim();
                         if (message.titlePool != null && message.titlePool.length)
                             for (let i = 0; i < message.titlePool.length; ++i)
                                 writer.uint32(/* id 3, wireType 2 =*/26).string(message.titlePool[i]);
+                        if (message.$unknowns != null && Object.hasOwnProperty.call(message, "$unknowns"))
+                            for (let i = 0; i < message.$unknowns.length; ++i)
+                                writer.raw(message.$unknowns[i]);
                         return writer;
                     };
 
@@ -374,12 +447,12 @@ export const cafe = $root.cafe = (() => {
                      * @function encodeDelimited
                      * @memberof cafe.jeffrey.flamegraph.proto.FlamegraphData
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IFlamegraphData} message FlamegraphData message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties} message FlamegraphData message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
                     FlamegraphData.encodeDelimited = function encodeDelimited(message, writer) {
-                        return this.encode(message, writer).ldelim();
+                        return this.encode(message, writer && writer.len ? writer.fork() : writer).ldelim();
                     };
 
                     /**
@@ -389,40 +462,59 @@ export const cafe = $root.cafe = (() => {
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
                      * @param {number} [length] Message length if known beforehand
-                     * @returns {cafe.jeffrey.flamegraph.proto.FlamegraphData} FlamegraphData
+                     * @returns {cafe.jeffrey.flamegraph.proto.FlamegraphData & cafe.jeffrey.flamegraph.proto.FlamegraphData.$Shape} FlamegraphData
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    FlamegraphData.decode = function decode(reader, length, error) {
+                    FlamegraphData.decode = function decode(reader, length, _end, _depth, _target) {
                         if (!(reader instanceof $Reader))
                             reader = $Reader.create(reader);
-                        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.cafe.jeffrey.flamegraph.proto.FlamegraphData();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $Reader.recursionLimit)
+                            throw Error("max depth exceeded");
+                        let end = length === undefined ? reader.len : reader.pos + length, message = _target || new $root.cafe.jeffrey.flamegraph.proto.FlamegraphData(), value;
                         while (reader.pos < end) {
-                            let tag = reader.uint32();
-                            if (tag === error)
+                            let start = reader.pos;
+                            let tag = reader.tag();
+                            if (tag === _end) {
+                                _end = undefined;
                                 break;
-                            switch (tag >>> 3) {
+                            }
+                            let wireType = tag & 7;
+                            switch (tag >>>= 3) {
                             case 1: {
-                                    message.depth = reader.int32();
-                                    break;
+                                    if (wireType !== 0)
+                                        break;
+                                    if (value = reader.int32())
+                                        message.depth = value;
+                                    else
+                                        delete message.depth;
+                                    continue;
                                 }
                             case 2: {
+                                    if (wireType !== 2)
+                                        break;
                                     if (!(message.levels && message.levels.length))
                                         message.levels = [];
-                                    message.levels.push($root.cafe.jeffrey.flamegraph.proto.Level.decode(reader, reader.uint32()));
-                                    break;
+                                    message.levels.push($root.cafe.jeffrey.flamegraph.proto.Level.decode(reader, reader.uint32(), undefined, _depth + 1));
+                                    continue;
                                 }
                             case 3: {
+                                    if (wireType !== 2)
+                                        break;
                                     if (!(message.titlePool && message.titlePool.length))
                                         message.titlePool = [];
                                     message.titlePool.push(reader.string());
-                                    break;
+                                    continue;
                                 }
-                            default:
-                                reader.skipType(tag & 7);
-                                break;
                             }
+                            reader.skipType(wireType, _depth, tag);
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
                         }
+                        if (_end !== undefined)
+                            throw Error("missing end group");
                         return message;
                     };
 
@@ -432,7 +524,7 @@ export const cafe = $root.cafe = (() => {
                      * @memberof cafe.jeffrey.flamegraph.proto.FlamegraphData
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-                     * @returns {cafe.jeffrey.flamegraph.proto.FlamegraphData} FlamegraphData
+                     * @returns {cafe.jeffrey.flamegraph.proto.FlamegraphData & cafe.jeffrey.flamegraph.proto.FlamegraphData.$Shape} FlamegraphData
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
@@ -450,9 +542,13 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} message Plain object to verify
                      * @returns {string|null} `null` if valid, otherwise the reason why it is not
                      */
-                    FlamegraphData.verify = function verify(message) {
+                    FlamegraphData.verify = function verify(message, _depth) {
                         if (typeof message !== "object" || message === null)
                             return "object expected";
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            return "max depth exceeded";
                         if (message.depth != null && message.hasOwnProperty("depth"))
                             if (!$util.isInteger(message.depth))
                                 return "depth: integer expected";
@@ -460,7 +556,7 @@ export const cafe = $root.cafe = (() => {
                             if (!Array.isArray(message.levels))
                                 return "levels: array expected";
                             for (let i = 0; i < message.levels.length; ++i) {
-                                let error = $root.cafe.jeffrey.flamegraph.proto.Level.verify(message.levels[i]);
+                                let error = $root.cafe.jeffrey.flamegraph.proto.Level.verify(message.levels[i], _depth + 1);
                                 if (error)
                                     return "levels." + error;
                             }
@@ -483,26 +579,31 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} object Plain object
                      * @returns {cafe.jeffrey.flamegraph.proto.FlamegraphData} FlamegraphData
                      */
-                    FlamegraphData.fromObject = function fromObject(object) {
+                    FlamegraphData.fromObject = function fromObject(object, _depth) {
                         if (object instanceof $root.cafe.jeffrey.flamegraph.proto.FlamegraphData)
                             return object;
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let message = new $root.cafe.jeffrey.flamegraph.proto.FlamegraphData();
                         if (object.depth != null)
-                            message.depth = object.depth | 0;
+                            if (Number(object.depth) !== 0)
+                                message.depth = object.depth | 0;
                         if (object.levels) {
                             if (!Array.isArray(object.levels))
                                 throw TypeError(".cafe.jeffrey.flamegraph.proto.FlamegraphData.levels: array expected");
-                            message.levels = [];
+                            message.levels = Array(object.levels.length);
                             for (let i = 0; i < object.levels.length; ++i) {
                                 if (typeof object.levels[i] !== "object")
                                     throw TypeError(".cafe.jeffrey.flamegraph.proto.FlamegraphData.levels: object expected");
-                                message.levels[i] = $root.cafe.jeffrey.flamegraph.proto.Level.fromObject(object.levels[i]);
+                                message.levels[i] = $root.cafe.jeffrey.flamegraph.proto.Level.fromObject(object.levels[i], _depth + 1);
                             }
                         }
                         if (object.titlePool) {
                             if (!Array.isArray(object.titlePool))
                                 throw TypeError(".cafe.jeffrey.flamegraph.proto.FlamegraphData.titlePool: array expected");
-                            message.titlePool = [];
+                            message.titlePool = Array(object.titlePool.length);
                             for (let i = 0; i < object.titlePool.length; ++i)
                                 message.titlePool[i] = String(object.titlePool[i]);
                         }
@@ -518,9 +619,13 @@ export const cafe = $root.cafe = (() => {
                      * @param {$protobuf.IConversionOptions} [options] Conversion options
                      * @returns {Object.<string,*>} Plain object
                      */
-                    FlamegraphData.toObject = function toObject(message, options) {
+                    FlamegraphData.toObject = function toObject(message, options, _depth) {
                         if (!options)
                             options = {};
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let object = {};
                         if (options.arrays || options.defaults) {
                             object.levels = [];
@@ -531,12 +636,12 @@ export const cafe = $root.cafe = (() => {
                         if (message.depth != null && message.hasOwnProperty("depth"))
                             object.depth = message.depth;
                         if (message.levels && message.levels.length) {
-                            object.levels = [];
+                            object.levels = Array(message.levels.length);
                             for (let j = 0; j < message.levels.length; ++j)
-                                object.levels[j] = $root.cafe.jeffrey.flamegraph.proto.Level.toObject(message.levels[j], options);
+                                object.levels[j] = $root.cafe.jeffrey.flamegraph.proto.Level.toObject(message.levels[j], options, _depth + 1);
                         }
                         if (message.titlePool && message.titlePool.length) {
-                            object.titlePool = [];
+                            object.titlePool = Array(message.titlePool.length);
                             for (let j = 0; j < message.titlePool.length; ++j)
                                 object.titlePool[j] = message.titlePool[j];
                         }
@@ -555,18 +660,17 @@ export const cafe = $root.cafe = (() => {
                     };
 
                     /**
-                     * Gets the default type url for FlamegraphData
+                     * Gets the type url for FlamegraphData
                      * @function getTypeUrl
                      * @memberof cafe.jeffrey.flamegraph.proto.FlamegraphData
                      * @static
-                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns {string} The default type url
+                     * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns {string} The type url
                      */
-                    FlamegraphData.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
-                        if (typeUrlPrefix === undefined) {
-                            typeUrlPrefix = "type.googleapis.com";
-                        }
-                        return typeUrlPrefix + "/cafe.jeffrey.flamegraph.proto.FlamegraphData";
+                    FlamegraphData.getTypeUrl = function getTypeUrl(prefix) {
+                        if (prefix === undefined)
+                            prefix = "type.googleapis.com";
+                        return prefix + "/cafe.jeffrey.flamegraph.proto.FlamegraphData";
                     };
 
                     return FlamegraphData;
@@ -576,30 +680,43 @@ export const cafe = $root.cafe = (() => {
 
                     /**
                      * Properties of a TimeseriesData.
+                     * @typedef {Object} cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties
+                     * @property {Array.<cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties>|null} [series] TimeseriesData series
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
+                     */
+
+                    /**
+                     * Properties of a TimeseriesData.
                      * @memberof cafe.jeffrey.flamegraph.proto
                      * @interface ITimeseriesData
-                     * @property {Array.<cafe.jeffrey.flamegraph.proto.ITimeseriesSeries>|null} [series] TimeseriesData series
+                     * @augments cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties
+                     * @deprecated Use cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties instead.
+                     */
+
+                    /**
+                     * Shape of a TimeseriesData.
+                     * @typedef {cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties} cafe.jeffrey.flamegraph.proto.TimeseriesData.$Shape
                      */
 
                     /**
                      * Constructs a new TimeseriesData.
                      * @memberof cafe.jeffrey.flamegraph.proto
                      * @classdesc Represents a TimeseriesData.
-                     * @implements ITimeseriesData
                      * @constructor
-                     * @param {cafe.jeffrey.flamegraph.proto.ITimeseriesData=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties=} [properties] Properties to set
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
                      */
                     function TimeseriesData(properties) {
                         this.series = [];
                         if (properties)
                             for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                                if (properties[keys[i]] != null)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
 
                     /**
                      * TimeseriesData series.
-                     * @member {Array.<cafe.jeffrey.flamegraph.proto.ITimeseriesSeries>} series
+                     * @member {Array.<cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties>} series
                      * @memberof cafe.jeffrey.flamegraph.proto.TimeseriesData
                      * @instance
                      */
@@ -610,8 +727,12 @@ export const cafe = $root.cafe = (() => {
                      * @function create
                      * @memberof cafe.jeffrey.flamegraph.proto.TimeseriesData
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.ITimeseriesData=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties=} [properties] Properties to set
                      * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesData} TimeseriesData instance
+                     * @type {{
+                     *   (properties: cafe.jeffrey.flamegraph.proto.TimeseriesData.$Shape): cafe.jeffrey.flamegraph.proto.TimeseriesData & cafe.jeffrey.flamegraph.proto.TimeseriesData.$Shape;
+                     *   (properties?: cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties): cafe.jeffrey.flamegraph.proto.TimeseriesData;
+                     * }}
                      */
                     TimeseriesData.create = function create(properties) {
                         return new TimeseriesData(properties);
@@ -622,16 +743,23 @@ export const cafe = $root.cafe = (() => {
                      * @function encode
                      * @memberof cafe.jeffrey.flamegraph.proto.TimeseriesData
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.ITimeseriesData} message TimeseriesData message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties} message TimeseriesData message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
-                    TimeseriesData.encode = function encode(message, writer) {
+                    TimeseriesData.encode = function encode(message, writer, _depth) {
                         if (!writer)
                             writer = $Writer.create();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         if (message.series != null && message.series.length)
                             for (let i = 0; i < message.series.length; ++i)
-                                $root.cafe.jeffrey.flamegraph.proto.TimeseriesSeries.encode(message.series[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+                                $root.cafe.jeffrey.flamegraph.proto.TimeseriesSeries.encode(message.series[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), _depth + 1).ldelim();
+                        if (message.$unknowns != null && Object.hasOwnProperty.call(message, "$unknowns"))
+                            for (let i = 0; i < message.$unknowns.length; ++i)
+                                writer.raw(message.$unknowns[i]);
                         return writer;
                     };
 
@@ -640,12 +768,12 @@ export const cafe = $root.cafe = (() => {
                      * @function encodeDelimited
                      * @memberof cafe.jeffrey.flamegraph.proto.TimeseriesData
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.ITimeseriesData} message TimeseriesData message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties} message TimeseriesData message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
                     TimeseriesData.encodeDelimited = function encodeDelimited(message, writer) {
-                        return this.encode(message, writer).ldelim();
+                        return this.encode(message, writer && writer.len ? writer.fork() : writer).ldelim();
                     };
 
                     /**
@@ -655,30 +783,42 @@ export const cafe = $root.cafe = (() => {
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
                      * @param {number} [length] Message length if known beforehand
-                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesData} TimeseriesData
+                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesData & cafe.jeffrey.flamegraph.proto.TimeseriesData.$Shape} TimeseriesData
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    TimeseriesData.decode = function decode(reader, length, error) {
+                    TimeseriesData.decode = function decode(reader, length, _end, _depth, _target) {
                         if (!(reader instanceof $Reader))
                             reader = $Reader.create(reader);
-                        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.cafe.jeffrey.flamegraph.proto.TimeseriesData();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $Reader.recursionLimit)
+                            throw Error("max depth exceeded");
+                        let end = length === undefined ? reader.len : reader.pos + length, message = _target || new $root.cafe.jeffrey.flamegraph.proto.TimeseriesData();
                         while (reader.pos < end) {
-                            let tag = reader.uint32();
-                            if (tag === error)
-                                break;
-                            switch (tag >>> 3) {
-                            case 1: {
-                                    if (!(message.series && message.series.length))
-                                        message.series = [];
-                                    message.series.push($root.cafe.jeffrey.flamegraph.proto.TimeseriesSeries.decode(reader, reader.uint32()));
-                                    break;
-                                }
-                            default:
-                                reader.skipType(tag & 7);
+                            let start = reader.pos;
+                            let tag = reader.tag();
+                            if (tag === _end) {
+                                _end = undefined;
                                 break;
                             }
+                            let wireType = tag & 7;
+                            switch (tag >>>= 3) {
+                            case 1: {
+                                    if (wireType !== 2)
+                                        break;
+                                    if (!(message.series && message.series.length))
+                                        message.series = [];
+                                    message.series.push($root.cafe.jeffrey.flamegraph.proto.TimeseriesSeries.decode(reader, reader.uint32(), undefined, _depth + 1));
+                                    continue;
+                                }
+                            }
+                            reader.skipType(wireType, _depth, tag);
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
                         }
+                        if (_end !== undefined)
+                            throw Error("missing end group");
                         return message;
                     };
 
@@ -688,7 +828,7 @@ export const cafe = $root.cafe = (() => {
                      * @memberof cafe.jeffrey.flamegraph.proto.TimeseriesData
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesData} TimeseriesData
+                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesData & cafe.jeffrey.flamegraph.proto.TimeseriesData.$Shape} TimeseriesData
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
@@ -706,14 +846,18 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} message Plain object to verify
                      * @returns {string|null} `null` if valid, otherwise the reason why it is not
                      */
-                    TimeseriesData.verify = function verify(message) {
+                    TimeseriesData.verify = function verify(message, _depth) {
                         if (typeof message !== "object" || message === null)
                             return "object expected";
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            return "max depth exceeded";
                         if (message.series != null && message.hasOwnProperty("series")) {
                             if (!Array.isArray(message.series))
                                 return "series: array expected";
                             for (let i = 0; i < message.series.length; ++i) {
-                                let error = $root.cafe.jeffrey.flamegraph.proto.TimeseriesSeries.verify(message.series[i]);
+                                let error = $root.cafe.jeffrey.flamegraph.proto.TimeseriesSeries.verify(message.series[i], _depth + 1);
                                 if (error)
                                     return "series." + error;
                             }
@@ -729,18 +873,22 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} object Plain object
                      * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesData} TimeseriesData
                      */
-                    TimeseriesData.fromObject = function fromObject(object) {
+                    TimeseriesData.fromObject = function fromObject(object, _depth) {
                         if (object instanceof $root.cafe.jeffrey.flamegraph.proto.TimeseriesData)
                             return object;
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let message = new $root.cafe.jeffrey.flamegraph.proto.TimeseriesData();
                         if (object.series) {
                             if (!Array.isArray(object.series))
                                 throw TypeError(".cafe.jeffrey.flamegraph.proto.TimeseriesData.series: array expected");
-                            message.series = [];
+                            message.series = Array(object.series.length);
                             for (let i = 0; i < object.series.length; ++i) {
                                 if (typeof object.series[i] !== "object")
                                     throw TypeError(".cafe.jeffrey.flamegraph.proto.TimeseriesData.series: object expected");
-                                message.series[i] = $root.cafe.jeffrey.flamegraph.proto.TimeseriesSeries.fromObject(object.series[i]);
+                                message.series[i] = $root.cafe.jeffrey.flamegraph.proto.TimeseriesSeries.fromObject(object.series[i], _depth + 1);
                             }
                         }
                         return message;
@@ -755,16 +903,20 @@ export const cafe = $root.cafe = (() => {
                      * @param {$protobuf.IConversionOptions} [options] Conversion options
                      * @returns {Object.<string,*>} Plain object
                      */
-                    TimeseriesData.toObject = function toObject(message, options) {
+                    TimeseriesData.toObject = function toObject(message, options, _depth) {
                         if (!options)
                             options = {};
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let object = {};
                         if (options.arrays || options.defaults)
                             object.series = [];
                         if (message.series && message.series.length) {
-                            object.series = [];
+                            object.series = Array(message.series.length);
                             for (let j = 0; j < message.series.length; ++j)
-                                object.series[j] = $root.cafe.jeffrey.flamegraph.proto.TimeseriesSeries.toObject(message.series[j], options);
+                                object.series[j] = $root.cafe.jeffrey.flamegraph.proto.TimeseriesSeries.toObject(message.series[j], options, _depth + 1);
                         }
                         return object;
                     };
@@ -781,18 +933,17 @@ export const cafe = $root.cafe = (() => {
                     };
 
                     /**
-                     * Gets the default type url for TimeseriesData
+                     * Gets the type url for TimeseriesData
                      * @function getTypeUrl
                      * @memberof cafe.jeffrey.flamegraph.proto.TimeseriesData
                      * @static
-                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns {string} The default type url
+                     * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns {string} The type url
                      */
-                    TimeseriesData.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
-                        if (typeUrlPrefix === undefined) {
-                            typeUrlPrefix = "type.googleapis.com";
-                        }
-                        return typeUrlPrefix + "/cafe.jeffrey.flamegraph.proto.TimeseriesData";
+                    TimeseriesData.getTypeUrl = function getTypeUrl(prefix) {
+                        if (prefix === undefined)
+                            prefix = "type.googleapis.com";
+                        return prefix + "/cafe.jeffrey.flamegraph.proto.TimeseriesData";
                     };
 
                     return TimeseriesData;
@@ -802,25 +953,38 @@ export const cafe = $root.cafe = (() => {
 
                     /**
                      * Properties of a TimeseriesSeries.
+                     * @typedef {Object} cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties
+                     * @property {string|null} [name] TimeseriesSeries name
+                     * @property {Array.<cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties>|null} [data] TimeseriesSeries data
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
+                     */
+
+                    /**
+                     * Properties of a TimeseriesSeries.
                      * @memberof cafe.jeffrey.flamegraph.proto
                      * @interface ITimeseriesSeries
-                     * @property {string|null} [name] TimeseriesSeries name
-                     * @property {Array.<cafe.jeffrey.flamegraph.proto.ITimeseriesPoint>|null} [data] TimeseriesSeries data
+                     * @augments cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties
+                     * @deprecated Use cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties instead.
+                     */
+
+                    /**
+                     * Shape of a TimeseriesSeries.
+                     * @typedef {cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties} cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Shape
                      */
 
                     /**
                      * Constructs a new TimeseriesSeries.
                      * @memberof cafe.jeffrey.flamegraph.proto
                      * @classdesc Represents a TimeseriesSeries.
-                     * @implements ITimeseriesSeries
                      * @constructor
-                     * @param {cafe.jeffrey.flamegraph.proto.ITimeseriesSeries=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties=} [properties] Properties to set
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
                      */
                     function TimeseriesSeries(properties) {
                         this.data = [];
                         if (properties)
                             for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                                if (properties[keys[i]] != null)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
 
@@ -834,7 +998,7 @@ export const cafe = $root.cafe = (() => {
 
                     /**
                      * TimeseriesSeries data.
-                     * @member {Array.<cafe.jeffrey.flamegraph.proto.ITimeseriesPoint>} data
+                     * @member {Array.<cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties>} data
                      * @memberof cafe.jeffrey.flamegraph.proto.TimeseriesSeries
                      * @instance
                      */
@@ -845,8 +1009,12 @@ export const cafe = $root.cafe = (() => {
                      * @function create
                      * @memberof cafe.jeffrey.flamegraph.proto.TimeseriesSeries
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.ITimeseriesSeries=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties=} [properties] Properties to set
                      * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesSeries} TimeseriesSeries instance
+                     * @type {{
+                     *   (properties: cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Shape): cafe.jeffrey.flamegraph.proto.TimeseriesSeries & cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Shape;
+                     *   (properties?: cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties): cafe.jeffrey.flamegraph.proto.TimeseriesSeries;
+                     * }}
                      */
                     TimeseriesSeries.create = function create(properties) {
                         return new TimeseriesSeries(properties);
@@ -857,18 +1025,25 @@ export const cafe = $root.cafe = (() => {
                      * @function encode
                      * @memberof cafe.jeffrey.flamegraph.proto.TimeseriesSeries
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.ITimeseriesSeries} message TimeseriesSeries message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties} message TimeseriesSeries message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
-                    TimeseriesSeries.encode = function encode(message, writer) {
+                    TimeseriesSeries.encode = function encode(message, writer, _depth) {
                         if (!writer)
                             writer = $Writer.create();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         if (message.name != null && Object.hasOwnProperty.call(message, "name"))
                             writer.uint32(/* id 1, wireType 2 =*/10).string(message.name);
                         if (message.data != null && message.data.length)
                             for (let i = 0; i < message.data.length; ++i)
-                                $root.cafe.jeffrey.flamegraph.proto.TimeseriesPoint.encode(message.data[i], writer.uint32(/* id 2, wireType 2 =*/18).fork()).ldelim();
+                                $root.cafe.jeffrey.flamegraph.proto.TimeseriesPoint.encode(message.data[i], writer.uint32(/* id 2, wireType 2 =*/18).fork(), _depth + 1).ldelim();
+                        if (message.$unknowns != null && Object.hasOwnProperty.call(message, "$unknowns"))
+                            for (let i = 0; i < message.$unknowns.length; ++i)
+                                writer.raw(message.$unknowns[i]);
                         return writer;
                     };
 
@@ -877,12 +1052,12 @@ export const cafe = $root.cafe = (() => {
                      * @function encodeDelimited
                      * @memberof cafe.jeffrey.flamegraph.proto.TimeseriesSeries
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.ITimeseriesSeries} message TimeseriesSeries message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties} message TimeseriesSeries message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
                     TimeseriesSeries.encodeDelimited = function encodeDelimited(message, writer) {
-                        return this.encode(message, writer).ldelim();
+                        return this.encode(message, writer && writer.len ? writer.fork() : writer).ldelim();
                     };
 
                     /**
@@ -892,34 +1067,51 @@ export const cafe = $root.cafe = (() => {
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
                      * @param {number} [length] Message length if known beforehand
-                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesSeries} TimeseriesSeries
+                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesSeries & cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Shape} TimeseriesSeries
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    TimeseriesSeries.decode = function decode(reader, length, error) {
+                    TimeseriesSeries.decode = function decode(reader, length, _end, _depth, _target) {
                         if (!(reader instanceof $Reader))
                             reader = $Reader.create(reader);
-                        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.cafe.jeffrey.flamegraph.proto.TimeseriesSeries();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $Reader.recursionLimit)
+                            throw Error("max depth exceeded");
+                        let end = length === undefined ? reader.len : reader.pos + length, message = _target || new $root.cafe.jeffrey.flamegraph.proto.TimeseriesSeries(), value;
                         while (reader.pos < end) {
-                            let tag = reader.uint32();
-                            if (tag === error)
-                                break;
-                            switch (tag >>> 3) {
-                            case 1: {
-                                    message.name = reader.string();
-                                    break;
-                                }
-                            case 2: {
-                                    if (!(message.data && message.data.length))
-                                        message.data = [];
-                                    message.data.push($root.cafe.jeffrey.flamegraph.proto.TimeseriesPoint.decode(reader, reader.uint32()));
-                                    break;
-                                }
-                            default:
-                                reader.skipType(tag & 7);
+                            let start = reader.pos;
+                            let tag = reader.tag();
+                            if (tag === _end) {
+                                _end = undefined;
                                 break;
                             }
+                            let wireType = tag & 7;
+                            switch (tag >>>= 3) {
+                            case 1: {
+                                    if (wireType !== 2)
+                                        break;
+                                    if ((value = reader.string()).length)
+                                        message.name = value;
+                                    else
+                                        delete message.name;
+                                    continue;
+                                }
+                            case 2: {
+                                    if (wireType !== 2)
+                                        break;
+                                    if (!(message.data && message.data.length))
+                                        message.data = [];
+                                    message.data.push($root.cafe.jeffrey.flamegraph.proto.TimeseriesPoint.decode(reader, reader.uint32(), undefined, _depth + 1));
+                                    continue;
+                                }
+                            }
+                            reader.skipType(wireType, _depth, tag);
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
                         }
+                        if (_end !== undefined)
+                            throw Error("missing end group");
                         return message;
                     };
 
@@ -929,7 +1121,7 @@ export const cafe = $root.cafe = (() => {
                      * @memberof cafe.jeffrey.flamegraph.proto.TimeseriesSeries
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesSeries} TimeseriesSeries
+                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesSeries & cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Shape} TimeseriesSeries
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
@@ -947,9 +1139,13 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} message Plain object to verify
                      * @returns {string|null} `null` if valid, otherwise the reason why it is not
                      */
-                    TimeseriesSeries.verify = function verify(message) {
+                    TimeseriesSeries.verify = function verify(message, _depth) {
                         if (typeof message !== "object" || message === null)
                             return "object expected";
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            return "max depth exceeded";
                         if (message.name != null && message.hasOwnProperty("name"))
                             if (!$util.isString(message.name))
                                 return "name: string expected";
@@ -957,7 +1153,7 @@ export const cafe = $root.cafe = (() => {
                             if (!Array.isArray(message.data))
                                 return "data: array expected";
                             for (let i = 0; i < message.data.length; ++i) {
-                                let error = $root.cafe.jeffrey.flamegraph.proto.TimeseriesPoint.verify(message.data[i]);
+                                let error = $root.cafe.jeffrey.flamegraph.proto.TimeseriesPoint.verify(message.data[i], _depth + 1);
                                 if (error)
                                     return "data." + error;
                             }
@@ -973,20 +1169,25 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} object Plain object
                      * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesSeries} TimeseriesSeries
                      */
-                    TimeseriesSeries.fromObject = function fromObject(object) {
+                    TimeseriesSeries.fromObject = function fromObject(object, _depth) {
                         if (object instanceof $root.cafe.jeffrey.flamegraph.proto.TimeseriesSeries)
                             return object;
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let message = new $root.cafe.jeffrey.flamegraph.proto.TimeseriesSeries();
                         if (object.name != null)
-                            message.name = String(object.name);
+                            if (typeof object.name !== "string" || object.name.length)
+                                message.name = String(object.name);
                         if (object.data) {
                             if (!Array.isArray(object.data))
                                 throw TypeError(".cafe.jeffrey.flamegraph.proto.TimeseriesSeries.data: array expected");
-                            message.data = [];
+                            message.data = Array(object.data.length);
                             for (let i = 0; i < object.data.length; ++i) {
                                 if (typeof object.data[i] !== "object")
                                     throw TypeError(".cafe.jeffrey.flamegraph.proto.TimeseriesSeries.data: object expected");
-                                message.data[i] = $root.cafe.jeffrey.flamegraph.proto.TimeseriesPoint.fromObject(object.data[i]);
+                                message.data[i] = $root.cafe.jeffrey.flamegraph.proto.TimeseriesPoint.fromObject(object.data[i], _depth + 1);
                             }
                         }
                         return message;
@@ -1001,9 +1202,13 @@ export const cafe = $root.cafe = (() => {
                      * @param {$protobuf.IConversionOptions} [options] Conversion options
                      * @returns {Object.<string,*>} Plain object
                      */
-                    TimeseriesSeries.toObject = function toObject(message, options) {
+                    TimeseriesSeries.toObject = function toObject(message, options, _depth) {
                         if (!options)
                             options = {};
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let object = {};
                         if (options.arrays || options.defaults)
                             object.data = [];
@@ -1012,9 +1217,9 @@ export const cafe = $root.cafe = (() => {
                         if (message.name != null && message.hasOwnProperty("name"))
                             object.name = message.name;
                         if (message.data && message.data.length) {
-                            object.data = [];
+                            object.data = Array(message.data.length);
                             for (let j = 0; j < message.data.length; ++j)
-                                object.data[j] = $root.cafe.jeffrey.flamegraph.proto.TimeseriesPoint.toObject(message.data[j], options);
+                                object.data[j] = $root.cafe.jeffrey.flamegraph.proto.TimeseriesPoint.toObject(message.data[j], options, _depth + 1);
                         }
                         return object;
                     };
@@ -1031,18 +1236,17 @@ export const cafe = $root.cafe = (() => {
                     };
 
                     /**
-                     * Gets the default type url for TimeseriesSeries
+                     * Gets the type url for TimeseriesSeries
                      * @function getTypeUrl
                      * @memberof cafe.jeffrey.flamegraph.proto.TimeseriesSeries
                      * @static
-                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns {string} The default type url
+                     * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns {string} The type url
                      */
-                    TimeseriesSeries.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
-                        if (typeUrlPrefix === undefined) {
-                            typeUrlPrefix = "type.googleapis.com";
-                        }
-                        return typeUrlPrefix + "/cafe.jeffrey.flamegraph.proto.TimeseriesSeries";
+                    TimeseriesSeries.getTypeUrl = function getTypeUrl(prefix) {
+                        if (prefix === undefined)
+                            prefix = "type.googleapis.com";
+                        return prefix + "/cafe.jeffrey.flamegraph.proto.TimeseriesSeries";
                     };
 
                     return TimeseriesSeries;
@@ -1052,24 +1256,37 @@ export const cafe = $root.cafe = (() => {
 
                     /**
                      * Properties of a TimeseriesPoint.
-                     * @memberof cafe.jeffrey.flamegraph.proto
-                     * @interface ITimeseriesPoint
+                     * @typedef {Object} cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties
                      * @property {number|Long|null} [timestamp] TimeseriesPoint timestamp
                      * @property {number|Long|null} [value] TimeseriesPoint value
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
+                     */
+
+                    /**
+                     * Properties of a TimeseriesPoint.
+                     * @memberof cafe.jeffrey.flamegraph.proto
+                     * @interface ITimeseriesPoint
+                     * @augments cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties
+                     * @deprecated Use cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties instead.
+                     */
+
+                    /**
+                     * Shape of a TimeseriesPoint.
+                     * @typedef {cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties} cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Shape
                      */
 
                     /**
                      * Constructs a new TimeseriesPoint.
                      * @memberof cafe.jeffrey.flamegraph.proto
                      * @classdesc Represents a TimeseriesPoint.
-                     * @implements ITimeseriesPoint
                      * @constructor
-                     * @param {cafe.jeffrey.flamegraph.proto.ITimeseriesPoint=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties=} [properties] Properties to set
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
                      */
                     function TimeseriesPoint(properties) {
                         if (properties)
                             for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                                if (properties[keys[i]] != null)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
 
@@ -1094,8 +1311,12 @@ export const cafe = $root.cafe = (() => {
                      * @function create
                      * @memberof cafe.jeffrey.flamegraph.proto.TimeseriesPoint
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.ITimeseriesPoint=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties=} [properties] Properties to set
                      * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesPoint} TimeseriesPoint instance
+                     * @type {{
+                     *   (properties: cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Shape): cafe.jeffrey.flamegraph.proto.TimeseriesPoint & cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Shape;
+                     *   (properties?: cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties): cafe.jeffrey.flamegraph.proto.TimeseriesPoint;
+                     * }}
                      */
                     TimeseriesPoint.create = function create(properties) {
                         return new TimeseriesPoint(properties);
@@ -1106,17 +1327,24 @@ export const cafe = $root.cafe = (() => {
                      * @function encode
                      * @memberof cafe.jeffrey.flamegraph.proto.TimeseriesPoint
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.ITimeseriesPoint} message TimeseriesPoint message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties} message TimeseriesPoint message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
-                    TimeseriesPoint.encode = function encode(message, writer) {
+                    TimeseriesPoint.encode = function encode(message, writer, _depth) {
                         if (!writer)
                             writer = $Writer.create();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         if (message.timestamp != null && Object.hasOwnProperty.call(message, "timestamp"))
                             writer.uint32(/* id 1, wireType 0 =*/8).int64(message.timestamp);
                         if (message.value != null && Object.hasOwnProperty.call(message, "value"))
                             writer.uint32(/* id 2, wireType 0 =*/16).int64(message.value);
+                        if (message.$unknowns != null && Object.hasOwnProperty.call(message, "$unknowns"))
+                            for (let i = 0; i < message.$unknowns.length; ++i)
+                                writer.raw(message.$unknowns[i]);
                         return writer;
                     };
 
@@ -1125,12 +1353,12 @@ export const cafe = $root.cafe = (() => {
                      * @function encodeDelimited
                      * @memberof cafe.jeffrey.flamegraph.proto.TimeseriesPoint
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.ITimeseriesPoint} message TimeseriesPoint message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties} message TimeseriesPoint message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
                     TimeseriesPoint.encodeDelimited = function encodeDelimited(message, writer) {
-                        return this.encode(message, writer).ldelim();
+                        return this.encode(message, writer && writer.len ? writer.fork() : writer).ldelim();
                     };
 
                     /**
@@ -1140,32 +1368,52 @@ export const cafe = $root.cafe = (() => {
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
                      * @param {number} [length] Message length if known beforehand
-                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesPoint} TimeseriesPoint
+                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesPoint & cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Shape} TimeseriesPoint
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    TimeseriesPoint.decode = function decode(reader, length, error) {
+                    TimeseriesPoint.decode = function decode(reader, length, _end, _depth, _target) {
                         if (!(reader instanceof $Reader))
                             reader = $Reader.create(reader);
-                        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.cafe.jeffrey.flamegraph.proto.TimeseriesPoint();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $Reader.recursionLimit)
+                            throw Error("max depth exceeded");
+                        let end = length === undefined ? reader.len : reader.pos + length, message = _target || new $root.cafe.jeffrey.flamegraph.proto.TimeseriesPoint(), value;
                         while (reader.pos < end) {
-                            let tag = reader.uint32();
-                            if (tag === error)
-                                break;
-                            switch (tag >>> 3) {
-                            case 1: {
-                                    message.timestamp = reader.int64();
-                                    break;
-                                }
-                            case 2: {
-                                    message.value = reader.int64();
-                                    break;
-                                }
-                            default:
-                                reader.skipType(tag & 7);
+                            let start = reader.pos;
+                            let tag = reader.tag();
+                            if (tag === _end) {
+                                _end = undefined;
                                 break;
                             }
+                            let wireType = tag & 7;
+                            switch (tag >>>= 3) {
+                            case 1: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                        message.timestamp = value;
+                                    else
+                                        delete message.timestamp;
+                                    continue;
+                                }
+                            case 2: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                        message.value = value;
+                                    else
+                                        delete message.value;
+                                    continue;
+                                }
+                            }
+                            reader.skipType(wireType, _depth, tag);
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
                         }
+                        if (_end !== undefined)
+                            throw Error("missing end group");
                         return message;
                     };
 
@@ -1175,7 +1423,7 @@ export const cafe = $root.cafe = (() => {
                      * @memberof cafe.jeffrey.flamegraph.proto.TimeseriesPoint
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesPoint} TimeseriesPoint
+                     * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesPoint & cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Shape} TimeseriesPoint
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
@@ -1193,9 +1441,13 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} message Plain object to verify
                      * @returns {string|null} `null` if valid, otherwise the reason why it is not
                      */
-                    TimeseriesPoint.verify = function verify(message) {
+                    TimeseriesPoint.verify = function verify(message, _depth) {
                         if (typeof message !== "object" || message === null)
                             return "object expected";
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            return "max depth exceeded";
                         if (message.timestamp != null && message.hasOwnProperty("timestamp"))
                             if (!$util.isInteger(message.timestamp) && !(message.timestamp && $util.isInteger(message.timestamp.low) && $util.isInteger(message.timestamp.high)))
                                 return "timestamp: integer|Long expected";
@@ -1213,28 +1465,34 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} object Plain object
                      * @returns {cafe.jeffrey.flamegraph.proto.TimeseriesPoint} TimeseriesPoint
                      */
-                    TimeseriesPoint.fromObject = function fromObject(object) {
+                    TimeseriesPoint.fromObject = function fromObject(object, _depth) {
                         if (object instanceof $root.cafe.jeffrey.flamegraph.proto.TimeseriesPoint)
                             return object;
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let message = new $root.cafe.jeffrey.flamegraph.proto.TimeseriesPoint();
                         if (object.timestamp != null)
-                            if ($util.Long)
-                                (message.timestamp = $util.Long.fromValue(object.timestamp)).unsigned = false;
-                            else if (typeof object.timestamp === "string")
-                                message.timestamp = parseInt(object.timestamp, 10);
-                            else if (typeof object.timestamp === "number")
-                                message.timestamp = object.timestamp;
-                            else if (typeof object.timestamp === "object")
-                                message.timestamp = new $util.LongBits(object.timestamp.low >>> 0, object.timestamp.high >>> 0).toNumber();
+                            if (typeof object.timestamp === "object" ? object.timestamp.low || object.timestamp.high : Number(object.timestamp) !== 0)
+                                if ($util.Long)
+                                    message.timestamp = $util.Long.fromValue(object.timestamp, false);
+                                else if (typeof object.timestamp === "string")
+                                    message.timestamp = parseInt(object.timestamp, 10);
+                                else if (typeof object.timestamp === "number")
+                                    message.timestamp = object.timestamp;
+                                else if (typeof object.timestamp === "object")
+                                    message.timestamp = new $util.LongBits(object.timestamp.low >>> 0, object.timestamp.high >>> 0).toNumber();
                         if (object.value != null)
-                            if ($util.Long)
-                                (message.value = $util.Long.fromValue(object.value)).unsigned = false;
-                            else if (typeof object.value === "string")
-                                message.value = parseInt(object.value, 10);
-                            else if (typeof object.value === "number")
-                                message.value = object.value;
-                            else if (typeof object.value === "object")
-                                message.value = new $util.LongBits(object.value.low >>> 0, object.value.high >>> 0).toNumber();
+                            if (typeof object.value === "object" ? object.value.low || object.value.high : Number(object.value) !== 0)
+                                if ($util.Long)
+                                    message.value = $util.Long.fromValue(object.value, false);
+                                else if (typeof object.value === "string")
+                                    message.value = parseInt(object.value, 10);
+                                else if (typeof object.value === "number")
+                                    message.value = object.value;
+                                else if (typeof object.value === "object")
+                                    message.value = new $util.LongBits(object.value.low >>> 0, object.value.high >>> 0).toNumber();
                         return message;
                     };
 
@@ -1247,29 +1505,37 @@ export const cafe = $root.cafe = (() => {
                      * @param {$protobuf.IConversionOptions} [options] Conversion options
                      * @returns {Object.<string,*>} Plain object
                      */
-                    TimeseriesPoint.toObject = function toObject(message, options) {
+                    TimeseriesPoint.toObject = function toObject(message, options, _depth) {
                         if (!options)
                             options = {};
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let object = {};
                         if (options.defaults) {
                             if ($util.Long) {
                                 let long = new $util.Long(0, 0, false);
-                                object.timestamp = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                                object.timestamp = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
                             } else
-                                object.timestamp = options.longs === String ? "0" : 0;
+                                object.timestamp = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
                             if ($util.Long) {
                                 let long = new $util.Long(0, 0, false);
-                                object.value = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                                object.value = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
                             } else
-                                object.value = options.longs === String ? "0" : 0;
+                                object.value = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
                         }
                         if (message.timestamp != null && message.hasOwnProperty("timestamp"))
-                            if (typeof message.timestamp === "number")
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.timestamp = typeof message.timestamp === "number" ? BigInt(message.timestamp) : $util.Long.fromBits(message.timestamp.low >>> 0, message.timestamp.high >>> 0, false).toBigInt();
+                            else if (typeof message.timestamp === "number")
                                 object.timestamp = options.longs === String ? String(message.timestamp) : message.timestamp;
                             else
                                 object.timestamp = options.longs === String ? $util.Long.prototype.toString.call(message.timestamp) : options.longs === Number ? new $util.LongBits(message.timestamp.low >>> 0, message.timestamp.high >>> 0).toNumber() : message.timestamp;
                         if (message.value != null && message.hasOwnProperty("value"))
-                            if (typeof message.value === "number")
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.value = typeof message.value === "number" ? BigInt(message.value) : $util.Long.fromBits(message.value.low >>> 0, message.value.high >>> 0, false).toBigInt();
+                            else if (typeof message.value === "number")
                                 object.value = options.longs === String ? String(message.value) : message.value;
                             else
                                 object.value = options.longs === String ? $util.Long.prototype.toString.call(message.value) : options.longs === Number ? new $util.LongBits(message.value.low >>> 0, message.value.high >>> 0).toNumber() : message.value;
@@ -1288,18 +1554,17 @@ export const cafe = $root.cafe = (() => {
                     };
 
                     /**
-                     * Gets the default type url for TimeseriesPoint
+                     * Gets the type url for TimeseriesPoint
                      * @function getTypeUrl
                      * @memberof cafe.jeffrey.flamegraph.proto.TimeseriesPoint
                      * @static
-                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns {string} The default type url
+                     * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns {string} The type url
                      */
-                    TimeseriesPoint.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
-                        if (typeUrlPrefix === undefined) {
-                            typeUrlPrefix = "type.googleapis.com";
-                        }
-                        return typeUrlPrefix + "/cafe.jeffrey.flamegraph.proto.TimeseriesPoint";
+                    TimeseriesPoint.getTypeUrl = function getTypeUrl(prefix) {
+                        if (prefix === undefined)
+                            prefix = "type.googleapis.com";
+                        return prefix + "/cafe.jeffrey.flamegraph.proto.TimeseriesPoint";
                     };
 
                     return TimeseriesPoint;
@@ -1309,30 +1574,43 @@ export const cafe = $root.cafe = (() => {
 
                     /**
                      * Properties of a Level.
+                     * @typedef {Object} cafe.jeffrey.flamegraph.proto.Level.$Properties
+                     * @property {Array.<cafe.jeffrey.flamegraph.proto.Frame.$Properties>|null} [frames] Level frames
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
+                     */
+
+                    /**
+                     * Properties of a Level.
                      * @memberof cafe.jeffrey.flamegraph.proto
                      * @interface ILevel
-                     * @property {Array.<cafe.jeffrey.flamegraph.proto.IFrame>|null} [frames] Level frames
+                     * @augments cafe.jeffrey.flamegraph.proto.Level.$Properties
+                     * @deprecated Use cafe.jeffrey.flamegraph.proto.Level.$Properties instead.
+                     */
+
+                    /**
+                     * Shape of a Level.
+                     * @typedef {cafe.jeffrey.flamegraph.proto.Level.$Properties} cafe.jeffrey.flamegraph.proto.Level.$Shape
                      */
 
                     /**
                      * Constructs a new Level.
                      * @memberof cafe.jeffrey.flamegraph.proto
                      * @classdesc Represents a Level.
-                     * @implements ILevel
                      * @constructor
-                     * @param {cafe.jeffrey.flamegraph.proto.ILevel=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.Level.$Properties=} [properties] Properties to set
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
                      */
                     function Level(properties) {
                         this.frames = [];
                         if (properties)
                             for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                                if (properties[keys[i]] != null)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
 
                     /**
                      * Level frames.
-                     * @member {Array.<cafe.jeffrey.flamegraph.proto.IFrame>} frames
+                     * @member {Array.<cafe.jeffrey.flamegraph.proto.Frame.$Properties>} frames
                      * @memberof cafe.jeffrey.flamegraph.proto.Level
                      * @instance
                      */
@@ -1343,8 +1621,12 @@ export const cafe = $root.cafe = (() => {
                      * @function create
                      * @memberof cafe.jeffrey.flamegraph.proto.Level
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.ILevel=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.Level.$Properties=} [properties] Properties to set
                      * @returns {cafe.jeffrey.flamegraph.proto.Level} Level instance
+                     * @type {{
+                     *   (properties: cafe.jeffrey.flamegraph.proto.Level.$Shape): cafe.jeffrey.flamegraph.proto.Level & cafe.jeffrey.flamegraph.proto.Level.$Shape;
+                     *   (properties?: cafe.jeffrey.flamegraph.proto.Level.$Properties): cafe.jeffrey.flamegraph.proto.Level;
+                     * }}
                      */
                     Level.create = function create(properties) {
                         return new Level(properties);
@@ -1355,16 +1637,23 @@ export const cafe = $root.cafe = (() => {
                      * @function encode
                      * @memberof cafe.jeffrey.flamegraph.proto.Level
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.ILevel} message Level message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.Level.$Properties} message Level message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
-                    Level.encode = function encode(message, writer) {
+                    Level.encode = function encode(message, writer, _depth) {
                         if (!writer)
                             writer = $Writer.create();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         if (message.frames != null && message.frames.length)
                             for (let i = 0; i < message.frames.length; ++i)
-                                $root.cafe.jeffrey.flamegraph.proto.Frame.encode(message.frames[i], writer.uint32(/* id 1, wireType 2 =*/10).fork()).ldelim();
+                                $root.cafe.jeffrey.flamegraph.proto.Frame.encode(message.frames[i], writer.uint32(/* id 1, wireType 2 =*/10).fork(), _depth + 1).ldelim();
+                        if (message.$unknowns != null && Object.hasOwnProperty.call(message, "$unknowns"))
+                            for (let i = 0; i < message.$unknowns.length; ++i)
+                                writer.raw(message.$unknowns[i]);
                         return writer;
                     };
 
@@ -1373,12 +1662,12 @@ export const cafe = $root.cafe = (() => {
                      * @function encodeDelimited
                      * @memberof cafe.jeffrey.flamegraph.proto.Level
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.ILevel} message Level message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.Level.$Properties} message Level message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
                     Level.encodeDelimited = function encodeDelimited(message, writer) {
-                        return this.encode(message, writer).ldelim();
+                        return this.encode(message, writer && writer.len ? writer.fork() : writer).ldelim();
                     };
 
                     /**
@@ -1388,30 +1677,42 @@ export const cafe = $root.cafe = (() => {
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
                      * @param {number} [length] Message length if known beforehand
-                     * @returns {cafe.jeffrey.flamegraph.proto.Level} Level
+                     * @returns {cafe.jeffrey.flamegraph.proto.Level & cafe.jeffrey.flamegraph.proto.Level.$Shape} Level
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    Level.decode = function decode(reader, length, error) {
+                    Level.decode = function decode(reader, length, _end, _depth, _target) {
                         if (!(reader instanceof $Reader))
                             reader = $Reader.create(reader);
-                        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.cafe.jeffrey.flamegraph.proto.Level();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $Reader.recursionLimit)
+                            throw Error("max depth exceeded");
+                        let end = length === undefined ? reader.len : reader.pos + length, message = _target || new $root.cafe.jeffrey.flamegraph.proto.Level();
                         while (reader.pos < end) {
-                            let tag = reader.uint32();
-                            if (tag === error)
-                                break;
-                            switch (tag >>> 3) {
-                            case 1: {
-                                    if (!(message.frames && message.frames.length))
-                                        message.frames = [];
-                                    message.frames.push($root.cafe.jeffrey.flamegraph.proto.Frame.decode(reader, reader.uint32()));
-                                    break;
-                                }
-                            default:
-                                reader.skipType(tag & 7);
+                            let start = reader.pos;
+                            let tag = reader.tag();
+                            if (tag === _end) {
+                                _end = undefined;
                                 break;
                             }
+                            let wireType = tag & 7;
+                            switch (tag >>>= 3) {
+                            case 1: {
+                                    if (wireType !== 2)
+                                        break;
+                                    if (!(message.frames && message.frames.length))
+                                        message.frames = [];
+                                    message.frames.push($root.cafe.jeffrey.flamegraph.proto.Frame.decode(reader, reader.uint32(), undefined, _depth + 1));
+                                    continue;
+                                }
+                            }
+                            reader.skipType(wireType, _depth, tag);
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
                         }
+                        if (_end !== undefined)
+                            throw Error("missing end group");
                         return message;
                     };
 
@@ -1421,7 +1722,7 @@ export const cafe = $root.cafe = (() => {
                      * @memberof cafe.jeffrey.flamegraph.proto.Level
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-                     * @returns {cafe.jeffrey.flamegraph.proto.Level} Level
+                     * @returns {cafe.jeffrey.flamegraph.proto.Level & cafe.jeffrey.flamegraph.proto.Level.$Shape} Level
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
@@ -1439,14 +1740,18 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} message Plain object to verify
                      * @returns {string|null} `null` if valid, otherwise the reason why it is not
                      */
-                    Level.verify = function verify(message) {
+                    Level.verify = function verify(message, _depth) {
                         if (typeof message !== "object" || message === null)
                             return "object expected";
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            return "max depth exceeded";
                         if (message.frames != null && message.hasOwnProperty("frames")) {
                             if (!Array.isArray(message.frames))
                                 return "frames: array expected";
                             for (let i = 0; i < message.frames.length; ++i) {
-                                let error = $root.cafe.jeffrey.flamegraph.proto.Frame.verify(message.frames[i]);
+                                let error = $root.cafe.jeffrey.flamegraph.proto.Frame.verify(message.frames[i], _depth + 1);
                                 if (error)
                                     return "frames." + error;
                             }
@@ -1462,18 +1767,22 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} object Plain object
                      * @returns {cafe.jeffrey.flamegraph.proto.Level} Level
                      */
-                    Level.fromObject = function fromObject(object) {
+                    Level.fromObject = function fromObject(object, _depth) {
                         if (object instanceof $root.cafe.jeffrey.flamegraph.proto.Level)
                             return object;
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let message = new $root.cafe.jeffrey.flamegraph.proto.Level();
                         if (object.frames) {
                             if (!Array.isArray(object.frames))
                                 throw TypeError(".cafe.jeffrey.flamegraph.proto.Level.frames: array expected");
-                            message.frames = [];
+                            message.frames = Array(object.frames.length);
                             for (let i = 0; i < object.frames.length; ++i) {
                                 if (typeof object.frames[i] !== "object")
                                     throw TypeError(".cafe.jeffrey.flamegraph.proto.Level.frames: object expected");
-                                message.frames[i] = $root.cafe.jeffrey.flamegraph.proto.Frame.fromObject(object.frames[i]);
+                                message.frames[i] = $root.cafe.jeffrey.flamegraph.proto.Frame.fromObject(object.frames[i], _depth + 1);
                             }
                         }
                         return message;
@@ -1488,16 +1797,20 @@ export const cafe = $root.cafe = (() => {
                      * @param {$protobuf.IConversionOptions} [options] Conversion options
                      * @returns {Object.<string,*>} Plain object
                      */
-                    Level.toObject = function toObject(message, options) {
+                    Level.toObject = function toObject(message, options, _depth) {
                         if (!options)
                             options = {};
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let object = {};
                         if (options.arrays || options.defaults)
                             object.frames = [];
                         if (message.frames && message.frames.length) {
-                            object.frames = [];
+                            object.frames = Array(message.frames.length);
                             for (let j = 0; j < message.frames.length; ++j)
-                                object.frames[j] = $root.cafe.jeffrey.flamegraph.proto.Frame.toObject(message.frames[j], options);
+                                object.frames[j] = $root.cafe.jeffrey.flamegraph.proto.Frame.toObject(message.frames[j], options, _depth + 1);
                         }
                         return object;
                     };
@@ -1514,18 +1827,17 @@ export const cafe = $root.cafe = (() => {
                     };
 
                     /**
-                     * Gets the default type url for Level
+                     * Gets the type url for Level
                      * @function getTypeUrl
                      * @memberof cafe.jeffrey.flamegraph.proto.Level
                      * @static
-                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns {string} The default type url
+                     * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns {string} The type url
                      */
-                    Level.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
-                        if (typeUrlPrefix === undefined) {
-                            typeUrlPrefix = "type.googleapis.com";
-                        }
-                        return typeUrlPrefix + "/cafe.jeffrey.flamegraph.proto.Level";
+                    Level.getTypeUrl = function getTypeUrl(prefix) {
+                        if (prefix === undefined)
+                            prefix = "type.googleapis.com";
+                        return prefix + "/cafe.jeffrey.flamegraph.proto.Level";
                     };
 
                     return Level;
@@ -1535,8 +1847,7 @@ export const cafe = $root.cafe = (() => {
 
                     /**
                      * Properties of a Frame.
-                     * @memberof cafe.jeffrey.flamegraph.proto
-                     * @interface IFrame
+                     * @typedef {Object} cafe.jeffrey.flamegraph.proto.Frame.$Properties
                      * @property {number|Long|null} [leftSamples] Frame leftSamples
                      * @property {number|Long|null} [totalSamples] Frame totalSamples
                      * @property {number|null} [titleIndex] Frame titleIndex
@@ -1544,25 +1855,40 @@ export const cafe = $root.cafe = (() => {
                      * @property {number|Long|null} [leftWeight] Frame leftWeight
                      * @property {number|Long|null} [totalWeight] Frame totalWeight
                      * @property {number|Long|null} [selfSamples] Frame selfSamples
-                     * @property {cafe.jeffrey.flamegraph.proto.IFramePosition|null} [position] Frame position
-                     * @property {cafe.jeffrey.flamegraph.proto.IFrameSampleTypes|null} [sampleTypes] Frame sampleTypes
-                     * @property {cafe.jeffrey.flamegraph.proto.IDiffDetails|null} [diffDetails] Frame diffDetails
+                     * @property {cafe.jeffrey.flamegraph.proto.FramePosition.$Properties|null} [position] Frame position
+                     * @property {cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties|null} [sampleTypes] Frame sampleTypes
+                     * @property {cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties|null} [diffDetails] Frame diffDetails
                      * @property {boolean|null} [beforeMarker] Frame beforeMarker
                      * @property {number|null} [prunedChildrenCount] Frame prunedChildrenCount
+                     * @property {boolean|null} [hidden] Frame hidden
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
+                     */
+
+                    /**
+                     * Properties of a Frame.
+                     * @memberof cafe.jeffrey.flamegraph.proto
+                     * @interface IFrame
+                     * @augments cafe.jeffrey.flamegraph.proto.Frame.$Properties
+                     * @deprecated Use cafe.jeffrey.flamegraph.proto.Frame.$Properties instead.
+                     */
+
+                    /**
+                     * Shape of a Frame.
+                     * @typedef {cafe.jeffrey.flamegraph.proto.Frame.$Properties} cafe.jeffrey.flamegraph.proto.Frame.$Shape
                      */
 
                     /**
                      * Constructs a new Frame.
                      * @memberof cafe.jeffrey.flamegraph.proto
                      * @classdesc Represents a Frame.
-                     * @implements IFrame
                      * @constructor
-                     * @param {cafe.jeffrey.flamegraph.proto.IFrame=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.Frame.$Properties=} [properties] Properties to set
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
                      */
                     function Frame(properties) {
                         if (properties)
                             for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                                if (properties[keys[i]] != null)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
 
@@ -1624,7 +1950,7 @@ export const cafe = $root.cafe = (() => {
 
                     /**
                      * Frame position.
-                     * @member {cafe.jeffrey.flamegraph.proto.IFramePosition|null|undefined} position
+                     * @member {cafe.jeffrey.flamegraph.proto.FramePosition.$Properties|null|undefined} position
                      * @memberof cafe.jeffrey.flamegraph.proto.Frame
                      * @instance
                      */
@@ -1632,7 +1958,7 @@ export const cafe = $root.cafe = (() => {
 
                     /**
                      * Frame sampleTypes.
-                     * @member {cafe.jeffrey.flamegraph.proto.IFrameSampleTypes|null|undefined} sampleTypes
+                     * @member {cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties|null|undefined} sampleTypes
                      * @memberof cafe.jeffrey.flamegraph.proto.Frame
                      * @instance
                      */
@@ -1640,7 +1966,7 @@ export const cafe = $root.cafe = (() => {
 
                     /**
                      * Frame diffDetails.
-                     * @member {cafe.jeffrey.flamegraph.proto.IDiffDetails|null|undefined} diffDetails
+                     * @member {cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties|null|undefined} diffDetails
                      * @memberof cafe.jeffrey.flamegraph.proto.Frame
                      * @instance
                      */
@@ -1663,12 +1989,24 @@ export const cafe = $root.cafe = (() => {
                     Frame.prototype.prunedChildrenCount = 0;
 
                     /**
+                     * Frame hidden.
+                     * @member {boolean} hidden
+                     * @memberof cafe.jeffrey.flamegraph.proto.Frame
+                     * @instance
+                     */
+                    Frame.prototype.hidden = false;
+
+                    /**
                      * Creates a new Frame instance using the specified properties.
                      * @function create
                      * @memberof cafe.jeffrey.flamegraph.proto.Frame
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IFrame=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.Frame.$Properties=} [properties] Properties to set
                      * @returns {cafe.jeffrey.flamegraph.proto.Frame} Frame instance
+                     * @type {{
+                     *   (properties: cafe.jeffrey.flamegraph.proto.Frame.$Shape): cafe.jeffrey.flamegraph.proto.Frame & cafe.jeffrey.flamegraph.proto.Frame.$Shape;
+                     *   (properties?: cafe.jeffrey.flamegraph.proto.Frame.$Properties): cafe.jeffrey.flamegraph.proto.Frame;
+                     * }}
                      */
                     Frame.create = function create(properties) {
                         return new Frame(properties);
@@ -1679,13 +2017,17 @@ export const cafe = $root.cafe = (() => {
                      * @function encode
                      * @memberof cafe.jeffrey.flamegraph.proto.Frame
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IFrame} message Frame message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.Frame.$Properties} message Frame message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
-                    Frame.encode = function encode(message, writer) {
+                    Frame.encode = function encode(message, writer, _depth) {
                         if (!writer)
                             writer = $Writer.create();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         if (message.leftSamples != null && Object.hasOwnProperty.call(message, "leftSamples"))
                             writer.uint32(/* id 1, wireType 0 =*/8).int64(message.leftSamples);
                         if (message.totalSamples != null && Object.hasOwnProperty.call(message, "totalSamples"))
@@ -1701,15 +2043,20 @@ export const cafe = $root.cafe = (() => {
                         if (message.selfSamples != null && Object.hasOwnProperty.call(message, "selfSamples"))
                             writer.uint32(/* id 7, wireType 0 =*/56).int64(message.selfSamples);
                         if (message.position != null && Object.hasOwnProperty.call(message, "position"))
-                            $root.cafe.jeffrey.flamegraph.proto.FramePosition.encode(message.position, writer.uint32(/* id 8, wireType 2 =*/66).fork()).ldelim();
+                            $root.cafe.jeffrey.flamegraph.proto.FramePosition.encode(message.position, writer.uint32(/* id 8, wireType 2 =*/66).fork(), _depth + 1).ldelim();
                         if (message.sampleTypes != null && Object.hasOwnProperty.call(message, "sampleTypes"))
-                            $root.cafe.jeffrey.flamegraph.proto.FrameSampleTypes.encode(message.sampleTypes, writer.uint32(/* id 9, wireType 2 =*/74).fork()).ldelim();
+                            $root.cafe.jeffrey.flamegraph.proto.FrameSampleTypes.encode(message.sampleTypes, writer.uint32(/* id 9, wireType 2 =*/74).fork(), _depth + 1).ldelim();
                         if (message.diffDetails != null && Object.hasOwnProperty.call(message, "diffDetails"))
-                            $root.cafe.jeffrey.flamegraph.proto.DiffDetails.encode(message.diffDetails, writer.uint32(/* id 10, wireType 2 =*/82).fork()).ldelim();
+                            $root.cafe.jeffrey.flamegraph.proto.DiffDetails.encode(message.diffDetails, writer.uint32(/* id 10, wireType 2 =*/82).fork(), _depth + 1).ldelim();
                         if (message.beforeMarker != null && Object.hasOwnProperty.call(message, "beforeMarker"))
                             writer.uint32(/* id 11, wireType 0 =*/88).bool(message.beforeMarker);
                         if (message.prunedChildrenCount != null && Object.hasOwnProperty.call(message, "prunedChildrenCount"))
                             writer.uint32(/* id 12, wireType 0 =*/96).int32(message.prunedChildrenCount);
+                        if (message.hidden != null && Object.hasOwnProperty.call(message, "hidden"))
+                            writer.uint32(/* id 13, wireType 0 =*/104).bool(message.hidden);
+                        if (message.$unknowns != null && Object.hasOwnProperty.call(message, "$unknowns"))
+                            for (let i = 0; i < message.$unknowns.length; ++i)
+                                writer.raw(message.$unknowns[i]);
                         return writer;
                     };
 
@@ -1718,12 +2065,12 @@ export const cafe = $root.cafe = (() => {
                      * @function encodeDelimited
                      * @memberof cafe.jeffrey.flamegraph.proto.Frame
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IFrame} message Frame message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.Frame.$Properties} message Frame message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
                     Frame.encodeDelimited = function encodeDelimited(message, writer) {
-                        return this.encode(message, writer).ldelim();
+                        return this.encode(message, writer && writer.len ? writer.fork() : writer).ldelim();
                     };
 
                     /**
@@ -1733,72 +2080,142 @@ export const cafe = $root.cafe = (() => {
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
                      * @param {number} [length] Message length if known beforehand
-                     * @returns {cafe.jeffrey.flamegraph.proto.Frame} Frame
+                     * @returns {cafe.jeffrey.flamegraph.proto.Frame & cafe.jeffrey.flamegraph.proto.Frame.$Shape} Frame
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    Frame.decode = function decode(reader, length, error) {
+                    Frame.decode = function decode(reader, length, _end, _depth, _target) {
                         if (!(reader instanceof $Reader))
                             reader = $Reader.create(reader);
-                        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.cafe.jeffrey.flamegraph.proto.Frame();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $Reader.recursionLimit)
+                            throw Error("max depth exceeded");
+                        let end = length === undefined ? reader.len : reader.pos + length, message = _target || new $root.cafe.jeffrey.flamegraph.proto.Frame(), value;
                         while (reader.pos < end) {
-                            let tag = reader.uint32();
-                            if (tag === error)
-                                break;
-                            switch (tag >>> 3) {
-                            case 1: {
-                                    message.leftSamples = reader.int64();
-                                    break;
-                                }
-                            case 2: {
-                                    message.totalSamples = reader.int64();
-                                    break;
-                                }
-                            case 3: {
-                                    message.titleIndex = reader.int32();
-                                    break;
-                                }
-                            case 4: {
-                                    message.type = reader.int32();
-                                    break;
-                                }
-                            case 5: {
-                                    message.leftWeight = reader.int64();
-                                    break;
-                                }
-                            case 6: {
-                                    message.totalWeight = reader.int64();
-                                    break;
-                                }
-                            case 7: {
-                                    message.selfSamples = reader.int64();
-                                    break;
-                                }
-                            case 8: {
-                                    message.position = $root.cafe.jeffrey.flamegraph.proto.FramePosition.decode(reader, reader.uint32());
-                                    break;
-                                }
-                            case 9: {
-                                    message.sampleTypes = $root.cafe.jeffrey.flamegraph.proto.FrameSampleTypes.decode(reader, reader.uint32());
-                                    break;
-                                }
-                            case 10: {
-                                    message.diffDetails = $root.cafe.jeffrey.flamegraph.proto.DiffDetails.decode(reader, reader.uint32());
-                                    break;
-                                }
-                            case 11: {
-                                    message.beforeMarker = reader.bool();
-                                    break;
-                                }
-                            case 12: {
-                                    message.prunedChildrenCount = reader.int32();
-                                    break;
-                                }
-                            default:
-                                reader.skipType(tag & 7);
+                            let start = reader.pos;
+                            let tag = reader.tag();
+                            if (tag === _end) {
+                                _end = undefined;
                                 break;
                             }
+                            let wireType = tag & 7;
+                            switch (tag >>>= 3) {
+                            case 1: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                        message.leftSamples = value;
+                                    else
+                                        delete message.leftSamples;
+                                    continue;
+                                }
+                            case 2: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                        message.totalSamples = value;
+                                    else
+                                        delete message.totalSamples;
+                                    continue;
+                                }
+                            case 3: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (value = reader.int32())
+                                        message.titleIndex = value;
+                                    else
+                                        delete message.titleIndex;
+                                    continue;
+                                }
+                            case 4: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (value = reader.int32())
+                                        message.type = value;
+                                    else
+                                        delete message.type;
+                                    continue;
+                                }
+                            case 5: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                        message.leftWeight = value;
+                                    else
+                                        delete message.leftWeight;
+                                    continue;
+                                }
+                            case 6: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                        message.totalWeight = value;
+                                    else
+                                        delete message.totalWeight;
+                                    continue;
+                                }
+                            case 7: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                        message.selfSamples = value;
+                                    else
+                                        delete message.selfSamples;
+                                    continue;
+                                }
+                            case 8: {
+                                    if (wireType !== 2)
+                                        break;
+                                    message.position = $root.cafe.jeffrey.flamegraph.proto.FramePosition.decode(reader, reader.uint32(), undefined, _depth + 1, message.position);
+                                    continue;
+                                }
+                            case 9: {
+                                    if (wireType !== 2)
+                                        break;
+                                    message.sampleTypes = $root.cafe.jeffrey.flamegraph.proto.FrameSampleTypes.decode(reader, reader.uint32(), undefined, _depth + 1, message.sampleTypes);
+                                    continue;
+                                }
+                            case 10: {
+                                    if (wireType !== 2)
+                                        break;
+                                    message.diffDetails = $root.cafe.jeffrey.flamegraph.proto.DiffDetails.decode(reader, reader.uint32(), undefined, _depth + 1, message.diffDetails);
+                                    continue;
+                                }
+                            case 11: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (value = reader.bool())
+                                        message.beforeMarker = value;
+                                    else
+                                        delete message.beforeMarker;
+                                    continue;
+                                }
+                            case 12: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (value = reader.int32())
+                                        message.prunedChildrenCount = value;
+                                    else
+                                        delete message.prunedChildrenCount;
+                                    continue;
+                                }
+                            case 13: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (value = reader.bool())
+                                        message.hidden = value;
+                                    else
+                                        delete message.hidden;
+                                    continue;
+                                }
+                            }
+                            reader.skipType(wireType, _depth, tag);
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
                         }
+                        if (_end !== undefined)
+                            throw Error("missing end group");
                         return message;
                     };
 
@@ -1808,7 +2225,7 @@ export const cafe = $root.cafe = (() => {
                      * @memberof cafe.jeffrey.flamegraph.proto.Frame
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-                     * @returns {cafe.jeffrey.flamegraph.proto.Frame} Frame
+                     * @returns {cafe.jeffrey.flamegraph.proto.Frame & cafe.jeffrey.flamegraph.proto.Frame.$Shape} Frame
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
@@ -1826,9 +2243,13 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} message Plain object to verify
                      * @returns {string|null} `null` if valid, otherwise the reason why it is not
                      */
-                    Frame.verify = function verify(message) {
+                    Frame.verify = function verify(message, _depth) {
                         if (typeof message !== "object" || message === null)
                             return "object expected";
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            return "max depth exceeded";
                         if (message.leftSamples != null && message.hasOwnProperty("leftSamples"))
                             if (!$util.isInteger(message.leftSamples) && !(message.leftSamples && $util.isInteger(message.leftSamples.low) && $util.isInteger(message.leftSamples.high)))
                                 return "leftSamples: integer|Long expected";
@@ -1855,7 +2276,6 @@ export const cafe = $root.cafe = (() => {
                             case 10:
                             case 11:
                             case 12:
-                            case 13:
                             case 14:
                             case 15:
                             case 16:
@@ -1871,17 +2291,17 @@ export const cafe = $root.cafe = (() => {
                             if (!$util.isInteger(message.selfSamples) && !(message.selfSamples && $util.isInteger(message.selfSamples.low) && $util.isInteger(message.selfSamples.high)))
                                 return "selfSamples: integer|Long expected";
                         if (message.position != null && message.hasOwnProperty("position")) {
-                            let error = $root.cafe.jeffrey.flamegraph.proto.FramePosition.verify(message.position);
+                            let error = $root.cafe.jeffrey.flamegraph.proto.FramePosition.verify(message.position, _depth + 1);
                             if (error)
                                 return "position." + error;
                         }
                         if (message.sampleTypes != null && message.hasOwnProperty("sampleTypes")) {
-                            let error = $root.cafe.jeffrey.flamegraph.proto.FrameSampleTypes.verify(message.sampleTypes);
+                            let error = $root.cafe.jeffrey.flamegraph.proto.FrameSampleTypes.verify(message.sampleTypes, _depth + 1);
                             if (error)
                                 return "sampleTypes." + error;
                         }
                         if (message.diffDetails != null && message.hasOwnProperty("diffDetails")) {
-                            let error = $root.cafe.jeffrey.flamegraph.proto.DiffDetails.verify(message.diffDetails);
+                            let error = $root.cafe.jeffrey.flamegraph.proto.DiffDetails.verify(message.diffDetails, _depth + 1);
                             if (error)
                                 return "diffDetails." + error;
                         }
@@ -1891,6 +2311,9 @@ export const cafe = $root.cafe = (() => {
                         if (message.prunedChildrenCount != null && message.hasOwnProperty("prunedChildrenCount"))
                             if (!$util.isInteger(message.prunedChildrenCount))
                                 return "prunedChildrenCount: integer expected";
+                        if (message.hidden != null && message.hasOwnProperty("hidden"))
+                            if (typeof message.hidden !== "boolean")
+                                return "hidden: boolean expected";
                         return null;
                     };
 
@@ -1902,152 +2325,164 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} object Plain object
                      * @returns {cafe.jeffrey.flamegraph.proto.Frame} Frame
                      */
-                    Frame.fromObject = function fromObject(object) {
+                    Frame.fromObject = function fromObject(object, _depth) {
                         if (object instanceof $root.cafe.jeffrey.flamegraph.proto.Frame)
                             return object;
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let message = new $root.cafe.jeffrey.flamegraph.proto.Frame();
                         if (object.leftSamples != null)
-                            if ($util.Long)
-                                (message.leftSamples = $util.Long.fromValue(object.leftSamples)).unsigned = false;
-                            else if (typeof object.leftSamples === "string")
-                                message.leftSamples = parseInt(object.leftSamples, 10);
-                            else if (typeof object.leftSamples === "number")
-                                message.leftSamples = object.leftSamples;
-                            else if (typeof object.leftSamples === "object")
-                                message.leftSamples = new $util.LongBits(object.leftSamples.low >>> 0, object.leftSamples.high >>> 0).toNumber();
+                            if (typeof object.leftSamples === "object" ? object.leftSamples.low || object.leftSamples.high : Number(object.leftSamples) !== 0)
+                                if ($util.Long)
+                                    message.leftSamples = $util.Long.fromValue(object.leftSamples, false);
+                                else if (typeof object.leftSamples === "string")
+                                    message.leftSamples = parseInt(object.leftSamples, 10);
+                                else if (typeof object.leftSamples === "number")
+                                    message.leftSamples = object.leftSamples;
+                                else if (typeof object.leftSamples === "object")
+                                    message.leftSamples = new $util.LongBits(object.leftSamples.low >>> 0, object.leftSamples.high >>> 0).toNumber();
                         if (object.totalSamples != null)
-                            if ($util.Long)
-                                (message.totalSamples = $util.Long.fromValue(object.totalSamples)).unsigned = false;
-                            else if (typeof object.totalSamples === "string")
-                                message.totalSamples = parseInt(object.totalSamples, 10);
-                            else if (typeof object.totalSamples === "number")
-                                message.totalSamples = object.totalSamples;
-                            else if (typeof object.totalSamples === "object")
-                                message.totalSamples = new $util.LongBits(object.totalSamples.low >>> 0, object.totalSamples.high >>> 0).toNumber();
+                            if (typeof object.totalSamples === "object" ? object.totalSamples.low || object.totalSamples.high : Number(object.totalSamples) !== 0)
+                                if ($util.Long)
+                                    message.totalSamples = $util.Long.fromValue(object.totalSamples, false);
+                                else if (typeof object.totalSamples === "string")
+                                    message.totalSamples = parseInt(object.totalSamples, 10);
+                                else if (typeof object.totalSamples === "number")
+                                    message.totalSamples = object.totalSamples;
+                                else if (typeof object.totalSamples === "object")
+                                    message.totalSamples = new $util.LongBits(object.totalSamples.low >>> 0, object.totalSamples.high >>> 0).toNumber();
                         if (object.titleIndex != null)
-                            message.titleIndex = object.titleIndex | 0;
-                        switch (object.type) {
-                        default:
-                            if (typeof object.type === "number") {
-                                message.type = object.type;
+                            if (Number(object.titleIndex) !== 0)
+                                message.titleIndex = object.titleIndex | 0;
+                        if (object.type !== 0 && (typeof object.type !== "string" || $root.cafe.jeffrey.flamegraph.proto.FrameType[object.type] !== 0))
+                            switch (object.type) {
+                            default:
+                                if (typeof object.type === "number") {
+                                    message.type = object.type;
+                                    break;
+                                }
+                                break;
+                            case "FRAME_TYPE_UNKNOWN":
+                            case 0:
+                                message.type = 0;
+                                break;
+                            case "FRAME_TYPE_C1_COMPILED":
+                            case 1:
+                                message.type = 1;
+                                break;
+                            case "FRAME_TYPE_NATIVE":
+                            case 2:
+                                message.type = 2;
+                                break;
+                            case "FRAME_TYPE_CPP":
+                            case 3:
+                                message.type = 3;
+                                break;
+                            case "FRAME_TYPE_INTERPRETED":
+                            case 4:
+                                message.type = 4;
+                                break;
+                            case "FRAME_TYPE_JIT_COMPILED":
+                            case 5:
+                                message.type = 5;
+                                break;
+                            case "FRAME_TYPE_INLINED":
+                            case 6:
+                                message.type = 6;
+                                break;
+                            case "FRAME_TYPE_KERNEL":
+                            case 7:
+                                message.type = 7;
+                                break;
+                            case "FRAME_TYPE_THREAD_NAME_SYNTHETIC":
+                            case 8:
+                                message.type = 8;
+                                break;
+                            case "FRAME_TYPE_ALLOCATED_OBJECT_SYNTHETIC":
+                            case 9:
+                                message.type = 9;
+                                break;
+                            case "FRAME_TYPE_ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC":
+                            case 10:
+                                message.type = 10;
+                                break;
+                            case "FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC":
+                            case 11:
+                                message.type = 11;
+                                break;
+                            case "FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC":
+                            case 12:
+                                message.type = 12;
+                                break;
+                            case "FRAME_TYPE_HIGHLIGHTED_WARNING":
+                            case 14:
+                                message.type = 14;
+                                break;
+                            case "FRAME_TYPE_COLLAPSED_SYNTHETIC":
+                            case 15:
+                                message.type = 15;
+                                break;
+                            case "FRAME_TYPE_TRUNCATED_SYNTHETIC":
+                            case 16:
+                                message.type = 16;
                                 break;
                             }
-                            break;
-                        case "FRAME_TYPE_UNKNOWN":
-                        case 0:
-                            message.type = 0;
-                            break;
-                        case "FRAME_TYPE_C1_COMPILED":
-                        case 1:
-                            message.type = 1;
-                            break;
-                        case "FRAME_TYPE_NATIVE":
-                        case 2:
-                            message.type = 2;
-                            break;
-                        case "FRAME_TYPE_CPP":
-                        case 3:
-                            message.type = 3;
-                            break;
-                        case "FRAME_TYPE_INTERPRETED":
-                        case 4:
-                            message.type = 4;
-                            break;
-                        case "FRAME_TYPE_JIT_COMPILED":
-                        case 5:
-                            message.type = 5;
-                            break;
-                        case "FRAME_TYPE_INLINED":
-                        case 6:
-                            message.type = 6;
-                            break;
-                        case "FRAME_TYPE_KERNEL":
-                        case 7:
-                            message.type = 7;
-                            break;
-                        case "FRAME_TYPE_THREAD_NAME_SYNTHETIC":
-                        case 8:
-                            message.type = 8;
-                            break;
-                        case "FRAME_TYPE_ALLOCATED_OBJECT_SYNTHETIC":
-                        case 9:
-                            message.type = 9;
-                            break;
-                        case "FRAME_TYPE_ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC":
-                        case 10:
-                            message.type = 10;
-                            break;
-                        case "FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC":
-                        case 11:
-                            message.type = 11;
-                            break;
-                        case "FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC":
-                        case 12:
-                            message.type = 12;
-                            break;
-                        case "FRAME_TYPE_LAMBDA_SYNTHETIC":
-                        case 13:
-                            message.type = 13;
-                            break;
-                        case "FRAME_TYPE_HIGHLIGHTED_WARNING":
-                        case 14:
-                            message.type = 14;
-                            break;
-                        case "FRAME_TYPE_COLLAPSED_SYNTHETIC":
-                        case 15:
-                            message.type = 15;
-                            break;
-                        case "FRAME_TYPE_TRUNCATED_SYNTHETIC":
-                        case 16:
-                            message.type = 16;
-                            break;
-                        }
                         if (object.leftWeight != null)
-                            if ($util.Long)
-                                (message.leftWeight = $util.Long.fromValue(object.leftWeight)).unsigned = false;
-                            else if (typeof object.leftWeight === "string")
-                                message.leftWeight = parseInt(object.leftWeight, 10);
-                            else if (typeof object.leftWeight === "number")
-                                message.leftWeight = object.leftWeight;
-                            else if (typeof object.leftWeight === "object")
-                                message.leftWeight = new $util.LongBits(object.leftWeight.low >>> 0, object.leftWeight.high >>> 0).toNumber();
+                            if (typeof object.leftWeight === "object" ? object.leftWeight.low || object.leftWeight.high : Number(object.leftWeight) !== 0)
+                                if ($util.Long)
+                                    message.leftWeight = $util.Long.fromValue(object.leftWeight, false);
+                                else if (typeof object.leftWeight === "string")
+                                    message.leftWeight = parseInt(object.leftWeight, 10);
+                                else if (typeof object.leftWeight === "number")
+                                    message.leftWeight = object.leftWeight;
+                                else if (typeof object.leftWeight === "object")
+                                    message.leftWeight = new $util.LongBits(object.leftWeight.low >>> 0, object.leftWeight.high >>> 0).toNumber();
                         if (object.totalWeight != null)
-                            if ($util.Long)
-                                (message.totalWeight = $util.Long.fromValue(object.totalWeight)).unsigned = false;
-                            else if (typeof object.totalWeight === "string")
-                                message.totalWeight = parseInt(object.totalWeight, 10);
-                            else if (typeof object.totalWeight === "number")
-                                message.totalWeight = object.totalWeight;
-                            else if (typeof object.totalWeight === "object")
-                                message.totalWeight = new $util.LongBits(object.totalWeight.low >>> 0, object.totalWeight.high >>> 0).toNumber();
+                            if (typeof object.totalWeight === "object" ? object.totalWeight.low || object.totalWeight.high : Number(object.totalWeight) !== 0)
+                                if ($util.Long)
+                                    message.totalWeight = $util.Long.fromValue(object.totalWeight, false);
+                                else if (typeof object.totalWeight === "string")
+                                    message.totalWeight = parseInt(object.totalWeight, 10);
+                                else if (typeof object.totalWeight === "number")
+                                    message.totalWeight = object.totalWeight;
+                                else if (typeof object.totalWeight === "object")
+                                    message.totalWeight = new $util.LongBits(object.totalWeight.low >>> 0, object.totalWeight.high >>> 0).toNumber();
                         if (object.selfSamples != null)
-                            if ($util.Long)
-                                (message.selfSamples = $util.Long.fromValue(object.selfSamples)).unsigned = false;
-                            else if (typeof object.selfSamples === "string")
-                                message.selfSamples = parseInt(object.selfSamples, 10);
-                            else if (typeof object.selfSamples === "number")
-                                message.selfSamples = object.selfSamples;
-                            else if (typeof object.selfSamples === "object")
-                                message.selfSamples = new $util.LongBits(object.selfSamples.low >>> 0, object.selfSamples.high >>> 0).toNumber();
+                            if (typeof object.selfSamples === "object" ? object.selfSamples.low || object.selfSamples.high : Number(object.selfSamples) !== 0)
+                                if ($util.Long)
+                                    message.selfSamples = $util.Long.fromValue(object.selfSamples, false);
+                                else if (typeof object.selfSamples === "string")
+                                    message.selfSamples = parseInt(object.selfSamples, 10);
+                                else if (typeof object.selfSamples === "number")
+                                    message.selfSamples = object.selfSamples;
+                                else if (typeof object.selfSamples === "object")
+                                    message.selfSamples = new $util.LongBits(object.selfSamples.low >>> 0, object.selfSamples.high >>> 0).toNumber();
                         if (object.position != null) {
                             if (typeof object.position !== "object")
                                 throw TypeError(".cafe.jeffrey.flamegraph.proto.Frame.position: object expected");
-                            message.position = $root.cafe.jeffrey.flamegraph.proto.FramePosition.fromObject(object.position);
+                            message.position = $root.cafe.jeffrey.flamegraph.proto.FramePosition.fromObject(object.position, _depth + 1);
                         }
                         if (object.sampleTypes != null) {
                             if (typeof object.sampleTypes !== "object")
                                 throw TypeError(".cafe.jeffrey.flamegraph.proto.Frame.sampleTypes: object expected");
-                            message.sampleTypes = $root.cafe.jeffrey.flamegraph.proto.FrameSampleTypes.fromObject(object.sampleTypes);
+                            message.sampleTypes = $root.cafe.jeffrey.flamegraph.proto.FrameSampleTypes.fromObject(object.sampleTypes, _depth + 1);
                         }
                         if (object.diffDetails != null) {
                             if (typeof object.diffDetails !== "object")
                                 throw TypeError(".cafe.jeffrey.flamegraph.proto.Frame.diffDetails: object expected");
-                            message.diffDetails = $root.cafe.jeffrey.flamegraph.proto.DiffDetails.fromObject(object.diffDetails);
+                            message.diffDetails = $root.cafe.jeffrey.flamegraph.proto.DiffDetails.fromObject(object.diffDetails, _depth + 1);
                         }
                         if (object.beforeMarker != null)
-                            message.beforeMarker = Boolean(object.beforeMarker);
+                            if (object.beforeMarker)
+                                message.beforeMarker = Boolean(object.beforeMarker);
                         if (object.prunedChildrenCount != null)
-                            message.prunedChildrenCount = object.prunedChildrenCount | 0;
+                            if (Number(object.prunedChildrenCount) !== 0)
+                                message.prunedChildrenCount = object.prunedChildrenCount | 0;
+                        if (object.hidden != null)
+                            if (object.hidden)
+                                message.hidden = Boolean(object.hidden);
                         return message;
                     };
 
@@ -2060,51 +2495,60 @@ export const cafe = $root.cafe = (() => {
                      * @param {$protobuf.IConversionOptions} [options] Conversion options
                      * @returns {Object.<string,*>} Plain object
                      */
-                    Frame.toObject = function toObject(message, options) {
+                    Frame.toObject = function toObject(message, options, _depth) {
                         if (!options)
                             options = {};
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let object = {};
                         if (options.defaults) {
                             if ($util.Long) {
                                 let long = new $util.Long(0, 0, false);
-                                object.leftSamples = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                                object.leftSamples = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
                             } else
-                                object.leftSamples = options.longs === String ? "0" : 0;
+                                object.leftSamples = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
                             if ($util.Long) {
                                 let long = new $util.Long(0, 0, false);
-                                object.totalSamples = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                                object.totalSamples = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
                             } else
-                                object.totalSamples = options.longs === String ? "0" : 0;
+                                object.totalSamples = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
                             object.titleIndex = 0;
                             object.type = options.enums === String ? "FRAME_TYPE_UNKNOWN" : 0;
                             if ($util.Long) {
                                 let long = new $util.Long(0, 0, false);
-                                object.leftWeight = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                                object.leftWeight = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
                             } else
-                                object.leftWeight = options.longs === String ? "0" : 0;
+                                object.leftWeight = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
                             if ($util.Long) {
                                 let long = new $util.Long(0, 0, false);
-                                object.totalWeight = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                                object.totalWeight = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
                             } else
-                                object.totalWeight = options.longs === String ? "0" : 0;
+                                object.totalWeight = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
                             if ($util.Long) {
                                 let long = new $util.Long(0, 0, false);
-                                object.selfSamples = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                                object.selfSamples = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
                             } else
-                                object.selfSamples = options.longs === String ? "0" : 0;
+                                object.selfSamples = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
                             object.position = null;
                             object.sampleTypes = null;
                             object.diffDetails = null;
                             object.beforeMarker = false;
                             object.prunedChildrenCount = 0;
+                            object.hidden = false;
                         }
                         if (message.leftSamples != null && message.hasOwnProperty("leftSamples"))
-                            if (typeof message.leftSamples === "number")
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.leftSamples = typeof message.leftSamples === "number" ? BigInt(message.leftSamples) : $util.Long.fromBits(message.leftSamples.low >>> 0, message.leftSamples.high >>> 0, false).toBigInt();
+                            else if (typeof message.leftSamples === "number")
                                 object.leftSamples = options.longs === String ? String(message.leftSamples) : message.leftSamples;
                             else
                                 object.leftSamples = options.longs === String ? $util.Long.prototype.toString.call(message.leftSamples) : options.longs === Number ? new $util.LongBits(message.leftSamples.low >>> 0, message.leftSamples.high >>> 0).toNumber() : message.leftSamples;
                         if (message.totalSamples != null && message.hasOwnProperty("totalSamples"))
-                            if (typeof message.totalSamples === "number")
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.totalSamples = typeof message.totalSamples === "number" ? BigInt(message.totalSamples) : $util.Long.fromBits(message.totalSamples.low >>> 0, message.totalSamples.high >>> 0, false).toBigInt();
+                            else if (typeof message.totalSamples === "number")
                                 object.totalSamples = options.longs === String ? String(message.totalSamples) : message.totalSamples;
                             else
                                 object.totalSamples = options.longs === String ? $util.Long.prototype.toString.call(message.totalSamples) : options.longs === Number ? new $util.LongBits(message.totalSamples.low >>> 0, message.totalSamples.high >>> 0).toNumber() : message.totalSamples;
@@ -2113,30 +2557,38 @@ export const cafe = $root.cafe = (() => {
                         if (message.type != null && message.hasOwnProperty("type"))
                             object.type = options.enums === String ? $root.cafe.jeffrey.flamegraph.proto.FrameType[message.type] === undefined ? message.type : $root.cafe.jeffrey.flamegraph.proto.FrameType[message.type] : message.type;
                         if (message.leftWeight != null && message.hasOwnProperty("leftWeight"))
-                            if (typeof message.leftWeight === "number")
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.leftWeight = typeof message.leftWeight === "number" ? BigInt(message.leftWeight) : $util.Long.fromBits(message.leftWeight.low >>> 0, message.leftWeight.high >>> 0, false).toBigInt();
+                            else if (typeof message.leftWeight === "number")
                                 object.leftWeight = options.longs === String ? String(message.leftWeight) : message.leftWeight;
                             else
                                 object.leftWeight = options.longs === String ? $util.Long.prototype.toString.call(message.leftWeight) : options.longs === Number ? new $util.LongBits(message.leftWeight.low >>> 0, message.leftWeight.high >>> 0).toNumber() : message.leftWeight;
                         if (message.totalWeight != null && message.hasOwnProperty("totalWeight"))
-                            if (typeof message.totalWeight === "number")
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.totalWeight = typeof message.totalWeight === "number" ? BigInt(message.totalWeight) : $util.Long.fromBits(message.totalWeight.low >>> 0, message.totalWeight.high >>> 0, false).toBigInt();
+                            else if (typeof message.totalWeight === "number")
                                 object.totalWeight = options.longs === String ? String(message.totalWeight) : message.totalWeight;
                             else
                                 object.totalWeight = options.longs === String ? $util.Long.prototype.toString.call(message.totalWeight) : options.longs === Number ? new $util.LongBits(message.totalWeight.low >>> 0, message.totalWeight.high >>> 0).toNumber() : message.totalWeight;
                         if (message.selfSamples != null && message.hasOwnProperty("selfSamples"))
-                            if (typeof message.selfSamples === "number")
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.selfSamples = typeof message.selfSamples === "number" ? BigInt(message.selfSamples) : $util.Long.fromBits(message.selfSamples.low >>> 0, message.selfSamples.high >>> 0, false).toBigInt();
+                            else if (typeof message.selfSamples === "number")
                                 object.selfSamples = options.longs === String ? String(message.selfSamples) : message.selfSamples;
                             else
                                 object.selfSamples = options.longs === String ? $util.Long.prototype.toString.call(message.selfSamples) : options.longs === Number ? new $util.LongBits(message.selfSamples.low >>> 0, message.selfSamples.high >>> 0).toNumber() : message.selfSamples;
                         if (message.position != null && message.hasOwnProperty("position"))
-                            object.position = $root.cafe.jeffrey.flamegraph.proto.FramePosition.toObject(message.position, options);
+                            object.position = $root.cafe.jeffrey.flamegraph.proto.FramePosition.toObject(message.position, options, _depth + 1);
                         if (message.sampleTypes != null && message.hasOwnProperty("sampleTypes"))
-                            object.sampleTypes = $root.cafe.jeffrey.flamegraph.proto.FrameSampleTypes.toObject(message.sampleTypes, options);
+                            object.sampleTypes = $root.cafe.jeffrey.flamegraph.proto.FrameSampleTypes.toObject(message.sampleTypes, options, _depth + 1);
                         if (message.diffDetails != null && message.hasOwnProperty("diffDetails"))
-                            object.diffDetails = $root.cafe.jeffrey.flamegraph.proto.DiffDetails.toObject(message.diffDetails, options);
+                            object.diffDetails = $root.cafe.jeffrey.flamegraph.proto.DiffDetails.toObject(message.diffDetails, options, _depth + 1);
                         if (message.beforeMarker != null && message.hasOwnProperty("beforeMarker"))
                             object.beforeMarker = message.beforeMarker;
                         if (message.prunedChildrenCount != null && message.hasOwnProperty("prunedChildrenCount"))
                             object.prunedChildrenCount = message.prunedChildrenCount;
+                        if (message.hidden != null && message.hasOwnProperty("hidden"))
+                            object.hidden = message.hidden;
                         return object;
                     };
 
@@ -2152,18 +2604,17 @@ export const cafe = $root.cafe = (() => {
                     };
 
                     /**
-                     * Gets the default type url for Frame
+                     * Gets the type url for Frame
                      * @function getTypeUrl
                      * @memberof cafe.jeffrey.flamegraph.proto.Frame
                      * @static
-                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns {string} The default type url
+                     * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns {string} The type url
                      */
-                    Frame.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
-                        if (typeUrlPrefix === undefined) {
-                            typeUrlPrefix = "type.googleapis.com";
-                        }
-                        return typeUrlPrefix + "/cafe.jeffrey.flamegraph.proto.Frame";
+                    Frame.getTypeUrl = function getTypeUrl(prefix) {
+                        if (prefix === undefined)
+                            prefix = "type.googleapis.com";
+                        return prefix + "/cafe.jeffrey.flamegraph.proto.Frame";
                     };
 
                     return Frame;
@@ -2186,7 +2637,6 @@ export const cafe = $root.cafe = (() => {
                  * @property {number} FRAME_TYPE_ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC=10 FRAME_TYPE_ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC value
                  * @property {number} FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC=11 FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC value
                  * @property {number} FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC=12 FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC value
-                 * @property {number} FRAME_TYPE_LAMBDA_SYNTHETIC=13 FRAME_TYPE_LAMBDA_SYNTHETIC value
                  * @property {number} FRAME_TYPE_HIGHLIGHTED_WARNING=14 FRAME_TYPE_HIGHLIGHTED_WARNING value
                  * @property {number} FRAME_TYPE_COLLAPSED_SYNTHETIC=15 FRAME_TYPE_COLLAPSED_SYNTHETIC value
                  * @property {number} FRAME_TYPE_TRUNCATED_SYNTHETIC=16 FRAME_TYPE_TRUNCATED_SYNTHETIC value
@@ -2206,7 +2656,6 @@ export const cafe = $root.cafe = (() => {
                     values[valuesById[10] = "FRAME_TYPE_ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC"] = 10;
                     values[valuesById[11] = "FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC"] = 11;
                     values[valuesById[12] = "FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC"] = 12;
-                    values[valuesById[13] = "FRAME_TYPE_LAMBDA_SYNTHETIC"] = 13;
                     values[valuesById[14] = "FRAME_TYPE_HIGHLIGHTED_WARNING"] = 14;
                     values[valuesById[15] = "FRAME_TYPE_COLLAPSED_SYNTHETIC"] = 15;
                     values[valuesById[16] = "FRAME_TYPE_TRUNCATED_SYNTHETIC"] = 16;
@@ -2217,24 +2666,37 @@ export const cafe = $root.cafe = (() => {
 
                     /**
                      * Properties of a FramePosition.
-                     * @memberof cafe.jeffrey.flamegraph.proto
-                     * @interface IFramePosition
+                     * @typedef {Object} cafe.jeffrey.flamegraph.proto.FramePosition.$Properties
                      * @property {number|null} [bci] FramePosition bci
                      * @property {number|null} [line] FramePosition line
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
+                     */
+
+                    /**
+                     * Properties of a FramePosition.
+                     * @memberof cafe.jeffrey.flamegraph.proto
+                     * @interface IFramePosition
+                     * @augments cafe.jeffrey.flamegraph.proto.FramePosition.$Properties
+                     * @deprecated Use cafe.jeffrey.flamegraph.proto.FramePosition.$Properties instead.
+                     */
+
+                    /**
+                     * Shape of a FramePosition.
+                     * @typedef {cafe.jeffrey.flamegraph.proto.FramePosition.$Properties} cafe.jeffrey.flamegraph.proto.FramePosition.$Shape
                      */
 
                     /**
                      * Constructs a new FramePosition.
                      * @memberof cafe.jeffrey.flamegraph.proto
                      * @classdesc Represents a FramePosition.
-                     * @implements IFramePosition
                      * @constructor
-                     * @param {cafe.jeffrey.flamegraph.proto.IFramePosition=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.FramePosition.$Properties=} [properties] Properties to set
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
                      */
                     function FramePosition(properties) {
                         if (properties)
                             for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                                if (properties[keys[i]] != null)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
 
@@ -2259,8 +2721,12 @@ export const cafe = $root.cafe = (() => {
                      * @function create
                      * @memberof cafe.jeffrey.flamegraph.proto.FramePosition
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IFramePosition=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.FramePosition.$Properties=} [properties] Properties to set
                      * @returns {cafe.jeffrey.flamegraph.proto.FramePosition} FramePosition instance
+                     * @type {{
+                     *   (properties: cafe.jeffrey.flamegraph.proto.FramePosition.$Shape): cafe.jeffrey.flamegraph.proto.FramePosition & cafe.jeffrey.flamegraph.proto.FramePosition.$Shape;
+                     *   (properties?: cafe.jeffrey.flamegraph.proto.FramePosition.$Properties): cafe.jeffrey.flamegraph.proto.FramePosition;
+                     * }}
                      */
                     FramePosition.create = function create(properties) {
                         return new FramePosition(properties);
@@ -2271,17 +2737,24 @@ export const cafe = $root.cafe = (() => {
                      * @function encode
                      * @memberof cafe.jeffrey.flamegraph.proto.FramePosition
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IFramePosition} message FramePosition message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.FramePosition.$Properties} message FramePosition message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
-                    FramePosition.encode = function encode(message, writer) {
+                    FramePosition.encode = function encode(message, writer, _depth) {
                         if (!writer)
                             writer = $Writer.create();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         if (message.bci != null && Object.hasOwnProperty.call(message, "bci"))
                             writer.uint32(/* id 1, wireType 0 =*/8).int32(message.bci);
                         if (message.line != null && Object.hasOwnProperty.call(message, "line"))
                             writer.uint32(/* id 2, wireType 0 =*/16).int32(message.line);
+                        if (message.$unknowns != null && Object.hasOwnProperty.call(message, "$unknowns"))
+                            for (let i = 0; i < message.$unknowns.length; ++i)
+                                writer.raw(message.$unknowns[i]);
                         return writer;
                     };
 
@@ -2290,12 +2763,12 @@ export const cafe = $root.cafe = (() => {
                      * @function encodeDelimited
                      * @memberof cafe.jeffrey.flamegraph.proto.FramePosition
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IFramePosition} message FramePosition message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.FramePosition.$Properties} message FramePosition message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
                     FramePosition.encodeDelimited = function encodeDelimited(message, writer) {
-                        return this.encode(message, writer).ldelim();
+                        return this.encode(message, writer && writer.len ? writer.fork() : writer).ldelim();
                     };
 
                     /**
@@ -2305,32 +2778,52 @@ export const cafe = $root.cafe = (() => {
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
                      * @param {number} [length] Message length if known beforehand
-                     * @returns {cafe.jeffrey.flamegraph.proto.FramePosition} FramePosition
+                     * @returns {cafe.jeffrey.flamegraph.proto.FramePosition & cafe.jeffrey.flamegraph.proto.FramePosition.$Shape} FramePosition
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    FramePosition.decode = function decode(reader, length, error) {
+                    FramePosition.decode = function decode(reader, length, _end, _depth, _target) {
                         if (!(reader instanceof $Reader))
                             reader = $Reader.create(reader);
-                        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.cafe.jeffrey.flamegraph.proto.FramePosition();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $Reader.recursionLimit)
+                            throw Error("max depth exceeded");
+                        let end = length === undefined ? reader.len : reader.pos + length, message = _target || new $root.cafe.jeffrey.flamegraph.proto.FramePosition(), value;
                         while (reader.pos < end) {
-                            let tag = reader.uint32();
-                            if (tag === error)
-                                break;
-                            switch (tag >>> 3) {
-                            case 1: {
-                                    message.bci = reader.int32();
-                                    break;
-                                }
-                            case 2: {
-                                    message.line = reader.int32();
-                                    break;
-                                }
-                            default:
-                                reader.skipType(tag & 7);
+                            let start = reader.pos;
+                            let tag = reader.tag();
+                            if (tag === _end) {
+                                _end = undefined;
                                 break;
                             }
+                            let wireType = tag & 7;
+                            switch (tag >>>= 3) {
+                            case 1: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (value = reader.int32())
+                                        message.bci = value;
+                                    else
+                                        delete message.bci;
+                                    continue;
+                                }
+                            case 2: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (value = reader.int32())
+                                        message.line = value;
+                                    else
+                                        delete message.line;
+                                    continue;
+                                }
+                            }
+                            reader.skipType(wireType, _depth, tag);
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
                         }
+                        if (_end !== undefined)
+                            throw Error("missing end group");
                         return message;
                     };
 
@@ -2340,7 +2833,7 @@ export const cafe = $root.cafe = (() => {
                      * @memberof cafe.jeffrey.flamegraph.proto.FramePosition
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-                     * @returns {cafe.jeffrey.flamegraph.proto.FramePosition} FramePosition
+                     * @returns {cafe.jeffrey.flamegraph.proto.FramePosition & cafe.jeffrey.flamegraph.proto.FramePosition.$Shape} FramePosition
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
@@ -2358,9 +2851,13 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} message Plain object to verify
                      * @returns {string|null} `null` if valid, otherwise the reason why it is not
                      */
-                    FramePosition.verify = function verify(message) {
+                    FramePosition.verify = function verify(message, _depth) {
                         if (typeof message !== "object" || message === null)
                             return "object expected";
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            return "max depth exceeded";
                         if (message.bci != null && message.hasOwnProperty("bci"))
                             if (!$util.isInteger(message.bci))
                                 return "bci: integer expected";
@@ -2378,14 +2875,20 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} object Plain object
                      * @returns {cafe.jeffrey.flamegraph.proto.FramePosition} FramePosition
                      */
-                    FramePosition.fromObject = function fromObject(object) {
+                    FramePosition.fromObject = function fromObject(object, _depth) {
                         if (object instanceof $root.cafe.jeffrey.flamegraph.proto.FramePosition)
                             return object;
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let message = new $root.cafe.jeffrey.flamegraph.proto.FramePosition();
                         if (object.bci != null)
-                            message.bci = object.bci | 0;
+                            if (Number(object.bci) !== 0)
+                                message.bci = object.bci | 0;
                         if (object.line != null)
-                            message.line = object.line | 0;
+                            if (Number(object.line) !== 0)
+                                message.line = object.line | 0;
                         return message;
                     };
 
@@ -2398,9 +2901,13 @@ export const cafe = $root.cafe = (() => {
                      * @param {$protobuf.IConversionOptions} [options] Conversion options
                      * @returns {Object.<string,*>} Plain object
                      */
-                    FramePosition.toObject = function toObject(message, options) {
+                    FramePosition.toObject = function toObject(message, options, _depth) {
                         if (!options)
                             options = {};
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let object = {};
                         if (options.defaults) {
                             object.bci = 0;
@@ -2425,18 +2932,17 @@ export const cafe = $root.cafe = (() => {
                     };
 
                     /**
-                     * Gets the default type url for FramePosition
+                     * Gets the type url for FramePosition
                      * @function getTypeUrl
                      * @memberof cafe.jeffrey.flamegraph.proto.FramePosition
                      * @static
-                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns {string} The default type url
+                     * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns {string} The type url
                      */
-                    FramePosition.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
-                        if (typeUrlPrefix === undefined) {
-                            typeUrlPrefix = "type.googleapis.com";
-                        }
-                        return typeUrlPrefix + "/cafe.jeffrey.flamegraph.proto.FramePosition";
+                    FramePosition.getTypeUrl = function getTypeUrl(prefix) {
+                        if (prefix === undefined)
+                            prefix = "type.googleapis.com";
+                        return prefix + "/cafe.jeffrey.flamegraph.proto.FramePosition";
                     };
 
                     return FramePosition;
@@ -2446,26 +2952,39 @@ export const cafe = $root.cafe = (() => {
 
                     /**
                      * Properties of a FrameSampleTypes.
-                     * @memberof cafe.jeffrey.flamegraph.proto
-                     * @interface IFrameSampleTypes
+                     * @typedef {Object} cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties
                      * @property {number|Long|null} [inlined] FrameSampleTypes inlined
                      * @property {number|Long|null} [c1] FrameSampleTypes c1
                      * @property {number|Long|null} [interpret] FrameSampleTypes interpret
                      * @property {number|Long|null} [jit] FrameSampleTypes jit
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
+                     */
+
+                    /**
+                     * Properties of a FrameSampleTypes.
+                     * @memberof cafe.jeffrey.flamegraph.proto
+                     * @interface IFrameSampleTypes
+                     * @augments cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties
+                     * @deprecated Use cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties instead.
+                     */
+
+                    /**
+                     * Shape of a FrameSampleTypes.
+                     * @typedef {cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties} cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Shape
                      */
 
                     /**
                      * Constructs a new FrameSampleTypes.
                      * @memberof cafe.jeffrey.flamegraph.proto
                      * @classdesc Represents a FrameSampleTypes.
-                     * @implements IFrameSampleTypes
                      * @constructor
-                     * @param {cafe.jeffrey.flamegraph.proto.IFrameSampleTypes=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties=} [properties] Properties to set
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
                      */
                     function FrameSampleTypes(properties) {
                         if (properties)
                             for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                                if (properties[keys[i]] != null)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
 
@@ -2506,8 +3025,12 @@ export const cafe = $root.cafe = (() => {
                      * @function create
                      * @memberof cafe.jeffrey.flamegraph.proto.FrameSampleTypes
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IFrameSampleTypes=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties=} [properties] Properties to set
                      * @returns {cafe.jeffrey.flamegraph.proto.FrameSampleTypes} FrameSampleTypes instance
+                     * @type {{
+                     *   (properties: cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Shape): cafe.jeffrey.flamegraph.proto.FrameSampleTypes & cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Shape;
+                     *   (properties?: cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties): cafe.jeffrey.flamegraph.proto.FrameSampleTypes;
+                     * }}
                      */
                     FrameSampleTypes.create = function create(properties) {
                         return new FrameSampleTypes(properties);
@@ -2518,13 +3041,17 @@ export const cafe = $root.cafe = (() => {
                      * @function encode
                      * @memberof cafe.jeffrey.flamegraph.proto.FrameSampleTypes
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IFrameSampleTypes} message FrameSampleTypes message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties} message FrameSampleTypes message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
-                    FrameSampleTypes.encode = function encode(message, writer) {
+                    FrameSampleTypes.encode = function encode(message, writer, _depth) {
                         if (!writer)
                             writer = $Writer.create();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         if (message.inlined != null && Object.hasOwnProperty.call(message, "inlined"))
                             writer.uint32(/* id 1, wireType 0 =*/8).int64(message.inlined);
                         if (message.c1 != null && Object.hasOwnProperty.call(message, "c1"))
@@ -2533,6 +3060,9 @@ export const cafe = $root.cafe = (() => {
                             writer.uint32(/* id 3, wireType 0 =*/24).int64(message.interpret);
                         if (message.jit != null && Object.hasOwnProperty.call(message, "jit"))
                             writer.uint32(/* id 4, wireType 0 =*/32).int64(message.jit);
+                        if (message.$unknowns != null && Object.hasOwnProperty.call(message, "$unknowns"))
+                            for (let i = 0; i < message.$unknowns.length; ++i)
+                                writer.raw(message.$unknowns[i]);
                         return writer;
                     };
 
@@ -2541,12 +3071,12 @@ export const cafe = $root.cafe = (() => {
                      * @function encodeDelimited
                      * @memberof cafe.jeffrey.flamegraph.proto.FrameSampleTypes
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IFrameSampleTypes} message FrameSampleTypes message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties} message FrameSampleTypes message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
                     FrameSampleTypes.encodeDelimited = function encodeDelimited(message, writer) {
-                        return this.encode(message, writer).ldelim();
+                        return this.encode(message, writer && writer.len ? writer.fork() : writer).ldelim();
                     };
 
                     /**
@@ -2556,40 +3086,70 @@ export const cafe = $root.cafe = (() => {
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
                      * @param {number} [length] Message length if known beforehand
-                     * @returns {cafe.jeffrey.flamegraph.proto.FrameSampleTypes} FrameSampleTypes
+                     * @returns {cafe.jeffrey.flamegraph.proto.FrameSampleTypes & cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Shape} FrameSampleTypes
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    FrameSampleTypes.decode = function decode(reader, length, error) {
+                    FrameSampleTypes.decode = function decode(reader, length, _end, _depth, _target) {
                         if (!(reader instanceof $Reader))
                             reader = $Reader.create(reader);
-                        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.cafe.jeffrey.flamegraph.proto.FrameSampleTypes();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $Reader.recursionLimit)
+                            throw Error("max depth exceeded");
+                        let end = length === undefined ? reader.len : reader.pos + length, message = _target || new $root.cafe.jeffrey.flamegraph.proto.FrameSampleTypes(), value;
                         while (reader.pos < end) {
-                            let tag = reader.uint32();
-                            if (tag === error)
-                                break;
-                            switch (tag >>> 3) {
-                            case 1: {
-                                    message.inlined = reader.int64();
-                                    break;
-                                }
-                            case 2: {
-                                    message.c1 = reader.int64();
-                                    break;
-                                }
-                            case 3: {
-                                    message.interpret = reader.int64();
-                                    break;
-                                }
-                            case 4: {
-                                    message.jit = reader.int64();
-                                    break;
-                                }
-                            default:
-                                reader.skipType(tag & 7);
+                            let start = reader.pos;
+                            let tag = reader.tag();
+                            if (tag === _end) {
+                                _end = undefined;
                                 break;
                             }
+                            let wireType = tag & 7;
+                            switch (tag >>>= 3) {
+                            case 1: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                        message.inlined = value;
+                                    else
+                                        delete message.inlined;
+                                    continue;
+                                }
+                            case 2: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                        message.c1 = value;
+                                    else
+                                        delete message.c1;
+                                    continue;
+                                }
+                            case 3: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                        message.interpret = value;
+                                    else
+                                        delete message.interpret;
+                                    continue;
+                                }
+                            case 4: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                        message.jit = value;
+                                    else
+                                        delete message.jit;
+                                    continue;
+                                }
+                            }
+                            reader.skipType(wireType, _depth, tag);
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
                         }
+                        if (_end !== undefined)
+                            throw Error("missing end group");
                         return message;
                     };
 
@@ -2599,7 +3159,7 @@ export const cafe = $root.cafe = (() => {
                      * @memberof cafe.jeffrey.flamegraph.proto.FrameSampleTypes
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-                     * @returns {cafe.jeffrey.flamegraph.proto.FrameSampleTypes} FrameSampleTypes
+                     * @returns {cafe.jeffrey.flamegraph.proto.FrameSampleTypes & cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Shape} FrameSampleTypes
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
@@ -2617,9 +3177,13 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} message Plain object to verify
                      * @returns {string|null} `null` if valid, otherwise the reason why it is not
                      */
-                    FrameSampleTypes.verify = function verify(message) {
+                    FrameSampleTypes.verify = function verify(message, _depth) {
                         if (typeof message !== "object" || message === null)
                             return "object expected";
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            return "max depth exceeded";
                         if (message.inlined != null && message.hasOwnProperty("inlined"))
                             if (!$util.isInteger(message.inlined) && !(message.inlined && $util.isInteger(message.inlined.low) && $util.isInteger(message.inlined.high)))
                                 return "inlined: integer|Long expected";
@@ -2643,46 +3207,54 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} object Plain object
                      * @returns {cafe.jeffrey.flamegraph.proto.FrameSampleTypes} FrameSampleTypes
                      */
-                    FrameSampleTypes.fromObject = function fromObject(object) {
+                    FrameSampleTypes.fromObject = function fromObject(object, _depth) {
                         if (object instanceof $root.cafe.jeffrey.flamegraph.proto.FrameSampleTypes)
                             return object;
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let message = new $root.cafe.jeffrey.flamegraph.proto.FrameSampleTypes();
                         if (object.inlined != null)
-                            if ($util.Long)
-                                (message.inlined = $util.Long.fromValue(object.inlined)).unsigned = false;
-                            else if (typeof object.inlined === "string")
-                                message.inlined = parseInt(object.inlined, 10);
-                            else if (typeof object.inlined === "number")
-                                message.inlined = object.inlined;
-                            else if (typeof object.inlined === "object")
-                                message.inlined = new $util.LongBits(object.inlined.low >>> 0, object.inlined.high >>> 0).toNumber();
+                            if (typeof object.inlined === "object" ? object.inlined.low || object.inlined.high : Number(object.inlined) !== 0)
+                                if ($util.Long)
+                                    message.inlined = $util.Long.fromValue(object.inlined, false);
+                                else if (typeof object.inlined === "string")
+                                    message.inlined = parseInt(object.inlined, 10);
+                                else if (typeof object.inlined === "number")
+                                    message.inlined = object.inlined;
+                                else if (typeof object.inlined === "object")
+                                    message.inlined = new $util.LongBits(object.inlined.low >>> 0, object.inlined.high >>> 0).toNumber();
                         if (object.c1 != null)
-                            if ($util.Long)
-                                (message.c1 = $util.Long.fromValue(object.c1)).unsigned = false;
-                            else if (typeof object.c1 === "string")
-                                message.c1 = parseInt(object.c1, 10);
-                            else if (typeof object.c1 === "number")
-                                message.c1 = object.c1;
-                            else if (typeof object.c1 === "object")
-                                message.c1 = new $util.LongBits(object.c1.low >>> 0, object.c1.high >>> 0).toNumber();
+                            if (typeof object.c1 === "object" ? object.c1.low || object.c1.high : Number(object.c1) !== 0)
+                                if ($util.Long)
+                                    message.c1 = $util.Long.fromValue(object.c1, false);
+                                else if (typeof object.c1 === "string")
+                                    message.c1 = parseInt(object.c1, 10);
+                                else if (typeof object.c1 === "number")
+                                    message.c1 = object.c1;
+                                else if (typeof object.c1 === "object")
+                                    message.c1 = new $util.LongBits(object.c1.low >>> 0, object.c1.high >>> 0).toNumber();
                         if (object.interpret != null)
-                            if ($util.Long)
-                                (message.interpret = $util.Long.fromValue(object.interpret)).unsigned = false;
-                            else if (typeof object.interpret === "string")
-                                message.interpret = parseInt(object.interpret, 10);
-                            else if (typeof object.interpret === "number")
-                                message.interpret = object.interpret;
-                            else if (typeof object.interpret === "object")
-                                message.interpret = new $util.LongBits(object.interpret.low >>> 0, object.interpret.high >>> 0).toNumber();
+                            if (typeof object.interpret === "object" ? object.interpret.low || object.interpret.high : Number(object.interpret) !== 0)
+                                if ($util.Long)
+                                    message.interpret = $util.Long.fromValue(object.interpret, false);
+                                else if (typeof object.interpret === "string")
+                                    message.interpret = parseInt(object.interpret, 10);
+                                else if (typeof object.interpret === "number")
+                                    message.interpret = object.interpret;
+                                else if (typeof object.interpret === "object")
+                                    message.interpret = new $util.LongBits(object.interpret.low >>> 0, object.interpret.high >>> 0).toNumber();
                         if (object.jit != null)
-                            if ($util.Long)
-                                (message.jit = $util.Long.fromValue(object.jit)).unsigned = false;
-                            else if (typeof object.jit === "string")
-                                message.jit = parseInt(object.jit, 10);
-                            else if (typeof object.jit === "number")
-                                message.jit = object.jit;
-                            else if (typeof object.jit === "object")
-                                message.jit = new $util.LongBits(object.jit.low >>> 0, object.jit.high >>> 0).toNumber();
+                            if (typeof object.jit === "object" ? object.jit.low || object.jit.high : Number(object.jit) !== 0)
+                                if ($util.Long)
+                                    message.jit = $util.Long.fromValue(object.jit, false);
+                                else if (typeof object.jit === "string")
+                                    message.jit = parseInt(object.jit, 10);
+                                else if (typeof object.jit === "number")
+                                    message.jit = object.jit;
+                                else if (typeof object.jit === "object")
+                                    message.jit = new $util.LongBits(object.jit.low >>> 0, object.jit.high >>> 0).toNumber();
                         return message;
                     };
 
@@ -2695,49 +3267,61 @@ export const cafe = $root.cafe = (() => {
                      * @param {$protobuf.IConversionOptions} [options] Conversion options
                      * @returns {Object.<string,*>} Plain object
                      */
-                    FrameSampleTypes.toObject = function toObject(message, options) {
+                    FrameSampleTypes.toObject = function toObject(message, options, _depth) {
                         if (!options)
                             options = {};
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let object = {};
                         if (options.defaults) {
                             if ($util.Long) {
                                 let long = new $util.Long(0, 0, false);
-                                object.inlined = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                                object.inlined = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
                             } else
-                                object.inlined = options.longs === String ? "0" : 0;
+                                object.inlined = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
                             if ($util.Long) {
                                 let long = new $util.Long(0, 0, false);
-                                object.c1 = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                                object.c1 = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
                             } else
-                                object.c1 = options.longs === String ? "0" : 0;
+                                object.c1 = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
                             if ($util.Long) {
                                 let long = new $util.Long(0, 0, false);
-                                object.interpret = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                                object.interpret = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
                             } else
-                                object.interpret = options.longs === String ? "0" : 0;
+                                object.interpret = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
                             if ($util.Long) {
                                 let long = new $util.Long(0, 0, false);
-                                object.jit = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                                object.jit = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
                             } else
-                                object.jit = options.longs === String ? "0" : 0;
+                                object.jit = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
                         }
                         if (message.inlined != null && message.hasOwnProperty("inlined"))
-                            if (typeof message.inlined === "number")
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.inlined = typeof message.inlined === "number" ? BigInt(message.inlined) : $util.Long.fromBits(message.inlined.low >>> 0, message.inlined.high >>> 0, false).toBigInt();
+                            else if (typeof message.inlined === "number")
                                 object.inlined = options.longs === String ? String(message.inlined) : message.inlined;
                             else
                                 object.inlined = options.longs === String ? $util.Long.prototype.toString.call(message.inlined) : options.longs === Number ? new $util.LongBits(message.inlined.low >>> 0, message.inlined.high >>> 0).toNumber() : message.inlined;
                         if (message.c1 != null && message.hasOwnProperty("c1"))
-                            if (typeof message.c1 === "number")
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.c1 = typeof message.c1 === "number" ? BigInt(message.c1) : $util.Long.fromBits(message.c1.low >>> 0, message.c1.high >>> 0, false).toBigInt();
+                            else if (typeof message.c1 === "number")
                                 object.c1 = options.longs === String ? String(message.c1) : message.c1;
                             else
                                 object.c1 = options.longs === String ? $util.Long.prototype.toString.call(message.c1) : options.longs === Number ? new $util.LongBits(message.c1.low >>> 0, message.c1.high >>> 0).toNumber() : message.c1;
                         if (message.interpret != null && message.hasOwnProperty("interpret"))
-                            if (typeof message.interpret === "number")
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.interpret = typeof message.interpret === "number" ? BigInt(message.interpret) : $util.Long.fromBits(message.interpret.low >>> 0, message.interpret.high >>> 0, false).toBigInt();
+                            else if (typeof message.interpret === "number")
                                 object.interpret = options.longs === String ? String(message.interpret) : message.interpret;
                             else
                                 object.interpret = options.longs === String ? $util.Long.prototype.toString.call(message.interpret) : options.longs === Number ? new $util.LongBits(message.interpret.low >>> 0, message.interpret.high >>> 0).toNumber() : message.interpret;
                         if (message.jit != null && message.hasOwnProperty("jit"))
-                            if (typeof message.jit === "number")
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.jit = typeof message.jit === "number" ? BigInt(message.jit) : $util.Long.fromBits(message.jit.low >>> 0, message.jit.high >>> 0, false).toBigInt();
+                            else if (typeof message.jit === "number")
                                 object.jit = options.longs === String ? String(message.jit) : message.jit;
                             else
                                 object.jit = options.longs === String ? $util.Long.prototype.toString.call(message.jit) : options.longs === Number ? new $util.LongBits(message.jit.low >>> 0, message.jit.high >>> 0).toNumber() : message.jit;
@@ -2756,18 +3340,17 @@ export const cafe = $root.cafe = (() => {
                     };
 
                     /**
-                     * Gets the default type url for FrameSampleTypes
+                     * Gets the type url for FrameSampleTypes
                      * @function getTypeUrl
                      * @memberof cafe.jeffrey.flamegraph.proto.FrameSampleTypes
                      * @static
-                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns {string} The default type url
+                     * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns {string} The type url
                      */
-                    FrameSampleTypes.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
-                        if (typeUrlPrefix === undefined) {
-                            typeUrlPrefix = "type.googleapis.com";
-                        }
-                        return typeUrlPrefix + "/cafe.jeffrey.flamegraph.proto.FrameSampleTypes";
+                    FrameSampleTypes.getTypeUrl = function getTypeUrl(prefix) {
+                        if (prefix === undefined)
+                            prefix = "type.googleapis.com";
+                        return prefix + "/cafe.jeffrey.flamegraph.proto.FrameSampleTypes";
                     };
 
                     return FrameSampleTypes;
@@ -2777,28 +3360,41 @@ export const cafe = $root.cafe = (() => {
 
                     /**
                      * Properties of a DiffDetails.
-                     * @memberof cafe.jeffrey.flamegraph.proto
-                     * @interface IDiffDetails
+                     * @typedef {Object} cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties
                      * @property {number|Long|null} [samples] DiffDetails samples
                      * @property {number|Long|null} [weight] DiffDetails weight
                      * @property {number|null} [percentSamples] DiffDetails percentSamples
                      * @property {number|null} [percentWeight] DiffDetails percentWeight
                      * @property {number|Long|null} [secondarySamples] DiffDetails secondarySamples
                      * @property {number|Long|null} [secondaryWeight] DiffDetails secondaryWeight
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
+                     */
+
+                    /**
+                     * Properties of a DiffDetails.
+                     * @memberof cafe.jeffrey.flamegraph.proto
+                     * @interface IDiffDetails
+                     * @augments cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties
+                     * @deprecated Use cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties instead.
+                     */
+
+                    /**
+                     * Shape of a DiffDetails.
+                     * @typedef {cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties} cafe.jeffrey.flamegraph.proto.DiffDetails.$Shape
                      */
 
                     /**
                      * Constructs a new DiffDetails.
                      * @memberof cafe.jeffrey.flamegraph.proto
                      * @classdesc Represents a DiffDetails.
-                     * @implements IDiffDetails
                      * @constructor
-                     * @param {cafe.jeffrey.flamegraph.proto.IDiffDetails=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties=} [properties] Properties to set
+                     * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding
                      */
                     function DiffDetails(properties) {
                         if (properties)
                             for (let keys = Object.keys(properties), i = 0; i < keys.length; ++i)
-                                if (properties[keys[i]] != null)
+                                if (properties[keys[i]] != null && keys[i] !== "__proto__")
                                     this[keys[i]] = properties[keys[i]];
                     }
 
@@ -2855,8 +3451,12 @@ export const cafe = $root.cafe = (() => {
                      * @function create
                      * @memberof cafe.jeffrey.flamegraph.proto.DiffDetails
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IDiffDetails=} [properties] Properties to set
+                     * @param {cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties=} [properties] Properties to set
                      * @returns {cafe.jeffrey.flamegraph.proto.DiffDetails} DiffDetails instance
+                     * @type {{
+                     *   (properties: cafe.jeffrey.flamegraph.proto.DiffDetails.$Shape): cafe.jeffrey.flamegraph.proto.DiffDetails & cafe.jeffrey.flamegraph.proto.DiffDetails.$Shape;
+                     *   (properties?: cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties): cafe.jeffrey.flamegraph.proto.DiffDetails;
+                     * }}
                      */
                     DiffDetails.create = function create(properties) {
                         return new DiffDetails(properties);
@@ -2867,13 +3467,17 @@ export const cafe = $root.cafe = (() => {
                      * @function encode
                      * @memberof cafe.jeffrey.flamegraph.proto.DiffDetails
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IDiffDetails} message DiffDetails message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties} message DiffDetails message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
-                    DiffDetails.encode = function encode(message, writer) {
+                    DiffDetails.encode = function encode(message, writer, _depth) {
                         if (!writer)
                             writer = $Writer.create();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         if (message.samples != null && Object.hasOwnProperty.call(message, "samples"))
                             writer.uint32(/* id 1, wireType 0 =*/8).int64(message.samples);
                         if (message.weight != null && Object.hasOwnProperty.call(message, "weight"))
@@ -2886,6 +3490,9 @@ export const cafe = $root.cafe = (() => {
                             writer.uint32(/* id 5, wireType 0 =*/40).int64(message.secondarySamples);
                         if (message.secondaryWeight != null && Object.hasOwnProperty.call(message, "secondaryWeight"))
                             writer.uint32(/* id 6, wireType 0 =*/48).int64(message.secondaryWeight);
+                        if (message.$unknowns != null && Object.hasOwnProperty.call(message, "$unknowns"))
+                            for (let i = 0; i < message.$unknowns.length; ++i)
+                                writer.raw(message.$unknowns[i]);
                         return writer;
                     };
 
@@ -2894,12 +3501,12 @@ export const cafe = $root.cafe = (() => {
                      * @function encodeDelimited
                      * @memberof cafe.jeffrey.flamegraph.proto.DiffDetails
                      * @static
-                     * @param {cafe.jeffrey.flamegraph.proto.IDiffDetails} message DiffDetails message or plain object to encode
+                     * @param {cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties} message DiffDetails message or plain object to encode
                      * @param {$protobuf.Writer} [writer] Writer to encode to
                      * @returns {$protobuf.Writer} Writer
                      */
                     DiffDetails.encodeDelimited = function encodeDelimited(message, writer) {
-                        return this.encode(message, writer).ldelim();
+                        return this.encode(message, writer && writer.len ? writer.fork() : writer).ldelim();
                     };
 
                     /**
@@ -2909,48 +3516,88 @@ export const cafe = $root.cafe = (() => {
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
                      * @param {number} [length] Message length if known beforehand
-                     * @returns {cafe.jeffrey.flamegraph.proto.DiffDetails} DiffDetails
+                     * @returns {cafe.jeffrey.flamegraph.proto.DiffDetails & cafe.jeffrey.flamegraph.proto.DiffDetails.$Shape} DiffDetails
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
-                    DiffDetails.decode = function decode(reader, length, error) {
+                    DiffDetails.decode = function decode(reader, length, _end, _depth, _target) {
                         if (!(reader instanceof $Reader))
                             reader = $Reader.create(reader);
-                        let end = length === undefined ? reader.len : reader.pos + length, message = new $root.cafe.jeffrey.flamegraph.proto.DiffDetails();
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $Reader.recursionLimit)
+                            throw Error("max depth exceeded");
+                        let end = length === undefined ? reader.len : reader.pos + length, message = _target || new $root.cafe.jeffrey.flamegraph.proto.DiffDetails(), value;
                         while (reader.pos < end) {
-                            let tag = reader.uint32();
-                            if (tag === error)
-                                break;
-                            switch (tag >>> 3) {
-                            case 1: {
-                                    message.samples = reader.int64();
-                                    break;
-                                }
-                            case 2: {
-                                    message.weight = reader.int64();
-                                    break;
-                                }
-                            case 3: {
-                                    message.percentSamples = reader.float();
-                                    break;
-                                }
-                            case 4: {
-                                    message.percentWeight = reader.float();
-                                    break;
-                                }
-                            case 5: {
-                                    message.secondarySamples = reader.int64();
-                                    break;
-                                }
-                            case 6: {
-                                    message.secondaryWeight = reader.int64();
-                                    break;
-                                }
-                            default:
-                                reader.skipType(tag & 7);
+                            let start = reader.pos;
+                            let tag = reader.tag();
+                            if (tag === _end) {
+                                _end = undefined;
                                 break;
                             }
+                            let wireType = tag & 7;
+                            switch (tag >>>= 3) {
+                            case 1: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                        message.samples = value;
+                                    else
+                                        delete message.samples;
+                                    continue;
+                                }
+                            case 2: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                        message.weight = value;
+                                    else
+                                        delete message.weight;
+                                    continue;
+                                }
+                            case 3: {
+                                    if (wireType !== 5)
+                                        break;
+                                    if ((value = reader.float()) !== 0)
+                                        message.percentSamples = value;
+                                    else
+                                        delete message.percentSamples;
+                                    continue;
+                                }
+                            case 4: {
+                                    if (wireType !== 5)
+                                        break;
+                                    if ((value = reader.float()) !== 0)
+                                        message.percentWeight = value;
+                                    else
+                                        delete message.percentWeight;
+                                    continue;
+                                }
+                            case 5: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                        message.secondarySamples = value;
+                                    else
+                                        delete message.secondarySamples;
+                                    continue;
+                                }
+                            case 6: {
+                                    if (wireType !== 0)
+                                        break;
+                                    if (typeof (value = reader.int64()) === "object" ? value.low || value.high : value !== 0)
+                                        message.secondaryWeight = value;
+                                    else
+                                        delete message.secondaryWeight;
+                                    continue;
+                                }
+                            }
+                            reader.skipType(wireType, _depth, tag);
+                            $util.makeProp(message, "$unknowns", false);
+                            (message.$unknowns || (message.$unknowns = [])).push(reader.raw(start, reader.pos));
                         }
+                        if (_end !== undefined)
+                            throw Error("missing end group");
                         return message;
                     };
 
@@ -2960,7 +3607,7 @@ export const cafe = $root.cafe = (() => {
                      * @memberof cafe.jeffrey.flamegraph.proto.DiffDetails
                      * @static
                      * @param {$protobuf.Reader|Uint8Array} reader Reader or buffer to decode from
-                     * @returns {cafe.jeffrey.flamegraph.proto.DiffDetails} DiffDetails
+                     * @returns {cafe.jeffrey.flamegraph.proto.DiffDetails & cafe.jeffrey.flamegraph.proto.DiffDetails.$Shape} DiffDetails
                      * @throws {Error} If the payload is not a reader or valid buffer
                      * @throws {$protobuf.util.ProtocolError} If required fields are missing
                      */
@@ -2978,9 +3625,13 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} message Plain object to verify
                      * @returns {string|null} `null` if valid, otherwise the reason why it is not
                      */
-                    DiffDetails.verify = function verify(message) {
+                    DiffDetails.verify = function verify(message, _depth) {
                         if (typeof message !== "object" || message === null)
                             return "object expected";
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            return "max depth exceeded";
                         if (message.samples != null && message.hasOwnProperty("samples"))
                             if (!$util.isInteger(message.samples) && !(message.samples && $util.isInteger(message.samples.low) && $util.isInteger(message.samples.high)))
                                 return "samples: integer|Long expected";
@@ -3010,50 +3661,60 @@ export const cafe = $root.cafe = (() => {
                      * @param {Object.<string,*>} object Plain object
                      * @returns {cafe.jeffrey.flamegraph.proto.DiffDetails} DiffDetails
                      */
-                    DiffDetails.fromObject = function fromObject(object) {
+                    DiffDetails.fromObject = function fromObject(object, _depth) {
                         if (object instanceof $root.cafe.jeffrey.flamegraph.proto.DiffDetails)
                             return object;
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let message = new $root.cafe.jeffrey.flamegraph.proto.DiffDetails();
                         if (object.samples != null)
-                            if ($util.Long)
-                                (message.samples = $util.Long.fromValue(object.samples)).unsigned = false;
-                            else if (typeof object.samples === "string")
-                                message.samples = parseInt(object.samples, 10);
-                            else if (typeof object.samples === "number")
-                                message.samples = object.samples;
-                            else if (typeof object.samples === "object")
-                                message.samples = new $util.LongBits(object.samples.low >>> 0, object.samples.high >>> 0).toNumber();
+                            if (typeof object.samples === "object" ? object.samples.low || object.samples.high : Number(object.samples) !== 0)
+                                if ($util.Long)
+                                    message.samples = $util.Long.fromValue(object.samples, false);
+                                else if (typeof object.samples === "string")
+                                    message.samples = parseInt(object.samples, 10);
+                                else if (typeof object.samples === "number")
+                                    message.samples = object.samples;
+                                else if (typeof object.samples === "object")
+                                    message.samples = new $util.LongBits(object.samples.low >>> 0, object.samples.high >>> 0).toNumber();
                         if (object.weight != null)
-                            if ($util.Long)
-                                (message.weight = $util.Long.fromValue(object.weight)).unsigned = false;
-                            else if (typeof object.weight === "string")
-                                message.weight = parseInt(object.weight, 10);
-                            else if (typeof object.weight === "number")
-                                message.weight = object.weight;
-                            else if (typeof object.weight === "object")
-                                message.weight = new $util.LongBits(object.weight.low >>> 0, object.weight.high >>> 0).toNumber();
+                            if (typeof object.weight === "object" ? object.weight.low || object.weight.high : Number(object.weight) !== 0)
+                                if ($util.Long)
+                                    message.weight = $util.Long.fromValue(object.weight, false);
+                                else if (typeof object.weight === "string")
+                                    message.weight = parseInt(object.weight, 10);
+                                else if (typeof object.weight === "number")
+                                    message.weight = object.weight;
+                                else if (typeof object.weight === "object")
+                                    message.weight = new $util.LongBits(object.weight.low >>> 0, object.weight.high >>> 0).toNumber();
                         if (object.percentSamples != null)
-                            message.percentSamples = Number(object.percentSamples);
+                            if (Number(object.percentSamples) !== 0)
+                                message.percentSamples = Number(object.percentSamples);
                         if (object.percentWeight != null)
-                            message.percentWeight = Number(object.percentWeight);
+                            if (Number(object.percentWeight) !== 0)
+                                message.percentWeight = Number(object.percentWeight);
                         if (object.secondarySamples != null)
-                            if ($util.Long)
-                                (message.secondarySamples = $util.Long.fromValue(object.secondarySamples)).unsigned = false;
-                            else if (typeof object.secondarySamples === "string")
-                                message.secondarySamples = parseInt(object.secondarySamples, 10);
-                            else if (typeof object.secondarySamples === "number")
-                                message.secondarySamples = object.secondarySamples;
-                            else if (typeof object.secondarySamples === "object")
-                                message.secondarySamples = new $util.LongBits(object.secondarySamples.low >>> 0, object.secondarySamples.high >>> 0).toNumber();
+                            if (typeof object.secondarySamples === "object" ? object.secondarySamples.low || object.secondarySamples.high : Number(object.secondarySamples) !== 0)
+                                if ($util.Long)
+                                    message.secondarySamples = $util.Long.fromValue(object.secondarySamples, false);
+                                else if (typeof object.secondarySamples === "string")
+                                    message.secondarySamples = parseInt(object.secondarySamples, 10);
+                                else if (typeof object.secondarySamples === "number")
+                                    message.secondarySamples = object.secondarySamples;
+                                else if (typeof object.secondarySamples === "object")
+                                    message.secondarySamples = new $util.LongBits(object.secondarySamples.low >>> 0, object.secondarySamples.high >>> 0).toNumber();
                         if (object.secondaryWeight != null)
-                            if ($util.Long)
-                                (message.secondaryWeight = $util.Long.fromValue(object.secondaryWeight)).unsigned = false;
-                            else if (typeof object.secondaryWeight === "string")
-                                message.secondaryWeight = parseInt(object.secondaryWeight, 10);
-                            else if (typeof object.secondaryWeight === "number")
-                                message.secondaryWeight = object.secondaryWeight;
-                            else if (typeof object.secondaryWeight === "object")
-                                message.secondaryWeight = new $util.LongBits(object.secondaryWeight.low >>> 0, object.secondaryWeight.high >>> 0).toNumber();
+                            if (typeof object.secondaryWeight === "object" ? object.secondaryWeight.low || object.secondaryWeight.high : Number(object.secondaryWeight) !== 0)
+                                if ($util.Long)
+                                    message.secondaryWeight = $util.Long.fromValue(object.secondaryWeight, false);
+                                else if (typeof object.secondaryWeight === "string")
+                                    message.secondaryWeight = parseInt(object.secondaryWeight, 10);
+                                else if (typeof object.secondaryWeight === "number")
+                                    message.secondaryWeight = object.secondaryWeight;
+                                else if (typeof object.secondaryWeight === "object")
+                                    message.secondaryWeight = new $util.LongBits(object.secondaryWeight.low >>> 0, object.secondaryWeight.high >>> 0).toNumber();
                         return message;
                     };
 
@@ -3066,41 +3727,49 @@ export const cafe = $root.cafe = (() => {
                      * @param {$protobuf.IConversionOptions} [options] Conversion options
                      * @returns {Object.<string,*>} Plain object
                      */
-                    DiffDetails.toObject = function toObject(message, options) {
+                    DiffDetails.toObject = function toObject(message, options, _depth) {
                         if (!options)
                             options = {};
+                        if (_depth === undefined)
+                            _depth = 0;
+                        if (_depth > $util.recursionLimit)
+                            throw Error("max depth exceeded");
                         let object = {};
                         if (options.defaults) {
                             if ($util.Long) {
                                 let long = new $util.Long(0, 0, false);
-                                object.samples = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                                object.samples = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
                             } else
-                                object.samples = options.longs === String ? "0" : 0;
+                                object.samples = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
                             if ($util.Long) {
                                 let long = new $util.Long(0, 0, false);
-                                object.weight = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                                object.weight = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
                             } else
-                                object.weight = options.longs === String ? "0" : 0;
+                                object.weight = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
                             object.percentSamples = 0;
                             object.percentWeight = 0;
                             if ($util.Long) {
                                 let long = new $util.Long(0, 0, false);
-                                object.secondarySamples = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                                object.secondarySamples = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
                             } else
-                                object.secondarySamples = options.longs === String ? "0" : 0;
+                                object.secondarySamples = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
                             if ($util.Long) {
                                 let long = new $util.Long(0, 0, false);
-                                object.secondaryWeight = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : long;
+                                object.secondaryWeight = options.longs === String ? long.toString() : options.longs === Number ? long.toNumber() : typeof BigInt !== "undefined" && options.longs === BigInt ? long.toBigInt() : long;
                             } else
-                                object.secondaryWeight = options.longs === String ? "0" : 0;
+                                object.secondaryWeight = options.longs === String ? "0" : typeof BigInt !== "undefined" && options.longs === BigInt ? BigInt("0") : 0;
                         }
                         if (message.samples != null && message.hasOwnProperty("samples"))
-                            if (typeof message.samples === "number")
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.samples = typeof message.samples === "number" ? BigInt(message.samples) : $util.Long.fromBits(message.samples.low >>> 0, message.samples.high >>> 0, false).toBigInt();
+                            else if (typeof message.samples === "number")
                                 object.samples = options.longs === String ? String(message.samples) : message.samples;
                             else
                                 object.samples = options.longs === String ? $util.Long.prototype.toString.call(message.samples) : options.longs === Number ? new $util.LongBits(message.samples.low >>> 0, message.samples.high >>> 0).toNumber() : message.samples;
                         if (message.weight != null && message.hasOwnProperty("weight"))
-                            if (typeof message.weight === "number")
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.weight = typeof message.weight === "number" ? BigInt(message.weight) : $util.Long.fromBits(message.weight.low >>> 0, message.weight.high >>> 0, false).toBigInt();
+                            else if (typeof message.weight === "number")
                                 object.weight = options.longs === String ? String(message.weight) : message.weight;
                             else
                                 object.weight = options.longs === String ? $util.Long.prototype.toString.call(message.weight) : options.longs === Number ? new $util.LongBits(message.weight.low >>> 0, message.weight.high >>> 0).toNumber() : message.weight;
@@ -3109,12 +3778,16 @@ export const cafe = $root.cafe = (() => {
                         if (message.percentWeight != null && message.hasOwnProperty("percentWeight"))
                             object.percentWeight = options.json && !isFinite(message.percentWeight) ? String(message.percentWeight) : message.percentWeight;
                         if (message.secondarySamples != null && message.hasOwnProperty("secondarySamples"))
-                            if (typeof message.secondarySamples === "number")
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.secondarySamples = typeof message.secondarySamples === "number" ? BigInt(message.secondarySamples) : $util.Long.fromBits(message.secondarySamples.low >>> 0, message.secondarySamples.high >>> 0, false).toBigInt();
+                            else if (typeof message.secondarySamples === "number")
                                 object.secondarySamples = options.longs === String ? String(message.secondarySamples) : message.secondarySamples;
                             else
                                 object.secondarySamples = options.longs === String ? $util.Long.prototype.toString.call(message.secondarySamples) : options.longs === Number ? new $util.LongBits(message.secondarySamples.low >>> 0, message.secondarySamples.high >>> 0).toNumber() : message.secondarySamples;
                         if (message.secondaryWeight != null && message.hasOwnProperty("secondaryWeight"))
-                            if (typeof message.secondaryWeight === "number")
+                            if (typeof BigInt !== "undefined" && options.longs === BigInt)
+                                object.secondaryWeight = typeof message.secondaryWeight === "number" ? BigInt(message.secondaryWeight) : $util.Long.fromBits(message.secondaryWeight.low >>> 0, message.secondaryWeight.high >>> 0, false).toBigInt();
+                            else if (typeof message.secondaryWeight === "number")
                                 object.secondaryWeight = options.longs === String ? String(message.secondaryWeight) : message.secondaryWeight;
                             else
                                 object.secondaryWeight = options.longs === String ? $util.Long.prototype.toString.call(message.secondaryWeight) : options.longs === Number ? new $util.LongBits(message.secondaryWeight.low >>> 0, message.secondaryWeight.high >>> 0).toNumber() : message.secondaryWeight;
@@ -3133,18 +3806,17 @@ export const cafe = $root.cafe = (() => {
                     };
 
                     /**
-                     * Gets the default type url for DiffDetails
+                     * Gets the type url for DiffDetails
                      * @function getTypeUrl
                      * @memberof cafe.jeffrey.flamegraph.proto.DiffDetails
                      * @static
-                     * @param {string} [typeUrlPrefix] your custom typeUrlPrefix(default "type.googleapis.com")
-                     * @returns {string} The default type url
+                     * @param {string} [prefix] Custom type url prefix, defaults to `"type.googleapis.com"`
+                     * @returns {string} The type url
                      */
-                    DiffDetails.getTypeUrl = function getTypeUrl(typeUrlPrefix) {
-                        if (typeUrlPrefix === undefined) {
-                            typeUrlPrefix = "type.googleapis.com";
-                        }
-                        return typeUrlPrefix + "/cafe.jeffrey.flamegraph.proto.DiffDetails";
+                    DiffDetails.getTypeUrl = function getTypeUrl(prefix) {
+                        if (prefix === undefined)
+                            prefix = "type.googleapis.com";
+                        return prefix + "/cafe.jeffrey.flamegraph.proto.DiffDetails";
                     };
 
                     return DiffDetails;
@@ -3162,4 +3834,6 @@ export const cafe = $root.cafe = (() => {
     return cafe;
 })();
 
-export { $root as default };
+export {
+  $root as default
+};

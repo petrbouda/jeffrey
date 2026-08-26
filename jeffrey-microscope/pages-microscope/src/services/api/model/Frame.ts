@@ -36,6 +36,10 @@ export default class Frame {
     // For guardian analysis - frames before marker are shown in grey
     public beforeMarker?: boolean,
     // Only set for TRUNCATED_SYNTHETIC frames - count of direct children pruned at this level
-    public prunedChildrenCount?: number
+    public prunedChildrenCount?: number,
+    // The frame's class is a JVM hidden class (JEP 371) - a lambda proxy, a method-handle form,
+    // an indified string concatenation. Such names carry the JVM's address and are redrawn on
+    // every run, so the address is stripped before the name ever reaches the UI.
+    public hidden?: boolean
   ) {}
 }

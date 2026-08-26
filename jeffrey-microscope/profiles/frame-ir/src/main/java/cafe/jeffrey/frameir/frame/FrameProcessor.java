@@ -26,13 +26,34 @@ import java.util.List;
 
 public interface FrameProcessor {
 
+    /**
+     * @param hidden the frame's class is a JVM hidden class (JEP 371). Purely informational -- the
+     *               address that makes such a name unique per run is already stripped off by the
+     *               parser, so this never affects the frame's identity in the tree.
+     */
     record NewFrame(
             String methodName,
             int lineNumber,
             int bytecodeIndex,
             FrameType frameType,
             long samples,
-            long sampleWeight) {
+            long sampleWeight,
+            boolean hidden) {
+
+        /**
+         * A frame that does not come from a hidden class -- every synthetic frame, and every frame
+         * on an ordinary class.
+         */
+        public NewFrame(
+                String methodName,
+                int lineNumber,
+                int bytecodeIndex,
+                FrameType frameType,
+                long samples,
+                long sampleWeight) {
+
+            this(methodName, lineNumber, bytecodeIndex, frameType, samples, sampleWeight, false);
+        }
     }
 
     /**
@@ -62,7 +83,9 @@ public interface FrameProcessor {
      * @param currIndex  an index in the stacktrace belonging to the current frame.
      * @return checks whether the processor can be used for the current frame.
      */
-    boolean isApplicable(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex);
+    default boolean isApplicable(FlamegraphRecord record, List<? extends JfrStackFrame> stacktrace, int currIndex) {
+        return true;
+    }
 
     /**
      * Processes the current frame. It designed to be able to look and process frame back and in advance.

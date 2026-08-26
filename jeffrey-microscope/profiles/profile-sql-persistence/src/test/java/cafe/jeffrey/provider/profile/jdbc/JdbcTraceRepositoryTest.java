@@ -59,7 +59,10 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -1904,6 +1907,38 @@ class JdbcTraceRepositoryTest {
             // Two different causes, one reading: it belongs to the trace, and there is no bar for it.
             assertNull(notificationOfType(repository, "FEATURE_FLAG_READ").spanId());
             assertNull(notificationOfType(repository, "POOL_PRESSURE").spanId());
+        }
+
+        /**
+         * The reason the message is stored by reference. A message says what <em>kind</em> of thing
+         * happened, so every occurrence of a kind carries a byte-identical sentence -- and those
+         * sentences are long. Storing one per notification repeats the same text as many times as the
+         * kind was raised; the dictionary holds it once and the notifications point at it.
+         */
+        @Test
+        @DisplayName("one message text is stored once, however many notifications carry it")
+        void repeatedMessagesAreStoredOnce(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            List<TraceNotificationRecord> warmed = repository.notificationsOf(SLOW_TRACE).stream()
+                    .filter(notification -> "CACHE_WARMED".equals(notification.type()))
+                    .toList();
+            assertEquals(2, warmed.size());
+
+            assertEquals(
+                    1,
+                    count(dataSource, "SELECT COUNT(DISTINCT message_ref) FROM trace_notifications "
+                            + "WHERE type = 'CACHE_WARMED'"),
+                    "the two CACHE_WARMED notifications point at one row, not two");
+        }
+
+        private static long count(DataSource dataSource, String sql) throws SQLException {
+            try (Connection connection = dataSource.getConnection();
+                 Statement statement = connection.createStatement();
+                 ResultSet rs = statement.executeQuery(sql)) {
+                rs.next();
+                return rs.getLong(1);
+            }
         }
 
         @Test

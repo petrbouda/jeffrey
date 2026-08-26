@@ -101,7 +101,7 @@ import {
   type TraceAttributeSearchResult,
   type TraceAttributeStats,
   type TraceAttributeTimelineBucket,
-  type TraceSpanTypeRow
+  type TraceEventTypeRow
 } from '@/services/api/model/trace/TraceAttributeModels';
 import type { TraceRow } from '@/services/api/model/trace/TraceModels';
 
@@ -119,7 +119,7 @@ const featureDisabled = computed(() => props.disabledFeatures.includes(FeatureTy
 
 const loading = ref(true);
 const error = ref<string | null>(null);
-const eventTypes = ref<TraceSpanTypeRow[]>([]);
+const eventTypes = ref<TraceEventTypeRow[]>([]);
 const baseline = ref<TraceAttributeStats | null>(null);
 
 const searchLoading = ref(false);

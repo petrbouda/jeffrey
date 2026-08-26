@@ -57,10 +57,13 @@ describe('JavaMethodParser', () => {
       });
     });
 
+    // Lambda proxies are hidden classes; the parser strips the JVM's per-run `.0x…` address at
+    // ingest, so a title reaching the UI carries only the stable part.
     it('parses lambda frames', () => {
-      const result = JavaMethodParser.parse('com.example.Foo$$Lambda.0x123.run');
+      const result = JavaMethodParser.parse('com.example.Foo$$Lambda#run');
       expect(result).not.toBeNull();
       expect(result!.packageName).toBe('com.example');
+      expect(result!.className).toBe('Foo$$Lambda');
       expect(result!.methodName).toBe('run');
     });
 

@@ -25,6 +25,7 @@ import com.google.perftools.profiles.ProfileProto.Mapping;
 import cafe.jeffrey.pprofparser.PprofTables;
 import cafe.jeffrey.profile.common.model.FrameType;
 import cafe.jeffrey.provider.profile.api.EventFrame;
+import cafe.jeffrey.shared.common.HiddenClassName;
 import cafe.jeffrey.shared.common.model.StacktraceType;
 
 import java.util.ArrayList;
@@ -83,7 +84,14 @@ public final class PprofFrameMapper {
             return new EventFrame(UNKNOWN_MODULE, "unknown", FRAME_TYPE_CODE, UNKNOWN_BYTECODE_INDEX, line.getLine());
         }
         FunctionNameSplitter.SplitName split = FunctionNameSplitter.split(functionName);
-        return new EventFrame(split.clazz(), split.method(), FRAME_TYPE_CODE, UNKNOWN_BYTECODE_INDEX, line.getLine());
+        HiddenClassName clazz = HiddenClassName.split(split.clazz());
+        return new EventFrame(
+                clazz.className(),
+                split.method(),
+                FRAME_TYPE_CODE,
+                UNKNOWN_BYTECODE_INDEX,
+                line.getLine(),
+                clazz.hiddenClassId());
     }
 
     private static String resolveFunctionName(Function function, PprofTables tables) {

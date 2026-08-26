@@ -183,9 +183,16 @@ export default abstract class FlamegraphTooltip {
         ? `<span style="display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;background:${color}40;color:#0b1727">${typeTitle}</span>`
         : '';
 
+    // A JVM hidden class (JEP 371) has no entry in any class loader's dictionary, so the JVM makes
+    // its name unique by appending its own address — redrawn on every run. The parser strips that
+    // address, so the title above is stable; this badge says what it was stripped from.
+    const hiddenBadge = frame.hidden
+      ? `<span style="display:inline-block;margin-left:5px;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;background:#f3e0c1;color:#6d3f05">HIDDEN CLASS</span>`
+      : '';
+
     return `<div style="padding:10px 12px;border-bottom:1px solid #eaedf1;background:#f9fafd">
             ${titleHtml}
-            <div style="margin-top:5px">${typeBadge}</div>
+            <div style="margin-top:5px">${typeBadge}${hiddenBadge}</div>
         </div>`;
   }
 

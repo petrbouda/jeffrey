@@ -18,14 +18,17 @@
 
 package cafe.jeffrey.provider.profile.jdbc;
 
+import cafe.jeffrey.provider.profile.api.TraceAttributeCarrier;
 import cafe.jeffrey.provider.profile.api.TraceAttributeCondition;
 import cafe.jeffrey.provider.profile.api.TraceAttributeKeyId;
 import cafe.jeffrey.provider.profile.api.TraceAttributeOperator;
+import cafe.jeffrey.provider.profile.api.TraceAttributeScope;
 import cafe.jeffrey.provider.profile.api.TraceAttributeSearchQuery;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Turns attribute conditions into SQL.
@@ -51,19 +54,53 @@ final class TraceAttributeQueries {
      */
     static final String KEY_PATH = "'$.\"' || attr_key || '\"'";
 
+    /** The two index tables, one per carrier. Constants of this class, never caller text. */
+    static final String SPAN_ATTRIBUTES_TABLE = "trace_span_attributes";
+    static final String NOTIFICATION_ATTRIBUTES_TABLE = "trace_notification_attributes";
+
     private TraceAttributeQueries() {
     }
 
     /**
-     * One predicate per condition, in order, each matching a single row of the attribute index.
+     * The predicates of one search, split by the carrier their keys belong to.
+     * <p>
+     * They are split rather than listed together because the two live in different tables and are
+     * grouped by different keys. A search naming only spans therefore produces exactly the SQL it
+     * always did — one grouped scan of one table — and pays nothing for notifications existing.
+     *
+     * @param spans         predicates over {@code trace_span_attributes}
+     * @param notifications predicates over {@code trace_notification_attributes}
+     */
+    record Predicates(List<String> spans, List<String> notifications) {
+
+        boolean isEmpty() {
+            return spans.isEmpty() && notifications.isEmpty();
+        }
+
+        /** Every predicate, for the hit lookup, which ORs them across rows of one table. */
+        List<String> of(TraceAttributeCarrier carrier) {
+            return switch (carrier) {
+                case SPAN -> spans;
+                case NOTIFICATION -> notifications;
+            };
+        }
+    }
+
+    /**
+     * One predicate per condition, each matching a single row of its carrier's attribute index.
+     * <p>
+     * The parameter names are derived from a condition's position in the original list, not from its
+     * position within its carrier's group, so splitting the conditions cannot make two of them
+     * collide on one bound name.
      *
      * @param conditions what has to hold
      * @param params     bound with each condition's value, under a name derived from its position
      */
-    static List<String> predicates(
+    static Predicates predicates(
             List<TraceAttributeCondition> conditions, MapSqlParameterSource params) {
 
-        List<String> predicates = new ArrayList<>(conditions.size());
+        List<String> spanPredicates = new ArrayList<>();
+        List<String> notificationPredicates = new ArrayList<>();
         for (int i = 0; i < conditions.size(); i++) {
             TraceAttributeCondition condition = conditions.get(i);
             TraceAttributeKeyId key = condition.key();
@@ -87,10 +124,15 @@ final class TraceAttributeQueries {
                 params.addValue("attr_value_" + i, condition.value());
             }
 
-            predicates.add("(source = '%s' AND %s AND attr_key = :%s AND %s)"
-                    .formatted(key.source().name(), ownerClause, keyParam, valueClause));
+            String predicate = "(source = '%s' AND %s AND attr_key = :%s AND %s)"
+                    .formatted(key.source().name(), ownerClause, keyParam, valueClause);
+
+            switch (key.source().carrier()) {
+                case SPAN -> spanPredicates.add(predicate);
+                case NOTIFICATION -> notificationPredicates.add(predicate);
+            }
         }
-        return predicates;
+        return new Predicates(List.copyOf(spanPredicates), List.copyOf(notificationPredicates));
     }
 
     /**
@@ -111,8 +153,14 @@ final class TraceAttributeQueries {
      * The trace ids matching every condition, as a subquery.
      * <p>
      * The scope is the entire difference between "these conditions held somewhere in the trace" and
-     * "they held together on one span", and it is one clause: group by the trace and each condition
-     * may be satisfied by a different span, group by the span as well and they may not.
+     * "they held together on one carrier", and it is one clause: group by the trace and each
+     * condition may be satisfied by a different carrier, group by the carrier as well and they may
+     * not.
+     * <p>
+     * Conditions over both carriers become one branch each, combined with {@code INTERSECT}. That is
+     * what AND across conditions means once they live in tables grouped by different keys, and it
+     * says so directly rather than through a join the reader has to decode. A search naming one
+     * carrier emits its branch alone, so the common case is the statement it always was.
      *
      * @return the subquery, or {@code null} when nothing narrows the result
      */
@@ -121,15 +169,45 @@ final class TraceAttributeQueries {
             return null;
         }
 
-        List<String> having = predicates(query.conditions(), params).stream()
+        Predicates predicates = predicates(query.conditions(), params);
+        if (predicates.isEmpty()) {
+            return null;
+        }
+
+        List<String> branches = new ArrayList<>(2);
+        for (TraceAttributeCarrier carrier : TraceAttributeCarrier.values()) {
+            List<String> carrierPredicates = predicates.of(carrier);
+            if (!carrierPredicates.isEmpty()) {
+                branches.add(branch(carrier, carrierPredicates, query.scope()));
+            }
+        }
+        return String.join("\nINTERSECT\n", branches);
+    }
+
+    /** One carrier's half of the match: the traces where every condition of that carrier held. */
+    private static String branch(
+            TraceAttributeCarrier carrier, List<String> predicates, TraceAttributeScope scope) {
+
+        String having = predicates.stream()
                 .map(predicate -> "COUNT(*) FILTER (WHERE %s) > 0".formatted(predicate))
-                .toList();
+                .collect(Collectors.joining("\n   AND "));
 
         return """
                 SELECT trace_id
-                FROM trace_span_attributes
+                FROM %s
                 GROUP BY %s
-                HAVING %s""".formatted(query.scope().grouping(), String.join("\n   AND ", having));
+                HAVING %s""".formatted(table(carrier), scope.grouping(carrier), having);
+    }
+
+    /**
+     * The index table one carrier's rows live in. Derived from the carrier rather than passed in, so
+     * a predicate can never be run against the other carrier's table.
+     */
+    private static String table(TraceAttributeCarrier carrier) {
+        return switch (carrier) {
+            case SPAN -> SPAN_ATTRIBUTES_TABLE;
+            case NOTIFICATION -> NOTIFICATION_ATTRIBUTES_TABLE;
+        };
     }
 
     /**

@@ -11,13 +11,8 @@
           title="Dashboards, insights and profile information"
           @click="selectMode('Overview')"
         >
-          <div class="pill-content">
-            <div class="title-row">
-              <i class="bi bi-compass"></i>
-              <span>Overview</span>
-            </div>
-            <small>Dashboards, insights &amp; profile info</small>
-          </div>
+          <i class="bi bi-compass"></i>
+          <span>Overview</span>
         </div>
         <!-- Advisor mode (hidden for heap-dump-only profiles; it analyzes sampled call trees) -->
         <div
@@ -27,13 +22,8 @@
           title="AI recommendations from this profile and your source"
           @click="selectMode('Advisor')"
         >
-          <div class="pill-content">
-            <div class="title-row">
-              <i class="bi bi-lightbulb"></i>
-              <span>Advisor</span>
-            </div>
-            <small>AI from your source</small>
-          </div>
+          <i class="bi bi-lightbulb"></i>
+          <span>Advisor</span>
         </div>
         <!-- JVM Internals mode (hidden for heap-dump-only, pprof and OTLP profiles) -->
         <div
@@ -43,13 +33,8 @@
           title="Core JVM metrics and analysis"
           @click="selectMode('JVM')"
         >
-          <div class="pill-content">
-            <div class="title-row">
-              <i class="bi bi-cpu"></i>
-              <span>JVM Internals</span>
-            </div>
-            <small>Core JVM metrics and analysis</small>
-          </div>
+          <i class="bi bi-cpu"></i>
+          <span>JVM Internals</span>
         </div>
         <!-- Application mode (hidden for heap-dump-only, pprof and OTLP profiles) -->
         <div
@@ -59,13 +44,19 @@
           title="Threads, behavior and I/O"
           @click="selectMode('Application')"
         >
-          <div class="pill-content">
-            <div class="title-row">
-              <i class="bi bi-activity"></i>
-              <span>Application</span>
-            </div>
-            <small>Threads, behavior and I/O</small>
-          </div>
+          <i class="bi bi-activity"></i>
+          <span>Application</span>
+        </div>
+        <!-- Traces mode (hidden for heap-dump-only, pprof and OTLP profiles: none of them carry spans) -->
+        <div
+          v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile && !isOtlpOnlyProfile"
+          class="nav-pill"
+          :class="{ active: selectedMode === 'Traces' }"
+          title="Nested spans, operations and trace attributes"
+          @click="selectMode('Traces')"
+        >
+          <i class="bi bi-bar-chart-steps"></i>
+          <span>Traces</span>
         </div>
         <!-- Visualization mode (hidden for heap-dump-only profiles) -->
         <div
@@ -75,13 +66,8 @@
           title="Profiling graphs and visualizations"
           @click="selectMode('Visualization')"
         >
-          <div class="pill-content">
-            <div class="title-row">
-              <i class="bi bi-bar-chart-line"></i>
-              <span>Visualization</span>
-            </div>
-            <small>Profiling graphs and visualizations</small>
-          </div>
+          <i class="bi bi-bar-chart-line"></i>
+          <span>Visualization</span>
         </div>
         <!-- Technologies mode (hidden for heap-dump-only, pprof and OTLP profiles) -->
         <div
@@ -91,13 +77,8 @@
           title="Technology-specific analysis"
           @click="selectMode('Technologies')"
         >
-          <div class="pill-content">
-            <div class="title-row">
-              <i class="bi bi-layers"></i>
-              <span>Technologies</span>
-            </div>
-            <small>Technology-specific analysis</small>
-          </div>
+          <i class="bi bi-layers"></i>
+          <span>Technologies</span>
         </div>
         <!-- Tools mode (hidden for heap-dump-only and pprof profiles; kept for OTLP, which can export) -->
         <div
@@ -107,13 +88,8 @@
           title="Profile data transformations"
           @click="selectMode('Tools')"
         >
-          <div class="pill-content">
-            <div class="title-row">
-              <i class="bi bi-tools"></i>
-              <span>Tools</span>
-            </div>
-            <small>Profile data transformations</small>
-          </div>
+          <i class="bi bi-tools"></i>
+          <span>Tools</span>
         </div>
         <!-- Heap Dump mode (only when a heap dump is attached; pprof/OTLP profiles have no heap data) -->
         <div
@@ -123,13 +99,8 @@
           title="Heap dump memory analysis"
           @click="selectMode('HeapDump')"
         >
-          <div class="pill-content">
-            <div class="title-row">
-              <i class="bi bi-database"></i>
-              <span>Heap Dump</span>
-            </div>
-            <small>Memory analysis from heap dumps</small>
-          </div>
+          <i class="bi bi-database"></i>
+          <span>Heap Dump</span>
         </div>
 
         <!-- IDE Target Control (profile-wide; visible only when the bridge supports target selection) -->
@@ -628,6 +599,7 @@ const selectMode = (mode: ProfileMode) => {
     Overview: `/profiles/${profileId}/dashboard`,
     JVM: `/profiles/${profileId}/garbage-collection`,
     Application: `/profiles/${profileId}/allocations`,
+    Traces: `/profiles/${profileId}/traces/operations`,
     Technologies: `/profiles/${profileId}/technologies/hub`,
     Visualization: `/profiles/${profileId}/flamegraphs/primary`,
     HeapDump: `/profiles/${profileId}/heap-dump/settings`,
@@ -1127,99 +1099,58 @@ onUnmounted(() => {
   }
 }
 
+/* Compact icon-over-label tiles: the mode description lives in the `title` tooltip
+   rather than a second line, which halves the bar height. `min-width` (not a fixed
+   width) keeps the tiles on a grid while letting long labels like "JVM Internals"
+   claim the room they need. */
 .feature-collection-nav .nav-pill {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding: 0.75rem 1.5rem;
+  justify-content: center;
+  gap: 0.32rem;
+  padding: 0.72rem 0.5rem 0.76rem;
   border: none;
   background: transparent;
   position: relative;
   color: var(--color-slate-muted);
-  font-size: 0.85rem;
   font-weight: 500;
-  min-width: 140px;
+  min-width: 116px;
   border-radius: 0;
-  transition: all 0.25s ease;
+  white-space: nowrap;
+  transition: color 0.2s ease;
   cursor: pointer;
 
-  .pill-content {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    width: 100%;
-  }
-
-  .title-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
   i {
-    font-size: 1rem;
-    transition: all 0.25s ease;
+    font-size: 1.5rem;
+    line-height: 1;
     flex-shrink: 0;
   }
 
   span {
-    opacity: 0.8;
-    transition: all 0.25s ease;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.84rem;
     line-height: 1.2;
-  }
-
-  small {
-    font-size: 0.7rem;
-    opacity: 0.6;
-    transition: all 0.25s ease;
-    color: var(--color-text-muted);
-    line-height: 1.1;
   }
 
   &::after {
     content: '';
     position: absolute;
     bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 3px;
+    left: 0.85rem;
+    right: 0.85rem;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
     background-color: transparent;
-    transition: background-color 0.25s ease;
+    transition: background-color 0.2s ease;
   }
 
   &:hover {
     color: var(--color-slate-text);
-
-    i {
-      transform: translateY(-2px);
-    }
-
-    span {
-      opacity: 1;
-    }
-
-    small {
-      opacity: 0.8;
-    }
   }
 
   &.active {
     color: var(--color-primary);
-
-    i {
-      transform: translateY(-2px);
-    }
-
-    span {
-      opacity: 1;
-    }
-
-    small {
-      opacity: 0.9;
-      color: var(--color-primary);
-    }
 
     &::after {
       background-color: var(--color-primary);

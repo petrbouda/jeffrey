@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instance Timeline — 5. Lifecycle pins on the bar</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  .wf-rail { padding: .25rem 1rem; border-left: 2px solid transparent;
+    display: grid; grid-template-columns: 20rem 1fr 5.5rem; align-items: center; gap: .5rem;
+    border-bottom: 1px solid var(--color-border); }
+  .rail-track { position: relative; height: 1.15rem; }
+  .rail-track::before { content: ''; position: absolute; inset: .55rem 0 auto 0; height: 1px;
+    background: var(--color-border-light); }
+  .rail-mark { position: absolute; top: .28rem; width: 7px; height: 7px; margin-left: -3.5px;
+    background: var(--mark); box-shadow: 0 0 0 2px var(--color-bg-card); }
+  .rail-mark.start  { border-radius: var(--radius-circle); }
+  .rail-mark.deploy { border-radius: 1px; transform: rotate(45deg); }
+  .rail-mark.stop   { border-radius: 1px; width: 3px; height: 9px; top: .22rem; margin-left: -1.5px; }
+  .rail-mark.crash  { border-radius: 1px; }
+  .rail-mark.crash::before, .rail-mark.crash::after { content: ''; position: absolute;
+    left: 2.5px; top: -1px; width: 2px; height: 9px; background: var(--mark); }
+  .rail-mark.crash::before { transform: rotate(45deg); }
+  .rail-mark.crash::after  { transform: rotate(-45deg); }
+  .rail-mark.crash { background: transparent; box-shadow: none; }
+  .shutdown-note { font-family: var(--font-family-monospace); font-size: var(--font-size-xs);
+    color: var(--color-text-muted); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All directions</a>
+    <h1><span class="n">5</span>Lifecycle pins on the bar</h1>
+    <p class="lede">
+      Today an instance bar is a featureless slab: it says <em>when</em> and says nothing about <em>what happened</em>.
+      The Trace waterfall solved the identical problem for notifications and exceptions by drawing each instant
+      <strong>twice</strong> — once on a rail above the rows that survives folding and filtering, once as a
+      <strong>pin on the bar that owns it</strong>, positioned against the track so the two always share an x. Applied
+      here, the pins are: instance <strong>start</strong> (circle), <strong>deploy</strong> (diamond),
+      <strong>crash</strong> (cross), and <strong>stop</strong> (bar) carrying the <code>jdk.Shutdown</code> reason —
+      which the app <em>already fetches</em> for the drawer and shows nowhere else. Shape carries the family, so the
+      colour ramp can safely reuse red.
+    </p>
+    <div id="app"></div>
+    <div id="notes"></div>
+  </div>
+
+<script src="data.js"></script>
+<script>
+  const win = windowOf('7d');
+
+  const SHUTDOWN = {
+    'p4x2m': 'Shutdown requested from Java code',
+    'h9k1t': 'Shutdown requested from Java code',
+    'w7n3q': 'VM Error',
+    'z2v8r': 'No remaining non-daemon Java threads',
+    's88hb': 'Shutdown requested from Java code',
+    'm3j6c': 'Shutdown requested from Java code',
+    't8b4y': 'Shutdown requested from Java code',
+    'qb9g7': 'Shutdown requested from Java code'
+  };
+
+  const KINDS = {
+    start:  { mark: 'var(--color-success)', label: 'start' },
+    deploy: { mark: 'var(--deploy-mark)',   label: 'deploy' },
+    crash:  { mark: 'var(--color-danger)',  label: 'crash' },
+    stop:   { mark: 'var(--color-text-muted)', label: 'stop' }
+  };
+
+  /* every instant, per instance */
+  function pinsFor(inst) {
+    const out = [{ at: inst.start, kind: 'start', text: 'started ' + fmtUTC(inst.start) }];
+    for (const s of inst.sessions.filter(x => x.failed)) {
+      out.push({ at: s.start, kind: 'crash', text: 'crash · session produced 0 B' });
+    }
+    if (inst.end) {
+      out.push({ at: inst.end, kind: 'stop', text: 'stopped ' + fmtUTC(inst.end) + '\n' + (SHUTDOWN[inst.id] ?? 'unknown') });
+    }
+    return out;
+  }
+
+  const allPins = FLEET.flatMap(inst => pinsFor(inst).map(p => Object.assign({ inst: inst.name }, p)))
+    .concat(FLEET_DEPLOYS.map(d => ({ at: d.at, kind: 'deploy', text: d.from + ' → ' + d.to, inst: 'fleet' })));
+
+  const rail = `<div class="wf-rail">
+    <span class="lane-label"><i class="bi bi-signpost-2" style="color:var(--color-text-muted)"></i>
+      Lifecycle <span class="lane-stat">${allPins.length} events</span></span>
+    <span class="rail-track">
+      ${allPins.map(p => {
+        const x = pct(p.at, win);
+        if (x < 0 || x > 100) { return ''; }
+        return `<span class="rail-mark ${p.kind}" style="left:${x}%;--mark:${KINDS[p.kind].mark}"
+          title="${p.inst}\n${KINDS[p.kind].label} · ${p.text}"></span>`;
+      }).join('')}
+    </span>
+    <span class="wf-duration"></span>
+  </div>`;
+
+  function rowHtml(inst) {
+    const cls = inst.status.toLowerCase();
+    const g = barGeom(inst.start, inst.end, win);
+    const failed = inst.sessions.some(s => s.failed);
+    const pins = pinsFor(inst).map(p => {
+      const x = pct(p.at, win);
+      if (x < 0 || x > 100) { return ''; }
+      return `<span class="wf-pin ${p.kind}" style="left:${x}%;--mark:${KINDS[p.kind].mark}"
+        title="${KINDS[p.kind].label} · ${p.text}"></span>`;
+    }).join('');
+    const crashCount = inst.sessions.filter(s => s.failed).length;
+
+    return `<div class="wf-row${cls === 'active' ? ' is-active' : ''}">
+      <span class="wf-name">
+        <span class="wf-twist"><i class="bi bi-caret-right-fill"></i></span>
+        <span class="wf-kind kind-${failed ? 'failed' : cls}"></span>
+        <span class="wf-label">${inst.name}</span>
+        <span class="badge badge-${cls}">${inst.status}</span>
+        ${crashCount ? `<span class="wf-count" style="--mark:var(--color-danger)">✕ ${crashCount}</span>` : ''}
+      </span>
+      <span class="wf-track">
+        ${g.outside ? '' : `<span class="wf-bar bar-${failed ? 'failed' : cls}" style="left:${g.left}%;width:${g.width}%"></span>`}
+        ${pins}
+      </span>
+      <span class="wf-duration">${fmtDur(durationOf(inst))}</span>
+    </div>`;
+  }
+
+  /* one row opened, to show where the shutdown reason lands in the drawer */
+  const opened = FLEET.find(i => i.id === 'w7n3q');
+  const openedDrawer = `<div class="span-detail">
+    <div class="sd-head">
+      <i class="bi bi-power" style="color:var(--color-danger)"></i>
+      <span style="font-size:var(--font-size-xs);letter-spacing:.06em;text-transform:uppercase;color:var(--color-text-muted);font-weight:600">jdk.Shutdown</span>
+      <span class="shutdown-note">${SHUTDOWN['w7n3q']}</span>
+      <span class="badge badge-failed">VM Error</span>
+      <span class="sd-actions"><span class="sd-act"><i class="bi bi-collection-play"></i> Replay Stream</span>
+        <span class="sd-act"><i class="bi bi-download"></i> Download</span></span>
+    </div>
+    <div class="sd-cols">
+      <div class="sd-card"><div class="sd-card-head">Lifecycle</div><div class="sd-card-body">
+        <div class="kv"><span class="k">started</span><span class="v">${fmtUTC(opened.start)}</span></div>
+        <div class="kv"><span class="k">stopped</span><span class="v">${fmtUTC(opened.end)}</span></div>
+        <div class="kv"><span class="k">reason</span><span class="v">VM Error</span></div>
+        <div class="kv"><span class="k">expires</span><span class="v">${fmtUTC(opened.end + 7 * 24 * 3600e3)}</span></div>
+      </div></div>
+      <div class="sd-card"><div class="sd-card-head">jdk.JVMInformation</div><div class="sd-card-body">
+        <div class="kv"><span class="k">jvmVersion</span><span class="v">25.0.1+9-LTS</span></div>
+        <div class="kv"><span class="k">pid</span><span class="v">1</span></div>
+      </div></div>
+    </div>
+  </div>`;
+
+  const rowsWithDrawer = FLEET
+    .map(inst => rowHtml(inst) + (inst.id === 'w7n3q' ? openedDrawer : ''))
+    .join('');
+
+  const body = `
+    <div class="wf-card">
+      ${rulerRow(win)}
+      ${rail}
+      <div class="wf-rows">${rowsWithDrawer}</div>
+    </div>
+    <div class="wf-legend">
+      <span class="lg"><span class="rail-mark start" style="position:relative;--mark:var(--color-success);display:inline-block;margin:0 4px 0 0"></span> start</span>
+      <span class="lg"><span class="rail-mark deploy" style="position:relative;--mark:var(--deploy-mark);display:inline-block;margin:0 6px 0 2px"></span> deploy</span>
+      <span class="lg"><span class="rail-mark crash" style="position:relative;--mark:var(--color-danger);display:inline-block;margin:0 6px 0 2px"></span> crash</span>
+      <span class="lg"><span class="rail-mark stop" style="position:relative;--mark:var(--color-text-muted);display:inline-block;margin:0 6px 0 2px"></span> stop · <code style="font-size:.6rem">jdk.Shutdown</code></span>
+      <span class="lg" style="margin-left:auto">shape carries the family, colour is secondary</span>
+    </div>`;
+
+  document.getElementById('app').innerHTML = pageChrome('Instance Timeline',
+    `<div class="tl-toolbar">${rangeGroup('7d')}
+       <span class="chip"><i class="bi bi-signpost-2"></i> Lifecycle events on</span>
+       ${countChip(FLEET.length, FLEET.reduce((n, i) => n + i.sessions.length, 0),
+                   FLEET.reduce((n, i) => n + i.sessions.filter(s => s.failed).length, 0))}</div>`, body);
+
+  document.getElementById('notes').innerHTML = notesBlock(
+    ['Surfaces <code>jdk.Shutdown</code> — already fetched for the drawer — where it answers a question: why did this one die.',
+     'Surfaces <code>expiringAt</code>/<code>expiredAt</code>, which are on the model and rendered nowhere today.',
+     'The rail keeps every instant visible even when a bar is a two-pixel sliver.',
+     'Distinguishing by shape means the ramp can reuse red without claiming a relationship.'],
+    ['Pins crowd badly when events cluster — the real project\'s three rollovers happen within 9 seconds of each other and would overlap into one blob without direction 3\'s zoom.',
+     'Shutdown reason needs the session detail, which is lazily fetched per session today; drawing it on every row means fetching much more up front.',
+     'More marks means more hover targets on a 28px row.'],
+    ['Copy <code>.wf-pin</code>/<code>.rail-mark</code> and the halo trick (<code>box-shadow: 0 0 0 2px var(--color-bg-card)</code>) from <code>TraceWaterfall.vue:2250-2350</code>.',
+     'Position pins against the <em>track</em>, not the bar, or the rail and the pin will not line up.',
+     'Needs a lightweight per-instance lifecycle endpoint, or accept pins appearing as details stream in.']
+  );
+</script>
+</body>
+</html>

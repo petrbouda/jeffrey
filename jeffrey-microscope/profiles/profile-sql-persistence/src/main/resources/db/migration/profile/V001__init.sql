@@ -55,11 +55,20 @@ CREATE TABLE IF NOT EXISTS event_types
 CREATE TABLE IF NOT EXISTS frames
 (
     frame_hash      BIGINT NOT NULL PRIMARY KEY,
+    -- Class name with any hidden-class address stripped off, so it is the same string in every
+    -- recording of the same application.
     class_name      VARCHAR,
     method_name     VARCHAR,
     frame_type      VARCHAR,  -- JIT/Interpreted/Native/C++
     line_number     INTEGER,
-    bytecode_index  INTEGER
+    bytecode_index  INTEGER,
+    -- A hidden class (JEP 371) has no entry in any class loader's dictionary, so the JVM makes its
+    -- name unique by appending its own address: `FilterChainProxy$$Lambda.0x0000000011cb1be8`. The
+    -- address is redrawn on every run, which makes the full name useless as an identity when two
+    -- recordings are compared -- 85% of the stacktraces in a Spring application contain at least
+    -- one such frame. The stable part stays in class_name and the address lands here, so
+    -- `hidden_class_id IS NOT NULL` is the whole is-this-hidden test: a null check, not a LIKE.
+    hidden_class_id VARCHAR
 );
 
 --
@@ -370,13 +379,43 @@ CREATE TABLE IF NOT EXISTS trace_notifications
     -- lines up against the bars without converting.
     start_timestamp_from_beginning BIGINT      NOT NULL,
     type                           VARCHAR,
-    title                          VARCHAR,
-    message                        VARCHAR,
+    -- Reference into trace_notification_messages. The text lives once per distinct message rather
+    -- than once per notification: a message is a property of the *kind* of notification, so a run
+    -- that raises the same kind ten thousand times repeats one sentence ten thousand times.
+    message_ref                    BIGINT,
     severity                       VARCHAR,
     category                       VARCHAR,
     source                         VARCHAR,
+    -- What the notification attached to itself: AbstractTracedInstant.attributes, the same open JSON
+    -- map a span carries in trace_spans.attributes, built by the same EventAttributes builder. Kept
+    -- as the raw text the recording held, inline and undeduplicated, for the same reason the span
+    -- column is: the detail read hands it to the UI verbatim, and the searchable form lives in
+    -- trace_notification_attributes.
+    attributes                     VARCHAR,
     thread_hash                    BIGINT,
     PRIMARY KEY (trace_id, notification_id)
+);
+
+--
+-- TRACE NOTIFICATION MESSAGES
+-- The distinct notification message texts, one row per distinct text, keyed by the text's own 64-bit
+-- hash -- the same convention trace_span_payloads and trace_attribute_values use, so the derivation
+-- computes each reference inline.
+--
+-- Worth a table of its own because a notification's message is the one field guaranteed to repeat: it
+-- says what *kind* of thing happened, never which one, so every occurrence of a kind carries a
+-- byte-identical sentence. In practice this table holds one row per notification type -- a couple of
+-- dozen -- however many notifications the recording contains.
+--
+-- Keyed by hash rather than by `type` on purpose. That the message follows from the type is a rule
+-- Jeffrey's own emitter enforces, not something the recording guarantees: a third-party application
+-- writing jeffrey.Notification events may vary the message for one type, and hashing the text
+-- degrades to more rows rather than silently attaching the wrong sentence to an event.
+--
+CREATE TABLE IF NOT EXISTS trace_notification_messages
+(
+    message_id   BIGINT  NOT NULL PRIMARY KEY,
+    message_text VARCHAR NOT NULL
 );
 
 --
@@ -484,6 +523,62 @@ CREATE TABLE IF NOT EXISTS trace_span_attributes
 );
 
 --
+-- TRACE NOTIFICATION ATTRIBUTES
+-- The same thing trace_span_attributes is, for the other half of what a trace is made of: one row
+-- per (notification, key), so a notification can be filtered in SQL rather than re-parsed out of
+-- JSON on every read.
+--
+-- A separate table rather than more rows in trace_span_attributes, and not because of tidiness:
+--   * that table's span_id is NOT NULL, and a notification's span legitimately is not -- a sentinel
+--     would collide with the "absent" encoding the whole trace layer uses, and MATCH_HITS hands
+--     span_id straight to the UI, which would print a span id that never existed;
+--   * TraceAttributeScope.SPAN groups by (trace_id, span_id), so every notification in a trace would
+--     collapse into one pseudo-span and the scope would silently answer the wrong question;
+--   * a notification's attributes are not a span's. A search for `status = ERROR` over SPAN_SHAPE
+--     must not match something that merely said so.
+-- trace_exceptions is kept apart from trace_notifications for the same kind of reason, spelled out
+-- there: one table would be half NULLs and every read would have to know which half applied.
+--
+-- Two sources feed it, mirroring the span table's three:
+--   NOTIFICATION_ATTRIBUTE -- the open map from AbstractTracedInstant.attributes
+--   NOTIFICATION_SHAPE     -- the columns every notification already has (type, message,
+--                             severity, category, source)
+--
+-- Note the collision a reader will meet here, because it looks like a bug and is not: a notification
+-- *field* is called `source`, and this table's discriminator *column* is also called `source`. So a
+-- shape row for that field reads `source = 'NOTIFICATION_SHAPE' AND attr_key = 'source'`. Two
+-- different things; the key is spelled the way the event spells it, on purpose, so that what the
+-- search offers matches what the detail panel showed.
+--
+-- span_id is copied from trace_notifications rather than joined at read time, so a search hit can
+-- name the bar it fired on -- and honestly say there is none -- without a second join. value_id and
+-- the value dictionary are shared with the span index: one text recorded by a span and by a
+-- notification is still one row there.
+--
+CREATE TABLE IF NOT EXISTS trace_notification_attributes
+(
+    trace_id        BIGINT  NOT NULL,
+    notification_id BIGINT  NOT NULL,
+    -- NULL when there is no bar to draw it against, exactly as in trace_notifications.
+    span_id         BIGINT,
+    source          VARCHAR NOT NULL,
+    -- Always NULL today: a notification declares no owned fields, so it has no EVENT_FIELD analogue.
+    -- Kept so the catalog reads both index tables with one query shape.
+    owner           VARCHAR,
+    attr_key        VARCHAR NOT NULL,
+    -- Reference into trace_attribute_values, shared with trace_span_attributes.
+    value_id        BIGINT  NOT NULL,
+    value_num       DOUBLE,
+    -- jeffrey.Notification today. Carried rather than assumed so the catalog, the key picker and the
+    -- per-event-type counts join uniformly across both index tables.
+    event_type      VARCHAR NOT NULL
+);
+
+-- No indexes, for the same reason trace_span_attributes carries none: the derivation inserts this
+-- ordered by (trace_id, notification_id), so zone maps prune the search's per-page hit lookup by
+-- trace id, and the facet reads are grouped scans over one key that no index served selectively.
+
+--
 -- TRACE ATTRIBUTE VALUES TABLE
 -- The distinct attribute value texts, one row per distinct text across every source and key,
 -- keyed by the text's own 64-bit hash (DuckDB's hash(), cast to BIGINT) so the derivation computes
@@ -504,6 +599,8 @@ CREATE TABLE IF NOT EXISTS trace_attribute_values
 -- a key with eighteen thousand values (a user id, a SQL statement) is search-only, and must never
 -- become a facet list, a heatmap axis or a candidate in the difference ranking.
 --
+-- Summarised from both index tables, so a notification key is listed here beside a span key.
+--
 CREATE TABLE IF NOT EXISTS trace_attribute_keys
 (
     source          VARCHAR NOT NULL,
@@ -513,14 +610,17 @@ CREATE TABLE IF NOT EXISTS trace_attribute_keys
     -- operators, and what decides whether a key's values are bucketed by magnitude when ranked.
     value_kind      VARCHAR NOT NULL,
     distinct_values BIGINT  NOT NULL,
-    span_count      BIGINT  NOT NULL,
+    -- How many carriers of the key there are: spans for a span source, notifications for a
+    -- notification one. Named for the carrier rather than for either, so neither reading is a lie.
+    carrier_count   BIGINT  NOT NULL,
     trace_count     BIGINT  NOT NULL
 );
 
 --
 -- WHICH KEYS EACH EVENT TYPE CARRIES
 -- The catalog above answers "what keys does this profile have"; this answers "what keys do spans of
--- this event type have", which is what the two-step picker walks.
+-- this event type have", which is what the two-step picker walks. jeffrey.Notification appears here
+-- as an event type of its own, which is what makes its keys reachable from the picker at all.
 --
 -- A separate table rather than a column on the catalog, because a key is not per event type: one
 -- `tenant` attached at a call site rides on an HTTP span and a Kafka span alike, and folding the
@@ -535,7 +635,8 @@ CREATE TABLE IF NOT EXISTS trace_attribute_key_event_types
     owner           VARCHAR,
     attr_key        VARCHAR NOT NULL,
     distinct_values BIGINT  NOT NULL,
-    span_count      BIGINT  NOT NULL,
+    -- Carriers scoped to this event type -- see the note on trace_attribute_keys.carrier_count.
+    carrier_count   BIGINT  NOT NULL,
     trace_count     BIGINT  NOT NULL
 );
 

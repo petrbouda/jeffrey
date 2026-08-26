@@ -229,7 +229,7 @@
           class="rail-mark ntf"
           :class="{ open: openEntryId === mark.entry.notificationId }"
           :style="{ left: mark.leftPercent + '%', '--mark': mark.color }"
-          :title="`${mark.entry.title ?? mark.entry.type ?? 'Notification'} — ${offsetIntoTrace(mark.entry.startEpochMicros)}`"
+          :title="`${mark.entry.type ?? 'Notification'} — ${offsetIntoTrace(mark.entry.startEpochMicros)}`"
           @click="toggleEntry(mark.entry.notificationId)"
         ></button>
 
@@ -251,8 +251,28 @@
             <span class="pop-type">{{ openNotification.type }}</span>
             <span class="pop-at">{{ offsetIntoTrace(openNotification.startEpochMicros) }}</span>
           </div>
-          <p class="pop-title">{{ openNotification.title ?? openNotification.type }}</p>
+          <!-- No separate heading: the type in the head above is the notification's name. -->
           <p v-if="openNotification.message" class="pop-body">{{ openNotification.message }}</p>
+          <!--
+            What it attached, capped: the popover is a fast read, and a notification carrying twenty
+            attributes would turn it into the slow one. The bridge below is where the full list is.
+          -->
+          <div v-if="openNotificationAttributes.length > 0" class="pop-attrs">
+            <span
+              v-for="row in openNotificationAttributes.slice(0, MAX_POPOVER_ATTRIBUTES)"
+              :key="row.key"
+              class="pop-attr"
+            >
+              <span class="pop-attr-k">{{ row.label }}</span>
+              <span class="pop-attr-v">{{ row.value }}</span>
+            </span>
+            <span
+              v-if="openNotificationAttributes.length > MAX_POPOVER_ATTRIBUTES"
+              class="pop-attr-more"
+            >
+              +{{ openNotificationAttributes.length - MAX_POPOVER_ATTRIBUTES }} more
+            </span>
+          </div>
           <p class="pop-meta">
             <span v-if="openNotification.category">{{ openNotification.category }}</span>
             <span v-if="openNotification.source">{{ openNotification.source }}</span>
@@ -334,7 +354,7 @@
       It stays until dismissed, which is what lets the stack be scrolled and read rather than held
       open by the cursor.
 
-      Notifications keep their popover on purpose: a title and a sentence fit in one, and docking
+      Notifications keep their popover on purpose: a type and a sentence fit in one, and docking
       something that small would spend the width for nothing.
     -->
     <div
@@ -780,6 +800,7 @@ import type {
   TraceNotificationRow,
   TraceSpanRow
 } from '@/services/api/model/trace/TraceModels';
+import { attributeRows } from '@/services/trace/spanAttributes';
 import type { SpanBar } from '@/services/trace/TraceWaterfallLayout';
 import { indentRem, traceWindow, waterfallBars } from '@/services/trace/TraceWaterfallLayout';
 import { descendantCounts, spansWithChildren, visibleSpans } from '@/services/trace/traceTree';
@@ -912,6 +933,11 @@ const openNotification = computed(
     props.notifications.find(
       notification => notification.notificationId === openEntryId.value
     ) ?? null
+);
+
+/** Only the open one is parsed: the rail draws marks, and a closed popover shows no attributes. */
+const openNotificationAttributes = computed(() =>
+  attributeRows(openNotification.value?.attributes)
 );
 
 const openException = computed(
@@ -1145,6 +1171,12 @@ const rows = computed(() => {
  * and the twenty structural spans around them are what the reader came for.
  */
 const MIN_RUN_LENGTH = 5;
+
+/**
+ * How many of a notification's attributes the popover shows before saying how many more there are.
+ * The popover is the fast read; the span's own detail region is where the whole map lives.
+ */
+const MAX_POPOVER_ATTRIBUTES = 6;
 
 /** Consecutive same-named leaf siblings, drawn as one rollup row until expanded. */
 interface SpanRun {
@@ -2499,24 +2531,47 @@ function tooltip(span: TraceSpanRow): string {
   font-variant-numeric: tabular-nums;
 }
 
-.pop-title {
-  font-size: var(--font-size-base);
-  font-weight: 700;
-  color: var(--color-dark);
-  line-height: 1.3;
-}
-
-.pop-title.mono {
-  font-family: var(--font-family-monospace);
-  font-size: var(--font-size-sm);
-  overflow-wrap: anywhere;
-}
-
 .pop-body {
   margin-top: 0.2rem;
   font-size: var(--font-size-sm);
   color: var(--color-text);
   line-height: 1.5;
+}
+
+/* What the notification attached, between what it said and where it came from. */
+.pop-attrs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.pop-attr {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-light);
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+.pop-attr-k {
+  color: var(--color-text-muted);
+}
+
+.pop-attr-v {
+  color: var(--color-dark);
+  font-weight: 600;
+}
+
+.pop-attr-more {
+  align-self: center;
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
 }
 
 .pop-meta {

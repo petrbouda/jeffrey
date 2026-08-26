@@ -29,7 +29,7 @@ package cafe.jeffrey.profile.manager.model.trace;
  * @param valueKind      {@code STRING}, {@code NUMBER} or {@code BOOLEAN} — what decides which
  *                       operators the search offers
  * @param distinctValues how many values it ever took
- * @param spanCount      how many spans carry it
+ * @param carrierCount   how many carriers hold it — spans, or notifications
  * @param traceCount     how many traces have at least one span carrying it
  * @param searchOnly     whether the key has too many values to break down: a facet list, a heatmap
  *                       axis and a difference ranking are all meaningless at this cardinality, and
@@ -41,7 +41,7 @@ public record TraceAttributeKeyRow(
         String key,
         String valueKind,
         long distinctValues,
-        long spanCount,
+        long carrierCount,
         long traceCount,
         boolean searchOnly) {
 }

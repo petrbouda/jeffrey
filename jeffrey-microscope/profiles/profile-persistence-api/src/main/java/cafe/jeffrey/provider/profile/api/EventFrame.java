@@ -18,5 +18,24 @@
 
 package cafe.jeffrey.provider.profile.api;
 
-public record EventFrame(String clazz, String method, String type, long bci, long line) {
+/**
+ * One stack frame on its way into the profile database.
+ *
+ * @param clazz          class name with any hidden-class address stripped off, so it stays stable
+ *                       across runs
+ * @param method         method name
+ * @param type           raw frame type code (e.g. "Interpreted", "JIT compiled", "Inlined")
+ * @param bci            bytecode index
+ * @param line           line number
+ * @param hiddenClassId  per-run identity of a hidden class (e.g. {@code 0x0000000011cb1be8}),
+ *                       {@code null} for ordinary classes
+ */
+public record EventFrame(String clazz, String method, String type, long bci, long line, String hiddenClassId) {
+
+    /**
+     * A frame on an ordinary (non-hidden) class.
+     */
+    public EventFrame(String clazz, String method, String type, long bci, long line) {
+        this(clazz, method, type, bci, line, null);
+    }
 }

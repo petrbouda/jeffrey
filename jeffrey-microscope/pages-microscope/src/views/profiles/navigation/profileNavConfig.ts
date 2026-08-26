@@ -9,6 +9,7 @@ export type ProfileMode =
   | 'Overview'
   | 'JVM'
   | 'Application'
+  | 'Traces'
   | 'Technologies'
   | 'Visualization'
   | 'HeapDump'
@@ -211,38 +212,6 @@ export const technologiesNav: Record<string, TechnologyNav> = {
         ]
       }
     ]
-  },
-  traces: {
-    key: 'traces',
-    name: 'Traces',
-    icon: 'bi-diagram-3',
-    groups: [
-      {
-        items: [
-          item('Traces by Operation', 'bi-bar-chart-steps', '/technologies/traces/operations'),
-          // Promoted out of the attribute submenu: searching is the everyday entry point, and an
-          // everyday page should not sit one fold deep.
-          item('Search Traces', 'bi-search', '/technologies/traces/attributes/search'),
-          {
-            // A parent rather than a link: the readings of the attribute index are pages of their
-            // own, and one of them has to be the landing page anyway — putting them in the menu
-            // says which there are without opening the feature first.
-            label: 'Traces by Attributes',
-            icon: 'bi-tags',
-            // The children's paths, not the shared /attributes prefix: Search Traces lives under
-            // the same prefix but is a top-level item now, and must not light this parent up.
-            activePathIncludes: [
-              '/technologies/traces/attributes/values',
-              '/technologies/traces/attributes/latency'
-            ],
-            children: [
-              item('Attribute Values', 'bi-tag', '/technologies/traces/attributes/values'),
-              item('Latency by Attributes', 'bi-grid-3x3', '/technologies/traces/attributes/latency')
-            ]
-          }
-        ]
-      }
-    ]
   }
 };
 
@@ -386,6 +355,27 @@ export const profileNavSections: Record<
         item('CPU Throttling Detector', 'bi-thermometer-half', '/container/cpu-throttling', {
           disabledKeys: ['container']
         })
+      ]
+    }
+  ],
+  Traces: [
+    {
+      title: 'TRACES',
+      items: [
+        item('Traces by Operation', 'bi-bar-chart-steps', '/traces/operations'),
+        // Sits with the operations rather than under ATTRIBUTES: searching is an everyday way into
+        // the traces themselves, not one of the attribute readings.
+        item('Search Traces', 'bi-search', '/traces/attributes/search')
+      ]
+    },
+    {
+      // The two readings of the attribute index are pages of their own, so they sit at the top
+      // level of the section rather than behind a "Traces by Attributes" fold that would only
+      // repeat the section title.
+      title: 'ATTRIBUTES',
+      items: [
+        item('Attribute Values', 'bi-tag', '/traces/attributes/values'),
+        item('Latency by Attributes', 'bi-grid-3x3', '/traces/attributes/latency')
       ]
     }
   ],
@@ -564,6 +554,11 @@ export function getModeForPath(path: string): ProfileMode {
   if (path.includes('/technologies/')) {
     return 'Technologies';
   }
+  // After the technologies branch so the ordering is obviously safe. `method-tracing` cannot
+  // collide anyway: it carries `-tracing/`, not `/traces/`.
+  if (path.includes('/traces/')) {
+    return 'Traces';
+  }
   if (VISUALIZATION_PATH_MARKERS.some(marker => path.includes(marker))) {
     return 'Visualization';
   }
@@ -606,11 +601,6 @@ export function getTechnologyForPath(path: string, mode?: string): string | null
   }
   if (path.includes('/technologies/async-profiler/')) {
     return 'async-profiler';
-  }
-  // Slash-free (like jdbc) so the redirect at the bare `/technologies/traces` matches too, not
-  // just its sub-pages. Cannot collide with method-tracing (`tracing` != `traces`).
-  if (path.includes('/technologies/traces')) {
-    return 'traces';
   }
   return null;
 }

@@ -17,6 +17,7 @@
  */
 module cafe.jeffrey.microscope.profile.heapdump {
     requires transitive cafe.jeffrey.shared.common;
+    requires cafe.jeffrey.shared.notifications;
     requires cafe.jeffrey.microscope.profile.common;
     requires cafe.jeffrey.shared.persistence;
     requires cafe.jeffrey.jfr.events;

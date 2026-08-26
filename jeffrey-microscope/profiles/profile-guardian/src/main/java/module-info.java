@@ -17,6 +17,7 @@
  */
 module cafe.jeffrey.microscope.profile.guardian {
     requires transitive cafe.jeffrey.microscope.profile.frame.ir;
+    requires cafe.jeffrey.shared.notifications;
     requires transitive cafe.jeffrey.microscope.profile.persistence.api;
     requires cafe.jeffrey.shared.common;
     requires spring.boot;
