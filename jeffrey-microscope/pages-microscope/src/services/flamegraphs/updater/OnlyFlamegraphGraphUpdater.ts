@@ -30,28 +30,37 @@ export default class OnlyFlamegraphGraphUpdater extends GraphUpdater {
 
   public initialize(): void {
     this.flamegraphOnUpdateStartedCallback();
-    this.httpClient.provide(this.timeRange).then(data => {
-      this.flamegraphOnInitCallback(data);
-      this.flamegraphOnUpdateFinishedCallback();
-    });
+    this.httpClient
+      .provide(this.timeRange)
+      .then(data => {
+        this.flamegraphOnInitCallback(data);
+        this.flamegraphOnUpdateFinishedCallback();
+      })
+      .catch(error => this.graphOperationFailed('initialization', error));
   }
 
   public updateWithZoom(timeRange: TimeRange): void {
     this.flamegraphOnUpdateStartedCallback();
 
-    this.httpClient.provide(timeRange).then(data => {
-      this.flamegraphOnZoomCallback(data);
-      this.flamegraphOnUpdateFinishedCallback();
-    });
+    this.httpClient
+      .provide(timeRange)
+      .then(data => {
+        this.flamegraphOnZoomCallback(data);
+        this.flamegraphOnUpdateFinishedCallback();
+      })
+      .catch(error => this.graphOperationFailed('zoom', error));
   }
 
   public resetZoom(): void {
     this.flamegraphOnUpdateStartedCallback();
 
-    this.httpClient.provide(null).then(data => {
-      this.flamegraphOnResetZoomCallback(data);
-      this.flamegraphOnUpdateFinishedCallback();
-    });
+    this.httpClient
+      .provide(null)
+      .then(data => {
+        this.flamegraphOnResetZoomCallback(data);
+        this.flamegraphOnUpdateFinishedCallback();
+      })
+      .catch(error => this.graphOperationFailed('zoom reset', error));
   }
 
   public updateWithSearch(expression: string): void {

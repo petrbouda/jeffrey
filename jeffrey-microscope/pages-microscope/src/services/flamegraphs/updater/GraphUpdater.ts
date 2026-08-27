@@ -94,6 +94,21 @@ export default abstract class GraphUpdater {
     this.initialVisibleMinutes = minutes;
   }
 
+  /**
+   * Terminal handler for every request chain an updater starts. The started callbacks have
+   * already switched the flamegraph/timeseries panels into their loading state, so a rejected
+   * promise without this handler leaves them spinning forever and swallows the reason. Prints
+   * the full error — message, stacktrace and, for a failed request, the decoded server body
+   * attached as the cause — and releases every loading state; the finished callbacks are safe
+   * no-ops for panels that never started.
+   */
+  protected graphOperationFailed(operation: string, error: unknown): void {
+    console.error(`Graph ${operation} failed:`, error);
+    this.flamegraphOnUpdateFinishedCallback();
+    this.timeseriesOnUpdateFinishedCallback();
+    this.searchBarOnUpdateFinishedCallback();
+  }
+
   public registerSearchBarCallbacks(
     onUpdateStarted: () => void,
     onUpdateFinished: () => void,

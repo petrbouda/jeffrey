@@ -96,7 +96,30 @@ export default abstract class RemoteFlamegraphClient extends FlamegraphClient {
   protected postProtobuf(content: Record<string, unknown>): Promise<BothGraphData> {
     return axios
       .post<ArrayBuffer>(this.baseUrl, content, HttpUtils.PROTOBUF_HEADERS)
-      .then(response => ProtobufConverter.decode(response.data));
+      .then(response => ProtobufConverter.decode(response.data))
+      .catch(error => {
+        throw RemoteFlamegraphClient.toGraphRequestError(error);
+      });
+  }
+
+  /**
+   * A failed graph request answers with the server's JSON ErrorResponse, but this request asks
+   * for a Protobuf body, so axios hands the payload over as raw bytes. Decode it back to text
+   * and wrap it into the thrown error, so the console shows the server's message instead of an
+   * opaque buffer; the original error stays attached as the cause to keep its stacktrace. Any
+   * other failure (e.g. a Protobuf decoding error) passes through untouched.
+   */
+  private static toGraphRequestError(error: unknown): Error {
+    if (axios.isAxiosError(error) && error.response && error.response.data instanceof ArrayBuffer) {
+      const body = new TextDecoder().decode(error.response.data);
+      return new Error(`Graph request failed: status=${error.response.status} body=${body}`, {
+        cause: error
+      });
+    }
+    if (error instanceof Error) {
+      return error;
+    }
+    return new Error(String(error));
   }
 
   /**

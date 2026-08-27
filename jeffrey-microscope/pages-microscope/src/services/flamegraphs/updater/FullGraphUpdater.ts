@@ -38,10 +38,13 @@ export default class FullGraphUpdater extends GraphUpdater {
 
     if (!this.timeseriesEnabled) {
       this.flamegraphOnUpdateStartedCallback();
-      this.httpClient.provide(null).then(flamegraph => {
-        this.flamegraphOnInitCallback(flamegraph);
-        this.flamegraphOnUpdateFinishedCallback();
-      });
+      this.httpClient
+        .provide(null)
+        .then(flamegraph => {
+          this.flamegraphOnInitCallback(flamegraph);
+          this.flamegraphOnUpdateFinishedCallback();
+        })
+        .catch(error => this.graphOperationFailed('initialization', error));
       return;
     }
 
@@ -49,20 +52,24 @@ export default class FullGraphUpdater extends GraphUpdater {
     this.timeseriesOnUpdateStartedCallback();
 
     // First fetch only timeseries to know the data range
-    this.httpClient.provideTimeseries(null).then(timeseries => {
-      // Initialize timeseries with full data (needed for brush chart)
-      this.timeseriesOnInitCallback(timeseries);
-      this.timeseriesOnUpdateFinishedCallback();
+    this.httpClient
+      .provideTimeseries(null)
+      .then(timeseries => {
+        // Initialize timeseries with full data (needed for brush chart)
+        this.timeseriesOnInitCallback(timeseries);
+        this.timeseriesOnUpdateFinishedCallback();
 
-      // Calculate initial time range based on visibleMinutes setting
-      const initialTimeRange = this.calculateInitialTimeRange(timeseries);
+        // Calculate initial time range based on visibleMinutes setting
+        const initialTimeRange = this.calculateInitialTimeRange(timeseries);
 
-      // Fetch flamegraph with the calculated range (zoomed or full)
-      this.httpClient.provide(initialTimeRange).then(flamegraph => {
-        this.flamegraphOnInitCallback(flamegraph);
-        this.flamegraphOnUpdateFinishedCallback();
-      });
-    });
+        // Fetch flamegraph with the calculated range (zoomed or full). Returned so a failure
+        // propagates into the single catch below instead of dying unobserved.
+        return this.httpClient.provide(initialTimeRange).then(flamegraph => {
+          this.flamegraphOnInitCallback(flamegraph);
+          this.flamegraphOnUpdateFinishedCallback();
+        });
+      })
+      .catch(error => this.graphOperationFailed('initialization', error));
   }
 
   /**
@@ -109,20 +116,26 @@ export default class FullGraphUpdater extends GraphUpdater {
     this.flamegraphOnUpdateStartedCallback();
     this.timeseriesOnZoomCallback();
 
-    this.httpClient.provide(timeRange).then(data => {
-      this.flamegraphOnZoomCallback(data);
-      this.flamegraphOnUpdateFinishedCallback();
-    });
+    this.httpClient
+      .provide(timeRange)
+      .then(data => {
+        this.flamegraphOnZoomCallback(data);
+        this.flamegraphOnUpdateFinishedCallback();
+      })
+      .catch(error => this.graphOperationFailed('zoom', error));
   }
 
   public resetZoom(): void {
     this.flamegraphOnUpdateStartedCallback();
     this.timeseriesOnResetZoomCallback();
 
-    this.httpClient.provide(null).then(data => {
-      this.flamegraphOnResetZoomCallback(data);
-      this.flamegraphOnUpdateFinishedCallback();
-    });
+    this.httpClient
+      .provide(null)
+      .then(data => {
+        this.flamegraphOnResetZoomCallback(data);
+        this.flamegraphOnUpdateFinishedCallback();
+      })
+      .catch(error => this.graphOperationFailed('zoom reset', error));
   }
 
   public updateWithSearch(expression: string): void {
@@ -132,14 +145,17 @@ export default class FullGraphUpdater extends GraphUpdater {
     if (this.timeseriesSearchEnabled) {
       this.timeseriesOnUpdateStartedCallback();
 
-      this.httpClient.provideTimeseries(expression).then(data => {
-        this.flamegraphOnSearchCallback(expression);
-        this.timeseriesOnSearchCallback(data);
+      this.httpClient
+        .provideTimeseries(expression)
+        .then(data => {
+          this.flamegraphOnSearchCallback(expression);
+          this.timeseriesOnSearchCallback(data);
 
-        this.flamegraphOnUpdateFinishedCallback();
-        this.timeseriesOnUpdateFinishedCallback();
-        this.searchBarOnUpdateFinishedCallback();
-      });
+          this.flamegraphOnUpdateFinishedCallback();
+          this.timeseriesOnUpdateFinishedCallback();
+          this.searchBarOnUpdateFinishedCallback();
+        })
+        .catch(error => this.graphOperationFailed('search', error));
     } else {
       // Only search in flamegraph, no timeseries update
       this.flamegraphOnSearchCallback(expression);
