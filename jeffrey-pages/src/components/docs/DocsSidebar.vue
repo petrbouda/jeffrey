@@ -130,7 +130,7 @@ watch(
   ([newCategory, newPage, product]) => {
     // /docs/microscope and /docs/hub are product-level URLs whose category
     // is the product id, not a section path — expand the lead section instead.
-    const isProductRoute = newCategory === 'microscope' || newCategory === 'hub' || newCategory === 'provisioner';
+    const isProductRoute = newCategory === 'microscope' || newCategory === 'hub' || newCategory === 'provisioner' || newCategory === 'tracing';
     if (newCategory && !isProductRoute) {
       expandedSections.value.add(newCategory);
     }
@@ -314,6 +314,13 @@ watch(
   --color-primary: #ea580c;
   --color-primary-light: rgba(234, 88, 12, 0.10);
   --color-primary-lighter: rgba(234, 88, 12, 0.05);
+}
+
+/* Jeffrey Tracing — teal, matching its docs-index card accent. */
+.sidebar-content.product-tracing {
+  --color-primary: #0d9488;
+  --color-primary-light: rgba(13, 148, 136, 0.10);
+  --color-primary-lighter: rgba(13, 148, 136, 0.05);
 }
 
 /* ============================

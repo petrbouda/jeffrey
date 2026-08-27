@@ -25,7 +25,7 @@ defineProps<{
   role: string
   components: string[]
   ctaText: string
-  variant?: 'primary' | 'secondary' | 'tertiary' | 'quaternary' | 'quinary' | 'senary'
+  variant?: 'primary' | 'secondary' | 'tertiary' | 'quaternary' | 'quinary' | 'senary' | 'septenary'
 }>()
 </script>
 
@@ -38,7 +38,8 @@ defineProps<{
       'variant-tertiary': variant === 'tertiary',
       'variant-quaternary': variant === 'quaternary',
       'variant-quinary': variant === 'quinary',
-      'variant-senary': variant === 'senary'
+      'variant-senary': variant === 'senary',
+      'variant-septenary': variant === 'septenary'
     }"
   >
     <div class="card-rail"></div>
@@ -127,6 +128,14 @@ defineProps<{
   --accent-tint: #ffedd5;
   --accent-soft: #fff7ed;
   --accent-shadow: rgba(251, 146, 60, 0.35);
+}
+
+.product-card.variant-septenary {
+  /* septenary: Jeffrey Tracing — teal, matching its sidebar accent */
+  --accent: #14b8a6;
+  --accent-tint: #ccfbf1;
+  --accent-soft: #f0fdfa;
+  --accent-shadow: rgba(20, 184, 166, 0.35);
 }
 
 .product-card:hover {

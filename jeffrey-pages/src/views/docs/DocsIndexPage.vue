@@ -29,6 +29,7 @@ const serverComponents = ['Continuous recording', 'Scheduler', 'gRPC API', 'Agen
 const provisionerComponents = ['HOCON config', 'JVM argfile', 'Session layout', 'Workspace events', 'Native binary'];
 const jibComponents = ['Gradle/Maven', 'Entrypoint wrapper', 'Shared volume', 'Kill switch'];
 const pluginComponents = ['Open in IDE', 'Inline source', 'Java & Kotlin', 'Auto-pairing'];
+const tracingComponents = ['Tracer API', '@Traced agent', 'HTTP/gRPC/JDBC', 'JFR-native', 'Waterfall'];
 
 onMounted(() => {
   setHeadings([]);
@@ -43,7 +44,7 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <p class="docs-lede">Jeffrey ships as six products. Pick the one that matches how you use it.</p>
+      <p class="docs-lede">Jeffrey ships as several products. Pick the one that matches how you use it.</p>
 
       <div class="product-grid">
         <DocsProductCard
@@ -84,6 +85,16 @@ onMounted(() => {
           :components="jibComponents"
           cta-text="Open JIB docs"
           variant="quinary"
+        />
+        <DocsProductCard
+          to="/docs/tracing"
+          title="Tracing"
+          role="Library · In-process traces"
+          description="JFR-native tracing for a single JVM. Instrument with the zero-dependency events library or the @Traced agent, and read requests as span waterfalls correlated with I/O, locks, GC pauses and per-span flamegraphs."
+          icon="bi bi-bezier2"
+          :components="tracingComponents"
+          cta-text="Open Tracing docs"
+          variant="septenary"
         />
         <DocsProductCard
           to="/docs/intellij-plugin"
