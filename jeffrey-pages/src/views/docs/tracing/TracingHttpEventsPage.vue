@@ -22,6 +22,7 @@ import DocsCallout from '@/components/docs/DocsCallout.vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
@@ -163,11 +164,14 @@ const manualClient = `public class JeffreyJfrRestTemplateInterceptor implements 
     }
 }`;
 
-const clientTree = `trace 8c1d33f0…
-└─ GET /api/orders/{id}          HttpServerExchangeEvent   SERVER  (the inbound request)
-   ├─ order.load                 jeffrey.TraceSpan         INTERNAL
-   └─ payments.example.com/api/charges   HttpClientExchangeEvent  CLIENT  leaf
-        └— the downstream work happens in another process this recording cannot see`;
+const clientSpans = [
+  { depth: 0, name: 'GET /api/orders/{id}', kind: 'SERVER' as const, start: 0, duration: 128,
+    event: 'HttpServerExchangeEvent', note: 'the inbound request' },
+  { depth: 1, name: 'order.load', kind: 'INTERNAL' as const, start: 6, duration: 41,
+    event: 'jeffrey.TraceSpan' },
+  { depth: 1, name: 'payments.example.com/api/charges', kind: 'CLIENT' as const,
+    start: 52, duration: 62, event: 'HttpClientExchangeEvent', note: 'leaf' }
+];
 </script>
 
 <template>
@@ -321,7 +325,11 @@ const clientTree = `trace 8c1d33f0…
 
       <DocsCodeBlock :code="manualClient" language="java" />
 
-      <DocsCodeBlock :code="clientTree" language="text" />
+      <DocsSpanTree
+        trace="8c1d33f0…"
+        :spans="clientSpans"
+        caption="The downstream work happens in another process this recording cannot see, so the client exchange is a leaf."
+      />
 
       <h2 id="async-clients">Async Clients</h2>
 

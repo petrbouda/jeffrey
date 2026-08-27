@@ -21,6 +21,7 @@ import { onMounted } from 'vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
@@ -68,11 +69,16 @@ Tracer.run("cache.warm", () -> {
     }
 });`;
 
-const outputTree = `trace 7c01ba58…
-└─ report.generate       INTERNAL  parentSpanId=0    jeffrey.TraceSpan   412 ms
-   ├─ report.load-data   INTERNAL                    jeffrey.TraceSpan   181 ms
-   ├─ report.render      INTERNAL                    jeffrey.TraceSpan   204 ms
-   └─ report.store       INTERNAL                    jeffrey.TraceSpan    22 ms`;
+const outputSpans = [
+  { depth: 0, name: 'report.generate', kind: 'INTERNAL' as const, start: 0, duration: 412,
+    event: 'jeffrey.TraceSpan', note: 'root' },
+  { depth: 1, name: 'report.load-data', kind: 'INTERNAL' as const, start: 3, duration: 181,
+    event: 'jeffrey.TraceSpan' },
+  { depth: 1, name: 'report.render', kind: 'INTERNAL' as const, start: 185, duration: 204,
+    event: 'jeffrey.TraceSpan' },
+  { depth: 1, name: 'report.store', kind: 'INTERNAL' as const, start: 390, duration: 22,
+    event: 'jeffrey.TraceSpan' }
+];
 
 const outputJfr = `jfr print --events jeffrey.TraceSpan app.jfr
 
@@ -134,7 +140,7 @@ const errorExample = `Tracer.run("payment.charge", SpanKind.CLIENT, () -> {
 
       <h2 id="output">Output</h2>
 
-      <DocsCodeBlock :code="outputTree" language="text" />
+      <DocsSpanTree trace="7c01ba58…" :spans="outputSpans" />
       <DocsCodeBlock :code="outputJfr" language="text" />
 
       <h2 id="notes">Notes &amp; Pitfalls</h2>

@@ -22,6 +22,7 @@ import DocsCallout from '@/components/docs/DocsCallout.vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
@@ -74,16 +75,18 @@ Tracer.continueIn(req.trace(), "document.index", () -> {
     return null;
 });`;
 
-const outputTree = `trace 9d02f7c3…
-└─ POST /api/internal/recordings   SERVER              (request thread)
-   └─ profile.initialize           INTERNAL            (request thread)
-      └─ recording.parse           INTERNAL            (request thread)
-         ├─ chunk.parse            INTERNAL            (pool thread A)  ← continueIn
-         └─ chunk.parse            INTERNAL            (pool thread B)  ← continueIn
-
-Passing null instead of a parent context starts a fresh trace:
-trace f01b44d7…   (unrelated to the one above)
-└─ chunk.parse   INTERNAL   parentSpanId=0`;
+const outputSpans = [
+  { depth: 0, name: 'POST /api/internal/recordings', kind: 'SERVER' as const,
+    start: 0, duration: 4400, note: 'request thread' },
+  { depth: 1, name: 'profile.initialize', kind: 'INTERNAL' as const,
+    start: 150, duration: 4102, note: 'request thread' },
+  { depth: 2, name: 'recording.parse', kind: 'INTERNAL' as const,
+    start: 175, duration: 2797, note: 'request thread' },
+  { depth: 3, name: 'chunk.parse', kind: 'INTERNAL' as const,
+    start: 200, duration: 2730, note: 'pool thread A — continueIn' },
+  { depth: 3, name: 'chunk.parse', kind: 'INTERNAL' as const,
+    start: 215, duration: 2571, note: 'pool thread B — continueIn' }
+];
 </script>
 
 <template>
@@ -121,7 +124,11 @@ trace f01b44d7…   (unrelated to the one above)
 
       <h2 id="output">Output</h2>
 
-      <DocsCodeBlock :code="outputTree" language="text" />
+      <DocsSpanTree
+        trace="9d02f7c3…"
+        :spans="outputSpans"
+        caption="Passing null instead of a parent context starts a fresh trace: chunk.parse becomes a root of its own, unrelated to the request."
+      />
 
       <h2 id="notes">Notes &amp; Pitfalls</h2>
 

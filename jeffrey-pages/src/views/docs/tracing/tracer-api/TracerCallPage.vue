@@ -22,6 +22,7 @@ import DocsCallout from '@/components/docs/DocsCallout.vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
@@ -66,13 +67,20 @@ return Tracer.call("profile.initialize", SpanKind.INTERNAL, () -> {
     return profileInfo;
 });`;
 
-const outputTree = `trace c81d02aa…
-└─ profile.initialize     INTERNAL  parentSpanId=0    jeffrey.TraceSpan   4102 ms
-   ├─ profile-info.insert INTERNAL                    jeffrey.TraceSpan      2 ms
-   ├─ recording.parse     INTERNAL                    jeffrey.TraceSpan   2797 ms
-   ├─ events.flush        INTERNAL                    jeffrey.TraceSpan    212 ms
-   ├─ traces.derive       INTERNAL                    jeffrey.TraceSpan    158 ms
-   └─ profile.data-init   INTERNAL                    jeffrey.TraceSpan    933 ms`;
+const outputSpans = [
+  { depth: 0, name: 'profile.initialize', kind: 'INTERNAL' as const, start: 0, duration: 4102,
+    event: 'jeffrey.TraceSpan', note: 'root' },
+  { depth: 1, name: 'profile-info.insert', kind: 'INTERNAL' as const, start: 4, duration: 2,
+    event: 'jeffrey.TraceSpan' },
+  { depth: 1, name: 'recording.parse', kind: 'INTERNAL' as const, start: 10, duration: 2797,
+    event: 'jeffrey.TraceSpan' },
+  { depth: 1, name: 'events.flush', kind: 'INTERNAL' as const, start: 2812, duration: 212,
+    event: 'jeffrey.TraceSpan' },
+  { depth: 1, name: 'traces.derive', kind: 'INTERNAL' as const, start: 3026, duration: 158,
+    event: 'jeffrey.TraceSpan' },
+  { depth: 1, name: 'profile.data-init', kind: 'INTERNAL' as const, start: 3186, duration: 933,
+    event: 'jeffrey.TraceSpan' }
+];
 
 const errorExample = `IllegalStateException thrown = assertThrows(IllegalStateException.class,
     () -> Tracer.call("payment.charge", SpanKind.CLIENT, () -> {
@@ -126,7 +134,7 @@ const errorExample = `IllegalStateException thrown = assertThrows(IllegalStateEx
 
       <h2 id="output">Output</h2>
 
-      <DocsCodeBlock :code="outputTree" language="text" />
+      <DocsSpanTree trace="c81d02aa…" :spans="outputSpans" />
 
       <h2 id="notes">Notes &amp; Pitfalls</h2>
 

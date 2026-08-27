@@ -22,6 +22,7 @@ import DocsCallout from '@/components/docs/DocsCallout.vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
@@ -79,12 +80,12 @@ asyncClient.send(request).whenComplete((response, failure) ->
             }
         }));`;
 
-const outputTree = `trace 4e11d5b8…
-└─ jeffrey.api.v1.WorkspaceService/List  GrpcServerExchangeEvent  SERVER  parentSpanId=0
-   └─ select_workspaces                  JdbcQueryEvent  CLIENT   (stamped inside a re-entry)
-
-The event carries its ids from the moment openSpanOf returned — whichever
-thread eventually commits it, the identity is already right.`;
+const outputSpans = [
+  { depth: 0, name: 'jeffrey.api.v1.WorkspaceService/List', kind: 'SERVER' as const,
+    start: 0, duration: 18.4, event: 'GrpcServerExchangeEvent', note: 'root' },
+  { depth: 1, name: 'select_workspaces', kind: 'CLIENT' as const,
+    start: 3.1, duration: 11.2, event: 'JdbcQueryEvent', note: 'stamped in a re-entry' }
+];
 </script>
 
 <template>
@@ -121,7 +122,11 @@ thread eventually commits it, the identity is already right.`;
 
       <h2 id="output">Output</h2>
 
-      <DocsCodeBlock :code="outputTree" language="text" />
+      <DocsSpanTree
+        trace="4e11d5b8…"
+        :spans="outputSpans"
+        caption="The event carries its ids from the moment openSpanOf returned — whichever thread eventually commits it, the identity is already right."
+      />
 
       <h2 id="notes">Notes &amp; Pitfalls</h2>
 

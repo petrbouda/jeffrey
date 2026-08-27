@@ -21,6 +21,7 @@ import { onMounted } from 'vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
@@ -103,10 +104,12 @@ thread the span actually ran on:
   jeffrey.TraceScope  scopedSpanId=6533423119469147918  thread=grpc-default-executor-0
   jeffrey.TraceScope  scopedSpanId=6533423119469147918  thread=grpc-default-executor-2`;
 
-const clientTree = `trace 4e11d5b8…
-└─ GET /api/internal/workspaces        HttpServerExchangeEvent   SERVER   (microscope)
-   └─ jeffrey.api.v1.WorkspaceService/List   GrpcClientExchangeEvent  CLIENT  leaf
-        └— the server side of the same call is a separate trace in the HUB's recording`;
+const clientSpans = [
+  { depth: 0, name: 'GET /api/internal/workspaces', kind: 'SERVER' as const, start: 0, duration: 34,
+    event: 'HttpServerExchangeEvent', note: 'microscope' },
+  { depth: 1, name: 'jeffrey.api.v1.WorkspaceService/List', kind: 'CLIENT' as const,
+    start: 5, duration: 21.4, event: 'GrpcClientExchangeEvent', note: 'leaf' }
+];
 </script>
 
 <template>
@@ -220,7 +223,11 @@ const clientTree = `trace 4e11d5b8…
 
       <p>On the client side, the outbound call nests under whatever the caller was doing:</p>
 
-      <DocsCodeBlock :code="clientTree" language="text" />
+      <DocsSpanTree
+        trace="4e11d5b8…"
+        :spans="clientSpans"
+        caption="The server side of the same call is a separate trace, in the hub's own recording."
+      />
 
       <h2 id="manual">The Pattern by Hand</h2>
 
