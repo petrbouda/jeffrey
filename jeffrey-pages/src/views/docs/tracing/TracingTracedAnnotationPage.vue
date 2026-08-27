@@ -74,6 +74,26 @@ const fullExampleOutput = `jeffrey.TraceSpan {
   attributes = "{\\"tier\\":\\"gold\\",\\"orderId\\":\\"a-1\\"}"
 }`;
 
+const refusalExample = `// Refused when the class is woven: nothing but a Card can arrive, so the
+// warning names it once instead of every call.
+//   WARNING  Not capturing a @Traced argument whose type cannot be recorded:
+//            method=com.acme.OrderService parameter=card type=com.acme.Card
+@Traced(name = "order.charge", includeMethodArgs = {"orderId", "card"})
+void charge(String orderId, Card card) { ... }
+// attributes = {"orderId":"a-1"}
+
+// Undecidable at weave time: a String may well turn up under Object, so the
+// parameter is kept and the value settles it at the call.
+@Traced(name = "cache.put", includeMethodArgs = {"key"})
+void put(Object key, Object value) { ... }
+// put("user:42", ...)  ->  attributes = {"key":"user:42"}
+// put(new Card(...), ...) ->  attributes = {"key":"<unsupported>"}
+
+// A sweep: every capturable parameter, no warning for the rest.
+@Traced(name = "order.charge", includeMethodArgs = {"*"})
+void charge(String orderId, long amountInCents, Card card) { ... }
+// attributes = {"orderId":"a-1","amountInCents":4200}`;
+
 const errorExample = `@Traced(name = "order.charge")
 void charge(String orderId) {
     throw new IllegalStateException("card declined");
@@ -192,12 +212,7 @@ tracing { enabled = true }`;
           <tr>
             <td><code>includeMethodArgs</code></td>
             <td>none</td>
-            <td>Which parameters to record, by name. Naming one is itself the request to capture it</td>
-          </tr>
-          <tr>
-            <td><code>captureMethodArgs</code></td>
-            <td><code>false</code></td>
-            <td>Records every argument. Prefer <code>includeMethodArgs</code>, which is a list of what may be recorded rather than of what may not</td>
+            <td>Which parameters to record, by name &mdash; a list of what may be recorded rather than of what may not. <code>{"*"}</code> records every parameter; it is not a legal Java identifier, so it can never collide with one</td>
           </tr>
         </tbody>
       </table>
@@ -213,16 +228,47 @@ tracing { enabled = true }`;
 
       <h2 id="arguments">Capturing Method Arguments</h2>
 
+      <h3 id="capturable">What May Be Captured</h3>
+
+      <p>Naming a parameter is a request, not a guarantee. Only values whose textual form is part of what the type <em>is</em> are recorded, rather than something written for a debugger:</p>
+
       <ul>
-        <li>Captured values are rendered with <code>String.valueOf</code> and <strong>truncated at 256 characters</strong> (with an ellipsis) — one large argument must not bloat every recording. A value whose <code>toString()</code> throws is recorded as <code>&lt;unavailable&gt;</code>.</li>
-        <li>Integral and floating-point boxes are recorded as JSON numbers, not strings — <code>{"amountInCents":4200}</code>, not <code>{"amountInCents":"4200"}</code>.</li>
-        <li>Parameter names come from javac's <code>-parameters</code> flag. Without it they are <code>arg0</code>, <code>arg1</code>, … — and an <code>includeMethodArgs</code> entry that matches no parameter name is silently ignored, so compile with <code>-parameters</code> before relying on named capture.</li>
+        <li>primitives and their boxes, <code>char</code>/<code>Character</code> included</li>
+        <li><code>CharSequence</code> &mdash; <code>String</code>, <code>StringBuilder</code> and anything else textual</li>
+        <li>every <code>enum</code> constant, bodied constants included</li>
+        <li><code>UUID</code></li>
+        <li><code>BigDecimal</code> and <code>BigInteger</code></li>
+        <li>the <code>java.time</code> value types &mdash; <code>Instant</code>, <code>LocalDate</code>, <code>LocalTime</code>, <code>LocalDateTime</code>, <code>OffsetTime</code>, <code>OffsetDateTime</code>, <code>ZonedDateTime</code>, <code>Duration</code>, <code>Period</code>, <code>Year</code>, <code>YearMonth</code>, <code>MonthDay</code>, <code>ZoneOffset</code></li>
+      </ul>
+
+      <p>This is deliberately not &ldquo;primitives and Strings&rdquo;. An amount, an id, a timestamp and an enum are exactly what belongs on a span, and each is an object whose textual form is stable, intentional and cheap. What is excluded is the arbitrary domain object &mdash; the <code>card</code> in the example above &mdash; not the non-primitive.</p>
+
+      <p>The reason is that a captured argument goes through <code>String.valueOf</code> into a recording, and for a domain object that is the wrong thing to do three times over. It <strong>leaks</strong>: a record&rsquo;s generated <code>toString()</code>, or Lombok&rsquo;s <code>@ToString</code>, prints every component, so <code>Card[number=4111111111111111, cvv=123]</code> lands in a file that gets uploaded, shared and kept &mdash; and truncating does not help, since the first 256 characters of a card are still the card. It is <strong>unreadable</strong>: a type without <code>toString()</code> renders as <code>com.acme.Card@1b6d3586</code>, an identity hash unique per call, which is the worst possible key for a dashboard that groups spans by attribute value. And it <strong>can cost more than the method</strong>: <code>toString()</code> on a lazily loaded entity or a proxy can trigger a fetch or walk an unbounded object graph, on the hot path of the very call being measured.</p>
+
+      <h3 id="refusals">How a Refusal Shows</h3>
+
+      <p>It depends on when the refusal can be known &mdash; the declared type answers for some parameters and settles nothing for others:</p>
+
+      <DocsCodeBlock :code="refusalExample" language="java" />
+
+      <ul>
+        <li>A parameter whose <strong>declared type could never be capturable</strong> &mdash; <code>charge(Card card)</code> &mdash; is dropped when the method&rsquo;s metadata is first read, with a WARNING naming the method, the parameter and its type. It costs nothing per call, and asking for something you will not get is said out loud once instead of being discovered in a recording later.</li>
+        <li>A declaration that <strong>settles nothing</strong> &mdash; <code>Object</code>, <code>Number</code>, any interface, an erased type variable &mdash; is kept, and a value that turns out to be uncapturable is recorded as <code>&lt;unsupported&gt;</code>. A named parameter never simply goes missing.</li>
+        <li>Under <code>{"*"}</code> an uncapturable parameter is <strong>passed over silently</strong>: a sweep is not a request for any particular one, so warning would fire on methods nobody asked anything specific of.</li>
+      </ul>
+
+      <h3 id="rendering">Rendering Rules</h3>
+
+      <ul>
+        <li>Captured text is rendered with <code>String.valueOf</code> and <strong>truncated at 256 characters</strong>, marked with an ellipsis &mdash; an argument is a fact about a call, not a payload. A value whose <code>toString()</code> throws is recorded as <code>&lt;unavailable&gt;</code>.</li>
+        <li><code>Byte</code>/<code>Short</code>/<code>Integer</code>/<code>Long</code> and <code>Float</code>/<code>Double</code> are recorded as JSON numbers, booleans as JSON booleans &mdash; <code>{"amountInCents":4200}</code>, not <code>{"amountInCents":"4200"}</code>. <code>BigDecimal</code> and <code>BigInteger</code> are recorded as text rather than losing digits.</li>
+        <li>Parameter names come from javac&rsquo;s <code>-parameters</code> flag. Without it they are <code>arg0</code>, <code>arg1</code>, &hellip; &mdash; and an <code>includeMethodArgs</code> entry that matches no parameter name is silently ignored, so compile with <code>-parameters</code> before relying on named capture.</li>
         <li>The fixed <code>args</code> attributes are pre-rendered once per method when no dynamic capture is configured, so the per-call cost is a lookup, not JSON building.</li>
-        <li>Nothing is computed unless the event actually commits — a call under a recording threshold pays for none of this.</li>
+        <li>Nothing is computed unless the event actually commits &mdash; a call under a recording threshold pays for none of this.</li>
       </ul>
 
       <DocsCallout type="warning">
-        Captured values land in the recording and the profile database <strong>verbatim</strong>. Capture arguments the way you would write them into a bug report — never tokens, passwords or personal data. <code>includeMethodArgs</code> being an allow-list is the point: name exactly what is safe.
+        The allow-list keeps domain objects out of a recording; it cannot tell a safe <code>String</code> from an unsafe one. A token, a password or an email address is text, and text is capturable &mdash; capture arguments the way you would write them into a bug report, and let <code>includeMethodArgs</code> being an allow-list do the rest: name exactly what is safe.
       </DocsCallout>
 
       <h2 id="weaving">How the Weaving Works</h2>
@@ -286,6 +332,16 @@ tracing { enabled = true }`;
             <td><code>includeMethodArgs</code> records nothing</td>
             <td>Compiled without <code>-parameters</code> — the names are <code>arg0</code>, <code>arg1</code>, …</td>
             <td>Add <code>-parameters</code> to javac, or name <code>arg0</code>-style names explicitly</td>
+          </tr>
+          <tr>
+            <td>A named argument is missing, one WARNING at class load</td>
+            <td>Its declared type is not on the capturable allow-list &mdash; a domain object, a collection, an array</td>
+            <td>Capture an id or an amount off the object instead; the WARNING names the parameter and its type</td>
+          </tr>
+          <tr>
+            <td>An argument records as <code>&lt;unsupported&gt;</code></td>
+            <td>Declared as <code>Object</code> or an interface, and the value that arrived is not capturable</td>
+            <td>Expected &mdash; the refusal is recorded rather than dropped so the parameter does not silently vanish</td>
           </tr>
           <tr>
             <td>Interface <code>default</code> methods not woven</td>
