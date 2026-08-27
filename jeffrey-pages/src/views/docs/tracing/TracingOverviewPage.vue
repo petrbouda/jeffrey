@@ -167,10 +167,6 @@ const pipeline = `┌───────────────────�
             <td>Not a span: an <em>instant</em> that records the span it fired in — a note the application writes into its own recording</td>
           </tr>
           <tr>
-            <td><code>jeffrey.JdbcPoolStatistics</code> + <code>jeffrey.PooledJdbcConnection*</code></td>
-            <td>Not spans: connection-pool gauges and durations feeding the pool dashboard</td>
-          </tr>
-          <tr>
             <td>Your own — anything extending <code>AbstractTracedEvent</code></td>
             <td>A full span, discovered structurally with zero Jeffrey-side configuration — see <router-link to="/docs/tracing/custom-events">Custom Traced Events</router-link></td>
           </tr>
