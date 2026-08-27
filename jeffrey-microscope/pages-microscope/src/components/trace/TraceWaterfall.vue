@@ -233,67 +233,6 @@
           @click="toggleEntry(mark.entry.notificationId)"
         ></button>
 
-        <!--
-          The popover opens upward, over the toolbar and the pause lanes. Opening downward buries
-          the exception rail, the scale and the first rows -- the drawing the reader is here for.
-          Whatever it hides should be something they are not using.
-        -->
-        <div
-          v-if="openNotification !== null"
-          class="rail-pop up"
-          :style="{
-            left: offsetPercent(openNotification.startEpochMicros, traceWindow(spans)) + '%',
-            '--mark': severityColor(openNotification.severity)
-          }"
-        >
-          <div class="pop-head">
-            <span class="pop-sev">{{ severityLabel(openNotification.severity) }}</span>
-            <span class="pop-type">{{ openNotification.type }}</span>
-            <span class="pop-at">{{ offsetIntoTrace(openNotification.startEpochMicros) }}</span>
-          </div>
-          <!-- No separate heading: the type in the head above is the notification's name. -->
-          <p v-if="openNotification.message" class="pop-body">{{ openNotification.message }}</p>
-          <!--
-            What it attached, capped: the popover is a fast read, and a notification carrying twenty
-            attributes would turn it into the slow one. The bridge below is where the full list is.
-          -->
-          <div v-if="openNotificationAttributes.length > 0" class="pop-attrs">
-            <span
-              v-for="row in openNotificationAttributes.slice(0, MAX_POPOVER_ATTRIBUTES)"
-              :key="row.key"
-              class="pop-attr"
-            >
-              <span class="pop-attr-k">{{ row.label }}</span>
-              <span class="pop-attr-v">{{ row.value }}</span>
-            </span>
-            <span
-              v-if="openNotificationAttributes.length > MAX_POPOVER_ATTRIBUTES"
-              class="pop-attr-more"
-            >
-              +{{ openNotificationAttributes.length - MAX_POPOVER_ATTRIBUTES }} more
-            </span>
-          </div>
-          <p class="pop-meta">
-            <span v-if="openNotification.category">{{ openNotification.category }}</span>
-            <span v-if="openNotification.source">{{ openNotification.source }}</span>
-          </p>
-          <!--
-            The bridge from the fast read to the slow one: the popover answers "what did it say",
-            this opens the span where the same entry sits beside everything else it carries.
-          -->
-          <button
-            v-if="openNotification.spanId !== null"
-            type="button"
-            class="pop-link"
-            @click="selectSpanOf(openNotification.spanId)"
-          >
-            <i class="bi bi-arrow-return-right"></i>
-            Select {{ spanNameOf(openNotification.spanId) }}
-          </button>
-          <p v-else class="pop-orphan">
-            No span was open when this fired, so there is no bar to select.
-          </p>
-        </div>
       </span>
       <span class="wf-duration">{{ notificationMarks.length }}</span>
     </div>
@@ -354,8 +293,7 @@
       It stays until dismissed, which is what lets the stack be scrolled and read rather than held
       open by the cursor.
 
-      Notifications keep their popover on purpose: a type and a sentence fit in one, and docking
-      something that small would spend the width for nothing.
+      A notification docks in the same strip, for its own reasons -- see the panel below this one.
     -->
     <div
       v-if="openException !== null"
@@ -421,6 +359,119 @@
           <i class="bi bi-arrow-return-right"></i>
           Select {{ spanNameOf(openException.spanId) }}
         </button>
+      </div>
+    </div>
+
+    <!--
+      A notification docks in the same strip, and not by resemblance: both are driven by
+      `openEntryId`, so only one of them can be open at a time. It used to be a popover anchored to
+      its own mark, which was the right size for a type and a sentence and the wrong size for
+      everything else -- a notification carrying twenty attributes showed six of them and a "+14
+      more" that led nowhere. Wider gutters than the stack's, because what fills the width here is a
+      table rather than a fully qualified frame.
+    -->
+    <div
+      v-if="openNotification !== null"
+      class="exc-dock ntf-dock"
+      :style="{ '--mark': severityColor(openNotification.severity) }"
+    >
+      <div class="dock-head">
+        <span class="pop-sev">{{ severityLabel(openNotification.severity) }}</span>
+        <!-- No separate heading in the body: the type is the notification's name. -->
+        <span class="dock-type">{{ openNotification.type }}</span>
+        <span class="dock-at">{{ offsetIntoTrace(openNotification.startEpochMicros) }}</span>
+        <!--
+          The bridge from the fast read to the slow one: this panel answers "what did it say", the
+          span's own detail shows the same entry beside everything else the span carries.
+        -->
+        <button
+          v-if="openNotification.spanId !== null"
+          type="button"
+          class="btn btn-sm btn-outline-primary dock-select"
+          @click="selectSpanOf(openNotification.spanId)"
+        >
+          <i class="bi bi-arrow-return-right"></i>
+          Select {{ spanNameOf(openNotification.spanId) }}
+        </button>
+        <button type="button" class="dock-close" title="Close" @click="openEntryId = null">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div class="dock-body">
+        <!--
+          Prose does not want the width the strip has: a line past ~80 characters is harder to come
+          back to after a saccade. So the message keeps a measure and the freed half goes to the
+          attributes, which is the only reason the extra width is worth taking.
+        -->
+        <div class="ntf-grid">
+          <div class="ntf-col">
+            <p v-if="openNotification.message" class="ntf-message">
+              {{ openNotification.message }}
+            </p>
+            <p v-if="openNotification.spanId === null" class="pop-orphan">
+              No span was open when this fired, so there is no bar to select.
+            </p>
+            <!--
+              A block, not a region: the same distinction the span detail draws with
+              `Span · identity`. A region frames a recorded map the panel does not otherwise show;
+              these are facts qualifying what the head already names.
+            -->
+            <section class="sd-block">
+              <h4 class="sd-label"><i class="sd-dot"></i> Notification &middot; identity</h4>
+              <table class="sd-table">
+                <tbody>
+                  <tr v-if="openNotification.category">
+                    <td class="sd-k">category</td>
+                    <td class="sd-v">{{ openNotification.category }}</td>
+                  </tr>
+                  <tr v-if="openNotificationEmitter !== null">
+                    <td class="sd-k">source</td>
+                    <td class="sd-v">
+                      <span v-if="openNotificationEmitter.packageSegments.length > 0" class="sd-pkg">
+                        <template
+                          v-for="(segment, index) in openNotificationEmitter.packageSegments"
+                          :key="index"
+                          >{{ segment }}<wbr
+                        /></template>
+                      </span>
+                      {{ openNotificationEmitter.simpleName }}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="sd-k">emitted</td>
+                    <td class="sd-v num">
+                      {{ offsetIntoTrace(openNotification.startEpochMicros) }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+          </div>
+          <!--
+            The whole map, uncapped. The old cap of six existed because a 22rem popover could not
+            hold more; a table that scrolls can, and withholding a notification's own detail when
+            there is room to show it is just data hidden.
+          -->
+          <section v-if="openNotificationAttributes.length > 0" class="sd-region">
+            <header>
+              Attributes
+              <span class="sd-src">
+                jeffrey.Notification.attributes &middot;
+                {{ openNotificationAttributes.length }} keys
+              </span>
+            </header>
+            <div class="sd-region-body">
+              <table class="sd-table is-attr">
+                <tbody>
+                  <tr v-for="row in openNotificationAttributes" :key="row.key">
+                    <td class="sd-k">{{ row.label }}</td>
+                    <td class="sd-v">{{ row.value }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
       <!--
@@ -923,8 +974,9 @@ const escapedExceptionCount = computed(
 );
 
 /**
- * The entry whose popover is open, by id. One at a time: it is a third surface inside a fullscreen
- * dialog, and two of them open at once would be a fourth.
+ * The entry whose panel is open, by id. One at a time: it is a third surface inside a fullscreen
+ * dialog, and two of them open at once would be a fourth. The two rails share this ref, which is
+ * what lets one strip serve both -- a notification and a throw can never want it at once.
  */
 const openEntryId = ref<string | null>(null);
 
@@ -935,10 +987,35 @@ const openNotification = computed(
     ) ?? null
 );
 
-/** Only the open one is parsed: the rail draws marks, and a closed popover shows no attributes. */
+/** Only the open one is parsed: the rail draws marks, and a closed panel shows no attributes. */
 const openNotificationAttributes = computed(() =>
   attributeRows(openNotification.value?.attributes)
 );
+
+/**
+ * The emitting class, split at the last dot. Drawn as package-over-name rather than as one string
+ * because the column is half the strip wide and a fully qualified name does not fit it: left to
+ * `overflow-wrap: anywhere` it breaks mid-identifier, which is the one place the eye is looking for
+ * a whole word. The package keeps a `<wbr>` per segment so one too long for the column still breaks
+ * between segments.
+ */
+const openNotificationEmitter = computed(() => {
+  const source = openNotification.value?.source ?? null;
+  if (source === null || source === '') {
+    return null;
+  }
+  const cut = source.lastIndexOf('.');
+  if (cut < 0) {
+    return { packageSegments: [], simpleName: source };
+  }
+  return {
+    packageSegments: source
+      .slice(0, cut)
+      .split('.')
+      .map(segment => segment + '.'),
+    simpleName: source.slice(cut + 1)
+  };
+});
 
 const openException = computed(
   () => props.exceptions.find(exception => exception.exceptionId === openEntryId.value) ?? null
@@ -949,8 +1026,8 @@ function toggleEntry(entryId: string): void {
 }
 
 /**
- * The popover's footer: the bridge from the fast read to the slow one. Selecting the span opens its
- * detail panel underneath, where the same entry is listed with everything else the span carries.
+ * The strip's bridge from the fast read to the slow one. Selecting the span opens its detail panel
+ * underneath, where the same entry is listed with everything else the span carries.
  */
 function selectSpanOf(spanId: string | null): void {
   openEntryId.value = null;
@@ -1171,12 +1248,6 @@ const rows = computed(() => {
  * and the twenty structural spans around them are what the reader came for.
  */
 const MIN_RUN_LENGTH = 5;
-
-/**
- * How many of a notification's attributes the popover shows before saying how many more there are.
- * The popover is the fast read; the span's own detail region is where the whole map lives.
- */
-const MAX_POPOVER_ATTRIBUTES = 6;
 
 /** Consecutive same-named leaf siblings, drawn as one rollup row until expanded. */
 interface SpanRun {
@@ -2372,37 +2443,6 @@ function tooltip(span: TraceSpanRow): string {
 }
 
 /*
- * The fast read. Anchored on its own mark and pulled most of its width to the left, so a mark near
- * the right edge cannot push the panel over the Duration column.
- */
-.rail-pop {
-  position: absolute;
-  z-index: 6;
-  width: 22rem;
-  max-width: 60vw;
-  padding: 0.55rem 0.7rem 0.6rem;
-  transform: translateX(-70%);
-  border: 1px solid var(--color-border-input);
-  border-left: 3px solid var(--mark);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-card);
-  box-shadow: var(--shadow-lg);
-  text-align: left;
-  cursor: default;
-  /*
-   * The rails sit directly under the toolbar, so upward there is only the dialog's own chrome to
-   * grow into. A long message scrolls inside the popover instead of running off the top of the
-   * dialog, where it could not be read or dismissed.
-   */
-  max-height: 13rem;
-  overflow-y: auto;
-}
-
-.rail-pop.up {
-  bottom: 1.35rem;
-}
-
-/*
  * The stack panel, laid over the rows rather than above them. It used to be a block in the card's
  * column, which meant opening a stack shoved the whole timeline down — and the timeline is what the
  * reader is holding their place in. Absolute over `.wf-rows` leaves every bar exactly where it was.
@@ -2476,6 +2516,98 @@ function tooltip(span: TraceSpanRow): string {
 }
 
 /*
+ * The same strip, carrying a notification. Wider gutters than the stack's 6rem because what fills
+ * the width here is a table of the map it attached, and the stack's inset was measured against a
+ * fully qualified frame rather than against this.
+ */
+.ntf-dock {
+  left: 2.5rem;
+  right: 2.5rem;
+}
+
+/*
+ * Its own reservation, for the reason `.wf-rows:has(> .exc-dock)` has one. Lower than the stack's
+ * 28rem: this strip's ceiling is its header plus the 26rem body cap, and the body only reaches that
+ * on a notification carrying more attributes than any real one has.
+ */
+.wf-rows:has(> .ntf-dock) {
+  min-height: 25rem;
+}
+
+/* Pushes both controls to the end of the head; the close keeps its own gap from the button. */
+.ntf-dock .dock-select {
+  margin-left: auto;
+}
+
+.ntf-dock .dock-close {
+  margin-left: 0.4rem;
+}
+
+.dock-type {
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--color-dark);
+}
+
+.dock-at {
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Scrolls rather than growing without limit, exactly as the stack does: a strip that pushed the
+ * waterfall off the bottom would trade one covered drawing for another.
+ */
+.dock-body {
+  padding: 0.7rem 0.8rem 0.8rem;
+  max-height: 26rem;
+  overflow-y: auto;
+}
+
+.ntf-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+/*
+ * Under this the two columns are narrower than the attribute table wants, and a key/value pair
+ * broken over four lines is worse than a taller strip.
+ */
+@media (max-width: 900px) {
+  .ntf-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.ntf-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+/*
+ * The measure is the point of the split: a line past ~80 characters is measurably harder to come
+ * back to after a saccade, so prose keeps one and the width it does not use goes to the table.
+ */
+.ntf-message {
+  font-size: var(--font-size-base);
+  line-height: 1.55;
+  color: var(--color-text);
+  max-width: 62ch;
+}
+
+/* Identity keys are words, not the developer's own strings, so the table's own 13rem buys nothing. */
+.ntf-dock .sd-block .sd-k {
+  width: 6rem;
+}
+
+/*
  * The stack scrolls inside the strip rather than growing it without limit: a 253-frame stack
  * unfolded is taller than the dialog, and a strip that pushed the whole waterfall off the bottom
  * would have traded one covered drawing for another.
@@ -2503,14 +2635,6 @@ function tooltip(span: TraceSpanRow): string {
   color: var(--color-danger);
 }
 
-.pop-head {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.2rem;
-}
-
 .pop-sev {
   font-size: var(--font-size-xs);
   font-weight: 700;
@@ -2519,92 +2643,7 @@ function tooltip(span: TraceSpanRow): string {
   color: var(--mark);
 }
 
-.pop-type,
-.pop-at {
-  font-family: var(--font-family-monospace);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-}
-
-.pop-at {
-  margin-left: auto;
-  font-variant-numeric: tabular-nums;
-}
-
-.pop-body {
-  margin-top: 0.2rem;
-  font-size: var(--font-size-sm);
-  color: var(--color-text);
-  line-height: 1.5;
-}
-
-/* What the notification attached, between what it said and where it came from. */
-.pop-attrs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 0.4rem;
-  margin-top: 0.4rem;
-}
-
-.pop-attr {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.3rem;
-  padding: 0.1rem 0.35rem;
-  border-radius: var(--radius-sm);
-  background: var(--color-light);
-  font-family: var(--font-family-monospace);
-  font-size: var(--font-size-xs);
-  overflow-wrap: anywhere;
-}
-
-.pop-attr-k {
-  color: var(--color-text-muted);
-}
-
-.pop-attr-v {
-  color: var(--color-dark);
-  font-weight: 600;
-}
-
-.pop-attr-more {
-  align-self: center;
-  font-family: var(--font-family-monospace);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-}
-
-.pop-meta {
-  display: flex;
-  gap: 0.8rem;
-  flex-wrap: wrap;
-  margin-top: 0.35rem;
-  font-family: var(--font-family-monospace);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-}
-
-.pop-link {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  margin-top: 0.4rem;
-  padding: 0.3rem 0 0;
-  border: 0;
-  border-top: 1px solid var(--color-border-light);
-  background: transparent;
-  color: var(--color-primary);
-  font-family: inherit;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  cursor: pointer;
-  width: 100%;
-}
-
 .pop-orphan {
-  margin-top: 0.4rem;
-  padding-top: 0.3rem;
-  border-top: 1px solid var(--color-border-light);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }

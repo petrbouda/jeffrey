@@ -20,6 +20,7 @@ import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import './assets/styles.scss';
 import './styles/global.css';
 import './styles/tooltips.css';
+import './styles/trace-detail.css';
 
 // Create Vue app
 const app = createApp(App);

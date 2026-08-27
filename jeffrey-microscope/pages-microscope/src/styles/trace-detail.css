@@ -1,0 +1,182 @@
+/*
+ * The detail-panel language a trace uses to show what one entry carried.
+ *
+ * Two shapes, and the difference between them is the whole reason this file exists:
+ *
+ *   .sd-region  a framed panel with a tinted header band, for a recorded map the panel does not
+ *               otherwise show -- an attribute map, an event's own fields.
+ *   .sd-block   a dotted uppercase label over a plain table, for facts that qualify what the panel
+ *               already names -- `Span · identity`, `Notification · identity`.
+ *
+ * It lives here rather than in one component's scoped block because two components now draw it:
+ * TraceSpanInlineDetail, where it started, and TraceWaterfall's notification dock. The alternative
+ * was to duplicate forty lines and let them drift, which is what the dock replaced: the rail's
+ * popover carried its own attribute chip rule that was a byte-for-byte copy of the span detail's.
+ *
+ * A component keeps its own variants (`.sd-region.is-evt`, `.sd-region.is-ntf`) in its scoped
+ * block: those out-rank what is here on specificity, and they are about one panel, not the language.
+ */
+
+/* ------------------------------------------------------------------- block */
+
+.sd-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.sd-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.sd-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-circle);
+  background: var(--color-primary);
+  flex: none;
+}
+
+/* ------------------------------------------------------------------ table */
+
+.sd-table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.sd-table td {
+  padding: 0.4rem 0.7rem;
+  border-bottom: 1px solid var(--color-border-light);
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+.sd-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.sd-table tr:nth-child(even) td {
+  background: var(--color-bg-hover);
+}
+
+/*
+ * 13rem, not a round 10: measured against every @Label the project's own events declare plus the
+ * JDK labels that commonly land on a span — 78 of them. 10rem wrapped 11, including ordinary ones
+ * like "Label for Statement Grouping" and "Affected/Returned Rows"; 13rem wraps one, the 35-char
+ * "Acquiring Pooled Connection Timeout", and fitting that alone would cost another 2rem of every
+ * table for every short label. The wrap stays available underneath for whatever a recording brings.
+ */
+.sd-k {
+  width: 13rem;
+  font-size: 0.8rem;
+  color: var(--color-text);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.sd-k small {
+  display: block;
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-light);
+  font-weight: 400;
+}
+
+/* An attribute key is the developer's own string, so it is set in mono and never relabelled. */
+.sd-table.is-attr .sd-k {
+  font-family: var(--font-family-monospace);
+  color: var(--color-dark);
+  font-weight: 400;
+}
+
+.sd-v {
+  font-family: var(--font-family-monospace);
+  font-size: 0.8rem;
+  color: var(--color-dark);
+  /* Long values wrap rather than truncate: the panel can grow, and a hidden value is worse. */
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.sd-v.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.sd-v.absent {
+  color: var(--color-text-light);
+  font-style: italic;
+  font-family: inherit;
+}
+
+/*
+ * A fully qualified class name, broken where a reader would break it. `overflow-wrap: anywhere` on
+ * `.sd-v` is right for an attribute value and wrong for this: in a half-width column it splits an
+ * identifier down the middle (`…persistence.poo` / `l`), which is the one place the eye is scanning
+ * for a whole word. The package goes on its own line and muted -- it is the part nobody reads twice
+ * -- and carries a `<wbr>` per segment so a package too long for the column still breaks between
+ * segments rather than inside one.
+ */
+.sd-pkg {
+  display: block;
+  color: var(--color-text-muted);
+  overflow-wrap: normal;
+}
+
+/* ----------------------------------------------------------------- region */
+
+.sd-region {
+  border: 1px solid var(--color-primary-light);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  overflow: hidden;
+}
+
+.sd-region > header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--color-primary-lighter);
+  border-bottom: 1px solid var(--color-primary-light);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.sd-src {
+  font-family: var(--font-family-monospace);
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  margin-left: auto;
+}
+
+.sd-region-body {
+  padding: 0.6rem 0.75rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.sd-region .sd-table {
+  border: 0;
+  border-radius: 0;
+}

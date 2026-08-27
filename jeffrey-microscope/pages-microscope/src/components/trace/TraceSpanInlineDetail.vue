@@ -770,33 +770,6 @@ function percent(part: number, whole: number): string {
   align-items: start;
 }
 
-.sd-block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  min-width: 0;
-}
-
-.sd-label {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin: 0;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.sd-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: var(--radius-circle);
-  background: var(--color-primary);
-  flex: none;
-}
-
 /* ------------------------------------------------------------------ meter */
 
 .sd-meter {
@@ -894,132 +867,20 @@ function percent(part: number, whole: number): string {
   font-weight: 600;
 }
 
-/* ------------------------------------------------------------------ table */
-
-.sd-table {
-  border-collapse: collapse;
-  width: 100%;
-  table-layout: fixed;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.sd-table td {
-  padding: 0.4rem 0.7rem;
-  border-bottom: 1px solid var(--color-border-light);
-  vertical-align: top;
-  line-height: 1.5;
-}
-
-.sd-table tr:last-child td {
-  border-bottom: 0;
-}
-
-.sd-table tr:nth-child(even) td {
-  background: var(--color-bg-hover);
-}
-
-/*
- * 13rem, not a round 10: measured against every @Label the project's own events declare plus the
- * JDK labels that commonly land on a span — 78 of them. 10rem wrapped 11, including ordinary ones
- * like "Label for Statement Grouping" and "Affected/Returned Rows"; 13rem wraps one, the 35-char
- * "Acquiring Pooled Connection Timeout", and fitting that alone would cost another 2rem of every
- * table for every short label. The wrap stays available underneath for whatever a recording brings.
- */
-.sd-k {
-  width: 13rem;
-  font-size: 0.8rem;
-  color: var(--color-text);
-  font-weight: 500;
-  overflow-wrap: anywhere;
-}
-
-.sd-k small {
-  display: block;
-  font-family: var(--font-family-monospace);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-light);
-  font-weight: 400;
-}
-
-/* An attribute key is the developer's own string, so it is set in mono and never relabelled. */
-.sd-table.is-attr .sd-k {
-  font-family: var(--font-family-monospace);
-  color: var(--color-dark);
-  font-weight: 400;
-}
-
-.sd-v {
-  font-family: var(--font-family-monospace);
-  font-size: 0.8rem;
-  color: var(--color-dark);
-  /* Long values wrap rather than truncate: the panel can grow, and a hidden value is worse. */
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
-
-.sd-v.num {
-  font-variant-numeric: tabular-nums;
-}
-
 /* The words that qualify a measurement -- "all of it", "into the recording". Prose, not data. */
 .sd-note {
   font-family: var(--font-family-base);
   color: var(--color-text-muted);
 }
 
-.sd-v.absent {
-  color: var(--color-text-light);
-  font-style: italic;
-  font-family: inherit;
-}
+/*
+ * The shapes themselves -- `.sd-block`, `.sd-table`, `.sd-region` and their parts -- live in
+ * `styles/trace-detail.css`: TraceWaterfall's notification dock draws the same language, and a
+ * second copy here is how the rail's old popover ended up with a byte-for-byte duplicate of
+ * `.sd-entry-attr`. What stays below is this panel's own variants of them.
+ */
 
 /* ----------------------------------------------------------------- region */
-
-.sd-region {
-  border: 1px solid var(--color-primary-light);
-  border-left: 3px solid var(--color-primary);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-card);
-  overflow: hidden;
-}
-
-.sd-region > header {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.75rem;
-  background: var(--color-primary-lighter);
-  border-bottom: 1px solid var(--color-primary-light);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--color-primary);
-}
-
-.sd-src {
-  font-family: var(--font-family-monospace);
-  letter-spacing: 0;
-  text-transform: none;
-  font-weight: 400;
-  color: var(--color-text-muted);
-  margin-left: auto;
-}
-
-.sd-region-body {
-  padding: 0.6rem 0.75rem 0.7rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.sd-region .sd-table {
-  border: 0;
-  border-radius: 0;
-}
 
 /*
  * The event's own fields get a second hue, so the two views never read as one continuous list.
