@@ -433,6 +433,12 @@ export const tracingNavigation: DocSection[] = [
     children: [{ title: 'Analyzing Traces', to: '/docs/tracing/analysis' }]
   },
   {
+    title: 'Provisioner & Hub',
+    path: '_tracing-provisioner-hub',
+    icon: 'bi-hdd-network',
+    children: [{ title: 'Provisioner & Hub', to: '/docs/tracing/provisioner-hub' }]
+  },
+  {
     title: 'Configuration & Testing',
     path: '_tracing-configuration',
     icon: 'bi-gear',
