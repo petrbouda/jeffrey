@@ -18,16 +18,37 @@
 
 package cafe.jeffrey.profile.parser;
 
+import jdk.jfr.Event;
+import jdk.jfr.FlightRecorder;
+import jdk.jfr.Name;
+import jdk.jfr.Registered;
+import jdk.jfr.Recording;
+import jdk.jfr.consumer.EventStream;
+import jdk.jfr.consumer.RecordedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.LongFunction;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("WeightExtractor factory methods")
 class WeightExtractorTest {
+
+    private static final String ENTITY_EVENT_NAME = "test.WeightEntityEvent";
+
+    @Name(ENTITY_EVENT_NAME)
+    @Registered(false)
+    static class WeightEntityEvent extends Event {
+        Class<?> monitorClass;
+        long size;
+    }
 
     @Nested
     @DisplayName("duration() no-arg factory method")
@@ -107,5 +128,83 @@ class WeightExtractorTest {
             assertTrue(result.contains("s") || result.contains("ns"),
                     "Expected time string for 1us, but got: " + result);
         }
+    }
+
+    @Nested
+    @DisplayName("Class-typed entity field that the event left empty")
+    class MissingEntityClass {
+
+        @Test
+        @DisplayName("duration(entityClassField) yields no entity instead of failing")
+        void durationYieldsNoEntity(@TempDir Path tempDir) throws Exception {
+            RecordedEvent event = recordEntityEvent(tempDir, null);
+
+            WeightExtractor extractor = WeightExtractor.duration("monitorClass");
+
+            assertNull(extractor.entityExtractor().apply(event));
+        }
+
+        @Test
+        @DisplayName("allocation(fieldName, entityClassField) yields no entity instead of failing")
+        void allocationYieldsNoEntity(@TempDir Path tempDir) throws Exception {
+            RecordedEvent event = recordEntityEvent(tempDir, null);
+
+            WeightExtractor extractor = WeightExtractor.allocation("size", "monitorClass");
+
+            assertNull(extractor.entityExtractor().apply(event));
+            assertEquals(1024L, extractor.extractor().applyAsLong(event));
+        }
+    }
+
+    @Nested
+    @DisplayName("Class-typed entity field that the event populated")
+    class PresentEntityClass {
+
+        @Test
+        @DisplayName("duration(entityClassField) reads the class name")
+        void durationReadsClassName(@TempDir Path tempDir) throws Exception {
+            RecordedEvent event = recordEntityEvent(tempDir, String.class);
+
+            WeightExtractor extractor = WeightExtractor.duration("monitorClass");
+
+            assertEquals("java.lang.String", extractor.entityExtractor().apply(event));
+        }
+
+        @Test
+        @DisplayName("allocation(fieldName, entityClassField) reads the class name")
+        void allocationReadsClassName(@TempDir Path tempDir) throws Exception {
+            RecordedEvent event = recordEntityEvent(tempDir, String.class);
+
+            WeightExtractor extractor = WeightExtractor.allocation("size", "monitorClass");
+
+            assertEquals("java.lang.String", extractor.entityExtractor().apply(event));
+        }
+    }
+
+    private static RecordedEvent recordEntityEvent(Path tempDir, Class<?> monitorClass) throws IOException {
+        Path dumpFile = tempDir.resolve("weight-entity.jfr");
+        FlightRecorder.register(WeightEntityEvent.class);
+
+        try (Recording recording = new Recording()) {
+            recording.enable(ENTITY_EVENT_NAME);
+            recording.start();
+
+            WeightEntityEvent event = new WeightEntityEvent();
+            event.begin();
+            event.monitorClass = monitorClass;
+            event.size = 1024L;
+            event.commit();
+
+            recording.stop();
+            recording.dump(dumpFile);
+        }
+
+        List<RecordedEvent> events = new ArrayList<>();
+        try (EventStream stream = EventStream.openFile(dumpFile)) {
+            stream.onEvent(ENTITY_EVENT_NAME, events::add);
+            stream.start();
+        }
+        assertFalse(events.isEmpty(), "Expected at least one " + ENTITY_EVENT_NAME + " event");
+        return events.getFirst();
     }
 }
