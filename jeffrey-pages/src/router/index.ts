@@ -480,12 +480,9 @@ const routes: RouteRecordRaw[] = [
       },
 
       // ──── Jeffrey Events ────
-      {
-        path: 'events/overview',
-        name: 'DocsJeffreyEvents',
-        component: () => import('@/views/docs/events/JeffreyJfrEventsPage.vue')
-      },
-      // The Tracer API reference moved to the standalone Jeffrey Tracing product.
+      // The event catalog lives with the Jeffrey Tracing product, whose events it lists;
+      // Microscope links across to it.
+      { path: 'events/overview', redirect: '/docs/tracing/events' },
       { path: 'events/tracer', redirect: '/docs/tracing/instrumentation' },
 
       // ──── Jeffrey Tracing (standalone product) ────
@@ -613,6 +610,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/tracing/TracingAnalysisPage.vue')
       },
       {
+        path: 'tracing/events',
+        name: 'DocsTracingEvents',
+        component: () => import('@/views/docs/tracing/TracingEventsPage.vue')
+      },
+      {
         path: 'tracing/provisioner-hub',
         name: 'DocsTracingProvisionerHub',
         component: () => import('@/views/docs/tracing/TracingProvisionerHubPage.vue')
@@ -702,7 +704,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'configuration/advanced-properties', redirect: '/docs/microscope/configuration/advanced-properties' },
       { path: 'configuration/secrets', redirect: '/docs/microscope/configuration/secrets' },
       { path: 'architecture/public-api', redirect: '/docs/hub/grpc-api' },
-      { path: 'jeffrey-jfr-events/overview', redirect: '/docs/events/overview' },
+      { path: 'jeffrey-jfr-events/overview', redirect: '/docs/tracing/events' },
       { path: 'features/overview', redirect: '/docs/getting-started/introduction' },
 
       // Legacy /docs/local/* — keep working by mapping any remaining sub-path to /docs/microscope/*.
