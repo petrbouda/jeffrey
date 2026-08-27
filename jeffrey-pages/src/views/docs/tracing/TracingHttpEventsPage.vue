@@ -325,7 +325,7 @@ const clientTree = `trace 8c1d33f0…
 
       <h2 id="async-clients">Async Clients</h2>
 
-      <p>A blocking interceptor shape does not fit a client whose response arrives via callbacks on threads you don't control (WebClient, async HttpClient). Use the callback pattern from the <router-link to="/docs/tracing/tracer-api">Tracer API</router-link>: <code>Tracer.openSpanOf(event)</code> when the call starts (on the thread whose span it belongs to), <code>Tracer.reenter(ctx, ...)</code> around each callback, and <code>event.commitSpan()</code> at completion. <code>openSpanOf</code> stamps the ids eagerly, so a completion running after the enclosing binding is gone still carries the right identity.</p>
+      <p>A blocking interceptor shape does not fit a client whose response arrives via callbacks on threads you don't control (WebClient, async HttpClient). Use the callback pattern (<router-link to="/docs/tracing/tracer-api/open-span-of">openSpanOf</router-link> + <router-link to="/docs/tracing/tracer-api/reenter">reenter</router-link>): <code>Tracer.openSpanOf(event)</code> when the call starts (on the thread whose span it belongs to), <code>Tracer.reenter(ctx, ...)</code> around each callback, and <code>event.commitSpan()</code> at completion. <code>openSpanOf</code> stamps the ids eagerly, so a completion running after the enclosing binding is gone still carries the right identity.</p>
 
       <h2 id="pitfalls">Pitfalls</h2>
 

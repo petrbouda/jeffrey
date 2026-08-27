@@ -107,7 +107,7 @@ const pipeline = `┌───────────────────�
           <tr>
             <td><strong>Events library</strong></td>
             <td><code>cafe.jeffrey-analyst:jeffrey-events</code></td>
-            <td>The whole developer-facing API: <router-link to="/docs/tracing/tracer-api">Tracer</router-link>, <code>@Traced</code>, <code>AbstractTracedEvent</code>, and every <code>jeffrey.*</code> event type. Zero dependencies (only <code>jdk.jfr</code>); safe to leave in production — every emit path checks <code>isEnabled()</code> first.</td>
+            <td>The whole developer-facing API: <router-link to="/docs/tracing/instrumentation">Tracer</router-link>, <code>@Traced</code>, <code>AbstractTracedEvent</code>, and every <code>jeffrey.*</code> event type. Zero dependencies (only <code>jdk.jfr</code>); safe to leave in production — every emit path checks <code>isEnabled()</code> first.</td>
           </tr>
           <tr>
             <td><strong>Framework glue</strong></td>
@@ -208,10 +208,10 @@ const pipeline = `┌───────────────────�
           description="Traces, spans, instants, ids — and the five rules that make traces assemble."
         />
         <DocsLinkCard
-          to="/docs/tracing/tracer-api"
+          to="/docs/tracing/instrumentation"
           icon="bi bi-code-square"
-          title="Tracer API"
-          description="Every method, with a use-case, an example and the tree it produces."
+          title="Tracer API Reference"
+          description="Every method on its own page, with use-cases, examples and the tree it produces."
         />
         <DocsLinkCard
           to="/docs/tracing/analysis"

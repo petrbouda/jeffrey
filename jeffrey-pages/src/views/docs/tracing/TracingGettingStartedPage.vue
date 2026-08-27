@@ -202,7 +202,7 @@ jeffrey.JdbcQuery {
 
       <ul>
         <li><router-link to="/docs/tracing/concepts">Core Concepts</router-link> — the data model and the five rules that make traces assemble correctly.</li>
-        <li><router-link to="/docs/tracing/tracer-api">Tracer API</router-link> — every method with a use-case, an example and its output.</li>
+        <li><router-link to="/docs/tracing/instrumentation">Tracer API Reference</router-link> — every method on its own page, with use-cases, examples and its output.</li>
         <li><router-link to="/docs/tracing/configuration">Configuration &amp; Testing</router-link> — volume control, recording thresholds, and asserting on spans in your own tests.</li>
       </ul>
     </div>

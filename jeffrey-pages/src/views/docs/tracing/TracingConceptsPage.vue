@@ -158,7 +158,7 @@ const namingExamples = `// Good: one name per operation — stable, low-cardinal
       <p>The record is immutable — a nested span never mutates its parent's context, it derives a child — which is what makes it safe to publish through a <code>ScopedValue</code> and to carry across threads. The binding is bounded by a lambda (<code>Tracer.run</code>, <code>call</code>, <code>inSpanOf</code>, …), so it cannot outlive the span and never needs clearing.</p>
 
       <DocsCallout type="info">
-        <strong><code>ScopedValue</code> propagates only through structured concurrency.</strong> Work submitted to a plain executor does not inherit the current span — it must be handed over explicitly with <code>Tracer.fork</code>, <code>Tracer.continueIn</code> or a <code>Tracer.propagating(executor)</code> wrapper. See the <router-link to="/docs/tracing/tracer-api">Tracer API</router-link> for all three.
+        <strong><code>ScopedValue</code> propagates only through structured concurrency.</strong> Work submitted to a plain executor does not inherit the current span — it must be handed over explicitly with <code>Tracer.fork</code>, <code>Tracer.continueIn</code> or a <code>Tracer.propagating(executor)</code> wrapper. See the <router-link to="/docs/tracing/instrumentation">Tracer API Reference</router-link> for all three.
       </DocsCallout>
 
       <h2 id="kind-status">SpanKind and SpanStatus</h2>

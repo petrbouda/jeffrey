@@ -391,7 +391,24 @@ export const tracingNavigation: DocSection[] = [
     path: '_tracing-instrumentation',
     icon: 'bi-code-square',
     children: [
-      { title: 'Tracer API', to: '/docs/tracing/tracer-api' },
+      { title: 'Overview', to: '/docs/tracing/instrumentation' },
+      {
+        title: 'Tracer API Reference',
+        path: 'tracer-api',
+        children: [
+          { title: 'run', to: '/docs/tracing/tracer-api/run' },
+          { title: 'call', to: '/docs/tracing/tracer-api/call' },
+          { title: 'current', to: '/docs/tracing/tracer-api/current' },
+          { title: 'inSpanOf', to: '/docs/tracing/tracer-api/in-span-of' },
+          { title: 'stamp', to: '/docs/tracing/tracer-api/stamp' },
+          { title: 'openSpanOf', to: '/docs/tracing/tracer-api/open-span-of' },
+          { title: 'reenter', to: '/docs/tracing/tracer-api/reenter' },
+          { title: 'continueIn', to: '/docs/tracing/tracer-api/continue-in' },
+          { title: 'fork', to: '/docs/tracing/tracer-api/fork' },
+          { title: 'forkCallable', to: '/docs/tracing/tracer-api/fork-callable' },
+          { title: 'propagating', to: '/docs/tracing/tracer-api/propagating' }
+        ]
+      },
       { title: '@Traced & the Agent', to: '/docs/tracing/traced-annotation' },
       { title: 'HTTP Events', to: '/docs/tracing/http-events' },
       { title: 'gRPC Events', to: '/docs/tracing/grpc-events' },
