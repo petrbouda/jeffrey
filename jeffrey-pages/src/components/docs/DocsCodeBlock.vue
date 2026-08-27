@@ -18,6 +18,30 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import hljs from 'highlight.js/lib/core';
+import bash from 'highlight.js/lib/languages/bash';
+import ini from 'highlight.js/lib/languages/ini';
+import java from 'highlight.js/lib/languages/java';
+import javascript from 'highlight.js/lib/languages/javascript';
+import json from 'highlight.js/lib/languages/json';
+import properties from 'highlight.js/lib/languages/properties';
+import sql from 'highlight.js/lib/languages/sql';
+import typescript from 'highlight.js/lib/languages/typescript';
+import xml from 'highlight.js/lib/languages/xml';
+import yaml from 'highlight.js/lib/languages/yaml';
+
+// Only the grammars the docs actually use are registered — highlight.js is
+// imported through its core entry point so the rest is never bundled.
+hljs.registerLanguage('bash', bash);
+hljs.registerLanguage('ini', ini);
+hljs.registerLanguage('java', java);
+hljs.registerLanguage('javascript', javascript);
+hljs.registerLanguage('json', json);
+hljs.registerLanguage('properties', properties);
+hljs.registerLanguage('sql', sql);
+hljs.registerLanguage('typescript', typescript);
+hljs.registerLanguage('xml', xml);
+hljs.registerLanguage('yaml', yaml);
 
 interface Props {
   code: string;
@@ -32,27 +56,64 @@ const props = withDefaults(defineProps<Props>(), {
 
 const copied = ref(false);
 
+const LANGUAGE_LABELS: Record<string, string> = {
+  'js': 'JavaScript',
+  'javascript': 'JavaScript',
+  'ts': 'TypeScript',
+  'typescript': 'TypeScript',
+  'java': 'Java',
+  'bash': 'Bash',
+  'shell': 'Shell',
+  'sh': 'Shell',
+  'sql': 'SQL',
+  'json': 'JSON',
+  'yaml': 'YAML',
+  'yml': 'YAML',
+  'xml': 'XML',
+  'html': 'HTML',
+  'vue': 'Vue',
+  'hocon': 'HOCON',
+  'properties': 'Properties',
+  'text': 'Text',
+  'plaintext': 'Text'
+};
+
+// The grammar each documented language is highlighted with. A language absent
+// from this map renders verbatim — which is what `text` wants, since those
+// blocks are span trees and recorded output rather than source.
+const GRAMMARS: Record<string, string> = {
+  'js': 'javascript',
+  'javascript': 'javascript',
+  'ts': 'typescript',
+  'typescript': 'typescript',
+  'java': 'java',
+  'bash': 'bash',
+  'shell': 'bash',
+  'sh': 'bash',
+  'sql': 'sql',
+  'json': 'json',
+  'yaml': 'yaml',
+  'yml': 'yaml',
+  'xml': 'xml',
+  'html': 'xml',
+  'vue': 'xml',
+  'hocon': 'ini',
+  'properties': 'properties'
+};
+
 const displayLanguage = computed(() => {
-  const langMap: Record<string, string> = {
-    'js': 'JavaScript',
-    'javascript': 'JavaScript',
-    'ts': 'TypeScript',
-    'typescript': 'TypeScript',
-    'java': 'Java',
-    'bash': 'Bash',
-    'shell': 'Shell',
-    'sh': 'Shell',
-    'sql': 'SQL',
-    'json': 'JSON',
-    'yaml': 'YAML',
-    'yml': 'YAML',
-    'xml': 'XML',
-    'html': 'HTML',
-    'vue': 'Vue',
-    'properties': 'Properties',
-    'plaintext': 'Text'
-  };
-  return langMap[props.language] || props.language.toUpperCase();
+  return LANGUAGE_LABELS[props.language] || props.language.toUpperCase();
+});
+
+// Highlighted markup, or null when the language has no grammar and the code
+// should be rendered as plain text. `ignoreIllegals` keeps the samples that
+// carry elisions (`…`) or pseudo-code from throwing.
+const highlightedCode = computed(() => {
+  const grammar = GRAMMARS[props.language];
+  if (!grammar) {
+    return null;
+  }
+  return hljs.highlight(props.code, { language: grammar, ignoreIllegals: true }).value;
 });
 
 const copyCode = async () => {
@@ -80,7 +141,8 @@ const copyCode = async () => {
         <span>{{ copied ? 'Copied!' : 'Copy' }}</span>
       </button>
     </div>
-    <pre class="code-content"><code>{{ code }}</code></pre>
+    <pre v-if="highlightedCode" class="code-content"><code v-html="highlightedCode"></code></pre>
+    <pre v-else class="code-content"><code>{{ code }}</code></pre>
   </div>
 </template>
 
@@ -164,6 +226,72 @@ const copyCode = async () => {
   line-height: 1.6;
   color: #334155;
   background: none;
+}
+
+/*
+ * Syntax-highlighting palette. The markup comes from highlight.js through
+ * v-html, so it carries no scoped attribute of its own — `:deep()` reaches it
+ * from the `<pre>` that does. Colours follow GitHub's light theme, which sits
+ * on the same near-white ground the block already uses.
+ */
+.code-content :deep(.hljs-keyword),
+.code-content :deep(.hljs-selector-tag),
+.code-content :deep(.hljs-literal),
+.code-content :deep(.hljs-section),
+.code-content :deep(.hljs-doctag),
+.code-content :deep(.hljs-name) {
+  color: #d73a49;
+}
+
+.code-content :deep(.hljs-string),
+.code-content :deep(.hljs-regexp),
+.code-content :deep(.hljs-addition),
+.code-content :deep(.hljs-attribute),
+.code-content :deep(.hljs-meta .hljs-string) {
+  color: #032f62;
+}
+
+.code-content :deep(.hljs-comment),
+.code-content :deep(.hljs-quote) {
+  color: #6a737d;
+  font-style: italic;
+}
+
+.code-content :deep(.hljs-number),
+.code-content :deep(.hljs-variable),
+.code-content :deep(.hljs-template-variable),
+.code-content :deep(.hljs-attr),
+.code-content :deep(.hljs-selector-attr),
+.code-content :deep(.hljs-selector-pseudo) {
+  color: #005cc5;
+}
+
+.code-content :deep(.hljs-title),
+.code-content :deep(.hljs-title.function_),
+.code-content :deep(.hljs-title.class_) {
+  color: #6f42c1;
+}
+
+.code-content :deep(.hljs-type),
+.code-content :deep(.hljs-built_in),
+.code-content :deep(.hljs-class .hljs-title),
+.code-content :deep(.hljs-params) {
+  color: #e36209;
+}
+
+.code-content :deep(.hljs-meta),
+.code-content :deep(.hljs-symbol),
+.code-content :deep(.hljs-bullet),
+.code-content :deep(.hljs-link) {
+  color: #735c0f;
+}
+
+.code-content :deep(.hljs-emphasis) {
+  font-style: italic;
+}
+
+.code-content :deep(.hljs-strong) {
+  font-weight: 600;
 }
 
 /* Custom scrollbar for code */
