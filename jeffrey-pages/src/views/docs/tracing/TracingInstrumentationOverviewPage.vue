@@ -155,7 +155,7 @@ const composedSpans = [
           <tr>
             <td><strong>Built-in framework events</strong></td>
             <td>A filter, interceptor or wrapper you register once</td>
-            <td><router-link to="/docs/tracing/http-events">HTTP</router-link>, <router-link to="/docs/tracing/grpc-events">gRPC</router-link>, <router-link to="/docs/tracing/jdbc-events">JDBC</router-link> Events</td>
+            <td><router-link to="/docs/tracing/http-events">HTTP</router-link>, <router-link to="/docs/tracing/grpc-events">gRPC</router-link>, <router-link to="/docs/tracing/jdbc-events">JDBC</router-link>, <router-link to="/docs/tracing/mybatis-events">MyBatis</router-link> Events; on Spring, <router-link to="/docs/tracing/spring-support">Spring Support</router-link></td>
           </tr>
           <tr>
             <td><strong>Custom traced events</strong></td>

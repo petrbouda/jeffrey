@@ -19,6 +19,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
+import DocsLinkCard from '@/components/docs/DocsLinkCard.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
@@ -32,6 +33,7 @@ const headings = [
   { id: 'callbacks', text: 'Why gRPC Is Not a Servlet Filter', level: 2 },
   { id: 'fields', text: 'What It Records', level: 2 },
   { id: 'manual', text: 'The Pattern by Hand', level: 2 },
+  { id: 'spring-support', text: 'Using Spring Boot?', level: 2 },
   { id: 'pitfalls', text: 'Pitfalls', level: 2 }
 ];
 
@@ -52,14 +54,6 @@ const registration = `Server server = ServerBuilder.forPort(port)
 ManagedChannel channel = ManagedChannelBuilder.forAddress(host, port)
         .intercept(new JfrGrpcClientInterceptor())    // every stub on this channel
         .build();`;
-
-const springGrpc = `// Spring gRPC: a bean marked global applies to every registered service —
-// this is how Jeffrey's own hub registers it
-@Bean
-@GlobalServerInterceptor
-ServerInterceptor jfrGrpcServerInterceptor() {
-    return new JfrGrpcServerInterceptor();
-}`;
 
 const manualPattern = `// The shape the server interceptor implements — openSpanOf + reenter,
 // because a gRPC call cannot be wrapped in one try/finally on one thread.
@@ -153,11 +147,7 @@ const clientSpans = [
       <DocsCodeBlock :code="dependency" language="xml" />
       <DocsCodeBlock :code="registration" language="java" />
 
-      <p>Both interceptors are stateless and thread-safe: one instance per server or channel is enough, and registering the same instance on several is fine. On Spring gRPC:</p>
-
-      <DocsCodeBlock :code="springGrpc" language="java" />
-
-      <p>There is no starter and no auto-configuration for gRPC — a channel is built by application code, not handed out as a bean a starter could recognise, so the one line above is the integration.</p>
+      <p>Both interceptors are stateless and thread-safe: one instance per server or channel is enough, and registering the same instance on several is fine. That is the whole integration on every stack — a server is assembled from interceptors the application chooses and a channel is built by application code, so there is nothing to auto-configure and no filter chain to hook into.</p>
 
       <h2 id="callbacks">Why gRPC Is Not a Servlet Filter</h2>
 
@@ -234,6 +224,17 @@ const clientSpans = [
       <p>For a custom transport, or to understand precisely what the module does:</p>
 
       <DocsCodeBlock :code="manualPattern" language="java" />
+
+      <h2 id="spring-support">Using Spring Boot?</h2>
+
+      <p>There is no starter and no auto-configuration for gRPC — there is nothing for one to hook into. On Spring gRPC the server interceptor is declared as a global bean, which is the only Spring-specific line in the whole integration.</p>
+
+      <DocsLinkCard
+        to="/docs/tracing/spring-support"
+        icon="bi bi-flower1"
+        title="Spring Support"
+        description="The @GlobalServerInterceptor bean, and why gRPC gets no starter."
+      />
 
       <h2 id="pitfalls">Pitfalls</h2>
 

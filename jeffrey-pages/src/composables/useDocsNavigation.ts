@@ -413,8 +413,10 @@ export const tracingNavigation: DocSection[] = [
       { title: 'HTTP Events', to: '/docs/tracing/http-events' },
       { title: 'gRPC Events', to: '/docs/tracing/grpc-events' },
       { title: 'JDBC Events', to: '/docs/tracing/jdbc-events' },
+      { title: 'MyBatis Events', to: '/docs/tracing/mybatis-events' },
       { title: 'Custom Traced Events', to: '/docs/tracing/custom-events' },
-      { title: 'Notifications & Exceptions', to: '/docs/tracing/notifications-exceptions' }
+      { title: 'Notifications & Exceptions', to: '/docs/tracing/notifications-exceptions' },
+      { title: 'Spring Support', to: '/docs/tracing/spring-support' }
     ]
   },
   {

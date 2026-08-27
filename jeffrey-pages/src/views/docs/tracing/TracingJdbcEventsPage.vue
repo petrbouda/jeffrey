@@ -20,6 +20,7 @@
 import { onMounted } from 'vue';
 import DocsCallout from '@/components/docs/DocsCallout.vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
+import DocsLinkCard from '@/components/docs/DocsLinkCard.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
@@ -29,10 +30,10 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'events', text: 'The Statement Events', level: 2 },
   { id: 'datasource', text: 'The DataSource Wrapper', level: 2 },
-  { id: 'mybatis', text: 'MyBatis: Names from Mapper Methods', level: 2 },
   { id: 'manual', text: 'Emitting a Statement by Hand', level: 2 },
   { id: 'pool', text: 'Connection-Pool Events (Not Spans)', level: 2 },
   { id: 'hikari', text: 'HikariCP Integration', level: 2 },
+  { id: 'spring-support', text: 'Using Spring Boot?', level: 2 },
   { id: 'pitfalls', text: 'Pitfalls', level: 2 }
 ];
 
@@ -40,17 +41,12 @@ onMounted(() => {
   setHeadings(headings);
 });
 
-const mybatisRegistration = `// mybatis-spring-boot-starter: declare it as a bean — every Interceptor
-// bean is added to the SqlSessionFactory automatically. (On the Jeffrey
-// spring-boot-starter there is nothing to declare at all.)
-@Bean
-JeffreyMyBatisInterceptor jeffreyMyBatisInterceptor() {
-    return new JeffreyMyBatisInterceptor();
-}
+const dataSourceExample = `// The label statements are grouped under in Jeffrey's Database dashboard —
+// usually the database or pool name.
+DataSource traced = new TracingDataSource(hikariDataSource, "orders-db");
 
-// Plain mybatis-spring:      factoryBean.setPlugins(new JeffreyMyBatisInterceptor());
-// Programmatic MyBatis:      configuration.addInterceptor(new JeffreyMyBatisInterceptor());
-// XML config:                <plugins><plugin interceptor="cafe.jeffrey.jfr.events.mybatis.JeffreyMyBatisInterceptor"/></plugins>`;
+// Or with names better than the default verb-and-primary-table:
+DataSource traced = new TracingDataSource(hikariDataSource, "orders-db", myNaming);`;
 
 const manualEmit = `// TracedEvents.emit is the whole leaf lifecycle: guard, begin, end on
 // success, failed(t) on a throw (the span shows red), commitSpan() nesting
@@ -99,10 +95,7 @@ return rows.onClose(() -> {
 
 const hikariExample = `// jeffrey-tracing-hikari: one metrics tracker on the pool
 HikariConfig config = new HikariConfig();
-config.setMetricsTrackerFactory(new JfrMetricsTrackerFactory());
-
-// On the Jeffrey spring-boot-starter this is automatic
-// (jeffrey.tracing.hikari-enabled=true, the default).`;
+config.setMetricsTrackerFactory(new JfrMetricsTrackerFactory());`;
 
 const poolManual = `// For any other pool: emit from the pool's own hook points.
 // Durations/timeouts per operation:
@@ -185,19 +178,15 @@ FlightRecorder.addPeriodicEvent(JdbcPoolStatisticsEvent.class, () -> {
 
       <h2 id="datasource">The DataSource Wrapper</h2>
 
-      <p><code>jeffrey-tracing-jdbc</code> wraps a <code>DataSource</code> so that <strong>every</strong> statement is recorded, whoever issues it — JdbcTemplate, Hibernate, jOOQ and MyBatis alike — with names derived from the SQL. On the <router-link to="/docs/tracing/http-events">Spring Boot starter</router-link> this is automatic: every <code>DataSource</code> bean is wrapped (<code>jeffrey.tracing.jdbc-enabled=true</code>, the default). On plain Spring, <code>@Import(JeffreyJdbcTracingConfiguration.class)</code>; without Spring, wrap the pool's <code>DataSource</code> in <code>TracingDataSource</code> where you build it.</p>
+      <p><code>jeffrey-tracing-jdbc</code> wraps a <code>DataSource</code> so that <strong>every</strong> statement is recorded, whoever issues it — JdbcTemplate, Hibernate, jOOQ and MyBatis alike — with names derived from the SQL. Wrapping the interface rather than instrumenting a persistence framework is what makes one module cover all of them, including the statements an ORM generates that nobody wrote by hand.</p>
 
-      <h2 id="mybatis">MyBatis: Names from Mapper Methods</h2>
+      <DocsCodeBlock :code="dataSourceExample" language="java" />
 
-      <p><code>jeffrey-tracing-mybatis</code> intercepts at the MyBatis <code>Executor</code> and names every statement by its <strong>statement id</strong> — <code>UserMapper.selectById</code>, one name per mapper method, stable however the SQL is assembled, and the name a developer would search for. It also records the parameter values the statement was bound with (<code>{"id":42,"name":"grace"}</code>), which a <code>DataSource</code> proxy cannot do cheaply.</p>
-
-      <DocsCodeBlock :code="mybatisRegistration" language="java" />
+      <p>Statement naming defaults to verb and primary table; an application with better names — a repository method, a mapper id — supplies its own <code>StatementNaming</code>.</p>
 
       <DocsCallout type="warning">
-        <strong>Use the MyBatis module <em>or</em> the DataSource wrapper — never both.</strong> Each records the same statement, so every mapper call would appear twice. On the Spring Boot starter this is handled: registering the MyBatis interceptor stands the <code>DataSource</code> wrapper down automatically. Wiring by hand, also set <code>jeffrey.tracing.jdbc-enabled=false</code>. The trade-off: an application using MyBatis <em>and</em> a plain <code>JdbcTemplate</code> loses the template's statements when MyBatis naming wins — set <code>jeffrey.tracing.mybatis-enabled=false</code> to leave the wrapper in charge when mixed coverage matters more than the better names.
+        <strong>Statement parameters are never read, let alone recorded.</strong> They are the values most likely to be personal data, and a proxy cannot know which are safe. The SQL text is recorded as the driver received it, so a statement built with placeholders stays aggregatable — and one built by string concatenation carries whatever was concatenated into it. Recording the values a statement ran with is exactly what <router-link to="/docs/tracing/mybatis-events">MyBatis Events</router-link> adds; use that module <em>or</em> this wrapper, never both, or every mapper call is recorded twice.
       </DocsCallout>
-
-      <p>Parameter capture is <strong>on by default</strong> for MyBatis — a statement's parameters are what make a slow statement readable, unlike a query string, which is free-form user input. Values are truncated at 256 characters (<code>jeffrey.tracing.mybatis-max-parameter-length</code>); LOBs and streams record <code>&lt;lob-value&gt;</code> rather than being consumed. For mappers that take e-mail addresses, tokens, or anything you would not paste into a bug report: <code>jeffrey.tracing.mybatis-capture-parameters=false</code>.</p>
 
       <h2 id="manual">Emitting a Statement by Hand</h2>
 
@@ -253,6 +242,17 @@ FlightRecorder.addPeriodicEvent(JdbcPoolStatisticsEvent.class, () -> {
 
       <DocsCodeBlock :code="poolManual" language="java" />
 
+      <h2 id="spring-support">Using Spring Boot?</h2>
+
+      <p>The starter wraps every <code>DataSource</code> bean and gives each Hikari pool a tracker for you — no <code>TracingDataSource</code> in your own code, and the bean name becomes the statement group.</p>
+
+      <DocsLinkCard
+        to="/docs/tracing/spring-support"
+        icon="bi bi-flower1"
+        title="Spring Support"
+        description="The DataSource and Hikari bean post-processors, why their ordering matters, and the jeffrey.tracing.* switches."
+      />
+
       <h2 id="pitfalls">Pitfalls</h2>
 
       <table>
@@ -266,8 +266,8 @@ FlightRecorder.addPeriodicEvent(JdbcPoolStatisticsEvent.class, () -> {
         <tbody>
           <tr>
             <td>Every mapper call appears twice</td>
-            <td>Both the MyBatis module and the <code>DataSource</code> wrapper are active</td>
-            <td>On Boot both halves are handled; wiring by hand, set <code>jeffrey.tracing.jdbc-enabled=false</code></td>
+            <td>Both the <router-link to="/docs/tracing/mybatis-events">MyBatis module</router-link> and the <code>DataSource</code> wrapper are active</td>
+            <td>Register one of the two, never both</td>
           </tr>
           <tr>
             <td>Statements in the Database dashboard but not in Traces</td>
@@ -296,8 +296,8 @@ FlightRecorder.addPeriodicEvent(JdbcPoolStatisticsEvent.class, () -> {
           </tr>
           <tr>
             <td>A recording carries values that should not leave the building</td>
-            <td>Parameter capture is on, as it is by default for MyBatis</td>
-            <td><code>jeffrey.tracing.mybatis-capture-parameters=false</code>, and treat existing recordings as containing them</td>
+            <td>Parameter capture is on, as it is by default for <router-link to="/docs/tracing/mybatis-events">MyBatis</router-link></td>
+            <td><code>MyBatisStatementSettings.noParameters()</code>, and treat existing recordings as containing them</td>
           </tr>
         </tbody>
       </table>

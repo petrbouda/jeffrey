@@ -585,6 +585,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/tracing/TracingJdbcEventsPage.vue')
       },
       {
+        path: 'tracing/mybatis-events',
+        name: 'DocsTracingMyBatisEvents',
+        component: () => import('@/views/docs/tracing/TracingMyBatisEventsPage.vue')
+      },
+      {
         path: 'tracing/custom-events',
         name: 'DocsTracingCustomEvents',
         component: () => import('@/views/docs/tracing/TracingCustomEventsPage.vue')
@@ -593,6 +598,11 @@ const routes: RouteRecordRaw[] = [
         path: 'tracing/notifications-exceptions',
         name: 'DocsTracingNotificationsExceptions',
         component: () => import('@/views/docs/tracing/TracingNotificationsExceptionsPage.vue')
+      },
+      {
+        path: 'tracing/spring-support',
+        name: 'DocsTracingSpringSupport',
+        component: () => import('@/views/docs/tracing/TracingSpringSupportPage.vue')
       },
       {
         path: 'tracing/jdk-events',

@@ -20,6 +20,7 @@
 import { onMounted } from 'vue';
 import DocsCallout from '@/components/docs/DocsCallout.vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
+import DocsLinkCard from '@/components/docs/DocsLinkCard.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
@@ -30,12 +31,12 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'events', text: 'The Two Events', level: 2 },
   { id: 'fields', text: 'Fields and Derived Span Shape', level: 2 },
-  { id: 'starter', text: 'Spring Boot: The Starter', level: 2 },
-  { id: 'spring', text: 'Plain Spring: @Import', level: 2 },
   { id: 'servlet', text: 'Any Servlet Container', level: 2 },
+  { id: 'naming', text: 'Naming: What a Container Cannot Answer', level: 2 },
   { id: 'manual-server', text: 'Writing the Filter Yourself', level: 2 },
   { id: 'client', text: 'Outbound Calls: the Client Event', level: 2 },
   { id: 'async-clients', text: 'Async Clients', level: 2 },
+  { id: 'spring-support', text: 'Using Spring Boot?', level: 2 },
   { id: 'pitfalls', text: 'Pitfalls', level: 2 }
 ];
 
@@ -43,41 +44,27 @@ onMounted(() => {
   setHeadings(headings);
 });
 
-const starterDependency = `<dependency>
-    <groupId>cafe.jeffrey-analyst</groupId>
-    <artifactId>jeffrey-tracing-spring-boot-starter</artifactId>
-    <version><!-- latest release --></version>
-</dependency>`;
-
-const springImport = `@Configuration
-@Import(JeffreyTracingConfiguration.class)
-class ObservabilityConfiguration {
-
-    /** Optional: the default records nothing beyond the request's shape. */
-    @Bean
-    HttpExchangeSettings jeffreyHttpExchangeSettings() {
-        return new HttpExchangeSettings(true, true);   // capture query + path params
-    }
-}`;
-
 const servletExample = `// jeffrey-tracing-servlet depends on jakarta.servlet and nothing else
 HttpExchangeFilter filter = new HttpExchangeFilter(
         HttpRequestNaming.servletMapping(),          // or your own routing-aware naming
         HttpExchangeSettings.defaults());
 // register it FIRST in the chain, for /*`;
 
-const manualFilter = `public class JeffreyJfrHttpEventFilter extends OncePerRequestFilter {
+const manualFilter = `public class JeffreyJfrHttpEventFilter implements Filter {
 
-    private static final String UNMATCHED_URI = "<unmatched>";
+    // The one thing the container cannot answer — see "Naming" above.
+    private final HttpRequestNaming naming;
 
     @Override
-    protected void doFilterInternal(
-            HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+
+        HttpServletRequest httpRequest = (HttpServletRequest) request;
+        HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         HttpServerExchangeEvent event = new HttpServerExchangeEvent();
         if (!event.isEnabled()) {
-            filterChain.doFilter(request, response);
+            chain.doFilter(request, response);
             return;
         }
         event.begin();
@@ -85,32 +72,26 @@ const manualFilter = `public class JeffreyJfrHttpEventFilter extends OncePerRequ
             // The exchange event IS the root span: inSpanOf stamps it and binds the context.
             try {
                 Tracer.inSpanOf(event, () -> {
-                    filterChain.doFilter(request, response);
+                    chain.doFilter(request, response);
                     return null;
                 });
             } catch (IOException | ServletException | RuntimeException e) {
+                // Tracer infers one thrown type, which widens to Exception for a body
+                // throwing both IOException and ServletException. Narrow it back to
+                // what a filter may declare.
                 throw e;
             } catch (Exception e) {
-                throw new IllegalStateException(e);
+                throw new ServletException(e);
             }
         } finally {
             event.end();
             if (event.shouldCommit()) {
-                event.uri = resolveTemplateUri(request);     // matched pattern, never the raw path
-                event.method = request.getMethod();
-                event.statusCode = response.getStatus();
+                event.uri = naming.uri(httpRequest);        // the template, never the raw path
+                event.method = httpRequest.getMethod();
+                event.statusCode = httpResponse.getStatus();
                 event.commitSpan();                          // inSpanOf already stamped the ids
             }
         }
-    }
-
-    private static String resolveTemplateUri(HttpServletRequest request) {
-        Object pattern = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
-        if (pattern instanceof String s && !s.isEmpty()) {
-            String contextPath = request.getContextPath();
-            return (contextPath == null || contextPath.isEmpty()) ? s : contextPath + s;
-        }
-        return UNMATCHED_URI;
     }
 }`;
 
@@ -131,37 +112,28 @@ const serverOutput = `jeffrey.HttpServerExchange {
   responseLength = 1834
 }`;
 
-const clientInterceptor = `// jeffrey-tracing-spring ships JfrClientHttpRequestInterceptor as a bean;
-// attach it where you build the client:
-RestTemplate restTemplate = new RestTemplate();
-restTemplate.getInterceptors().add(interceptor);   // the bean from the configuration`;
+const manualClient = `// The JDK's own client — no dependency beyond java.net.http. Any other client
+// wraps the same way: the shape is the event, not the library.
+public <T> HttpResponse<T> send(HttpRequest request, BodyHandler<T> handler) throws IOException {
 
-const manualClient = `public class JeffreyJfrRestTemplateInterceptor implements ClientHttpRequestInterceptor {
-
-    @Override
-    public ClientHttpResponse intercept(
-            HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
-
-        // TracedEvents.emit is the whole leaf lifecycle: guard, begin, end on
-        // success, failed(e) on the exception path (a transport failure that
-        // never produced a status code shows red), commitSpan() stamping the
-        // event under the span in progress — usually the server exchange of
-        // the request being served. The IOException propagates through typed.
-        HttpClientExchangeEvent event = new HttpClientExchangeEvent();
-        return TracedEvents.emit(event,
-                () -> execution.execute(request, body),
-                (e, response) -> {
-                    e.method = request.getMethod().name();
-                    // Low-cardinality: host + path with variable segments
-                    // collapsed, ideally the URI template you expanded.
-                    e.uri = request.getURI().getHost() + normalizePath(request.getURI().getPath());
-                    e.remoteHost = request.getURI().getHost();
-                    e.remotePort = request.getURI().getPort();
-                    e.requestLength = body.length;
-                    // response is null when the call threw before answering.
-                    e.statusCode = response != null ? response.getStatusCode().value() : 0;
-                });
-    }
+    // TracedEvents.emit is the whole leaf lifecycle: guard, begin, end on
+    // success, failed(e) on the exception path (a transport failure that
+    // never produced a status code shows red), commitSpan() stamping the
+    // event under the span in progress — usually the server exchange of
+    // the request being served. The IOException propagates through typed.
+    HttpClientExchangeEvent event = new HttpClientExchangeEvent();
+    return TracedEvents.emit(event,
+            () -> client.send(request, handler),
+            (e, response) -> {
+                e.method = request.method();
+                // Low-cardinality: host + path with variable segments
+                // collapsed, ideally the URI template you expanded.
+                e.uri = request.uri().getHost() + normalizePath(request.uri().getPath());
+                e.remoteHost = request.uri().getHost();
+                e.remotePort = request.uri().getPort();
+                // response is null when the call threw before answering.
+                e.statusCode = response != null ? response.statusCode() : 0;
+            });
 }`;
 
 const clientSpans = [
@@ -223,91 +195,19 @@ const clientSpans = [
         <strong><code>uri</code> must be the matched template</strong> — <code>/api/users/{id}</code>, never the raw path. The HTTP dashboard aggregates per endpoint on it and the span name derives from it; a raw path produces one "operation" per entity id, per static asset and per mistyped URL. A request that matched no handler is named <code>&lt;unmatched&gt;</code>.
       </DocsCallout>
 
-      <h2 id="starter">Spring Boot: The Starter</h2>
-
-      <DocsCodeBlock :code="starterDependency" language="xml" />
-
-      <p>That is the whole integration. The auto-configuration registers the filter first in the chain, names spans by the matched Spring MVC handler pattern, and completes asynchronous requests from an <code>AsyncListener</code>. It backs off entirely if you define your own filter, naming strategy or settings. Tune it with <code>jeffrey.tracing.*</code>:</p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Default</th>
-            <th>Meaning</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>jeffrey.tracing.enabled</code></td>
-            <td><code>true</code></td>
-            <td>Turn the instrumentation off without removing the dependency</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.tracing.url-patterns</code></td>
-            <td><code>/*</code></td>
-            <td>Which requests the filter sees</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.tracing.order</code></td>
-            <td><code>HIGHEST_PRECEDENCE</code></td>
-            <td>Filter order; keep it first so security, routing and data access all happen inside the span</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.tracing.jdbc-enabled</code></td>
-            <td><code>true</code></td>
-            <td>Wrap every <code>DataSource</code> bean so statements are recorded — see <router-link to="/docs/tracing/jdbc-events">JDBC Events</router-link></td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.tracing.hikari-enabled</code></td>
-            <td><code>true</code></td>
-            <td>Give HikariCP pools a Jeffrey metrics tracker</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.tracing.mybatis-enabled</code></td>
-            <td><code>true</code></td>
-            <td>Name statements by their mapper method for applications with a <code>SqlSessionFactory</code>; stands the <code>DataSource</code> wrapper down so nothing records twice</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.tracing.mybatis-capture-parameters</code></td>
-            <td><code>true</code></td>
-            <td>Record the values a MyBatis statement was bound with</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.tracing.mybatis-max-parameter-length</code></td>
-            <td><code>256</code></td>
-            <td>Truncate longer parameter values</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.tracing.capture-query-params</code></td>
-            <td><code>false</code></td>
-            <td>Record query-string parameters on the event</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.tracing.capture-path-params</code></td>
-            <td><code>false</code></td>
-            <td>Record the route's template variables on the event</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <DocsCallout type="info">
-        <strong>Both HTTP capture flags are off by default, deliberately.</strong> A recording is a file that gets uploaded, shared and kept, and query strings routinely carry access tokens, e-mail addresses and search terms. Turn them on only for an application whose parameters you know are safe to keep.
-      </DocsCallout>
-
-      <h2 id="spring">Plain Spring: @Import</h2>
-
-      <p><code>jeffrey-tracing-spring</code> carries the same beans with no Spring Boot dependency and no auto-configuration — nothing happens until you ask:</p>
-
-      <DocsCodeBlock :code="springImport" language="java" />
-
-      <p>That gives you the <code>HttpExchangeFilter</code> as a bean; register it the way your stack does (<code>web.xml</code>, or <code>AbstractAnnotationConfigDispatcherServletInitializer#getServletFilters</code>) — <strong>first in the chain</strong>. Using both the starter and this <code>@Import</code> is safe: the auto-configuration is guarded with <code>@ConditionalOnMissingBean</code> and yields one filter, not two.</p>
-
       <h2 id="servlet">Any Servlet Container</h2>
 
       <DocsCodeBlock :code="servletExample" language="java" />
 
-      <p>The one thing a container cannot answer is what a request should be <em>called</em>, so the filter asks a <code>HttpRequestNaming</code>. The built-in strategy names requests by their servlet mapping pattern (<code>/api/*</code>) — already low-cardinality because a mapping is declared, not derived from the request. Supply your own to use a router's matched template; that is exactly what the Spring module does with Spring MVC's best-matching handler pattern.</p>
+      <p>That is the whole integration on any servlet stack. The module depends on <code>jakarta.servlet</code> and nothing else, so it fits Tomcat, Jetty, Undertow or an embedded container the same way. Register the filter <strong>first in the chain</strong>, so security, routing and data access all happen inside the request's span.</p>
+
+      <p>Asynchronous requests are handled for you: when the handler starts async processing the filter completes the event from an <code>AsyncListener</code> instead of when the container thread returns, so the recorded interval covers the whole exchange. The ids were stamped when the span opened, so the deferred commit still lands in the right trace.</p>
+
+      <h2 id="naming">Naming: What a Container Cannot Answer</h2>
+
+      <p>The one thing a container cannot answer is what a request should be <em>called</em>, so the filter asks a <code>HttpRequestNaming</code>. The span name is derived from the recorded <code>uri</code> and every distinct name enters the JFR constant pool, so the answer has to be the routing framework's matched <strong>template</strong> — knowledge only that framework has. That is why this is an interface rather than a lookup: the filter asks for a name, and whoever knows the routing supplies one.</p>
+
+      <p>The built-in strategy, <code>HttpRequestNaming.servletMapping()</code>, names requests by the pattern their servlet was mapped with (<code>/api/*</code>) — the best a container can do alone, and already low-cardinality because a mapping is declared rather than derived from the request. Supply your own to use a router's matched template. A request that matched nothing is named <code>&lt;unmatched&gt;</code>: still recorded, simply named together, because one operation per mistyped URL is worth nothing to anyone.</p>
 
       <h2 id="manual-server">Writing the Filter Yourself</h2>
 
@@ -315,13 +215,11 @@ const clientSpans = [
 
       <DocsCodeBlock :code="manualFilter" language="java" />
 
-      <p>Note what this simple version does <em>not</em> handle: an asynchronous request is measured only until the container thread returns, so it appears to take microseconds. The starter's filter completes such requests from an <code>AsyncListener</code> instead.</p>
+      <p>Note what this simple version does <em>not</em> handle: an asynchronous request is measured only until the container thread returns, so it appears to take microseconds. <code>HttpExchangeFilter</code> completes such requests from an <code>AsyncListener</code> instead, and guards against being applied twice when the filter is mapped more than once.</p>
 
       <h2 id="client">Outbound Calls: the Client Event</h2>
 
-      <DocsCodeBlock :code="clientInterceptor" language="java" />
-
-      <p>It is only a bean, not attached automatically — applications build clients in too many ways for a starter to guess. By default it records host and path with the query string dropped (that is where ids and tokens live), and accepts a <code>Function&lt;URI, String&gt;</code> to collapse variable path segments into a template. Written by hand, the same interceptor is:</p>
+      <p>There is no client module to add: applications build clients in too many ways for one to guess, so an outbound call is instrumented where the call is made. The shape is the same everywhere — record host and path with the query string dropped, since that is where ids and tokens live:</p>
 
       <DocsCodeBlock :code="manualClient" language="java" />
 
@@ -334,6 +232,17 @@ const clientSpans = [
       <h2 id="async-clients">Async Clients</h2>
 
       <p>A blocking interceptor shape does not fit a client whose response arrives via callbacks on threads you don't control (WebClient, async HttpClient). Use the callback pattern (<router-link to="/docs/tracing/tracer-api/open-span-of">openSpanOf</router-link> + <router-link to="/docs/tracing/tracer-api/reenter">reenter</router-link>): <code>Tracer.openSpanOf(event)</code> when the call starts (on the thread whose span it belongs to), <code>Tracer.reenter(ctx, ...)</code> around each callback, and <code>event.commitSpan()</code> at completion. <code>openSpanOf</code> stamps the ids eagerly, so a completion running after the enclosing binding is gone still carries the right identity.</p>
+
+      <h2 id="spring-support">Using Spring Boot?</h2>
+
+      <p>One dependency registers the filter for you, names requests by the matched Spring MVC handler pattern, and binds the capture flags to <code>jeffrey.tracing.*</code> — plus a <code>RestTemplate</code> interceptor for the outbound half.</p>
+
+      <DocsLinkCard
+        to="/docs/tracing/spring-support"
+        icon="bi bi-flower1"
+        title="Spring Support"
+        description="The starter, the jeffrey.tracing.* property table, Spring MVC request naming and the RestTemplate interceptor."
+      />
 
       <h2 id="pitfalls">Pitfalls</h2>
 
@@ -349,12 +258,12 @@ const clientSpans = [
           <tr>
             <td>One "endpoint" per user/entity in the HTTP dashboard</td>
             <td>Raw URI recorded instead of the template</td>
-            <td>Use the starter (Spring MVC naming), or supply a routing-aware <code>HttpRequestNaming</code></td>
+            <td>Supply a routing-aware <code>HttpRequestNaming</code> instead of the servlet-mapping default</td>
           </tr>
           <tr>
             <td>SQL spans not nested under requests</td>
             <td>Filter registered after work-dispatching filters, or missing entirely</td>
-            <td>Keep <code>jeffrey.tracing.order</code> first; check <code>url-patterns</code> covers the endpoint</td>
+            <td>Register the filter first in the chain, mapped at <code>/*</code></td>
           </tr>
           <tr>
             <td>Request span missing, children promoted to roots</td>
@@ -364,12 +273,12 @@ const clientSpans = [
           <tr>
             <td>5xx/4xx not red in Traces</td>
             <td><code>statusCode</code> not set before commit</td>
-            <td>The starter handles this; by hand, set it in the <code>finally</code></td>
+            <td><code>HttpExchangeFilter</code> sets it; by hand, set it in the <code>finally</code></td>
           </tr>
           <tr>
             <td>Async requests measured as ~0 ms</td>
             <td>Event completed when the container thread returned</td>
-            <td>Use the starter's filter, which completes from an <code>AsyncListener</code></td>
+            <td>Use <code>HttpExchangeFilter</code>, which completes from an <code>AsyncListener</code></td>
           </tr>
           <tr>
             <td>Calls in the HTTP Client dashboard but not in Traces</td>

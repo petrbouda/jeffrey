@@ -153,7 +153,7 @@ jeffrey.JdbcQuery {
 
       <DocsCodeBlock :code="starterDependency" language="xml" filename="pom.xml" />
 
-      <p>Every inbound request becomes the root span of a trace, named by the matched handler pattern. Every <code>DataSource</code> bean is wrapped, so the statements your ORM issues nest underneath the request without anyone writing JDBC instrumentation, and a HikariCP pool gets its acquire/borrow/create timings plus a periodic gauge. Tune it with <code>jeffrey.tracing.*</code> — the property table is on the <router-link to="/docs/tracing/http-events">HTTP Events</router-link> page.</p>
+      <p>Every inbound request becomes the root span of a trace, named by the matched handler pattern. Every <code>DataSource</code> bean is wrapped, so the statements your ORM issues nest underneath the request without anyone writing JDBC instrumentation, and a HikariCP pool gets its acquire/borrow/create timings plus a periodic gauge. Tune it with <code>jeffrey.tracing.*</code> — the property table is on the <router-link to="/docs/tracing/spring-support">Spring Support</router-link> page.</p>
 
       <p>gRPC and MyBatis are one line each — see <router-link to="/docs/tracing/grpc-events">gRPC Events</router-link> and <router-link to="/docs/tracing/jdbc-events">JDBC Events</router-link>. And if you would rather annotate methods than write lambdas, the <router-link to="/docs/tracing/traced-annotation">Jeffrey Agent weaves <code>@Traced</code> methods</router-link> into spans.</p>
 

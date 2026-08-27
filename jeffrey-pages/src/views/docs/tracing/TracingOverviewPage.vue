@@ -24,6 +24,7 @@ import DocsLinkCard from '@/components/docs/DocsLinkCard.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
+import DocsTracingPipeline from '@/components/docs/DocsTracingPipeline.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
@@ -56,13 +57,6 @@ const tasteSpans = [
     event: 'jeffrey.TraceSpan' }
 ];
 
-const pipeline = `┌──────────────────────┐    ┌──────────────────┐    ┌───────────────────────────┐
-│ Your application     │    │ JFR recording    │    │ Jeffrey Microscope        │
-│                      │    │                  │    │                           │
-│ jeffrey-events       │    │ jeffrey.* events │    │ parse → derive traces     │
-│ Tracer / @Traced     │ →  │ jdk.* events     │ →  │ → waterfall, operations,  │
-│ HTTP/gRPC/JDBC glue  │    │ (one .jfr file)  │    │   flamegraphs, search     │
-└──────────────────────┘    └──────────────────┘    └───────────────────────────┘`;
 </script>
 
 <template>
@@ -86,7 +80,7 @@ const pipeline = `┌───────────────────�
 
       <h2 id="how-it-works">How It Works</h2>
 
-      <DocsCodeBlock :code="pipeline" language="text" />
+      <DocsTracingPipeline />
 
       <p>Three properties make the model work:</p>
 
@@ -117,7 +111,7 @@ const pipeline = `┌───────────────────�
           <tr>
             <td><strong>Framework glue</strong></td>
             <td><code>jeffrey-tracing-*</code></td>
-            <td>Drop-in instrumentation for Servlet, Spring, Spring Boot (a starter: one dependency, no code), JDBC <code>DataSource</code>, HikariCP, MyBatis and gRPC. See the <router-link to="/docs/tracing/http-events">HTTP</router-link>, <router-link to="/docs/tracing/grpc-events">gRPC</router-link> and <router-link to="/docs/tracing/jdbc-events">JDBC</router-link> pages.</td>
+            <td>Drop-in instrumentation for Servlet, Spring, Spring Boot (a starter: one dependency, no code), JDBC <code>DataSource</code>, HikariCP, MyBatis and gRPC. See the <router-link to="/docs/tracing/http-events">HTTP</router-link>, <router-link to="/docs/tracing/grpc-events">gRPC</router-link>, <router-link to="/docs/tracing/jdbc-events">JDBC</router-link> and <router-link to="/docs/tracing/mybatis-events">MyBatis</router-link> pages, and <router-link to="/docs/tracing/spring-support">Spring Support</router-link>.</td>
           </tr>
           <tr>
             <td><strong>Jeffrey Agent</strong></td>
