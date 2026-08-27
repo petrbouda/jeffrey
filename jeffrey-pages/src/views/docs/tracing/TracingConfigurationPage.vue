@@ -61,7 +61,7 @@ const volumeControl = `# Drop hand-written spans shorter than 1 ms
 
 const jdkThresholds = `-XX:StartFlightRecording=filename=app.jfr,settings=profile,\\
 jdk.SocketRead#threshold=1ms,jdk.SocketWrite#threshold=1ms,\\
-jdk.FileRead#threshold=1ms,jdk.FileWrite#threshold=1ms,\\
+jdk.FileRead#threshold=1ms,jdk.FileWrite#threshold=1ms,jdk.FileForce#threshold=1ms,\\
 jdk.JavaMonitorEnter#threshold=1ms,jdk.ThreadPark#threshold=1ms`;
 
 const provisionerConfig = `# provisioner.conf (HOCON)

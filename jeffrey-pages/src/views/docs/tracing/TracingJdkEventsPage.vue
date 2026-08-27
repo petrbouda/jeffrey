@@ -64,7 +64,7 @@ const thresholdsExample = `# The JDK blocking events carry defaults of 10–20 m
 # request-grade traces:
 -XX:StartFlightRecording=filename=app.jfr,settings=profile,\\
 jdk.SocketRead#threshold=1ms,jdk.SocketWrite#threshold=1ms,\\
-jdk.FileRead#threshold=1ms,jdk.FileWrite#threshold=1ms,\\
+jdk.FileRead#threshold=1ms,jdk.FileWrite#threshold=1ms,jdk.FileForce#threshold=1ms,\\
 jdk.JavaMonitorEnter#threshold=1ms,jdk.ThreadPark#threshold=1ms
 
 # The Jeffrey Provisioner does this for you: with tracing enabled it starts
