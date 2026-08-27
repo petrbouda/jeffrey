@@ -76,8 +76,14 @@ java -javaagent:jeffrey-agent.jar=tracing.enabled=true -jar app.jar
 
 The [Jeffrey agent](https://www.jeffrey-analyst.cafe) weaves the same span the explicit form builds,
 so the method is not written around its own tracing. It nests under whatever span is in progress,
-fails with the exception's type, and records only the arguments you name. Needs Java 25; without the
-agent the annotation is inert and the method runs as written.
+fails with the exception's type, and records only the arguments you name — `includeMethodArgs = {"*"}`
+names them all. Needs Java 25; without the agent the annotation is inert and the method runs as
+written.
+
+Only values whose textual form is stable and intentional are recorded: text, numbers, booleans,
+enums, `UUID`, `BigDecimal`/`BigInteger` and the `java.time` value types. Naming `card` above would
+be refused rather than passed through `toString()` — a record's generated one prints every
+component, and a recording is a file that gets uploaded, shared and kept.
 
 ## Sixty seconds of tracing
 

@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.jfr.events.trace;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
@@ -47,6 +49,11 @@ public final class TracedRuntime {
      * oversized {@code toString()} must not bloat an entire recording.
      */
     private static final int MAX_CAPTURED_VALUE_LENGTH = 256;
+
+    /** Names every parameter at once. Not a legal Java identifier, so it can never be one. */
+    private static final String CAPTURE_ALL = "*";
+
+    private static final Logger LOG = System.getLogger(TracedRuntime.class.getName());
 
     private static final char KEY_VALUE_SEPARATOR = '=';
     private static final char PACKAGE_SEPARATOR = '.';
@@ -156,25 +163,49 @@ public final class TracedRuntime {
     }
 
     /**
-     * Which arguments to record: the ones named, or all of them when capture is on and nothing is
-     * named, or none. Naming even one parameter is itself the request to capture, so
-     * {@code captureMethodArgs} does not also have to be set.
+     * Which arguments to record: the ones named, or all of them under {@code "*"}, minus any whose
+     * declared type could never yield a capturable value.
+     * <p>
+     * Deciding this here rather than per call is what makes the refusal cheap and loud at once: it
+     * runs once per method and is cached, and a parameter that was named but can never be recorded
+     * is warned about there and then instead of going silently missing from every recording.
+     * Dropping every capture on a method also restores the prebuilt-attributes path in
+     * {@link #describe}, so a method that asked only for the uncapturable pays nothing per call.
+     * <p>
+     * A declaration that decides nothing — {@code Object}, an interface, an erased type variable —
+     * is kept and settled against the actual value in {@link TracedMetadata#attributes}.
      */
     private static List<CapturedParameter> selectParameters(Traced traced, Method method) {
         List<String> included = List.of(traced.includeMethodArgs());
-        if (included.isEmpty() && !traced.captureMethodArgs()) {
+        if (included.isEmpty()) {
             return List.of();
         }
 
+        boolean captureAll = included.contains(CAPTURE_ALL);
         Parameter[] parameters = method.getParameters();
         List<CapturedParameter> selected = new ArrayList<>(parameters.length);
         for (int index = 0; index < parameters.length; index++) {
-            String parameterName = parameters[index].getName();
+            Parameter parameter = parameters[index];
+            String parameterName = parameter.getName();
             // A name matching nothing is ignored: usually a class compiled without -parameters,
             // where the real names are arg0, arg1, and so on.
-            if (included.isEmpty() || included.contains(parameterName)) {
-                selected.add(new CapturedParameter(index, parameterName));
+            if (!captureAll && !included.contains(parameterName)) {
+                continue;
             }
+            if (!CapturableTypes.mayHoldCapturableValue(parameter.getType())) {
+                // Silent under "*": a sweep is not a request for this parameter in particular, so
+                // warning would fire on methods nobody asked anything specific of.
+                if (!captureAll) {
+                    LOG.log(Level.WARNING,
+                            "Not capturing a @Traced argument whose type cannot be recorded:"
+                                    + " method={0} parameter={1} type={2}",
+                            method.getDeclaringClass().getName(),
+                            parameterName,
+                            parameter.getType().getName());
+                }
+                continue;
+            }
+            selected.add(new CapturedParameter(index, parameterName));
         }
 
         return List.copyOf(selected);
@@ -227,10 +258,25 @@ public final class TracedRuntime {
                 // Defensive on length: a woven call always passes every argument, but this class is
                 // callable by anyone.
                 Object value = parameter.index() < arguments.length ? arguments[parameter.index()] : null;
-                AttributeValues.put(rendered, parameter.name(), value, MAX_CAPTURED_VALUE_LENGTH);
+                put(rendered, parameter.name(), value);
             }
 
             return rendered.json();
+        }
+
+        /**
+         * One captured argument, refused unless its own type is on the allow-list. Only parameters
+         * whose declaration decided nothing reach here uncapturable — the rest were dropped when
+         * the metadata was read — and a refusal is recorded rather than skipped, so a named
+         * parameter never simply goes missing.
+         */
+        private static void put(EventAttributes rendered, String key, Object value) {
+            if (value != null && !CapturableTypes.isCapturable(value.getClass())) {
+                rendered.put(key, CapturableTypes.UNSUPPORTED_VALUE);
+                return;
+            }
+
+            AttributeValues.put(rendered, key, value, MAX_CAPTURED_VALUE_LENGTH);
         }
     }
 

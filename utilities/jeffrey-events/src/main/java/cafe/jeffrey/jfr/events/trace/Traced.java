@@ -85,24 +85,31 @@ public @interface Traced {
     String[] args() default {};
 
     /**
-     * Records every argument the method was called with, keyed by parameter name.
+     * The parameters to record, by name, keyed on the span by that same name — a list of what may
+     * be recorded rather than of what may not. {@code "*"} records every parameter; it is not a
+     * legal Java identifier, so it can never collide with one.
      * <p>
-     * Off by default, and worth leaving off unless the arguments are small and safe: the values are
-     * recorded verbatim through {@code String.valueOf}, and a recording is a file that gets
-     * uploaded, shared and kept. Prefer {@link #includeMethodArgs()}, which records only what you
-     * name.
-     */
-    boolean captureMethodArgs() default false;
-
-    /**
-     * Records only the named parameters — the safe way to capture arguments, because it is a list
-     * of what may be recorded rather than of what may not.
+     * Left empty, nothing is captured. A name matching no parameter is ignored: the usual cause is
+     * a class compiled without javac's {@code -parameters}, where the real names are {@code arg0},
+     * {@code arg1} and so on.
      * <p>
-     * Naming even one parameter here turns capture on by itself, so {@link #captureMethodArgs()}
-     * does not also have to be set; left empty, {@code captureMethodArgs} decides whether all
-     * arguments are recorded or none are. A name matching no parameter is ignored: the usual cause
-     * is a class compiled without javac's {@code -parameters}, where the real names are
-     * {@code arg0}, {@code arg1} and so on.
+     * Only values whose textual form is stable and intentional are recorded — text, numbers,
+     * booleans, enums, {@code UUID}, {@code BigDecimal}/{@code BigInteger} and the
+     * {@code java.time} value types. An arbitrary domain object is refused rather than passed
+     * through {@code toString()}, because a recording is a file that gets uploaded, shared and
+     * kept, and a record's generated {@code toString()} would put every one of its components in
+     * there. {@link CapturableTypes} has the full list and the reasoning.
+     * <p>
+     * How a refusal shows depends on when it can be known. A parameter whose declared type can
+     * never be capturable — {@code checkout(Card card)} — is dropped when the method is first
+     * read, with a warning naming it, so asking for something you will not get is said out loud
+     * once rather than discovered in a recording later. A parameter whose declaration decides
+     * nothing — {@code put(Object key)} — is kept, and a value that turns out to be uncapturable
+     * is recorded as {@link CapturableTypes#UNSUPPORTED_VALUE}. Under {@code "*"} an uncapturable
+     * parameter is passed over silently: a sweep is not a request for any particular one.
+     * <p>
+     * Values are truncated to a maximum length, because an argument is a fact about a call rather
+     * than a payload.
      */
     String[] includeMethodArgs() default {};
 }

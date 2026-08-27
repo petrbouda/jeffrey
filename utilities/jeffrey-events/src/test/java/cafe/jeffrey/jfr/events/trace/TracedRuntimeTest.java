@@ -27,7 +27,10 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -149,7 +152,7 @@ class TracedRuntimeTest {
         }
 
         @Test
-        @DisplayName("include every argument when capture is on and nothing is named")
+        @DisplayName("include every argument under the capture-all wildcard")
         void captureEveryArgument() throws IOException {
             RecordedEvent event = JfrRecordings.single(TraceSpanEvent.NAME, () ->
                     call("captureAll", "ada", 42));
@@ -165,7 +168,7 @@ class TracedRuntimeTest {
                     call("captureSelected", "ada", "secret"));
 
             assertEquals("{\"arg0\":\"ada\"}", event.getString("attributes"),
-                    "naming a parameter is the request to capture it; captureMethodArgs stays false");
+                    "the list names what may be recorded; everything else is left out");
         }
 
         @Test
@@ -209,13 +212,58 @@ class TracedRuntimeTest {
         }
 
         @Test
-        @DisplayName("survive an argument whose own toString() throws")
-        void surviveAThrowingArgument() throws IOException {
+        @DisplayName("refuse a domain object rather than calling its toString()")
+        void refuseAnUncapturableValue() throws IOException {
             RecordedEvent event = JfrRecordings.single(TraceSpanEvent.NAME, () ->
                     call("captureSelected", new Unrenderable(), "secret"));
 
-            assertEquals("{\"arg0\":\"<unavailable>\"}", event.getString("attributes"),
-                    "an argument's broken toString() is its problem, not the method's");
+            assertEquals("{\"arg0\":\"<unsupported>\"}", event.getString("attributes"),
+                    "the declaration is Object, so only the value could settle it -- and a refusal "
+                            + "is recorded rather than skipped, so the parameter does not look lost. "
+                            + "toString() is never reached, which is why a broken one cannot bite");
+        }
+
+        @Test
+        @DisplayName("drop a parameter that could never be captured, before any call is made")
+        void dropAnUncapturableDeclaration() throws IOException {
+            RecordedEvent event = JfrRecordings.single(TraceSpanEvent.NAME, () ->
+                    call("captureUncapturable", "ada", new Unrenderable()));
+
+            assertEquals("{\"arg0\":\"ada\"}", event.getString("attributes"),
+                    "the Unrenderable declaration settles it at metadata time, so the parameter is "
+                            + "never selected and nothing is recorded under it");
+        }
+
+        @Test
+        @DisplayName("pass over an uncapturable parameter under the wildcard")
+        void wildcardSkipsUncapturableParameters() throws IOException {
+            RecordedEvent event = JfrRecordings.single(TraceSpanEvent.NAME, () ->
+                    call("captureAllMixed", "ada", new Unrenderable()));
+
+            assertEquals("{\"arg0\":\"ada\"}", event.getString("attributes"),
+                    "a sweep takes what it can and says nothing about the rest");
+        }
+
+        @Test
+        @DisplayName("record the value types whose textual form is part of the type")
+        void recordValueTypes() throws IOException {
+            RecordedEvent uuid = JfrRecordings.single(TraceSpanEvent.NAME, () ->
+                    call("captureValueTypes", UUID.fromString("00000000-0000-0000-0000-00000000002a")));
+            assertEquals("{\"arg0\":\"00000000-0000-0000-0000-00000000002a\"}", uuid.getString("attributes"));
+
+            RecordedEvent amount = JfrRecordings.single(TraceSpanEvent.NAME, () ->
+                    call("captureValueTypes", new BigDecimal("19.99")));
+            assertEquals("{\"arg0\":\"19.99\"}", amount.getString("attributes"),
+                    "a decimal keeps its digits as text rather than becoming a lossy JSON number");
+
+            RecordedEvent instant = JfrRecordings.single(TraceSpanEvent.NAME, () ->
+                    call("captureValueTypes", Instant.ofEpochMilli(0)));
+            assertEquals("{\"arg0\":\"1970-01-01T00:00:00Z\"}", instant.getString("attributes"));
+
+            RecordedEvent kind = JfrRecordings.single(TraceSpanEvent.NAME, () ->
+                    call("captureValueTypes", SpanKind.CLIENT));
+            assertEquals("{\"arg0\":\"CLIENT\"}", kind.getString("attributes"),
+                    "an enum constant is a low-cardinality label, exactly what an attribute wants");
         }
     }
 
@@ -266,8 +314,20 @@ class TracedRuntimeTest {
         void staticOnly() {
         }
 
-        @Traced(captureMethodArgs = true)
+        @Traced(includeMethodArgs = {"*"})
         void captureAll(String name, int count) {
+        }
+
+        @Traced(includeMethodArgs = {"*"})
+        void captureAllMixed(String name, Unrenderable card) {
+        }
+
+        @Traced(includeMethodArgs = {"arg0", "arg1"})
+        void captureUncapturable(String name, Unrenderable card) {
+        }
+
+        @Traced(includeMethodArgs = {"arg0"})
+        void captureValueTypes(Object value) {
         }
 
         @Traced(includeMethodArgs = {"arg0"})
