@@ -59,17 +59,28 @@ const volumeControl = `# Drop hand-written spans shorter than 1 ms
 # Keep re-entry nesting but stop recording where re-entered spans ran
 -XX:StartFlightRecording=...,cafe.jeffrey.jfr.events.trace.TraceScopeEvent#enabled=false`;
 
-const jdkThresholds = `-XX:StartFlightRecording=filename=app.jfr,settings=profile,\\
-jdk.SocketRead#threshold=1ms,jdk.SocketWrite#threshold=1ms,\\
-jdk.FileRead#threshold=1ms,jdk.FileWrite#threshold=1ms,jdk.FileForce#threshold=1ms,\\
-jdk.JavaMonitorEnter#threshold=1ms,jdk.ThreadPark#threshold=1ms`;
+const jdkThresholds = `# What the Provisioner generates with tracing.enabled = true — a second
+# recording whose only job is to out-vote the profiler's settings. Line
+# breaks added for reading; it is emitted as one unbroken option.
+-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,\\
+jdk.SocketRead#enabled=true,jdk.SocketRead#threshold=0ms,jdk.SocketRead#throttle=1000000/s,\\
+jdk.SocketWrite#enabled=true,jdk.SocketWrite#threshold=0ms,jdk.SocketWrite#throttle=1000000/s,\\
+jdk.FileRead#enabled=true,jdk.FileRead#threshold=0ms,jdk.FileRead#throttle=1000000/s,\\
+jdk.FileWrite#enabled=true,jdk.FileWrite#threshold=0ms,jdk.FileWrite#throttle=1000000/s,\\
+jdk.FileForce#enabled=true,jdk.FileForce#threshold=0ms,\\
+jdk.JavaMonitorEnter#enabled=true,jdk.JavaMonitorEnter#threshold=1ms,\\
+jdk.JavaMonitorWait#enabled=true,jdk.JavaMonitorWait#threshold=1ms,\\
+jdk.ThreadPark#enabled=true,jdk.ThreadPark#threshold=1ms,\\
+jdk.ThreadSleep#enabled=true,jdk.ThreadSleep#threshold=1ms,\\
+jdk.VirtualThreadPinned#enabled=true,jdk.VirtualThreadPinned#threshold=1ms,\\
+jdk.ZAllocationStall#enabled=true,jdk.ZAllocationStall#threshold=0ms`;
 
 const provisionerConfig = `# provisioner.conf (HOCON)
 tracing {
   enabled = true
   # Optional: your own JFR settings list for the thresholds side-recording;
   # "none" opts out of the side-recording while leaving method tracing on
-  # jfr-event-settings = "jdk.SocketRead#threshold=1ms,..."
+  # jfr-event-settings = "jdk.SocketRead#enabled=true,jdk.SocketRead#threshold=0ms,..."
 }`;
 
 const testExample = `import cafe.jeffrey.jfr.events.test.JfrRecordings;
@@ -165,7 +176,7 @@ const testDependency = `<dependency>
 
       <h2 id="jdk-thresholds">JDK Event Thresholds</h2>
 
-      <p>The <router-link to="/docs/tracing/jdk-events">promoted blocking spans</router-link> can only be as fine as the recording: the JDK events default to 10–20&nbsp;ms thresholds. For request-grade traces, lower them:</p>
+      <p>The <router-link to="/docs/tracing/jdk-events">promoted blocking spans</router-link> can only be as fine as the recording, and the stock configuration is far coarser than a trace needs. This is the exact option the Provisioner emits — I/O recorded from <code>0ms</code> with its rate limit lifted, blocking events from <code>1ms</code>, and every event re-enabled so a threshold is not ignored for one a profiler configuration had switched off:</p>
 
       <DocsCodeBlock :code="jdkThresholds" language="bash" />
 
@@ -175,7 +186,9 @@ const testDependency = `<dependency>
 
       <DocsCodeBlock :code="provisionerConfig" language="text" filename="provisioner.conf" />
 
-      <p>With <code>tracing.enabled = true</code> the Provisioner (a) passes <code>tracing.enabled=true</code> to the <router-link to="/docs/tracing/traced-annotation">Jeffrey Agent</router-link> so <code>@Traced</code> methods are woven, and (b) starts a <em>second</em> JFR recording (<code>jeffrey-tracing-thresholds</code>) that exists purely to lower the JDK blocking-event thresholds — JFR takes the most verbose setting across active recordings, so the side-recording tightens thresholds without touching your main recording's configuration. <code>tracing.jfr-event-settings</code> overrides the built-in list; <code>none</code> drops the side-recording while leaving method tracing on. See the <router-link to="/docs/provisioner/configuration">Provisioner configuration reference</router-link> for the full syntax.</p>
+      <p>With <code>tracing.enabled = true</code> the Provisioner (a) passes <code>tracing.enabled=true</code> to the <router-link to="/docs/tracing/traced-annotation">Jeffrey Agent</router-link> so <code>@Traced</code> methods are woven, and (b) starts a <em>second</em> JFR recording named <code>jeffrey-tracing-thresholds</code> carrying the settings above.</p>
+
+      <p>The second recording exists because the profiler's configuration arrives from whichever source won — the CLI, the hub, or the built-in default — so rewriting it to lower thresholds would have to be done three times over. JFR instead resolves every setting to the most verbose value across all active recordings, so this one lowers the thresholds for the profiler's recording as well without either knowing about the other. Two details follow from that: it deliberately names no <code>settings=</code> (which would leave it on the JVM's default configuration, the same one the profiler uses, changing nothing), and <code>maxage=30m</code> bounds how long it pins repository chunks. <code>tracing.jfr-event-settings</code> overrides the built-in list; <code>none</code> drops this recording while leaving method tracing on. See the <router-link to="/docs/provisioner/configuration">Provisioner configuration reference</router-link>.</p>
 
       <h2 id="jmc">JMC and jfr print Interop</h2>
 

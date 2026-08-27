@@ -59,17 +59,21 @@ Lock wait            12.0 ms       (synthesized from jdk.JavaMonitorEnter)
   monitorClass   com.acme.InventoryCache
   previousOwner  worker-7`;
 
-const thresholdsExample = `# The JDK blocking events carry defaults of 10–20 ms — only waits long
-# enough to be recorded are long enough to become bars. Lower them for
-# request-grade traces:
--XX:StartFlightRecording=filename=app.jfr,settings=profile,\\
-jdk.SocketRead#threshold=1ms,jdk.SocketWrite#threshold=1ms,\\
-jdk.FileRead#threshold=1ms,jdk.FileWrite#threshold=1ms,jdk.FileForce#threshold=1ms,\\
-jdk.JavaMonitorEnter#threshold=1ms,jdk.ThreadPark#threshold=1ms
-
-# The Jeffrey Provisioner does this for you: with tracing enabled it starts
-# a second recording that only lowers these thresholds (JFR takes the most
-# verbose setting across active recordings).`;
+const thresholdsExample = `# What the Provisioner generates with tracing.enabled = true — a second
+# recording whose only job is to out-vote the profiler's settings. Line
+# breaks added for reading; it is emitted as one unbroken option.
+-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,\\
+jdk.SocketRead#enabled=true,jdk.SocketRead#threshold=0ms,jdk.SocketRead#throttle=1000000/s,\\
+jdk.SocketWrite#enabled=true,jdk.SocketWrite#threshold=0ms,jdk.SocketWrite#throttle=1000000/s,\\
+jdk.FileRead#enabled=true,jdk.FileRead#threshold=0ms,jdk.FileRead#throttle=1000000/s,\\
+jdk.FileWrite#enabled=true,jdk.FileWrite#threshold=0ms,jdk.FileWrite#throttle=1000000/s,\\
+jdk.FileForce#enabled=true,jdk.FileForce#threshold=0ms,\\
+jdk.JavaMonitorEnter#enabled=true,jdk.JavaMonitorEnter#threshold=1ms,\\
+jdk.JavaMonitorWait#enabled=true,jdk.JavaMonitorWait#threshold=1ms,\\
+jdk.ThreadPark#enabled=true,jdk.ThreadPark#threshold=1ms,\\
+jdk.ThreadSleep#enabled=true,jdk.ThreadSleep#threshold=1ms,\\
+jdk.VirtualThreadPinned#enabled=true,jdk.VirtualThreadPinned#threshold=1ms,\\
+jdk.ZAllocationStall#enabled=true,jdk.ZAllocationStall#threshold=0ms`;
 </script>
 
 <template>
@@ -203,12 +207,18 @@ jdk.JavaMonitorEnter#threshold=1ms,jdk.ThreadPark#threshold=1ms
 
       <h2 id="thresholds">Recording Thresholds</h2>
 
-      <p>Promotion can only work with what the recording holds. The JDK blocking events default to thresholds of 10–20&nbsp;ms — fine for profiling, coarse for request-grade traces:</p>
+      <p>Promotion can only work with what the recording holds, and the stock configuration holds far less than a trace needs. Three separate things have to be overridden per event, which is exactly what the <router-link to="/docs/provisioner">Provisioner</router-link> emits for you:</p>
+
+      <ul>
+        <li><strong><code>threshold</code></strong> — I/O events are recorded from <code>0ms</code>, so no socket or file wait is too short to become a bar; the blocking events (locks, park, sleep, pinning) are recorded from <code>1ms</code>, which keeps the volume sane without losing anything a reader would look for.</li>
+        <li><strong><code>throttle</code></strong> — Java&nbsp;25's <code>default.jfc</code> rate-limits socket and file I/O to <strong>100 events a second</strong>, and a threshold does not lift that. Without the lift, a busy JVM silently drops the very events a trace hangs its leaf spans on. The lift has to be a numeric rate rather than <code>off</code>, because JFR resolves <code>throttle</code> to the highest <em>parseable</em> rate across active recordings and <code>off</code> parses as no rate at all.</li>
+        <li><strong><code>enabled</code></strong> — named alongside the threshold, since a threshold alone is ignored for an event a custom profiler configuration had switched off.</li>
+      </ul>
 
       <DocsCodeBlock :code="thresholdsExample" language="bash" />
 
       <DocsCallout type="tip">
-        With <router-link to="/docs/provisioner">Provisioner</router-link>-managed sessions, enabling <code>tracing&nbsp;{ enabled = true }</code> automatically starts the thresholds side-recording — see <router-link to="/docs/tracing/configuration">Configuration</router-link>.
+        <code>jdk.FileForce</code> and <code>jdk.ZAllocationStall</code> carry no <code>throttle</code> to lift — naming one they do not have costs a JFR warning at startup. Everything here is the Provisioner's built-in list; override it with <code>tracing.jfr-event-settings</code>, or set that to <code>none</code> to drop the recording while leaving method tracing on. See <router-link to="/docs/tracing/configuration">Configuration</router-link>.
       </DocsCallout>
     </div>
 
