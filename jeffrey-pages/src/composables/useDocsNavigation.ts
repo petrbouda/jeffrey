@@ -165,12 +165,12 @@ export const microscopeNavigation: DocSection[] = [
     ]
   },
   {
+    // The event catalog moved to the Jeffrey Tracing product; Microscope keeps just a link.
     title: 'Jeffrey Events',
-    path: 'events',
+    path: '_microscope-events-link',
     icon: 'bi-activity',
-    children: [
-      { title: 'Overview', path: 'overview' }
-    ]
+    crossLink: true,
+    children: [{ title: 'Event catalog', to: '/docs/tracing/events' }]
   },
   {
     // Jeffrey Tracing has its own top-level documentation section; Microscope keeps just a link.
@@ -445,12 +445,10 @@ export const tracingNavigation: DocSection[] = [
     children: [{ title: 'Configuration & Testing', to: '/docs/tracing/configuration' }]
   },
   {
-    // Cross-link into the Microscope events catalog that documents every jeffrey.* event.
     title: 'Jeffrey Events',
-    path: '_tracing-events-link',
+    path: '_tracing-events',
     icon: 'bi-activity',
-    crossLink: true,
-    children: [{ title: 'Event catalog', to: '/docs/events/overview' }]
+    children: [{ title: 'Event catalog', to: '/docs/tracing/events' }]
   }
 ];
 

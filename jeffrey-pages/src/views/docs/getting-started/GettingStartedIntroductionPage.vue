@@ -190,7 +190,7 @@ onMounted(() => {
           <DocsLinkCard
             title="Jeffrey Events"
             description="JFR event library for your applications. Emit custom events for HTTP, JDBC, and gRPC monitoring dashboards in Jeffrey."
-            to="/docs/events/overview"
+            to="/docs/tracing/events"
             icon="bi bi-activity"
           />
         </div>

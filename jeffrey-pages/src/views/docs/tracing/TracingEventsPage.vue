@@ -167,7 +167,7 @@ Tracer.inSpanOf(event, () -> {                 // 2. stamps traceId/spanId/paren
           <pre><code>&lt;dependency&gt;
     &lt;groupId&gt;cafe.jeffrey-analyst&lt;/groupId&gt;
     &lt;artifactId&gt;jeffrey-events&lt;/artifactId&gt;
-    &lt;version&gt;0.12.0&lt;/version&gt;
+    &lt;version&gt;&lt;!-- latest release --&gt;&lt;/version&gt;
 &lt;/dependency&gt;</code></pre>
         </div>
       </div>

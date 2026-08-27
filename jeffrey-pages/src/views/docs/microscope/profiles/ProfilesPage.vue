@@ -271,7 +271,7 @@ const folderStructure = `$JEFFREY_HOME/
       </p>
 
       <h2 id="traces">Traces</h2>
-      <p>One unit of work — a request or a background job — broken into its nested spans. Requires <router-link to="/docs/events/overview">Jeffrey Events</router-link> library to be added to your application.</p>
+      <p>One unit of work — a request or a background job — broken into its nested spans. Requires <router-link to="/docs/tracing/events">Jeffrey Events</router-link> library to be added to your application.</p>
 
       <div class="docs-grid docs-grid-2">
         <DocsFeatureCard
@@ -286,7 +286,7 @@ const folderStructure = `$JEFFREY_HOME/
       </p>
 
       <h2 id="technologies">Technologies</h2>
-      <p>Application-specific analysis — how your code interacts with external systems. Requires <router-link to="/docs/events/overview">Jeffrey Events</router-link> library to be added to your application.</p>
+      <p>Application-specific analysis — how your code interacts with external systems. Requires <router-link to="/docs/tracing/events">Jeffrey Events</router-link> library to be added to your application.</p>
 
       <div class="docs-grid docs-grid-2">
         <DocsFeatureCard
