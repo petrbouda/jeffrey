@@ -108,13 +108,14 @@ const serverOutput = `jeffrey.HttpServerExchange {
   statusCode = 200
   remoteHost = "10.0.4.17"
   remotePort = 55712
-  requestLength = 0
+  requestLength = -1                   // no Content-Length header on the request
   responseLength = 1834
 }`;
 
 const manualClient = `// The JDK's own client — no dependency beyond java.net.http. Any other client
 // wraps the same way: the shape is the event, not the library.
-public <T> HttpResponse<T> send(HttpRequest request, BodyHandler<T> handler) throws IOException {
+public <T> HttpResponse<T> send(HttpRequest request, BodyHandler<T> handler)
+        throws IOException, InterruptedException {
 
     // TracedEvents.emit is the whole leaf lifecycle: guard, begin, end on
     // success, failed(e) on the exception path (a transport failure that
@@ -154,7 +155,7 @@ const clientSpans = [
     />
 
     <div class="docs-content">
-      <p>Two event types cover HTTP: <code>jeffrey.HttpServerExchange</code> — one per inbound request, opened as the <strong>root span</strong> of that request's trace — and <code>jeffrey.HttpClientExchange</code> — one per outbound call, committed as a <strong>leaf</strong> under whatever span made it. Your controllers need zero changes; the instrumentation lives in a filter and a client interceptor.</p>
+      <p>Two event types cover HTTP: <code>jeffrey.HttpServerExchange</code> — one per inbound request, opened as the <strong>root span</strong> of that request's trace — and <code>jeffrey.HttpClientExchange</code> — one per outbound call, committed as a <strong>leaf</strong> under whatever span made it. Your controllers need zero changes: the inbound half is a servlet filter you register once, and the outbound half is recorded where each client call is made.</p>
 
       <h2 id="events">The Two Events</h2>
 
@@ -235,7 +236,7 @@ const clientSpans = [
 
       <h2 id="spring-support">Using Spring Boot?</h2>
 
-      <p>One dependency registers the filter for you, names requests by the matched Spring MVC handler pattern, and binds the capture flags to <code>jeffrey.tracing.*</code> — plus a <code>RestTemplate</code> interceptor for the outbound half.</p>
+      <p>One dependency registers the filter for you, names requests by the matched Spring MVC handler pattern, and binds the capture flags to <code>jeffrey.tracing.*</code>. For the outbound half it contributes a <code>RestTemplate</code> interceptor as a bean — which you still attach to the clients you build, since nothing can guess where those are.</p>
 
       <DocsLinkCard
         to="/docs/tracing/spring-support"

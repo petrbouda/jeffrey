@@ -170,7 +170,7 @@ FlightRecorder.addPeriodicEvent(JdbcPoolStatisticsEvent.class, () -> {
         </tbody>
       </table>
 
-      <p>All extend <code>JdbcBaseEvent</code> — constructor <code>(String name, String group)</code>, kind always <code>CLIENT</code>, <code>@Span("{name}")</code> — and carry <code>sql</code>, <code>params</code> (JSON), <code>group</code> (the Database dashboard groups on it) and <code>rows</code> (returned for a query, affected for everything else). Failures are recorded with <code>event.failed(throwable)</code>, never by setting <code>status</code> directly.</p>
+      <p>All extend <code>JdbcBaseEvent</code> — constructor <code>(String name, String group)</code>, kind always <code>CLIENT</code>, <code>@Span("{name}")</code> — and carry <code>sql</code>, <code>params</code> (JSON), <code>group</code> (the Database dashboard groups on it) and <code>rows</code> (returned for a query, affected for everything else — the <code>DataSource</code> wrapper below does not proxy the <code>ResultSet</code>, so it leaves a query's <code>rows</code> at <code>0</code>). Failures are recorded with <code>event.failed(throwable)</code>, never by setting <code>status</code> directly.</p>
 
       <DocsCallout type="info">
         <strong><code>sql</code> keeps its <code>?</code> placeholders on purpose.</strong> Identical statements aggregate in the dashboard; the values that made one execution slow live in <code>params</code>. Inlining values into the SQL text would give every execution its own statement — and its own constant-pool entry.

@@ -27,7 +27,7 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
-  { id: 'split', text: 'Two Modules, One Choice', level: 2 },
+  { id: 'split', text: 'Which Module Do You Need?', level: 2 },
   { id: 'starter', text: 'Spring Boot: The Starter', level: 2 },
   { id: 'properties', text: 'The jeffrey.tracing.* Properties', level: 2 },
   { id: 'plain-spring', text: 'Plain Spring: @Import', level: 2 },
@@ -123,8 +123,17 @@ const manualClient = `public class JeffreyJfrRestTemplateInterceptor implements 
                     e.remotePort = request.getURI().getPort();
                     e.requestLength = body.length;
                     // response is null when the call threw before answering.
-                    e.statusCode = response != null ? response.getStatusCode().value() : 0;
+                    e.statusCode = response != null ? statusOf(response) : 0;
                 });
+    }
+
+    // getStatusCode() throws IOException, and the filler cannot: swallow it here.
+    private static int statusOf(ClientHttpResponse response) {
+        try {
+            return response.getStatusCode().value();
+        } catch (IOException e) {
+            return 0;
+        }
     }
 }`;
 
@@ -147,7 +156,7 @@ JfrGrpcServerInterceptor jfrGrpcServerInterceptor() {
     <div class="docs-content">
       <p class="docs-lede">Everything Spring-specific in one place: the Boot starter and its <code>jeffrey.tracing.*</code> properties, the explicit <code>@Import</code> wiring for applications without Boot, and the handful of behaviours that only exist because Spring knows something a servlet container does not. The events themselves — what is recorded and what it looks like — are on <router-link to="/docs/tracing/http-events">HTTP</router-link>, <router-link to="/docs/tracing/grpc-events">gRPC</router-link>, <router-link to="/docs/tracing/jdbc-events">JDBC</router-link> and <router-link to="/docs/tracing/mybatis-events">MyBatis</router-link>; nothing here changes any of that.</p>
 
-      <h2 id="split">Two Modules, One Choice</h2>
+      <h2 id="split">Which Module Do You Need?</h2>
 
       <table>
         <thead>
@@ -292,7 +301,7 @@ JfrGrpcServerInterceptor jfrGrpcServerInterceptor() {
 
       <DocsCodeBlock :code="springImport" language="java" />
 
-      <p>That gives you the <code>HttpExchangeFilter</code> as a bean; register it the way your stack does (<code>web.xml</code>, or <code>AbstractAnnotationConfigDispatcherServletInitializer#getServletFilters</code>) — <strong>first in the chain</strong>. Using both the starter and this <code>@Import</code> is safe: the auto-configuration is guarded with <code>@ConditionalOnMissingBean</code> and yields one filter, not two.</p>
+      <p>That gives you the <code>HttpExchangeFilter</code> as a bean; register it the way your stack does (<code>web.xml</code>, or <code>AbstractAnnotationConfigDispatcherServletInitializer#getServletFilters</code>) — <strong>first in the chain</strong>. Using both the starter and this <code>@Import</code> is safe: Spring registers the same <code>@Configuration</code> class once however many times it is imported, so you get one filter, not two.</p>
 
       <p>The data-access halves are separate configurations rather than more beans inside that one, and for a reason worth knowing before you import them: an application with no data source must be able to instrument HTTP without the JDBC types being loaded, and referencing <code>HikariDataSource</code> from a shared configuration would break every application on a different pool.</p>
 
@@ -328,7 +337,7 @@ JfrGrpcServerInterceptor jfrGrpcServerInterceptor() {
         <strong>The two post-processors run at opposite ends of initialisation, and must.</strong> <code>HikariMetricsBeanPostProcessor</code> runs <em>before</em> initialisation, while the pool has not started yet; <code>TracingDataSourceBeanPostProcessor</code> replaces the bean with a <code>DataSource</code> wrapper <em>after</em> — by which point it is no longer a <code>HikariDataSource</code> to look at. A pool that already carries a tracker keeps it: an application that configured its own metrics made a deliberate choice.
       </DocsCallout>
 
-      <p>Registering the MyBatis interceptor stands the <code>DataSource</code> wrapper down automatically, so the two cannot record the same statement twice — once under <code>UserMapper.selectById</code> and once under a name parsed out of its SQL. Wiring by hand instead of through the starter, set <code>jeffrey.tracing.jdbc-enabled=false</code> yourself. The trade-off is what <code>jeffrey.tracing.mybatis-enabled=false</code> exists for: an application using MyBatis <em>and</em> a plain <code>JdbcTemplate</code> sees only the mapper calls, and gets everything back — under SQL-parsed names — by leaving the wrapper in charge.</p>
+      <p>Registering the MyBatis interceptor stands the <code>DataSource</code> wrapper down automatically, so the two cannot record the same statement twice — once under <code>UserMapper.selectById</code> and once under a name parsed out of its SQL. On the plain <code>@Import</code> path there is no <code>jeffrey.tracing.*</code> binding at all — those properties exist only where an auto-configuration reads them — so the remedy there is simply not to import <code>JeffreyJdbcTracingConfiguration</code>. The trade-off is what <code>jeffrey.tracing.mybatis-enabled=false</code> exists for: an application using MyBatis <em>and</em> a plain <code>JdbcTemplate</code> sees only the mapper calls, and gets everything back — under SQL-parsed names — by leaving the wrapper in charge.</p>
 
       <p>Statement naming and MyBatis settings are both taken from a bean when one exists: declare a <code>StatementNaming</code> to name statements by something better than verb and primary table, or a <code>MyBatisStatementSettings</code> to change parameter capture (<code>jeffrey.tracing.mybatis-capture-parameters</code>, <code>jeffrey.tracing.mybatis-max-parameter-length</code> do the same through properties).</p>
 
@@ -342,7 +351,11 @@ JfrGrpcServerInterceptor jfrGrpcServerInterceptor() {
 
       <h2 id="overriding">Overriding What the Starter Wires</h2>
 
-      <p>Every bean the auto-configuration contributes is guarded, so declaring your own replaces it rather than duplicating it:</p>
+      <p>The <strong>starter's</strong> beans are guarded with <code>@ConditionalOnMissingBean</code>, so on Spring Boot declaring your own replaces them:</p>
+
+      <DocsCallout type="warning">
+        <strong>That guard does not exist on the plain <code>@Import</code> path.</strong> <code>jeffrey-tracing-spring</code> deliberately carries no Spring Boot types, <code>@ConditionalOnMissingBean</code> among them, so declaring a second <code>HttpRequestNaming</code> or <code>HttpExchangeFilter</code> beside an imported <code>JeffreyTracingConfiguration</code> fails the context with <em>expected single matching bean but found 2</em>. Mark yours <code>@Primary</code>, or import the pieces you want and declare the rest yourself.
+      </DocsCallout>
 
       <table>
         <thead>
@@ -417,7 +430,7 @@ JfrGrpcServerInterceptor jfrGrpcServerInterceptor() {
           <tr>
             <td>Every mapper call recorded twice</td>
             <td>The MyBatis interceptor and the <code>DataSource</code> wrapper are both active</td>
-            <td>On the starter this cannot happen; wiring by hand, <code>jeffrey.tracing.jdbc-enabled=false</code></td>
+            <td>On the starter this cannot happen; importing by hand, drop <code>JeffreyJdbcTracingConfiguration</code></td>
           </tr>
           <tr>
             <td>Statements named from SQL, not by mapper method</td>

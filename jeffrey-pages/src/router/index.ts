@@ -105,6 +105,7 @@ const routes: RouteRecordRaw[] = [
       // the Deployment section; /docs/hub/overview was superseded by /docs/hub.
       { path: 'server/installation', redirect: '/docs/hub/deployment' },
       { path: 'server/overview', redirect: '/docs/hub' },
+      { path: 'hub/overview', redirect: '/docs/hub' },
       { path: 'server/quick-start', redirect: '/docs/hub/deployment' },
       // Deployment — worked example based on the jeffrey-testapp repo.
       {

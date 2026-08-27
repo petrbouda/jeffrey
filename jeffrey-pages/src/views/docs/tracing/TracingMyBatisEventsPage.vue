@@ -44,11 +44,12 @@ const mybatisRegistration = `// Programmatic MyBatis: the interceptor goes on th
 Configuration configuration = new Configuration(environment);
 configuration.addInterceptor(new JeffreyMyBatisInterceptor());
 
-// mybatis-spring: every Interceptor is added to the SqlSessionFactory it builds
+// mybatis-spring, building the factory yourself
 factoryBean.setPlugins(new JeffreyMyBatisInterceptor());
 
-// Register it through exactly ONE of these:
-// registered twice, it records every statement twice.`;
+// Register it through exactly ONE mechanism — these two, the XML form below,
+// or (on Spring) an Interceptor bean, which mybatis-spring adds to the
+// SqlSessionFactory it builds. Registered twice, it records every statement twice.`;
 
 const mybatisXmlRegistration = `<plugins>
     <plugin interceptor="cafe.jeffrey.jfr.events.mybatis.JeffreyMyBatisInterceptor">
@@ -93,11 +94,11 @@ const mybatisOutput = `jeffrey.JdbcQuery {
 
       <h2 id="events">What It Records</h2>
 
-      <p>The same statement events as any other JDBC instrumentation — <code>jeffrey.JdbcQuery</code>, <code>jeffrey.JdbcInsert</code>, <code>jeffrey.JdbcUpdate</code>, <code>jeffrey.JdbcDelete</code>, split by verb and each a <strong>leaf span</strong> nested under whatever span was in progress. See <router-link to="/docs/tracing/jdbc-events">JDBC Events</router-link> for the full event table and their fields; what changes here is the <code>name</code>, the <code>group</code> and the presence of <code>params</code>:</p>
+      <p>The same statement events as any other JDBC instrumentation — <code>jeffrey.JdbcQuery</code>, <code>jeffrey.JdbcInsert</code>, <code>jeffrey.JdbcUpdate</code>, <code>jeffrey.JdbcDelete</code>, and <code>jeffrey.JdbcExecute</code> for anything whose <code>SqlCommandType</code> is neither — each a <strong>leaf span</strong> nested under whatever span was in progress. See <router-link to="/docs/tracing/jdbc-events">JDBC Events</router-link> for the full event table and their fields; what changes here is the <code>name</code>, the <code>group</code> and the presence of <code>params</code>:</p>
 
       <DocsCodeBlock :code="mybatisOutput" language="text" />
 
-      <p>The <code>Executor</code> is the interception point rather than <code>StatementHandler</code>, so cached and batched execution are covered too.</p>
+      <p>The <code>Executor</code> is the interception point rather than <code>StatementHandler</code>, so cached and batched execution are covered too. Under <code>ExecutorType.BATCH</code>, read the result with that in mind: <code>flushStatements</code> is not intercepted, so a span times the <em>enqueue</em> rather than the flush, and <code>rows</code> carries MyBatis' batch sentinel instead of a count.</p>
 
       <h2 id="registration">Registering the Interceptor</h2>
 

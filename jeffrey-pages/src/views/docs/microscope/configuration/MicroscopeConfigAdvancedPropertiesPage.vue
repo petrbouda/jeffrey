@@ -104,16 +104,6 @@ onMounted(() => {
             <td><code>true</code></td>
             <td>Run the data initializer when a profile is created.</td>
           </tr>
-          <tr>
-            <td><code>jeffrey.microscope.profile.data-initializer.blocking</code></td>
-            <td><code>true</code></td>
-            <td>Block the request until initialization completes (vs. async).</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.profile.data-initializer.concurrent</code></td>
-            <td><code>true</code></td>
-            <td>Allow per-table initializers to run in parallel.</td>
-          </tr>
         </tbody>
       </table>
 
@@ -133,14 +123,14 @@ onMounted(() => {
             <td><code>jeffrey.microscope.visualization.flamegraph.min-frame-threshold-pct</code></td>
             <td><code>0.05</code></td>
             <td>
-              Minimum frame width (as a fraction of the parent) below which frames are collapsed in
+              Minimum frame width (as a percentage of the root total) below which frames are collapsed in
               the flamegraph. Lower values show more detail at the cost of rendering performance.
             </td>
           </tr>
           <tr>
             <td><code>jeffrey.microscope.visualization.flamegraph.frame-text-mode</code></td>
             <td><code>single-line</code></td>
-            <td>How frame labels are laid out within frames. Currently <code>single-line</code>.</td>
+            <td>How frame labels are laid out within frames: <code>single-line</code> or <code>two-line</code>. Also selectable in Settings.</td>
           </tr>
         </tbody>
       </table>
@@ -167,21 +157,17 @@ onMounted(() => {
 
       <h2 id="guardian">Guardian Thresholds</h2>
       <p>
-        The Guardian engine ships ~60 tunable thresholds under
-        <code>jeffrey.microscope.guardian.*</code> — minimum sample counts per group, INFO/WARNING
-        severity bands per check (logging frameworks, allocations, blocking, GC, JIT, safepoints,
-        virtual-thread pinning, …). Defaults are tuned empirically; only override them when a specific
-        check is too noisy or too quiet for your workload.
-      </p>
-      <p>
-        See <code>GuardianProperties.java</code> in the <code>profile-guardian</code> module for the
-        full list of keys, defaults, and what each threshold controls.
+        Not application properties. The built-in guards — 73 of them, each with its own INFO and
+        WARNING threshold — are rows in the Microscope core database, seeded on first start and
+        edited from <strong>Guardians</strong> in the UI, where you can also disable a guard or add
+        your own. Changes take effect without a restart, and there is no
+        <code>jeffrey.microscope.guardian.*</code> key to set.
       </p>
 
       <h2 id="seed-recordings">Seed Recordings</h2>
       <p>
         Pre-loads a directory of JFR recordings into the Microscope on first start —
-        used by the example <code>tour-with-examples</code> container image.
+        used by the example <code>petrbouda/microscope-examples</code> container image.
       </p>
 
       <table>

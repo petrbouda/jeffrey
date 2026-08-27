@@ -84,7 +84,7 @@ const outputExample = `jeffrey.GrpcServerExchange {
   parentSpanId = 0
   name = "jeffrey.api.v1.WorkspaceService/List"   // "{service}/{method}", from @Span
   kind = "SERVER"
-  status = "UNSET"
+  status = "OK"                                   // derived from statusCode in describeSpan()
   service = "jeffrey.api.v1.WorkspaceService"
   method = "List"
   statusCode = "OK"
@@ -191,8 +191,13 @@ const clientSpans = [
           </tr>
           <tr>
             <td><code>authority</code></td>
-            <td>—</td>
+            <td><code>ServerCall.getAuthority()</code></td>
             <td>the channel's target authority</td>
+          </tr>
+          <tr>
+            <td><code>remoteHost</code> / <code>remotePort</code></td>
+            <td>the peer address, when the transport exposes one</td>
+            <td>—</td>
           </tr>
           <tr>
             <td><code>statusCode</code></td>

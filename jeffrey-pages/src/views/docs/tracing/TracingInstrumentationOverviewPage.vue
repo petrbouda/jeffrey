@@ -370,7 +370,7 @@ const composedSpans = [
         </thead>
         <tbody>
           <tr>
-            <td><code>JeffreyJfrHttpEventFilter</code></td>
+            <td><code>HttpExchangeFilter</code></td>
             <td><code>inSpanOf</code></td>
             <td>Each HTTP request; the <code>HttpServerExchangeEvent</code> is the trace root</td>
           </tr>

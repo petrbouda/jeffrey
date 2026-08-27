@@ -142,24 +142,19 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>logging.level.cafe.jeffrey.platform</code></td>
-            <td><code>DEBUG</code></td>
-            <td>Log level for Jeffrey platform classes</td>
+            <td><code>logging.level.cafe.jeffrey</code></td>
+            <td><code>INFO</code></td>
+            <td>Log level for Jeffrey classes</td>
           </tr>
           <tr>
-            <td><code>jeffrey.logging.http-access.enabled</code></td>
+            <td><code>jeffrey.hub.logging.jfr-events.application.enabled</code></td>
             <td><code>false</code></td>
-            <td>Enable HTTP access logging</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.logging.jfr-events.application.enabled</code></td>
-            <td><code>true</code></td>
             <td>Enable internal JFR event logging for HTTP and JDBC latency</td>
           </tr>
           <tr>
-            <td><code>jeffrey.logging.jfr-events.application.threshold</code></td>
-            <td><code>1s</code></td>
-            <td>Only log events taking longer than this threshold</td>
+            <td><code>jeffrey.hub.logging.jfr-events.application.threshold</code></td>
+            <td><em>none</em></td>
+            <td>Only log events taking longer than this; unset means no threshold, so everything is logged</td>
           </tr>
         </tbody>
       </table>
@@ -339,24 +334,13 @@ onMounted(() => {
       </table>
 
       <h2 id="storage">Project/Recording Storage</h2>
-      <p>File system storage locations for recordings and repository data.</p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Default</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>jeffrey.project.recording-storage.path</code></td>
-            <td><code>${jeffrey.hub.home.dir}/recordings</code></td>
-            <td>Directory for storing JFR recordings</td>
-          </tr>
-        </tbody>
-      </table>
+      <p>
+        There is no property for this. Recordings are not copied into a directory of the Hub's own:
+        they stay where the provisioner and the application wrote them, under the workspace tree on
+        the shared volume — <code>&lt;workspaces&gt;/&lt;workspace-ref-id&gt;/&lt;project&gt;/&lt;instance&gt;/&lt;session&gt;/</code>.
+        The Hub catalogs, compresses and serves those files in place; see
+        <router-link to="/docs/tracing/provisioner-hub">Provisioner &amp; Hub</router-link> for the layout.
+      </p>
 
       <h2 id="workspace-discovery">Workspace Discovery</h2>
       <p>
@@ -389,26 +373,16 @@ onMounted(() => {
 
       <h2 id="live-workspace">Server Collection Mode</h2>
       <p>
-        Settings for Jeffrey Hub collection mode. Jeffrey Hub is designed for recording
-        collection and does not perform profile analysis.
+        Jeffrey Hub is designed for recording collection and does not perform profile analysis —
+        every flamegraph, trace and Guardian check is computed in Jeffrey Microscope.
       </p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Default</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>jeffrey.project.live.collector-only-mode-enabled</code></td>
-            <td><code>true</code></td>
-            <td>Controls UI visibility of analysis features. When enabled, Profiles and Recordings navigation are hidden, and Merge/Download actions are disabled. Use Remote workspaces in Jeffrey Microscope for analysis.</td>
-          </tr>
-        </tbody>
-      </table>
+      <p>
+        There is no server property for this. <strong>Collector-only mode</strong> is a per-project
+        toggle in Microscope's own UI, remembered in the browser: with it on, the Profiles and
+        Recordings navigation is hidden and the Merge/Download actions are disabled, so a project
+        that exists purely to collect does not offer analysis entry points. It affects only the
+        browser it was set in.
+      </p>
 
       <h2 id="profiler">Profiler Agent Settings</h2>
       <p>Global settings for the Jeffrey profiler agent.</p>
@@ -423,12 +397,12 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.profiler.global-settings.create-if-not-exists</code></td>
+            <td><code>jeffrey.hub.profiler.global-settings.create-if-not-exists</code></td>
             <td><code>true</code></td>
             <td>Automatically create global profiler settings</td>
           </tr>
           <tr>
-            <td><code>jeffrey.profiler.global-settings.command</code></td>
+            <td><code>jeffrey.hub.profiler.global-settings.command</code></td>
             <td><em>(see below)</em></td>
             <td>Default profiler agent command with placeholders</td>
           </tr>
@@ -453,19 +427,9 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.persistence.database.url</code></td>
+            <td><code>jeffrey.hub.persistence.database.url</code></td>
             <td><code>jdbc:duckdb:${jeffrey.hub.home.dir}/jeffrey-data.db</code></td>
             <td>DuckDB database connection URL</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.persistence.database.pool-size</code></td>
-            <td><code>25</code></td>
-            <td>Database connection pool size</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.persistence.database.batch-size</code></td>
-            <td><code>10000</code></td>
-            <td>Batch size for bulk database operations</td>
           </tr>
         </tbody>
       </table>
@@ -483,22 +447,22 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr>
-            <td><code>jeffrey.copy-libs.enabled</code></td>
+            <td><code>jeffrey.hub.copy-libs.enabled</code></td>
             <td><code>false</code></td>
             <td>Enable copying libraries from container image</td>
           </tr>
           <tr>
-            <td><code>jeffrey.copy-libs.source</code></td>
+            <td><code>jeffrey.hub.copy-libs.source</code></td>
             <td><code>/jeffrey-libs</code></td>
             <td>Source path for libraries (inside container)</td>
           </tr>
           <tr>
-            <td><code>jeffrey.copy-libs.target</code></td>
-            <td><code>${jeffrey.home.dir}/libs</code></td>
+            <td><code>jeffrey.hub.copy-libs.target</code></td>
+            <td><code>${jeffrey.hub.home.dir}/libs</code></td>
             <td>Target path for copied libraries</td>
           </tr>
           <tr>
-            <td><code>jeffrey.copy-libs.max-kept-versions</code></td>
+            <td><code>jeffrey.hub.copy-libs.max-kept-versions</code></td>
             <td><code>10</code></td>
             <td>Maximum number of versioned library directories to keep</td>
           </tr>

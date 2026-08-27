@@ -31,7 +31,8 @@ const headings = [
   { id: 'uploads', text: 'File Uploads', level: 2 },
   { id: 'core-directories', text: 'Core Directories', level: 2 },
   { id: 'update-check', text: 'Update Check', level: 2 },
-  { id: 'ai-assistant', text: 'AI Assistant', level: 2 }
+  { id: 'ai-assistant', text: 'AI Assistant', level: 2 },
+  { id: 'advisor', text: 'Advisor', level: 2 }
 ];
 
 onMounted(() => {
