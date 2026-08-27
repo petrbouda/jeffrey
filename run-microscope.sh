@@ -18,6 +18,16 @@
 # Override the set with TRACE="pkg.Class.method[:threshold] ..." (space/comma separated), or set
 # TRACE=off to disable method tracing.
 #
+# Trace context: the spans above say when something happened, but the Trace modal's "I/O ops" and
+# "Blocking ops" overlays hang off the JDK events falling *inside* a span — and profile.jfc records
+# those far too coarsely to be useful (socket/file I/O at a 1ms threshold behind a 300/s throttle,
+# locking at 10ms). So this script mirrors what jeffrey-provisioner does: it starts a second,
+# settings-only JFR recording whose event settings out-vote the profiler's, because JFR resolves each
+# setting to the most verbose value across all active recordings. I/O drops to 0ms with the throttle
+# lifted; blocking drops to 1ms (deliberately not 0 — idle thread-pool churn would bury the real
+# waits). Values mirror TracingJfrEvents.DEFAULT_EVENTS in jeffrey-provisioner. Set TRACING=off to
+# leave the stock thresholds alone.
+#
 # perf_events CPU sampling needs relaxed kernel limits, so for event=cpu this script automatically sets:
 #     kernel.perf_event_paranoid = 1
 #     kernel.kptr_restrict       = 0
@@ -282,6 +292,69 @@ done
 
 AGENT_OPTS="${AGENT_OPTS_BASE},jfrsync=${VT_JFC}${TRACE_OPTS}"
 
+# ---------------------------------------------------------------------------------------------
+# Trace context: I/O and blocking events, at the thresholds the provisioner uses.
+#
+# The spans themselves (jeffrey.TraceSpan / jeffrey.HttpServerExchange) are custom events with no
+# @Threshold, so they are always recorded. What the Trace modal's "I/O ops" and "Blocking ops"
+# overlays hang off is the *JDK* events that fall inside a span, and profile.jfc records those far
+# too coarsely: socket/file I/O at a 1ms threshold and a 300/s throttle, locking at 10ms.
+#
+# jeffrey-provisioner solves this without touching the .jfc at all — it starts a second,
+# settings-only recording (no filename=, so it writes nothing itself) whose event settings out-vote
+# the profiler's, because JFR resolves every setting to the most verbose value across all active
+# recordings. Same trick here, so a local self-profiled run produces the same trace context a
+# provisioned JVM does.
+#
+# The values below mirror TracingJfrEvents.DEFAULT_EVENTS — that file is the authority:
+#   jeffrey-provisioner/src/main/java/cafe/jeffrey/provisioner/feature/TracingJfrEvents.java
+# Set TRACING=off to leave the JFR thresholds alone (mirrors the provisioner's tracing.enabled).
+# Note this is *not* the TRACE variable above: that one drives async-profiler method tracing.
+# ---------------------------------------------------------------------------------------------
+
+# I/O — recorded in full. A call a span waits on is worth an event however short it was.
+TRACING_IO_EVENTS=(jdk.SocketRead jdk.SocketWrite jdk.FileRead jdk.FileWrite)
+# I/O too, but carrying no throttle setting to lift: naming one costs a JFR warning at startup.
+TRACING_IO_UNTHROTTLED_EVENTS=(jdk.FileForce jdk.ZAllocationStall)
+# Blocking — from 1ms up, not 0: a parked thread is also how an idle pool spends its life, and at
+# 0ms that churn would outweigh the waits actually worth reading.
+TRACING_BLOCKING_EVENTS=(
+    jdk.JavaMonitorEnter
+    jdk.JavaMonitorWait
+    jdk.ThreadPark
+    jdk.ThreadSleep
+    jdk.VirtualThreadPinned
+)
+TRACING_IO_THRESHOLD="0ms"
+TRACING_BLOCKING_THRESHOLD="1ms"
+# A rate no real emission reaches, spelled as a number because 'off' cannot win: JFR combines
+# throttle across recordings to the highest *parseable* rate, and 'off' parses as no rate at all —
+# next to profile.jfc's 300/s it would lose. A large number out-votes it, as 0ms does for thresholds.
+TRACING_THROTTLE_LIFTED="1000000/s"
+
+# enabled=true is emitted alongside every threshold: a threshold on its own is ignored for an event
+# that the profiler's own configuration had switched off.
+tracing_settings() {
+    local settings=""
+    local event
+    for event in "${TRACING_IO_EVENTS[@]}"; do
+        settings+=",${event}#enabled=true,${event}#threshold=${TRACING_IO_THRESHOLD}"
+        settings+=",${event}#throttle=${TRACING_THROTTLE_LIFTED}"
+    done
+    for event in "${TRACING_IO_UNTHROTTLED_EVENTS[@]}"; do
+        settings+=",${event}#enabled=true,${event}#threshold=${TRACING_IO_THRESHOLD}"
+    done
+    for event in "${TRACING_BLOCKING_EVENTS[@]}"; do
+        settings+=",${event}#enabled=true,${event}#threshold=${TRACING_BLOCKING_THRESHOLD}"
+    done
+    echo "${settings#,}"
+}
+
+TRACING_OPTS=""
+if [[ "${TRACING:-}" != "off" ]]; then
+    TRACING_OPTS="-XX:StartFlightRecording:name=jeffrey-tracing-thresholds,maxage=30m,$(tracing_settings)"
+fi
+
 fi # NO_PROFILER
 
 # --clean: wipe the data dir for a fresh-data run. Guard against a misresolved/empty path so a bad
@@ -317,6 +390,16 @@ if [[ "${#TRACE_METHODS[@]}" -gt 0 ]]; then
 else
     echo "  trace : disabled (TRACE=off)"
 fi
+if [[ -n "${TRACING_OPTS}" ]]; then
+    echo "  spans : I/O @ ${TRACING_IO_THRESHOLD} (throttle lifted), blocking @ ${TRACING_BLOCKING_THRESHOLD}" \
+         "-> trace context (as jeffrey-provisioner)"
+    echo "            - I/O       : ${TRACING_IO_EVENTS[*]} ${TRACING_IO_UNTHROTTLED_EVENTS[*]}"
+    echo "            - blocking  : ${TRACING_BLOCKING_EVENTS[*]}"
+else
+    echo "  spans : trace-context thresholds left at profile.jfc defaults (TRACING=off)"
+fi
 echo
 
-exec "${JAVA_BIN}" "-agentpath:${ASPROF}=${AGENT_OPTS}" --add-modules jdk.incubator.vector -XX:NativeMemoryTracking=summary -jar "${JAR}" "$@"
+exec "${JAVA_BIN}" "-agentpath:${ASPROF}=${AGENT_OPTS}" \
+    ${TRACING_OPTS:+"${TRACING_OPTS}"} \
+    --add-modules jdk.incubator.vector -XX:NativeMemoryTracking=summary -jar "${JAR}" "$@"
