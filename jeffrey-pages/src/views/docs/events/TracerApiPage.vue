@@ -568,17 +568,31 @@ public Receipt checkout(String orderId, Card card) { ... }</code></pre>
           <tr>
             <td><code>includeMethodArgs</code></td>
             <td>none</td>
-            <td>Which parameters to record, by name. Naming one is itself the request to capture it</td>
-          </tr>
-          <tr>
-            <td><code>captureMethodArgs</code></td>
-            <td><code>false</code></td>
-            <td>Records every argument. Prefer <code>includeMethodArgs</code>, which is a list of what may be recorded rather than of what may not</td>
+            <td>Which parameters to record, by name — a list of what may be recorded rather than of what may not. <code>{"*"}</code> records every parameter; it is not a legal Java identifier, so it can never collide with one</td>
           </tr>
         </tbody>
       </table>
 
       <p>Captured values are truncated, and parameter names come from javac's <code>-parameters</code> flag — without it they are <code>arg0</code>, <code>arg1</code>, and so on. The annotation needs Java 25 and the agent attached at startup; without either it is inert and the method runs exactly as written. See the <router-link to="/docs/agent/overview">Jeffrey Agent</router-link> for the rest.</p>
+
+      <h3>What may be captured</h3>
+
+      <p>Naming a parameter is a request, not a guarantee. Only values whose textual form is part of what the type <em>is</em> are recorded, rather than something written for a debugger:</p>
+
+      <ul>
+        <li>primitives and their boxes, <code>char</code>/<code>Character</code> included</li>
+        <li><code>CharSequence</code> — <code>String</code>, <code>StringBuilder</code> and anything else textual</li>
+        <li>every <code>enum</code> constant, bodied constants included</li>
+        <li><code>UUID</code></li>
+        <li><code>BigDecimal</code> and <code>BigInteger</code></li>
+        <li>the <code>java.time</code> value types — <code>Instant</code>, <code>LocalDate</code>, <code>LocalTime</code>, <code>LocalDateTime</code>, <code>OffsetTime</code>, <code>OffsetDateTime</code>, <code>ZonedDateTime</code>, <code>Duration</code>, <code>Period</code>, <code>Year</code>, <code>YearMonth</code>, <code>MonthDay</code>, <code>ZoneOffset</code></li>
+      </ul>
+
+      <p>Note that this is deliberately not "primitives and Strings". An amount, an id, a timestamp and an enum are exactly what belongs on a span, and each is an object whose textual form is stable, intentional and cheap. What is excluded is the arbitrary domain object — the <code>card</code> above — not the non-primitive.</p>
+
+      <p>The reason is that a captured argument goes through <code>String.valueOf</code> into a recording, and for a domain object that is the wrong thing to do three times over. It <strong>leaks</strong>: a record's generated <code>toString()</code>, or Lombok's <code>@ToString</code>, prints every component, so <code>Card[number=4111111111111111, cvv=123]</code> lands in a file that gets uploaded, shared and kept — and truncating does not help, since the first 256 characters of a card are still the card. It is <strong>unreadable</strong>: a type without <code>toString()</code> renders as <code>com.acme.Card@1b6d3586</code>, an identity hash unique per call, which is the worst possible key for a dashboard that groups spans by attribute value. And it <strong>can cost more than the method</strong>: <code>toString()</code> on a lazily loaded entity or a proxy can trigger a fetch or walk an unbounded object graph, on the hot path of the very call being measured.</p>
+
+      <p>How a refusal shows depends on when it can be known. A parameter whose declared type could never be capturable — <code>checkout(Card card)</code> — is dropped when the method's metadata is first read, with a warning naming it, so it costs nothing per call and is said out loud once. A declaration that settles nothing — <code>put(Object key)</code>, an interface, an erased type variable — is kept, and a value that turns out to be uncapturable is recorded as <code>&lt;unsupported&gt;</code>, so a named parameter never simply goes missing. Under <code>{"*"}</code> an uncapturable parameter is passed over silently: a sweep is not a request for any particular one.</p>
 
       <h2 id="composed-tree">A Complete Tree</h2>
 
