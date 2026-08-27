@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.profile.parser;
 
+import jdk.jfr.consumer.RecordedClass;
 import jdk.jfr.consumer.RecordedEvent;
 import cafe.jeffrey.shared.common.BytesUtils;
 import cafe.jeffrey.shared.common.DurationUtils;
@@ -53,7 +54,7 @@ public record WeightExtractor(
         return new WeightExtractor(
                 e -> e.getDuration().toNanos(),
                 DurationUtils::formatNanos,
-                e -> e.getClass(entityClassField).getName());
+                classNameOf(entityClassField));
     }
 
     public static WeightExtractor duration(Function<RecordedEvent, String> entityExtractor) {
@@ -78,7 +79,7 @@ public record WeightExtractor(
         return new WeightExtractor(
                 e -> e.getLong(fieldName),
                 BytesUtils::format,
-                e -> e.getClass(entityClassField).getName());
+                classNameOf(entityClassField));
     }
 
     public static WeightExtractor allocation(String fieldName, Function<RecordedEvent, String> entityExtractor) {
@@ -90,5 +91,21 @@ public record WeightExtractor(
 
     public static WeightExtractor allocationEntityOnly(Function<RecordedEvent, String> entityExtractor) {
         return new WeightExtractor(null, null, entityExtractor);
+    }
+
+    /**
+     * Reads the name of a class-typed field. The field is declared on the event type but is not always
+     * populated — {@code jdk.ThreadPark} carries no {@code parkedClass} when the code parks without a
+     * blocker, and {@code jdk.JavaMonitorWait} can omit {@code monitorClass} — so an absent class means
+     * the event has no weight entity rather than a broken recording.
+     */
+    private static Function<RecordedEvent, String> classNameOf(String entityClassField) {
+        return event -> {
+            RecordedClass entityClass = event.getClass(entityClassField);
+            if (entityClass == null) {
+                return null;
+            }
+            return entityClass.getName();
+        };
     }
 }
