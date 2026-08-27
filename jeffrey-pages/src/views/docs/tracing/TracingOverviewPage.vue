@@ -172,7 +172,7 @@ const pipeline = `┌───────────────────�
         </tbody>
       </table>
 
-      <p>On top of the instrumented events, the analysis correlates the JDK's own recordings into every trace: <code>jdk.SocketRead</code>/<code>Write</code>, <code>jdk.FileRead</code>/<code>Write</code>, lock waits, parking and sleeping become <router-link to="/docs/tracing/jdk-events">synthesized leaf spans</router-link>; <code>jdk.JavaExceptionThrow</code> becomes the <router-link to="/docs/tracing/notifications-exceptions">exception rail</router-link>; GC pauses and safepoints become <router-link to="/docs/tracing/gc-safepoints">stop-the-world lanes</router-link>. None of that needs instrumentation — it applies retroactively to any recording.</p>
+      <p>On top of the instrumented events, the analysis correlates the JDK's own recordings into every trace: <code>jdk.SocketRead</code>/<code>Write</code>, <code>jdk.FileRead</code>/<code>Write</code>/<code>Force</code>, lock waits, parking, sleeping, allocation stalls and virtual-thread pinning become <router-link to="/docs/tracing/jdk-events">synthesized leaf spans</router-link>; <code>jdk.JavaExceptionThrow</code> becomes the <router-link to="/docs/tracing/notifications-exceptions">exception rail</router-link>; GC pauses and safepoints become <router-link to="/docs/tracing/gc-safepoints">stop-the-world lanes</router-link>. None of that needs instrumentation — it applies retroactively to any recording.</p>
 
       <h2 id="not-distributed">What It Is Not</h2>
 
