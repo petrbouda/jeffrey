@@ -25,7 +25,7 @@ export interface BreadcrumbItem {
   to?: string
 }
 
-export type Product = 'microscope' | 'hub' | 'provisioner' | 'jib' | 'intellij-plugin';
+export type Product = 'microscope' | 'hub' | 'provisioner' | 'jib' | 'intellij-plugin' | 'tracing';
 
 export interface ProductInfo {
   id: Product;
@@ -64,6 +64,12 @@ export const PRODUCTS: Record<Product, ProductInfo> = {
     title: 'IntelliJ Plugin',
     icon: 'bi-window-stack',
     hubPath: '/docs/intellij-plugin'
+  },
+  tracing: {
+    id: 'tracing',
+    title: 'Jeffrey Tracing',
+    icon: 'bi-bezier2',
+    hubPath: '/docs/tracing'
   }
 };
 
@@ -81,6 +87,9 @@ const PROVISIONER_SEGMENTS = new Set(['provisioner', 'cli']);
 const JIB_SEGMENTS = new Set(['jib']);
 // The IntelliJ Plugin is its own product (previously a group under Microscope).
 const INTELLIJ_PLUGIN_SEGMENTS = new Set(['intellij-plugin']);
+// Jeffrey Tracing is its own product (previously spread across Microscope's
+// events/profiles pages).
+const TRACING_SEGMENTS = new Set(['tracing']);
 
 export const microscopeNavigation: DocSection[] = [
   // Top-level single-page entries — promoted out of the "Jeffrey Microscope" group
@@ -160,9 +169,16 @@ export const microscopeNavigation: DocSection[] = [
     path: 'events',
     icon: 'bi-activity',
     children: [
-      { title: 'Overview', path: 'overview' },
-      { title: 'Tracer API', path: 'tracer' }
+      { title: 'Overview', path: 'overview' }
     ]
+  },
+  {
+    // Jeffrey Tracing has its own top-level documentation section; Microscope keeps just a link.
+    title: 'Jeffrey Tracing',
+    path: '_microscope-tracing-link',
+    icon: 'bi-bezier2',
+    crossLink: true,
+    children: [{ title: 'Jeffrey Tracing docs', to: '/docs/tracing' }]
   },
   {
     title: 'AI Analysis',
@@ -349,8 +365,74 @@ export const intellijPluginNavigation: DocSection[] = [
   }
 ];
 
+export const tracingNavigation: DocSection[] = [
+  // Standalone product section for Jeffrey Tracing. Single-page entries use synthetic
+  // `_` paths with absolute `to:` children; multi-page groups render as collapsible sections.
+  {
+    title: 'Overview',
+    path: '_tracing-overview',
+    icon: 'bi-info-circle',
+    children: [{ title: 'Overview', to: '/docs/tracing' }]
+  },
+  {
+    title: 'Getting Started',
+    path: '_tracing-getting-started',
+    icon: 'bi-rocket-takeoff',
+    children: [{ title: 'Getting Started', to: '/docs/tracing/getting-started' }]
+  },
+  {
+    title: 'Core Concepts',
+    path: '_tracing-concepts',
+    icon: 'bi-box',
+    children: [{ title: 'Core Concepts', to: '/docs/tracing/concepts' }]
+  },
+  {
+    title: 'Instrumentation',
+    path: '_tracing-instrumentation',
+    icon: 'bi-code-square',
+    children: [
+      { title: 'Tracer API', to: '/docs/tracing/tracer-api' },
+      { title: '@Traced & the Agent', to: '/docs/tracing/traced-annotation' },
+      { title: 'HTTP Events', to: '/docs/tracing/http-events' },
+      { title: 'gRPC Events', to: '/docs/tracing/grpc-events' },
+      { title: 'JDBC Events', to: '/docs/tracing/jdbc-events' },
+      { title: 'Custom Traced Events', to: '/docs/tracing/custom-events' },
+      { title: 'Notifications & Exceptions', to: '/docs/tracing/notifications-exceptions' }
+    ]
+  },
+  {
+    title: 'JVM Correlation',
+    path: '_tracing-jvm-correlation',
+    icon: 'bi-cpu',
+    children: [
+      { title: 'JDK Events in Traces', to: '/docs/tracing/jdk-events' },
+      { title: 'GC Pauses & Safepoints', to: '/docs/tracing/gc-safepoints' }
+    ]
+  },
+  {
+    title: 'Analyzing Traces',
+    path: '_tracing-analysis',
+    icon: 'bi-bar-chart',
+    children: [{ title: 'Analyzing Traces', to: '/docs/tracing/analysis' }]
+  },
+  {
+    title: 'Configuration & Testing',
+    path: '_tracing-configuration',
+    icon: 'bi-gear',
+    children: [{ title: 'Configuration & Testing', to: '/docs/tracing/configuration' }]
+  },
+  {
+    // Cross-link into the Microscope events catalog that documents every jeffrey.* event.
+    title: 'Jeffrey Events',
+    path: '_tracing-events-link',
+    icon: 'bi-activity',
+    crossLink: true,
+    children: [{ title: 'Event catalog', to: '/docs/events/overview' }]
+  }
+];
+
 // Union — used by global helpers like getAllDocs/search and as a back-compat export.
-export const docsNavigation: DocSection[] = [...microscopeNavigation, ...hubNavigation, ...provisionerNavigation, ...jibNavigation, ...intellijPluginNavigation];
+export const docsNavigation: DocSection[] = [...microscopeNavigation, ...hubNavigation, ...provisionerNavigation, ...jibNavigation, ...intellijPluginNavigation, ...tracingNavigation];
 
 export function getProductForPath(routePath: string): Product | null {
   const cleaned = routePath.replace(/^\/docs\/?/, '');
@@ -361,6 +443,7 @@ export function getProductForPath(routePath: string): Product | null {
   if (PROVISIONER_SEGMENTS.has(first)) return 'provisioner';
   if (JIB_SEGMENTS.has(first)) return 'jib';
   if (INTELLIJ_PLUGIN_SEGMENTS.has(first)) return 'intellij-plugin';
+  if (TRACING_SEGMENTS.has(first)) return 'tracing';
   return null;
 }
 
@@ -376,6 +459,9 @@ export function navigationForProduct(product: Product): DocSection[] {
   }
   if (product === 'intellij-plugin') {
     return intellijPluginNavigation;
+  }
+  if (product === 'tracing') {
+    return tracingNavigation;
   }
   return microscopeNavigation;
 }

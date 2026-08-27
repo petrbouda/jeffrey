@@ -317,16 +317,9 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsProfilesLeakCandidates',
         component: () => import('@/views/docs/microscope/profiles/ProfileLeakCandidatesPage.vue')
       },
-      {
-        path: 'microscope/profiles/traces',
-        name: 'DocsProfilesTraces',
-        component: () => import('@/views/docs/microscope/profiles/ProfileTracesPage.vue')
-      },
-      {
-        path: 'microscope/profiles/traces/api',
-        name: 'DocsProfilesTracesApi',
-        component: () => import('@/views/docs/microscope/profiles/TracerApiPage.vue')
-      },
+      // Traces moved to the standalone Jeffrey Tracing product at /docs/tracing.
+      { path: 'microscope/profiles/traces', redirect: '/docs/tracing/analysis' },
+      { path: 'microscope/profiles/traces/api', redirect: '/docs/tracing/tracer-api' },
       // Workspaces & Event Log
       {
         path: 'microscope/workspaces',
@@ -492,11 +485,82 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsJeffreyEvents',
         component: () => import('@/views/docs/events/JeffreyJfrEventsPage.vue')
       },
+      // The Tracer API reference moved to the standalone Jeffrey Tracing product.
+      { path: 'events/tracer', redirect: '/docs/tracing/tracer-api' },
+
+      // ──── Jeffrey Tracing (standalone product) ────
       {
-        path: 'events/tracer',
-        name: 'DocsTracerApi',
-        component: () => import('@/views/docs/events/TracerApiPage.vue')
+        path: 'tracing',
+        name: 'DocsTracing',
+        component: () => import('@/views/docs/tracing/TracingOverviewPage.vue')
       },
+      {
+        path: 'tracing/getting-started',
+        name: 'DocsTracingGettingStarted',
+        component: () => import('@/views/docs/tracing/TracingGettingStartedPage.vue')
+      },
+      {
+        path: 'tracing/concepts',
+        name: 'DocsTracingConcepts',
+        component: () => import('@/views/docs/tracing/TracingConceptsPage.vue')
+      },
+      {
+        path: 'tracing/tracer-api',
+        name: 'DocsTracingTracerApi',
+        component: () => import('@/views/docs/tracing/TracingTracerApiPage.vue')
+      },
+      {
+        path: 'tracing/traced-annotation',
+        name: 'DocsTracingTracedAnnotation',
+        component: () => import('@/views/docs/tracing/TracingTracedAnnotationPage.vue')
+      },
+      {
+        path: 'tracing/http-events',
+        name: 'DocsTracingHttpEvents',
+        component: () => import('@/views/docs/tracing/TracingHttpEventsPage.vue')
+      },
+      {
+        path: 'tracing/grpc-events',
+        name: 'DocsTracingGrpcEvents',
+        component: () => import('@/views/docs/tracing/TracingGrpcEventsPage.vue')
+      },
+      {
+        path: 'tracing/jdbc-events',
+        name: 'DocsTracingJdbcEvents',
+        component: () => import('@/views/docs/tracing/TracingJdbcEventsPage.vue')
+      },
+      {
+        path: 'tracing/custom-events',
+        name: 'DocsTracingCustomEvents',
+        component: () => import('@/views/docs/tracing/TracingCustomEventsPage.vue')
+      },
+      {
+        path: 'tracing/notifications-exceptions',
+        name: 'DocsTracingNotificationsExceptions',
+        component: () => import('@/views/docs/tracing/TracingNotificationsExceptionsPage.vue')
+      },
+      {
+        path: 'tracing/jdk-events',
+        name: 'DocsTracingJdkEvents',
+        component: () => import('@/views/docs/tracing/TracingJdkEventsPage.vue')
+      },
+      {
+        path: 'tracing/gc-safepoints',
+        name: 'DocsTracingGcSafepoints',
+        component: () => import('@/views/docs/tracing/TracingGcSafepointsPage.vue')
+      },
+      {
+        path: 'tracing/analysis',
+        name: 'DocsTracingAnalysis',
+        component: () => import('@/views/docs/tracing/TracingAnalysisPage.vue')
+      },
+      {
+        path: 'tracing/configuration',
+        name: 'DocsTracingConfiguration',
+        component: () => import('@/views/docs/tracing/TracingConfigurationPage.vue')
+      },
+      // Back-compat redirect: the promoted overview path.
+      { path: 'tracing/overview', redirect: '/docs/tracing' },
 
       // ──── Jeffrey JIB (standalone product) ────
       {

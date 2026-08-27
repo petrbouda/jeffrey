@@ -282,7 +282,7 @@ const folderStructure = `$JEFFREY_HOME/
       </div>
 
       <p class="docs-read-more">
-        <router-link to="/docs/microscope/profiles/traces">Read the Traces &amp; Spans reference &rarr;</router-link>
+        <router-link to="/docs/tracing">Read the Jeffrey Tracing guide &rarr;</router-link>
       </p>
 
       <h2 id="technologies">Technologies</h2>

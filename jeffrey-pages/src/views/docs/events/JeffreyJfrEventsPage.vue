@@ -141,8 +141,8 @@ Tracer.inSpanOf(event, () -> {                 // 2. stamps traceId/spanId/paren
         </DocsCallout>
 
         <p class="docs-read-more">
-          <router-link to="/docs/events/tracer">Read the Tracer API reference &rarr;</router-link><br>
-          <router-link to="/docs/microscope/profiles/traces">Read the Traces &amp; Spans reference &rarr;</router-link>
+          <router-link to="/docs/tracing/tracer-api">Read the Tracer API reference &rarr;</router-link><br>
+          <router-link to="/docs/tracing">Read the Jeffrey Tracing guide &rarr;</router-link>
         </p>
 
         <h2 id="custom-span">Write Your Own Span Event</h2>
