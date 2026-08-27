@@ -160,7 +160,7 @@ const clientTree = `trace 4e11d5b8…
 
       <p>A servlet filter can wrap the whole request in one <code>try</code>/<code>finally</code> on one thread. A gRPC call cannot: <code>interceptCall</code> returns immediately, and the call then proceeds through callbacks (<code>onMessage</code>, <code>onHalfClose</code>, <code>onClose</code>) that arrive on transport threads the application does not control, possibly long afterwards.</p>
 
-      <p>Both interceptors therefore split the span from the thread that holds it, using the <router-link to="/docs/tracing/tracer-api">openSpanOf / reenter</router-link> pair:</p>
+      <p>Both interceptors therefore split the span from the thread that holds it, using the <router-link to="/docs/tracing/tracer-api/open-span-of">openSpanOf</router-link> / <router-link to="/docs/tracing/tracer-api/reenter">reenter</router-link> pair:</p>
 
       <ul>
         <li>The span is <strong>opened without binding</strong> — <code>Tracer.openSpanOf(event)</code> — at the point where the trace identity is known. On the client that is the calling thread, so the outbound call becomes a child of the request being served; on the server there is nothing above it, so it is a root.</li>

@@ -107,7 +107,7 @@ tracing { enabled = true }`;
     />
 
     <div class="docs-content">
-      <p>Every <router-link to="/docs/tracing/tracer-api">Tracer</router-link> method wraps work in a lambda — precise, and visible in the code. <code>@Traced</code> declares the same span on a method instead, and the <strong>Jeffrey Agent</strong> weaves it in at class load: the method is left exactly as it was written, and is not written around its own tracing.</p>
+      <p>Every <router-link to="/docs/tracing/instrumentation">Tracer</router-link> method wraps work in a lambda — precise, and visible in the code. <code>@Traced</code> declares the same span on a method instead, and the <strong>Jeffrey Agent</strong> weaves it in at class load: the method is left exactly as it was written, and is not written around its own tracing.</p>
 
       <h2 id="overview">Overview</h2>
 

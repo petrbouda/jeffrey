@@ -319,7 +319,7 @@ const routes: RouteRecordRaw[] = [
       },
       // Traces moved to the standalone Jeffrey Tracing product at /docs/tracing.
       { path: 'microscope/profiles/traces', redirect: '/docs/tracing/analysis' },
-      { path: 'microscope/profiles/traces/api', redirect: '/docs/tracing/tracer-api' },
+      { path: 'microscope/profiles/traces/api', redirect: '/docs/tracing/instrumentation' },
       // Workspaces & Event Log
       {
         path: 'microscope/workspaces',
@@ -486,7 +486,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/events/JeffreyJfrEventsPage.vue')
       },
       // The Tracer API reference moved to the standalone Jeffrey Tracing product.
-      { path: 'events/tracer', redirect: '/docs/tracing/tracer-api' },
+      { path: 'events/tracer', redirect: '/docs/tracing/instrumentation' },
 
       // ──── Jeffrey Tracing (standalone product) ────
       {
@@ -505,9 +505,67 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/tracing/TracingConceptsPage.vue')
       },
       {
-        path: 'tracing/tracer-api',
-        name: 'DocsTracingTracerApi',
-        component: () => import('@/views/docs/tracing/TracingTracerApiPage.vue')
+        path: 'tracing/instrumentation',
+        name: 'DocsTracingInstrumentation',
+        component: () => import('@/views/docs/tracing/TracingInstrumentationOverviewPage.vue')
+      },
+      // The single-page Tracer API reference was split into one page per method;
+      // its general material lives on the Instrumentation Overview.
+      { path: 'tracing/tracer-api', redirect: '/docs/tracing/instrumentation' },
+      {
+        path: 'tracing/tracer-api/run',
+        name: 'DocsTracingTracerRun',
+        component: () => import('@/views/docs/tracing/tracer-api/TracerRunPage.vue')
+      },
+      {
+        path: 'tracing/tracer-api/call',
+        name: 'DocsTracingTracerCall',
+        component: () => import('@/views/docs/tracing/tracer-api/TracerCallPage.vue')
+      },
+      {
+        path: 'tracing/tracer-api/current',
+        name: 'DocsTracingTracerCurrent',
+        component: () => import('@/views/docs/tracing/tracer-api/TracerCurrentPage.vue')
+      },
+      {
+        path: 'tracing/tracer-api/in-span-of',
+        name: 'DocsTracingTracerInSpanOf',
+        component: () => import('@/views/docs/tracing/tracer-api/TracerInSpanOfPage.vue')
+      },
+      {
+        path: 'tracing/tracer-api/stamp',
+        name: 'DocsTracingTracerStamp',
+        component: () => import('@/views/docs/tracing/tracer-api/TracerStampPage.vue')
+      },
+      {
+        path: 'tracing/tracer-api/open-span-of',
+        name: 'DocsTracingTracerOpenSpanOf',
+        component: () => import('@/views/docs/tracing/tracer-api/TracerOpenSpanOfPage.vue')
+      },
+      {
+        path: 'tracing/tracer-api/reenter',
+        name: 'DocsTracingTracerReenter',
+        component: () => import('@/views/docs/tracing/tracer-api/TracerReenterPage.vue')
+      },
+      {
+        path: 'tracing/tracer-api/continue-in',
+        name: 'DocsTracingTracerContinueIn',
+        component: () => import('@/views/docs/tracing/tracer-api/TracerContinueInPage.vue')
+      },
+      {
+        path: 'tracing/tracer-api/fork',
+        name: 'DocsTracingTracerFork',
+        component: () => import('@/views/docs/tracing/tracer-api/TracerForkPage.vue')
+      },
+      {
+        path: 'tracing/tracer-api/fork-callable',
+        name: 'DocsTracingTracerForkCallable',
+        component: () => import('@/views/docs/tracing/tracer-api/TracerForkCallablePage.vue')
+      },
+      {
+        path: 'tracing/tracer-api/propagating',
+        name: 'DocsTracingTracerPropagating',
+        component: () => import('@/views/docs/tracing/tracer-api/TracerPropagatingPage.vue')
       },
       {
         path: 'tracing/traced-annotation',
