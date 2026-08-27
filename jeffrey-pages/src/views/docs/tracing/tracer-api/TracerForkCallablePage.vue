@@ -22,6 +22,7 @@ import DocsCallout from '@/components/docs/DocsCallout.vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
@@ -58,14 +59,16 @@ List<Future<ChunkResult>> results = executor.invokeAll(tasks);
 Future<byte[]> payload = executor.submit(
         Tracer.forkCallable("payload.read", () -> Files.readAllBytes(path)));`;
 
-const outputTree = `trace 41c9ab77…
-└─ GET /api/reports/{id}          SERVER               (request thread)
-   ├─ report.render               INTERNAL             (pool thread A)  ← forkCallable
-   ├─ report.render               INTERNAL             (pool thread B)
-   └─ report.merge                INTERNAL             (request thread)
-
-Each task emits one jeffrey.TraceSpan when it runs, parented to the span
-in progress where forkCallable() was CALLED.`;
+const outputSpans = [
+  { depth: 0, name: 'GET /api/reports/{id}', kind: 'SERVER' as const,
+    start: 0, duration: 1840, note: 'request thread' },
+  { depth: 1, name: 'report.render', kind: 'INTERNAL' as const,
+    start: 40, duration: 980, note: 'pool thread A — forkCallable' },
+  { depth: 1, name: 'report.render', kind: 'INTERNAL' as const,
+    start: 55, duration: 910, note: 'pool thread B' },
+  { depth: 1, name: 'report.merge', kind: 'INTERNAL' as const,
+    start: 1040, duration: 210, note: 'request thread' }
+];
 </script>
 
 <template>
@@ -104,7 +107,11 @@ in progress where forkCallable() was CALLED.`;
 
       <h2 id="output">Output</h2>
 
-      <DocsCodeBlock :code="outputTree" language="text" />
+      <DocsSpanTree
+        trace="41c9ab77…"
+        :spans="outputSpans"
+        caption="Each task emits one jeffrey.TraceSpan when it runs, parented to the span in progress where forkCallable() was called."
+      />
 
       <h2 id="notes">Notes &amp; Pitfalls</h2>
 

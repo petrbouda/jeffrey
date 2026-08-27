@@ -22,6 +22,7 @@ import DocsCallout from '@/components/docs/DocsCallout.vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
@@ -66,14 +67,16 @@ List<CompletableFuture<Void>> parts = chunks.stream()
                 executor))
         .toList();`;
 
-const outputTree = `trace 9d02f7c3…
-└─ POST /api/internal/recordings   SERVER              (request thread)
-   └─ recording.parse              INTERNAL            (request thread)
-      ├─ chunk.parse               INTERNAL            (pool thread A)  ← the fork-wrapped task
-      └─ chunk.parse               INTERNAL            (pool thread B)
-
-Each task emits one jeffrey.TraceSpan when it runs, parented to the span
-that was in progress where fork() was CALLED — not where the task ran.`;
+const outputSpans = [
+  { depth: 0, name: 'POST /api/internal/recordings', kind: 'SERVER' as const,
+    start: 0, duration: 3200, note: 'request thread' },
+  { depth: 1, name: 'recording.parse', kind: 'INTERNAL' as const,
+    start: 60, duration: 2797, note: 'request thread' },
+  { depth: 2, name: 'chunk.parse', kind: 'INTERNAL' as const,
+    start: 90, duration: 2730, note: 'pool thread A — the fork-wrapped task' },
+  { depth: 2, name: 'chunk.parse', kind: 'INTERNAL' as const,
+    start: 120, duration: 2571, note: 'pool thread B' }
+];
 </script>
 
 <template>
@@ -111,7 +114,11 @@ that was in progress where fork() was CALLED — not where the task ran.`;
 
       <h2 id="output">Output</h2>
 
-      <DocsCodeBlock :code="outputTree" language="text" />
+      <DocsSpanTree
+        trace="9d02f7c3…"
+        :spans="outputSpans"
+        caption="Each task emits one jeffrey.TraceSpan when it runs, parented to the span in progress where fork() was called — not where the task ran."
+      />
 
       <h2 id="notes">Notes &amp; Pitfalls</h2>
 

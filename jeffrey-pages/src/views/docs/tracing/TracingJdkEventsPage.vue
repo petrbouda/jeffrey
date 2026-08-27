@@ -22,6 +22,7 @@ import DocsCallout from '@/components/docs/DocsCallout.vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
@@ -40,14 +41,13 @@ onMounted(() => {
   setHeadings(headings);
 });
 
-const exampleTree = `trace 3fa8d1c0…
-└─ GET /api/orders/{id}            SERVER            43.8 ms
-   └─ OrderMapper.selectById       JdbcQueryEvent    43.1 ms
-      └─ Socket read               jdk.SocketRead    39.2 ms   ← promoted leaf span
-
-The JDBC span spent 39 of its 43 ms on the database socket — the socket
-read is a child bar with a real position and duration, and the parent's
-self time shrinks by the same stretch.`;
+const exampleSpans = [
+  { depth: 0, name: 'GET /api/orders/{id}', kind: 'SERVER' as const, start: 0, duration: 43.8 },
+  { depth: 1, name: 'OrderMapper.selectById', kind: 'CLIENT' as const, start: 0.3, duration: 43.1,
+    event: 'JdbcQueryEvent' },
+  { depth: 2, name: 'Socket read', kind: 'CLIENT' as const, start: 1.2, duration: 39.2,
+    event: 'jdk.SocketRead', note: 'promoted leaf span', color: 'var(--span-socket-io)' }
+];
 
 const payloadExample = `Socket read          39.2 ms       (synthesized from jdk.SocketRead)
   host        db-primary.internal
@@ -86,7 +86,11 @@ jdk.JavaMonitorEnter#threshold=1ms,jdk.ThreadPark#threshold=1ms
 
       <p>Nothing is instrumented for this and nothing new is recorded — the promotion is pure analysis over events every recording already contains, so it applies <strong>retroactively to existing profiles</strong>. What bounds it is the recording itself: the JDK events carry thresholds (typically 10–20&nbsp;ms by default), so only waits long enough to be recorded are long enough to become bars.</p>
 
-      <DocsCodeBlock :code="exampleTree" language="text" />
+      <DocsSpanTree
+        trace="3fa8d1c0…"
+        :spans="exampleSpans"
+        caption="The JDBC span spent 39 of its 43 ms on the database socket — and the parent's self time shrinks by exactly that stretch."
+      />
 
       <h2 id="promoted-set">Which JDK Events Become Spans</h2>
 

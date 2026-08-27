@@ -22,6 +22,7 @@ import DocsCallout from '@/components/docs/DocsCallout.vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
@@ -41,6 +42,15 @@ onMounted(() => {
   setHeadings(headings);
 });
 
+const quickStartSpans = [
+  { depth: 0, name: 'order.checkout', kind: 'SERVER' as const, start: 0, duration: 84.2,
+    event: 'jeffrey.TraceSpan', note: 'root' },
+  { depth: 1, name: 'inventory.reserve', kind: 'CLIENT' as const, start: 2.1, duration: 31.7,
+    event: 'jeffrey.TraceSpan' },
+  { depth: 1, name: 'payment.charge', kind: 'CLIENT' as const, start: 35.4, duration: 46.5,
+    event: 'jeffrey.TraceSpan' }
+];
+
 const quickStart = `import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 
@@ -48,11 +58,6 @@ Tracer.run("order.checkout", SpanKind.SERVER, () -> {
     Tracer.run("inventory.reserve", SpanKind.CLIENT, this::reserve);
     Tracer.run("payment.charge", SpanKind.CLIENT, this::charge);
 });`;
-
-const quickStartTree = `trace 5f3a90c2…                                      emitted event
-└─ order.checkout        SERVER   parentSpanId=0     jeffrey.TraceSpan
-   ├─ inventory.reserve  CLIENT                      jeffrey.TraceSpan
-   └─ payment.charge     CLIENT                      jeffrey.TraceSpan`;
 
 const quickStartJfr = `jfr print --events jeffrey.TraceSpan app.jfr
 
@@ -86,20 +91,34 @@ const errorExample = `IllegalStateException thrown = assertThrows(IllegalStateEx
 //   errorType = "java.lang.IllegalStateException"
 // and the exception is rethrown unchanged — same instance, no wrapping.`;
 
-const composedTree = `trace a3f9c1d4…                                         event type
-└─ POST /api/internal/recordings/upload   SERVER       HttpServerExchangeEvent   ← inSpanOf
-   └─ profile.initialize                  INTERNAL     jeffrey.TraceSpan         ← call
-      ├─ profile-info.insert              INTERNAL     jeffrey.TraceSpan         ← run
-      │  └─ insert_profile                CLIENT       JdbcInsertEvent           ← commitSpan (stamp)
-      ├─ recording.parse                  INTERNAL     jeffrey.TraceSpan         ← run
-      │  ├─ chunk.parse                   INTERNAL     jeffrey.TraceSpan         ← fork (pool)
-      │  └─ chunk.parse                   INTERNAL     jeffrey.TraceSpan         ← fork (pool)
-      ├─ events.flush                     INTERNAL     jeffrey.TraceSpan         ← run
-      │  └─ insert_events                 CLIENT       JdbcInsertEvent           ← commitSpan (stamp)
-      └─ profile.data-init                INTERNAL     jeffrey.TraceSpan         ← run
-         ├─ eventviewer.tree              INTERNAL     jeffrey.TraceSpan         ← fork (pool)
-         ├─ guardian.results              INTERNAL     jeffrey.TraceSpan         ← fork (pool)
-         └─ threads.rows                  INTERNAL     jeffrey.TraceSpan         ← fork (pool)`;
+const composedSpans = [
+  { depth: 0, name: 'POST /api/internal/recordings/upload', kind: 'SERVER' as const,
+    start: 0, duration: 4400, event: 'HttpServerExchangeEvent', note: 'inSpanOf' },
+  { depth: 1, name: 'profile.initialize', kind: 'INTERNAL' as const,
+    start: 150, duration: 4102, event: 'jeffrey.TraceSpan', note: 'call' },
+  { depth: 2, name: 'profile-info.insert', kind: 'INTERNAL' as const,
+    start: 155, duration: 12, event: 'jeffrey.TraceSpan', note: 'run' },
+  { depth: 3, name: 'insert_profile', kind: 'CLIENT' as const,
+    start: 157, duration: 8, event: 'JdbcInsertEvent', note: 'commitSpan' },
+  { depth: 2, name: 'recording.parse', kind: 'INTERNAL' as const,
+    start: 175, duration: 2797, event: 'jeffrey.TraceSpan', note: 'run' },
+  { depth: 3, name: 'chunk.parse', kind: 'INTERNAL' as const,
+    start: 200, duration: 2730, event: 'jeffrey.TraceSpan', note: 'fork' },
+  { depth: 3, name: 'chunk.parse', kind: 'INTERNAL' as const,
+    start: 215, duration: 2571, event: 'jeffrey.TraceSpan', note: 'fork' },
+  { depth: 2, name: 'events.flush', kind: 'INTERNAL' as const,
+    start: 2980, duration: 212, event: 'jeffrey.TraceSpan', note: 'run' },
+  { depth: 3, name: 'insert_events', kind: 'CLIENT' as const,
+    start: 2990, duration: 190, event: 'JdbcInsertEvent', note: 'commitSpan' },
+  { depth: 2, name: 'profile.data-init', kind: 'INTERNAL' as const,
+    start: 3200, duration: 933, event: 'jeffrey.TraceSpan', note: 'run' },
+  { depth: 3, name: 'eventviewer.tree', kind: 'INTERNAL' as const,
+    start: 3215, duration: 410, event: 'jeffrey.TraceSpan', note: 'fork' },
+  { depth: 3, name: 'guardian.results', kind: 'INTERNAL' as const,
+    start: 3215, duration: 916, event: 'jeffrey.TraceSpan', note: 'fork' },
+  { depth: 3, name: 'threads.rows', kind: 'INTERNAL' as const,
+    start: 3220, duration: 380, event: 'jeffrey.TraceSpan', note: 'fork' }
+];
 </script>
 
 <template>
@@ -156,7 +175,11 @@ const composedTree = `trace a3f9c1d4…                                         
 
       <p>Those three calls produce this tree:</p>
 
-      <DocsCodeBlock :code="quickStartTree" language="text" />
+      <DocsSpanTree
+        trace="5f3a90c2…"
+        :spans="quickStartSpans"
+        caption="A container bar is drawn hollow: its time is mostly its children's, not its own."
+      />
 
       <p>and this is what the recording itself holds — <code>jeffrey.TraceSpan</code> events whose ids encode the tree:</p>
 
@@ -327,7 +350,11 @@ const composedTree = `trace a3f9c1d4…                                         
 
       <p>Jeffrey's own recording-upload flow composes almost every method. An HTTP request roots the trace through <code>inSpanOf</code>, the pipeline stages are <code>call</code>/<code>run</code> spans, chunk parsing and profile-data branches are handed to pools with <code>fork</code>, and every SQL statement along the way is a leaf stamped by <code>commitSpan()</code>:</p>
 
-      <DocsCodeBlock :code="composedTree" language="text" />
+      <DocsSpanTree
+        trace="a3f9c1d4…"
+        :spans="composedSpans"
+        caption="The three forked branches overlap because they ran on different pool threads at the same time."
+      />
 
       <h2 id="usages">Where Jeffrey Uses It</h2>
 

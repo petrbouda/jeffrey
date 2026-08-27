@@ -23,6 +23,7 @@ import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsLinkCard from '@/components/docs/DocsLinkCard.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
@@ -46,10 +47,14 @@ const taste = `Tracer.run("order.checkout", SpanKind.SERVER, () -> {
     Tracer.run("payment.charge", SpanKind.CLIENT, this::charge);
 });`;
 
-const tasteTree = `trace 5f3a90c2…                                      emitted event
-└─ order.checkout        SERVER   parentSpanId=0     jeffrey.TraceSpan
-   ├─ inventory.reserve  CLIENT                      jeffrey.TraceSpan
-   └─ payment.charge     CLIENT                      jeffrey.TraceSpan`;
+const tasteSpans = [
+  { depth: 0, name: 'order.checkout', kind: 'SERVER' as const, start: 0, duration: 84.2,
+    event: 'jeffrey.TraceSpan', note: 'root' },
+  { depth: 1, name: 'inventory.reserve', kind: 'CLIENT' as const, start: 2.1, duration: 31.7,
+    event: 'jeffrey.TraceSpan' },
+  { depth: 1, name: 'payment.charge', kind: 'CLIENT' as const, start: 35.4, duration: 46.5,
+    event: 'jeffrey.TraceSpan' }
+];
 
 const pipeline = `┌──────────────────────┐    ┌──────────────────┐    ┌───────────────────────────┐
 │ Your application     │    │ JFR recording    │    │ Jeffrey Microscope        │
@@ -77,7 +82,7 @@ const pipeline = `┌───────────────────�
       <p>There is no collector, no exporter, no separate "send data" step. You instrument with the zero-dependency <code>cafe.jeffrey-analyst:jeffrey-events</code> library (or attach the Jeffrey Agent and annotate methods with <code>@Traced</code>), record with whatever starts a JFR recording, and open the <code>.jfr</code> file in Jeffrey Microscope. Everything else — trace assembly, JDK-event correlation, visualization — happens at analysis time.</p>
 
       <DocsCodeBlock :code="taste" language="java" />
-      <DocsCodeBlock :code="tasteTree" language="text" />
+      <DocsSpanTree trace="5f3a90c2…" :spans="tasteSpans" />
 
       <h2 id="how-it-works">How It Works</h2>
 

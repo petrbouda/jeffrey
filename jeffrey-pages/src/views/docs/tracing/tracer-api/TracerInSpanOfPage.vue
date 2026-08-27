@@ -22,6 +22,7 @@ import DocsCallout from '@/components/docs/DocsCallout.vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
@@ -81,14 +82,16 @@ Tracer.inSpanOf(event, () -> {                 // stamps traceId/spanId/parentSp
 TraceSpanEvent job = new TraceSpanEvent();
 Tracer.inSpanOf(job, () -> pipeline.execute());`;
 
-const outputTree = `trace 2b7fe410…
-└─ GET /api/internal/profiles/{profileId}   HttpServerExchangeEvent  SERVER  parentSpanId=0
-   ├─ flamegraph.generate                   jeffrey.TraceSpan        INTERNAL
-   │  └─ select_frames                      JdbcQueryEvent           CLIENT  leaf
-   └─ flamegraph.marshalling                jeffrey.TraceSpan        INTERNAL
-
-No jeffrey.TraceSpan is emitted for the root — the exchange event carries
-the ids itself. Emitting one would record the same interval twice.`;
+const outputSpans = [
+  { depth: 0, name: 'GET /api/internal/profiles/{profileId}', kind: 'SERVER' as const,
+    start: 0, duration: 128, event: 'HttpServerExchangeEvent', note: 'root' },
+  { depth: 1, name: 'flamegraph.generate', kind: 'INTERNAL' as const,
+    start: 8, duration: 96, event: 'jeffrey.TraceSpan' },
+  { depth: 2, name: 'select_frames', kind: 'CLIENT' as const,
+    start: 12, duration: 41, event: 'JdbcQueryEvent', note: 'leaf' },
+  { depth: 1, name: 'flamegraph.marshalling', kind: 'INTERNAL' as const,
+    start: 106, duration: 20, event: 'jeffrey.TraceSpan' }
+];
 </script>
 
 <template>
@@ -126,7 +129,11 @@ the ids itself. Emitting one would record the same interval twice.`;
 
       <h2 id="output">Output</h2>
 
-      <DocsCodeBlock :code="outputTree" language="text" />
+      <DocsSpanTree
+        trace="2b7fe410…"
+        :spans="outputSpans"
+        caption="No jeffrey.TraceSpan is emitted for the root — the exchange event carries the ids itself. Emitting one would record the same interval twice."
+      />
 
       <h2 id="notes">Notes &amp; Pitfalls</h2>
 

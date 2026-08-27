@@ -22,6 +22,7 @@ import DocsCallout from '@/components/docs/DocsCallout.vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
@@ -48,6 +49,15 @@ const spanContextShape = `public record SpanContext(long traceId, long spanId, l
 
     // Forms taking a RandomGenerator explicitly exist for tests that need deterministic ids.
 }`;
+
+const identitySpans = [
+  { name: 'GET /api/orders/{id}', kind: 'SERVER' as const, event: 'jeffrey.HttpServerExchange',
+    traceId: '6872…5563', spanId: '4444…2002', parentSpanId: '0' },
+  { name: 'order.load', kind: 'INTERNAL' as const, event: 'jeffrey.TraceSpan',
+    traceId: '6872…5563', spanId: '1265…0307', parentSpanId: '4444…2002' },
+  { name: 'OrderMapper.selectById', kind: 'CLIENT' as const, event: 'jeffrey.JdbcQuery',
+    traceId: '6872…5563', spanId: '9032…7118', parentSpanId: '1265…0307' }
+];
 
 const attributesExample = `event.attributes = EventAttributes.create()
         .put("cache", "miss")
@@ -154,6 +164,14 @@ const namingExamples = `// Good: one name per operation — stable, low-cardinal
       <p>A span's position in its trace is fully described by a <code>SpanContext</code>, the value the API publishes through a <code>ScopedValue</code>:</p>
 
       <DocsCodeBlock :code="spanContextShape" language="java" />
+
+      <p>Every span in one trace repeats the same <code>traceId</code>, mints a <code>spanId</code> of its own, and names its enclosing span in <code>parentSpanId</code>. That is the entire propagation mechanism — no span references another in code, and the tree is rebuilt from these numbers alone:</p>
+
+      <DocsSpanTree
+        variant="cards"
+        :spans="identitySpans"
+        caption="A parentSpanId of 0 means the span is a root; the arrows are the only structure Jeffrey needs."
+      />
 
       <p>The record is immutable — a nested span never mutates its parent's context, it derives a child — which is what makes it safe to publish through a <code>ScopedValue</code> and to carry across threads. The binding is bounded by a lambda (<code>Tracer.run</code>, <code>call</code>, <code>inSpanOf</code>, …), so it cannot outlive the span and never needs clearing.</p>
 

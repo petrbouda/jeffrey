@@ -22,6 +22,7 @@ import DocsCallout from '@/components/docs/DocsCallout.vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
@@ -69,13 +70,14 @@ return rows.onClose(() -> {
     }                                   // set, and commitSpan() never re-stamps
 });`;
 
-const outputTree = `trace 8c1d33f0…
-└─ GET /api/internal/recordings   SERVER  (the span in progress)
-   ├─ insert_recording   JdbcInsertEvent  CLIENT   leaf — nothing can nest under it
-   └─ select_recordings  JdbcQueryEvent   CLIENT   leaf
-
-Two events stamped inside the same span each get their own span id;
-they share the trace id and the parent id, never the span id.`;
+const stampedSpans = [
+  { name: 'GET /api/internal/recordings', kind: 'SERVER' as const, event: 'the span in progress',
+    traceId: '8c1d33f0…', spanId: '5518…9241', parentSpanId: '0' },
+  { name: 'insert_recording', kind: 'CLIENT' as const, event: 'JdbcInsertEvent',
+    traceId: '8c1d33f0…', spanId: '2044…7715', parentSpanId: '5518…9241' },
+  { name: 'select_recordings', kind: 'CLIENT' as const, event: 'JdbcQueryEvent',
+    traceId: '8c1d33f0…', spanId: '7761…3082', parentSpanId: '5518…9241' }
+];
 </script>
 
 <template>
@@ -112,7 +114,11 @@ they share the trace id and the parent id, never the span id.`;
 
       <h2 id="output">Output</h2>
 
-      <DocsCodeBlock :code="outputTree" language="text" />
+      <DocsSpanTree
+        variant="cards"
+        :spans="stampedSpans"
+        caption="Both statements share the trace id and the parent id — and neither shares a span id, because a span id identifies exactly one span."
+      />
 
       <h2 id="notes">Notes &amp; Pitfalls</h2>
 

@@ -22,6 +22,7 @@ import DocsCallout from '@/components/docs/DocsCallout.vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import DocsSpanTree from '@/components/docs/DocsSpanTree.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
@@ -60,15 +61,16 @@ public Executor taskExecutor() {
     return Tracer.propagating(Executors.newFixedThreadPool(8));
 }`;
 
-const outputTree = `trace 77b2e9c1…
-└─ POST /api/internal/recordings       SERVER          (request thread)
-   ├─ insert_chunk        JdbcInsertEvent  CLIENT      (pool thread A — stamped under the request)
-   ├─ insert_chunk        JdbcInsertEvent  CLIENT      (pool thread B)
-   └─ chunk.parse         jeffrey.TraceSpan INTERNAL   (pool thread C — the fork-wrapped task)
-
-plus one jeffrey.TraceScope per plain task activation, naming the pool
-thread it ran on — propagating re-enters the submitting span, it does
-not mint children.`;
+const outputSpans = [
+  { depth: 0, name: 'POST /api/internal/recordings', kind: 'SERVER' as const,
+    start: 0, duration: 2400, note: 'request thread' },
+  { depth: 1, name: 'insert_chunk', kind: 'CLIENT' as const, start: 120, duration: 180,
+    event: 'JdbcInsertEvent', note: 'pool thread A — stamped under the request' },
+  { depth: 1, name: 'insert_chunk', kind: 'CLIENT' as const, start: 140, duration: 165,
+    event: 'JdbcInsertEvent', note: 'pool thread B' },
+  { depth: 1, name: 'chunk.parse', kind: 'INTERNAL' as const, start: 320, duration: 1900,
+    event: 'jeffrey.TraceSpan', note: 'pool thread C — the fork-wrapped task' }
+];
 </script>
 
 <template>
@@ -104,7 +106,11 @@ not mint children.`;
 
       <h2 id="output">Output</h2>
 
-      <DocsCodeBlock :code="outputTree" language="text" />
+      <DocsSpanTree
+        trace="77b2e9c1…"
+        :spans="outputSpans"
+        caption="Plus one jeffrey.TraceScope per plain task activation, naming the pool thread it ran on — propagating re-enters the submitting span, it does not mint children."
+      />
 
       <h2 id="notes">Notes &amp; Pitfalls</h2>
 
