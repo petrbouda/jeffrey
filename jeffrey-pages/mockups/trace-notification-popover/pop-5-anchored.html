@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notification popover — 5. Anchored card</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../instance-timeline/tokens.css">
+<link rel="stylesheet" href="shell.css">
+<style>
+  /*
+   * A real tooltip: a caret pointing at the mark, content-sized width, and placement clamped to the
+   * card instead of a fixed translateX(-70%). The caret is what makes "-70%" unnecessary — the
+   * panel can sit anywhere as long as the caret still points at the diamond.
+   */
+  .rail-pop.v-anchor {
+    padding: 0;
+    width: max-content; min-width: 22rem; max-width: 30rem;
+    transform: none;                       /* placement is set per-instance below */
+    border: 1px solid color-mix(in srgb, var(--mark) 25%, transparent);
+    border-left: 3px solid var(--mark);
+    max-height: none;
+    overflow: visible;                     /* the caret lives outside the box */
+  }
+  /* the caret: a rotated square, border on two sides so it reads as continuous with the panel */
+  .v-anchor::before {
+    content: ''; position: absolute; top: -5px; left: var(--caret, 50%);
+    width: 9px; height: 9px; margin-left: -4.5px;
+    background: color-mix(in srgb, var(--mark) 8%, transparent);
+    border-left: 1px solid color-mix(in srgb, var(--mark) 25%, transparent);
+    border-top: 1px solid color-mix(in srgb, var(--mark) 25%, transparent);
+    transform: rotate(45deg);
+  }
+  .v-anchor > header {
+    display: flex; align-items: center; gap: .4rem;
+    padding: .4rem .75rem;
+    background: color-mix(in srgb, var(--mark) 8%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--mark) 22%, transparent);
+    border-radius: 0 var(--radius-md) 0 0;
+    font-size: var(--font-size-sm); font-weight: 600;
+    letter-spacing: .07em; text-transform: uppercase; color: var(--mark);
+  }
+  .v-anchor > header .h-type { letter-spacing: 0; text-transform: none; font-family: var(--font-family-monospace); color: var(--color-dark); font-weight: 600; }
+  .v-anchor-body { padding: .6rem .75rem .7rem; max-height: 18rem; overflow-y: auto; }
+  .v-anchor-body .pop-body { margin-top: 0; font-size: var(--font-size-base); }
+  .v-anchor .pop-link { margin: 0; padding: .35rem .75rem; border-top: 1px solid var(--color-border-light); background: var(--color-light); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All five</a>
+    <h1><span class="n">5</span>Anchored card — a caret, and no magic number</h1>
+    <p class="lede">
+      The popover's placement is currently <code>transform: translateX(-70%)</code> — a magic number
+      that guesses which side of the mark has room, and guesses wrong near either edge. This makes it
+      a proper tooltip instead: a <strong>caret that points at the diamond</strong>, so the panel is
+      free to sit wherever it fits, and placement clamped to the card's own bounds rather than
+      offset by a fixed fraction. Same header band as direction 1.
+    </p>
+    <p class="lede" style="margin-top:-.7rem">
+      Width is also <strong>content-sized</strong> (<code>min 22rem, max 30rem</code>) — but measure
+      the two panels below and they come out <strong>the same 480px</strong>, both pinned to the
+      30rem cap. That is worth knowing before picking this one: a single
+      <code>profileId</code> attribute is a 36-character UUID, and one unwrapped chip that wide
+      pushes <code>max-content</code> past the cap whatever the message says. So content-sizing buys
+      almost nothing here — what this direction is actually worth is the
+      <strong>caret and the clamping</strong>, which fix a real placement bug near either edge.
+    </p>
+    <div id="app"></div>
+  </div>
+<script src="shell.js"></script>
+<script>
+  /*
+   * Placement, as the real thing would compute it: centre on the mark, then clamp so neither edge
+   * leaves the track. The caret stays on the mark whatever the clamp did to the panel.
+   */
+  function place(markPct) {
+    const trackPx = 1040, panelPx = 400;                 /* approximate, for the mockup */
+    const markPx = (markPct / 100) * trackPx;
+    const wanted = markPx - panelPx / 2;
+    const left = Math.max(0, Math.min(wanted, trackPx - panelPx));
+    return { left: (left / trackPx) * 100, caret: markPx - left };
+  }
+
+  function render(n) {
+    const at = n === SHORT ? MARK_AT.short : MARK_AT.long;
+    const p = place(at);
+    return `<div class="rail-pop v-anchor pop-measure ${n.sevClass}"
+        style="left:${p.left}%;--caret:${p.caret}px">
+      <header>
+        ${n.severity}
+        <span class="h-type">${n.type}</span>
+        <span class="sd-src">${n.at}</span>
+        <button class="dock-close" title="Close"><i class="bi bi-x-lg"></i></button>
+      </header>
+      <div class="v-anchor-body">
+        <p class="pop-body">${n.message}</p>
+        <div class="pop-attrs">${attrChips(n)}</div>
+        <p class="pop-meta"><span>${n.category}</span><span>${n.source}</span></p>
+      </div>
+      <button class="pop-link"><i class="bi bi-arrow-return-right"></i> Select ${n.span}</button>
+    </div>`;
+  }
+  document.getElementById('app').innerHTML = bothCases(render);
+  measurePanels();
+</script>
+</body>
+</html>

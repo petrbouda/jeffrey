@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notification popover — 0. Current</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../instance-timeline/tokens.css">
+<link rel="stylesheet" href="shell.css">
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All five</a>
+    <h1><span class="n" style="background:var(--color-text-muted)">0</span>Current — as shipped</h1>
+    <p class="lede">
+      <code>.rail-pop</code> on <code>master</code>: 22rem wide, capped at <code>13rem</code> tall,
+      <code>0.55rem 0.7rem</code> of padding, and a bare inline head row. Kept as the baseline.
+      Width is <strong>not</strong> the problem — 22rem (352px) sits inside the band every other
+      floating panel in the app uses (280px, 280–400px, 430px). What makes it read as cramped is the
+      height cap, the tight padding, and the missing header band: it is the <em>only</em> panel in the
+      app carrying structured detail without one.
+    </p>
+    <div id="app"></div>
+  </div>
+<script src="shell.js"></script>
+<script>
+  function render(n, at) {
+    return `<div class="rail-pop pop-measure ${n.sevClass}" style="left:${at}%">
+      <div class="pop-head">
+        <span class="pop-sev">${n.severity}</span>
+        <span class="pop-type">${n.type}</span>
+        <span class="pop-at">${n.at}</span>
+      </div>
+      <p class="pop-body">${n.message}</p>
+      <div class="pop-attrs">${attrChips(n)}</div>
+      <p class="pop-meta"><span>${n.category}</span><span>${n.source}</span></p>
+      <button class="pop-link"><i class="bi bi-arrow-return-right"></i> Select ${n.span}</button>
+    </div>`;
+  }
+  document.getElementById('app').innerHTML = bothCases(render);
+  measurePanels();
+</script>
+</body>
+</html>

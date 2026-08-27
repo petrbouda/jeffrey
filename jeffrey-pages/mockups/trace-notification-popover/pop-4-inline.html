@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notification popover — 4. Inline region</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../instance-timeline/tokens.css">
+<link rel="stylesheet" href="shell.css">
+<style>
+  /* Nothing floats: the notification is a block in the rows column, like .span-detail is. */
+  .ntf-inline {
+    position: relative; z-index: 1;
+    margin: .35rem 1rem .5rem;
+  }
+  .ntf-inline .sd-region-body { gap: .5rem; }
+  .ntf-inline .pop-body { margin-top: 0; font-size: var(--font-size-base); }
+  .ntf-inline .pop-attrs { margin-top: 0; }
+  .ntf-inline .pop-meta { margin-top: 0; }
+  .inline-head-type { letter-spacing: 0; text-transform: none; font-family: var(--font-family-monospace); color: var(--color-dark); font-weight: 600; }
+  .inline-sel {
+    display: inline-flex; align-items: center; gap: .3rem;
+    color: var(--color-primary); font-size: var(--font-size-sm); font-weight: 600;
+  }
+  .inline-foot {
+    display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+    padding-top: .5rem; border-top: 1px solid var(--color-border-light);
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All five</a>
+    <h1><span class="n">4</span>Inline region — nothing floats</h1>
+    <p class="lede">
+      The component's own primary detail idiom is <em>not</em> a popover: clicking a span opens
+      <code>TraceSpanInlineDetail</code> as the next row, on the argument that "a panel at the bottom
+      scrolls the bar that was clicked out of view". This applies the same rule to notifications —
+      the entry opens as a <strong><code>.sd-region</code> block in the rows column</strong>, the
+      literal same markup the span detail uses for its Notifications region. Nothing overlays
+      anything, so no z-index, no clipping, no <code>translateX(-70%)</code>, no close-on-outside
+      question. The cost is the one the popover was invented to avoid: opening it
+      <strong>pushes the span rows down</strong>, so the bar you were looking at moves.
+    </p>
+    <div id="app"></div>
+  </div>
+<script src="shell.js"></script>
+<script>
+  function render(n) {
+    return `<div class="sd-region is-ntf ntf-inline pop-measure ${n.sevClass}">
+      <header>
+        ${n.severity}
+        <span class="inline-head-type">${n.type}</span>
+        <span class="sd-src">${n.at} &middot; jeffrey.Notification</span>
+        <button class="dock-close" title="Close"><i class="bi bi-x-lg"></i></button>
+      </header>
+      <div class="sd-region-body">
+        <p class="pop-body">${n.message}</p>
+        <div class="pop-attrs">${attrChips(n)}</div>
+        <div class="inline-foot">
+          <span class="inline-sel"><i class="bi bi-arrow-return-right"></i> Select ${n.span}</span>
+          <p class="pop-meta" style="margin-left:auto"><span>${n.category}</span><span>${n.source}</span></p>
+        </div>
+      </div>
+    </div>`;
+  }
+  document.getElementById('app').innerHTML = bothCases(render, { inline: true });
+  measurePanels();
+</script>
+</body>
+</html>

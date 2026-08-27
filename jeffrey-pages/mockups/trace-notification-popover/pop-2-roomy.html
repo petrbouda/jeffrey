@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notification popover — 2. Roomy region</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../instance-timeline/tokens.css">
+<link rel="stylesheet" href="shell.css">
+<style>
+  /* Direction 1's shell at the width the app's other detail popover already uses (430px). */
+  .rail-pop.v-roomy {
+    padding: 0;
+    width: 27rem;
+    border: 1px solid color-mix(in srgb, var(--mark) 25%, transparent);
+    border-left: 3px solid var(--mark);
+    max-height: none;
+  }
+  .v-roomy > header {
+    display: flex; align-items: center; gap: .4rem;
+    padding: .45rem .8rem;
+    background: color-mix(in srgb, var(--mark) 8%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--mark) 22%, transparent);
+    font-size: var(--font-size-sm); font-weight: 600;
+    letter-spacing: .07em; text-transform: uppercase; color: var(--mark);
+  }
+  .v-roomy > header .h-type { letter-spacing: 0; text-transform: none; font-family: var(--font-family-monospace); color: var(--color-dark); font-weight: 600; }
+  .v-roomy-body { padding: .7rem .8rem .75rem; max-height: 21rem; overflow-y: auto; }
+  .v-roomy .pop-body { margin-top: 0; font-size: var(--font-size-base); }
+
+  /* Attributes get their own labelled block instead of trailing the message as loose chips. */
+  .attr-block { margin-top: .7rem; }
+  .attr-label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: .7rem; font-weight: var(--font-weight-semibold);
+    letter-spacing: .08em; text-transform: uppercase; color: var(--color-text-muted);
+    padding-bottom: 5px; margin-bottom: .45rem;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+  .attr-label i { color: var(--color-primary); font-size: .8rem; }
+  .attr-label .n { margin-left: auto; font-family: var(--font-family-monospace); letter-spacing: 0; text-transform: none; }
+  .v-roomy .pop-attrs { margin-top: 0; }
+  .v-roomy .pop-meta { margin-top: .7rem; padding-top: .5rem; border-top: 1px solid var(--color-border-light); }
+  .v-roomy .pop-link { margin: 0; padding: .4rem .8rem; border-top: 1px solid var(--color-border-light); background: var(--color-light); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All five</a>
+    <h1><span class="n">2</span>Roomy region — the same shell, given space</h1>
+    <p class="lede">
+      Direction 1's shell, but sized for the content instead of squeezed around it:
+      <strong>27rem wide</strong> (close to the 430px the app's other detail popover,
+      <code>TraceAttributeStepPicker</code>, already uses) and the height cap raised from
+      <code>13rem</code> to <code>21rem</code>. The message moves up to
+      <code>--font-size-base</code> so it reads as prose rather than as a caption, and the
+      attributes get their own <strong>labelled block</strong> with a
+      <code>.drawer-section-label</code>-style rule instead of trailing the message as loose chips.
+      This is the direct answer to "it's small" — everything else about it is direction 1.
+    </p>
+    <div id="app"></div>
+  </div>
+<script src="shell.js"></script>
+<script>
+  function render(n, at) {
+    return `<div class="rail-pop v-roomy pop-measure ${n.sevClass}" style="left:${at}%">
+      <header>
+        ${n.severity}
+        <span class="h-type">${n.type}</span>
+        <span class="sd-src">${n.at}</span>
+        <button class="dock-close" title="Close"><i class="bi bi-x-lg"></i></button>
+      </header>
+      <div class="v-roomy-body">
+        <p class="pop-body">${n.message}</p>
+        <div class="attr-block">
+          <div class="attr-label"><i class="bi bi-tags"></i> Attributes
+            <span class="n">${n.attrs.length}</span></div>
+          <div class="pop-attrs">${attrChips(n)}</div>
+        </div>
+        <p class="pop-meta"><span>${n.category}</span><span>${n.source}</span></p>
+      </div>
+      <button class="pop-link"><i class="bi bi-arrow-return-right"></i> Select ${n.span}</button>
+    </div>`;
+  }
+  document.getElementById('app').innerHTML = bothCases(render);
+  measurePanels();
+</script>
+</body>
+</html>

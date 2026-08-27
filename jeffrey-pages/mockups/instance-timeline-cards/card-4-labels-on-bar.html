@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instance Timeline cards — 4. Labels on the bar</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../instance-timeline/tokens.css">
+<link rel="stylesheet" href="cards.css">
+<style>
+  .ihead { padding: .4rem .7rem .35rem; }
+  .lanewrap { padding: 0 .7rem .5rem; }
+  .lane { height: 2.1rem; }
+  .bar { top: 4px; bottom: 4px; display: flex; align-items: center; justify-content: center; }
+  .bar-dur {
+    font-family: var(--font-family-monospace); font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums;
+    color: #fff; padding: 0 .35rem; white-space: nowrap; overflow: hidden;
+  }
+  /* endpoint stamps sit outside the bar, against the track, so they never cover the bar */
+  .endstamp {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    font-family: var(--font-family-monospace); font-size: .58rem;
+    color: var(--color-text-muted); white-space: nowrap; pointer-events: none;
+    background: var(--color-neutral-light); padding: 0 .2rem; border-radius: 2px;
+  }
+  .endstamp.before { transform: translate(-100%, -50%); margin-left: -.3rem; }
+  .endstamp.after  { margin-left: .3rem; }
+  .endstamp.inside-l { margin-left: .3rem; color: rgba(255,255,255,.92); background: transparent; }
+  .running-dot {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    width: .4rem; height: .4rem; border-radius: var(--radius-circle);
+    background: var(--color-amber-highlight); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-amber) 30%, transparent);
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All five</a>
+    <h1><span class="n">4</span>Labels on the bar — the meta strip disappears</h1>
+    <p class="lede">
+      The meta strip exists to say <em>started, finished, duration</em>. But the bar already <strong>is</strong> those
+      three facts — its left edge is the start, its right edge is the end, its width is the duration. So this variant
+      deletes the strip and <strong>puts the numbers where they already are</strong>: timestamps stamped at the bar's
+      two ends, duration inside the bar. The lane grows to make room, the card loses a row, and the timeline stops
+      being a decorative echo of the text above it. A pulsing dot marks the live edge of a running instance.
+    </p>
+    <div id="app"></div>
+    <div id="notes"></div>
+  </div>
+
+<script src="../instance-timeline/data.js"></script>
+<script src="cards.js"></script>
+<script>
+  function gantt(inst) {
+    const g = barGeom(inst.start, inst.end, WIN);
+    const cls = inst.status.toLowerCase();
+
+    if (g.outside) {
+      return `${gridLines(WIN)}<span class="offwin"><i class="bi bi-chevron-double-left"></i>
+        finished ${fmtDur(WIN.start - (inst.end ?? NOW))} before this window ·
+        ${fmtUTC(inst.start)} → ${fmtUTC(inst.end)} · ${fmtDur(durationOf(inst))}</span>`;
+    }
+
+    /* wide bars carry the duration inside; narrow ones would clip it, so it goes outside */
+    const wide = g.width > 12;
+    const startStamp = g.clampLeft
+      ? `<span class="endstamp inside-l" style="left:${g.left}%"><i class="bi bi-chevron-double-left"></i> ${fmtDayClock(inst.start)}</span>`
+      : `<span class="endstamp before" style="left:${g.left}%">${fmtDayClock(inst.start)}</span>`;
+    const endStamp = inst.end
+      ? `<span class="endstamp after" style="left:${g.left + g.width}%">${fmtDayClock(inst.end)}</span>`
+      : `<span class="running-dot" style="left:calc(${g.left + g.width}% - .2rem)"></span>`;
+
+    return `${gridLines(WIN)}
+      <span class="bar ${cls}" style="left:${g.left}%;width:${g.width}%"
+        title="${inst.name}\n${fmtUTC(inst.start)} → ${inst.end ? fmtUTC(inst.end) : 'running'}">
+        ${wide ? `<span class="bar-dur">${fmtDur(durationOf(inst))}</span>` : ''}
+      </span>
+      ${startStamp}${endStamp}
+      ${wide ? '' : `<span class="endstamp after" style="left:${g.left + g.width}%;margin-left:2.2rem">${fmtDur(durationOf(inst))}</span>`}`;
+  }
+
+  const cards = INSTANCES.map((inst, i) => {
+    const cls = inst.status.toLowerCase();
+    const g = barGeom(inst.start, inst.end, WIN);
+    const open = i === 0;
+    return `<div class="icard ${cls}${g.outside ? ' outside' : ''}">
+      <div class="ihead">
+        <span class="iicon"><i class="bi bi-box"></i></span>
+        <span class="iname">${inst.name}</span>
+        <span class="badge badge-${cls}">${inst.status}</span>
+        <span class="ichips">${chipsHtml(inst, open)}</span>
+      </div>
+      <div class="lanewrap">
+        <div class="lane"><div class="lane-bg"></div>${gantt(inst)}</div>
+      </div>
+      ${open ? `<div class="idrawer">${drawerHtml(inst)}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  const body = `${ruler(WIN, { left: 'calc(.7rem + 4px)', right: 'calc(.7rem + 1px)' })}
+    <div class="stack">${cards}</div>
+    ${fixedNote()}${heightNote()}`;
+
+  document.getElementById('app').innerHTML = pageChrome('Instance Timeline', toolbar(), body);
+
+  measureHeights();
+
+  document.getElementById('notes').innerHTML = notesBlock(
+    ['Says each fact once, in the place it belongs, instead of twice — as text and again as a shape.',
+     'The lane becomes the primary object on the card rather than a strip under the real content.',
+     'The duration is legible without moving your eyes off the bar you are looking at.',
+     'The running instance gets a live edge marker, which today it does not have at all.'],
+    ['Only works while bars are wide enough — at 7D or 30D the stamps collide and have to be dropped.',
+     'A narrow bar pushes the duration outside, so the layout changes shape depending on the data.',
+     'Loses the precise <code>2026-08-26 09:39:07 UTC</code> form; seconds move into the tooltip and the drawer.',
+     'Two instances that nearly touch will have their stamps overlap.'],
+    ['Add a width threshold constant (12% here) that decides inside vs outside placement.',
+     'Endpoint stamps must be positioned against the lane, not the bar, or clamped bars misplace them.',
+     'Needs a compact <code>FormattingService</code> stamp format (<code>Aug 26 09:39</code>) — propose it rather than slicing strings.']
+  );
+</script>
+</body>
+</html>

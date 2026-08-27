@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instance Timeline cards — 3. Two-column</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../instance-timeline/tokens.css">
+<link rel="stylesheet" href="cards.css">
+<style>
+  /* Identity on the left in a fixed column, timeline on the right. The fixed column is what makes
+     the bars align across cards without giving up the card. */
+  /* three columns: identity | lane | actions. The actions column is fixed too, so the ruler's
+     right edge is deterministic and the chips can never overlap the lane. */
+  .icard-body { display: grid; grid-template-columns: var(--idcol) 1fr var(--actcol); gap: .7rem;
+    align-items: center; padding: .5rem .7rem; }
+  .idblock { min-width: 0; display: flex; flex-direction: column; gap: .18rem; }
+  .idline { display: flex; align-items: center; gap: .4rem; min-width: 0; }
+  .lane { height: 1.6rem; }
+  .ichips { justify-content: flex-end; }
+  .imeta { gap: .3rem; }
+  .mk { display: none; }
+  .dur { color: var(--color-text); font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All five</a>
+    <h1><span class="n">3</span>Two-column — identity left, timeline right</h1>
+    <p class="lede">
+      The card stops being three stacked bands and becomes <strong>two columns</strong>: everything that identifies the
+      instance on the left in a <strong>fixed-width column</strong>, the lane filling the rest on the right, both
+      vertically centred. The fixed left column is the point — it is what makes every bar start at the same x across
+      every card, which is the thing the current page cannot do <em>without</em> giving up the card. You keep the card
+      border, the status edge, the chips and the drawer; you just stop spending a full-width row on the name and
+      another on the meta.
+    </p>
+    <div id="app"></div>
+    <div id="notes"></div>
+  </div>
+
+<script src="../instance-timeline/data.js"></script>
+<script src="cards.js"></script>
+<script>
+  const ID_COL = '19rem';
+
+  const cards = INSTANCES.map((inst, i) => {
+    const cls = inst.status.toLowerCase();
+    const g = barGeom(inst.start, inst.end, WIN);
+    const open = i === 0;
+    return `<div class="icard ${cls}${g.outside ? ' outside' : ''}" style="--idcol:${ID_COL}">
+      <span class="ichips">${chipsHtml(inst, open)}</span>
+      <div class="icard-body">
+        <div class="idblock">
+          <div class="idline">
+            <span class="iicon"><i class="bi bi-box"></i></span>
+            <span class="iname">${inst.name}</span>
+            <span class="badge badge-${cls}">${inst.status}</span>
+          </div>
+          <div class="imeta">
+            <span class="mv">${fmtClock(inst.start)}</span>
+            <span class="msep">→</span>
+            ${inst.end ? `<span class="mv">${fmtClock(inst.end)}</span>` : '<span class="mv mrun">running</span>'}
+            <span class="msep">·</span>
+            <span class="dur">${fmtDur(durationOf(inst))}</span>
+          </div>
+        </div>
+        <div class="lane"><div class="lane-bg"></div>${laneBody(inst, WIN)}</div>
+      </div>
+      ${open ? `<div class="idrawer">${drawerHtml(inst)}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  /* the ruler must clear the identity column: card border + padding + column + gap */
+  const body = `${ruler(WIN, { left: `calc(.7rem + 4px + ${ID_COL} + .7rem)`, right: 'calc(.7rem + 1px)' })}
+    <div class="stack">${cards}</div>
+    ${fixedNote()}${heightNote()}`;
+
+  document.getElementById('app').innerHTML = pageChrome('Instance Timeline', toolbar(), body);
+
+  measureHeights();
+
+  document.getElementById('notes').innerHTML = notesBlock(
+    ['The fixed left column aligns every bar across every card — the shared-axis benefit, without leaving the card.',
+     'Less than half the height, and the identity block still has two lines to breathe in.',
+     'The lane is vertically centred against the name, so the eye tracks straight across from label to bar.',
+     'Nothing is removed: border, status edge, chips, chevron and drawer all survive.'],
+    ['The lane loses ~19rem of width to the identity column, so short instances get shorter bars.',
+     'Timestamps have to shorten to clock times to fit the column; the full UTC date moves into the tooltip and the drawer.',
+     'Below ~900px the two columns have to stack, and then it is just variant 2.'],
+    ['Turn <code>.instance-card</code>\'s body into a two-column grid; keep the header chips absolutely positioned.',
+     'Put the column width in a token or a CSS custom property so the ruler and the lanes cannot drift apart.',
+     'Use <code>FormattingService</code> for the short clock format rather than slicing the UTC string.']
+  );
+</script>
+</body>
+</html>

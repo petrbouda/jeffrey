@@ -1,0 +1,306 @@
+/*
+ * Trace notification popover — shared shell.
+ *
+ * The waterfall behind the popover is transcribed from TraceWaterfall.vue so each variant is judged
+ * in the place it actually appears: inside a fullscreen GenericModal, anchored to the notification
+ * rail, with span rows underneath it that it may or may not cover. Tokens come from
+ * ../instance-timeline/tokens.css.
+ *
+ * Only the .pop-* / panel block differs between the five pages. Everything in this file is fixed.
+ */
+
+/* ------------------------------------------------------------------ modal shell */
+
+.modal-frame {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.modal-head > i { color: var(--color-primary); font-size: 1.05rem; }
+.modal-head h2 { font-size: 0.98rem; font-weight: var(--font-weight-bold); flex: 1; }
+.modal-head .x { color: var(--color-text-light); font-size: 1.05rem; }
+.modal-body { padding: 0.9rem 1.15rem 1.1rem; }
+
+/* the meta chip strip under the title */
+.trace-meta { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
+.trace-meta .chip.err { border-color: #f1aeb5; background: var(--color-danger-light); color: var(--color-danger); font-weight: 600; }
+.trace-meta .chip.msg { border-color: var(--color-primary-border); background: var(--color-primary-light); color: var(--color-primary); font-weight: 600; }
+
+/* ------------------------------------------------------------------ waterfall */
+
+.wf-card { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-bg-card); }
+
+.wf-toolbar { display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem 0.8rem; flex-wrap: wrap; }
+.wf-toggle {
+  display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.2rem 0.7rem;
+  border: 1px solid var(--color-border-input); border-radius: var(--radius-pill);
+  background: var(--color-white); color: var(--color-text-muted);
+  font-size: var(--font-size-base); font-weight: var(--font-weight-medium);
+}
+.wf-overlays {
+  display: inline-flex; align-items: center; gap: 0.55rem; padding: 0.2rem 0.7rem;
+  border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-light);
+}
+.wf-overlays-label {
+  font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-light);
+}
+.wf-switch-item { display: inline-flex; align-items: center; gap: 0.35rem; font-size: var(--font-size-base); color: var(--color-dark); }
+.wf-switch { position: relative; width: 28px; height: 16px; border-radius: var(--radius-pill); background: var(--color-border-input); flex: none; }
+.wf-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: var(--radius-circle); background: #fff; box-shadow: var(--shadow-sm); }
+.wf-switch.on { background: var(--color-primary); }
+.wf-switch.on::after { left: 14px; }
+
+/* the row grid every lane, rail and row shares */
+.wf-head, .wf-row, .wf-lane, .wf-rail {
+  display: grid; grid-template-columns: 20rem 1fr 5.5rem; align-items: center; gap: 0.5rem;
+}
+
+.wf-lane, .wf-rail { padding: 0.15rem 1rem; border-left: 2px solid transparent; }
+.lane-label {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: var(--font-size-xs); letter-spacing: 0.03em; text-transform: uppercase; color: var(--color-text-muted);
+}
+.lane-dot { width: 0.45rem; height: 0.45rem; border-radius: var(--radius-circle); flex: none; }
+.lane-meter { flex: 1; height: 0.3rem; border-radius: var(--radius-pill); background: var(--color-lighter); overflow: hidden; min-width: 2rem; }
+.lane-meter i { display: block; height: 100%; }
+.lane-stat { flex: none; font-variant-numeric: tabular-nums; }
+.lane-track { position: relative; height: 0.9rem; }
+.lane-band { position: absolute; top: 0.08rem; height: 0.72rem; border-radius: var(--radius-xs); min-width: 2px; }
+
+/* the instant rails — this is what the popover is anchored to */
+.rail-track { position: relative; height: 1.15rem; }
+.rail-rule { position: absolute; inset: 0.55rem 0 auto 0; height: 1px; background: var(--color-border-light); }
+.rail-mark {
+  position: absolute; top: 0.28rem; width: 7px; height: 7px; margin-left: -3.5px;
+  background: var(--mark); box-shadow: 0 0 0 2px var(--color-bg-card); cursor: pointer;
+}
+.rail-mark.ntf { border-radius: 1px; transform: rotate(45deg); }
+.rail-mark.ntf.open { outline: 2px solid var(--color-dark); outline-offset: 2px; }
+.rail-mark.exc { border-radius: var(--radius-circle); }
+
+.wf-head {
+  padding: 0.55rem 1rem 0.4rem; border-left: 2px solid transparent;
+  font-size: var(--font-size-xs); letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--color-text-muted); font-weight: var(--font-weight-semibold);
+}
+/*
+ * ../instance-timeline/tokens.css also defines .wf-scale — there it is a ruler whose ticks are
+ * absolutely positioned from an inline left:%. Here it is the trace waterfall's two-endpoint scale,
+ * so the tick positioning has to be undone or "11s 286ms" lands half its own width left of the
+ * track it labels.
+ */
+.wf-scale { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; height: auto; position: static; }
+.wf-scale span { position: static; transform: none; }
+.wf-duration { text-align: right; font-family: var(--font-family-monospace); font-size: var(--font-size-sm); color: var(--color-text); font-variant-numeric: tabular-nums; }
+
+/* rows — positioned, because every variant except the inline one floats above them */
+.wf-rows { position: relative; display: flex; flex-direction: column; }
+.wf-row {
+  width: 100%; padding: 0.28rem 1rem; border-bottom: 1px solid var(--color-border-light);
+  border-left: 2px solid transparent; font-size: var(--font-size-sm); text-align: left;
+}
+.wf-row:last-child { border-bottom: 0; }
+.wf-name { display: flex; align-items: center; gap: 0.4rem; min-width: 0; }
+.wf-indent { flex: none; }
+.wf-twist { flex: none; width: 0.8rem; font-size: 0.6rem; line-height: 1; color: var(--color-text-muted); }
+.wf-kind { width: 0.45rem; height: 0.45rem; border-radius: var(--radius-circle); flex: none; }
+.kind-server { background: var(--color-primary); }
+.kind-internal { background: var(--color-secondary); }
+.kind-client { background: var(--color-info); }
+.wf-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-dark); }
+.wf-track { position: relative; height: 1.1rem; }
+.wf-track::before { content: ''; position: absolute; inset: 0.5rem 0 auto 0; height: 1px; background: var(--color-border-light); }
+.wf-bar { position: absolute; top: 0.15rem; height: 0.8rem; border-radius: var(--radius-xs); }
+.bar-server { background: color-mix(in srgb, var(--flamegraph-color-blue) 35%, transparent); }
+.bar-internal { background: color-mix(in srgb, var(--flamegraph-color-green) 40%, transparent); }
+.bar-client { background: color-mix(in srgb, var(--flamegraph-color-cyan) 35%, transparent); }
+.wf-count { flex: none; padding: 0 0.3rem; border-radius: var(--radius-xs); background: color-mix(in srgb, var(--mark) 14%, transparent); color: var(--mark); font-size: 0.6rem; font-weight: var(--font-weight-bold); }
+
+/* ------------------------------------------------------------------ severity vocabulary */
+/* NOTIFICATION_SEVERITIES from traceLabels.ts, verbatim. */
+.sev-critical { --mark: var(--color-danger-dark); }
+.sev-high     { --mark: var(--color-danger); }
+.sev-medium   { --mark: var(--color-warning); }
+.sev-low      { --mark: var(--color-secondary); }
+
+/* Badge.vue variants used for severity, resolved values from design-tokens.css */
+.badge-danger    { background: var(--color-danger-light);  color: var(--color-danger);  border-color: var(--color-danger); }
+.badge-warning   { background: var(--color-warning-light); color: var(--color-warning); border-color: var(--color-warning); }
+.badge-secondary { background: var(--color-secondary-bg);  color: var(--color-text-muted); border-color: #9ba3d4; }
+.badge-info      { background: #ddf2f6; color: #00838f; border-color: #7dd3e8; }
+.badge-s  { padding: .25rem .5rem; font-size: .7rem;  min-height: 1.25rem; line-height: 1.2; }
+.badge-xxs { padding: .15rem .3rem; font-size: .6rem; min-height: .8rem;  line-height: 1; }
+
+/* ------------------------------------------------------------------ page furniture */
+
+.panel { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-white); padding: 1rem; }
+.panel > h3 { font-size: 0.82rem; font-weight: var(--font-weight-bold); margin-bottom: 0.15rem; display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+.panel > p.cap { font-size: var(--font-size-sm); color: var(--color-text-muted); margin-bottom: 0.8rem; max-width: 92ch; line-height: 1.55; }
+.tag { font-size: 0.58rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.1rem 0.35rem; border-radius: 4px; }
+.tag.now { background: var(--color-lighter); color: var(--color-text-muted); }
+.tag.new { background: var(--color-primary-light); color: var(--color-primary); }
+.measure { margin-left: auto; font-size: var(--font-size-xs); color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+.measure b { color: var(--color-dark); }
+
+/* ===================================================================
+   The popover exactly as it ships today — the baseline every variant
+   is measured against. Transcribed from TraceWaterfall.vue:2381-2615.
+   =================================================================== */
+
+.rail-pop {
+  position: absolute; z-index: 6;
+  width: 22rem; max-width: 60vw;
+  padding: 0.55rem 0.7rem 0.6rem;
+  transform: translateX(-70%);
+  border: 1px solid var(--color-border-input);
+  border-left: 3px solid var(--mark);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-lg);
+  text-align: left; cursor: default;
+  top: 1.35rem;
+  max-height: 13rem; overflow-y: auto;
+}
+.pop-head { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.2rem; }
+.pop-sev { font-size: var(--font-size-xs); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--mark); }
+.pop-type, .pop-at { font-family: var(--font-family-monospace); font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.pop-at { margin-left: auto; font-variant-numeric: tabular-nums; }
+.pop-body { margin-top: 0.2rem; font-size: var(--font-size-sm); color: var(--color-text); line-height: 1.5; }
+.pop-attrs { display: flex; flex-wrap: wrap; gap: 0.25rem 0.4rem; margin-top: 0.4rem; }
+/*
+ * Byte-for-byte the same rule as .sd-entry-attr in TraceSpanInlineDetail. The key is mono on
+ * purpose: it is the developer's own string, so it is never relabelled — which is also why a
+ * Badge key-value chip cannot replace it, Badge key-value not being mono.
+ */
+.pop-attr {
+  display: inline-flex; align-items: baseline; gap: 0.3rem;
+  padding: 0.1rem 0.35rem; border-radius: var(--radius-sm);
+  background: var(--color-light);
+  font-family: var(--font-family-monospace); font-size: var(--font-size-xs);
+  overflow-wrap: anywhere;
+}
+.pop-attr-k { color: var(--color-text-muted); }
+.pop-attr-v { color: var(--color-dark); font-weight: 600; }
+.pop-attr-more { align-self: center; font-family: var(--font-family-monospace); font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.pop-meta { display: flex; gap: 0.8rem; flex-wrap: wrap; margin-top: 0.35rem; font-family: var(--font-family-monospace); font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.pop-link {
+  display: flex; align-items: center; gap: 0.3rem;
+  margin-top: 0.4rem; padding: 0.3rem 0 0;
+  border: 0; border-top: 1px solid var(--color-border-light);
+  background: transparent; color: var(--color-primary);
+  font-size: var(--font-size-sm); font-weight: 600; cursor: pointer; width: 100%;
+}
+
+/* ===================================================================
+   The region shell from TraceSpanInlineDetail.vue — where the SAME
+   notification is rendered as the slow read. Several variants below
+   borrow it rather than inventing a sixth panel language.
+   =================================================================== */
+
+.sd-region {
+  border: 1px solid var(--color-primary-light);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  overflow: hidden;
+}
+.sd-region > header {
+  display: flex; align-items: center; gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  background: var(--color-primary-lighter);
+  border-bottom: 1px solid var(--color-primary-light);
+  font-size: var(--font-size-sm); font-weight: 600;
+  letter-spacing: 0.07em; text-transform: uppercase; color: var(--color-primary);
+}
+.sd-src {
+  font-family: var(--font-family-monospace);
+  letter-spacing: 0; text-transform: none; font-weight: 400;
+  color: var(--color-text-muted); margin-left: auto;
+}
+.sd-region-body { padding: 0.6rem 0.75rem 0.7rem; display: flex; flex-direction: column; gap: 0.6rem; }
+
+/*
+ * The key/value table the span detail draws its own attribute map with -- `.sd-table.is-attr` in
+ * TraceSpanInlineDetail, transcribed. The key column is fixed at 13rem there (measured against 78
+ * real labels) and the key is mono because it is the developer's own string, never relabelled.
+ */
+.sd-table {
+  border-collapse: collapse; width: 100%; table-layout: fixed;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.sd-table td { padding: 0.4rem 0.7rem; border-bottom: 1px solid var(--color-border-light); vertical-align: top; line-height: 1.5; }
+.sd-table tr:last-child td { border-bottom: 0; }
+.sd-table tr:nth-child(even) td { background: var(--color-bg-hover); }
+.sd-k { width: 13rem; font-size: 0.8rem; color: var(--color-text); font-weight: 500; overflow-wrap: anywhere; }
+.sd-table.is-attr .sd-k { font-family: var(--font-family-monospace); color: var(--color-dark); font-weight: 400; }
+.sd-v { font-family: var(--font-family-monospace); font-size: 0.8rem; color: var(--color-dark); overflow-wrap: anywhere; white-space: pre-wrap; }
+.sd-v.num { font-variant-numeric: tabular-nums; }
+
+/*
+ * `.sd-block` -- how the span detail labels a table that is NOT a region: a small uppercase
+ * heading with a dot, and the table's own chrome underneath. `Span · identity` is drawn this way,
+ * and it is the shape for facts that qualify what the panel already names, as against a region,
+ * which is for a recorded map the panel does not otherwise show.
+ */
+.sd-block { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+.sd-label {
+  display: flex; align-items: center; gap: 0.35rem; margin: 0;
+  font-size: var(--font-size-sm); font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text-muted);
+}
+.sd-dot { width: 0.5rem; height: 0.5rem; border-radius: var(--radius-circle); background: var(--color-primary); flex: none; }
+/* severity recolours the edge and the header band, exactly as is-ntf does */
+.sd-region.is-ntf { border-left-color: var(--mark); border-color: color-mix(in srgb, var(--mark) 25%, transparent); }
+.sd-region.is-ntf > header {
+  background: color-mix(in srgb, var(--mark) 8%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--mark) 22%, transparent);
+  color: var(--mark);
+}
+
+/* the dock's close button — the popover has no way out today except clicking the mark again */
+.dock-close {
+  display: inline-grid; place-items: center; flex: none;
+  margin-left: auto; width: 1.2rem; height: 1.2rem;
+  border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--color-text-muted); cursor: pointer;
+}
+.dock-close:hover { background: var(--color-lighter); color: var(--color-dark); }
+.sd-region > header .sd-src + .dock-close { margin-left: 0.4rem; }
+
+/*
+ * The exception dock, for the variant that adopts it wholesale.
+ *
+ * The `.wf-rows > …` selector is not decoration: ../instance-timeline/tokens.css carries
+ * `.wf-rows > :not(.wf-stripes, .wf-cursor) { position: relative }` at specificity (0,2,0), which
+ * out-ranks a bare `.exc-dock` and pins the dock to `relative` — where `right` is ignored and it
+ * runs past the card's edge. The shipped component excludes `.exc-dock` from that selector; here the
+ * override does the same job.
+ */
+.wf-rows > .exc-dock,
+.exc-dock {
+  position: absolute; top: 0; left: 6rem; right: 6rem; z-index: 4;
+  border: 1px solid var(--color-secondary);
+  border-left: 3px solid var(--mark);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-lg);
+}
+.dock-head {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.26rem 0.5rem;
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-light);
+}

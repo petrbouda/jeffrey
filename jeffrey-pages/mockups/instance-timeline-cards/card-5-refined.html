@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instance Timeline cards — 5. Refined</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../instance-timeline/tokens.css">
+<link rel="stylesheet" href="cards.css">
+<style>
+  /* Same three zones as the shipped card. What changes is the styling of each one. */
+  .icard { border-left-width: 3px; }
+  .ihead { padding: .5rem .8rem .1rem; gap: .5rem; }
+  /* the generic box icon said nothing — every card is an instance. A status dot earns the space. */
+  .sdot { width: .5rem; height: .5rem; border-radius: var(--radius-circle); flex: none; }
+  .sdot.active   { background: var(--color-amber);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-amber) 22%, transparent); }
+  .sdot.finished { background: var(--color-success); }
+  .sdot.outsidedot { background: var(--color-text-light); }
+  .iname { font-size: .8rem; }
+
+  /* meta: keys stay, but the values carry the weight and a readable colour */
+  .imeta { padding: 0 .8rem .45rem; gap: .4rem; font-size: .68rem; }
+  .mk { color: var(--color-text-light); font-size: .56rem; }
+  .mv { color: var(--color-text); font-variant-numeric: tabular-nums; }
+  .mv.strong { color: var(--color-dark); font-weight: var(--font-weight-semibold); }
+
+  .lanewrap { padding: 0 .8rem .6rem; }
+  .lane { height: 1.4rem; }
+  .lane-bg { background: var(--color-light); border-color: var(--color-border-light); border-radius: var(--radius-base); }
+  .bar { top: 3px; bottom: 3px; border-radius: var(--radius-base); }
+  /* session boundaries inside an instance's bar, so a multi-session instance reads as one object */
+  .sessmark { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.65); }
+
+  .ruler-head-row { display: flex; align-items: baseline; gap: .5rem; margin-bottom: .1rem; }
+  .ruler-cap { font-size: var(--font-size-xs); text-transform: uppercase; letter-spacing: .06em;
+    color: var(--color-text-light); font-weight: var(--font-weight-semibold); flex: none; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All five</a>
+    <h1><span class="n">5</span>Refined — same layout, done properly</h1>
+    <p class="lede">
+      Structurally identical to today: header, meta strip, full-width lane. Every change here is a
+      <strong>styling</strong> change. Status was encoded four times over (card tint, left edge, badge, bar colour) —
+      the tint goes, and the generic box icon becomes a <strong>status dot</strong>, which is the same pixels doing
+      useful work. The meta gets a real hierarchy: keys recede, values take <code>--color-text</code> instead of the
+      barely-visible <code>--color-text-light</code>, and the duration is the one thing in the row that is bold. The
+      lane gets a softer ground and rounded bars, and <strong>session boundaries</strong> are hairlines inside the
+      instance's bar rather than separate slabs shaded by array parity — which is what the deleted legend was for.
+    </p>
+    <div id="app"></div>
+    <div id="notes"></div>
+  </div>
+
+<script src="../instance-timeline/data.js"></script>
+<script src="cards.js"></script>
+<script>
+  /* session boundaries drawn INSIDE the instance bar, as a percentage of the bar */
+  function sessionMarks(inst, g) {
+    if (inst.sessions.length < 2 || g.outside) { return ''; }
+    const from = Math.max(inst.start, WIN.start);
+    const to = Math.min(inst.end ?? NOW, WIN.end);
+    return inst.sessions.slice(1).map(s => {
+      const x = ((s.start - from) / (to - from)) * 100;
+      return x <= 0 || x >= 100 ? '' : `<span class="sessmark" style="left:${x}%"></span>`;
+    }).join('');
+  }
+
+  const cards = INSTANCES.map((inst, i) => {
+    const cls = inst.status.toLowerCase();
+    const g = barGeom(inst.start, inst.end, WIN);
+    const open = i === 0;
+    return `<div class="icard ${cls}${g.outside ? ' outside' : ''}">
+      <div class="ihead">
+        <span class="sdot ${g.outside ? 'outsidedot' : cls}"></span>
+        <span class="iname">${inst.name}</span>
+        <span class="badge badge-${cls}">${inst.status}</span>
+        <span class="ichips">${chipsHtml(inst, open)}</span>
+      </div>
+      <div class="imeta">
+        <span class="mk">Started</span><span class="mv">${fmtUTC(inst.start)}</span>
+        <span class="msep">→</span>
+        ${inst.end
+          ? `<span class="mk">Finished</span><span class="mv">${fmtUTC(inst.end)}</span>`
+          : '<span class="mv mrun">Running</span>'}
+        <span class="msep">·</span>
+        <span class="mk">Duration</span><span class="mv strong">${fmtDur(durationOf(inst))}</span>
+      </div>
+      <div class="lanewrap">
+        <div class="lane"><div class="lane-bg"></div>
+          ${laneBody(inst, WIN, { inner: sessionMarks(inst, g) })}
+        </div>
+      </div>
+      ${open ? `<div class="idrawer">${drawerHtml(inst)}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  const body = `
+    <div class="ruler-head-row"><span class="ruler-cap">Window</span></div>
+    ${ruler(WIN, { left: 'calc(.8rem + 4px)', right: 'calc(.8rem + 1px)' })}
+    <div class="stack">${cards}</div>
+    ${fixedNote()}${heightNote()}`;
+
+  document.getElementById('app').innerHTML = pageChrome('Instance Timeline', toolbar(), body);
+
+  measureHeights();
+
+  document.getElementById('notes').innerHTML = notesBlock(
+    ['Keeps the layout you already have — this is the lowest-argument option if the structure is fine and the finish is not.',
+     'Status encoded twice on purpose (dot for scanning, badge for naming) instead of four times by accident.',
+     'The meta becomes readable: <code>--color-text</code> values, recessive keys, duration carrying the emphasis.',
+     'Session boundaries inside the bar mean a multi-session instance reads as one object, and the parity legend has nothing left to explain.',
+     'Fixes the two drifted colours — the card washes currently use <code>#10b981</code> and <code>#9ca3af</code>, which are not the tokens beside them.'],
+    ['Barely shorter than today (~96px), so a long instance list is still a long scroll.',
+     'Removing the card tint makes the ACTIVE instance less obvious at a glance — the dot and badge have to carry it.',
+     'The white hairline for session boundaries disappears on a very pale bar.'],
+    ['No structural change — this is a rewrite of the scoped styles plus the ruler move.',
+     'Replace the 20 raw <code>rgba()</code> with tokens; the two drifted values are the reason the tints never matched.',
+     'Delete <code>sessionBarClass</code>\'s <code>strong</code>/<code>light</code> parity entirely and draw boundaries instead.',
+     'Row hover stays a background change only — no lift, no transform.']
+  );
+</script>
+</body>
+</html>

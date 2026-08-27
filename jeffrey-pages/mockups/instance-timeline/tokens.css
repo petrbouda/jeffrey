@@ -242,6 +242,23 @@ h1 .n {
   font-weight: var(--font-weight-semibold); text-transform: uppercase;
   border-radius: 5px; border: 1px solid transparent; flex: none; letter-spacing: 0.02em;
 }
+/* Badge.vue key-value mode, as shipped: lighter chrome, non-uppercase, muted key + dark value.
+   Rendered as <span class="badge badge-xs badge-key-value"><span class="badge-key">Started</span>
+   <span class="badge-value">…</span></span> */
+.badge-key-value {
+  gap: .25rem; justify-content: flex-start;
+  background: var(--color-light);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  text-transform: none;
+  font-weight: var(--font-weight-medium);
+  font-family: var(--font-family-monospace);
+}
+.badge-key { color: var(--color-text-muted); font-weight: var(--font-weight-medium); }
+.badge-value { color: var(--color-dark); font-weight: var(--font-weight-semibold); font-variant-numeric: tabular-nums; }
+.badge-xs { padding: .2rem .4rem; font-size: .65rem; min-height: 1rem; line-height: 1.2; }
+.badge-key-value.badge-running .badge-value { color: var(--color-amber-highlight); }
+
 .badge-active   { background: var(--color-status-active-bg);   color: var(--color-status-active-text); }
 .badge-finished { background: var(--color-status-finished-bg); color: var(--color-status-finished-text); }
 .badge-failed   { background: var(--color-danger-light);       color: var(--color-danger); }

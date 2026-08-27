@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instance Timeline — accent down the timeline row</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../instance-timeline/tokens.css">
+<style>
+  /* ===================================================================
+     Transcribed verbatim from InstancesTimeline.vue so this is a true
+     before/after. Nothing else about the page is changed — the axis still
+     runs right-to-left, each card still carries its own ruler, the legend
+     is still there. The ONLY difference between the two stacks below is
+     the left accent on .instance-card-body.
+     =================================================================== */
+
+  .card-stack { display: flex; flex-direction: column; gap: 10px; }
+
+  .instance-card {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+
+  .instance-card-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--color-border);
+    border-left: 3px solid transparent;
+    cursor: pointer;
+  }
+  .instance-card.active .instance-card-head {
+    background-color: rgba(245, 158, 11, 0.06); border-left-color: var(--color-amber);
+  }
+  .instance-card.finished .instance-card-head {
+    background-color: rgba(16, 185, 129, 0.04); border-left-color: var(--color-success);
+  }
+
+  .instance-meta-strip {
+    display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+    padding: 4px 16px;
+    border-bottom: 1px solid var(--color-border);
+    border-left: 3px solid transparent;
+    font-family: var(--font-family-monospace); font-size: .66rem; color: var(--color-text-muted);
+    cursor: pointer;
+  }
+  .instance-card.active .instance-meta-strip {
+    background-color: rgba(245, 158, 11, 0.03); border-left-color: var(--color-amber);
+  }
+  .instance-card.finished .instance-meta-strip {
+    background-color: rgba(16, 185, 129, 0.02); border-left-color: var(--color-success);
+  }
+
+  /* AS SHIPPED: no border-left, and therefore 16px of left padding against the
+     head's 16 + 3 = 19px. The lane is 3px to the left of the header text. */
+  .instance-card-body { padding: 10px 16px 14px; cursor: pointer; }
+
+  .head-iconbox {
+    display: grid; place-items: center; width: 22px; height: 22px; flex: none;
+    border-radius: var(--radius-sm); background: var(--color-white);
+    border: 1px solid var(--color-border); color: var(--color-text-muted); font-size: .7rem;
+  }
+  .head-name { font-family: var(--font-family-monospace); font-size: .78rem; font-weight: 600; }
+  .head-chips { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .head-chip {
+    display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px;
+    border: 1px solid rgba(94, 100, 255, .35); border-radius: var(--radius-pill);
+    background: rgba(94, 100, 255, .08); color: var(--color-primary); font-size: var(--font-size-sm);
+  }
+  .head-chevron { color: var(--color-text-light); font-size: .7rem; }
+
+  .meta-k { font-size: .56rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--color-text-light); }
+  .meta-v { white-space: nowrap; }
+  .meta-running { color: var(--color-amber); font-weight: 600; }
+  .meta-sep { color: var(--color-text-light); margin: 0 2px; }
+
+  .time-axis { position: relative; height: 16px; margin-bottom: 6px; }
+  .axis-tick { position: absolute; transform: translateX(-50%); font-size: .6rem;
+    font-family: var(--font-family-monospace); color: var(--color-text-light); }
+  .lane { position: relative; height: 32px; }
+  .lane-bg { position: absolute; inset: 0; background: var(--color-neutral-light);
+    border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+  .session-bar { position: absolute; top: 4px; bottom: 4px;
+    border-left: 2px solid var(--color-bg-card); box-sizing: border-box; z-index: 1; }
+  .session-bar.first { border-left: none; }
+  .session-bar.finished-strong { background: var(--color-success-hover); }
+  .session-bar.active-strong { background: var(--color-amber-highlight); }
+
+  /* ===================================================================
+     THE CHANGE — six lines. Continue the accent down the timeline row.
+     `padding-left` drops from 16px to 13px so the 3px border replaces it
+     and the lane ends up flush with the header text instead of 3px left.
+     =================================================================== */
+  .fixed .instance-card-body {
+    border-left: 3px solid transparent;
+    padding-left: 13px;
+  }
+  .fixed .instance-card.active .instance-card-body   { border-left-color: var(--color-amber); }
+  .fixed .instance-card.finished .instance-card-body { border-left-color: var(--color-success); }
+
+  /* option B adds the faintest continuation of the tint as well, so the card
+     reads as one block rather than a tinted top and a white bottom */
+  .tinted .instance-card.active .instance-card-body   { background-color: rgba(245, 158, 11, 0.015); }
+  .tinted .instance-card.finished .instance-card-body { background-color: rgba(16, 185, 129, 0.01); }
+
+  /* ===================================================================
+     Variant C — the meta strip moves into the header as key-value badges,
+     sitting immediately after the ACTIVE/FINISHED badge. The whole
+     .instance-meta-strip row then disappears.
+     =================================================================== */
+  .as-badges .instance-meta-strip { display: none; }
+  .as-badges .instance-card-head { flex-wrap: wrap; row-gap: 6px; }
+  .as-badges .head-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; min-width: 0; }
+  /* the head keeps its own bottom rule; with the strip gone it now borders the timeline directly */
+
+  /* page furniture */
+  .panel { border: 1px solid var(--color-border); border-radius: var(--radius-md);
+    background: var(--color-white); padding: 1rem; margin-bottom: 1.1rem; }
+  .panel > h3 { font-size: .8rem; font-weight: var(--font-weight-bold); margin-bottom: .15rem;
+    display: flex; align-items: center; gap: .45rem; }
+  .panel > p.cap { font-size: var(--font-size-sm); color: var(--color-text-muted);
+    margin-bottom: .8rem; }
+  .tag { font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+    padding: .1rem .35rem; border-radius: 4px; }
+  .tag.now { background: var(--color-lighter); color: var(--color-text-muted); }
+  .tag.new { background: var(--color-primary-light); color: var(--color-primary); }
+
+  /* the magnified left edge, so the 3px is actually visible */
+  .zoom { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: .3rem; }
+  /* min-width:0 is required: the 1160px inner would otherwise set each column's min-content
+     width to 1160px and the three columns would stack instead of sitting side by side */
+  .zoomcol { flex: 1 1 240px; min-width: 0; }
+  .zoomcol h4 { font-size: var(--font-size-xs); text-transform: uppercase; letter-spacing: .06em;
+    color: var(--color-text-muted); font-weight: 600; margin-bottom: .35rem; }
+  /* A transform does not change layout, so the wrapper needs an explicit height ≈ 3× the card,
+     or it crops to the unscaled height and you only ever see the header — where nothing changes. */
+  .zoomwrap { overflow: hidden; border: 1px dashed var(--color-border-input);
+    border-radius: var(--radius-sm); background: var(--color-light);
+    padding: .4rem; height: 450px; }
+  /* the inner must lay out at the real page width, or the pod name wraps to four lines and the
+     card becomes far taller than the crop — which is what hid the timeline row here */
+  .zoomwrap .inner { transform: scale(3); transform-origin: left top; width: 1160px; }
+
+  .diffbox { font-family: var(--font-family-monospace); font-size: .72rem; line-height: 1.7;
+    background: var(--color-dark); color: #cbd5e1; border-radius: var(--radius-md);
+    padding: .8rem 1rem; overflow-x: auto; margin-top: .3rem;
+    white-space: pre; }
+  .diffbox .add { color: #86efac; }
+  .diffbox .ctx { color: #64748b; }
+  .diffbox .del { color: #fca5a5; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All variants</a>
+    <h1>Continue the accent down the timeline row</h1>
+    <p class="lede">
+      Minimal change, nothing else touched. The axis still runs right-to-left, every card still carries its own ruler,
+      the legend is still there — the <strong>only</strong> difference between the stacks below is the coloured left
+      edge on <code>.instance-card-body</code>.
+      Today the accent lives on <code>.instance-card-head</code> (<code>:1361</code>) and
+      <code>.instance-meta-strip</code> (<code>:1479</code>) but <strong>not</strong> on
+      <code>.instance-card-body</code> (<code>:1528</code>), so it stops halfway down the card.
+      There is a second thing hiding in that: head and meta indent their content by
+      <code>16px padding + 3px border = 19px</code>, while the body indents by <code>16px</code> — so the lane currently
+      sits <strong>3px to the left</strong> of the header text. Adding the border and dropping the body's
+      <code>padding-left</code> to <code>13px</code> fixes the accent and the alignment in the same three lines.
+    </p>
+
+    <div id="app"></div>
+
+    <div class="panel" style="margin-top:1.4rem">
+      <h3><i class="bi bi-code-slash" style="color:var(--color-primary)"></i> The diff</h3>
+      <p class="cap"><code>shared/ui/instances/src/InstancesTimeline.vue</code> — scoped styles, around line 1528</p>
+      <div class="diffbox" id="diff"></div>
+    </div>
+
+    <div class="panel">
+      <h3><i class="bi bi-zoom-in" style="color:var(--color-primary)"></i> The left edge at 3×</h3>
+      <p class="cap">Same card, magnified, so the 3px is actually visible.</p>
+      <div class="zoom" id="zoom"></div>
+    </div>
+  </div>
+
+<script src="../instance-timeline/data.js"></script>
+<script>
+  /* the shipped geometry, unchanged: left is the AGE of the session's end */
+  const WIN24 = 86400000;
+  function shippedBarStyle(session) {
+    const startPercent = Math.max(0, Math.min(((NOW - session.start) / WIN24) * 100, 100));
+    const endPercent = session.active || !session.end
+      ? 0 : Math.max(0, Math.min(((NOW - session.end) / WIN24) * 100, 100));
+    const left = endPercent;
+    const width = Math.max(startPercent - endPercent, 0.3);
+    return `left:${left}%;width:${Math.min(width, 100 - left)}%`;
+  }
+
+  const TICKS = ['Now', '-6h', '-12h', '-18h', '-24h'];
+
+  /* Variant C: the meta strip's three facts, as Badge.vue key-value badges. */
+  function metaBadges(inst) {
+    const kv = (k, v, extra) =>
+      `<span class="badge badge-xs badge-key-value ${extra ?? ''}">
+        <span class="badge-key">${k}</span><span class="badge-value">${v}</span></span>`;
+    return `<span class="head-meta">
+      ${kv('Started', fmtUTC(inst.start))}
+      ${inst.end
+        ? kv('Finished', fmtUTC(inst.end))
+        : kv('Status', 'Running', 'badge-running')}
+      ${kv('Duration', fmtDur(durationOf(inst)))}
+    </span>`;
+  }
+
+  function card(inst, metaInHead) {
+    const cls = inst.status.toLowerCase();
+    const bars = inst.sessions.map((s, idx) => {
+      const kind = s.active ? 'active' : 'finished';
+      return `<div class="session-bar ${kind}-strong${idx === 0 ? ' first' : ''}" style="${shippedBarStyle(s)}"></div>`;
+    }).join('');
+
+    return `<div class="instance-card ${cls}">
+      <div class="instance-card-head">
+        <span class="head-iconbox"><i class="bi bi-box"></i></span>
+        <span class="head-name">${inst.name}</span>
+        <span class="badge badge-${cls}">${inst.status}</span>
+        ${metaInHead ? metaBadges(inst) : ''}
+        <span class="head-chips">
+          <span class="head-chip"><i class="bi bi-layers"></i> ${inst.sessions.length} session
+            <i class="bi bi-arrow-up-right" style="font-size:.55rem"></i></span>
+          <i class="bi bi-chevron-right head-chevron"></i>
+        </span>
+      </div>
+      <div class="instance-meta-strip">
+        <span class="meta-k">Started</span><span class="meta-v">${fmtUTC(inst.start)}</span>
+        <span class="meta-sep">→</span>
+        ${inst.end
+          ? `<span class="meta-k">Finished</span><span class="meta-v">${fmtUTC(inst.end)}</span>`
+          : '<span class="meta-v meta-running">Running</span>'}
+        <span class="meta-sep">·</span>
+        <span class="meta-k">Duration</span><span class="meta-v">${fmtDur(durationOf(inst))}</span>
+      </div>
+      <div class="instance-card-body">
+        <div class="time-axis">
+          ${TICKS.map((t, i) => `<span class="axis-tick" style="left:${(i / (TICKS.length - 1)) * 100}%">${t}</span>`).join('')}
+        </div>
+        <div class="lane"><div class="lane-bg"></div>${bars}</div>
+      </div>
+    </div>`;
+  }
+
+  const stack = INSTANCES.map(i => card(i, false)).join('');
+  const stackBadges = INSTANCES.map(i => card(i, true)).join('');
+
+  function panel(title, tag, tagCls, caption, cls, useBadges) {
+    return `<div class="panel">
+      <h3>${title} <span class="tag ${tagCls}">${tag}</span></h3>
+      <p class="cap">${caption}</p>
+      <div class="${cls}"><div class="card-stack">${useBadges ? stackBadges : stack}</div></div>
+    </div>`;
+  }
+
+  document.getElementById('app').innerHTML =
+    panel('As shipped', 'today', 'now',
+      'The accent runs down the header and the meta strip, then stops. The timeline row has no left border, and its content sits 3px further left than everything above it.',
+      '') +
+    panel('A — accent continued', 'the change', 'new',
+      'Three lines of CSS. The coloured edge now runs the full height of the card, and the lane lines up with the header text.',
+      'fixed') +
+    panel('B — accent continued, plus a whisper of tint', 'optional', 'new',
+      'Same as A, with the status tint stepped down once more (0.015 / 0.01) instead of stopping dead at white, so the card reads as one block rather than a tinted top and a white bottom.',
+      'fixed tinted') +
+    panel('C — meta as key-value badges, right after the status badge', 'the ask', 'new',
+      'The <code>.instance-meta-strip</code> row is deleted and its three facts move into the header as ' +
+      '<code>Badge.vue</code> key-value badges, immediately after ACTIVE/FINISHED. That is the shipped ' +
+      '<code>badge-key-value</code> mode — muted key, dark value, lighter chrome, no uppercase — so it is an ' +
+      'existing component, not a new chip. Accent continued as in A.',
+      'fixed as-badges', true);
+
+  document.getElementById('diff').innerHTML =
+    `<span class="ctx">.instance-card-body {</span>\n` +
+    `<span class="del">-  padding: 10px 16px 14px;</span>\n` +
+    `<span class="add">+  padding: 10px 16px 14px 13px;</span>\n` +
+    `<span class="add">+  border-left: 3px solid transparent;</span>\n` +
+    `<span class="ctx">   min-width: 0;\n   cursor: pointer;\n   transition: background-color var(--transition-fast);\n}</span>\n\n` +
+    `<span class="add">+.instance-card.pending .instance-card-body  { border-left-color: var(--color-blue-500); }</span>\n` +
+    `<span class="add">+.instance-card.active .instance-card-body   { border-left-color: var(--color-amber); }</span>\n` +
+    `<span class="add">+.instance-card.finished .instance-card-body { border-left-color: var(--color-success); }</span>\n` +
+    `<span class="add">+.instance-card.expired .instance-card-body  { border-left-color: var(--color-text-light); }</span>`;
+
+  /* magnified left edge — the same card at 3x, cropped to its first 33% */
+  const one = card(INSTANCES[1]);
+  document.getElementById('zoom').innerHTML = `
+    <div class="zoomcol"><h4>As shipped — accent stops</h4>
+      <div class="zoomwrap"><div class="inner"><div class="card-stack">${one}</div></div></div></div>
+    <div class="zoomcol"><h4>A — accent continued</h4>
+      <div class="zoomwrap fixed"><div class="inner"><div class="card-stack">${one}</div></div></div></div>
+    <div class="zoomcol"><h4>B — plus the tint step</h4>
+      <div class="zoomwrap fixed tinted"><div class="inner"><div class="card-stack">${one}</div></div></div></div>`;
+</script>
+</body>
+</html>

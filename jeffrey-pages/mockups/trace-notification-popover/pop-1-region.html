@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notification popover — 1. Region shell</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="../instance-timeline/tokens.css">
+<link rel="stylesheet" href="shell.css">
+<style>
+  /* The popover keeps its footprint and its anchor; only its shell changes to .sd-region's. */
+  .rail-pop.v-region {
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--mark) 25%, transparent);
+    border-left: 3px solid var(--mark);
+    max-height: none;
+  }
+  .v-region > header {
+    display: flex; align-items: center; gap: .4rem;
+    padding: .4rem .75rem;
+    background: color-mix(in srgb, var(--mark) 8%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--mark) 22%, transparent);
+    font-size: var(--font-size-sm); font-weight: 600;
+    letter-spacing: .07em; text-transform: uppercase; color: var(--mark);
+  }
+  .v-region > header .h-type { letter-spacing: 0; text-transform: none; font-family: var(--font-family-monospace); color: var(--color-dark); font-weight: 600; }
+  .v-region-body { padding: .6rem .75rem .7rem; max-height: 15rem; overflow-y: auto; }
+  .v-region-body .pop-body { margin-top: 0; }
+  .v-region .pop-link { margin: 0; padding: .35rem .75rem; border-top: 1px solid var(--color-border-light); background: var(--color-light); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html"><i class="bi bi-arrow-left"></i> All five</a>
+    <h1><span class="n">1</span>Region shell — same size, house chrome</h1>
+    <p class="lede">
+      Smallest possible change for the most consistency. The popover keeps its <strong>22rem
+      footprint and its anchor to the mark</strong>; what it gains is the shell that
+      <code>TraceSpanInlineDetail</code> already uses for this <em>exact</em> notification — a
+      <strong>tinted header band</strong> in the severity colour (<code>color-mix(--mark 8%)</code>,
+      uppercase <code>0.07em</code>), the offset pushed right in mono like <code>.sd-src</code>, a
+      <strong>close button</strong> borrowed from the exception dock, and the body padded at
+      <code>.sd-region-body</code> scale instead of <code>0.55rem 0.7rem</code>. The chips and the
+      severity word are untouched: they are already byte-for-byte the region's own rules.
+      So the same notification now looks the same in both places the reader meets it.
+    </p>
+    <div id="app"></div>
+  </div>
+<script src="shell.js"></script>
+<script>
+  function render(n, at) {
+    return `<div class="rail-pop v-region pop-measure ${n.sevClass}" style="left:${at}%">
+      <header>
+        ${n.severity}
+        <span class="h-type">${n.type}</span>
+        <span class="sd-src">${n.at}</span>
+        <button class="dock-close" title="Close"><i class="bi bi-x-lg"></i></button>
+      </header>
+      <div class="v-region-body">
+        <p class="pop-body">${n.message}</p>
+        <div class="pop-attrs">${attrChips(n)}</div>
+        <p class="pop-meta"><span>${n.category}</span><span>${n.source}</span></p>
+      </div>
+      <button class="pop-link"><i class="bi bi-arrow-return-right"></i> Select ${n.span}</button>
+    </div>`;
+  }
+  document.getElementById('app').innerHTML = bothCases(render);
+  measurePanels();
+</script>
+</body>
+</html>
