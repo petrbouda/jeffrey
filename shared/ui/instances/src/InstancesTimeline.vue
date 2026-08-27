@@ -71,7 +71,9 @@
             }
           ]"
         >
-          <!-- Status-tinted card header: icon, name, status badge, quick-access chips -->
+          <!-- Status-tinted card header: icon, name, status badge, the instance's time data as
+               key-value badges, then the quick-access chips. The time data used to live in a
+               dedicated strip below; folding it in here removes a whole row from every card. -->
           <div class="instance-card-head" @click="toggleExpand(instance.id)">
             <span class="head-iconbox">
               <i class="bi bi-box"></i>
@@ -82,6 +84,25 @@
               :variant="statusBadgeVariant(instance.status)"
               size="xxs"
             />
+            <span class="head-meta">
+              <Badge
+                key-label="Started"
+                :value="FormattingService.formatTimestampUTC(instance.createdAt)"
+                size="xs"
+              />
+              <Badge
+                v-if="instanceEnd(instance)"
+                key-label="Finished"
+                :value="FormattingService.formatTimestampUTC(instanceEnd(instance))"
+                size="xs"
+              />
+              <Badge v-else key-label="Status" value="Running" variant="warning" size="xs" />
+              <Badge
+                key-label="Duration"
+                :value="FormattingService.formatDurationInMillis2Units(instance.duration)"
+                size="xs"
+              />
+            </span>
             <div class="head-chips">
               <router-link
                 :to="generateInstanceUrl(instance.id)"
@@ -101,41 +122,27 @@
             </div>
           </div>
 
-          <!-- Meta strip: the single home of the instance's time data (started → finished
-               · duration), so neither the header chips nor the overview panel repeat it. -->
-          <div class="instance-meta-strip" @click="toggleExpand(instance.id)">
-            <span class="meta-k">Started</span>
-            <span class="meta-v">{{ FormattingService.formatTimestampUTC(instance.createdAt) }}</span>
-            <span class="meta-sep">→</span>
-            <template v-if="instanceEnd(instance)">
-              <span class="meta-k">Finished</span>
-              <span class="meta-v">{{
-                FormattingService.formatTimestampUTC(instanceEnd(instance))
-              }}</span>
-            </template>
-            <span v-else class="meta-v meta-running">Running</span>
-            <span class="meta-sep">·</span>
-            <span class="meta-k">Duration</span>
-            <span class="meta-v">{{
-              FormattingService.formatDurationInMillis2Units(instance.duration)
-            }}</span>
-          </div>
-
-          <!-- Full-width timeline body -->
+          <!-- Full-width timeline body. There is no tick row: the window is named once in the
+               toolbar, and a scrub cursor reads out the exact instant under the pointer. -->
           <div class="instance-card-body" @click="toggleExpand(instance.id)">
-            <div class="time-axis">
-              <span
-                v-for="(tick, idx) in timelineTicks"
-                :key="tick"
-                class="axis-tick"
-                :style="{ left: axisTickLeft(idx) }"
-                >{{ tick }}</span
-              >
-            </div>
-
             <!-- Sessions lane -->
-            <div class="lane lane-sessions">
+            <div
+              class="lane lane-sessions"
+              @pointermove="trackScrub($event, instance.id)"
+              @pointerleave="clearScrub"
+            >
               <div class="lane-bg"></div>
+              <!-- The chip is suppressed while a bar tooltip is up: both are dark overlays at the
+                   pointer, and the tooltip already carries the session's start and end. The line
+                   stays either way, so the position is still marked. -->
+              <span
+                v-if="scrub !== null && scrub.instanceId === instance.id"
+                class="scrub"
+                :style="{ left: scrub.percent + '%' }"
+                aria-hidden="true"
+              >
+                <span v-if="!isBarTooltipOpen" class="scrub-chip">{{ scrub.label }}</span>
+              </span>
               <template v-if="instanceSessions.has(instance.id)">
                 <div
                   v-for="(session, idx) in getRealSessionsForInstance(instance.id)"
@@ -169,7 +176,7 @@
           </div>
 
           <!-- Instance overview panel: opens when the header or timeline body is clicked.
-               Headless — the card header and the meta strip above already identify the
+               Headless — the card header above already identifies the
                instance, so only a floating close button remains. Uses the same drawer
                shell as the session drawer below; only one can be open per card. -->
           <div v-if="expandedIds.has(instance.id)" class="inline-drawer inline-drawer--headless">
@@ -648,27 +655,45 @@ const hoveredFailedBlock = ref<{ block: FailedSessionBlock; instanceId: string }
 const tooltipPosition = ref<{ x: number; y: number }>({ x: 0, y: 0 });
 let tooltipHideTimeout: number | null = null;
 
-const timelineTicks = computed(() => {
-  switch (selectedRange.value) {
-    case '1h':
-      return ['Now', '-15m', '-30m', '-45m', '-1h'];
-    case '6h':
-      return ['Now', '-1h', '-2h', '-3h', '-4h', '-5h', '-6h'];
-    case '24h':
-      return ['Now', '-6h', '-12h', '-18h', '-24h'];
-    case '7d':
-      return ['Today', '-1d', '-2d', '-3d', '-4d', '-5d', '-6d', '-7d'];
-    case '30d':
-      return ['Today', '-1w', '-2w', '-3w', '-4w'];
-    default:
-      return ['Now', '-6h', '-12h', '-18h', '-24h'];
-  }
-});
+/*
+ * Scrub cursor. The lanes carry no tick labels — the window is named once in the toolbar — so this
+ * is how an exact instant is read off a bar. Measured against the lane the pointer is actually in,
+ * because lanes come and go as drawers open and close.
+ */
+const scrub = ref<{ instanceId: string; percent: number; label: string } | null>(null);
 
-function axisTickLeft(idx: number): string {
-  const count = timelineTicks.value.length;
-  if (count <= 1) return '0%';
-  return ((idx / (count - 1)) * 100).toFixed(2) + '%';
+// A session or crash-loop tooltip is showing, so the scrub chip would stack on top of it.
+const isBarTooltipOpen = computed(
+  () => hoveredSession.value !== null || hoveredFailedBlock.value !== null
+);
+
+function trackScrub(event: PointerEvent, instanceId: string): void {
+  const lane = event.currentTarget;
+  if (!(lane instanceof Element)) {
+    clearScrub();
+    return;
+  }
+  const box = lane.getBoundingClientRect();
+  if (box.width <= 0) {
+    clearScrub();
+    return;
+  }
+  const percent = ((event.clientX - box.left) / box.width) * 100;
+  if (percent < 0 || percent > 100) {
+    clearScrub();
+    return;
+  }
+  // The lane is drawn newest-first: 0% is now, 100% is the oldest edge of the window.
+  const at = Date.now() - (percent / 100) * getRangeMs();
+  scrub.value = {
+    instanceId: instanceId,
+    percent: percent,
+    label: FormattingService.formatTimestampUTCShort(at)
+  };
+}
+
+function clearScrub(): void {
+  scrub.value = null;
 }
 
 function getSessionBarStyle(session: ProjectInstanceSession): Record<string, string> {
@@ -1434,7 +1459,9 @@ onMounted(async () => {
   font-size: 0.7rem;
   font-weight: 600;
   padding: 2px 8px;
-  border-radius: var(--radius-pill);
+  /* Squared off to match the key-value badges immediately to its left, so the header does not
+     mix one pill with four near-square chips. */
+  border-radius: var(--radius-sm);
   border: 1px solid var(--color-border);
   background: var(--color-bg-card);
   color: var(--color-text-muted);
@@ -1466,92 +1493,45 @@ onMounted(async () => {
   transition: transform var(--transition-fast);
 }
 
-/* ======================================================================
-   Meta strip: started → finished · duration, between header and timeline
-   ====================================================================== */
-.instance-meta-strip {
+/* Started / Finished / Duration as key-value badges, inline in the header. */
+.head-meta {
   display: flex;
   align-items: center;
   gap: 5px;
   flex-wrap: wrap;
-  padding: 4px 16px;
-  border-bottom: 1px solid var(--color-border);
-  border-left: 3px solid transparent;
-  font-family: var(--font-family-monospace);
-  font-size: 0.66rem;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: background-color var(--transition-fast);
-}
-.instance-card.pending .instance-meta-strip {
-  background-color: rgba(59, 130, 246, 0.03);
-  border-left-color: var(--color-blue-500);
-}
-.instance-card.active .instance-meta-strip {
-  background-color: rgba(245, 158, 11, 0.03);
-  border-left-color: var(--color-amber);
-}
-.instance-card.finished .instance-meta-strip {
-  background-color: rgba(16, 185, 129, 0.02);
-  border-left-color: var(--color-success);
-}
-.instance-card.expired .instance-meta-strip {
-  background-color: rgba(156, 163, 175, 0.02);
-  border-left-color: var(--color-text-light);
-}
-.instance-meta-strip:hover {
-  background-color: var(--color-bg-hover);
-}
-.meta-k {
-  font-family: inherit;
-  font-size: 0.56rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-light);
-}
-.meta-v {
-  white-space: nowrap;
-}
-.meta-running {
-  color: var(--color-amber);
-  font-weight: 600;
-}
-.meta-sep {
-  color: var(--color-text-light);
-  margin: 0 2px;
+  min-width: 0;
 }
 
 /* ======================================================================
    Full-width timeline body
    ====================================================================== */
 .instance-card-body {
-  padding: 10px 16px 14px;
+  /* The left padding is 3px short of the header's because the accent below makes up the
+     difference — that keeps the lane flush with the header text instead of 3px left of it. */
+  padding: 10px 16px 14px 13px;
+  border-left: 3px solid transparent;
   min-width: 0;
   cursor: pointer;
   transition: background-color var(--transition-fast);
+}
+.instance-card.pending .instance-card-body {
+  border-left-color: var(--color-blue-500);
+}
+.instance-card.active .instance-card-body {
+  border-left-color: var(--color-amber);
+}
+.instance-card.finished .instance-card-body {
+  border-left-color: var(--color-success);
+}
+.instance-card.expired .instance-card-body {
+  border-left-color: var(--color-text-light);
 }
 .instance-card-body:hover {
   background-color: var(--color-bg-hover);
 }
 
-.time-axis {
-  position: relative;
-  height: 16px;
-  margin-bottom: 6px;
-}
-.axis-tick {
-  position: absolute;
-  transform: translateX(-50%);
-  top: 0;
-  font-size: 0.65rem;
-  color: var(--color-text-muted);
-  white-space: nowrap;
-}
-
 .lane {
   position: relative;
-  margin-top: 6px;
 }
 
 .lane-bg {
@@ -1565,6 +1545,36 @@ onMounted(async () => {
 /* Sessions lane: solid bars with alternating shades per index */
 .lane-sessions {
   height: 32px;
+  cursor: crosshair;
+}
+
+/* ======================================================================
+   Scrub cursor: replaces the per-card tick row. The line is 2px taller than
+   the lane at both ends so it reads as crossing it rather than sitting in it.
+   ====================================================================== */
+.scrub {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 1px;
+  background: var(--color-dark);
+  z-index: 3;
+  pointer-events: none;
+}
+.scrub-chip {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  transform: translateX(-50%);
+  margin-bottom: 3px;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--color-dark);
+  color: var(--color-bg-card);
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .session-bar {

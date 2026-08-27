@@ -232,6 +232,18 @@ export default class FormattingService {
   }
 
   /**
+   * Compact UTC form of an epoch-millis timestamp — "08-25 22:38 UTC".
+   *
+   * Deliberately UTC rather than local: it is used alongside
+   * {@link formatTimestampUTC} on the same screens, and mixing the two zones
+   * there would make two timestamps a few pixels apart disagree.
+   */
+  static formatTimestampUTCShort(millis: number | undefined | null): string {
+    if (!millis) return '-';
+    return new Date(millis).toISOString().slice(5, 16).replace('T', ' ') + ' UTC';
+  }
+
+  /**
    * Formats the time-of-day part of an epoch-millis timestamp in the local
    * timezone as "HH:MM:SS" (24-hour clock).
    */
