@@ -613,6 +613,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/tracing/TracingAnalysisPage.vue')
       },
       {
+        path: 'tracing/provisioner-hub',
+        name: 'DocsTracingProvisionerHub',
+        component: () => import('@/views/docs/tracing/TracingProvisionerHubPage.vue')
+      },
+      {
         path: 'tracing/configuration',
         name: 'DocsTracingConfiguration',
         component: () => import('@/views/docs/tracing/TracingConfigurationPage.vue')
