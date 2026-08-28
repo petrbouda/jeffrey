@@ -419,6 +419,8 @@ onBeforeUnmount(() => {
 .chip-label {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .chip-value {
