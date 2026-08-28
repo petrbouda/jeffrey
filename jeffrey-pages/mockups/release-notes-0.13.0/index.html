@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>0.13.0 release notes — five mockups</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #e2e8f0;
+    background: radial-gradient(900px 500px at 20% 0%, rgba(45,212,191,.12), transparent 60%),
+                radial-gradient(900px 500px at 85% 100%, rgba(168,85,247,.14), transparent 60%), #0a0f1e;
+    min-height: 100vh; padding: 4rem 2rem; }
+  .wrap { max-width: 1020px; margin: 0 auto; }
+  h1 { font-size: 2rem; font-weight: 800; color: #fff; letter-spacing: -.02em; margin-bottom: .5rem; }
+  .sub { color: #94a3b8; margin-bottom: 1.3rem; line-height: 1.7; max-width: 88ch; }
+  .sub strong { color: #cbd5e1; }
+  code { color: #7dd3fc; background: rgba(255,255,255,.06); padding: .1rem .35rem; border-radius: 5px; font-size: .86em;
+    font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .list { display: grid; gap: .9rem; margin-top: 1.8rem; }
+  a.mk { display: flex; gap: 1rem; align-items: flex-start; text-decoration: none; padding: 1.1rem 1.3rem;
+    border-radius: 14px; background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.1);
+    transition: transform .2s, border-color .2s, background .2s; }
+  a.mk:hover { transform: translateY(-3px); border-color: rgba(45,212,191,.45); background: rgba(255,255,255,.07); }
+  a.mk.rec { border-color: rgba(52,211,153,.5); background: rgba(52,211,153,.07); }
+  .num { width: 38px; height: 38px; flex-shrink: 0; border-radius: 11px; display: grid; place-items: center;
+    font-weight: 800; color: #fff; }
+  .num.n1 { background: linear-gradient(135deg, #2dd4bf, #38bdf8); box-shadow: 0 6px 16px rgba(45,212,191,.4); }
+  .num.n2 { background: linear-gradient(135deg, #818cf8, #34d399); box-shadow: 0 6px 16px rgba(129,140,248,.4); }
+  .num.n3 { background: linear-gradient(135deg, #f59e0b, #2dd4bf); box-shadow: 0 6px 16px rgba(245,158,11,.4); }
+  .num.n4 { background: linear-gradient(135deg, #e879f9, #a78bfa); box-shadow: 0 6px 16px rgba(232,121,249,.4); }
+  .num.n5 { background: linear-gradient(135deg, #f472b6, #fbbf24, #34d399); box-shadow: 0 6px 16px rgba(244,114,182,.4); }
+  .mk h3 { color: #fff; font-size: 1.02rem; font-weight: 700; margin-bottom: .25rem;
+    display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+  .mk p { color: #94a3b8; font-size: .85rem; line-height: 1.55; }
+  .h { font-size: .62rem; font-weight: 700; letter-spacing: .04em; padding: .12rem .4rem; border-radius: 4px;
+    background: rgba(45,212,191,.16); color: #5eead4; font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .h.pick { background: rgba(52,211,153,.18); color: #6ee7b7; }
+  .facts { margin-top: 2rem; padding: 1.2rem 1.4rem; border-radius: 12px; background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08); }
+  .facts h4 { color: #e2e8f0; font-size: .92rem; font-weight: 700; margin-bottom: .65rem;
+    display: flex; align-items: center; gap: .45rem; }
+  .facts h4 i { color: #5eead4; }
+  .facts ul { margin: 0; padding-left: 1.1rem; color: #94a3b8; font-size: .85rem; line-height: 1.8; }
+  .facts strong { color: #cbd5e1; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>0.13.0 &ldquo;Jeffrey Traces&rdquo; — five mockups</h1>
+    <p class="sub">
+      Five directions for the <strong>0.13.0 release-notes page</strong>. All of them keep the production
+      skeleton from <code>ReleaseNotesView.vue</code> — hero banner with a per-release color identity,
+      the 5-stat strip, the sticky version switcher, numbered feature sections with galleries, and the
+      product-grouped Improvements grid — so whichever wins ports directly into the component the way
+      <code>.hero-banner-120</code> / <code>.feature-frame-120</code> did for 0.12.0. Gallery visuals
+      are <strong>styled placeholders</strong>; they mark exactly where the real v0.13.0 screenshots go
+      (<code>public/images/release-notes/v0.13.0/&hellip;</code>).
+    </p>
+
+    <div class="list">
+      <a class="mk rec" href="mockup-1-waterfall.html">
+        <div class="num n1">1</div>
+        <div><h3>Waterfall <span class="h">teal &rarr; sky</span> <span class="h pick">recommended</span></h3>
+          <p>The closest sibling to 0.12.0's structure: version card, three features (Traces &middot;
+            Instrumentation &middot; Analytics), Notifications folded into the Improvements grid. A
+            trace-bar color identity — deep navy hero, teal-to-indigo animated frame. Lowest-risk port.</p></div>
+      </a>
+      <a class="mk" href="mockup-2-deep-trace.html">
+        <div class="num n2">2</div>
+        <div><h3>Deep Trace <span class="h">indigo &rarr; emerald &middot; 4 features</span></h3>
+          <p>Hero artwork — a mini waterfall drawn in the 0.7.0-style image box — and four full features:
+            Notifications &amp; Exceptions get promoted from an improvement tile to Feature 04 with their
+            own docked-panel visual. The most complete telling of the tracing story.</p></div>
+      </a>
+      <a class="mk" href="mockup-3-one-recording.html">
+        <div class="num n3">3</div>
+        <div><h3>One Recording <span class="h">amber &rarr; teal &middot; full-width waterfall</span></h3>
+          <p>Narrative-led: the hero and the stats strip sell the zero-infrastructure angle
+            (&ldquo;1 recording &middot; 0 collectors&rdquo;), and Feature 01 stacks its text above a
+            full-width waterfall so the flagship visual gets the whole row. Features lean on
+            Traces by Operation as the analytics entry point.</p></div>
+      </a>
+      <a class="mk" href="mockup-4-terminal.html">
+        <div class="num n4">4</div>
+        <div><h3>Terminal <span class="h">magenta &rarr; violet &middot; code-first</span></h3>
+          <p>A <code>@Traced</code> code card replaces the version card in the hero, and the feature order
+            is developer-first: instrumentation (with all 11 Tracer API methods) leads, the waterfall
+            follows. Aimed at the reader who asks &ldquo;what do I have to write?&rdquo; before
+            &ldquo;what do I get?&rdquo;.</p></div>
+      </a>
+      <a class="mk" href="mockup-5-spectrum.html">
+        <div class="num n5">5</div>
+        <div><h3>Spectrum <span class="h">one hue per feature</span></h3>
+          <p>The most visually adventurous: four features each on their own tinted band (teal, violet,
+            amber, rose), multi-hue stats, and a dark &ldquo;By the numbers&rdquo; band before the
+            Improvements. New CSS surface, but every pattern still derives from the production page.</p></div>
+      </a>
+    </div>
+
+    <div class="facts">
+      <h4><i class="bi bi-clipboard-check"></i> Shared across all five (from the codebase, not invented)</h4>
+      <ul>
+        <li><strong>Headline:</strong> Jeffrey Traces — spans recorded as JFR events in the same recording as
+          the profiler's samples; waterfall with critical path, folded sibling runs, GC/safepoint/blocking/
+          exception/notification overlays, &ldquo;Why slow&rdquo; panel, per-span flamegraphs.</li>
+        <li><strong>Instrumentation:</strong> the <code>jeffrey-tracing</code> libraries (9 modules), the
+          11-method Tracer API, <code>@Traced</code> + agent weaving with allow-listed argument capture.</li>
+        <li><strong>Analytics:</strong> Traces by Operation, Search Traces, Attribute Values, Latency by
+          Attributes.</li>
+        <li><strong>Improvements pool (10):</strong> notifications &amp; exceptions (a feature in mockups 2/5),
+          dictionary-pooled profile databases, trace Markdown export for AI, flamegraph error surfacing,
+          instance-timeline card cleanup, provisioner tracing thresholds, provisioner env-var config layer +
+          ordering fix, MyBatis tracing by default, the standalone Tracing docs product, Claude Skills,
+          streamed JDBC row counts.</li>
+        <li><strong>To implement the winner:</strong> add <code>.hero-banner-130</code> +
+          <code>.feature-frame-130</code> styles, the <code>v130*Images</code> galleries and
+          <code>activeImages</code> keys, the select option, and the 0.13.0 <code>&lt;template&gt;</code>
+          block to <code>ReleaseNotesView.vue</code>; drop screenshots under
+          <code>public/images/release-notes/v0.13.0/</code>.</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

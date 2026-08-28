@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>0.13.0 mockup 1 — Waterfall</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="base.css">
+<style>
+/* ── 0.13.0 identity, variant 1 "Waterfall": deep navy → teal → sky ── */
+.hero-banner-130 {
+  background: linear-gradient(135deg, #071426 0%, #0b2540 50%, #0d3a4a 100%);
+}
+
+.hero-banner-130::before {
+  background:
+    radial-gradient(circle at 22% 45%, rgba(45, 212, 191, 0.20) 0%, transparent 55%),
+    radial-gradient(circle at 78% 55%, rgba(56, 189, 248, 0.18) 0%, transparent 55%);
+}
+
+.hero-banner-130 .hero-eyebrow {
+  color: #5eead4;
+}
+
+.hero-banner-130 .hero-title span {
+  background: linear-gradient(135deg, #2dd4bf, #38bdf8, #818cf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-banner-130 .hero-summary {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.hero-banner-130 .hero-version {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.hero-banner-130 .hero-docs-btn:hover {
+  background: rgba(45, 212, 191, 0.22);
+  border-color: rgba(45, 212, 191, 0.55);
+}
+
+.hero-version-dot.traces {
+  background: #2dd4bf;
+  box-shadow: 0 0 8px #2dd4bf;
+}
+
+.hero-version-dot.onerecording {
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+}
+
+.release-stat b {
+  color: #2dd4bf;
+}
+
+.feature-frame-130 {
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(120deg, #14b8a6, #38bdf8, #6366f1, #14b8a6) border-box;
+  background-size: 100% 100%, 300% 300%;
+  box-shadow: 0 18px 50px -12px rgba(56, 189, 248, 0.40);
+}
+
+.feature-frame-130 .feature-number {
+  color: #0d9488;
+}
+
+.feature-frame-130 .feature-highlight {
+  background: rgba(20, 184, 166, 0.08);
+  color: #0f766e;
+}
+</style>
+</head>
+<body>
+<div class="mockup-note">Mockup 1 of 5 — <b>&ldquo;Waterfall&rdquo;</b> &middot; static preview of the 0.13.0 release notes &middot; gallery visuals are placeholders for real screenshots &middot; <a href="index.html">back to overview</a></div>
+<div class="release-notes-page">
+
+  <!-- ─────────────────────── 0.13.0 Hero ─────────────────────── -->
+  <section class="hero-banner hero-banner-130">
+    <div class="hero-inner">
+      <div class="hero-version-card">
+        <div class="hero-version-badge">v0.13.0</div>
+        <div class="hero-version-meta"><span class="hero-version-dot traces"></span> Traces</div>
+        <div class="hero-version-meta"><span class="hero-version-dot onerecording"></span> One Recording</div>
+      </div>
+      <div class="hero-text">
+        <div class="hero-eyebrow">Release Notes</div>
+        <h1 class="hero-title"><span>Jeffrey Traces</span> Release</h1>
+        <p class="hero-version">Version 0.13.0 &middot; September 2026</p>
+        <p class="hero-summary">One unit of work &mdash; an HTTP request, a gRPC call, a batch job &mdash; becomes a tree of timed spans recorded as <strong>JFR events</strong> in the same recording as the profiler&rsquo;s samples. No collector, no exporter, no second agent. The new <strong>waterfall</strong> correlates every span with SQL, I/O, locks, GC pauses and safepoints, a <strong>&ldquo;Why slow&rdquo;</strong> panel names the culprit &mdash; and every span opens a <strong>flamegraph</strong>.</p>
+        <div class="hero-docs">
+          <span class="hero-docs-label"><i class="bi bi-journal-text"></i> Documentation</span>
+          <a href="#" class="hero-docs-btn"><i class="bi bi-search"></i> Microscope</a>
+          <a href="#" class="hero-docs-btn"><i class="bi bi-cloud"></i> Hub</a>
+          <a href="#" class="hero-docs-btn"><i class="bi bi-bar-chart-steps"></i> Tracing</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Release stats strip -->
+  <div class="release-stats">
+    <div class="release-stats-inner">
+      <div class="release-stat"><b>3</b><span>Headline features</span></div>
+      <div class="release-stat"><b>9</b><span>Instrumentation modules</span></div>
+      <div class="release-stat"><b>11</b><span>Tracer API methods</span></div>
+      <div class="release-stat"><b>4</b><span>New trace pages</span></div>
+      <div class="release-stat"><b>10</b><span>Improvements</span></div>
+    </div>
+  </div>
+
+  <!-- Version Switcher -->
+  <div class="version-bar">
+    <div class="version-bar-inner">
+      <div class="version-bar-left">
+        <h3>Release Notes</h3>
+        <select class="version-select">
+          <option selected>0.13.0 &mdash; Jeffrey Traces Release</option>
+          <option>0.12.0 &mdash; Advisor Release</option>
+          <option>0.11.0 &mdash; Performance Analysis Release</option>
+          <option>0.10.0 &mdash; IDE Release</option>
+          <option>0.9.0 &mdash; Heap Dumps Release</option>
+          <option>0.8.0 &mdash; Two Products Release</option>
+          <option>0.7.0 &mdash; Easter Release</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature 01: Jeffrey Traces (highlighted) -->
+  <section class="feature-section">
+    <div class="feature-frame feature-frame-130">
+      <div class="feature-frame-ribbon">New</div>
+      <div class="feature-row">
+        <div class="feature-text">
+          <div class="feature-number">Feature 01</div>
+          <h2>Jeffrey Traces <span class="feature-tag-ready"><i class="bi bi-check-circle-fill"></i> Ready to use</span></h2>
+          <p>Spans are <strong>JFR events</strong>, written into the same recording as the profiler&rsquo;s samples. There is no collector, no exporter, no &ldquo;send data&rdquo; step &mdash; the trace and the profile land in <strong>one file</strong>, and any event type declaring a <code>spanId</code> field participates with zero configuration.</p>
+          <p>The waterfall shows <strong>self-versus-child time</strong> on every bar, dims everything off the <strong>critical path</strong>, folds repeated siblings into a run with count, total, median, P95 and a mini-histogram &mdash; and overlays GC pauses, safepoints, blocking spans, exceptions and notifications on top.</p>
+          <p>A tracing tool normally says a span took 400&nbsp;ms and stops there. Jeffrey answers <em>doing what</em>: the <strong>Why slow</strong> panel ranks GC, safepoints, I/O and locks for the span, and every span opens a <strong>flamegraph</strong> &mdash; Inclusive or Self &mdash; correlated purely by thread and time window.</p>
+          <div class="feature-highlights">
+            <span class="feature-highlight"><i class="bi bi-bar-chart-steps"></i> Span waterfall</span>
+            <span class="feature-highlight"><i class="bi bi-fire"></i> Per-span flamegraphs</span>
+            <span class="feature-highlight"><i class="bi bi-patch-question"></i> &ldquo;Why slow&rdquo; breakdown</span>
+          </div>
+        </div>
+        <div class="feature-gallery">
+          <div class="gallery-main">
+            <span class="ph-badge">Placeholder</span>
+            <svg viewBox="0 0 860 560" xmlns="http://www.w3.org/2000/svg" style="font-family: Roboto, system-ui, sans-serif;">
+              <rect width="860" height="560" fill="#ffffff"/>
+              <rect width="860" height="46" fill="#f8f9fa"/>
+              <text x="18" y="29" font-size="14" font-weight="700" fill="#343a40">HTTP GET /api/orders/{id}</text>
+              <text x="255" y="29" font-size="12" fill="#6c757d">412 ms &middot; 23 spans</text>
+              <rect x="600" y="13" width="46" height="20" rx="10" fill="#fef3c7"/><text x="623" y="27" font-size="10" text-anchor="middle" fill="#b45309">GC</text>
+              <rect x="652" y="13" width="86" height="20" rx="10" fill="#ede9fe"/><text x="695" y="27" font-size="10" text-anchor="middle" fill="#7c3aed">Safepoints</text>
+              <rect x="744" y="13" width="98" height="20" rx="10" fill="#fee2e2"/><text x="793" y="27" font-size="10" text-anchor="middle" fill="#dc2626">Exceptions</text>
+              <line x1="250" y1="72" x2="840" y2="72" stroke="#e9ecef" stroke-width="1"/>
+              <text x="250" y="64" font-size="10" fill="#adb5bd">0 ms</text>
+              <text x="447" y="64" font-size="10" fill="#adb5bd">140 ms</text>
+              <text x="644" y="64" font-size="10" fill="#adb5bd">280 ms</text>
+              <text x="812" y="64" font-size="10" fill="#adb5bd">412 ms</text>
+              <rect x="586" y="72" width="20" height="470" fill="#fbbf24" opacity="0.16"/>
+              <text x="596" y="554" font-size="9" text-anchor="middle" fill="#b45309">GC 14 ms</text>
+              <!-- span rows -->
+              <text x="18" y="100" font-size="12" font-weight="600" fill="#343a40">GET /api/orders/{id}</text>
+              <rect x="250" y="86" width="584" height="20" rx="4" fill="#0d9488"/>
+              <rect x="250" y="86" width="60" height="20" rx="4" fill="#115e59"/>
+              <text x="30" y="136" font-size="12" fill="#495057">auth.filter</text>
+              <rect x="254" y="122" width="38" height="20" rx="4" fill="#14b8a6"/>
+              <text x="30" y="172" font-size="12" fill="#495057">OrderService.load</text>
+              <rect x="298" y="158" width="292" height="20" rx="4" fill="#14b8a6"/>
+              <text x="42" y="208" font-size="12" fill="#495057">SELECT orders</text>
+              <rect x="304" y="194" width="88" height="20" rx="4" fill="#38bdf8"/>
+              <text x="400" y="208" font-size="10" fill="#adb5bd">61 ms</text>
+              <text x="42" y="244" font-size="12" fill="#495057">SELECT order_items &times;24</text>
+              <rect x="398" y="230" width="120" height="20" rx="4" fill="#38bdf8"/>
+              <rect x="398" y="230" width="120" height="20" rx="4" fill="url(#hatch)"/>
+              <text x="526" y="244" font-size="10" fill="#adb5bd">&times;24 &middot; P95 2.1 ms</text>
+              <text x="42" y="280" font-size="12" fill="#adb5bd">cache.warm</text>
+              <rect x="524" y="266" width="56" height="20" rx="4" fill="#cbd5e1"/>
+              <text x="30" y="316" font-size="12" fill="#495057">PricingService.quote</text>
+              <rect x="612" y="302" width="180" height="20" rx="4" fill="#14b8a6"/>
+              <path d="M652 300 l6 6 -6 6 -6 -6 z" fill="#f59e0b"/>
+              <text x="42" y="352" font-size="12" fill="#495057">grpc quote.QuoteService/Get</text>
+              <rect x="620" y="338" width="150" height="20" rx="4" fill="#a78bfa"/>
+              <text x="42" y="388" font-size="12" fill="#495057">JdbcPoolAcquire</text>
+              <rect x="620" y="374" width="34" height="20" rx="4" fill="#f87171"/>
+              <text x="662" y="388" font-size="10" fill="#dc2626">blocked 22 ms</text>
+              <text x="30" y="424" font-size="12" fill="#495057">render</text>
+              <rect x="796" y="410" width="34" height="20" rx="4" fill="#14b8a6"/>
+              <!-- why slow panel -->
+              <rect x="18" y="446" width="548" height="96" rx="10" fill="#f8f9fa" stroke="#e9ecef"/>
+              <text x="34" y="472" font-size="12" font-weight="700" fill="#343a40">Why slow &middot; GET /api/orders/{id}</text>
+              <rect x="34" y="484" width="220" height="12" rx="3" fill="#fbbf24"/>
+              <rect x="254" y="484" width="90" height="12" fill="#a78bfa"/>
+              <rect x="344" y="484" width="120" height="12" fill="#38bdf8"/>
+              <rect x="464" y="484" width="60" height="12" rx="3" fill="#f87171"/>
+              <text x="34" y="518" font-size="10" fill="#6c757d">GC 121 ms &middot; Safepoints 48 ms &middot; I/O 66 ms &middot; Locks 33 ms &middot; Remainder 144 ms</text>
+              <defs>
+                <pattern id="hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+                  <line x1="0" y1="0" x2="0" y2="6" stroke="#ffffff" stroke-width="1.5" opacity="0.45"/>
+                </pattern>
+              </defs>
+            </svg>
+            <div class="gallery-caption">The trace waterfall &mdash; critical path, folded sibling runs, GC overlay and the &ldquo;Why slow&rdquo; panel</div>
+          </div>
+          <div class="gallery-thumbs">
+            <button class="gallery-thumb active"><svg viewBox="0 0 100 56" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="56" fill="#fff"/><rect x="8" y="8" width="84" height="6" rx="2" fill="#0d9488"/><rect x="12" y="18" width="40" height="6" rx="2" fill="#14b8a6"/><rect x="16" y="28" width="24" height="6" rx="2" fill="#38bdf8"/><rect x="56" y="38" width="30" height="6" rx="2" fill="#a78bfa"/></svg></button>
+            <button class="gallery-thumb"><svg viewBox="0 0 100 56" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="56" fill="#fff"/><rect x="8" y="22" width="34" height="10" rx="2" fill="#fbbf24"/><rect x="42" y="22" width="16" height="10" fill="#a78bfa"/><rect x="58" y="22" width="20" height="10" fill="#38bdf8"/><rect x="78" y="22" width="12" height="10" rx="2" fill="#f87171"/></svg></button>
+            <button class="gallery-thumb"><svg viewBox="0 0 100 56" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="56" fill="#fff"/><rect x="10" y="42" width="80" height="8" fill="#0d9488"/><rect x="14" y="32" width="52" height="8" fill="#14b8a6"/><rect x="18" y="22" width="30" height="8" fill="#2dd4bf"/><rect x="52" y="22" width="20" height="8" fill="#fbbf24"/><rect x="22" y="12" width="14" height="8" fill="#5eead4"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature 02: Instrumentation -->
+  <section class="feature-section">
+    <div class="feature-row reverse">
+      <div class="feature-text">
+        <div class="feature-number">Feature 02</div>
+        <h2>Instrument Without Rewriting Code</h2>
+        <p>The new <strong>jeffrey-tracing</strong> libraries meet your code where it is. The core <strong>Tracer API</strong> has zero dependencies; around it sit modules for <strong>Servlet, Spring, JDBC, HikariCP, MyBatis and gRPC</strong> &mdash; and a <strong>Spring Boot starter</strong> that auto-configures the lot: add the dependency and write nothing.</p>
+        <p>Prefer annotations? Mark a method <code>@Traced</code> and the <strong>Jeffrey Agent</strong> weaves the span at class load &mdash; the method is left exactly as it was written. It nests under whatever span is in progress, records as its own root when there is none, and marks the span failed on throw. Argument capture is <strong>opt-in</strong> and restricted to an allow-list of stable value types.</p>
+        <p>Context lives on the thread in a <code>ScopedValue</code>, bounded by a lambda so it cannot leak; crossing threads is explicit with <code>fork</code> and <code>continueIn</code>.</p>
+        <div class="feature-highlights">
+          <span class="feature-highlight"><i class="bi bi-plug"></i> Spring Boot starter</span>
+          <span class="feature-highlight"><i class="bi bi-at"></i> @Traced weaving</span>
+          <span class="feature-highlight"><i class="bi bi-box-seam"></i> Zero dependencies</span>
+        </div>
+      </div>
+      <div class="feature-gallery">
+        <div class="gallery-main">
+          <span class="ph-badge">Placeholder</span>
+          <div class="ph-panel">
+            <div class="ph-panel-title">jeffrey-tracing modules</div>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:18px;">
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">events</div>
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">servlet</div>
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">spring</div>
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">boot-starter</div>
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">jdbc</div>
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">hikari</div>
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">mybatis</div>
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">grpc</div>
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">test</div>
+            </div>
+            <div class="ph-mono" style="background:#0f172a; color:#e2e8f0; border-radius:10px; padding:16px 18px; font-size:0.78rem; line-height:1.7;">
+              <div><span style="color:#fbbf24;">@Traced</span>(name = <span style="color:#86efac;">"charge-card"</span>, kind = SpanKind.INTERNAL)</div>
+              <div><span style="color:#7dd3fc;">public</span> Receipt charge(PaymentRequest request) {</div>
+              <div>&nbsp;&nbsp;<span style="color:#64748b;">// the method is left exactly as it was written</span></div>
+              <div>}</div>
+            </div>
+          </div>
+          <div class="gallery-caption">Nine modules around a zero-dependency core &mdash; or a single annotation and the agent</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature 03: Trace Analytics -->
+  <div class="feature-section-bg">
+    <section class="feature-section">
+      <div class="feature-row">
+        <div class="feature-text">
+          <div class="feature-number">Feature 03</div>
+          <h2>Trace Analytics</h2>
+          <p>Span attributes, the source event&rsquo;s own fields and the span shape are flattened once into a searchable index. <strong>Search Traces</strong> ANDs conditions &mdash; equality, numeric comparison, presence &mdash; with same-span or anywhere-in-trace matching, and shows how the matches&rsquo; latency compares against the whole profile.</p>
+          <p><strong>Attribute Values</strong> breaks one key into every value it took, ranked by <strong>total time</strong> rather than call count &mdash; the customer that costs you the most, not the one that calls the most.</p>
+          <p><strong>Latency by Attributes</strong> draws each value&rsquo;s traces over log-spaced duration buckets. Percentiles hide bimodality; the heatmap shows it.</p>
+          <div class="feature-highlights">
+            <span class="feature-highlight"><i class="bi bi-search"></i> Attribute search</span>
+            <span class="feature-highlight"><i class="bi bi-sort-down"></i> Ranked by total time</span>
+            <span class="feature-highlight"><i class="bi bi-grid-3x3-gap"></i> Latency heatmap</span>
+          </div>
+        </div>
+        <div class="feature-gallery">
+          <div class="gallery-main">
+            <span class="ph-badge">Placeholder</span>
+            <svg viewBox="0 0 860 480" xmlns="http://www.w3.org/2000/svg" style="font-family: Roboto, system-ui, sans-serif;">
+              <rect width="860" height="480" fill="#ffffff"/>
+              <text x="18" y="30" font-size="14" font-weight="700" fill="#343a40">Latency by Attributes &middot; customer.tier</text>
+              <text x="18" y="52" font-size="11" fill="#6c757d">log-spaced duration buckets, 1 ms &rarr; 4 s</text>
+              <text x="820" y="30" font-size="11" text-anchor="end" fill="#0d9488" font-weight="600">1,204 traces</text>
+              <!-- x labels -->
+              <text x="150" y="452" font-size="10" fill="#adb5bd">1ms</text>
+              <text x="290" y="452" font-size="10" fill="#adb5bd">10ms</text>
+              <text x="430" y="452" font-size="10" fill="#adb5bd">100ms</text>
+              <text x="570" y="452" font-size="10" fill="#adb5bd">1s</text>
+              <text x="710" y="452" font-size="10" fill="#adb5bd">4s</text>
+              <!-- rows -->
+              <text x="18" y="110" font-size="12" fill="#495057">gold</text>
+              <g>
+                <rect x="130" y="90" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.15"/><rect x="200" y="90" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.55"/><rect x="270" y="90" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.95"/><rect x="340" y="90" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.5"/><rect x="410" y="90" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.12"/><rect x="480" y="90" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="550" y="90" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="620" y="90" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="690" y="90" width="66" height="34" rx="4" fill="#f1f3f5"/>
+              </g>
+              <text x="18" y="160" font-size="12" fill="#495057">silver</text>
+              <g>
+                <rect x="130" y="140" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="200" y="140" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.35"/><rect x="270" y="140" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.8"/><rect x="340" y="140" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.6"/><rect x="410" y="140" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.25"/><rect x="480" y="140" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="550" y="140" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="620" y="140" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="690" y="140" width="66" height="34" rx="4" fill="#f1f3f5"/>
+              </g>
+              <text x="18" y="210" font-size="12" fill="#dc2626" font-weight="600">free</text>
+              <g>
+                <rect x="130" y="190" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="200" y="190" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.7"/><rect x="270" y="190" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.9"/><rect x="340" y="190" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="410" y="190" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="480" y="190" width="66" height="34" rx="4" fill="#f59e0b" opacity="0.55"/><rect x="550" y="190" width="66" height="34" rx="4" fill="#f59e0b" opacity="0.95"/><rect x="620" y="190" width="66" height="34" rx="4" fill="#f59e0b" opacity="0.6"/><rect x="690" y="190" width="66" height="34" rx="4" fill="#f1f3f5"/>
+              </g>
+              <rect x="470" y="184" width="296" height="46" rx="6" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="5 4"/>
+              <text x="620" y="252" font-size="10" fill="#dc2626" text-anchor="middle">the second mode a percentile would hide</text>
+              <text x="18" y="290" font-size="12" fill="#495057">trial</text>
+              <g>
+                <rect x="130" y="270" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.4"/><rect x="200" y="270" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.85"/><rect x="270" y="270" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.45"/><rect x="340" y="270" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="410" y="270" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="480" y="270" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="550" y="270" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="620" y="270" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="690" y="270" width="66" height="34" rx="4" fill="#f1f3f5"/>
+              </g>
+              <!-- attribute values strip -->
+              <rect x="18" y="330" width="824" height="88" rx="10" fill="#f8f9fa" stroke="#e9ecef"/>
+              <text x="34" y="356" font-size="12" font-weight="700" fill="#343a40">Attribute Values &middot; ranked by total time</text>
+              <rect x="34" y="368" width="420" height="12" rx="3" fill="#0d9488"/><text x="462" y="378" font-size="10" fill="#6c757d">free &middot; 41.2 s total &middot; 388 spans</text>
+              <rect x="34" y="386" width="280" height="12" rx="3" fill="#14b8a6"/><text x="322" y="396" font-size="10" fill="#6c757d">gold &middot; 27.4 s total &middot; 512 spans</text>
+              <rect x="34" y="404" width="150" height="12" rx="3" fill="#5eead4"/><text x="192" y="414" font-size="10" fill="#6c757d">silver &middot; 14.8 s total &middot; 304 spans</text>
+            </svg>
+            <div class="gallery-caption">Latency by Attributes &mdash; bimodality is visible, and values rank by total time, not call count</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Improvements — grouped by product -->
+  <div class="improvements-section">
+    <div class="improvements-inner">
+      <div class="improvements-header">
+        <div class="improvements-header-line"></div>
+        <h2><i class="bi bi-wrench"></i> Improvements</h2>
+        <div class="improvements-header-line"></div>
+      </div>
+
+      <div class="improvement-group">
+        <div class="improvement-group-label microscope"><i class="bi bi-search"></i> Microscope</div>
+        <div class="improvements-grid">
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>Notifications &amp; Exceptions in Traces</h3>
+              <p>A new <code>jeffrey.Notification</code> event lets the application write a <strong>moment</strong> &mdash; a threshold crossed, a circuit breaker opened &mdash; into its own recording, stamped with the enclosing span&rsquo;s ids so it lands in the right place in the waterfall. Exceptions need <strong>no instrumentation at all</strong>: every throw is attributed to the span that was running.</p>
+            </div>
+          </div>
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>Profile Databases, Dramatically Smaller</h3>
+              <p>The same SQL text used to be stored per-row four times over &mdash; a 92&nbsp;MB recording could produce a multi-gigabyte profile database. Repeated texts are now <strong>dictionary-pooled</strong> and <code>events</code> became a view, so every existing reader is unaffected while the database shrinks by orders of magnitude.</p>
+            </div>
+          </div>
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>Trace Export for AI Assistants</h3>
+              <p>The waterfall and the operation drill-down export what you are looking at as a single <strong>Markdown</strong> document built for pasting into an AI assistant &mdash; opening with a how-to-read preamble so span semantics aren&rsquo;t guessed wrong.</p>
+            </div>
+          </div>
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>Flamegraphs Fail Loudly</h3>
+              <p>A failed flamegraph request now surfaces the error instead of spinning forever &mdash; and the weight extractor skips events that carry no class instead of producing a broken entity.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="improvement-group">
+        <div class="improvement-group-label hub"><i class="bi bi-cloud"></i> Hub &amp; Provisioner</div>
+        <div class="improvements-grid">
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>A Provisioned JVM Records What Traces Need</h3>
+              <p>The stock JFR configuration keeps lock waits above 20&nbsp;ms and socket I/O above 1&nbsp;ms &mdash; coarser than a trace is read at. The provisioner now starts a <strong>second recording</strong> carrying only the lowered thresholds; JFR applies the most verbose setting, so the dumped files and the live stream both pick them up. <code>TRACING=off</code> opts out.</p>
+            </div>
+          </div>
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>Environment Variables as a Real Config Layer</h3>
+              <p>The provisioner merges the environment as a proper configuration layer instead of per-field fallbacks &mdash; and a settings-file ordering bug that could fail provisioning outright on real installs is fixed.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="improvement-group">
+        <div class="improvement-group-label platform"><i class="bi bi-boxes"></i> Platform</div>
+        <div class="improvements-grid">
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>MyBatis Tracing by Default</h3>
+              <p>Statements are named by their <strong>mapper method</strong> &mdash; far more readable than raw SQL &mdash; and record the bound parameter values. The interceptor takes over from the generic <code>DataSource</code> wrapper so nothing is double-recorded.</p>
+            </div>
+          </div>
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>Jeffrey Tracing Documentation</h3>
+              <p>Tracing is a first-class product on the docs site: <strong>18 guide pages</strong> plus one page per Tracer API method, with the Jeffrey Events catalog and span trees drawn as real diagrams.</p>
+            </div>
+          </div>
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>Claude Skills in the Box</h3>
+              <p>Five skills ship with the libraries so an AI assistant can instrument a codebase correctly &mdash; core, gRPC, HTTP client, MyBatis and Spring REST server.</p>
+            </div>
+          </div>
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>Streamed JDBC Row Counts</h3>
+              <p>Streamed statements now report how many rows they actually delivered, so a query that returns nothing is distinguishable from one that floods.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
