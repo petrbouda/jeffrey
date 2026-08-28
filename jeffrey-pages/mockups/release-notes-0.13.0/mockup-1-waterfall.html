@@ -57,6 +57,85 @@
   color: #2dd4bf;
 }
 
+/* Tracing documentation panel — sits between the hero and the stats strip */
+.tracing-docs-panel {
+  background: linear-gradient(90deg, #0a2e33 0%, #0d3a4a 55%, #123a5c 100%);
+  border-top: 1px solid rgba(45, 212, 191, 0.25);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tracing-docs-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.tracing-docs-icon {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(45, 212, 191, 0.14);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: #5eead4;
+}
+
+.tracing-docs-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.tracing-docs-text b {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.tracing-docs-text span {
+  display: block;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 1px;
+}
+
+.tracing-docs-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #06211f;
+  text-decoration: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #2dd4bf, #38bdf8);
+  box-shadow: 0 6px 18px rgba(45, 212, 191, 0.3);
+  white-space: nowrap;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tracing-docs-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(45, 212, 191, 0.45);
+  color: #06211f;
+}
+
+@media (max-width: 768px) {
+  .tracing-docs-inner {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+}
+
 .feature-frame-130 {
   background:
     linear-gradient(#fff, #fff) padding-box,
@@ -96,11 +175,25 @@
           <span class="hero-docs-label"><i class="bi bi-journal-text"></i> Documentation</span>
           <a href="#" class="hero-docs-btn"><i class="bi bi-search"></i> Microscope</a>
           <a href="#" class="hero-docs-btn"><i class="bi bi-cloud"></i> Hub</a>
-          <a href="#" class="hero-docs-btn"><i class="bi bi-bar-chart-steps"></i> Tracing</a>
+          <a href="https://www.jeffrey-analyst.cafe/docs/tracing" target="_blank" rel="noopener" class="hero-docs-btn"><i class="bi bi-bar-chart-steps"></i> Tracing</a>
         </div>
       </div>
     </div>
   </section>
+
+  <!-- Tracing documentation panel -->
+  <div class="tracing-docs-panel">
+    <div class="tracing-docs-inner">
+      <div class="tracing-docs-icon"><i class="bi bi-journal-text"></i></div>
+      <div class="tracing-docs-text">
+        <b>Jeffrey Traces Documentation</b>
+        <span>Getting started, core concepts, instrumentation guides &mdash; and one page per Tracer API method</span>
+      </div>
+      <a class="tracing-docs-btn" href="https://www.jeffrey-analyst.cafe/docs/tracing" target="_blank" rel="noopener">
+        Open the docs <i class="bi bi-arrow-right"></i>
+      </a>
+    </div>
+  </div>
 
   <!-- Release stats strip -->
   <div class="release-stats">
