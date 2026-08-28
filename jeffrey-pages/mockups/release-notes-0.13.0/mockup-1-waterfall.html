@@ -155,7 +155,7 @@
 </style>
 </head>
 <body>
-<div class="mockup-note">Picked design — <b>&ldquo;Waterfall&rdquo;</b> &middot; preview of the 0.13.0 release notes &middot; Feature 03 shows real screenshots; the remaining placeholder visuals mark where captures go &middot; <a href="index.html">notes</a></div>
+<div class="mockup-note">Picked design — <b>&ldquo;Waterfall&rdquo;</b> &middot; preview of the 0.13.0 release notes &middot; Features 01 &amp; 03 carry real screenshots &middot; <a href="index.html">notes</a></div>
 <div class="release-notes-page">
 
   <!-- ─────────────────────── 0.13.0 Hero ─────────────────────── -->
@@ -245,69 +245,18 @@
         </div>
         <div class="feature-gallery">
           <div class="gallery-main">
-            <span class="ph-badge">Placeholder</span>
-            <svg viewBox="0 0 860 560" xmlns="http://www.w3.org/2000/svg" style="font-family: Roboto, system-ui, sans-serif;">
-              <rect width="860" height="560" fill="#ffffff"/>
-              <rect width="860" height="46" fill="#f8f9fa"/>
-              <text x="18" y="29" font-size="14" font-weight="700" fill="#343a40">HTTP GET /api/orders/{id}</text>
-              <text x="255" y="29" font-size="12" fill="#6c757d">412 ms &middot; 23 spans</text>
-              <rect x="600" y="13" width="46" height="20" rx="10" fill="#fef3c7"/><text x="623" y="27" font-size="10" text-anchor="middle" fill="#b45309">GC</text>
-              <rect x="652" y="13" width="86" height="20" rx="10" fill="#ede9fe"/><text x="695" y="27" font-size="10" text-anchor="middle" fill="#7c3aed">Safepoints</text>
-              <rect x="744" y="13" width="98" height="20" rx="10" fill="#fee2e2"/><text x="793" y="27" font-size="10" text-anchor="middle" fill="#dc2626">Exceptions</text>
-              <line x1="250" y1="72" x2="840" y2="72" stroke="#e9ecef" stroke-width="1"/>
-              <text x="250" y="64" font-size="10" fill="#adb5bd">0 ms</text>
-              <text x="447" y="64" font-size="10" fill="#adb5bd">140 ms</text>
-              <text x="644" y="64" font-size="10" fill="#adb5bd">280 ms</text>
-              <text x="812" y="64" font-size="10" fill="#adb5bd">412 ms</text>
-              <rect x="586" y="72" width="20" height="470" fill="#fbbf24" opacity="0.16"/>
-              <text x="596" y="554" font-size="9" text-anchor="middle" fill="#b45309">GC 14 ms</text>
-              <!-- span rows -->
-              <text x="18" y="100" font-size="12" font-weight="600" fill="#343a40">GET /api/orders/{id}</text>
-              <rect x="250" y="86" width="584" height="20" rx="4" fill="#0d9488"/>
-              <rect x="250" y="86" width="60" height="20" rx="4" fill="#115e59"/>
-              <text x="30" y="136" font-size="12" fill="#495057">auth.filter</text>
-              <rect x="254" y="122" width="38" height="20" rx="4" fill="#14b8a6"/>
-              <text x="30" y="172" font-size="12" fill="#495057">OrderService.load</text>
-              <rect x="298" y="158" width="292" height="20" rx="4" fill="#14b8a6"/>
-              <text x="42" y="208" font-size="12" fill="#495057">SELECT orders</text>
-              <rect x="304" y="194" width="88" height="20" rx="4" fill="#38bdf8"/>
-              <text x="400" y="208" font-size="10" fill="#adb5bd">61 ms</text>
-              <text x="42" y="244" font-size="12" fill="#495057">SELECT order_items &times;24</text>
-              <rect x="398" y="230" width="120" height="20" rx="4" fill="#38bdf8"/>
-              <rect x="398" y="230" width="120" height="20" rx="4" fill="url(#hatch)"/>
-              <text x="526" y="244" font-size="10" fill="#adb5bd">&times;24 &middot; P95 2.1 ms</text>
-              <text x="42" y="280" font-size="12" fill="#adb5bd">cache.warm</text>
-              <rect x="524" y="266" width="56" height="20" rx="4" fill="#cbd5e1"/>
-              <text x="30" y="316" font-size="12" fill="#495057">PricingService.quote</text>
-              <rect x="612" y="302" width="180" height="20" rx="4" fill="#14b8a6"/>
-              <path d="M652 300 l6 6 -6 6 -6 -6 z" fill="#f59e0b"/>
-              <text x="42" y="352" font-size="12" fill="#495057">grpc quote.QuoteService/Get</text>
-              <rect x="620" y="338" width="150" height="20" rx="4" fill="#a78bfa"/>
-              <text x="42" y="388" font-size="12" fill="#495057">JdbcPoolAcquire</text>
-              <rect x="620" y="374" width="34" height="20" rx="4" fill="#f87171"/>
-              <text x="662" y="388" font-size="10" fill="#dc2626">blocked 22 ms</text>
-              <text x="30" y="424" font-size="12" fill="#495057">render</text>
-              <rect x="796" y="410" width="34" height="20" rx="4" fill="#14b8a6"/>
-              <!-- why slow panel -->
-              <rect x="18" y="446" width="548" height="96" rx="10" fill="#f8f9fa" stroke="#e9ecef"/>
-              <text x="34" y="472" font-size="12" font-weight="700" fill="#343a40">Why slow &middot; GET /api/orders/{id}</text>
-              <rect x="34" y="484" width="220" height="12" rx="3" fill="#fbbf24"/>
-              <rect x="254" y="484" width="90" height="12" fill="#a78bfa"/>
-              <rect x="344" y="484" width="120" height="12" fill="#38bdf8"/>
-              <rect x="464" y="484" width="60" height="12" rx="3" fill="#f87171"/>
-              <text x="34" y="518" font-size="10" fill="#6c757d">GC 121 ms &middot; Safepoints 48 ms &middot; I/O 66 ms &middot; Locks 33 ms &middot; Remainder 144 ms</text>
-              <defs>
-                <pattern id="hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-                  <line x1="0" y1="0" x2="0" y2="6" stroke="#ffffff" stroke-width="1.5" opacity="0.45"/>
-                </pattern>
-              </defs>
-            </svg>
-            <div class="gallery-caption">The trace waterfall &mdash; critical path, folded sibling runs, GC overlay and the &ldquo;Why slow&rdquo; panel</div>
+            <img src="images/jdk-events/jdk-overlays.webp" alt="The trace waterfall with JVM context, blocking and I/O overlays">
+            <div class="gallery-caption">The waterfall &mdash; critical path, folded sibling runs, and the JVM-context, blocking and I/O overlays</div>
           </div>
           <div class="gallery-thumbs">
-            <button class="gallery-thumb active"><svg viewBox="0 0 100 56" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="56" fill="#fff"/><rect x="8" y="8" width="84" height="6" rx="2" fill="#0d9488"/><rect x="12" y="18" width="40" height="6" rx="2" fill="#14b8a6"/><rect x="16" y="28" width="24" height="6" rx="2" fill="#38bdf8"/><rect x="56" y="38" width="30" height="6" rx="2" fill="#a78bfa"/></svg></button>
-            <button class="gallery-thumb"><svg viewBox="0 0 100 56" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="56" fill="#fff"/><rect x="8" y="22" width="34" height="10" rx="2" fill="#fbbf24"/><rect x="42" y="22" width="16" height="10" fill="#a78bfa"/><rect x="58" y="22" width="20" height="10" fill="#38bdf8"/><rect x="78" y="22" width="12" height="10" rx="2" fill="#f87171"/></svg></button>
-            <button class="gallery-thumb"><svg viewBox="0 0 100 56" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="56" fill="#fff"/><rect x="10" y="42" width="80" height="8" fill="#0d9488"/><rect x="14" y="32" width="52" height="8" fill="#14b8a6"/><rect x="18" y="22" width="30" height="8" fill="#2dd4bf"/><rect x="52" y="22" width="20" height="8" fill="#fbbf24"/><rect x="22" y="12" width="14" height="8" fill="#5eead4"/></svg></button>
+            <button class="gallery-thumb active" data-src="images/jdk-events/jdk-overlays.webp" data-caption="The waterfall &mdash; critical path, folded sibling runs, and the JVM-context, blocking and I/O overlays"><img src="images/jdk-events/jdk-overlays.webp" alt="The trace waterfall"></button>
+            <button class="gallery-thumb" data-src="images/traces/operations.webp" data-caption="Traces by Operation &mdash; every operation ranked, with spans, total, P50/P95/P99/Max and errors"><img src="images/traces/operations.webp" alt="Traces by Operation"></button>
+            <button class="gallery-thumb" data-src="images/traces/operation-summary.webp" data-caption="The operation drill-down &mdash; calls, latency distribution and top spans, with Flamegraphs, Timeline and Slowest Traces tabs"><img src="images/traces/operation-summary.webp" alt="Operation summary"></button>
+            <button class="gallery-thumb" data-src="images/traces/top-spans-slowest.webp" data-caption="Top spans by time and the slowest traces of an operation &mdash; every row opens the waterfall"><img src="images/traces/top-spans-slowest.webp" alt="Top spans and slowest traces"></button>
+            <button class="gallery-thumb" data-src="images/traces/search-timeline.webp" data-caption="Search Traces &mdash; conditions AND-ed anywhere-in-trace or on one span, with matches drawn over the recording timeline"><img src="images/traces/search-timeline.webp" alt="Search Traces with match timeline"></button>
+            <button class="gallery-thumb" data-src="images/traces/search-results.webp" data-caption="Matched traces ranked &mdash; from a 2-minute heap-dump-init to sub-millisecond requests, each one click from its waterfall"><img src="images/traces/search-results.webp" alt="Matched traces list"></button>
+            <button class="gallery-thumb" data-src="images/traces/attribute-values.webp" data-caption="Attribute Values &mdash; pick the event type and key; every event carrying attributes participates, JDK events included"><img src="images/traces/attribute-values.webp" alt="Attribute Values"></button>
+            <button class="gallery-thumb" data-src="images/jdk-events/gc-impacted.webp" data-caption="A GC pause overlaying a trace &mdash; the JVM context drawn on the request it hit"><img src="images/jdk-events/gc-impacted.webp" alt="GC pause overlaying a trace"></button>
           </div>
         </div>
       </div>
