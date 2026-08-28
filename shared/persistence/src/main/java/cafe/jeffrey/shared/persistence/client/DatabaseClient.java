@@ -234,37 +234,34 @@ public class DatabaseClient {
                 });
     }
 
+    /**
+     * Streams the statement's rows into {@code consumer} without materializing them, and records
+     * the rows that actually flowed through as the event's row count. A streamed statement has no
+     * result to measure once it returns — the count comes from the {@link CountingConsumer}
+     * wrapping the caller's consumer, so it is right whether the stream ran to the end or a failure
+     * cut it short.
+     */
     public <T> void queryStream(
             StatementLabel statement, String sql, SqlParameterSource paramSource, RowMapper<T> mapper, Consumer<T> consumer) {
-        queryStream(statement, sql, paramSource, mapper, consumer, null);
-    }
 
-    public <T> void queryStream(
-            StatementLabel statement, String sql, SqlParameterSource paramSource, RowMapper<T> mapper, Consumer<T> consumer, Consumer<Object> counter) {
+        CountingConsumer<T> countingConsumer = new CountingConsumer<>(consumer);
 
         JdbcStreamEvent event = new JdbcStreamEvent(statement.name().toLowerCase(), groupLabel);
         TracedEvents.emit(event,
                 () -> {
-                    try (Stream<T> queryStream = delegate.queryForStream(sql, paramSource, mapper)) {
-                        Stream<T> stream = queryStream;
-                        if (counter != null) {
-                            stream = stream.peek(counter);
-                        }
-                        stream.forEach(consumer);
+                    try (Stream<T> stream = delegate.queryForStream(sql, paramSource, mapper)) {
+                        stream.forEach(countingConsumer);
                     }
                 },
                 e -> {
                     e.sql = sql;
-                    if (counter instanceof StreamCounter sc) {
-                        e.rows = sc.rows();
-                        e.samples = sc.samples();
-                    }
+                    e.rows = countingConsumer.getRowCount();
                     e.params = paramSourceToJson(paramSource);
                 });
     }
 
     public <T> void queryStream(StatementLabel statement, String sql, RowMapper<T> mapper, Consumer<T> consumer) {
-        queryStream(statement, sql, new EmptySqlParameterSource(), mapper, consumer, null);
+        queryStream(statement, sql, new EmptySqlParameterSource(), mapper, consumer);
     }
 
     private static String paramSourceToJson(SqlParameterSource paramSource) {
