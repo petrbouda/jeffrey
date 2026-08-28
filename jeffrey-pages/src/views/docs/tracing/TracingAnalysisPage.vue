@@ -81,7 +81,20 @@ const virtualThreadExample = `POST /api/internal/recordings/…   tomcat-handler
         <li><strong>Slowest Traces</strong> — this operation's traces ranked by duration; opening a row shows that trace's waterfall in place, with the trace id added to the URL.</li>
       </ul>
 
-      <!-- TODO screenshot: /images/docs/tracing/traces-by-operation.png — the operations list with stat tiles and cards -->
+      <figure class="docs-figure">
+        <img src="/images/docs/tracing/operations.webp" alt="Traces by Operation with stat tiles and one card per operation" />
+        <figcaption>Traces by Operation &mdash; the profile-wide tiles above, one card per trace type below, sortable by total, P95, max, count or errors.</figcaption>
+      </figure>
+
+      <figure class="docs-figure">
+        <img src="/images/docs/tracing/operation-summary.webp" alt="The operation drill-down's Summary tab" />
+        <figcaption>The drill-down&rsquo;s <strong>Summary</strong> tab &mdash; calls, latency percentiles, the latency distribution, and where the operation&rsquo;s time goes span by span.</figcaption>
+      </figure>
+
+      <figure class="docs-figure">
+        <img src="/images/docs/tracing/top-spans-slowest.webp" alt="Top spans by time and the slowest traces of one operation" />
+        <figcaption>Top spans by time &mdash; promoted JDK events rank right next to your own spans &mdash; and the operation&rsquo;s slowest runs, each one click from its waterfall.</figcaption>
+      </figure>
 
       <DocsCallout type="info">
         <strong>Where did the nested spans go?</strong> The list groups by <em>root</em> name, not by every span name in the profile — names that only ever occur nested (<code>chunk.parse</code>) are not operations. A nested span is not lost: open a trace it belongs to and find it in the waterfall.
@@ -98,7 +111,10 @@ const virtualThreadExample = `POST /api/internal/recordings/…   tomcat-handler
         <li><strong>First error.</strong> A jump control lands on the first failed span in the trace.</li>
       </ul>
 
-      <!-- TODO screenshot: /images/docs/tracing/trace-waterfall.png — the full Trace Detail: waterfall with self/child bars, context lanes, rails, why-slow panel -->
+      <figure class="docs-figure">
+        <img src="/images/docs/tracing/jdk-overlays.webp" alt="The full Trace Detail: waterfall with self/child bars, context lanes and the why-slow summary" />
+        <figcaption>The full Trace Detail &mdash; solid-self/washed-children bars, the safepoint lane, promoted File read runs, virtual-thread pinning, and the per-category summary underneath.</figcaption>
+      </figure>
 
       <h2 id="overlays">Overlays and Rails</h2>
 
@@ -154,7 +170,10 @@ const virtualThreadExample = `POST /api/internal/recordings/…   tomcat-handler
         <li><strong>Events in span</strong> — a timeline of the JVM events that occurred on that thread inside the span's window (CPU samples, allocations, GC…): one lane per event type, a draggable mini-map, and a per-type breakdown that filters the lane and offers a per-type flamegraph. Other spans and the already-promoted blocking events are excluded — this is JVM activity, not a restatement of the tree.</li>
       </ul>
 
-      <!-- TODO screenshot: /images/docs/tracing/span-inline-detail.png — a span expanded inline: timing meter, wait chips, attributes, SQL block -->
+      <figure class="docs-figure">
+        <img src="/images/docs/tracing/socketwrite-detail.webp" alt="A span expanded inline with timing meter, identity and event fields" />
+        <figcaption>A span expanded inline &mdash; the timing meter, identity, and the source event&rsquo;s own fields (here a promoted <code>jdk.SocketWrite</code> with host, port and bytes written).</figcaption>
+      </figure>
 
       <h2 id="flamegraphs">Per-Span Flamegraphs</h2>
 
@@ -184,7 +203,20 @@ const virtualThreadExample = `POST /api/internal/recordings/…   tomcat-handler
 
       <p>Keys are picked in two steps — first the event type, then a key those spans carried — which is what lets the page say how many values <code>tenant</code> took <em>on HTTP spans</em>. Keys whose cardinality exceeds the cap are <em>search only</em>: usable as conditions, kept out of the breakdowns. Notifications are searchable the same way, indexed apart from spans on purpose.</p>
 
-      <!-- TODO screenshot: /images/docs/tracing/attribute-search.png — Search Traces with two conditions and the density strip -->
+      <figure class="docs-figure">
+        <img src="/images/docs/tracing/search-timeline.webp" alt="Search Traces with the anywhere-in-trace toggle and the when-the-matches-happened timeline" />
+        <figcaption>Search Traces &mdash; conditions built from the catalog, the <em>anywhere in the trace</em> / <em>all on one span</em> choice, match-vs-profile percentiles, and when the matches happened over the recording.</figcaption>
+      </figure>
+
+      <figure class="docs-figure">
+        <img src="/images/docs/tracing/search-results.webp" alt="Matched traces ranked by duration" />
+        <figcaption>The matches ranked &mdash; from a 2-minute <code>heap-dump-init</code> down to sub-millisecond requests, each row one click from its waterfall.</figcaption>
+      </figure>
+
+      <figure class="docs-figure">
+        <img src="/images/docs/tracing/attribute-values.webp" alt="Attribute Values with the event-type picker open" />
+        <figcaption>Attribute Values &mdash; keys are picked in two steps, event type first; JDK events carry attributes too, so <code>jdk.FileWrite</code> ranks beside your own spans.</figcaption>
+      </figure>
 
       <h2 id="ai-export">AI Export</h2>
 
