@@ -354,7 +354,7 @@ onBeforeUnmount(() => {
   padding: var(--spacing-1) var(--spacing-3) var(--spacing-1) var(--spacing-1);
   font-size: var(--font-size-base);
   cursor: pointer;
-  max-width: 340px;
+  max-width: 560px;
 }
 
 /*
@@ -419,6 +419,8 @@ onBeforeUnmount(() => {
 .chip-label {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .chip-value {
@@ -444,6 +446,11 @@ onBeforeUnmount(() => {
   font-size: var(--font-size-xs);
 }
 
+/*
+ * Capped and scrollable: a profile can carry dozens of event types, and an uncapped list runs past
+ * the bottom of the viewport where the tail is unreachable. The head stays pinned while the rows
+ * scroll under it, so the question the list answers never scrolls away.
+ */
 .picker-pop {
   position: absolute;
   top: calc(100% + var(--spacing-1));
@@ -451,14 +458,18 @@ onBeforeUnmount(() => {
   z-index: 20;
   width: 430px;
   max-width: 82vw;
+  max-height: min(420px, 60vh);
   background: var(--color-white);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .pop-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
