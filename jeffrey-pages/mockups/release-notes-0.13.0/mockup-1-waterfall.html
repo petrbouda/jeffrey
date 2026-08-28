@@ -76,7 +76,7 @@
 </style>
 </head>
 <body>
-<div class="mockup-note">Mockup 1 of 5 — <b>&ldquo;Waterfall&rdquo;</b> &middot; static preview of the 0.13.0 release notes &middot; gallery visuals are placeholders for real screenshots &middot; <a href="index.html">back to overview</a></div>
+<div class="mockup-note">Picked design — <b>&ldquo;Waterfall&rdquo;</b> &middot; static preview of the 0.13.0 release notes &middot; screenshot galleries are placeholders for real captures &middot; <a href="index.html">notes</a></div>
 <div class="release-notes-page">
 
   <!-- ─────────────────────── 0.13.0 Hero ─────────────────────── -->
@@ -236,7 +236,6 @@
       </div>
       <div class="feature-gallery">
         <div class="gallery-main">
-          <span class="ph-badge">Placeholder</span>
           <div class="ph-panel">
             <div class="ph-panel-title">jeffrey-tracing modules</div>
             <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:18px;">
@@ -251,8 +250,8 @@
               <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">test</div>
             </div>
             <div class="ph-mono" style="background:#0f172a; color:#e2e8f0; border-radius:10px; padding:16px 18px; font-size:0.78rem; line-height:1.7;">
-              <div><span style="color:#fbbf24;">@Traced</span>(name = <span style="color:#86efac;">"charge-card"</span>, kind = SpanKind.INTERNAL)</div>
-              <div><span style="color:#7dd3fc;">public</span> Receipt charge(PaymentRequest request) {</div>
+              <div><span style="color:#fbbf24;">@Traced</span>(name = <span style="color:#86efac;">"charge-card"</span>, includeMethodArgs = <span style="color:#86efac;">"correlationId"</span>)</div>
+              <div><span style="color:#7dd3fc;">public</span> Receipt charge(PaymentRequest request, String correlationId) {</div>
               <div>&nbsp;&nbsp;<span style="color:#64748b;">// the method is left exactly as it was written</span></div>
               <div>}</div>
             </div>
