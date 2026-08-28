@@ -1243,11 +1243,13 @@ const rows = computed(() => {
 });
 
 /**
- * A run shorter than this reads fine as rows; from here up it starts drowning the tree it sits in.
- * A 2 GB upload written through an 8 MB buffer produces hundreds of identical "File write" leaves,
- * and the twenty structural spans around them are what the reader came for.
+ * A repetition is a repetition from the second occurrence on, so that is where the rollup starts:
+ * two identical leaves already say "this happened more than once" better as one counted row than as
+ * two. A 2 GB upload written through an 8 MB buffer produces hundreds of identical "File write"
+ * leaves, and the structural spans around them are what the reader came for. Raise this if runs
+ * should stay unfolded until they are longer.
  */
-const MIN_RUN_LENGTH = 5;
+const MIN_RUN_LENGTH = 2;
 
 /** Consecutive same-named leaf siblings, drawn as one rollup row until expanded. */
 interface SpanRun {
