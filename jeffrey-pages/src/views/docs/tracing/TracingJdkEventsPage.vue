@@ -199,7 +199,15 @@ jdk.ZAllocationStall#enabled=true,jdk.ZAllocationStall#threshold=0ms`;
 
       <p>Promoted spans are marked apart from recorded ones: drawn solid in their wait category's colour rather than a span-kind pastel, and their detail names the JDK event they came from. Two toolbar toggles govern them along the reader's question — <strong>Blocking ops</strong> for the lock, park, sleep and stall rows, and <strong>I/O ops</strong> for the file and socket rows — so hiding lock noise never hides the socket read that explains the trace. Switching both off reads the recorded span structure alone; a toggle whose family recorded nothing stays visible but disabled.</p>
 
-      <!-- TODO screenshot: /images/docs/tracing/promoted-blocking-spans.png — a waterfall with promoted Socket read / Lock wait bars in category colours, detail panel open on one -->
+      <figure class="docs-figure">
+        <img src="/images/docs/tracing/file-socket-io.webp" alt="A waterfall with promoted File read and Socket write spans folded into runs" />
+        <figcaption>Promoted I/O in the waterfall &mdash; <em>File read &times;84</em> and <em>Socket write &times;19</em> folded into runs, drawn in their category colours, with the per-category summary underneath.</figcaption>
+      </figure>
+
+      <figure class="docs-figure">
+        <img src="/images/docs/tracing/socketwrite-detail.webp" alt="A promoted jdk.SocketWrite span opened inline with its event fields" />
+        <figcaption>A promoted span is an ordinary span: this one names its source (<code>Promoted from: jdk.SocketWrite</code>) and carries the event&rsquo;s own payload &mdash; host, port, bytes written.</figcaption>
+      </figure>
 
       <h2 id="drill-down">Everything Else: Events in Span</h2>
 

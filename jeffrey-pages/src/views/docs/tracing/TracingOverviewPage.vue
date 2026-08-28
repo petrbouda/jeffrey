@@ -92,6 +92,11 @@ const tasteSpans = [
 
       <p>After a recording is parsed into a profile, Jeffrey derives the trace tables once: spans are assembled into trees, JDK blocking events (socket and file I/O, lock waits, parking) are <em>promoted</em> into synthesized leaf spans under the span that was waiting, exceptions are attributed to the span that threw them, and GC pauses and safepoints are matched against every trace window they overlap.</p>
 
+      <figure class="docs-figure">
+        <img src="/images/docs/tracing/jdk-overlays.webp" alt="A complete trace in the Microscope waterfall with JVM context, blocking and I/O overlays" />
+        <figcaption>One trace, one <code>.jfr</code> file: recorded spans, promoted JDK file I/O, virtual-thread pinning, the safepoint lane, and the per-category time summary.</figcaption>
+      </figure>
+
       <h2 id="pieces">The Pieces</h2>
 
       <table>

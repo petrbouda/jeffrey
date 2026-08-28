@@ -120,7 +120,17 @@ rather than left as an unexplained gap.`;
 
       <p><strong>A band cannot be read as a duration.</strong> Below about half a percent of the trace a pause is thinner than a pixel, so every short one is drawn at the same minimum width — the lanes say <em>where</em> the JVM stopped, never <em>for how long</em>. Moving the pointer across the waterfall draws a time cursor that reads out the instant under it: how far into the trace it is and, when it falls inside a pause, that pause's name and its true duration.</p>
 
-      <!-- TODO screenshot: /images/docs/tracing/gc-safepoint-lanes.png — Trace Detail with the GC pause and Safepoint lanes above the waterfall, the time cursor hovering a band -->
+      <p>Two runs of the same operation show what the lanes buy you:</p>
+
+      <figure class="docs-figure">
+        <img src="/images/docs/tracing/gc-impacted.webp" alt="A trace hit by a GC pause, with the pause band and striped wash across the span rows" />
+        <figcaption>Hit: a single 101&nbsp;ms collection owns 70% of this 146&nbsp;ms request &mdash; the band and the wash make the spans that straddled it unmissable.</figcaption>
+      </figure>
+
+      <figure class="docs-figure">
+        <img src="/images/docs/tracing/no-gc.webp" alt="The same operation without any GC impact" />
+        <figcaption>Untouched: the same operation at 48&nbsp;ms &mdash; no lanes to draw, and the panel says so out loud instead of showing an empty chart.</figcaption>
+      </figure>
 
       <h2 id="why-slow">The "Why Was This Trace Slow?" Panel</h2>
 

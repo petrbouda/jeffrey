@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>0.13.0 release notes — picked mockup</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #e2e8f0;
+    background: radial-gradient(900px 500px at 20% 0%, rgba(45,212,191,.12), transparent 60%),
+                radial-gradient(900px 500px at 85% 100%, rgba(168,85,247,.14), transparent 60%), #0a0f1e;
+    min-height: 100vh; padding: 4rem 2rem; }
+  .wrap { max-width: 1020px; margin: 0 auto; }
+  h1 { font-size: 2rem; font-weight: 800; color: #fff; letter-spacing: -.02em; margin-bottom: .5rem; }
+  .sub { color: #94a3b8; margin-bottom: 1.3rem; line-height: 1.7; max-width: 88ch; }
+  .sub strong { color: #cbd5e1; }
+  code { color: #7dd3fc; background: rgba(255,255,255,.06); padding: .1rem .35rem; border-radius: 5px; font-size: .86em;
+    font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .list { display: grid; gap: .9rem; margin-top: 1.8rem; }
+  a.mk { display: flex; gap: 1rem; align-items: flex-start; text-decoration: none; padding: 1.1rem 1.3rem;
+    border-radius: 14px; background: rgba(52,211,153,.07); border: 1px solid rgba(52,211,153,.5);
+    transition: transform .2s, background .2s; }
+  a.mk:hover { transform: translateY(-3px); background: rgba(52,211,153,.11); }
+  .num { width: 38px; height: 38px; flex-shrink: 0; border-radius: 11px; display: grid; place-items: center;
+    font-weight: 800; color: #fff; background: linear-gradient(135deg, #2dd4bf, #38bdf8); box-shadow: 0 6px 16px rgba(45,212,191,.4); }
+  .mk h3 { color: #fff; font-size: 1.02rem; font-weight: 700; margin-bottom: .25rem;
+    display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+  .mk p { color: #94a3b8; font-size: .85rem; line-height: 1.55; }
+  .h { font-size: .62rem; font-weight: 700; letter-spacing: .04em; padding: .12rem .4rem; border-radius: 4px;
+    background: rgba(45,212,191,.16); color: #5eead4; font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .h.pick { background: rgba(52,211,153,.18); color: #6ee7b7; }
+  .facts { margin-top: 2rem; padding: 1.2rem 1.4rem; border-radius: 12px; background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08); }
+  .facts h4 { color: #e2e8f0; font-size: .92rem; font-weight: 700; margin-bottom: .65rem;
+    display: flex; align-items: center; gap: .45rem; }
+  .facts h4 i { color: #5eead4; }
+  .facts ul { margin: 0; padding-left: 1.1rem; color: #94a3b8; font-size: .85rem; line-height: 1.8; }
+  .facts strong { color: #cbd5e1; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>0.13.0 &ldquo;Jeffrey Traces&rdquo; — picked mockup</h1>
+    <p class="sub">
+      Five directions were mocked for the <strong>0.13.0 release-notes page</strong>;
+      <strong>&ldquo;Waterfall&rdquo;</strong> was picked and the other four removed. It keeps the
+      production skeleton from <code>ReleaseNotesView.vue</code> — hero banner with a per-release
+      color identity, the 5-stat strip, the sticky version switcher, numbered feature sections with
+      galleries, and the product-grouped Improvements grid — so it ports directly into the component
+      the way <code>.hero-banner-120</code> / <code>.feature-frame-120</code> did for 0.12.0.
+      Screenshot galleries are <strong>styled placeholders</strong> marking exactly where the real
+      v0.13.0 captures go (<code>public/images/release-notes/v0.13.0/&hellip;</code>); the
+      Feature&nbsp;02 code panel is real content and stays.
+    </p>
+
+    <div class="list">
+      <a class="mk" href="mockup-1-waterfall.html">
+        <div class="num">1</div>
+        <div><h3>Waterfall <span class="h">teal &rarr; sky</span> <span class="h pick">picked</span></h3>
+          <p>Deep navy hero with a teal-to-indigo animated feature frame. Four features — Jeffrey
+            Traces (waterfall, &ldquo;Why slow&rdquo;, per-span flamegraphs, attribute analytics)
+            &middot; Instrument Without Rewriting Code (modules grid + <code>@Traced</code> with
+            <code>includeMethodArgs</code>) &middot; JDK Events in Traces &middot; Notifications
+            &amp; Exceptions — Features 01, 03 and 04 carry real screenshots from a live profile.</p></div>
+      </a>
+    </div>
+
+    <div class="facts">
+      <h4><i class="bi bi-clipboard-check"></i> To implement in ReleaseNotesView.vue</h4>
+      <ul>
+        <li>Add <code>.hero-banner-130</code> (navy gradient + teal/sky radials, eyebrow
+          <code>#5eead4</code>, title-span gradient <code>#2dd4bf &rarr; #38bdf8 &rarr; #818cf8</code>)
+          and <code>.feature-frame-130</code> (teal&rarr;sky&rarr;indigo border, <code>#0d9488</code>
+          feature numbers) to the scoped styles.</li>
+        <li>Add <code>hero-version-dot.traces</code> (<code>#2dd4bf</code>) and
+          <code>.onerecording</code> (<code>#38bdf8</code>); stats-strip accent <code>#2dd4bf</code>.</li>
+        <li>Add the <code>v130*Images</code> galleries + <code>activeImages</code> keys, the
+          <code>0.13.0 &mdash; Jeffrey Traces Release</code> select option, the hero/stats blocks, and
+          the 0.13.0 feature <code>&lt;template&gt;</code> (demoting 0.12.0 to <code>v-else-if</code>).</li>
+        <li>Drop real screenshots under <code>public/images/release-notes/v0.13.0/</code>
+          (traces/, instrumentation/, jdk-events/). The five JDK-events captures already live in
+          this folder&rsquo;s <code>images/jdk-events/</code> and move over with the port.</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

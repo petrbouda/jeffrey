@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>0.13.0 mockup 1 — Waterfall</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link rel="stylesheet" href="base.css">
+<style>
+/* ── 0.13.0 identity, variant 1 "Waterfall": deep navy → teal → sky ── */
+.hero-banner-130 {
+  background: linear-gradient(135deg, #071426 0%, #0b2540 50%, #0d3a4a 100%);
+}
+
+.hero-banner-130::before {
+  background:
+    radial-gradient(circle at 22% 45%, rgba(45, 212, 191, 0.20) 0%, transparent 55%),
+    radial-gradient(circle at 78% 55%, rgba(56, 189, 248, 0.18) 0%, transparent 55%);
+}
+
+.hero-banner-130 .hero-eyebrow {
+  color: #5eead4;
+}
+
+.hero-banner-130 .hero-title span {
+  background: linear-gradient(135deg, #2dd4bf, #38bdf8, #818cf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-banner-130 .hero-summary {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.hero-banner-130 .hero-version {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.hero-banner-130 .hero-docs-btn:hover {
+  background: rgba(45, 212, 191, 0.22);
+  border-color: rgba(45, 212, 191, 0.55);
+}
+
+.hero-version-dot.traces {
+  background: #2dd4bf;
+  box-shadow: 0 0 8px #2dd4bf;
+}
+
+.hero-version-dot.onerecording {
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+}
+
+.release-stat b {
+  color: #2dd4bf;
+}
+
+/* Tracing documentation panel — sits between the hero and the stats strip */
+.tracing-docs-panel {
+  background: linear-gradient(90deg, #0a2e33 0%, #0d3a4a 55%, #123a5c 100%);
+  border-top: 1px solid rgba(45, 212, 191, 0.25);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tracing-docs-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.tracing-docs-icon {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(45, 212, 191, 0.14);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: #5eead4;
+}
+
+.tracing-docs-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.tracing-docs-text b {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.tracing-docs-text span {
+  display: block;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 1px;
+}
+
+.tracing-docs-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #06211f;
+  text-decoration: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #2dd4bf, #38bdf8);
+  box-shadow: 0 6px 18px rgba(45, 212, 191, 0.3);
+  white-space: nowrap;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.tracing-docs-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(45, 212, 191, 0.45);
+  color: #06211f;
+}
+
+@media (max-width: 768px) {
+  .tracing-docs-inner {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+}
+
+.feature-frame-130 {
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(120deg, #14b8a6, #38bdf8, #6366f1, #14b8a6) border-box;
+  background-size: 100% 100%, 300% 300%;
+  box-shadow: 0 18px 50px -12px rgba(56, 189, 248, 0.40);
+}
+
+.feature-frame-130 .feature-number {
+  color: #0d9488;
+}
+
+.feature-frame-130 .feature-highlight {
+  background: rgba(20, 184, 166, 0.08);
+  color: #0f766e;
+}
+</style>
+</head>
+<body>
+<div class="mockup-note">Picked design — <b>&ldquo;Waterfall&rdquo;</b> &middot; preview of the 0.13.0 release notes &middot; Features 01, 03 &amp; 04 carry real screenshots &middot; <a href="index.html">notes</a></div>
+<div class="release-notes-page">
+
+  <!-- ─────────────────────── 0.13.0 Hero ─────────────────────── -->
+  <section class="hero-banner hero-banner-130">
+    <div class="hero-inner">
+      <div class="hero-version-card">
+        <div class="hero-version-badge">v0.13.0</div>
+        <div class="hero-version-meta"><span class="hero-version-dot traces"></span> Traces</div>
+        <div class="hero-version-meta"><span class="hero-version-dot onerecording"></span> One Recording</div>
+      </div>
+      <div class="hero-text">
+        <div class="hero-eyebrow">Release Notes</div>
+        <h1 class="hero-title"><span>Jeffrey Traces</span> Release</h1>
+        <p class="hero-version">Version 0.13.0 &middot; September 2026</p>
+        <p class="hero-summary">One unit of work &mdash; an HTTP request, a gRPC call, a batch job &mdash; becomes a tree of timed spans recorded as <strong>JFR events</strong> in the same recording as the profiler&rsquo;s samples. No collector, no exporter, no second agent. The new <strong>waterfall</strong> correlates every span with SQL, I/O, locks, GC pauses and safepoints, a <strong>&ldquo;Why slow&rdquo;</strong> panel names the culprit &mdash; and every span opens a <strong>flamegraph</strong>.</p>
+        <div class="hero-docs">
+          <span class="hero-docs-label"><i class="bi bi-journal-text"></i> Documentation</span>
+          <a href="#" class="hero-docs-btn"><i class="bi bi-search"></i> Microscope</a>
+          <a href="#" class="hero-docs-btn"><i class="bi bi-cloud"></i> Hub</a>
+          <a href="https://www.jeffrey-analyst.cafe/docs/tracing" target="_blank" rel="noopener" class="hero-docs-btn"><i class="bi bi-bar-chart-steps"></i> Tracing</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tracing documentation panel -->
+  <div class="tracing-docs-panel">
+    <div class="tracing-docs-inner">
+      <div class="tracing-docs-icon"><i class="bi bi-journal-text"></i></div>
+      <div class="tracing-docs-text">
+        <b>Jeffrey Traces Documentation</b>
+        <span>Getting started, core concepts, instrumentation guides &mdash; and one page per Tracer API method</span>
+      </div>
+      <a class="tracing-docs-btn" href="https://www.jeffrey-analyst.cafe/docs/tracing" target="_blank" rel="noopener">
+        Open the docs <i class="bi bi-arrow-right"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- Release stats strip -->
+  <div class="release-stats">
+    <div class="release-stats-inner">
+      <div class="release-stat"><b>4</b><span>Headline features</span></div>
+      <div class="release-stat"><b>9</b><span>Instrumentation modules</span></div>
+      <div class="release-stat"><b>11</b><span>Tracer API methods</span></div>
+      <div class="release-stat"><b>4</b><span>New trace pages</span></div>
+      <div class="release-stat"><b>10</b><span>Improvements</span></div>
+    </div>
+  </div>
+
+  <!-- Version Switcher -->
+  <div class="version-bar">
+    <div class="version-bar-inner">
+      <div class="version-bar-left">
+        <h3>Release Notes</h3>
+        <select class="version-select">
+          <option selected>0.13.0 &mdash; Jeffrey Traces Release</option>
+          <option>0.12.0 &mdash; Advisor Release</option>
+          <option>0.11.0 &mdash; Performance Analysis Release</option>
+          <option>0.10.0 &mdash; IDE Release</option>
+          <option>0.9.0 &mdash; Heap Dumps Release</option>
+          <option>0.8.0 &mdash; Two Products Release</option>
+          <option>0.7.0 &mdash; Easter Release</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feature 01: Jeffrey Traces (highlighted) -->
+  <section class="feature-section">
+    <div class="feature-frame feature-frame-130">
+      <div class="feature-frame-ribbon">New</div>
+      <div class="feature-row">
+        <div class="feature-text">
+          <div class="feature-number">Feature 01</div>
+          <h2>Jeffrey Traces <span class="feature-tag-ready"><i class="bi bi-check-circle-fill"></i> Ready to use</span></h2>
+          <p>Spans are <strong>JFR events</strong>, written into the same recording as the profiler&rsquo;s samples. There is no collector, no exporter, no &ldquo;send data&rdquo; step &mdash; the trace and the profile land in <strong>one file</strong>, and any event type declaring a <code>spanId</code> field participates with zero configuration.</p>
+          <p>The waterfall shows <strong>self-versus-child time</strong> on every bar, dims everything off the <strong>critical path</strong>, and folds repeated siblings into a run &mdash; count, total, median, P95, a mini-histogram. On top of that go the overlays: GC pauses and safepoints, blocking and I/O operations, exceptions and notifications.</p>
+          <p>A tracing tool normally says a span took 400&nbsp;ms and stops there. Jeffrey answers <em>doing what</em>: the <strong>Why slow</strong> panel ranks GC, safepoints, I/O and locks for the span, and every span opens a <strong>flamegraph</strong> &mdash; Inclusive or Self &mdash; correlated purely by thread and time window.</p>
+          <p>Spans carry <strong>attributes</strong> &mdash; and they are queryable across the whole profile: <strong>Search Traces</strong> ANDs conditions and compares the matches&rsquo; latency against everything else, <strong>Attribute Values</strong> ranks every value of a key by <strong>total time</strong> rather than call count, and <strong>Latency by Attributes</strong> draws each value over log-spaced duration buckets, so bimodality that percentiles hide is simply visible.</p>
+          <div class="feature-highlights">
+            <span class="feature-highlight"><i class="bi bi-bar-chart-steps"></i> Span waterfall</span>
+            <span class="feature-highlight"><i class="bi bi-fire"></i> Per-span flamegraphs</span>
+            <span class="feature-highlight"><i class="bi bi-patch-question"></i> &ldquo;Why slow&rdquo; breakdown</span>
+            <span class="feature-highlight"><i class="bi bi-search"></i> Attribute analytics</span>
+          </div>
+        </div>
+        <div class="feature-gallery">
+          <div class="gallery-main">
+            <img src="images/jdk-events/jdk-overlays.webp" alt="The trace waterfall with JVM context, blocking and I/O overlays">
+            <div class="gallery-caption">The waterfall &mdash; critical path, folded sibling runs, and the JVM-context, blocking and I/O overlays</div>
+          </div>
+          <div class="gallery-thumbs">
+            <button class="gallery-thumb active" data-src="images/jdk-events/jdk-overlays.webp" data-caption="The waterfall &mdash; critical path, folded sibling runs, and the JVM-context, blocking and I/O overlays"><img src="images/jdk-events/jdk-overlays.webp" alt="The trace waterfall"></button>
+            <button class="gallery-thumb" data-src="images/traces/operations.webp" data-caption="Traces by Operation &mdash; every operation ranked, with spans, total, P50/P95/P99/Max and errors"><img src="images/traces/operations.webp" alt="Traces by Operation"></button>
+            <button class="gallery-thumb" data-src="images/traces/operation-summary.webp" data-caption="The operation drill-down &mdash; calls, latency distribution and top spans, with Flamegraphs, Timeline and Slowest Traces tabs"><img src="images/traces/operation-summary.webp" alt="Operation summary"></button>
+            <button class="gallery-thumb" data-src="images/traces/top-spans-slowest.webp" data-caption="Top spans by time and the slowest traces of an operation &mdash; every row opens the waterfall"><img src="images/traces/top-spans-slowest.webp" alt="Top spans and slowest traces"></button>
+            <button class="gallery-thumb" data-src="images/traces/search-timeline.webp" data-caption="Search Traces &mdash; conditions AND-ed anywhere-in-trace or on one span, with matches drawn over the recording timeline"><img src="images/traces/search-timeline.webp" alt="Search Traces with match timeline"></button>
+            <button class="gallery-thumb" data-src="images/traces/search-results.webp" data-caption="Matched traces ranked &mdash; from a 2-minute heap-dump-init to sub-millisecond requests, each one click from its waterfall"><img src="images/traces/search-results.webp" alt="Matched traces list"></button>
+            <button class="gallery-thumb" data-src="images/traces/attribute-values.webp" data-caption="Attribute Values &mdash; pick the event type and key; every event carrying attributes participates, JDK events included"><img src="images/traces/attribute-values.webp" alt="Attribute Values"></button>
+            <button class="gallery-thumb" data-src="images/jdk-events/gc-impacted.webp" data-caption="A GC pause overlaying a trace &mdash; the JVM context drawn on the request it hit"><img src="images/jdk-events/gc-impacted.webp" alt="GC pause overlaying a trace"></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature 02: Instrumentation -->
+  <section class="feature-section">
+    <div class="feature-row reverse">
+      <div class="feature-text">
+        <div class="feature-number">Feature 02</div>
+        <h2>Instrument Without Rewriting Code</h2>
+        <p>The new <strong>jeffrey-tracing</strong> libraries meet your code where it is. The core <strong>Tracer API</strong> has zero dependencies; around it sit modules for <strong>Servlet, Spring, JDBC, HikariCP, MyBatis and gRPC</strong> &mdash; and a <strong>Spring Boot starter</strong> that auto-configures the lot: add the dependency and write nothing.</p>
+        <p>Prefer annotations? Mark a method <code>@Traced</code> and the <strong>Jeffrey Agent</strong> weaves the span at class load &mdash; the method is left exactly as it was written. It nests under whatever span is in progress, records as its own root when there is none, and marks the span failed on throw. Argument capture is <strong>opt-in</strong> and restricted to an allow-list of stable value types.</p>
+        <p>Context lives on the thread in a <code>ScopedValue</code>, bounded by a lambda so it cannot leak; crossing threads is explicit with <code>fork</code> and <code>continueIn</code>.</p>
+        <div class="feature-highlights">
+          <span class="feature-highlight"><i class="bi bi-plug"></i> Spring Boot starter</span>
+          <span class="feature-highlight"><i class="bi bi-at"></i> @Traced weaving</span>
+          <span class="feature-highlight"><i class="bi bi-box-seam"></i> Zero dependencies</span>
+        </div>
+      </div>
+      <div class="feature-gallery">
+        <div class="gallery-main">
+          <div class="ph-panel">
+            <div class="ph-panel-title">jeffrey-tracing modules</div>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:18px;">
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">events</div>
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">servlet</div>
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">spring</div>
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">boot-starter</div>
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">jdbc</div>
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">hikari</div>
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">mybatis</div>
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">grpc</div>
+              <div style="border:1px solid #e9ecef; border-radius:8px; padding:10px 12px; font-size:0.72rem; font-weight:600; color:#0f766e; background:#f0fdfa;" class="ph-mono">test</div>
+            </div>
+            <div class="ph-mono" style="background:#0f172a; color:#e2e8f0; border-radius:10px; padding:16px 18px; font-size:0.78rem; line-height:1.7;">
+              <div><span style="color:#fbbf24;">@Traced</span>(name = <span style="color:#86efac;">"charge-card"</span>, includeMethodArgs = <span style="color:#86efac;">"correlationId"</span>)</div>
+              <div><span style="color:#7dd3fc;">public</span> Receipt charge(PaymentRequest request, String correlationId) {</div>
+              <div>&nbsp;&nbsp;<span style="color:#64748b;">// the method is left exactly as it was written</span></div>
+              <div>}</div>
+            </div>
+          </div>
+          <div class="gallery-caption">Nine modules around a zero-dependency core &mdash; or a single annotation and the agent</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature 03: JDK Events in Traces -->
+  <div class="feature-section-bg">
+    <section class="feature-section">
+      <div class="feature-row">
+        <div class="feature-text">
+          <div class="feature-number">Feature 03</div>
+          <h2>JDK Events in Traces</h2>
+          <p>The JDK already emits the events that matter &mdash; <code>FileRead</code>, <code>FileWrite</code> and <code>FileForce</code>, <code>SocketRead</code> and <code>SocketWrite</code>, monitor waits and <code>Object.wait</code>, thread parks and sleeps, <strong>ZGC allocation stalls</strong>, even <strong>virtual-thread pinning</strong>. Eleven event types in all &mdash; they carry a thread and a time window, which is all a trace needs: they land inside the right span <strong>with zero instrumentation</strong>, and your libraries&rsquo; I/O shows up without anyone tracing it.</p>
+          <p>Blocking leaves are <strong>promoted in the waterfall</strong>, so &ldquo;this span was slow because it sat in a <code>SocketWrite</code>&rdquo; is something you see, not something you deduce. The provisioner&rsquo;s lowered thresholds make them visible at trace resolution &mdash; the stock JFR configuration only keeps lock waits above 20&nbsp;ms and socket I/O above 1&nbsp;ms, coarser than a trace is read at.</p>
+          <p>And the JVM&rsquo;s own pauses are part of the story: <strong>GC pauses and safepoints</strong> overlay the trace, so a collection stealing time from the middle of a span is drawn on the span itself &mdash; and <strong>Why slow</strong> puts a number on exactly how much it took. Two traces of the <strong>same operation</strong> make the case: one where a single 101&nbsp;ms pause owns 70% of the request, and one that runs untouched in 48&nbsp;ms.</p>
+          <div class="feature-highlights">
+            <span class="feature-highlight"><i class="bi bi-hdd"></i> File &amp; socket I/O</span>
+            <span class="feature-highlight"><i class="bi bi-layers"></i> GC &amp; safepoint overlays</span>
+            <span class="feature-highlight"><i class="bi bi-magic"></i> Zero instrumentation</span>
+          </div>
+        </div>
+        <div class="feature-gallery">
+          <div class="gallery-main">
+            <img src="images/jdk-events/jdk-overlays.webp" alt="Trace with JVM context, blocking and I/O overlays enabled">
+            <div class="gallery-caption">The JDK&rsquo;s own events in a trace &mdash; virtual-thread pinning, file reads and safepoints, nothing instrumented</div>
+          </div>
+          <div class="gallery-thumbs">
+            <button class="gallery-thumb active" data-src="images/jdk-events/jdk-overlays.webp" data-caption="The JDK&rsquo;s own events in a trace &mdash; virtual-thread pinning, file reads and safepoints, nothing instrumented"><img src="images/jdk-events/jdk-overlays.webp" alt="JVM context, blocking and I/O overlays"></button>
+            <button class="gallery-thumb" data-src="images/jdk-events/file-socket-io.webp" data-caption="File and socket I/O promoted in the waterfall &mdash; File read &times;84 and Socket write &times;19, folded into runs with stats"><img src="images/jdk-events/file-socket-io.webp" alt="File and socket I/O in the waterfall"></button>
+            <button class="gallery-thumb" data-src="images/jdk-events/socketwrite-detail.webp" data-caption="A span promoted from jdk.SocketWrite &mdash; the event&rsquo;s own fields (host, port, bytes written) right on the span detail"><img src="images/jdk-events/socketwrite-detail.webp" alt="Promoted jdk.SocketWrite span detail"></button>
+            <button class="gallery-thumb" data-src="images/jdk-events/gc-impacted.webp" data-caption="The same operation, hit by GC &mdash; a 101 ms pause overlays the trace and owns 70% of its 146 ms"><img src="images/jdk-events/gc-impacted.webp" alt="Trace impacted by a GC pause"></button>
+            <button class="gallery-thumb" data-src="images/jdk-events/no-gc.webp" data-caption="&hellip;and untouched &mdash; 48 ms, &ldquo;no GC pauses, lock waits or I/O were attributed to this trace&rdquo;"><img src="images/jdk-events/no-gc.webp" alt="Same operation without GC impact"></button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Feature 04: Notifications & Exceptions -->
+  <section class="feature-section">
+    <div class="feature-row reverse">
+      <div class="feature-text">
+        <div class="feature-number">Feature 04</div>
+        <h2>Notifications &amp; Exceptions</h2>
+        <p>A trace shows what the runtime did; <code>jeffrey.Notification</code> lets the application add its own side of the story. A notification is a <strong>moment, not an interval</strong> &mdash; a threshold crossed, a pipeline completed, a circuit breaker opened &mdash; written into the recording and stamped with the enclosing span&rsquo;s ids, so it lands in the right place in the waterfall. Kind and message stay <strong>low-cardinality</strong> and dictionary-pooled; per-occurrence detail travels in <strong>searchable attributes</strong>.</p>
+        <p>Notifications get their own <strong>overlay lane</strong>: a diamond on the timeline opens the docked detail &mdash; identity, severity, when it was emitted, and every attribute &mdash; one click from the span that owns it.</p>
+        <p>Exceptions need <strong>no instrumentation at all</strong>: every throw in the recording is attributed to the span that was running. The stack opens in the same docked panel, with <strong>library frames folded</strong> so your own code stands out &mdash; and a copy button when you want the whole thing.</p>
+        <div class="feature-highlights">
+          <span class="feature-highlight"><i class="bi bi-app-indicator"></i> Span-stamped moments</span>
+          <span class="feature-highlight"><i class="bi bi-bug"></i> Zero-config exceptions</span>
+          <span class="feature-highlight"><i class="bi bi-filter"></i> Folded library frames</span>
+        </div>
+      </div>
+      <div class="feature-gallery">
+        <div class="gallery-main">
+          <img src="images/notifications/notification-popover.webp" alt="A notification opened in the waterfall with identity and attributes">
+          <div class="gallery-caption">A PIPELINE_COMPLETED notification &mdash; identity, severity and attributes, docked on the trace that emitted it</div>
+        </div>
+        <div class="gallery-thumbs">
+          <button class="gallery-thumb active" data-src="images/notifications/notification-popover.webp" data-caption="A PIPELINE_COMPLETED notification &mdash; identity, severity and attributes, docked on the trace that emitted it"><img src="images/notifications/notification-popover.webp" alt="Notification detail"></button>
+          <button class="gallery-thumb" data-src="images/notifications/exception-stack.webp" data-caption="A caught SQLFeatureNotSupportedException attributed to its span &mdash; library frames folded so your own code stands out"><img src="images/notifications/exception-stack.webp" alt="Exception stack trace docked in the waterfall"></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Improvements — grouped by product -->
+  <div class="improvements-section">
+    <div class="improvements-inner">
+      <div class="improvements-header">
+        <div class="improvements-header-line"></div>
+        <h2><i class="bi bi-wrench"></i> Improvements</h2>
+        <div class="improvements-header-line"></div>
+      </div>
+
+      <div class="improvement-group">
+        <div class="improvement-group-label microscope"><i class="bi bi-search"></i> Microscope</div>
+        <div class="improvements-grid">
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>Instance Timeline, Tidier</h3>
+              <p>The per-instance timeline card folds its meta strip into the card header &mdash; the same information, one visual unit per instance.</p>
+            </div>
+          </div>
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>Profile Databases, Dramatically Smaller</h3>
+              <p>The same SQL text used to be stored per-row four times over &mdash; a 92&nbsp;MB recording could produce a multi-gigabyte profile database. Repeated texts are now <strong>dictionary-pooled</strong> and <code>events</code> became a view, so every existing reader is unaffected while the database shrinks by orders of magnitude.</p>
+            </div>
+          </div>
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>Trace Export for AI Assistants</h3>
+              <p>The waterfall and the operation drill-down export what you are looking at as a single <strong>Markdown</strong> document built for pasting into an AI assistant &mdash; opening with a how-to-read preamble so span semantics aren&rsquo;t guessed wrong.</p>
+            </div>
+          </div>
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>Flamegraphs Fail Loudly</h3>
+              <p>A failed flamegraph request now surfaces the error instead of spinning forever &mdash; and the weight extractor skips events that carry no class instead of producing a broken entity.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="improvement-group">
+        <div class="improvement-group-label hub"><i class="bi bi-cloud"></i> Hub &amp; Provisioner</div>
+        <div class="improvements-grid">
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>A Provisioned JVM Records What Traces Need</h3>
+              <p>The stock JFR configuration keeps lock waits above 20&nbsp;ms and socket I/O above 1&nbsp;ms &mdash; coarser than a trace is read at. The provisioner now starts a <strong>second recording</strong> carrying only the lowered thresholds; JFR applies the most verbose setting, so the dumped files and the live stream both pick them up. <code>TRACING=off</code> opts out.</p>
+            </div>
+          </div>
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>Environment Variables as a Real Config Layer</h3>
+              <p>The provisioner merges the environment as a proper configuration layer instead of per-field fallbacks &mdash; and a settings-file ordering bug that could fail provisioning outright on real installs is fixed.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="improvement-group">
+        <div class="improvement-group-label platform"><i class="bi bi-boxes"></i> Platform</div>
+        <div class="improvements-grid">
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>MyBatis Tracing by Default</h3>
+              <p>Statements are named by their <strong>mapper method</strong> &mdash; far more readable than raw SQL &mdash; and record the bound parameter values. The interceptor takes over from the generic <code>DataSource</code> wrapper so nothing is double-recorded.</p>
+            </div>
+          </div>
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>Jeffrey Tracing Documentation</h3>
+              <p>Tracing is a first-class product on the docs site: <strong>18 guide pages</strong> plus one page per Tracer API method, with the Jeffrey Events catalog and span trees drawn as real diagrams.</p>
+            </div>
+          </div>
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>Claude Skills in the Box</h3>
+              <p>Five skills ship with the libraries so an AI assistant can instrument a codebase correctly &mdash; core, gRPC, HTTP client, MyBatis and Spring REST server.</p>
+            </div>
+          </div>
+          <div class="improvement-tile improvement-tile-text">
+            <div class="imp-tile-body">
+              <h3>Streamed JDBC Row Counts</h3>
+              <p>Streamed statements now report how many rows they actually delivered, so a query that returns nothing is distinguishable from one that floods.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+  document.querySelectorAll('.feature-gallery').forEach((gallery) => {
+    const main = gallery.querySelector('.gallery-main img');
+    const caption = gallery.querySelector('.gallery-caption');
+    const thumbs = gallery.querySelectorAll('.gallery-thumb[data-src]');
+    if (!main || thumbs.length === 0) {
+      return;
+    }
+    thumbs.forEach((thumb) => {
+      thumb.addEventListener('click', () => {
+        main.src = thumb.dataset.src;
+        caption.innerHTML = thumb.dataset.caption;
+        thumbs.forEach((t) => {
+          t.classList.toggle('active', t === thumb);
+        });
+      });
+    });
+  });
+</script>
+</body>
+</html>

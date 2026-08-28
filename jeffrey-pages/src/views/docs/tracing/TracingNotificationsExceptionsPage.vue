@@ -206,7 +206,15 @@ jeffrey.TraceSpan {
 
       <p>Shape carries the family before colour does — a CRITICAL notification and an escaped throw are both red and mean entirely different things. Each family has its own toolbar toggle, so silencing the chatter never silences the failure. A folded row reports what it swallowed with hollow counts and a hidden-error dot.</p>
 
-      <!-- TODO screenshot: /images/docs/tracing/notification-exception-rails.png — the waterfall with the notification (diamond) and exception (cross) rails, one popover open -->
+      <figure class="docs-figure">
+        <img src="/images/docs/tracing/notification-popover.webp" alt="The waterfall with notification and exception rails, a notification opened" />
+        <figcaption>The rails above the rows, and a <code>PIPELINE_COMPLETED</code> notification opened &mdash; identity and severity on the left, its four attributes on the right, one click from the span that emitted it.</figcaption>
+      </figure>
+
+      <figure class="docs-figure">
+        <img src="/images/docs/tracing/exception-stack.webp" alt="A caught exception's stack trace docked across the waterfall with library frames folded" />
+        <figcaption>A caught <code>SQLFeatureNotSupportedException</code> attributed to its span &mdash; the stack docks across the full width with library frames folded, so your own code stands out.</figcaption>
+      </figure>
 
       <p>Notifications are searchable from <strong>Traces by Attributes</strong>: pick <code>jeffrey.Notification</code> as the event type and its keys appear beside the ones spans carry. A notification condition narrows the <em>trace</em> result set exactly as a span condition does — but the two are indexed apart on purpose: a notification's <code>severity</code> says something went wrong somewhere; a span's <code>status</code> says <em>that span</em> failed. Searching for <code>status = ERROR</code> never matches a notification that merely said so.</p>
     </div>
