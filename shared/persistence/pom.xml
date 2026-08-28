@@ -63,5 +63,9 @@
             <artifactId>test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-events-test</artifactId>
+        </dependency>
     </dependencies>
 </project>
