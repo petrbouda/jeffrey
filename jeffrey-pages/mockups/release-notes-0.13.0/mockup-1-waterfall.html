@@ -155,7 +155,7 @@
 </style>
 </head>
 <body>
-<div class="mockup-note">Picked design — <b>&ldquo;Waterfall&rdquo;</b> &middot; static preview of the 0.13.0 release notes &middot; screenshot galleries are placeholders for real captures &middot; <a href="index.html">notes</a></div>
+<div class="mockup-note">Picked design — <b>&ldquo;Waterfall&rdquo;</b> &middot; preview of the 0.13.0 release notes &middot; Feature 03 shows real screenshots; the remaining placeholder visuals mark where captures go &middot; <a href="index.html">notes</a></div>
 <div class="release-notes-page">
 
   <!-- ─────────────────────── 0.13.0 Hero ─────────────────────── -->
@@ -235,10 +235,12 @@
           <p>Spans are <strong>JFR events</strong>, written into the same recording as the profiler&rsquo;s samples. There is no collector, no exporter, no &ldquo;send data&rdquo; step &mdash; the trace and the profile land in <strong>one file</strong>, and any event type declaring a <code>spanId</code> field participates with zero configuration.</p>
           <p>The waterfall shows <strong>self-versus-child time</strong> on every bar, dims everything off the <strong>critical path</strong>, folds repeated siblings into a run with count, total, median, P95 and a mini-histogram &mdash; and overlays GC pauses, safepoints, blocking spans, exceptions and notifications on top.</p>
           <p>A tracing tool normally says a span took 400&nbsp;ms and stops there. Jeffrey answers <em>doing what</em>: the <strong>Why slow</strong> panel ranks GC, safepoints, I/O and locks for the span, and every span opens a <strong>flamegraph</strong> &mdash; Inclusive or Self &mdash; correlated purely by thread and time window.</p>
+          <p>Spans carry <strong>attributes</strong> &mdash; and they are queryable across the whole profile: <strong>Search Traces</strong> ANDs conditions and compares the matches&rsquo; latency against everything else, <strong>Attribute Values</strong> ranks every value of a key by <strong>total time</strong> rather than call count, and <strong>Latency by Attributes</strong> draws each value over log-spaced duration buckets, so bimodality that percentiles hide is simply visible.</p>
           <div class="feature-highlights">
             <span class="feature-highlight"><i class="bi bi-bar-chart-steps"></i> Span waterfall</span>
             <span class="feature-highlight"><i class="bi bi-fire"></i> Per-span flamegraphs</span>
             <span class="feature-highlight"><i class="bi bi-patch-question"></i> &ldquo;Why slow&rdquo; breakdown</span>
+            <span class="feature-highlight"><i class="bi bi-search"></i> Attribute analytics</span>
           </div>
         </div>
         <div class="feature-gallery">
@@ -355,63 +357,33 @@
     </div>
   </section>
 
-  <!-- Feature 03: Trace Analytics -->
+  <!-- Feature 03: JDK Events in Traces -->
   <div class="feature-section-bg">
     <section class="feature-section">
       <div class="feature-row">
         <div class="feature-text">
           <div class="feature-number">Feature 03</div>
-          <h2>Trace Analytics</h2>
-          <p>Span attributes, the source event&rsquo;s own fields and the span shape are flattened once into a searchable index. <strong>Search Traces</strong> ANDs conditions &mdash; equality, numeric comparison, presence &mdash; with same-span or anywhere-in-trace matching, and shows how the matches&rsquo; latency compares against the whole profile.</p>
-          <p><strong>Attribute Values</strong> breaks one key into every value it took, ranked by <strong>total time</strong> rather than call count &mdash; the customer that costs you the most, not the one that calls the most.</p>
-          <p><strong>Latency by Attributes</strong> draws each value&rsquo;s traces over log-spaced duration buckets. Percentiles hide bimodality; the heatmap shows it.</p>
+          <h2>JDK Events in Traces</h2>
+          <p>The JDK already emits the events that matter &mdash; <code>FileRead</code> and <code>FileWrite</code>, <code>SocketRead</code> and <code>SocketWrite</code>, monitor waits, thread parks. They carry a thread and a time window, which is all a trace needs: they land inside the right span <strong>with zero instrumentation</strong>, and your libraries&rsquo; I/O shows up without anyone tracing it.</p>
+          <p>Blocking leaves are <strong>promoted in the waterfall</strong>, so &ldquo;this span was slow because it sat in a <code>SocketWrite</code>&rdquo; is something you see, not something you deduce. The provisioner&rsquo;s lowered thresholds make them visible at trace resolution &mdash; the stock JFR configuration only keeps lock waits above 20&nbsp;ms and socket I/O above 1&nbsp;ms, coarser than a trace is read at.</p>
+          <p>And the JVM&rsquo;s own pauses are part of the story: <strong>GC pauses and safepoints</strong> overlay the trace, so a collection stealing time from the middle of a span is drawn on the span itself &mdash; and <strong>Why slow</strong> puts a number on exactly how much it took. Two traces of the <strong>same operation</strong> make the case: one where a single 101&nbsp;ms pause owns 70% of the request, and one that runs untouched in 48&nbsp;ms.</p>
           <div class="feature-highlights">
-            <span class="feature-highlight"><i class="bi bi-search"></i> Attribute search</span>
-            <span class="feature-highlight"><i class="bi bi-sort-down"></i> Ranked by total time</span>
-            <span class="feature-highlight"><i class="bi bi-grid-3x3-gap"></i> Latency heatmap</span>
+            <span class="feature-highlight"><i class="bi bi-hdd"></i> File &amp; socket I/O</span>
+            <span class="feature-highlight"><i class="bi bi-layers"></i> GC &amp; safepoint overlays</span>
+            <span class="feature-highlight"><i class="bi bi-magic"></i> Zero instrumentation</span>
           </div>
         </div>
         <div class="feature-gallery">
           <div class="gallery-main">
-            <span class="ph-badge">Placeholder</span>
-            <svg viewBox="0 0 860 480" xmlns="http://www.w3.org/2000/svg" style="font-family: Roboto, system-ui, sans-serif;">
-              <rect width="860" height="480" fill="#ffffff"/>
-              <text x="18" y="30" font-size="14" font-weight="700" fill="#343a40">Latency by Attributes &middot; customer.tier</text>
-              <text x="18" y="52" font-size="11" fill="#6c757d">log-spaced duration buckets, 1 ms &rarr; 4 s</text>
-              <text x="820" y="30" font-size="11" text-anchor="end" fill="#0d9488" font-weight="600">1,204 traces</text>
-              <!-- x labels -->
-              <text x="150" y="452" font-size="10" fill="#adb5bd">1ms</text>
-              <text x="290" y="452" font-size="10" fill="#adb5bd">10ms</text>
-              <text x="430" y="452" font-size="10" fill="#adb5bd">100ms</text>
-              <text x="570" y="452" font-size="10" fill="#adb5bd">1s</text>
-              <text x="710" y="452" font-size="10" fill="#adb5bd">4s</text>
-              <!-- rows -->
-              <text x="18" y="110" font-size="12" fill="#495057">gold</text>
-              <g>
-                <rect x="130" y="90" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.15"/><rect x="200" y="90" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.55"/><rect x="270" y="90" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.95"/><rect x="340" y="90" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.5"/><rect x="410" y="90" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.12"/><rect x="480" y="90" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="550" y="90" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="620" y="90" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="690" y="90" width="66" height="34" rx="4" fill="#f1f3f5"/>
-              </g>
-              <text x="18" y="160" font-size="12" fill="#495057">silver</text>
-              <g>
-                <rect x="130" y="140" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="200" y="140" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.35"/><rect x="270" y="140" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.8"/><rect x="340" y="140" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.6"/><rect x="410" y="140" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.25"/><rect x="480" y="140" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="550" y="140" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="620" y="140" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="690" y="140" width="66" height="34" rx="4" fill="#f1f3f5"/>
-              </g>
-              <text x="18" y="210" font-size="12" fill="#dc2626" font-weight="600">free</text>
-              <g>
-                <rect x="130" y="190" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="200" y="190" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.7"/><rect x="270" y="190" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.9"/><rect x="340" y="190" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="410" y="190" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="480" y="190" width="66" height="34" rx="4" fill="#f59e0b" opacity="0.55"/><rect x="550" y="190" width="66" height="34" rx="4" fill="#f59e0b" opacity="0.95"/><rect x="620" y="190" width="66" height="34" rx="4" fill="#f59e0b" opacity="0.6"/><rect x="690" y="190" width="66" height="34" rx="4" fill="#f1f3f5"/>
-              </g>
-              <rect x="470" y="184" width="296" height="46" rx="6" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="5 4"/>
-              <text x="620" y="252" font-size="10" fill="#dc2626" text-anchor="middle">the second mode a percentile would hide</text>
-              <text x="18" y="290" font-size="12" fill="#495057">trial</text>
-              <g>
-                <rect x="130" y="270" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.4"/><rect x="200" y="270" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.85"/><rect x="270" y="270" width="66" height="34" rx="4" fill="#14b8a6" opacity="0.45"/><rect x="340" y="270" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="410" y="270" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="480" y="270" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="550" y="270" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="620" y="270" width="66" height="34" rx="4" fill="#f1f3f5"/><rect x="690" y="270" width="66" height="34" rx="4" fill="#f1f3f5"/>
-              </g>
-              <!-- attribute values strip -->
-              <rect x="18" y="330" width="824" height="88" rx="10" fill="#f8f9fa" stroke="#e9ecef"/>
-              <text x="34" y="356" font-size="12" font-weight="700" fill="#343a40">Attribute Values &middot; ranked by total time</text>
-              <rect x="34" y="368" width="420" height="12" rx="3" fill="#0d9488"/><text x="462" y="378" font-size="10" fill="#6c757d">free &middot; 41.2 s total &middot; 388 spans</text>
-              <rect x="34" y="386" width="280" height="12" rx="3" fill="#14b8a6"/><text x="322" y="396" font-size="10" fill="#6c757d">gold &middot; 27.4 s total &middot; 512 spans</text>
-              <rect x="34" y="404" width="150" height="12" rx="3" fill="#5eead4"/><text x="192" y="414" font-size="10" fill="#6c757d">silver &middot; 14.8 s total &middot; 304 spans</text>
-            </svg>
-            <div class="gallery-caption">Latency by Attributes &mdash; bimodality is visible, and values rank by total time, not call count</div>
+            <img src="images/jdk-events/jdk-overlays.webp" alt="Trace with JVM context, blocking and I/O overlays enabled">
+            <div class="gallery-caption">The JDK&rsquo;s own events in a trace &mdash; virtual-thread pinning, file reads and safepoints, nothing instrumented</div>
+          </div>
+          <div class="gallery-thumbs">
+            <button class="gallery-thumb active" data-src="images/jdk-events/jdk-overlays.webp" data-caption="The JDK&rsquo;s own events in a trace &mdash; virtual-thread pinning, file reads and safepoints, nothing instrumented"><img src="images/jdk-events/jdk-overlays.webp" alt="JVM context, blocking and I/O overlays"></button>
+            <button class="gallery-thumb" data-src="images/jdk-events/file-socket-io.webp" data-caption="File and socket I/O promoted in the waterfall &mdash; File read &times;84 and Socket write &times;19, folded into runs with stats"><img src="images/jdk-events/file-socket-io.webp" alt="File and socket I/O in the waterfall"></button>
+            <button class="gallery-thumb" data-src="images/jdk-events/socketwrite-detail.webp" data-caption="A span promoted from jdk.SocketWrite &mdash; the event&rsquo;s own fields (host, port, bytes written) right on the span detail"><img src="images/jdk-events/socketwrite-detail.webp" alt="Promoted jdk.SocketWrite span detail"></button>
+            <button class="gallery-thumb" data-src="images/jdk-events/gc-impacted.webp" data-caption="The same operation, hit by GC &mdash; a 101 ms pause overlays the trace and owns 70% of its 146 ms"><img src="images/jdk-events/gc-impacted.webp" alt="Trace impacted by a GC pause"></button>
+            <button class="gallery-thumb" data-src="images/jdk-events/no-gc.webp" data-caption="&hellip;and untouched &mdash; 48 ms, &ldquo;no GC pauses, lock waits or I/O were attributed to this trace&rdquo;"><img src="images/jdk-events/no-gc.webp" alt="Same operation without GC impact"></button>
           </div>
         </div>
       </div>
@@ -508,5 +480,24 @@
   </div>
 
 </div>
+<script>
+  document.querySelectorAll('.feature-gallery').forEach((gallery) => {
+    const main = gallery.querySelector('.gallery-main img');
+    const caption = gallery.querySelector('.gallery-caption');
+    const thumbs = gallery.querySelectorAll('.gallery-thumb[data-src]');
+    if (!main || thumbs.length === 0) {
+      return;
+    }
+    thumbs.forEach((thumb) => {
+      thumb.addEventListener('click', () => {
+        main.src = thumb.dataset.src;
+        caption.innerHTML = thumb.dataset.caption;
+        thumbs.forEach((t) => {
+          t.classList.toggle('active', t === thumb);
+        });
+      });
+    });
+  });
+</script>
 </body>
 </html>

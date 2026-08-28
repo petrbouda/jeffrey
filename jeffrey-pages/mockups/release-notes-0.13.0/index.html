@@ -59,10 +59,11 @@
         <div class="num">1</div>
         <div><h3>Waterfall <span class="h">teal &rarr; sky</span> <span class="h pick">picked</span></h3>
           <p>Deep navy hero with a teal-to-indigo animated feature frame. Three features — Jeffrey
-            Traces (waterfall, &ldquo;Why slow&rdquo;, per-span flamegraphs) &middot; Instrument
-            Without Rewriting Code (modules grid + <code>@Traced</code> with
-            <code>includeMethodArgs</code>) &middot; Trace Analytics (latency heatmap) — with
-            Notifications &amp; Exceptions leading the Improvements grid.</p></div>
+            Traces (waterfall, &ldquo;Why slow&rdquo;, per-span flamegraphs, attribute analytics)
+            &middot; Instrument Without Rewriting Code (modules grid + <code>@Traced</code> with
+            <code>includeMethodArgs</code>) &middot; JDK Events in Traces (real screenshots: I/O
+            overlays, promoted jdk.SocketWrite, and the same operation with and without a GC pause)
+            — with Notifications &amp; Exceptions leading the Improvements grid.</p></div>
       </a>
     </div>
 
@@ -79,7 +80,8 @@
           <code>0.13.0 &mdash; Jeffrey Traces Release</code> select option, the hero/stats blocks, and
           the 0.13.0 feature <code>&lt;template&gt;</code> (demoting 0.12.0 to <code>v-else-if</code>).</li>
         <li>Drop real screenshots under <code>public/images/release-notes/v0.13.0/</code>
-          (traces/, instrumentation/, analytics/).</li>
+          (traces/, instrumentation/, jdk-events/). The five JDK-events captures already live in
+          this folder&rsquo;s <code>images/jdk-events/</code> and move over with the port.</li>
       </ul>
     </div>
   </div>
