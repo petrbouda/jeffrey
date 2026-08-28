@@ -61,7 +61,7 @@ const folderStructure = `$JEFFREY_HOME/
     />
 
     <div class="docs-content">
-      <p>Profiles are the core analysis unit in Jeffrey — they represent <strong>processed and analyzed JFR recordings</strong> optimized for fast querying and interactive visualization. Each profile contains five analysis sections.</p>
+      <p>Profiles are the core analysis unit in Jeffrey — they represent <strong>processed and analyzed JFR recordings</strong> optimized for fast querying and interactive visualization. Each profile contains several analysis sections.</p>
 
       <h2 id="what-are-profiles">What are Profiles?</h2>
       <p>A profile is created when Jeffrey processes a JFR recording. Unlike raw JFR files, profiles are stored in a database format that enables fast querying, pre-computed visualizations, indexed data, and cached analysis. Think of a profile as a "materialized view" of your JFR recording — all the data is there, but organized for analysis.</p>

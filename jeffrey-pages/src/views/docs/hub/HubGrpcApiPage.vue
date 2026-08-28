@@ -77,7 +77,7 @@ onMounted(() => {
         </div>
 
         <h2 id="grpc-services">gRPC Services</h2>
-        <p>Jeffrey Hub exposes 8 gRPC services defined in <code>shared/hub-api/src/main/proto/jeffrey/hub/api/v1/</code>.</p>
+        <p>Jeffrey Hub exposes 7 gRPC services defined in <code>shared/hub-api/src/main/proto/jeffrey/hub/api/v1/</code>.</p>
 
         <div class="endpoint-groups">
           <!-- WorkspaceService -->
@@ -107,6 +107,13 @@ onMounted(() => {
                   <code>GetWorkspace</code>
                 </div>
                 <p>Get workspace details by ID</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>CreateWorkspace</code>
+                </div>
+                <p>Create a workspace with a user-supplied reference ID (used by the CLI to route recordings)</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
@@ -243,6 +250,13 @@ onMounted(() => {
                 </div>
                 <p>Delete specific files in session</p>
               </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>SetSessionRetained</code>
+                </div>
+                <p>Retain a session (exempt from every retention job) or release it again</p>
+              </div>
             </div>
           </div>
 
@@ -326,6 +340,13 @@ onMounted(() => {
                 </div>
                 <p>Delete at any level</p>
               </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>GetWorkspaceEffectiveSettings</code>
+                </div>
+                <p>Get the workspace-level and global-level settings for a workspace</p>
+              </div>
             </div>
           </div>
 
@@ -339,10 +360,18 @@ onMounted(() => {
               <div class="endpoint-item">
                 <div class="endpoint-line">
                   <span class="method rpc">RPC</span>
-                  <code>SubscribeEvents</code>
+                  <code>LiveStreaming</code>
                   <span class="rpc-type">server-streaming</span>
                 </div>
-                <p>Subscribe to live JFR events from a session's streaming repository with event type filtering and time range</p>
+                <p>Live-stream JFR events from a session's streaming repository; the stream stays open until the client disconnects or the session ends</p>
+              </div>
+              <div class="endpoint-item">
+                <div class="endpoint-line">
+                  <span class="method rpc">RPC</span>
+                  <code>ReplayStreaming</code>
+                  <span class="rpc-type">server-streaming</span>
+                </div>
+                <p>Replay historical JFR events from a session's dumped recording files in chronological order</p>
               </div>
             </div>
           </div>

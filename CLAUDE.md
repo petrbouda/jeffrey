@@ -88,7 +88,7 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `common` — Shared utilities and models
 - `persistence` — Common persistence abstractions
 - `test` — Test infrastructure (`@DuckDBTest` annotation, test utilities)
-- `hub-api` — gRPC proto files at `src/main/proto/jeffrey/api/v1/`
+- `hub-api` — gRPC proto files at `src/main/proto/jeffrey/hub/api/v1/`
 - `sql-builder` — SQL query building utilities
 - `pending-index` — filesystem index the provisioner writes and the hub reads to discover new work
 - `recording-storage-api` — Storage interfaces
@@ -129,9 +129,9 @@ jeffrey/
 ├── jeffrey-microscope/                     # Standalone deployment
 │   ├── core-microscope/                    # Main Spring Boot app (MicroscopeApplication)
 │   │   └── src/.../microscope/core/
-│   │       ├── client/                # gRPC clients (HubClients, Remote*Client)
 │   │       ├── manager/               # Managers (project/, workspace/, downloads, recordings, etc.)
 │   │       └── resources/             # REST resources (project/, workspace/, ProfilesResource, etc.)
+│   ├── grpc-client/                   # gRPC clients for hub communication (Discovery, Repository, Projects, ...)
 │   ├── microscope-core-persistence-api/    # Microscope core persistence interfaces
 │   ├── microscope-core-sql-persistence/    # Microscope core DuckDB persistence
 │   ├── pages-microscope/                   # Full-featured Vue 3 SPA frontend
@@ -186,8 +186,9 @@ jeffrey/
 │   ├── common/                        # Common utilities and models
 │   ├── persistence/                   # Common persistence abstractions
 │   ├── test/                          # Test infrastructure (@DuckDBTest)
+│   ├── hub-client/                    # HubClients record aggregating the gRPC clients
 │   ├── hub-api/                    # gRPC proto definitions
-│   │   └── src/main/proto/jeffrey/api/v1/  # Proto files
+│   │   └── src/main/proto/jeffrey/hub/api/v1/  # Proto files
 │   ├── sql-builder/                   # SQL query building
 │   ├── pending-index/                 # CLI→hub discovery index
 │   ├── recording-storage-api/         # Storage interfaces
@@ -270,7 +271,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - **Architecture**: Manager pattern with service layer separation
 - **REST**: Spring MVC controllers annotated with `@RestController` + `@RequestMapping` at class level (this is the **only** stereotype the project allows — see Spring Bean Registration). Constructor injection only — never `@Autowired`. Controllers are picked up by Spring Boot's component scan rooted at the application's package; do not declare them as `@Bean` methods.
 - **Spring Bean Registration**: Never use stereotype annotations (`@Component`, `@Service`, `@Repository`, `@Controller`) or `@Autowired`. **Exception:** `@RestController` is allowed (and required) on Spring MVC controllers — this is the only stereotype on the allow-list, because the controller layer is the single place where component scanning is more pragmatic than explicit wiring. Everything else (managers, services, factories, resolvers, web infrastructure) must be registered explicitly via `@Bean` methods in `@Configuration` classes or Spring 4 `BeanRegistrar`. This keeps wiring visible and explicit while letting the dispatcher discover handlers normally.
-- **gRPC**: Proto files in `shared/hub-api/` (package `cafe.jeffrey.hub.api.v1`), implementations in `jeffrey-hub/core-hub/.../grpc/`, clients in `jeffrey-microscope/core-microscope/.../client/`
+- **gRPC**: Proto files in `shared/hub-api/` (package `cafe.jeffrey.hub.api.v1`), implementations in `jeffrey-hub/core-hub/.../grpc/`, clients in `jeffrey-microscope/grpc-client/` aggregated by `shared/hub-client/`
 - **Sealed Interfaces**: Used for type-safe hierarchies (e.g., `JobDescriptor`, `WorkspacesManager`, `TimeRange`)
 - **Records**: Used for DTOs and immutable data
 - **Three-Tier Persistence**: Local Core DB (workspaces, projects, recordings) + Server DB (server workspaces, projects, scheduling) + Profile DB (isolated per profile)
@@ -384,9 +385,9 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - **jeffrey-microscope REST**: `/api/internal/` for frontend-facing APIs — resources in `jeffrey-microscope/core-microscope/.../resources/`
 - **Profile REST**: `/api/internal/profiles/{profileId}/` for profile features — controllers in `jeffrey-microscope/core-microscope/.../web/controllers/profile/`
 - **jeffrey-hub REST**: `/api/internal/` for minimal server UI — resources in `jeffrey-hub/core-hub/.../resources/`
-- **gRPC**: Remote workspace communication between jeffrey-microscope and jeffrey-hub — proto definitions in `shared/hub-api/src/main/proto/jeffrey/api/v1/`, service implementations in `jeffrey-hub/core-hub/.../grpc/`, clients in `jeffrey-microscope/core-microscope/.../client/`
-- gRPC proto files: `workspace_service.proto`, `project_service.proto`, `instance_service.proto`, `recording_download_service.proto`, `repository_service.proto`, `profiler_settings_service.proto`, `messages_service.proto`
-- gRPC clients: `HubClients` record containing `DiscoveryClient`, `RepositoryClient`, `RecordingStreamClient`, `ProfilerClient`, `RemoteMessagesClient`, `InstancesClient`, `ProjectsClient`
+- **gRPC**: Remote workspace communication between jeffrey-microscope and jeffrey-hub — proto definitions in `shared/hub-api/src/main/proto/jeffrey/hub/api/v1/`, service implementations in `jeffrey-hub/core-hub/.../grpc/`, clients in `jeffrey-microscope/grpc-client/.../grpc/client/`, aggregated by the `HubClients` record in `shared/hub-client/`
+- gRPC proto files: `workspace_service.proto`, `project_service.proto`, `instance_service.proto`, `recording_download_service.proto`, `repository_service.proto`, `profiler_settings_service.proto`, `event_streaming_service.proto`
+- gRPC clients: `HubClients` record (in `shared/hub-client/`) containing `DiscoveryClient`, `RepositoryClient`, `RecordingStreamClient`, `ProfilerClient`, `InstancesClient`, `ProjectsClient`, `EventStreamingClient`
 - Implemented using Spring MVC `@RestController` for REST. Profile-scoped controllers live in `jeffrey-microscope/core-microscope/.../web/controllers/profile/`; `profiles/profile-management/.../resources/` holds request DTOs only.
 - JSON data exchange format for REST, Protobuf for gRPC
 - Multi-part file uploads for JFR files
@@ -447,12 +448,19 @@ When modifying code, keep the corresponding documentation pages in `jeffrey-page
 
 | Code module | Documentation pages |
 |---|---|
-| `jeffrey-microscope/core-microscope` | `jeffrey-pages/src/views/docs/platform/` — workspaces, projects, recordings, sessions, profiler settings, alerts |
-| `jeffrey-hub/core-hub` | `jeffrey-pages/src/views/docs/platform/` — scheduler |
-| `jeffrey-microscope/profiles/profile-management` | `jeffrey-pages/src/views/docs/profiles/` — visualization, application analysis, JVM internals, heap dump analysis |
-| `jeffrey-provisioner/` | `jeffrey-pages/src/views/docs/provisioner/` — Provisioner overview, configuration, directory structure, generated output |
-| Architecture changes | `jeffrey-pages/src/views/docs/architecture/` — overview, public API, storage |
-| Deployment changes | `jeffrey-pages/src/views/docs/deployments/` — JAR, container, live recording |
+| `jeffrey-microscope/core-microscope` | `docs/microscope/` — overview, quick start, workspaces, recordings, storage, profiler settings; `docs/microscope/projects/` — projects, instances, event streaming; `docs/microscope/configuration/` — application/advanced properties, secrets |
+| `jeffrey-microscope/profiles/**` | `docs/microscope/profiles/` — one page per analysis feature (GC, allocations, threads, JIT, NMT, heap dump, Guardian, Advisor, ...) |
+| `jeffrey-hub/core-hub` | `docs/hub/` — overview, architecture, storage, gRPC API; `docs/hub/recording-sessions/` — lifecycle, configuration; `docs/hub/configuration/`; `docs/hub/deployment/` — shared volume, Helm chart, Jib, Provisioner |
+| `shared/hub-api/` (proto changes) | `docs/hub/HubGrpcApiPage.vue` — service and RPC reference |
+| `jeffrey-agent/` + tracing instrumentation | `docs/tracing/` — concepts, getting started, configuration, `@Traced`, instrumentation and event pages; `docs/tracing/tracer-api/` — one page per Tracer API method |
+| `jeffrey-provisioner/` | `docs/provisioner/` — overview, configuration, directory structure, generated output |
+| Jib build/deployment | `docs/jib/` — overview, setup, configuration |
+| AI modules (`ai-config`, `oql-assistant`, `*-mcp`, `profile-advisor`) | `docs/ai/` — overview, JFR analysis, heap dump analysis, OQL assistant |
+| IntelliJ plugin | `docs/intellij-plugin/` — overview, setup, configuration, JFR profiler |
+| Architecture changes | `docs/architecture/ArchitectureOverviewPage.vue` |
+| Install/onboarding changes | `docs/getting-started/` — introduction, installation, quick start |
+
+All paths above are relative to `jeffrey-pages/src/views/docs/`. New pages must also be registered as a route in `jeffrey-pages/src/router/index.ts`.
 
 ## License
 GNU Affero General Public License v3.0 (AGPL-3.0)
