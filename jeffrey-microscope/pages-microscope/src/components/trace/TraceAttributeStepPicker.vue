@@ -354,7 +354,7 @@ onBeforeUnmount(() => {
   padding: var(--spacing-1) var(--spacing-3) var(--spacing-1) var(--spacing-1);
   font-size: var(--font-size-base);
   cursor: pointer;
-  max-width: 340px;
+  max-width: 560px;
 }
 
 /*
