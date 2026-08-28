@@ -155,7 +155,7 @@
 </style>
 </head>
 <body>
-<div class="mockup-note">Picked design — <b>&ldquo;Waterfall&rdquo;</b> &middot; preview of the 0.13.0 release notes &middot; Features 01 &amp; 03 carry real screenshots &middot; <a href="index.html">notes</a></div>
+<div class="mockup-note">Picked design — <b>&ldquo;Waterfall&rdquo;</b> &middot; preview of the 0.13.0 release notes &middot; Features 01, 03 &amp; 04 carry real screenshots &middot; <a href="index.html">notes</a></div>
 <div class="release-notes-page">
 
   <!-- ─────────────────────── 0.13.0 Hero ─────────────────────── -->
@@ -198,7 +198,7 @@
   <!-- Release stats strip -->
   <div class="release-stats">
     <div class="release-stats-inner">
-      <div class="release-stat"><b>3</b><span>Headline features</span></div>
+      <div class="release-stat"><b>4</b><span>Headline features</span></div>
       <div class="release-stat"><b>9</b><span>Instrumentation modules</span></div>
       <div class="release-stat"><b>11</b><span>Tracer API methods</span></div>
       <div class="release-stat"><b>4</b><span>New trace pages</span></div>
@@ -339,6 +339,34 @@
     </section>
   </div>
 
+  <!-- Feature 04: Notifications & Exceptions -->
+  <section class="feature-section">
+    <div class="feature-row reverse">
+      <div class="feature-text">
+        <div class="feature-number">Feature 04</div>
+        <h2>Notifications &amp; Exceptions</h2>
+        <p>A trace shows what the runtime did; <code>jeffrey.Notification</code> lets the application add its own side of the story. A notification is a <strong>moment, not an interval</strong> &mdash; a threshold crossed, a pipeline completed, a circuit breaker opened &mdash; written into the recording and stamped with the enclosing span&rsquo;s ids, so it lands in the right place in the waterfall. Kind and message stay <strong>low-cardinality</strong> and dictionary-pooled; per-occurrence detail travels in <strong>searchable attributes</strong>.</p>
+        <p>Notifications get their own <strong>overlay lane</strong>: a diamond on the timeline opens the docked detail &mdash; identity, severity, when it was emitted, and every attribute &mdash; one click from the span that owns it.</p>
+        <p>Exceptions need <strong>no instrumentation at all</strong>: every throw in the recording is attributed to the span that was running. The stack opens in the same docked panel, with <strong>library frames folded</strong> so your own code stands out &mdash; and a copy button when you want the whole thing.</p>
+        <div class="feature-highlights">
+          <span class="feature-highlight"><i class="bi bi-app-indicator"></i> Span-stamped moments</span>
+          <span class="feature-highlight"><i class="bi bi-bug"></i> Zero-config exceptions</span>
+          <span class="feature-highlight"><i class="bi bi-filter"></i> Folded library frames</span>
+        </div>
+      </div>
+      <div class="feature-gallery">
+        <div class="gallery-main">
+          <img src="images/notifications/notification-popover.webp" alt="A notification opened in the waterfall with identity and attributes">
+          <div class="gallery-caption">A PIPELINE_COMPLETED notification &mdash; identity, severity and attributes, docked on the trace that emitted it</div>
+        </div>
+        <div class="gallery-thumbs">
+          <button class="gallery-thumb active" data-src="images/notifications/notification-popover.webp" data-caption="A PIPELINE_COMPLETED notification &mdash; identity, severity and attributes, docked on the trace that emitted it"><img src="images/notifications/notification-popover.webp" alt="Notification detail"></button>
+          <button class="gallery-thumb" data-src="images/notifications/exception-stack.webp" data-caption="A caught SQLFeatureNotSupportedException attributed to its span &mdash; library frames folded so your own code stands out"><img src="images/notifications/exception-stack.webp" alt="Exception stack trace docked in the waterfall"></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Improvements — grouped by product -->
   <div class="improvements-section">
     <div class="improvements-inner">
@@ -353,8 +381,8 @@
         <div class="improvements-grid">
           <div class="improvement-tile improvement-tile-text">
             <div class="imp-tile-body">
-              <h3>Notifications &amp; Exceptions in Traces</h3>
-              <p>A new <code>jeffrey.Notification</code> event lets the application write a <strong>moment</strong> &mdash; a threshold crossed, a circuit breaker opened &mdash; into its own recording, stamped with the enclosing span&rsquo;s ids so it lands in the right place in the waterfall. Exceptions need <strong>no instrumentation at all</strong>: every throw is attributed to the span that was running.</p>
+              <h3>Instance Timeline, Tidier</h3>
+              <p>The per-instance timeline card folds its meta strip into the card header &mdash; the same information, one visual unit per instance.</p>
             </div>
           </div>
           <div class="improvement-tile improvement-tile-text">
