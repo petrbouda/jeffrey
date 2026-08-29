@@ -411,6 +411,15 @@ const EVENT_TYPE_CATALOG: EventTypeCategory[] = [
       { name: 'jeffrey.JdbcPoolStatistics', description: 'Connection pool stats' }
     ]
   },
+  // ── Jeffrey: Tracing ──
+  {
+    label: 'Tracing',
+    badge: 'jeffrey',
+    events: [
+      { name: 'jeffrey.TraceSpan', description: 'Hand-written spans from Tracer / @Traced' },
+      { name: 'jeffrey.TraceScope', description: 'Scopes re-entered by Tracer#reenter' }
+    ]
+  },
   // ── Jeffrey: Notifications ──
   {
     label: 'Notifications',
