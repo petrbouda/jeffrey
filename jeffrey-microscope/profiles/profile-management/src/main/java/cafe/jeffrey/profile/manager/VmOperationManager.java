@@ -19,6 +19,7 @@
 package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.vmoperation.VmOperationStat;
+import cafe.jeffrey.profile.manager.model.vmoperation.SafepointLatencyData;
 import cafe.jeffrey.profile.manager.model.vmoperation.VmOverview;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.timeseries.TimeseriesData;
@@ -57,4 +58,12 @@ public interface VmOperationManager {
      * Time-to-safepoint per second, in nanoseconds (off by default — usually empty).
      */
     TimeseriesData timeToSafepointTimeline();
+
+    /**
+     * Which threads the JVM waited for on its way into safepoints, ranked.
+     * <p>
+     * The one question the rest of this page cannot answer: every other safepoint event is recorded
+     * once per safepoint on a VM thread, so none of them knows whose slowness it measured.
+     */
+    SafepointLatencyData safepointOffenders();
 }

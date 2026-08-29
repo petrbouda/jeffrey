@@ -29,6 +29,7 @@ const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
   { id: 'operations', text: 'VM Operations', level: 2 },
   { id: 'safepoints', text: 'Safepoints', level: 2 },
+  { id: 'offenders', text: 'Who the JVM Waited For', level: 2 },
   { id: 'types', text: 'Types of VM Operation', level: 2 },
   { id: 'events', text: 'Source Events', level: 2 }
 ];
@@ -58,6 +59,25 @@ onMounted(() => {
       <h2 id="safepoints">Safepoints</h2>
       <p>A per-second timeline of safepoint pause time (the time spent <em>at</em> safepoints, always available) plus — when <code>jdk.SafepointStateSynchronization</code> is enabled — a <em>time-to-safepoint</em> timeline: the wall-clock spent waiting for all threads to reach a safepoint before the operation can begin. High TTSP points at threads slow to poll (long counted loops, JNI), not at the operation itself.</p>
 
+      <h2 id="offenders">Who the JVM Waited For</h2>
+
+      <p>Time-to-safepoint tells you the wait was long. It cannot tell you whose fault it was, and that is not a gap in the page — <code>jdk.SafepointStateSynchronization</code> is recorded once per safepoint on a VM thread, so there is nothing in it that knows which application thread was the slow one.</p>
+
+      <p><code>jdk.SafepointLatency</code> (JDK 25+) is recorded on <em>each application thread</em> instead, once per thread per safepoint. Jeffrey aggregates it per thread and ranks the result: how many safepoints that thread was measured for, its worst and 99th-percentile time-to-safepoint, and the total it accounts for.</p>
+
+      <p>The <strong>state when asked to stop</strong> column is the one that turns a number into a fix:</p>
+
+      <ul>
+        <li><code>_thread_in_Java</code> — running compiled Java, typically a long counted loop the JIT stripped the safepoint poll out of. The loop is the thing to change.</li>
+        <li><code>_thread_in_native</code> — inside a native call, which the JVM cannot interrupt at all; it simply has to wait for the call to return.</li>
+      </ul>
+
+      <DocsCallout type="warning">
+        <strong>The event is off in both configurations, and <code>profile</code> also turns its stack trace off.</strong> Enabling it needs two settings, not one: <code>jdk.SafepointLatency#enabled=true</code> and <code>jdk.SafepointLatency#stackTrace=true</code>. With only the first you learn which thread was slow but never what it was running.
+      </DocsCallout>
+
+      <p>Ranked by summed latency rather than by the worst single sample, deliberately: a thread that is a little slow on every one of a thousand safepoints is a tuning problem worth finding, while one that was slow once is usually a scheduler hiccup — and sorting by max would put the hiccup on top. The total is a ranking weight, not elapsed time: threads reach a safepoint concurrently, so it sums waits that overlapped.</p>
+
       <h2 id="types">Types of VM Operation</h2>
       <ul>
         <li><strong>GC collections</strong> (<code>G1CollectForAllocation</code>, …) — the stop-the-world phases of garbage collection.</li>
@@ -72,6 +92,7 @@ onMounted(() => {
       <ul>
         <li><code>jdk.ExecuteVMOperation</code> — every VM operation with safepoint/blocking flags (enabled by default).</li>
         <li><code>jdk.SafepointStateSynchronization</code> / <code>SafepointBegin</code> / <code>SafepointEnd</code> — time-to-safepoint and safepoint phases (off by default).</li>
+        <li><code>jdk.SafepointLatency</code> — per-thread time-to-safepoint, the only source that names the thread the JVM waited for (JDK 25+, off in both configurations; needs <code>stackTrace=true</code> as well under <code>profile</code>).</li>
       </ul>
     </div>
 

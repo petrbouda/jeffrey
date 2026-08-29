@@ -18,7 +18,11 @@
 
 import BaseProfileClient from '@/services/api/BaseProfileClient';
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
-import type { VmOperationStat, VmOverview } from '@/services/api/model/VmOperationModels';
+import type {
+  SafepointLatencyData,
+  VmOperationStat,
+  VmOverview
+} from '@/services/api/model/VmOperationModels';
 
 export default class ProfileVmOperationsClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -39,5 +43,10 @@ export default class ProfileVmOperationsClient extends BaseProfileClient {
 
   public getSafepointTimeline(): Promise<TimeseriesData> {
     return this.get<TimeseriesData>('/safepoint-timeline');
+  }
+
+  /** Which threads the JVM waited for on its way into safepoints, ranked. */
+  async getSafepointOffenders(): Promise<SafepointLatencyData> {
+    return this.get<SafepointLatencyData>('/safepoint-offenders');
   }
 }

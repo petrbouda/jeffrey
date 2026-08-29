@@ -27,7 +27,12 @@ package cafe.jeffrey.profile.manager.model.vmoperation;
  * @param longestPauseNanos        duration of the longest single VM operation
  * @param longestPauseOperation    name of that operation (e.g. {@code G1CollectForAllocation})
  * @param hasVmOperations          whether VM-operation events are present
- * @param hasSafepointLatency      whether time-to-safepoint events are present
+ * @param hasTimeToSafepoint       whether {@code jdk.SafepointStateSynchronization} is present — the
+ *                                 per-safepoint view of how long the JVM spent getting every thread
+ *                                 to stop. Renamed from {@code hasSafepointLatency}, which read as a
+ *                                 claim about {@code jdk.SafepointLatency} and was never about it
+ * @param hasSafepointOffenders    whether {@code jdk.SafepointLatency} is present — the per-thread
+ *                                 view, and the only one that can name who was waited for
  */
 public record VmOverview(
         long vmOperationCount,
@@ -35,5 +40,6 @@ public record VmOverview(
         long longestPauseNanos,
         String longestPauseOperation,
         boolean hasVmOperations,
-        boolean hasSafepointLatency) {
+        boolean hasTimeToSafepoint,
+        boolean hasSafepointOffenders) {
 }
