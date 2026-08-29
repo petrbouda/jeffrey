@@ -36,6 +36,7 @@ public record Type(String code, boolean calculated) {
     public static final Type CPU_TIME_SAMPLES_LOST = new Type(EventTypeName.CPU_TIME_SAMPLES_LOST);
     public static final Type WALL_CLOCK_SAMPLE = new Type(EventTypeName.WALL_CLOCK_SAMPLE);
     public static final Type METHOD_TRACE = new Type(EventTypeName.METHOD_TRACE);
+    public static final Type METHOD_TIMING = new Type(EventTypeName.METHOD_TIMING);
     public static final Type MALLOC = new Type(EventTypeName.MALLOC);
     public static final Type FREE = new Type(EventTypeName.FREE);
     public static final Type JAVA_MONITOR_ENTER = new Type(EventTypeName.JAVA_MONITOR_ENTER);
@@ -241,6 +242,7 @@ public record Type(String code, boolean calculated) {
                 CPU_TIME_SAMPLES_LOST,
                 WALL_CLOCK_SAMPLE,
                 METHOD_TRACE,
+                METHOD_TIMING,
                 MALLOC,
                 FREE,
                 NATIVE_LEAK,

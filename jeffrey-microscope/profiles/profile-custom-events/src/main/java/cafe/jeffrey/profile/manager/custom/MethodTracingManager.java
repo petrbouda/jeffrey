@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.manager.custom;
 
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.profile.manager.custom.model.method.CumulationMode;
+import cafe.jeffrey.profile.manager.custom.model.method.MethodTimingData;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingCumulatedData;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingOverviewData;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestData;
@@ -37,4 +38,13 @@ public interface MethodTracingManager {
     MethodTracingSlowestData slowest();
 
     MethodTracingCumulatedData cumulated(CumulationMode mode);
+
+    /**
+     * What {@code jdk.MethodTiming} counted, one row per method.
+     * <p>
+     * The exact, complete companion to the sampled surfaces beside it: it can watch a method called
+     * millions of times for a fixed price, and in exchange keeps no stack, no thread and no
+     * individual invocation.
+     */
+    MethodTimingData methodTiming();
 }

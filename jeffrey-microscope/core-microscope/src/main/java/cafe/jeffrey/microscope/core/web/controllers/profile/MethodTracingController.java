@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.custom.MethodTracingManager;
 import cafe.jeffrey.profile.manager.custom.model.method.CumulationMode;
+import cafe.jeffrey.profile.manager.custom.model.method.MethodTimingData;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingCumulatedData;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingOverviewData;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestData;
@@ -62,6 +63,12 @@ public class MethodTracingController {
             @RequestParam("mode") String mode) {
         LOG.debug("Fetching method tracing cumulated: mode={}", mode);
         return mgr(profileId).cumulated(CumulationMode.fromString(mode));
+    }
+
+    @GetMapping("/timing")
+    public MethodTimingData timing(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching method timing");
+        return mgr(profileId).methodTiming();
     }
 
     private MethodTracingManager mgr(String profileId) {
