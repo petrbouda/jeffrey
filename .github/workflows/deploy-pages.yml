@@ -1,0 +1,133 @@
+# Builds the jeffrey-pages documentation site and publishes it to the separate
+# GitHub Pages repository petrbouda/petrbouda.github.io. This is the CI equivalent of the
+# /update-jeffrey-pages command, minus its interactive docs-sync-checker review step -
+# that audit stays a local, human-in-the-loop step before merging documentation changes.
+#
+# Pushing to another repository needs a credential of its own: the automatic GITHUB_TOKEN is
+# scoped to petrbouda/jeffrey only and cannot write to petrbouda.github.io. Create a
+# fine-grained personal access token with Contents: Read and write on petrbouda/petrbouda.github.io
+# and store it in this repository as the secret PAGES_DEPLOY_TOKEN.
+# (A write-enabled deploy key on the target repo works too - swap the checkout `token:` for
+# `ssh-key:` and pass the private key instead.)
+name: Deploy Jeffrey Pages
+
+on:
+  # Auto-deploy whenever the docs site changes on main.
+  push:
+    branches:
+      - main
+    paths:
+      - 'jeffrey-pages/**'
+      - '.github/workflows/deploy-pages.yml'
+  # Manual runs, with a dry-run mode that builds and diffs without pushing.
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build and show the diff, but do not push to the Pages repository'
+        required: false
+        default: false
+        type: boolean
+
+# One deployment at a time; a newer commit supersedes a run still waiting.
+concurrency:
+  group: deploy-jeffrey-pages
+  cancel-in-progress: false
+
+env:
+  PAGES_REPOSITORY: petrbouda/petrbouda.github.io
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout jeffrey
+        uses: actions/checkout@v6
+        with:
+          path: jeffrey
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # jeffrey-pages keeps no package-lock.json, so `npm install` - not `npm ci`.
+      - name: Install dependencies
+        working-directory: jeffrey/jeffrey-pages
+        run: npm install
+
+      - name: Build the documentation site
+        working-directory: jeffrey/jeffrey-pages
+        run: npm run build
+
+      - name: Verify build output
+        working-directory: jeffrey/jeffrey-pages
+        run: |
+          for artifact in dist/index.html dist/assets dist/images; do
+            if [ ! -e "$artifact" ]; then
+              echo "ERROR: build output is missing $artifact" >&2
+              exit 1
+            fi
+          done
+          ls -la dist/
+
+      - name: Checkout the GitHub Pages repository
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.PAGES_REPOSITORY }}
+          token: ${{ secrets.PAGES_DEPLOY_TOKEN }}
+          path: pages
+
+      # Only the generated files are removed - anything else the Pages repository owns
+      # (CNAME, robots.txt, hand-written pages) is left untouched.
+      - name: Remove previously generated files
+        working-directory: pages
+        run: |
+          rm -f index.html 404.html
+          rm -rf assets images
+
+      # 404.html is a byte-for-byte copy of index.html: GitHub Pages serves it as the SPA
+      # fallback so client-side routes survive direct URL access and page refreshes.
+      - name: Copy the new build
+        run: |
+          cp jeffrey/jeffrey-pages/dist/index.html pages/index.html
+          cp jeffrey/jeffrey-pages/dist/index.html pages/404.html
+          cp -r jeffrey/jeffrey-pages/dist/assets pages/
+          cp -r jeffrey/jeffrey-pages/dist/images pages/
+
+      - name: Show pending changes
+        working-directory: pages
+        run: |
+          git add -A
+          git status --short
+          git diff --cached --stat
+
+      - name: Commit and push
+        if: ${{ inputs.dry_run != true }}
+        working-directory: pages
+        env:
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --cached --quiet; then
+            echo "No documentation changes to publish."
+            exit 0
+          fi
+          git commit \
+            -m "Update Jeffrey documentation site" \
+            -m "Built from ${GITHUB_REPOSITORY}@${SOURCE_SHA}"
+          for attempt in 1 2 3 4; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push failed (attempt ${attempt}), retrying..."
+            sleep $((2 ** attempt))
+            git pull --rebase
+          done
+          echo "ERROR: failed to push to ${PAGES_REPOSITORY}" >&2
+          exit 1
+
+      - name: Dry run summary
+        if: ${{ inputs.dry_run == true }}
+        run: echo 'Dry run - the build succeeded and the changes above were NOT pushed.'
