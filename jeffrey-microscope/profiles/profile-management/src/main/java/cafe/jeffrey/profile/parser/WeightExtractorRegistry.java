@@ -19,25 +19,32 @@
 package cafe.jeffrey.profile.parser;
 
 import jdk.jfr.consumer.RecordedEvent;
-import jdk.jfr.consumer.RecordedFrame;
-import jdk.jfr.consumer.RecordedStackTrace;
+import jdk.jfr.consumer.RecordedMethod;
 import cafe.jeffrey.shared.common.model.Type;
 
 import java.util.Collections;
 import java.util.HashMap;
 
 import static cafe.jeffrey.shared.common.model.Type.*;
-import java.util.List;
 import java.util.Map;
 
 public class WeightExtractorRegistry {
+
+    /** The {@code jdk.MethodTrace} field naming the method being traced. */
+    private static final String METHOD_FIELD = "method";
+
+    /**
+     * How a method is written into {@code weight_entity}, and how {@code JfrMethodImpl.of} reads it
+     * back out again.
+     */
+    private static final String METHOD_SEPARATOR = "#";
 
     private static final Map<Type, WeightExtractor> REGISTRY = Collections.unmodifiableMap(buildRegistry());
 
     private static Map<Type, WeightExtractor> buildRegistry() {
         Map<Type, WeightExtractor> registry = new HashMap<>();
         registry.put(NATIVE_LEAK, WeightExtractor.allocation("size"));
-        registry.put(METHOD_TRACE, WeightExtractor.duration(WeightExtractorRegistry::extractFirstFrame));
+        registry.put(METHOD_TRACE, WeightExtractor.duration(WeightExtractorRegistry::extractTracedMethod));
         registry.put(CPU_TIME_SAMPLE, WeightExtractor.durationField("samplingPeriod"));
         registry.put(MALLOC, WeightExtractor.allocation("size", e -> String.valueOf(e.getLong("address"))));
         registry.put(FREE, WeightExtractor.allocationEntityOnly(e -> String.valueOf(e.getLong("address"))));
@@ -60,16 +67,28 @@ public class WeightExtractorRegistry {
         return REGISTRY.get(type);
     }
 
-    private static String extractFirstFrame(RecordedEvent event) {
-        RecordedStackTrace stackTrace = event.getStackTrace();
-        if (stackTrace == null || stackTrace.getFrames().isEmpty()) {
+    /**
+     * The method a {@code jdk.MethodTrace} event was tracing, read from the event's own field.
+     * <p>
+     * This used to take the leaf frame of the stack trace, which is what every other stack-carrying
+     * event would mean by "the method this is about". {@code jdk.MethodTrace} is the exception: JEP
+     * 520 roots its stack trace at the <em>caller</em>, so the leaf frame is the method that made the
+     * call, never the one being traced. On a JDK 25 recording of a probe tracing two methods, every
+     * single event was mislabelled by exactly one frame — the events for {@code Probe.inner} were
+     * attributed to {@code Probe.outer}, and those for {@code Probe.outer} to {@code Probe.main},
+     * a method the filter had never selected and which appeared in the dashboard regardless.
+     * <p>
+     * Null when the field is absent rather than falling back to the frame: the fallback is precisely
+     * the wrong answer, and a silently wrong method name is worse than a missing one.
+     */
+    private static String extractTracedMethod(RecordedEvent event) {
+        if (!event.hasField(METHOD_FIELD)) {
             return null;
         }
-        List<RecordedFrame> frames = stackTrace.getFrames();
-        if (frames.isEmpty()) {
+        RecordedMethod method = event.getValue(METHOD_FIELD);
+        if (method == null) {
             return null;
         }
-        RecordedFrame frame = frames.getFirst();
-        return frame.getMethod().getType().getName() + "#" + frame.getMethod().getName();
+        return method.getType().getName() + METHOD_SEPARATOR + method.getName();
     }
 }
