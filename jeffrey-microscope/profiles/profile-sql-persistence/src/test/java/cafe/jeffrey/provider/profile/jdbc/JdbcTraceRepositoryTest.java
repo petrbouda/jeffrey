@@ -67,6 +67,7 @@ import java.sql.Statement;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -1629,6 +1630,21 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
+        @DisplayName("counts an instant that occupied none of the span it happened in")
+        void countsInstantContext(DataSource dataSource) throws SQLException {
+            Map<TraceContextCategory, TraceSpanContextRecord> waits =
+                    waitsByCategory(withContext(dataSource));
+
+            // jdk.AllocationRequiringGC carries no duration -- it is a moment, not a stretch. It has
+            // to arrive counted rather than be dropped for summing to nothing, because it names the
+            // span responsible for a collection the rest of the trace only suffers.
+            TraceSpanContextRecord allocation = waits.get(TraceContextCategory.ALLOCATION_REQUIRING_GC);
+            assertNotNull(allocation, "an instant must still be attributed to the span it happened in");
+            assertEquals(1, allocation.occurrences());
+            assertEquals(0L, allocation.totalNanos(), "an instant contributes no time");
+        }
+
+        @Test
         @DisplayName("finds pauses recorded on a VM thread, not the span's own")
         void findsGlobalPauses(DataSource dataSource) throws SQLException {
             // The pauses live on thread 3003 while the span ran on 3001. A query that matched the
@@ -1732,9 +1748,15 @@ class JdbcTraceRepositoryTest {
             JdbcTraceRepository repository = withContext(dataSource);
 
             // The monitor and park waits are synthesized leaf spans now; counting them here too
-            // would say the same blocked microsecond twice.
-            assertTrue(waitsByCategory(repository).isEmpty(),
-                    "nothing but promoted categories waited in this trace");
+            // would say the same blocked microsecond twice. Stated as "no promoted category
+            // remains" rather than "nothing remains": a category that was never promoted -- an
+            // instant like an allocation forcing a collection -- legitimately stays in the context,
+            // and an emptiness check would forbid that for no reason.
+            Set<TraceContextCategory> waited = waitsByCategory(repository).keySet();
+            assertFalse(waited.contains(TraceContextCategory.MONITOR_BLOCKED),
+                    "the monitor wait is a span now, so it must not also be counted as a wait");
+            assertFalse(waited.contains(TraceContextCategory.PARKED),
+                    "the park is a span now, so it must not also be counted as a wait");
 
             Map<String, TraceSpanRecord> promoted = promotedOf(repository).stream()
                     .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity()));

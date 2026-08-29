@@ -82,6 +82,13 @@ export const CONTEXT_CATEGORIES: Record<string, { label: string; color: string }
   ALLOCATION_STALL: { label: 'Allocation stall', color: 'var(--flamegraph-color-orange)' },
   DEOPTIMIZATION: { label: 'Deoptimization', color: 'var(--flamegraph-color-peach)' },
   /*
+   * A marker rather than a band, which is why a deep violet is admissible where the ramp is
+   * otherwise crowded with purples: markers are drawn as counted chips inside a span's detail, never
+   * as a lane across the waterfall, so they never share a picture with the lock-wait lavender or the
+   * file-I/O magenta.
+   */
+  ALLOCATION_REQUIRING_GC: { label: 'GC triggered', color: 'var(--chart-series-7)' },
+  /*
    * Crimson-pink rather than another purple: a pin is usually *caused by* a monitor, but drawing it
    * in the lock-wait purple would claim the two rows are the same wait, and the reader's fix — free
    * the carrier — is different from the reader's fix for contention.
@@ -154,6 +161,7 @@ const CONTEXT_EXPLAINING_ROUTES: Record<string, string> = {
   GC_PAUSE: 'profile-garbage-collection',
   SAFEPOINT: 'profile-vm-operations',
   CPU_THROTTLED: 'profile-container-cpu-throttling',
+  ALLOCATION_REQUIRING_GC: 'profile-garbage-collection',
   MONITOR_BLOCKED: 'profile-blocking-operations',
   MONITOR_WAIT: 'profile-blocking-operations',
   PARKED: 'profile-threads-timeline',
