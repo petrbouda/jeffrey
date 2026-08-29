@@ -205,6 +205,23 @@ public interface TraceRepository {
     List<TracePauseRecord> pausesInWindow(long fromEpochMicros, long toEpochMicros);
 
     /**
+     * The CFS sampling windows that contained CPU throttling and overlap a window.
+     * <p>
+     * Separate from {@link #pausesInWindow} because it is recovered differently and means something
+     * weaker. {@code jdk.ContainerCPUThrottling} is a periodic sample of counters that are
+     * cumulative since the cgroup was created, so a stretch of throttling is not recorded anywhere —
+     * it is inferred by differencing consecutive samples, which yields the sampling window that
+     * contained it rather than the throttling itself.
+     * <p>
+     * A container with no CFS quota cannot be throttled and records the counters as null, so it
+     * produces no windows here without needing its configuration consulted.
+     *
+     * @param fromEpochMicros window start, absolute
+     * @param toEpochMicros   window end, absolute
+     */
+    List<TraceThrottleWindowRecord> throttledWindowsIn(long fromEpochMicros, long toEpochMicros);
+
+    /**
      * What each span of one trace spent waiting on — locks, parking, I/O — one row per
      * {@code (span, category)} that recorded anything.
      * <p>

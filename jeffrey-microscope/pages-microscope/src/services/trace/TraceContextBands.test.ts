@@ -21,10 +21,15 @@ import {
   bandAt,
   bandLanes,
   contextBands,
-  mergedDurationNanos
+  mergedDurationNanos,
+  throttleBands
 } from '@/services/trace/TraceContextBands';
 import { MIN_BAR_PERCENT } from '@/services/trace/TraceWaterfallLayout';
-import type { TracePause, TraceContextCategoryName } from '@/services/api/model/trace/TraceModels';
+import type {
+  TracePause,
+  TraceContextCategoryName,
+  TraceThrottleWindow
+} from '@/services/api/model/trace/TraceModels';
 
 const NANOS_PER_MICRO = 1_000;
 
@@ -210,5 +215,87 @@ describe('bandAt', () => {
 
   it('answers with nothing when there are no bands at all', () => {
     expect(bandAt([], 50)).toBeNull();
+  });
+});
+
+/**
+ * A CFS sampling window. `throttledNanos` is deliberately far smaller than the window it sits in —
+ * that gap is the whole point of the type: the container was parked for part of the window, and
+ * nothing says which part.
+ */
+function throttleWindow(
+  startMicros: number,
+  endMicros: number,
+  throttledMicros: number,
+  throttledSlices = 54,
+  elapsedSlices = 300
+): TraceThrottleWindow {
+  return {
+    startEpochMicros: startMicros,
+    endEpochMicros: endMicros,
+    throttledNanos: throttledMicros * NANOS_PER_MICRO,
+    throttledSlices,
+    elapsedSlices,
+    ratioPercent: (throttledSlices / elapsedSlices) * 100
+  };
+}
+
+describe('throttleBands', () => {
+  it('draws the window rather than the throttled time inside it', () => {
+    // The band spans 1200..1500 because that is the *window*; the 20 micros of actual parked time
+    // happened somewhere in it. Sizing the band by throttledNanos would claim a precision the
+    // cumulative counters never had.
+    const [band] = throttleBands([throttleWindow(1_200, 1_500, 20)], WINDOW);
+
+    expect(band.leftPercent).toBeCloseTo(20);
+    expect(band.widthPercent).toBeCloseTo(30);
+    expect(band.throttledNanos).toBe(20 * NANOS_PER_MICRO);
+  });
+
+  it('keeps a window that opened before the trace and marks it clipped', () => {
+    // A 30s sampling window almost always opens before the trace it explains, so clipping it away
+    // would drop nearly every band this lane exists to draw.
+    const [band] = throttleBands([throttleWindow(500, 1_400, 100)], WINDOW);
+
+    expect(band.clippedStart).toBe(true);
+    expect(band.leftPercent).toBe(0);
+    expect(band.widthPercent).toBeCloseTo(40);
+  });
+
+  it('marks a window still open when the trace ended', () => {
+    const [band] = throttleBands([throttleWindow(1_800, 4_000, 100)], WINDOW);
+
+    expect(band.clippedEnd).toBe(true);
+    expect(band.clippedStart).toBe(false);
+  });
+
+  it('does not scale the throttled time down by how much of the window overlapped', () => {
+    // Only a tenth of this window overlaps the trace. Apportioning the parked time by that overlap
+    // would invent a figure: throttling is not spread evenly through a window.
+    const [band] = throttleBands([throttleWindow(1_900, 11_900, 500)], WINDOW);
+
+    expect(band.throttledNanos).toBe(500 * NANOS_PER_MICRO);
+  });
+
+  it('drops a window that never touched the trace', () => {
+    expect(throttleBands([throttleWindow(3_000, 4_000, 100)], WINDOW)).toEqual([]);
+  });
+
+  it('carries the ratio, which is the answer the parked time cannot give', () => {
+    // Same 20 micros parked, ten times the periods: a far milder problem that reads identically if
+    // only the duration travels.
+    const [hard] = throttleBands([throttleWindow(1_200, 1_500, 20, 54, 300)], WINDOW);
+    const [mild] = throttleBands([throttleWindow(1_200, 1_500, 20, 54, 3_000)], WINDOW);
+
+    expect(hard.ratioPercent).toBeCloseTo(18);
+    expect(mild.ratioPercent).toBeCloseTo(1.8);
+    expect(hard.throttledNanos).toBe(mild.throttledNanos);
+  });
+
+  it('widens a window too short to see, like a pause band', () => {
+    const [band] = throttleBands([throttleWindow(1_500, 1_501, 1)], WINDOW);
+
+    expect(band.widthPercent).toBe(MIN_BAR_PERCENT);
+    expect(band.clamped).toBe(true);
   });
 });

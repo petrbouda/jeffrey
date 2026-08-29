@@ -49,6 +49,12 @@ import type {
  * The one deliberate share: OWN_WORK keeps the self-time green, because it is the same quantity —
  * the trace's own code running — seen at trace scope instead of span scope.
  */
+/**
+ * The one context category that is a *window* rather than a measured stretch, named once so the
+ * views that must treat it differently agree on which one it is.
+ */
+export const THROTTLE_CATEGORY: TraceContextCategoryName = 'CPU_THROTTLED';
+
 export const CONTEXT_CATEGORIES: Record<string, { label: string; color: string }> = {
   GC_PAUSE: { label: 'GC pause', color: 'var(--color-danger)' },
   SAFEPOINT: { label: 'Safepoint', color: 'var(--color-goldenrod)' },
@@ -66,6 +72,18 @@ export const CONTEXT_CATEGORIES: Record<string, { label: string; color: string }
    * the carrier — is different from the reader's fix for contention.
    */
   VT_PINNED: { label: 'VT pinned', color: 'var(--chart-series-4)' },
+  /*
+   * The Containers page's warning orange, deliberately echoed: throttling is the one category that
+   * already has a screen of its own, and the rule that a shared wait reads the same way on both
+   * screens matters more here than anywhere else -- a reader who saw the throttling verdict there
+   * should recognise the band here without being told.
+   *
+   * It sits near SOCKET_IO's #f86624, which the ramp would normally forbid. It is admissible only
+   * because the two never share a picture: socket waits are promoted into synthesized span *bars*
+   * and reach the why-slow panel from there, while this category is drawn only as a lane and is
+   * kept out of the panel entirely. If either of those ever changes, this hue has to move.
+   */
+  CPU_THROTTLED: { label: 'CPU throttled', color: 'var(--color-warning)' },
   OWN_WORK: { label: 'Own work', color: 'var(--flamegraph-color-green)' }
 };
 
@@ -120,6 +138,7 @@ export function exceptionColor(escaped: boolean): string {
 const CONTEXT_EXPLAINING_ROUTES: Record<string, string> = {
   GC_PAUSE: 'profile-garbage-collection',
   SAFEPOINT: 'profile-vm-operations',
+  CPU_THROTTLED: 'profile-container-cpu-throttling',
   MONITOR_BLOCKED: 'profile-blocking-operations',
   MONITOR_WAIT: 'profile-blocking-operations',
   PARKED: 'profile-threads-timeline',

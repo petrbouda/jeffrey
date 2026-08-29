@@ -71,6 +71,9 @@ class TraceAiMarkdownBuilderTest {
     private static TraceContext context() {
         return new TraceContext(
                 List.of(new TracePause("GC_PAUSE", "G1 Young", 145_000L, 100 * MS, false)),
+                // The markdown export does not read throttle windows: they explain a trace rather
+                // than accounting for it, and the summary below is what the export renders.
+                List.of(),
                 Map.of("02", List.of(new TraceContextSlice("MONITOR_BLOCKED", 4 * MS, 1))),
                 List.of(
                         new TraceContextSlice("GC_PAUSE", 100 * MS, 1),

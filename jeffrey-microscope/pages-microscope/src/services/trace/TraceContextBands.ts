@@ -20,7 +20,7 @@ import { NANOS_PER_MICRO } from '@/services/trace/timeUnits';
 import { positionPercent } from '@/services/events/eventWindow';
 import { MIN_BAR_PERCENT } from '@/services/trace/TraceWaterfallLayout';
 
-import type { TracePause } from '@/services/api/model/trace/TraceModels';
+import type { TracePause, TraceThrottleWindow } from '@/services/api/model/trace/TraceModels';
 import type { TraceWindow } from '@/services/trace/TraceWaterfallLayout';
 
 /**
@@ -70,25 +70,107 @@ export function contextBands(pauses: TracePause[], window: TraceWindow): Context
   for (const pause of pauses) {
     const from = pause.startEpochMicros;
     const to = from + pause.durationNanos / NANOS_PER_MICRO;
-    if (to <= window.startMicros || from >= window.endMicros) {
+    const placed = place(from, to, window);
+    if (placed === null) {
       continue;
     }
-
-    const leftRaw = positionPercent(from, window.startMicros, window.endMicros);
-    const rightRaw = positionPercent(to, window.startMicros, window.endMicros);
-    const trueWidth = rightRaw - leftRaw;
-    const widthPercent = Math.min(100, Math.max(trueWidth, MIN_BAR_PERCENT));
 
     bands.push({
       category: pause.category,
       label: pause.label,
-      // Clamping the width can push a band at the right edge past it; pull it back inside.
-      leftPercent: Math.min(leftRaw, 100 - widthPercent),
-      widthPercent,
-      durationNanos: pause.durationNanos,
-      clippedStart: from < window.startMicros,
-      clippedEnd: to > window.endMicros,
-      clamped: trueWidth < MIN_BAR_PERCENT
+      ...placed,
+      durationNanos: pause.durationNanos
+    });
+  }
+  return bands;
+}
+
+/** The geometry a band occupies on the track, or null where it never touched the window. */
+interface Placement {
+  leftPercent: number;
+  widthPercent: number;
+  clippedStart: boolean;
+  clippedEnd: boolean;
+  clamped: boolean;
+}
+
+/**
+ * Places one absolute interval against the trace's window.
+ *
+ * Shared by the pause bands and the throttle bands so the two are laid out by the same arithmetic:
+ * they mean different things, but a band that begins at the same microsecond must begin at the same
+ * pixel, or the picture stops being one picture.
+ */
+function place(fromMicros: number, toMicros: number, window: TraceWindow): Placement | null {
+  if (toMicros <= window.startMicros || fromMicros >= window.endMicros) {
+    return null;
+  }
+
+  const leftRaw = positionPercent(fromMicros, window.startMicros, window.endMicros);
+  const rightRaw = positionPercent(toMicros, window.startMicros, window.endMicros);
+  const trueWidth = rightRaw - leftRaw;
+  const widthPercent = Math.min(100, Math.max(trueWidth, MIN_BAR_PERCENT));
+
+  return {
+    // Clamping the width can push a band at the right edge past it; pull it back inside.
+    leftPercent: Math.min(leftRaw, 100 - widthPercent),
+    widthPercent,
+    clippedStart: fromMicros < window.startMicros,
+    clippedEnd: toMicros > window.endMicros,
+    clamped: trueWidth < MIN_BAR_PERCENT
+  };
+}
+
+/**
+ * One CFS sampling window drawn against the trace, as percentages of it.
+ *
+ * Separate from {@link ContextBand} because the two carry different claims and the drawing has to
+ * keep them apart. A pause band's width is its duration; this band's width is the *window*, and
+ * `throttledNanos` is a total that happened somewhere inside it. Nothing here can say where, so the
+ * lane draws it hatched and labels the figure approximate.
+ */
+export interface ThrottleBand {
+  leftPercent: number;
+  widthPercent: number;
+  clippedStart: boolean;
+  clippedEnd: boolean;
+  clamped: boolean;
+  /** How long the container was parked somewhere inside the window. */
+  throttledNanos: number;
+  /** The share of the window's CFS periods that were throttled. */
+  ratioPercent: number;
+  throttledSlices: number;
+  elapsedSlices: number;
+}
+
+/**
+ * Places each throttled window inside the trace's window, dropping the ones that never touched it.
+ *
+ * Kept whole rather than clipped to the trace: a window that opened before the request is exactly
+ * the one explaining its first slow span, and the clip markers say it ran past the edge. What is
+ * deliberately *not* done is scaling `throttledNanos` down by the overlap — the throttling is not
+ * spread evenly through the window, so apportioning it by time would invent a figure the counters
+ * never supported.
+ */
+export function throttleBands(windows: TraceThrottleWindow[], window: TraceWindow): ThrottleBand[] {
+  const total = window.endMicros - window.startMicros;
+  if (total <= 0) {
+    return [];
+  }
+
+  const bands: ThrottleBand[] = [];
+  for (const throttled of windows) {
+    const placed = place(throttled.startEpochMicros, throttled.endEpochMicros, window);
+    if (placed === null) {
+      continue;
+    }
+
+    bands.push({
+      ...placed,
+      throttledNanos: throttled.throttledNanos,
+      ratioPercent: throttled.ratioPercent,
+      throttledSlices: throttled.throttledSlices,
+      elapsedSlices: throttled.elapsedSlices
     });
   }
   return bands;

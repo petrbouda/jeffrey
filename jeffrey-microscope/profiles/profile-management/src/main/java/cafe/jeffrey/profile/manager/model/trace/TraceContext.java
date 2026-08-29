@@ -29,17 +29,22 @@ import java.util.Map;
  * three different problems. Keeping the pauses, the per-span waits and the ranked summary in one
  * payload means the view draws one consistent story rather than three requests' worth of it.
  *
- * @param pauses      stop-the-world stretches overlapping the trace, in time order. Global, so they
- *                    are drawn across the whole waterfall rather than against any one span
- * @param spanWaits   per-span waiting, keyed by hex span id, each list ordered longest first. A span
- *                    that only ever ran is absent rather than present with zeroes
- * @param summary     the trace's time ranked by where it went, with everything unaccounted for
- *                    reported as the code's own work
+ * @param pauses          stop-the-world stretches overlapping the trace, in time order. Global, so
+ *                        they are drawn across the whole waterfall rather than against any one span
+ * @param throttleWindows CFS sampling windows in which the container was CPU-throttled. Global like
+ *                        the pauses, but weaker: a window says throttling happened inside it, not
+ *                        when, so it is drawn and totalled differently and never joins the summary
+ * @param spanWaits       per-span waiting, keyed by hex span id, each list ordered longest first. A
+ *                        span that only ever ran is absent rather than present with zeroes
+ * @param summary         the trace's time ranked by where it went, with everything unaccounted for
+ *                        reported as the code's own work
  */
 public record TraceContext(
         List<TracePause> pauses,
+        List<TraceThrottleWindow> throttleWindows,
         Map<String, List<TraceContextSlice>> spanWaits,
         List<TraceContextSlice> summary) {
 
-    public static final TraceContext EMPTY = new TraceContext(List.of(), Map.of(), List.of());
+    public static final TraceContext EMPTY =
+            new TraceContext(List.of(), List.of(), Map.of(), List.of());
 }

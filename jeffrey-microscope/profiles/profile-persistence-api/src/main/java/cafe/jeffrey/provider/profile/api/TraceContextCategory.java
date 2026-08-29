@@ -102,12 +102,41 @@ public enum TraceContextCategory {
      * of parking the carrier. The complement matters: on virtual threads, a pin is where blocked
      * time hides.
      */
-    VT_PINNED(Scope.THREAD, EventTypeName.VIRTUAL_THREAD_PINNED);
+    VT_PINNED(Scope.THREAD, EventTypeName.VIRTUAL_THREAD_PINNED),
+
+    /**
+     * The CFS scheduler parked the whole container after it exhausted its CPU quota — the wait no
+     * thread records, because no thread is doing anything to record. Global for the same reason a
+     * collection pause is: the cgroup stops, not one thread in it.
+     * <p>
+     * Alone among the categories it is {@link Derivation#COUNTER_DELTA}: {@code jdk.ContainerCPUThrottling}
+     * is a periodic sample of cumulative kernel counters, not an event spanning the stretch it
+     * describes. What can be recovered is that a window between two samples contained throttling and
+     * how much — never when inside that window it happened, and never which thread wore it. Every
+     * reading of it downstream has to keep saying so.
+     */
+    CPU_THROTTLED(Scope.GLOBAL, Derivation.COUNTER_DELTA, EventTypeName.CONTAINER_CPU_THROTTLING);
 
     /** Whether a category stops the whole JVM or only the thread that recorded it. */
     public enum Scope {
         GLOBAL,
         THREAD
+    }
+
+    /**
+     * Where a category's intervals come from, which decides what can be asked of it.
+     * <p>
+     * An {@link #EVENT_DURATION} category is read straight off the event: the recording says a
+     * pause began here and lasted this long, so a band drawn from it is the stretch itself. A
+     * {@link #COUNTER_DELTA} category has no such event — it is recovered by differencing a
+     * cumulative counter between two periodic samples, so the interval is the sampling window and
+     * the figure is a total the window contained somewhere. The two cannot share a query, and they
+     * must not share a total: adding an approximate window to a sum of measured pauses gives a
+     * number that reads exact and is not.
+     */
+    public enum Derivation {
+        EVENT_DURATION,
+        COUNTER_DELTA
     }
 
     private static final Map<String, TraceContextCategory> BY_EVENT_TYPE =
@@ -122,21 +151,40 @@ public enum TraceContextCategory {
                     .collect(Collectors.toUnmodifiableSet());
 
     private final Scope scope;
+    private final Derivation derivation;
     private final List<String> primaryEventTypes;
     private final List<String> detailEventTypes;
 
     TraceContextCategory(Scope scope, String... primaryEventTypes) {
-        this(scope, List.of(primaryEventTypes), List.of());
+        this(scope, Derivation.EVENT_DURATION, List.of(primaryEventTypes), List.of());
+    }
+
+    TraceContextCategory(Scope scope, Derivation derivation, String... primaryEventTypes) {
+        this(scope, derivation, List.of(primaryEventTypes), List.of());
     }
 
     TraceContextCategory(Scope scope, List<String> primaryEventTypes, List<String> detailEventTypes) {
+        this(scope, Derivation.EVENT_DURATION, primaryEventTypes, detailEventTypes);
+    }
+
+    TraceContextCategory(
+            Scope scope,
+            Derivation derivation,
+            List<String> primaryEventTypes,
+            List<String> detailEventTypes) {
+
         this.scope = scope;
+        this.derivation = derivation;
         this.primaryEventTypes = List.copyOf(primaryEventTypes);
         this.detailEventTypes = List.copyOf(detailEventTypes);
     }
 
     public Scope scope() {
         return scope;
+    }
+
+    public Derivation derivation() {
+        return derivation;
     }
 
     /** The JFR event types this category is reconstructed from, detail included. */
@@ -171,10 +219,16 @@ public enum TraceContextCategory {
         return DETAIL_EVENT_TYPES.contains(eventType);
     }
 
-    /** Every event type of the given scope, for the query that reads them. */
-    public static Set<String> eventTypesOf(Scope scope) {
+    /**
+     * Every event type of the given scope and derivation, for the query that reads them.
+     * <p>
+     * Both halves of the key matter: a query that reads a pause out of an event's own duration has
+     * nothing to do with one that differences a counter, so asking only by scope would hand the
+     * first query an event type it cannot read.
+     */
+    public static Set<String> eventTypesOf(Scope scope, Derivation derivation) {
         return Arrays.stream(values())
-                .filter(category -> category.scope == scope)
+                .filter(category -> category.scope == scope && category.derivation == derivation)
                 .flatMap(category -> category.eventTypes().stream())
                 .collect(Collectors.toUnmodifiableSet());
     }
