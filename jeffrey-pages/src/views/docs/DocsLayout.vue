@@ -297,6 +297,12 @@ onUnmounted(() => {
   .docs-main-container {
     max-width: var(--content-max-width);
   }
+
+  /* The TOC is hidden here, so the index picker no longer needs to reserve
+     its column — regular doc pages don't have it at this width either. */
+  .docs-layout.is-index .docs-main {
+    padding-right: 2rem;
+  }
 }
 
 /* ============================
@@ -331,6 +337,12 @@ onUnmounted(() => {
   .docs-main {
     padding: 1rem;
     margin-left: 0;
+  }
+
+  /* Keep the index picker's right padding in sync with the mobile padding —
+     the desktop-only TOC reservation must never apply on phones. */
+  .docs-layout.is-index .docs-main {
+    padding-right: 1rem;
   }
 
   .mobile-overlay {
