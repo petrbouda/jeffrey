@@ -234,6 +234,7 @@ import type {
 import {
   contextColor,
   contextLabel,
+  isMethodEventType,
   operationKey,
   promotedCategory
 } from '@/services/trace/traceLabels';
@@ -517,8 +518,13 @@ const rankedSpans = computed(() =>
 const APPLICATION_SPAN_COLOR = 'var(--color-primary)';
 
 /** Whether the row is a wait the derivation promoted rather than a span the application recorded. */
+/*
+ * Tested by event type rather than by a `synthesized` flag, which this row does not carry: the
+ * breakdown aggregates spans across traces and keeps only what is common to them. A traced method
+ * has to be named explicitly because, unlike every promoted wait, it maps to no context category.
+ */
 function isPromoted(span: TraceOperationSpanRow): boolean {
-  return promotedCategory(span.eventType) !== null;
+  return promotedCategory(span.eventType) !== null || isMethodEventType(span.eventType);
 }
 
 /**
@@ -533,10 +539,13 @@ function spanColor(span: TraceOperationSpanRow): string {
 
 function spanTypeTitle(span: TraceOperationSpanRow): string {
   const category = promotedCategory(span.eventType);
-  if (category === null) {
-    return `Recorded by ${span.eventType}`;
+  if (category !== null) {
+    return `${contextLabel(category)}, promoted from the ${span.eventType} events inside these traces`;
   }
-  return `${contextLabel(category)}, promoted from the ${span.eventType} events inside these traces`;
+  if (isMethodEventType(span.eventType)) {
+    return `Traced method, promoted from the ${span.eventType} events inside these traces`;
+  }
+  return `Recorded by ${span.eventType}`;
 }
 
 /**

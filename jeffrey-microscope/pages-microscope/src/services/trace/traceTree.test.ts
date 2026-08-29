@@ -17,7 +17,12 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { descendantCounts, spansWithChildren, visibleSpans } from '@/services/trace/traceTree';
+import {
+  descendantCounts,
+  drawnSpans,
+  spansWithChildren,
+  visibleSpans
+} from '@/services/trace/traceTree';
 import type { TraceSpanRow } from '@/services/api/model/trace/TraceModels';
 
 /** A row carrying only what the tree helpers read: its id and its depth. */
@@ -123,5 +128,61 @@ describe('descendantCounts', () => {
 
   it('handles an empty list', () => {
     expect(descendantCounts([]).size).toBe(0);
+  });
+});
+
+/** A parented row, for the subtree filter — `row` alone leaves every parent null. */
+function child(spanId: string, parentSpanId: string, depth: number): TraceSpanRow {
+  return { ...row(spanId, depth), parentSpanId };
+}
+
+describe('drawnSpans', () => {
+  /*
+   *   recorded
+   *     outer      (a traced method, so it can hold children)
+   *       inner    (another traced method)
+   *         read   (a promoted wait, inside the method)
+   *     sibling
+   */
+  const NESTED = [
+    row('recorded', 0),
+    child('outer', 'recorded', 1),
+    child('inner', 'outer', 2),
+    child('read', 'inner', 3),
+    child('sibling', 'recorded', 1)
+  ];
+
+  it('keeps everything when the filter keeps everything', () => {
+    expect(drawnSpans(NESTED, () => true).map(span => span.spanId)).toEqual([
+      'recorded',
+      'outer',
+      'inner',
+      'read',
+      'sibling'
+    ]);
+  });
+
+  it('takes the subtree with a hidden row', () => {
+    // The reason this exists: hiding `outer` row-by-row would leave inner and read indented under a
+    // parent that is no longer drawn.
+    const drawn = drawnSpans(NESTED, span => span.spanId !== 'outer');
+
+    expect(drawn.map(span => span.spanId)).toEqual(['recorded', 'sibling']);
+  });
+
+  it('hides only what hangs under the hidden row', () => {
+    const drawn = drawnSpans(NESTED, span => span.spanId !== 'inner');
+
+    expect(drawn.map(span => span.spanId)).toEqual(['recorded', 'outer', 'sibling']);
+  });
+
+  it('still drops a leaf on its own', () => {
+    const drawn = drawnSpans(NESTED, span => span.spanId !== 'read');
+
+    expect(drawn.map(span => span.spanId)).toEqual(['recorded', 'outer', 'inner', 'sibling']);
+  });
+
+  it('drops a whole tree when its root goes', () => {
+    expect(drawnSpans(NESTED, span => span.spanId !== 'recorded')).toEqual([]);
   });
 });

@@ -245,7 +245,7 @@ public class JdbcTraceRepository implements TraceRepository {
                 SELECT NULLIF(CAST(json_merge_patch(<<rehydrated>>, '{%s}') AS VARCHAR), '{}') AS payload
                 FROM events_raw e
                 LEFT JOIN field_texts t ON t.text_hash = e.pooled_text_hash
-                WHERE e.event_type IN (:blocking_event_types)
+                WHERE e.event_type IN (:promoted_event_types)
                   AND e.thread_hash IS NOT NULL
             )
             WHERE payload IS NOT NULL
@@ -385,30 +385,112 @@ public class JdbcTraceRepository implements TraceRepository {
                 WHERE e.event_type IN (:blocking_event_types)
                   AND e.thread_hash IS NOT NULL
             ),
-            parented AS (
+            -- jdk.MethodTrace (JEP 520). Unlike a blocking event it names itself -- the name is
+            -- read out of the event rather than taken from a fixed label -- and it NESTS: a traced
+            -- method's duration includes the methods it calls, so one can contain another and a
+            -- blocking wait can happen inside one. `nests` is what carries that difference forward.
+            methods AS (
                 SELECT
-                    b.*,
-                    s.trace_id  AS trace_id,
-                    s.span_id   AS parent_span_id
-                FROM blocking b
+                    e.rowid                                         AS event_row,
+                    e.event_type                                    AS event_type,
+                    e.start_timestamp                               AS start_timestamp,
+                    COALESCE(e.start_timestamp_from_beginning, 0)   AS start_ms,
+                    COALESCE(e.duration, 0)                         AS duration,
+                    e.thread_hash                                   AS thread_hash,
+                    <<rehydrated>>                                  AS fields,
+                    %s
+                    EPOCH_US(e.start_timestamp)                     AS start_us,
+                    TRUE                                            AS nests
+                FROM events_raw e
+                LEFT JOIN field_texts t ON t.text_hash = e.pooled_text_hash
+                WHERE e.event_type = :method_event_type
+                  AND e.thread_hash IS NOT NULL
+            ),
+            candidates AS (
+                SELECT event_row, event_type, start_timestamp, start_ms, duration, thread_hash,
+                       fields, name, kind, start_us, FALSE AS nests
+                FROM blocking
+                UNION ALL
+                SELECT event_row, event_type, start_timestamp, start_ms, duration, thread_hash,
+                       fields, name, kind, start_us, nests
+                FROM methods
+            ),
+            -- Which trace a candidate belongs to, answered by the innermost RECORDED span open on
+            -- its thread. Trace identity comes from instrumentation and only from instrumentation:
+            -- a method span is inside a trace because a recorded span contains it, never because
+            -- another method span does.
+            traced AS (
+                SELECT
+                    c.*,
+                    s.trace_id  AS trace_id
+                FROM candidates c
                 JOIN recorded s
-                  ON s.thread_hash = b.thread_hash
-                 AND b.start_us >= EPOCH_US(s.start_timestamp)
-                 AND b.start_us <= EPOCH_US(s.start_timestamp) + s.duration // 1000
+                  ON s.thread_hash = c.thread_hash
+                 AND c.start_us >= EPOCH_US(s.start_timestamp)
+                 AND c.start_us <= EPOCH_US(s.start_timestamp) + s.duration // 1000
                 QUALIFY ROW_NUMBER() OVER (
-                    PARTITION BY b.event_row
+                    PARTITION BY c.event_row
                     ORDER BY EPOCH_US(s.start_timestamp) DESC,
                              EPOCH_US(s.start_timestamp) + s.duration // 1000 ASC,
                              s.span_id) = 1
             ),
+            -- Minted before parenting, which is what makes nesting possible at all: the id is a pure
+            -- function of columns already in hand, so a method span can be offered as a parent in the
+            -- same statement that creates it, with no recursion and no second insert.
             minted AS (
                 SELECT
-                    p.*,
+                    t.*,
                     1 + CAST(mod(
-                            hash(CONCAT_WS('|', p.trace_id, p.thread_hash, p.event_type,
-                                                p.start_us, p.event_row)),
+                            hash(CONCAT_WS('|', t.trace_id, t.thread_hash, t.event_type,
+                                                t.start_us, t.event_row)),
                             CAST(9223372036854775806 AS UBIGINT)) AS BIGINT) AS span_id
-                FROM parented p
+                FROM traced t
+            ),
+            -- What a promoted span may hang under: every recorded span, plus the method spans just
+            -- minted. Blocking candidates are deliberately absent -- nothing nests inside a wait.
+            parent_candidates AS (
+                SELECT
+                    trace_id, span_id, thread_hash,
+                    EPOCH_US(start_timestamp)                       AS from_us,
+                    EPOCH_US(start_timestamp) + duration // 1000    AS to_us
+                FROM recorded
+                UNION ALL
+                SELECT
+                    trace_id, span_id, thread_hash,
+                    start_us                                        AS from_us,
+                    start_us + duration // 1000                     AS to_us
+                FROM minted
+                WHERE nests
+            ),
+            /*
+             * The parent: the innermost candidate whose window contains the child's start.
+             *
+             * The three-part guard is what keeps this a tree. Two method spans that begin on the
+             * same microsecond each contain the other's start, so containment alone would let them
+             * adopt each other and the tree would close into a cycle. The guard admits a parent only
+             * when it strictly precedes the child in the total order (from ASC, to DESC, span_id
+             * ASC) -- an order in which a container always precedes what it contains -- so a cycle
+             * cannot be expressed. The QUALIFY then reads that same order backwards to pick the
+             * innermost of the candidates that survived.
+             */
+            parented AS (
+                SELECT
+                    m.*,
+                    p.span_id   AS parent_span_id
+                FROM minted m
+                JOIN parent_candidates p
+                  ON p.trace_id = m.trace_id
+                 AND p.thread_hash = m.thread_hash
+                 AND m.start_us >= p.from_us
+                 AND m.start_us <= p.to_us
+                 AND (p.from_us < m.start_us
+                      OR (p.from_us = m.start_us
+                          AND (p.to_us > m.start_us + m.duration // 1000
+                               OR (p.to_us = m.start_us + m.duration // 1000
+                                   AND p.span_id < m.span_id))))
+                QUALIFY ROW_NUMBER() OVER (
+                    PARTITION BY m.event_row
+                    ORDER BY p.from_us DESC, p.to_us ASC, p.span_id) = 1
             ),
             promoted AS (
                 SELECT
@@ -427,7 +509,7 @@ public class JdbcTraceRepository implements TraceRepository {
                     NULL                                                AS attributes,
                     NULLIF(CAST(json_merge_patch(m.fields, '{%s}') AS VARCHAR), '{}') AS payload,
                     TRUE                                                AS synthesized
-                FROM minted m
+                FROM parented m
                 WHERE NOT EXISTS (
                     SELECT 1 FROM recorded t
                     WHERE t.trace_id = m.trace_id AND t.span_id = m.span_id)
@@ -1265,7 +1347,7 @@ public class JdbcTraceRepository implements TraceRepository {
             AND NOT EXISTS (SELECT 1 FROM (%s) scope_types WHERE scope_types.name = e.event_type)
             AND e.event_type NOT IN (%s)
             AND e.event_type NOT IN (%s)"""
-            .formatted(SPAN_EVENT_TYPES, SCOPE_EVENT_TYPES, BlockingLeafSpans.sqlQuotedEventTypes(),
+            .formatted(SPAN_EVENT_TYPES, SCOPE_EVENT_TYPES, PromotedSpans.sqlQuotedEventTypes(),
                     "'" + EventTypeName.NOTIFICATION + "', " + THROW_EVENT_TYPES_SQL));
 
     /*
@@ -1513,10 +1595,12 @@ public class JdbcTraceRepository implements TraceRepository {
         databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, DELETE_TRACE_SPANS);
         databaseClient.execute(StatementLabel.DERIVE_TRACE_SPANS, DELETE_SPAN_PAYLOADS);
 
-        MapSqlParameterSource blockingParams = new MapSqlParameterSource()
+        MapSqlParameterSource promotionParams = new MapSqlParameterSource()
                 .addValue("blocking_event_types", BlockingLeafSpans.eventTypes())
                 .addValue("blocking_names", BlockingLeafSpans.names())
-                .addValue("blocking_kinds", BlockingLeafSpans.kinds());
+                .addValue("blocking_kinds", BlockingLeafSpans.kinds())
+                .addValue("method_event_type", MethodSpans.EVENT_TYPE)
+                .addValue("promoted_event_types", List.copyOf(PromotedSpans.EVENT_TYPES));
 
         // Before the spans: the span insert stores payload references, and every reference it
         // computes must have its text row in place.
@@ -1526,15 +1610,16 @@ public class JdbcTraceRepository implements TraceRepository {
                         EVENT_FIELDS_PROJECTION,
                         SPAN_EVENT_TYPES,
                         JDK_EVENT_PLUMBING_KEYS),
-                blockingParams);
+                promotionParams);
 
         // One template per event type -- built-ins overlaid by what the recording declares for
         // itself (@Span, stored in event_types.extras by the parser) -- rendered as one CASE.
         String nameTemplates = SpanNameTemplates.nameCase(databaseClient);
 
         // The placeholders in the order they appear: which event types are spans, the three span
-        // shape projections, the event_fields stripping projection of the recorded branch, and the
-        // narrower plumbing strip of the promoted branch.
+        // shape projections, the event_fields stripping projection of the recorded branch, the
+        // method span's self-naming projection, and the narrower plumbing strip of the promoted
+        // branch.
         databaseClient.insert(
                 StatementLabel.DERIVE_TRACE_SPANS,
                 DERIVE_TRACE_SPANS.formatted(
@@ -1543,8 +1628,9 @@ public class JdbcTraceRepository implements TraceRepository {
                         SpanConventions.kindProjection(),
                         SpanConventions.statusProjection(),
                         EVENT_FIELDS_PROJECTION,
+                        MethodSpans.nameAndKindProjection(),
                         JDK_EVENT_PLUMBING_KEYS),
-                blockingParams);
+                promotionParams);
 
         databaseClient.execute(StatementLabel.DERIVE_TRACES, DERIVE_TRACES);
 

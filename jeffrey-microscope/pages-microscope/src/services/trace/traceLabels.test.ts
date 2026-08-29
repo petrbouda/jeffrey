@@ -21,6 +21,8 @@ import { describe, expect, it } from 'vitest';
 import {
   errorLabel,
   isIoCategory,
+  isMethodEventType,
+  METHOD_TRACE_EVENT_TYPE,
   operationKey,
   parseOperationName,
   promotedCategory,
@@ -175,5 +177,23 @@ describe('parseOperationName', () => {
     expect(parseOperationName('', 'jeffrey.TraceSpan')).toEqual([
       { kind: 'name', text: '(unnamed)' }
     ]);
+  });
+});
+
+describe('isMethodEventType', () => {
+  it('recognises a promoted traced method', () => {
+    expect(isMethodEventType(METHOD_TRACE_EVENT_TYPE)).toBe(true);
+  });
+
+  it('does not treat a promoted wait as one', () => {
+    expect(isMethodEventType('jdk.SocketRead')).toBe(false);
+    expect(isMethodEventType('jeffrey.TraceSpan')).toBe(false);
+  });
+
+  it('maps to no context category, so its time stays own work', () => {
+    // The why-slow panel rebuilds a promoted category's total from the synthesized spans carrying
+    // it. A traced method is the trace's own work, not a wait, so giving it a category here would
+    // move its time out of OWN_WORK and into a wait total that never happened.
+    expect(promotedCategory(METHOD_TRACE_EVENT_TYPE)).toBeNull();
   });
 });

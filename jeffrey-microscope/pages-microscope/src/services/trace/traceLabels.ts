@@ -50,6 +50,21 @@ import type {
  * the trace's own code running — seen at trace scope instead of span scope.
  */
 /**
+ * The event type the method promotion reads — `jdk.MethodTrace` (JEP 520).
+ *
+ * It is deliberately absent from {@link PROMOTED_CATEGORY_BY_EVENT_TYPE}: that map exists so a
+ * promoted *wait* can borrow its category's colour, and a traced method is not a wait. It is the
+ * trace's own work, which is why its time stays in `OWN_WORK` rather than joining a wait total, and
+ * why it is styled as the internal span it is rather than given a hue of its own.
+ */
+export const METHOD_TRACE_EVENT_TYPE = 'jdk.MethodTrace';
+
+/** Whether a promoted span came from a traced method rather than from a wait. */
+export function isMethodEventType(eventType: string): boolean {
+  return eventType === METHOD_TRACE_EVENT_TYPE;
+}
+
+/**
  * The one context category that is a *window* rather than a measured stretch, named once so the
  * views that must treat it differently agree on which one it is.
  */

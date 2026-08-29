@@ -2612,4 +2612,121 @@ class JdbcTraceRepositoryTest {
             assertTrue(windows.stream().noneMatch(w -> w.throttledSlices() == 6L));
         }
     }
+
+    @Nested
+    @DisplayName("Method trace promotion")
+    class MethodPromotion {
+
+        private static final long METHOD_TRACE = 9003L;
+
+        private static Map<String, TraceSpanRecord> spansByName(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-method-traces.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+            return repository.spansOf(METHOD_TRACE).stream()
+                    .collect(Collectors.toMap(TraceSpanRecord::name, Function.identity(), (first, _) -> first));
+        }
+
+        @Test
+        @DisplayName("names a method span from the event, not from its leaf stack frame")
+        void namesFromTheMethodField(DataSource dataSource) throws SQLException {
+            Map<String, TraceSpanRecord> spans = spansByName(dataSource);
+
+            // JEP 520 roots the stack trace at the caller, so the fixture's weight_entity values are
+            // the callers: "Probe#main" for the outer event, "Probe#outer" for the inner one. Naming
+            // from that column would produce spans called "Probe.main" and "Probe.outer" -- one name
+            // belonging to a method that was never traced, and neither naming the inner method at all.
+            assertTrue(spans.containsKey("Probe.outer"), "named from fields.method");
+            assertTrue(spans.containsKey("Probe.inner"), "named from fields.method");
+            assertFalse(spans.containsKey("Probe.main"), "that is the caller in weight_entity");
+        }
+
+        @Test
+        @DisplayName("nests a traced method inside the traced method that called it")
+        void nestsMethodInsideMethod(DataSource dataSource) throws SQLException {
+            Map<String, TraceSpanRecord> spans = spansByName(dataSource);
+
+            TraceSpanRecord outer = spans.get("Probe.outer");
+            TraceSpanRecord inner = spans.get("Probe.inner");
+
+            // The point of the whole change: siblings here would claim outer did 214ms of its own
+            // work when 174ms of it was inner.
+            assertEquals(outer.spanId(), inner.parentSpanId(),
+                    "inner hangs under outer, not under the recorded span");
+        }
+
+        @Test
+        @DisplayName("hangs a blocking wait under the traced method it happened in")
+        void nestsBlockingInsideMethod(DataSource dataSource) throws SQLException {
+            Map<String, TraceSpanRecord> spans = spansByName(dataSource);
+
+            assertEquals(spans.get("Probe.inner").spanId(), spans.get("Socket read").parentSpanId(),
+                    "the socket read is inside inner, not a sibling of it");
+        }
+
+        @Test
+        @DisplayName("subtracts a nested method from its parent's self time")
+        void nestedMethodSubtractsFromSelfTime(DataSource dataSource) throws SQLException {
+            Map<String, TraceSpanRecord> spans = spansByName(dataSource);
+
+            TraceSpanRecord outer = spans.get("Probe.outer");
+
+            // 214ms total, 174ms of it in inner.
+            assertEquals(214_000_000L, outer.durationNanos());
+            assertEquals(40_000_000L, outer.selfDurationNanos(),
+                    "outer's own work is what is left once inner is taken out");
+        }
+
+        @Test
+        @DisplayName("promotes a method span as a real span of the trace")
+        void methodSpansAreOrdinarySpans(DataSource dataSource) throws SQLException {
+            TraceSpanRecord inner = spansByName(dataSource).get("Probe.inner");
+
+            assertTrue(inner.synthesized(), "minted, not read from an instrumented span event");
+            assertEquals(EventTypeName.METHOD_TRACE, inner.eventType());
+            assertEquals("INTERNAL", inner.kind(), "a traced method is the application's own work");
+        }
+
+        @Test
+        @DisplayName("leaves a traced method that belongs to no trace alone")
+        void ignoresMethodsOutsideEverySpan(DataSource dataSource) throws SQLException {
+            Map<String, TraceSpanRecord> spans = spansByName(dataSource);
+
+            assertFalse(spans.containsKey("Other.orphan"), "ran on a thread with no span open");
+            assertFalse(spans.containsKey("Probe.afterTheSpan"), "ran after the span closed");
+        }
+
+        @Test
+        @DisplayName("keeps a tree when two traced methods share an interval exactly")
+        void identicalIntervalsCannotCycle(DataSource dataSource) throws SQLException {
+            Map<String, TraceSpanRecord> spans = spansByName(dataSource);
+
+            TraceSpanRecord twinA = spans.get("Probe.twinA");
+            TraceSpanRecord twinB = spans.get("Probe.twinB");
+
+            // Each contains the other's start, so containment alone would let them adopt each other.
+            // Exactly one adoption may survive, and neither may point at itself.
+            assertNotNull(twinA);
+            assertNotNull(twinB);
+            boolean aUnderB = twinA.parentSpanId() != null && twinA.parentSpanId() == twinB.spanId();
+            boolean bUnderA = twinB.parentSpanId() != null && twinB.parentSpanId() == twinA.spanId();
+            assertFalse(aUnderB && bUnderA, "a two-node cycle");
+            assertNotEquals(twinA.spanId(), twinA.parentSpanId(), "self-parent");
+            assertNotEquals(twinB.spanId(), twinB.parentSpanId(), "self-parent");
+        }
+
+        @Test
+        @DisplayName("keeps the recorded span's self time honest about the methods under it")
+        void recordedParentSelfTimeExcludesMethods(DataSource dataSource) throws SQLException {
+            Map<String, TraceSpanRecord> spans = spansByName(dataSource);
+
+            TraceSpanRecord recorded = spans.get("reserveInventory");
+
+            // 300ms of request, 214ms of it inside outer, plus the 10ms twins. The merge means the
+            // nested inner and the socket read are not subtracted a second time.
+            assertEquals(300_000_000L, recorded.durationNanos());
+            assertEquals(76_000_000L, recorded.selfDurationNanos());
+        }
+    }
 }
