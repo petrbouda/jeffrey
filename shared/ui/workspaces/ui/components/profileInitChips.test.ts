@@ -49,6 +49,7 @@ const ALL_STAGE_IDS = [
   'profile-info',
   'parse',
   'flush',
+  'method-trace-weights',
   'recluster',
   'traces',
   'additional-files',

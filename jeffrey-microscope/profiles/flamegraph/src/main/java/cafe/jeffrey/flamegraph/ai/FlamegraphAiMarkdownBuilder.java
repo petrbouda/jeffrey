@@ -405,6 +405,7 @@ public final class FlamegraphAiMarkdownBuilder {
                  ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC,
                  ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC,
                  BLOCKING_OBJECT_SYNTHETIC,
+                 TRACED_METHOD_SYNTHETIC,
                  COLLAPSED_SYNTHETIC,
                  TRUNCATED_SYNTHETIC,
                  HIGHLIGHTED_WARNING -> TAG_SYNTHETIC;

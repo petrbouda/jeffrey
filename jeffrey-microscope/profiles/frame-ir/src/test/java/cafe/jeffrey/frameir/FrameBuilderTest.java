@@ -20,8 +20,10 @@ package cafe.jeffrey.frameir;
 
 import cafe.jeffrey.frameir.frame.AllocationTopFrameProcessor;
 import cafe.jeffrey.frameir.frame.BlockingTopFrameProcessor;
+import cafe.jeffrey.frameir.frame.MethodTraceTopFrameProcessor;
 import cafe.jeffrey.jfrparser.api.type.JfrClass;
 import cafe.jeffrey.jfrparser.api.type.JfrMethod;
+import cafe.jeffrey.jfrparser.api.type.JfrMethodImpl;
 import cafe.jeffrey.jfrparser.api.type.JfrStackFrame;
 import cafe.jeffrey.jfrparser.api.type.JfrStackTrace;
 import cafe.jeffrey.jfrparser.api.type.JfrThread;
@@ -79,6 +81,77 @@ class FrameBuilderTest {
                 JIT_COMPILED_CODE, -1, -1, new TestMethod(new TestClass(className, hiddenClassId), methodName));
     }
 
+    @Nested
+    class MethodTraceTopFrames {
+
+        @Test
+        void tracedMethodBecomesALeafUnderItsCaller() {
+            // JEP 520 hands over the caller's stack and names the traced method separately, so what
+            // arrives here is `main -> outer` for an event about `inner`.
+            FrameBuilder builder = new FrameBuilder(false, false, false, new MethodTraceTopFrameProcessor());
+            builder.onRecord(methodTraceRecord(mainThread(), "com.Probe#inner", 5,
+                    frame("com.Probe", "main"), frame("com.Probe", "outer")));
+
+            Frame root = builder.build();
+            Frame outer = root.get(frameName("com.Probe", "main")).get(frameName("com.Probe", "outer"));
+            assertNotNull(outer);
+            Frame traced = outer.get(frameName("com.Probe", "inner"));
+            assertNotNull(traced, "The traced method must appear in its own flamegraph");
+
+            assertEquals(5, traced.totalSamples());
+            assertEquals(5, traced.selfSamples());
+            assertEquals(0, outer.selfSamples(), "The caller must not keep time its callee spent");
+            assertSampleConservation(root);
+        }
+
+        /**
+         * The reason the synthetic frame is named exactly as a real Java frame is named. A method
+         * that is both traced itself and the caller of another traced method has to resolve to one
+         * node, or the graph shows the same method twice side by side and neither copy holds its
+         * whole time.
+         */
+        @Test
+        void syntheticLeafMergesWithTheRealFrameOfTheSameMethod() {
+            FrameBuilder builder = new FrameBuilder(false, false, false, new MethodTraceTopFrameProcessor());
+            // The event about `outer` itself: its caller is `main`, so `outer` arrives only as the entity.
+            builder.onRecord(methodTraceRecord(mainThread(), "com.Probe#outer", 2,
+                    frame("com.Probe", "main")));
+            // The event about `inner`: here `outer` arrives as a real stack frame.
+            builder.onRecord(methodTraceRecord(mainThread(), "com.Probe#inner", 3,
+                    frame("com.Probe", "main"), frame("com.Probe", "outer")));
+
+            Frame main = builder.build().get(frameName("com.Probe", "main"));
+            assertEquals(1, main.values().size(), "One node for `outer`, not a synthetic beside a real one");
+
+            Frame outer = main.get(frameName("com.Probe", "outer"));
+            assertEquals(5, outer.totalSamples(), "Its own event plus everything measured inside it");
+            assertEquals(2, outer.selfSamples());
+            assertEquals(3, outer.get(frameName("com.Probe", "inner")).totalSamples());
+        }
+
+        @Test
+        void entityWithoutAMethodAddsNoLeaf() {
+            // What an older profile carries: a weight entity taken from the stack's leaf frame, which
+            // is a bare class name. Naming a frame after it would invent a method that never ran.
+            FrameBuilder builder = new FrameBuilder(false, false, false, new MethodTraceTopFrameProcessor());
+            builder.onRecord(methodTraceRecord(mainThread(), "com.Probe", 4, frame("com.Probe", "outer")));
+
+            Frame outer = builder.build().get(frameName("com.Probe", "outer"));
+            assertTrue(outer.values().isEmpty());
+            assertEquals(4, outer.selfSamples(), "Self stays on the real leaf when no leaf is synthesized");
+        }
+
+        @Test
+        void missingEntityAddsNoLeaf() {
+            FrameBuilder builder = new FrameBuilder(false, false, false, new MethodTraceTopFrameProcessor());
+            builder.onRecord(methodTraceRecord(mainThread(), null, 4, frame("com.Probe", "outer")));
+
+            Frame outer = builder.build().get(frameName("com.Probe", "outer"));
+            assertTrue(outer.values().isEmpty());
+            assertEquals(4, outer.selfSamples());
+        }
+    }
+
     private static String frameName(String className, String methodName) {
         return className + "#" + methodName;
     }
@@ -98,6 +171,23 @@ class FrameBuilderTest {
                 new TestStackTrace(1, List.of(frames)),
                 thread,
                 new TestClass(ALLOCATED_CLASS),
+                samples,
+                samples);
+    }
+
+    /**
+     * Built the way the flamegraph row mappers build one: the {@code weight_entity} column arrives as
+     * a bare class, whatever it actually holds, and it is the processor's job to recognise a
+     * {@code Class#method} pair inside it.
+     */
+    private static FlamegraphRecord methodTraceRecord(
+            JfrThread thread, String entity, long samples, JfrStackFrame... frames) {
+
+        return new FlamegraphRecord(
+                Type.METHOD_TRACE,
+                new TestStackTrace(1, List.of(frames)),
+                thread,
+                entity == null ? null : JfrMethodImpl.ofClass(entity),
                 samples,
                 samples);
     }

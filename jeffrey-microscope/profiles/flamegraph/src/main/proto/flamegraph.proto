@@ -102,6 +102,7 @@ enum FrameType {
     FRAME_TYPE_HIGHLIGHTED_WARNING = 14;
     FRAME_TYPE_COLLAPSED_SYNTHETIC = 15;
     FRAME_TYPE_TRUNCATED_SYNTHETIC = 16;
+    FRAME_TYPE_TRACED_METHOD_SYNTHETIC = 17;
 }
 
 // Position information for source code navigation

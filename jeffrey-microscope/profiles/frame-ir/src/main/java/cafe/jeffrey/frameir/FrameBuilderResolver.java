@@ -23,6 +23,7 @@ import cafe.jeffrey.shared.common.model.WeightUnit;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.frameir.frame.AllocationTopFrameProcessor;
 import cafe.jeffrey.frameir.frame.BlockingTopFrameProcessor;
+import cafe.jeffrey.frameir.frame.MethodTraceTopFrameProcessor;
 
 public class FrameBuilderResolver {
 
@@ -57,6 +58,10 @@ public class FrameBuilderResolver {
             return new FrameBuilder(excludeHiddenFrames, threadMode, parseLocations, new AllocationTopFrameProcessor());
         } else if (weightUnit == WeightUnit.DURATION || (jfrClassified && weightUnit == WeightUnit.NONE && type.isBlockingEvent())) {
             return new FrameBuilder(excludeHiddenFrames, threadMode, parseLocations, new BlockingTopFrameProcessor());
+        } else if (jfrClassified && weightUnit == WeightUnit.NONE && type.isMethodTraceEvent()) {
+            // JEP 520 leaves the traced method off its own stack trace; this appends it back as the leaf.
+            // JFR only: an imported profile carries no per-sample method entity to append.
+            return new FrameBuilder(excludeHiddenFrames, threadMode, parseLocations, new MethodTraceTopFrameProcessor());
         } else {
             return new FrameBuilder(excludeHiddenFrames, threadMode, parseLocations, null);
         }

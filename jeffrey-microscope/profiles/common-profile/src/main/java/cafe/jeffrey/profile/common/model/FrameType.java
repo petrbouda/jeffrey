@@ -34,6 +34,12 @@ public enum FrameType {
     ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC("Allocated in New TLAB (Synthetic)"),
     ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC("Allocated Outside TLAB (Synthetic)"),
     BLOCKING_OBJECT_SYNTHETIC("Blocking Object (Synthetic)"),
+    /**
+     * The method a {@code jdk.MethodTrace} event traced. JEP 520 roots that event's stack trace at
+     * the <em>caller</em>, so the traced method is the one frame missing from its own stack; this
+     * type marks the leaf synthesized to put it back.
+     */
+    TRACED_METHOD_SYNTHETIC("Traced Method (Synthetic)"),
     COLLAPSED_SYNTHETIC("Collapsed", false, "Collapsed (Synthetic)", true),
     TRUNCATED_SYNTHETIC("Truncated", false, "Truncated (Synthetic)", true),
     UNKNOWN("Unknown", false, "Unknown"),

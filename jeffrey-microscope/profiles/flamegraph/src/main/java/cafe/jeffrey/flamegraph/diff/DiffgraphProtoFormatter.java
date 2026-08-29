@@ -335,6 +335,8 @@ public class DiffgraphProtoFormatter {
                     cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC;
             case BLOCKING_OBJECT_SYNTHETIC ->
                     cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC;
+            case TRACED_METHOD_SYNTHETIC ->
+                    cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_TRACED_METHOD_SYNTHETIC;
             case COLLAPSED_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_COLLAPSED_SYNTHETIC;
             case TRUNCATED_SYNTHETIC -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_TRUNCATED_SYNTHETIC;
             case HIGHLIGHTED_WARNING -> cafe.jeffrey.flamegraph.proto.FrameType.FRAME_TYPE_HIGHLIGHTED_WARNING;

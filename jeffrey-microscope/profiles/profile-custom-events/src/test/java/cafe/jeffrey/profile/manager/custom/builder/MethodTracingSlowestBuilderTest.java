@@ -63,6 +63,34 @@ class MethodTracingSlowestBuilderTest {
                 null);
     }
 
+    /**
+     * A record whose weight has already been reduced to the call's self time, the way the derivation
+     * leaves a traced method that contains another. The dashboard must still report the whole call.
+     */
+    private static GenericRecord createNestingMethodRecord(
+            String className, String methodName, long duration, long selfWeight) {
+
+        JfrClass clazz = Mockito.mock(JfrClass.class);
+        Mockito.when(clazz.className()).thenReturn(className);
+
+        JfrMethod method = Mockito.mock(JfrMethod.class);
+        Mockito.when(method.clazz()).thenReturn(clazz);
+        Mockito.when(method.className()).thenReturn(className);
+        Mockito.when(method.methodName()).thenReturn(methodName);
+
+        return new GenericRecord(
+                Type.METHOD_TRACE,
+                "Method Trace",
+                Instant.now(),
+                Duration.ofSeconds(1),
+                Duration.ofNanos(duration),
+                null,
+                method,
+                1,
+                selfWeight,
+                null);
+    }
+
     private static GenericRecord createMethodRecord(String className, String methodName, long duration) {
         return createMethodRecord(className, methodName, duration, null);
     }
@@ -130,6 +158,29 @@ class MethodTracingSlowestBuilderTest {
             assertEquals(1, result.slowestTraces().size());
             assertEquals("main-thread", result.slowestTraces().get(0).threadName());
         }
+    }
+
+    @Nested
+    @DisplayName("Duration source")
+    class DurationSource {
+
+        @Test
+        @DisplayName("A call that contains another is ranked by its whole duration, not its self time")
+        void ranksByDurationRatherThanSelfWeight() {
+            MethodTracingSlowestBuilder builder = new MethodTracingSlowestBuilder();
+
+            // `outer` ran for 100ns but only 10ns of that was its own; `inner` ran for 90ns. Ranked by
+            // self time `outer` would come last, which is not what a slowest-invocations list means.
+            builder.onRecord(createNestingMethodRecord("com.Test", "outer", 100, 10));
+            builder.onRecord(createNestingMethodRecord("com.Test", "inner", 90, 90));
+
+            List<SlowestMethodTrace> traces = builder.build().slowestTraces();
+
+            assertEquals("outer", traces.get(0).methodName());
+            assertEquals(100, traces.get(0).duration());
+            assertEquals(90, traces.get(1).duration());
+        }
+
     }
 
     @Nested
