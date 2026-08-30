@@ -42,6 +42,12 @@ public final class ProfileInitStages {
     /** Combines what the parsing threads each saw: event types, threads, active settings. */
     public static final String FLUSH = "flush";
 
+    /**
+     * Charges each traced method only for the time no traced method inside it already accounts for.
+     * Skipped when the recording traced no methods, which is nearly every recording.
+     */
+    public static final String METHOD_TRACE_WEIGHTS = "method-trace-weights";
+
     /** Re-sorts the events table so reads prune by event type and time. */
     public static final String RECLUSTER = "recluster";
 
@@ -62,7 +68,8 @@ public final class ProfileInitStages {
 
     public static final PipelineDefinition DEFINITION = new PipelineDefinition(
             PIPELINE_ID,
-            List.of(PROFILE_INFO, PARSE, FLUSH, RECLUSTER, TRACES, ADDITIONAL_FILES, CHECKPOINT, WARMUP));
+            List.of(PROFILE_INFO, PARSE, FLUSH, METHOD_TRACE_WEIGHTS, RECLUSTER, TRACES,
+                    ADDITIONAL_FILES, CHECKPOINT, WARMUP));
 
     private ProfileInitStages() {
     }

@@ -71,7 +71,16 @@ public class MethodTracingSlowestBuilder implements RecordBuilder<GenericRecord,
         // Use combined key for unique method tracking
         String key = methodName != null ? className + "#" + methodName : className;
 
-        long duration = record.sampleWeight();
+        // The call's own latency, inclusive of its callees, which is what this dashboard ranks and
+        // averages -- deliberately not the event's weight. Weight carries the call's *self* time so
+        // that summing nested traced calls in a flamegraph does not count the inner one twice; see
+        // MethodTraceWeightRepository. A dashboard row is one invocation, not a sum, so the two
+        // numbers part ways here.
+        // The invocation's own latency, inclusive of its callees -- deliberately not the event's
+        // weight, which carries the call's *self* time so that a flamegraph summing nested traced
+        // calls does not count the inner one twice (see MethodTraceWeightRepository). A row here is
+        // one invocation rather than a sum, so it wants the whole call.
+        long duration = record.duration() == null ? 0L : record.duration().toNanos();
 
         // Track unique methods
         uniqueMethods.add(key);

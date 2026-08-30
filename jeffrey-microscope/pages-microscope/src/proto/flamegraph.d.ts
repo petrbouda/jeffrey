@@ -29,7 +29,7 @@ export namespace cafe {
                      */
                     constructor(properties?: cafe.jeffrey.flamegraph.proto.GraphData.$Properties);
 
-                    /** Unknown fields preserved while decoding */
+                    /** Unknown fields preserved while decoding when enabled */
                     $unknowns?: Uint8Array[];
 
                     /** GraphData flamegraph. */
@@ -128,7 +128,7 @@ export namespace cafe {
                         /** GraphData timeseries */
                         timeseries?: (cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties|null);
 
-                        /** Unknown fields preserved while decoding */
+                        /** Unknown fields preserved while decoding when enabled */
                         $unknowns?: Uint8Array[];
                     }
 
@@ -152,7 +152,7 @@ export namespace cafe {
                      */
                     constructor(properties?: cafe.jeffrey.flamegraph.proto.FlamegraphData.$Properties);
 
-                    /** Unknown fields preserved while decoding */
+                    /** Unknown fields preserved while decoding when enabled */
                     $unknowns?: Uint8Array[];
 
                     /** FlamegraphData depth. */
@@ -257,7 +257,7 @@ export namespace cafe {
                         /** FlamegraphData titlePool */
                         titlePool?: (string[]|null);
 
-                        /** Unknown fields preserved while decoding */
+                        /** Unknown fields preserved while decoding when enabled */
                         $unknowns?: Uint8Array[];
                     }
 
@@ -281,7 +281,7 @@ export namespace cafe {
                      */
                     constructor(properties?: cafe.jeffrey.flamegraph.proto.TimeseriesData.$Properties);
 
-                    /** Unknown fields preserved while decoding */
+                    /** Unknown fields preserved while decoding when enabled */
                     $unknowns?: Uint8Array[];
 
                     /** TimeseriesData series. */
@@ -374,7 +374,7 @@ export namespace cafe {
                         /** TimeseriesData series */
                         series?: (cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties[]|null);
 
-                        /** Unknown fields preserved while decoding */
+                        /** Unknown fields preserved while decoding when enabled */
                         $unknowns?: Uint8Array[];
                     }
 
@@ -398,7 +398,7 @@ export namespace cafe {
                      */
                     constructor(properties?: cafe.jeffrey.flamegraph.proto.TimeseriesSeries.$Properties);
 
-                    /** Unknown fields preserved while decoding */
+                    /** Unknown fields preserved while decoding when enabled */
                     $unknowns?: Uint8Array[];
 
                     /** TimeseriesSeries name. */
@@ -497,7 +497,7 @@ export namespace cafe {
                         /** TimeseriesSeries data */
                         data?: (cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties[]|null);
 
-                        /** Unknown fields preserved while decoding */
+                        /** Unknown fields preserved while decoding when enabled */
                         $unknowns?: Uint8Array[];
                     }
 
@@ -521,7 +521,7 @@ export namespace cafe {
                      */
                     constructor(properties?: cafe.jeffrey.flamegraph.proto.TimeseriesPoint.$Properties);
 
-                    /** Unknown fields preserved while decoding */
+                    /** Unknown fields preserved while decoding when enabled */
                     $unknowns?: Uint8Array[];
 
                     /** TimeseriesPoint timestamp. */
@@ -620,7 +620,7 @@ export namespace cafe {
                         /** TimeseriesPoint value */
                         value?: (number|Long|null);
 
-                        /** Unknown fields preserved while decoding */
+                        /** Unknown fields preserved while decoding when enabled */
                         $unknowns?: Uint8Array[];
                     }
 
@@ -644,7 +644,7 @@ export namespace cafe {
                      */
                     constructor(properties?: cafe.jeffrey.flamegraph.proto.Level.$Properties);
 
-                    /** Unknown fields preserved while decoding */
+                    /** Unknown fields preserved while decoding when enabled */
                     $unknowns?: Uint8Array[];
 
                     /** Level frames. */
@@ -737,7 +737,7 @@ export namespace cafe {
                         /** Level frames */
                         frames?: (cafe.jeffrey.flamegraph.proto.Frame.$Properties[]|null);
 
-                        /** Unknown fields preserved while decoding */
+                        /** Unknown fields preserved while decoding when enabled */
                         $unknowns?: Uint8Array[];
                     }
 
@@ -761,7 +761,7 @@ export namespace cafe {
                      */
                     constructor(properties?: cafe.jeffrey.flamegraph.proto.Frame.$Properties);
 
-                    /** Unknown fields preserved while decoding */
+                    /** Unknown fields preserved while decoding when enabled */
                     $unknowns?: Uint8Array[];
 
                     /** Frame leftSamples. */
@@ -926,7 +926,7 @@ export namespace cafe {
                         /** Frame hidden */
                         hidden?: (boolean|null);
 
-                        /** Unknown fields preserved while decoding */
+                        /** Unknown fields preserved while decoding when enabled */
                         $unknowns?: Uint8Array[];
                     }
 
@@ -983,7 +983,10 @@ export namespace cafe {
                     FRAME_TYPE_COLLAPSED_SYNTHETIC = 15,
 
                     /** FRAME_TYPE_TRUNCATED_SYNTHETIC value */
-                    FRAME_TYPE_TRUNCATED_SYNTHETIC = 16
+                    FRAME_TYPE_TRUNCATED_SYNTHETIC = 16,
+
+                    /** FRAME_TYPE_TRACED_METHOD_SYNTHETIC value */
+                    FRAME_TYPE_TRACED_METHOD_SYNTHETIC = 17
                 }
 
                 /**
@@ -1002,7 +1005,7 @@ export namespace cafe {
                      */
                     constructor(properties?: cafe.jeffrey.flamegraph.proto.FramePosition.$Properties);
 
-                    /** Unknown fields preserved while decoding */
+                    /** Unknown fields preserved while decoding when enabled */
                     $unknowns?: Uint8Array[];
 
                     /** FramePosition bci. */
@@ -1101,7 +1104,7 @@ export namespace cafe {
                         /** FramePosition line */
                         line?: (number|null);
 
-                        /** Unknown fields preserved while decoding */
+                        /** Unknown fields preserved while decoding when enabled */
                         $unknowns?: Uint8Array[];
                     }
 
@@ -1125,7 +1128,7 @@ export namespace cafe {
                      */
                     constructor(properties?: cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties);
 
-                    /** Unknown fields preserved while decoding */
+                    /** Unknown fields preserved while decoding when enabled */
                     $unknowns?: Uint8Array[];
 
                     /** FrameSampleTypes inlined. */
@@ -1236,7 +1239,7 @@ export namespace cafe {
                         /** FrameSampleTypes jit */
                         jit?: (number|Long|null);
 
-                        /** Unknown fields preserved while decoding */
+                        /** Unknown fields preserved while decoding when enabled */
                         $unknowns?: Uint8Array[];
                     }
 
@@ -1260,7 +1263,7 @@ export namespace cafe {
                      */
                     constructor(properties?: cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties);
 
-                    /** Unknown fields preserved while decoding */
+                    /** Unknown fields preserved while decoding when enabled */
                     $unknowns?: Uint8Array[];
 
                     /** DiffDetails samples. */
@@ -1383,7 +1386,7 @@ export namespace cafe {
                         /** DiffDetails secondaryWeight */
                         secondaryWeight?: (number|Long|null);
 
-                        /** Unknown fields preserved while decoding */
+                        /** Unknown fields preserved while decoding when enabled */
                         $unknowns?: Uint8Array[];
                     }
 

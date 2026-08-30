@@ -34,11 +34,17 @@ export default class FrameType {
   static ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC = 'ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC';
   static ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC = 'ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC';
   static BLOCKING_OBJECT_SYNTHETIC = 'BLOCKING_OBJECT_SYNTHETIC';
+  static TRACED_METHOD_SYNTHETIC = 'TRACED_METHOD_SYNTHETIC';
   static COLLAPSED_SYNTHETIC = 'COLLAPSED_SYNTHETIC';
   static TRUNCATED_SYNTHETIC = 'TRUNCATED_SYNTHETIC';
   static HIGHLIGHTED_WARNING = 'HIGHLIGHTED_WARNING';
   static UNKNOWN = 'UNKNOWN';
 
+  // TRACED_METHOD_SYNTHETIC is deliberately absent. The set marks frames whose identity is
+  // categorical -- a TLAB marker, a collapsed subtree -- and which therefore keep their palette
+  // colour in a differential instead of ramping. A traced method is synthesized only because JEP 520
+  // leaves it off its own stack; it is an ordinary Java method, and "did it get slower between these
+  // two profiles" is exactly what a reader wants the diff ramp to answer for it.
   private static readonly SYNTHETIC_TYPES = new Set<string>([
     FrameType.THREAD_NAME_SYNTHETIC,
     FrameType.ALLOCATED_OBJECT_SYNTHETIC,

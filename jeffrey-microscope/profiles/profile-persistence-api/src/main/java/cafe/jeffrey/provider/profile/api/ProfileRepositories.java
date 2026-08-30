@@ -119,6 +119,14 @@ public interface ProfileRepositories {
     TraceAttributeRepository newTraceAttributeRepository(DataSource dataSource);
 
     /**
+     * Creates the repository that settles what a method trace contributes when durations are summed.
+     *
+     * @param dataSource the profile database connection
+     * @return a new method-trace weight repository for the profile
+     */
+    MethodTraceWeightRepository newMethodTraceWeightRepository(DataSource dataSource);
+
+    /**
      * Creates an advisor repository for the AI recommendation artifacts stored alongside the profile.
      *
      * @param dataSource the profile database connection

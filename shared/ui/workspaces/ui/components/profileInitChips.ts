@@ -21,17 +21,19 @@ import type { TimelineStep } from '@shared/types/processing';
 import type { ProfileInitProgress } from '../services/api/model/Recording';
 
 /**
- * How the eight stages of profile initialization are shown on a recording card.
+ * How the nine stages of profile initialization are shown on a recording card.
  *
- * Five chips, not eight: `profile-info` and `checkpoint` are bookkeeping that finishes in
+ * Five chips, not nine: `profile-info` and `checkpoint` are bookkeeping that finishes in
  * milliseconds and would only crowd the row, so they ride along with the neighbour whose outcome
- * they share, and `additional-files` belongs with the warm-up it runs beside. The backend still
- * times all eight — this is a display grouping, and the timeline elsewhere can show them in full.
+ * they share, `additional-files` belongs with the warm-up it runs beside, and
+ * `method-trace-weights` is skipped outright by every recording that traced no methods. The backend
+ * still times all nine — this is a display grouping, and the timeline elsewhere can show them in
+ * full.
  */
 export const PROFILE_INIT_CHIPS: StageChipGroup[] = [
   { id: 'parse', label: 'Parse', stepIds: ['profile-info', 'parse'] },
   { id: 'flush', label: 'Flush', stepIds: ['flush'] },
-  { id: 'cluster', label: 'Cluster', stepIds: ['recluster'] },
+  { id: 'cluster', label: 'Cluster', stepIds: ['method-trace-weights', 'recluster'] },
   { id: 'traces', label: 'Traces', stepIds: ['traces'] },
   {
     id: 'warmup',

@@ -307,7 +307,7 @@ const folderStructure = `$JEFFREY_HOME/
         <DocsFeatureCard
           icon="bi bi-layers"
           title="Method Tracing"
-          description="Wall-clock flamegraphs from traced methods, slowest traces, cumulated analysis, and per-method drill-down."
+          description="Wall-clock flamegraphs from traced methods, slowest traces, cumulated analysis, and per-method drill-down. Each traced method appears as its own frame under its caller, and a call is charged only for the time its traced callees do not already account for."
         />
         <DocsFeatureCard
           icon="bi bi-bounding-box"
@@ -315,6 +315,19 @@ const folderStructure = `$JEFFREY_HOME/
           description="Span-level latency from async-profiler spans — overview by tag with total, average, P95 and max duration, slowest spans ranked by duration, per-span CPU / Wall-Clock / Allocation flame graphs, and the events that ran during a span."
         />
       </div>
+
+      <DocsCallout type="info">
+        <strong>Reading a Method Tracing flamegraph.</strong> JFR records a
+        <code>jdk.MethodTrace</code> event with the stack of the <em>caller</em>, so the traced method
+        is the one frame missing from its own stack trace; Jeffrey appends it back as the leaf, named
+        like any other Java frame so that a method which is both traced and the caller of another
+        traced method is one node rather than two. A method trace also measures a whole call,
+        <em>including its callees</em> — so when a filter matches two methods on the same stack, the
+        graph charges the outer one only for the time the inner one does not already account for.
+        Its bar is therefore its own work, and the inner call keeps its time one level down where it
+        belongs. The Slowest and Cumulated tables are unaffected: a row there is one invocation, so
+        it still reports the whole call.
+      </DocsCallout>
 
       <h2 id="heap-dump-analysis">Heap Dump Analysis</h2>
       <p>Memory analysis from heap dump snapshots (.hprof files). Requires a heap dump to be associated with the profile.</p>

@@ -32,6 +32,7 @@ export default class FrameColorResolver {
     [FrameType.ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC]: '#ADE8F4',
     [FrameType.ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC]: '#00B4D8',
     [FrameType.BLOCKING_OBJECT_SYNTHETIC]: '#e17e5a',
+    [FrameType.TRACED_METHOD_SYNTHETIC]: '#a78bfa',
     [FrameType.COLLAPSED_SYNTHETIC]: '#b3c6ff',
     [FrameType.TRUNCATED_SYNTHETIC]: '#fbcfe8',
     [FrameType.UNKNOWN]: '#aef27a'
@@ -50,6 +51,7 @@ export default class FrameColorResolver {
     [FrameType.ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC]: 'Allocated in New TLAB (Synthetic)',
     [FrameType.ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC]: 'Allocated Outside TLAB (Synthetic)',
     [FrameType.BLOCKING_OBJECT_SYNTHETIC]: 'Blocking Object (Synthetic)',
+    [FrameType.TRACED_METHOD_SYNTHETIC]: 'Traced Method (Synthetic)',
     [FrameType.COLLAPSED_SYNTHETIC]: 'Collapsed (Synthetic)',
     [FrameType.TRUNCATED_SYNTHETIC]: 'Truncated (Synthetic)',
     [FrameType.UNKNOWN]: 'Unknown',

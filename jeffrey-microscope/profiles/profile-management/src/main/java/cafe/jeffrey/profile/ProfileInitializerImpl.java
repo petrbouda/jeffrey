@@ -32,6 +32,7 @@ import cafe.jeffrey.provider.profile.api.RecordingEventParserResolver;
 import cafe.jeffrey.provider.profile.api.ProfileInfoRepository;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.provider.profile.api.TraceAttributeRepository;
+import cafe.jeffrey.provider.profile.api.MethodTraceWeightRepository;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.persistence.DatabaseLease;
@@ -161,6 +162,8 @@ public class ProfileInitializerImpl implements ProfileInitializer {
         DatabaseClient infrastructureClient = profileRepositories.databaseClientProvider(dataSource)
                 .provide(GroupLabel.INFRASTRUCTURE);
 
+        deriveMethodTraceWeights(run, profileInfo, dataSource);
+
         // Re-cluster the events table by (event_type, time) as soon as the writers are done.
         // Row-group zone maps then prune scans by event type and time range — replacing the
         // ART indexes. Before the trace derivation on purpose: the derivation scans events
@@ -199,6 +202,38 @@ public class ProfileInitializerImpl implements ProfileInitializer {
         run.runStage(ProfileInitStages.WARMUP, () -> profileDataInitializer.initialize(profileManager));
 
         return profileManager;
+    }
+
+    /**
+     * Charges each traced method only for the time the traced methods inside it do not already
+     * account for -- see {@link MethodTraceWeightRepository} for why a method trace is the one event
+     * whose duration may not simply be summed.
+     * <p>
+     * Before the re-clustering rather than after: the pass rewrites rows, and DuckDB writes an
+     * updated row at the end of the table, so running it first lets the re-clustering copy put those
+     * rows back in order and reclaim what they left behind, instead of undoing the clustering that
+     * was just paid for.
+     */
+    private void deriveMethodTraceWeights(PipelineRun run, ProfileInfo profileInfo, DataSource dataSource) {
+        MethodTraceWeightRepository repository =
+                profileRepositories.newMethodTraceWeightRepository(dataSource);
+
+        // jdk.MethodTrace only fires for methods someone named in a JFR filter, so almost every
+        // recording has none at all. Reported as skipped rather than as an instant success: "this
+        // recording traced no methods" is worth saying, and it costs a scan of the events table to
+        // find out otherwise.
+        if (!repository.hasMethodTraces()) {
+            LOG.debug("No method trace events, skipping self-weight derivation: profile_id={}",
+                    profileInfo.id());
+            run.skipStage(ProfileInitStages.METHOD_TRACE_WEIGHTS);
+            return;
+        }
+
+        run.runStage(ProfileInitStages.METHOD_TRACE_WEIGHTS, () -> {
+            int nested = repository.deriveSelfWeights();
+            LOG.debug("Method trace self weights derived: profile_id={} nested_calls={}",
+                    profileInfo.id(), nested);
+        });
     }
 
     /**

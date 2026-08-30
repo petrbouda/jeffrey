@@ -31,6 +31,7 @@ import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.provider.profile.api.RecordingEventParser;
 import cafe.jeffrey.provider.profile.api.RecordingEventParserResolver;
 import cafe.jeffrey.provider.profile.api.TraceAttributeRepository;
+import cafe.jeffrey.provider.profile.api.MethodTraceWeightRepository;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.persistence.DatabaseLease;
@@ -103,6 +104,9 @@ class ProfileInitializerImplTest {
     TraceAttributeRepository traceAttributeRepository;
 
     @Mock
+    MethodTraceWeightRepository methodTraceWeightRepository;
+
+    @Mock
     EventWriter eventWriter;
 
     @Mock
@@ -122,6 +126,8 @@ class ProfileInitializerImplTest {
         when(profileRepositories.newTraceRepository(dataSource)).thenReturn(traceRepository);
         when(profileRepositories.newTraceAttributeRepository(dataSource))
                 .thenReturn(traceAttributeRepository);
+        when(profileRepositories.newMethodTraceWeightRepository(dataSource))
+                .thenReturn(methodTraceWeightRepository);
 
         // The re-cluster and checkpoint steps at the tail run through the infrastructure client.
         DatabaseClientProvider clientProvider = mock(DatabaseClientProvider.class);
@@ -223,6 +229,37 @@ class ProfileInitializerImplTest {
 
             assertEquals(StageStatus.SKIPPED, stage(ProfileInitStages.TRACES).status());
             assertEquals(PipelineState.COMPLETED, runRegistry.progress(PROFILE_ID).state());
+        }
+
+        /**
+         * jdk.MethodTrace only fires for methods a JFR filter named, so nearly every recording has
+         * none. Same reasoning as the trace derivation above: skipped says "there was nothing to
+         * do", a fast success says "there was, and it was quick".
+         */
+        @Test
+        @DisplayName("reports a recording that traced no methods as a skipped weight derivation")
+        void reportsSkippedMethodTraceWeights() {
+            ProfileInfo profileInfo = mock(ProfileInfo.class);
+            when(profileInfo.id()).thenReturn(PROFILE_ID);
+            when(methodTraceWeightRepository.hasMethodTraces()).thenReturn(false);
+
+            initializer(profileInfo).initialize(profileInfo, "recording-1", Path.of("recording.jfr"));
+
+            assertEquals(StageStatus.SKIPPED, stage(ProfileInitStages.METHOD_TRACE_WEIGHTS).status());
+            verify(methodTraceWeightRepository, never()).deriveSelfWeights();
+        }
+
+        @Test
+        @DisplayName("derives self weights when the recording traced methods")
+        void derivesMethodTraceWeights() {
+            ProfileInfo profileInfo = mock(ProfileInfo.class);
+            when(profileInfo.id()).thenReturn(PROFILE_ID);
+            when(methodTraceWeightRepository.hasMethodTraces()).thenReturn(true);
+
+            initializer(profileInfo).initialize(profileInfo, "recording-1", Path.of("recording.jfr"));
+
+            assertEquals(StageStatus.COMPLETED, stage(ProfileInitStages.METHOD_TRACE_WEIGHTS).status());
+            verify(methodTraceWeightRepository).deriveSelfWeights();
         }
 
         @Test
