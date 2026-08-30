@@ -19,6 +19,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  contextColor,
+  CUSTOM_SPAN_FAMILY,
   errorLabel,
   isIoCategory,
   isMethodEventType,
@@ -26,6 +28,11 @@ import {
   operationKey,
   parseOperationName,
   promotedCategory,
+  SPAN_FAMILIES,
+  spanEventColor,
+  spanFamiliesOf,
+  spanFamily,
+  spanFamilyColor,
   spanKindVariant
 } from '@/services/trace/traceLabels';
 import type { TraceOperationId } from '@/services/api/model/trace/TraceModels';
@@ -95,6 +102,97 @@ describe('spanKindVariant', () => {
     ];
 
     expect(new Set(variants).size).toBe(3);
+  });
+});
+
+describe('the span palette', () => {
+  const KNOWN_SPAN_EVENT_TYPES = [
+    'jeffrey.HttpServerExchange',
+    'jeffrey.HttpClientExchange',
+    'jeffrey.GrpcServerExchange',
+    'jeffrey.GrpcClientExchange',
+    'jeffrey.JdbcQuery',
+    'jeffrey.JdbcInsert',
+    'jeffrey.JdbcUpdate',
+    'jeffrey.JdbcDelete',
+    'jeffrey.JdbcExecute',
+    'jeffrey.JdbcStream',
+    METHOD_TRACE_EVENT_TYPE
+  ];
+
+  it('gives every family a colour no other family wears', () => {
+    // The ramp's whole job is to be read back: two families sharing a hue would make the legend
+    // decode one bar into two different answers.
+    const colors = Object.values(SPAN_FAMILIES).map(family => family.color);
+
+    expect(new Set(colors).size).toBe(colors.length);
+  });
+
+  it('shares no colour with the context ramp, which is drawn in the same waterfall', () => {
+    const contextColors = new Set(
+      [
+        'GC_PAUSE',
+        'SAFEPOINT',
+        'MONITOR_BLOCKED',
+        'MONITOR_WAIT',
+        'PARKED',
+        'SLEEPING',
+        'SOCKET_IO',
+        'FILE_IO',
+        'ALLOCATION_STALL',
+        'DEOPTIMIZATION',
+        'ALLOCATION_REQUIRING_GC',
+        'VT_PINNED',
+        'CPU_THROTTLED'
+      ].map(contextColor)
+    );
+    const shared = Object.values(SPAN_FAMILIES)
+      .map(family => family.color)
+      .filter(color => contextColors.has(color));
+
+    expect(shared).toEqual([]);
+  });
+
+  it('keeps the traced-method green the own-work green, because it is the same quantity', () => {
+    expect(spanFamilyColor('METHOD')).toBe(contextColor('OWN_WORK'));
+  });
+
+  it('classifies every event type the backend holds a span convention for', () => {
+    const unclassified = KNOWN_SPAN_EVENT_TYPES.filter(
+      eventType => spanFamily(eventType) === CUSTOM_SPAN_FAMILY
+    );
+
+    expect(unclassified).toEqual([]);
+  });
+
+  it('drops a hand-written span and an unmet instrumentation into the same grey', () => {
+    // The point of the fallback: "we wrote this ourselves" and "nobody here has met this" are the
+    // same fact as far as a colour can say it, so they must not be told apart by one.
+    expect(spanEventColor('jeffrey.TraceSpan')).toBe(spanFamilyColor(CUSTOM_SPAN_FAMILY));
+    expect(spanEventColor('acme.SomethingNobodyHasMet')).toBe(spanFamilyColor(CUSTOM_SPAN_FAMILY));
+  });
+
+  it('lets a promoted wait keep its context colour rather than taking a family one', () => {
+    expect(spanEventColor('jdk.SocketRead')).toBe(contextColor('SOCKET_IO'));
+    expect(spanEventColor('jdk.ThreadPark')).toBe(contextColor('PARKED'));
+  });
+
+  it('leaves promoted waits out of the family legend, which the context entries already decode', () => {
+    expect(spanFamiliesOf(['jdk.SocketRead', 'jdk.ThreadPark'])).toEqual([]);
+  });
+
+  it('lists the families a trace carries in palette order, not in arrival order', () => {
+    // A legend that reshuffled itself between two traces of the same service would have to be
+    // re-read each time; the order is the palette's, so it is the same order every time.
+    const families = spanFamiliesOf([
+      'jeffrey.TraceSpan',
+      'jeffrey.JdbcQuery',
+      'jdk.FileRead',
+      'jeffrey.HttpServerExchange',
+      'jeffrey.JdbcStream'
+    ]);
+
+    expect(families).toEqual(['HTTP_SERVER', 'DATABASE', 'CUSTOM']);
   });
 });
 
