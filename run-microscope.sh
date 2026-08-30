@@ -18,6 +18,15 @@
 # Override the set with TRACE="pkg.Class.method[:threshold] ..." (space/comma separated), or set
 # TRACE=off to disable method tracing.
 #
+# JEP 520 method tracing: on JDK 25+ the JVM traces methods itself, and its filter takes an
+# annotation — so alongside the curated list above, this script runs a settings-only recording that
+# names @org.springframework.web.bind.annotation.RestController and thereby every method of all 73
+# controllers, with nothing to keep up to date. Those events land in the same .jfr, and because a
+# controller runs inside the /api/* span the tracing starter opens, each one shows up as a bar
+# inside its own request in Jeffrey's trace waterfall. Set METHOD_TRACE="<jep520 filter>" to replace
+# the filter (e.g. "cafe.jeffrey.profile.ProfileInitializerImpl;::<clinit>"),
+# METHOD_TRACE_THRESHOLD=<duration> to raise the 0ms floor, or METHOD_TRACE=off to disable it.
+#
 # Trace context: the spans above say when something happened, but the Trace modal's "I/O ops" and
 # "Blocking ops" overlays hang off the JDK events falling *inside* a span — and profile.jfc records
 # those far too coarsely to be useful (socket/file I/O at a 1ms threshold behind a 300/s throttle,
@@ -257,13 +266,67 @@ awk '
     }
 ' "${PROFILE_JFC}" > "${VT_JFC}"
 
+# ---------------------------------------------------------------------------------------------
+# JFR-native method tracing (JEP 520): every @RestController method, with no list to maintain.
+#
+# async-profiler's trace= below names methods one at a time, which is why the list under it has to
+# be curated — and why it only ever covers the handful someone thought to add. JDK 25's own method
+# tracing accepts an *annotation* instead: @<class> matches every method of every class bearing it.
+# @RestController is the only stereotype this project allows (CLAUDE.md), so one filter entry
+# reaches all 73 controllers and nothing else, and a controller added tomorrow is covered without
+# touching this script.
+#
+# It arrives the way the trace-context settings further down do: a second, settings-only recording
+# (no filename=, so it writes nothing itself) whose settings are unioned into the run — JEP 520
+# states that JFR applies the union of all active filters. The events land in the same
+# jeffrey-<ts>.jfr through jfrsync, so Jeffrey reads them exactly as it reads the agent's: the
+# Method Tracing dashboard, the Method Traces flamegraph, and — because a controller runs inside
+# the jeffrey.HttpServerExchange span the tracing starter already opens for /api/* — a bar inside
+# its own request in the trace waterfall.
+#
+# METHOD_TRACE=off disables it. METHOD_TRACE="<filter>" replaces the filter with any JEP 520 filter
+# expression: 'pkg.Class::method', 'pkg.Class' for every method of a class, '::<clinit>' for every
+# static initializer, '@pkg.Annotation', semicolon-separated. Commas cannot be used — JFR splits
+# its own options on them. There are no wildcards; the JEP rejected them deliberately.
+# METHOD_TRACE_THRESHOLD raises the latency floor (default 0ms: a controller runs once per request,
+# so full fidelity is affordable, and the endpoints that are quiet are worth seeing too).
+# ---------------------------------------------------------------------------------------------
+
+METHOD_TRACE_DEFAULT_FILTER="@org.springframework.web.bind.annotation.RestController"
+METHOD_TRACE_THRESHOLD="${METHOD_TRACE_THRESHOLD:-0ms}"
+METHOD_TRACE_FILTER=""
+METHOD_TRACE_OPTS=""
+
+if [[ "${METHOD_TRACE:-}" != "off" ]]; then
+    METHOD_TRACE_FILTER="${METHOD_TRACE:-${METHOD_TRACE_DEFAULT_FILTER}}"
+
+    # JEP 520 landed in JDK 25. An older JVM does not refuse to start over it — verified on 21, it
+    # prints "The .jfc option/setting 'jdk.MethodTrace#filter' doesn't exist" once per setting and
+    # runs on — but it does start a recording that can never yield an event. Skipping keeps that
+    # noise out of a run where the feature was never going to work, and says why in one line.
+    JAVA_FEATURE="$("${JAVA_BIN}" -XshowSettings:properties -version 2>&1 \
+        | awk -F'= *' '/^ *java\.specification\.version/ { print $2; exit }')"
+
+    if [[ "${JAVA_FEATURE}" =~ ^[0-9]+$ && "${JAVA_FEATURE}" -ge 25 ]]; then
+        METHOD_TRACE_OPTS="-XX:StartFlightRecording:name=jeffrey-method-trace,maxage=30m"
+        METHOD_TRACE_OPTS+=",jdk.MethodTrace#enabled=true"
+        # The Method Traces flamegraph is the one consumer that needs the stack: JEP 520 roots it at
+        # the *caller*, and MethodTraceTopFrameProcessor synthesizes the traced method back under it.
+        # The dashboard and the span promotion read the event's own method field and do not care.
+        METHOD_TRACE_OPTS+=",jdk.MethodTrace#stackTrace=true"
+        METHOD_TRACE_OPTS+=",jdk.MethodTrace#threshold=${METHOD_TRACE_THRESHOLD}"
+        METHOD_TRACE_OPTS+=",jdk.MethodTrace#filter=${METHOD_TRACE_FILTER}"
+    else
+        echo "note: JEP 520 method tracing needs JDK 25+ (this java reports" \
+             "${JAVA_FEATURE:-an unknown version}) — skipping jdk.MethodTrace#filter" >&2
+        METHOD_TRACE_FILTER=""
+    fi
+fi
+
 # Curated method-trace targets — moderate-frequency "unit of work" methods (one per UI action / per
 # recording), so the resulting jdk.MethodTrace events stay meaningful instead of flooding. DuckDB's
 # query() is many-per-request, so it carries a 1ms latency threshold to keep only the slow queries.
 DEFAULT_TRACE_METHODS=(
-    # REST entry points — one event per flamegraph/timeseries view
-    cafe.jeffrey.microscope.core.web.controllers.profile.FlamegraphController.generate
-    cafe.jeffrey.microscope.core.web.controllers.profile.TimeseriesController.generate
     # Managers / providers behind the controllers — see where the time inside a request goes
     cafe.jeffrey.profile.manager.PrimaryFlamegraphManager.generate
     cafe.jeffrey.profile.manager.PrimaryTimeseriesManager.timeseries
@@ -274,6 +337,19 @@ DEFAULT_TRACE_METHODS=(
     # DuckDB query chokepoint — many per request, so only trace calls slower than 1ms
     cafe.jeffrey.shared.persistence.client.DatabaseClient.query:1ms
 )
+
+# The two REST entry points this list used to open with — FlamegraphController.generate and
+# TimeseriesController.generate — come back only when the JEP 520 filter above is not running.
+# Both engines write jdk.MethodTrace, so a method named by both is recorded twice: two identical
+# bars in the same waterfall and every count in the dashboard doubled for those two endpoints.
+# When the filter is running it supersedes them anyway — it covers all 73 controllers, not two.
+if [[ -z "${METHOD_TRACE_OPTS}" ]]; then
+    DEFAULT_TRACE_METHODS=(
+        cafe.jeffrey.microscope.core.web.controllers.profile.FlamegraphController.generate
+        cafe.jeffrey.microscope.core.web.controllers.profile.TimeseriesController.generate
+        "${DEFAULT_TRACE_METHODS[@]}"
+    )
+fi
 
 # TRACE env override: "off" disables tracing; a non-empty value replaces the defaults (split on
 # whitespace and commas); unset uses the curated defaults above.
@@ -390,6 +466,14 @@ if [[ "${#TRACE_METHODS[@]}" -gt 0 ]]; then
 else
     echo "  trace : disabled (TRACE=off)"
 fi
+if [[ -n "${METHOD_TRACE_OPTS}" ]]; then
+    echo "  jep520: ${METHOD_TRACE_FILTER} @ ${METHOD_TRACE_THRESHOLD}" \
+         "-> jdk.MethodTrace (JVM-side, unioned into the run)"
+elif [[ "${METHOD_TRACE:-}" == "off" ]]; then
+    echo "  jep520: disabled (METHOD_TRACE=off)"
+else
+    echo "  jep520: unavailable on this JVM (needs JDK 25+)"
+fi
 if [[ -n "${TRACING_OPTS}" ]]; then
     echo "  spans : I/O @ ${TRACING_IO_THRESHOLD} (throttle lifted), blocking @ ${TRACING_BLOCKING_THRESHOLD}" \
          "-> trace context (as jeffrey-provisioner)"
@@ -402,4 +486,5 @@ echo
 
 exec "${JAVA_BIN}" "-agentpath:${ASPROF}=${AGENT_OPTS}" \
     ${TRACING_OPTS:+"${TRACING_OPTS}"} \
+    ${METHOD_TRACE_OPTS:+"${METHOD_TRACE_OPTS}"} \
     --add-modules jdk.incubator.vector -XX:NativeMemoryTracking=summary -jar "${JAR}" "$@"
