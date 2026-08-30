@@ -90,6 +90,18 @@
           I/O ops
           <span v-if="promotedIoCount === 0" class="wf-zero">0 events</span>
         </button>
+        <button
+          type="button"
+          class="wf-switch-item"
+          :aria-pressed="showMethodOps && promotedMethodCount > 0"
+          :disabled="promotedMethodCount === 0"
+          :title="methodToggleTitle"
+          @click="showMethodOps = !showMethodOps"
+        >
+          <span class="wf-switch" :class="{ on: showMethodOps && promotedMethodCount > 0 }"></span>
+          Methods
+          <span v-if="promotedMethodCount === 0" class="wf-zero">0 events</span>
+        </button>
         <!--
           The two instant families, each with its own switch for the same reason Blocking ops and
           I/O ops have theirs: they answer different questions, so silencing one must not silence
@@ -898,7 +910,12 @@ import type {
 import { attributeRows } from '@/services/trace/spanAttributes';
 import type { SpanBar } from '@/services/trace/TraceWaterfallLayout';
 import { indentRem, traceWindow, waterfallBars } from '@/services/trace/TraceWaterfallLayout';
-import { descendantCounts, spansWithChildren, visibleSpans } from '@/services/trace/traceTree';
+import {
+  descendantCounts,
+  drawnSpans,
+  spansWithChildren,
+  visibleSpans
+} from '@/services/trace/traceTree';
 import type { ContextBand, ThrottleBand } from '@/services/trace/TraceContextBands';
 import {
   bandAt,
@@ -912,6 +929,7 @@ import {
   contextLabel,
   exceptionColor,
   isIoCategory,
+  isMethodEventType,
   promotedCategory,
   severityColor,
   severityLabel,
@@ -1147,6 +1165,7 @@ watch(
     showContext.value = true;
     showBlockingOps.value = true;
     showIoOps.value = true;
+    showMethodOps.value = true;
   }
 );
 
@@ -1173,6 +1192,16 @@ const showBlockingOps = ref(true);
 /** Whether the promoted file and socket I/O rows are drawn — the other master of the same split. */
 const showIoOps = ref(true);
 
+/**
+ * Whether the promoted traced-method rows are drawn.
+ *
+ * Its own master rather than a share of the blocking one, because it answers a different question:
+ * the other two ask "show me the waiting", this asks "show me my own code". A filter set to trace a
+ * whole class can also put far more rows on the screen than either wait family, and hiding them
+ * must not take the socket read that explains the trace with them.
+ */
+const showMethodOps = ref(true);
+
 /** Whether the global pause bands are drawn — the third master, over what the JVM did to the trace. */
 const showContext = ref(true);
 
@@ -1180,8 +1209,15 @@ const promotedCount = computed(() => props.spans.filter(span => span.synthesized
 
 const promotedIoCount = computed(() => props.spans.filter(isPromotedIo).length);
 
+const promotedMethodCount = computed(() => props.spans.filter(isPromotedMethod).length);
+
+/*
+ * Counted as the complement, so every promoted row belongs to exactly one master and none of them
+ * can fall through the toolbar unswitchable. That makes the subtraction load-bearing: a family added
+ * here without a term in it would be counted as blocking and governed by the wrong switch.
+ */
 const promotedBlockingCount = computed(
-  () => promotedCount.value - promotedIoCount.value
+  () => promotedCount.value - promotedIoCount.value - promotedMethodCount.value
 );
 
 /** Whether a span is a promoted file or socket I/O wait, as opposed to any other promoted wait. */
@@ -1192,6 +1228,22 @@ function isPromotedIo(span: TraceSpanRow): boolean {
   const category = promotedCategory(span.eventType);
   return category !== null && isIoCategory(category);
 }
+
+/** Whether a span is a promoted traced method, as opposed to a promoted wait. */
+function isPromotedMethod(span: TraceSpanRow): boolean {
+  return span.synthesized && isMethodEventType(span.eventType);
+}
+
+const methodToggleTitle = computed(() => {
+  if (promotedMethodCount.value === 0) {
+    return 'No traced methods were promoted in this trace';
+  }
+  const count = promotedMethodCount.value;
+  const ops = count === 1 ? '1 traced method' : `${count} traced methods`;
+  return showMethodOps.value
+    ? `Hide the ${ops} drawn as child spans`
+    : `Show the ${ops} drawn as child spans`;
+});
 
 const blockingToggleTitle = computed(() => {
   if (promotedBlockingCount.value === 0) {
@@ -1341,7 +1393,7 @@ const foldedCounts = computed(() => descendantCounts(props.spans));
  * leaf by construction, so the depth sequence the rendering reads stays intact.
  */
 const rows = computed(() => {
-  const visible = visibleSpans(props.spans, collapsed.value).filter(isSpanDrawn);
+  const visible = drawnSpans(visibleSpans(props.spans, collapsed.value), isSpanDrawn);
   if (!criticalOnly.value) {
     return visible;
   }
@@ -1527,6 +1579,9 @@ function isSpanDrawn(span: TraceSpanRow): boolean {
   if (!span.synthesized) {
     return true;
   }
+  if (isPromotedMethod(span)) {
+    return showMethodOps.value;
+  }
   return isPromotedIo(span) ? showIoOps.value : showBlockingOps.value;
 }
 
@@ -1577,6 +1632,8 @@ function showAllSpans(): void {
   criticalOnly.value = false;
   collapsed.value = new Set();
   showBlockingOps.value = true;
+  showIoOps.value = true;
+  showMethodOps.value = true;
 }
 
 /** In drawn order, so "first" means the first the reader would meet scrolling down. */
@@ -1801,6 +1858,13 @@ function barStyle(span: TraceSpanRow) {
 function barClass(span: TraceSpanRow): string {
   if (span.status === 'ERROR') {
     return 'bar-error';
+  }
+  if (isPromotedMethod(span)) {
+    // Not 'bar-synthesized': that class exists for a promoted *wait*, which is a leaf whose self
+    // time equals its duration and so has no wash worth drawing. A traced method has children, so
+    // its self time is exactly the number the reader came for. It is styled as the internal span it
+    // genuinely is, outlined to show it was derived rather than recorded.
+    return 'bar-internal bar-method';
   }
   if (span.synthesized) {
     return 'bar-synthesized';
@@ -3007,6 +3071,19 @@ function tooltip(span: TraceSpanRow): string {
  */
 .bar-synthesized {
   opacity: 0.9;
+}
+
+/*
+ * Derived, not recorded — said with an outline rather than a hue. A traced method is the
+ * application's own work, so it keeps the internal span's colour instead of taking a fourteenth
+ * one out of a ramp that has no room left; the dashes are what tell it apart from a span the
+ * instrumentation actually recorded. Outline rather than border because the bars are positioned
+ * and sized in percentages, and a border would change what those percentages mean.
+ */
+.bar-method {
+  opacity: 0.9;
+  outline: 1px dashed var(--color-text-soft);
+  outline-offset: -1px;
 }
 
 .bar-synthesized .wf-self {

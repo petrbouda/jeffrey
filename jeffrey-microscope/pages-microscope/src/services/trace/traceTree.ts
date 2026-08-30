@@ -97,3 +97,31 @@ export function descendantCounts(spans: TraceSpanRow[]): Map<string, number> {
   }
   return counts;
 }
+
+/**
+ * The rows that survive a per-row filter, each with whatever hangs under it.
+ *
+ * Filtering row by row is only safe while everything a filter can remove is a leaf. That stopped
+ * being true once traced methods became spans: a method span holds the methods it called and the
+ * waits that happened inside it, so removing one on its own would leave its children indented under
+ * a parent that is no longer drawn.
+ *
+ * Relies on tree order — the caller passes spans with every parent ahead of its children, which is
+ * what {@link visibleSpans} returns — so one pass carries each decision downwards and no parent
+ * chain is ever walked.
+ */
+export function drawnSpans(
+  spans: TraceSpanRow[],
+  isDrawn: (span: TraceSpanRow) => boolean
+): TraceSpanRow[] {
+  const hidden = new Set<string>();
+  const drawn: TraceSpanRow[] = [];
+  for (const span of spans) {
+    if ((span.parentSpanId !== null && hidden.has(span.parentSpanId)) || !isDrawn(span)) {
+      hidden.add(span.spanId);
+      continue;
+    }
+    drawn.push(span);
+  }
+  return drawn;
+}

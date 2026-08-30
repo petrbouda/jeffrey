@@ -98,10 +98,14 @@ export interface TraceSpanRow {
    */
   eventFields: string | null;
   /**
-   * Whether the derivation synthesized this span out of a blocking JDK event (`jdk.SocketRead`,
-   * `jdk.JavaMonitorEnter`, ...) rather than reading it off an instrumented span event. A
-   * synthesized span carries a minted id and is always a leaf — what lets the waterfall style and
-   * filter promoted waits apart from recorded spans.
+   * Whether the derivation synthesized this span out of a JDK event rather than reading it from an
+   * instrumented span event.
+   *
+   * Two kinds of it, and they differ in shape. A promoted *wait* (`jdk.SocketRead`,
+   * `jdk.JavaMonitorEnter`, ...) is always a leaf, and wears its context category's colour. A
+   * promoted *traced method* (`jdk.MethodTrace`) is not: a traced method's duration includes the
+   * methods it calls, so it can hold other method spans and the waits that happened inside it.
+   * Anything that walks the tree has to allow for a synthesized span with children.
    */
   synthesized: boolean;
 }

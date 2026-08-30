@@ -30,6 +30,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'idea', text: 'The Idea: Promotion, Not Instrumentation', level: 2 },
   { id: 'promoted-set', text: 'Which JDK Events Become Spans', level: 2 },
+  { id: 'traced-methods', text: 'Traced Methods: The Promotion That Nests', level: 2 },
   { id: 'attribution', text: 'How an Event Finds Its Span', level: 2 },
   { id: 'payload', text: 'The Event Payload Survives', level: 2 },
   { id: 'reading', text: 'Reading Promoted Spans in the Waterfall', level: 2 },
@@ -109,6 +110,12 @@ jdk.ZAllocationStall#enabled=true,jdk.ZAllocationStall#threshold=0ms`;
         </thead>
         <tbody>
           <tr>
+            <td><code>jdk.MethodTrace</code></td>
+            <td><em>the method itself</em></td>
+            <td><code>INTERNAL</code></td>
+            <td>Traced methods (<em>Methods</em>)</td>
+          </tr>
+          <tr>
             <td><code>jdk.SocketRead</code></td>
             <td>Socket read</td>
             <td><code>CLIENT</code></td>
@@ -179,9 +186,25 @@ jdk.ZAllocationStall#enabled=true,jdk.ZAllocationStall#threshold=0ms`;
 
       <p>Global stop-the-world events — GC pauses and safepoints — are <em>not</em> promoted into spans; they stopped every thread at once, so they are drawn as lanes across the whole waterfall instead. See <router-link to="/docs/tracing/gc-safepoints">GC Pauses &amp; Safepoints</router-link>.</p>
 
+      <h2 id="traced-methods">Traced Methods: The Promotion That Nests</h2>
+
+      <p><router-link to="/docs/microscope/profiles">JFR method tracing</router-link> (JEP 520, JDK 25) lets you name the methods you care about in the recording configuration — no annotation, no agent, no code change — and <code>jdk.MethodTrace</code> then records each invocation with its duration. Jeffrey promotes those into spans too, which puts your own methods inside the trace waterfall with nothing instrumented: the HTTP span, then <code>OrderService.load</code> under it, then the query under that.</p>
+
+      <p>It differs from every other promotion in three ways, and each one is deliberate.</p>
+
+      <p><strong>It names itself.</strong> A blocking event promotes to a fixed label — every <code>jdk.SocketRead</code> is "Socket read". A traced method promotes to <em>itself</em>, read from the event's own <code>method</code> field and shortened to <code>Class.method</code> for the row (the qualified name stays in the span's payload). It has to be that field: JEP 520 roots a MethodTrace stack trace at the <strong>caller</strong>, so the leaf frame names the method that made the call, not the one being traced.</p>
+
+      <p><strong>It nests.</strong> A traced method's duration includes the methods it calls, so traced methods contain one another and a wait can happen inside one. A method span is therefore the one promoted span that can be a <em>parent</em>: trace two methods where one calls the other and the inner one hangs under the outer one, with the socket read inside it hanging under that. Without this the two would be drawn as siblings and the outer one's self time would claim work its callee did.</p>
+
+      <DocsCallout type="info">
+        <strong>A traced method is work, not waiting</strong> — which is why it maps to no context category and never appears in the why-slow panel. That panel accounts for the time a trace spent <em>not</em> doing its own work; a traced method's time is precisely the trace's own work, and giving it a category would move that time out of "own work" and into a wait total that never happened. The waterfall draws it as the <code>INTERNAL</code> span it is, outlined to show it was derived rather than recorded.
+      </DocsCallout>
+
+      <p>The rows have their own toolbar switch, <strong>Methods</strong>, beside <em>Blocking ops</em> and <em>I/O ops</em> — a filter set to trace a whole class can put far more rows on screen than either wait family, and switching those off must not take the socket read that explains the trace with them. Because method spans have children, switching them off takes their subtrees too.</p>
+
       <h2 id="attribution">How an Event Finds Its Span</h2>
 
-      <p>The attribution rule is: <strong>same thread, innermost open span</strong>. A JDK event is attached to the span that (a) ran on the same thread and (b) was open when the event began, choosing the innermost such span. An event that began outside every span stays an ordinary event and is not promoted. The synthesized span's id is minted deterministically (and guarded against colliding with a recorded id), so promoted spans are ordinary spans everywhere it matters:</p>
+      <p>The attribution rule is: <strong>same thread, innermost open span</strong>. A JDK event is attached to the span that (a) ran on the same thread and (b) was open when the event began, choosing the innermost such span — where "span" means any recorded span <em>or</em> any method span, which is what lets a wait land inside the traced method it happened in. Which trace an event belongs to is still decided by recorded spans alone: a method span is inside a trace because instrumentation put a span around it, never because another method span did. An event that began outside every recorded span stays an ordinary event and is not promoted. The synthesized span's id is minted deterministically (and guarded against colliding with a recorded id), so promoted spans are ordinary spans everywhere it matters:</p>
 
       <ul>
         <li>they count in the trace's span total,</li>
