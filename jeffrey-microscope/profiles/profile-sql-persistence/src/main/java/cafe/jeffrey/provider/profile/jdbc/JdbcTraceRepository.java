@@ -385,11 +385,12 @@ public class JdbcTraceRepository implements TraceRepository {
                 WHERE e.event_type IN (:blocking_event_types)
                   AND e.thread_hash IS NOT NULL
             ),
-            -- jdk.MethodTrace (JEP 520). Unlike a blocking event it names itself -- the name is
-            -- read out of the event rather than taken from a fixed label -- and it NESTS: a traced
-            -- method's duration includes the methods it calls, so one can contain another and a
-            -- blocking wait can happen inside one. `nests` is what carries that difference forward.
-            methods AS (
+            -- jdk.MethodTrace (JEP 520), rehydrated. Split from the naming below rather than
+            -- projected alongside it: an unqualified `fields` in a SELECT over events_raw resolves
+            -- to that table's own column, not to the alias beside it, and the traced method's
+            -- qualified name is long enough to have been pooled out of exactly that column -- so
+            -- naming here read no method at all and every span fell back to "Traced method".
+            method_events AS (
                 SELECT
                     e.rowid                                         AS event_row,
                     e.event_type                                    AS event_type,
@@ -397,14 +398,23 @@ public class JdbcTraceRepository implements TraceRepository {
                     COALESCE(e.start_timestamp_from_beginning, 0)   AS start_ms,
                     COALESCE(e.duration, 0)                         AS duration,
                     e.thread_hash                                   AS thread_hash,
-                    <<rehydrated>>                                  AS fields,
-                    %s
-                    EPOCH_US(e.start_timestamp)                     AS start_us,
-                    TRUE                                            AS nests
+                    <<rehydrated>>                                  AS fields
                 FROM events_raw e
                 LEFT JOIN field_texts t ON t.text_hash = e.pooled_text_hash
                 WHERE e.event_type = :method_event_type
                   AND e.thread_hash IS NOT NULL
+            ),
+            -- Unlike a blocking event a traced method names itself -- the name is read out of the
+            -- event rather than taken from a fixed label -- and it NESTS: a traced method's duration
+            -- includes the methods it calls, so one can contain another and a blocking wait can
+            -- happen inside one. `nests` is what carries that difference forward.
+            methods AS (
+                SELECT
+                    event_row, event_type, start_timestamp, start_ms, duration, thread_hash, fields,
+                    %s
+                    EPOCH_US(start_timestamp)                       AS start_us,
+                    TRUE                                            AS nests
+                FROM method_events
             ),
             candidates AS (
                 SELECT event_row, event_type, start_timestamp, start_ms, duration, thread_hash,

@@ -60,3 +60,19 @@ VALUES
      '{"method":"cafe.jeffrey.probe.Probe#twinA"}'),
     ('jdk.MethodTrace', '2025-01-15T10:10:00.250Z', 600250, 10000000, 1, 10000000, 'Probe#main', NULL, 3001,
      '{"method":"cafe.jeffrey.probe.Probe#twinB"}');
+
+-- A traced method whose qualified name was POOLED out of `fields`, which is what every traced method
+-- in a real recording looks like: the parser lifts the largest string over 64 characters into
+-- field_texts, and a controller method's qualified name clears that on its own. The rows above spell
+-- `method` inline only because their probe class is short, so the naming they cover is the naming
+-- that never happens in practice -- and while it was the only case under test, every method span in
+-- a real profile was called "Traced method".
+--
+-- 10:10:00.270 .. 10:10:00.280 (10ms), inside the recorded span and disjoint from every method above.
+INSERT INTO field_texts (text_hash, text)
+VALUES (7701, 'cafe.jeffrey.microscope.core.web.controllers.RecordingAnalysisController#analyzeRecording');
+
+INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields, pooled_field, pooled_text_hash)
+VALUES
+    ('jdk.MethodTrace', '2025-01-15T10:10:00.270Z', 600270, 10000000, 1, 10000000, 'Probe#main', NULL, 3001,
+     '{}', 'method', 7701);

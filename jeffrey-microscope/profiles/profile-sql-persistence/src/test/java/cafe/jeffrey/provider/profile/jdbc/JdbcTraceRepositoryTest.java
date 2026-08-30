@@ -2657,11 +2657,39 @@ class JdbcTraceRepositoryTest {
 
             // JEP 520 roots the stack trace at the caller, so the fixture's weight_entity values are
             // the callers: "Probe#main" for the outer event, "Probe#outer" for the inner one. Naming
-            // from that column would produce spans called "Probe.main" and "Probe.outer" -- one name
+            // from that column would produce spans called "Probe#main" and "Probe#outer" -- one name
             // belonging to a method that was never traced, and neither naming the inner method at all.
-            assertTrue(spans.containsKey("Probe.outer"), "named from fields.method");
-            assertTrue(spans.containsKey("Probe.inner"), "named from fields.method");
-            assertFalse(spans.containsKey("Probe.main"), "that is the caller in weight_entity");
+            assertTrue(spans.containsKey("Probe#outer"), "named from fields.method");
+            assertTrue(spans.containsKey("Probe#inner"), "named from fields.method");
+            assertFalse(spans.containsKey("Probe#main"), "that is the caller in weight_entity");
+        }
+
+        @Test
+        @DisplayName("names a method span whose qualified name was pooled out of the event's fields")
+        void namesFromThePooledMethodField(DataSource dataSource) throws SQLException {
+            Map<String, TraceSpanRecord> spans = spansByName(dataSource);
+
+            // The case every real recording is: the parser lifts any string over 64 characters into
+            // field_texts, and a qualified method name clears that on its own, so `fields` holds no
+            // method at all until the pooled value is spliced back. Naming used to read the raw
+            // column -- an unqualified `fields` over events_raw is that table's column, not the
+            // rehydrated alias beside it -- and every method span in a real profile came out
+            // "Traced method".
+            assertTrue(spans.containsKey("RecordingAnalysisController#analyzeRecording"),
+                    "named from the pooled method field, not from the fallback");
+            assertFalse(spans.containsKey(MethodSpans.UNNAMED), "nothing fell back");
+        }
+
+        @Test
+        @DisplayName("names a method span Class#method, the way a gRPC call is service/method")
+        void dropsThePackageAndKeepsTheSeparator(DataSource dataSource) throws SQLException {
+            Map<String, TraceSpanRecord> spans = spansByName(dataSource);
+
+            // A waterfall row is a few centimetres wide, so the package is dropped -- the full
+            // string stays in the span's payload for the detail panel. The `#` is kept because it is
+            // what says "a method" the way `/` says "an RPC" in a gRPC operation name.
+            assertFalse(spans.containsKey("cafe.jeffrey.probe.Probe#outer"), "the package is dropped");
+            assertFalse(spans.containsKey("Probe.outer"), "a dot would not say where the type ends");
         }
 
         @Test
@@ -2669,8 +2697,8 @@ class JdbcTraceRepositoryTest {
         void nestsMethodInsideMethod(DataSource dataSource) throws SQLException {
             Map<String, TraceSpanRecord> spans = spansByName(dataSource);
 
-            TraceSpanRecord outer = spans.get("Probe.outer");
-            TraceSpanRecord inner = spans.get("Probe.inner");
+            TraceSpanRecord outer = spans.get("Probe#outer");
+            TraceSpanRecord inner = spans.get("Probe#inner");
 
             // The point of the whole change: siblings here would claim outer did 214ms of its own
             // work when 174ms of it was inner.
@@ -2683,7 +2711,7 @@ class JdbcTraceRepositoryTest {
         void nestsBlockingInsideMethod(DataSource dataSource) throws SQLException {
             Map<String, TraceSpanRecord> spans = spansByName(dataSource);
 
-            assertEquals(spans.get("Probe.inner").spanId(), spans.get("Socket read").parentSpanId(),
+            assertEquals(spans.get("Probe#inner").spanId(), spans.get("Socket read").parentSpanId(),
                     "the socket read is inside inner, not a sibling of it");
         }
 
@@ -2692,7 +2720,7 @@ class JdbcTraceRepositoryTest {
         void nestedMethodSubtractsFromSelfTime(DataSource dataSource) throws SQLException {
             Map<String, TraceSpanRecord> spans = spansByName(dataSource);
 
-            TraceSpanRecord outer = spans.get("Probe.outer");
+            TraceSpanRecord outer = spans.get("Probe#outer");
 
             // 214ms total, 174ms of it in inner.
             assertEquals(214_000_000L, outer.durationNanos());
@@ -2703,7 +2731,7 @@ class JdbcTraceRepositoryTest {
         @Test
         @DisplayName("promotes a method span as a real span of the trace")
         void methodSpansAreOrdinarySpans(DataSource dataSource) throws SQLException {
-            TraceSpanRecord inner = spansByName(dataSource).get("Probe.inner");
+            TraceSpanRecord inner = spansByName(dataSource).get("Probe#inner");
 
             assertTrue(inner.synthesized(), "minted, not read from an instrumented span event");
             assertEquals(EventTypeName.METHOD_TRACE, inner.eventType());
@@ -2715,8 +2743,8 @@ class JdbcTraceRepositoryTest {
         void ignoresMethodsOutsideEverySpan(DataSource dataSource) throws SQLException {
             Map<String, TraceSpanRecord> spans = spansByName(dataSource);
 
-            assertFalse(spans.containsKey("Other.orphan"), "ran on a thread with no span open");
-            assertFalse(spans.containsKey("Probe.afterTheSpan"), "ran after the span closed");
+            assertFalse(spans.containsKey("Other#orphan"), "ran on a thread with no span open");
+            assertFalse(spans.containsKey("Probe#afterTheSpan"), "ran after the span closed");
         }
 
         @Test
@@ -2724,8 +2752,8 @@ class JdbcTraceRepositoryTest {
         void identicalIntervalsCannotCycle(DataSource dataSource) throws SQLException {
             Map<String, TraceSpanRecord> spans = spansByName(dataSource);
 
-            TraceSpanRecord twinA = spans.get("Probe.twinA");
-            TraceSpanRecord twinB = spans.get("Probe.twinB");
+            TraceSpanRecord twinA = spans.get("Probe#twinA");
+            TraceSpanRecord twinB = spans.get("Probe#twinB");
 
             // Each contains the other's start, so containment alone would let them adopt each other.
             // Exactly one adoption may survive, and neither may point at itself.
@@ -2745,10 +2773,11 @@ class JdbcTraceRepositoryTest {
 
             TraceSpanRecord recorded = spans.get("reserveInventory");
 
-            // 300ms of request, 214ms of it inside outer, plus the 10ms twins. The merge means the
-            // nested inner and the socket read are not subtracted a second time.
+            // 300ms of request, 214ms of it inside outer, plus the 10ms twins and the 10ms method
+            // whose name was pooled. The merge means the nested inner and the socket read are not
+            // subtracted a second time.
             assertEquals(300_000_000L, recorded.durationNanos());
-            assertEquals(76_000_000L, recorded.selfDurationNanos());
+            assertEquals(66_000_000L, recorded.selfDurationNanos());
         }
     }
 }

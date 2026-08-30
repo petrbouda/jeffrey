@@ -163,6 +163,34 @@ describe('parseOperationName', () => {
     expect(segments.map(s => s.text).join('')).toBe('jeffrey.api.v1.ProjectService/List');
   });
 
+  it('splits a traced method into class and method', () => {
+    const segments = parseOperationName(
+      'RecordingAnalysisController#analyzeRecording',
+      METHOD_TRACE_EVENT_TYPE
+    );
+
+    expect(segments).toEqual([
+      { kind: 'name', text: 'RecordingAnalysisController' },
+      { kind: 'sep', text: '#' },
+      { kind: 'leaf', text: 'analyzeRecording' }
+    ]);
+  });
+
+  it('dims the package of a traced method the derivation could not shorten', () => {
+    const segments = parseOperationName('cafe.jeffrey.probe.Probe#outer', METHOD_TRACE_EVENT_TYPE);
+
+    expect(segments).toContainEqual({ kind: 'path', text: 'cafe.jeffrey.probe.' });
+    expect(segments).toContainEqual({ kind: 'name', text: 'Probe' });
+    expect(segments).toContainEqual({ kind: 'leaf', text: 'outer' });
+    expect(segments.map(s => s.text).join('')).toBe('cafe.jeffrey.probe.Probe#outer');
+  });
+
+  it('leaves a traced-method name with no separator as a qualified name', () => {
+    expect(parseOperationName('Traced method', METHOD_TRACE_EVENT_TYPE)).toEqual([
+      { kind: 'leaf', text: 'Traced method' }
+    ]);
+  });
+
   it('falls back to the grouped span-tag parse for other event types', () => {
     expect(parseOperationName('heap-dump-init', 'jeffrey.TraceSpan')).toEqual([
       { kind: 'name', text: 'heap-dump-init' }
