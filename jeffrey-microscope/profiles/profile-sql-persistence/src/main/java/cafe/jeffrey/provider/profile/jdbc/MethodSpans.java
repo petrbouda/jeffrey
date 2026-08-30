@@ -31,7 +31,11 @@ import cafe.jeffrey.shared.common.model.EventTypeName;
  *       name is read out of the event's own {@code method} field.</li>
  *   <li><b>It is not a leaf.</b> A traced method's duration includes the methods it calls, so traced
  *       methods nest inside one another and a blocking wait can happen inside one. A method span can
- *       therefore be the parent of another promoted span, which no other promotion can.</li>
+ *       therefore be the parent of another promoted span, which no other promotion can — and of a
+ *       <em>recorded</em> span: a recorded span that begins inside a method span standing between it
+ *       and its own recorded parent is re-hung under that method span (the derivation's adoption
+ *       stage), so a traced controller method wrapping a request contains the request's recorded
+ *       spans instead of sitting beside them as their sibling.</li>
  *   <li><b>It is work, not waiting.</b> It maps to no {@code TraceContextCategory} on purpose: the
  *       why-slow panel accounts for waits, and a traced method's time is the trace's own work. Giving
  *       it a category would move that time out of "own work" and into a wait total that never

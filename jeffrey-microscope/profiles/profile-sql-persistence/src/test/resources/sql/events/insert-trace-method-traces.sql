@@ -76,3 +76,24 @@ INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginn
 VALUES
     ('jdk.MethodTrace', '2025-01-15T10:10:00.270Z', 600270, 10000000, 1, 10000000, 'Probe#main', NULL, 3001,
      '{}', 'method', 7701);
+
+-- Recorded spans for the ADOPTION cases: a traced method that wraps recorded work must contain it.
+-- All three are children the Tracer recorded under span 701 (or under 702) -- jdk.MethodTrace is
+-- invisible to the Tracer's context, so instrumentation can never name a method span as a parent
+-- and the derivation has to re-hang these itself.
+--
+--   persistOrder       [ 60ms ..  80ms]  parent 701, thread 3001 -- starts inside outer AND inner,
+--                                        so the innermost method (inner) must adopt it
+--   persistOrderIndex  [ 65ms ..  70ms]  parent 702, thread 3001 -- inside inner's window too, but
+--                                        inner's anchor is 701, not 702: adoption must never move
+--                                        a span across its recorded ancestry
+--   auditAsync         [180ms .. 220ms]  parent 701, thread 3002 -- inside outer's time window but
+--                                        on another thread: adoption must never cross threads
+INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
+VALUES
+    ('jeffrey.TraceSpan', '2025-01-15T10:10:00.060Z', 600060, 20000000, 1, NULL, NULL, NULL, 3001,
+     '{"traceId":9003,"spanId":702,"parentSpanId":701,"name":"persistOrder","kind":"INTERNAL","status":"UNSET"}'),
+    ('jeffrey.TraceSpan', '2025-01-15T10:10:00.065Z', 600065, 5000000, 1, NULL, NULL, NULL, 3001,
+     '{"traceId":9003,"spanId":703,"parentSpanId":702,"name":"persistOrderIndex","kind":"INTERNAL","status":"UNSET"}'),
+    ('jeffrey.TraceSpan', '2025-01-15T10:10:00.180Z', 600180, 40000000, 1, NULL, NULL, NULL, 3002,
+     '{"traceId":9003,"spanId":704,"parentSpanId":701,"name":"auditAsync","kind":"INTERNAL","status":"UNSET"}');

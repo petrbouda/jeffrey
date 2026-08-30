@@ -136,6 +136,11 @@ function child(spanId: string, parentSpanId: string, depth: number): TraceSpanRo
   return { ...row(spanId, depth), parentSpanId };
 }
 
+/** A parented row the derivation minted — a traced method or a promoted wait. */
+function promoted(spanId: string, parentSpanId: string, depth: number): TraceSpanRow {
+  return { ...child(spanId, parentSpanId, depth), synthesized: true };
+}
+
 describe('drawnSpans', () => {
   /*
    *   recorded
@@ -146,9 +151,9 @@ describe('drawnSpans', () => {
    */
   const NESTED = [
     row('recorded', 0),
-    child('outer', 'recorded', 1),
-    child('inner', 'outer', 2),
-    child('read', 'inner', 3),
+    promoted('outer', 'recorded', 1),
+    promoted('inner', 'outer', 2),
+    promoted('read', 'inner', 3),
     child('sibling', 'recorded', 1)
   ];
 
@@ -182,7 +187,32 @@ describe('drawnSpans', () => {
     expect(drawn.map(span => span.spanId)).toEqual(['recorded', 'outer', 'inner', 'sibling']);
   });
 
-  it('drops a whole tree when its root goes', () => {
-    expect(drawnSpans(NESTED, span => span.spanId !== 'recorded')).toEqual([]);
+  it('takes only the promoted subtree down when a root goes', () => {
+    // A recorded span is never taken down by someone else's filter: instrumentation put it there,
+    // and only its own removal — which no toggle performs — could hide it.
+    const drawn = drawnSpans(NESTED, span => span.spanId !== 'recorded');
+
+    expect(drawn.map(span => span.spanId)).toEqual(['sibling']);
+  });
+
+  it('resurfaces a recorded span the hidden method had adopted', () => {
+    /*
+     *   recorded
+     *     method            (a traced method wrapping recorded work)
+     *       adopted         (a recorded span the derivation re-hung under the method)
+     *       write           (a promoted wait, the method's own)
+     */
+    const adopted = [
+      row('recorded', 0),
+      promoted('method', 'recorded', 1),
+      child('adopted', 'method', 2),
+      promoted('write', 'method', 2)
+    ];
+
+    const drawn = drawnSpans(adopted, span => span.spanId !== 'method');
+
+    // Switching Methods off must not take the request's recorded spans with it — before adoption
+    // they drew as the recorded root's children, and hiding the method restores that view.
+    expect(drawn.map(span => span.spanId)).toEqual(['recorded', 'adopted']);
   });
 });

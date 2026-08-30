@@ -99,12 +99,20 @@ export function descendantCounts(spans: TraceSpanRow[]): Map<string, number> {
 }
 
 /**
- * The rows that survive a per-row filter, each with whatever hangs under it.
+ * The rows that survive a per-row filter, each with its promoted subtree.
  *
  * Filtering row by row is only safe while everything a filter can remove is a leaf. That stopped
  * being true once traced methods became spans: a method span holds the methods it called and the
  * waits that happened inside it, so removing one on its own would leave its children indented under
  * a parent that is no longer drawn.
+ *
+ * Hiding carries down to a *synthesized* child only. A promoted span hangs where the derivation
+ * put it, so it goes wherever its parent goes — but a recorded span under a method span was only
+ * ADOPTED there (instrumentation recorded it under a recorded parent, and the derivation re-hung
+ * it under the traced method wrapping it), so switching a promoted family off must resurface it
+ * rather than take the request's real spans down with the toggle. A resurfaced span keeps its
+ * depth; the one-level gap it leaves is the hidden method's, and it closes when the toggle
+ * returns.
  *
  * Relies on tree order — the caller passes spans with every parent ahead of its children, which is
  * what {@link visibleSpans} returns — so one pass carries each decision downwards and no parent
@@ -117,7 +125,8 @@ export function drawnSpans(
   const hidden = new Set<string>();
   const drawn: TraceSpanRow[] = [];
   for (const span of spans) {
-    if ((span.parentSpanId !== null && hidden.has(span.parentSpanId)) || !isDrawn(span)) {
+    const underHidden = span.parentSpanId !== null && hidden.has(span.parentSpanId);
+    if (!isDrawn(span) || (underHidden && span.synthesized)) {
       hidden.add(span.spanId);
       continue;
     }
