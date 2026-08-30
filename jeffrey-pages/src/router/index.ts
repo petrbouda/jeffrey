@@ -571,6 +571,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/tracing/TracingTracedAnnotationPage.vue')
       },
       {
+        path: 'tracing/method-tracing',
+        name: 'DocsTracingMethodTracing',
+        component: () => import('@/views/docs/tracing/TracingMethodTracingPage.vue')
+      },
+      {
         path: 'tracing/http-events',
         name: 'DocsTracingHttpEvents',
         component: () => import('@/views/docs/tracing/TracingHttpEventsPage.vue')

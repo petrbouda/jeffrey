@@ -28,7 +28,7 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
-  { id: 'four-ways', text: 'Four Ways to Instrument', level: 2 },
+  { id: 'ways', text: 'Five Ways to Instrument', level: 2 },
   { id: 'model', text: 'The Tracer Model', level: 2 },
   { id: 'events', text: 'The JFR Events Behind It', level: 2 },
   { id: 'errors', text: 'Error Handling', level: 2 },
@@ -129,9 +129,9 @@ const composedSpans = [
     />
 
     <div class="docs-content">
-      <p>Everything in this section produces the same thing — JFR events carrying trace identity — through four complementary routes. This page is the map: the model they all share, the events they emit, and which tool fits which situation. The <strong>Tracer API Reference</strong> beneath it documents every method on its own page, with use-cases, examples and the recorded output.</p>
+      <p>Everything in this section produces the same thing — JFR events that end up as spans of a trace — through five complementary routes. Four of them carry the trace identity in the event itself; the fifth lets the JVM record the method and leaves the attaching to analysis time. This page is the map: the model they all share, the events they emit, and which tool fits which situation. The <strong>Tracer API Reference</strong> beneath it documents every method on its own page, with use-cases, examples and the recorded output.</p>
 
-      <h2 id="four-ways">Four Ways to Instrument</h2>
+      <h2 id="ways">Five Ways to Instrument</h2>
 
       <table>
         <thead>
@@ -151,6 +151,11 @@ const composedSpans = [
             <td><strong>Annotated methods</strong></td>
             <td><code>@Traced</code> on a method, woven by the Jeffrey Agent</td>
             <td><router-link to="/docs/tracing/traced-annotation">@Traced &amp; the Agent</router-link></td>
+          </tr>
+          <tr>
+            <td><strong>JFR method tracing</strong></td>
+            <td>A filter in the recording configuration — no code, no agent, no redeploy</td>
+            <td><router-link to="/docs/tracing/method-tracing">JFR Method Tracing</router-link></td>
           </tr>
           <tr>
             <td><strong>Built-in framework events</strong></td>
@@ -212,6 +217,10 @@ const composedSpans = [
           <tr>
             <td><code>jeffrey.TraceScope</code></td>
             <td>One stretch of time during which a span was active on one thread. Emitted only by <router-link to="/docs/tracing/tracer-api/reenter">reenter</router-link> (and by <router-link to="/docs/tracing/tracer-api/propagating">propagating</router-link>'s task activations) — a span event answers <em>what happened</em>, a scope answers <em>where and when it was running</em>, and the two come apart as soon as a span crosses threads.</td>
+          </tr>
+          <tr>
+            <td><code>jdk.MethodTrace</code></td>
+            <td>Recorded by the JVM itself (JEP&nbsp;520) and carrying no trace ids at all. The derivation promotes it into an <code>INTERNAL</code> span under whatever was open on that thread — see <router-link to="/docs/tracing/method-tracing">JFR Method Tracing</router-link>.</td>
           </tr>
           <tr>
             <td>Any <code>AbstractTracedEvent</code></td>
@@ -338,6 +347,10 @@ const composedSpans = [
           <tr>
             <td>One operation arriving in pieces — a protocol's callbacks</td>
             <td><router-link to="/docs/tracing/tracer-api/open-span-of">openSpanOf</router-link> once + <router-link to="/docs/tracing/tracer-api/reenter">reenter</router-link> per callback</td>
+          </tr>
+          <tr>
+            <td>A running application is slow inside a method nobody instrumented, and you cannot change it</td>
+            <td><router-link to="/docs/tracing/method-tracing">JFR method tracing</router-link> — name the method in the recording configuration</td>
           </tr>
           <tr>
             <td>Something outside the tree needs the current span's identity — log correlation, a stored hand-off</td>

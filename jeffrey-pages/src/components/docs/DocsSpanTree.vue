@@ -394,6 +394,10 @@ const linkPath = (link: { from: number; to: number }): string => {
   --span-socket-io: #f86624;
   --span-file-io: #9c27b0;
   --span-lock: #a855f7;
+  /* Traced methods (jdk.MethodTrace). The product draws them in its own-work
+     green; that token is a pale fill meant for a bar with dark text, so the
+     diagram uses a legible tone of the same hue instead. */
+  --span-method: #6ea44c;
 
   margin: 1.5rem 0;
   padding: 1.125rem 1.25rem;
