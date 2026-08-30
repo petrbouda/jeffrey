@@ -394,6 +394,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 
 ## Git Commits
 - Never add `Co-Authored-By: Claude` or any AI co-author trailer to commit messages
+- The same applies to the commit a **merge** produces, which is where this rule actually gets broken. A GitHub squash merge appends `Co-authored-by:` on its own whenever the squashed commits carry a different author than whoever performs the merge — so a branch whose commits are authored by `Claude <noreply@anthropic.com>` lands on `master` with the trailer even though no commit message ever contained one. When squash-merging such a branch, pass an explicit commit message and check the merged commit afterwards; the rule is about what ends up in the history, not about what was typed
 - Never automatically commit, create tags, or push. These actions happen **only** when the user explicitly asks for them ("commit", "tag", "push", "ship it", etc.). Finishing a feature, passing tests, or a clean build is **not** a trigger to commit — stop at the working-tree change and wait.
 - **Authorization is per-change-set, not standing.** A "commit and push" approval applies only to the diff in front of you at that moment. The next request — even immediately after, even for a closely-related follow-up — needs a fresh confirmation. Do not treat one OK as a session-wide pass.
 
