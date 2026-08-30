@@ -17,7 +17,12 @@
  */
 
 import type { NameSegment } from '@/services/metricName';
-import { parseGroupedName, parseQualifiedName, parseUriName } from '@/services/metricName';
+import {
+  parseGroupedName,
+  parseMethodName,
+  parseQualifiedName,
+  parseUriName
+} from '@/services/metricName';
 import type {
   SpanKind,
   TraceContextCategoryName,
@@ -278,6 +283,9 @@ const GRPC_EVENT_TYPE_PREFIX = 'jeffrey.Grpc';
  *   emphasised segments, purple `{params}`, grey slashes.
  * - gRPC exchanges (`jeffrey.api.v1.ProjectService/List`) — dimmed package, bold service and
  *   method, matching the gRPC Services list.
+ * - traced methods (`RecordingAnalysisController#analyzeRecording`) — the class as ordinary text,
+ *   a grey `#`, the method bold. Same idea as the gRPC parse and for the same reason: the
+ *   separator is what says which kind of thing this is, so it is drawn rather than swallowed.
  * - everything else — the grouped dot-notation parse the span tags use, so `heap-dump-init`
  *   stays plain and `profile.initialize` leads with its group.
  *
@@ -302,6 +310,10 @@ export function parseOperationName(
         return [{ kind: 'group', text: method }, { kind: 'sep', text: ' ' }, ...parseUriName(uri)];
       }
     }
+  }
+
+  if (isMethodEventType(eventType)) {
+    return parseMethodName(name);
   }
 
   if (eventType.startsWith(GRPC_EVENT_TYPE_PREFIX)) {

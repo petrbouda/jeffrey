@@ -64,6 +64,16 @@ final class MethodSpans {
     static final String METHOD_FIELD = "method";
 
     /**
+     * The character between the class and the method, in the name and in the field it is read from.
+     * <p>
+     * JFR's own separator, kept rather than swapped for a dot: it is what says "a method" the way
+     * gRPC's {@code {service}/{method}} says "an RPC", and a dot would make {@code Outer.Inner.run}
+     * ambiguous about where the type ends. Doubling as the delimiter the field is split on is the
+     * point — one constant, so the name cannot be assembled with a separator the parse never saw.
+     */
+    static final String SEPARATOR = "#";
+
+    /**
      * The last-resort name. {@code trace_spans.name} is {@code NOT NULL}, so a recording that writes
      * the method field in a shape this build cannot split still has to produce a span rather than
      * fail the whole profile's initialisation.
@@ -73,27 +83,36 @@ final class MethodSpans {
     /**
      * The span name, as a SQL expression over a {@code fields} JSON column.
      * <p>
-     * {@code "pkg.Class#method"} becomes {@code "Class.method"} — the package is dropped because a
+     * {@code "pkg.Class#method"} becomes {@code "Class#method"} — the package is dropped because a
      * waterfall row is a few centimetres wide and the qualified name pushes the timing off the end of
      * it. Nothing is lost: the full string stays in the span's payload, which the detail panel shows.
      * A value that does not split (a shape this build has not seen) falls back to itself rather than
      * to a null name, since {@code name} is {@code NOT NULL}.
+     *
+     * @param fieldsColumn the JSON expression to read {@link #METHOD_FIELD} out of. It must be one
+     *                     the pooled field has already been spliced back into — a traced method's
+     *                     qualified name is long enough that the parser pools it, so reading the raw
+     *                     {@code events_raw.fields} finds no method at all and every span in a real
+     *                     recording lands on {@link #UNNAMED}.
      */
     static String nameExpression(String fieldsColumn) {
         String raw = "json_extract_string(" + fieldsColumn + ", '$." + METHOD_FIELD + "')";
-        String simpleClass = "regexp_extract(split_part(" + raw + ", '#', 1), '([^.]+)$', 1)";
-        String methodName = "split_part(" + raw + ", '#', 2)";
-        return "COALESCE(NULLIF(NULLIF(" + simpleClass + ", '') || '.' || NULLIF(" + methodName
-                + ", ''), '.'), " + raw + ", '" + UNNAMED + "')";
+        String simpleClass = "regexp_extract(split_part(" + raw + ", '" + SEPARATOR + "', 1), '([^.]+)$', 1)";
+        String methodName = "split_part(" + raw + ", '" + SEPARATOR + "', 2)";
+        return "COALESCE(NULLIF(NULLIF(" + simpleClass + ", '') || '" + SEPARATOR + "' || NULLIF(" + methodName
+                + ", ''), '" + SEPARATOR + "'), " + raw + ", '" + UNNAMED + "')";
     }
 
     /**
      * The {@code name} and {@code kind} columns of the methods CTE, as the derivation splices them
      * in.
      * <p>
-     * Reads the {@code fields} column the same SELECT list defines one line above it — DuckDB
-     * resolves lateral column aliases, so the rehydration is written once rather than three times
-     * inside the name expression.
+     * Reads a plain {@code fields} column rather than repeating the rehydration three times, which
+     * is only safe because the derivation selects it from a CTE that already carries one. It used to
+     * be spliced into a SELECT over {@code events_raw} instead, where an unqualified {@code fields}
+     * resolves to that table's own column — DuckDB gives a base column precedence over a lateral
+     * alias of the same name — so the rehydrated alias one line above was silently shadowed by the
+     * raw JSON the pooled method name had been lifted out of.
      */
     static String nameAndKindProjection() {
         return nameExpression("fields") + " AS name,\n                    '" + KIND + "' AS kind,";

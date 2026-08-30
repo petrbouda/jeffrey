@@ -100,3 +100,37 @@ export function parseQualifiedName(name: string): NameSegment[] {
     { kind: 'leaf', text: name.slice(lastDot + 1) }
   ];
 }
+
+/**
+ * A Java method reference, `Class#method` or `pkg.Class#method`: any package is dimmed `path`, the
+ * class is ordinary `name` text and the method is the `leaf`. Used by traced-method spans, and
+ * deliberately not the gRPC parse — a gRPC name bolds both halves because the service is a thing
+ * you look up, whereas here the class is only where the method lives.
+ *
+ * A name with no `#` (the shape the derivation falls back to when the recording spells `method` in
+ * a way it cannot split) renders as a plain qualified name rather than being forced into a split
+ * that is not there.
+ */
+export function parseMethodName(name: string): NameSegment[] {
+  if (!name) {
+    return [{ kind: 'leaf', text: '' }];
+  }
+
+  const separator = name.indexOf('#');
+  if (separator <= 0 || separator === name.length - 1) {
+    return parseQualifiedName(name);
+  }
+
+  const owner = name.slice(0, separator);
+  const method = name.slice(separator + 1);
+  const lastDot = owner.lastIndexOf('.');
+
+  const segments: NameSegment[] = [];
+  if (lastDot >= 0) {
+    segments.push({ kind: 'path', text: owner.slice(0, lastDot + 1) });
+  }
+  segments.push({ kind: 'name', text: owner.slice(lastDot + 1) });
+  segments.push({ kind: 'sep', text: '#' });
+  segments.push({ kind: 'leaf', text: method });
+  return segments;
+}
