@@ -41,6 +41,9 @@ final class TraceAiFormat {
     private static final long MICROS_CUTOFF_NANOS = NANOS_PER_MILLI;
     private static final long SECONDS_CUTOFF_NANOS = 10 * NANOS_PER_SECOND;
 
+    private static final long BYTES_PER_KIB = 1024L;
+    private static final long BYTES_PER_MIB = 1024L * 1024L;
+
     private TraceAiFormat() {
     }
 
@@ -64,6 +67,38 @@ final class TraceAiFormat {
      */
     static String count(long count, String noun) {
         return count + " " + noun + (count == 1 ? "" : "s");
+    }
+
+    /**
+     * A byte count with its unit attached, and the exact figure beside it once the unit rounds.
+     * <p>
+     * Both, because the two readings serve different questions: {@code 8.0 KiB} is what a reader
+     * compares against a buffer size, and {@code 8192} is what one does arithmetic on. Printing only
+     * the rounded form is how "mean 4.0 KiB" stops being able to tell 4096 from 4600.
+     */
+    static String bytes(long bytes) {
+        if (bytes < BYTES_PER_KIB) {
+            return bytes + " B";
+        }
+        return scaled(bytes) + " (" + bytes + " B)";
+    }
+
+    /**
+     * The same figure as a per-operation rate. Written with the unit attached to {@code /op} rather
+     * than trailing the exact count, because "1.0 MiB (1048576 B)/op" reads as if the parenthetical
+     * were the thing divided.
+     */
+    static String bytesPerOperation(long bytes) {
+        if (bytes < BYTES_PER_KIB) {
+            return bytes + " B/op";
+        }
+        return scaled(bytes) + "/op (" + bytes + " B)";
+    }
+
+    private static String scaled(long bytes) {
+        return bytes < BYTES_PER_MIB
+                ? String.format(Locale.ROOT, "%.1f KiB", (double) bytes / BYTES_PER_KIB)
+                : String.format(Locale.ROOT, "%.1f MiB", (double) bytes / BYTES_PER_MIB);
     }
 
     /** A share of a whole, as a percentage. Returns {@code 0%} rather than dividing by zero. */
