@@ -2775,9 +2775,60 @@ class JdbcTraceRepositoryTest {
 
             // 300ms of request, 214ms of it inside outer, plus the 10ms twins and the 10ms method
             // whose name was pooled. The merge means the nested inner and the socket read are not
-            // subtracted a second time.
+            // subtracted a second time. persistOrder does not appear: adopted by inner, its
+            // stretch is charged there, and auditAsync ran on another thread, beside the request
+            // rather than instead of it.
             assertEquals(300_000_000L, recorded.durationNanos());
             assertEquals(66_000_000L, recorded.selfDurationNanos());
+        }
+
+        @Test
+        @DisplayName("adopts a recorded span into the traced method that wraps it")
+        void adoptsRecordedSpansIntoTheWrappingMethod(DataSource dataSource) throws SQLException {
+            Map<String, TraceSpanRecord> spans = spansByName(dataSource);
+
+            // persistOrder was recorded under reserveInventory -- jdk.MethodTrace is invisible to
+            // the Tracer's context, so instrumentation cannot name a method span as a parent.
+            // Without adoption the traced method draws BESIDE the work it wraps, and its self time
+            // claims that work as its own.
+            assertEquals(spans.get("Probe#inner").spanId(), spans.get("persistOrder").parentSpanId(),
+                    "re-hung under the innermost wrapping method, not left beside it");
+        }
+
+        @Test
+        @DisplayName("never moves a recorded span across its recorded ancestry")
+        void adoptionNeverCrossesRecordedAncestry(DataSource dataSource) throws SQLException {
+            Map<String, TraceSpanRecord> spans = spansByName(dataSource);
+
+            // persistOrderIndex starts inside inner's window too, but its recorded parent is
+            // persistOrder while inner anchors at reserveInventory. Adopting it would tear it out
+            // of the parent instrumentation deliberately put around it.
+            assertEquals(spans.get("persistOrder").spanId(), spans.get("persistOrderIndex").parentSpanId(),
+                    "a method span only interposes between a recorded parent and its own children");
+        }
+
+        @Test
+        @DisplayName("never adopts a recorded span onto another thread")
+        void adoptionNeverCrossesThreads(DataSource dataSource) throws SQLException {
+            Map<String, TraceSpanRecord> spans = spansByName(dataSource);
+
+            // auditAsync falls inside outer's time window but ran on the pool thread. A traced
+            // method contains only what ran on its own thread; forked work runs beside it.
+            assertEquals(spans.get("reserveInventory").spanId(), spans.get("auditAsync").parentSpanId(),
+                    "a cross-thread child stays where instrumentation put it");
+        }
+
+        @Test
+        @DisplayName("subtracts an adopted recorded span from the traced method's self time")
+        void adoptedSpansSubtractFromMethodSelfTime(DataSource dataSource) throws SQLException {
+            Map<String, TraceSpanRecord> spans = spansByName(dataSource);
+
+            TraceSpanRecord inner = spans.get("Probe#inner");
+
+            // 174ms total: 121ms on the socket, 20ms inside the adopted persistOrder.
+            assertEquals(174_000_000L, inner.durationNanos());
+            assertEquals(33_000_000L, inner.selfDurationNanos(),
+                    "the adopted span's stretch is no more inner's own work than the socket read's");
         }
     }
 }

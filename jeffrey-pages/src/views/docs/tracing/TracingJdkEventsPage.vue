@@ -196,11 +196,13 @@ jdk.ZAllocationStall#enabled=true,jdk.ZAllocationStall#threshold=0ms`;
 
       <p><strong>It nests.</strong> A traced method's duration includes the methods it calls, so traced methods contain one another and a wait can happen inside one. A method span is therefore the one promoted span that can be a <em>parent</em>: trace two methods where one calls the other and the inner one hangs under the outer one, with the socket read inside it hanging under that. Without this the two would be drawn as siblings and the outer one's self time would claim work its callee did.</p>
 
+      <p>Recorded spans nest into it the same way. A recorded span names the span the Tracer's context held when it was created — and <code>jdk.MethodTrace</code> is invisible to that context, so a traced controller method wrapping an entire request would otherwise draw <em>beside</em> the recorded spans it contains, claiming the whole request as its own self time. Jeffrey re-hangs such recorded spans under the traced method instead: a recorded span that began inside a method span standing between it and its own recorded parent becomes that method span's child. The adoption never crosses a thread and never moves a span across the parent instrumentation gave it — a method span only slots in between a recorded parent and its children.</p>
+
       <DocsCallout type="info">
         <strong>A traced method is work, not waiting</strong> — which is why it maps to no context category and never appears in the why-slow panel. That panel accounts for the time a trace spent <em>not</em> doing its own work; a traced method's time is precisely the trace's own work, and giving it a category would move that time out of "own work" and into a wait total that never happened. The waterfall draws it as the <code>INTERNAL</code> span it is, outlined to show it was derived rather than recorded.
       </DocsCallout>
 
-      <p>The rows have their own toolbar switch, <strong>Methods</strong>, beside <em>Blocking ops</em> and <em>I/O ops</em> — a filter set to trace a whole class can put far more rows on screen than either wait family, and switching those off must not take the socket read that explains the trace with them. Because method spans have children, switching them off takes their subtrees too.</p>
+      <p>The rows have their own toolbar switch, <strong>Methods</strong>, beside <em>Blocking ops</em> and <em>I/O ops</em> — a filter set to trace a whole class can put far more rows on screen than either wait family, and switching those off must not take the socket read that explains the trace with them. Because method spans have children, switching them off takes their promoted subtrees too — while the recorded spans a method adopted resurface, back where instrumentation put them.</p>
 
       <h2 id="attribution">How an Event Finds Its Span</h2>
 

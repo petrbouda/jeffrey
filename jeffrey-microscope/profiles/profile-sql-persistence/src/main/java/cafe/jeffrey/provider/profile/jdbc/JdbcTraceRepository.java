@@ -293,7 +293,8 @@ public class JdbcTraceRepository implements TraceRepository {
      *   spans/recorded  -- the recorded span events, deduped, shape projected (as before)
      *   mapping..minted -- the JDK blocking events promoted to leaf spans (as before, joining
      *                      `recorded` where the old statement joined the half-filled table)
-     *   all_spans       -- both, in one relation
+     *   adoptions       -- recorded spans re-hung under the method span that wraps them
+     *   all_spans       -- both, in one relation, recorded parents rewritten where adopted
      *   clipped..covered -- the same-thread-children interval merge (the old SELF_DURATIONS pass)
      *   final SELECT    -- self time subtracted where children covered it, payload hashed into
      *                      its reference (the text itself lives in trace_span_payloads)
@@ -307,6 +308,17 @@ public class JdbcTraceRepository implements TraceRepository {
      * The parent is the *innermost* span whose window contains the event's start on the same
      * thread: latest start wins, smallest window breaks the tie, span id makes it deterministic.
      * An event outside every span is not promoted at all -- there is no trace to hang it on.
+     *
+     * Adoption is the counterpart for recorded spans. A recorded span's parentSpanId names the span
+     * the Tracer's context held when it was created, and jdk.MethodTrace is invisible to that
+     * context -- so a traced method wrapping recorded work (a traced controller method around an
+     * entire request) would land as a SIBLING of the spans it contains, and its self time would
+     * claim the whole request. The adoptions stage re-hangs such a recorded span under the
+     * innermost method span standing between it and its own recorded parent: the method's anchor
+     * (the innermost recorded span open at the method's start -- the same span that decided its
+     * trace) must be exactly the child's recorded parent, and the threads must match. That is what
+     * keeps instrumentation authoritative: a method span only ever slots in between a recorded
+     * parent and its children, never moves a span across recorded ancestry or onto another thread.
      *
      * Its span id is minted, which the derivation otherwise deliberately no longer does: a jdk.*
      * event can never carry a recorded id, so the choice is a minted id or no bar. The id is a hash
@@ -428,11 +440,15 @@ public class JdbcTraceRepository implements TraceRepository {
             -- Which trace a candidate belongs to, answered by the innermost RECORDED span open on
             -- its thread. Trace identity comes from instrumentation and only from instrumentation:
             -- a method span is inside a trace because a recorded span contains it, never because
-            -- another method span does.
+            -- another method span does. That innermost recorded span is kept as the candidate's
+            -- ANCHOR: for a method span it is the recorded span it conceptually runs inside, which
+            -- is what the adoptions stage below checks before letting the method span take over
+            -- that recorded span's children.
             traced AS (
                 SELECT
                     c.*,
-                    s.trace_id  AS trace_id
+                    s.trace_id  AS trace_id,
+                    s.span_id   AS anchor_span_id
                 FROM candidates c
                 JOIN recorded s
                   ON s.thread_hash = c.thread_hash
@@ -526,11 +542,53 @@ public class JdbcTraceRepository implements TraceRepository {
                 QUALIFY ROW_NUMBER() OVER (PARTITION BY m.trace_id, m.span_id
                                            ORDER BY m.start_timestamp) = 1
             ),
+            /*
+             * A recorded span whose start falls inside a method span standing between it and its
+             * own recorded parent is re-hung under that method span -- the innermost one, by the
+             * same order the promotion parenting reads. `anchor_span_id = r.parent_span_id` is the
+             * whole rule: the method span must itself hang (directly or through other method
+             * spans) under exactly the recorded span the child names as its parent, so adoption
+             * only ever interposes a method chain between a recorded parent and its children --
+             * never across recorded ancestry, and never across threads.
+             *
+             * The strict `<` on the start is not a tie-break but a statement of impossibility: a
+             * method span starting in the same microsecond as the recorded span is CONTAINED by
+             * that span as far as the anchor search can see, so its anchor is that span or
+             * something inside it -- never that span's parent -- and the join's anchor equality
+             * already fails. Spelling it strictly also keeps the whole graph provably acyclic:
+             * every adoption edge goes from a strictly earlier start to a later one, and no other
+             * edge kind decreases the start, so no cycle can contain an adoption.
+             */
+            adoptions AS (
+                SELECT
+                    r.trace_id                                          AS trace_id,
+                    r.span_id                                           AS span_id,
+                    m.span_id                                           AS method_parent_span_id
+                FROM recorded r
+                JOIN minted m
+                  ON m.nests
+                 AND m.trace_id = r.trace_id
+                 AND m.anchor_span_id = r.parent_span_id
+                 AND m.thread_hash = r.thread_hash
+                 AND m.start_us < EPOCH_US(r.start_timestamp)
+                 AND EPOCH_US(r.start_timestamp) <= m.start_us + m.duration // 1000
+                QUALIFY ROW_NUMBER() OVER (
+                    PARTITION BY r.trace_id, r.span_id
+                    ORDER BY m.start_us DESC,
+                             m.start_us + m.duration // 1000 ASC,
+                             m.span_id) = 1
+            ),
             all_spans AS (
-                SELECT trace_id, span_id, parent_span_id, name, kind, status, error_type,
-                       start_timestamp, start_ms, duration, thread_hash, event_type,
-                       attributes, payload, synthesized
-                FROM recorded
+                SELECT r.trace_id                                       AS trace_id,
+                       r.span_id                                        AS span_id,
+                       COALESCE(a.method_parent_span_id, r.parent_span_id) AS parent_span_id,
+                       r.name, r.kind, r.status, r.error_type,
+                       r.start_timestamp, r.start_ms, r.duration, r.thread_hash, r.event_type,
+                       r.attributes, r.payload, r.synthesized
+                FROM recorded r
+                LEFT JOIN adoptions a
+                  ON a.trace_id = r.trace_id
+                 AND a.span_id = r.span_id
                 UNION ALL
                 SELECT trace_id, span_id, parent_span_id, name, kind, status, error_type,
                        start_timestamp, start_ms, duration, thread_hash, event_type,

@@ -1423,8 +1423,9 @@ const foldedCounts = computed(() => descendantCounts(props.spans));
  * The rows actually drawn: folded subtrees removed first, then the promoted rows the reader has
  * switched off, then the off-path spans when the filter is on. That order is what makes them
  * compose — collapsing hides a subtree whether or not its spans are critical, and each filter then
- * narrows whatever survived. Dropping a synthesized row never breaks the tree: a promoted span is a
- * leaf by construction, so the depth sequence the rendering reads stays intact.
+ * narrows whatever survived. Dropping a synthesized row never breaks the tree: drawnSpans takes the
+ * promoted subtree down with it and resurfaces the recorded spans a traced method had adopted, so
+ * no drawn row is ever left under a parent that is not.
  */
 const rows = computed(() => {
   const visible = drawnSpans(visibleSpans(props.spans, collapsed.value), isSpanDrawn);
