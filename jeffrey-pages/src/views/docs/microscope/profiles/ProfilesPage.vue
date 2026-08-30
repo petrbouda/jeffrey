@@ -307,7 +307,7 @@ const folderStructure = `$JEFFREY_HOME/
         <DocsFeatureCard
           icon="bi bi-layers"
           title="Method Tracing"
-          description="Wall-clock flamegraphs from traced methods, slowest traces, cumulated analysis, and per-method drill-down. Each traced method appears as its own frame under its caller, and a call is charged only for the time its traced callees do not already account for."
+          description="Wall-clock flamegraphs from traced methods, slowest traces, cumulated analysis, and per-method drill-down — plus exact per-method tallies from jdk.MethodTiming, which counts every invocation for a fixed price. Each traced method appears as its own frame under its caller, and a call is charged only for the time its traced callees do not already account for."
         />
         <DocsFeatureCard
           icon="bi bi-bounding-box"

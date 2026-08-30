@@ -62,8 +62,16 @@ public abstract class FeatureCheckers {
      * JDK method timing and tracing (JEP 520), not distributed tracing — see
      * {@link TracesFeatureChecker} for the Traces section.
      */
+    /*
+     * Either event opens the dashboard. jdk.MethodTiming is enabled in both JFR configurations out
+     * of the box and only needs a filter, while jdk.MethodTrace has to be switched on -- so a
+     * recording carrying timings and no traces is the ordinary case, and gating on MethodTrace
+     * alone hid a populated dashboard from the people most likely to have one.
+     */
     public static final FeatureChecker METHOD_TRACING_DASHBOARD =
-            new SamplesFeatureChecker(FeatureType.METHOD_TRACING_DASHBOARD, Type.METHOD_TRACE);
+            new SamplesFeatureChecker(
+                    FeatureType.METHOD_TRACING_DASHBOARD,
+                    List.of(Type.METHOD_TRACE, Type.METHOD_TIMING));
 
     public static final FeatureChecker ASYNC_PROFILER_SPANS =
             new SamplesFeatureChecker(FeatureType.ASYNC_PROFILER_SPANS, Type.SPAN);

@@ -20,6 +20,7 @@ import BaseProfileClient from '@/services/api/BaseProfileClient';
 import MethodTracingOverviewData from '@/services/api/model/MethodTracingOverviewData';
 import MethodTracingSlowestData from '@/services/api/model/MethodTracingSlowestData';
 import MethodTracingCumulatedData from '@/services/api/model/MethodTracingCumulatedData';
+import MethodTimingData from '@/services/api/model/MethodTimingData';
 
 export default class ProfileMethodTracingClient extends BaseProfileClient {
   constructor(profileId: string) {
@@ -36,5 +37,13 @@ export default class ProfileMethodTracingClient extends BaseProfileClient {
 
   public getCumulated(mode: 'method' | 'class'): Promise<MethodTracingCumulatedData> {
     return this.get<MethodTracingCumulatedData>('/cumulated', { mode });
+  }
+
+  /**
+   * What `jdk.MethodTiming` counted — exact per-method tallies, as opposed to the traced
+   * invocations every other endpoint here reads.
+   */
+  public getTiming(): Promise<MethodTimingData> {
+    return this.get<MethodTimingData>('/timing');
   }
 }

@@ -195,7 +195,8 @@ export const technologiesNav: Record<string, TechnologyNav> = {
         items: [
           item('Flamegraph', 'bi-fire', '/technologies/method-tracing/flamegraph'),
           item('Slowest Traces', 'bi-hourglass-split', '/technologies/method-tracing/slowest'),
-          item('Cumulated Traces', 'bi-layers', '/technologies/method-tracing/cumulated')
+          item('Cumulated Traces', 'bi-layers', '/technologies/method-tracing/cumulated'),
+          item('Method Timing', 'bi-stopwatch', '/technologies/method-tracing/timing')
         ]
       }
     ]

@@ -21,10 +21,12 @@ package cafe.jeffrey.profile.manager.custom;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
+import cafe.jeffrey.profile.manager.custom.builder.MethodTimingBuilder;
 import cafe.jeffrey.profile.manager.custom.builder.MethodTracingCumulatedBuilder;
 import cafe.jeffrey.profile.manager.custom.builder.MethodTracingOverviewBuilder;
 import cafe.jeffrey.profile.manager.custom.builder.MethodTracingSlowestBuilder;
 import cafe.jeffrey.profile.manager.custom.model.method.CumulationMode;
+import cafe.jeffrey.profile.manager.custom.model.method.MethodTimingData;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingCumulatedData;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingOverviewData;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestData;
@@ -73,5 +75,19 @@ public class MethodTracingManagerImpl implements MethodTracingManager {
                 .withTimeRange(timeRange);
 
         return eventStreamRepository.genericStreaming(configurer, new MethodTracingCumulatedBuilder(mode));
+    }
+
+    @Override
+    public MethodTimingData methodTiming() {
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+
+        // No withThreads(): the event has no thread, by design -- it is a counter on the method, not
+        // a record of any one call.
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.METHOD_TIMING)
+                .withJsonFields()
+                .withTimeRange(timeRange);
+
+        return eventStreamRepository.genericStreaming(configurer, new MethodTimingBuilder());
     }
 }

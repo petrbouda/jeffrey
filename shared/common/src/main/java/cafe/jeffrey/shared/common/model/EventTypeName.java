@@ -30,6 +30,7 @@ public abstract class EventTypeName {
     public static final String CPU_TIME_SAMPLE = "jdk.CPUTimeSample";
     public static final String CPU_TIME_SAMPLES_LOST = "jdk.CPUTimeSamplesLost";
     public static final String METHOD_TRACE = "jdk.MethodTrace";
+    public static final String METHOD_TIMING = "jdk.MethodTiming";
     public static final String WALL_CLOCK_SAMPLE = "profiler.WallClockSample";
     public static final String MALLOC = "profiler.Malloc";
     public static final String FREE = "profiler.Free";

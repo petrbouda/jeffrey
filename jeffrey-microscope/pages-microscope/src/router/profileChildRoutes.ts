@@ -549,6 +549,12 @@ const technologyRoutes = [
     meta: { layout: 'profile' }
   },
   {
+    path: 'technologies/method-tracing/timing',
+    name: 'profile-technologies-method-tracing-timing',
+    component: () => import('@/views/profiles/detail/technologies/ProfileMethodTiming.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'technologies/async-profiler/spans',
     name: 'profile-technologies-async-profiler-spans',
     component: () => import('@/views/profiles/detail/technologies/ProfileAsyncProfilerSpans.vue'),
