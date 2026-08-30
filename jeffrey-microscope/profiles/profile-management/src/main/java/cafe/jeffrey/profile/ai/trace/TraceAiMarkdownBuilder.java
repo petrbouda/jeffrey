@@ -61,6 +61,9 @@ public final class TraceAiMarkdownBuilder {
 
             3. **JVM context** — what the runtime was doing during this trace.
             4. **Where the time went** — the same accounting, ranked.
+            5. **I/O operations** — the socket and file operations grouped by what
+               they were against, and the shape they made.
+            6. **Exceptions** — every throw recorded inside the trace, grouped.
 
             ## What the numbers mean — read this before reasoning about them
 
@@ -119,11 +122,73 @@ public final class TraceAiMarkdownBuilder {
             approximately, because global pauses and thread-scoped waits are measured
             independently and can overlap each other.
 
+            ## I/O operations — read the shape, not just the total
+
+            Socket and file I/O appears twice in this document on purpose. Each recorded
+            operation is promoted into a leaf span, so it is visible in the tree at the place
+            it happened; the **I/O operations** section then groups those same operations by
+            what they were against — a file path, or a `host:port` — and reports the shape of
+            each group:
+
+                - <kind> <target> — <ops> ops · bytes <total>, mean <mean>/op · time <total>, mean <mean>/op, max <max>[ !small-ops]
+
+            The **mean bytes per operation** is the buffering figure, and the reason this
+            section exists. Many operations against one target with a small mean is the
+            fingerprint of a missing or undersized buffer: an unbuffered `InputStream` or
+            `OutputStream`, a read handed a small `byte[]`, a serializer writing a field at a
+            time. Java's `BufferedInputStream` buffers 8 KiB by default, so a mean far below
+            that across many operations means the buffer is absent or smaller than the work
+            needs. Rows like that are marked **`!small-ops`** — at least 8 operations with a
+            mean under 4 KiB. Treat the marker as a shape, not a verdict: a protocol whose
+            messages genuinely are 200 bytes long trips it too.
+
+            For **sockets** the same shape usually means something else. Not a missing buffer
+            but a chatty exchange: a round trip per item where one batched request would do.
+            There the mean *time* per operation is the figure to weigh, because each operation
+            pays a network latency that no byte count explains — and unlike a small file read,
+            a small socket read is often the peer's fault rather than this code's.
+
+            **`File force`** is an fsync. It moves no bytes, so it is reported without them,
+            and its cost is the durability barrier itself. Many of them in one trace usually
+            means a flush per record where a flush per batch was intended.
+
+            *Caveat, and it is a large one:* JFR records a socket or file operation only when
+            its duration exceeded the recording's I/O threshold. Every operation faster than
+            that threshold is simply absent. **The op counts and byte totals here are therefore
+            lower bounds**, and the mean is biased toward the slow operations that made the
+            cut. A trace showing fifteen small reads may have performed fifteen thousand. Read
+            these counts as evidence that a pattern exists, never as a measurement of how often
+            it does — and never subtract them from a span's self time.
+
+            ## Exceptions — a throw is not an error
+
+            The **Exceptions** section lists the throws the recording captured inside this
+            trace, grouped by thrown class and message. Each throw is charged to the innermost
+            span that was open on its thread when it was thrown — the same attribution rule the
+            thread-scoped context events use.
+
+            Two things to keep straight:
+
+            - **A throw is not a failure.** The JVM records every throw, including ones caught
+              a frame later and used as ordinary control flow. Only a throw marked
+              **`!escaped`** is why its span's status is `ERROR`; a span can be perfectly `OK`
+              and still have thrown hundreds of times.
+            - **Volume is itself a cost.** Constructing an exception captures a stack trace,
+              which is not free. A group with a high count and nothing escaped is the
+              exceptions-as-control-flow pattern: the trace is not failing, it is paying for
+              something a return value would have done.
+
+            *Caveat:* these events are disabled in many recording configurations, and some
+            settings cap how many are emitted. An empty section means the recording captured no
+            throws — not that none were thrown.
+
             """;
 
     private static final String HEADING_TREE = "## Span tree";
     private static final String HEADING_CONTEXT = "## JVM context";
     private static final String HEADING_RANKING = "## Where the time went";
+    private static final String HEADING_IO = "## I/O operations";
+    private static final String HEADING_EXCEPTIONS = "## Exceptions";
     private static final String HEADING_ANALYSIS = "## How to analyze this trace";
 
     private static final String ANALYSIS_INSTRUCTION = """
@@ -140,6 +205,15 @@ public final class TraceAiMarkdownBuilder {
             method recovers only the remainder, and the real lever is elsewhere: allocation
             pressure, contention, or the remote call.
 
+            When a span's time turns out to be I/O, read the I/O section before concluding
+            that the disk or the remote system is slow. Many small operations against one
+            target is a shape problem on this side of the call, and a faster disk or a faster
+            peer does not fix it — a buffer, a batch or a single round trip does.
+
+            Read the throws the same way. A group that never escaped is a cost, not a failure,
+            and worth naming as one; a group that escaped is why something broke, and belongs
+            in the answer before any timing does.
+
             Say plainly when the evidence does not support a conclusion. A trace is one
             sample of one request; a single slow trace does not establish that anything is
             systematically slow.
@@ -155,6 +229,12 @@ public final class TraceAiMarkdownBuilder {
     private static final String NO_CONTEXT_NOTE =
             "(no GC pauses, safepoints or blocking events were recorded during this trace)";
     private static final String NO_SPANS_NOTE = "(this trace has no spans)";
+    private static final String NO_IO_NOTE =
+            "(no socket or file operations were recorded during this trace)";
+    private static final String NO_THROWS_NOTE =
+            "(no exceptions or errors were recorded during this trace)";
+    private static final String SMALL_OPS_MARKER = " !small-ops";
+    private static final String ESCAPED_MARKER = " !escaped";
 
     /**
      * How many spans a bundle carries before it is cut short. A trace of a few hundred spans is
@@ -163,12 +243,30 @@ public final class TraceAiMarkdownBuilder {
      */
     private static final int MAX_SPANS = 400;
 
+    /**
+     * How many I/O targets and throw groups a bundle carries. Both are already aggregations, so the
+     * tail past this point is long and flat — a hundredth-ranked file path costs a reader more
+     * attention than it repays.
+     */
+    private static final int MAX_IO_TARGETS = 25;
+    private static final int MAX_THROW_GROUPS = 25;
+
+    /** How many span names one throw group names before it summarises the rest. */
+    private static final int MAX_THROW_SITES = 5;
+
+    /** How much of an exception message survives. Enough to identify it, not enough to be a page. */
+    private static final int MAX_MESSAGE_CHARS = 200;
+
     private final TraceDetail detail;
     private final TraceContext context;
+    private final TraceIoSummary io;
+    private final TraceThrowSummary throwSummary;
 
     public TraceAiMarkdownBuilder(TraceDetail detail, TraceContext context) {
         this.detail = detail;
         this.context = context;
+        this.io = TraceIoSummary.of(detail.spans());
+        this.throwSummary = TraceThrowSummary.of(detail.exceptions(), detail.spans());
     }
 
     public String build() {
@@ -182,6 +280,10 @@ public final class TraceAiMarkdownBuilder {
         renderContext(out);
         out.append('\n');
         renderRanking(out);
+        out.append('\n');
+        renderIo(out);
+        out.append('\n');
+        renderThrows(out);
         return out.toString();
     }
 
@@ -330,5 +432,164 @@ public final class TraceAiMarkdownBuilder {
             }
             out.append('\n');
         }
+    }
+
+    /**
+     * The trace's socket and file operations, grouped by target and ranked by cost.
+     * <p>
+     * Rendered from every span rather than from the ones the tree had room for: a trace big enough
+     * to truncate is exactly the trace whose I/O is worth totalling, and an accounting that silently
+     * stopped at the four-hundredth span would be worse than none.
+     */
+    private void renderIo(StringBuilder out) {
+        out.append(HEADING_IO).append('\n').append('\n');
+
+        if (io.isEmpty()) {
+            out.append(NO_IO_NOTE).append('\n');
+            return;
+        }
+
+        long traceNanos = detail.trace().durationNanos();
+        out.append(TraceAiFormat.count(io.operations(), "recorded operation"))
+                .append(" · ").append(TraceAiFormat.bytes(io.bytes()))
+                .append(" · ").append(TraceAiFormat.duration(io.totalNanos()))
+                .append(" summed across threads (")
+                .append(TraceAiFormat.percent(io.totalNanos(), traceNanos))
+                .append(" of the trace window)")
+                .append('\n').append('\n');
+
+        List<TraceIoTarget> targets = io.targets();
+        int rendered = Math.min(targets.size(), MAX_IO_TARGETS);
+        for (int i = 0; i < rendered; i++) {
+            renderIoTarget(out, targets.get(i));
+        }
+
+        if (targets.size() > rendered) {
+            out.append(BULLET_PREFIX)
+                    .append("(truncated: ")
+                    .append(targets.size() - rendered)
+                    .append(" further targets were omitted, out of ")
+                    .append(targets.size())
+                    .append(" — they are the cheapest, since this list is ranked by time)")
+                    .append('\n');
+        }
+    }
+
+    private void renderIoTarget(StringBuilder out, TraceIoTarget target) {
+        out.append(BULLET_PREFIX)
+                .append(target.direction().label())
+                .append(' ').append(target.target())
+                .append(DASH_SEPARATOR)
+                .append(TraceAiFormat.count(target.operations(), "op"));
+
+        // An fsync moves nothing, and printing "0 B, mean 0 B/op" against one would invite a reader
+        // to conclude the recording lost the byte count rather than that there never was one.
+        if (target.carriesBytes()) {
+            out.append(" · bytes ").append(TraceAiFormat.bytes(target.bytes()))
+                    .append(", mean ").append(TraceAiFormat.bytesPerOperation(target.meanBytes()));
+        }
+
+        out.append(" · time ").append(TraceAiFormat.duration(target.totalNanos()))
+                .append(", mean ").append(TraceAiFormat.duration(target.meanNanos())).append("/op")
+                .append(", max ").append(TraceAiFormat.duration(target.maxNanos()));
+
+        if (target.smallOperations()) {
+            out.append(SMALL_OPS_MARKER);
+        }
+        out.append('\n');
+    }
+
+    /**
+     * Every throw the recording captured inside the trace, grouped by what was thrown.
+     * <p>
+     * The counts lead and the escaping ones sort first, because those are two different findings:
+     * one is a cost the trace paid, the other is why something failed.
+     */
+    private void renderThrows(StringBuilder out) {
+        out.append(HEADING_EXCEPTIONS).append('\n').append('\n');
+
+        if (throwSummary.isEmpty()) {
+            out.append(NO_THROWS_NOTE).append('\n');
+            return;
+        }
+
+        out.append(TraceAiFormat.count(throwSummary.total(), "throw")).append(" recorded, ");
+        if (throwSummary.escaped() == 0) {
+            out.append("none of which escaped its span — every one was caught");
+        } else {
+            out.append(throwSummary.escaped()).append(" of which escaped its span");
+        }
+        out.append('.').append('\n').append('\n');
+
+        List<TraceThrowGroup> groups = throwSummary.groups();
+        int rendered = Math.min(groups.size(), MAX_THROW_GROUPS);
+        for (int i = 0; i < rendered; i++) {
+            renderThrowGroup(out, groups.get(i));
+        }
+
+        if (groups.size() > rendered) {
+            out.append(BULLET_PREFIX)
+                    .append("(truncated: ")
+                    .append(groups.size() - rendered)
+                    .append(" further distinct throws were omitted, out of ")
+                    .append(groups.size())
+                    .append(")")
+                    .append('\n');
+        }
+    }
+
+    private void renderThrowGroup(StringBuilder out, TraceThrowGroup group) {
+        out.append(BULLET_PREFIX)
+                .append(group.thrownClass())
+                .append(" ×").append(group.count())
+                .append(" (").append(group.eventType()).append(')');
+
+        if (group.hasEscaped()) {
+            out.append(ESCAPED_MARKER);
+            // The count only when it is not the whole group: "×1 !escaped" already says all of it,
+            // and "(1 of 1)" beside it reads as if something else were being counted.
+            if (group.escaped() < group.count()) {
+                out.append(" (").append(group.escaped()).append(" of ").append(group.count()).append(')');
+            }
+        }
+        out.append('\n');
+
+        if (group.message() != null && !group.message().isBlank()) {
+            out.append(INDENT_UNIT).append("message: ").append(flatten(group.message())).append('\n');
+        }
+        renderThrowSites(out, group);
+    }
+
+    private void renderThrowSites(StringBuilder out, TraceThrowGroup group) {
+        List<TraceThrowGroup.Site> sites = group.spans();
+        if (sites.isEmpty()) {
+            return;
+        }
+
+        out.append(INDENT_UNIT).append("thrown in: ");
+        int rendered = Math.min(sites.size(), MAX_THROW_SITES);
+        for (int i = 0; i < rendered; i++) {
+            if (i > 0) {
+                out.append(", ");
+            }
+            TraceThrowGroup.Site site = sites.get(i);
+            out.append(site.spanName()).append(" ×").append(site.count());
+        }
+        if (sites.size() > rendered) {
+            out.append(", and ").append(sites.size() - rendered).append(" further spans");
+        }
+        out.append('\n');
+    }
+
+    /**
+     * A message reduced to one line and a readable length. An exception message can carry a whole
+     * embedded stack trace, and a newline inside a bullet ends the bullet — a single throw could
+     * otherwise take the shape of the document apart.
+     */
+    private static String flatten(String message) {
+        String single = message.replaceAll("\\s+", " ").strip();
+        return single.length() <= MAX_MESSAGE_CHARS
+                ? single
+                : single.substring(0, MAX_MESSAGE_CHARS) + "… (truncated)";
     }
 }
