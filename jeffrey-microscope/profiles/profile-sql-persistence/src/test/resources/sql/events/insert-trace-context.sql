@@ -23,7 +23,9 @@ VALUES
     ('jdk.ThreadPark', 'Thread Park', 23, 'park', '["Java Application"]', '1', NULL, true, NULL, NULL,
      '[{"field":"parkedClass","header":"Class Parked On"}]'),
     ('jdk.GCPhasePauseLevel1', 'GC Phase Pause Level 1', 24, 'gc pause phase', '["Java Virtual Machine","GC"]', '1', NULL, false, NULL, NULL,
-     '[{"field":"name","header":"Name"},{"field":"gcId","header":"GC Identifier"}]');
+     '[{"field":"name","header":"Name"},{"field":"gcId","header":"GC Identifier"}]'),
+    ('jdk.AllocationRequiringGC', 'Allocation Requiring GC', 25, 'allocation forced a collection', '["Java Virtual Machine","GC"]', '1', NULL, true, NULL, NULL,
+     '[{"field":"gcId","header":"GC Identifier"},{"field":"size","header":"Allocation Size"}]');
 
 INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
@@ -64,6 +66,13 @@ VALUES
      '{"monitorClass":"java.lang.Object","previousOwner":"worker-2"}'),
     ('jdk.ThreadPark', '2025-01-15T10:10:00.250Z', 600250, 20000000, 1, NULL, NULL, NULL, 3001,
      '{"parkedClass":"java.util.concurrent.locks.ReentrantLock"}'),
+
+    -- An allocation the span made that could not be satisfied and forced a collection. It is the
+    -- other direction of the GC story: the GCPhasePause above says every thread was stopped, and
+    -- this says whose allocation is why. Instant -- no duration at all -- so it can only ever be
+    -- counted, never summed into a wait total.
+    ('jdk.AllocationRequiringGC', '2025-01-15T10:10:00.095Z', 600095, NULL, 1, NULL, NULL, NULL, 3001,
+     '{"gcId":42,"size":1048576}'),
 
     -- Waiting on a thread the span never ran on, and outside its window: neither may be attributed.
     ('jdk.JavaMonitorEnter', '2025-01-15T10:10:00.210Z', 600210, 90000000, 1, NULL, NULL, NULL, 3002,

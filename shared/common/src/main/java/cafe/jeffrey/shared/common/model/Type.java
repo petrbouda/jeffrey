@@ -125,6 +125,7 @@ public record Type(String code, boolean calculated) {
     public static final Type COMPILER_STATISTICS = new Type(EventTypeName.COMPILER_STATISTICS);
     public static final Type COMPILATION = new Type(EventTypeName.COMPILATION);
     public static final Type DEOPTIMIZATION = new Type(EventTypeName.DEOPTIMIZATION);
+    public static final Type ALLOCATION_REQUIRING_GC = new Type(EventTypeName.ALLOCATION_REQUIRING_GC);
     public static final Type COMPILER_QUEUE_UTILIZATION = new Type(EventTypeName.COMPILER_QUEUE_UTILIZATION);
     public static final Type CODE_CACHE_STATISTICS = new Type(EventTypeName.CODE_CACHE_STATISTICS);
     public static final Type CODE_CACHE_FULL = new Type(EventTypeName.CODE_CACHE_FULL);
@@ -329,6 +330,7 @@ public record Type(String code, boolean calculated) {
                 COMPILER_STATISTICS,
                 COMPILATION,
                 DEOPTIMIZATION,
+                ALLOCATION_REQUIRING_GC,
                 COMPILER_QUEUE_UTILIZATION,
                 CODE_CACHE_STATISTICS,
                 CODE_CACHE_FULL,

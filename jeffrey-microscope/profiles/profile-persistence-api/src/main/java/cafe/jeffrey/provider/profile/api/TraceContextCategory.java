@@ -97,6 +97,20 @@ public enum TraceContextCategory {
     DEOPTIMIZATION(Scope.THREAD, EventTypeName.DEOPTIMIZATION),
 
     /**
+     * An allocation this thread made could not be satisfied and forced a collection.
+     * <p>
+     * The other direction of the GC story, and the one a waterfall cannot otherwise tell. A
+     * {@link #GC_PAUSE} band says every thread was stopped; this says which span's allocation is why.
+     * Recorded on the allocating thread with the size and the {@code gcId}, so the pause it caused is
+     * identifiable rather than merely nearby.
+     * <p>
+     * Instant, like {@link #DEOPTIMIZATION}: it carries no duration, so it is a marker rather than a
+     * stretch of time. Nothing may add it to a duration total -- see the note on {@link Scope} about
+     * how the two are told apart.
+     */
+    ALLOCATION_REQUIRING_GC(Scope.THREAD, EventTypeName.ALLOCATION_REQUIRING_GC),
+
+    /**
      * A virtual thread pinned to its carrier while it should have unmounted — the wait that
      * {@code jdk.ThreadPark} cannot see, because a parking virtual thread normally unmounts instead
      * of parking the carrier. The complement matters: on virtual threads, a pin is where blocked

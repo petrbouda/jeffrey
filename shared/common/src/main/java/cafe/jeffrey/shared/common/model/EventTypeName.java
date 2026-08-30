@@ -121,6 +121,7 @@ public abstract class EventTypeName {
     public static final String COMPILER_STATISTICS = "jdk.CompilerStatistics";
     public static final String COMPILATION = "jdk.Compilation";
     public static final String DEOPTIMIZATION = "jdk.Deoptimization";
+    public static final String ALLOCATION_REQUIRING_GC = "jdk.AllocationRequiringGC";
     public static final String COMPILER_QUEUE_UTILIZATION = "jdk.CompilerQueueUtilization";
     public static final String CODE_CACHE_STATISTICS = "jdk.CodeCacheStatistics";
     public static final String CODE_CACHE_FULL = "jdk.CodeCacheFull";

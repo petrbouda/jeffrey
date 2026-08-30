@@ -129,6 +129,21 @@
                 <b>{{ FormattingService.formatDuration2Units(wait.totalNanos) }}</b>
               </span>
             </p>
+            <!--
+              Instants, counted rather than timed. Kept in their own line so a count is never read
+              as a duration: these happened inside the span without occupying any of it.
+            -->
+            <p v-if="spanMarkers.length > 0" class="sd-waits sd-markers">
+              <span
+                v-for="marker in spanMarkers"
+                :key="marker.category"
+                :title="markerTitle(marker)"
+              >
+                <i :style="{ background: contextColor(marker.category) }"></i>
+                {{ contextLabel(marker.category) }}
+                <b>&times;{{ FormattingService.formatNumber(marker.occurrences) }}</b>
+              </span>
+            </p>
           </div>
         </section>
 
@@ -588,8 +603,37 @@ const meterTitle = computed(
     `${FormattingService.formatDuration2Units(props.span.durationNanos)} total`
 );
 
-/** Anything that came to nothing is dropped: a category with no time is not a finding. */
+/**
+ * What the thread spent time waiting on. A category that came to no time is not a wait.
+ *
+ * Duration is the filter rather than presence, because a wait with nothing in it says nothing —
+ * but see {@link spanMarkers}: some categories are instants and can never pass this test.
+ */
 const spanWaits = computed(() => (props.waits ?? []).filter(wait => wait.totalNanos > 0));
+
+/**
+ * The instant categories: things that happened inside this span without occupying time.
+ *
+ * `jdk.Deoptimization` and `jdk.AllocationRequiringGC` carry no duration at all — they are moments,
+ * not stretches — so they can never clear the duration filter above and were, until now, dropped
+ * everywhere and shown nowhere. They are worth saying: an allocation that forced a collection names
+ * the span responsible for a GC pause the rest of the trace only suffers, and a deoptimisation
+ * explains a span that was fast a moment ago.
+ *
+ * Reported as a count, never as a duration, and kept out of the why-slow panel entirely: that panel
+ * ranks where wall-clock went, and a marker has no wall-clock to contribute.
+ */
+const spanMarkers = computed(() =>
+  (props.waits ?? []).filter(wait => wait.totalNanos === 0 && wait.occurrences > 0)
+);
+
+function markerTitle(marker: TraceContextSlice): string {
+  const events = marker.occurrences === 1 ? '1 event' : `${marker.occurrences} events`;
+  return (
+    `${contextLabel(marker.category)} · ${events} while this span was open, with no duration ` +
+    `of their own`
+  );
+}
 
 function waitTitle(wait: TraceContextSlice): string {
   const events = wait.occurrences === 1 ? '1 event' : `${wait.occurrences} events`;
@@ -845,6 +889,11 @@ function percent(part: number, whole: number): string {
   gap: 0.15rem 0.75rem;
   font-size: 0.78rem;
   color: var(--color-text-muted);
+}
+
+/* Markers are counts, not durations -- set slightly back so the eye reads the waits first. */
+.sd-markers {
+  opacity: 0.85;
 }
 
 .sd-waits span {

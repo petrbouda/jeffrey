@@ -298,6 +298,7 @@ export type TraceContextCategoryName =
   | 'FILE_IO'
   | 'ALLOCATION_STALL'
   | 'DEOPTIMIZATION'
+  | 'ALLOCATION_REQUIRING_GC'
   | 'VT_PINNED'
   | 'CPU_THROTTLED'
   | 'OWN_WORK';
