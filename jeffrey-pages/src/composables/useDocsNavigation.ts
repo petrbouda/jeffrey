@@ -410,6 +410,7 @@ export const tracingNavigation: DocSection[] = [
         ]
       },
       { title: '@Traced & the Agent', to: '/docs/tracing/traced-annotation' },
+      { title: 'JFR Method Tracing', to: '/docs/tracing/method-tracing' },
       { title: 'HTTP Events', to: '/docs/tracing/http-events' },
       { title: 'gRPC Events', to: '/docs/tracing/grpc-events' },
       { title: 'JDBC Events', to: '/docs/tracing/jdbc-events' },

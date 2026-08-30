@@ -188,7 +188,7 @@ jdk.ZAllocationStall#enabled=true,jdk.ZAllocationStall#threshold=0ms`;
 
       <h2 id="traced-methods">Traced Methods: The Promotion That Nests</h2>
 
-      <p><router-link to="/docs/microscope/profiles">JFR method tracing</router-link> (JEP 520, JDK 25) lets you name the methods you care about in the recording configuration — no annotation, no agent, no code change — and <code>jdk.MethodTrace</code> then records each invocation with its duration. Jeffrey promotes those into spans too, which puts your own methods inside the trace waterfall with nothing instrumented: the HTTP span, then <code>OrderService#load</code> under it, then the query under that.</p>
+      <p><router-link to="/docs/tracing/method-tracing">JFR method tracing</router-link> (JEP 520, JDK 25) lets you name the methods you care about in the recording configuration — no annotation, no agent, no code change — and <code>jdk.MethodTrace</code> then records each invocation with its duration. Jeffrey promotes those into spans too, which puts your own methods inside the trace waterfall with nothing instrumented: the HTTP span, then <code>OrderService#load</code> under it, then the query under that.</p>
 
       <p>It differs from every other promotion in three ways, and each one is deliberate.</p>
 
@@ -201,6 +201,8 @@ jdk.ZAllocationStall#enabled=true,jdk.ZAllocationStall#threshold=0ms`;
       <DocsCallout type="info">
         <strong>A traced method is work, not waiting</strong> — which is why it maps to no context category and never appears in the why-slow panel. That panel accounts for the time a trace spent <em>not</em> doing its own work; a traced method's time is precisely the trace's own work, and giving it a category would move that time out of "own work" and into a wait total that never happened. The waterfall draws it as the <code>INTERNAL</code> span it is, outlined to show it was derived rather than recorded.
       </DocsCallout>
+
+      <p>Switching it on — the filter syntax, the thresholds, and what a traced method needs around it to reach a trace at all — is on <router-link to="/docs/tracing/method-tracing">JFR Method Tracing</router-link>.</p>
 
       <p>The rows have their own toolbar switch, <strong>Methods</strong>, beside <em>Blocking ops</em> and <em>I/O ops</em> — a filter set to trace a whole class can put far more rows on screen than either wait family, and switching those off must not take the socket read that explains the trace with them. Because method spans have children, switching them off takes their promoted subtrees too — while the recorded spans a method adopted resurface, back where instrumentation put them.</p>
 
