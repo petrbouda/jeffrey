@@ -28,12 +28,14 @@ import {
   operationKey,
   parseOperationName,
   promotedCategory,
+  isWritingEventType,
   SPAN_FAMILIES,
   spanEventColor,
   spanFamiliesOf,
   spanFamily,
   spanFamilyColor,
-  spanKindVariant
+  spanKindVariant,
+  writeShade
 } from '@/services/trace/traceLabels';
 import type { TraceOperationId } from '@/services/api/model/trace/TraceModels';
 
@@ -193,6 +195,44 @@ describe('the span palette', () => {
     ]);
 
     expect(families).toEqual(['HTTP_SERVER', 'DATABASE', 'CUSTOM']);
+  });
+});
+
+describe('the read/write shade', () => {
+  it('leaves a read wearing its category exactly, so most rows match the lane and the legend', () => {
+    expect(spanEventColor('jdk.SocketRead')).toBe(contextColor('SOCKET_IO'));
+    expect(spanEventColor('jdk.FileRead')).toBe(contextColor('FILE_IO'));
+  });
+
+  it('darkens a write off the same colour rather than giving it one of its own', () => {
+    // Shaded, not re-hued: "socket or file" is the question a reader answers first, and a write
+    // that took a colour of its own would answer it wrongly before direction was even asked.
+    expect(spanEventColor('jdk.SocketWrite')).toBe(writeShade(contextColor('SOCKET_IO')));
+    expect(spanEventColor('jdk.FileWrite')).toBe(writeShade(contextColor('FILE_IO')));
+  });
+
+  it('puts an fsync on the write side, because it is the tail of a write', () => {
+    expect(spanEventColor('jdk.FileForce')).toBe(spanEventColor('jdk.FileWrite'));
+  });
+
+  it('tells the two directions of one category apart', () => {
+    expect(spanEventColor('jdk.SocketRead')).not.toBe(spanEventColor('jdk.SocketWrite'));
+    expect(spanEventColor('jdk.FileRead')).not.toBe(spanEventColor('jdk.FileWrite'));
+  });
+
+  it('shades only the I/O waits, leaving every other promoted wait on its category', () => {
+    // A park or a monitor has no direction to say, so a shade there would be a distinction the
+    // event cannot support.
+    const unshaded = [
+      'jdk.JavaMonitorEnter',
+      'jdk.JavaMonitorWait',
+      'jdk.ThreadPark',
+      'jdk.ThreadSleep',
+      'jdk.ZAllocationStall',
+      'jdk.VirtualThreadPinned'
+    ];
+
+    expect(unshaded.filter(isWritingEventType)).toEqual([]);
   });
 });
 

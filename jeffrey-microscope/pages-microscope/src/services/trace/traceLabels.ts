@@ -206,9 +206,51 @@ export function promotedCategory(eventType: string): TraceContextCategoryName | 
  */
 const IO_CATEGORIES: ReadonlySet<TraceContextCategoryName> = new Set(['SOCKET_IO', 'FILE_IO']);
 
-/** Whether a promoted category belongs to the I/O family rather than the blocking one. */
-export function isIoCategory(category: TraceContextCategoryName): boolean {
-  return IO_CATEGORIES.has(category);
+/**
+ * Whether a promoted category belongs to the I/O family rather than the blocking one.
+ *
+ * Takes a plain string, the way {@link contextLabel} and {@link contextColor} do: a category also
+ * arrives off a lane read out of the API, where it is exactly as unvalidated as it looks, and a
+ * signature that only accepted the narrow type would just move the cast to the caller.
+ */
+export function isIoCategory(category: string): boolean {
+  return IO_CATEGORIES.has(category as TraceContextCategoryName);
+}
+
+/**
+ * The promoted event types that push bytes out rather than pull them in.
+ *
+ * `jdk.FileForce` sits on this side because an fsync is the tail of a write — it is the durability
+ * cost of the bytes already handed over, and a reader hunting slow writes wants it in the same
+ * shade as the writes that caused it, not in the shade of the reads it has nothing to do with.
+ */
+const WRITING_EVENT_TYPES: ReadonlySet<string> = new Set([
+  'jdk.SocketWrite',
+  'jdk.FileWrite',
+  'jdk.FileForce'
+]);
+
+/** Whether a promoted I/O wait wrote rather than read. */
+export function isWritingEventType(eventType: string): boolean {
+  return WRITING_EVENT_TYPES.has(eventType);
+}
+
+/**
+ * How far a write is shifted off its category's colour. Far enough that a column of reads and a
+ * column of writes separate at a glance, near enough that a write still reads as the same category
+ * — which is the whole point of shading rather than splitting the ramp: "socket" and "file" are
+ * what a reader is deciding between first, and direction is the question asked second.
+ */
+const WRITE_SHADE_PERCENT = 58;
+
+/**
+ * A category's colour as a write wears it: mixed toward the ink, never toward a second hue. Reads
+ * keep the colour untouched — they are the common case, so the shade that matches the lane, the
+ * legend and the threads timeline exactly is the one most rows get — and writes take the darker
+ * one, which suits how much rarer and more expensive they usually are.
+ */
+export function writeShade(color: string): string {
+  return `color-mix(in srgb, ${color} ${WRITE_SHADE_PERCENT}%, var(--color-dark))`;
 }
 
 /** The route name of the view that explains a category, or null for one that has no such view. */
@@ -317,14 +359,16 @@ export function spanFamilyColor(family: SpanFamilyName): string {
 
 /**
  * The colour any span is drawn in, wherever it is drawn: a promoted wait borrows its context
- * category — the same colour its band, its legend entry and the threads timeline give that wait —
- * and everything else takes its instrumentation family's, down to the grey a span this build has no
- * convention for shares with one it has never seen.
+ * category — the same colour its band, its legend entry and the threads timeline give that wait,
+ * darkened where it wrote rather than read — and everything else takes its instrumentation
+ * family's, down to the grey a span this build has no convention for shares with one it has never
+ * seen.
  */
 export function spanEventColor(eventType: string): string {
   const category = promotedCategory(eventType);
   if (category !== null) {
-    return contextColor(category);
+    const color = contextColor(category);
+    return isWritingEventType(eventType) ? writeShade(color) : color;
   }
   return spanFamilyColor(spanFamily(eventType));
 }

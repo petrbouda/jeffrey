@@ -876,10 +876,13 @@
         already answer "show me the waits or not", and two controls over one family only raised the
         question of which one was in force.
       -->
-      <span v-for="category in contextCategories" :key="category">
+      <span v-for="category in contextCategories" :key="category" :title="swatchTitle(category)">
         <i
-          class="swatch"
-          :class="{ 'swatch-throttle': category === THROTTLE_CATEGORY }"
+          class="swatch swatch-context"
+          :class="{
+            'swatch-io': isIoCategory(category),
+            'swatch-throttle': category === THROTTLE_CATEGORY
+          }"
           :style="swatchStyle(category)"
         ></i>
         {{ contextLabel(category) }}
@@ -944,7 +947,8 @@ import {
   spanFamiliesOf,
   spanFamilyColor,
   spanFamilyLabel,
-  THROTTLE_CATEGORY
+  THROTTLE_CATEGORY,
+  writeShade
 } from '@/services/trace/traceLabels';
 import {
   anyEscaped,
@@ -1341,13 +1345,32 @@ const throttleLaneTotal = computed(() => {
 });
 
 /**
- * A legend swatch's fill, left to CSS for the throttle category alone.
+ * A legend swatch's colours, handed to CSS as properties rather than as a background, because an
+ * I/O entry is drawn as two shades and the throttle entry as a hatch — neither of which an inline
+ * background could express without keying the reader to a block the track never draws.
  *
- * Its band is a hatch, and an inline background would win over the class that draws one — keying
- * the reader to a solid block the track never draws.
+ * Both shades come from here rather than being mixed in the stylesheet, so the distance between a
+ * read and a write is stated once and the legend cannot drift from the bars it decodes.
  */
 function swatchStyle(category: string): Record<string, string> {
-  return category === THROTTLE_CATEGORY ? {} : { background: contextColor(category) };
+  if (category === THROTTLE_CATEGORY) {
+    return {};
+  }
+  const color = contextColor(category);
+  return { '--swatch-color': color, '--swatch-write-color': writeShade(color) };
+}
+
+/**
+ * What the split swatch means, said in words for the one family that has one. A read and a write
+ * are separate rows with separate names -- "Socket read", "File write" -- so the shade is a
+ * scanning aid rather than the only place the direction is written down; this is what tells a
+ * reader that the two tones are a direction and not two categories that got merged.
+ */
+function swatchTitle(category: string): string | undefined {
+  if (!isIoCategory(category)) {
+    return undefined;
+  }
+  return `${contextLabel(category)} — reads in the lighter shade, writes in the darker one`;
 }
 
 /**
@@ -3143,6 +3166,19 @@ function tooltip(span: TraceSpanRow): string {
 /* Matches the row's left accent rather than a bar colour: the critical path marks rows, not spans. */
 .swatch-critical {
   background: var(--color-warning);
+}
+
+.swatch-context {
+  background: var(--swatch-color);
+}
+
+/*
+ * Both shades in one swatch, split down the middle: an I/O category is drawn in two tones -- its
+ * own for a read, a darker one for a write -- and a key that showed only the read would leave every
+ * write in the trace undecoded. Same worked-example trick as the self/children swatch above.
+ */
+.swatch-io {
+  background: linear-gradient(to right, var(--swatch-color) 50%, var(--swatch-write-color) 50%);
 }
 
 /* The bar wash itself, not the darkened row-marker hue: a legend must show the colour it explains. */
