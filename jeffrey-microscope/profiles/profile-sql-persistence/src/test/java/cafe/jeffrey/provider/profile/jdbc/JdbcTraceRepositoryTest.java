@@ -49,6 +49,7 @@ import cafe.jeffrey.provider.profile.api.TraceSortField;
 import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
+import cafe.jeffrey.provider.profile.api.TraceThrottleWindowRecord;
 import cafe.jeffrey.provider.profile.api.TraceTimelineBucketRecord;
 import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
@@ -71,6 +72,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -2471,6 +2473,143 @@ class JdbcTraceRepositoryTest {
 
             assertFalse(repository.hasTraces());
             assertEquals(0, repository.traces(TraceListQuery.slowest(50)).traces().size());
+        }
+    }
+
+    @Nested
+    @DisplayName("CPU throttling windows")
+    class Throttling {
+
+        /** The span under test runs 10:10:00.000 .. 10:10:00.300, ten minutes into the fixture. */
+        private static final long SPAN_FROM_US = (EPOCH_10_00_00 + 600_000L) * US_PER_MS;
+        private static final long SPAN_TO_US = SPAN_FROM_US + 300L * US_PER_MS;
+
+        /** 10:09:00 .. 10:13:00, wide enough to see every window the fixture lays down. */
+        private static final long WIDE_FROM_US = (EPOCH_10_00_00 + 540_000L) * US_PER_MS;
+        private static final long WIDE_TO_US = (EPOCH_10_00_00 + 780_000L) * US_PER_MS;
+
+        private static final long S1_CLOSE_US = (EPOCH_10_00_00 + 610_000L) * US_PER_MS;
+
+        private static JdbcTraceRepository withThrottling(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-throttling.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+            return repository;
+        }
+
+        @Test
+        @DisplayName("finds the window bounded by samples outside the trace on both sides")
+        void findsWindowBoundedOutsideTheTrace(DataSource dataSource) throws SQLException {
+            // The 300ms span is contained by a window opened 20s before it and closed 10s after it.
+            // A scan bounded by the trace itself sees neither sample, leaves the LAG nothing to pair,
+            // and loses exactly the window that explains the trace.
+            List<TraceThrottleWindowRecord> windows =
+                    withThrottling(dataSource).throttledWindowsIn(SPAN_FROM_US, SPAN_TO_US);
+
+            assertEquals(1, windows.size(), "the one sampling window the span fell inside");
+            TraceThrottleWindowRecord window = windows.getFirst();
+            assertEquals(54L, window.throttledSlices());
+            assertEquals(300L, window.elapsedSlices());
+            assertEquals(430_000_000L, window.throttledNanos());
+            assertEquals(S1_CLOSE_US, window.toEpochMicros(), "closed by the sample after the trace");
+        }
+
+        @Test
+        @DisplayName("reports how hard the window was throttled, not how long it lasted")
+        void reportsRatioAgainstElapsedPeriods(DataSource dataSource) throws SQLException {
+            TraceThrottleWindowRecord window =
+                    withThrottling(dataSource).throttledWindowsIn(SPAN_FROM_US, SPAN_TO_US).getFirst();
+
+            // 54 of 300 periods. The ratio is the answer to "how hard", which the 430ms cannot give:
+            // the same parked time across ten times the periods is a different problem.
+            assertEquals(18.0, window.ratioPercent(), 0.001);
+        }
+
+        @Test
+        @DisplayName("differences the cumulative counters instead of reading them")
+        void differencesCumulativeCounters(DataSource dataSource) throws SQLException {
+            TraceThrottleWindowRecord window =
+                    withThrottling(dataSource).throttledWindowsIn(SPAN_FROM_US, SPAN_TO_US).getFirst();
+
+            // The sample that closes the window reads 154 throttled periods and 5.43s parked, both
+            // cumulative since the cgroup was created. Reading either absolutely would report a
+            // container that spent five seconds throttled during a 300ms request.
+            assertNotEquals(154L, window.throttledSlices(), "the absolute counter, not the delta");
+            assertNotEquals(5_430_000_000L, window.throttledNanos(), "the absolute counter, not the delta");
+        }
+
+        @Test
+        @DisplayName("never emits the baseline sample as a window of its own")
+        void skipsTheBaselineSample(DataSource dataSource) throws SQLException {
+            List<TraceThrottleWindowRecord> windows =
+                    withThrottling(dataSource).throttledWindowsIn(WIDE_FROM_US, WIDE_TO_US);
+
+            // The first sample already carries 100 throttled periods from before the recording began.
+            // Emitting it alone would charge the profile with throttling that predates it.
+            assertTrue(windows.stream().noneMatch(w -> w.throttledSlices() == 100L),
+                    "the baseline's absolute counter never becomes a window");
+        }
+
+        @Test
+        @DisplayName("excludes a window in which the container was never throttled")
+        void excludesUnthrottledWindows(DataSource dataSource) throws SQLException {
+            List<TraceThrottleWindowRecord> windows =
+                    withThrottling(dataSource).throttledWindowsIn(WIDE_FROM_US, WIDE_TO_US);
+
+            // The throttled counters stand still across S1..S2 while the elapsed one advances.
+            assertTrue(windows.stream().allMatch(w -> w.throttledSlices() > 0),
+                    "a window with no throttling is not a throttle window");
+        }
+
+        @Test
+        @DisplayName("drops a window whose counters were reset under it")
+        void dropsResetWindows(DataSource dataSource) throws SQLException {
+            List<TraceThrottleWindowRecord> windows =
+                    withThrottling(dataSource).throttledWindowsIn(WIDE_FROM_US, WIDE_TO_US);
+
+            // A restarted container makes every delta negative. Clamped to zero it would report a
+            // number that is merely wrong; dropped, it is honestly absent.
+            assertTrue(windows.stream().allMatch(w -> w.throttledNanos() >= 0),
+                    "no window carries a negative delta");
+            assertEquals(3, windows.size(),
+                    "the span's window, the 6-period one, and the one after the reset -- "
+                            + "not the unthrottled window and not the reset itself");
+        }
+
+        @Test
+        @DisplayName("resumes normally on the samples after a counter reset")
+        void resumesAfterAReset(DataSource dataSource) throws SQLException {
+            List<TraceThrottleWindowRecord> windows =
+                    withThrottling(dataSource).throttledWindowsIn(WIDE_FROM_US, WIDE_TO_US);
+
+            assertTrue(windows.stream().anyMatch(w -> w.throttledSlices() == 10L
+                            && w.throttledNanos() == 300_000_000L),
+                    "the window after the reset, differenced against the new base");
+        }
+
+        @Test
+        @DisplayName("produces nothing for a container with no CFS quota")
+        void ignoresContainersWithoutAQuota(DataSource dataSource) throws SQLException {
+            // 10:12:30 .. 10:14:00 covers only the null-counter samples. A container with no quota
+            // cannot be throttled and writes all three counters null, so this needs no help from
+            // ContainerConfiguration to come back empty.
+            long from = (EPOCH_10_00_00 + 750_000L) * US_PER_MS;
+            long to = (EPOCH_10_00_00 + 840_000L) * US_PER_MS;
+
+            assertTrue(withThrottling(dataSource).throttledWindowsIn(from, to).isEmpty());
+        }
+
+        @Test
+        @DisplayName("excludes a window that fell entirely outside the trace")
+        void excludesWindowsOutsideTheTrace(DataSource dataSource) throws SQLException {
+            List<TraceThrottleWindowRecord> windows =
+                    withThrottling(dataSource).throttledWindowsIn(SPAN_FROM_US, SPAN_TO_US);
+
+            // The 6-period window closes at 10:11:10, a full minute after the span ended. It is in
+            // scan range -- the scan reaches 120s past the trace to find closing samples -- so only
+            // the overlap predicate keeps it out.
+            assertTrue(windows.stream().noneMatch(w -> w.throttledSlices() == 6L));
         }
     }
 }

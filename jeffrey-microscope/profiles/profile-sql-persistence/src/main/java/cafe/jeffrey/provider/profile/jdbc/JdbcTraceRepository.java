@@ -41,6 +41,7 @@ import cafe.jeffrey.provider.profile.api.TraceSortField;
 import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
+import cafe.jeffrey.provider.profile.api.TraceThrottleWindowRecord;
 import cafe.jeffrey.provider.profile.api.TraceTimelineBucketRecord;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.shared.common.model.SpanInterval;
@@ -1347,6 +1348,87 @@ public class JdbcTraceRepository implements TraceRepository {
             """;
 
     /*
+     * How far outside the trace the throttle scan reaches for the samples that bound its windows.
+     *
+     * Applied in both directions, and it has to be. A window is a *pair* of samples, so the one
+     * overlapping a 300ms trace is typically opened by a sample taken well before it and closed by
+     * one taken well after -- and a scan bounded by the trace itself would drop both, leaving the
+     * LAG nothing to pair and losing exactly the window that explains the trace.
+     * jdk.ContainerCPUThrottling is emitted on the everyChunk period (30s by default), so two
+     * default periods of slack keeps the pairing intact on either side without widening the scan
+     * enough to stop the zone maps pruning it.
+     */
+    private static final long MAX_THROTTLE_SAMPLE_GAP_MILLIS = 120_000L;
+
+    /*
+     * The CFS sampling windows that contained throttling and overlap a trace.
+     *
+     * Every other context query in this layer reads a stretch of time straight off an event. This
+     * one cannot: the counters are cumulative since the cgroup was created, so no row describes the
+     * stretch between two samples. LAG rebuilds each window from the pair that bounds it, and what
+     * comes out is the *window*, not the throttling -- somewhere inside it the kernel parked the
+     * container for delta_throttled_ns, and nothing here or anywhere else says where.
+     *
+     * A negative delta means the counters were reset under us -- a restarted container reusing the
+     * profile -- and the window is dropped rather than clamped to zero: how much of the throttling
+     * preceded the reset is not recoverable, and a clamped window would report a number that is
+     * merely wrong instead of absent. Requiring delta_elapsed > 0 does the same for a window in
+     * which the CFS clock did not advance, which is what a container with no quota looks like once
+     * its null counters are excluded.
+     *
+     * Overlap rather than starts-inside, for the same reason the pause query uses it: a window that
+     * opened before the trace is exactly the one explaining its first slow span.
+     */
+    //language=SQL
+    private static final String THROTTLE_WINDOWS_IN_WINDOW = """
+            WITH samples AS (
+                SELECT
+                    EPOCH_US(e.start_timestamp)                                  AS at_us,
+                    TRY_CAST(json_extract_string(e.fields, '$.%s') AS BIGINT)    AS elapsed,
+                    TRY_CAST(json_extract_string(e.fields, '$.%s') AS BIGINT)    AS throttled,
+                    TRY_CAST(json_extract_string(e.fields, '$.%s') AS BIGINT)    AS throttled_ns
+                FROM events e
+                WHERE e.event_type = :throttle_event_type
+                    AND e.start_timestamp >= make_timestamptz(:scan_from_ms * 1000)
+                    AND e.start_timestamp < make_timestamptz((:scan_to_ms + 1) * 1000)
+            ),
+            counted AS (
+                SELECT at_us, elapsed, throttled, throttled_ns
+                FROM samples
+                WHERE elapsed IS NOT NULL
+                    AND throttled IS NOT NULL
+                    AND throttled_ns IS NOT NULL
+            ),
+            windows AS (
+                SELECT
+                    LAG(at_us)        OVER (ORDER BY at_us)                 AS from_us,
+                    at_us                                                   AS to_us,
+                    elapsed      - LAG(elapsed)      OVER (ORDER BY at_us)  AS delta_elapsed,
+                    throttled    - LAG(throttled)    OVER (ORDER BY at_us)  AS delta_throttled,
+                    throttled_ns - LAG(throttled_ns) OVER (ORDER BY at_us)  AS delta_throttled_ns
+                FROM counted
+            )
+            SELECT
+                from_us                 AS from_epoch_us,
+                to_us                   AS to_epoch_us,
+                delta_elapsed           AS elapsed_slices,
+                delta_throttled         AS throttled_slices,
+                delta_throttled_ns      AS throttled_ns
+            FROM windows
+            WHERE from_us IS NOT NULL
+                AND delta_elapsed > 0
+                AND delta_throttled > 0
+                AND delta_throttled_ns >= 0
+                AND to_us > :from_us
+                AND from_us < :to_us
+            ORDER BY from_us
+            LIMIT :limit
+            """.formatted(
+                    ThrottleCounters.ELAPSED_SLICES,
+                    ThrottleCounters.THROTTLED_SLICES,
+                    ThrottleCounters.THROTTLED_TIME);
+
+    /*
      * What each span of a trace spent waiting on, one row per (span, category) that recorded
      * anything.
      *
@@ -1803,7 +1885,9 @@ public class JdbcTraceRepository implements TraceRepository {
     @Override
     public List<TracePauseRecord> pausesInWindow(long fromEpochMicros, long toEpochMicros) {
         List<String> eventTypes = List.copyOf(
-                TraceContextCategory.eventTypesOf(TraceContextCategory.Scope.GLOBAL));
+                TraceContextCategory.eventTypesOf(
+                        TraceContextCategory.Scope.GLOBAL,
+                        TraceContextCategory.Derivation.EVENT_DURATION));
 
         long toMillis = Math.floorDiv(toEpochMicros, MICROS_PER_MILLI_LONG);
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -1827,6 +1911,30 @@ public class JdbcTraceRepository implements TraceRepository {
                             rs.getLong("duration_ns"),
                             TraceContextCategory.isDetail(eventType));
                 });
+    }
+
+    @Override
+    public List<TraceThrottleWindowRecord> throttledWindowsIn(long fromEpochMicros, long toEpochMicros) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("throttle_event_type", EventTypeName.CONTAINER_CPU_THROTTLING)
+                .addValue("from_us", fromEpochMicros)
+                .addValue("to_us", toEpochMicros)
+                .addValue("scan_from_ms",
+                        Math.floorDiv(fromEpochMicros, MICROS_PER_MILLI_LONG) - MAX_THROTTLE_SAMPLE_GAP_MILLIS)
+                .addValue("scan_to_ms",
+                        Math.floorDiv(toEpochMicros, MICROS_PER_MILLI_LONG) + MAX_THROTTLE_SAMPLE_GAP_MILLIS)
+                .addValue("limit", ThreadWindowEvents.ROW_LIMIT);
+
+        return databaseClient.query(
+                StatementLabel.TRACE_THROTTLE_WINDOWS,
+                THROTTLE_WINDOWS_IN_WINDOW,
+                params,
+                (rs, _) -> new TraceThrottleWindowRecord(
+                        rs.getLong("from_epoch_us"),
+                        rs.getLong("to_epoch_us"),
+                        rs.getLong("throttled_ns"),
+                        rs.getLong("throttled_slices"),
+                        rs.getLong("elapsed_slices")));
     }
 
     /**

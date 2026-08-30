@@ -25,6 +25,7 @@ import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceExceptionRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceNotificationRow;
 import cafe.jeffrey.profile.manager.model.trace.TracePause;
+import cafe.jeffrey.profile.manager.model.trace.TraceThrottleWindow;
 import cafe.jeffrey.profile.manager.model.trace.TraceEventRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSpanRow;
@@ -229,6 +230,23 @@ public class TraceManagerImpl implements TraceManager {
                         pause.nested()))
                 .toList();
 
+        /*
+         * Deliberately not folded into `pauses`, and deliberately not passed to summarise(). A
+         * throttle window is an approximation of when, so it can be drawn beside the pauses but not
+         * added to them: the summary's percentages are taken against the trace's own window, and a
+         * window-derived total joining that sum would push the accounted time past what elapsed and
+         * silently shrink "own work" to cover it.
+         */
+        List<TraceThrottleWindow> throttleWindows = traceRepository.throttledWindowsIn(from, to).stream()
+                .map(window -> new TraceThrottleWindow(
+                        window.fromEpochMicros(),
+                        window.toEpochMicros(),
+                        window.throttledNanos(),
+                        window.throttledSlices(),
+                        window.elapsedSlices(),
+                        window.ratioPercent()))
+                .toList();
+
         List<TraceSpanContextRecord> waits = traceRepository.spanContext(traceId);
         Map<String, List<TraceContextSlice>> spanWaits = waits.stream()
                 .collect(Collectors.groupingBy(
@@ -236,7 +254,8 @@ public class TraceManagerImpl implements TraceManager {
                         Collectors.collectingAndThen(
                                 Collectors.toList(), TraceManagerImpl::toSlices)));
 
-        return new TraceContext(pauses, spanWaits, summarise(spans, pauses, waits, from, to));
+        return new TraceContext(
+                pauses, throttleWindows, spanWaits, summarise(spans, pauses, waits, from, to));
     }
 
     private static List<TraceContextSlice> toSlices(List<TraceSpanContextRecord> waits) {

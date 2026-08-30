@@ -31,6 +31,7 @@ const headings = [
   { id: 'categories', text: 'Global vs Thread-Scoped Context', level: 2 },
   { id: 'gc-events', text: 'GC Pauses: One Band per Stoppage', level: 2 },
   { id: 'safepoints', text: 'Safepoints', level: 2 },
+  { id: 'cpu-throttling', text: 'CPU Throttling: A Window, Not a Pause', level: 2 },
   { id: 'lanes', text: 'The Lanes in the Trace Detail', level: 2 },
   { id: 'why-slow', text: 'The "Why Was This Trace Slow?" Panel', level: 2 },
   { id: 'matching', text: 'How Pauses Are Matched to a Trace', level: 2 }
@@ -99,6 +100,11 @@ rather than left as an unexplained gap.`;
             <td>Thread</td>
             <td>An instant, not a stretch of blocked time — the one thread-scoped category that stays pure context</td>
           </tr>
+          <tr>
+            <td>CPU throttled</td>
+            <td><strong>Global</strong></td>
+            <td><code>jdk.ContainerCPUThrottling</code> — a sampling <em>window</em> rather than a measured pause, see below</td>
+          </tr>
         </tbody>
       </table>
 
@@ -113,6 +119,27 @@ rather than left as an unexplained gap.`;
       <h2 id="safepoints">Safepoints</h2>
 
       <p>Safepoints cover the non-GC stop-the-world work: <code>jdk.ExecuteVMOperation</code> (the operation itself — a deoptimization sweep, a thread dump, revoking biased locks) and <code>jdk.SafepointStateSynchronization</code> (the time spent bringing every thread to the safepoint before the operation could run). A safepoint that ran <em>inside</em> a GC pause sits inside that pause's window — which is why GC and safepoints get separate lanes: they cannot share one without drawing the same stoppage twice. Each band is labeled by the operation's own name (from the event's <code>name</code>/<code>operation</code>/<code>cause</code> fields), so a lane hover reads "G1CollectForAllocation" or "ThreadDump", not just "safepoint".</p>
+
+      <h2 id="cpu-throttling">CPU Throttling: A Window, Not a Pause</h2>
+
+      <p>In a container with a CPU limit, the CFS scheduler parks the whole cgroup once it exhausts its quota. It is the stoppage nothing records: no thread emits an event, because no thread is running to emit one. A span simply takes longer, with no blocking child, no GC band and no safepoint to explain it — which makes it the single most misread cause of latency in containerised JVMs.</p>
+
+      <p><code>jdk.ContainerCPUThrottling</code> is the only thing that sees it, and it sees it indirectly. It is a <em>periodic sample</em> (every JFR chunk, 30&nbsp;s by default) of three cgroup <code>cpu.stat</code> counters that are cumulative since the cgroup was created: periods elapsed, periods throttled, and nanoseconds parked. Nothing in the recording describes a stretch of throttling; a stretch is recovered only by differencing consecutive samples, and what that yields is the <strong>sampling window that contained the throttling</strong> — never the throttling itself.</p>
+
+      <DocsCallout type="warning">
+        <strong>A throttle band is an approximation, and the view says so three ways.</strong> The band spans the 30&nbsp;s window, not the parked time inside it; nothing recovers <em>when</em> during that window the container was stopped, or which of its threads wore it. So the lane draws the band <strong>hatched</strong> rather than solid, its stat reads <code>window · N×</code> instead of a share of the trace, and its figure carries a <strong>tilde</strong> (<code>~430 ms</code>). Each of those marks the same thing: this is the only lane whose width is not a duration.
+      </DocsCallout>
+
+      <p>Two consequences follow from that, and both are deliberate:</p>
+
+      <ul>
+        <li><strong>It is never added to the why-slow panel.</strong> The panel's percentages are taken against the trace's own window, and a window-derived total summed beside measured pauses would push the accounted time past what actually elapsed — silently shrinking "own work" to cover the difference. Throttling explains a trace; it does not account for it.</li>
+        <li><strong>The parked time is not scaled down by overlap.</strong> When a window only partly covers the trace, the figure is still the window's whole throttled time. Throttling is not spread evenly through a window, so apportioning it by time would invent a number the counters never supported.</li>
+      </ul>
+
+      <p>Two further rules keep the reading honest. A window whose counters came back <em>lower</em> than the sample before it — a restarted container — is <strong>dropped rather than clamped to zero</strong>: how much throttling preceded the reset cannot be recovered, and a clamped window would report a number that is merely wrong instead of honestly absent. And a container with no CFS quota cannot be throttled at all; the JVM writes its counters as null, so it produces no windows without its <code>jdk.ContainerConfiguration</code> needing to be consulted.</p>
+
+      <p>The lane links out to the <router-link to="/docs/microscope/profiles">Containers view</router-link>, which carries the same reading over the whole recording — the verdict, the throttle ratio over time, and the worst windows.</p>
 
       <h2 id="lanes">The Lanes in the Trace Detail</h2>
 

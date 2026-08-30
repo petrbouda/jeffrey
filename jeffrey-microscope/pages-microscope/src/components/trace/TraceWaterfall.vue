@@ -148,6 +148,46 @@
     </div>
 
     <!--
+      The CFS windows in which the container was CPU-throttled — drawn first, because when it is
+      present it is usually the largest thing that happened to the trace, and it is the one lane a
+      reader will not have thought to look for.
+
+      Hatched rather than filled, and that is not decoration. Every other band on this track is a
+      measured stretch: it began there and lasted that long. This one is a *sampling window* that
+      contained throttling somewhere, recovered by differencing counters 30s apart. The texture, the
+      "window" in the stat, and the tilde on the figure all say the same thing three ways, because a
+      solid band here would read as a pause the kernel never reported.
+    -->
+    <div v-if="throttleLane.length > 0" class="wf-lane">
+      <span class="lane-label">
+        <span class="lane-name">
+          <i class="lane-dot lane-dot-throttle"></i>
+          {{ contextLabel(THROTTLE_CATEGORY) }}
+        </span>
+        <!--
+          Deliberately not a share of the trace, which is what every other lane's stat is. A share
+          would have to be taken against time the container was throttled *during this trace*, and
+          that is the one number the counters cannot give.
+        -->
+        <span class="lane-stat">window · {{ throttleLane.length }}&times;</span>
+      </span>
+      <span class="lane-track">
+        <span
+          v-for="(band, index) in throttleLane"
+          :key="index"
+          class="lane-band lane-band-throttle"
+          :style="{ left: band.leftPercent + '%', width: band.widthPercent + '%' }"
+          :title="throttleBandTitle(band)"
+        >
+          <span v-if="band.widthPercent > 6" class="lane-band-text">
+            {{ throttleBandText(band) }}
+          </span>
+        </span>
+      </span>
+      <span class="wf-duration">{{ throttleLaneTotal }}</span>
+    </div>
+
+    <!--
       One lane per kind of pause, above the spans. The lane reuses the row grid, so its track lines
       up with the bars without either side knowing the other's measurements, and it is the lane
       rather than the stripe that carries the labels and the hit targets: the stripe is a wash
@@ -825,7 +865,11 @@
         question of which one was in force.
       -->
       <span v-for="category in contextCategories" :key="category">
-        <i class="swatch" :style="{ background: contextColor(category) }"></i>
+        <i
+          class="swatch"
+          :class="{ 'swatch-throttle': category === THROTTLE_CATEGORY }"
+          :style="swatchStyle(category)"
+        ></i>
         {{ contextLabel(category) }}
       </span>
       <span><i class="swatch swatch-server"></i> server</span>
@@ -855,12 +899,13 @@ import { attributeRows } from '@/services/trace/spanAttributes';
 import type { SpanBar } from '@/services/trace/TraceWaterfallLayout';
 import { indentRem, traceWindow, waterfallBars } from '@/services/trace/TraceWaterfallLayout';
 import { descendantCounts, spansWithChildren, visibleSpans } from '@/services/trace/traceTree';
-import type { ContextBand } from '@/services/trace/TraceContextBands';
+import type { ContextBand, ThrottleBand } from '@/services/trace/TraceContextBands';
 import {
   bandAt,
   bandLanes,
   contextBands,
-  mergedDurationNanos
+  mergedDurationNanos,
+  throttleBands
 } from '@/services/trace/TraceContextBands';
 import {
   contextColor,
@@ -869,7 +914,8 @@ import {
   isIoCategory,
   promotedCategory,
   severityColor,
-  severityLabel
+  severityLabel,
+  THROTTLE_CATEGORY
 } from '@/services/trace/traceLabels';
 import {
   anyEscaped,
@@ -1190,6 +1236,9 @@ const bandCategories = computed(() => bandLanes(allBands.value).map(lane => lane
  */
 const contextCategories = computed(() => {
   const categories = [...bandCategories.value];
+  if (allThrottleBands.value.length > 0) {
+    categories.push(THROTTLE_CATEGORY);
+  }
   for (const span of props.spans) {
     if (!span.synthesized) {
       continue;
@@ -1206,6 +1255,63 @@ const bands = computed(() => (showContext.value ? allBands.value : []));
 
 const laneGroups = computed(() => bandLanes(bands.value));
 
+const allThrottleBands = computed(() =>
+  throttleBands(props.context?.throttleWindows ?? [], traceWindow(props.spans))
+);
+
+/*
+ * Governed by the same master as the pause bands: both answer "what was being done to this trace
+ * from outside it", and a reader turning that off means all of it.
+ */
+const throttleLane = computed(() => (showContext.value ? allThrottleBands.value : []));
+
+/**
+ * The lane's figure: how long the container was parked across the windows the trace overlapped.
+ *
+ * Summed rather than merged, because consecutive sampling windows do not overlap — and reported
+ * with a tilde because it is the windows' whole throttling, not the share of it the trace wore. A
+ * window is not throttled evenly, so no honest arithmetic apportions it by overlap.
+ */
+const throttleLaneTotal = computed(() => {
+  const nanos = throttleLane.value.reduce((sum, band) => sum + band.throttledNanos, 0);
+  return `~${FormattingService.formatDuration2Units(nanos)}`;
+});
+
+/**
+ * A legend swatch's fill, left to CSS for the throttle category alone.
+ *
+ * Its band is a hatch, and an inline background would win over the class that draws one — keying
+ * the reader to a solid block the track never draws.
+ */
+function swatchStyle(category: string): Record<string, string> {
+  return category === THROTTLE_CATEGORY ? {} : { background: contextColor(category) };
+}
+
+/**
+ * What a throttle band says on the track: how hard, with the arrows marking a window that ran past
+ * the trace rather than being contained by it.
+ */
+function throttleBandText(band: ThrottleBand): string {
+  const ratio = `${band.ratioPercent.toFixed(band.ratioPercent < 10 ? 1 : 0)}%`;
+  return `${band.clippedStart ? '\u25C0 ' : ''}${ratio}${band.clippedEnd ? ' \u25B6' : ''}`;
+}
+
+/*
+ * Says the approximation out loud rather than leaving it to the hatching. The band is the sampling
+ * window; the throttling happened somewhere inside it, and the reader has no way to recover that
+ * from a tooltip that only quotes a duration.
+ */
+function throttleBandTitle(band: ThrottleBand): string {
+  const parked = FormattingService.formatDuration2Units(band.throttledNanos);
+  const periods = `${band.throttledSlices} of ${band.elapsedSlices} CFS periods`;
+  const clipped =
+    band.clippedStart || band.clippedEnd ? ' — the window extends past this trace' : '';
+  return (
+    `CPU-throttled window: ${periods} throttled (${band.ratioPercent.toFixed(1)}%), ` +
+    `~${parked} parked somewhere in the window${clipped}`
+  );
+}
+
 const contextToggleTitle = computed(() => {
   // The absent-categories claim is only true once the request has actually answered. Asserting it
   // while loading or after a failure stated a fact about the JVM nobody had fetched.
@@ -1215,12 +1321,12 @@ const contextToggleTitle = computed(() => {
   if (props.contextState === 'failed') {
     return 'JVM context could not be loaded';
   }
-  if (bandCategories.value.length === 0) {
-    return 'No GC pauses or safepoints crossed this trace';
+  if (bandCategories.value.length === 0 && allThrottleBands.value.length === 0) {
+    return 'No GC pauses, safepoints or CPU throttling crossed this trace';
   }
   return showContext.value
-    ? 'Hide the pause bands drawn over the spans'
-    : 'Show the GC pauses and safepoints that crossed this trace';
+    ? 'Hide the context bands drawn over the spans'
+    : 'Show the pauses and CPU throttling that crossed this trace';
 });
 
 // Counted once for the whole trace, like the bars and the child counts below: every parent row asks
@@ -2039,6 +2145,21 @@ function tooltip(span: TraceSpanRow): string {
   align-items: center;
   justify-content: center;
   overflow: hidden;
+}
+
+/*
+ * The hatch that marks a band as a window rather than a measured stretch. Warning orange on the
+ * warning background so it stays legible at 0.72rem while reading as texture rather than as a
+ * second colour; 45deg so it cannot be mistaken for the horizontal rule the track draws behind it.
+ */
+.lane-band-throttle,
+.lane-dot-throttle,
+.swatch-throttle {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--color-warning) 0 3px,
+    var(--color-warning-bg) 3px 6px
+  );
 }
 
 .lane-band-text {

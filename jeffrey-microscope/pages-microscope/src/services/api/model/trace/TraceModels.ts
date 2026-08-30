@@ -295,6 +295,7 @@ export type TraceContextCategoryName =
   | 'ALLOCATION_STALL'
   | 'DEOPTIMIZATION'
   | 'VT_PINNED'
+  | 'CPU_THROTTLED'
   | 'OWN_WORK';
 
 /**
@@ -319,6 +320,30 @@ export interface TracePause {
   nested: boolean;
 }
 
+/**
+ * One CFS sampling window in which the container was CPU-throttled, overlapping the trace.
+ *
+ * Deliberately not a {@link TracePause}, because a pause band's width *is* its duration and this
+ * one's is not. `jdk.ContainerCPUThrottling` samples counters that are cumulative since the cgroup
+ * was created, so differencing two samples recovers the *window* that contained throttling —
+ * `throttledNanos` happened somewhere inside `[startEpochMicros, endEpochMicros]`, and nothing says
+ * where. The waterfall draws it hatched and labels the figure approximate for exactly that reason,
+ * and the why-slow panel leaves it out: a window-derived total summed beside measured pauses makes
+ * percentages that no longer add up.
+ */
+export interface TraceThrottleWindow {
+  startEpochMicros: number;
+  endEpochMicros: number;
+  /** How long the container was parked somewhere inside the window. */
+  throttledNanos: number;
+  /** CFS periods throttled in the window. */
+  throttledSlices: number;
+  /** CFS periods elapsed in the window — the denominator `ratioPercent` is taken against. */
+  elapsedSlices: number;
+  /** The share of periods throttled: how *hard*, as opposed to how long. */
+  ratioPercent: number;
+}
+
 /** One line of a "where did the time go" breakdown. */
 export interface TraceContextSlice {
   category: TraceContextCategoryName;
@@ -335,6 +360,11 @@ export interface TraceContextSlice {
  */
 export interface TraceContext {
   pauses: TracePause[];
+  /**
+   * CFS sampling windows in which the container was CPU-throttled. Global like the pauses, but
+   * weaker, so they arrive separately and are never part of `summary` — see {@link TraceThrottleWindow}.
+   */
+  throttleWindows: TraceThrottleWindow[];
   /** Per-span waiting, keyed by hex span id, longest first. A span that only ran is absent. */
   spanWaits: Record<string, TraceContextSlice[]>;
   /** The trace's time ranked by where it went, with the remainder reported as `OWN_WORK`. */
