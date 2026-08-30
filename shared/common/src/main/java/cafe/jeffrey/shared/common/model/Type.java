@@ -129,6 +129,7 @@ public record Type(String code, boolean calculated) {
     public static final Type CODE_CACHE_FULL = new Type(EventTypeName.CODE_CACHE_FULL);
     public static final Type SAFEPOINT_BEGIN = new Type(EventTypeName.SAFEPOINT_BEGIN);
     public static final Type SAFEPOINT_STATE_SYNCHRONIZATION = new Type(EventTypeName.SAFEPOINT_STATE_SYNCHRONIZATION);
+    public static final Type SAFEPOINT_LATENCY = new Type(EventTypeName.SAFEPOINT_LATENCY);
     public static final Type SAFEPOINT_END = new Type(EventTypeName.SAFEPOINT_END);
     public static final Type EXECUTE_VM_OPERATION = new Type(EventTypeName.EXECUTE_VM_OPERATION);
     public static final Type JAVA_MONITOR_INFLATE = new Type(EventTypeName.JAVA_MONITOR_INFLATE);
@@ -325,6 +326,7 @@ public record Type(String code, boolean calculated) {
                 EXECUTE_VM_OPERATION,
                 SAFEPOINT_BEGIN,
                 SAFEPOINT_STATE_SYNCHRONIZATION,
+                SAFEPOINT_LATENCY,
                 SAFEPOINT_END,
                 JAVA_MONITOR_INFLATE,
                 VIRTUAL_THREAD_PINNED,

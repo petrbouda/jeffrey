@@ -85,7 +85,7 @@
         </div>
 
         <DisabledEventsNotice
-          v-if="!overview?.hasSafepointLatency"
+          v-if="!overview?.hasTimeToSafepoint"
           title="Time-to-safepoint data not available"
           action-label="Re-record with the event enabled"
           command="settings=profile,+jdk.SafepointStateSynchronization#enabled=true"
@@ -108,6 +108,100 @@
               :visibleMinutes="60"
             />
           </div>
+        </template>
+
+        <!--
+          Who the JVM waited for. Every other safepoint reading on this page is recorded once per
+          safepoint on a VM thread, so none of them knows whose slowness it measured — which is why
+          the time-to-safepoint chart above can say the wait was long and then stop. jdk.SafepointLatency
+          is recorded on each application thread instead, and is the only thing here that can name a
+          culprit.
+        -->
+        <DisabledEventsNotice
+          v-if="!overview?.hasSafepointOffenders"
+          title="The threads that were waited for are not identified"
+          action-label="Re-record with the event enabled"
+          command="settings=profile,+jdk.SafepointLatency#enabled=true,+jdk.SafepointLatency#stackTrace=true"
+        >
+          Naming the thread that held a safepoint up needs <code>jdk.SafepointLatency</code>, which
+          is disabled in <strong>both</strong> the default and profile JFR configurations. Note the
+          second setting: <code>profile</code> turns its stack trace off even when the event is
+          enabled, so without it you learn which thread was slow but never what it was running.
+        </DisabledEventsNotice>
+        <template v-else-if="offenders.length > 0">
+          <ChartDescription
+            shows="Threads ranked by the total time the JVM spent waiting for them to reach a safepoint."
+            use-case="Names the thread the time-to-safepoint chart above can only measure — and its state says why: compiled Java means a loop with no poll point, native means a call that cannot be interrupted."
+          />
+
+          <DataTable>
+            <template #toolbar>
+              <TableToolbar v-model="offendersView.query" search-placeholder="Filter threads...">
+                <span class="toolbar-info">threads holding up safepoints</span>
+                <template #filters>
+                  <!--
+                    The measured count, not the row count: the table is capped at the worst threads,
+                    and a reader comparing "20 rows" against a 400-thread application should be able
+                    to see that the cap is a cap.
+                  -->
+                  <Badge
+                    key-label="Measured"
+                    :value="safepointLatency?.threadCount ?? 0"
+                    variant="secondary"
+                    size="s"
+                    borderless
+                  />
+                </template>
+              </TableToolbar>
+            </template>
+            <thead>
+              <tr>
+                <th>Thread</th>
+                <th>State when asked to stop</th>
+                <th class="text-end">Safepoints</th>
+                <th class="text-end">Max</th>
+                <th class="text-end">P99</th>
+                <th class="text-end">Total</th>
+                <th class="text-end">Share</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="offender in offendersView.visible" :key="offender.threadName">
+                <td class="thread-name">{{ offender.threadName }}</td>
+                <td>
+                  <Badge
+                    :value="offender.threadState"
+                    :variant="
+                      offender.threadState === '_thread_in_native' ? 'warning' : 'secondary'
+                    "
+                    size="xs"
+                    :title="threadStateHint(offender.threadState)"
+                  />
+                </td>
+                <td class="text-end">{{ FormattingService.formatNumber(offender.count) }}</td>
+                <td class="text-end">
+                  {{ FormattingService.formatDuration2Units(offender.maxNanos) }}
+                </td>
+                <td class="text-end">
+                  {{ FormattingService.formatDuration2Units(offender.p99Nanos) }}
+                </td>
+                <td class="text-end">
+                  {{ FormattingService.formatDuration2Units(offender.totalNanos) }}
+                </td>
+                <td class="text-end">{{ offenderShare(offender).toFixed(1) }}%</td>
+              </tr>
+            </tbody>
+            <template #footer>
+              <TableShowMore
+                :shown="offendersView.visible.length"
+                :match-count="offendersView.matchCount"
+                :total="offendersView.total"
+                :expanded="offendersView.expanded"
+                :page-size="offendersView.pageSize"
+                @toggle="offendersView.toggle"
+              />
+            </template>
+          </DataTable>
         </template>
       </div>
 
@@ -231,7 +325,12 @@ import FormattingService from '@shared/services/FormattingService';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileVmOperationsClient from '@/services/api/ProfileVmOperationsClient';
 import { useTableView } from '@/composables/useTableView';
-import type { VmOperationStat, VmOverview } from '@/services/api/model/VmOperationModels';
+import type {
+  SafepointLatencyData,
+  SafepointOffender,
+  VmOperationStat,
+  VmOverview
+} from '@/services/api/model/VmOperationModels';
 import type TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 
 const route = useRoute();
@@ -243,12 +342,46 @@ const overview = ref<VmOverview>();
 const vmOperations = ref<VmOperationStat[]>([]);
 const pausesTimeline = ref<TimeseriesData>();
 const safepointTimeline = ref<TimeseriesData>();
+const safepointLatency = ref<SafepointLatencyData>();
 
 const activeTab = ref('operations');
 
 const vmOperationsView = useTableView<VmOperationStat>(vmOperations, {
   searchableText: r => r.operation
 });
+
+const offenders = computed<SafepointOffender[]>(() => safepointLatency.value?.offenders ?? []);
+
+const offendersView = useTableView<SafepointOffender>(offenders, {
+  searchableText: r => `${r.threadName} ${r.threadState}`
+});
+
+/**
+ * The share of the ranking weight one thread accounts for.
+ *
+ * Taken against the summed latency rather than against elapsed time on purpose: threads reach a
+ * safepoint concurrently, so the total is a sum of overlapping waits and means nothing as a
+ * duration. As a denominator for "which thread dominates this list" it is exactly right.
+ */
+function offenderShare(offender: SafepointOffender): number {
+  const total = safepointLatency.value?.totalNanos ?? 0;
+  return total <= 0 ? 0 : (offender.totalNanos / total) * 100;
+}
+
+/**
+ * The thread state in the terms the reader has to act in. `_thread_in_Java` and
+ * `_thread_in_native` are the two that mean something different: the first is a loop the JIT
+ * stripped the safepoint poll out of, the second a call the JVM cannot interrupt at all.
+ */
+function threadStateHint(state: string): string {
+  if (state === '_thread_in_Java') {
+    return 'Running compiled Java — usually a long counted loop with no poll point';
+  }
+  if (state === '_thread_in_native') {
+    return 'Inside a native call, which the JVM cannot interrupt';
+  }
+  return state;
+}
 
 const pauseSeries = computed<number[][]>(() => pausesTimeline.value?.series?.[0]?.data ?? []);
 const safepointSeries = computed<number[][]>(() => safepointTimeline.value?.series?.[0]?.data ?? []);
@@ -304,17 +437,20 @@ onMounted(async () => {
     const profileId = route.params.profileId as string;
     const client = new ProfileVmOperationsClient(profileId);
 
-    const [overviewResult, vmOpsResult, pausesResult, safepointResult] = await Promise.all([
-      client.getOverview(),
-      client.getVmOperations(),
-      client.getPausesTimeline(),
-      client.getSafepointTimeline()
-    ]);
+    const [overviewResult, vmOpsResult, pausesResult, safepointResult, offendersResult] =
+      await Promise.all([
+        client.getOverview(),
+        client.getVmOperations(),
+        client.getPausesTimeline(),
+        client.getSafepointTimeline(),
+        client.getSafepointOffenders()
+      ]);
 
     overview.value = overviewResult;
     vmOperations.value = vmOpsResult;
     pausesTimeline.value = pausesResult;
     safepointTimeline.value = safepointResult;
+    safepointLatency.value = offendersResult;
 
     loading.value = false;
   } catch (e) {

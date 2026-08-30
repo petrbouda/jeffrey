@@ -19,6 +19,8 @@
 package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.vmoperation.PauseTimeseriesBuilder;
+import cafe.jeffrey.profile.manager.model.vmoperation.SafepointLatencyBuilder;
+import cafe.jeffrey.profile.manager.model.vmoperation.SafepointLatencyData;
 import cafe.jeffrey.profile.manager.model.vmoperation.SafepointSyncTimeseriesBuilder;
 import cafe.jeffrey.profile.manager.model.vmoperation.VmOperationStat;
 import cafe.jeffrey.profile.manager.model.vmoperation.VmOperationStatsBuilder;
@@ -61,7 +63,8 @@ public class VmOperationManagerImpl implements VmOperationManager {
                 .max(Comparator.comparingLong(VmOperationStat::maxNanos))
                 .orElse(null);
 
-        boolean hasSafepointLatency = eventRepository.containsEventType(Type.SAFEPOINT_STATE_SYNCHRONIZATION);
+        boolean hasTimeToSafepoint = eventRepository.containsEventType(Type.SAFEPOINT_STATE_SYNCHRONIZATION);
+        boolean hasSafepointOffenders = eventRepository.containsEventType(Type.SAFEPOINT_LATENCY);
 
         return new VmOverview(
                 vmOperationCount,
@@ -69,7 +72,8 @@ public class VmOperationManagerImpl implements VmOperationManager {
                 longest == null ? 0 : longest.maxNanos(),
                 longest == null ? null : longest.operation(),
                 !vmOperations.isEmpty(),
-                hasSafepointLatency);
+                hasTimeToSafepoint,
+                hasSafepointOffenders);
     }
 
     @Override
@@ -102,5 +106,21 @@ public class VmOperationManagerImpl implements VmOperationManager {
                 .withJsonFields();
 
         return eventStreamRepository.genericStreaming(configurer, new SafepointSyncTimeseriesBuilder(timeRange));
+    }
+
+    @Override
+    public SafepointLatencyData safepointOffenders() {
+        if (!eventRepository.containsEventType(Type.SAFEPOINT_LATENCY)) {
+            return SafepointLatencyData.EMPTY;
+        }
+
+        // withThreads() because the thread is the answer here, not a detail of it; withJsonFields()
+        // for threadState, which is what turns "slow" into "slow for this reason".
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.SAFEPOINT_LATENCY)
+                .withThreads()
+                .withJsonFields();
+
+        return eventStreamRepository.genericStreaming(configurer, new SafepointLatencyBuilder());
     }
 }

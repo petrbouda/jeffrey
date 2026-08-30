@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.VmOperationManager;
 import cafe.jeffrey.profile.manager.model.vmoperation.VmOperationStat;
+import cafe.jeffrey.profile.manager.model.vmoperation.SafepointLatencyData;
 import cafe.jeffrey.profile.manager.model.vmoperation.VmOverview;
 import cafe.jeffrey.timeseries.TimeseriesData;
 
@@ -66,6 +67,12 @@ public class VmOperationController {
     public TimeseriesData safepointTimeline(@PathVariable("profileId") String profileId) {
         LOG.debug("Fetching time-to-safepoint timeline");
         return mgr(profileId).timeToSafepointTimeline();
+    }
+
+    @GetMapping("/safepoint-offenders")
+    public SafepointLatencyData safepointOffenders(@PathVariable("profileId") String profileId) {
+        LOG.debug("Fetching safepoint offenders");
+        return mgr(profileId).safepointOffenders();
     }
 
     private VmOperationManager mgr(String profileId) {

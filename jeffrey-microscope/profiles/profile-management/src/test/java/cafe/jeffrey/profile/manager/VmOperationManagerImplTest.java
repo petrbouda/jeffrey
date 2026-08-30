@@ -171,7 +171,8 @@ class VmOperationManagerImplTest {
             var vm = manager().overview();
             assertEquals(0, vm.vmOperationCount());
             assertFalse(vm.hasVmOperations());
-            assertFalse(vm.hasSafepointLatency());
+            assertFalse(vm.hasTimeToSafepoint());
+            assertFalse(vm.hasSafepointOffenders());
         }
     }
 }

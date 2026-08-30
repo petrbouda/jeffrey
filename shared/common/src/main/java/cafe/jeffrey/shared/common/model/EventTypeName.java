@@ -125,6 +125,7 @@ public abstract class EventTypeName {
     public static final String CODE_CACHE_FULL = "jdk.CodeCacheFull";
     public static final String SAFEPOINT_BEGIN = "jdk.SafepointBegin";
     public static final String SAFEPOINT_STATE_SYNCHRONIZATION = "jdk.SafepointStateSynchronization";
+    public static final String SAFEPOINT_LATENCY = "jdk.SafepointLatency";
     public static final String SAFEPOINT_END = "jdk.SafepointEnd";
     public static final String EXECUTE_VM_OPERATION = "jdk.ExecuteVMOperation";
     public static final String JAVA_MONITOR_INFLATE = "jdk.JavaMonitorInflate";
