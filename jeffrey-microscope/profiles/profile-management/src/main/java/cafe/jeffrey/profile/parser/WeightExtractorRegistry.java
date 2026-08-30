@@ -52,6 +52,12 @@ public class WeightExtractorRegistry {
         registry.put(JAVA_MONITOR_WAIT, WeightExtractor.duration("monitorClass"));
         registry.put(THREAD_PARK, WeightExtractor.duration("parkedClass"));
         registry.put(THREAD_SLEEP, WeightExtractor.duration());
+        // Pinned time is blocked time, and the rest of the codebase already treats it that way --
+        // BlockingLeafSpans promotes it into a span, TraceContextCategory.VT_PINNED explains it as a
+        // wait. Without a weight here it was the one blocking event whose flamegraph could only be
+        // counted, never weighted by the time it cost. No entity: unlike a monitor or a park there
+        // is no class the thread was pinned *on*, only a carrier it could not leave.
+        registry.put(VIRTUAL_THREAD_PINNED, WeightExtractor.duration());
         registry.put(OBJECT_ALLOCATION_IN_NEW_TLAB, WeightExtractor.allocation("tlabSize", "objectClass"));
         registry.put(OBJECT_ALLOCATION_OUTSIDE_TLAB, WeightExtractor.allocation("allocationSize", "objectClass"));
         registry.put(OBJECT_ALLOCATION_SAMPLE, WeightExtractor.allocation("weight", "objectClass"));

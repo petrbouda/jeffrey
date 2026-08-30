@@ -230,8 +230,15 @@ public record Type(String code, boolean calculated) {
     // Application notifications
     public static final Type NOTIFICATION = new Type(EventTypeName.NOTIFICATION);
 
-    private static final Set<Type> BLOCKING_EVENTS =
-            Set.of(JAVA_MONITOR_ENTER, JAVA_MONITOR_WAIT, THREAD_PARK, THREAD_SLEEP);
+    /*
+     * VIRTUAL_THREAD_PINNED belongs here for the same reason the other four do: it is a stretch of
+     * time a thread spent not running its own work. It is also where blocked time *hides* on virtual
+     * threads -- a parking virtual thread normally unmounts rather than blocking its carrier, so
+     * jdk.ThreadPark never sees it. The frontend's EventTypes.isBlockingEventType has always
+     * included it; this is the side that was behind.
+     */
+    private static final Set<Type> BLOCKING_EVENTS = Set.of(
+            JAVA_MONITOR_ENTER, JAVA_MONITOR_WAIT, THREAD_PARK, THREAD_SLEEP, VIRTUAL_THREAD_PINNED);
 
     private static final Map<String, Type> KNOWN_TYPES;
 
