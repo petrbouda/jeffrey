@@ -232,11 +232,13 @@ import type {
   TraceRow
 } from '@/services/api/model/trace/TraceModels';
 import {
-  contextColor,
   contextLabel,
   isMethodEventType,
   operationKey,
-  promotedCategory
+  promotedCategory,
+  spanEventColor,
+  spanFamily,
+  spanFamilyLabel
 } from '@/services/trace/traceLabels';
 
 /** Upper bound on histogram columns: past this they are too thin to read. */
@@ -511,12 +513,6 @@ const rankedSpans = computed(() =>
     .slice(0, MAX_SPAN_ROWS)
 );
 
-/**
- * The colour an instrumented span is drawn in. The brand accent rather than a category colour: the
- * context ramp names the ways a thread stops running, and code that is running is none of them.
- */
-const APPLICATION_SPAN_COLOR = 'var(--color-primary)';
-
 /** Whether the row is a wait the derivation promoted rather than a span the application recorded. */
 /*
  * Tested by event type rather than by a `synthesized` flag, which this row does not carry: the
@@ -528,13 +524,14 @@ function isPromoted(span: TraceOperationSpanRow): boolean {
 }
 
 /**
- * The row's rail and bar colour: its context category for a promoted wait — the same colour the
- * waterfall, the legend and the threads timeline give that wait — and the accent for everything the
- * application instrumented itself.
+ * The row's rail and bar colour, straight from the shared span palette — the same colour the
+ * waterfall's bar, its row marker and its legend give the identical event type. Nothing is decided
+ * here: a breakdown that picked its own hues would be a second palette to keep in step with the
+ * first, and the rows most worth recognising across the two screens are exactly the ones that would
+ * drift.
  */
 function spanColor(span: TraceOperationSpanRow): string {
-  const category = promotedCategory(span.eventType);
-  return category === null ? APPLICATION_SPAN_COLOR : contextColor(category);
+  return spanEventColor(span.eventType);
 }
 
 function spanTypeTitle(span: TraceOperationSpanRow): string {
@@ -545,7 +542,7 @@ function spanTypeTitle(span: TraceOperationSpanRow): string {
   if (isMethodEventType(span.eventType)) {
     return `Traced method, promoted from the ${span.eventType} events inside these traces`;
   }
-  return `Recorded by ${span.eventType}`;
+  return `${spanFamilyLabel(spanFamily(span.eventType))}, recorded by ${span.eventType}`;
 }
 
 /**

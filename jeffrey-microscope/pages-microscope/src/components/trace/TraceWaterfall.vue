@@ -598,9 +598,9 @@
               <span class="wf-twist" role="presentation">
                 <i :class="isRunExpanded(run) ? 'bi bi-caret-down-fill' : 'bi bi-caret-right-fill'"></i>
               </span>
-              <span class="wf-kind" :class="kindClass(run.spans[0])" :style="kindStyle(run.spans[0])"></span>
+              <span class="wf-kind" :style="spanColorStyle(run.spans[0])"></span>
               <span class="wf-label">{{ run.spans[0].name }}</span>
-              <span class="wf-run-count" :style="kindStyle(run.spans[0])">×{{ run.spans.length }}</span>
+              <span class="wf-run-count" :style="spanColorStyle(run.spans[0])">×{{ run.spans.length }}</span>
               <!--
                 A span rather than a nested button, for the same reason the twistie is one. Clicks
                 are stopped so opening the statistics does not also unfold the run.
@@ -669,7 +669,7 @@
                 v-for="(bucket, index) in runHistogram(run)"
                 :key="index"
                 :class="{ hot: bucket.height === 1 }"
-                :style="{ height: 4 + bucket.height * 26 + 'px', ...(kindStyle(run.spans[0]) ?? {}) }"
+                :style="{ height: 4 + bucket.height * 26 + 'px', ...spanColorStyle(run.spans[0]) }"
                 :title="bucketTitle(bucket)"
               ></i>
             </span>
@@ -708,7 +708,7 @@
               ></i>
             </span>
             <span v-else class="wf-twist is-leaf"></span>
-            <span class="wf-kind" :class="kindClass(span)" :style="kindStyle(span)"></span>
+            <span class="wf-kind" :style="spanColorStyle(span)"></span>
             <span class="wf-label" :title="span.name">{{ span.name }}</span>
             <Badge v-if="span.status === 'ERROR'" variant="danger" size="xs" value="error" />
             <!--
@@ -876,18 +876,28 @@
         already answer "show me the waits or not", and two controls over one family only raised the
         question of which one was in force.
       -->
-      <span v-for="category in contextCategories" :key="category">
+      <span v-for="category in contextCategories" :key="category" :title="swatchTitle(category)">
         <i
-          class="swatch"
-          :class="{ 'swatch-throttle': category === THROTTLE_CATEGORY }"
+          class="swatch swatch-context"
+          :class="{
+            'swatch-io': isIoCategory(category),
+            'swatch-throttle': category === THROTTLE_CATEGORY
+          }"
           :style="swatchStyle(category)"
         ></i>
         {{ contextLabel(category) }}
       </span>
-      <span><i class="swatch swatch-server"></i> server</span>
-      <span><i class="swatch swatch-client"></i> client</span>
-      <span><i class="swatch swatch-internal"></i> internal</span>
-      <!-- Kind dots (row markers) keep their own hues; the swatches above match the bars. -->
+      <!--
+        The instrumentation this trace actually carries, in the same hues its bars and row markers
+        wear. Families rather than span kinds: "server" and "client" were three entries that said
+        which direction a span pointed and nothing about what recorded it, so an inbound gRPC call
+        and an inbound HTTP request decoded to the same word. What the reader needs from a key is
+        the opposite -- which of these bars is the database, and which are this application's own.
+      -->
+      <span v-for="family in spanFamilies" :key="family">
+        <i class="swatch swatch-family" :style="{ '--span-color': spanFamilyColor(family) }"></i>
+        {{ spanFamilyLabel(family) }}
+      </span>
     </div>
   </div>
 </template>
@@ -933,7 +943,12 @@ import {
   promotedCategory,
   severityColor,
   severityLabel,
-  THROTTLE_CATEGORY
+  spanEventColor,
+  spanFamiliesOf,
+  spanFamilyColor,
+  spanFamilyLabel,
+  THROTTLE_CATEGORY,
+  writeShade
 } from '@/services/trace/traceLabels';
 import {
   anyEscaped,
@@ -1330,13 +1345,32 @@ const throttleLaneTotal = computed(() => {
 });
 
 /**
- * A legend swatch's fill, left to CSS for the throttle category alone.
+ * A legend swatch's colours, handed to CSS as properties rather than as a background, because an
+ * I/O entry is drawn as two shades and the throttle entry as a hatch — neither of which an inline
+ * background could express without keying the reader to a block the track never draws.
  *
- * Its band is a hatch, and an inline background would win over the class that draws one — keying
- * the reader to a solid block the track never draws.
+ * Both shades come from here rather than being mixed in the stylesheet, so the distance between a
+ * read and a write is stated once and the legend cannot drift from the bars it decodes.
  */
 function swatchStyle(category: string): Record<string, string> {
-  return category === THROTTLE_CATEGORY ? {} : { background: contextColor(category) };
+  if (category === THROTTLE_CATEGORY) {
+    return {};
+  }
+  const color = contextColor(category);
+  return { '--swatch-color': color, '--swatch-write-color': writeShade(color) };
+}
+
+/**
+ * What the split swatch means, said in words for the one family that has one. A read and a write
+ * are separate rows with separate names -- "Socket read", "File write" -- so the shade is a
+ * scanning aid rather than the only place the direction is written down; this is what tells a
+ * reader that the two tones are a direction and not two categories that got merged.
+ */
+function swatchTitle(category: string): string | undefined {
+  if (!isIoCategory(category)) {
+    return undefined;
+  }
+  return `${contextLabel(category)} — reads in the lighter shade, writes in the darker one`;
 }
 
 /**
@@ -1839,22 +1873,26 @@ function scrollRowIntoView(spanId: string): void {
   });
 }
 
-function barStyle(span: TraceSpanRow) {
+/*
+ * Geometry inline, colour as a custom property the stylesheet then washes and solidifies. Colour by
+ * event type rather than by span kind: a kind says which way a call points, which the three-hue
+ * scheme spent its whole ramp on -- an inbound HTTP request and an inbound gRPC call came out the
+ * same blue, and a database statement was indistinguishable from an outbound HTTP call. The reader
+ * scanning a 2000-row waterfall is asking what recorded this, so that is what the hue now answers.
+ */
+function barStyle(span: TraceSpanRow): Record<string, string> {
   const geometry = bar(span);
-  const style: Record<string, string> = {
+  return {
     left: geometry.leftPercent + '%',
-    width: geometry.widthPercent + '%'
+    width: geometry.widthPercent + '%',
+    ...spanColorStyle(span)
   };
-  // A promoted wait wears its category's colour -- the same one its legend entry, the lanes and
-  // the threads timeline use -- rather than a span-kind pastel: it is context turned into a bar,
-  // not a new kind of span.
-  const category = promotedColorCategory(span);
-  if (category !== null) {
-    style.background = contextColor(category);
-  }
-  return style;
 }
 
+/**
+ * The bar's *shape*, not its colour — the hue arrives as a custom property, and what is left here is
+ * whether the bar is washed with a self overlay, solid, or outlined.
+ */
 function barClass(span: TraceSpanRow): string {
   if (span.status === 'ERROR') {
     return 'bar-error';
@@ -1862,29 +1900,32 @@ function barClass(span: TraceSpanRow): string {
   if (isPromotedMethod(span)) {
     // Not 'bar-synthesized': that class exists for a promoted *wait*, which is a leaf whose self
     // time equals its duration and so has no wash worth drawing. A traced method has children, so
-    // its self time is exactly the number the reader came for. It is styled as the internal span it
-    // genuinely is, outlined to show it was derived rather than recorded.
-    return 'bar-internal bar-method';
+    // its self time is exactly the number the reader came for — it keeps the ordinary wash and
+    // overlay, and takes only the outline that shows it was derived rather than recorded.
+    return 'bar-method';
   }
   if (span.synthesized) {
     return 'bar-synthesized';
   }
-  return 'bar-' + span.kind.toLowerCase();
+  return '';
 }
 
-function kindClass(span: TraceSpanRow): string {
-  return 'kind-' + span.kind.toLowerCase();
+/**
+ * One span's colour, as the custom property everything that draws that span reads: its bar, its row
+ * marker, a run's count chip and a run's histogram. Handed out rather than applied, so the marker
+ * cannot end up disagreeing with the bar beside it about what the row is -- and so the pale members
+ * of the palette can be darkened for the small solid marks without the bar's wash following them.
+ */
+function spanColorStyle(span: TraceSpanRow): Record<string, string> {
+  return { '--span-color': spanEventColor(span.eventType) };
 }
 
-/** The row marker follows the bar for a promoted wait, so the two cannot disagree about what it is. */
-function kindStyle(span: TraceSpanRow): Record<string, string> | undefined {
-  const category = promotedColorCategory(span);
-  return category === null ? undefined : { background: contextColor(category) };
-}
-
-function promotedColorCategory(span: TraceSpanRow): string | null {
-  return span.synthesized ? promotedCategory(span.eventType) : null;
-}
+/**
+ * Which instrumentation families this trace carries -- what the legend's span entries decode. Read
+ * from the whole trace rather than from what survives the toolbar, for the same reason the context
+ * categories are: switching a family off must not also take away the key to the colour it hid.
+ */
+const spanFamilies = computed(() => spanFamiliesOf(props.spans.map(span => span.eventType)));
 
 /**
  * Self time is the number worth surfacing on hover: the duration is already in its own column,
@@ -2847,23 +2888,18 @@ function tooltip(span: TraceSpanRow): string {
   color: var(--color-danger);
 }
 
+/*
+ * Mixed toward the ink rather than worn neat. The palette is a set of fills, and several of its
+ * members -- the traced-method green, the custom grey -- disappear at 7px on a white row. The bar
+ * keeps the colour as it is; only the marks small enough to vanish are darkened, and a consistent
+ * darkening keeps the hue, so a marker and its bar still say the same thing.
+ */
 .wf-kind {
   width: 0.45rem;
   height: 0.45rem;
   border-radius: var(--radius-circle);
   flex: none;
-}
-
-.kind-server {
-  background: var(--color-primary);
-}
-
-.kind-client {
-  background: var(--color-info);
-}
-
-.kind-internal {
-  background: var(--color-secondary);
+  background: color-mix(in srgb, var(--span-color) 85%, var(--color-dark));
 }
 
 .wf-label {
@@ -2887,6 +2923,10 @@ function tooltip(span: TraceSpanRow): string {
   background: var(--color-border-light);
 }
 
+/*
+ * The wash is the whole span; the solid stretches inside it are its own work. Both come off the one
+ * property the row was handed, so a bar cannot be washed in one hue and filled in another.
+ */
 .wf-bar {
   position: absolute;
   top: 0.15rem;
@@ -2894,18 +2934,20 @@ function tooltip(span: TraceSpanRow): string {
   border-radius: var(--radius-xs);
   overflow: hidden;
   display: block;
+  background: color-mix(in srgb, var(--span-color) 40%, transparent);
 }
 
 .wf-run-row .wf-label {
   font-weight: 600;
 }
 
+/* White numerals on the row's own hue, mixed dark enough to carry them whichever hue that is. */
 .wf-run-count {
   font-family: var(--font-family-monospace);
   font-size: var(--font-size-xs);
   font-weight: 700;
   color: var(--color-white);
-  background: var(--color-primary);
+  background: color-mix(in srgb, var(--span-color) 78%, var(--color-dark));
   border-radius: var(--radius-pill);
   padding: 1px var(--spacing-2);
   flex-shrink: 0;
@@ -3013,7 +3055,7 @@ function tooltip(span: TraceSpanRow): string {
 .wf-run-histogram i {
   width: 22px;
   border-radius: 2px 2px 0 0;
-  background: var(--color-primary);
+  background: var(--span-color);
   opacity: 0.35;
 }
 
@@ -3030,30 +3072,7 @@ function tooltip(span: TraceSpanRow): string {
   position: absolute;
   top: 0;
   height: 100%;
-}
-
-.bar-server {
-  background: color-mix(in srgb, var(--flamegraph-color-blue) 35%, transparent);
-}
-
-.bar-server .wf-self {
-  background: var(--flamegraph-color-blue);
-}
-
-.bar-client {
-  background: color-mix(in srgb, var(--flamegraph-color-cyan) 35%, transparent);
-}
-
-.bar-client .wf-self {
-  background: var(--flamegraph-color-cyan);
-}
-
-.bar-internal {
-  background: color-mix(in srgb, var(--flamegraph-color-green) 40%, transparent);
-}
-
-.bar-internal .wf-self {
-  background: var(--flamegraph-color-green);
+  background: var(--span-color);
 }
 
 .bar-error {
@@ -3065,20 +3084,20 @@ function tooltip(span: TraceSpanRow): string {
 }
 
 /*
- * A promoted wait's colour is its category's, set inline where the bar is laid out — the palette
- * lives in traceLabels, not here. The whole bar is solid: a synthesized span is a leaf, so a wash
- * plus self overlay would draw the same stretch twice in two shades of the same colour.
+ * The whole bar is solid rather than washed: a synthesized span is a leaf, so a wash plus a self
+ * overlay would draw the same stretch twice in two shades of the one colour.
  */
 .bar-synthesized {
   opacity: 0.9;
+  background: var(--span-color);
 }
 
 /*
- * Derived, not recorded — said with an outline rather than a hue. A traced method is the
- * application's own work, so it keeps the internal span's colour instead of taking a fourteenth
- * one out of a ramp that has no room left; the dashes are what tell it apart from a span the
- * instrumentation actually recorded. Outline rather than border because the bars are positioned
- * and sized in percentages, and a border would change what those percentages mean.
+ * Derived, not recorded — said with an outline rather than a hue. The method family's green is the
+ * own-work green, which is the point: a traced method is the application's own code running, and
+ * the dashes are what tell it apart from a span the instrumentation actually recorded. Outline
+ * rather than border because the bars are positioned and sized in percentages, and a border would
+ * change what those percentages mean.
  */
 .bar-method {
   opacity: 0.9;
@@ -3131,12 +3150,12 @@ function tooltip(span: TraceSpanRow): string {
   display: inline-block;
 }
 
-/* Half solid, half washed — the anatomy of every bar, in the server hue as the worked example. */
+/* Half solid, half washed — the anatomy of every bar, in the inbound-HTTP hue as the example. */
 .swatch-selfchildren {
   background: linear-gradient(
     to right,
     var(--flamegraph-color-blue) 50%,
-    color-mix(in srgb, var(--flamegraph-color-blue) 35%, transparent) 50%
+    color-mix(in srgb, var(--flamegraph-color-blue) 40%, transparent) 50%
   );
 }
 
@@ -3149,16 +3168,21 @@ function tooltip(span: TraceSpanRow): string {
   background: var(--color-warning);
 }
 
-/* The bar wash itself, not the row-marker hue: a legend must show the colour it explains. */
-.swatch-server {
-  background: color-mix(in srgb, var(--flamegraph-color-blue) 35%, transparent);
+.swatch-context {
+  background: var(--swatch-color);
 }
 
-.swatch-client {
-  background: color-mix(in srgb, var(--flamegraph-color-cyan) 35%, transparent);
+/*
+ * Both shades in one swatch, split down the middle: an I/O category is drawn in two tones -- its
+ * own for a read, a darker one for a write -- and a key that showed only the read would leave every
+ * write in the trace undecoded. Same worked-example trick as the self/children swatch above.
+ */
+.swatch-io {
+  background: linear-gradient(to right, var(--swatch-color) 50%, var(--swatch-write-color) 50%);
 }
 
-.swatch-internal {
-  background: color-mix(in srgb, var(--flamegraph-color-green) 40%, transparent);
+/* The bar wash itself, not the darkened row-marker hue: a legend must show the colour it explains. */
+.swatch-family {
+  background: color-mix(in srgb, var(--span-color) 40%, transparent);
 }
 </style>

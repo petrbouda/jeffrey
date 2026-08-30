@@ -211,9 +211,51 @@ export function promotedCategory(eventType: string): TraceContextCategoryName | 
  */
 const IO_CATEGORIES: ReadonlySet<TraceContextCategoryName> = new Set(['SOCKET_IO', 'FILE_IO']);
 
-/** Whether a promoted category belongs to the I/O family rather than the blocking one. */
-export function isIoCategory(category: TraceContextCategoryName): boolean {
-  return IO_CATEGORIES.has(category);
+/**
+ * Whether a promoted category belongs to the I/O family rather than the blocking one.
+ *
+ * Takes a plain string, the way {@link contextLabel} and {@link contextColor} do: a category also
+ * arrives off a lane read out of the API, where it is exactly as unvalidated as it looks, and a
+ * signature that only accepted the narrow type would just move the cast to the caller.
+ */
+export function isIoCategory(category: string): boolean {
+  return IO_CATEGORIES.has(category as TraceContextCategoryName);
+}
+
+/**
+ * The promoted event types that push bytes out rather than pull them in.
+ *
+ * `jdk.FileForce` sits on this side because an fsync is the tail of a write — it is the durability
+ * cost of the bytes already handed over, and a reader hunting slow writes wants it in the same
+ * shade as the writes that caused it, not in the shade of the reads it has nothing to do with.
+ */
+const WRITING_EVENT_TYPES: ReadonlySet<string> = new Set([
+  'jdk.SocketWrite',
+  'jdk.FileWrite',
+  'jdk.FileForce'
+]);
+
+/** Whether a promoted I/O wait wrote rather than read. */
+export function isWritingEventType(eventType: string): boolean {
+  return WRITING_EVENT_TYPES.has(eventType);
+}
+
+/**
+ * How far a write is shifted off its category's colour. Far enough that a column of reads and a
+ * column of writes separate at a glance, near enough that a write still reads as the same category
+ * — which is the whole point of shading rather than splitting the ramp: "socket" and "file" are
+ * what a reader is deciding between first, and direction is the question asked second.
+ */
+const WRITE_SHADE_PERCENT = 58;
+
+/**
+ * A category's colour as a write wears it: mixed toward the ink, never toward a second hue. Reads
+ * keep the colour untouched — they are the common case, so the shade that matches the lane, the
+ * legend and the threads timeline exactly is the one most rows get — and writes take the darker
+ * one, which suits how much rarer and more expensive they usually are.
+ */
+export function writeShade(color: string): string {
+  return `color-mix(in srgb, ${color} ${WRITE_SHADE_PERCENT}%, var(--color-dark))`;
 }
 
 /** The route name of the view that explains a category, or null for one that has no such view. */
@@ -228,6 +270,138 @@ export function contextLabel(category: string): string {
 
 export function contextColor(category: string): string {
   return CONTEXT_CATEGORIES[category]?.color ?? 'var(--color-text-muted)';
+}
+
+/**
+ * The families a span can belong to, named and coloured in one place so the waterfall bars, the row
+ * markers, the legend and the operation breakdown cannot draw the same instrumentation three
+ * different ways.
+ *
+ * The line between a named family and {@link CUSTOM_SPAN_FAMILY} is the one the backend already
+ * draws in `SpanConventions`: an event type this build holds a convention for — it knows the
+ * exchange is inbound, the statement is a call out to a database, the method was promoted — is a
+ * family and earns a hue. Everything else is either a span the application wrote for itself or
+ * instrumentation nobody here has met, and both stay grey on purpose: a hue would claim a meaning
+ * this build cannot actually read off the event.
+ *
+ * Hue choices, and why each is not somewhere else:
+ *
+ * - The ramp shares no hue with the context ramp above, because promoted waits and instrumented
+ *   spans are drawn in the same waterfall and a shared hue is a claimed relationship.
+ * - Inbound keeps the blue and outbound the cyan that the kind-coloured bars used before this
+ *   palette existed, so a server span still reads blue; gRPC takes the saturated pair of the same
+ *   two hues, which is what lets protocol be told apart at a glance without splitting direction.
+ * - Database is the one family that is neither a direction nor the trace's own code, so it sits off
+ *   on its own in the teal-green nothing else here uses.
+ * - Traced methods deliberately share OWN_WORK's green. It is the same quantity — the trace's own
+ *   code running — seen per method instead of per trace, and the two never disagree about a number.
+ * - Custom is the page's soft grey rather than the slate `PARKED` wears: the two are the entries
+ *   most likely to sit next to each other in a long breakdown, and at a 6px rail a slate and a grey
+ *   that differ only in saturation are the same colour.
+ */
+export type SpanFamilyName =
+  'HTTP_SERVER' | 'HTTP_CLIENT' | 'GRPC_SERVER' | 'GRPC_CLIENT' | 'DATABASE' | 'METHOD' | 'CUSTOM';
+
+export const SPAN_FAMILIES: Record<SpanFamilyName, { label: string; color: string }> = {
+  HTTP_SERVER: { label: 'Inbound HTTP', color: 'var(--flamegraph-color-blue)' },
+  HTTP_CLIENT: { label: 'Outbound HTTP', color: 'var(--flamegraph-color-cyan)' },
+  GRPC_SERVER: { label: 'Inbound gRPC', color: 'var(--chart-series-1)' },
+  GRPC_CLIENT: { label: 'Outbound gRPC', color: 'var(--chart-series-6)' },
+  DATABASE: { label: 'Database', color: 'var(--chart-series-10)' },
+  METHOD: { label: 'Traced method', color: 'var(--flamegraph-color-green)' },
+  CUSTOM: { label: 'Custom span', color: 'var(--color-text-soft)' }
+};
+
+/**
+ * Where every span this build has no convention for lands — a hand-written `Tracer` span, a
+ * `@Traced` scope, an event some third-party instrumentation stamped with trace ids. Named rather
+ * than written as a literal at each fallback, because "unknown" and "custom" are the same case here
+ * and the whole point is that they are drawn identically.
+ */
+export const CUSTOM_SPAN_FAMILY: SpanFamilyName = 'CUSTOM';
+
+/**
+ * The family each known span-producing event type belongs to. Must stay in step with the backend's
+ * `SpanConventions`: that class is where an event type stops being anonymous and gains a kind, a
+ * name template and an outcome, and a type it does not cover has nothing here worth colouring.
+ *
+ * The promoted JDK waits are deliberately absent — they already have the context ramp, and giving
+ * them a second colour under a second name is exactly the disagreement this file exists to prevent.
+ */
+const SPAN_FAMILY_BY_EVENT_TYPE: Record<string, SpanFamilyName> = {
+  'jeffrey.HttpServerExchange': 'HTTP_SERVER',
+  'jeffrey.HttpClientExchange': 'HTTP_CLIENT',
+  'jeffrey.GrpcServerExchange': 'GRPC_SERVER',
+  'jeffrey.GrpcClientExchange': 'GRPC_CLIENT',
+  'jeffrey.JdbcQuery': 'DATABASE',
+  'jeffrey.JdbcInsert': 'DATABASE',
+  'jeffrey.JdbcUpdate': 'DATABASE',
+  'jeffrey.JdbcDelete': 'DATABASE',
+  'jeffrey.JdbcExecute': 'DATABASE',
+  'jeffrey.JdbcStream': 'DATABASE',
+  [METHOD_TRACE_EVENT_TYPE]: 'METHOD'
+};
+
+/**
+ * The family an event type belongs to. Everything unrecognised is {@link CUSTOM_SPAN_FAMILY}, so
+ * this never returns null and no caller has to invent its own fallback colour.
+ *
+ * Call it for a promoted wait and it answers `CUSTOM`, which is right in the sense that the wait
+ * belongs to no instrumentation family and wrong in the sense that the wait is not custom at all —
+ * so ask {@link spanEventColor} for a colour rather than routing through here.
+ */
+export function spanFamily(eventType: string): SpanFamilyName {
+  return SPAN_FAMILY_BY_EVENT_TYPE[eventType] ?? CUSTOM_SPAN_FAMILY;
+}
+
+export function spanFamilyLabel(family: SpanFamilyName): string {
+  return SPAN_FAMILIES[family].label;
+}
+
+export function spanFamilyColor(family: SpanFamilyName): string {
+  return SPAN_FAMILIES[family].color;
+}
+
+/**
+ * The colour any span is drawn in, wherever it is drawn: a promoted wait borrows its context
+ * category — the same colour its band, its legend entry and the threads timeline give that wait,
+ * darkened where it wrote rather than read — and everything else takes its instrumentation
+ * family's, down to the grey a span this build has no convention for shares with one it has never
+ * seen.
+ */
+export function spanEventColor(eventType: string): string {
+  const category = promotedCategory(eventType);
+  if (category !== null) {
+    const color = contextColor(category);
+    return isWritingEventType(eventType) ? writeShade(color) : color;
+  }
+  return spanFamilyColor(spanFamily(eventType));
+}
+
+/** What an event type is, in prose: its context category for a promoted wait, else its family. */
+export function spanEventLabel(eventType: string): string {
+  const category = promotedCategory(eventType);
+  if (category !== null) {
+    return contextLabel(category);
+  }
+  return spanFamilyLabel(spanFamily(eventType));
+}
+
+/**
+ * The families a set of event types covers, in palette order rather than in the order the spans
+ * happened to arrive, so a legend does not reshuffle itself between two traces of the same service.
+ *
+ * Promoted waits are left out: the context entries already decode them, and listing a Socket read
+ * twice under two names would suggest the legend is describing two different things.
+ */
+export function spanFamiliesOf(eventTypes: Iterable<string>): SpanFamilyName[] {
+  const present = new Set<SpanFamilyName>();
+  for (const eventType of eventTypes) {
+    if (promotedCategory(eventType) === null) {
+      present.add(spanFamily(eventType));
+    }
+  }
+  return (Object.keys(SPAN_FAMILIES) as SpanFamilyName[]).filter(family => present.has(family));
 }
 
 export function errorLabel(count: number): string {
