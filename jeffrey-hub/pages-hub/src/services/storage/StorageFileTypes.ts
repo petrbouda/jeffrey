@@ -85,12 +85,4 @@ export function groupUsages(fileTypes: FileTypeUsage[]): GroupUsage[] {
         .filter(usage => usage.fileTypes.length > 0);
 }
 
-/** File types (enum names) not present in the given usages, in registry order. */
-export function absentFileTypeLabels(fileTypes: FileTypeUsage[]): string[] {
-    const present = new Set(fileTypes.map(usage => usage.type));
-    return Object.entries(STORAGE_FILE_TYPES)
-        .filter(([type]) => !present.has(type))
-        .map(([, meta]) => meta.label);
-}
-
 export const STORAGE_FILE_TYPE_COUNT = Object.keys(STORAGE_FILE_TYPES).length;

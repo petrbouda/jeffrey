@@ -78,9 +78,6 @@
         </div>
       </template>
       <div v-if="groups.length === 0" class="empty-note">No files stored yet</div>
-      <div v-if="absentLabels.length > 0" class="absent-note">
-        <b>Not stored:</b> {{ absentLabels.join(' · ') }}
-      </div>
     </div>
 
     <div v-if="project.largestFiles.length > 0" class="drawer-section">
@@ -108,12 +105,7 @@
 import { computed } from 'vue';
 import FormattingService from '@shared/services/FormattingService';
 import type { ProjectStorage } from '@/services/api/model/StorageOverview';
-import {
-  absentFileTypeLabels,
-  fileTypeMeta,
-  groupUsages,
-  STORAGE_FILE_TYPE_COUNT
-} from '@/services/storage/StorageFileTypes';
+import { fileTypeMeta, groupUsages, STORAGE_FILE_TYPE_COUNT } from '@/services/storage/StorageFileTypes';
 
 const props = defineProps<{
   project: ProjectStorage;
@@ -134,7 +126,6 @@ const displayName = computed(() => {
 });
 
 const groups = computed(() => groupUsages(props.project.fileTypes));
-const absentLabels = computed(() => absentFileTypeLabels(props.project.fileTypes));
 
 const barWidth = (sizeBytes: number) => {
   if (props.project.totalSizeBytes === 0) {
@@ -395,20 +386,6 @@ const barWidth = (sizeBytes: number) => {
   padding: 6px 0;
   font-size: 0.78rem;
   color: var(--color-slate-light);
-}
-
-.absent-note {
-  margin-top: 11px;
-  padding-top: 9px;
-  border-top: 1px dashed var(--color-border);
-  font-size: 0.72rem;
-  color: var(--color-text-light);
-  line-height: 1.6;
-}
-
-.absent-note b {
-  color: var(--color-slate-muted);
-  font-weight: 600;
 }
 
 .file-row {
