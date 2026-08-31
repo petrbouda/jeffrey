@@ -54,17 +54,27 @@
             :style="{ width: barWidth(usage.sizeBytes), background: usage.group.color }"
         ></span>
       </div>
+      <div v-if="groups.length > 0" class="column-head">
+        <span>Type</span>
+        <span>Size</span>
+        <span>Files</span>
+      </div>
       <template v-for="usage in groups" :key="usage.group.key">
         <div class="group-row">
-          <span class="group-swatch" :style="{ background: usage.group.color }"></span>
-          <span>{{ usage.group.label }}</span>
+          <span class="group-name">
+            <span class="group-swatch" :style="{ background: usage.group.color }"></span>
+            <span class="group-label">{{ usage.group.label }}</span>
+          </span>
           <span class="group-size">{{ formatBytes(usage.sizeBytes) }}</span>
+          <span class="group-count">{{ usage.fileCount.toLocaleString() }}</span>
         </div>
         <div v-for="fileType in usage.fileTypes" :key="fileType.type" class="type-row">
-          <span class="type-label">{{ meta(fileType.type).label }}</span>
-          <span v-if="meta(fileType.type).extension" class="type-ext">{{ meta(fileType.type).extension }}</span>
+          <span class="type-name">
+            <span class="type-label">{{ meta(fileType.type).label }}</span>
+            <span v-if="meta(fileType.type).extension" class="type-ext">{{ meta(fileType.type).extension }}</span>
+          </span>
           <span class="type-size">{{ formatBytes(fileType.sizeBytes) }}</span>
-          <span class="type-count">{{ fileType.fileCount }} {{ fileType.fileCount === 1 ? 'file' : 'files' }}</span>
+          <span class="type-count">{{ fileType.fileCount.toLocaleString() }}</span>
         </div>
       </template>
       <div v-if="groups.length === 0" class="empty-note">No files stored yet</div>
@@ -237,6 +247,7 @@ const barWidth = (sizeBytes: number) => {
 }
 
 .drawer-section {
+  --storage-columns: 1fr 78px 60px;
   padding: 14px 18px;
   border-bottom: 1px solid var(--color-grey-bg);
 }
@@ -269,14 +280,45 @@ const barWidth = (sizeBytes: number) => {
   height: 100%;
 }
 
-.group-row {
-  display: flex;
-  align-items: center;
+.column-head {
+  display: grid;
+  grid-template-columns: var(--storage-columns);
   gap: 8px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-light);
+}
+
+.column-head span:not(:first-child) {
+  text-align: right;
+}
+
+.group-row {
+  display: grid;
+  grid-template-columns: var(--storage-columns);
+  gap: 8px;
+  align-items: center;
   padding: 8px 0 3px;
   font-size: 0.79rem;
   font-weight: 600;
   color: var(--color-heading-dark);
+}
+
+.group-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.group-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .group-swatch {
@@ -287,17 +329,39 @@ const barWidth = (sizeBytes: number) => {
 }
 
 .group-size {
-  margin-left: auto;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.group-count {
+  text-align: right;
+  font-size: 0.72rem;
+  color: var(--color-slate-muted);
   font-variant-numeric: tabular-nums;
 }
 
 .type-row {
+  display: grid;
+  grid-template-columns: var(--storage-columns);
+  gap: 8px;
+  align-items: baseline;
+  padding: 3px 0;
+  font-size: 0.76rem;
+  color: var(--color-slate-text);
+}
+
+.type-name {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  padding: 3px 0 3px 17px;
-  font-size: 0.76rem;
-  color: var(--color-slate-text);
+  min-width: 0;
+  padding-left: 17px;
+}
+
+.type-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .type-ext {
@@ -308,10 +372,11 @@ const barWidth = (sizeBytes: number) => {
   padding: 1px 6px;
   border-radius: 4px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .type-size {
-  margin-left: auto;
+  text-align: right;
   font-weight: 600;
   color: var(--color-heading-dark);
   white-space: nowrap;
@@ -319,10 +384,9 @@ const barWidth = (sizeBytes: number) => {
 }
 
 .type-count {
+  text-align: right;
   color: var(--color-text-light);
   font-size: 0.72rem;
-  min-width: 52px;
-  text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
