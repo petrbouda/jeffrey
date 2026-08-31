@@ -1131,7 +1131,11 @@ function selectSpanOf(spanId: string | null): void {
   emit('select', span);
 }
 
-/** Opens every ancestor of a span, so a row reached from a rail is actually visible. */
+/**
+ * Opens every ancestor of a span, and the run it is grouped into, so a row reached from a rail is
+ * actually visible. The run is looked up after the ancestors are unfolded: a span under a folded
+ * parent is not drawn at all, so the rows would not yet know which rollup it belongs to.
+ */
 function revealSpan(span: TraceSpanRow): void {
   const byId = new Map(props.spans.map(candidate => [candidate.spanId, candidate]));
   const next = new Set(collapsed.value);
@@ -1141,6 +1145,11 @@ function revealSpan(span: TraceSpanRow): void {
     parentId = byId.get(parentId)?.parentSpanId ?? null;
   }
   collapsed.value = next;
+
+  const run = runContaining(span.spanId);
+  if (run !== null) {
+    expandedRuns.value = new Set(expandedRuns.value).add(run.key);
+  }
 }
 
 function notificationCountTitle(span: TraceSpanRow): string {
@@ -1184,6 +1193,8 @@ watch(
   () => props.spans,
   () => {
     collapsed.value = new Set();
+    expandedRuns.value = new Set();
+    openRunDetail.value = null;
     criticalOnly.value = false;
     showContext.value = true;
     showBlockingOps.value = true;
@@ -1532,15 +1543,14 @@ function buildRun(spans: TraceSpanRow[]): SpanRun {
 }
 
 /*
- * A run containing the selected span counts as expanded whatever the toggle says: the inline
- * detail is drawn under the selected row, and a rollup hiding the row would hide the detail with
- * it — a jump to the first error must land somewhere visible.
+ * Only what the reader unfolded, and nothing implicit. A run holding the selected span used to
+ * count as expanded on that ground alone, which made the twistie a no-op the moment one of the
+ * grouped rows was opened — the fold ran, the selection put it straight back. A jump from outside
+ * still lands somewhere visible because {@link revealSpan} unfolds the run it lands in, so the row
+ * is opened once rather than held open forever.
  */
 function isRunExpanded(run: SpanRun): boolean {
-  if (expandedRuns.value.has(run.key)) {
-    return true;
-  }
-  return props.selectedSpanId != null && run.spans.some(span => span.spanId === props.selectedSpanId);
+  return expandedRuns.value.has(run.key);
 }
 
 function toggleRun(key: string): void {
@@ -1551,6 +1561,20 @@ function toggleRun(key: string): void {
     next.add(key);
   }
   expandedRuns.value = next;
+}
+
+/**
+ * The rollup a span is drawn inside, read from the rows as they currently stand, or null when the
+ * span has a row of its own. Whether a span is grouped depends on its neighbours after filtering,
+ * which only the drawn rows know.
+ */
+function runContaining(spanId: string): SpanRun | null {
+  for (const row of displayRows.value) {
+    if (row.run !== undefined && row.run.spans.some(span => span.spanId === spanId)) {
+      return row.run;
+    }
+  }
+  return null;
 }
 
 /** Which run's statistics panel is open. One at a time, like the span detail above it. */
