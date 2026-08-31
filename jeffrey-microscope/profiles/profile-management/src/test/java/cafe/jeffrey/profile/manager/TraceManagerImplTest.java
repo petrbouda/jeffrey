@@ -108,7 +108,7 @@ class TraceManagerImplTest {
         return new TraceSpanRecord(
                 traceId, spanId, parentSpanId, name, "INTERNAL", "UNSET", null,
                 startMicros / MICROS_PER_MILLI, startMicros, durationNanos, selfDurationNanos,
-                threadHash, "worker", false, "jeffrey.TraceSpan", null, null, false);
+                threadHash, "worker", false, "jeffrey.TraceSpan", null, null, false, null);
     }
 
     /** A span carrying a self time of its own, in milliseconds like the rest of the fixture. */
@@ -131,7 +131,7 @@ class TraceManagerImplTest {
         return new TraceSpanRecord(
                 TRACE, spanId, parentSpanId, name, "CLIENT", "UNSET", null,
                 startMillis, startMillis * MICROS_PER_MILLI, durationMs * MS, durationMs * MS,
-                THREAD, "worker", false, eventType, null, null, true);
+                THREAD, "worker", false, eventType, null, null, true, null);
     }
 
     private TraceManagerImpl managerOf(List<TraceSpanRecord> spans) {
@@ -262,7 +262,7 @@ class TraceManagerImplTest {
             when(traceRepository.spansOf(TRACE)).thenReturn(List.of(new TraceSpanRecord(
                     TRACE, 1L, null, "root", "SERVER", "UNSET", null,
                     0, 0, WINDOW_MICROS * 1_000, WINDOW_MICROS * 1_000,
-                    THREAD, "main", false, "jeffrey.TraceSpan", null, null, false)));
+                    THREAD, "main", false, "jeffrey.TraceSpan", null, null, false, null)));
             when(traceRepository.pausesInWindow(anyLong(), anyLong())).thenReturn(List.of(pauses));
             lenient().when(traceRepository.spanContext(TRACE)).thenReturn(List.of());
             return new TraceManagerImpl(traceRepository).context(TRACE).summary();
@@ -284,7 +284,7 @@ class TraceManagerImplTest {
                     new TraceSpanRecord(
                             TRACE, 1L, null, "root", "SERVER", "UNSET", null,
                             0, 0, WINDOW_MICROS * 1_000, WINDOW_MICROS * 1_000,
-                            THREAD, "main", false, "jeffrey.TraceSpan", null, null, false),
+                            THREAD, "main", false, "jeffrey.TraceSpan", null, null, false, null),
                     promotedSpan(2, 1L, "Socket read", "jdk.SocketRead", 100, 100)));
             when(traceRepository.pausesInWindow(anyLong(), anyLong())).thenReturn(List.of());
             lenient().when(traceRepository.spanContext(TRACE)).thenReturn(List.of());

@@ -107,7 +107,18 @@ VALUES
      '{"thrownClass":"java.util.NoSuchElementException","message":"empty"}'),
 
     -- An Error rather than an Exception, so the event type has to survive to tell them apart.
+    --
+    -- And an Error is recorded three times, not once: JFR emits these from constructors, so
+    -- Throwable's hook commits one jdk.JavaExceptionThrow and Error's hook commits a second one
+    -- beside its jdk.JavaErrorThrow. All three below are the one StackOverflowError, and the
+    -- derivation has to collapse them back to it. The two hooks read the clock separately, which
+    -- is why the first twin lands a millisecond earlier -- a de-duplication that matched on the
+    -- instant would keep it.
+    ('jdk.JavaExceptionThrow', '2025-01-15T10:00:00.071Z', 71, NULL, 1, NULL, NULL, NULL, 3002,
+     '{"thrownClass":"java.lang.StackOverflowError","message":null}'),
     ('jdk.JavaErrorThrow', '2025-01-15T10:00:00.072Z', 72, NULL, 1, NULL, NULL, NULL, 3002,
+     '{"thrownClass":"java.lang.StackOverflowError","message":null}'),
+    ('jdk.JavaExceptionThrow', '2025-01-15T10:00:00.072Z', 72, NULL, 1, NULL, NULL, NULL, 3002,
      '{"thrownClass":"java.lang.StackOverflowError","message":null}'),
 
     -- After every span of the trace ended: no window contains it, so it is not in any trace.

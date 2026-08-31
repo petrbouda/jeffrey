@@ -110,7 +110,7 @@ public final class HeapDumpReportStore {
 
     public void write(String fileName, Object payload, String displayName) {
         try {
-            Files.createDirectories(analysisDir);
+            ensureAnalysisDir();
             Path filePath = analysisDir.resolve(fileName);
             Json.mapper().writerWithDefaultPrettyPrinter().writeValue(filePath.toFile(), payload);
             LOG.info("{} saved: path={}", displayName, filePath);
@@ -118,6 +118,25 @@ public final class HeapDumpReportStore {
             LOG.error("Failed to save {}: path={}", displayName, analysisDir, e);
             throw Exceptions.internal("Failed to save " + displayName + ": " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Creates the analysis directory, but only when it is not already there.
+     * <p>
+     * {@link Files#createDirectories} is idempotent by catching its own
+     * {@link java.nio.file.FileAlreadyExistsException}, so calling it on an existing directory
+     * succeeds — but it still gets there by attempting the {@code mkdir}, and a recording with
+     * {@code jdk.JavaExceptionThrow} enabled captures both that exception and the
+     * {@code sun.nio.fs.UnixException} underneath it, stack traces and all. A heap-dump
+     * initialization writes one report per analysis stage, so the unguarded call turned a routine
+     * save into a dozen throws in the trace. {@link Files#isDirectory} answers from a stat and
+     * throws nothing.
+     */
+    private void ensureAnalysisDir() throws IOException {
+        if (Files.isDirectory(analysisDir)) {
+            return;
+        }
+        Files.createDirectories(analysisDir);
     }
 
     public void delete(String fileName, String displayName) {

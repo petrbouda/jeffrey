@@ -302,6 +302,18 @@ CREATE TABLE IF NOT EXISTS trace_spans
     -- span carries a minted id and is always a leaf under the innermost span open on its thread --
     -- the flag is what lets the UI style and filter promoted waits apart from recorded spans.
     synthesized                    BOOLEAN     NOT NULL DEFAULT FALSE,
+    -- Why a promoted I/O span's operation happened, when the derivation could tell from its stack:
+    -- 'CLASS_LOADING' for a read the class loader asked for, NULL for everything else, including
+    -- every recorded span and every promoted event whose recording captured no stack.
+    --
+    -- Set from the stack rather than from the path, because the path cannot answer it: a library
+    -- unpacking its own native .so reads the same .jar the class loader does, through the same
+    -- java.util.zip frames, and only a classloader frame further down the stack tells them apart.
+    -- NULL therefore means "not known to be class loading" and never "known not to be".
+    --
+    -- Nullable and a string rather than a boolean so a second origin can be added without a
+    -- migration and without re-deriving what this one means.
+    io_origin                      VARCHAR,
     PRIMARY KEY (trace_id, span_id)
 );
 

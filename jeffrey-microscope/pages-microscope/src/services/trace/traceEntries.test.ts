@@ -88,7 +88,8 @@ function span(spanId: string, parentSpanId: string | null, depth: number): Trace
     eventType: 'jeffrey.TraceSpan',
     attributes: null,
     eventFields: null,
-    synthesized: false
+    synthesized: false,
+    ioOrigin: null
   };
 }
 

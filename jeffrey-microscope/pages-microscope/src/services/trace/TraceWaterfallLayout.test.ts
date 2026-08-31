@@ -55,6 +55,7 @@ function span(
     attributes: null,
     eventFields: null,
     synthesized: false,
+    ioOrigin: null,
     ...overrides
   };
 }

@@ -226,6 +226,14 @@ jdk.ZAllocationStall#enabled=true,jdk.ZAllocationStall#threshold=0ms`;
 
       <p>Promoted spans are marked apart from recorded ones: drawn solid in their wait category's colour rather than a span-kind pastel, and their detail names the JDK event they came from. Two toolbar toggles govern them along the reader's question — <strong>Blocking ops</strong> for the lock, park, sleep and stall rows, and <strong>I/O ops</strong> for the file and socket rows — so hiding lock noise never hides the socket read that explains the trace. Switching both off reads the recorded span structure alone; a toggle whose family recorded nothing stays visible but disabled.</p>
 
+      <h3 id="class-loading">Class-loading reads</h3>
+
+      <p>A third switch, <strong>Class loading</strong>, narrows the I/O family, and it is the one overlay that starts <em>off</em>. A JVM reading its own jars can produce thousands of microsecond-long file reads that answer nothing about the request: in the trace this was built from, 553 of 673 spans were file reads worth 3ms in total, enough to crowd the rest of the trace out of the export entirely. Turning the switch on brings them back for when class loading <em>is</em> the question.</p>
+
+      <p>The verdict comes from the read's <strong>stack</strong>, never from its path, because the path cannot answer it. A library unpacking its own native library reads the same <code>.jar</code> through the same <code>java.util.zip</code> frames as the class loader does &mdash; in one measured JVM that accounted for 2534 of 2628 jar reads, against roughly 68 that were genuinely class loading. Only a class-loader frame further down the stack separates them.</p>
+
+      <p>Read the marking one-sidedly. A read is flagged when a class-loader frame is on its stack; anything else is left unflagged, which includes every read in a recording that captured no stack traces at all. Unflagged therefore means <em>nothing said this was class loading</em>, never <em>this was established to be something else</em>.</p>
+
       <figure class="docs-figure">
         <img src="/images/docs/tracing/file-socket-io.webp" alt="A waterfall with promoted File read and Socket write spans folded into runs" />
         <figcaption>Promoted I/O in the waterfall &mdash; <em>File read &times;84</em> and <em>Socket write &times;19</em> folded into runs, drawn in their category colours, with the per-category summary underneath.</figcaption>

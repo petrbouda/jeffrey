@@ -824,7 +824,8 @@ public class TraceManagerImpl implements TraceManager {
                 span.eventType(),
                 span.attributes(),
                 span.eventFields(),
-                span.synthesized());
+                span.synthesized(),
+                span.ioOrigin());
     }
 
     /**

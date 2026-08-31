@@ -65,6 +65,11 @@ package cafe.jeffrey.provider.profile.api;
  *                                 rather than reading it off an instrumented span event. A
  *                                 synthesized span carries a minted id and is always a leaf under
  *                                 the innermost span open on its thread
+ * @param ioOrigin                 why a promoted I/O span's operation happened, when the derivation
+ *                                 could tell from its stack: {@code CLASS_LOADING} for a read the
+ *                                 class loader asked for, {@code null} for everything else. A miss
+ *                                 means nothing said it was class loading — including a recording
+ *                                 that captured no stack — never that it was established not to be
  */
 public record TraceSpanRecord(
         long traceId,
@@ -84,5 +89,6 @@ public record TraceSpanRecord(
         String eventType,
         String attributes,
         String eventFields,
-        boolean synthesized) {
+        boolean synthesized,
+        String ioOrigin) {
 }

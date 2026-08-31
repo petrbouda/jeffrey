@@ -75,8 +75,16 @@ public final class HprofShallowSizeCorrector {
                 }
                 return rows;
             });
+            // `?::INTEGER` rather than a bare `?`: DuckDB cannot infer a type for a
+            // parameter standing alone in arithmetic and reports it as the literal
+            // type name "INVALID", which the JDBC driver resolves through
+            // DuckDBColumnType.valueOf -- an enum with no INVALID constant. The
+            // IllegalArgumentException that follows is caught by the driver and
+            // mapped to UNKNOWN, so nothing fails; it is thrown twice per parameter
+            // on every prepare, and each one fills in a stack trace. The cast costs
+            // nothing and makes the prepare silent.
             client.update(HeapDumpStatement.UPDATE_INSTANCE_SHALLOW_SIZE_OOPS,
-                    "UPDATE instance SET shallow_size = shallow_size - c.oop_count * ? "
+                    "UPDATE instance SET shallow_size = shallow_size - c.oop_count * ?::INTEGER "
                             + "FROM _class_chain_oop c "
                             + "WHERE instance.class_id = c.class_id "
                             + "  AND instance.record_kind = " + HprofIndex.RECORD_KIND_INSTANCE,
@@ -89,10 +97,12 @@ public final class HprofShallowSizeCorrector {
         // and may have just become unaligned again after the OOP-delta
         // subtraction. Use modular arithmetic (no division) so the math stays
         // in INTEGER domain — DuckDB's `/` promotes to floating point on
-        // bound parameters.
+        // bound parameters. The `?::INTEGER` casts are for the reason given
+        // above the OOP-delta update.
         client.update(HeapDumpStatement.UPDATE_INSTANCE_SHALLOW_SIZE_ALIGN,
-                "UPDATE instance SET shallow_size = shallow_size + ((? - shallow_size % ?) % ?) "
-                        + "WHERE shallow_size % ? <> 0",
+                "UPDATE instance SET shallow_size = "
+                        + "shallow_size + ((?::INTEGER - shallow_size % ?::INTEGER) % ?::INTEGER) "
+                        + "WHERE shallow_size % ?::INTEGER <> 0",
                 alignment, alignment, alignment, alignment);
     }
 

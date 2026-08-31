@@ -84,8 +84,12 @@ public class JdbcTraceRepository implements TraceRepository {
      */
     //language=SQL
     /**
-     * The event types that record a single throw. Both feed trace_exceptions: the reader tells an
-     * Error from an Exception by the event type it kept, not by guessing from the class name.
+     * The event types that record a throw. Both feed trace_exceptions: the reader tells an Error
+     * from an Exception by the event type the row kept, not by guessing from the class name.
+     * <p>
+     * Neither records a throw exactly once — an Error arrives as two {@code jdk.JavaExceptionThrow}
+     * and one {@code jdk.JavaErrorThrow} — so the derivation collapses each throwable back to one
+     * row before anything counts them. See {@code DERIVE_TRACE_EXCEPTIONS}.
      */
     private static final List<String> THROW_EVENT_TYPES =
             List.of(EventTypeName.JAVA_EXCEPTION_THROW, EventTypeName.JAVA_ERROR_THROW);
@@ -337,7 +341,7 @@ public class JdbcTraceRepository implements TraceRepository {
             INSERT INTO trace_spans (
                 trace_id, span_id, parent_span_id, name, kind, status, error_type,
                 start_timestamp, start_timestamp_from_beginning, duration, self_duration,
-                thread_hash, event_type, attributes, event_fields_ref, synthesized)
+                thread_hash, event_type, attributes, event_fields_ref, synthesized, io_origin)
             WITH spans AS (
                 SELECT
                     e.*,
@@ -375,6 +379,32 @@ public class JdbcTraceRepository implements TraceRepository {
                        UNNEST([:blocking_names])       AS name,
                        UNNEST([:blocking_kinds])       AS kind
             ),
+            /*
+             * Which stack traces belong to a class loader, as a set of hashes to probe.
+             *
+             * Scoped by the join to events_raw: only stacks a promoted event actually references are
+             * unnested, so this never walks the profile's whole stacktraces table, which on a
+             * sampled recording is orders of magnitude larger than the set of blocking events.
+             *
+             * Every frame is examined, not just the leaf-most few. A stack whose only loader frame
+             * sits near the root -- I/O reached from inside a static initializer the loader is
+             * running -- is class-loading work by any reading a reader would give it, and this
+             * derivation runs once per profile, so there is nothing to buy by stopping early.
+             */
+            class_loading_stacks AS (
+                SELECT DISTINCT st.stacktrace_hash AS stacktrace_hash
+                FROM stacktraces st
+                JOIN events_raw io
+                  ON io.stacktrace_hash = st.stacktrace_hash
+                 AND io.event_type IN (:class_loading_event_types)
+                CROSS JOIN UNNEST(st.frame_hashes) AS u(frame_hash)
+                JOIN frames f ON f.frame_hash = u.frame_hash
+                WHERE f.class_name IS NOT NULL
+                  AND EXISTS (
+                      SELECT 1
+                      FROM UNNEST([:class_loading_frame_prefixes]) p(prefix)
+                      WHERE starts_with(f.class_name, p.prefix))
+            ),
             -- events_raw rather than the events view, because rowid -- which the minted span id
             -- below folds in -- exists only on a physical table. The pooled field is spliced back
             -- by hand here (see REHYDRATED_FIELDS): a promoted wait's payload is the recording's
@@ -390,10 +420,15 @@ public class JdbcTraceRepository implements TraceRepository {
                     <<rehydrated>>                                  AS fields,
                     m.name                                          AS name,
                     m.kind                                          AS kind,
-                    EPOCH_US(e.start_timestamp)                     AS start_us
+                    EPOCH_US(e.start_timestamp)                     AS start_us,
+                    -- NULL rather than a negative verdict: a recording with no stack traces lands
+                    -- here too, and it has not established that this read was anything.
+                    CASE WHEN cls.stacktrace_hash IS NOT NULL
+                         THEN :class_loading_origin END             AS io_origin
                 FROM events_raw e
                 LEFT JOIN field_texts t ON t.text_hash = e.pooled_text_hash
                 JOIN mapping m ON m.event_type = e.event_type
+                LEFT JOIN class_loading_stacks cls ON cls.stacktrace_hash = e.stacktrace_hash
                 WHERE e.event_type IN (:blocking_event_types)
                   AND e.thread_hash IS NOT NULL
             ),
@@ -430,11 +465,12 @@ public class JdbcTraceRepository implements TraceRepository {
             ),
             candidates AS (
                 SELECT event_row, event_type, start_timestamp, start_ms, duration, thread_hash,
-                       fields, name, kind, start_us, FALSE AS nests
+                       fields, name, kind, start_us, FALSE AS nests, io_origin
                 FROM blocking
                 UNION ALL
+                -- A traced method is not an I/O operation, so it has no origin to carry.
                 SELECT event_row, event_type, start_timestamp, start_ms, duration, thread_hash,
-                       fields, name, kind, start_us, nests
+                       fields, name, kind, start_us, nests, NULL AS io_origin
                 FROM methods
             ),
             -- Which trace a candidate belongs to, answered by the innermost RECORDED span open on
@@ -534,7 +570,8 @@ public class JdbcTraceRepository implements TraceRepository {
                     m.event_type                                        AS event_type,
                     NULL                                                AS attributes,
                     NULLIF(CAST(json_merge_patch(m.fields, '{%s}') AS VARCHAR), '{}') AS payload,
-                    TRUE                                                AS synthesized
+                    TRUE                                                AS synthesized,
+                    m.io_origin                                         AS io_origin
                 FROM parented m
                 WHERE NOT EXISTS (
                     SELECT 1 FROM recorded t
@@ -584,7 +621,10 @@ public class JdbcTraceRepository implements TraceRepository {
                        COALESCE(a.method_parent_span_id, r.parent_span_id) AS parent_span_id,
                        r.name, r.kind, r.status, r.error_type,
                        r.start_timestamp, r.start_ms, r.duration, r.thread_hash, r.event_type,
-                       r.attributes, r.payload, r.synthesized
+                       r.attributes, r.payload, r.synthesized,
+                       -- A recorded span is instrumentation, not an I/O operation the derivation
+                       -- inferred a reason for.
+                       NULL                                             AS io_origin
                 FROM recorded r
                 LEFT JOIN adoptions a
                   ON a.trace_id = r.trace_id
@@ -592,7 +632,7 @@ public class JdbcTraceRepository implements TraceRepository {
                 UNION ALL
                 SELECT trace_id, span_id, parent_span_id, name, kind, status, error_type,
                        start_timestamp, start_ms, duration, thread_hash, event_type,
-                       attributes, payload, synthesized
+                       attributes, payload, synthesized, io_origin
                 FROM promoted
             ),
             clipped AS (
@@ -668,7 +708,8 @@ public class JdbcTraceRepository implements TraceRepository {
                      ELSE CAST(mod(hash(s.payload),
                                    CAST(9223372036854775807 AS UBIGINT)) AS BIGINT)
                 END                                                     AS event_fields_ref,
-                s.synthesized                                           AS synthesized
+                s.synthesized                                           AS synthesized,
+                s.io_origin                                             AS io_origin
             FROM all_spans s
             LEFT JOIN covered c
               ON c.trace_id = s.trace_id
@@ -917,6 +958,27 @@ public class JdbcTraceRepository implements TraceRepository {
      * `escaped` says this throw is why its span failed, decided by matching the thrown class
      * against the span's own error_type. A throw caught inside the span leaves it FALSE, which is
      * most of them.
+     *
+     * One throwable, one row -- which takes the `distinct_throws` step, because JFR does not record
+     * these events once each. Both are emitted from constructors (jdk.jfr.internal.instrument
+     * .ThrowableTracer, woven into Throwable and Error), and the Error hook commits an
+     * ExceptionThrown of its own beside its ErrorThrown. So constructing an Error emits three
+     * events -- two jdk.JavaExceptionThrow and one jdk.JavaErrorThrow -- while an ordinary
+     * exception emits one. Counted raw, every Error is three throws and appears twice over, once
+     * under each event type, as two findings that are really one.
+     *
+     * The de-duplication is by class rather than by instant: a class either extends Error or it
+     * does not, so a class that produced any jdk.JavaErrorThrow keeps only those rows, and its
+     * jdk.JavaExceptionThrow rows are the duplicate view of the same objects. Matching on the
+     * timestamp instead would be wrong -- the Error hook and the Throwable hook read the clock
+     * separately, so the twins are not guaranteed to share a tick. OutOfMemoryError is the one
+     * Error the tracer skips, emitting no jdk.JavaErrorThrow at all; it produces no error rows to
+     * anti-join against, so its single event survives, which is the right answer for it too.
+     *
+     * A recording with jdk.JavaErrorThrow disabled has nothing to de-duplicate against and its
+     * errors stay double-counted. Nothing here can recover that -- the duplicate is
+     * indistinguishable from a second throw -- and both event types travel together in every
+     * settings file that enables either.
      */
     //language=SQL
     private static final String DERIVE_TRACE_EXCEPTIONS = """
@@ -938,6 +1000,32 @@ public class JdbcTraceRepository implements TraceRepository {
                 WHERE e.event_type IN (:exception_event_types)
                   AND e.thread_hash IS NOT NULL
             ),
+            named AS (
+                SELECT
+                    x.exception_id,
+                    x.event_type,
+                    x.start_timestamp,
+                    x.start_ms,
+                    x.start_us,
+                    x.thread_hash,
+                    x.stacktrace_hash,
+                    json_extract_string(x.fields, '$.thrownClass') AS thrown_class,
+                    json_extract_string(x.fields, '$.message')     AS message
+                FROM thrown x
+            ),
+            -- One row per throwable constructed. NOT EXISTS rather than NOT IN so that a row whose
+            -- class did not extract survives to be dropped by the NOT NULL filter below, instead of
+            -- turning the whole predicate NULL and taking every other row with it.
+            distinct_throws AS (
+                SELECT n.*
+                FROM named n
+                WHERE n.event_type = :error_throw_event_type
+                   OR NOT EXISTS (
+                        SELECT 1
+                        FROM named twin
+                        WHERE twin.event_type = :error_throw_event_type
+                          AND twin.thrown_class = n.thrown_class)
+            ),
             attributed AS (
                 SELECT
                     x.exception_id,
@@ -946,12 +1034,12 @@ public class JdbcTraceRepository implements TraceRepository {
                     x.start_ms,
                     x.thread_hash,
                     x.stacktrace_hash,
-                    json_extract_string(x.fields, '$.thrownClass') AS thrown_class,
-                    json_extract_string(x.fields, '$.message')     AS message,
+                    x.thrown_class,
+                    x.message,
                     s.trace_id                                     AS trace_id,
                     s.span_id                                      AS span_id,
                     s.error_type                                   AS error_type
-                FROM thrown x
+                FROM distinct_throws x
                 JOIN trace_spans s
                   ON s.thread_hash = x.thread_hash
                  AND EPOCH_US(s.start_timestamp) <= x.start_us
@@ -1066,7 +1154,8 @@ public class JdbcTraceRepository implements TraceRepository {
                 s.event_type                            AS event_type,
                 s.attributes                            AS attributes,
                 p.payload                               AS event_fields,
-                s.synthesized                           AS synthesized
+                s.synthesized                           AS synthesized,
+                s.io_origin                             AS io_origin
             FROM trace_spans s
             LEFT JOIN threads t ON s.thread_hash = t.thread_hash
             LEFT JOIN trace_span_payloads p ON p.payload_id = s.event_fields_ref
@@ -1668,6 +1757,9 @@ public class JdbcTraceRepository implements TraceRepository {
                 .addValue("blocking_names", BlockingLeafSpans.names())
                 .addValue("blocking_kinds", BlockingLeafSpans.kinds())
                 .addValue("method_event_type", MethodSpans.EVENT_TYPE)
+                .addValue("class_loading_event_types", ClassLoadingFrames.EVENT_TYPES)
+                .addValue("class_loading_frame_prefixes", ClassLoadingFrames.CLASS_NAME_PREFIXES)
+                .addValue("class_loading_origin", ClassLoadingFrames.CLASS_LOADING_ORIGIN)
                 .addValue("promoted_event_types", List.copyOf(PromotedSpans.EVENT_TYPES));
 
         // Before the spans: the span insert stores payload references, and every reference it
@@ -1722,6 +1814,7 @@ public class JdbcTraceRepository implements TraceRepository {
                 DERIVE_TRACE_EXCEPTIONS,
                 new MapSqlParameterSource()
                         .addValue("exception_event_types", THROW_EVENT_TYPES)
+                        .addValue("error_throw_event_type", EventTypeName.JAVA_ERROR_THROW)
                         .addValue("resolution_failure_classes", RESOLUTION_FAILURE_CLASSES));
     }
 
@@ -1968,7 +2061,8 @@ public class JdbcTraceRepository implements TraceRepository {
                 rs.getString("event_type"),
                 rs.getString("attributes"),
                 rs.getString("event_fields"),
-                rs.getBoolean("synthesized"));
+                rs.getBoolean("synthesized"),
+                rs.getString("io_origin"));
     }
 
     @Override
