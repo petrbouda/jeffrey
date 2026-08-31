@@ -265,12 +265,7 @@
           <i class="rail-glyph ntf" :style="{ background: severityColor(worstNotificationSeverity) }"></i>
           Notifications
         </span>
-        <span class="lane-stat">
-          <template v-if="worstNotificationSeverity !== null">
-            {{ severityLabel(worstNotificationSeverity).toLowerCase() }} &middot;
-          </template>
-          {{ notificationMarks.length }}&times;
-        </span>
+        <span class="lane-stat">{{ notificationMarks.length }}&times;</span>
       </span>
       <span class="lane-track">
         <span class="rail-rule"></span>
