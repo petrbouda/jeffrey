@@ -66,12 +66,27 @@ The 5 table-groups are also unbalanced: `outbound_ref` gets two sequential `CREA
 largest table while `stack_trace_frame` gets one over a tiny one, so wall clock is roughly the
 `outbound_ref` group alone and four workers finish early.
 
-Minor, same file: `CREATE_DDL_BY_TABLE` is documented as "Iteration order is preserved via
-`LinkedHashMap`" but is assigned `Map.copyOf(m)`, whose iteration order is unspecified. Harmless —
-the groups run in parallel — but the comment claims something the code does not do.
+Minor, same file: `CREATE_DDL_BY_TABLE` was documented as "Iteration order is preserved via
+`LinkedHashMap`" but assigned `Map.copyOf(m)`, whose iteration order is unspecified. Harmless — the
+groups run in parallel — but the comment claimed something the code did not do.
 
-Status: **open.** Routing the parallel path through `HeapDumpDatabaseClient.execute` is small and
-turns 19% of the trace into 8 named spans.
+Status: **fixed.** Both worker paths now issue their DDL through `HeapDumpDatabaseClient.execute`,
+so each `CREATE INDEX` emits a `JdbcExecuteEvent`, and each table-group's task is wrapped with
+`Tracer.fork` so those events land under the phase's span. `CREATE_DDL_BY_TABLE` became an ordered
+`List<IndexGroup>`, which makes the ordering claim true by construction and supplies the table name
+each worker span is called after (`create_indexes_outbound_ref`, …).
+
+The measurement behind it is worth keeping, because the obvious half of the fix is not the one that
+mattered. Routing through the client alone *does* emit all eight events — but with
+`traceId=0, spanId=0`, because a span lives in a `ScopedValue` and a plain executor does not inherit
+one. The derivation drops an untraced event, so the phase would have stayed a single bar while
+committing eight events nobody could see. `HprofNonPkIndexesTest.nestsEveryWorkerUnderThePhaseSpan`
+pins exactly that, via `SpansAssert.hasNoUntracedSpans()`, and fails on the traceId=0 shape.
+
+Two consequences beyond this phase. `walk_pass_b` and `write_string_content` fan out the same way
+and are still uninstrumented, so their worker time is equally invisible — the same two-line pattern
+applies. And this is the same root cause as §3: work handed to a plain executor leaves the trace
+behind unless something carries the context across.
 
 ## 3. A virtual thread's park is attributed to its carrier
 

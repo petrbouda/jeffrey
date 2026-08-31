@@ -97,5 +97,11 @@
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- JfrRecordings/SpansAssert: the index-build phases are asserted through a real flight
+             recording, because a span's parentage is only observable in what JFR actually committed. -->
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-events-test</artifactId>
+        </dependency>
     </dependencies>
 </project>
