@@ -175,7 +175,7 @@ public class EventFieldsToJsonMapper implements EventFieldsMapper {
         } else if (CLASS_TYPE_NAME.equals(typeName)) {
             return (event, slots) -> {
                 RecordedClass clazz = event.getClass(name);
-                slots.putString(name, RecordedClassMapper.map(clazz.getName()));
+                slots.putString(name, safeClassName(clazz));
             };
         } else if (CLASS_LOADER_TYPE_NAME.equals(typeName)) {
             // The JFR ClassLoader struct ({type: Class, name: String}) has no special
@@ -263,6 +263,16 @@ public class EventFieldsToJsonMapper implements EventFieldsMapper {
 
     private static String safeToString(Object val) {
         return val == null ? null : val.toString();
+    }
+
+    /**
+     * A {@code java.lang.Class} field can legitimately be absent — {@code jdk.ThreadPark.parkedClass}
+     * is null when {@code LockSupport.park()} is called with no blocker, and a monitor event can be
+     * emitted with no monitor class. Such a field lands as an explicit JSON null rather than failing
+     * the whole recording.
+     */
+    private static String safeClassName(RecordedClass clazz) {
+        return clazz == null ? null : RecordedClassMapper.map(clazz.getName());
     }
 
     /**

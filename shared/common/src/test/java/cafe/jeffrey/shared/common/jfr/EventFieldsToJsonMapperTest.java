@@ -278,6 +278,52 @@ class EventFieldsToJsonMapperTest {
     }
 
     @Nested
+    class AbsentClassFields {
+
+        /**
+         * A JFR {@code java.lang.Class} field can be absent — {@code jdk.ThreadPark.parkedClass} is
+         * null whenever {@code LockSupport.park()} is called with no blocker. Reading it used to
+         * dereference the missing class and fail the whole recording.
+         */
+        @Test
+        void mapsAnAbsentClassFieldToNullInsteadOfFailing() throws IOException {
+            Path dumpFile = Files.createTempFile("null-class-mapper-test", ".jfr");
+            List<RecordedEvent> events;
+            List<EventType> eventTypes;
+            try (Recording recording = new Recording()) {
+                recording.enable(MapperProbeEvent.class);
+                recording.start();
+
+                MapperProbeEvent event = new MapperProbeEvent();
+                event.stringValue = "no-class-here";
+                event.classValue = null;
+                event.threadValue = null;
+                event.commit();
+
+                recording.stop();
+                recording.dump(dumpFile);
+            }
+            events = RecordingFile.readAllEvents(dumpFile);
+            eventTypes = events.stream().map(RecordedEvent::getEventType).distinct().toList();
+            Files.deleteIfExists(dumpFile);
+
+            RecordedEvent probe = events.stream()
+                    .filter(e -> PROBE_EVENT_NAME.equals(e.getEventType().getName()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException("Probe event was not recorded"));
+
+            EventFieldsToJsonMapper mapper = new EventFieldsToJsonMapper();
+            mapper.update(eventTypes);
+
+            ObjectNode node = fullTree(mapper.map(probe));
+
+            assertTrue(node.has("classValue"), "an absent class must still be reported as a field");
+            assertTrue(node.get("classValue").isNull(), "an absent class must map to a JSON null");
+            assertEquals("no-class-here", node.get("stringValue").asString());
+        }
+    }
+
+    @Nested
     class G1EvacuationStatisticsStructFields {
 
         @Test
