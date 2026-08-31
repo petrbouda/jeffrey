@@ -40,18 +40,33 @@ The split is exact: every table with a primary key is slow, every table without 
 `outbound_ref` has more rows than `instance` and loads 10× faster.
 
 `HprofNonPkIndexes` exists precisely to avoid this — it drops every non-PK index before the bulk
-writes so per-row inserts skip ART-tree updates, then recreates them in bulk. Two gaps:
+writes so per-row inserts skip ART-tree updates, then recreates them in bulk. It cannot help here,
+and the first reading of this finding proposed two fixes that the evidence then killed.
 
-- **A PK's ART index cannot be dropped**, so `instance` and `string_content` pay it anyway. The
-  class name concedes this; its javadoc does not.
-- **The dominator stage is not covered at all.** `HprofNonPkIndexes` is referenced only from
-  `HprofIndex`; `DominatorTreeBuilder` opens its own connection and bulk-loads into fully-indexed
-  tables. `idx_dominator_parent` is not even in `HprofNonPkIndexes.DROP_DDL`, so extending the
-  strategy to that stage would also mean adding it to the list.
+**The secondary index is not the cost.** `retained_size` carries *only* a PK and took **28.8s**;
+`dominator` carries a PK *plus* `idx_dominator_parent` and took **27.7s**. The table with the extra
+index was the faster of the two. Both hold one row per reachable instance, so the row counts should
+be near-identical and this is close to a controlled comparison. Adding `idx_dominator_parent` to
+`DROP_DDL` and dropping it around the load — the "tractable half" — would therefore buy roughly
+nothing.
 
-Status: **open.** The dominator half looks tractable — a secondary index *can* be dropped around
-the load. The PK half is a real design trade-off (dropping and re-adding a PK trades a correctness
-guarantee for time) and should not be taken without asking.
+**The PK cannot be dropped at all.** Measured against DuckDB 1.5.3.0:
+
+```
+DROP INDEX idx_dominator_parent           -> OK
+ALTER TABLE dominator DROP CONSTRAINT ... -> Not implemented Error:
+                                             No support for that ALTER TABLE option yet!
+```
+
+So this is not a drop-and-recreate that trades a guarantee for time. The only route is to remove the
+`PRIMARY KEY` from the schema outright and add a unique index after the load — giving up uniqueness
+enforcement *during* it, in the phase most likely to be interrupted, and only if DuckDB's
+`CREATE UNIQUE INDEX` performs better than PK maintenance, which nothing here has measured.
+
+Status: **closed, not fixed.** The cheap half buys nothing and the valuable half is not implementable
+as scoped. Reopening it needs a real heap dump to measure against, not this trace: everything above
+is one sample, and the PK/non-PK correlation across six loads is suggestive rather than a controlled
+experiment. Worth revisiting if DuckDB gains `ALTER TABLE ... DROP CONSTRAINT`.
 
 ## 2. `create_indexes` is a black box — 50.5s, 19% of the trace
 
@@ -66,12 +81,33 @@ The 5 table-groups are also unbalanced: `outbound_ref` gets two sequential `CREA
 largest table while `stack_trace_frame` gets one over a tiny one, so wall clock is roughly the
 `outbound_ref` group alone and four workers finish early.
 
-Minor, same file: `CREATE_DDL_BY_TABLE` is documented as "Iteration order is preserved via
-`LinkedHashMap`" but is assigned `Map.copyOf(m)`, whose iteration order is unspecified. Harmless —
-the groups run in parallel — but the comment claims something the code does not do.
+Minor, same file: `CREATE_DDL_BY_TABLE` was documented as "Iteration order is preserved via
+`LinkedHashMap`" but assigned `Map.copyOf(m)`, whose iteration order is unspecified. Harmless — the
+groups run in parallel — but the comment claimed something the code did not do.
 
-Status: **open.** Routing the parallel path through `HeapDumpDatabaseClient.execute` is small and
-turns 19% of the trace into 8 named spans.
+Status: **fixed.** Both worker paths now issue their DDL through `HeapDumpDatabaseClient.execute`,
+so each `CREATE INDEX` emits a `JdbcExecuteEvent`, and each table-group's task is wrapped with
+`Tracer.fork` so those events land under the phase's span. `CREATE_DDL_BY_TABLE` became an ordered
+`List<IndexGroup>`, which makes the ordering claim true by construction and supplies the table name
+each worker span is called after (`create_indexes_outbound_ref`, …).
+
+The measurement behind it is worth keeping, because the obvious half of the fix is not the one that
+mattered. Routing through the client alone *does* emit all eight events — but with
+`traceId=0, spanId=0`, because a span lives in a `ScopedValue` and a plain executor does not inherit
+one. The derivation drops an untraced event, so the phase would have stayed a single bar while
+committing eight events nobody could see. `HprofNonPkIndexesTest.nestsEveryWorkerUnderThePhaseSpan`
+pins exactly that, via `SpansAssert.hasNoUntracedSpans()`, and fails on the traceId=0 shape.
+
+The same pattern was then applied to the other two fanned-out phases, `walk_pass_b` and
+`write_string_content`, via `Tracer.forkCallable` — the `Callable` form that fits
+`executor.submit` directly. Their workers now open a `walk_pass_b_worker` /
+`write_string_content_worker` span each, which is another 66s of the index build that used to read
+as coordinator self time. Every worker of a phase shares one span name deliberately: they are
+instances of one operation, and a name carrying a worker index would put one string per worker into
+JFR's per-chunk pool, on a count that varies with the machine's CPUs.
+`HprofIndexTracingTest` runs a whole synthetic index build and pins both properties.
+
+This is also as far as §3 can be taken from inside Jeffrey — see there.
 
 ## 3. A virtual thread's park is attributed to its carrier
 
@@ -94,8 +130,20 @@ thread and no span is open on a carrier, so the wait is recorded and then droppe
 This is not specific to heap dumps: the pipeline runs on `Schedulers.sharedVirtual()`, so **every**
 Jeffrey pipeline on that scheduler reads as 100% `OWN_WORK`.
 
-Status: **open**, and the one with the widest blast radius. Needs thought — correlating a carrier's
-park with the virtual thread mounted on it, or bookkeeping from `jdk.VirtualThreadStart`/`End`.
+Status: **closed as not fixable here**, with a partial substitute already in place.
+
+Correlating a carrier's park back to the virtual thread mounted on it would be wrong more often than
+right: when a virtual thread parks it *unmounts*, and the carrier then parks waiting for **other**
+work. Those are two different waits, and attributing the carrier's idle to the virtual thread would
+invent a wait the virtual thread did not have. The virtual thread's own wait is simply not recorded
+as `jdk.ThreadPark` — that is a JFR limitation, not something the derivation can repair.
+
+What *can* be done, and now is: instrument the fan-out so the workers the coordinator was waiting for
+are visible as spans (§2). The coordinator's time still reads as own work — self time only subtracts
+same-thread children — but a reader can now see what it was waiting on, which is the question the
+missing `PARKED` was being asked to answer.
+
+Reopen only if JFR gains a mount-aware park event.
 
 ## 4. The span cap truncates the half of the trace that matters
 

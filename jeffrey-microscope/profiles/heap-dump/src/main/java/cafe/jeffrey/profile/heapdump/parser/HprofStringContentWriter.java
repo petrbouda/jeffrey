@@ -17,6 +17,7 @@
  */
 package cafe.jeffrey.profile.heapdump.parser;
 
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.JavaStringDecoder;
 import cafe.jeffrey.profile.heapdump.persistence.ParquetSink;
 import cafe.jeffrey.profile.heapdump.persistence.ParquetStaging;
@@ -53,6 +54,14 @@ import cafe.jeffrey.profile.heapdump.view.JdkFieldNames;
  * cap (every String is materialised in full).
  */
 public final class HprofStringContentWriter {
+
+    /**
+     * Every worker of this phase shares one span name: the workers are instances of the same
+     * operation, not different ones, and a name carrying a worker index would put one string per
+     * worker into JFR's per-chunk pool to say something the durations already say. Each span covers
+     * one range of java.lang.String instances, decoded into this worker's parquet shard.
+     */
+    private static final String SPAN_WORKER = "write_string_content_worker";
 
     // HPROF stores class names with slash separators; "java/lang/String" is the
     // canonical String type name as it appears in the string pool.
@@ -147,10 +156,11 @@ public final class HprofStringContentWriter {
                     int start = starts[w];
                     int end = ends[w];
                     Path outputPath = staging.partFile(STRING_CONTENT_TABLE, w);
-                    futures.add(executor.submit(() -> runWorker(
+                    // See HprofPassBWalker: the fork is what keeps the worker inside the trace.
+                    futures.add(executor.submit(Tracer.forkCallable(SPAN_WORKER, () -> runWorker(
                             file, instanceIds, fileOffsets, start, end,
                             finalValueOffset, finalCoderOffset, idSize,
-                            arrayInfoByArrayId, threshold, outputPath)));
+                            arrayInfoByArrayId, threshold, outputPath))));
                 }
             }
 

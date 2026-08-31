@@ -17,6 +17,7 @@
  */
 package cafe.jeffrey.profile.heapdump.parser;
 
+import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.profile.heapdump.persistence.ParquetSink;
 import cafe.jeffrey.profile.heapdump.persistence.ParquetStaging;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
@@ -59,6 +60,14 @@ import cafe.jeffrey.profile.heapdump.view.HprofTypeSize;
  * primitive-array maps unioned.
  */
 public final class HprofPassBWalker {
+
+    /**
+     * Every worker of this phase shares one span name: the workers are instances of the same
+     * operation, not different ones, and a name carrying a worker index would put one string per
+     * worker into JFR's per-chunk pool to say something the durations already say. Each span covers
+     * one slice of the heap-dump regions, decoded and written to this worker's parquet shards.
+     */
+    private static final String SPAN_WORKER = "walk_pass_b_worker";
 
     private static final String INSTANCE_STAGING_DDL =
             "instance_id BIGINT, class_id BIGINT, file_offset BIGINT, record_kind TINYINT, "
@@ -121,8 +130,11 @@ public final class HprofPassBWalker {
                     List<HprofRecord.HeapDumpRegion> assigned = partitions.get(w);
                     Map<String, Path> outputs = staging.partFiles(
                             w, INSTANCE_TABLE, GC_ROOT_TABLE, OUTBOUND_REF_TABLE);
-                    futures.add(executor.submit(() ->
-                            runWorker(file, assigned, classesById, idSize, layout, outputs)));
+                    // forkCallable, not a bare lambda: a span lives in a ScopedValue and a plain
+                    // executor does not inherit one, so without this the workers run outside the
+                    // trace and the phase reports its whole parallel decode as unexplained self time.
+                    futures.add(executor.submit(Tracer.forkCallable(SPAN_WORKER, () ->
+                            runWorker(file, assigned, classesById, idSize, layout, outputs))));
                 }
             }
 
