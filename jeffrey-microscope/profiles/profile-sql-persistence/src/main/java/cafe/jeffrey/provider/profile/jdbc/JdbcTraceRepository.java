@@ -84,8 +84,12 @@ public class JdbcTraceRepository implements TraceRepository {
      */
     //language=SQL
     /**
-     * The event types that record a single throw. Both feed trace_exceptions: the reader tells an
-     * Error from an Exception by the event type it kept, not by guessing from the class name.
+     * The event types that record a throw. Both feed trace_exceptions: the reader tells an Error
+     * from an Exception by the event type the row kept, not by guessing from the class name.
+     * <p>
+     * Neither records a throw exactly once — an Error arrives as two {@code jdk.JavaExceptionThrow}
+     * and one {@code jdk.JavaErrorThrow} — so the derivation collapses each throwable back to one
+     * row before anything counts them. See {@code DERIVE_TRACE_EXCEPTIONS}.
      */
     private static final List<String> THROW_EVENT_TYPES =
             List.of(EventTypeName.JAVA_EXCEPTION_THROW, EventTypeName.JAVA_ERROR_THROW);
@@ -917,6 +921,27 @@ public class JdbcTraceRepository implements TraceRepository {
      * `escaped` says this throw is why its span failed, decided by matching the thrown class
      * against the span's own error_type. A throw caught inside the span leaves it FALSE, which is
      * most of them.
+     *
+     * One throwable, one row -- which takes the `distinct_throws` step, because JFR does not record
+     * these events once each. Both are emitted from constructors (jdk.jfr.internal.instrument
+     * .ThrowableTracer, woven into Throwable and Error), and the Error hook commits an
+     * ExceptionThrown of its own beside its ErrorThrown. So constructing an Error emits three
+     * events -- two jdk.JavaExceptionThrow and one jdk.JavaErrorThrow -- while an ordinary
+     * exception emits one. Counted raw, every Error is three throws and appears twice over, once
+     * under each event type, as two findings that are really one.
+     *
+     * The de-duplication is by class rather than by instant: a class either extends Error or it
+     * does not, so a class that produced any jdk.JavaErrorThrow keeps only those rows, and its
+     * jdk.JavaExceptionThrow rows are the duplicate view of the same objects. Matching on the
+     * timestamp instead would be wrong -- the Error hook and the Throwable hook read the clock
+     * separately, so the twins are not guaranteed to share a tick. OutOfMemoryError is the one
+     * Error the tracer skips, emitting no jdk.JavaErrorThrow at all; it produces no error rows to
+     * anti-join against, so its single event survives, which is the right answer for it too.
+     *
+     * A recording with jdk.JavaErrorThrow disabled has nothing to de-duplicate against and its
+     * errors stay double-counted. Nothing here can recover that -- the duplicate is
+     * indistinguishable from a second throw -- and both event types travel together in every
+     * settings file that enables either.
      */
     //language=SQL
     private static final String DERIVE_TRACE_EXCEPTIONS = """
@@ -938,6 +963,32 @@ public class JdbcTraceRepository implements TraceRepository {
                 WHERE e.event_type IN (:exception_event_types)
                   AND e.thread_hash IS NOT NULL
             ),
+            named AS (
+                SELECT
+                    x.exception_id,
+                    x.event_type,
+                    x.start_timestamp,
+                    x.start_ms,
+                    x.start_us,
+                    x.thread_hash,
+                    x.stacktrace_hash,
+                    json_extract_string(x.fields, '$.thrownClass') AS thrown_class,
+                    json_extract_string(x.fields, '$.message')     AS message
+                FROM thrown x
+            ),
+            -- One row per throwable constructed. NOT EXISTS rather than NOT IN so that a row whose
+            -- class did not extract survives to be dropped by the NOT NULL filter below, instead of
+            -- turning the whole predicate NULL and taking every other row with it.
+            distinct_throws AS (
+                SELECT n.*
+                FROM named n
+                WHERE n.event_type = :error_throw_event_type
+                   OR NOT EXISTS (
+                        SELECT 1
+                        FROM named twin
+                        WHERE twin.event_type = :error_throw_event_type
+                          AND twin.thrown_class = n.thrown_class)
+            ),
             attributed AS (
                 SELECT
                     x.exception_id,
@@ -946,12 +997,12 @@ public class JdbcTraceRepository implements TraceRepository {
                     x.start_ms,
                     x.thread_hash,
                     x.stacktrace_hash,
-                    json_extract_string(x.fields, '$.thrownClass') AS thrown_class,
-                    json_extract_string(x.fields, '$.message')     AS message,
+                    x.thrown_class,
+                    x.message,
                     s.trace_id                                     AS trace_id,
                     s.span_id                                      AS span_id,
                     s.error_type                                   AS error_type
-                FROM thrown x
+                FROM distinct_throws x
                 JOIN trace_spans s
                   ON s.thread_hash = x.thread_hash
                  AND EPOCH_US(s.start_timestamp) <= x.start_us
@@ -1722,6 +1773,7 @@ public class JdbcTraceRepository implements TraceRepository {
                 DERIVE_TRACE_EXCEPTIONS,
                 new MapSqlParameterSource()
                         .addValue("exception_event_types", THROW_EVENT_TYPES)
+                        .addValue("error_throw_event_type", EventTypeName.JAVA_ERROR_THROW)
                         .addValue("resolution_failure_classes", RESOLUTION_FAILURE_CLASSES));
     }
 

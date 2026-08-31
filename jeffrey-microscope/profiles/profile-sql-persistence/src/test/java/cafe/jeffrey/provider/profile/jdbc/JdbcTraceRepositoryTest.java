@@ -2021,6 +2021,40 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
+        @DisplayName("collapses the three events an Error is recorded as into one throw")
+        void collapsesTheErrorTriple(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            // The fixture records one StackOverflowError the way JFR does: two
+            // jdk.JavaExceptionThrow beside one jdk.JavaErrorThrow, from the Throwable and Error
+            // constructor hooks. Counted raw it is three throws in two findings; it is one throw.
+            List<TraceExceptionRecord> thrown = repository.exceptionsOf(SLOW_TRACE).stream()
+                    .filter(record -> "java.lang.StackOverflowError".equals(record.thrownClass()))
+                    .toList();
+
+            assertEquals(1, thrown.size(), "one throwable, one row: " + thrown);
+            assertEquals(
+                    EventTypeName.JAVA_ERROR_THROW,
+                    thrown.getFirst().eventType(),
+                    "and the row that survives is the one that says it was an Error");
+        }
+
+        @Test
+        @DisplayName("keeps an ordinary exception, which is recorded only once")
+        void keepsTheSingleExceptionEvent(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            // The other half of the de-duplication: a class with no jdk.JavaErrorThrow of its own
+            // has no twin to drop, so an anti-join that over-reached would take this one too.
+            List<TraceExceptionRecord> thrown = repository.exceptionsOf(SLOW_TRACE).stream()
+                    .filter(record -> "java.io.IOException".equals(record.thrownClass()))
+                    .toList();
+
+            assertEquals(1, thrown.size(), "nothing to collapse, and nothing dropped: " + thrown);
+            assertEquals(EventTypeName.JAVA_EXCEPTION_THROW, thrown.getFirst().eventType());
+        }
+
+        @Test
         @DisplayName("keeps the event type, so an Error is not mistaken for an Exception")
         void keepsTheThrowEventType(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = withEntries(dataSource);
