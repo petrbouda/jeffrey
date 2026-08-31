@@ -60,6 +60,11 @@ package cafe.jeffrey.profile.manager.model.trace;
  *                                 event rather than reading it off an instrumented span event — what
  *                                 lets the waterfall style and filter promoted waits apart from
  *                                 recorded spans
+ * @param ioOrigin                 why a promoted I/O span's operation happened, when the derivation
+ *                                 could tell from its stack: {@code CLASS_LOADING} for a read the
+ *                                 class loader asked for, {@code null} for everything else. A miss
+ *                                 means nothing said it was class loading — including a recording
+ *                                 that captured no stack — never that it was established not to be
  */
 public record TraceSpanRow(
         String spanId,
@@ -80,5 +85,6 @@ public record TraceSpanRow(
         String eventType,
         String attributes,
         String eventFields,
-        boolean synthesized) {
+        boolean synthesized,
+        String ioOrigin) {
 }

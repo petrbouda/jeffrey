@@ -28,6 +28,30 @@ VALUES
     ('jdk.Deoptimization', 'Deoptimization', 34, 'deopt', '["Java Virtual Machine","Compiler"]', '1', NULL, true, NULL, NULL,
      '[{"field":"reason","header":"Reason"}]');
 
+-- Stacks for the two class-loading probes below. ROOT-FIRST, like every stacktrace in this schema,
+-- so the leaf -- the frame that actually read the file -- is the LAST element.
+--
+-- The pair exists to pin the one distinction the classification rests on: both read a .jar, and both
+-- reach it through the same java.util.zip leaf frame. Only the frames underneath differ. A rule that
+-- looked at the path, or at the leaf, would give these two the same answer and be wrong about one.
+INSERT INTO frames (frame_hash, class_name, method_name, frame_type, line_number, bytecode_index)
+VALUES
+    (8101, 'java.lang.Thread', 'run', 'Interpreted', 1583, 0),
+    -- The class-loading chain, exactly as JFR records it: Resource.getBytes is the leaf, and the
+    -- loader frames sit a few frames underneath.
+    (8102, 'jdk.internal.loader.BuiltinClassLoader', 'loadClass', 'JIT', 578, 4),
+    (8103, 'jdk.internal.loader.BuiltinClassLoader', 'defineClass', 'JIT', 773, 12),
+    (8104, 'jdk.internal.loader.Resource', 'getBytes', 'Interpreted', 106, 0),
+    -- A library unpacking its own native library out of the very same jar. No loader frame anywhere.
+    (8105, 'org.duckdb.DuckDBNative', 'loadNativeLibrary', 'Interpreted', 51, 0),
+    (8106, 'org.duckdb.DuckDBNative', 'unpackAndLoad', 'Interpreted', 88, 21),
+    (8107, 'java.util.zip.ZipFile$Source', 'readAt', 'JIT', 1289, 7);
+
+INSERT INTO stacktraces (stacktrace_hash, type_id, frame_hashes, tag_ids)
+VALUES
+    (7101, 100, [8101, 8102, 8103, 8104], []),
+    (7102, 100, [8101, 8105, 8106, 8107], []);
+
 INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES
     -- The two recorded spans: parent 601 and its same-thread child 602.
@@ -49,6 +73,16 @@ VALUES
     -- length, rather than a row silently dropped.
     ('jdk.FileRead', '2025-01-15T11:00:00.050Z', 3600050, NULL, 1, NULL, NULL, NULL, 3002,
      '{"path":"/data/empty.bin","bytesRead":0,"endOfFile":true}'),
+
+    -- Read by the class loader: a loader frame is on the stack, so this one is CLASS_LOADING.
+    ('jdk.FileRead', '2025-01-15T11:00:00.030Z', 3600030, 1000000, 1, NULL, NULL, 7101, 3002,
+     '{"path":"/app/lib/microscope.jar","bytesRead":10240,"endOfFile":false}'),
+
+    -- The same jar, the same java.util.zip leaf frame, a library unpacking its own .so. NOT class
+    -- loading -- and the row that fails if the classification ever regresses to matching on the path
+    -- or on the leaf frame.
+    ('jdk.FileRead', '2025-01-15T11:00:00.040Z', 3600040, 1000000, 1, NULL, NULL, 7102, 3002,
+     '{"path":"/app/lib/microscope.jar","bytesRead":8192,"endOfFile":false}'),
 
     -- Inside the parent only, after the child has ended.
     ('jdk.ThreadPark', '2025-01-15T11:00:00.350Z', 3600350, 20000000, 1, NULL, NULL, NULL, 3002,

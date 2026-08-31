@@ -2241,6 +2241,59 @@ class JdbcTraceRepositoryTest {
                     .orElseThrow();
         }
 
+        private static TraceSpanRecord readOfSize(JdbcTraceRepository repository, int bytesRead) {
+            String marker = "\"bytesRead\":" + bytesRead;
+            return promotedOf(repository).stream()
+                    .filter(span -> span.eventFields() != null && span.eventFields().contains(marker))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("no promoted read of " + bytesRead + " bytes"));
+        }
+
+        @Test
+        @DisplayName("marks a file read the class loader asked for")
+        void marksClassLoadingReads(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withBlockingEvents(dataSource);
+
+            assertEquals(
+                    "CLASS_LOADING",
+                    readOfSize(repository, 10240).ioOrigin(),
+                    "its stack carries jdk.internal.loader frames under the leaf");
+        }
+
+        @Test
+        @DisplayName("leaves a read of the same jar through the same leaf frame unmarked")
+        void doesNotMarkANativeLibraryUnpack(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withBlockingEvents(dataSource);
+
+            // The whole reason the verdict is taken from the stack rather than from the path: this
+            // row reads the very same .jar as the one above, arrives through the same
+            // java.util.zip.ZipFile$Source.readAt leaf, and is a library unpacking its own native
+            // library. A rule matching on the path or the leaf frame calls it class loading.
+            assertNull(
+                    readOfSize(repository, 8192).ioOrigin(),
+                    "no loader frame on its stack, so nothing established it as class loading");
+        }
+
+        @Test
+        @DisplayName("leaves a read with no recorded stack unmarked rather than guessing")
+        void doesNotMarkAReadWithoutAStack(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withBlockingEvents(dataSource);
+
+            // A recording with stack traces switched off lands here for every read. The verdict is
+            // one-sided by design, so the absence of a stack has to read as "not known", never as a
+            // finding that the read was something else.
+            assertNull(readOfSize(repository, 65536).ioOrigin());
+        }
+
+        @Test
+        @DisplayName("leaves a recorded span's origin null — it is not an I/O operation")
+        void recordedSpansCarryNoOrigin(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withBlockingEvents(dataSource);
+
+            assertNull(spanOf(repository, PARENT_SPAN).ioOrigin());
+            assertNull(spanOf(repository, CHILD_SPAN).ioOrigin());
+        }
+
         @Test
         @DisplayName("promotes a blocking event under the innermost enclosing span")
         void promotesUnderTheInnermostSpan(DataSource dataSource) throws SQLException {
@@ -2290,8 +2343,8 @@ class JdbcTraceRepositoryTest {
         void leavesUnparentedEventsAlone(DataSource dataSource) throws SQLException {
             List<TraceSpanRecord> promoted = promotedOf(withBlockingEvents(dataSource));
 
-            assertEquals(4, promoted.size(),
-                    "the socket read, both file reads and the park — not the late read, not the foreign monitor");
+            assertEquals(6, promoted.size(),
+                    "the socket read, all four file reads and the park — not the late read, not the foreign monitor");
             assertTrue(promoted.stream().noneMatch(span -> span.durationNanos() == 10 * MS),
                     "the read after the trace ended has no span to hang on");
             assertTrue(promoted.stream().noneMatch(span -> span.durationNanos() == 40 * MS),
@@ -2303,7 +2356,7 @@ class JdbcTraceRepositoryTest {
         void mintsUsableSpanIds(DataSource dataSource) throws SQLException {
             List<TraceSpanRecord> promoted = promotedOf(withBlockingEvents(dataSource));
 
-            assertEquals(4, promoted.stream().map(TraceSpanRecord::spanId).distinct().count());
+            assertEquals(6, promoted.stream().map(TraceSpanRecord::spanId).distinct().count());
             assertTrue(promoted.stream().allMatch(span -> span.spanId() > 0),
                     "minted in [1, 2^63-1]: never 0, the wire encoding for absent, and never negative");
         }
@@ -2315,7 +2368,7 @@ class JdbcTraceRepositoryTest {
                     .summaryOf(BLOCKING_TRACE)
                     .orElseThrow();
 
-            assertEquals(6, summary.spanCount(), "two recorded spans and four promoted waits");
+            assertEquals(8, summary.spanCount(), "two recorded spans and six promoted waits");
         }
 
         @Test

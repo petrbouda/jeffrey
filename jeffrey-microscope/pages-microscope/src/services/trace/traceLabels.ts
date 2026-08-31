@@ -26,7 +26,8 @@ import {
 import type {
   SpanKind,
   TraceContextCategoryName,
-  TraceOperationId
+  TraceOperationId,
+  TraceSpanRow
 } from '@/services/api/model/trace/TraceModels';
 
 /**
@@ -220,6 +221,26 @@ const IO_CATEGORIES: ReadonlySet<TraceContextCategoryName> = new Set(['SOCKET_IO
  */
 export function isIoCategory(category: string): boolean {
   return IO_CATEGORIES.has(category as TraceContextCategoryName);
+}
+
+/**
+ * The `ioOrigin` a promoted I/O span carries when the derivation found a class-loader frame on its
+ * stack. Must match `ClassLoadingFrames.CLASS_LOADING_ORIGIN` on the backend.
+ */
+const CLASS_LOADING_ORIGIN = 'CLASS_LOADING';
+
+/**
+ * Whether this span is I/O the class loader asked for.
+ *
+ * The waterfall hides these by default, because a JVM reading its own jars can outnumber the spans a
+ * reader came for by an order of magnitude while costing microseconds — in the trace that prompted
+ * this, 553 of 673 spans were file reads worth 3ms in total.
+ *
+ * One-sided, like the field: `false` means nothing said class loading, not that something said
+ * otherwise, so this is only ever used to *hide* rows and never to label a row as something else.
+ */
+export function isClassLoadingIo(span: TraceSpanRow): boolean {
+  return span.ioOrigin === CLASS_LOADING_ORIGIN;
 }
 
 /**

@@ -46,7 +46,8 @@ function row(spanId: string, depth: number): TraceSpanRow {
     eventType: 'jeffrey.TraceSpan',
     attributes: null,
     eventFields: null,
-    synthesized: false
+    synthesized: false,
+    ioOrigin: null
   };
 }
 

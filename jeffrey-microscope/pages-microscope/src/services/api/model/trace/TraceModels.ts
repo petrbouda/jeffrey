@@ -108,6 +108,17 @@ export interface TraceSpanRow {
    * Anything that walks the tree has to allow for a synthesized span with children.
    */
   synthesized: boolean;
+  /**
+   * Why a promoted I/O span's operation happened, when the derivation could tell from its stack:
+   * `'CLASS_LOADING'` for a read the class loader asked for, `null` for everything else.
+   *
+   * Read it one-sidedly. `null` means nothing on the stack said class loading — which is also what a
+   * recording that captured no stack traces produces — and never that the read was established to be
+   * something else. The backend sets it from `ClassLoadingFrames`; a path or a leaf frame cannot
+   * answer this, because a library unpacking its own native library reads the same jar through the
+   * same `java.util.zip` frames as the class loader does.
+   */
+  ioOrigin: string | null;
 }
 
 /**

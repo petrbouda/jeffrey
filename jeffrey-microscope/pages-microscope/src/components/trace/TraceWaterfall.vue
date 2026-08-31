@@ -93,6 +93,18 @@
         <button
           type="button"
           class="wf-switch-item"
+          :aria-pressed="showClassLoadingIo && classLoadingIoCount > 0"
+          :disabled="classLoadingIoCount === 0"
+          :title="classLoadingToggleTitle"
+          @click="showClassLoadingIo = !showClassLoadingIo"
+        >
+          <span class="wf-switch" :class="{ on: showClassLoadingIo && classLoadingIoCount > 0 }"></span>
+          Class loading
+          <span v-if="classLoadingIoCount === 0" class="wf-zero">0 events</span>
+        </button>
+        <button
+          type="button"
+          class="wf-switch-item"
           :aria-pressed="showMethodOps && promotedMethodCount > 0"
           :disabled="promotedMethodCount === 0"
           :title="methodToggleTitle"
@@ -933,6 +945,7 @@ import {
   contextColor,
   contextLabel,
   exceptionColor,
+  isClassLoadingIo,
   isIoCategory,
   isMethodEventType,
   promotedCategory,
@@ -1176,6 +1189,9 @@ watch(
     showBlockingOps.value = true;
     showIoOps.value = true;
     showMethodOps.value = true;
+    // Back to the default rather than to "shown": a new trace starts with the class-loading noise
+    // put away, whatever the reader had opened up on the last one.
+    showClassLoadingIo.value = false;
   }
 );
 
@@ -1203,6 +1219,20 @@ const showBlockingOps = ref(true);
 const showIoOps = ref(true);
 
 /**
+ * Whether the file reads the class loader asked for are drawn.
+ *
+ * The only overlay here that starts OFF, and the reason is volume against value: a JVM reading its
+ * own jars produces thousands of microsecond-long reads that answer nothing about the request. In
+ * the trace this was built for, 553 of 673 spans were file reads worth 3ms in total — enough to push
+ * the whole second half of the trace out of the AI export's span budget. A reader who wants them
+ * back is asking a class-loading question and can say so.
+ *
+ * Nested under {@link showIoOps} rather than beside it: these rows *are* I/O, so hiding the I/O
+ * family has to hide them too, and this only narrows what that family shows.
+ */
+const showClassLoadingIo = ref(false);
+
+/**
  * Whether the promoted traced-method rows are drawn.
  *
  * Its own master rather than a share of the blocking one, because it answers a different question:
@@ -1220,6 +1250,15 @@ const promotedCount = computed(() => props.spans.filter(span => span.synthesized
 const promotedIoCount = computed(() => props.spans.filter(isPromotedIo).length);
 
 const promotedMethodCount = computed(() => props.spans.filter(isPromotedMethod).length);
+
+/*
+ * Deliberately NOT a term in the complement below. Class-loading reads are promoted I/O and are
+ * already counted by promotedIoCount; this switch narrows that family rather than carving a new one
+ * out of it, so subtracting here would leave those rows counted by nothing.
+ */
+const classLoadingIoCount = computed(
+  () => props.spans.filter(span => isPromotedIo(span) && isClassLoadingIo(span)).length
+);
 
 /*
  * Counted as the complement, so every promoted row belongs to exactly one master and none of them
@@ -1275,6 +1314,17 @@ const ioToggleTitle = computed(() => {
   return showIoOps.value
     ? `Hide the ${ops} drawn as child spans`
     : `Show the ${ops} drawn as child spans`;
+});
+
+const classLoadingToggleTitle = computed(() => {
+  if (classLoadingIoCount.value === 0) {
+    return 'No file reads in this trace were attributed to class loading';
+  }
+  const count = classLoadingIoCount.value;
+  const reads = count === 1 ? '1 file read' : `${count} file reads`;
+  return showClassLoadingIo.value
+    ? `Hide the ${reads} the class loader asked for`
+    : `Show the ${reads} the class loader asked for`;
 });
 
 const allBands = computed(() =>
@@ -1612,7 +1662,15 @@ function isSpanDrawn(span: TraceSpanRow): boolean {
   if (isPromotedMethod(span)) {
     return showMethodOps.value;
   }
-  return isPromotedIo(span) ? showIoOps.value : showBlockingOps.value;
+  if (isPromotedIo(span)) {
+    // Composed, not parallel: class-loading reads are I/O, so the I/O master hides them too and this
+    // switch only decides whether the family shows all of itself or the part a reader came for.
+    if (!showIoOps.value) {
+      return false;
+    }
+    return isClassLoadingIo(span) ? showClassLoadingIo.value : true;
+  }
+  return showBlockingOps.value;
 }
 
 /**
@@ -1664,6 +1722,10 @@ function showAllSpans(): void {
   showBlockingOps.value = true;
   showIoOps.value = true;
   showMethodOps.value = true;
+  // TRUE here, unlike the reset above, and the difference is the point: this button is the empty
+  // state's "show me everything", so it has to undo the default too or a trace whose only spans are
+  // class-loading reads offers a way out that changes nothing.
+  showClassLoadingIo.value = true;
 }
 
 /** In drawn order, so "first" means the first the reader would meet scrolling down. */

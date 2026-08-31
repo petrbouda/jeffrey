@@ -22,6 +22,7 @@ import {
   contextColor,
   CUSTOM_SPAN_FAMILY,
   errorLabel,
+  isClassLoadingIo,
   isIoCategory,
   isMethodEventType,
   METHOD_TRACE_EVENT_TYPE,
@@ -37,7 +38,7 @@ import {
   spanKindVariant,
   writeShade
 } from '@/services/trace/traceLabels';
-import type { TraceOperationId } from '@/services/api/model/trace/TraceModels';
+import type { TraceOperationId, TraceSpanRow } from '@/services/api/model/trace/TraceModels';
 
 describe('errorLabel', () => {
   it('says "1 error", not "1 errors"', () => {
@@ -361,5 +362,49 @@ describe('isMethodEventType', () => {
     // it. A traced method is the trace's own work, not a wait, so giving it a category here would
     // move its time out of OWN_WORK and into a wait total that never happened.
     expect(promotedCategory(METHOD_TRACE_EVENT_TYPE)).toBeNull();
+  });
+});
+
+describe('isClassLoadingIo', () => {
+  /** A promoted file read carrying whatever origin the derivation gave it. */
+  function fileRead(ioOrigin: string | null): TraceSpanRow {
+    return {
+      spanId: '1',
+      parentSpanId: null,
+      name: 'File read',
+      kind: 'INTERNAL',
+      status: 'UNSET',
+      errorType: null,
+      startMillisFromBeginning: 0,
+      startEpochMicros: 0,
+      durationNanos: 0,
+      selfDurationNanos: 0,
+      criticalPathNanos: 0,
+      depth: 0,
+      threadHash: '900',
+      threadName: 'worker',
+      isVirtual: false,
+      eventType: 'jdk.FileRead',
+      attributes: null,
+      eventFields: null,
+      synthesized: true,
+      ioOrigin
+    };
+  }
+
+  it('recognises a read the class loader asked for', () => {
+    expect(isClassLoadingIo(fileRead('CLASS_LOADING'))).toBe(true);
+  });
+
+  it('reads a missing origin as "not known", which is what hides nothing', () => {
+    // The verdict is one-sided on purpose: a recording with no stack traces gives every read a null
+    // origin, and that must leave the row drawn rather than quietly filed under class loading.
+    expect(isClassLoadingIo(fileRead(null))).toBe(false);
+  });
+
+  it('does not treat some other origin as class loading', () => {
+    // The column is a string so a second origin can be added without a migration. When one is, it
+    // must not fall into this switch by default.
+    expect(isClassLoadingIo(fileRead('JAR_RESOURCE'))).toBe(false);
   });
 });
