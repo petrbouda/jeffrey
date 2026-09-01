@@ -6,9 +6,9 @@ the `traces`/`trace_spans`/`trace_*` schema, `TraceManagerImpl`, `TracesControll
 `TraceAttributesController`, the four trace views, `components/trace/*`, and the docs site
 (`jeffrey-pages/src/views/docs/tracing/`).
 
-Every finding carries file:line references and was verified against the current tree. The
-fixes for §1.1–§1.8, §1.10, §2.2, §3.1, §3.2 and §4.1 were subsequently applied on this branch —
-they are marked **[FIXED]** below; everything else remains report-only. It picks up where
+Every finding carries file:line references and was verified against the current tree. The fixes for
+§1.1–§1.8, §1.10, §2.1, §2.2, §3.1, §3.2 and §4.1 were subsequently applied on this branch and are
+marked **[FIXED]** below; everything else remains report-only. It picks up where
 `TRACES_ANALYSIS.md` (2026-08-15) left off: the findings fixed there are not repeated, and where
 that document has gone stale it is called out (§2.1).
 
@@ -189,7 +189,7 @@ caps: `MAX_PAUSE_LOOKBACK_MILLIS = 60_000` (`:1540`) and `MAX_THROTTLE_SAMPLE_GA
 
 ## 2. Dead / stranded surface
 
-### 2.1 The profile-wide trace list has no UI (and `TRACES_ANALYSIS.md` is stale on it) — [MOCKUP DELIVERED, DECISION PENDING]
+### 2.1 The profile-wide trace list has no UI (and `TRACES_ANALYSIS.md` is stale on it) — [FIXED]
 
 `GET /api/internal/profiles/{id}/traces` (`TracesController.java:125-151` — a full `TracesPage`
 with `search`, `errorsOnly`, `minDurationNanos`, the operation triple, sort, desc, limit, offset)
@@ -204,6 +204,16 @@ operations and attributes views. Consequently the whole `TraceListQuery` → `TR
 
 Either ship the page (§5.1) or delete the endpoints deliberately — today it is tested, maintained,
 unserved surface.
+
+Fix note: the page was shipped. `views/profiles/detail/traces/ProfileTraces.vue` (route
+`traces/all`, sidebar "All Traces", first in the TRACES group) serves both endpoints — a bucketed
+timeline over the recording, server-side search / errors-only / duration-floor filters, ordering by
+`DURATION | START | SPAN_COUNT | ERROR_COUNT`, fifty-at-a-time paging with `LoadMoreFooter`, filters
+mirrored into the URL, and rows opening the existing `TraceSpansModal`. `TracesPage`,
+`TraceListQuery` and `TraceSortField` now exist in `TraceModels.ts`, with `getTraces` /
+`getTracesTimeline` on `ProfileTracesClient`. The timeline uses the shared `TimeSeriesChart` in the
+same pairing as its two sibling charts rather than a bespoke density strip, which is what the
+"must not disagree" comment in `TraceAttributeResults.vue` asks for.
 
 ### 2.2 Operation-level AI export is implemented but unreachable — [FIXED]
 
@@ -419,8 +429,7 @@ tables, not data grids) but are exactly where ~1,200 lines of bespoke scoped CSS
 2. ~~§1.4/§1.5 race guards + loading affordance in attribute search; guard the `loadPage`
    append~~ — **done on this branch**.
 3. ~~§1.6 transactional `derive()`~~ — **done on this branch**.
-4. ~~§2.2 operation AI-export button~~ — **done on this branch**; §2.1 trace list: interactive
-   mockup delivered, build/delete decision pending.
+4. ~~§2.2 operation AI-export button · §2.1 profile-wide trace list~~ — **done on this branch**.
 5. ~~§1.7 unify window arithmetic · §1.8 add `NONE_EQ` · §1.10 unify `threadHash` base~~ —
    **done on this branch**.
 6. ~~§3.1 slowest-traces pagination · §3.2 sort direction end-to-end · §4.1 token cleanup~~ —

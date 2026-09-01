@@ -71,10 +71,10 @@ describe('profileNavConfig', () => {
 
   it('collects a sane number of nav items', () => {
     // 7 Overview (incl. Dashboards) + 19 JVM (incl. GC/JIT submenu parents + children)
-    // + 16 Application (incl. Memory Issues submenu) + 4 Traces (Traces by Operation,
-    // Search Traces, Attribute Values, Latency by Attributes) + 4 Visualization
+    // + 16 Application (incl. Memory Issues submenu) + 5 Traces (All Traces, Traces by
+    // Operation, Search Traces, Attribute Values, Latency by Attributes) + 4 Visualization
     // + 17 HeapDump + 4 Tools + 4 Advisor + 35 Technologies
-    expect(allItems.length).toBe(110);
+    expect(allItems.length).toBe(111);
   });
 
   it('every item has a label and a bootstrap icon', () => {
@@ -180,6 +180,7 @@ describe('profileNavConfig', () => {
     expect(getModeForPath(profilePath('/string-symbol-tables'))).toBe('JVM');
     expect(getModeForPath(profilePath('/technologies/hub'))).toBe('Technologies');
     // Traces is its own mode now, and `method-tracing` must stay a technology despite the near-name.
+    expect(getModeForPath(profilePath('/traces/all'))).toBe('Traces');
     expect(getModeForPath(profilePath('/traces/operations'))).toBe('Traces');
     expect(getModeForPath(profilePath('/traces/attributes/search'))).toBe('Traces');
     expect(getModeForPath(profilePath('/technologies/method-tracing/slowest'))).toBe('Technologies');

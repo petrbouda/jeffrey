@@ -387,6 +387,32 @@ export interface TraceContext {
   summary: TraceContextSlice[];
 }
 
+/** What a trace list can be ordered by; must match the backend's `TraceSortField`. */
+export type TraceSortField = 'DURATION' | 'START' | 'SPAN_COUNT' | 'ERROR_COUNT';
+
+/**
+ * How the profile-wide trace list should be narrowed, ordered and paged; every field is optional.
+ *
+ * The field names are the wire names, so the client passes them through untranslated. The operation
+ * triple the endpoint also accepts is left out: this list is the one that is not scoped to a type,
+ * and a partial triple is silently ignored by the server anyway.
+ */
+export interface TraceListQuery {
+  search?: string;
+  errorsOnly?: boolean;
+  minDurationNanos?: number;
+  sort?: TraceSortField;
+  desc?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+/** One page of traces, with how many the same filter matched in total. */
+export interface TracesPage {
+  traces: TraceRow[];
+  totalMatching: number;
+}
+
 /** What an operation list can be ordered by; must match the backend's `TraceOperationSortField`. */
 export type TraceOperationSortField =
   'TOTAL_TIME' | 'P50' | 'P95' | 'P99' | 'MAX' | 'COUNT' | 'ERRORS' | 'NAME';
