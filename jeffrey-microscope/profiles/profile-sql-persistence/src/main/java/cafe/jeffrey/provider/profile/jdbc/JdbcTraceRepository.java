@@ -1741,6 +1741,13 @@ public class JdbcTraceRepository implements TraceRepository {
 
     @Override
     public void derive() {
+        // Atomic, because a half-derived state is worse than none: a failure after the span insert
+        // but before the trace headers left rows that hasTraces() cannot see — the feature checker
+        // disabled the section while the orphan spans stayed in the file.
+        databaseClient.inTransaction(this::deriveTables);
+    }
+
+    private void deriveTables() {
         // Every one of these tables is wholly a function of `events`, so deriving twice must land
         // where deriving once did. Without this a re-run doubled every span and then failed on the
         // traces primary key, leaving the profile with spans that no trace header accounts for.

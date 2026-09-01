@@ -7,8 +7,8 @@ the `traces`/`trace_spans`/`trace_*` schema, `TraceManagerImpl`, `TracesControll
 (`jeffrey-pages/src/views/docs/tracing/`).
 
 Every finding carries file:line references and was verified against the current tree. The
-tier-1 fixes (§1.1, §1.2, §1.3) were subsequently applied on this branch — they are marked
-**[FIXED]** below; everything else remains report-only. It picks up where
+tier-1 fixes (§1.1, §1.2, §1.3) and tier-2 fixes (§1.4, §1.5, §1.6) were subsequently applied
+on this branch — they are marked **[FIXED]** below; everything else remains report-only. It picks up where
 `TRACES_ANALYSIS.md` (2026-08-15) left off: the findings fixed there are not repeated, and where
 that document has gone stale it is called out (§2.1).
 
@@ -85,7 +85,7 @@ The first three destructure `useFlamegraphPanels(...)` and ignore the `reload` i
 `TraceOperationSummary` has a local `load()`. `TRACES_ANALYSIS.md` records fixing precisely this
 class of bug in `TraceOperationDetail.vue` — these four were missed.
 
-### 1.4 Out-of-order response races
+### 1.4 Out-of-order response races — [FIXED]
 
 - `ProfileTraceAttributeSearch.vue:228-257` has no generation counter, unlike its siblings
   `ProfileTraceAttributeValues.vue:86` and `ProfileTraceAttributeLatency.vue:74` (both explicitly
@@ -96,7 +96,7 @@ class of bug in `TraceOperationDetail.vue` — these four were missed.
   filter change fires `loadPage(0)` will *append* stale-filter rows onto the fresh list
   (`operations.value = [...operations.value, ...page.operations]`).
 
-### 1.5 Stale results shown with no loading affordance during a re-search
+### 1.5 Stale results shown with no loading affordance during a re-search — [FIXED]
 
 `ProfileTraceAttributeSearch.vue:51` gates the spinner on `searchLoading && search === null`. Once
 a first result exists, every subsequent condition change leaves the previous matches, stats and
@@ -104,7 +104,7 @@ timeline fully rendered with no indication they belong to the old query
 (`:loading-more="searchLoading"` only drives the `LoadMoreFooter`). A slow query silently displays
 the wrong answer.
 
-### 1.6 `derive()` is not transactional
+### 1.6 `derive()` is not transactional — [FIXED]
 
 `JdbcTraceRepository.derive()`
 (`profiles/profile-sql-persistence/.../jdbc/JdbcTraceRepository.java:1743-1819`) issues 6 DELETEs
@@ -410,8 +410,9 @@ tables, not data grids) but are exactly where ~1,200 lines of bespoke scoped CSS
 
 1. ~~§1.1 route name (one line, user-visible break) · §1.2 error-as-empty-state · §1.3 four
    `@retry` wires~~ — **done on this branch**.
-2. §1.4/§1.5 race guards + loading affordance in attribute search; guard the `loadPage` append.
-3. §1.6 transactional `derive()` (mechanical; idempotency already verified by existing tests).
+2. ~~§1.4/§1.5 race guards + loading affordance in attribute search; guard the `loadPage`
+   append~~ — **done on this branch**.
+3. ~~§1.6 transactional `derive()`~~ — **done on this branch**.
 4. §2.2 operation AI-export button (or correct the docs) · §2.1 decision on the trace list.
 5. §1.7 unify window arithmetic · §1.8 add `NONE_EQ` · §1.10 unify `threadHash` base.
 6. §3.1 slowest-traces pagination · §3.2 sort direction end-to-end · §4.1 token cleanup.

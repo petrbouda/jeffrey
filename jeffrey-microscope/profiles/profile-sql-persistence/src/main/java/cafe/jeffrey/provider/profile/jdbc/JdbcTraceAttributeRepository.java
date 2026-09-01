@@ -725,6 +725,12 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
 
     @Override
     public void derive() {
+        // Atomic for the same reason as JdbcTraceRepository.derive(): a failure between the value
+        // dictionary and the indexes that reference it must not leave a partially built catalog.
+        databaseClient.inTransaction(this::deriveTables);
+    }
+
+    private void deriveTables() {
         // Wholly a function of trace_spans and trace_notifications, so deriving twice has to land
         // where deriving once did.
         databaseClient.execute(StatementLabel.DERIVE_TRACE_ATTRIBUTES, DELETE_CATALOG);

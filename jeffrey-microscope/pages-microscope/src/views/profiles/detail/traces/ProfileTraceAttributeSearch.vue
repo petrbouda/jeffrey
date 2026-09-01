@@ -48,7 +48,12 @@
         @update:scope="applyScope"
       />
 
-      <LoadingState v-if="searchLoading && search === null" message="Searching traces..." />
+      <!--
+        Shown for every fresh search, not only the first: leaving the previous conditions' matches
+        on screen while the new ones load silently displays the wrong answer. A load-more keeps the
+        list and signals through the footer instead.
+      -->
+      <LoadingState v-if="searchLoading && !appending" message="Searching traces..." />
 
       <ErrorState v-else-if="searchError" :message="searchError" @retry="runSearch" />
 
@@ -126,6 +131,8 @@ const searchLoading = ref(false);
 const searchError = ref<string | null>(null);
 const search = ref<TraceAttributeSearchResult | null>(null);
 const timeline = ref<TraceAttributeTimelineBucket[]>([]);
+/** Whether the in-flight search extends the current matches rather than replacing them. */
+const appending = ref(false);
 
 /*
  * The conditions and the scope live in the URL, so a filter is a link — "the failed traces of this
@@ -225,9 +232,18 @@ async function loadCatalog(): Promise<void> {
   }
 }
 
+/*
+ * Guards against an out-of-order response: changing the conditions twice in quick succession must
+ * not let the slower, earlier search land on top of the newer one — see ProfileTraceAttributeValues
+ * for the same pattern.
+ */
+let searchGeneration = 0;
+
 async function runSearch(append = false): Promise<void> {
+  const current = ++searchGeneration;
   searchLoading.value = true;
   searchError.value = null;
+  appending.value = append;
   try {
     const offset = append && search.value ? search.value.matches.length : 0;
     const [result, buckets] = await Promise.all([
@@ -242,6 +258,9 @@ async function runSearch(append = false): Promise<void> {
         ? Promise.resolve(timeline.value)
         : client.getAttributeTimeline(conditions.value, scope.value)
     ]);
+    if (current !== searchGeneration) {
+      return;
+    }
 
     search.value =
       append && search.value
@@ -249,10 +268,15 @@ async function runSearch(append = false): Promise<void> {
         : result;
     timeline.value = buckets;
   } catch (e: unknown) {
+    if (current !== searchGeneration) {
+      return;
+    }
     console.error('Failed to search traces by attributes:', e);
     searchError.value = 'Failed to search traces. Please try again.';
   } finally {
-    searchLoading.value = false;
+    if (current === searchGeneration) {
+      searchLoading.value = false;
+    }
   }
 }
 
