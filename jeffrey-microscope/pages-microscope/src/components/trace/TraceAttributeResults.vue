@@ -35,13 +35,13 @@
         as the backdrop, because a burst of matches is only a burst if the profile was not equally
         busy everywhere; without it the shape means nothing.
       -->
+      <!-- Default palette, like the drill-down's chart: two "when did traces happen" charts must
+           not disagree on what the primary series looks like. -->
       <TimeSeriesChart
         :primary-data="matchedSeries"
         primary-title="Matched"
         :secondary-data="totalSeries"
         secondary-title="All traces"
-        primary-color="#5e64ff"
-        secondary-color="#b6c1d2"
         time-unit="milliseconds"
         :visible-minutes="60"
         :primary-axis-type="AxisFormatType.NUMBER"

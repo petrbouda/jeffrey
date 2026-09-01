@@ -287,7 +287,7 @@ async function copy(): Promise<void> {
 }
 
 .st-thrown-msg {
-  color: #475569;
+  color: var(--color-slate-text);
 }
 
 .st-head {

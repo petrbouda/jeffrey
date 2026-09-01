@@ -7,8 +7,8 @@ the `traces`/`trace_spans`/`trace_*` schema, `TraceManagerImpl`, `TracesControll
 (`jeffrey-pages/src/views/docs/tracing/`).
 
 Every finding carries file:line references and was verified against the current tree. The
-tier-1 fixes (§1.1, §1.2, §1.3) and tier-2 fixes (§1.4, §1.5, §1.6) were subsequently applied
-on this branch — they are marked **[FIXED]** below; everything else remains report-only. It picks up where
+fixes for §1.1–§1.8, §1.10, §2.2, §3.1, §3.2 and §4.1 were subsequently applied on this branch —
+they are marked **[FIXED]** below; everything else remains report-only. It picks up where
 `TRACES_ANALYSIS.md` (2026-08-15) left off: the findings fixed there are not repeated, and where
 that document has gone stale it is called out (§2.1).
 
@@ -115,7 +115,7 @@ false, `TracesFeatureChecker` disables the section, and the orphan spans stay in
 Same for `JdbcTraceAttributeRepository.derive()` (:727-748). Re-running is idempotent (the
 DELETE-first design), so the fix is cheap: wrap each `derive()` in `inTransaction`.
 
-### 1.7 Exception-window arithmetic disagrees with every other window
+### 1.7 Exception-window arithmetic disagrees with every other window — [FIXED]
 
 - `DERIVE_TRACE_SPANS` / `SPAN_CONTEXT` / `OPERATION_INTERVALS` use **integer** division and an
   **inclusive** upper bound: `c.start_us <= EPOCH_US(s.start_timestamp) + s.duration // 1000`
@@ -128,7 +128,7 @@ A span's window can differ by up to 1 µs between exception attribution and ever
 the boundary instant is included in one and excluded in the other. Exceptions near span edges can
 attach to a different span than the notifications/context bands beside them.
 
-### 1.8 `NOT_EQ` is existential, not universal
+### 1.8 `NOT_EQ` is existential, not universal — [FIXED by adding `NONE_EQ`]
 
 `TraceAttributeOperator.NOT_EQ` renders `value_text <> :x`, wrapped as
 `value_id IN (SELECT … WHERE value_text <> :x)` (`TraceAttributeQueries.java:144-150`), and the
@@ -144,7 +144,7 @@ executes. See §5.2 for the suggested resolution.
 as a wildcard. Not SQL injection (the value is bound), but a silently wrong result for values
 containing those characters (URLs with encoded sequences, SQL statements as attribute values).
 
-### 1.10 `threadHash` serialized in two different bases
+### 1.10 `threadHash` serialized in two different bases — [FIXED]
 
 - `TraceSpanRow.threadHash` = `Long.toString(span.threadHash())` → **decimal**
   (`TraceManagerImpl.java:821`)
@@ -189,7 +189,7 @@ caps: `MAX_PAUSE_LOOKBACK_MILLIS = 60_000` (`:1540`) and `MAX_THROTTLE_SAMPLE_GA
 
 ## 2. Dead / stranded surface
 
-### 2.1 The profile-wide trace list has no UI (and `TRACES_ANALYSIS.md` is stale on it)
+### 2.1 The profile-wide trace list has no UI (and `TRACES_ANALYSIS.md` is stale on it) — [MOCKUP DELIVERED, DECISION PENDING]
 
 `GET /api/internal/profiles/{id}/traces` (`TracesController.java:125-151` — a full `TracesPage`
 with `search`, `errorsOnly`, `minDurationNanos`, the operation triple, sort, desc, limit, offset)
@@ -205,7 +205,7 @@ operations and attributes views. Consequently the whole `TraceListQuery` → `TR
 Either ship the page (§5.1) or delete the endpoints deliberately — today it is tested, maintained,
 unserved surface.
 
-### 2.2 Operation-level AI export is implemented but unreachable
+### 2.2 Operation-level AI export is implemented but unreachable — [FIXED]
 
 `TraceAiExportClient.generateOperation()` exists, `GET /operation/ai-export` exists
 (`TracesController.java:277`), and the docs assert it: *"Both the trace waterfall and an
@@ -226,7 +226,7 @@ no export button. The docs are wrong and a finished feature is stranded.
 
 ## 3. UX and feature gaps
 
-### 3.1 Slowest Traces tab fetches 1000, shows 50
+### 3.1 Slowest Traces tab fetches 1000, shows 50 — [FIXED]
 
 `TraceOperationDetail.vue:74-83` passes up to 1000 traces into `TraceCardList` without
 `max-displayed`, so the component default of 50 (`TraceCardList.vue:174`) applies, and there is no
@@ -234,7 +234,7 @@ no export button. The docs are wrong and a finished feature is stranded.
 `:max-displayed="matches.length"` to defeat the same cap, which shows the omission is
 unintentional. Rows 51-1000 are fetched and thrown away.
 
-### 3.2 Attribute Values grid: sort direction and paging
+### 3.2 Attribute Values grid: sort direction and paging — [SORT DIRECTION FIXED; offset paging still open]
 
 `ProfileTraceAttributeValues.vue:38` hardcodes `:descending="true"`; `applySort` sets only the
 field; `getAttributeValues()` has no `desc` parameter. "Which value is *fastest*" and A→Z on
@@ -316,7 +316,13 @@ five times (`:55, :79, :110, :122, :133`) and filters in Java;
 
 ## 4. Convention and test debt
 
-### 4.1 Design-token violations
+### 4.1 Design-token violations — [FIXED]
+
+Fix note: the waterfall's inset hover rules and glyph rings (`box-shadow: inset 0 1px 0 …`,
+`0 0 0 2px …`) are drawn separators over token colors, not elevation shadows — they stay as
+written, the same judgment as a `border-radius: 0` reset. The hairline 1px glyph radii derive
+from the token scale as `calc(var(--radius-xs) / 2)`, since no 1px token exists and
+`--radius-xs` (2px) visibly rounds a 6px glyph.
 
 - `TraceAttributeResults.vue:43-44`: hardcoded `primary-color="#5e64ff"` /
   `secondary-color="#b6c1d2"` — literally the values of `--color-primary` and
@@ -413,8 +419,11 @@ tables, not data grids) but are exactly where ~1,200 lines of bespoke scoped CSS
 2. ~~§1.4/§1.5 race guards + loading affordance in attribute search; guard the `loadPage`
    append~~ — **done on this branch**.
 3. ~~§1.6 transactional `derive()`~~ — **done on this branch**.
-4. §2.2 operation AI-export button (or correct the docs) · §2.1 decision on the trace list.
-5. §1.7 unify window arithmetic · §1.8 add `NONE_EQ` · §1.10 unify `threadHash` base.
-6. §3.1 slowest-traces pagination · §3.2 sort direction end-to-end · §4.1 token cleanup.
+4. ~~§2.2 operation AI-export button~~ — **done on this branch**; §2.1 trace list: interactive
+   mockup delivered, build/delete decision pending.
+5. ~~§1.7 unify window arithmetic · §1.8 add `NONE_EQ` · §1.10 unify `threadHash` base~~ —
+   **done on this branch**.
+6. ~~§3.1 slowest-traces pagination · §3.2 sort direction end-to-end · §4.1 token cleanup~~ —
+   **done on this branch**.
 7. §4.3 controller + component tests (a `TraceAttributesControllerTest` for the `~` parser and a
    mount test of `TraceSpansModal` first — each would have caught a bug in this report).

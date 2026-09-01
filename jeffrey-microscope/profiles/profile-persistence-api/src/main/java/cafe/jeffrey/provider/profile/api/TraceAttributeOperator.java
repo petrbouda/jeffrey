@@ -28,7 +28,18 @@ package cafe.jeffrey.provider.profile.api;
 public enum TraceAttributeOperator {
 
     EQ("value_text = :%s"),
+    /**
+     * Some carrier in the group has a different value — true of nearly every trace for a key like
+     * {@code status}. The universal reading ("no carrier has this value") is {@link #NONE_EQ}.
+     */
     NOT_EQ("value_text <> :%s"),
+    /**
+     * No carrier in the group has this value: the row predicate is {@link #EQ}'s, and the query
+     * builder counts the matches to zero instead of above it. A group with no rows of the key's
+     * carrier at all (a trace with no notifications, for a notification key) is not matched — the
+     * search runs over the carriers the trace recorded, not over their absence.
+     */
+    NONE_EQ("value_text = :%s"),
     CONTAINS("lower(value_text) LIKE '%%' || lower(:%s) || '%%'"),
     /**
      * The four ordering comparisons read {@code value_num}, which is filled only where the value is
@@ -73,6 +84,15 @@ public enum TraceAttributeOperator {
      * {@link #EXISTS} reads nothing at all.
      */
     public boolean readsText() {
-        return this == EQ || this == NOT_EQ || this == CONTAINS;
+        return this == EQ || this == NOT_EQ || this == NONE_EQ || this == CONTAINS;
+    }
+
+    /**
+     * Whether the condition holds when its row predicate matches <em>nothing</em> in the group —
+     * the query builder counts the matching rows to zero instead of above it, and the hit lookup
+     * skips the condition, there being no matching row to point at.
+     */
+    public boolean negatedAggregate() {
+        return this == NONE_EQ;
     }
 }

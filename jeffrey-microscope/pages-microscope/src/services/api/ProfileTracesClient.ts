@@ -221,6 +221,7 @@ export default class ProfileTracesClient extends BaseProfileClient {
     key: TraceAttributeKeyId,
     eventType: string,
     sort?: TraceAttributeValueSortField,
+    descending?: boolean,
     limit?: number
   ): Promise<TraceAttributeValues> {
     // Scoped to the event type the key was reached through, so the breakdown answers the question
@@ -229,6 +230,7 @@ export default class ProfileTracesClient extends BaseProfileClient {
       ...keyParams(key),
       eventType,
       ...(sort === undefined ? {} : { sort }),
+      ...(descending === undefined ? {} : { desc: descending }),
       ...(limit === undefined ? {} : { limit })
     });
   }

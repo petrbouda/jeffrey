@@ -909,7 +909,7 @@ public class JdbcTraceAttributeRepository implements TraceAttributeRepository {
 
         List<Hit> hits = new ArrayList<>();
         for (TraceAttributeCarrier carrier : TraceAttributeCarrier.values()) {
-            List<String> carrierPredicates = predicates.of(carrier);
+            List<String> carrierPredicates = predicates.highlightable(carrier);
             if (!carrierPredicates.isEmpty()) {
                 hits.addAll(hitsOfCarrier(carrier, carrierPredicates, params));
             }

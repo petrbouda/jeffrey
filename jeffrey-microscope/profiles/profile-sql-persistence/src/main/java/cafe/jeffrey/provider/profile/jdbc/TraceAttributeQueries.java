@@ -62,6 +62,13 @@ final class TraceAttributeQueries {
     }
 
     /**
+     * One condition's row predicate, with how the aggregate reads it: an ordinary condition holds
+     * where the count of matching rows is above zero, a negated one where it is exactly zero.
+     */
+    record Predicate(String sql, boolean negated) {
+    }
+
+    /**
      * The predicates of one search, split by the carrier their keys belong to.
      * <p>
      * They are split rather than listed together because the two live in different tables and are
@@ -71,18 +78,29 @@ final class TraceAttributeQueries {
      * @param spans         predicates over {@code trace_span_attributes}
      * @param notifications predicates over {@code trace_notification_attributes}
      */
-    record Predicates(List<String> spans, List<String> notifications) {
+    record Predicates(List<Predicate> spans, List<Predicate> notifications) {
 
         boolean isEmpty() {
             return spans.isEmpty() && notifications.isEmpty();
         }
 
-        /** Every predicate, for the hit lookup, which ORs them across rows of one table. */
-        List<String> of(TraceAttributeCarrier carrier) {
+        private List<Predicate> of(TraceAttributeCarrier carrier) {
             return switch (carrier) {
                 case SPAN -> spans;
                 case NOTIFICATION -> notifications;
             };
+        }
+
+        /**
+         * The predicates whose satisfied rows exist, for the hit lookup, which ORs them across rows
+         * of one table. A negated condition holds precisely where nothing matches, so it has no row
+         * to point at and is left out.
+         */
+        List<String> highlightable(TraceAttributeCarrier carrier) {
+            return of(carrier).stream()
+                    .filter(predicate -> !predicate.negated())
+                    .map(Predicate::sql)
+                    .toList();
         }
     }
 
@@ -99,8 +117,8 @@ final class TraceAttributeQueries {
     static Predicates predicates(
             List<TraceAttributeCondition> conditions, MapSqlParameterSource params) {
 
-        List<String> spanPredicates = new ArrayList<>();
-        List<String> notificationPredicates = new ArrayList<>();
+        List<Predicate> spanPredicates = new ArrayList<>();
+        List<Predicate> notificationPredicates = new ArrayList<>();
         for (int i = 0; i < conditions.size(); i++) {
             TraceAttributeCondition condition = conditions.get(i);
             TraceAttributeKeyId key = condition.key();
@@ -124,8 +142,9 @@ final class TraceAttributeQueries {
                 params.addValue("attr_value_" + i, condition.value());
             }
 
-            String predicate = "(source = '%s' AND %s AND attr_key = :%s AND %s)"
+            String sql = "(source = '%s' AND %s AND attr_key = :%s AND %s)"
                     .formatted(key.source().name(), ownerClause, keyParam, valueClause);
+            Predicate predicate = new Predicate(sql, condition.operator().negatedAggregate());
 
             switch (key.source().carrier()) {
                 case SPAN -> spanPredicates.add(predicate);
@@ -176,7 +195,7 @@ final class TraceAttributeQueries {
 
         List<String> branches = new ArrayList<>(2);
         for (TraceAttributeCarrier carrier : TraceAttributeCarrier.values()) {
-            List<String> carrierPredicates = predicates.of(carrier);
+            List<Predicate> carrierPredicates = predicates.of(carrier);
             if (!carrierPredicates.isEmpty()) {
                 branches.add(branch(carrier, carrierPredicates, query.scope()));
             }
@@ -184,12 +203,17 @@ final class TraceAttributeQueries {
         return String.join("\nINTERSECT\n", branches);
     }
 
-    /** One carrier's half of the match: the traces where every condition of that carrier held. */
+    /**
+     * One carrier's half of the match: the traces where every condition of that carrier held.
+     * An ordinary condition holds where some row of the group matches; a negated one
+     * ({@link TraceAttributeOperator#negatedAggregate()}) where none does.
+     */
     private static String branch(
-            TraceAttributeCarrier carrier, List<String> predicates, TraceAttributeScope scope) {
+            TraceAttributeCarrier carrier, List<Predicate> predicates, TraceAttributeScope scope) {
 
         String having = predicates.stream()
-                .map(predicate -> "COUNT(*) FILTER (WHERE %s) > 0".formatted(predicate))
+                .map(predicate -> "COUNT(*) FILTER (WHERE %s) %s"
+                        .formatted(predicate.sql(), predicate.negated() ? "= 0" : "> 0"))
                 .collect(Collectors.joining("\n   AND "));
 
         return """
