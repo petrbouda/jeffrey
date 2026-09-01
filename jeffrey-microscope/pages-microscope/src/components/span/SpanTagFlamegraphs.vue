@@ -21,7 +21,7 @@
     <LoadingState v-if="!loaded" message="Loading flamegraph events..." />
 
     <!-- A failed fetch is not an empty profile, and must not be drawn as one. -->
-    <ErrorState v-else-if="error" :message="error" />
+    <ErrorState v-else-if="error" :message="error" @retry="reload" />
 
     <EmptyState
       v-else-if="!hasEvents"
@@ -79,7 +79,7 @@ const props = defineProps<{
 
 // Span-scoped panels so the cards show the real per-span sample/weight counts (matching the flamegraph),
 // not the profile-wide totals.
-const { loaded, error, panels } = useFlamegraphPanels(GraphType.PRIMARY, () =>
+const { loaded, error, panels, reload } = useFlamegraphPanels(GraphType.PRIMARY, () =>
   new ProfileAsyncProfilerClient(props.profileId).getPanels(props.tag)
 );
 

@@ -6,8 +6,9 @@ the `traces`/`trace_spans`/`trace_*` schema, `TraceManagerImpl`, `TracesControll
 `TraceAttributesController`, the four trace views, `components/trace/*`, and the docs site
 (`jeffrey-pages/src/views/docs/tracing/`).
 
-This is a **report-only** analysis — nothing was fixed on this branch. Every finding carries
-file:line references and was verified against the current tree. It picks up where
+Every finding carries file:line references and was verified against the current tree. The
+tier-1 fixes (§1.1, §1.2, §1.3) were subsequently applied on this branch — they are marked
+**[FIXED]** below; everything else remains report-only. It picks up where
 `TRACES_ANALYSIS.md` (2026-08-15) left off: the findings fixed there are not repeated, and where
 that document has gone stale it is called out (§2.1).
 
@@ -46,7 +47,7 @@ semantic surprises in attribute search, and consistency gaps between sibling cod
 
 ## 1. Confirmed bugs
 
-### 1.1 Broken router-link to the operation page (user-visible)
+### 1.1 Broken router-link to the operation page (user-visible) — [FIXED]
 
 `jeffrey-microscope/pages-microscope/src/components/trace/TraceSpansModal.vue:401` builds the
 "All *{rootName}* traces" link with:
@@ -61,7 +62,7 @@ during `RouterLink` resolution, so the "one trace → all traces of its operatio
 everywhere the modal is opened with `with-operation-link` (i.e. from Search Traces). Almost
 certainly a leftover from the rename when Traces was promoted out of `technologies/`.
 
-### 1.2 `SpanEventsModal` renders fetch errors as "no events"
+### 1.2 `SpanEventsModal` renders fetch errors as "no events" — [FIXED]
 
 `src/components/span/SpanEventsModal.vue:218-230` (async-profiler span feature, adjacent surface):
 the `catch` logs to console and sets `events.value = []`. There is no `error` ref and no
@@ -71,7 +72,7 @@ that was never established. Direct violation of the three-state rule, and incons
 `TraceSpansModal.loadEvents()` (lines 428-449), which does exactly this correctly with
 `eventsError`. Affects `SpanTagDetail.vue:43` and `ProfileAsyncProfilerSlowestSpans.vue:39`.
 
-### 1.3 Four dead-end `ErrorState`s where a retry is already available
+### 1.3 Four dead-end `ErrorState`s where a retry is already available — [FIXED]
 
 `ErrorState.vue` renders its retry button only when a `@retry` listener is attached. These omit it:
 
@@ -407,8 +408,8 @@ tables, not data grids) but are exactly where ~1,200 lines of bespoke scoped CSS
 
 ## Suggested fix priority (when fixes are requested)
 
-1. §1.1 route name (one line, user-visible break) · §1.2 error-as-empty-state · §1.3 four
-   `@retry` wires — all trivial.
+1. ~~§1.1 route name (one line, user-visible break) · §1.2 error-as-empty-state · §1.3 four
+   `@retry` wires~~ — **done on this branch**.
 2. §1.4/§1.5 race guards + loading affordance in attribute search; guard the `loadPage` append.
 3. §1.6 transactional `derive()` (mechanical; idempotency already verified by existing tests).
 4. §2.2 operation AI-export button (or correct the docs) · §2.1 decision on the trace list.

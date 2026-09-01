@@ -21,7 +21,7 @@
     <LoadingState v-if="!loaded" message="Loading flamegraph events..." />
 
     <!-- A failed fetch is not an empty operation, and must not be drawn as one. -->
-    <ErrorState v-else-if="error" :message="error" />
+    <ErrorState v-else-if="error" :message="error" @retry="reload" />
 
     <!--
       An operation that never left its virtual threads is not "no data recorded" — the samples exist
@@ -89,7 +89,7 @@ const props = defineProps<{
 
 // Operation-scoped panels so the cards show the real per-operation counts (matching the
 // flamegraph), not the profile-wide totals.
-const { loaded, error, panels } = useFlamegraphPanels(GraphType.PRIMARY, () =>
+const { loaded, error, panels, reload } = useFlamegraphPanels(GraphType.PRIMARY, () =>
   new ProfileTracesClient(props.profileId).getOperationPanels(props.operation)
 );
 
