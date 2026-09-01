@@ -398,7 +398,7 @@ const operationLink = computed(() => {
     return null;
   }
   return {
-    name: 'profile-technologies-traces-operations',
+    name: 'profile-traces-operations',
     params: { profileId: props.profileId },
     query: { operation: trace.rootName, kind: trace.rootKind, eventType: trace.rootEventType }
   };

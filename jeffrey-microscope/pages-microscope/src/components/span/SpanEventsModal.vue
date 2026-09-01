@@ -33,6 +33,9 @@
 
       <LoadingState v-if="loading" message="Loading events..." />
 
+      <!-- A failed fetch must not claim the recording holds no events for this window. -->
+      <ErrorState v-else-if="error" :message="error" @retry="load" />
+
       <EmptyState
         v-else-if="events.length === 0"
         title="No events"
@@ -89,6 +92,7 @@ import GenericModal from '@shared/components/GenericModal.vue';
 import MetaChips from '@shared/components/MetaChips.vue';
 import type { MetaChip } from '@shared/components/MetaChips.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
+import ErrorState from '@shared/components/ErrorState.vue';
 import EmptyState from '@shared/components/EmptyState.vue';
 import EventWindowTimeline from '@/components/events/EventWindowTimeline.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
@@ -125,6 +129,7 @@ defineEmits<{
 const client = new ProfileAsyncProfilerClient(props.profileId);
 
 const loading = ref(false);
+const error = ref<string | null>(null);
 const events = ref<SpanEventRow[]>([]);
 
 // Span-scoped flamegraph swap-in. graphUpdater/flamegraphTooltip are plain (non-reactive) and are
@@ -218,6 +223,7 @@ function onFlamegraphLoaded(): void {
 
 async function load() {
   loading.value = true;
+  error.value = null;
   events.value = [];
   mode.value = 'events';
   try {
@@ -226,6 +232,7 @@ async function load() {
   } catch (e: unknown) {
     console.error('Failed to load span events:', e);
     events.value = [];
+    error.value = 'Failed to load the events recorded during this span.';
   } finally {
     loading.value = false;
   }

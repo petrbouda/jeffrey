@@ -105,7 +105,7 @@
 
         <LoadingState v-if="loading" message="Loading the span breakdown..." />
         <!-- A failed fetch must not claim every trace is a single span. -->
-        <ErrorState v-else-if="error" :message="error" />
+        <ErrorState v-else-if="error" :message="error" @retry="load" />
         <EmptyState
           v-else-if="spans.length === 0"
           title="No nested spans"

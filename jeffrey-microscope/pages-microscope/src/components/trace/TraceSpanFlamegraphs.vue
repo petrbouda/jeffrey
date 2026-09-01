@@ -56,7 +56,7 @@
     <LoadingState v-if="!loaded" message="Loading flamegraph events..." />
 
     <!-- A failed fetch is not an empty span, and must not be drawn as one. -->
-    <ErrorState v-else-if="error" :message="error" />
+    <ErrorState v-else-if="error" :message="error" @retry="reload" />
 
     <VirtualThreadFlamegraphNotice v-else-if="!hasEvents && virtualThread" scope="span" />
 

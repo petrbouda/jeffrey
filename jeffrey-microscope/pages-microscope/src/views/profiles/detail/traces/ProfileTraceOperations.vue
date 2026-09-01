@@ -258,8 +258,15 @@ async function loadData(): Promise<void> {
   }
 }
 
+/*
+ * Guards against an out-of-order response: a load-more still in flight when a filter change fires
+ * a fresh first page must not append its previous-filter rows onto the new list.
+ */
+let listGeneration = 0;
+
 /** One page of the current filter; an offset of zero replaces the list, anything else appends. */
 async function loadPage(offset: number): Promise<void> {
+  const current = ++listGeneration;
   listLoading.value = true;
   listError.value = null;
   try {
@@ -270,12 +277,20 @@ async function loadPage(offset: number): Promise<void> {
       limit: PAGE_SIZE,
       offset
     });
+    if (current !== listGeneration) {
+      return;
+    }
     operations.value = offset === 0 ? page.operations : [...operations.value, ...page.operations];
     totalMatching.value = page.totalMatching;
   } catch {
+    if (current !== listGeneration) {
+      return;
+    }
     listError.value = 'Failed to load the operations for this filter.';
   } finally {
-    listLoading.value = false;
+    if (current === listGeneration) {
+      listLoading.value = false;
+    }
   }
 }
 
