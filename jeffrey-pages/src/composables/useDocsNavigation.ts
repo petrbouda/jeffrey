@@ -25,7 +25,7 @@ export interface BreadcrumbItem {
   to?: string
 }
 
-export type Product = 'microscope' | 'hub' | 'provisioner' | 'jib' | 'intellij-plugin' | 'tracing';
+export type Product = 'microscope' | 'microscope-mcp' | 'hub' | 'provisioner' | 'jib' | 'intellij-plugin' | 'tracing';
 
 export interface ProductInfo {
   id: Product;
@@ -40,6 +40,12 @@ export const PRODUCTS: Record<Product, ProductInfo> = {
     title: 'Jeffrey Microscope',
     icon: 'bi-pc-display',
     hubPath: '/docs/microscope'
+  },
+  'microscope-mcp': {
+    id: 'microscope-mcp',
+    title: 'Microscope MCP',
+    icon: 'bi-plugin',
+    hubPath: '/docs/microscope-mcp'
   },
   hub: {
     id: 'hub',
@@ -77,6 +83,9 @@ export const PRODUCTS: Record<Product, ProductInfo> = {
 // 'local' is kept here so a direct hit on a legacy URL still resolves to the Microscope sidebar
 // in the brief moment before the router redirects to /docs/microscope/*.
 const MICROSCOPE_SEGMENTS = new Set(['microscope', 'local', 'events', 'ai']);
+// The MCP integration is its own product. Its segment is distinct from 'microscope', so a
+// /docs/microscope-mcp/* URL never resolves to the Microscope sidebar.
+const MICROSCOPE_MCP_SEGMENTS = new Set(['microscope-mcp']);
 // 'server' is kept alongside 'hub' so a direct hit on a legacy /docs/server/* URL still
 // resolves to the Hub sidebar in the brief moment before the router redirects to /docs/hub/*.
 const HUB_SEGMENTS = new Set(['hub', 'server', 'agent']);
@@ -190,6 +199,64 @@ export const microscopeNavigation: DocSection[] = [
       { title: 'Heap Dump Analysis', path: 'heap-dump-analysis' },
       { title: 'OQL Assistant', path: 'oql-assistant' }
     ]
+  },
+  {
+    // The MCP integration has its own top-level documentation section; Microscope keeps just a link.
+    title: 'Microscope MCP',
+    path: '_microscope-mcp-link',
+    icon: 'bi-plugin',
+    crossLink: true,
+    children: [{ title: 'Microscope MCP docs', to: '/docs/microscope-mcp' }]
+  }
+];
+
+export const microscopeMcpNavigation: DocSection[] = [
+  // Standalone product section for the MCP integration — the server that lets an outside client
+  // (an interactive Claude Code session) read the profiles this Microscope has analysed. Single-page
+  // entries use synthetic `_` paths with absolute `to:` children; groups render as collapsible sections.
+  {
+    title: 'Overview',
+    path: '_microscope-mcp-overview',
+    icon: 'bi-info-circle',
+    children: [{ title: 'Overview', to: '/docs/microscope-mcp' }]
+  },
+  {
+    title: 'Getting Started',
+    path: '_microscope-mcp-getting-started',
+    icon: 'bi-rocket-takeoff',
+    children: [
+      { title: 'Enabling the Server', to: '/docs/microscope-mcp/enabling' },
+      { title: 'Claude Code Plugin', to: '/docs/microscope-mcp/plugin' }
+    ]
+  },
+  {
+    title: 'Reference',
+    path: '_microscope-mcp-reference',
+    icon: 'bi-list-columns',
+    children: [
+      { title: 'Tool Reference', to: '/docs/microscope-mcp/tools' },
+      { title: 'Skills', to: '/docs/microscope-mcp/skills' }
+    ]
+  },
+  {
+    title: 'Recipes',
+    path: '_microscope-mcp-recipes',
+    icon: 'bi-lightbulb',
+    children: [{ title: 'Recipes', to: '/docs/microscope-mcp/recipes' }]
+  },
+  {
+    title: 'Other Clients',
+    path: '_microscope-mcp-other-clients',
+    icon: 'bi-terminal-split',
+    children: [{ title: 'Other Clients', to: '/docs/microscope-mcp/other-clients' }]
+  },
+  {
+    // The in-app assistant is the other direction; Microscope MCP keeps just a link.
+    title: 'AI Analysis',
+    path: '_microscope-mcp-ai-link',
+    icon: 'bi-robot',
+    crossLink: true,
+    children: [{ title: 'AI Analysis docs', to: '/docs/ai/overview' }]
   }
 ];
 
@@ -456,12 +523,13 @@ export const tracingNavigation: DocSection[] = [
 ];
 
 // Union — used by global helpers like getAllDocs/search and as a back-compat export.
-export const docsNavigation: DocSection[] = [...microscopeNavigation, ...hubNavigation, ...provisionerNavigation, ...jibNavigation, ...intellijPluginNavigation, ...tracingNavigation];
+export const docsNavigation: DocSection[] = [...microscopeNavigation, ...microscopeMcpNavigation, ...hubNavigation, ...provisionerNavigation, ...jibNavigation, ...intellijPluginNavigation, ...tracingNavigation];
 
 export function getProductForPath(routePath: string): Product | null {
   const cleaned = routePath.replace(/^\/docs\/?/, '');
   if (!cleaned) return null;
   const first = cleaned.split('/')[0];
+  if (MICROSCOPE_MCP_SEGMENTS.has(first)) return 'microscope-mcp';
   if (MICROSCOPE_SEGMENTS.has(first)) return 'microscope';
   if (HUB_SEGMENTS.has(first)) return 'hub';
   if (PROVISIONER_SEGMENTS.has(first)) return 'provisioner';
@@ -472,6 +540,9 @@ export function getProductForPath(routePath: string): Product | null {
 }
 
 export function navigationForProduct(product: Product): DocSection[] {
+  if (product === 'microscope-mcp') {
+    return microscopeMcpNavigation;
+  }
   if (product === 'hub') {
     return hubNavigation;
   }

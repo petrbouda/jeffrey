@@ -479,6 +479,8 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsAiOqlAssistant',
         component: () => import('@/views/docs/ai/AiOqlAssistantPage.vue')
       },
+      // The MCP integration moved to its own top-level product at /docs/microscope-mcp.
+      { path: 'ai/claude-code-plugin', redirect: '/docs/microscope-mcp/plugin' },
 
       // ──── Jeffrey Events ────
       // The event catalog lives with the Jeffrey Tracing product, whose events it lists;
@@ -661,6 +663,45 @@ const routes: RouteRecordRaw[] = [
       },
       // Back-compat redirect: the old promoted overview path.
       { path: 'jib/overview', redirect: '/docs/jib' },
+
+      // ──── Microscope MCP (standalone product) ────
+      {
+        path: 'microscope-mcp',
+        name: 'DocsMicroscopeMcp',
+        component: () => import('@/views/docs/microscope-mcp/McpOverviewPage.vue')
+      },
+      {
+        path: 'microscope-mcp/enabling',
+        name: 'DocsMicroscopeMcpEnabling',
+        component: () => import('@/views/docs/microscope-mcp/McpEnablingPage.vue')
+      },
+      {
+        path: 'microscope-mcp/plugin',
+        name: 'DocsMicroscopeMcpPlugin',
+        component: () => import('@/views/docs/microscope-mcp/McpPluginPage.vue')
+      },
+      {
+        path: 'microscope-mcp/tools',
+        name: 'DocsMicroscopeMcpTools',
+        component: () => import('@/views/docs/microscope-mcp/McpToolsPage.vue')
+      },
+      {
+        path: 'microscope-mcp/skills',
+        name: 'DocsMicroscopeMcpSkills',
+        component: () => import('@/views/docs/microscope-mcp/McpSkillsPage.vue')
+      },
+      {
+        path: 'microscope-mcp/recipes',
+        name: 'DocsMicroscopeMcpRecipes',
+        component: () => import('@/views/docs/microscope-mcp/McpRecipesPage.vue')
+      },
+      {
+        path: 'microscope-mcp/other-clients',
+        name: 'DocsMicroscopeMcpOtherClients',
+        component: () => import('@/views/docs/microscope-mcp/McpOtherClientsPage.vue')
+      },
+      // Back-compat redirect: the overview was promoted out of a nested path.
+      { path: 'microscope-mcp/overview', redirect: '/docs/microscope-mcp' },
 
       // ──── IntelliJ Plugin (standalone product) ────
       {

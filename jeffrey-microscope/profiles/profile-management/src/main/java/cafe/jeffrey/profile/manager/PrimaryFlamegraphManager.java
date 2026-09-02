@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.flamegraph.ai.AiExportConfig;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.profile.common.config.GraphParameters;
@@ -102,9 +104,14 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
 
     @Override
     public String generateAiExport(GraphParameters params) {
+        return generateAiExport(params, null);
+    }
+
+    @Override
+    public String generateAiExport(GraphParameters params, AiExportConfig aiExportConfig) {
         LOG.debug("Generating AI export: eventType={}", params.eventType());
         long startTime = System.nanoTime();
-        String result = generator.generateAiExport(adjustParams(params));
+        String result = generator.generateAiExport(adjustParams(params), aiExportConfig);
         LOG.debug("AI export generated: eventType={} durationMs={}",
                 params.eventType(), Duration.ofNanos(System.nanoTime() - startTime).toMillis());
         return result;

@@ -36,6 +36,15 @@ public interface MicroscopeCoreRepositories {
 
     List<ProfileInfo> findAllProfilesByProject(String projectId);
 
+    /**
+     * Every profile this microscope knows about, whichever project or workspace it belongs to and
+     * including the Quick Analysis ones that belong to none.
+     * <p>
+     * {@link #findAllProfilesByProject} cannot answer this: it matches {@code project_id = :project_id},
+     * and a Quick Analysis profile stores a null there, which no equality comparison matches.
+     */
+    List<ProfileInfo> findAllProfiles();
+
     AdvisorSettingsRepository advisorSettingsRepository();
 
 }

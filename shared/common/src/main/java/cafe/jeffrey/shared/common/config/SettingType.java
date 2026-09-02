@@ -58,11 +58,15 @@ public enum SettingType {
     AI_PROVIDER(SettingType::isAiProvider),
 
     /** Flamegraph frame label layout. */
-    FRAME_TEXT_MODE(SettingType::isFrameTextMode);
+    FRAME_TEXT_MODE(SettingType::isFrameTextMode),
+
+    /** A feature toggle: literally {@code true} or {@code false}, case-insensitive. */
+    BOOLEAN(SettingType::isBoolean);
 
     private static final Set<String> LOG_LEVELS = Set.of("TRACE", "DEBUG", "INFO", "WARN", "ERROR", "OFF");
     private static final Set<String> AI_PROVIDERS = Set.of("none", "claude", "chatgpt", "ollama", "claude-code");
     private static final Set<String> FRAME_TEXT_MODES = Set.of("single-line", "two-line");
+    private static final Set<String> BOOLEANS = Set.of("true", "false");
 
     private final Predicate<String> validator;
 
@@ -91,6 +95,10 @@ public enum SettingType {
 
     private static boolean isFrameTextMode(String value) {
         return FRAME_TEXT_MODES.contains(lowerCase(value));
+    }
+
+    private static boolean isBoolean(String value) {
+        return BOOLEANS.contains(lowerCase(value));
     }
 
     private static Integer parseInt(String value) {

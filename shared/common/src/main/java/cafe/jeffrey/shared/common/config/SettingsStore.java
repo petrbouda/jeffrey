@@ -47,6 +47,9 @@ public final class SettingsStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(SettingsStore.class);
 
+    private static final String TRUE_VALUE = "true";
+    private static final String FALSE_VALUE = "false";
+
     private final Map<String, String> defaults;
     private final ConcurrentHashMap<String, String> values;
 
@@ -114,6 +117,15 @@ public final class SettingsStore {
         return resolve(name, fallback, Double::parseDouble);
     }
 
+    /**
+     * A feature toggle. Only the literal {@code true}/{@code false} are accepted — the setting type
+     * rejects anything else on the write path, and {@code Boolean.parseBoolean} would silently read a
+     * typo as {@code false}, which is how a toggle ends up mysteriously off.
+     */
+    public boolean getBoolean(String name, boolean fallback) {
+        return resolve(name, fallback, SettingsStore::parseBoolean);
+    }
+
     private <T> T resolve(String name, T fallback, Function<String, T> parser) {
         T current = parse(name, values.get(name), parser);
         if (current != null) {
@@ -122,6 +134,16 @@ public final class SettingsStore {
 
         T declared = parse(name, defaults.get(name), parser);
         return declared != null ? declared : fallback;
+    }
+
+    private static Boolean parseBoolean(String value) {
+        if (TRUE_VALUE.equalsIgnoreCase(value)) {
+            return Boolean.TRUE;
+        }
+        if (FALSE_VALUE.equalsIgnoreCase(value)) {
+            return Boolean.FALSE;
+        }
+        throw new IllegalArgumentException("Not a boolean: " + value);
     }
 
     private static <T> T parse(String name, String value, Function<String, T> parser) {

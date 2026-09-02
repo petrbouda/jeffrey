@@ -29,6 +29,7 @@ const serverComponents = ['Continuous recording', 'Scheduler', 'gRPC API', 'Agen
 const provisionerComponents = ['HOCON config', 'JVM argfile', 'Session layout', 'Workspace events', 'Native binary'];
 const jibComponents = ['Gradle/Maven', 'Entrypoint wrapper', 'Shared volume', 'Kill switch'];
 const pluginComponents = ['Open in IDE', 'Inline source', 'Java & Kotlin', 'Auto-pairing'];
+const mcpComponents = ['39 read-only tools', 'Claude Code plugin', 'DuckDB SQL', 'Flamegraph exports', 'Heap analysis'];
 const tracingComponents = ['Tracer API', '@Traced agent', 'HTTP/gRPC/JDBC', 'JFR-native', 'Waterfall'];
 
 onMounted(() => {
@@ -105,6 +106,16 @@ onMounted(() => {
           :components="pluginComponents"
           cta-text="Open IntelliJ Plugin docs"
           variant="senary"
+        />
+        <DocsProductCard
+          to="/docs/microscope-mcp"
+          title="Microscope MCP"
+          role="Server · Claude Code"
+          description="The MCP server inside Microscope. Connect an interactive Claude Code session in your own repository and let it read every profile you have analysed — flamegraphs, traces, heap dumps and the DuckDB tables behind them, alongside your source code."
+          icon="bi bi-plugin"
+          :components="mcpComponents"
+          cta-text="Open Microscope MCP docs"
+          variant="tertiary"
         />
       </div>
     </div>

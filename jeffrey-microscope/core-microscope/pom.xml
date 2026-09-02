@@ -66,6 +66,12 @@
             <artifactId>profile-management</artifactId>
         </dependency>
 
+        <!-- MCP server machinery (JSON-RPC envelope, @Tool toolsets) -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>mcp-server</artifactId>
+        </dependency>
+
         <!-- Third-party -->
         <dependency>
             <groupId>com.typesafe</groupId>

@@ -56,6 +56,14 @@
           <i class="bi bi-lightbulb"></i>
           Advisor
         </button>
+        <button
+          class="settings-tab"
+          :class="{ active: activeTab === 'mcp' }"
+          @click="activeTab = 'mcp'"
+        >
+          <i class="bi bi-plug"></i>
+          Claude Code (MCP)
+        </button>
       </div>
 
       <!-- AI Configuration Tab -->
@@ -626,6 +634,78 @@
           </button>
         </div>
       </div>
+
+      <!-- Claude Code (MCP) Tab -->
+      <div v-if="activeTab === 'mcp'" id="mcp" class="settings-content">
+        <div class="settings-form-grid settings-form-grid-single">
+          <div class="settings-form-group">
+            <label class="settings-label">MCP Server</label>
+            <div class="form-check form-switch">
+              <input
+                id="mcpEnabledToggle"
+                class="form-check-input"
+                type="checkbox"
+                role="switch"
+                :checked="mcpEnabled"
+                @change="onMcpToggle(($event.target as HTMLInputElement).checked)"
+              />
+              <label class="form-check-label" for="mcpEnabledToggle">
+                {{ mcpEnabled ? 'Enabled' : 'Disabled' }}
+              </label>
+            </div>
+            <div class="settings-hint">
+              Lets an interactive Claude Code session in your own repository read this Jeffrey —
+              list the analysed profiles, query their DuckDB tables, and pull flamegraph, trace and
+              heap dump exports. Every tool is read-only.
+            </div>
+          </div>
+        </div>
+
+        <div v-if="mcpEnabled && mcpStatus" class="settings-form-grid settings-form-grid-single">
+          <div class="settings-form-group">
+            <label class="settings-label">Register with the Claude Code CLI</label>
+            <div class="mcp-snippet">
+              <code>{{ mcpStatus.claudeMcpAddCommand }}</code>
+              <button
+                class="btn-secondary mcp-copy"
+                @click="copyToClipboard(mcpStatus.claudeMcpAddCommand, 'Command')"
+              >
+                <i class="bi bi-clipboard"></i>
+                Copy
+              </button>
+            </div>
+            <div class="settings-hint">
+              Run this once in the repository you want to analyse from, then ask Claude to list the
+              profiles.
+            </div>
+          </div>
+
+          <div class="settings-form-group">
+            <label class="settings-label">Or check it in as <code>.mcp.json</code></label>
+            <div class="mcp-snippet">
+              <pre>{{ mcpStatus.mcpJsonSnippet }}</pre>
+              <button
+                class="btn-secondary mcp-copy"
+                @click="copyToClipboard(mcpStatus.mcpJsonSnippet, 'Snippet')"
+              >
+                <i class="bi bi-clipboard"></i>
+                Copy
+              </button>
+            </div>
+            <div class="settings-hint">
+              Shares the server with everyone working in that repository.
+            </div>
+          </div>
+        </div>
+
+        <div v-if="mcpEnabled" class="settings-hint mcp-security-note">
+          <i class="bi bi-shield-exclamation"></i>
+          The MCP endpoint has no authentication yet, exactly like the rest of Jeffrey's API: anyone
+          who can reach this address can read every profile here. Keep Jeffrey bound to localhost,
+          or put it behind an SSH tunnel or an authenticating reverse proxy, before opening this on
+          a shared network.
+        </div>
+      </div>
     </MainCard>
 
     <!-- Add / edit a project folder -->
@@ -720,6 +800,7 @@ import ErrorState from '@shared/components/ErrorState.vue';
 import GenericModal from '@shared/components/GenericModal.vue';
 import ConfirmationDialog from '@shared/components/ConfirmationDialog.vue';
 import AdvisorProjectFoldersClient from '@/services/api/AdvisorProjectFoldersClient';
+import McpAccessClient, { type McpAccessStatus } from '@/services/api/McpAccessClient';
 import type AdvisorProjectFolder from '@/services/api/model/AdvisorProjectFolder';
 import {
   DEFAULT_MAX_CONCURRENT_RUNS,
@@ -735,7 +816,8 @@ const SUPPORTED_TABS: ReadonlySet<string> = new Set([
   'general',
   'visualization',
   'ai-export',
-  'advisor'
+  'advisor',
+  'mcp'
 ]);
 
 interface ModelInfo {
@@ -770,6 +852,7 @@ const ollamaModels: ModelInfo[] = [
 ];
 
 const client = new SettingsClient();
+const mcpAccessClient = new McpAccessClient();
 
 const activeTab = ref('ai');
 watch(activeTab, tab => {
@@ -788,6 +871,8 @@ const previewSingleLine = ref<HTMLCanvasElement | null>(null);
 const previewTwoLine = ref<HTMLCanvasElement | null>(null);
 
 const aiToggle = ref(false);
+const mcpEnabled = ref(false);
+const mcpStatus = ref<McpAccessStatus | null>(null);
 const aiEnabled = computed(() => aiToggle.value);
 
 const isOllama = computed(() => settings.get('jeffrey.microscope.ai.provider') === 'ollama');
@@ -992,6 +1077,10 @@ onMounted(async () => {
     }
 
     aiToggle.value = settings.get('jeffrey.microscope.ai.provider') !== 'none';
+    mcpEnabled.value = settings.get('jeffrey.microscope.mcp.enabled') === 'true';
+    if (mcpEnabled.value) {
+      await loadMcpStatus();
+    }
     frameTextMode.value =
       settings.get('jeffrey.microscope.visualization.flamegraph.frame-text-mode') || 'single-line';
 
@@ -1204,6 +1293,61 @@ async function saveVisualizationSettings() {
     ],
     () => ToastService.success('Settings', 'Visualization settings applied')
   );
+}
+
+/**
+ * The connection details are fetched rather than composed here: the reachable URL depends on the
+ * request, and only the server sees that.
+ */
+async function loadMcpStatus() {
+  try {
+    mcpStatus.value = await mcpAccessClient.fetchStatus();
+  } catch (e) {
+    console.error('Failed to load MCP status', e);
+    mcpStatus.value = null;
+  }
+}
+
+/**
+ * Saved immediately rather than behind a Save button: it is one switch, and the value it writes is
+ * the whole of what the tab configures.
+ */
+async function onMcpToggle(enabled: boolean) {
+  mcpEnabled.value = enabled;
+  setSetting('jeffrey.microscope.mcp.enabled', String(enabled));
+  await save(
+    [
+      {
+        category: 'mcp',
+        name: 'jeffrey.microscope.mcp.enabled',
+        value: String(enabled),
+        secret: false
+      }
+    ],
+    () => ToastService.success('Settings', enabled ? 'MCP server enabled' : 'MCP server disabled')
+  );
+  if (enabled) {
+    await loadMcpStatus();
+  }
+}
+
+async function copyToClipboard(text: string, label: string) {
+  // The Clipboard API is undefined on a plain-HTTP origin, which is how a self-hosted Jeffrey is
+  // usually served — so say that rather than blaming the copy for failing.
+  if (!window.isSecureContext || navigator.clipboard === undefined) {
+    ToastService.error(
+      'Copy unavailable',
+      'The browser only allows copying over HTTPS or on localhost. Select the text instead.'
+    );
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    ToastService.success('Copied', `${label} copied to clipboard.`);
+  } catch (e) {
+    console.error('Clipboard write failed', e);
+    ToastService.error('Copy Failed', 'Could not copy to the clipboard.');
+  }
 }
 
 async function saveAiExportSettings() {
@@ -1729,6 +1873,48 @@ function announceAiChange(message: string) {
 .settings-actions {
   display: flex;
   justify-content: flex-end;
+}
+
+/* Claude Code (MCP) tab */
+.mcp-snippet {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--color-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+}
+
+.mcp-snippet code,
+.mcp-snippet pre {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-family-monospace);
+  font-size: 12px;
+  color: var(--color-text);
+  background: none;
+  /* The command is one long line and the JSON is several: both scroll rather than reflow, so the
+     text stays copyable as written. */
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.mcp-copy {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.mcp-security-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 10px 12px;
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  border-radius: var(--radius-md);
+  color: var(--color-warning-text);
 }
 
 .content-header-with-toggle {
