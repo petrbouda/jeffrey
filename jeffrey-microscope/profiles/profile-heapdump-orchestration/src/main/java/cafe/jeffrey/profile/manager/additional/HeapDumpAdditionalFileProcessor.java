@@ -58,8 +58,12 @@ public class HeapDumpAdditionalFileProcessor implements AdditionalFileProcessor 
     @Override
     public Optional<ProcessingResult> process(Path filePath) {
         try {
-            // Create the destination directory if it doesn't exist
-            Files.createDirectories(heapDumpAnalysisPath);
+            // Create the destination directory if it doesn't exist. Checked first: an unguarded
+            // createDirectories on an existing directory throws and catches
+            // FileAlreadyExistsException, which a recording captures as two throws.
+            if (!Files.isDirectory(heapDumpAnalysisPath)) {
+                Files.createDirectories(heapDumpAnalysisPath);
+            }
 
             // Copy heap dump to the analysis folder, preserving the original filename
             Path destinationPath = heapDumpAnalysisPath.resolve(filePath.getFileName());

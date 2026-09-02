@@ -84,8 +84,11 @@ public final class HeapDumpIndexDb implements AutoCloseable {
         if (path == null) {
             throw new IllegalArgumentException("path must not be null");
         }
+        // Guarded by a stat: Files.createDirectories on a directory that already exists gets
+        // there by attempting the mkdir and catching FileAlreadyExistsException, and a recording
+        // with jdk.JavaExceptionThrow enabled captures that throw and the UnixException under it.
         Path parent = path.toAbsolutePath().getParent();
-        if (parent != null) {
+        if (parent != null && !Files.isDirectory(parent)) {
             Files.createDirectories(parent);
         }
 

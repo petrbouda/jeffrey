@@ -93,7 +93,11 @@ public final class HeapDumpUploadService {
 
         Path targetPath = heapDumpAnalysisPath.resolve(filename);
         try {
-            Files.createDirectories(heapDumpAnalysisPath);
+            // Files.isDirectory answers from a stat; an unguarded createDirectories on an existing
+            // directory throws and catches FileAlreadyExistsException, which a recording captures.
+            if (!Files.isDirectory(heapDumpAnalysisPath)) {
+                Files.createDirectories(heapDumpAnalysisPath);
+            }
             Files.copy(inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
             LOG.info("Heap dump uploaded: profileId={} path={}", profileInfo.id(), targetPath);
         } catch (IOException e) {
