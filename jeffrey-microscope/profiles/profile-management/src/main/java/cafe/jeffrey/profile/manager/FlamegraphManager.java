@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.flamegraph.ai.AiExportConfig;
+
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.SpanScope;
@@ -76,4 +78,15 @@ public interface FlamegraphManager {
      *                                       support AI export (e.g. differential)
      */
     String generateAiExport(GraphParameters graphParameters);
+
+    /**
+     * The same export with a caller-chosen prune threshold. A {@code null} config keeps the configured
+     * one, so a caller with no opinion need not look the default up to pass it back.
+     *
+     * @param graphParameters graph parameters
+     * @param aiExportConfig  threshold override, or {@code null} for the configured default
+     * @return Markdown string suitable for pasting into an LLM
+     * @throws UnsupportedOperationException for graph modes that do not support AI export
+     */
+    String generateAiExport(GraphParameters graphParameters, AiExportConfig aiExportConfig);
 }

@@ -15,19 +15,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module cafe.jeffrey.microscope.profile.ai.claudecode {
-    requires transitive cafe.jeffrey.microscope.profile.ai.config;
+
+module cafe.jeffrey.microscope.profile.mcp {
     requires cafe.jeffrey.shared.common;
-    requires spring.ai.model;
-    requires spring.boot;
-    requires spring.boot.autoconfigure;
-    requires spring.context;
-    requires spring.beans;
-    requires spring.core;
-    requires org.slf4j;
     requires cafe.jeffrey.jfr.events;
 
-    exports cafe.jeffrey.profile.ai.claudecode.config;
+    requires spring.ai.model;
+    requires spring.web;
+    requires tools.jackson.databind;
+    requires org.slf4j;
 
-    opens cafe.jeffrey.profile.ai.claudecode.config to spring.core, spring.beans, spring.context;
+    exports cafe.jeffrey.profile.mcp;
 }

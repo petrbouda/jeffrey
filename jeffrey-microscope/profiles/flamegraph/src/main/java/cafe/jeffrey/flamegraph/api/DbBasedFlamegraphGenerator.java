@@ -126,15 +126,32 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
     }
 
     /**
+     * The same export with a caller-chosen prune threshold, for a reader who wants more or less detail
+     * than the configured default. A {@code null} config keeps the configured one, so a caller that has
+     * no opinion does not have to look the default up to pass it back.
+     */
+    public String generateAiExport(GraphParameters params, AiExportConfig config) {
+        return generateAiExportWithFrames(params, config).markdown();
+    }
+
+    /**
      * The AI export together with the call tree it was rendered from. Callers that need to reason about
      * the same frames the model was shown — grounding a cited frame, grading severity, diffing two
      * profiles — get them here instead of walking the IR a second time, which would risk describing a
      * slightly different tree than the one in the prompt.
      */
     public AiExport generateAiExportWithFrames(GraphParameters params) {
+        return generateAiExportWithFrames(params, null);
+    }
+
+    /**
+     * As {@link #generateAiExportWithFrames(GraphParameters)}, with an optional threshold override.
+     */
+    public AiExport generateAiExportWithFrames(GraphParameters params, AiExportConfig config) {
         Frame root = FlamegraphDataProvider.primary(eventRepository, params)
                 .provideFrame();
-        FlamegraphAiMarkdownBuilder builder = new FlamegraphAiMarkdownBuilder(params.eventType(), aiExportConfig)
+        AiExportConfig effectiveConfig = config == null ? aiExportConfig : config;
+        FlamegraphAiMarkdownBuilder builder = new FlamegraphAiMarkdownBuilder(params.eventType(), effectiveConfig)
                 .withThreadMode(params.threadMode());
         describeScope(builder, params.spanScope());
         String markdown = builder.build(root);

@@ -30,6 +30,7 @@ module cafe.jeffrey.microscope.profile.management {
     requires cafe.jeffrey.microscope.profile.ai.mcp.duckdb.jfr;
     requires cafe.jeffrey.microscope.profile.ai.mcp.duckdb.heapdump;
     requires cafe.jeffrey.microscope.profile.ai.claudecode;
+    requires transitive cafe.jeffrey.microscope.profile.mcp;
     requires cafe.jeffrey.microscope.profile.ai.config;
     requires cafe.jeffrey.microscope.profile.subsecond;
     requires cafe.jeffrey.microscope.profile.guardian;
@@ -74,7 +75,6 @@ module cafe.jeffrey.microscope.profile.management {
 
     exports cafe.jeffrey.profile;
     exports cafe.jeffrey.profile.configuration;
-    exports cafe.jeffrey.profile.mcp;
     exports cafe.jeffrey.profile.feature;
     exports cafe.jeffrey.profile.feature.checker;
     exports cafe.jeffrey.profile.manager;

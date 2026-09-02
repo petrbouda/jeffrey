@@ -21,8 +21,6 @@ package cafe.jeffrey.profile.mcp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import cafe.jeffrey.profile.ai.claudecode.mcp.McpToolSpec;
-import cafe.jeffrey.profile.ai.claudecode.mcp.ReflectiveToolset;
 import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ArrayNode;
@@ -35,7 +33,7 @@ import java.util.function.Supplier;
  * the Claude Code CLI. This base owns the protocol envelope — {@code initialize}, {@code ping},
  * {@code tools/list}, {@code tools/call}, notifications, and the success/error response shape — so each
  * deployment's controller only declares its own request mapping and resolves the scope-specific
- * {@link ReflectiveToolset}.
+ * {@link McpToolProvider}.
  * <p>
  * Subclasses keep their own {@code @RestController}/{@code @RequestMapping}/{@code @PostMapping} plus the
  * scope query parameters they need (e.g. {@code profileId+toolset} or {@code runId}), and delegate to
@@ -65,7 +63,7 @@ public abstract class AbstractMcpStreamableHttpController {
      * Routes a single JSON-RPC request. Notifications (no {@code id}) are acknowledged with no body;
      * {@code tools/list} and {@code tools/call} resolve the toolset via {@code toolsetSupplier}.
      */
-    protected ResponseEntity<JsonNode> dispatch(JsonNode request, Supplier<ReflectiveToolset> toolsetSupplier) {
+    protected ResponseEntity<JsonNode> dispatch(JsonNode request, Supplier<McpToolProvider> toolsetSupplier) {
         String method = request.path("method").asString();
         JsonNode id = request.get("id");
 
@@ -103,7 +101,7 @@ public abstract class AbstractMcpStreamableHttpController {
         return success(id, result);
     }
 
-    private JsonNode toolsList(JsonNode id, ReflectiveToolset toolset) {
+    private JsonNode toolsList(JsonNode id, McpToolProvider toolset) {
         ObjectNode result = Json.createObject();
         ArrayNode tools = result.putArray("tools");
         for (McpToolSpec spec : toolset.specs()) {
@@ -115,7 +113,7 @@ public abstract class AbstractMcpStreamableHttpController {
         return success(id, result);
     }
 
-    private JsonNode toolsCall(JsonNode id, ReflectiveToolset toolset, JsonNode params) {
+    private JsonNode toolsCall(JsonNode id, McpToolProvider toolset, JsonNode params) {
         String toolName = params.path("name").asString();
         JsonNode arguments = params.get("arguments");
 

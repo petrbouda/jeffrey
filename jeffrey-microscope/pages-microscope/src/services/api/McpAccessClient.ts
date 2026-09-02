@@ -15,19 +15,27 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-module cafe.jeffrey.microscope.profile.ai.claudecode {
-    requires transitive cafe.jeffrey.microscope.profile.ai.config;
-    requires cafe.jeffrey.shared.common;
-    requires spring.ai.model;
-    requires spring.boot;
-    requires spring.boot.autoconfigure;
-    requires spring.context;
-    requires spring.beans;
-    requires spring.core;
-    requires org.slf4j;
-    requires cafe.jeffrey.jfr.events;
 
-    exports cafe.jeffrey.profile.ai.claudecode.config;
+import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 
-    opens cafe.jeffrey.profile.ai.claudecode.config to spring.core, spring.beans, spring.context;
+/**
+ * What the Settings page shows about the external MCP server. The URL and both snippets are built
+ * server-side from the request, so they name the address this browser actually reached Jeffrey on
+ * rather than a hardcoded localhost that would be wrong behind a proxy or on a non-default port.
+ */
+export interface McpAccessStatus {
+  enabled: boolean;
+  url: string;
+  claudeMcpAddCommand: string;
+  mcpJsonSnippet: string;
+}
+
+export default class McpAccessClient extends BasePlatformClient {
+  constructor() {
+    super('/mcp/access');
+  }
+
+  fetchStatus(): Promise<McpAccessStatus> {
+    return super.get<McpAccessStatus>('/status');
+  }
 }

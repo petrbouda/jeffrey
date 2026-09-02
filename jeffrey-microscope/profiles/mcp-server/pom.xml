@@ -27,31 +27,26 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>claude-code-headless</artifactId>
-    <description>Claude Code (headless) AI backend and reusable MCP tool machinery</description>
+    <artifactId>mcp-server</artifactId>
+    <description>MCP (Model Context Protocol) server machinery: JSON-RPC envelope and @Tool-driven toolsets</description>
 
     <dependencies>
-        <!-- Tracer: a span per headless CLI invocation -->
+        <!-- Tracer: every MCP tool invocation is recorded as a span -->
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
             <artifactId>jeffrey-events</artifactId>
         </dependency>
-        <!-- AI seam (AiChatBackend, ChatExchange, McpToolset, ...) -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>ai-config</artifactId>
-        </dependency>
 
-        <!-- Spring AI - ChatClient (brings spring-ai-model for the @Tool annotations) -->
+        <!-- Spring AI - the @Tool/@ToolParam annotations the toolsets reflect over -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-client-chat</artifactId>
         </dependency>
 
-        <!-- Spring Boot dependencies -->
+        <!-- ResponseEntity for the JSON-RPC endpoint base class -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
         <!-- Jeffrey dependencies -->
