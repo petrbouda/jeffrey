@@ -73,12 +73,12 @@ message Frame {
     FramePosition position = 8;
     FrameSampleTypes sample_types = 9;
     DiffDetails diff_details = 10;
-    int32 pruned_children_count = 12;   // Only set for FRAME_TYPE_TRUNCATED_SYNTHETIC
+    int32 pruned_children_count = 11;   // Only set for FRAME_TYPE_TRUNCATED_SYNTHETIC
     // The frame's class is a JVM hidden class (JEP 371) -- a lambda proxy, a method-handle form,
     // an indified string concatenation. Such a name carries the JVM's address and is redrawn on
     // every run; the address is already stripped from the title, this marks what it was stripped
     // from. Never set on differential frames, which drop hidden frames altogether.
-    bool hidden = 13;
+    bool hidden = 12;
 }
 
 // Frame type enumeration matching FrameType.java

@@ -2155,9 +2155,9 @@ export const cafe = $root.cafe = (() => {
                         if (message.diffDetails != null && $Object.hasOwnProperty.call(message, "diffDetails"))
                             $root.cafe.jeffrey.flamegraph.proto.DiffDetails.encode(message.diffDetails, writer.uint32(/* id 10, wireType 2 =*/82).fork(), _depth + 1).ldelim();
                         if (message.prunedChildrenCount != null && $Object.hasOwnProperty.call(message, "prunedChildrenCount") && message.prunedChildrenCount !== 0)
-                            writer.uint32(/* id 12, wireType 0 =*/96).int32(message.prunedChildrenCount);
+                            writer.uint32(/* id 11, wireType 0 =*/88).int32(message.prunedChildrenCount);
                         if (message.hidden != null && $Object.hasOwnProperty.call(message, "hidden") && message.hidden !== false)
-                            writer.uint32(/* id 13, wireType 0 =*/104).bool(message.hidden);
+                            writer.uint32(/* id 12, wireType 0 =*/96).bool(message.hidden);
                         if (message.$unknowns != null && $Object.hasOwnProperty.call(message, "$unknowns"))
                             for (let i = 0; i < message.$unknowns.length; ++i)
                                 writer.raw(message.$unknowns[i]);
@@ -2296,7 +2296,7 @@ export const cafe = $root.cafe = (() => {
                                     message.diffDetails = $root.cafe.jeffrey.flamegraph.proto.DiffDetails.decode(reader, reader.uint32(), $undefined, _depth + 1, message.diffDetails);
                                     continue;
                                 }
-                            case 12: {
+                            case 11: {
                                     if (wireType !== 0)
                                         break;
                                     if (value = reader.int32())
@@ -2305,7 +2305,7 @@ export const cafe = $root.cafe = (() => {
                                         delete message.prunedChildrenCount;
                                     continue;
                                 }
-                            case 13: {
+                            case 12: {
                                     if (wireType !== 0)
                                         break;
                                     if (value = reader.bool())
