@@ -246,8 +246,21 @@ public final class HeapDumpDatabaseClient {
      * @return rows inserted (DuckDB returns the count via {@link Statement#getUpdateCount()})
      */
     public long bulkLoadFromParquet(HeapDumpStatement stmt, String table, String parquetGlob) {
+        return bulkLoadFromParquet(stmt, table, parquetGlob, null);
+    }
+
+    /**
+     * Same as {@link #bulkLoadFromParquet(HeapDumpStatement, String, String)}, with the rows
+     * inserted in {@code orderByColumn} order when one is given. A sorted column lets DuckDB's
+     * per-row-group min/max statistics answer an equality filter on it without an index; the
+     * caller is responsible for the session preserving insertion order while this runs, since
+     * {@code preserve_insertion_order = false} lets the insert scatter the sorted rows again.
+     */
+    public long bulkLoadFromParquet(
+            HeapDumpStatement stmt, String table, String parquetGlob, String orderByColumn) {
         String sql = "INSERT INTO " + table
-                + " SELECT * FROM read_parquet('" + parquetGlob + "')";
+                + " SELECT * FROM read_parquet('" + parquetGlob + "')"
+                + (orderByColumn == null ? "" : " ORDER BY " + orderByColumn);
         JdbcInsertEvent event = new JdbcInsertEvent(stmt.label(), groupLabel);
         event.isBatch = true;
         event.begin();

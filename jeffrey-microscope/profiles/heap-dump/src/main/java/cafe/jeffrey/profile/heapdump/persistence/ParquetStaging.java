@@ -106,6 +106,17 @@ public final class ParquetStaging implements AutoCloseable {
      * empty (e.g. a phase that produced zero rows).
      */
     public long bulkLoad(HeapDumpDatabaseClient client, HeapDumpStatement stmt, String table) {
+        return bulkLoad(client, stmt, table, null);
+    }
+
+    /**
+     * Same as {@link #bulkLoad(HeapDumpDatabaseClient, HeapDumpStatement, String)}, inserting the
+     * rows sorted by {@code orderByColumn} when one is given; see
+     * {@link HeapDumpDatabaseClient#bulkLoadFromParquet(HeapDumpStatement, String, String, String)}
+     * for what the caller owes the session in return.
+     */
+    public long bulkLoad(
+            HeapDumpDatabaseClient client, HeapDumpStatement stmt, String table, String orderByColumn) {
         Path dir = tableDir(table);
         if (!Files.isDirectory(dir)) {
             return 0L;
@@ -114,7 +125,7 @@ public final class ParquetStaging implements AutoCloseable {
             return 0L;
         }
         String glob = dir.toAbsolutePath() + "/*.parquet";
-        return client.bulkLoadFromParquet(stmt, table, glob);
+        return client.bulkLoadFromParquet(stmt, table, glob, orderByColumn);
     }
 
     /**

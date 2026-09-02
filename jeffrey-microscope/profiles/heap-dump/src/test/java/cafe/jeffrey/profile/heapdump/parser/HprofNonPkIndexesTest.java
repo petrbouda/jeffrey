@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -54,7 +55,7 @@ class HprofNonPkIndexesTest {
 
     /** Every index the class manages, which is what both paths have to end up having created. */
     private static final Set<String> EXPECTED_INDEXES = Set.of(
-            "idx_outbound_source", "idx_outbound_target", "idx_instance_id", "idx_instance_class",
+            "idx_outbound_target", "idx_instance_id", "idx_instance_class",
             "idx_string_content_instance", "idx_gc_root_instance", "idx_class_name",
             "idx_class_super", "idx_class_is_array", "idx_stack_trace_frame_thread");
 
@@ -125,8 +126,11 @@ class HprofNonPkIndexesTest {
             Path dbPath = dir.resolve("index.duckdb");
             recordCreateAll(dbPath, 8);
 
-            assertTrue(indexNamesIn(dbPath).containsAll(EXPECTED_INDEXES),
+            Set<String> built = indexNamesIn(dbPath);
+            assertTrue(built.containsAll(EXPECTED_INDEXES),
                     "instrumenting the phase must not change what it builds");
+            assertFalse(built.contains("idx_outbound_source"),
+                    "the source-side edge index is served by row-group statistics, not built");
         }
     }
 

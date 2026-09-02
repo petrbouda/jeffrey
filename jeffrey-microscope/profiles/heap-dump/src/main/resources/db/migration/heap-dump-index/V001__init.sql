@@ -177,7 +177,12 @@ CREATE INDEX IF NOT EXISTS idx_gc_root_instance ON gc_root(instance_id);
 -- field_kind: 0=instance_field, 1=array_element, 2=class_static
 -- field_id:   field index for instance/static, array index for arrays
 --
--- Indexed on target_id for inbounds() / leak suspect queries.
+-- Indexed on target_id for inbounds() / leak suspect queries. There is no
+-- index on source_id on purpose: this is the largest table by far, same-table
+-- indexes build sequentially, and the source index alone cost more than every
+-- other index of the build combined. Pass B writes an object's edges next to
+-- each other in instance order, so a source_id lookup is served by the per-row-
+-- group min/max statistics DuckDB keeps anyway; the joins never used the index.
 --
 CREATE TABLE IF NOT EXISTS outbound_ref
 (
@@ -187,7 +192,6 @@ CREATE TABLE IF NOT EXISTS outbound_ref
     field_id   INTEGER NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_outbound_source ON outbound_ref(source_id);
 CREATE INDEX IF NOT EXISTS idx_outbound_target ON outbound_ref(target_id);
 
 --
@@ -196,6 +200,13 @@ CREATE INDEX IF NOT EXISTS idx_outbound_target ON outbound_ref(target_id);
 -- Built lazily by DominatorTreeBuilder; the table stays empty until requested.
 -- Instances rooted directly at the (virtual) root have dominator_id = 0.
 --
+-- Rows are loaded ORDERED BY dominator_id, and that order is what serves the
+-- "children of X" lookup: DuckDB keeps min/max statistics per row group, so a
+-- sorted column narrows an equality filter to the one or two row groups that
+-- can hold it. An ART index on dominator_id did the same job for 7 s of build
+-- time per dump -- a column with millions of rows sharing a handful of values
+-- is the shape ART builds slowest -- and the sort costs a fraction of that.
+--
 CREATE TABLE IF NOT EXISTS dominator
 (
     instance_id   BIGINT NOT NULL,
@@ -203,7 +214,6 @@ CREATE TABLE IF NOT EXISTS dominator
 );
 
 CREATE INDEX IF NOT EXISTS idx_dominator_instance ON dominator(instance_id);
-CREATE INDEX IF NOT EXISTS idx_dominator_parent ON dominator(dominator_id);
 
 --
 -- RETAINED_SIZE
