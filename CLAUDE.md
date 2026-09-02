@@ -63,6 +63,7 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `pages-microscope` — Full-featured Vue 3 SPA frontend
 - `profiles/` — All profile analysis modules (see below)
 - REST resources: `/api/internal/workspaces/**`, `/api/internal/projects/**`, `/api/internal/profiles/{profileId}/**`
+- `core-microscope/.../mcp/` — both MCP endpoints. `ExternalMcpController` serves `POST /api/internal/mcp` to an **outside** client (installation-wide, `profileId` as a tool argument, read-only, off by default behind `jeffrey.microscope.mcp.enabled`); `McpStreamableHttpController` serves `/api/internal/mcp/claude-code` to the headless CLI backend Jeffrey spawns for itself (per-profile, provider-gated). They differ on scoping, gating and lifecycle — keep them separate rather than branching on which query parameters are present
 
 **jeffrey-microscope/profiles/** (profile analysis, used only by jeffrey-microscope):
 - `profile-management` — Profile analysis features + REST resources (Flamegraph, Timeseries, Guardian, GC, Threads, HeapDump, AI)
@@ -76,7 +77,8 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `oql-assistant` — OQL AI assistant
 - `duckdb-jfr-mcp`, `duckdb-heapdump-mcp` — MCP servers for AI integration
 - `profile-advisor` — AI recommendations and patches from the profile and a local source folder
-- `claude-code-headless` — Claude Code (headless) AI backend + reusable MCP tool machinery (`ReflectiveToolset`)
+- `claude-code-headless` — Claude Code (headless) AI backend
+- `mcp-server` — The MCP protocol layer, shared by every MCP endpoint: the JSON-RPC/Streamable-HTTP envelope (`AbstractMcpStreamableHttpController`), the `@Tool`-to-MCP adapter (`ReflectiveToolset`), and `ProfileScopedToolset` / `CompositeToolset` for resolving a tool class per call from a `profileId` and merging tool families into one server. **Only place that knows the protocol** — do not re-implement it in a controller
 
 **jeffrey-hub** (`jeffrey-hub/`):
 - `core-hub` — Main Spring Boot app (HubApplication), gRPC service implementations, scheduler/jobs, JFR streaming
@@ -170,6 +172,7 @@ jeffrey/
 │       ├── oql-assistant/             # OQL AI assistant
 │       ├── duckdb-jfr-mcp/           # DuckDB MCP server for AI
 │       ├── duckdb-heapdump-mcp/      # Heap dump MCP server for AI
+│       ├── mcp-server/                # Shared MCP protocol layer (JSON-RPC envelope, toolsets)
 │       └── profile-advisor/           # AI recommendations from a local source folder
 ├── jeffrey-hub/                    # Multi-workspace server deployment
 │   ├── core-hub/                   # Main Spring Boot app (HubApplication)
@@ -195,6 +198,10 @@ jeffrey/
 │   └── filesystem-recording-storage/  # Filesystem storage implementation
 ├── jeffrey-provisioner/               # Provisioner tool (GraalVM Native Image)
 ├── jeffrey-agent/                     # Agent module
+├── jeffrey-claude-plugin/             # Claude Code plugin "microscope" (MCP server + skills)
+│   ├── .claude-plugin/plugin.json     # Manifest, with the MCP server declared inline
+│   └── skills/                        # analyze-profile, jfr-sql, heap-sql
+├── .claude-plugin/marketplace.json    # Makes the repo itself a Claude Code plugin marketplace
 ├── jeffrey-pages/                     # Documentation site
 ├── build/                             # Build configurations
 │   ├── build-microscope/                   # Local application assembly
@@ -385,6 +392,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - **jeffrey-microscope REST**: `/api/internal/` for frontend-facing APIs — resources in `jeffrey-microscope/core-microscope/.../resources/`
 - **Profile REST**: `/api/internal/profiles/{profileId}/` for profile features — controllers in `jeffrey-microscope/core-microscope/.../web/controllers/profile/`
 - **jeffrey-hub REST**: `/api/internal/` for minimal server UI — resources in `jeffrey-hub/core-hub/.../resources/`
+- **MCP**: JSON-RPC 2.0 over Streamable HTTP — `POST /api/internal/mcp` (external clients) and `/api/internal/mcp/claude-code` (the headless CLI backend), controllers in `jeffrey-microscope/core-microscope/.../mcp/`, protocol layer in `jeffrey-microscope/profiles/mcp-server/`
 - **gRPC**: Remote workspace communication between jeffrey-microscope and jeffrey-hub — proto definitions in `shared/hub-api/src/main/proto/jeffrey/hub/api/v1/`, service implementations in `jeffrey-hub/core-hub/.../grpc/`, clients in `jeffrey-microscope/grpc-client/.../grpc/client/`, aggregated by the `HubClients` record in `shared/hub-client/`
 - gRPC proto files: `workspace_service.proto`, `project_service.proto`, `instance_service.proto`, `recording_download_service.proto`, `repository_service.proto`, `profiler_settings_service.proto`, `event_streaming_service.proto`
 - gRPC clients: `HubClients` record (in `shared/hub-client/`) containing `DiscoveryClient`, `RepositoryClient`, `RecordingStreamClient`, `ProfilerClient`, `InstancesClient`, `ProjectsClient`, `EventStreamingClient`
@@ -418,6 +426,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - Spring AI 2.0.0-M3 with Claude and OpenAI providers
 - AI modules: `jeffrey-microscope/profiles/ai-config/`, `jeffrey-microscope/profiles/oql-assistant/`, `jeffrey-microscope/profiles/duckdb-jfr-mcp/`, `jeffrey-microscope/profiles/duckdb-heapdump-mcp/`, `jeffrey-microscope/profiles/profile-advisor/`
 - Config: `jeffrey.ai.provider=claude`, `jeffrey.ai.model=claude-opus-4-8`
+- **Two directions, do not confuse them.** The modules above run AI *inside* Jeffrey (Jeffrey calls out to a provider). The external MCP server at `POST /api/internal/mcp` is the reverse: an outside client — an interactive Claude Code session in the developer's own repository — calls *in* and reads every analysed profile. Its tools are read-only, its protocol layer is `profiles/mcp-server`, and it is packaged as the `microscope` Claude Code plugin (`/plugin install microscope@jeffrey`)
 
 ## DuckDB MCP Servers
 - You can use MCP Server to connect to DuckDB database to get information about the current data
@@ -456,12 +465,15 @@ When modifying code, keep the corresponding documentation pages in `jeffrey-page
 | `jeffrey-agent/` + tracing instrumentation | `docs/tracing/` — concepts, getting started, configuration, `@Traced`, instrumentation and event pages; `docs/tracing/tracer-api/` — one page per Tracer API method |
 | `jeffrey-provisioner/` | `docs/provisioner/` — overview, configuration, directory structure, generated output |
 | Jib build/deployment | `docs/jib/` — overview, setup, configuration |
-| AI modules (`ai-config`, `oql-assistant`, `*-mcp`, `profile-advisor`) | `docs/ai/` — overview, JFR analysis, heap dump analysis, OQL assistant |
+| In-app AI modules (`ai-config`, `oql-assistant`, `duckdb-jfr-mcp`, `duckdb-heapdump-mcp`, `claude-code-headless`, `profile-advisor`) | `docs/ai/` — overview, JFR analysis, heap dump analysis, OQL assistant |
+| External MCP server (`core-microscope/.../mcp/`, `profiles/mcp-server`) + `jeffrey-claude-plugin/` | `docs/microscope-mcp/` — overview, enabling the server, Claude Code plugin, tool reference, skills, recipes, other clients |
 | IntelliJ plugin | `docs/intellij-plugin/` — overview, setup, configuration, JFR profiler |
 | Architecture changes | `docs/architecture/ArchitectureOverviewPage.vue` |
 | Install/onboarding changes | `docs/getting-started/` — introduction, installation, quick start |
 
-All paths above are relative to `jeffrey-pages/src/views/docs/`. New pages must also be registered as a route in `jeffrey-pages/src/router/index.ts`.
+All paths above are relative to `jeffrey-pages/src/views/docs/`. New pages must be registered in **two** places: a route in `jeffrey-pages/src/router/index.ts`, and a sidebar entry in the product's `DocSection[]` array in `jeffrey-pages/src/composables/useDocsNavigation.ts` — a page with only a route is reachable by URL but invisible in the sidebar, breadcrumbs and prev/next, all of which are derived from that array.
+
+A whole new product panel (as `microscope-mcp` was) needs more: an entry in the `Product` union and in `PRODUCTS`, a `<NAME>_SEGMENTS` set with a branch in `getProductForPath`, its `DocSection[]` array plus a branch in `navigationForProduct` and inclusion in the `docsNavigation` union, and a `DocsProductCard` on `jeffrey-pages/src/views/docs/DocsIndexPage.vue`. `getAdjacentPages` derives prev/next per product, so no chain needs editing by hand.
 
 ## License
 GNU Affero General Public License v3.0 (AGPL-3.0)
