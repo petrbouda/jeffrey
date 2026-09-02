@@ -71,13 +71,15 @@ public final class StringAnalyzer {
     /**
      * Per-backing-array aggregation: one row per distinct {@code value}-array
      * referenced by any {@code String}. {@code 1 = field_id} of String.value,
-     * {@code 2 = String's class_id}.
+     * {@code 2 = String's class_id}. Never streamed on its own: a heap has one
+     * row here per backing array, which is millions, and the two readings the
+     * report needs -- totals and a top-N -- are both taken inside DuckDB below.
      */
     // DuckDB widens SUM(BIGINT) to HUGEINT to avoid overflow. The outer
     // CAST AS BIGINT keeps the result on the BIGINT long-vector path so
     // JDBC getLong returns the value directly instead of going through
     // getHugeint → BigInteger (+ backing byte[]).
-    private static final String PHYSICAL_SHARING_SQL = """
+    private static final String PHYSICAL_SHARING_PER_ARRAY_SQL = """
             SELECT
                 ref.target_id                                       AS array_id,
                 MAX(arr.shallow_size)                               AS array_shallow,
@@ -89,6 +91,39 @@ public final class StringAnalyzer {
             JOIN instance arr     ON arr.instance_id = ref.target_id
             WHERE s.class_id = ?
             GROUP BY ref.target_id
+            """;
+
+    /**
+     * The report's physical-sharing totals, folded over the per-array rows
+     * where they live. Materialising the rows in Java to sum them cost one
+     * record per backing array and was the string stage's largest allocation.
+     */
+    private static final String PHYSICAL_SHARING_TOTALS_SQL = """
+            SELECT
+                COUNT(*)                                                                   AS unique_arrays,
+                COUNT(*) FILTER (WHERE ref_count > 1)                                      AS shared_arrays,
+                CAST(COALESCE(SUM(ref_count) FILTER (WHERE ref_count > 1), 0) AS BIGINT)  AS total_shared_strings,
+                CAST(COALESCE(SUM((ref_count - 1) * array_shallow)
+                              FILTER (WHERE ref_count > 1), 0) AS BIGINT)                  AS memory_saved,
+                CAST(COALESCE(SUM(ref_count), 0) AS BIGINT)                                AS total_strings,
+                CAST(COALESCE(SUM(sum_string_shallow), 0) AS BIGINT)                       AS total_shallow
+            FROM (
+            """ + PHYSICAL_SHARING_PER_ARRAY_SQL + """
+            )
+            """;
+
+    /**
+     * The shared arrays that save the most, ranked in DuckDB. {@code 3 = topN}.
+     * The array id breaks ties so the page is stable between runs.
+     */
+    private static final String PHYSICAL_SHARING_TOP_SQL = """
+            SELECT array_shallow, ref_count, sample_string_id
+            FROM (
+            """ + PHYSICAL_SHARING_PER_ARRAY_SQL + """
+            )
+            WHERE ref_count > 1
+            ORDER BY (ref_count - 1) * array_shallow DESC, array_id
+            LIMIT ?
             """;
 
     /**
@@ -198,12 +233,14 @@ public final class StringAnalyzer {
             return emptyReport();
         }
 
+        // Only the top-N candidates per String class travel out of DuckDB; the totals come out
+        // folded. With several String classes (one per class loader that defines its own) the
+        // per-class top-N lists are re-ranked together below.
         List<PhysicalSharingRow> physRows = new ArrayList<>();
+        PhysicalTotals totals = PhysicalTotals.NONE;
         Map<String, ContentSharingRow> contentRows = new HashMap<>();
         Map<String, TopRetainedRow> topRows = new HashMap<>();
         List<StringInstanceEntry> topInstanceCandidates = new ArrayList<>();
-        long totalStrings = 0;
-        long totalShallowSize = 0;
 
         for (JavaClassRow stringClass : stringClasses) {
             int valueFieldId = findValueFieldId(view, stringClass.classId());
@@ -211,18 +248,27 @@ public final class StringAnalyzer {
                 continue;
             }
 
-            try (PreparedStatement stmt = view.databaseClient().connection().prepareStatement(PHYSICAL_SHARING_SQL)) {
+            try (PreparedStatement stmt = view.databaseClient().connection()
+                    .prepareStatement(PHYSICAL_SHARING_TOTALS_SQL)) {
                 stmt.setInt(1, valueFieldId);
                 stmt.setLong(2, stringClass.classId());
                 try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        totals = totals.plus(new PhysicalTotals(
+                                rs.getLong(1), rs.getLong(2), rs.getLong(3),
+                                rs.getLong(4), rs.getLong(5), rs.getLong(6)));
+                    }
+                }
+            }
+
+            try (PreparedStatement stmt = view.databaseClient().connection()
+                    .prepareStatement(PHYSICAL_SHARING_TOP_SQL)) {
+                stmt.setInt(1, valueFieldId);
+                stmt.setLong(2, stringClass.classId());
+                stmt.setInt(3, topN);
+                try (ResultSet rs = stmt.executeQuery()) {
                     while (rs.next()) {
-                        long arrayShallow = rs.getLong(2);
-                        long refCount = rs.getLong(3);
-                        long sumStringShallow = rs.getLong(4);
-                        long sampleStringId = rs.getLong(5);
-                        physRows.add(new PhysicalSharingRow(arrayShallow, refCount, sampleStringId));
-                        totalStrings += refCount;
-                        totalShallowSize += sumStringShallow;
+                        physRows.add(new PhysicalSharingRow(rs.getLong(1), rs.getLong(2), rs.getLong(3)));
                     }
                 }
             }
@@ -295,13 +341,6 @@ public final class StringAnalyzer {
             }
         }
 
-        long uniqueArrays = physRows.size();
-        long sharedArrays = physRows.stream().filter(r -> r.refCount > 1).count();
-        long totalSharedStrings = physRows.stream().filter(r -> r.refCount > 1)
-                .mapToLong(r -> r.refCount).sum();
-        long memorySavedByDedup = physRows.stream().filter(r -> r.refCount > 1)
-                .mapToLong(r -> (r.refCount - 1) * r.arrayShallowSize).sum();
-
         List<StringDeduplicationEntry> already = topNByPhysicalSavings(physRows, topN, view);
 
         long potentialSavings = contentRows.values().stream()
@@ -312,12 +351,12 @@ public final class StringAnalyzer {
         List<StringInstanceEntry> topInstances = topNInstances(topInstanceCandidates, topN);
 
         return new StringAnalysisReport(
-                totalStrings,
-                totalShallowSize,
-                uniqueArrays,
-                sharedArrays,
-                totalSharedStrings,
-                memorySavedByDedup,
+                totals.totalStrings(),
+                totals.totalShallow(),
+                totals.uniqueArrays(),
+                totals.sharedArrays(),
+                totals.totalSharedStrings(),
+                totals.memorySaved(),
                 potentialSavings,
                 top,
                 topInstances,
@@ -441,6 +480,28 @@ public final class StringAnalyzer {
     }
 
     private record PhysicalSharingRow(long arrayShallowSize, long refCount, long sampleStringId) {
+    }
+
+    /** The physical-sharing totals of one String class, summed across classes with {@link #plus}. */
+    private record PhysicalTotals(
+            long uniqueArrays,
+            long sharedArrays,
+            long totalSharedStrings,
+            long memorySaved,
+            long totalStrings,
+            long totalShallow) {
+
+        static final PhysicalTotals NONE = new PhysicalTotals(0, 0, 0, 0, 0, 0);
+
+        PhysicalTotals plus(PhysicalTotals other) {
+            return new PhysicalTotals(
+                    uniqueArrays + other.uniqueArrays,
+                    sharedArrays + other.sharedArrays,
+                    totalSharedStrings + other.totalSharedStrings,
+                    memorySaved + other.memorySaved,
+                    totalStrings + other.totalStrings,
+                    totalShallow + other.totalShallow);
+        }
     }
 
     private record ContentSharingRow(

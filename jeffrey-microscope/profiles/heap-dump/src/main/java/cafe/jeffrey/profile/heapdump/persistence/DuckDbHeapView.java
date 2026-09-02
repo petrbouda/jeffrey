@@ -162,6 +162,15 @@ public final class DuckDbHeapView implements HeapView {
      */
     private final ConcurrentMap<Long, Optional<String>> stringContentCache = new ConcurrentHashMap<>();
 
+    /**
+     * Per-session cache for {@link #instanceFieldsWithChain(long)}. A class's field layout is
+     * fixed for the life of the index, and resolving it costs one class lookup and one field
+     * query per level of the superclass chain -- paid once per <em>instance</em> whose fields are
+     * read, so the thread analysis re-resolved {@code java.lang.Thread} for every thread object.
+     * Lifetime matches this view's open session; dropped when {@link #close()} runs.
+     */
+    private final ConcurrentMap<Long, List<InstanceFieldDescriptor>> fieldChainCache = new ConcurrentHashMap<>();
+
     private DuckDbHeapView(Path path, Connection connection, HprofMappedFile hprof) throws SQLException {
         this.path = path;
         this.connection = connection;
@@ -411,6 +420,10 @@ public final class DuckDbHeapView implements HeapView {
 
     @Override
     public List<InstanceFieldDescriptor> instanceFieldsWithChain(long classId) throws SQLException {
+        List<InstanceFieldDescriptor> cached = fieldChainCache.get(classId);
+        if (cached != null) {
+            return cached;
+        }
         List<InstanceFieldDescriptor> out = new ArrayList<>();
         long current = classId;
         while (current != 0L) {
@@ -421,7 +434,9 @@ public final class DuckDbHeapView implements HeapView {
             out.addAll(instanceFields(current));
             current = cls.superClassId() == null ? 0L : cls.superClassId();
         }
-        return out;
+        List<InstanceFieldDescriptor> chain = List.copyOf(out);
+        fieldChainCache.put(classId, chain);
+        return chain;
     }
 
     @Override
