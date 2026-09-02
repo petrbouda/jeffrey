@@ -54,9 +54,9 @@ class HprofNonPkIndexesTest {
 
     /** Every index the class manages, which is what both paths have to end up having created. */
     private static final Set<String> EXPECTED_INDEXES = Set.of(
-            "idx_outbound_source", "idx_outbound_target", "idx_instance_class",
-            "idx_gc_root_instance", "idx_class_name", "idx_class_super",
-            "idx_class_is_array", "idx_stack_trace_frame_thread");
+            "idx_outbound_source", "idx_outbound_target", "idx_instance_id", "idx_instance_class",
+            "idx_string_content_instance", "idx_gc_root_instance", "idx_class_name",
+            "idx_class_super", "idx_class_is_array", "idx_stack_trace_frame_thread");
 
     /**
      * Runs {@code createAll} inside a span named like the real phase, with a recording running.
@@ -114,6 +114,7 @@ class HprofNonPkIndexesTest {
                     .hasNoUntracedSpans()
                     .hasSpan("create_indexes_outbound_ref").nestedUnder(PHASE_SPAN).and()
                     .hasSpan("create_indexes_instance").nestedUnder(PHASE_SPAN).and()
+                    .hasSpan("create_indexes_string_content").nestedUnder(PHASE_SPAN).and()
                     .hasSpan("create_indexes_gc_root").nestedUnder(PHASE_SPAN).and()
                     .hasSpan("create_indexes_class").nestedUnder(PHASE_SPAN).and()
                     .hasSpan("create_indexes_stack_trace_frame").nestedUnder(PHASE_SPAN);

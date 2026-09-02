@@ -141,6 +141,16 @@ class TraceAiMarkdownBuilderTest {
             assertTrue(out.contains("nest"), "must warn that spans nest rather than sum");
             assertTrue(out.contains("trace's own window"));
         }
+
+        @Test
+        @DisplayName("explains what a folded line is")
+        void explainsFolding() {
+            String out = build();
+
+            assertTrue(out.contains("!folded"));
+            assertTrue(out.contains("folded into one line per parent and name"));
+            assertTrue(out.contains("!class-loading"));
+        }
     }
 
     @Nested
@@ -260,11 +270,17 @@ class TraceAiMarkdownBuilderTest {
      */
     private static TraceSpanRow ioSpan(
             String spanId, String name, String eventType, String eventFields, long durationNanos) {
+        return ioSpan(spanId, name, eventType, eventFields, durationNanos, null);
+    }
+
+    private static TraceSpanRow ioSpan(
+            String spanId, String name, String eventType, String eventFields, long durationNanos,
+            String ioOrigin) {
 
         return new TraceSpanRow(
                 spanId, "01", name, "INTERNAL", "UNSET", null,
                 0, 0L, durationNanos, durationNanos, 0,
-                1, "3001", "http-1", false, eventType, null, eventFields, true, null);
+                1, "3001", "http-1", false, eventType, null, eventFields, true, ioOrigin);
     }
 
     private static TraceExceptionRow thrown(
@@ -292,6 +308,113 @@ class TraceAiMarkdownBuilderTest {
                 .filter(line -> line.contains(needle))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("no line contains: " + needle));
+    }
+
+    @Nested
+    @DisplayName("Span budget")
+    class SpanBudget {
+
+        private static final long MICRO = 1_000L;
+
+        /*
+         * The case that motivated the plan: a recording that captured every file read puts hundreds
+         * of microsecond leaves ahead of the phase that explains the trace. Spent in order, the
+         * budget listed the leaves and dropped the phase.
+         */
+        @Test
+        @DisplayName("lists a recorded span behind hundreds of tiny promoted leaves")
+        void keepsRecordedSpansAheadOfPromotedLeaves() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            spans.add(span("01", null, "heap-dump-init", "INTERNAL", 0, 420, 20, 420, 0));
+            for (int i = 0; i < 450; i++) {
+                spans.add(ioSpan("f" + i, "File read", "jdk.FileRead",
+                        "{\"path\":\"/app/app.jar\",\"bytesRead\":512}", 2 * MICRO));
+            }
+            spans.add(span("02", "01", "create_indexes", "INTERNAL", 100, 300, 300, 300, 1));
+
+            String out = buildWith(spans, List.of());
+
+            assertTrue(lineWith(out, "create_indexes").startsWith("  - create_indexes [INTERNAL]"),
+                    "the recorded span must not lose its line to the leaves before it");
+            assertTrue(out.contains("  - File read ×450 [INTERNAL]"),
+                    "the leaves fold into one line under their parent, at their depth");
+            assertFalse(out.contains("truncated:"), "nothing was dropped, so nothing is truncated");
+            assertTrue(out.contains("folded: 450 promoted leaf spans into 1 line"));
+        }
+
+        @Test
+        @DisplayName("gives a promoted leaf above the floor a line of its own")
+        void rendersLongPromotedLeafIndividually() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            spans.add(span("01", null, "query", "INTERNAL", 0, 420, 20, 420, 0));
+            spans.add(ioSpan("s1", "Socket read", "jdk.SocketRead",
+                    "{\"host\":\"db\",\"port\":5432,\"bytesRead\":64}", 5 * MS));
+
+            String out = buildWith(spans, List.of());
+
+            assertTrue(out.contains("  - Socket read [INTERNAL] — 5ms"), out);
+            assertFalse(out.contains("Socket read ×"), "a leaf worth a line is not folded");
+        }
+
+        @Test
+        @DisplayName("sums a fold and names its longest member")
+        void reportsFoldShape() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            spans.add(span("01", null, "query", "INTERNAL", 0, 420, 20, 420, 0));
+            spans.add(ioSpan("f1", "File read", "jdk.FileRead", "{\"path\":\"/a\",\"bytesRead\":1}", 10 * MICRO));
+            spans.add(ioSpan("f2", "File read", "jdk.FileRead", "{\"path\":\"/a\",\"bytesRead\":1}", 30 * MICRO));
+            spans.add(ioSpan("f3", "File read", "jdk.FileRead", "{\"path\":\"/a\",\"bytesRead\":1}", 20 * MICRO));
+
+            String line = lineWith(buildWith(spans, List.of()), "File read ×3");
+
+            assertTrue(line.contains("60us summed"), line);
+            assertTrue(line.contains("longest 30us"), line);
+            assertTrue(line.endsWith("!folded"), line);
+        }
+
+        @Test
+        @DisplayName("marks a fold whose every read was the class loader's")
+        void marksClassLoadingFolds() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            spans.add(span("01", null, "query", "INTERNAL", 0, 420, 20, 420, 0));
+            spans.add(ioSpan("f1", "File read", "jdk.FileRead",
+                    "{\"path\":\"/app/app.jar\",\"bytesRead\":10240}", 2 * MICRO, "CLASS_LOADING"));
+            spans.add(ioSpan("f2", "File read", "jdk.FileRead",
+                    "{\"path\":\"/app/app.jar\",\"bytesRead\":10240}", 2 * MICRO, "CLASS_LOADING"));
+
+            String line = lineWith(buildWith(spans, List.of()), "File read ×2");
+
+            assertTrue(line.endsWith("!folded !class-loading"), line);
+        }
+
+        @Test
+        @DisplayName("keeps a fold unmarked when one read's origin is unknown")
+        void leavesMixedOriginFoldUnmarked() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            spans.add(span("01", null, "query", "INTERNAL", 0, 420, 20, 420, 0));
+            spans.add(ioSpan("f1", "File read", "jdk.FileRead",
+                    "{\"path\":\"/app/app.jar\",\"bytesRead\":10240}", 2 * MICRO, "CLASS_LOADING"));
+            spans.add(ioSpan("f2", "File read", "jdk.FileRead",
+                    "{\"path\":\"/data/dump.hprof\",\"bytesRead\":10240}", 2 * MICRO));
+
+            String line = lineWith(buildWith(spans, List.of()), "File read ×2");
+
+            assertFalse(line.contains("!class-loading"), line);
+        }
+
+        @Test
+        @DisplayName("still truncates recorded spans past the budget, and says so")
+        void truncatesRecordedSpansPastTheBudget() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            for (int i = 0; i < 450; i++) {
+                spans.add(span("s" + i, null, "span-" + i, "INTERNAL", i, 1, 1, 0, 0));
+            }
+
+            String out = buildWith(spans, List.of());
+
+            assertTrue(out.contains("truncated: 50 further spans"));
+            assertFalse(out.contains("folded:"), "recorded spans are never folded");
+        }
     }
 
     @Nested
@@ -386,7 +509,7 @@ class TraceAiMarkdownBuilderTest {
 
             String out = buildWith(spans, List.of());
 
-            assertTrue(out.contains("truncated: 101 further spans"), "the tree still stops at 400");
+            assertTrue(out.contains("File read ×101 [INTERNAL]"), "the tree still stops at 400 lines");
             assertTrue(out.contains("File read /data/dump.hprof — 500 ops"),
                     "the accounting must not stop where the bullets did");
         }

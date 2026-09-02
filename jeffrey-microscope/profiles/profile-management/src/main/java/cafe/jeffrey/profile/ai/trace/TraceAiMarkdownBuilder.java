@@ -59,6 +59,19 @@ public final class TraceAiMarkdownBuilder {
 
                    - <name> [<KIND>] — <total> (<total%>, self <self>)[ !critical][ !error]
 
+               A promoted leaf — a socket or file operation, a lock wait, a park — gets a
+               line of its own only when it is long enough to matter: at least 1ms, or a
+               thousandth of the trace, whichever is larger. Shorter ones, and any past the
+               export's span budget, are folded into one line per parent and name:
+
+                   - <name> ×<n> [<KIND>] — <summed> summed (<total%>), longest <max> !folded[ !class-loading]
+
+               `!class-loading` says every read in the fold was the class loader's — the JVM
+               paging in its own code, not the request's I/O. Nothing folded is lost to the
+               accounting: the I/O operations section counts every operation individually.
+               The budget favours recorded spans: an instrumented span is always listed
+               before any promoted leaf takes a line.
+
             3. **JVM context** — what the runtime was doing during this trace.
             4. **Where the time went** — the same accounting, ranked.
             5. **I/O operations** — the socket and file operations grouped by what
@@ -224,6 +237,9 @@ public final class TraceAiMarkdownBuilder {
     private static final String DASH_SEPARATOR = " — ";
     private static final String CRITICAL_MARKER = " !critical";
     private static final String ERROR_MARKER = " !error";
+    private static final String FOLDED_MARKER = " !folded";
+    private static final String CLASS_LOADING_MARKER = " !class-loading";
+    private static final String FOLD_COUNT_PREFIX = " ×";
     private static final String ERROR_STATUS = "ERROR";
     private static final String OWN_WORK_CATEGORY = "OWN_WORK";
     private static final String NO_CONTEXT_NOTE =
@@ -237,9 +253,10 @@ public final class TraceAiMarkdownBuilder {
     private static final String ESCAPED_MARKER = " !escaped";
 
     /**
-     * How many spans a bundle carries before it is cut short. A trace of a few hundred spans is
-     * ordinary; one of several thousand is a pathological instrumentation case, and pasting it into
-     * a chat window helps nobody.
+     * How many spans take a line of their own before the tree is cut short. A trace of a few
+     * hundred spans is ordinary; one of several thousand is a pathological instrumentation case,
+     * and pasting it into a chat window helps nobody. The budget is spent by {@link TraceTreePlan}
+     * on recorded spans first: a promoted leaf never costs a recorded span its line.
      */
     private static final int MAX_SPANS = 400;
 
@@ -308,6 +325,10 @@ public final class TraceAiMarkdownBuilder {
     /**
      * The tree in the order the waterfall draws it — depth-first from the root, siblings by start —
      * with indentation carrying the parent relationship, so a reader never has to resolve span ids.
+     * <p>
+     * Which spans get a line is {@link TraceTreePlan}'s decision, not the list's order: a recording
+     * that captured every file read puts hundreds of microsecond leaves ahead of the phases that
+     * explain the trace, and a budget spent in order would list the leaves and drop the phases.
      */
     private void renderTree(StringBuilder out) {
         out.append(HEADING_TREE).append('\n').append('\n');
@@ -319,22 +340,48 @@ public final class TraceAiMarkdownBuilder {
         }
 
         long traceNanos = detail.trace().durationNanos();
-        int rendered = Math.min(spans.size(), MAX_SPANS);
-        for (int i = 0; i < rendered; i++) {
-            renderSpan(out, spans.get(i), traceNanos);
+        TraceTreePlan plan = TraceTreePlan.of(spans, traceNanos, MAX_SPANS);
+        for (TraceTreePlan.Row row : plan.rows()) {
+            switch (row) {
+                case TraceTreePlan.SpanLine line -> renderSpan(out, line.span(), traceNanos);
+                case TraceTreePlan.FoldLine line -> renderFold(out, line, traceNanos);
+            }
         }
 
         // Stated rather than silent: a bundle that quietly stops reads as a complete trace, and a
         // model will happily conclude that the missing spans do not exist.
-        if (spans.size() > rendered) {
+        if (plan.folded() > 0) {
+            out.append(BULLET_PREFIX)
+                    .append("(folded: ")
+                    .append(plan.folded())
+                    .append(" promoted leaf spans into ")
+                    .append(TraceAiFormat.count(plan.foldLines(), "line"))
+                    .append(" marked !folded; the I/O operations section counts each of them)")
+                    .append('\n');
+        }
+        if (plan.omitted() > 0) {
             out.append(BULLET_PREFIX)
                     .append("(truncated: ")
-                    .append(spans.size() - rendered)
+                    .append(plan.omitted())
                     .append(" further spans were omitted from this export, out of ")
                     .append(spans.size())
                     .append(" in the trace)")
                     .append('\n');
         }
+    }
+
+    private void renderFold(StringBuilder out, TraceTreePlan.FoldLine fold, long traceNanos) {
+        out.append(INDENT_UNIT.repeat(fold.depth())).append(BULLET_PREFIX);
+        out.append(fold.name()).append(FOLD_COUNT_PREFIX).append(fold.count());
+        out.append(" [").append(fold.kind()).append(']');
+        out.append(DASH_SEPARATOR).append(TraceAiFormat.duration(fold.totalNanos())).append(" summed");
+        out.append(" (").append(TraceAiFormat.percent(fold.totalNanos(), traceNanos)).append(')');
+        out.append(", longest ").append(TraceAiFormat.duration(fold.maxNanos()));
+        out.append(FOLDED_MARKER);
+        if (fold.classLoading()) {
+            out.append(CLASS_LOADING_MARKER);
+        }
+        out.append('\n');
     }
 
     private void renderSpan(StringBuilder out, TraceSpanRow span, long traceNanos) {
