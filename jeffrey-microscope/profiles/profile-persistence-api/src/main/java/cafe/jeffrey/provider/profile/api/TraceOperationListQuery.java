@@ -23,9 +23,10 @@ import java.util.Objects;
 /**
  * How a caller wants the operations list narrowed, ordered and paged.
  * <p>
- * The counterpart to {@link TraceListQuery} for the aggregated view. It has no duration floor:
- * an operation's duration is a distribution rather than a number, so "at least this long" would have
- * to name which percentile it meant, and the sort already answers that question better.
+ * One record rather than six parameters, which also keeps the defaults in one spot — see
+ * {@link #busiest(int)}. It has no duration floor: an operation's duration is a distribution rather
+ * than a number, so "at least this long" would have to name which percentile it meant, and the sort
+ * already answers that question better.
  *
  * @param nameContains matched against the operation's name, case-insensitively, as a substring;
  *                     {@code null} or blank matches everything

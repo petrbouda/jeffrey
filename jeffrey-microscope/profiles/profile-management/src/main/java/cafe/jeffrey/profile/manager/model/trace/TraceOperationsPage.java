@@ -21,8 +21,11 @@ package cafe.jeffrey.profile.manager.model.trace;
 import java.util.List;
 
 /**
- * One page of operations, with how many the filter matched in total — the aggregated counterpart to
- * {@link TracesPage}.
+ * One page of operations, with how many the filter matched in total.
+ * <p>
+ * The total travels with the rows so the list can say whether what it drew is all there was. Without
+ * it a capped list is indistinguishable from a complete one, which is the question a reader looking
+ * at exactly 100 rows always has.
  *
  * @param operations    the page's rows, already ordered
  * @param totalMatching how many trace types match the same filter, ignoring the page bounds

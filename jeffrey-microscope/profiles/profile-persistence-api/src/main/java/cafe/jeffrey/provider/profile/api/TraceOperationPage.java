@@ -21,8 +21,12 @@ package cafe.jeffrey.provider.profile.api;
 import java.util.List;
 
 /**
- * One page of operations, with how many the filter matched in total — the aggregated counterpart to
- * {@link TracePage}, and for the same reason.
+ * One page of operations, with how many the filter matched in total.
+ * <p>
+ * The total is what turns a truncated list from a dead end into a page: without it the UI can say
+ * "here are 100 operations" but not whether that is all of them, which is exactly the question a
+ * reader looking at a capped list is asking. It counts what the filter matched, not what the table
+ * holds, so it still means something once a search has been typed.
  *
  * @param operations    the rows for this page, already ordered
  * @param totalMatching how many distinct trace types the same filter matches, ignoring limit and

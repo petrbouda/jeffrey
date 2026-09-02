@@ -21,10 +21,10 @@ package cafe.jeffrey.microscope.core.web.controllers.profile;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.TraceManager;
-import cafe.jeffrey.profile.manager.model.trace.TracesPage;
+import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.provider.profile.api.TraceListQuery;
-import cafe.jeffrey.provider.profile.api.TraceSortField;
+import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
+import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,7 +47,7 @@ import static org.mockito.Mockito.when;
 class TracesControllerTest {
 
     private static final String PROFILE = "p-1";
-    private static final String TRACES_URI = "/api/internal/profiles/p-1/traces";
+    private static final String OPERATIONS_URI = "/api/internal/profiles/p-1/traces/operations";
 
     @Mock
     ProfileManagerResolver resolver;
@@ -64,13 +64,14 @@ class TracesControllerTest {
     private MockMvcTester mvcWithTraceManager() {
         when(resolver.resolve(PROFILE)).thenReturn(profileManager);
         when(profileManager.traceManager()).thenReturn(traceManager);
-        when(traceManager.traces(any())).thenReturn(new TracesPage(List.of(), 0));
+        when(traceManager.operations(any())).thenReturn(new TraceOperationsPage(List.of(), 0));
         return mockMvcTesterFor(new TracesController(resolver, panelProvider));
     }
 
-    private TraceListQuery capturedQuery() {
-        ArgumentCaptor<TraceListQuery> captor = ArgumentCaptor.forClass(TraceListQuery.class);
-        verify(traceManager).traces(captor.capture());
+    private TraceOperationListQuery capturedQuery() {
+        ArgumentCaptor<TraceOperationListQuery> captor =
+                ArgumentCaptor.forClass(TraceOperationListQuery.class);
+        verify(traceManager).operations(captor.capture());
         return captor.getValue();
     }
 
@@ -78,51 +79,23 @@ class TracesControllerTest {
     void aBareRequestGetsTheHistoricalDefaults() {
         MockMvcTester mvc = mvcWithTraceManager();
 
-        assertThat(mvc.get().uri(TRACES_URI))
+        assertThat(mvc.get().uri(OPERATIONS_URI))
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$.totalMatching").asNumber().isEqualTo(0);
 
-        TraceListQuery query = capturedQuery();
-        assertEquals(TraceSortField.DURATION, query.sort());
+        TraceOperationListQuery query = capturedQuery();
+        assertEquals(TraceOperationSortField.TOTAL_TIME, query.sort());
         assertEquals(100, query.limit());
         assertEquals(0, query.offset());
-        assertNull(query.operation(), "no operation params means no operation filter");
-    }
-
-    @Test
-    void theOperationFilterNeedsTheWholeTriple() {
-        // A partial triple would silently re-merge operations the grouping keeps apart, so the
-        // controller treats it as absent rather than half-applying it.
-        MockMvcTester mvc = mvcWithTraceManager();
-
-        assertThat(mvc.get().uri(TRACES_URI).param("name", "GET /orders").param("kind", "SERVER"))
-                .hasStatusOk();
-
-        assertNull(capturedQuery().operation());
-    }
-
-    @Test
-    void theWholeTripleBecomesTheOperationFilter() {
-        MockMvcTester mvc = mvcWithTraceManager();
-
-        assertThat(mvc.get().uri(TRACES_URI)
-                .param("name", "GET /orders")
-                .param("kind", "SERVER")
-                .param("eventType", "jeffrey.HttpServerExchange"))
-                .hasStatusOk();
-
-        TraceListQuery query = capturedQuery();
-        assertEquals("GET /orders", query.operation().name());
-        assertEquals("SERVER", query.operation().kind());
-        assertEquals("jeffrey.HttpServerExchange", query.operation().eventType());
+        assertNull(query.nameContains(), "no search param means no narrowing");
     }
 
     @Test
     void theLimitIsBoundedNotTrusted() {
         MockMvcTester mvc = mvcWithTraceManager();
 
-        assertThat(mvc.get().uri(TRACES_URI + "?limit=999999")).hasStatusOk();
+        assertThat(mvc.get().uri(OPERATIONS_URI + "?limit=999999")).hasStatusOk();
 
         assertEquals(10_000, capturedQuery().limit());
     }
@@ -133,7 +106,7 @@ class TracesControllerTest {
 
         MockMvcTester mvc = mockMvcTesterFor(new TracesController(resolver, panelProvider));
 
-        assertThat(mvc.get().uri("/api/internal/profiles/ghost/traces"))
+        assertThat(mvc.get().uri("/api/internal/profiles/ghost/traces/operations"))
                 .hasStatus(404)
                 .bodyJson()
                 .extractingPath("$.code").asString().isEqualTo("PROFILE_NOT_FOUND");

@@ -37,19 +37,16 @@ import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceTimelineBucket;
-import cafe.jeffrey.profile.manager.model.trace.TracesPage;
 import cafe.jeffrey.profile.manager.model.trace.TraceStacktrace;
 import cafe.jeffrey.profile.manager.model.trace.TraceStackFrameRow;
 import cafe.jeffrey.provider.profile.api.EventFieldRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
-import cafe.jeffrey.provider.profile.api.TraceListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationPage;
 import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
 import cafe.jeffrey.provider.profile.api.TraceOperationThreadsRecord;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
-import cafe.jeffrey.provider.profile.api.TracePage;
 import cafe.jeffrey.provider.profile.api.TraceContextCategory;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
@@ -101,21 +98,6 @@ public class TraceManagerImpl implements TraceManager {
 
     public TraceManagerImpl(TraceRepository traceRepository) {
         this.traceRepository = traceRepository;
-    }
-
-    @Override
-    public TracesPage traces(TraceListQuery query) {
-        TracePage page = traceRepository.traces(query);
-        return new TracesPage(
-                page.traces().stream()
-                        .map(TraceManagerImpl::toRow)
-                        .toList(),
-                page.totalMatching());
-    }
-
-    @Override
-    public List<TraceTimelineBucket> timeline(int buckets) {
-        return toBuckets(traceRepository.timeline(buckets));
     }
 
     @Override

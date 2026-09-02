@@ -24,7 +24,6 @@ import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceContextCategory;
 import cafe.jeffrey.provider.profile.api.TraceExceptionRecord;
-import cafe.jeffrey.provider.profile.api.TraceListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationPage;
@@ -34,10 +33,8 @@ import cafe.jeffrey.provider.profile.api.TraceOperationSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceOperationThreadsRecord;
 import cafe.jeffrey.provider.profile.api.TraceNotificationRecord;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
-import cafe.jeffrey.provider.profile.api.TracePage;
 import cafe.jeffrey.provider.profile.api.TracePauseRecord;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
-import cafe.jeffrey.provider.profile.api.TraceSortField;
 import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
 import cafe.jeffrey.provider.profile.api.TraceSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceSummaryRecord;
@@ -1086,9 +1083,9 @@ public class JdbcTraceRepository implements TraceRepository {
             "root_name = :root_name AND root_kind = :root_kind AND root_event_type = :root_event_type";
 
     /*
-     * The trace header, in the one shape every list and detail reads it in. The three call sites
-     * differ only in how they narrow and order it, which is what `%s` carries — they were three
-     * copies of these ten columns, and a column added to one of them went missing from the others.
+     * The trace header, in the one shape every list and detail reads it in. The call sites differ
+     * only in how they narrow and order it, which is what `%s` carries — they were separate copies
+     * of these ten columns, and a column added to one of them went missing from the others.
      */
     //language=SQL
     private static final String TRACE_SUMMARIES = """
@@ -1107,25 +1104,9 @@ public class JdbcTraceRepository implements TraceRepository {
             %s
             """;
 
-    // Both lists carry a trace_id tie-break: duration and start_timestamp can tie (the latter is
-    // only microsecond-accurate), and a tied row at the LIMIT boundary would otherwise come and go
-    // between two identical requests — which, once the list pages, would also let a row appear on
-    // two pages or on neither.
-    private static final String TRACE_LIST = TRACE_SUMMARIES + """
-            ORDER BY %s, trace_id
-                LIMIT :limit OFFSET :offset""";
-
-    /**
-     * How many traces a filter matches, for the "showing 50 of 3,214" the paged list needs. A second
-     * statement rather than a window function beside the rows: the count has to survive the LIMIT
-     * that the rows are subject to.
-     */
-    //language=SQL
-    private static final String COUNT_TRACES = """
-            SELECT COUNT(*) AS total FROM traces
-            %s
-            """;
-
+    // The list carries a trace_id tie-break: start_timestamp can tie (it is only
+    // microsecond-accurate), and a tied row at the LIMIT boundary would otherwise come and go
+    // between two identical requests.
     private static final String TRACES_OF_OPERATION = TRACE_SUMMARIES.formatted("""
             WHERE %s
                 ORDER BY start_timestamp, trace_id
@@ -1332,7 +1313,11 @@ public class JdbcTraceRepository implements TraceRepository {
             LIMIT :limit OFFSET :offset
             """;
 
-    /** How many trace types a filter matches — the operations counterpart of {@link #COUNT_TRACES}. */
+    /**
+     * How many trace types a filter matches, for the "showing 50 of 3,214" the paged list needs. A
+     * second statement rather than a window function beside the rows: the count has to survive the
+     * LIMIT that the rows are subject to.
+     */
     //language=SQL
     private static final String COUNT_OPERATIONS = """
             SELECT COUNT(*) AS total FROM (
@@ -1351,9 +1336,9 @@ public class JdbcTraceRepository implements TraceRepository {
             "HAVING COUNT(*) FILTER (WHERE error_count > 0) > 0";
 
     /*
-     * How traces were spread over the recording, as equal slices of the stretch that actually holds
-     * traces. The width is derived in SQL from that stretch rather than passed in, so the caller only
-     * has to say how many slices it wants to draw.
+     * How one trace type's traces were spread over the recording, as equal slices of the stretch that
+     * actually holds traces. The width is derived in SQL from that stretch rather than passed in, so
+     * the caller only has to say how many slices it wants to draw.
      *
      * Max duration per bucket, not average: a bucket holding one slow trace among two hundred fast
      * ones is exactly the bucket worth opening, and an average buries it.
@@ -1364,15 +1349,15 @@ public class JdbcTraceRepository implements TraceRepository {
      * to exist slopes gently across a ten-minute silence, which reads as "traffic tailed off" rather
      * than "traffic stopped".
      *
-     * Bounds are taken over every trace, never over the narrowing below, so one operation's shape is
-     * drawn against the recording's own clock and two operations can be compared slot for slot.
+     * Bounds are taken over every trace, never over the operation narrowing, so one operation's shape
+     * is drawn against the recording's own clock and two operations can be compared slot for slot.
      *
      * The `from_ms IS NOT NULL` guard is what keeps a profile with no traces at no buckets: without
      * it the bounds are null, GREATEST still yields a width, and the grid comes back as a row of
      * nulls per requested slot.
      */
     //language=SQL
-    private static final String TIMELINE_TEMPLATE = """
+    private static final String TIMELINE_OF_OPERATION = """
             WITH bounds AS (
                 SELECT
                     MIN(start_timestamp_from_beginning) AS from_ms,
@@ -1399,7 +1384,7 @@ public class JdbcTraceRepository implements TraceRepository {
                     COUNT(*) FILTER (WHERE t.error_count > 0)       AS error_count,
                     MAX(t.duration)                                 AS max_ns
                 FROM traces t, slicing s
-                %s
+                WHERE %s
                 GROUP BY bucket_from_ms
             )
             SELECT
@@ -1410,17 +1395,7 @@ public class JdbcTraceRepository implements TraceRepository {
             FROM grid g
             LEFT JOIN occupied o ON o.bucket_from_ms = g.bucket_from_ms
             ORDER BY g.bucket_from_ms
-            """;
-
-    private static final String TIMELINE = TIMELINE_TEMPLATE.formatted("");
-
-    /**
-     * The same shape for one trace type. Narrowed in SQL rather than by bucketing what the trace list
-     * fetched: that list is capped and ordered by start time, so bucketing it plots the recording's
-     * first thousand traces and labels the result an hour.
-     */
-    private static final String TIMELINE_OF_OPERATION =
-            TIMELINE_TEMPLATE.formatted("WHERE " + OPERATION_PREDICATE);
+            """.formatted(OPERATION_PREDICATE);
 
     /*
      * Where an operation spends its time, one row per span name across every trace of the type.
@@ -1840,64 +1815,6 @@ public class JdbcTraceRepository implements TraceRepository {
                 StatementLabel.SPAN_EVENT_TYPES_EXIST, SPAN_EVENT_TYPES_EXIST, new MapSqlParameterSource());
     }
 
-    @Override
-    public TracePage traces(TraceListQuery query) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        String where = traceFilter(query, params);
-
-        long total = databaseClient.querySingle(
-                        StatementLabel.COUNT_TRACES,
-                        COUNT_TRACES.formatted(where),
-                        params,
-                        (rs, _) -> rs.getLong("total"))
-                .orElse(0L);
-        if (total == 0) {
-            return TracePage.EMPTY;
-        }
-
-        // Added after the count, which must not carry them: a count with an OFFSET past the last row
-        // returns nothing, and the page would report a filter matching nothing at all.
-        params.addValue("limit", query.limit());
-        params.addValue("offset", query.offset());
-
-        List<TraceSummaryRecord> traces = databaseClient.query(
-                StatementLabel.LIST_TRACES,
-                TRACE_LIST.formatted(where, orderBy(query.sort().column(), query.descending())),
-                params,
-                traceSummaryMapper());
-        return new TracePage(traces, total);
-    }
-
-    /**
-     * The {@code WHERE} clause for a trace filter, binding each value it uses.
-     * <p>
-     * Built from the predicates that are actually active rather than from one clause per field
-     * guarded by {@code :param IS NULL}: an unused bind parameter still has to be given a type, and
-     * an untyped SQL NULL in a comparison is exactly the kind of thing that behaves differently
-     * across engines. Only the fragments below reach the statement, and every value in them is bound.
-     */
-    private static String traceFilter(TraceListQuery query, MapSqlParameterSource params) {
-        List<String> predicates = new ArrayList<>();
-        if (query.hasNameFilter()) {
-            predicates.add("root_name ILIKE :name_pattern ESCAPE '\\'");
-            params.addValue("name_pattern", containsPattern(query.nameContains()));
-        }
-        if (query.errorsOnly()) {
-            predicates.add("error_count > 0");
-        }
-        if (query.minDurationNanos() > 0) {
-            predicates.add("duration >= :min_duration");
-            params.addValue("min_duration", query.minDurationNanos());
-        }
-        if (query.operation() != null) {
-            predicates.add(OPERATION_PREDICATE);
-            params.addValue("root_name", query.operation().name())
-                    .addValue("root_kind", query.operation().kind())
-                    .addValue("root_event_type", query.operation().eventType());
-        }
-        return whereClause(predicates);
-    }
-
     private static String whereClause(List<String> predicates) {
         if (predicates.isEmpty()) {
             return "";
@@ -1922,8 +1839,8 @@ public class JdbcTraceRepository implements TraceRepository {
 
     /**
      * An {@code ORDER BY} expression with its direction. The expression is never caller-supplied —
-     * it comes from {@link TraceSortField} or {@link TraceOperationSortField}, which exist precisely
-     * because a column cannot be a bind parameter.
+     * it comes from {@link TraceOperationSortField}, which exists precisely because a column cannot
+     * be a bind parameter.
      */
     private static String orderBy(String expression, boolean descending) {
         return descending ? expression + " DESC" : expression;
@@ -1945,7 +1862,7 @@ public class JdbcTraceRepository implements TraceRepository {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("trace_id", traceId);
 
         return databaseClient.querySingle(
-                StatementLabel.LIST_TRACES,
+                StatementLabel.TRACE_BY_ID,
                 TRACE_BY_ID,
                 params,
                 traceSummaryMapper());
@@ -2243,15 +2160,6 @@ public class JdbcTraceRepository implements TraceRepository {
                         TraceContextCategory.valueOf(rs.getString("category")),
                         rs.getLong("total_ns"),
                         rs.getLong("occurrences")));
-    }
-
-    @Override
-    public List<TraceTimelineBucketRecord> timeline(int buckets) {
-        return databaseClient.query(
-                StatementLabel.TRACE_TIMELINE,
-                TIMELINE,
-                new MapSqlParameterSource().addValue("buckets", buckets),
-                timelineMapper());
     }
 
     @Override

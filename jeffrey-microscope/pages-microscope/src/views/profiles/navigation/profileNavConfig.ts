@@ -363,9 +363,6 @@ export const profileNavSections: Record<
     {
       title: 'TRACES',
       items: [
-        // First because it is the broadest way in: the other pages answer "is it always like this"
-        // and "which carried this value", both of which presuppose knowing where to look.
-        item('All Traces', 'bi-list-ul', '/traces/all'),
         item('Traces by Operation', 'bi-bar-chart-steps', '/traces/operations'),
         // Sits with the operations rather than under ATTRIBUTES: searching is an everyday way into
         // the traces themselves, not one of the attribute readings.
