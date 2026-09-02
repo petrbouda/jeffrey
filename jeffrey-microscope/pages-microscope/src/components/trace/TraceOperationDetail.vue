@@ -22,7 +22,17 @@
     <ErrorState v-else-if="error" :message="error" @retry="load" />
 
     <template v-else>
-      <TabBar v-model="activeTab" :tabs="tabs" class="mb-3" />
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <TabBar v-model="activeTab" :tabs="tabs" />
+        <!--
+          Beside the tabs rather than inside one: it exports the whole operation — summary, span
+          ranking, slowest traces — not whichever tab happens to be open.
+        -->
+        <AiExportButton
+          :build-source="buildAiExportSource"
+          tooltip="Export this operation for AI analysis"
+        />
+      </div>
 
       <div v-show="activeTab === 'summary'">
         <TraceOperationSummary
@@ -78,8 +88,20 @@
           :p95-nanos="totals?.p95Nanos"
           :total="totals?.count ?? traces.length"
           :note="capNote"
+          :max-displayed="slowestShown"
           empty-description="No traces for this filter."
           @open="openTrace"
+        />
+        <!--
+          Client-side: the rows are already fetched, this only lifts the list's display cap page by
+          page. Without it the tab fetched up to a thousand traces and silently drew fifty.
+        -->
+        <LoadMoreFooter
+          v-if="rankedByDuration.length > 0"
+          :shown="Math.min(slowestShown, rankedByDuration.length)"
+          :total="rankedByDuration.length"
+          noun="traces"
+          @load-more="slowestShown += SLOWEST_PAGE"
         />
       </div>
 
@@ -104,7 +126,9 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+import AiExportButton from '@/components/ai-analysis/AiExportButton.vue';
 import ErrorState from '@shared/components/ErrorState.vue';
+import LoadMoreFooter from '@shared/components/LoadMoreFooter.vue';
 import LoadingState from '@shared/components/LoadingState.vue';
 import TabBar from '@shared/components/TabBar.vue';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
@@ -114,7 +138,9 @@ import TraceSpansModal from '@/components/trace/TraceSpansModal.vue';
 import TraceOperationFlamegraphs from '@/components/trace/TraceOperationFlamegraphs.vue';
 import AxisFormatType from '@/services/timeseries/AxisFormatType';
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
+import TraceAiExportClient from '@/services/api/TraceAiExportClient';
 import { slowestFirst } from '@/services/trace/traceOperationStats';
+import type { AiExportSource } from '@/composables/useAiExport';
 import type { TabBarItem } from '@shared/components/TabBar.vue';
 import type {
   TraceOperationId,
@@ -127,6 +153,8 @@ import type {
 const TIMELINE_BUCKETS = 40;
 /** Matches the backend's default; a type with more traces than this is summarised, not listed. */
 const TRACE_LIMIT = 1000;
+/** How many of the fetched traces the Slowest tab draws at once; Show More lifts it by a page. */
+const SLOWEST_PAGE = 50;
 
 const props = defineProps<{
   profileId: string;
@@ -238,6 +266,8 @@ const samplesAreReachable = computed(() => traces.value.some(trace => trace.hasP
 /** The ranking the Slowest Traces tab is named after; `traces` itself arrives in start order. */
 const rankedByDuration = computed(() => slowestFirst(traces.value));
 
+const slowestShown = ref(SLOWEST_PAGE);
+
 const tabs: TabBarItem[] = [
   { id: 'summary', label: 'Summary', icon: 'grid-1x2' },
   { id: 'flames', label: 'Flamegraphs', icon: 'fire' },
@@ -270,6 +300,20 @@ const capNote = computed<string | undefined>(() => {
   }
   return `First ${TRACE_LIMIT} traces of this operation`;
 });
+
+/**
+ * The rendering happens on the server from the operation's identifying triple alone, and the triple
+ * is a prop — so unlike the trace export, this one is never waiting on anything to load.
+ */
+function buildAiExportSource(): AiExportSource {
+  const client = new TraceAiExportClient(props.profileId);
+  const { name, kind, eventType } = props.operation;
+  return {
+    fetch: () => client.generateOperation(name, kind, eventType),
+    label: 'Operation',
+    filenameStem: `operation-${name}`
+  };
+}
 
 /*
  * Guards against an out-of-order response. Each load claims a number; a response whose number is no

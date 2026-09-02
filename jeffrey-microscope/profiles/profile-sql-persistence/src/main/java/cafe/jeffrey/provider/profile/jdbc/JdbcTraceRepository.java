@@ -1043,7 +1043,11 @@ public class JdbcTraceRepository implements TraceRepository {
                 JOIN trace_spans s
                   ON s.thread_hash = x.thread_hash
                  AND EPOCH_US(s.start_timestamp) <= x.start_us
-                 AND x.start_us < EPOCH_US(s.start_timestamp) + (s.duration / 1000)
+                 -- Integer division and an inclusive bound, the same window arithmetic as the span
+                 -- derivation and the context slices: `/` on integers yields DOUBLE in DuckDB, so
+                 -- the float form gave a throw a window up to 1 microsecond wider than every other
+                 -- reading of the same span.
+                 AND x.start_us <= EPOCH_US(s.start_timestamp) + s.duration // 1000
                 -- The innermost containing span: shortest window first, latest start to break a tie.
                 QUALIFY ROW_NUMBER() OVER (PARTITION BY x.exception_id
                                            ORDER BY s.duration, s.start_timestamp DESC) = 1

@@ -818,7 +818,10 @@ public class TraceManagerImpl implements TraceManager {
                 span.selfDurationNanos(),
                 criticalPathNanos,
                 depth,
-                Long.toString(span.threadHash()),
+                // Hex like every other id-shaped value on the wire -- the notification and
+                // exception rows already render theirs this way, and a frontend comparing the
+                // three must find one base, not two.
+                toHex(span.threadHash()),
                 span.threadName(),
                 span.isVirtual(),
                 span.eventType(),

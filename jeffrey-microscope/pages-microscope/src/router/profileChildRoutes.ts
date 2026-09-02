@@ -690,6 +690,14 @@ const advisorRoutes = [
 // Traces — a top-level feature of its own, not one of the technologies
 const traceRoutes = [
   {
+    // The list that is not scoped to anything, which is why it leads: every other trace page starts
+    // by choosing an operation or an attribute.
+    path: 'traces/all',
+    name: 'profile-traces-all',
+    component: () => import('@/views/profiles/detail/traces/ProfileTraces.vue'),
+    meta: { layout: 'profile' }
+  },
+  {
     path: 'traces/operations',
     name: 'profile-traces-operations',
     component: () => import('@/views/profiles/detail/traces/ProfileTraceOperations.vue'),

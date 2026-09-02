@@ -35,7 +35,7 @@
         v-else-if="values"
         :values="values"
         :sort="sort"
-        :descending="true"
+        :descending="descending"
         @sort="applySort(attributeKey, eventType, $event)"
         @pick="filterByValue(attributeKey, $event)"
       />
@@ -75,6 +75,7 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const values = ref<Values | null>(null);
 const sort = ref<TraceAttributeValueSortField>('TOTAL_TIME');
+const descending = ref(true);
 
 const selectedKey = computed(() => keyFromQuery(route.query));
 const selectedEventType = computed(() => eventTypeFromQuery(route.query));
@@ -90,7 +91,7 @@ async function load(key: TraceAttributeKeyId, eventType: string): Promise<void> 
   loading.value = true;
   error.value = null;
   try {
-    const loaded = await client.getAttributeValues(key, eventType, sort.value);
+    const loaded = await client.getAttributeValues(key, eventType, sort.value, descending.value);
     if (current !== generation) {
       return;
     }
@@ -114,7 +115,14 @@ function applySort(
   eventType: string,
   field: TraceAttributeValueSortField
 ): void {
-  sort.value = field;
+  // Clicking the active column flips the direction; a new column starts from its heavy end, which
+  // is the ranking the page opens with.
+  if (field === sort.value) {
+    descending.value = !descending.value;
+  } else {
+    sort.value = field;
+    descending.value = true;
+  }
   load(key, eventType);
 }
 

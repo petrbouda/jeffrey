@@ -2579,7 +2579,7 @@ function tooltip(span: TraceSpanRow): string {
 }
 
 .rail-glyph.ntf {
-  border-radius: 1px;
+  border-radius: calc(var(--radius-xs) / 2);
   transform: rotate(45deg);
 }
 
@@ -2599,7 +2599,7 @@ function tooltip(span: TraceSpanRow): string {
   bottom: 0;
   width: 1.5px;
   margin-left: -0.75px;
-  border-radius: 1px;
+  border-radius: calc(var(--radius-xs) / 2);
   background: currentColor;
 }
 
@@ -2632,7 +2632,7 @@ function tooltip(span: TraceSpanRow): string {
   width: 0.55rem;
   height: 0.55rem;
   margin: -0.275rem 0 0 -0.275rem;
-  border-radius: 1px;
+  border-radius: calc(var(--radius-xs) / 2);
   background: var(--mark);
   transform: rotate(45deg);
   box-shadow: 0 0 0 2px var(--color-bg-card);
@@ -2653,7 +2653,7 @@ function tooltip(span: TraceSpanRow): string {
   bottom: 0;
   width: 1.5px;
   margin-left: -0.75px;
-  border-radius: 1px;
+  border-radius: calc(var(--radius-xs) / 2);
   background: var(--mark);
 }
 
@@ -2716,7 +2716,7 @@ function tooltip(span: TraceSpanRow): string {
 }
 
 .wf-pin.ntf::after {
-  border-radius: 1px;
+  border-radius: calc(var(--radius-xs) / 2);
   transform: rotate(45deg);
 }
 
@@ -3086,7 +3086,7 @@ function tooltip(span: TraceSpanRow): string {
   width: 2.5px;
   background: currentColor;
   opacity: 0.7;
-  border-radius: 1px 1px 0 0;
+  border-radius: calc(var(--radius-xs) / 2) calc(var(--radius-xs) / 2) 0 0;
 }
 
 .wf-run-detail-row {
@@ -3136,7 +3136,7 @@ function tooltip(span: TraceSpanRow): string {
 
 .wf-run-histogram i {
   width: 22px;
-  border-radius: 2px 2px 0 0;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
   background: var(--span-color);
   opacity: 0.35;
 }

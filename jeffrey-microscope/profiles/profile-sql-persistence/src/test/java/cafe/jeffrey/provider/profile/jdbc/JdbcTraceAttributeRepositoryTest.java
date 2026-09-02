@@ -78,6 +78,9 @@ class JdbcTraceAttributeRepositoryTest {
     /** The same name as the attribute above, declared by the span shape rather than attached. */
     private static final TraceAttributeKeyId SHAPE_EVENT_TYPE =
             new TraceAttributeKeyId(TraceAttributeSource.SPAN_SHAPE, null, "eventType");
+    /** Every span carries one, which is what makes the universal operator testable per trace. */
+    private static final TraceAttributeKeyId SHAPE_STATUS =
+            new TraceAttributeKeyId(TraceAttributeSource.SPAN_SHAPE, null, "status");
     private static final TraceAttributeKeyId JDBC_ROWS =
             new TraceAttributeKeyId(TraceAttributeSource.EVENT_FIELD, JDBC_QUERY, "rows");
     private static final TraceAttributeKeyId HTTP_STATUS_CODE =
@@ -316,6 +319,58 @@ class JdbcTraceAttributeRepositoryTest {
                     new TraceAttributeCondition(JDBC_ROWS, TraceAttributeOperator.GT, "9"))).total());
             assertEquals(0, repository.search(search(TraceAttributeScope.TRACE,
                     new TraceAttributeCondition(JDBC_ROWS, TraceAttributeOperator.GT, "99"))).total());
+        }
+
+        /**
+         * The two negative operators answer different questions. Both fixture traces contain an
+         * ERROR span, but only the slow one also has spans that are not — so the existential
+         * {@code NOT_EQ} finds it, while the universal {@code NONE_EQ} correctly finds neither.
+         */
+        @Test
+        @DisplayName("NOT_EQ is existential, NONE_EQ is universal")
+        void noneEqIsUniversal(DataSource dataSource) throws SQLException {
+            JdbcTraceAttributeRepository repository = derived(dataSource);
+
+            assertEquals(1, repository.search(search(TraceAttributeScope.TRACE,
+                    new TraceAttributeCondition(SHAPE_STATUS, TraceAttributeOperator.NOT_EQ, "ERROR")))
+                    .total(), "the slow trace has spans that are not ERROR");
+            assertEquals(0, repository.search(search(TraceAttributeScope.TRACE,
+                    new TraceAttributeCondition(SHAPE_STATUS, TraceAttributeOperator.NONE_EQ, "ERROR")))
+                    .total(), "both traces contain an ERROR span, so neither is free of them");
+            assertEquals(1, repository.search(search(TraceAttributeScope.TRACE,
+                    new TraceAttributeCondition(SHAPE_STATUS, TraceAttributeOperator.NONE_EQ, "UNSET")))
+                    .total(), "only the failed trace's single span never reports UNSET");
+        }
+
+        @Test
+        @DisplayName("a NONE_EQ match has no row to point at, so it produces no hit")
+        void noneEqProducesNoHits(DataSource dataSource) throws SQLException {
+            TraceAttributeRepository.SearchPage page = derived(dataSource)
+                    .search(search(TraceAttributeScope.TRACE, new TraceAttributeCondition(
+                            SHAPE_STATUS, TraceAttributeOperator.NONE_EQ, "UNSET")));
+
+            assertEquals(1, page.total());
+            assertTrue(page.hits().isEmpty(),
+                    "the condition holds because nothing matches -- there is nothing to highlight");
+        }
+
+        /**
+         * Under SPAN scope the zero-count is taken per span, so a positive and a universal condition
+         * together ask for one span that carries the first and is free of the second.
+         */
+        @Test
+        @DisplayName("NONE_EQ composes with a positive condition on one span")
+        void noneEqUnderSpanScope(DataSource dataSource) throws SQLException {
+            JdbcTraceAttributeRepository repository = derived(dataSource);
+
+            TraceAttributeCondition rows = holds(JDBC_ROWS, "42");
+
+            assertEquals(1, repository.search(search(TraceAttributeScope.SPAN, rows,
+                    new TraceAttributeCondition(SHAPE_STATUS, TraceAttributeOperator.NONE_EQ, "ERROR")))
+                    .total(), "the statement span carries rows=42 and is not an ERROR span");
+            assertEquals(0, repository.search(search(TraceAttributeScope.SPAN, rows,
+                    new TraceAttributeCondition(SHAPE_STATUS, TraceAttributeOperator.NONE_EQ, "UNSET")))
+                    .total(), "that same span's status is UNSET, so requiring none fails");
         }
 
         @Test

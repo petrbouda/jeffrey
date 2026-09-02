@@ -58,7 +58,7 @@ export function carrierOf(source: TraceAttributeSource): TraceAttributeCarrier {
 export type TraceAttributeValueKind = 'STRING' | 'NUMBER' | 'BOOLEAN';
 
 export type TraceAttributeOperator =
-  'EQ' | 'NOT_EQ' | 'CONTAINS' | 'GT' | 'GTE' | 'LT' | 'LTE' | 'EXISTS';
+  'EQ' | 'NOT_EQ' | 'NONE_EQ' | 'CONTAINS' | 'GT' | 'GTE' | 'LT' | 'LTE' | 'EXISTS';
 
 /**
  * Whether the conditions have to hold together on one span, or anywhere in the trace.

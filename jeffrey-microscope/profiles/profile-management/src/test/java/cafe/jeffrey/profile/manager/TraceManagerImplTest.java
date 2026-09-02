@@ -223,12 +223,14 @@ class TraceManagerImplTest {
         }
 
         @Test
-        @DisplayName("ids and thread hash cross the wire as strings")
+        @DisplayName("ids and thread hash cross the wire as hex strings")
         void rendersIdsAsHex() {
             TraceSpanRow root = spansOf(List.of(span(255, null, "root", 0, 10))).getFirst();
 
             assertEquals("00000000000000ff", root.spanId());
-            assertEquals("900", root.threadHash());
+            // The same base as the notification and exception rows' thread hashes -- a span row
+            // rendering decimal here is the bug this pins against.
+            assertEquals("0000000000000384", root.threadHash());
         }
     }
 

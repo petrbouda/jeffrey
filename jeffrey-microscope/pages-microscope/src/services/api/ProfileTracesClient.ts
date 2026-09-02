@@ -34,12 +34,14 @@ import {
 import type {
   TraceContext,
   TraceDetail,
+  TraceListQuery,
   TraceOperationId,
   TraceOperationListQuery,
   TraceOperationsPage,
   TraceOperationSummary,
   TraceOverview,
   TraceRow,
+  TracesPage,
   TraceSpanEvents,
   TraceStacktrace,
   TraceTimelineBucket
@@ -64,7 +66,7 @@ function operationParams(operation: TraceOperationId): Record<string, string> {
  * made before it could be filtered at all.
  */
 function listParams(
-  query: TraceOperationListQuery
+  query: TraceOperationListQuery | TraceListQuery
 ): Record<string, string | number | boolean> {
   const params: Record<string, string | number | boolean> = {};
   for (const [key, value] of Object.entries(query)) {
@@ -99,6 +101,25 @@ export default class ProfileTracesClient extends BaseProfileClient {
    */
   public getTraceContext(traceId: string): Promise<TraceContext> {
     return this.get<TraceContext>(`/${traceId}/context`);
+  }
+
+  /**
+   * A page of the profile's traces, whatever their operation.
+   *
+   * The empty path is the collection itself — `BaseProfileClient` resolves it to the base URL. The
+   * narrowing and the ordering happen on the server because the list is only ever a page of what
+   * can be hundreds of thousands of traces; ranking a page client-side would rank the page, not the
+   * profile.
+   */
+  public getTraces(query: TraceListQuery = {}): Promise<TracesPage> {
+    return this.get<TracesPage>('', listParams(query));
+  }
+
+  /** When the profile's traces happened, bucketed over the recording — the strip above the list. */
+  public getTracesTimeline(buckets?: number): Promise<TraceTimelineBucket[]> {
+    return this.get<TraceTimelineBucket[]>('/timeline', {
+      ...(buckets === undefined ? {} : { buckets })
+    });
   }
 
   /** A page of operations, narrowed and ordered on the server for the same reason traces are. */
@@ -221,6 +242,7 @@ export default class ProfileTracesClient extends BaseProfileClient {
     key: TraceAttributeKeyId,
     eventType: string,
     sort?: TraceAttributeValueSortField,
+    descending?: boolean,
     limit?: number
   ): Promise<TraceAttributeValues> {
     // Scoped to the event type the key was reached through, so the breakdown answers the question
@@ -229,6 +251,7 @@ export default class ProfileTracesClient extends BaseProfileClient {
       ...keyParams(key),
       eventType,
       ...(sort === undefined ? {} : { sort }),
+      ...(descending === undefined ? {} : { desc: descending }),
       ...(limit === undefined ? {} : { limit })
     });
   }

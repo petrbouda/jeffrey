@@ -199,6 +199,7 @@ const SOURCE_LABELS: Record<TraceAttributeSource, string> = {
 const OPERATOR_SYMBOLS: Record<TraceAttributeOperator, string> = {
   EQ: '=',
   NOT_EQ: '≠',
+  NONE_EQ: '∄',
   CONTAINS: '⊃',
   GT: '>',
   GTE: '≥',
@@ -210,6 +211,7 @@ const OPERATOR_SYMBOLS: Record<TraceAttributeOperator, string> = {
 const OPERATOR_LABELS: Record<TraceAttributeOperator, string> = {
   EQ: 'is',
   NOT_EQ: 'is not',
+  NONE_EQ: 'is never',
   CONTAINS: 'contains',
   GT: 'greater than',
   GTE: 'at least',
@@ -220,7 +222,9 @@ const OPERATOR_LABELS: Record<TraceAttributeOperator, string> = {
 
 /** Comparisons read the numeric column, which only a numeric value is ever stored in. */
 const NUMERIC_OPERATORS: TraceAttributeOperator[] = ['GT', 'GTE', 'LT', 'LTE'];
-const TEXT_OPERATORS: TraceAttributeOperator[] = ['EQ', 'NOT_EQ', 'CONTAINS'];
+// NOT_EQ and NONE_EQ answer different questions: "some carrier has another value" against
+// "no carrier has this one" -- status ≠ ERROR versus status never ERROR.
+const TEXT_OPERATORS: TraceAttributeOperator[] = ['EQ', 'NOT_EQ', 'NONE_EQ', 'CONTAINS'];
 
 const draftType = ref<string | null>(null);
 const draftKey = ref<TraceAttributeKeyRow | null>(null);
@@ -251,7 +255,7 @@ const availableOperators = computed<TraceAttributeOperator[]>(() => {
     return [...TEXT_OPERATORS, ...NUMERIC_OPERATORS, 'EXISTS'];
   }
   if (kind === 'BOOLEAN') {
-    return ['EQ', 'NOT_EQ', 'EXISTS'];
+    return ['EQ', 'NOT_EQ', 'NONE_EQ', 'EXISTS'];
   }
   return [...TEXT_OPERATORS, 'EXISTS'];
 });
