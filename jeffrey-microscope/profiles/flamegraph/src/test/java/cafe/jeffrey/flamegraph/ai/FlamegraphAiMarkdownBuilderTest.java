@@ -254,6 +254,88 @@ class FlamegraphAiMarkdownBuilderTest {
     }
 
     @Nested
+    @DisplayName("Weighted lines")
+    class WeightedLines {
+
+        private static final long MIB = 1024L * 1024L;
+
+        /*
+         * The reason weights are on every line: a profile whose instructions rank fixes by bytes
+         * used to show sample counts alone, and a single-sample allocation of a huge array read as
+         * noise while a hundred tiny ones read as the finding.
+         */
+        @Test
+        @DisplayName("every frame carries its weight, share and self weight in the event's unit")
+        void rendersWeightClausePerFrame() {
+            Frame root = Frame.emptyFrame();
+            root.increment(FrameType.NATIVE, 4 * MIB, 4, false);
+            Frame caller = addChild(root, "caller");
+            caller.increment(FrameType.JIT_COMPILED, 3 * MIB, 3, false);
+            caller.increment(FrameType.JIT_COMPILED, MIB, 1, true);
+            Frame leaf = addChild(caller, "byte[]");
+            leaf.increment(FrameType.JIT_COMPILED, 3 * MIB, 3, true);
+
+            String out = new FlamegraphAiMarkdownBuilder(Type.OBJECT_ALLOCATION_SAMPLE, DEFAULT_CONFIG).build(root);
+
+            assertTrue(out.contains("- [root] — 4 (100%) · 4.0 MiB (100%)"), out);
+            assertTrue(out.contains("  - caller [C2] — 4 (100.0%, self 1) · 4.0 MiB (100.0%, self 1.0 MiB)"), out);
+            assertTrue(out.contains("    - byte[] [C2] — 3 (75.0%, self 3) · 3.0 MiB (75.0%, self 3.0 MiB)"), out);
+        }
+
+        @Test
+        @DisplayName("an unweighted event keeps its one-clause lines")
+        void leavesCpuLinesAlone() {
+            Frame root = Frame.emptyFrame();
+            root.increment(FrameType.NATIVE, 0, 10, false);
+            Frame leaf = addChild(root, "work");
+            leaf.increment(FrameType.JIT_COMPILED, 0, 10, true);
+
+            String out = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, DEFAULT_CONFIG).build(root);
+
+            assertTrue(out.contains("  - work [C2] — 10 (100.0%, self 10)\n"),
+                    "the line ends after the sample clause: no weight clause without a weight unit");
+        }
+
+        @Test
+        @DisplayName("prunes and orders by weight, so one huge allocation is never dropped for being seen once")
+        void prunesAndOrdersByWeight() {
+            Frame root = Frame.emptyFrame();
+            root.increment(FrameType.NATIVE, 200 * MIB, 101, false);
+            // A hundred samples of small objects: many sightings, little volume.
+            Frame many = addChild(root, "aaa_manySmall");
+            many.increment(FrameType.JIT_COMPILED, 30 * MIB, 100, true);
+            // One sample of a huge array: seen once, most of the bytes.
+            Frame huge = addChild(root, "zzz_hugeArray");
+            huge.increment(FrameType.JIT_COMPILED, 170 * MIB, 1, true);
+
+            // 5% of 200 MiB is 10 MiB: both survive on weight; on samples the array would be gone.
+            String out = new FlamegraphAiMarkdownBuilder(
+                    Type.OBJECT_ALLOCATION_SAMPLE, new AiExportConfig(5.0)).build(root);
+
+            assertTrue(out.contains("zzz_hugeArray"), "a one-sample subtree with most of the bytes survives");
+            assertTrue(out.indexOf("- zzz_hugeArray") < out.indexOf("- aaa_manySmall"),
+                    "the heavier subtree by bytes is listed first");
+        }
+
+        @Test
+        @DisplayName("a pruned subtree is rolled up in both units")
+        void reportsPrunedWeight() {
+            Frame root = Frame.emptyFrame();
+            root.increment(FrameType.NATIVE, 100 * MIB, 20, false);
+            Frame big = addChild(root, "big");
+            big.increment(FrameType.JIT_COMPILED, 99 * MIB, 10, true);
+            Frame tiny = addChild(root, "tiny");
+            tiny.increment(FrameType.JIT_COMPILED, MIB, 10, true);
+
+            String out = new FlamegraphAiMarkdownBuilder(
+                    Type.OBJECT_ALLOCATION_SAMPLE, new AiExportConfig(5.0)).build(root);
+
+            assertFalse(out.contains("- tiny"), "one percent of the bytes is below a five percent floor");
+            assertTrue(out.contains("- [root] — 20 (100%, +pruned 10) · 100.0 MiB (100%, +pruned 1.0 MiB)"), out);
+        }
+    }
+
+    @Nested
     @DisplayName("Header extras")
     class HeaderExtras {
 
