@@ -28,7 +28,6 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'overview', text: 'Overview', level: 2 },
-  { id: 'all-traces', text: 'All Traces', level: 2 },
   { id: 'operations', text: 'Traces by Operation', level: 2 },
   { id: 'waterfall', text: 'The Trace Detail: Waterfall', level: 2 },
   { id: 'overlays', text: 'Overlays and Rails', level: 2 },
@@ -61,19 +60,13 @@ const virtualThreadExample = `POST /api/internal/recordings/…   tomcat-handler
     />
 
     <div class="docs-content">
-      <p>Once a recording with trace identity is opened as a profile, the <strong>Traces</strong> section appears in the profile's sidebar: All Traces, Traces by Operation, attribute search, and — from any trace row — the full-screen Trace Detail with the waterfall. This page is the tour of the analysis side; the instrumentation that produces the data is the rest of this guide.</p>
+      <p>Once a recording with trace identity is opened as a profile, the <strong>Traces</strong> section appears in the profile's sidebar: Traces by Operation, attribute search, and — from any trace row — the full-screen Trace Detail with the waterfall. This page is the tour of the analysis side; the instrumentation that produces the data is the rest of this guide.</p>
 
       <h2 id="overview">Overview</h2>
 
       <p>A tracing tool normally tells you that a span took 400&nbsp;ms and stops there — the next question, "doing what?", needs a profiler and a second correlated data source. Jeffrey has both in one file. Every span carries its thread and its time window, and the profile database already scopes flamegraphs, timeseries and event summaries to <code>(thread, from, to)</code> windows — so a span selected in the waterfall becomes a flamegraph query with no extra instrumentation and no second agent.</p>
 
       <p>After parsing, Jeffrey derives typed trace tables once per profile: every event type declaring a <code>spanId</code> field feeds one span table, which is why an HTTP request shows its JDBC statements as native children without either side knowing about the other. Trace and span ids are 64-bit values rendered as 16-character hex in the UI (they exceed the JavaScript safe-integer range, so the API carries them as strings).</p>
-
-      <h2 id="all-traces">All Traces</h2>
-
-      <p>All Traces is the one page that does not begin by choosing something. &quot;Which runs were the slowest&quot; and &quot;what failed&quot; are questions about the recording rather than about one operation or one attribute, and answering them through the operations page meant first knowing which operation to open &mdash; which is the thing being asked.</p>
-
-      <p>The chart above the list buckets every trace over the recording, pairing the slowest trace in each bucket with how many there were, so a burst reads as a burst where it happened. Below it, filter by operation name, restrict to traces that carry an error, set a duration floor, and order by duration, start time, span count or error count. The narrowing and the ordering happen in SQL over the whole profile, not over the page in the browser &mdash; a page ranked client-side would rank the page rather than the recording &mdash; and the list pages in fifty at a time. Every filter is mirrored into the URL, so a narrowed list is a link. Clicking a row opens the same full-screen Trace Detail the other pages open, and its header links onward to that trace's operation.</p>
 
       <h2 id="operations">Traces by Operation</h2>
 

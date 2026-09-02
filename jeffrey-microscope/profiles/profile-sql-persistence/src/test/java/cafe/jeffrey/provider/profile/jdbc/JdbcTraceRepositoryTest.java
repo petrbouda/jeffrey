@@ -35,15 +35,14 @@ import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceContextCategory;
 import cafe.jeffrey.provider.profile.api.TraceExceptionRecord;
 import cafe.jeffrey.provider.profile.api.TraceNotificationRecord;
-import cafe.jeffrey.provider.profile.api.TraceListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
+import cafe.jeffrey.provider.profile.api.TraceOperationPage;
 import cafe.jeffrey.provider.profile.api.TraceOperationRecord;
 import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
 import cafe.jeffrey.provider.profile.api.TraceOperationSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceOperationThreadsRecord;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
-import cafe.jeffrey.provider.profile.api.TracePage;
 import cafe.jeffrey.provider.profile.api.TracePauseRecord;
 import cafe.jeffrey.provider.profile.api.TraceSortField;
 import cafe.jeffrey.provider.profile.api.TraceSpanContextRecord;
@@ -332,7 +331,9 @@ class JdbcTraceRepositoryTest {
             JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
             repository.derive();
 
-            assertTrue(repository.traces(TraceListQuery.slowest(100)).traces().stream().noneMatch(TraceSummaryRecord::hasPlatformSpan),
+            assertTrue(repository.tracesOfOperation(
+                            operation("orphan.work", "INTERNAL", "jeffrey.TraceSpan"), 100).stream()
+                            .noneMatch(TraceSummaryRecord::hasPlatformSpan),
                     "an unresolved thread cannot promise samples");
 
             TraceOperationThreadsRecord threads = repository.threadsOfOperation(
@@ -403,8 +404,8 @@ class JdbcTraceRepositoryTest {
             assertTrue(spans.stream().allMatch(span -> span.traceId() == Long.MAX_VALUE));
             assertTrue(spans.stream().anyMatch(span -> span.spanId() == NEGATIVE_SPAN_ID),
                     "a negative span id must survive the JSON round trip");
-            assertFalse(repository.traces(TraceListQuery.slowest(10)).traces().stream()
-                    .noneMatch(trace -> trace.traceId() == Long.MIN_VALUE));
+            assertTrue(repository.summaryOf(Long.MIN_VALUE).isPresent(),
+                    "a negative trace id must survive the JSON round trip");
         }
 
         @Test
@@ -545,8 +546,7 @@ class JdbcTraceRepositoryTest {
             assertEquals("UNSET", byName.get("listSpans").status());
 
             // The failing exchange decided it had failed when it committed -- HTTP 500, in its case.
-            TraceSummaryRecord fast = repository.traces(TraceListQuery.slowest(10)).traces().stream()
-                    .filter(trace -> trace.traceId() == FAST_TRACE).findFirst().orElseThrow();
+            TraceSummaryRecord fast = repository.summaryOf(FAST_TRACE).orElseThrow();
             assertEquals(1, fast.errorCount());
         }
 
@@ -959,14 +959,12 @@ class JdbcTraceRepositoryTest {
     class Reads {
 
         @Test
-        @DisplayName("traces are listed slowest first, summarised over all their spans")
-        void listsSlowestFirst(DataSource dataSource) throws SQLException {
+        @DisplayName("a trace header is summarised over all of the trace's spans")
+        void summarisesATraceOverItsSpans(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
-            List<TraceSummaryRecord> traces = repository.traces(TraceListQuery.slowest(10)).traces();
+            TraceSummaryRecord slowest = repository.summaryOf(SLOW_TRACE).orElseThrow();
 
-            assertEquals(2, traces.size());
-            TraceSummaryRecord slowest = traces.get(0);
             assertEquals(SLOW_TRACE, slowest.traceId());
             assertEquals("POST /api/internal/profiles/{profileId}/flamegraph", slowest.rootName());
             assertEquals("SERVER", slowest.rootKind());
@@ -974,46 +972,17 @@ class JdbcTraceRepositoryTest {
             assertEquals(4, slowest.spanCount());
             assertEquals(1, slowest.errorCount());
             assertEquals(0, slowest.startMillisFromBeginning());
-
-            assertEquals(FAST_TRACE, traces.get(1).traceId());
         }
 
         @Test
         @DisplayName("a trace reports whether any of its spans could carry samples")
         void reportsWhetherSamplesCanBeAttributed(DataSource dataSource) throws SQLException {
-            Map<Long, TraceSummaryRecord> byTraceId = derived(dataSource).traces(TraceListQuery.slowest(10)).traces().stream()
-                    .collect(Collectors.toMap(TraceSummaryRecord::traceId, Function.identity()));
-
-            assertTrue(byTraceId.get(SLOW_TRACE).hasPlatformSpan(),
-                    "its hand-written span ran on a platform thread");
-            assertFalse(byTraceId.get(FAST_TRACE).hasPlatformSpan(),
-                    "it never left the request's virtual thread");
-        }
-
-        @Test
-        @DisplayName("the limit is honoured")
-        void honoursLimit(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
-            assertEquals(1, repository.traces(TraceListQuery.slowest(1)).traces().size());
-        }
-
-        @Test
-        @DisplayName("traces with the same duration are listed in a stable order")
-        void tiedDurationsOrderDeterministically(DataSource dataSource) throws SQLException {
-            // Ordering by duration alone leaves a tied row at the LIMIT boundary free to come and
-            // go between two identical requests; trace_id breaks the tie.
-            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
-            TestUtils.executeSql(dataSource, "sql/events/insert-tied-duration-traces.sql");
-            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
-            repository.derive();
-
-            List<Long> ids = repository.traces(TraceListQuery.slowest(10)).traces().stream()
-                    .map(TraceSummaryRecord::traceId)
-                    .toList();
-
-            assertEquals(List.of(SLOW_TRACE, 7001L, 7002L, FAST_TRACE), ids,
-                    "the two 7ms traces fall back to trace_id order");
+            assertTrue(repository.summaryOf(SLOW_TRACE).orElseThrow().hasPlatformSpan(),
+                    "its hand-written span ran on a platform thread");
+            assertFalse(repository.summaryOf(FAST_TRACE).orElseThrow().hasPlatformSpan(),
+                    "it never left the request's virtual thread");
         }
 
         @Test
@@ -1219,19 +1188,6 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
-        @DisplayName("a trace header reads the same whether it comes from a list or from its own id")
-        void headerIsTheSameFromEitherRead(DataSource dataSource) throws SQLException {
-            // The detail used to rebuild this from the spans, in microseconds, and so disagreed with
-            // the list about the duration of the very trace the user had just clicked.
-            JdbcTraceRepository repository = derived(dataSource);
-
-            TraceSummaryRecord fromList = repository.traces(TraceListQuery.slowest(10)).traces().stream()
-                    .filter(trace -> trace.traceId() == SLOW_TRACE).findFirst().orElseThrow();
-
-            assertEquals(fromList, repository.summaryOf(SLOW_TRACE).orElseThrow());
-        }
-
-        @Test
         @DisplayName("an unknown trace id has no header rather than an empty one")
         void unknownTraceHasNoHeader(DataSource dataSource) throws SQLException {
             assertTrue(derived(dataSource).summaryOf(42L).isEmpty());
@@ -1357,14 +1313,6 @@ class JdbcTraceRepositoryTest {
         private static final String HEALTH = "GET /api/internal/health";
         private static final String FLAMEGRAPH = "POST /api/internal/profiles/{profileId}/flamegraph";
 
-        private static TraceListQuery search(String term) {
-            return new TraceListQuery(term, false, 0, null, TraceSortField.DURATION, true, 10, 0);
-        }
-
-        private static List<String> namesOf(TracePage page) {
-            return page.traces().stream().map(TraceSummaryRecord::rootName).toList();
-        }
-
         /** The base fixture plus one operation whose traces did not all end the same way. */
         private static JdbcTraceRepository withMixedOutcomes(DataSource dataSource) throws SQLException {
             TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
@@ -1374,16 +1322,13 @@ class JdbcTraceRepositoryTest {
             return repository;
         }
 
-        @Test
-        @DisplayName("a name filter matches anywhere in the name, ignoring case")
-        void filtersByName(DataSource dataSource) throws SQLException {
-            JdbcTraceRepository repository = derived(dataSource);
+        private static List<String> namesOf(TraceOperationPage page) {
+            return page.operations().stream().map(TraceOperationRecord::name).toList();
+        }
 
-            assertEquals(List.of(HEALTH), namesOf(repository.traces(search("health"))));
-            assertEquals(List.of(HEALTH), namesOf(repository.traces(search("HEALTH"))),
-                    "the search box is not case-sensitive");
-            assertEquals(List.of(HEALTH), namesOf(repository.traces(search("internal/health"))),
-                    "a substring matches mid-name, not just as a prefix");
+        private static TraceOperationListQuery search(String term) {
+            return new TraceOperationListQuery(
+                    term, false, TraceOperationSortField.TOTAL_TIME, true, 10, 0);
         }
 
         @Test
@@ -1391,11 +1336,11 @@ class JdbcTraceRepositoryTest {
         void escapesWildcardsInTheNameFilter(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
-            assertTrue(repository.traces(search("%")).traces().isEmpty(),
+            assertTrue(repository.operations(search("%")).operations().isEmpty(),
                     "a bare %% is a search term, not a pattern matching the whole table");
-            assertTrue(repository.traces(search("health_")).traces().isEmpty(),
+            assertTrue(repository.operations(search("health_")).operations().isEmpty(),
                     "the underscore is a character to find, not 'any character'");
-            assertEquals(List.of(FLAMEGRAPH), namesOf(repository.traces(search("{profileId}"))),
+            assertEquals(List.of(FLAMEGRAPH), namesOf(repository.operations(search("{profileId}"))),
                     "braces are ordinary characters, and operation names are full of them");
         }
 
@@ -1404,137 +1349,23 @@ class JdbcTraceRepositoryTest {
         void blankNameFilterMatchesEverything(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
-            assertEquals(2, repository.traces(search("")).traces().size());
-            assertEquals(2, repository.traces(search("   ")).traces().size(),
+            assertEquals(2, repository.operations(search("")).operations().size());
+            assertEquals(2, repository.operations(search("   ")).operations().size(),
                     "an empty search box never means 'names containing spaces'");
         }
 
         @Test
-        @DisplayName("errors-only keeps the traces that failed")
-        void filtersTracesByOutcome(DataSource dataSource) throws SQLException {
-            // Both traces of the base fixture end in an error -- the health check is a 500 -- so the
-            // successful traces this filter has to leave out come from the mixed-outcome fixture.
-            JdbcTraceRepository repository = withMixedOutcomes(dataSource);
-            TraceListQuery query =
-                    new TraceListQuery(null, true, 0, null, TraceSortField.DURATION, true, 10, 0);
-
-            TracePage page = repository.traces(query);
-
-            assertEquals(3, page.totalMatching(), "3 of the 7 traces failed");
-            assertTrue(page.traces().stream().allMatch(trace -> trace.errorCount() > 0));
-            assertEquals(List.of(FLAMEGRAPH, "GET /mixed", HEALTH), namesOf(page));
-        }
-
-        @Test
-        @DisplayName("a duration floor keeps the traces at least that long")
-        void filtersByDuration(DataSource dataSource) throws SQLException {
-            JdbcTraceRepository repository = derived(dataSource);
-            TraceListQuery query =
-                    new TraceListQuery(null, false, 10 * MS, null, TraceSortField.DURATION, true, 10, 0);
-
-            assertEquals(List.of(FLAMEGRAPH), namesOf(repository.traces(query)),
-                    "the 5ms health trace is below the floor");
-        }
-
-        @Test
-        @DisplayName("the total counts what the filter matched, not what the page returned")
-        void reportsTotalMatchingBeyondThePage(DataSource dataSource) throws SQLException {
-            JdbcTraceRepository repository = derived(dataSource);
-
-            TracePage page = repository.traces(TraceListQuery.slowest(1));
-
-            assertEquals(1, page.traces().size(), "the page is capped");
-            assertEquals(2, page.totalMatching(), "but the caller is told there is more");
-        }
-
-        @Test
-        @DisplayName("the total narrows with the filter")
-        void totalFollowsTheFilter(DataSource dataSource) throws SQLException {
-            JdbcTraceRepository repository = derived(dataSource);
-
-            assertEquals(1, repository.traces(search("health")).totalMatching());
-        }
-
-        @Test
-        @DisplayName("an offset pages past the rows already shown")
-        void pagesByOffset(DataSource dataSource) throws SQLException {
-            JdbcTraceRepository repository = derived(dataSource);
-            TraceListQuery secondPage =
-                    new TraceListQuery(null, false, 0, null, TraceSortField.DURATION, true, 1, 1);
-
-            TracePage page = repository.traces(secondPage);
-
-            assertEquals(List.of(HEALTH), namesOf(page), "the slowest trace was on the first page");
-            assertEquals(2, page.totalMatching(),
-                    "the total is of the filter, so paging does not shrink it");
-        }
-
-        @Test
-        @DisplayName("a filter matching nothing returns an empty page rather than a broken one")
-        void emptyResultIsAPage(DataSource dataSource) throws SQLException {
-            JdbcTraceRepository repository = derived(dataSource);
-
-            TracePage page = repository.traces(search("no-such-operation"));
-
-            assertTrue(page.traces().isEmpty());
-            assertEquals(0, page.totalMatching());
-        }
-
-        @Test
-        @DisplayName("an operation filter narrows to exactly that trace type")
-        void filtersByOperation(DataSource dataSource) throws SQLException {
-            JdbcTraceRepository repository = derived(dataSource);
-            TraceOperationId health =
-                    new TraceOperationId(HEALTH, "SERVER", "jeffrey.HttpServerExchange");
-            TraceListQuery query =
-                    new TraceListQuery(null, false, 0, health, TraceSortField.DURATION, true, 10, 0);
-
-            TracePage page = repository.traces(query);
-
-            assertEquals(List.of(HEALTH), namesOf(page));
-            assertEquals(1, page.totalMatching(), "the total narrows with the operation");
-        }
-
-        @Test
-        @DisplayName("an operation filter matches the whole triple, not the name alone")
-        void operationFilterNeedsTheWholeTriple(DataSource dataSource) throws SQLException {
-            JdbcTraceRepository repository = derived(dataSource);
-            // Right name, wrong kind: the same path as an outbound call would be, and must not match.
-            TraceOperationId wrongKind =
-                    new TraceOperationId(HEALTH, "CLIENT", "jeffrey.HttpServerExchange");
-            TraceListQuery query = new TraceListQuery(
-                    null, false, 0, wrongKind, TraceSortField.DURATION, true, 10, 0);
-
-            TracePage page = repository.traces(query);
-
-            assertTrue(page.traces().isEmpty());
-            assertEquals(0, page.totalMatching());
-        }
-
-        @Test
-        @DisplayName("the sort column and direction are honoured")
-        void sortsAsAsked(DataSource dataSource) throws SQLException {
-            JdbcTraceRepository repository = derived(dataSource);
-
-            assertEquals(List.of(HEALTH, FLAMEGRAPH), namesOf(repository.traces(
-                            new TraceListQuery(null, false, 0, null, TraceSortField.DURATION, false, 10, 0))),
-                    "ascending puts the fastest first");
-            assertEquals(List.of(FLAMEGRAPH, HEALTH), namesOf(repository.traces(
-                            new TraceListQuery(null, false, 0, null, TraceSortField.START, false, 10, 0))),
-                    "the slow trace starts at the recording's origin");
-        }
-
-        @Test
-        @DisplayName("operations can be searched by name")
+        @DisplayName("a name filter matches anywhere in the name, ignoring case")
         void filtersOperationsByName(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
-            TraceOperationListQuery query = new TraceOperationListQuery(
-                    "health", false, TraceOperationSortField.TOTAL_TIME, true, 10, 0);
 
-            assertEquals(List.of(HEALTH), repository.operations(query).operations().stream()
-                    .map(TraceOperationRecord::name)
-                    .toList());
-            assertEquals(1, repository.operations(query).totalMatching());
+            assertEquals(List.of(HEALTH), namesOf(repository.operations(search("health"))));
+            assertEquals(List.of(HEALTH), namesOf(repository.operations(search("HEALTH"))),
+                    "the search box is not case-sensitive");
+            assertEquals(List.of(HEALTH), namesOf(repository.operations(search("internal/health"))),
+                    "a substring matches mid-name, not just as a prefix");
+            assertEquals(1, repository.operations(search("health")).totalMatching(),
+                    "the total narrows with the filter");
         }
 
         @Test
@@ -1589,7 +1420,7 @@ class JdbcTraceRepositoryTest {
         }
 
         @Test
-        @DisplayName("operations page the same way traces do")
+        @DisplayName("an offset pages past the operations already shown")
         void pagesOperations(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
             TraceOperationListQuery firstPage = new TraceOperationListQuery(
@@ -2429,18 +2260,17 @@ class JdbcTraceRepositoryTest {
     class Timeline {
 
         @Test
-        @DisplayName("buckets the traces over the stretch that holds them")
+        @DisplayName("buckets an operation's traces over the stretch that holds them")
         void bucketsTraces(DataSource dataSource) throws SQLException {
-            // The fixture's two traces start 5s apart, so any bucketing that separates them puts one
-            // in each; the counts are what matters, not which bucket boundaries fell where.
             JdbcTraceRepository repository = derived(dataSource);
 
-            List<TraceTimelineBucketRecord> buckets = repository.timeline(10);
+            List<TraceTimelineBucketRecord> buckets =
+                    repository.timelineOfOperation(FLAMEGRAPH_OPERATION, 10);
 
-            assertEquals(2, buckets.stream().mapToLong(TraceTimelineBucketRecord::count).sum(),
-                    "every trace lands in exactly one bucket");
-            assertEquals(2, buckets.stream().mapToLong(TraceTimelineBucketRecord::errorCount).sum(),
-                    "both fixture traces failed — the health check answers 500");
+            assertEquals(1, buckets.stream().mapToLong(TraceTimelineBucketRecord::count).sum(),
+                    "every trace of the operation lands in exactly one bucket");
+            assertEquals(1, buckets.stream().mapToLong(TraceTimelineBucketRecord::errorCount).sum(),
+                    "the fixture's flamegraph exchange failed");
             assertEquals(120 * MS,
                     buckets.stream().mapToLong(TraceTimelineBucketRecord::maxDurationNanos).max().orElseThrow(),
                     "the slowest trace survives bucketing");
@@ -2451,7 +2281,7 @@ class JdbcTraceRepositoryTest {
         void bucketsAreOrdered(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
-            List<Long> starts = repository.timeline(10).stream()
+            List<Long> starts = repository.timelineOfOperation(FLAMEGRAPH_OPERATION, 10).stream()
                     .map(TraceTimelineBucketRecord::fromMillisFromBeginning)
                     .toList();
 
@@ -2463,10 +2293,11 @@ class JdbcTraceRepositoryTest {
         void oneBucketHoldsEverything(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
-            List<TraceTimelineBucketRecord> buckets = repository.timeline(1);
+            List<TraceTimelineBucketRecord> buckets =
+                    repository.timelineOfOperation(FLAMEGRAPH_OPERATION, 1);
 
             assertEquals(1, buckets.size());
-            assertEquals(2, buckets.getFirst().count());
+            assertEquals(1, buckets.getFirst().count());
         }
 
         @Test
@@ -2475,7 +2306,7 @@ class JdbcTraceRepositoryTest {
             JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
             repository.derive();
 
-            assertTrue(repository.timeline(10).isEmpty());
+            assertTrue(repository.timelineOfOperation(FLAMEGRAPH_OPERATION, 10).isEmpty());
         }
 
         /**
@@ -2486,41 +2317,54 @@ class JdbcTraceRepositoryTest {
         @Test
         @DisplayName("every slice comes back, including the empty ones")
         void emptySlicesAreZeroesRatherThanGaps(DataSource dataSource) throws SQLException {
-            List<TraceTimelineBucketRecord> buckets = derived(dataSource).timeline(10);
+            List<TraceTimelineBucketRecord> buckets =
+                    derived(dataSource).timelineOfOperation(FLAMEGRAPH_OPERATION, 10);
 
             assertEquals(10, buckets.size(), "as many slices as were asked for");
-            assertEquals(8, buckets.stream().filter(bucket -> bucket.count() == 0).count(),
-                    "the fixture's two traces occupy one slice each");
+            assertEquals(9, buckets.stream().filter(bucket -> bucket.count() == 0).count(),
+                    "the operation's single trace occupies one slice");
             assertTrue(buckets.stream().allMatch(bucket -> bucket.count() > 0 || bucket.maxDurationNanos() == 0),
                     "an empty slice has no slowest trace to report");
         }
 
         /**
-         * The narrowed timeline keeps the recording's own bounds, so an operation's shape sits where
-         * it happened. Bounding it by its own first and last trace instead would stretch a burst to
-         * fill the axis and make two operations impossible to compare slot for slot.
+         * Every operation's timeline keeps the recording's own bounds, so an operation's shape sits
+         * where it happened. Bounding it by its own first and last trace instead would stretch a burst
+         * to fill the axis and make two operations impossible to compare slot for slot.
          */
         @Test
-        @DisplayName("one operation's timeline is the same grid, holding only its traces")
+        @DisplayName("two operations share one grid, each holding only its own traces")
         void operationTimelineNarrowsWithoutRescaling(DataSource dataSource) throws SQLException {
             JdbcTraceRepository repository = derived(dataSource);
 
-            List<TraceTimelineBucketRecord> everything = repository.timeline(10);
             List<TraceTimelineBucketRecord> flamegraph =
                     repository.timelineOfOperation(FLAMEGRAPH_OPERATION, 10);
+            List<TraceTimelineBucketRecord> health =
+                    repository.timelineOfOperation(HEALTH_OPERATION, 10);
 
             assertEquals(
-                    everything.stream().map(TraceTimelineBucketRecord::fromMillisFromBeginning).toList(),
                     flamegraph.stream().map(TraceTimelineBucketRecord::fromMillisFromBeginning).toList(),
+                    health.stream().map(TraceTimelineBucketRecord::fromMillisFromBeginning).toList(),
                     "same slices, so the two can be read against each other");
-            assertEquals(2, everything.stream().mapToLong(TraceTimelineBucketRecord::count).sum());
             assertEquals(1, flamegraph.stream().mapToLong(TraceTimelineBucketRecord::count).sum(),
                     "only the flamegraph exchange, not the health check beside it");
+            assertEquals(1, health.stream().mapToLong(TraceTimelineBucketRecord::count).sum());
+            assertNotEquals(
+                    occupiedSlice(flamegraph), occupiedSlice(health),
+                    "the fixture's two traces start 5s apart, so they fall in different slices");
             assertEquals(120 * MS,
                     flamegraph.stream()
                             .mapToLong(TraceTimelineBucketRecord::maxDurationNanos)
                             .max()
                             .orElseThrow());
+        }
+
+        private static long occupiedSlice(List<TraceTimelineBucketRecord> buckets) {
+            return buckets.stream()
+                    .filter(bucket -> bucket.count() > 0)
+                    .mapToLong(TraceTimelineBucketRecord::fromMillisFromBeginning)
+                    .findFirst()
+                    .orElseThrow();
         }
 
         @Test
@@ -2581,7 +2425,7 @@ class JdbcTraceRepositoryTest {
             repository.derive();
 
             assertFalse(repository.hasTraces());
-            assertEquals(0, repository.traces(TraceListQuery.slowest(50)).traces().size());
+            assertTrue(repository.operations(TraceOperationListQuery.busiest(50)).operations().isEmpty());
         }
     }
 
