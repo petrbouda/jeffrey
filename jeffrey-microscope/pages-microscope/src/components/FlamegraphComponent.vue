@@ -33,20 +33,21 @@ import AiExportButton from '@/components/ai-analysis/AiExportButton.vue';
 import DifferentialRootHeader from '@/components/DifferentialRootHeader.vue';
 import PrimaryRootHeader from '@/components/PrimaryRootHeader.vue';
 import type { AiExportSource } from '@/composables/useAiExport';
-import FlamegraphAiExportClient from '@/services/api/FlamegraphAiExportClient';
 import type Frame from '@/services/api/model/Frame';
 
 export type AiExportGraphMode = 'PRIMARY' | 'DIFFERENTIAL';
 
+/**
+ * How this graph is exported for an AI, supplied by whoever opened it. The host knows which endpoint
+ * describes its graph — the whole profile, one span of a trace — and this component only knows the
+ * search term in effect, so the two meet here: the host renders, the component says what to mark.
+ */
 export interface AiExportContext {
-  profileId: string;
-  eventType: string;
   graphMode: AiExportGraphMode;
-  useWeight: boolean;
-  useThreadMode: boolean;
-  excludeNonJavaSamples: boolean;
-  excludeIdleSamples: boolean;
-  onlyUnsafeAllocationSamples: boolean;
+  /** Filename stem for a download, naming what the graph covers; the extension is added later. */
+  filenameStem: string;
+  /** Renders the Markdown for the graph as it is on screen, with the search term currently applied. */
+  generate: (search: string | null) => Promise<string>;
 }
 
 const props = defineProps<{
@@ -84,22 +85,12 @@ function buildAiExportSource(): AiExportSource | null {
   if (!ctx) {
     return null;
   }
-  // The filters in effect travel with the request, so the exported document describes the graph as
-  // it is on screen rather than the unfiltered one.
-  const client = new FlamegraphAiExportClient(ctx.profileId);
+  // The search in effect travels with the request, so the exported document describes the graph as
+  // it is on screen rather than the unmarked one.
   return {
-    fetch: () =>
-      client.generate({
-        eventType: ctx.eventType,
-        useWeight: ctx.useWeight,
-        useThreadMode: ctx.useThreadMode,
-        search: currentSearchValue,
-        excludeNonJavaSamples: ctx.excludeNonJavaSamples,
-        excludeIdleSamples: ctx.excludeIdleSamples,
-        onlyUnsafeAllocationSamples: ctx.onlyUnsafeAllocationSamples
-      }),
+    fetch: () => ctx.generate(currentSearchValue),
     label: 'Flamegraph',
-    filenameStem: `flamegraph-${ctx.eventType.replace(/^[a-z]+\./, '').toLowerCase()}`
+    filenameStem: ctx.filenameStem
   };
 }
 
