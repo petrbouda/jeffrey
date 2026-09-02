@@ -101,7 +101,12 @@ public final class HeapDumpDecompressor {
         } catch (UncheckedIOException e) {
             throw e.getCause();
         } finally {
-            Files.deleteIfExists(tmpFile);
+            // Only a failed decompression leaves the temp file behind; after the move it is gone,
+            // and an unguarded deleteIfExists would reach its "false" by catching the UnixException
+            // under the unlink, which a recording with jdk.JavaExceptionThrow enabled captures.
+            if (Files.exists(tmpFile)) {
+                Files.deleteIfExists(tmpFile);
+            }
         }
         return target;
     }
