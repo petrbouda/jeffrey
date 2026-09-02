@@ -186,7 +186,7 @@ public final class HprofIndex {
             // hand — the failure has to be recoverable by simply running the build again.
             Path buildDbPath = HeapDumpIndexPaths.indexBuildFor(file.path());
             deleteDatabase(indexDbPath);
-            Files.deleteIfExists(HeapDumpIndexPaths.indexWalFor(file.path()));
+            deleteIfPresent(HeapDumpIndexPaths.indexWalFor(file.path()));
             deleteDatabase(buildDbPath);
 
             Path stagingDir = HeapDumpIndexPaths.indexStagingFor(file.path());
@@ -226,8 +226,22 @@ public final class HprofIndex {
 
     /** Deletes a DuckDB database together with the write-ahead log that belongs to it. */
     private static void deleteDatabase(Path dbPath) throws IOException {
-        Files.deleteIfExists(dbPath);
-        Files.deleteIfExists(HeapDumpIndexPaths.walFor(dbPath));
+        deleteIfPresent(dbPath);
+        deleteIfPresent(HeapDumpIndexPaths.walFor(dbPath));
+    }
+
+    /**
+     * {@link Files#deleteIfExists} behind a stat. On a path that is not there the JDK call reaches
+     * its {@code false} by attempting the unlink and catching the {@code UnixException} underneath,
+     * and a recording with {@code jdk.JavaExceptionThrow} enabled captures that throw. A fresh build
+     * deletes five paths that usually do not exist, so the unguarded form opened every index build
+     * with five stack traces in the trace. The race between the stat and the delete is harmless:
+     * {@code deleteIfExists} still answers {@code false} if something removes the file in between.
+     */
+    private static void deleteIfPresent(Path path) throws IOException {
+        if (Files.exists(path)) {
+            Files.deleteIfExists(path);
+        }
     }
 
     /**

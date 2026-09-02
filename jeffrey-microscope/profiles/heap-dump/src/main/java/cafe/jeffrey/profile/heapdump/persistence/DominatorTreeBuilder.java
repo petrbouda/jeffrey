@@ -91,6 +91,27 @@ public final class DominatorTreeBuilder {
      */
     private static final String PRAGMA_PRESERVE_INSERTION_ORDER = "SET preserve_insertion_order = false";
 
+    /**
+     * The indexes on the two tables this builder fills, dropped before the rows go in and
+     * recreated over the populated tables afterwards. An index DuckDB has to maintain row by row
+     * during {@code INSERT ... SELECT read_parquet} costs more than the load itself; building it
+     * once over the finished table is the bulk path -- the same reason the index build routes its
+     * own indexes through {@code HprofNonPkIndexes}, and why neither table has a primary key.
+     */
+    private static final String[] DROP_INDEX_DDL = {
+            "DROP INDEX IF EXISTS idx_dominator_instance",
+            "DROP INDEX IF EXISTS idx_dominator_parent",
+            "DROP INDEX IF EXISTS idx_retained_size_instance"
+    };
+
+    private static final String[] CREATE_INDEX_DDL = {
+            "CREATE INDEX IF NOT EXISTS idx_dominator_instance ON dominator(instance_id)",
+            "CREATE INDEX IF NOT EXISTS idx_dominator_parent ON dominator(dominator_id)",
+            "CREATE INDEX IF NOT EXISTS idx_retained_size_instance ON retained_size(instance_id)"
+    };
+
+    private static final String PHASE_CREATE_INDEXES = "create_indexes";
+
     public record BuildResult(int reachableInstances, int rootEdges, long iterations,
                               java.time.Duration buildTime, List<SubPhaseTiming> subPhases) {
 
@@ -124,6 +145,11 @@ public final class DominatorTreeBuilder {
 
             client.execute(HeapDumpStatement.WAL_AUTOCHECKPOINT_PRAGMA, PRAGMA_WAL_AUTOCHECKPOINT);
             client.execute(HeapDumpStatement.PRESERVE_INSERTION_ORDER_PRAGMA, PRAGMA_PRESERVE_INSERTION_ORDER);
+            // Dropped ahead of the DELETE as well: a delete against an indexed table is a per-row
+            // ART removal, which a rebuild would otherwise pay before it even started loading.
+            for (String ddl : DROP_INDEX_DDL) {
+                client.execute(HeapDumpStatement.DROP_INDEXES, ddl);
+            }
             client.execute(HeapDumpStatement.DELETE_DOMINATOR, "DELETE FROM dominator");
             client.execute(HeapDumpStatement.DELETE_RETAINED_SIZE, "DELETE FROM retained_size");
 
@@ -209,10 +235,13 @@ public final class DominatorTreeBuilder {
             }
         });
 
+        // Stage 3: the indexes dropped in build(), rebuilt in bulk over the loaded tables.
+        Duration createIndexesDuration = Measuring.r(() -> createIndexes(client));
+
         LOG.debug(
                 "Dominator tree phases: load_meta_ms={} load_successors_ms={} invert_ms={} "
                         + "dfs_ms={} semi_nca_ms={} retained_ms={} stage_rows_ms={} persist_ms={} "
-                        + "instances={} edges={} reachable={}",
+                        + "create_indexes_ms={} instances={} edges={} reachable={}",
                 metaE.duration().toMillis(),
                 succE.duration().toMillis(),
                 predE.duration().toMillis(),
@@ -221,6 +250,7 @@ public final class DominatorTreeBuilder {
                 retE.duration().toMillis(),
                 rowsE.duration().toMillis(),
                 persistDuration.toMillis(),
+                createIndexesDuration.toMillis(),
                 ids.length,
                 succ.edges().length,
                 reachable);
@@ -233,7 +263,8 @@ public final class DominatorTreeBuilder {
                 new SubPhaseTiming("semi_nca", idomE.duration().toMillis(), "Lengauer-Tarjan"),
                 new SubPhaseTiming("retained", retE.duration().toMillis(), null),
                 new SubPhaseTiming("stage_rows", rowsE.duration().toMillis(), null),
-                new SubPhaseTiming("persist", persistDuration.toMillis(), null));
+                new SubPhaseTiming("persist", persistDuration.toMillis(), null),
+                new SubPhaseTiming(PHASE_CREATE_INDEXES, createIndexesDuration.toMillis(), null));
 
         // BuildResult.iterations was a CHK leftover (number of fixed-point passes);
         // semi-NCA needs no fixed-point so we report 1 to keep the field honest.
@@ -301,6 +332,12 @@ public final class DominatorTreeBuilder {
             // remaining bottleneck after this front lands.
             staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_DOMINATOR, DOMINATOR_TABLE);
             staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_RETAINED_SIZE, RETAINED_SIZE_TABLE);
+        }
+    }
+
+    private static void createIndexes(HeapDumpDatabaseClient client) {
+        for (String ddl : CREATE_INDEX_DDL) {
+            client.execute(HeapDumpStatement.CREATE_INDEXES, ddl);
         }
     }
 

@@ -97,13 +97,26 @@ public final class HprofShallowSizeCorrector {
         // and may have just become unaligned again after the OOP-delta
         // subtraction. Use modular arithmetic (no division) so the math stays
         // in INTEGER domain — DuckDB's `/` promotes to floating point on
-        // bound parameters. The `?::INTEGER` casts are for the reason given
-        // above the OOP-delta update.
-        client.update(HeapDumpStatement.UPDATE_INSTANCE_SHALLOW_SIZE_ALIGN,
-                "UPDATE instance SET shallow_size = "
-                        + "shallow_size + ((?::INTEGER - shallow_size % ?::INTEGER) % ?::INTEGER) "
-                        + "WHERE shallow_size % ?::INTEGER <> 0",
-                alignment, alignment, alignment, alignment);
+        // bound parameters.
+        //
+        // The alignment is written into the statement rather than bound. A bare
+        // `?` inside `%` arithmetic is reported by DuckDB as the type "INVALID",
+        // which the driver feeds to DuckDBColumnType.valueOf -- an enum with no
+        // such constant -- and the IllegalArgumentException it catches is thrown
+        // twice per parameter on every prepare: eight stack traces in every
+        // heap-dump trace. The `?::INTEGER` cast silences that today, but only
+        // because of how the driver infers the expression around it. The value
+        // is a JVM layout constant (8 or 16) that never comes from input, so a
+        // bound parameter protects nothing and interpolating it removes the
+        // dependency on that inference for good.
+        client.update(HeapDumpStatement.UPDATE_INSTANCE_SHALLOW_SIZE_ALIGN, alignmentSql(alignment));
+    }
+
+    /** The alignment UPDATE with {@code alignment} interpolated; see the caller for why. */
+    private static String alignmentSql(int alignment) {
+        return "UPDATE instance SET shallow_size = "
+                + "shallow_size + ((" + alignment + " - shallow_size % " + alignment + ") % " + alignment + ") "
+                + "WHERE shallow_size % " + alignment + " <> 0";
     }
 
     private static LongIntMap computeChainOopCounts(

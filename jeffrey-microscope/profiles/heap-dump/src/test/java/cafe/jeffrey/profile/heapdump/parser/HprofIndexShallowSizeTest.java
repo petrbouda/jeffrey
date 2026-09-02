@@ -26,11 +26,15 @@ import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
+import cafe.jeffrey.jfr.events.test.JfrRecordings;
+import jdk.jfr.consumer.RecordedEvent;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpIndexPaths;
 import cafe.jeffrey.profile.heapdump.view.HeapView;
 import cafe.jeffrey.profile.heapdump.view.HprofTag;
@@ -171,6 +175,62 @@ class HprofIndexShallowSizeTest {
                     .writeTo(tmp, "prim-array.hprof");
 
             assertShallowSize(hprof, arrId, 24);
+        }
+    }
+
+    @Nested
+    class PreparedStatementNoise {
+
+        private static final String THROW_EVENT = "jdk.JavaExceptionThrow";
+        private static final String DRIVER_ENUM_MESSAGE = "DuckDBColumnType";
+
+        /**
+         * The correction statements bound their layout constants, and DuckDB reports a bare bound
+         * parameter inside arithmetic as the type "INVALID" -- a name the JDBC driver feeds to
+         * {@code DuckDBColumnType.valueOf}, which throws. The driver catches it, so nothing failed;
+         * but every build put eight caught IllegalArgumentExceptions into the recording, and a
+         * trace export that lists throws listed them. Whether a {@code ?::INTEGER} cast silences
+         * the prepare depends on the driver's inference of the expression around it, so the
+         * alignment is interpolated instead, and this pins that a build's prepares stay silent.
+         */
+        @Test
+        void correctionStatementsPrepareWithoutDriverThrows(@TempDir Path tmp) throws IOException {
+            long holderClass = 0xC001L;
+            long instId = 0x100L;
+            long ref = 0x200L;
+
+            Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                    .string(0xA001L, "Holder")
+                    .string(0xA002L, "a")
+                    .string(0xA003L, "b")
+                    .string(0xA004L, "c")
+                    .loadClass(1, holderClass, 0, 0xA001L)
+                    .heapDumpSegment(seg -> seg
+                            .classDumpWithFields(holderClass, 0L, 0L, 3 * ID_SIZE,
+                                    new SyntheticHprof.SubBuilder.FieldSpec(0xA002L, HprofTag.BasicType.OBJECT),
+                                    new SyntheticHprof.SubBuilder.FieldSpec(0xA003L, HprofTag.BasicType.OBJECT),
+                                    new SyntheticHprof.SubBuilder.FieldSpec(0xA004L, HprofTag.BasicType.OBJECT))
+                            .instanceDump(instId, holderClass, threeOopFields(ref, ref, ref)))
+                    .heapDumpEnd()
+                    .writeTo(tmp, "silent-prepare.hprof");
+
+            List<RecordedEvent> throwsRecorded = JfrRecordings.all(THROW_EVENT, () -> buildIndex(hprof));
+
+            List<String> driverThrows = throwsRecorded.stream()
+                    .filter(event -> event.getString("message") != null
+                            && event.getString("message").contains(DRIVER_ENUM_MESSAGE))
+                    .map(event -> event.getClass("thrownClass").getName() + ": " + event.getString("message"))
+                    .toList();
+            assertTrue(driverThrows.isEmpty(),
+                    () -> "the shallow-size prepares must not throw inside the driver: " + driverThrows);
+        }
+
+        private static void buildIndex(Path hprof) {
+            try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+                HprofIndex.build(file, HeapDumpIndexPaths.indexFor(hprof), CLOCK);
+            } catch (IOException | SQLException e) {
+                throw new IllegalStateException(e);
+            }
         }
     }
 

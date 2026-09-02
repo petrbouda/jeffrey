@@ -41,6 +41,9 @@ import java.util.concurrent.Future;
  * present. Bulk index creation over a fully populated table is dramatically
  * faster than per-row insertion into an existing index — DuckDB sorts the
  * source column once and walks, rather than 30 M individual ART-tree inserts.
+ * This is also why {@code instance} and {@code string_content} carry no primary
+ * key: a primary key is an ART index the bulk load would have to maintain row by
+ * row, so the id lookup each table needs is an ordinary index managed here.
  *
  * <p>Same-table indexes share a write lock on the table's ART tree, so they
  * run sequentially on one worker; different-table groups run on their own
@@ -59,7 +62,9 @@ public final class HprofNonPkIndexes {
     private static final String[] DROP_DDL = {
             "DROP INDEX IF EXISTS idx_outbound_source",
             "DROP INDEX IF EXISTS idx_outbound_target",
+            "DROP INDEX IF EXISTS idx_instance_id",
             "DROP INDEX IF EXISTS idx_instance_class",
+            "DROP INDEX IF EXISTS idx_string_content_instance",
             "DROP INDEX IF EXISTS idx_gc_root_instance",
             "DROP INDEX IF EXISTS idx_class_name",
             "DROP INDEX IF EXISTS idx_class_super",
@@ -70,7 +75,7 @@ public final class HprofNonPkIndexes {
     /**
      * One table's indexes, and the table they belong to.
      *
-     * @param table the target table, which also names the worker's span — five fixed values, so the
+     * @param table the target table, which also names the worker's span — six fixed values, so the
      *              names stay the low-cardinality set JFR's string pool wants
      * @param ddl   the statements, issued in order on a single worker because same-table indexes
      *              share a write lock on that table's ART tree
@@ -91,7 +96,10 @@ public final class HprofNonPkIndexes {
                     "CREATE INDEX IF NOT EXISTS idx_outbound_source ON outbound_ref(source_id)",
                     "CREATE INDEX IF NOT EXISTS idx_outbound_target ON outbound_ref(target_id)")),
             new IndexGroup("instance", List.of(
+                    "CREATE INDEX IF NOT EXISTS idx_instance_id ON instance(instance_id)",
                     "CREATE INDEX IF NOT EXISTS idx_instance_class ON instance(class_id)")),
+            new IndexGroup("string_content", List.of(
+                    "CREATE INDEX IF NOT EXISTS idx_string_content_instance ON string_content(instance_id)")),
             new IndexGroup("gc_root", List.of(
                     "CREATE INDEX IF NOT EXISTS idx_gc_root_instance ON gc_root(instance_id)")),
             new IndexGroup("class", List.of(

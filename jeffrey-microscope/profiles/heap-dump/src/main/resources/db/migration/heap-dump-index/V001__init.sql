@@ -24,6 +24,15 @@
 -- The schema is recreated whenever the index is rebuilt; never migrated.
 -- Per project policy, modify this file in place rather than introducing V002.
 --
+-- The per-object tables (instance, string_content, dominator, retained_size)
+-- carry no PRIMARY KEY on purpose. HPROF object ids are unique by construction,
+-- and a primary key is an ART index that DuckDB maintains row by row during
+-- INSERT ... SELECT read_parquet -- on a table of tens of millions of rows that
+-- per-row maintenance cost more than the rest of the bulk load put together.
+-- The point-lookup index each of them needs is declared here as an ordinary
+-- index instead, and the builders drop it before the bulk load and recreate it
+-- over the populated table, which is DuckDB's bulk path.
+--
 
 --
 -- DUMP_METADATA
@@ -118,7 +127,7 @@ CREATE INDEX IF NOT EXISTS idx_class_interface_interface ON class_interface(inte
 --
 CREATE TABLE IF NOT EXISTS instance
 (
-    instance_id    BIGINT  NOT NULL PRIMARY KEY,
+    instance_id    BIGINT  NOT NULL,
     class_id       BIGINT,
     file_offset    BIGINT  NOT NULL,
     record_kind    TINYINT NOT NULL,
@@ -127,6 +136,7 @@ CREATE TABLE IF NOT EXISTS instance
     primitive_type TINYINT
 );
 
+CREATE INDEX IF NOT EXISTS idx_instance_id ON instance(instance_id);
 CREATE INDEX IF NOT EXISTS idx_instance_class ON instance(class_id);
 
 --
@@ -188,10 +198,11 @@ CREATE INDEX IF NOT EXISTS idx_outbound_target ON outbound_ref(target_id);
 --
 CREATE TABLE IF NOT EXISTS dominator
 (
-    instance_id   BIGINT NOT NULL PRIMARY KEY,
+    instance_id   BIGINT NOT NULL,
     dominator_id  BIGINT NOT NULL
 );
 
+CREATE INDEX IF NOT EXISTS idx_dominator_instance ON dominator(instance_id);
 CREATE INDEX IF NOT EXISTS idx_dominator_parent ON dominator(dominator_id);
 
 --
@@ -202,9 +213,11 @@ CREATE INDEX IF NOT EXISTS idx_dominator_parent ON dominator(dominator_id);
 --
 CREATE TABLE IF NOT EXISTS retained_size
 (
-    instance_id BIGINT NOT NULL PRIMARY KEY,
+    instance_id BIGINT NOT NULL,
     bytes       BIGINT NOT NULL
 );
+
+CREATE INDEX IF NOT EXISTS idx_retained_size_instance ON retained_size(instance_id);
 
 --
 -- STRING_CONTENT
@@ -221,10 +234,12 @@ CREATE TABLE IF NOT EXISTS retained_size
 --
 CREATE TABLE IF NOT EXISTS string_content
 (
-    instance_id    BIGINT  NOT NULL PRIMARY KEY,
+    instance_id    BIGINT  NOT NULL,
     content_length INTEGER NOT NULL,
     content        VARCHAR
 );
+
+CREATE INDEX IF NOT EXISTS idx_string_content_instance ON string_content(instance_id);
 
 --
 -- STACK_FRAME
