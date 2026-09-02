@@ -24,7 +24,7 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
 
-const microscopeComponents = ['Flamegraph', 'Timeseries', 'Guardian', 'Heap dump', 'AI assistant', 'Events'];
+const microscopeComponents = ['Flamegraph', 'Timeseries', 'Heap dump', 'AI assistant', 'Events'];
 const serverComponents = ['Continuous recording', 'Scheduler', 'gRPC API', 'Agent'];
 const provisionerComponents = ['HOCON config', 'JVM argfile', 'Session layout', 'Workspace events', 'Native binary'];
 const jibComponents = ['Gradle/Maven', 'Entrypoint wrapper', 'Shared volume', 'Kill switch'];
@@ -52,7 +52,7 @@ onMounted(() => {
           to="/docs/microscope"
           title="Microscope"
           role="Standalone · Single-user"
-          description="The standalone analyst. Open JFR recordings and heap dumps locally with full visualization, guardian, and AI features."
+          description="The standalone analyst. Open JFR recordings and heap dumps locally with full visualization and AI features."
           icon="bi bi-pc-display"
           :components="microscopeComponents"
           cta-text="Open Microscope docs"

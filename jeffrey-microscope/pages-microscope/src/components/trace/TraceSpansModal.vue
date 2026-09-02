@@ -129,7 +129,6 @@
             <FlamegraphComponent
               :with-timeseries="false"
               :use-weight="activeUseWeight"
-              :use-guardian="null"
               :scrollable-wrapper-class="TRACE_FG_SCROLL_ID"
               :flamegraph-tooltip="flamegraphTooltip"
               :graph-updater="graphUpdater"

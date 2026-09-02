@@ -33,7 +33,7 @@ paths:
 ### Pages
 - Scaffold a new page with `MainCard` -> `#header` slot holds `MainCardHeader` (props `icon`, `title`, `:badge?`, `#actions` slot) -> three-state pattern in the default slot
 - Live in `views/global/` (workspace/project scope) or `views/profiles/` (profile scope); API client extends `BasePlatformClient` or `BaseProfileClient`
-- Use the `/global-page` skill for the full scaffold. References: `views/global/RecordingsView.vue`, `views/global/GuardiansView.vue`
+- Use the `/global-page` skill for the full scaffold. References: `views/global/RecordingsView.vue`, `views/global/WorkspacesView.vue`
 
 ### Tables
 - Use the `components/table/DataTable.vue` family — do NOT hand-roll `<div class="table-responsive"><table>`; `DataTable` already renders the `table table-sm table-hover mb-0` markup inside a card
@@ -54,7 +54,7 @@ paths:
   /* scoped */
   :deep(.modal-dialog.my-modal-dialog) { max-width: none; width: calc(100vw - 3.5rem); }
   ```
-  `events-modal-dialog` is defined globally in `assets/styles.scss`. Use the `/new-modal` skill. Reference: `views/global/GuardiansView.vue`
+  `events-modal-dialog` is defined globally in `assets/styles.scss`. Use the `/new-modal` skill. Reference: `views/global/RecordingsView.vue`
 
 ### Shared CSS
 - Check `@/styles/shared-components.css` and `@/assets/_sidebar-menu.scss` before adding scoped styles

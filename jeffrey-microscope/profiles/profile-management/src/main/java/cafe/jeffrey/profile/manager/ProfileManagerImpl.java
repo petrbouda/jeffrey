@@ -134,11 +134,6 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
-    public GuardianManager guardianManager() {
-        return registry.analysis().guardian().apply(profileInfo);
-    }
-
-    @Override
     public AdditionalFilesManager additionalFilesManager() {
         return registry.additionalFiles().apply(profileInfo);
     }

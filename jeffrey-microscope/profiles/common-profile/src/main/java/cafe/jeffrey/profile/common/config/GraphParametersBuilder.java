@@ -23,7 +23,6 @@ import cafe.jeffrey.shared.common.model.SpanScope;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.model.WeightUnit;
-import cafe.jeffrey.profile.common.analysis.marker.Marker;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
 
 import java.util.List;
@@ -40,7 +39,6 @@ public class GraphParametersBuilder {
     private boolean excludeIdleSamples;
     private boolean onlyUnsafeAllocationSamples;
     private boolean parseLocations;
-    private List<Marker> markers;
     private GraphType graphType;
     private GraphComponents graphComponents;
     private SpanScope spanScope;
@@ -104,11 +102,6 @@ public class GraphParametersBuilder {
         return this;
     }
 
-    public GraphParametersBuilder withMarkers(List<Marker> markers) {
-        this.markers = markers;
-        return this;
-    }
-
     public GraphParametersBuilder withGraphType(GraphType graphType) {
         this.graphType = graphType;
         return this;
@@ -146,7 +139,6 @@ public class GraphParametersBuilder {
                 excludeIdleSamples,
                 onlyUnsafeAllocationSamples,
                 parseLocations,
-                markers,
                 graphType,
                 graphComponents,
                 spanScope,

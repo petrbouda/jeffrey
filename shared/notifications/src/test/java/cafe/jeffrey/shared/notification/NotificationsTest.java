@@ -129,7 +129,7 @@ class NotificationsTest {
         void insideASpanItIsStamped() throws IOException {
             RecordedEvent event = only(recorded(() ->
                     Tracer.run("profile.initialize", SpanKind.INTERNAL, () ->
-                            Notifications.of(NotificationType.GUARDIAN_WARNINGS)
+                            Notifications.of(NotificationType.PROFILE_DIR_ORPHANED)
                                     .emit())));
 
             assertFalse(event.getLong("traceId") == 0, "a span was open, so the trace is known");

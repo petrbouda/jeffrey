@@ -20,19 +20,12 @@ package cafe.jeffrey.profile.configuration;
 
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
-import cafe.jeffrey.profile.guardian.CachingGuardianProvider;
-import cafe.jeffrey.profile.guardian.Guardian;
-import cafe.jeffrey.profile.guardian.GuardianProvider;
-import cafe.jeffrey.profile.guardian.ParsingGuardianProvider;
-import cafe.jeffrey.profile.guardian.definition.GuardDefinitions;
 import cafe.jeffrey.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.profile.manager.AutoAnalysisManagerImpl;
 import cafe.jeffrey.profile.manager.EventViewerManager;
 import cafe.jeffrey.profile.manager.EventViewerManagerImpl;
 import cafe.jeffrey.profile.manager.FlagsManager;
 import cafe.jeffrey.profile.manager.FlagsManagerImpl;
-import cafe.jeffrey.profile.manager.GuardianManager;
-import cafe.jeffrey.profile.manager.GuardianManagerImpl;
 import cafe.jeffrey.profile.manager.JvmFlagDescriptionProvider;
 import cafe.jeffrey.profile.manager.ProfileConfigurationManager;
 import cafe.jeffrey.profile.manager.ProfileConfigurationManagerImpl;
@@ -43,9 +36,6 @@ import cafe.jeffrey.profile.settings.ActiveSettingsProvider;
 import cafe.jeffrey.profile.settings.CachedActiveSettingsProvider;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
-import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
-import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
-import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -72,41 +62,16 @@ public class ProfileAnalysisConfiguration {
 
     @Bean
     public AnalysisFactories analysisFactories(
-            GuardianManager.Factory guardianFactory,
             AutoAnalysisManager.Factory autoAnalysisFactory,
             EventViewerManager.Factory eventViewerFactory,
             FlagsManager.Factory flagsFactory,
             SamplerHealthManager.Factory samplerHealthFactory) {
 
         return new AnalysisFactories(
-                guardianFactory,
                 autoAnalysisFactory,
                 eventViewerFactory,
                 flagsFactory,
                 samplerHealthFactory);
-    }
-
-    @Bean
-    public GuardianManager.Factory guardianFactory(
-            ActiveSettingsProvider.Factory settingsProviderFactory,
-            GuardDefinitions guardDefinitions) {
-        return (profileInfo) -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
-            ProfileEventRepository eventsRepository = profileRepositories.newEventRepository(profileDb);
-            ProfileEventStreamRepository eventsStreamRepository = profileRepositories.newEventStreamRepository(profileDb);
-            ProfileEventTypeRepository eventsTypeRepository = profileRepositories.newEventTypeRepository(profileDb);
-            ProfileCacheRepository cacheRepository = profileRepositories.newProfileCacheRepository(profileDb);
-            ActiveSettingsProvider settingsProvider = settingsProviderFactory.apply(profileInfo);
-
-            Guardian guardian = new Guardian(
-                    profileInfo, eventsRepository, eventsStreamRepository, eventsTypeRepository,
-                    settingsProvider.get(), guardDefinitions);
-
-            GuardianProvider guardianProvider = new CachingGuardianProvider(
-                    cacheRepository, new ParsingGuardianProvider(guardian), guardDefinitions);
-
-            return new GuardianManagerImpl(guardianProvider);
-        };
     }
 
     @Bean

@@ -515,8 +515,8 @@ export default class Flamegraph {
       const secondary = (totalValue - diffValue) / 2;
       return FrameColorResolver.resolveDiffColor(primary, secondary, frame.type);
     }
-    // Regular flamegraph - use frame type color (with beforeMarker for guardian analysis)
-    return FrameColorResolver.resolveByType(frame.type, frame.beforeMarker);
+    // Regular flamegraph - use frame type color
+    return FrameColorResolver.resolveByType(frame.type);
   }
 
   private totalValue(frame: Frame): number {

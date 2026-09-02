@@ -61,6 +61,8 @@ message Level {
 
 // A single frame in the flamegraph
 message Frame {
+    reserved 11;  // was before_marker, removed with the Guardian
+
     int64 left_samples = 1;
     int64 total_samples = 2;
     int32 title_index = 3;          // Index into FlamegraphData.title_pool
@@ -73,7 +75,6 @@ message Frame {
     FramePosition position = 8;
     FrameSampleTypes sample_types = 9;
     DiffDetails diff_details = 10;
-    bool before_marker = 11;            // For guardian analysis coloring
     int32 pruned_children_count = 12;   // Only set for FRAME_TYPE_TRUNCATED_SYNTHETIC
     // The frame's class is a JVM hidden class (JEP 371) -- a lambda proxy, a method-handle form,
     // an indified string concatenation. Such a name carries the JVM's address and is redrawn on

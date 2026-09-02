@@ -23,13 +23,13 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Warms the profile views that are expensive to compute and cheap to keep: the Guardian's analysis
+ * Warms the profile views that are expensive to compute and cheap to keep: the thread viewer's
  * and the Thread Viewer's bands. Both are cached in the profile's own database, so this only ever
  * decides <em>when</em> the work happens, never whether the view is available.
  * <p>
  * That is why it does not block the profile from opening. The events are queryable before this
  * starts, and everything these views need is already written; warming them first only meant every
- * user waited for a Guardian frame tree before they could look at a flamegraph.
+ * user waited for a thread-viewer frame tree before they could look at a flamegraph.
  */
 public interface ProfileDataInitializer {
 

@@ -57,7 +57,7 @@ public enum RecordingEventSource {
      * Whether this source is an imported stack-sample profile format that Jeffrey only visualizes as
      * flamegraphs ({@link #PPROF}, {@link #OPEN_TELEMETRY}) — as opposed to a JFR-based recording
      * ({@link #JDK}, {@link #ASYNC_PROFILER}) that also feeds the JFR-specific analyses (event viewer,
-     * guardian, thread viewer, GC, …). Used to skip those analyses for profiles that cannot support them.
+     * thread viewer, GC, …). Used to skip those analyses for profiles that cannot support them.
      */
     public boolean isFlamegraphOnlyImport() {
         return this == PPROF || this == OPEN_TELEMETRY;

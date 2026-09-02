@@ -112,7 +112,7 @@ const isItemActive = (sectionPath: string, page: DocPage): boolean => {
 // Walks two levels (direct children + their children) — that's the depth the
 // existing data allows. Used by both the active-class binding and the
 // auto-expand watcher so synthetic-path groups (e.g. "Architecture") and
-// nested children (e.g. "Profiles > Guardian") both behave correctly.
+// nested children (e.g. "Profiles > Advisor") both behave correctly.
 const isSectionActive = (section: DocSection): boolean => {
   for (const p of section.children) {
     if (isItemActive(section.path, p)) return true;
@@ -141,7 +141,7 @@ watch(
     // Expand any section that contains the current route — covers synthetic-path
     // groups like "Architecture" (children use absolute `to` overrides) and the
     // multi-page JEFFREY MICROSCOPE group (nested-children pages like
-    // Profiles > Guardian).
+    // Profiles > Advisor).
     for (const section of productNav.value) {
       if (isSectionActive(section)) {
         expandedSections.value.add(section.path);

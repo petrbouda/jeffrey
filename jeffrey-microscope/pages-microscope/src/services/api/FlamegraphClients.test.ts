@@ -7,7 +7,6 @@ import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
 import SingleSpanFlamegraphClient from '@/services/api/SingleSpanFlamegraphClient';
 import SpanFlamegraphClient from '@/services/api/SpanFlamegraphClient';
 import DifferentialFlamegraphClient from '@/services/api/DifferentialFlamegraphClient';
-import GuardianFlamegraphClient from '@/services/api/GuardianFlamegraphClient';
 import StaticFlamegraphClient from '@/services/api/StaticFlamegraphClient';
 import BothGraphData from '@/services/api/model/BothGraphData';
 import FlamegraphData from '@/services/api/model/FlamegraphData';
@@ -432,93 +431,6 @@ describe('DifferentialFlamegraphClient payloads', () => {
         excludeNonJavaSamples: false,
         excludeIdleSamples: true,
         onlyUnsafeAllocationSamples: false,
-        components: 'BOTH'
-      })
-    );
-  });
-});
-
-describe('GuardianFlamegraphClient payloads', () => {
-  const markers = [{ type: 'WARNING', from: 1, to: 2 }];
-
-  function client(): GuardianFlamegraphClient {
-    return new GuardianFlamegraphClient('p1', 'jdk.ExecutionSample', true, markers);
-  }
-
-  it('provideBoth sends hardcoded thread/exclude fields with markers', async () => {
-    await client().provideBoth(GraphComponents.BOTH, timeRange, 'guard');
-
-    const { url, bodyJson, config } = lastPost();
-    expect(url).toBe('/api/internal/profiles/p1/flamegraph');
-    expect(config).toBe(HttpUtils.PROTOBUF_HEADERS);
-    expect(bodyJson).toBe(
-      expectJson({
-        eventType: 'jdk.ExecutionSample',
-        useWeight: true,
-        markers: markers,
-        useThreadMode: false,
-        timeRange: { start: 1000, end: 2000, absoluteTime: true },
-        search: 'guard',
-        excludeNonJavaSamples: false,
-        excludeIdleSamples: false,
-        onlyUnsafeAllocationSamples: false,
-        threadInfo: null,
-        components: 'BOTH'
-      })
-    );
-  });
-
-  it('provide places timeRange before useThreadMode (historical order)', async () => {
-    await client().provide(timeRange);
-
-    expect(lastPost().bodyJson).toBe(
-      expectJson({
-        eventType: 'jdk.ExecutionSample',
-        useWeight: true,
-        markers: markers,
-        timeRange: { start: 1000, end: 2000, absoluteTime: true },
-        useThreadMode: false,
-        excludeNonJavaSamples: false,
-        excludeIdleSamples: false,
-        onlyUnsafeAllocationSamples: false,
-        threadInfo: null,
-        components: 'FLAMEGRAPH_ONLY'
-      })
-    );
-  });
-
-  it('provideTimeseries places search before useThreadMode (historical order)', async () => {
-    await client().provideTimeseries('guard');
-
-    expect(lastPost().bodyJson).toBe(
-      expectJson({
-        eventType: 'jdk.ExecutionSample',
-        useWeight: true,
-        markers: markers,
-        search: 'guard',
-        useThreadMode: false,
-        excludeNonJavaSamples: false,
-        excludeIdleSamples: false,
-        onlyUnsafeAllocationSamples: false,
-        threadInfo: null,
-        components: 'TIMESERIES_ONLY'
-      })
-    );
-  });
-
-  it('save posts useWeight and markers but no exclude/thread keys', async () => {
-    await client().save(GraphComponents.BOTH, 'guardian-flamegraph', timeRange);
-
-    const { url, bodyJson, config } = lastPost();
-    expect(url).toBe('/api/internal/profiles/p1/flamegraph/repository');
-    expect(config).toBe(HttpUtils.JSON_HEADERS);
-    expect(bodyJson).toBe(
-      expectJson({
-        flamegraphName: 'guardian-flamegraph',
-        eventType: 'jdk.ExecutionSample',
-        timeRange: { start: 1000, end: 2000, absoluteTime: true },
-        useWeight: true,
-        markers: markers,
         components: 'BOTH'
       })
     );

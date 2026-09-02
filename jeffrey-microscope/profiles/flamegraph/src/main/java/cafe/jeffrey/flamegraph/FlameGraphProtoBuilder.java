@@ -57,7 +57,6 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
     private static final Function<Long, String> CPU_TIME_FORMATTER =
             weight -> DurationUtils.formatNanos2Units(weight) + " CPU";
 
-    private final boolean withMarker;
     private final boolean withWeight;
     private final double minFrameThresholdPct;
     private final Function<Long, String> weightFormatter;
@@ -66,32 +65,31 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
     private final List<String> titlePool = new ArrayList<>();
     private final Map<String, Integer> titleIndex = new HashMap<>();
 
-    private FlameGraphProtoBuilder(boolean withMarker, double minFrameThresholdPct, Function<Long, String> weightFormatter) {
-        this(withMarker, minFrameThresholdPct, weightFormatter != null, weightFormatter);
+    private FlameGraphProtoBuilder(double minFrameThresholdPct, Function<Long, String> weightFormatter) {
+        this(minFrameThresholdPct, weightFormatter != null, weightFormatter);
     }
 
-    public static FlameGraphProtoBuilder simple(boolean withMarker, double minFrameThresholdPct) {
-        return new FlameGraphProtoBuilder(withMarker, minFrameThresholdPct, null);
+    public static FlameGraphProtoBuilder simple(double minFrameThresholdPct) {
+        return new FlameGraphProtoBuilder(minFrameThresholdPct, null);
     }
 
-    public static FlameGraphProtoBuilder allocation(boolean withMarker, double minFrameThresholdPct) {
-        return new FlameGraphProtoBuilder(withMarker, minFrameThresholdPct, ALLOCATION_FORMATTER);
+    public static FlameGraphProtoBuilder allocation(double minFrameThresholdPct) {
+        return new FlameGraphProtoBuilder(minFrameThresholdPct, ALLOCATION_FORMATTER);
     }
 
-    public static FlameGraphProtoBuilder blocking(boolean withMarker, double minFrameThresholdPct) {
-        return new FlameGraphProtoBuilder(withMarker, minFrameThresholdPct, BLOCKING_FORMATTER);
+    public static FlameGraphProtoBuilder blocking(double minFrameThresholdPct) {
+        return new FlameGraphProtoBuilder(minFrameThresholdPct, BLOCKING_FORMATTER);
     }
 
-    public static FlameGraphProtoBuilder latency(boolean withMarker, double minFrameThresholdPct) {
-        return new FlameGraphProtoBuilder(withMarker, minFrameThresholdPct, LATENCY_FORMATTER);
+    public static FlameGraphProtoBuilder latency(double minFrameThresholdPct) {
+        return new FlameGraphProtoBuilder(minFrameThresholdPct, LATENCY_FORMATTER);
     }
 
-    public static FlameGraphProtoBuilder cpu(boolean withMarker, double minFrameThresholdPct) {
-        return new FlameGraphProtoBuilder(withMarker, minFrameThresholdPct, CPU_TIME_FORMATTER);
+    public static FlameGraphProtoBuilder cpu(double minFrameThresholdPct) {
+        return new FlameGraphProtoBuilder(minFrameThresholdPct, CPU_TIME_FORMATTER);
     }
 
-    public FlameGraphProtoBuilder(boolean withMarker, double minFrameThresholdPct, boolean withWeight, Function<Long, String> weightFormatter) {
-        this.withMarker = withMarker;
+    public FlameGraphProtoBuilder(double minFrameThresholdPct, boolean withWeight, Function<Long, String> weightFormatter) {
         this.minFrameThresholdPct = minFrameThresholdPct;
         this.withWeight = withWeight;
         this.weightFormatter = weightFormatter;
@@ -115,7 +113,7 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
                 : root.totalSamples() + " Event(s)";
 
         // Recursively build frame tree
-        buildFrame(levelBuilders, rootTitle, root, 0, 0, 0, false, minMetric);
+        buildFrame(levelBuilders, rootTitle, root, 0, 0, 0, minMetric);
 
         // Build the final FlamegraphData. The depth is taken from the actual levels because
         // synthetic TRUNCATED rollups may add one level below the deepest surviving frame
@@ -139,7 +137,6 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
             int level,
             long leftSamples,
             long leftWeight,
-            boolean markerCrossed,
             long minMetric) {
 
         Frame.Builder frameBuilder = Frame.newBuilder()
@@ -157,11 +154,6 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
         // Only include selfSamples when non-zero
         if (frame.selfSamples() > 0) {
             frameBuilder.setSelfSamples(frame.selfSamples());
-        }
-
-        // Add marker info for guardian analysis coloring
-        if (withMarker && !markerCrossed) {
-            frameBuilder.setBeforeMarker(true);
         }
 
         // Mark frames whose class exists only for this run, so the tooltip can say so
@@ -212,8 +204,7 @@ public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.frameir
             cafe.jeffrey.frameir.Frame child = e.getValue();
             long childMetric = withWeight ? child.totalWeight() : child.totalSamples();
             if (childMetric >= minMetric) {
-                boolean markerCrossedLocal = markerCrossed || child.hasMarker();
-                buildFrame(levelBuilders, e.getKey(), child, level + 1, leftSamples, leftWeight, markerCrossedLocal, minMetric);
+                buildFrame(levelBuilders, e.getKey(), child, level + 1, leftSamples, leftWeight, minMetric);
                 leftSamples += child.totalSamples();
                 leftWeight += child.totalWeight();
             } else {

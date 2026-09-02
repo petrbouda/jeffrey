@@ -224,7 +224,6 @@
         <FlamegraphComponent
           :with-timeseries="true"
           :use-weight="false"
-          :use-guardian="null"
           scrollableWrapperClass="scrollable-wrapper"
           :flamegraph-tooltip="flamegraphTooltip"
           :graph-updater="graphUpdater"

@@ -49,7 +49,7 @@ onMounted(() => {
         <h2 class="hero-title">Open a recording. See everything.</h2>
         <p class="hero-lede">
           Microscope turns JFR recordings and heap dumps into rich, interactive analysis —
-          flame graphs, timeseries, sub-second timelines, the Guardian's automated checks,
+          flame graphs, timeseries, sub-second timelines, automated checks,
           and an AI assistant that already knows your data. Everything renders locally; no
           backend required.
         </p>
@@ -99,12 +99,6 @@ onMounted(() => {
           icon="bi bi-memory"
           title="Heap Dump Forensics"
           description="Browse class histograms, walk dominator trees, hunt leak suspects, run OQL queries."
-        />
-        <DocsFeatureCard
-          color="green"
-          icon="bi bi-shield-check"
-          title="Guardian Auto-Checks"
-          description="Dozens of automated checks flag the usual culprits: lock contention, GC pressure, safepoint outliers, hashmap collisions, and more."
         />
         <DocsFeatureCard
           color="blue"

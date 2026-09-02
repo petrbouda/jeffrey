@@ -114,8 +114,6 @@ const composedSpans = [
     start: 3200, duration: 933, event: 'jeffrey.TraceSpan', note: 'run' },
   { depth: 3, name: 'eventviewer.tree', kind: 'INTERNAL' as const,
     start: 3215, duration: 410, event: 'jeffrey.TraceSpan', note: 'fork' },
-  { depth: 3, name: 'guardian.results', kind: 'INTERNAL' as const,
-    start: 3215, duration: 916, event: 'jeffrey.TraceSpan', note: 'fork' },
   { depth: 3, name: 'threads.rows', kind: 'INTERNAL' as const,
     start: 3220, duration: 380, event: 'jeffrey.TraceSpan', note: 'fork' }
 ];
@@ -410,7 +408,7 @@ const composedSpans = [
           <tr>
             <td><code>ProfileDataInitializerImpl</code></td>
             <td><code>fork</code></td>
-            <td>Parallel initialization branches: event viewer, guardian, thread viewer</td>
+            <td>Parallel initialization branches: event viewer, thread viewer</td>
           </tr>
           <tr>
             <td><code>DbBasedFlamegraphGenerator</code></td>

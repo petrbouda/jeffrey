@@ -257,7 +257,6 @@ function onTimeRangeChange(payload: { start: number; end: number; isZoomed: bool
         v-if="showDialog"
         :with-timeseries="false"
         :use-weight="useWeight"
-        :use-guardian="null"
         scrollable-wrapper-class="flamegraphModal"
         :flamegraph-tooltip="flamegraphTooltip"
         :graph-updater="graphUpdater"

@@ -374,7 +374,7 @@ onMounted(() => {
       <h2 id="live-workspace">Server Collection Mode</h2>
       <p>
         Jeffrey Hub is designed for recording collection and does not perform profile analysis —
-        every flamegraph, trace and Guardian check is computed in Jeffrey Microscope.
+        every flamegraph and trace is computed in Jeffrey Microscope.
       </p>
       <p>
         There is no server property for this. <strong>Collector-only mode</strong> is a per-project

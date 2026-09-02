@@ -36,7 +36,6 @@
         <module>common-profile</module>
         <module>frame-ir</module>
         <module>recording-parser</module>
-        <module>profile-guardian</module>
         <module>profile-threads</module>
         <module>profile-gc</module>
         <module>profile-memory</module>
@@ -141,11 +140,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>frame-ir</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>profile-guardian</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

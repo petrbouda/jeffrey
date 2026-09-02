@@ -68,7 +68,6 @@ onMounted(() => {
                 <div class="arch-chip analysis"><i class="bi bi-stopwatch"></i> Sub-Second</div>
               </div>
               <div class="arch-layer">
-                <div class="arch-chip analysis"><i class="bi bi-shield-check"></i> Guardian</div>
                 <div class="arch-chip analysis"><i class="bi bi-clock-history"></i> Threads</div>
                 <div class="arch-chip analysis"><i class="bi bi-database"></i> Heap Dump</div>
               </div>
@@ -126,7 +125,7 @@ onMounted(() => {
       </div>
 
       <h3 id="recording-pipeline">Recording → Profile Pipeline</h3>
-      <p>A recording is just a file on disk — a JFR recording, or an OpenTelemetry (<code>.otlp</code>) or pprof (<code>.pprof</code>, <code>.pb.gz</code>) profile. Initializing a profile runs the matching parser, which writes events into a fresh <strong>per-profile DuckDB</strong>. Analysis features (Flamegraph, Timeseries, Sub-Second, Guardian, Threads) read from that database on demand. Each profile owns its DB, so dropping a profile is a single file delete and parses run in parallel without contention. Heap dumps follow a separate flow — a one-time initialization builds a sibling index next to the <code>.hprof</code> (see the <router-link to="/docs/microscope/profiles/heap-dump">Heap Dump Analysis</router-link> reference). See <router-link to="/docs/microscope/storage">Storage</router-link> for tier-by-tier details.</p>
+      <p>A recording is just a file on disk — a JFR recording, or an OpenTelemetry (<code>.otlp</code>) or pprof (<code>.pprof</code>, <code>.pb.gz</code>) profile. Initializing a profile runs the matching parser, which writes events into a fresh <strong>per-profile DuckDB</strong>. Analysis features (Flamegraph, Timeseries, Sub-Second, Threads) read from that database on demand. Each profile owns its DB, so dropping a profile is a single file delete and parses run in parallel without contention. Heap dumps follow a separate flow — a one-time initialization builds a sibling index next to the <code>.hprof</code> (see the <router-link to="/docs/microscope/profiles/heap-dump">Heap Dump Analysis</router-link> reference). See <router-link to="/docs/microscope/storage">Storage</router-link> for tier-by-tier details.</p>
 
       <div class="arch-flow">
         <div class="flow-node"><i class="bi bi-file-earmark-binary"></i><span>Recording (JFR)</span></div>

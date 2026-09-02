@@ -70,18 +70,12 @@ export default class FrameColorResolver {
   private static readonly ADDED_COLOR = '#B91C1C';
   private static readonly REMOVED_COLOR = '#15803D';
   private static readonly NEUTRAL_COLOR = '#E6E6E6';
-  // Grey color for frames before marker (guardian analysis)
-  private static readonly BEFORE_MARKER_COLOR = '#CCCCCC';
 
   /**
    * Resolves color for regular flamegraphs based on frame type.
    * @param frameType The type of the frame
-   * @param beforeMarker If true, frame is before guardian marker and should be grey
    */
-  static resolveByType(frameType: string, beforeMarker?: boolean): string {
-    if (beforeMarker) {
-      return this.BEFORE_MARKER_COLOR;
-    }
+  static resolveByType(frameType: string): string {
     return this.FRAME_TYPE_COLORS[frameType] || '#000000';
   }
 

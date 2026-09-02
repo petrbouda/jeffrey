@@ -79,7 +79,7 @@ const folderStructure = `$JEFFREY_HOME/
       <p>Opening a profile lands on the <strong>Summary dashboard</strong> (Overview &rarr; Dashboards &rarr; Summary) — a single screen answering three questions: what is this recording, is it healthy, and where should I look first? Every tile is clickable and navigates to the corresponding detail page.</p>
       <ul>
         <li><strong>Identity band</strong> — recording duration, JVM version, garbage collector, heap limits, CPU topology, and container runtime.</li>
-        <li><strong>Health at a glance</strong> — verdict chips for Guardian analysis, Auto Analysis, and container CPU throttling.</li>
+        <li><strong>Health at a glance</strong> — verdict chips for Auto Analysis and container CPU throttling.</li>
         <li><strong>Key metrics</strong> — JVM/machine CPU load, GC throughput and pauses, allocations, threads, exceptions, and safepoints.</li>
         <li><strong>Recording timeline</strong> — sparklines of JVM CPU, heap usage, GC pauses, and allocation rate over the whole recording.</li>
         <li><strong>Container panel</strong> — cgroup configuration, CPU throttling verdict, and memory limits; collapses when the JVM did not run in a container.</li>
@@ -122,11 +122,6 @@ const folderStructure = `$JEFFREY_HOME/
       <p>Core JVM metrics and analysis — how your application interacts with the JVM runtime.</p>
 
       <div class="docs-grid docs-grid-2">
-        <DocsFeatureCard
-          icon="bi bi-shield-check"
-          title="Guardian"
-          description="Automated rules that walk stacktraces and event metrics and flag what warrants attention. Color-coded OK / INFO / WARNING with tuneable thresholds — see the Guardian reference."
-        />
         <DocsFeatureCard
           icon="bi bi-collection"
           title="Events & JVM Flags"
@@ -225,8 +220,6 @@ const folderStructure = `$JEFFREY_HOME/
       </div>
 
       <p class="docs-read-more">
-        <router-link to="/docs/microscope/profiles/guardian">Read the Guardian reference &rarr;</router-link>
-        &nbsp;·&nbsp;
         <router-link to="/docs/microscope/profiles/garbage-collection">Read the GC analysis reference &rarr;</router-link>
         &nbsp;·&nbsp;
         <router-link to="/docs/microscope/profiles/garbage-collection/g1">Read the G1 analysis reference &rarr;</router-link>

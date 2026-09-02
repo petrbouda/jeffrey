@@ -23,7 +23,6 @@ module cafe.jeffrey.microscope.profile.common {
     requires cafe.jeffrey.jfr.events;
 
     exports cafe.jeffrey.profile.common.analysis;
-    exports cafe.jeffrey.profile.common.analysis.marker;
     exports cafe.jeffrey.profile.common.config;
     exports cafe.jeffrey.profile.common.event;
     exports cafe.jeffrey.profile.common.model;

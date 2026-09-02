@@ -171,7 +171,6 @@
           <FlamegraphComponent
             :with-timeseries="true"
             :use-weight="useWeightForModal"
-            :use-guardian="null"
             scrollableWrapperClass="scrollable-wrapper"
             :flamegraph-tooltip="flamegraphTooltip"
             :graph-updater="graphUpdater"

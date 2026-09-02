@@ -162,7 +162,7 @@ const EXAMPLE_ROWS: ExampleRow[] = [
     depth: 2
   },
   {
-    span: 'guardian.results',
+    span: 'threads.rows',
     thread: 'parallel',
     virtual: false,
     duration: '932ms',

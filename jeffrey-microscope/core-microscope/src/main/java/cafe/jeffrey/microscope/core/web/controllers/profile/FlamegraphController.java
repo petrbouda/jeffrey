@@ -121,7 +121,6 @@ public class FlamegraphController {
                 .withGraphType(graphType)
                 .withGraphComponents(request.components())
                 .withSearchPattern(request.search())
-                .withMarkers(request.markers())
                 .build();
     }
 

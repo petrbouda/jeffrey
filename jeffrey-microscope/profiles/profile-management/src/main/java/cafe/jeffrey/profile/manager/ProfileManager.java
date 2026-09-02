@@ -71,8 +71,6 @@ public interface ProfileManager {
 
     JITDeoptimizationManager jitDeoptimizationManager();
 
-    GuardianManager guardianManager();
-
     AdditionalFilesManager additionalFilesManager();
 
     GarbageCollectionManager gcManager();

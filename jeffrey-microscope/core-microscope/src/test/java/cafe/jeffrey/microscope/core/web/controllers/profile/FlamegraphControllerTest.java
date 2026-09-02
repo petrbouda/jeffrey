@@ -162,7 +162,7 @@ class FlamegraphControllerTest {
     private static GenerateFlamegraphRequest request(ThreadInfo threadInfo, String threadGroup) {
         return new GenerateFlamegraphRequest(
                 null, Type.EXECUTION_SAMPLE, null, null, false, false, false, false, false,
-                threadInfo, threadGroup, GraphComponents.BOTH, List.of());
+                threadInfo, threadGroup, GraphComponents.BOTH);
     }
 
     @Test

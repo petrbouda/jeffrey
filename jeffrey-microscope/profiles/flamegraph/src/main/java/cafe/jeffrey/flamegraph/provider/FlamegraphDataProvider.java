@@ -113,26 +113,19 @@ public class FlamegraphDataProvider {
 
         // The query is its own span so a slow flamegraph can be attributed: time under
         // flamegraph.query is DuckDB, the remainder of flamegraph.generate is frame building.
-        Frame frame = Tracer.call(SPAN_QUERY,
+        return Tracer.call(SPAN_QUERY,
                 () -> eventStreamRepository.flamegraphStreamer(configurer, frameBuilder));
-
-        if (graphParameters.markers() != null) {
-            graphParameters.markers().forEach(frame::applyMarker);
-        }
-        return frame;
     }
 
     private static FlameGraphProtoBuilder resolveFlamegraphProtoBuilder(GraphParameters params, double minFrameThresholdPct) {
-        boolean withMarker = params.containsMarkers();
-
         // Aggregated stack-sample formats (pprof/OTLP) carry the weight unit; pick the weighted builder
         // from it (bytes -> byte formatter, duration -> time formatter). JFR (unit NONE) is classified by
         // the event-type Type instead.
         switch (params.weightUnit()) {
             case BYTES:
-                return FlameGraphProtoBuilder.allocation(withMarker, minFrameThresholdPct);
+                return FlameGraphProtoBuilder.allocation(minFrameThresholdPct);
             case DURATION:
-                return FlameGraphProtoBuilder.cpu(withMarker, minFrameThresholdPct);
+                return FlameGraphProtoBuilder.cpu(minFrameThresholdPct);
             case NONE:
                 break;
         }
@@ -140,19 +133,19 @@ public class FlamegraphDataProvider {
         // Imported profiles (pprof/OTLP) are unit-driven only: a NONE unit is a plain count, even when the
         // event code equals a JFR allocation/blocking code. Never fall back to the JFR event-type predicates.
         if (params.flamegraphOnlyImport()) {
-            return FlameGraphProtoBuilder.simple(withMarker, minFrameThresholdPct);
+            return FlameGraphProtoBuilder.simple(minFrameThresholdPct);
         }
 
         if (params.eventType().isAllocationEvent()) {
-            return FlameGraphProtoBuilder.allocation(withMarker, minFrameThresholdPct);
+            return FlameGraphProtoBuilder.allocation(minFrameThresholdPct);
         } else if (params.eventType().isBlockingEvent()) {
-            return FlameGraphProtoBuilder.blocking(withMarker, minFrameThresholdPct);
+            return FlameGraphProtoBuilder.blocking(minFrameThresholdPct);
         } else if (params.eventType().isMethodTraceEvent()) {
-            return FlameGraphProtoBuilder.latency(withMarker, minFrameThresholdPct);
+            return FlameGraphProtoBuilder.latency(minFrameThresholdPct);
         } else if (params.eventType().isCpuTimeEvent()) {
-            return FlameGraphProtoBuilder.cpu(withMarker, minFrameThresholdPct);
+            return FlameGraphProtoBuilder.cpu(minFrameThresholdPct);
         } else {
-            return FlameGraphProtoBuilder.simple(withMarker, minFrameThresholdPct);
+            return FlameGraphProtoBuilder.simple(minFrameThresholdPct);
         }
     }
 }

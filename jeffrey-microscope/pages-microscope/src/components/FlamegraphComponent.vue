@@ -25,7 +25,6 @@ import FlamegraphContextMenu from '@/services/flamegraphs/FlamegraphContextMenu'
 import FlamegraphTooltip from '@/services/flamegraphs/tooltips/FlamegraphTooltip';
 import GraphUpdater from '@/services/flamegraphs/updater/GraphUpdater';
 import FlamegraphData from '@/services/api/model/FlamegraphData';
-import GuardMatched from '@/services/api/model/GuardMatched';
 import SettingsClient from '@/services/api/SettingsClient';
 import MessageBus from '@/services/MessageBus.ts';
 import LoadingIndicator from '@shared/components/LoadingIndicator.vue';
@@ -53,7 +52,6 @@ export interface AiExportContext {
 const props = defineProps<{
   withTimeseries: boolean;
   useWeight: boolean;
-  useGuardian: any | null;
   scrollableWrapperClass: string | null;
   flamegraphTooltip: FlamegraphTooltip;
   graphUpdater: GraphUpdater;
@@ -63,7 +61,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   loaded: [];
 }>();
-const guardMatched = ref<GuardMatched | null>(null);
 
 // Track current search term for zoom updates
 let currentSearchValue: string | null = null;
@@ -183,7 +180,7 @@ function handleResize(event: any) {
     if (flamegraph && flamegraphCanvas.value) {
       // parentElement.clientWidth already excludes any vertical scrollbar on the
       // container (the page scroll for ProfileFlamegraphView, the modal's inner
-      // scrollable-wrapper for Guardian / Thread / EventTypes). No further
+      // scrollable-wrapper for Thread / EventTypes). No further
       // reduction is needed — and reducing makes the canvas misalign with the
       // toolbar above it.
       const clientWidth = (flamegraphCanvas.value.parentElement?.clientWidth as number) || 0;
@@ -196,10 +193,6 @@ function handleResize(event: any) {
 // Initialize the context menu on mount
 onMounted(() => {
   MessageBus.on(MessageBus.SIDEBAR_CHANGED, handleResize);
-
-  if (props.useGuardian != null && props.useGuardian.matched != null) {
-    guardMatched.value = props.useGuardian.matched;
-  }
 
   // Set initial context menu state
   const menu = contextMenu.value as HTMLElement;

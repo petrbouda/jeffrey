@@ -55,8 +55,7 @@ export default class FlamegraphAiExportClient extends BaseProfileClient {
       excludeIdleSamples: params.excludeIdleSamples,
       onlyUnsafeAllocationSamples: params.onlyUnsafeAllocationSamples,
       threadInfo: null,
-      components: GraphComponents.FLAMEGRAPH_ONLY,
-      markers: null
+      components: GraphComponents.FLAMEGRAPH_ONLY
     };
     const response = await axios.post<string>(
       `${this.baseUrl}/ai-export`,

@@ -30,10 +30,10 @@ import java.util.Optional;
 
 /**
  * Caches the profile-wide event summaries, the way {@code CachingThreadProvider} and
- * {@code CachingGuardianProvider} cache theirs.
+ * the other caching providers cache theirs.
  * <p>
  * {@link #eventSummaries()} is a {@code GROUP BY event_type} over every event in the profile, and
- * it is asked for constantly: the Event Viewer, the Guardian, the feature checks that decide which
+ * it is asked for constantly: the Event Viewer, the feature checks that decide which
  * pages are available, the flamegraph event panels and both export managers all open with it. The
  * answer cannot change — a profile's events are written once during initialization and never
  * updated — so paying for that scan more than once is pure repetition.

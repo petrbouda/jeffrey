@@ -23,7 +23,6 @@ import cafe.jeffrey.shared.common.model.SpanScope;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.Type;
 import cafe.jeffrey.shared.common.model.WeightUnit;
-import cafe.jeffrey.profile.common.analysis.marker.Marker;
 import cafe.jeffrey.shared.common.model.StacktraceTag;
 import cafe.jeffrey.shared.common.model.StacktraceType;
 import cafe.jeffrey.shared.common.model.time.RelativeTimeRange;
@@ -44,7 +43,6 @@ public record GraphParameters(
         boolean excludeIdleSamples,
         boolean onlyUnsafeAllocationSamples,
         boolean parseLocations,
-        List<Marker> markers,
         GraphType graphType,
         GraphComponents graphComponents,
         SpanScope spanScope,
@@ -76,10 +74,6 @@ public record GraphParameters(
         return types;
     }
 
-    public boolean containsMarkers() {
-        return markers != null && !markers.isEmpty();
-    }
-
     public boolean containsSearchPattern() {
         return searchPattern != null;
     }
@@ -96,7 +90,6 @@ public record GraphParameters(
                 .withExcludeIdleSamples(excludeIdleSamples)
                 .withOnlyUnsafeAllocationSamples(onlyUnsafeAllocationSamples)
                 .withParseLocation(parseLocations)
-                .withMarkers(markers)
                 .withGraphType(graphType)
                 .withGraphComponents(graphComponents)
                 .withSpanScope(spanScope)

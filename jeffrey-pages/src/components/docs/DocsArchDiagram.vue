@@ -56,7 +56,6 @@ withDefaults(defineProps<{
             <div class="arch-chip analysis"><i class="bi bi-stopwatch"></i> Sub-Second</div>
           </div>
           <div class="arch-layer">
-            <div class="arch-chip analysis"><i class="bi bi-shield-check"></i> Guardian</div>
             <div class="arch-chip analysis"><i class="bi bi-clock-history"></i> Threads</div>
             <div class="arch-chip analysis"><i class="bi bi-database"></i> Heap Dump</div>
           </div>

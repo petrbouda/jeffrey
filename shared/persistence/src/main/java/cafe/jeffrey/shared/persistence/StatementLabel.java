@@ -275,15 +275,6 @@ public enum StatementLabel {
     DELETE_SETTINGS_BY_CATEGORY,
 
     /**
-     * {@link GroupLabel#GUARDIAN_GUARDS}
-     */
-    FIND_ALL_GUARDIAN_GUARDS,
-    FIND_GUARDIAN_GUARD,
-    INSERT_GUARDIAN_GUARD,
-    UPDATE_GUARDIAN_GUARD,
-    DELETE_GUARDIAN_GUARD,
-
-    /**
      * {@link GroupLabel#ADVISOR}
      */
     FIND_ADVISOR_PROMPTS,

@@ -31,7 +31,6 @@ const headings = [
   { id: 'profile', text: 'Profile Initialization', level: 2 },
   { id: 'visualization', text: 'Visualization', level: 2 },
   { id: 'database', text: 'Database', level: 2 },
-  { id: 'guardian', text: 'Guardian Thresholds', level: 2 },
   { id: 'seed-recordings', text: 'Seed Recordings', level: 2 }
 ];
 
@@ -154,15 +153,6 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
-
-      <h2 id="guardian">Guardian Thresholds</h2>
-      <p>
-        Not application properties. The built-in guards — 73 of them, each with its own INFO and
-        WARNING threshold — are rows in the Microscope core database, seeded on first start and
-        edited from <strong>Guardians</strong> in the UI, where you can also disable a guard or add
-        your own. Changes take effect without a restart, and there is no
-        <code>jeffrey.microscope.guardian.*</code> key to set.
-      </p>
 
       <h2 id="seed-recordings">Seed Recordings</h2>
       <p>

@@ -735,7 +735,6 @@ function createContextMenuItems() {
       <FlamegraphComponent
         :with-timeseries="true"
         :use-weight="useWeightValue"
-        :use-guardian="null"
         :scrollable-wrapper-class="flamegraphModalId"
         :flamegraph-tooltip="flamegraphTooltip"
         :graph-updater="graphUpdater"

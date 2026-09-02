@@ -206,7 +206,6 @@ describe('BasicFlamegraphTooltip — hidden class badge', () => {
       undefined,
       undefined,
       undefined,
-      undefined,
       true
     );
   }

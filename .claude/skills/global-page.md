@@ -154,7 +154,7 @@ If the page calls backend APIs, create a client in `jeffrey-microscope/pages-mic
 
 ## Reference Examples
 
-- **List page with toolbar + master/detail**: `jeffrey-microscope/pages-microscope/src/views/global/GuardiansView.vue`
+- **List page with toolbar + master/detail**: `jeffrey-microscope/pages-microscope/src/views/global/RecordingsView.vue`
 - **List page with cards/table**: `jeffrey-microscope/pages-microscope/src/views/global/RecordingsView.vue`
 - **Settings/simple page**: `jeffrey-microscope/pages-microscope/src/views/global/SettingsView.vue`
 

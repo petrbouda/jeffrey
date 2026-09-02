@@ -67,7 +67,7 @@ public class JdbcProfileRepositories implements ProfileRepositories {
     public ProfileEventTypeRepository newEventTypeRepository(DataSource dataSource) {
         DatabaseClientProvider profileClientProvider = new DatabaseClientProvider(dataSource);
         // Wrapped here rather than at each call site: the profile-wide summaries are asked for by
-        // the Event Viewer, the Guardian, the feature checks, the flamegraph panels and both
+        // the Event Viewer, the feature checks, the flamegraph panels and both
         // exporters, and every one of them wants the same unchanging answer.
         return new CachingProfileEventTypeRepository(
                 new JdbcProfileEventTypeRepository(sqlFormatter, profileClientProvider),

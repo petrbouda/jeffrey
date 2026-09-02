@@ -19,8 +19,6 @@
 package cafe.jeffrey.frameir;
 
 
-import cafe.jeffrey.profile.common.analysis.AnalysisResult.Severity;
-import cafe.jeffrey.profile.common.analysis.marker.Marker;
 import cafe.jeffrey.profile.common.model.FrameType;
 
 import java.util.ArrayList;
@@ -40,7 +38,6 @@ public class Frame extends TreeMap<String, Frame> {
     private final boolean hidden;
 
     private FrameType syntheticFrameType;
-    private Severity marker;
 
     // weight can be samples, but also allocated memory
     private long totalSamples;
@@ -113,34 +110,6 @@ public class Frame extends TreeMap<String, Frame> {
                  COLLAPSED_SYNTHETIC,
                  TRUNCATED_SYNTHETIC -> syntheticFrameType = type;
         }
-    }
-
-    /**
-     * Applies the marker to the frame. If the path from the marker is not fully resolved, it will be applied to the
-     * first frame that matches the path, and goes iteratively to the next children.
-     *
-     * @param marker the marker to apply to the frame according to the path.
-     */
-    public void applyMarker(Marker marker) {
-        _applyMarker(marker, 0);
-    }
-
-    private void _applyMarker(Marker marker, int frameIndex) {
-        List<String> markerFrames = marker.path().frames();
-
-        if (frameIndex == markerFrames.size()) {
-            this.marker = marker.markerType();
-        } else {
-            String frameName = markerFrames.get(frameIndex);
-            Frame child = get(frameName);
-            if (child != null) {
-                child._applyMarker(marker, frameIndex + 1);
-            }
-        }
-    }
-
-    public boolean hasMarker() {
-        return marker != null;
     }
 
     public FrameType frameType() {

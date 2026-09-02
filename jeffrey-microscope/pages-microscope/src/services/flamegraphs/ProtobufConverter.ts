@@ -144,7 +144,6 @@ export default class ProtobufConverter {
       position,
       sampleTypes,
       diffDetails,
-      proto.beforeMarker || undefined,
       proto.prunedChildrenCount || undefined,
       proto.hidden || undefined
     );

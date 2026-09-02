@@ -154,7 +154,6 @@ onBeforeMount(async () => {
       <FlamegraphComponent
         :with-timeseries="true"
         :use-weight="useWeight"
-        :use-guardian="null"
         :scrollable-wrapper-class="null"
         :flamegraph-tooltip="flamegraphTooltip"
         :graph-updater="graphUpdater"

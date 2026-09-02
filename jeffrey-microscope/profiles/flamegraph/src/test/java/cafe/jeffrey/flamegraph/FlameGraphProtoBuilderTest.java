@@ -41,7 +41,7 @@ class FlameGraphProtoBuilderTest {
             root.put("smallChild1", frame("smallChild1", 2L, 20L));
             root.put("smallChild2", frame("smallChild2", 3L, 30L));
 
-            FlamegraphData data = FlameGraphProtoBuilder.simple(false, 5.0).build(root);
+            FlamegraphData data = FlameGraphProtoBuilder.simple(5.0).build(root);
 
             Frame truncated = findTruncated(data);
             assertEquals(5L, truncated.getTotalSamples(), "2 + 3 = 5 pruned samples");
@@ -54,7 +54,7 @@ class FlameGraphProtoBuilderTest {
             cafe.jeffrey.frameir.Frame root = frame("root", 100L, 1000L);
             root.put("bigChild", frame("bigChild", 80L, 800L));
 
-            FlamegraphData data = FlameGraphProtoBuilder.simple(false, 5.0).build(root);
+            FlamegraphData data = FlameGraphProtoBuilder.simple(5.0).build(root);
 
             assertNoTruncatedFrame(data);
         }

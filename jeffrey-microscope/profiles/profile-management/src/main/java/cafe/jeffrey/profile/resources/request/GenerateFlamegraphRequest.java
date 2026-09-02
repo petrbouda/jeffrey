@@ -21,10 +21,8 @@ package cafe.jeffrey.profile.resources.request;
 import cafe.jeffrey.profile.TimeRangeRequest;
 import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.profile.common.analysis.marker.Marker;
 import cafe.jeffrey.profile.common.config.GraphComponents;
 
-import java.util.List;
 
 public record GenerateFlamegraphRequest(
         String flamegraphName,
@@ -41,8 +39,7 @@ public record GenerateFlamegraphRequest(
         // has no thread of its own, and the page holds at most a slice of its members, so it names the
         // group and lets the server resolve every thread behind it.
         String threadGroup,
-        GraphComponents components,
-        List<Marker> markers) {
+        GraphComponents components) {
 
     public boolean hasThreadGroup() {
         return threadGroup != null && !threadGroup.isBlank();

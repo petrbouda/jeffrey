@@ -52,7 +52,6 @@
       <FlamegraphComponent
         :with-timeseries="true"
         :use-weight="useWeight"
-        :use-guardian="null"
         :scrollable-wrapper-class="SCROLL_ID"
         :flamegraph-tooltip="flamegraphTooltip"
         :graph-updater="graphUpdater"

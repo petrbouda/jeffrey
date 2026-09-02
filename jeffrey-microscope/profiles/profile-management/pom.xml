@@ -29,7 +29,7 @@
     </parent>
 
     <artifactId>profile-management</artifactId>
-    <description>Profile management: ProfileManager, analysis features (Flamegraph, Timeseries, Guardian, etc.)</description>
+    <description>Profile management: ProfileManager, analysis features (Flamegraph, Timeseries, GC, Threads, etc.)</description>
 
     <dependencies>
         <dependency>
@@ -91,10 +91,6 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>subsecond</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>profile-guardian</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

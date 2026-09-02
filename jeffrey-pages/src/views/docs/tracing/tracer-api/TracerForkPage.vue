@@ -56,8 +56,8 @@ return CompletableFuture.supplyAsync(
 
 // Use-case 2: fire-and-forget — the Runnable form
 CompletableFuture.runAsync(
-        Tracer.fork("guardian.results",
-                () -> profileManager.guardianManager().guardResults()),
+        Tracer.fork("threads.rows",
+                () -> profileManager.threadManager().threadRows()),
         executor);
 
 // Use-case 3: fan-out — wrap each part on the submitting thread, submit them all

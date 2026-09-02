@@ -41,8 +41,7 @@ import VersionClient from '@/services/api/VersionClient';
 const navItems: NavItem[] = [
   { to: '/recordings', icon: 'bi bi-record-circle', label: 'Recordings' },
   { to: '/workspaces', icon: 'bi bi-folder', label: 'Workspaces' },
-  { to: '/settings', icon: 'bi bi-sliders', label: 'Settings' },
-  { to: '/guardian-guards', icon: 'bi bi-shield-check', label: 'Guardians' }
+  { to: '/settings', icon: 'bi bi-sliders', label: 'Settings' }
 ];
 
 const version = ref('');

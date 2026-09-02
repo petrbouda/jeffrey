@@ -112,7 +112,7 @@ onMounted(() => {
       </div>
 
       <h2 id="profile-databases">Per-Profile Databases</h2>
-      <p>Every profile Microscope analyzes is parsed into its own DuckDB file. This is where the parsed JFR events live and where every flame graph, timeseries, and Guardian rule reads from.</p>
+      <p>Every profile Microscope analyzes is parsed into its own DuckDB file. This is where the parsed JFR events live and where every flame graph and timeseries reads from.</p>
 
       <div class="db-card profile">
         <div class="card-header">
@@ -181,7 +181,6 @@ onMounted(() => {
             <ul>
               <li>SQL queries for flame graph data</li>
               <li>Timeseries aggregations</li>
-              <li>Guardian pattern matching</li>
               <li>Thread and GC analysis</li>
               <li>Heap-dump browsing</li>
             </ul>

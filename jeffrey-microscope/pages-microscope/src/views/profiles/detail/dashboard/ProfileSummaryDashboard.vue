@@ -32,13 +32,6 @@
 
       <!-- Health at a glance -->
       <div class="verdict-grid">
-        <div class="verdict-card" @click="navigateTo('/guardian')">
-          <span class="verdict-dot" :class="guardianVerdict.tone"></span>
-          <div>
-            <div class="verdict-title">Guardian</div>
-            <div class="verdict-value">{{ guardianVerdict.text }}</div>
-          </div>
-        </div>
         <div class="verdict-card" @click="navigateTo('/auto-analysis')">
           <span class="verdict-dot" :class="autoAnalysisVerdict.tone"></span>
           <div>
@@ -169,7 +162,6 @@ import FormattingService from '@shared/services/FormattingService';
 import ChartColors from '@shared/services/ChartColors';
 import { useTechnologyData } from '@/composables/useTechnologyData';
 import InformationClient from '@/services/api/InformationClient';
-import GuardianClient from '@/services/api/GuardianClient';
 import AutoAnalysisClient from '@/services/api/AutoAnalysisClient';
 import ProfileContainerClient from '@/services/api/ProfileContainerClient';
 import ProfileGCClient from '@/services/api/ProfileGCClient';
@@ -218,7 +210,6 @@ const recordingDuration = computed<string | null>(() => {
 // Per-section data sources — each loads independently so one slow or missing
 // feature never blocks the rest of the dashboard.
 const information = useTechnologyData(() => new InformationClient(profileId).info(), alwaysEnabled);
-const guardian = useTechnologyData(() => new GuardianClient(profileId).list(), alwaysEnabled);
 const autoAnalysis = useTechnologyData(
   () => new AutoAnalysisClient(profileId).rules(),
   alwaysEnabled
@@ -359,29 +350,11 @@ const containerType = computed<string | null>(() =>
 
 const SEVERITY_WARNING = 'WARNING';
 const SEVERITY_INFO = 'INFO';
-const SEVERITY_OK = 'OK';
 
 interface VerdictDisplay {
   tone: 'ok' | 'warn' | 'bad' | 'muted';
   text: string;
 }
-
-const guardianVerdict = computed<VerdictDisplay>(() => {
-  if (guardian.isLoading.value) {
-    return { tone: 'muted', text: LOADING_TEXT };
-  }
-  const categories = guardian.data.value ?? [];
-  const results = categories.flatMap(category => category.results);
-  if (results.length === 0) {
-    return { tone: 'muted', text: 'No results' };
-  }
-  const warnings = results.filter(result => result.severity === SEVERITY_WARNING).length;
-  const passed = results.filter(result => result.severity === SEVERITY_OK).length;
-  if (warnings > 0) {
-    return { tone: 'warn', text: `${warnings} warnings · ${passed} checks passed` };
-  }
-  return { tone: 'ok', text: `All good · ${passed} checks passed` };
-});
 
 const autoAnalysisVerdict = computed<VerdictDisplay>(() => {
   if (autoAnalysis.isLoading.value) {

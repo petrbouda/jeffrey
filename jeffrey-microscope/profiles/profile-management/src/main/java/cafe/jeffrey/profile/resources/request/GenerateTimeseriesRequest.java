@@ -20,9 +20,7 @@ package cafe.jeffrey.profile.resources.request;
 
 import cafe.jeffrey.shared.common.model.ThreadInfo;
 import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.profile.common.analysis.marker.Marker;
 
-import java.util.List;
 
 public record GenerateTimeseriesRequest(
         Type eventType,
@@ -31,6 +29,5 @@ public record GenerateTimeseriesRequest(
         boolean excludeNonJavaSamples,
         boolean excludeIdleSamples,
         boolean onlyUnsafeAllocationSamples,
-        ThreadInfo threadInfo,
-        List<Marker> markers) {
+        ThreadInfo threadInfo) {
 }

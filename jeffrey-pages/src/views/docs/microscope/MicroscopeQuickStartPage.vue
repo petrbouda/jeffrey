@@ -60,7 +60,7 @@ onMounted(() => {
           <span class="hero-promo-body">
             <strong>No JFR yet?</strong> The
             <strong>Tour with Examples</strong> image ships with pre-loaded sample recordings —
-            poke at flame graphs, the Guardian, and the AI assistant before instrumenting your own
+            poke at flame graphs and the AI assistant before instrumenting your own
             application.
           </span>
           <span class="hero-promo-arrow"><i class="bi bi-arrow-right"></i></span>
@@ -147,7 +147,6 @@ onMounted(() => {
         <li><i class="bi bi-check2-circle"></i> <strong>Flame graphs</strong> — total, allocation, lock, wall-clock; differential views for two-profile comparisons.</li>
         <li><i class="bi bi-check2-circle"></i> <strong>Timeseries &amp; sub-second timelines</strong> — see hot spots over time, zoom into millisecond windows.</li>
         <li><i class="bi bi-check2-circle"></i> <strong>Threads, GC, JIT, safepoints</strong> — every JFR event surfaced as a usable view.</li>
-        <li><i class="bi bi-check2-circle"></i> <strong>Guardian</strong> — automated checks flag the usual culprits (lock contention, GC pressure, hashmap collisions, …).</li>
         <li><i class="bi bi-check2-circle"></i> <strong>AI assistant</strong> — chat with Claude or OpenAI over the active profile or heap dump.</li>
       </ul>
 

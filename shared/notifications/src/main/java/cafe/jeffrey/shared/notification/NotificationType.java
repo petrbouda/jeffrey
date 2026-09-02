@@ -141,12 +141,7 @@ public enum NotificationType {
     PROFILE_DIR_ORPHANED(NotificationCategory.PROFILE, Severity.MEDIUM,
             "Profile directory outlived the profile and is now orphaned on disk"),
 
-    // ---------- Guardian ----------
-
-    GUARDIAN_WARNINGS(NotificationCategory.PROFILE, Severity.MEDIUM,
-            "Guardian finished with guards reporting warnings"),
-
-    GUARDIAN_WARMUP_FAILED(NotificationCategory.PROFILE, Severity.LOW,
+    PROFILE_VIEW_WARMUP_FAILED(NotificationCategory.PROFILE, Severity.LOW,
             "A cached view could not be warmed; it will be computed on demand");
 
     private final NotificationCategory category;

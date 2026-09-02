@@ -22,14 +22,11 @@ import cafe.jeffrey.profile.common.config.GraphParameters;
 
 public enum TimeseriesType {
     SEARCHING,
-    PATH_MATCHING,
     SIMPLE;
 
     public static TimeseriesType resolve(GraphParameters params) {
         if (params.containsSearchPattern()) {
             return SEARCHING;
-        } else if (params.containsMarkers()) {
-            return PATH_MATCHING;
         } else {
             return SIMPLE;
         }

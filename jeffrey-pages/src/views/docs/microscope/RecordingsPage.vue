@@ -68,7 +68,6 @@ onMounted(() => {
             <li><i class="bi bi-fire"></i> Flame graphs &amp; differential views</li>
             <li><i class="bi bi-graph-up"></i> Timeseries &amp; sub-second timelines</li>
             <li><i class="bi bi-clock-history"></i> Thread, GC, JIT, safepoint analysis</li>
-            <li><i class="bi bi-shield-check"></i> Guardian automated checks</li>
           </ul>
           <p class="artifact-extension">
             <code>.jfr</code> &nbsp;·&nbsp; <code>.jfr.lz4</code>

@@ -149,8 +149,8 @@ function packagesOf(frames: TraceStackFrameRow[]): string[] {
 /**
  * Methods that only ever appear while an exception is building its own stack.
  *
- * The same pair the project's "Exception Overhead" guard anchors on
- * (`V002__guardians_seed.sql`), for the same reason: they sit on top of every throw.
+ * They sit on top of every throw, so folding them away is what makes the remaining
+ * frames the ones that actually explain where the exception came from.
  */
 const CONSTRUCTOR_CHAIN_METHODS: readonly string[] = ['<init>', 'fillInStackTrace'];
 

@@ -33,8 +33,6 @@ export default class Frame {
     public position?: FramePosition,
     public sampleTypes?: FrameSampleTypes,
     public diffDetails?: DiffDetails,
-    // For guardian analysis - frames before marker are shown in grey
-    public beforeMarker?: boolean,
     // Only set for TRUNCATED_SYNTHETIC frames - count of direct children pruned at this level
     public prunedChildrenCount?: number,
     // The frame's class is a JVM hidden class (JEP 371) - a lambda proxy, a method-handle form,

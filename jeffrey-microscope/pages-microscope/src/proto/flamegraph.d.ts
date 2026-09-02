@@ -794,9 +794,6 @@ export namespace cafe {
                     /** Frame diffDetails. */
                     diffDetails?: (cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties|null);
 
-                    /** Frame beforeMarker. */
-                    beforeMarker: boolean;
-
                     /** Frame prunedChildrenCount. */
                     prunedChildrenCount: number;
 
@@ -916,9 +913,6 @@ export namespace cafe {
 
                         /** Frame diffDetails */
                         diffDetails?: (cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties|null);
-
-                        /** Frame beforeMarker */
-                        beforeMarker?: (boolean|null);
 
                         /** Frame prunedChildrenCount */
                         prunedChildrenCount?: (number|null);

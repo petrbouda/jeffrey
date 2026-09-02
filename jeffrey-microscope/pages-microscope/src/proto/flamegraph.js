@@ -1973,7 +1973,6 @@ export const cafe = $root.cafe = (() => {
                      * @property {cafe.jeffrey.flamegraph.proto.FramePosition.$Properties|null} [position] Frame position
                      * @property {cafe.jeffrey.flamegraph.proto.FrameSampleTypes.$Properties|null} [sampleTypes] Frame sampleTypes
                      * @property {cafe.jeffrey.flamegraph.proto.DiffDetails.$Properties|null} [diffDetails] Frame diffDetails
-                     * @property {boolean|null} [beforeMarker] Frame beforeMarker
                      * @property {number|null} [prunedChildrenCount] Frame prunedChildrenCount
                      * @property {boolean|null} [hidden] Frame hidden
                      * @property {Array.<Uint8Array>} [$unknowns] Unknown fields preserved while decoding when enabled
@@ -2088,14 +2087,6 @@ export const cafe = $root.cafe = (() => {
                     Frame.prototype.diffDetails = null;
 
                     /**
-                     * Frame beforeMarker.
-                     * @member {boolean} beforeMarker
-                     * @memberof cafe.jeffrey.flamegraph.proto.Frame
-                     * @instance
-                     */
-                    Frame.prototype.beforeMarker = false;
-
-                    /**
                      * Frame prunedChildrenCount.
                      * @member {number} prunedChildrenCount
                      * @memberof cafe.jeffrey.flamegraph.proto.Frame
@@ -2163,8 +2154,6 @@ export const cafe = $root.cafe = (() => {
                             $root.cafe.jeffrey.flamegraph.proto.FrameSampleTypes.encode(message.sampleTypes, writer.uint32(/* id 9, wireType 2 =*/74).fork(), _depth + 1).ldelim();
                         if (message.diffDetails != null && $Object.hasOwnProperty.call(message, "diffDetails"))
                             $root.cafe.jeffrey.flamegraph.proto.DiffDetails.encode(message.diffDetails, writer.uint32(/* id 10, wireType 2 =*/82).fork(), _depth + 1).ldelim();
-                        if (message.beforeMarker != null && $Object.hasOwnProperty.call(message, "beforeMarker") && message.beforeMarker !== false)
-                            writer.uint32(/* id 11, wireType 0 =*/88).bool(message.beforeMarker);
                         if (message.prunedChildrenCount != null && $Object.hasOwnProperty.call(message, "prunedChildrenCount") && message.prunedChildrenCount !== 0)
                             writer.uint32(/* id 12, wireType 0 =*/96).int32(message.prunedChildrenCount);
                         if (message.hidden != null && $Object.hasOwnProperty.call(message, "hidden") && message.hidden !== false)
@@ -2307,15 +2296,6 @@ export const cafe = $root.cafe = (() => {
                                     message.diffDetails = $root.cafe.jeffrey.flamegraph.proto.DiffDetails.decode(reader, reader.uint32(), $undefined, _depth + 1, message.diffDetails);
                                     continue;
                                 }
-                            case 11: {
-                                    if (wireType !== 0)
-                                        break;
-                                    if (value = reader.bool())
-                                        message.beforeMarker = value;
-                                    else
-                                        delete message.beforeMarker;
-                                    continue;
-                                }
                             case 12: {
                                     if (wireType !== 0)
                                         break;
@@ -2418,9 +2398,6 @@ export const cafe = $root.cafe = (() => {
                             if (error)
                                 return "diffDetails." + error;
                         }
-                        if (message.beforeMarker != null && $Object.hasOwnProperty.call(message, "beforeMarker"))
-                            if (typeof message.beforeMarker !== "boolean")
-                                return "beforeMarker: boolean expected";
                         if (message.prunedChildrenCount != null && $Object.hasOwnProperty.call(message, "prunedChildrenCount"))
                             if (!$util.isInteger(message.prunedChildrenCount))
                                 return "prunedChildrenCount: integer expected";
@@ -2590,9 +2567,6 @@ export const cafe = $root.cafe = (() => {
                                 throw $TypeError(".cafe.jeffrey.flamegraph.proto.Frame.diffDetails: object expected");
                             message.diffDetails = $root.cafe.jeffrey.flamegraph.proto.DiffDetails.fromObject(object.diffDetails, _depth + 1);
                         }
-                        if (object.beforeMarker != null)
-                            if (object.beforeMarker)
-                                message.beforeMarker = $Boolean(object.beforeMarker);
                         if (object.prunedChildrenCount != null)
                             if ($Number(object.prunedChildrenCount) !== 0)
                                 message.prunedChildrenCount = object.prunedChildrenCount | 0;
@@ -2650,7 +2624,6 @@ export const cafe = $root.cafe = (() => {
                             object.position = null;
                             object.sampleTypes = null;
                             object.diffDetails = null;
-                            object.beforeMarker = false;
                             object.prunedChildrenCount = 0;
                             object.hidden = false;
                         }
@@ -2699,8 +2672,6 @@ export const cafe = $root.cafe = (() => {
                             object.sampleTypes = $root.cafe.jeffrey.flamegraph.proto.FrameSampleTypes.toObject(message.sampleTypes, options, _depth + 1);
                         if (message.diffDetails != null && $Object.hasOwnProperty.call(message, "diffDetails"))
                             object.diffDetails = $root.cafe.jeffrey.flamegraph.proto.DiffDetails.toObject(message.diffDetails, options, _depth + 1);
-                        if (message.beforeMarker != null && $Object.hasOwnProperty.call(message, "beforeMarker"))
-                            object.beforeMarker = message.beforeMarker;
                         if (message.prunedChildrenCount != null && $Object.hasOwnProperty.call(message, "prunedChildrenCount"))
                             object.prunedChildrenCount = message.prunedChildrenCount;
                         if (message.hidden != null && $Object.hasOwnProperty.call(message, "hidden"))

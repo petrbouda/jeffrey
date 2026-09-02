@@ -839,7 +839,6 @@ onMounted(() => {
           v-if="showDialog"
           :with-timeseries="false"
           :use-weight="false"
-          :use-guardian="null"
           scrollable-wrapper-class="flamegraphModal"
           :flamegraph-tooltip="flamegraphTooltip"
           :graph-updater="graphUpdater"

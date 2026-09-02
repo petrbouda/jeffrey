@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.profile.manager.action;
 
-import cafe.jeffrey.profile.manager.GuardianManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.thread.ThreadManager;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -52,7 +51,6 @@ class ProfileDataInitializerImplTest {
 
     private static final String PROFILE_ID = "profile-1";
 
-    private final GuardianManager guardianManager = mock(GuardianManager.class);
     private final ThreadManager threadManager = mock(ThreadManager.class);
 
     /** Records whether the lease taken for the warming was handed back. */
@@ -75,7 +73,6 @@ class ProfileDataInitializerImplTest {
 
         ProfileManager profileManager = mock(ProfileManager.class);
         when(profileManager.info()).thenReturn(profileInfo);
-        when(profileManager.guardianManager()).thenReturn(guardianManager);
         when(profileManager.threadManager()).thenReturn(threadManager);
         return profileManager;
     }
@@ -85,15 +82,14 @@ class ProfileDataInitializerImplTest {
     class Warming {
 
         @Test
-        @DisplayName("warms both cached views and releases the lease when they are done")
-        void warmsBothViewsAndReleasesTheLease() throws Exception {
+        @DisplayName("warms the cached views and releases the lease when they are done")
+        void warmsTheViewsAndReleasesTheLease() throws Exception {
             ProfileDataInitializerImpl initializer =
                     new ProfileDataInitializerImpl(databaseManager(), Runnable::run);
 
             initializer.initialize(profileManager(RecordingEventSource.JDK))
                     .get(5, TimeUnit.SECONDS);
 
-            verify(guardianManager).guardResults();
             verify(threadManager).threadRows();
             assertEquals(1, leasesTaken.get());
             assertTrue(leaseReleased.get(), "the warming lease was never released");
@@ -107,9 +103,9 @@ class ProfileDataInitializerImplTest {
         @DisplayName("returns before the warming has finished")
         void doesNotWaitForTheWarming() throws Exception {
             CountDownLatch release = new CountDownLatch(1);
-            CountDownLatch guardianStarted = new CountDownLatch(1);
-            when(guardianManager.guardResults()).thenAnswer(_ -> {
-                guardianStarted.countDown();
+            CountDownLatch warmStarted = new CountDownLatch(1);
+            when(threadManager.threadRows()).thenAnswer(_ -> {
+                warmStarted.countDown();
                 release.await(5, TimeUnit.SECONDS);
                 return List.of();
             });
@@ -122,8 +118,8 @@ class ProfileDataInitializerImplTest {
                 CompletableFuture<Void> warming =
                         initializer.initialize(profileManager(RecordingEventSource.JDK));
 
-                assertTrue(guardianStarted.await(2, TimeUnit.SECONDS));
-                // initialize() has already returned while the Guardian is still parked.
+                assertTrue(warmStarted.await(2, TimeUnit.SECONDS));
+                // initialize() has already returned while the warming is still parked.
                 assertFalse(warming.isDone());
                 assertFalse(leaseReleased.get(), "the lease must be held while the warming runs");
 
@@ -137,13 +133,13 @@ class ProfileDataInitializerImplTest {
         }
 
         /**
-         * Both views are recomputed on a cache miss, so one that fails to warm makes the profile
-         * slower, not broken. It must not take the other view -- or the lease -- down with it.
+         * A view is recomputed on a cache miss, so one that fails to warm makes the profile slower,
+         * not broken. It must not take the lease down with it.
          */
         @Test
-        @DisplayName("a failing view does not stop the other one or strand the lease")
+        @DisplayName("a failing view does not strand the lease")
         void failureIsContained() throws Exception {
-            when(guardianManager.guardResults()).thenThrow(new IllegalStateException("guard blew up"));
+            when(threadManager.threadRows()).thenThrow(new IllegalStateException("warm blew up"));
 
             ProfileDataInitializerImpl initializer =
                     new ProfileDataInitializerImpl(databaseManager(), Runnable::run);
@@ -151,7 +147,6 @@ class ProfileDataInitializerImplTest {
             initializer.initialize(profileManager(RecordingEventSource.JDK))
                     .get(5, TimeUnit.SECONDS);
 
-            verify(threadManager).threadRows();
             assertTrue(leaseReleased.get(), "a failed warm-up stranded the lease");
         }
     }
@@ -170,7 +165,6 @@ class ProfileDataInitializerImplTest {
             initializer.initialize(profileManager(RecordingEventSource.PPROF))
                     .get(5, TimeUnit.SECONDS);
 
-            verify(guardianManager, never()).guardResults();
             verify(threadManager, never()).threadRows();
             verify(databaseManager, never()).acquire(any());
             assertEquals(0, leasesTaken.get());

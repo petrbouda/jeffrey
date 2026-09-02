@@ -233,7 +233,6 @@ export const profileNavSections: Record<
           disabledKeys: [AI_ANALYSIS_KEY],
           cssClass: AI_ITEM_CLASS
         }),
-        item('Guardian Analysis', 'bi-shield-check', '/guardian'),
         item('Auto Analysis', 'bi-robot', '/auto-analysis')
       ]
     },

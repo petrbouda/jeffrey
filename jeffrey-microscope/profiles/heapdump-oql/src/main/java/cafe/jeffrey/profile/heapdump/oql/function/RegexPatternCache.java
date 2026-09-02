@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
  * almost always loop-invariant (a string literal in the query), so caching
  * the last compiled pattern turns a per-heap-object {@code Pattern.compile}
  * into a single compilation per query — exactly the allocation pattern the
- * profile-guardian {@code RegexAllocGuard} warns about.
+ * a hot loop warns about.
  *
  * <p>Thread-safe: the cached entry is an immutable record behind a volatile
  * read; concurrent callers with different regexes only lose the cache hit,

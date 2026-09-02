@@ -37,7 +37,6 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProfileDataInitializerImpl.class);
 
-    private static final String SPAN_GUARDIAN = "guardian.results";
     private static final String SPAN_THREAD_VIEWER = "threads.rows";
 
     private final DatabaseManager databaseManager;
@@ -58,8 +57,8 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
         ProfileInfo profileInfo = profileManager.info();
 
         // pprof/OTLP profiles are stack-sample imports visualized only as flamegraphs (generated on
-        // demand). The views below -- guardian, thread viewer -- are JFR-specific and read
-        // JFR-shaped fields these imports don't have, so they are skipped for such sources.
+        // demand). The views below -- the thread viewer -- are JFR-specific and read JFR-shaped
+        // fields these imports don't have, so they are skipped for such sources.
         if (profileInfo.eventSource().isFlamegraphOnlyImport()) {
             LOG.info("Skipping JFR-specific initialization for a flamegraph-only profile: "
                             + "profile_id={} profile_name={} event_source={}",
@@ -76,13 +75,10 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
         // the task actually starting.
         DatabaseLease lease = databaseManager.acquire(profileInfo.id());
 
-        CompletableFuture<Void> guardian = warm(SPAN_GUARDIAN, "Guardian", profileInfo,
-                () -> profileManager.guardianManager().guardResults());
-
         CompletableFuture<Void> threads = warm(SPAN_THREAD_VIEWER, "Thread Viewer", profileInfo,
                 () -> profileManager.threadManager().threadRows());
 
-        return CompletableFuture.allOf(guardian, threads)
+        return CompletableFuture.allOf(threads)
                 .whenComplete((_, _) -> {
                     lease.close();
                     LOG.info("Cached views of the profile have been warmed: profile_id={} profile_name={}",
@@ -93,10 +89,9 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
     /**
      * Runs one view's warm-up.
      * <p>
-     * A failure is logged and swallowed rather than propagated. Both views are computed on demand
-     * when the cache misses, so a profile whose Guardian failed to warm is a slower profile, not a
-     * broken one -- and letting it fail the batch would take the other view's result and the lease's
-     * release down with it.
+     * A failure is logged and swallowed rather than propagated. Every view is computed on demand
+     * when the cache misses, so a profile whose view failed to warm is a slower profile, not a
+     * broken one -- and letting it fail the batch would take the lease's release down with it.
      */
     private CompletableFuture<Void> warm(
             String span, String component, ProfileInfo profileInfo, Runnable work) {
@@ -114,7 +109,7 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
                     // LOW: nothing is lost, the view is simply computed when someone opens it. Worth
                     // saying only because the cost moves -- the first reader pays what the import was
                     // meant to have paid, and this is the only thing that connects the two.
-                    Notifications.of(NotificationType.GUARDIAN_WARMUP_FAILED)
+                    Notifications.of(NotificationType.PROFILE_VIEW_WARMUP_FAILED)
                             .attribute("component", component)
                             .attribute("profileId", profileInfo.id())
                             .errorType(throwable)

@@ -49,7 +49,7 @@ const virtualThreadExample = `POST /api/internal/recordings/…   tomcat-handler
       chunk.parse                 bulk-parallel      platform  2730ms  153
       chunk.parse                 bulk-parallel      platform  2571ms  140
     profile.data-init             tomcat-handler-53  virtual    933ms    0
-      guardian.results            parallel           platform   932ms   63`;
+      threads.rows                parallel           platform   932ms   63`;
 </script>
 
 <template>

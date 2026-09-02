@@ -31,7 +31,6 @@ public abstract class TimeseriesResolver {
 
         return switch (timeseriesType) {
             case SEARCHING -> new SearchingTimeseriesBuilder(timeRange, params.searchPattern());
-            case PATH_MATCHING -> new PathMatchingTimeseriesBuilder(timeRange, params.markers());
             case SIMPLE -> new SimpleTimeseriesBuilder(timeRange);
         };
     }

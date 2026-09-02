@@ -93,7 +93,7 @@ Notes:
 
 ## Reference Examples
 
-- **Wide two-column editor**: `jeffrey-microscope/pages-microscope/src/views/global/GuardiansView.vue`
+- **Wide two-column editor**: `jeffrey-microscope/pages-microscope/src/views/global/RecordingsView.vue`
 - **md form**: `jeffrey-microscope/pages-microscope/src/components/EditNameModal.vue`
 - **xl data modal**: `jeffrey-microscope/pages-microscope/src/components/gc/GCEventDetailsModal.vue`
 - **Global wide-modal CSS**: `.events-modal-dialog` in `jeffrey-microscope/pages-microscope/src/assets/styles.scss`

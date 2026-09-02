@@ -33,7 +33,6 @@ module cafe.jeffrey.microscope.profile.management {
     requires transitive cafe.jeffrey.microscope.profile.mcp;
     requires cafe.jeffrey.microscope.profile.ai.config;
     requires cafe.jeffrey.microscope.profile.subsecond;
-    requires cafe.jeffrey.microscope.profile.guardian;
     requires transitive cafe.jeffrey.microscope.profile.threads;
     requires transitive cafe.jeffrey.microscope.profile.gc;
     requires transitive cafe.jeffrey.microscope.profile.memory;

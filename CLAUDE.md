@@ -66,12 +66,12 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `core-microscope/.../mcp/` — both MCP endpoints. `ExternalMcpController` serves `POST /api/internal/mcp` to an **outside** client (installation-wide, `profileId` as a tool argument, read-only, off by default behind `jeffrey.microscope.mcp.enabled`); `McpStreamableHttpController` serves `/api/internal/mcp/claude-code` to the headless CLI backend Jeffrey spawns for itself (per-profile, provider-gated). They differ on scoping, gating and lifecycle — keep them separate rather than branching on which query parameters are present
 
 **jeffrey-microscope/profiles/** (profile analysis, used only by jeffrey-microscope):
-- `profile-management` — Profile analysis features + REST resources (Flamegraph, Timeseries, Guardian, GC, Threads, HeapDump, AI)
+- `profile-management` — Profile analysis features + REST resources (Flamegraph, Timeseries, GC, Threads, HeapDump, AI)
 - `recording-parser/` — recording parsing (jfr-parser-api, jdk-jfr-parser, raw-jfr-parser, otlp-parser, pprof-parser)
 - `profile-sql-persistence` — Per-profile DuckDB persistence (isolated database per profile)
 - `profile-persistence-api` — Persistence interfaces for profile domain
 - `common-profile` — Shared profile utilities
-- `flamegraph`, `timeseries`, `subsecond`, `profile-guardian`, `profile-threads`, `profile-gc`, `profile-memory`, `profile-custom-events`, `frame-ir` — Analysis modules
+- `flamegraph`, `timeseries`, `subsecond`, `profile-threads`, `profile-gc`, `profile-memory`, `profile-custom-events`, `frame-ir` — Analysis modules
 - `heap-dump` — Heap dump analysis
 - `ai-config` — AI configuration for profile analysis
 - `oql-assistant` — OQL AI assistant
@@ -164,7 +164,6 @@ jeffrey/
 │       ├── flamegraph/                # Flame graph generation
 │       ├── timeseries/                # Time series analysis
 │       ├── subsecond/                 # Sub-second analysis
-│       ├── profile-guardian/          # Profile validation/checks
 │       ├── profile-threads/           # Thread analysis
 │       ├── frame-ir/                  # Frame intermediate representation
 │       ├── heap-dump/                 # Heap dump analysis
@@ -372,7 +371,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - **Standard Table Pattern**: All data tables must use the `components/table/DataTable.vue` family — `DataTable` (card wrapper that renders `table table-sm table-hover mb-0` inside `.table-responsive`) with its `#toolbar` slot (`TableToolbar` — `v-model` search + `#filters`), default slot (`<thead>`/`<tbody>`), and `#footer` slot (`TableShowMore` for pagination). Use `SortableTableHeader` for sortable columns and render `EmptyState` as a sibling when there is no data. Do not hand-roll `<div class="table-responsive"><table>`. Scaffold with the `/data-table` skill; reference `views/profiles/detail/ProfileThreadDumps.vue`
 - **Three-State View Pattern**: Every async view must follow: `<LoadingState v-if="loading" />` → `<ErrorState v-else-if="error" />` → content. Tables within content show `<EmptyState>` when data is empty
 - **Page Headers**: Use `layout/PageHeader.vue` for page-level headers. Use `MainCardHeader.vue` for card headers inside `MainCard` (props `icon`, `title`, `:badge?`, `#actions` slot). Scaffold new pages with the `/global-page` skill
-- **Modals**: Use `GenericModal` with `v-model:show` for all modal dialogs — never a custom overlay. Pick `size` by content: `md` simple forms · `lg` lists/single column · `xl` rich/two-column. For large editors use the **wide near-fullscreen** pattern: `modal-dialog-class="<name> events-modal-dialog modal-dialog-centered"` plus a scoped `:deep(.modal-dialog.<name>) { max-width: none; width: calc(100vw - 3.5rem); }` (equal gutters, body scrolls as one unit, footer pinned). Scaffold with the `/new-modal` skill; reference `views/global/GuardiansView.vue`
+- **Modals**: Use `GenericModal` with `v-model:show` for all modal dialogs — never a custom overlay. Pick `size` by content: `md` simple forms · `lg` lists/single column · `xl` rich/two-column. For large editors use the **wide near-fullscreen** pattern: `modal-dialog-class="<name> events-modal-dialog modal-dialog-centered"` plus a scoped `:deep(.modal-dialog.<name>) { max-width: none; width: calc(100vw - 3.5rem); }` (equal gutters, body scrolls as one unit, footer pinned). Scaffold with the `/new-modal` skill; reference `views/global/RecordingsView.vue`
 - **Single Token Source**: Only `design-tokens.css` may define `:root` CSS custom properties. No other file may declare `:root { ... }`
 
 ### Build Commands
@@ -433,7 +432,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 
 ### Structure of the Database
 - Three-tier architecture: microscope core database, server database, and per-profile databases (isolated)
-- Local Core DB: hubs, recordings, profiles, settings, guardians, per-project advisor settings. Workspaces and projects are NOT stored locally — they are listed live from a hub over gRPC, so anything per-project is keyed by the `(workspace_id, project_id)` pair
+- Local Core DB: hubs, recordings, profiles, settings, per-project advisor settings. Workspaces and projects are NOT stored locally — they are listed live from a hub over gRPC, so anything per-project is keyed by the `(workspace_id, project_id)` pair
 - Server DB: server-side workspaces, projects, scheduling
 - Profile DB: events, flamegraph data, analysis results for a single profile
 - `profile_id` gathers all data related to a specific profile
@@ -445,10 +444,10 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - No `duckdb` CLI or python module is installed by default; quickest path is a throwaway venv: `python3 -m venv /tmp/ddbvenv && /tmp/ddbvenv/bin/pip install duckdb`, then `duckdb.connect(path, read_only=True)`.
 
 ### Database Schema
-- Microscope Core migrations: `jeffrey-microscope/microscope-core-sql-persistence/src/main/resources/db/migration/microscope/core/` — `V001__init.sql` (table schema) + `V002__guardians_seed.sql` (built-in Guardian guard seed data)
+- Microscope Core migrations: `jeffrey-microscope/microscope-core-sql-persistence/src/main/resources/db/migration/microscope/core/` — `V001__init.sql` (table schema)
 - Server migrations: `jeffrey-hub/hub-sql-persistence/src/main/resources/db/migration/server/V001__init.sql`
 - Profile migrations: `jeffrey-microscope/profiles/profile-sql-persistence/src/main/resources/db/migration/profile/V001__init.sql`
-- **Migration policy**: Keep table schema (`CREATE TABLE`) in `V001__init.sql` and edit it in place for schema changes. Seed data may live in a separate, purpose-named migration (e.g. `V002__guardians_seed.sql`) to keep schema and data concerns separated. The database is recreated from scratch on each startup, so editing these in development is safe.
+- **Migration policy**: Keep table schema (`CREATE TABLE`) in `V001__init.sql` and edit it in place for schema changes. Seed data may live in a separate, purpose-named migration to keep schema and data concerns separated. The database is recreated from scratch on each startup, so editing these in development is safe.
 - JFR Event Types reference: https://sap.github.io/jfrevents/ (select Java version for event details)
 - JSONB `fields` column in the `events` table contains event-specific data — see `/jfr-event-fields` skill for full field reference per event type
 
@@ -459,7 +458,7 @@ When modifying code, keep the corresponding documentation pages in `jeffrey-page
 | Code module | Documentation pages |
 |---|---|
 | `jeffrey-microscope/core-microscope` | `docs/microscope/` — overview, quick start, workspaces, recordings, storage, profiler settings; `docs/microscope/projects/` — projects, instances, event streaming; `docs/microscope/configuration/` — application/advanced properties, secrets |
-| `jeffrey-microscope/profiles/**` | `docs/microscope/profiles/` — one page per analysis feature (GC, allocations, threads, JIT, NMT, heap dump, Guardian, Advisor, ...) |
+| `jeffrey-microscope/profiles/**` | `docs/microscope/profiles/` — one page per analysis feature (GC, allocations, threads, JIT, NMT, heap dump, Advisor, ...) |
 | `jeffrey-hub/core-hub` | `docs/hub/` — overview, architecture, storage, gRPC API; `docs/hub/recording-sessions/` — lifecycle, configuration; `docs/hub/configuration/`; `docs/hub/deployment/` — shared volume, Helm chart, Jib, Provisioner |
 | `shared/hub-api/` (proto changes) | `docs/hub/HubGrpcApiPage.vue` — service and RPC reference |
 | `jeffrey-agent/` + tracing instrumentation | `docs/tracing/` — concepts, getting started, configuration, `@Traced`, instrumentation and event pages; `docs/tracing/tracer-api/` — one page per Tracer API method |

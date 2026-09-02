@@ -543,7 +543,7 @@ onMounted(async () => {
   width: 40px;
 }
 
-/* Expandable exception rows (Guardian-style) */
+/* Expandable exception rows */
 .exception-row.expandable {
   cursor: pointer;
 }

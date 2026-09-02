@@ -63,7 +63,6 @@ public class DifferentialTimeseriesController {
                 .withExcludeNonJavaSamples(request.excludeNonJavaSamples())
                 .withExcludeIdleSamples(request.excludeIdleSamples())
                 .withOnlyUnsafeAllocationSamples(request.onlyUnsafeAllocationSamples())
-                .withMarkers(request.markers())
                 .build();
 
         return diffMgr.timeseries(new TimeseriesManager.Generate(

@@ -176,7 +176,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/
       </table>
 
       <DocsCallout type="warning">
-        <strong>The Hub never analyses a recording.</strong> It catalogs, compresses, retains and serves. Every flamegraph, trace, Guardian check and heap-dump view is computed in Microscope — so the traces in this guide are derived on your machine, from bytes the Hub only ever stored.
+        <strong>The Hub never analyses a recording.</strong> It catalogs, compresses, retains and serves. Every flamegraph, trace and heap-dump view is computed in Microscope — so the traces in this guide are derived on your machine, from bytes the Hub only ever stored.
       </DocsCallout>
 
       <h2 id="download">Getting the Recording into Microscope</h2>

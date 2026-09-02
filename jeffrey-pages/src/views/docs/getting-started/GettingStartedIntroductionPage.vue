@@ -93,7 +93,6 @@ onMounted(() => {
 
         <h3>JVM Internals</h3>
         <ul>
-          <li><strong>Guardian Analysis</strong> - Automated health checks that traverse stacktraces to find suspicious behavior</li>
           <li><strong>Auto Analysis</strong> - Rule-based automated analysis with color-coded insights</li>
           <li><strong>Event Types & Viewer</strong> - Browse and filter all JFR events with comprehensive categorization</li>
           <li><strong>JVM Flags</strong> - View and analyze JVM command-line flags configuration</li>
@@ -153,11 +152,6 @@ onMounted(() => {
         <p>Tools for quick insights <strong>before</strong> deep and time-consuming investigation:</p>
 
         <div class="docs-grid docs-grid-2">
-          <DocsFeatureCard
-            icon="bi bi-shield-check"
-            title="Guardian"
-            description="Automated analysis of flamegraphs. Traverses stacktraces to find suspicious patterns — infinite loops, excessive locking, problematic allocations."
-          />
           <DocsFeatureCard
             icon="bi bi-graph-up"
             title="Auto-Analysis"

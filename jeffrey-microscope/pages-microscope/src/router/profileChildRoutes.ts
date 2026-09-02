@@ -31,12 +31,6 @@ const analysisRoutes = [
     meta: { layout: 'profile' }
   },
   {
-    path: 'guardian',
-    name: 'profile-guardian',
-    component: () => import('@/views/profiles/detail/ProfileGuardian.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
     path: 'auto-analysis',
     name: 'profile-auto-analysis',
     component: () => import('@/views/profiles/detail/ProfileAutoAnalysis.vue'),
