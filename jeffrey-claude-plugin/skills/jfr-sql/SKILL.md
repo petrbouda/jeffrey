@@ -1,7 +1,7 @@
 ---
 name: jfr-sql
 description: Write DuckDB SQL against a Jeffrey profile's JFR database — the events, event_types, threads, stacktraces and frames tables. Use when jfr_executeQuery or jfr_queryEvents is needed because no purpose-built flamegraph, trace or heap tool answers the question.
-allowed-tools: mcp__plugin_jeffrey_microscope__jfr_* mcp__jeffrey__jfr_*
+allowed-tools: mcp__plugin_microscope_jeffrey__jfr_* mcp__jeffrey__jfr_*
 ---
 
 # Querying a profile's JFR database

@@ -7,7 +7,7 @@
   "description": "Jeffrey — a self-hosted performance analyst for the JVM.",
   "plugins": [
     {
-      "name": "jeffrey",
+      "name": "microscope",
       "source": "./jeffrey-claude-plugin",
       "description": "Read JVM profiles from a running Jeffrey Microscope: list analysed recordings, query their DuckDB tables, and pull flamegraph, trace and heap-dump exports."
     }

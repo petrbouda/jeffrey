@@ -1,4 +1,4 @@
-# Jeffrey plugin for Claude Code
+# Microscope plugin for Claude Code
 
 Read JVM profiles from a running [Jeffrey Microscope](https://www.jeffrey-analyst.cafe/docs/microscope)
 without leaving your terminal: list the recordings you have analysed, query their DuckDB tables, and
@@ -6,6 +6,8 @@ pull flamegraph, trace and heap-dump exports straight into a Claude Code session
 repository — so the profile and the source code are in front of the same reader.
 
 Everything the plugin exposes is **read-only**.
+
+Full documentation: [Microscope MCP](https://www.jeffrey-analyst.cafe/docs/microscope-mcp).
 
 ## Install
 
@@ -17,7 +19,7 @@ Then, from Claude Code:
 
 ```
 /plugin marketplace add petrbouda/jeffrey
-/plugin install jeffrey@jeffrey
+/plugin install microscope@jeffrey
 ```
 
 Or, working from a clone:
@@ -51,9 +53,9 @@ The Settings tab shows the exact URL for your installation.
 
 **Skills**, which you can also invoke directly:
 
-- `/jeffrey:analyze-profile` — where to start and which family answers which question
-- `/jeffrey:jfr-sql` — the JFR schema and the DuckDB idioms that go with it
-- `/jeffrey:heap-sql` — the heap-dump index schema
+- `/microscope:analyze-profile` — where to start and which family answers which question
+- `/microscope:jfr-sql` — the JFR schema and the DuckDB idioms that go with it
+- `/microscope:heap-sql` — the heap-dump index schema
 
 The exports carry their own reading instructions, so the skills stay short: they cover the workflow
 and the two schemas, not things the tool output already explains.
@@ -64,7 +66,7 @@ Claude Code asks before each tool the first time. Since every Jeffrey tool is re
 the family once is usually what you want — either from the prompt, or up front with `/permissions`:
 
 ```
-mcp__plugin_jeffrey_microscope__*
+mcp__plugin_microscope_jeffrey__*
 ```
 
 ## Try it

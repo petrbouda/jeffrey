@@ -1,17 +1,17 @@
 {
-  "name": "jeffrey",
+  "name": "microscope",
   "version": "1.0.0",
   "description": "Read JVM profiles from a running Jeffrey Microscope — list analysed recordings, query their DuckDB tables, and pull flamegraph, trace and heap-dump exports without leaving the terminal.",
   "author": {
     "name": "Petr Bouda",
     "url": "https://www.jeffrey-analyst.cafe/"
   },
-  "homepage": "https://www.jeffrey-analyst.cafe/docs/microscope/ai/claude-code-plugin",
+  "homepage": "https://www.jeffrey-analyst.cafe/docs/microscope-mcp",
   "repository": "https://github.com/petrbouda/jeffrey",
   "license": "AGPL-3.0",
   "keywords": ["jfr", "jvm", "profiling", "flamegraph", "heap-dump", "performance"],
   "mcpServers": {
-    "microscope": {
+    "jeffrey": {
       "type": "http",
       "url": "${JEFFREY_MCP_URL:-http://localhost:8080/api/internal/mcp}"
     }

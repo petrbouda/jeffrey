@@ -1,7 +1,7 @@
 ---
 name: analyze-profile
 description: Analyse a JVM profile held by a running Jeffrey Microscope — CPU, allocation, lock contention, GC, latency, traces or a heap dump. Use whenever the question is "why is this slow", "where does the time go", "what is allocating", "what is holding memory", or when a Jeffrey profile, JFR recording or heap dump is mentioned.
-allowed-tools: mcp__plugin_jeffrey_microscope__* mcp__jeffrey__*
+allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---
 
 # Analysing a Jeffrey profile
