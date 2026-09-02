@@ -479,6 +479,11 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsAiOqlAssistant',
         component: () => import('@/views/docs/ai/AiOqlAssistantPage.vue')
       },
+      {
+        path: 'ai/claude-code-plugin',
+        name: 'DocsAiClaudeCodePlugin',
+        component: () => import('@/views/docs/ai/AiClaudeCodePluginPage.vue')
+      },
 
       // ──── Jeffrey Events ────
       // The event catalog lives with the Jeffrey Tracing product, whose events it lists;

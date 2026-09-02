@@ -188,7 +188,8 @@ export const microscopeNavigation: DocSection[] = [
       { title: 'Overview & Configuration', path: 'overview' },
       { title: 'JFR Analysis', path: 'jfr-analysis' },
       { title: 'Heap Dump Analysis', path: 'heap-dump-analysis' },
-      { title: 'OQL Assistant', path: 'oql-assistant' }
+      { title: 'OQL Assistant', path: 'oql-assistant' },
+      { title: 'Claude Code Plugin', path: 'claude-code-plugin' }
     ]
   }
 ];
