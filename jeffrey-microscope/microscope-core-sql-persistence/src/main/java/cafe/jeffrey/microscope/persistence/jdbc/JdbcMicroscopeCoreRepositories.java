@@ -35,6 +35,10 @@ public class JdbcMicroscopeCoreRepositories implements MicroscopeCoreRepositorie
     private static final String SELECT_ALL_PROFILES =
             "SELECT * FROM profiles WHERE project_id = :project_id";
 
+    //language=SQL
+    private static final String SELECT_EVERY_PROFILE =
+            "SELECT * FROM profiles ORDER BY created_at DESC";
+
     private final DatabaseClientProvider databaseClientProvider;
     private final DatabaseClient profilesDatabaseClient;
     private final RecordingTagsRepository recordingTagsRepository;
@@ -76,5 +80,11 @@ public class JdbcMicroscopeCoreRepositories implements MicroscopeCoreRepositorie
 
         return profilesDatabaseClient.query(
                 StatementLabel.FIND_ALL_PROFILES, SELECT_ALL_PROFILES, paramSource, Mappers.profileInfoMapper());
+    }
+
+    @Override
+    public List<ProfileInfo> findAllProfiles() {
+        return profilesDatabaseClient.query(
+                StatementLabel.FIND_ALL_PROFILES, SELECT_EVERY_PROFILE, Mappers.profileInfoMapper());
     }
 }

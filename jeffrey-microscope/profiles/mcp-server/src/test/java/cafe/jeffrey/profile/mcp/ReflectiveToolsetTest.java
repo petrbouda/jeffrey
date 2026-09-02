@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.ai.claudecode.mcp;
+package cafe.jeffrey.profile.mcp;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.annotation.Tool;

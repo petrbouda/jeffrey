@@ -35,12 +35,12 @@ import cafe.jeffrey.shared.common.model.time.UndefinedTimeRange;
  * nested and selected from a tree. Only the rendering options and the scope are common to both,
  * and neither feature should have to import the other to reach them.
  */
-abstract class SpanScopedGraphParameters {
+public abstract class SpanScopedGraphParameters {
 
     private SpanScopedGraphParameters() {
     }
 
-    static GraphParameters of(
+    public static GraphParameters of(
             ProfileInfo profileInfo, SpanFlamegraphOptions request, SpanScope scope) {
 
         // Full-profile range so the timeseries can bucket over the whole timeline; the scope (not

@@ -31,7 +31,7 @@
     <description>Claude Code (headless) AI backend and reusable MCP tool machinery</description>
 
     <dependencies>
-        <!-- Tracer: ReflectiveToolset records a span per MCP tool invocation -->
+        <!-- Tracer: a span per headless CLI invocation -->
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
             <artifactId>jeffrey-events</artifactId>

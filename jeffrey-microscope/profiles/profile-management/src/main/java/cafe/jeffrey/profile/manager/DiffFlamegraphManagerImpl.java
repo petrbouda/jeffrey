@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.flamegraph.ai.AiExportConfig;
+
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.shared.common.model.EventSummary;
 import cafe.jeffrey.shared.common.model.SpanScope;
@@ -63,6 +65,12 @@ public class DiffFlamegraphManagerImpl implements FlamegraphManager {
 
     @Override
     public String generateAiExport(GraphParameters parameters) {
+        throw new UnsupportedOperationException(
+                "AI export is not supported for differential flamegraphs");
+    }
+
+    @Override
+    public String generateAiExport(GraphParameters parameters, AiExportConfig aiExportConfig) {
         throw new UnsupportedOperationException(
                 "AI export is not supported for differential flamegraphs");
     }

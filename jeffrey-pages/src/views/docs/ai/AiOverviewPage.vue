@@ -50,6 +50,8 @@ onMounted(() => {
     <div class="docs-content">
       <p>Jeffrey integrates AI-powered analysis to help you understand JFR recordings and heap dumps faster. Ask questions in natural language and get insights powered by Claude, ChatGPT, a self-hosted Ollama server, or your Claude subscription via the Claude Code CLI.</p>
 
+      <p>These pages cover the assistant that runs <em>inside</em> Jeffrey. For the other direction &mdash; an interactive Claude Code session in your own repository reading the profiles this Jeffrey has analysed &mdash; see <router-link to="/docs/microscope-mcp">Microscope MCP</router-link>.</p>
+
       <h2 id="ai-features">AI Features</h2>
       <div class="docs-grid docs-grid-2">
         <DocsFeatureCard

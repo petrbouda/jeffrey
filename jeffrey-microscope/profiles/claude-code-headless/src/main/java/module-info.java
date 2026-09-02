@@ -28,7 +28,6 @@ module cafe.jeffrey.microscope.profile.ai.claudecode {
     requires cafe.jeffrey.jfr.events;
 
     exports cafe.jeffrey.profile.ai.claudecode.config;
-    exports cafe.jeffrey.profile.ai.claudecode.mcp;
 
     opens cafe.jeffrey.profile.ai.claudecode.config to spring.core, spring.beans, spring.context;
 }
