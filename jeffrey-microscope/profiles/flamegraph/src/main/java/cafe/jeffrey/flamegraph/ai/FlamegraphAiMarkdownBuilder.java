@@ -69,6 +69,18 @@ public final class FlamegraphAiMarkdownBuilder {
 
                    - <method> [<type-tag>] — <totalSamples> (<total%>, self <selfSamples>[, +pruned <prunedTailSamples>])
 
+               For a **weighted** event type (allocation, blocking, method
+               latency — the header carries a `weight_unit`) every line gets a
+               second clause after ` · ` in that unit:
+
+                   ... · <totalWeight> (<weight%>, self <selfWeight>[, +pruned <prunedTailWeight>])
+
+               Read the weight clause first on those profiles: it is the bytes
+               (or nanoseconds) the subtree accounts for, which is what the
+               question is about. The sample count is how often the site was
+               seen. One sample of a 170 MB array outweighs a hundred samples
+               of small objects, and only the weight clause shows that.
+
                - `<totalSamples>` / `<total%>` is this frame's full subtree
                  weight — same as the bar width in the visual flamegraph.
                - `<selfSamples>` is what stayed at this exact frame (didn't
@@ -79,8 +91,9 @@ public final class FlamegraphAiMarkdownBuilder {
                  and were dropped from the output. It's annotated here so
                  the deeper detail isn't silently lost — you know "there's
                  more under this frame but it's small".
-               - Children are listed sorted by `total` descending, so the
-                 heaviest call path under any parent is the first nested
+               - Children are listed sorted by `total` descending — by total
+                 weight on a weighted profile, by total samples otherwise — so
+                 the heaviest call path under any parent is the first nested
                  bullet.
 
                **Sample-conservation invariant:** for every kept frame N,
@@ -123,20 +136,23 @@ public final class FlamegraphAiMarkdownBuilder {
             - For CPU/wall-clock events: one sample ≈ one sampling interval
               of that thread on-CPU (or on/off-CPU for wall-clock).
             - For allocation events (`OBJECT_ALLOCATION_*`): one sample =
-              one recorded allocation event. The header reports the total
-              **weight** (bytes allocated) so you can reason about volume
-              vs. call-site frequency.
+              one recorded allocation event, and the **weight** is the bytes
+              it stands for. JFR samples allocations by TLAB turnover, so a
+              sample's weight is the allocation volume it represents, not the
+              size of one object; per-frame weights sum the same way samples do.
             - For blocking events (`JAVA_MONITOR_*`, `THREAD_PARK`,
-              `THREAD_SLEEP`): one sample = one wait. Total **weight** =
+              `THREAD_SLEEP`): one sample = one wait. **Weight** =
               cumulative wait time in nanoseconds.
 
             ## What was pruned
 
-            Subtrees whose total samples fall below the configured threshold
-            (see header `prune_threshold_pct`) are dropped from the tree.
-            The weight of any pruned child is rolled up into its parent's
-            `+pruned` annotation, so the sample count is preserved even
-            when the deeper detail isn't. **Absence is not zero** — if a
+            Subtrees whose total falls below the configured threshold (see
+            header `prune_threshold_pct`) are dropped from the tree — measured
+            in weight on a weighted profile, in samples otherwise, so a single
+            huge allocation is never pruned for being seen once. What is
+            pruned is rolled up into its parent's `+pruned` annotation in the
+            same unit, so the totals are preserved even when the deeper
+            detail isn't. **Absence is not zero** — if a
             path you expected to see is missing entirely, it was below the
             threshold for its parent.
 
@@ -196,6 +212,12 @@ public final class FlamegraphAiMarkdownBuilder {
     private static final LongFunction<String> LATENCY_FORMATTER =
             weight -> DurationUtils.formatNanos2Units(weight) + " Latency";
 
+    /** Per-frame weights carry the value alone; the header's suffix would repeat on every line. */
+    private static final LongFunction<String> BYTES_VALUE_FORMATTER = BytesUtils::format;
+    private static final LongFunction<String> NANOS_VALUE_FORMATTER = DurationUtils::formatNanos2Units;
+
+    private static final String WEIGHT_SEPARATOR = " · ";
+
     private final Type eventType;
     private final AiExportConfig config;
     private final ExportContext ctx;
@@ -233,15 +255,22 @@ public final class FlamegraphAiMarkdownBuilder {
     public String build(Frame root) {
         long totalSamples = root.totalSamples();
         long totalWeight = root.totalWeight();
-        long minSamples = (long) (totalSamples * config.minFrameThresholdPct() / 100.0);
+        // The threshold is a share of what the profile measures: weight when the event carries
+        // one, samples otherwise. A one-sample allocation of a huge array is a finding, not noise.
+        long minMeasure = (long) (measure(root) * config.minFrameThresholdPct() / 100.0);
 
         StringBuilder out = new StringBuilder(8192);
         out.append(AI_PREAMBLE).append('\n');
         renderHeader(out, totalSamples, totalWeight);
         out.append('\n').append('\n');
         renderAnalysisInstruction(out);
-        renderTree(out, root, totalSamples, minSamples);
+        renderTree(out, root, totalSamples, minMeasure);
         return out.toString();
+    }
+
+    /** What a frame is measured by for pruning and ordering: its weight on a weighted profile. */
+    private long measure(Frame frame) {
+        return ctx.weighted() ? frame.totalWeight() : frame.totalSamples();
     }
 
     private void renderAnalysisInstruction(StringBuilder out) {
@@ -268,28 +297,37 @@ public final class FlamegraphAiMarkdownBuilder {
         out.append("prune_threshold_pct: ").append(config.minFrameThresholdPct());
     }
 
-    private void renderTree(StringBuilder out, Frame root, long totalSamples, long minSamples) {
+    private void renderTree(StringBuilder out, Frame root, long totalSamples, long minMeasure) {
         out.append(TREE_HEADING).append('\n').append('\n');
-        renderRootLine(out, root, totalSamples, minSamples);
+        renderRootLine(out, root, totalSamples, minMeasure);
 
-        List<Map.Entry<String, Frame>> survivingChildren = survivingChildrenSorted(root, minSamples);
+        List<Map.Entry<String, Frame>> survivingChildren = survivingChildrenSorted(root, minMeasure);
         if (survivingChildren.isEmpty()) {
             out.append(INDENT_UNIT).append(BULLET_PREFIX).append(EMPTY_TREE_NOTE).append('\n');
             return;
         }
 
         for (Map.Entry<String, Frame> entry : survivingChildren) {
-            renderFrame(out, entry.getKey(), entry.getValue(), 1, totalSamples, minSamples);
+            renderFrame(out, entry.getKey(), entry.getValue(), 1, root, minMeasure);
         }
     }
 
-    private void renderRootLine(StringBuilder out, Frame root, long totalSamples, long minSamples) {
+    private void renderRootLine(StringBuilder out, Frame root, long totalSamples, long minMeasure) {
         out.append(BULLET_PREFIX).append(ROOT_LABEL).append(DASH_SEPARATOR).append(totalSamples);
         if (totalSamples > 0) {
             out.append(" (100%");
-            long prunedTail = prunedTailSamples(root, minSamples);
+            long prunedTail = prunedTailSamples(root, minMeasure);
             if (prunedTail > 0) {
                 out.append(", +pruned ").append(prunedTail);
+            }
+            out.append(')');
+        }
+        if (ctx.weighted() && root.totalWeight() > 0) {
+            out.append(WEIGHT_SEPARATOR).append(ctx.weightValueFormatter.apply(root.totalWeight()));
+            out.append(" (100%");
+            long prunedWeight = prunedTailWeight(root, minMeasure);
+            if (prunedWeight > 0) {
+                out.append(", +pruned ").append(ctx.weightValueFormatter.apply(prunedWeight));
             }
             out.append(')');
         }
@@ -301,42 +339,74 @@ public final class FlamegraphAiMarkdownBuilder {
             String name,
             Frame frame,
             int depth,
-            long totalSamples,
-            long minSamples) {
+            Frame root,
+            long minMeasure) {
 
         out.append(INDENT_UNIT.repeat(depth)).append(BULLET_PREFIX);
         out.append(sanitizeFrame(name));
         out.append(" [").append(resolveTypeTag(frame)).append(']');
         out.append(DASH_SEPARATOR).append(frame.totalSamples());
-        out.append(" (").append(formatPercent(frame.totalSamples(), totalSamples));
+        out.append(" (").append(formatPercent(frame.totalSamples(), root.totalSamples()));
         out.append(", self ").append(frame.selfSamples());
-        long prunedTail = prunedTailSamples(frame, minSamples);
+        long prunedTail = prunedTailSamples(frame, minMeasure);
         if (prunedTail > 0) {
             out.append(", +pruned ").append(prunedTail);
         }
-        out.append(')').append('\n');
+        out.append(')');
+        if (ctx.weighted()) {
+            renderWeightClause(out, frame, root, minMeasure);
+        }
+        out.append('\n');
 
-        for (Map.Entry<String, Frame> entry : survivingChildrenSorted(frame, minSamples)) {
-            renderFrame(out, entry.getKey(), entry.getValue(), depth + 1, totalSamples, minSamples);
+        for (Map.Entry<String, Frame> entry : survivingChildrenSorted(frame, minMeasure)) {
+            renderFrame(out, entry.getKey(), entry.getValue(), depth + 1, root, minMeasure);
         }
     }
 
-    private static List<Map.Entry<String, Frame>> survivingChildrenSorted(Frame frame, long minSamples) {
+    /**
+     * The weight clause of a weighted profile's line: the subtree's weight, its share of the
+     * root's, the frame's own, and what its pruned children came to in the same unit.
+     */
+    private void renderWeightClause(StringBuilder out, Frame frame, Frame root, long minMeasure) {
+        LongFunction<String> format = ctx.weightValueFormatter;
+        out.append(WEIGHT_SEPARATOR).append(format.apply(frame.totalWeight()));
+        out.append(" (").append(formatPercent(frame.totalWeight(), root.totalWeight()));
+        out.append(", self ").append(format.apply(frame.selfWeight()));
+        long prunedWeight = prunedTailWeight(frame, minMeasure);
+        if (prunedWeight > 0) {
+            out.append(", +pruned ").append(format.apply(prunedWeight));
+        }
+        out.append(')');
+    }
+
+    private List<Map.Entry<String, Frame>> survivingChildrenSorted(Frame frame, long minMeasure) {
         List<Map.Entry<String, Frame>> survivors = new ArrayList<>();
         for (Map.Entry<String, Frame> entry : frame.entrySet()) {
-            if (entry.getValue().totalSamples() >= minSamples) {
+            if (measure(entry.getValue()) >= minMeasure) {
                 survivors.add(entry);
             }
         }
-        survivors.sort(Comparator.<Map.Entry<String, Frame>>comparingLong(e -> e.getValue().totalSamples()).reversed());
+        survivors.sort(Comparator.<Map.Entry<String, Frame>>comparingLong(e -> measure(e.getValue()))
+                .thenComparingLong(e -> e.getValue().totalSamples())
+                .reversed());
         return survivors;
     }
 
-    private static long prunedTailSamples(Frame frame, long minSamples) {
+    private long prunedTailSamples(Frame frame, long minMeasure) {
         long pruned = 0;
         for (Frame child : frame.values()) {
-            if (child.totalSamples() < minSamples) {
+            if (measure(child) < minMeasure) {
                 pruned += child.totalSamples();
+            }
+        }
+        return pruned;
+    }
+
+    private long prunedTailWeight(Frame frame, long minMeasure) {
+        long pruned = 0;
+        for (Frame child : frame.values()) {
+            if (measure(child) < minMeasure) {
+                pruned += child.totalWeight();
             }
         }
         return pruned;
@@ -432,18 +502,35 @@ public final class FlamegraphAiMarkdownBuilder {
 
     private static ExportContext resolveContext(Type eventType) {
         if (eventType.isAllocationEvent()) {
-            return new ExportContext("samples", "bytes", ALLOCATION_FORMATTER);
+            return new ExportContext("samples", "bytes", ALLOCATION_FORMATTER, BYTES_VALUE_FORMATTER);
         }
         if (eventType.isBlockingEvent()) {
-            return new ExportContext("samples", "nanoseconds", BLOCKING_FORMATTER);
+            return new ExportContext("samples", "nanoseconds", BLOCKING_FORMATTER, NANOS_VALUE_FORMATTER);
         }
         if (eventType.isMethodTraceEvent()) {
-            return new ExportContext("samples", "nanoseconds", LATENCY_FORMATTER);
+            return new ExportContext("samples", "nanoseconds", LATENCY_FORMATTER, NANOS_VALUE_FORMATTER);
         }
-        return new ExportContext("samples", null, null);
+        return new ExportContext("samples", null, null, null);
     }
 
-    private record ExportContext(String unit, String weightUnit, LongFunction<String> weightFormatter) {
+    /**
+     * How the event type is measured.
+     *
+     * @param unit                 what the tree counts, always samples
+     * @param weightUnit           what a sample's weight is in, or {@code null} for an unweighted
+     *                             event such as a CPU sample
+     * @param weightFormatter      the header's total, with its noun ("... Allocated")
+     * @param weightValueFormatter a bare per-frame value in the same unit
+     */
+    private record ExportContext(
+            String unit,
+            String weightUnit,
+            LongFunction<String> weightFormatter,
+            LongFunction<String> weightValueFormatter) {
+
+        boolean weighted() {
+            return weightUnit != null;
+        }
     }
 
     private record HeaderField(String key, String value) {

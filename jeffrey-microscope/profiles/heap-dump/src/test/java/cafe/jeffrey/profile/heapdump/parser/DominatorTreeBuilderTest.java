@@ -22,10 +22,19 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -170,6 +179,65 @@ class DominatorTreeBuilderTest {
         try (HeapView view = HeapView.open(indexDb)) {
             assertEquals(1, view.gcRootCount());
             assertEquals(DominatorTreeBuilder.VIRTUAL_ROOT, view.dominatorOf(a));
+        }
+    }
+
+    /**
+     * The children lookup has no index behind it any more: it relies on the dominator table being
+     * stored in dominator_id order so DuckDB's row-group statistics can prune the scan. This pins
+     * both halves of that arrangement -- the physical order, and the two id indexes that did
+     * survive -- through a plain connection, which reads rows back in storage order.
+     */
+    @Test
+    void storesDominatorRowsInParentOrderAndIndexesIds(@TempDir Path tmp) throws IOException, SQLException {
+        int idSize = 8;
+        long classId = 0xC001L;
+        // Ids chosen so that DFS preorder (the builder's natural row order) differs from
+        // dominator order: the virtual root's children interleave with c's child.
+        long a = 0x1A0L, b = 0x1B0L, c = 0x1C0L, d = 0x1D0L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "next")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(classId, 0xA002L)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, a)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, b)
+                        .instanceDump(a, classId, idBytes(c, idSize))
+                        .instanceDump(b, classId, idBytes(c, idSize))
+                        .instanceDump(c, classId, idBytes(d, idSize))
+                        .instanceDump(d, classId, idBytes(0L, idSize)))
+                .heapDumpEnd()
+                .writeTo(tmp, "ordered.hprof");
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        DominatorTreeBuilder.build(indexDb);
+
+        try (Connection conn = DriverManager.getConnection("jdbc:duckdb:" + indexDb.toAbsolutePath());
+             Statement stmt = conn.createStatement()) {
+            List<Long> storedOrder = new ArrayList<>();
+            try (ResultSet rs = stmt.executeQuery("SELECT dominator_id FROM dominator")) {
+                while (rs.next()) {
+                    storedOrder.add(rs.getLong(1));
+                }
+            }
+            List<Long> sorted = new ArrayList<>(storedOrder);
+            Collections.sort(sorted);
+            assertEquals(4, storedOrder.size());
+            assertEquals(sorted, storedOrder, "dominator rows must be stored in dominator_id order");
+
+            Set<String> indexes = new HashSet<>();
+            try (ResultSet rs = stmt.executeQuery("SELECT index_name FROM duckdb_indexes()")) {
+                while (rs.next()) {
+                    indexes.add(rs.getString(1));
+                }
+            }
+            assertTrue(indexes.contains("idx_dominator_instance"), indexes.toString());
+            assertTrue(indexes.contains("idx_retained_size_instance"), indexes.toString());
+            assertFalse(indexes.contains("idx_dominator_parent"), "replaced by the sorted load");
         }
     }
 

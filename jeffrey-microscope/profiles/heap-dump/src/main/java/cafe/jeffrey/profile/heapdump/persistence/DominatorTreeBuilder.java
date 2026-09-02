@@ -91,12 +91,36 @@ public final class DominatorTreeBuilder {
      */
     private static final String PRAGMA_PRESERVE_INSERTION_ORDER = "SET preserve_insertion_order = false";
 
+    private static final String DOMINATOR_TABLE = "dominator";
+
+    private static final String RETAINED_SIZE_TABLE = "retained_size";
+
+    /**
+     * Switched on for the one insert whose row order matters. The dominator rows go in sorted by
+     * {@link #DOMINATOR_ORDER_COLUMN} so that DuckDB's per-row-group min/max statistics answer
+     * the "children of X" lookup, and with insertion order not preserved the parallel insert is
+     * free to scatter a sorted input again.
+     */
+    private static final String PRAGMA_PRESERVE_INSERTION_ORDER_ON = "SET preserve_insertion_order = true";
+
+    /**
+     * The column the {@code dominator} table is stored sorted by. It replaces an ART index on the
+     * same column: millions of rows sharing a handful of values is the shape ART builds slowest,
+     * and that index alone took 7 s of a 42 M-instance dump's build, while the sort is a fraction
+     * of that and serves the same equality lookup through row-group pruning.
+     */
+    private static final String DOMINATOR_ORDER_COLUMN = "dominator_id";
+
     /**
      * The indexes on the two tables this builder fills, dropped before the rows go in and
      * recreated over the populated tables afterwards. An index DuckDB has to maintain row by row
      * during {@code INSERT ... SELECT read_parquet} costs more than the load itself; building it
      * once over the finished table is the bulk path -- the same reason the index build routes its
-     * own indexes through {@code HprofNonPkIndexes}, and why neither table has a primary key.
+     * own indexes through {@link BulkIndexes}, and why neither table has a primary key.
+     *
+     * <p>{@code idx_dominator_parent} is dropped but never recreated: an index file built before
+     * the dominator table was stored sorted still carries it, and a rebuild against such a file
+     * would otherwise keep maintaining it.
      */
     private static final String[] DROP_INDEX_DDL = {
             "DROP INDEX IF EXISTS idx_dominator_instance",
@@ -104,11 +128,12 @@ public final class DominatorTreeBuilder {
             "DROP INDEX IF EXISTS idx_retained_size_instance"
     };
 
-    private static final String[] CREATE_INDEX_DDL = {
-            "CREATE INDEX IF NOT EXISTS idx_dominator_instance ON dominator(instance_id)",
-            "CREATE INDEX IF NOT EXISTS idx_dominator_parent ON dominator(dominator_id)",
-            "CREATE INDEX IF NOT EXISTS idx_retained_size_instance ON retained_size(instance_id)"
-    };
+    /** One group per table, so the two rebuild in parallel on their own connections. */
+    private static final List<BulkIndexes.IndexGroup> INDEX_GROUPS = List.of(
+            new BulkIndexes.IndexGroup(DOMINATOR_TABLE, List.of(
+                    "CREATE INDEX IF NOT EXISTS idx_dominator_instance ON dominator(instance_id)")),
+            new BulkIndexes.IndexGroup(RETAINED_SIZE_TABLE, List.of(
+                    "CREATE INDEX IF NOT EXISTS idx_retained_size_instance ON retained_size(instance_id)")));
 
     private static final String PHASE_CREATE_INDEXES = "create_indexes";
 
@@ -156,7 +181,7 @@ public final class DominatorTreeBuilder {
             Path stagingDir = HeapDumpIndexPaths.stagingForIndex(indexDbPath);
             Elapsed<BuildResult> elapsed = Measuring.s(() -> {
                 try {
-                    return doBuild(client, stagingDir);
+                    return doBuild(client, indexDbPath, stagingDir);
                 } catch (SQLException | IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -173,7 +198,7 @@ public final class DominatorTreeBuilder {
         }
     }
 
-    private static BuildResult doBuild(HeapDumpDatabaseClient client, Path stagingDir)
+    private static BuildResult doBuild(HeapDumpDatabaseClient client, Path indexDbPath, Path stagingDir)
             throws SQLException, IOException {
         Elapsed<InstanceMeta> metaE = measure(() -> loadInstanceMeta(client));
         InstanceMeta meta = metaE.entity();
@@ -235,8 +260,10 @@ public final class DominatorTreeBuilder {
             }
         });
 
-        // Stage 3: the indexes dropped in build(), rebuilt in bulk over the loaded tables.
-        Duration createIndexesDuration = Measuring.r(() -> createIndexes(client));
+        // Stage 3: the indexes dropped in build(), rebuilt in bulk over the loaded tables, one
+        // worker per table.
+        Duration createIndexesDuration = Measuring.r(() ->
+                BulkIndexes.createAll(client, indexDbPath, INDEX_GROUPS, INDEX_GROUPS.size()));
 
         LOG.debug(
                 "Dominator tree phases: load_meta_ms={} load_successors_ms={} invert_ms={} "
@@ -284,10 +311,6 @@ public final class DominatorTreeBuilder {
     private record DfsData(int[] preorder, int[] dfsNum, int[] parent, int reachable) {
     }
 
-    private static final String DOMINATOR_TABLE = "dominator";
-
-    private static final String RETAINED_SIZE_TABLE = "retained_size";
-
     private static final String DOMINATOR_STAGING_DDL =
             "instance_id BIGINT, dominator_id BIGINT";
 
@@ -327,17 +350,21 @@ public final class DominatorTreeBuilder {
             // Bulk-load: two different target tables, no constraint overlap,
             // so the two INSERT statements could run concurrently on separate
             // connections. Keeping it sequential for now — the bulk-load is
-            // already vector-pipelined inside DuckDB and the second statement
-            // typically lands in <5 s. Revisit if profiling shows it as the
-            // remaining bottleneck after this front lands.
-            staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_DOMINATOR, DOMINATOR_TABLE);
+            // already vector-pipelined inside DuckDB and each statement lands in
+            // well under a second on a 42 M-instance dump.
+            //
+            // The dominator rows go in sorted, with insertion order preserved for
+            // exactly that statement: the order is what serves the children lookup
+            // (see DOMINATOR_ORDER_COLUMN), and it is only guaranteed to survive the
+            // insert while the session preserves it.
+            client.execute(HeapDumpStatement.PRESERVE_INSERTION_ORDER_PRAGMA, PRAGMA_PRESERVE_INSERTION_ORDER_ON);
+            try {
+                staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_DOMINATOR, DOMINATOR_TABLE,
+                        DOMINATOR_ORDER_COLUMN);
+            } finally {
+                client.execute(HeapDumpStatement.PRESERVE_INSERTION_ORDER_PRAGMA, PRAGMA_PRESERVE_INSERTION_ORDER);
+            }
             staging.bulkLoad(client, HeapDumpStatement.BULK_LOAD_RETAINED_SIZE, RETAINED_SIZE_TABLE);
-        }
-    }
-
-    private static void createIndexes(HeapDumpDatabaseClient client) {
-        for (String ddl : CREATE_INDEX_DDL) {
-            client.execute(HeapDumpStatement.CREATE_INDEXES, ddl);
         }
     }
 
@@ -732,9 +759,26 @@ public final class DominatorTreeBuilder {
             """;
 
     /**
-     * Builds the CSR adjacency in two passes: count out-degrees → prefix-sum
-     * them into {@code offsets}, then fill {@code edges} in source order using
-     * a {@code cursor[]} that walks each node's slot in the flat array.
+     * Out-degree per source node, aggregated in DuckDB. It replaces a first streaming pass over
+     * every edge whose only purpose was to count them: the JDBC driver allocates its chunk
+     * buffers per row fetched, so streaming 100 M+ edges twice was the largest allocation on the
+     * coordinator thread, and a GROUP BY hands back at most one row per source instead. The join
+     * on the target side is kept so the counts drop the same orphan references the fill pass does.
+     */
+    private static final String OUTBOUND_DEGREES_SQL = """
+            SELECT s.node_index, CAST(COUNT(*) AS INTEGER)
+            FROM outbound_ref o
+            JOIN id_index s ON o.source_id = s.instance_id
+            JOIN id_index t ON o.target_id = t.instance_id
+            GROUP BY s.node_index
+            """;
+
+    /**
+     * Builds the CSR adjacency in two passes: read the out-degrees (aggregated
+     * in DuckDB, one row per source) → prefix-sum them into {@code offsets},
+     * then fill {@code edges} in source order using a {@code cursor[]} that
+     * walks each node's slot in the flat array. Only the fill pass streams the
+     * edges themselves.
      *
      * <p>The per-edge {@code instance_id → node_index} translation runs in DuckDB
      * via a temp {@code id_index} table and INNER JOINs against {@code outbound_ref}
@@ -749,13 +793,13 @@ public final class DominatorTreeBuilder {
 
         client.execute(HeapDumpStatement.BUILD_ID_INDEX, CREATE_ID_INDEX_SQL);
         try {
-            // Pass 1a: count outbound_ref edges by source. Stash counts at
+            // Pass 1a: out-degrees by source, one row per source. Stashed at
             // offsets[u + 1] so the prefix-sum below converts them in place.
-            client.rawStream(HeapDumpStatement.JOIN_OUTBOUND_REFS, OUTBOUND_REFS_JOIN_SQL, rs -> {
+            client.rawStream(HeapDumpStatement.COUNT_OUTBOUND_DEGREES, OUTBOUND_DEGREES_SQL, rs -> {
                 long rows = 0;
                 while (rs.next()) {
                     int src = rs.getInt(1);
-                    offsets[src + 1]++;
+                    offsets[src + 1] = rs.getInt(2);
                     rows++;
                 }
                 return rows;

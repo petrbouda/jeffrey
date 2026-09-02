@@ -358,9 +358,73 @@ public class TraceManagerImpl implements TraceManager {
         }
 
         if (!selfOnly) {
-            return List.of(intervalOf(target));
+            return inclusiveIntervals(target, descendantsOf(spans, spanId));
         }
         return selfIntervals(target, childrenOf(spans, spanId));
+    }
+
+    /**
+     * The span's own window plus the windows of every descendant that ran on another thread, so a
+     * flamegraph scoped inclusively shows the work the span caused and not only the work its own
+     * thread did. A phase that fans out to sixteen workers spends nearly all of its time on threads
+     * other than its own, and a graph of its window alone showed the coordinator waiting.
+     * <p>
+     * Same-thread descendants are left out: they lie inside the span's own window already. Windows
+     * on one thread that overlap or touch are merged, since the sample filter matches inclusively
+     * and two adjacent windows would otherwise count the millisecond they share twice.
+     */
+    private static List<SpanInterval> inclusiveIntervals(
+            TraceSpanRecord span, List<TraceSpanRecord> descendants) {
+
+        Map<Long, List<long[]>> windowsByThread = new LinkedHashMap<>();
+        windowsByThread.computeIfAbsent(span.threadHash(), _ -> new ArrayList<>())
+                .add(new long[]{toMillis(span.startEpochMicros()), toMillis(endMicrosOf(span))});
+        for (TraceSpanRecord descendant : descendants) {
+            if (descendant.threadHash() == span.threadHash()) {
+                continue;
+            }
+            windowsByThread.computeIfAbsent(descendant.threadHash(), _ -> new ArrayList<>())
+                    .add(new long[]{
+                            toMillis(descendant.startEpochMicros()), toMillis(endMicrosOf(descendant))});
+        }
+
+        List<SpanInterval> intervals = new ArrayList<>();
+        for (Map.Entry<Long, List<long[]>> entry : windowsByThread.entrySet()) {
+            List<long[]> windows = entry.getValue();
+            windows.sort(Comparator.comparingLong(window -> window[0]));
+            List<long[]> merged = new ArrayList<>();
+            for (long[] window : windows) {
+                if (!merged.isEmpty() && window[0] <= merged.getLast()[1] + 1) {
+                    merged.getLast()[1] = Math.max(merged.getLast()[1], window[1]);
+                } else {
+                    merged.add(window);
+                }
+            }
+            for (long[] window : merged) {
+                intervals.add(new SpanInterval(entry.getKey(), window[0], window[1]));
+            }
+        }
+        return intervals;
+    }
+
+    /** Every span under {@code spanId}, at any depth, in no particular order. */
+    private static List<TraceSpanRecord> descendantsOf(List<TraceSpanRecord> spans, long spanId) {
+        Map<Long, List<TraceSpanRecord>> childrenByParent = new HashMap<>();
+        for (TraceSpanRecord span : spans) {
+            if (span.parentSpanId() != null) {
+                childrenByParent.computeIfAbsent(span.parentSpanId(), _ -> new ArrayList<>()).add(span);
+            }
+        }
+        List<TraceSpanRecord> descendants = new ArrayList<>();
+        Deque<Long> pending = new ArrayDeque<>();
+        pending.push(spanId);
+        while (!pending.isEmpty()) {
+            for (TraceSpanRecord child : childrenByParent.getOrDefault(pending.pop(), List.of())) {
+                descendants.add(child);
+                pending.push(child.spanId());
+            }
+        }
+        return descendants;
     }
 
     @Override

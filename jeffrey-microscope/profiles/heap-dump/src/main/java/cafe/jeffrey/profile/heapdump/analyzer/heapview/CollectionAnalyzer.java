@@ -22,10 +22,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.eclipse.collections.api.map.primitive.MutableLongIntMap;
+import org.eclipse.collections.impl.map.mutable.primitive.LongIntHashMap;
 import cafe.jeffrey.profile.heapdump.model.ClassWasteEntry;
 import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.CollectionStats;
@@ -215,7 +216,7 @@ public final class CollectionAnalyzer {
         long headerBytes = CollectionShapes.instanceHeaderBytes(idSize);
         // The referenced map's `size` offset depends on the map's concrete class;
         // resolved lazily and cached across all set shapes (-1 = size field absent).
-        Map<Long, Integer> sizeOffsetByMapClassId = new HashMap<>();
+        MutableLongIntMap sizeOffsetByMapClassId = new LongIntHashMap();
 
         for (ViaMapShape shape : VIA_MAP_SHAPES) {
             for (JavaClassRow cls : view.findClassesByName(shape.className())) {
@@ -254,11 +255,18 @@ public final class CollectionAnalyzer {
         }
     }
 
+    /**
+     * Sentinel for "not cached yet" in the primitive offset cache; a real offset is never negative
+     * this far, and the map is primitive-keyed on purpose -- a {@code Map<Long, Integer>} boxed the
+     * class id on every lookup, once per map instance in the heap.
+     */
+    private static final int OFFSET_NOT_CACHED = Integer.MIN_VALUE;
+
     private static int mapSizeOffset(
-            HeapView view, Map<Long, Integer> cache, long mapClassId, int idSize)
+            HeapView view, MutableLongIntMap cache, long mapClassId, int idSize)
             throws SQLException {
-        Integer cached = cache.get(mapClassId);
-        if (cached != null) {
+        int cached = cache.getIfAbsent(mapClassId, OFFSET_NOT_CACHED);
+        if (cached != OFFSET_NOT_CACHED) {
             return cached;
         }
         List<InstanceFieldDescriptor> mapChain = view.instanceFieldsWithChain(mapClassId);
@@ -288,7 +296,6 @@ public final class CollectionAnalyzer {
 
         private final int idSize;
         private final Map<String, Acc> byType = new LinkedHashMap<>();
-        private final Map<String, Long> wastedByClass = new HashMap<>();
         private final FillBuckets overallBuckets = new FillBuckets();
         private long totalCollections;
         private long totalEmpty;
@@ -312,7 +319,6 @@ public final class CollectionAnalyzer {
             long wasted = wastedBytes(size, capacity);
             acc.totalWasted += wasted;
             totalWasted += wasted;
-            wastedByClass.merge(typeName, wasted, Long::sum);
 
             double fillRatio = capacity == 0 ? 0.0 : (double) size / capacity;
             acc.fillSamples++;
@@ -339,8 +345,12 @@ public final class CollectionAnalyzer {
                         a.buckets.toFillDistribution()));
             }
 
-            List<ClassWasteEntry> wasteByClass = wastedByClass.entrySet().stream()
-                    .map(e -> new ClassWasteEntry(e.getKey(), 0, 0, e.getValue(),
+            // Per-type waste comes off the same accumulator as the stats: a second map keyed by
+            // type name boxed a Long per sampled collection to hold a number Acc already had. Only
+            // types with a known capacity ever contributed waste, which fillSamples records.
+            List<ClassWasteEntry> wasteByClass = byType.entrySet().stream()
+                    .filter(e -> e.getValue().fillSamples > 0)
+                    .map(e -> new ClassWasteEntry(e.getKey(), 0, 0, e.getValue().totalWasted,
                             Map.<String, Integer>of()))
                     .sorted(Comparator.comparingLong(ClassWasteEntry::wastedBytes).reversed())
                     .toList();

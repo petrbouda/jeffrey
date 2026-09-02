@@ -30,6 +30,7 @@ import cafe.jeffrey.flamegraph.provider.FlamegraphDataProvider;
 import cafe.jeffrey.flamegraph.provider.TimeseriesDataProvider;
 import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
+import cafe.jeffrey.shared.common.model.SpanInterval;
 import cafe.jeffrey.shared.common.model.SpanScope;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.timeseries.SingleSerie;
@@ -46,7 +47,9 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
 
     private static final String SCOPE_HEADER = "scope";
     private static final String SCOPE_SPAN_PREFIX = "span — only the samples taken inside ";
-    private static final String SCOPE_SPAN_SUFFIX = " thread window(s) of one span, not the whole recording";
+    private static final String SCOPE_SPAN_THREADS = " window(s) on ";
+    private static final String SCOPE_SPAN_SUFFIX = " thread(s) of one span -- its own thread and any thread"
+            + " its descendants ran on -- not the whole recording";
     private static final String SCOPE_OPERATION_PREFIX = "operation — only the samples taken while traces of \"";
     private static final String SCOPE_OPERATION_SUFFIX = "\" were running, not the whole recording";
 
@@ -170,11 +173,15 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
         }
         String description = switch (scope) {
             case SpanScope.Intervals intervals -> SCOPE_SPAN_PREFIX + intervals.intervals().size()
-                    + SCOPE_SPAN_SUFFIX;
+                    + SCOPE_SPAN_THREADS + distinctThreads(intervals) + SCOPE_SPAN_SUFFIX;
             case SpanScope.Operation operation -> SCOPE_OPERATION_PREFIX + operation.name()
                     + SCOPE_OPERATION_SUFFIX;
         };
         builder.withHeaderField(SCOPE_HEADER, description);
+    }
+
+    private static long distinctThreads(SpanScope.Intervals intervals) {
+        return intervals.intervals().stream().map(SpanInterval::threadHash).distinct().count();
     }
 
     /**

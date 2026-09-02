@@ -61,6 +61,7 @@ class TraceManagerImplTest {
     private static final long MICROS_PER_MILLI = 1_000L;
     private static final long THREAD = 900L;
     private static final long OTHER_THREAD = 901L;
+    private static final long THIRD_THREAD = 902L;
 
     @Mock
     TraceRepository traceRepository;
@@ -518,6 +519,59 @@ class TraceManagerImplTest {
             assertEquals(1, intervals.size());
             assertEquals(100, intervals.getFirst().fromEpochMillis());
             assertEquals(150, intervals.getFirst().toEpochMillis());
+        }
+
+        /*
+         * The case the inclusive scope is for: a phase that fans its work out to worker threads has
+         * a window of its own that shows only the coordinator waiting. Its flamegraph has to follow
+         * the work to the threads it ran on.
+         */
+        @Test
+        @DisplayName("inclusive scoping follows descendants forked onto other threads")
+        void inclusiveFollowsForkedDescendants() {
+            TraceManagerImpl manager = managerOf(List.of(
+                    span(1, null, "root", 100, 50),
+                    spanOnThread(2, 1L, "worker", 110, 20, OTHER_THREAD),
+                    spanOnThread(3, 2L, "nested", 115, 5, THIRD_THREAD)));
+
+            List<SpanInterval> intervals = manager.spanIntervals(TRACE, 1, false);
+
+            assertEquals(List.of(
+                            new SpanInterval(THREAD, 100, 150),
+                            new SpanInterval(OTHER_THREAD, 110, 130),
+                            new SpanInterval(THIRD_THREAD, 115, 120)),
+                    intervals,
+                    "the span's own window, then one window per thread its descendants ran on");
+        }
+
+        @Test
+        @DisplayName("forked windows on one thread that overlap or touch are merged")
+        void mergesForkedWindowsPerThread() {
+            TraceManagerImpl manager = managerOf(List.of(
+                    span(1, null, "root", 100, 50),
+                    spanOnThread(2, 1L, "first", 110, 10, OTHER_THREAD),
+                    spanOnThread(3, 1L, "touching", 121, 4, OTHER_THREAD),
+                    spanOnThread(4, 1L, "apart", 140, 5, OTHER_THREAD)));
+
+            List<SpanInterval> intervals = manager.spanIntervals(TRACE, 1, false);
+
+            assertEquals(List.of(
+                            new SpanInterval(THREAD, 100, 150),
+                            new SpanInterval(OTHER_THREAD, 110, 125),
+                            new SpanInterval(OTHER_THREAD, 140, 145)),
+                    intervals,
+                    "adjacent windows share no millisecond twice; a gap keeps two windows apart");
+        }
+
+        @Test
+        @DisplayName("same-thread descendants add nothing to the inclusive scope")
+        void sameThreadDescendantsStayInsideTheWindow() {
+            TraceManagerImpl manager = managerOf(List.of(
+                    span(1, null, "root", 100, 50),
+                    span(2, 1L, "child", 120, 10)));
+
+            assertEquals(List.of(new SpanInterval(THREAD, 100, 150)),
+                    manager.spanIntervals(TRACE, 1, false));
         }
 
         @Test

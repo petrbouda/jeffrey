@@ -17,50 +17,39 @@
  */
 package cafe.jeffrey.profile.heapdump.parser;
 
-import cafe.jeffrey.jfr.events.trace.Tracer;
+import cafe.jeffrey.profile.heapdump.persistence.BulkIndexes;
+import cafe.jeffrey.profile.heapdump.persistence.BulkIndexes.IndexGroup;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpDatabaseClient;
 import cafe.jeffrey.profile.heapdump.persistence.HeapDumpStatement;
-import cafe.jeffrey.shared.persistence.GroupLabel;
-import org.duckdb.DuckDBConnection;
 
 import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 /**
  * Non-PK index management for the heap-dump index DB.
  *
  * <p>The index-build pipeline drops every non-PK index up front so per-row
  * inserts skip ART-tree updates, then recreates them in bulk once all rows are
- * present. Bulk index creation over a fully populated table is dramatically
- * faster than per-row insertion into an existing index — DuckDB sorts the
- * source column once and walks, rather than 30 M individual ART-tree inserts.
- * This is also why {@code instance} and {@code string_content} carry no primary
- * key: a primary key is an ART index the bulk load would have to maintain row by
- * row, so the id lookup each table needs is an ordinary index managed here.
+ * present through {@link BulkIndexes}. Bulk index creation over a fully
+ * populated table is dramatically faster than per-row insertion into an
+ * existing index — DuckDB sorts the source column once and walks, rather than
+ * 30 M individual ART-tree inserts. This is also why {@code instance} and
+ * {@code string_content} carry no primary key: a primary key is an ART index
+ * the bulk load would have to maintain row by row, so the id lookup each table
+ * needs is an ordinary index managed here.
  *
- * <p>Same-table indexes share a write lock on the table's ART tree, so they
- * run sequentially on one worker; different-table groups run on their own
- * worker connections to the same {@code .idx.duckdb} file in parallel virtual
- * threads.
- *
- * <p>Every statement is issued through {@link HeapDumpDatabaseClient} so it emits its own JFR event,
- * on the parallel path as much as the sequential one. The worker connections make that take a little
- * arranging — a span lives in a {@code ScopedValue} and a plain executor does not inherit one, so
- * each task is wrapped with {@link Tracer#fork} to re-establish the phase's span on the thread that
- * actually runs the DDL. Without it this phase is a single opaque bar: it was the longest sub-phase
- * of the whole index build and the only one that could not say which index its time went to.
+ * <p>{@code outbound_ref} is indexed on {@code target_id} only. Same-table
+ * indexes build one after the other on a single worker, and on a 42 M-instance
+ * heap the two edge-table indexes took 21 s and 15 s while every other group
+ * finished within 13 s -- the whole phase cost what that one table cost. The
+ * {@code source_id} lookups that the dropped index served read the edges of one
+ * object, and Pass B writes an object's edges contiguously in instance order, so
+ * DuckDB's per-row-group min/max statistics narrow such a lookup to a few row
+ * groups without an ART tree. The joins never used the index at all.
  */
 public final class HprofNonPkIndexes {
 
     private static final String[] DROP_DDL = {
-            "DROP INDEX IF EXISTS idx_outbound_source",
             "DROP INDEX IF EXISTS idx_outbound_target",
             "DROP INDEX IF EXISTS idx_instance_id",
             "DROP INDEX IF EXISTS idx_instance_class",
@@ -73,27 +62,11 @@ public final class HprofNonPkIndexes {
     };
 
     /**
-     * One table's indexes, and the table they belong to.
-     *
-     * @param table the target table, which also names the worker's span — six fixed values, so the
-     *              names stay the low-cardinality set JFR's string pool wants
-     * @param ddl   the statements, issued in order on a single worker because same-table indexes
-     *              share a write lock on that table's ART tree
-     */
-    private record IndexGroup(String table, List<String> ddl) {
-    }
-
-    /**
      * The non-PK indexes, grouped by target table. Different-table groups run on their own workers
-     * in parallel.
-     *
-     * <p>A {@link List} rather than a map: the groups are read in order and never looked up by name,
-     * and the previous {@code Map.copyOf} of a {@code LinkedHashMap} was documented as order-preserving
-     * when {@code Map.copyOf} explicitly does not promise iteration order at all.
+     * in parallel; the order here is the order the groups are submitted in.
      */
     private static final List<IndexGroup> CREATE_DDL_BY_TABLE = List.of(
             new IndexGroup("outbound_ref", List.of(
-                    "CREATE INDEX IF NOT EXISTS idx_outbound_source ON outbound_ref(source_id)",
                     "CREATE INDEX IF NOT EXISTS idx_outbound_target ON outbound_ref(target_id)")),
             new IndexGroup("instance", List.of(
                     "CREATE INDEX IF NOT EXISTS idx_instance_id ON instance(instance_id)",
@@ -108,9 +81,6 @@ public final class HprofNonPkIndexes {
                     "CREATE INDEX IF NOT EXISTS idx_class_is_array ON class(is_array)")),
             new IndexGroup("stack_trace_frame", List.of(
                     "CREATE INDEX IF NOT EXISTS idx_stack_trace_frame_thread ON stack_trace_frame(thread_serial)")));
-
-    /** Prefix of a worker's span name; the table follows, giving one stable name per group. */
-    private static final String CREATE_INDEXES_SPAN_PREFIX = "create_indexes_";
 
     private HprofNonPkIndexes() {
     }
@@ -127,57 +97,11 @@ public final class HprofNonPkIndexes {
     }
 
     /**
-     * Recreates the indexes dropped by {@link #dropAll}. Parallelised across
-     * tables via {@code requestedWorkers} virtual-thread connections to
-     * {@code indexDbPath}; clamped at 1 and at the number of table-groups so
-     * the worker count never exceeds the available parallel work.
+     * Recreates the indexes dropped by {@link #dropAll}, parallelised across
+     * tables via up to {@code requestedWorkers} connections to {@code indexDbPath}.
      */
     public static void createAll(
             HeapDumpDatabaseClient client, Path indexDbPath, int requestedWorkers) {
-        int n = Math.max(1, Math.min(requestedWorkers, CREATE_DDL_BY_TABLE.size()));
-        if (n == 1) {
-            // The caller's client already runs on the phase's own thread, so its events land under
-            // the phase's span with nothing to re-establish.
-            for (IndexGroup group : CREATE_DDL_BY_TABLE) {
-                createGroup(client, group);
-            }
-            return;
-        }
-
-        String url = "jdbc:duckdb:" + indexDbPath.toAbsolutePath();
-        List<Future<?>> futures = new ArrayList<>(CREATE_DDL_BY_TABLE.size());
-        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            for (IndexGroup group : CREATE_DDL_BY_TABLE) {
-                // fork() is called here, on the coordinator, because that is where the phase's span
-                // is bound; the Runnable it returns re-opens that span on the worker.
-                futures.add(executor.submit(
-                        Tracer.fork(CREATE_INDEXES_SPAN_PREFIX + group.table(),
-                                () -> createGroupOnOwnConnection(url, group))));
-            }
-        }
-        for (Future<?> f : futures) {
-            FutureJoin.unwrap(f);
-        }
-    }
-
-    /**
-     * Runs one group on a connection of its own, so the workers do not contend on the caller's.
-     * The connection is wrapped in a {@link HeapDumpDatabaseClient} rather than used raw, which is
-     * the whole difference between this phase reporting one bar and reporting a statement each.
-     */
-    private static void createGroupOnOwnConnection(String url, IndexGroup group) {
-        try (Connection raw = DriverManager.getConnection(url);
-             DuckDBConnection conn = raw.unwrap(DuckDBConnection.class)) {
-            createGroup(new HeapDumpDatabaseClient(conn, GroupLabel.HEAP_DUMP_INDEX), group);
-        } catch (SQLException e) {
-            throw new RuntimeException(
-                    "Heap-dump create-index failed: table=" + group.table() + ": " + e.getMessage(), e);
-        }
-    }
-
-    private static void createGroup(HeapDumpDatabaseClient client, IndexGroup group) {
-        for (String ddl : group.ddl()) {
-            client.execute(HeapDumpStatement.CREATE_INDEXES, ddl);
-        }
+        BulkIndexes.createAll(client, indexDbPath, CREATE_DDL_BY_TABLE, requestedWorkers);
     }
 }
