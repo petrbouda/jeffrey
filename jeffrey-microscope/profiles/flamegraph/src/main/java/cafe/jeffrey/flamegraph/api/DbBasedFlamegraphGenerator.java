@@ -30,6 +30,7 @@ import cafe.jeffrey.flamegraph.provider.FlamegraphDataProvider;
 import cafe.jeffrey.flamegraph.provider.TimeseriesDataProvider;
 import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
+import cafe.jeffrey.shared.common.model.SpanScope;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
@@ -43,6 +44,11 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
     private static final String SPAN_TIMESERIES_BRANCH = "timeseries.branch";
     private static final String SPAN_MARSHALLING = "graph.marshalling";
 
+    private static final String SCOPE_HEADER = "scope";
+    private static final String SCOPE_SPAN_PREFIX = "span — only the samples taken inside ";
+    private static final String SCOPE_SPAN_SUFFIX = " thread window(s) of one span, not the whole recording";
+    private static final String SCOPE_OPERATION_PREFIX = "operation — only the samples taken while traces of \"";
+    private static final String SCOPE_OPERATION_SUFFIX = "\" were running, not the whole recording";
 
     private final ProfileEventStreamRepository eventRepository;
     private final double minFrameThresholdPct;
@@ -128,10 +134,30 @@ public class DbBasedFlamegraphGenerator implements GraphGenerator {
     public AiExport generateAiExportWithFrames(GraphParameters params) {
         Frame root = FlamegraphDataProvider.primary(eventRepository, params)
                 .provideFrame();
-        String markdown = new FlamegraphAiMarkdownBuilder(params.eventType(), aiExportConfig)
-                .withThreadMode(params.threadMode())
-                .build(root);
+        FlamegraphAiMarkdownBuilder builder = new FlamegraphAiMarkdownBuilder(params.eventType(), aiExportConfig)
+                .withThreadMode(params.threadMode());
+        describeScope(builder, params.spanScope());
+        String markdown = builder.build(root);
         return new AiExport(markdown, root);
+    }
+
+    /**
+     * Says in the header when the tree is not the whole recording. The preamble presents the
+     * document as one event type over one time window, which a reader takes to mean the profile;
+     * a graph cut to a span or an operation is a much narrower claim, and a model told nothing
+     * would generalise the span's hot path to the application.
+     */
+    private static void describeScope(FlamegraphAiMarkdownBuilder builder, SpanScope scope) {
+        if (scope == null || scope.isEmpty()) {
+            return;
+        }
+        String description = switch (scope) {
+            case SpanScope.Intervals intervals -> SCOPE_SPAN_PREFIX + intervals.intervals().size()
+                    + SCOPE_SPAN_SUFFIX;
+            case SpanScope.Operation operation -> SCOPE_OPERATION_PREFIX + operation.name()
+                    + SCOPE_OPERATION_SUFFIX;
+        };
+        builder.withHeaderField(SCOPE_HEADER, description);
     }
 
     /**

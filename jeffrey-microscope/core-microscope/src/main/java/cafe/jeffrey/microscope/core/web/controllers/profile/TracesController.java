@@ -349,6 +349,30 @@ public class TracesController {
     }
 
     /**
+     * The span's flamegraph rendered as Markdown for an AI to read — the same samples the graph
+     * next door draws, scoped the same way. Without this, "Copy for AI" over an open span graph
+     * could only offer the trace's own bundle, which describes the span tree rather than the
+     * frames the reader was looking at.
+     */
+    @PostMapping(value = "/{traceId}/spans/{spanId}/flamegraph/ai-export",
+            produces = MARKDOWN_MEDIA_TYPE)
+    public String spanFlamegraphAiExport(
+            @PathVariable("profileId") String profileId,
+            @PathVariable("traceId") String traceId,
+            @PathVariable("spanId") String spanId,
+            @RequestBody GenerateTraceSpanFlamegraphRequest request) {
+        LOG.debug("Exporting a span flamegraph for AI: profile_id={} trace_id={} span_id={} self_only={}",
+                profileId, traceId, spanId, request.selfOnly());
+        ProfileManager profileManager = resolver.resolve(profileId);
+
+        List<SpanInterval> intervals = profileManager.traceManager()
+                .spanIntervals(parseId(traceId), parseId(spanId), request.selfOnly());
+        GraphParameters params = spanScopedParameters(profileManager, request, SpanScope.of(intervals),
+                "Span has no samples to show: " + spanId);
+        return profileManager.flamegraphManager().generateAiExport(params);
+    }
+
+    /**
      * Which event types recorded samples inside the traces of one type, with their real counts, so
      * the drill-down offers only flamegraphs that exist.
      */
@@ -409,6 +433,20 @@ public class TracesController {
             SpanScope scope,
             String notFoundMessage) {
 
+        GraphParameters params = spanScopedParameters(profileManager, request, scope, notFoundMessage);
+        return profileManager.flamegraphManager().generate(params);
+    }
+
+    /**
+     * The parameters of a graph over a set of intervals, shared by the drawn graph and its AI
+     * export so the two describe the same samples.
+     */
+    private static GraphParameters spanScopedParameters(
+            ProfileManager profileManager,
+            SpanFlamegraphOptions request,
+            SpanScope scope,
+            String notFoundMessage) {
+
         // A scope the caller enumerated can be seen to be empty; one it merely named cannot, and
         // asking would cost the very query this scope exists to avoid. A named scope that turns out
         // to cover nothing therefore yields an empty graph rather than this 404 — the panel that
@@ -416,8 +454,7 @@ public class TracesController {
         if (scope.isEmpty()) {
             throw Exceptions.resourceNotFound(notFoundMessage);
         }
-        GraphParameters params = SpanScopedGraphParameters.of(profileManager.info(), request, scope);
-        return profileManager.flamegraphManager().generate(params);
+        return SpanScopedGraphParameters.of(profileManager.info(), request, scope);
     }
 
     /**

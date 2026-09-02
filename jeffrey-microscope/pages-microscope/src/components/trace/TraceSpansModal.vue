@@ -43,8 +43,13 @@
           <!--
             Beside the trace's own facts rather than in the waterfall toolbar: it exports the whole
             trace, not the view of it, so it should not sit among the controls that change that view.
+
+            Withdrawn while a span's flamegraph is open: the graph carries its own export in its
+            toolbar, and two buttons both saying "Copy for AI" left the reader with a trace bundle
+            when they had asked for the frames in front of them.
           -->
           <AiExportButton
+            v-if="mode !== 'flamegraph'"
             :build-source="buildAiExportSource"
             tooltip="Export this trace for AI analysis"
             :disabled="!detail"
@@ -128,6 +133,7 @@
               :scrollable-wrapper-class="TRACE_FG_SCROLL_ID"
               :flamegraph-tooltip="flamegraphTooltip"
               :graph-updater="graphUpdater"
+              :ai-export-context="flamegraphAiExport"
               @loaded="scrollToTop"
             />
           </div>
@@ -229,9 +235,11 @@ import TraceSpanFlamegraphs from '@/components/trace/TraceSpanFlamegraphs.vue';
 import EventWindowTimeline from '@/components/events/EventWindowTimeline.vue';
 import type { TraceSpanFlamegraphRequest } from '@/components/trace/TraceSpanFlamegraphs.vue';
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
+import type { AiExportContext } from '@/components/FlamegraphComponent.vue';
 
 import ProfileTracesClient from '@/services/api/ProfileTracesClient';
 import TraceAiExportClient from '@/services/api/TraceAiExportClient';
+import { flamegraphFilenameStem } from '@/composables/useAiExport';
 import type { AiExportSource } from '@/composables/useAiExport';
 import TraceSpanFlamegraphClient from '@/services/api/TraceSpanFlamegraphClient';
 import { errorLabel } from '@/services/trace/traceLabels';
@@ -282,6 +290,8 @@ const flamegraphOrigin = ref<'events' | 'flamegraph-picker'>('flamegraph-picker'
 const activeEventType = ref('');
 const activeUseWeight = ref(false);
 const activeSelfOnly = ref(false);
+/** The open span graph's own AI export, so "Copy for AI" over it describes the graph, not the trace. */
+const flamegraphAiExport = ref<AiExportContext | null>(null);
 
 /** Null until the second request lands, and after one that failed. The waterfall copes with both. */
 const context = ref<TraceContext | null>(null);
@@ -522,6 +532,7 @@ function openFlamegraph(request: TraceSpanFlamegraphRequest): void {
     request.payload.useWeight,
     false
   );
+  flamegraphAiExport.value = spanFlamegraphAiExport(span, request);
 
   mode.value = 'flamegraph';
 
@@ -529,6 +540,33 @@ function openFlamegraph(request: TraceSpanFlamegraphRequest): void {
   setTimeout(() => {
     graphUpdater.initialize();
   }, GraphUpdater.MODAL_INIT_DELAY_MS);
+}
+
+/**
+ * The same scope the graph was asked with — span, self-only, event type, filters — so the document
+ * and the picture agree. Search is left to the graph, which alone knows what is typed into it.
+ */
+function spanFlamegraphAiExport(
+  span: TraceSpanRow,
+  request: TraceSpanFlamegraphRequest
+): AiExportContext {
+  const client = new TraceAiExportClient(props.profileId);
+  const traceId = props.traceId;
+  const payload = request.payload;
+  return {
+    graphMode: 'PRIMARY',
+    filenameStem: flamegraphFilenameStem(payload.eventType, `span-${span.name}`),
+    generate: () =>
+      client.generateSpanFlamegraph(traceId, span.spanId, {
+        selfOnly: request.selfOnly,
+        eventType: payload.eventType,
+        useWeight: payload.useWeight,
+        useThreadMode: payload.useThreadMode,
+        excludeNonJavaSamples: payload.excludeNonJavaSamples,
+        excludeIdleSamples: payload.excludeIdleSamples,
+        onlyUnsafeAllocationSamples: payload.onlyUnsafeAllocationSamples
+      })
+  };
 }
 
 /**

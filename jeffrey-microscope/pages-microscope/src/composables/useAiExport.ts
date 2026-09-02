@@ -38,6 +38,19 @@ export interface AiExportSource {
 }
 
 /**
+ * The download name of a flamegraph export: `jdk.ExecutionSample` becomes `executionsample`, the part
+ * of an event type a filename can carry, with an optional scope in between naming what the graph
+ * was cut to (a span, say) so two graphs of one event type stay apart in a downloads folder.
+ */
+export function flamegraphFilenameStem(eventType: string, scope: string | null = null): string {
+  const event = eventType.replace(/^[a-z]+\./, '').toLowerCase();
+  if (scope === null) {
+    return `flamegraph-${event}`;
+  }
+  return `flamegraph-${scope}-${event}`;
+}
+
+/**
  * Whether the Clipboard API exists here at all. It is undefined on plain-HTTP origins — which is
  * how a self-hosted Jeffrey is typically served — so a copy attempt there cannot work, and the
  * honest move is to offer the download up front rather than fail with a toast that blames the

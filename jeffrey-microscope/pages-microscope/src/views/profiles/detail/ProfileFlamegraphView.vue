@@ -19,6 +19,8 @@
 <script setup lang="ts">
 import FlamegraphComponent from '@/components/FlamegraphComponent.vue';
 import type { AiExportContext } from '@/components/FlamegraphComponent.vue';
+import FlamegraphAiExportClient from '@/services/api/FlamegraphAiExportClient';
+import { flamegraphFilenameStem } from '@/composables/useAiExport';
 import TimeSeriesChart from '@/components/TimeSeriesChart.vue';
 import SearchBarComponent from '@/components/SearchBarComponent.vue';
 import CpuTimeSampleLossAlert from '@/components/alerts/CpuTimeSampleLossAlert.vue';
@@ -121,15 +123,22 @@ onBeforeMount(() => {
     isDifferentialValue
   );
 
+  // The filters in effect travel with the request, so the exported document describes the graph as
+  // it is on screen rather than the unfiltered one.
+  const aiExportClient = new FlamegraphAiExportClient(route.params.profileId as string);
   aiExportContext.value = {
-    profileId: route.params.profileId as string,
-    eventType: eventTypeValue,
     graphMode: isDifferentialValue ? 'DIFFERENTIAL' : 'PRIMARY',
-    useWeight: useWeightValue,
-    useThreadMode,
-    excludeNonJavaSamples,
-    excludeIdleSamples,
-    onlyUnsafeAllocationSamples
+    filenameStem: flamegraphFilenameStem(eventTypeValue),
+    generate: search =>
+      aiExportClient.generate({
+        eventType: eventTypeValue,
+        useWeight: useWeightValue,
+        useThreadMode,
+        search,
+        excludeNonJavaSamples,
+        excludeIdleSamples,
+        onlyUnsafeAllocationSamples
+      })
   };
 });
 </script>
