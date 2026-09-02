@@ -33,6 +33,7 @@ import java.util.concurrent.Semaphore;
 import cafe.jeffrey.profile.heapdump.model.DuplicateArrayGroup;
 import cafe.jeffrey.profile.heapdump.model.DuplicateDataReport;
 import cafe.jeffrey.profile.heapdump.parser.FutureJoin;
+import static cafe.jeffrey.profile.heapdump.parser.HprofAppenderUtils.primArrayName;
 import cafe.jeffrey.profile.heapdump.view.HeapView;
 import cafe.jeffrey.profile.heapdump.view.HprofTag;
 import cafe.jeffrey.profile.heapdump.view.InstanceRow;
@@ -112,6 +113,12 @@ public final class DuplicateArrayAnalyzer {
      * at least {@link #MIN_DUPLICATE_GROUP_SIZE} members — the sole rows that can
      * possibly be duplicates. {@code file_offset} is selected so the payload read
      * skips the per-array primary-key lookup.
+     *
+     * <p>No class name is selected: a primitive array's class is one of the eight
+     * synthetic {@code byte[]}, {@code int[]}, ... rows, whose name follows from
+     * {@code primitive_type} alone. Joining {@code class} for it made the driver
+     * decode a VARCHAR per candidate row, which was a tenth of everything the
+     * analysis thread allocated.
      */
     private static final String CANDIDATE_ARRAYS_SQL = """
             WITH candidates AS (
@@ -121,11 +128,10 @@ public final class DuplicateArrayAnalyzer {
               GROUP BY primitive_type, array_length
               HAVING COUNT(*) >= %2$d
             )
-            SELECT i.instance_id, i.array_length, i.primitive_type, i.shallow_size, i.file_offset, c.name
+            SELECT i.instance_id, i.array_length, i.primitive_type, i.shallow_size, i.file_offset
             FROM instance i
             JOIN candidates cand
               ON cand.primitive_type = i.primitive_type AND cand.array_length = i.array_length
-            LEFT JOIN class c ON c.class_id = i.class_id
             WHERE i.record_kind = %1$d
             """.formatted(RECORD_KIND_PRIMITIVE_ARRAY, MIN_DUPLICATE_GROUP_SIZE);
 
@@ -235,8 +241,7 @@ public final class DuplicateArrayAnalyzer {
                         rs.getInt(2),
                         rs.getByte(3),
                         rs.getLong(4),
-                        rs.getLong(5),
-                        rs.getString(6)));
+                        rs.getLong(5)));
                 if (batch.size() >= batchSize) {
                     futures.add(submitBatch(executor, view, batch, inFlight));
                     batch = new ArrayList<>(batchSize);
@@ -289,7 +294,8 @@ public final class DuplicateArrayAnalyzer {
             }
             long hash = hasher.hash(content, 0, content.length, HASH_SEED);
             GroupKey key = new GroupKey(row.primitiveType(), row.arrayLength(), hash);
-            GroupAcc acc = local.computeIfAbsent(key, k -> new GroupAcc(row.typeName(), row.shallowSize()));
+            GroupAcc acc = local.computeIfAbsent(key,
+                    k -> new GroupAcc(primArrayName(row.primitiveType()), row.shallowSize()));
             acc.add(row.instanceId());
         }
         return new PartialResult(local, oversizedSkipped);
@@ -366,8 +372,7 @@ public final class DuplicateArrayAnalyzer {
             int arrayLength,
             byte primitiveType,
             long shallowSize,
-            long fileOffset,
-            String typeName) {
+            long fileOffset) {
 
         InstanceRow toInstanceRow() {
             return new InstanceRow(

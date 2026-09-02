@@ -759,9 +759,26 @@ public final class DominatorTreeBuilder {
             """;
 
     /**
-     * Builds the CSR adjacency in two passes: count out-degrees → prefix-sum
-     * them into {@code offsets}, then fill {@code edges} in source order using
-     * a {@code cursor[]} that walks each node's slot in the flat array.
+     * Out-degree per source node, aggregated in DuckDB. It replaces a first streaming pass over
+     * every edge whose only purpose was to count them: the JDBC driver allocates its chunk
+     * buffers per row fetched, so streaming 100 M+ edges twice was the largest allocation on the
+     * coordinator thread, and a GROUP BY hands back at most one row per source instead. The join
+     * on the target side is kept so the counts drop the same orphan references the fill pass does.
+     */
+    private static final String OUTBOUND_DEGREES_SQL = """
+            SELECT s.node_index, CAST(COUNT(*) AS INTEGER)
+            FROM outbound_ref o
+            JOIN id_index s ON o.source_id = s.instance_id
+            JOIN id_index t ON o.target_id = t.instance_id
+            GROUP BY s.node_index
+            """;
+
+    /**
+     * Builds the CSR adjacency in two passes: read the out-degrees (aggregated
+     * in DuckDB, one row per source) → prefix-sum them into {@code offsets},
+     * then fill {@code edges} in source order using a {@code cursor[]} that
+     * walks each node's slot in the flat array. Only the fill pass streams the
+     * edges themselves.
      *
      * <p>The per-edge {@code instance_id → node_index} translation runs in DuckDB
      * via a temp {@code id_index} table and INNER JOINs against {@code outbound_ref}
@@ -776,13 +793,13 @@ public final class DominatorTreeBuilder {
 
         client.execute(HeapDumpStatement.BUILD_ID_INDEX, CREATE_ID_INDEX_SQL);
         try {
-            // Pass 1a: count outbound_ref edges by source. Stash counts at
+            // Pass 1a: out-degrees by source, one row per source. Stashed at
             // offsets[u + 1] so the prefix-sum below converts them in place.
-            client.rawStream(HeapDumpStatement.JOIN_OUTBOUND_REFS, OUTBOUND_REFS_JOIN_SQL, rs -> {
+            client.rawStream(HeapDumpStatement.COUNT_OUTBOUND_DEGREES, OUTBOUND_DEGREES_SQL, rs -> {
                 long rows = 0;
                 while (rs.next()) {
                     int src = rs.getInt(1);
-                    offsets[src + 1]++;
+                    offsets[src + 1] = rs.getInt(2);
                     rows++;
                 }
                 return rows;

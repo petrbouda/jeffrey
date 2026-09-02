@@ -55,6 +55,7 @@ public enum HeapDumpStatement {
     // ---- DominatorTreeBuilder id-index temp table (load_successors hash-join) ----
     BUILD_ID_INDEX,
     DROP_ID_INDEX,
+    COUNT_OUTBOUND_DEGREES,
     JOIN_OUTBOUND_REFS,
     JOIN_GC_ROOTS,
 
