@@ -170,10 +170,6 @@
                 <li>JDBC Pool</li>
               </ul>
               <p>Switch to the <code>custom mode</code> at the top of the sidebar menu and look at the dashboards related to custom events.</p>
-              <p>
-                Don't forget to check <code>Guardian Analysis</code> section with warnings related to:
-                <code>JIT Compilation</code>, <code>Logging</code> and <code>Regular Expressions</code>
-              </p>
               <div class="category-examples">
                 <div class="example-item">jeffrey-persons-custom-events.jfr</div>
               </div>
