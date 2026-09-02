@@ -28,8 +28,6 @@ import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
 import cafe.jeffrey.profile.manager.model.trace.TraceStacktrace;
 import cafe.jeffrey.profile.manager.model.trace.TraceTimelineBucket;
-import cafe.jeffrey.profile.manager.model.trace.TracesPage;
-import cafe.jeffrey.provider.profile.api.TraceListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -40,8 +38,8 @@ import java.util.Optional;
 import java.util.function.Function;
 
 /**
- * Reads the traces derived from a profile's events and shapes them for the trace views: a list of
- * traces, one trace's span tree, and latency aggregated per operation.
+ * Reads the traces derived from a profile's events and shapes them for the trace views: latency
+ * aggregated per operation, and one trace's span tree.
  */
 public interface TraceManager {
 
@@ -50,21 +48,8 @@ public interface TraceManager {
     }
 
     /**
-     * Lists traces, narrowed, ordered and paged as the query asks.
-     *
-     * @return the page's rows plus how many the filter matched, so a truncated list can say so
-     */
-    TracesPage traces(TraceListQuery query);
-
-    /**
-     * How traces were spread over the recording, for the timeline above the trace list.
-     *
-     * @param buckets how many slices to divide the recording into
-     */
-    List<TraceTimelineBucket> timeline(int buckets);
-
-    /**
-     * The same, for one trace type — the metrics timeline of an operation's drill-down.
+     * How one trace type's traces were spread over the recording — the metrics timeline of an
+     * operation's drill-down.
      *
      * <p>Aggregated here rather than folded out of {@link #tracesOfOperation}: that list is capped
      * and ordered by start time, so an operation with more traces than the cap would have the
@@ -83,7 +68,7 @@ public interface TraceManager {
 
     /**
      * @return profile-wide trace totals and latency percentiles, describing the whole recording
-     *         rather than the capped list {@link #slowestTraces(int)} returns
+     *         rather than the capped list {@link #tracesOfOperation(TraceOperationId, int)} returns
      */
     TraceOverview overview();
 

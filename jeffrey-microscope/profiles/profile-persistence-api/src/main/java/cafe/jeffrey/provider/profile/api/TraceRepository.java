@@ -29,8 +29,8 @@ import java.util.Optional;
  * Spans arrive in the {@code events} table like any other JFR event, with their trace identity in
  * the JSON {@code fields}. {@link #derive()} lifts them once into typed {@code trace_spans} and
  * {@code traces} tables, after which every read here is a plain scan of BIGINT columns rather than
- * repeated JSON extraction — which is what makes the trace list and the tree queries cheap enough
- * to serve interactively.
+ * repeated JSON extraction — which is what makes the operation and tree queries cheap enough to
+ * serve interactively.
  */
 public interface TraceRepository {
 
@@ -60,16 +60,6 @@ public interface TraceRepository {
      * @return whether any event type declares a {@code spanId} field
      */
     boolean hasSpanEventTypes();
-
-    /**
-     * Lists traces for the trace list, narrowed, ordered and paged as the query asks.
-     * <p>
-     * Narrowing happens here rather than over a fetched list because the list is capped: filtering
-     * client-side searches only the slowest page, so a search for a trace outside it comes back
-     * empty while the trace sits in the table. The returned page carries how many the filter matched
-     * in total, which is what lets the caller page past the cap instead of guessing at it.
-     */
-    TracePage traces(TraceListQuery query);
 
     /**
      * Lists the traces of one type, in the order they ran.
@@ -110,8 +100,8 @@ public interface TraceRepository {
     /**
      * Profile-wide trace totals and latency percentiles, for the summary the trace list opens with.
      * <p>
-     * Aggregated in SQL rather than over {@link #slowestTraces(int)} because that list is capped:
-     * summing a truncated list would quietly report a fraction of the profile as the whole of it.
+     * Aggregated in SQL rather than over a fetched list because every list here is capped: summing
+     * a truncated list would quietly report a fraction of the profile as the whole of it.
      */
     TraceOverviewRecord overview();
 
@@ -154,21 +144,16 @@ public interface TraceRepository {
     TraceOperationPage operations(TraceOperationListQuery query);
 
     /**
-     * How traces were spread over the recording, as {@code buckets} equal slices.
+     * How one trace type's traces were spread over the recording, as {@code buckets} equal slices
+     * over the recording-wide bounds, so an operation's shape can be read against the profile's
+     * clock and against another operation's.
      * <p>
-     * Aggregated in SQL for the same reason {@link #overview()} is: the trace list is capped, so
-     * bucketing what it fetched would plot the slowest traces and call it the trace rate. Every slice
-     * comes back, including the ones holding no trace — a stretch of silence is a fact about the
-     * recording, and a reader that only receives the occupied slices cannot tell it from a gap in
-     * the data. A profile with no traces at all has no slices rather than a row of zeroes.
-     *
-     * @param buckets how many slices to divide the recording into; at least 1
-     */
-    List<TraceTimelineBucketRecord> timeline(int buckets);
-
-    /**
-     * The same slices for one trace type, over the same recording-wide bounds, so an operation's
-     * shape can be read against the profile's clock and against another operation's.
+     * Aggregated in SQL for the same reason {@link #overview()} is: {@link #tracesOfOperation} is
+     * capped, so bucketing what it fetched would plot the recording's first few seconds and call it
+     * the operation's shape. Every slice comes back, including the ones holding no trace — a stretch
+     * of silence is a fact about the recording, and a reader that only receives the occupied slices
+     * cannot tell it from a gap in the data. An operation with no traces at all has no slices rather
+     * than a row of zeroes.
      *
      * @param buckets how many slices to divide the recording into; at least 1
      */

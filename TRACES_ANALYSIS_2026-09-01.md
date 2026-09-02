@@ -202,18 +202,20 @@ operations and attributes views. Consequently the whole `TraceListQuery` → `TR
 `COUNT_TRACES` / `TIMELINE` path is dead in production, and `TraceListQuery.slowest(int)`
 (`TraceListQuery.java:68`) has no production caller at all.
 
-Either ship the page (§5.1) or delete the endpoints deliberately — today it is tested, maintained,
+Either ship the page or delete the endpoints deliberately — today it is tested, maintained,
 unserved surface.
 
-Fix note: the page was shipped. `views/profiles/detail/traces/ProfileTraces.vue` (route
-`traces/all`, sidebar "All Traces", first in the TRACES group) serves both endpoints — a bucketed
-timeline over the recording, server-side search / errors-only / duration-floor filters, ordering by
-`DURATION | START | SPAN_COUNT | ERROR_COUNT`, fifty-at-a-time paging with `LoadMoreFooter`, filters
-mirrored into the URL, and rows opening the existing `TraceSpansModal`. `TracesPage`,
-`TraceListQuery` and `TraceSortField` now exist in `TraceModels.ts`, with `getTraces` /
-`getTracesTimeline` on `ProfileTracesClient`. The timeline uses the shared `TimeSeriesChart` in the
-same pairing as its two sibling charts rather than a bespoke density strip, which is what the
-"must not disagree" comment in `TraceAttributeResults.vue` asks for.
+Fix note: the endpoints were deleted. The page was briefly shipped as `ProfileTraces.vue` (route
+`traces/all`, sidebar "All Traces") and then removed again: in practice it duplicated Search Traces,
+which answers "which runs were slowest" and "what failed" through conditions that also say *why*,
+and answers them over the same profile-wide population. Rather than carry two lists of the same
+rows, `GET /traces` and `GET /traces/timeline` are gone, along with `TraceManager.traces` /
+`.timeline`, `TraceRepository.traces` / `.timeline`, `TracePage`, `TracesPage`, `TraceListQuery`,
+the `TRACE_LIST` / `COUNT_TRACES` / `TIMELINE` statements and the `LIST_TRACES` / `COUNT_TRACES` /
+`TRACE_TIMELINE` labels. What the removed statements uniquely covered was rehomed rather than
+dropped: the `ILIKE` escaping and blank-filter tests now run against the operations filter, which
+shares `containsPattern`, and the bucketing tests against `timelineOfOperation`, which is what is
+left of `TIMELINE_TEMPLATE`. `TraceSortField` stays — attribute search orders by it.
 
 ### 2.2 Operation-level AI export is implemented but unreachable — [FIXED]
 
@@ -371,11 +373,10 @@ tables, not data grids) but are exactly where ~1,200 lines of bespoke scoped CSS
 
 ## 5. Enhancement ideas
 
-1. **Ship the profile-wide trace list.** The backend (§2.1) is implemented, tested and unserved: a
-   page with the density-strip timeline on top and a sortable/searchable list (slowest, errors
-   only, min-duration) closes the "show me the 50 slowest traces in this profile" gap. If the
-   product decision is that traces are only reachable through operations and attribute search,
-   delete the endpoints instead — either way the current state is the worst of both.
+1. ~~**Ship the profile-wide trace list.**~~ **Resolved the other way** (§2.1): the product decision
+   is that traces are reachable through operations and attribute search, so the endpoints were
+   deleted rather than served. Search Traces already answers "show me the 50 slowest traces in this
+   profile" over the same population, and answers it with conditions that say why.
 
 2. **A universal negative operator.** Keep `NOT_EQ` existential if desired, but add `NONE_EQ`
    ("no span in the trace has this value") — that is the query users actually mean by
@@ -429,7 +430,8 @@ tables, not data grids) but are exactly where ~1,200 lines of bespoke scoped CSS
 2. ~~§1.4/§1.5 race guards + loading affordance in attribute search; guard the `loadPage`
    append~~ — **done on this branch**.
 3. ~~§1.6 transactional `derive()`~~ — **done on this branch**.
-4. ~~§2.2 operation AI-export button · §2.1 profile-wide trace list~~ — **done on this branch**.
+4. ~~§2.2 operation AI-export button · §2.1 profile-wide trace list~~ — **done on this branch**
+   (§2.1 resolved by deleting the endpoints: the page duplicated Search Traces).
 5. ~~§1.7 unify window arithmetic · §1.8 add `NONE_EQ` · §1.10 unify `threadHash` base~~ —
    **done on this branch**.
 6. ~~§3.1 slowest-traces pagination · §3.2 sort direction end-to-end · §4.1 token cleanup~~ —

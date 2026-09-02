@@ -19,7 +19,7 @@
 package cafe.jeffrey.provider.profile.api;
 
 /**
- * What a trace list can be ordered by.
+ * What a list of traces can be ordered by — today, the traces an attribute search matched.
  * <p>
  * An enum rather than a column name off the request, because the value is interpolated into the
  * {@code ORDER BY} of a statement whose other values are bound: a column cannot be a bind parameter,
