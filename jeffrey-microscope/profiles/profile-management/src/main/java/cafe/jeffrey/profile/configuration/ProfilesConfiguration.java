@@ -19,7 +19,6 @@
 package cafe.jeffrey.profile.configuration;
 
 import org.springframework.context.annotation.Import;
-import cafe.jeffrey.profile.advisor.config.AdvisorConfiguration;
 import cafe.jeffrey.profile.ai.oql.config.AiAssistantConfiguration;
 import cafe.jeffrey.profile.ai.claudecode.config.ClaudeCodeConfiguration;
 import cafe.jeffrey.profile.ai.config.AiChatModelConfiguration;
@@ -34,7 +33,6 @@ import cafe.jeffrey.profile.heapdump.oql.config.OqlEngineConfiguration;
         DuckDbMcpConfiguration.class,
         HeapDumpMcpConfiguration.class,
         OqlEngineConfiguration.class,
-        AdvisorConfiguration.class,
         ProfileCoreConfiguration.class,
         ProfileVisualizationConfiguration.class,
         ProfileAnalysisConfiguration.class,

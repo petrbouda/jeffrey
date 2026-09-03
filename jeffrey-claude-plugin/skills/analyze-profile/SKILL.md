@@ -102,4 +102,6 @@ document shows. If the repository is open alongside, read the real source before
   `…/api/internal/mcp` endpoint: run `/plugin`, open the `microscope` plugin's configuration
   and set **Jeffrey MCP endpoint**.
 
-For raw SQL against a profile or a heap dump, see the `jfr-sql` and `heap-sql` skills.
+For raw SQL against a profile or a heap dump, see the `jfr-sql` and `heap-sql` skills. To go from
+a profile to a code change — hot frames mapped to this repository, a recommendation, an edit and a
+re-profile — see the `advise` skill.

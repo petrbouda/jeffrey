@@ -26,7 +26,6 @@ module cafe.jeffrey.microscope.profile.management {
     requires cafe.jeffrey.microscope.profile.heapdump;
     requires cafe.jeffrey.microscope.profile.heapdump.oql;
     requires cafe.jeffrey.microscope.profile.ai.oql;
-    requires transitive cafe.jeffrey.microscope.profile.advisor;
     requires cafe.jeffrey.microscope.profile.ai.mcp.duckdb.jfr;
     requires cafe.jeffrey.microscope.profile.ai.mcp.duckdb.heapdump;
     requires cafe.jeffrey.microscope.profile.ai.claudecode;

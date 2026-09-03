@@ -24,8 +24,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Terminal snapshots of staged background runs for one profile — heap-dump initialization, Advisor
- * generations, and any future pipeline.
+ * Terminal snapshots of staged background runs for one profile — heap-dump initialization, profile
+ * initialization, and any future pipeline.
  *
  * <p>The repository speaks {@link PipelineRunResult} rather than a storage-shaped row, because there is
  * exactly one thing worth storing about a finished run and inventing a second representation of it

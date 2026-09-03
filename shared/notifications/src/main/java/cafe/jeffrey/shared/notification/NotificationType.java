@@ -75,7 +75,7 @@ public enum NotificationType {
     PROFILE_DELETED(NotificationCategory.PROFILE, Severity.MEDIUM,
             "The profile's database and its whole directory were removed"),
 
-    // ---------- Pipelines: profile init, heap dump init, advisor ----------
+    // ---------- Pipelines: profile init, heap dump init ----------
 
     PIPELINE_COMPLETED(NotificationCategory.PROFILE, Severity.LOW,
             "Pipeline run completed"),

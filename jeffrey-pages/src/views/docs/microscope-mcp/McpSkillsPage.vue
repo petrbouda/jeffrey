@@ -29,6 +29,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'why-skills-at-all', text: 'Why Skills at All', level: 2 },
   { id: 'analyze-profile', text: 'analyze-profile', level: 2 },
+  { id: 'advise', text: 'advise', level: 2 },
   { id: 'jfr-sql', text: 'jfr-sql', level: 2 },
   { id: 'heap-sql', text: 'heap-sql', level: 2 },
   { id: 'invoking-one-directly', text: 'Invoking One Directly', level: 2 },
@@ -40,8 +41,11 @@ onMounted(() => {
 });
 
 const invoke = `/microscope:analyze-profile
+/microscope:advise
 /microscope:jfr-sql
 /microscope:heap-sql`;
+
+const advisePrompt = `advise on the most recent Jeffrey profile - what should I change in this repo?`;
 
 const eventsView = `-- correct
 SELECT event_type, COUNT(*) FROM events GROUP BY event_type
@@ -58,14 +62,15 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
     />
 
     <div class="docs-content">
-      <p>The <router-link to="/docs/microscope-mcp/plugin">plugin</router-link> ships three skills. Claude loads one on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
+      <p>The <router-link to="/docs/microscope-mcp/plugin">plugin</router-link> ships four skills. Claude loads one on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
 
       <h2 id="why-skills-at-all">Why Skills at All</h2>
       <p>Most of what a model needs in order to <em>read</em> Jeffrey&rsquo;s output already travels with the output. Every flamegraph and trace export opens with a preamble that defines what <code>self</code> means against <code>total</code>, what the frame tags mean, what was pruned, and how to analyse that particular event type. Nothing needs to repeat that, and a skill that did would go stale the moment the preamble changed.</p>
 
-      <p>Two things do <em>not</em> travel with any tool output, and those are what the skills carry:</p>
+      <p>Three things do <em>not</em> travel with any tool output, and those are what the skills carry:</p>
       <ul>
         <li><strong>Where to start.</strong> Nothing in a tool list says that <code>profiles_list</code> comes first, or that <code>profiles_features</code> saves three dead ends.</li>
+        <li><strong>What to do about a hotspot.</strong> An export ends where the profile ends, at a call path and a percentage. Getting from there to an edit in the repository &mdash; and knowing when not to trust the mapping &mdash; is a workflow, not a reading instruction.</li>
         <li><strong>The two database schemas.</strong> Jeffrey&rsquo;s in-app assistant is given the JFR and heap-dump schemas in its system prompt. An external client never sees that prompt, so without a skill it would be guessing at column names.</li>
       </ul>
 
@@ -75,6 +80,21 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <p>It carries the entry sequence &mdash; <code>profiles_list</code>, then <code>profiles_features</code>, then the family that matches the question &mdash; a map of the six families to the questions each answers, when to start instead from <code>recordings_analyzeFile</code> because the user named a file Jeffrey has never seen, the rule that every scoped tool takes a <code>profileId</code>, which flamegraph to pick for CPU versus allocation versus lock contention versus wall-clock, the order to work a latency question in traces, and what a failure means (a <code>404</code> means the server was switched off, not a bug).</p>
 
       <p>It also tells the model to <strong>ground its claims</strong>: the exports contain call paths and numbers, not source locations, so file and line numbers must be read from the repository rather than inferred from a profile.</p>
+
+      <h2 id="advise">advise</h2>
+      <p><em>From a profile to a code change.</em> Loaded when the question is &ldquo;what should I change&rdquo;, &ldquo;optimise this&rdquo;, or when a hotspot has been found and the next question is what to do about it. It is the successor of the in-app Profile Advisor: the same job, done by the agent that is already in your checkout and can build, test and re-profile, instead of by a model given a read-only view of one folder.</p>
+      <DocsCodeBlock :code="advisePrompt" language="bash" />
+
+      <p>It works in two phases with a stop between them &mdash; <strong>recommend</strong>, then <strong>change</strong> &mdash; and carries what neither the exports nor the tool list say:</p>
+      <ul>
+        <li><strong>The commit check.</strong> <code>profiles_get</code> reports the commit the profiled build came from when the recording was tagged with one. The skill compares it with <code>HEAD</code> before mapping a single frame, and says so when they differ or when the commit is unknown &mdash; a profile of another commit describes code that may no longer exist.</li>
+        <li><strong>The four groups.</strong> CPU, wall-clock, allocation and blocking, each with the event type that answers it and the fallback when a recording carries an older one (the TLAB pair for allocation; monitor-wait and park for blocking), weighted by bytes or nanoseconds where that is the meaningful ranking. A group with no samples is reported with the profiler flag that would capture it next time.</li>
+        <li><strong>The grounding rules.</strong> Never name a file, method or line that was not read; tie every finding to a frame and its share from the export; prefer a few high-impact findings over many speculative ones; say when a hotspot cannot be located rather than guessing.</li>
+        <li><strong>The output shape</strong> of the recommendation &mdash; a summary, one section per file and method with the cause, the measured share and the proposed change in prose &mdash; and the gate: nothing is edited until the recommendation has been read and a finding has been accepted.</li>
+        <li><strong>The verification loop.</strong> The smallest edit that implements the finding, the project&rsquo;s own build and tests, and where the recording can be reproduced, a re-run analysed with <code>recordings_analyzeFile</code> and exported with identical parameters so the delta is real. A saving that was not measured is capped at the frame&rsquo;s own share, since a change cannot save more time than the frame used.</li>
+      </ul>
+
+      <p>What it deliberately does not carry is how to read a CPU, allocation or blocking graph. Every export already opens with an analysis section written for its event type, so the skill says to follow that document rather than restating it.</p>
 
       <h2 id="jfr-sql">jfr-sql</h2>
       <p><em>The profile database.</em> Loaded when a question needs <code>jfr_executeQuery</code> or <code>jfr_queryEvents</code> because no purpose-built tool covers it.</p>

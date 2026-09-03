@@ -16,27 +16,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.advisor.source;
+package cafe.jeffrey.microscope.core.manager.recordings;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.microscope.persistence.api.RecordingTagsRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Finds the commit a recording's build came from, so the advisor can tell the user whether the source
- * folder on disk is the source that actually ran.
+ * Finds the commit a recording's build came from, so a reader holding a checkout can tell whether the
+ * source in front of them is the source that actually ran.
  *
- * <p>Against a remote clone this decided <em>what to check out</em>. Against a local working copy it
- * decides <em>what to warn about</em>: Jeffrey cannot move somebody's working tree, but it can say
- * "this profile came from a different commit than the one you have checked out" instead of letting the
- * model reason confidently about code that never executed.</p>
+ * <p>The answer travels out through the external MCP server: a coding agent sitting in the repository
+ * compares it with its own {@code HEAD} before mapping hot frames to code, instead of reasoning
+ * confidently about code that never executed.</p>
  *
- * <p>When no tag is present the answer is empty rather than a guess, and the UI reports the commit as
- * unknown rather than quietly implying the source matched.</p>
+ * <p>When no tag is present the answer is empty rather than a guess, and the caller reports the commit
+ * as unknown rather than quietly implying the source matched.</p>
  */
 public class RecordingCommitResolver {
 
@@ -69,7 +68,6 @@ public class RecordingCommitResolver {
                     .map(RecordingTag::value)
                     .filter(v -> v != null && !v.isBlank())
                     .findFirst();
-
             if (value.isPresent()) {
                 LOG.debug("Resolved commit for recording: recording_id={} tag_key={} commit_ref={}",
                         recordingId, key, value.get());
@@ -77,8 +75,7 @@ public class RecordingCommitResolver {
             }
         }
 
-        LOG.debug("No commit tag on recording; the source folder's commit cannot be compared: recording_id={}",
-                recordingId);
+        LOG.debug("No commit tag on recording; the checkout cannot be compared: recording_id={}", recordingId);
         return Optional.empty();
     }
 }

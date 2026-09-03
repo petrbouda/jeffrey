@@ -43,7 +43,7 @@ export default defineConfig({
         find: /^dompurify$/,
         replacement: fileURLToPath(new URL('./node_modules/dompurify', import.meta.url))
       },
-      // Prefix (not exact) match: @shared DiffViewer imports highlight.js subpaths such as
+      // Prefix (not exact) match: SourceViewerModal imports highlight.js subpaths such as
       // `highlight.js/lib/core` and `highlight.js/lib/languages/java`.
       {
         find: 'highlight.js',

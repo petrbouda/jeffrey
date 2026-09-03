@@ -13,8 +13,7 @@ export type ProfileMode =
   | 'Technologies'
   | 'Visualization'
   | 'HeapDump'
-  | 'Tools'
-  | 'Advisor';
+  | 'Tools';
 
 export type DifferentialType = 'flamegraphs' | 'subsecond';
 
@@ -462,25 +461,6 @@ export const profileNavSections: Record<
       ]
     }
   ],
-  Advisor: [
-    {
-      title: 'ADVISOR',
-      items: [
-        // No AI highlight here: the whole Advisor mode is already an AI feature, so marking three of
-        // its four pages would single them out for nothing.
-        item('Overview', 'bi-play-circle', '/advisor'),
-        item('Prompts', 'bi-chat-square-text', '/advisor/prompt', {
-          disabledKeys: [AI_ANALYSIS_KEY]
-        }),
-        item('Recommendations', 'bi-lightbulb', '/advisor/recommendations', {
-          disabledKeys: [AI_ANALYSIS_KEY]
-        }),
-        item('Patches', 'bi-file-earmark-diff', '/advisor/patches', {
-          disabledKeys: [AI_ANALYSIS_KEY]
-        })
-      ]
-    }
-  ],
   Tools: [
     {
       title: 'TRANSFORM',
@@ -567,9 +547,6 @@ export function getModeForPath(path: string): ProfileMode {
   }
   if (path.includes('/tools/')) {
     return 'Tools';
-  }
-  if (path.includes('/advisor')) {
-    return 'Advisor';
   }
   const subPath = path.replace(PROFILE_PATH_PREFIX, '');
   if (OVERVIEW_SUB_PATHS.has(subPath)) {

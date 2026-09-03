@@ -44,8 +44,8 @@ public interface DatabaseManagerResolver {
      * Opens the profile's database and pins its pool open until the lease is closed.
      *
      * <p>Use this instead of {@link #open} whenever the caller will hold the data source across a long
-     * stretch of doing nothing with it — an Advisor run spends minutes inside a single model call. A
-     * cached pool is idle-evicted after a few quiet minutes, which leaves the earlier {@code open}
+     * stretch of doing nothing with it — an MCP session keeps a profile open between a client's
+     * questions, and a model call can sit for minutes without touching the database. A cached pool is idle-evicted after a few quiet minutes, which leaves the earlier {@code open}
      * handle pointing at a closed pool and fails the next statement with "Failed to obtain JDBC
      * Connection". A lease is what tells the manager the caller is still there.</p>
      */

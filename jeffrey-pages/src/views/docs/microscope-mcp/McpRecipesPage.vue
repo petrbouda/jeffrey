@@ -32,6 +32,7 @@ const headings = [
   { id: 'explain-a-slow-endpoint', text: 'Explain a Slow Endpoint', level: 2 },
   { id: 'chase-a-memory-problem', text: 'Chase a Memory Problem', level: 2 },
   { id: 'does-the-code-agree-with-the-profile', text: 'Does the Code Agree With the Profile', level: 2 },
+  { id: 'from-profile-to-patch', text: 'From Profile to Patch', level: 2 },
   { id: 'compare-two-recordings', text: 'Compare Two Recordings', level: 2 },
   { id: 'a-question-with-no-tool', text: 'A Question With No Tool', level: 2 }
 ];
@@ -54,6 +55,8 @@ the biggest one alive?`;
 const promptCrossCheck = `the profile says OrderMapper.toDto is 18% of CPU. Read the actual
 implementation in this repo and tell me whether that is plausible, and what
 you would change`;
+
+const promptAdvise = `advise on the most recent Jeffrey profile - what should I change in this repo?`;
 
 const promptCompare = `compare the allocation flamegraphs of the before and after profiles and
 tell me what actually changed`;
@@ -130,6 +133,17 @@ LIMIT 20`;
       <p>This is the one that has no equivalent in the Jeffrey UI, and the reason the MCP server exists. Claude pulls the flamegraph, then reads the real method in your checkout &mdash; not a guess at what it probably does &mdash; and reconciles the two: an N+1 in a mapper, a regex recompiled per call, a defensive copy in a loop.</p>
 
       <p>Two things make the answers trustworthy: the numbers come from the profile rather than from intuition, and the code comes from disk rather than from memory of a similar codebase. Ask for the diff once you agree with the diagnosis.</p>
+
+      <h2 id="from-profile-to-patch">From Profile to Patch</h2>
+      <DocsCodeBlock :code="promptAdvise" language="bash" />
+
+      <p>Drives the <router-link to="/docs/microscope-mcp/skills#advise"><code>advise</code></router-link> skill: <code>profiles_get</code> for the recording&rsquo;s commit, <code>flamegraph_panels</code>, then <code>flamegraph_export</code> once per group the profile carries &mdash; CPU, wall-clock, allocation, blocking &mdash; followed by reads of the real source behind the heaviest frames.</p>
+
+      <p>The previous recipe reconciles one frame with one method. This one is the whole loop: every group at once, a recommendation per hotspot with the measured share that justifies it, and a stop before anything is edited. Say which findings to apply and Claude makes the smallest edit for each, runs the tests, and &mdash; if you name the command that produced the recording &mdash; re-runs it, analyses the new file with <code>recordings_analyzeFile</code> and reports the delta on the frames it changed.</p>
+
+      <DocsCallout type="info" title="It checks the commit first">
+        When the recording was tagged with the commit it was built from, <code>profiles_get</code> reports it and the skill compares it with <code>HEAD</code> before mapping a single frame. A mismatch is stated up front, not discovered after a patch to code that never ran.
+      </DocsCallout>
 
       <h2 id="compare-two-recordings">Compare Two Recordings</h2>
       <DocsCodeBlock :code="promptCompare" language="bash" />

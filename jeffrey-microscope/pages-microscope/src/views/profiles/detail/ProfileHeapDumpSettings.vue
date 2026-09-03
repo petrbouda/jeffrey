@@ -576,8 +576,7 @@ const followInitRun = async () => {
         progress = await client.getInitProgress();
         failedPolls = 0;
       } catch {
-        // A failed poll is not a failed run — same tolerance as the Advisor's loop. Only a server
-        // that stays unreachable ends the watch.
+        // A failed poll is not a failed run. Only a server that stays unreachable ends the watch.
         failedPolls++;
         if (failedPolls > MAX_IDLE_POLLS) {
           throw new Error('Lost contact with the server while initializing — please reload.');

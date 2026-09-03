@@ -181,50 +181,17 @@ CREATE TABLE IF NOT EXISTS profile_info
 );
 
 --
--- ADVISOR PROMPTS TABLE
--- One AI prompt per sample event type. `prompt` is the complete user message as the model receives
--- it, composed when the prompt is generated rather than at run time, so the run sends it verbatim and
--- the Advisor's Prompt page shows exactly what was asked.
---
-CREATE TABLE IF NOT EXISTS advisor_prompts
-(
-    event_type        VARCHAR     NOT NULL PRIMARY KEY,
-    label             VARCHAR     NOT NULL,
-    samples           BIGINT      NOT NULL,
-    prompt            VARCHAR     NOT NULL,
-    generated_at      TIMESTAMPTZ NOT NULL
-);
-
---
--- ADVISOR RECOMMENDATIONS TABLE
--- One advisor result per sample event type. `recommendation` is the markdown the model wrote — the
--- column repeats the table name because the artifact has exactly one name everywhere else too, and a
--- column unique to this table would be the odd one out. `patch` is the unified diff the model
--- proposed, already repaired by UnifiedDiffNormalizer so `git apply` accepts it; NULL when it
--- proposed no code edit — a patch is attempted for every recommendation, so NULL means the model
--- had no concrete edit to offer rather than that the type was skipped.
---
-CREATE TABLE IF NOT EXISTS advisor_recommendations
-(
-    event_type        VARCHAR     NOT NULL PRIMARY KEY,
-    recommendation    VARCHAR     NOT NULL,
-    patch             VARCHAR,
-    source_ref        VARCHAR,
-    generated_at      TIMESTAMPTZ NOT NULL
-);
-
---
 -- PIPELINE RUNS TABLE
--- The terminal snapshot of one staged background run — heap-dump initialization, one event type of an
--- Advisor batch, or any future pipeline. Live progress is deliberately NOT here: it lives in memory and
+-- The terminal snapshot of one staged background run — heap-dump initialization, or any future
+-- pipeline. Live progress is deliberately NOT here: it lives in memory and
 -- dies with the process, because so does the work it describes. What a user needs after the fact is the
 -- last completed run, which is what this stores, and it is what re-renders the kept timeline on return.
 --
 -- `stages` is a JSON array rather than a table of its own because it is written and read as a whole and
 -- rendered as a whole; a row per stage would buy queries nobody asks and a join everybody pays for.
--- `scope_id` is '' rather than NULL for pipelines that run once per profile (the heap dump), and the
--- event type for the Advisor, whose batch stores one row per type — so the primary key works without
--- NULL-comparison rules and a batch is simply every row of its pipeline.
+-- `scope_id` is '' rather than NULL for pipelines that run once per profile (the heap dump), and a
+-- pipeline that runs once per something narrower stores that something — so the primary key works
+-- without NULL-comparison rules and a batch is simply every row of its pipeline.
 --
 CREATE TABLE IF NOT EXISTS pipeline_runs
 (

@@ -48,7 +48,6 @@
         <module>heapdump-oql</module>
         <module>ai-config</module>
         <module>oql-assistant</module>
-        <module>profile-advisor</module>
         <module>profile-persistence-api</module>
         <module>profile-sql-persistence</module>
         <module>profile-management</module>

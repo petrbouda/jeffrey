@@ -32,8 +32,7 @@ const headings = [
   { id: 'core-directories', text: 'Core Directories', level: 2 },
   { id: 'update-check', text: 'Update Check', level: 2 },
   { id: 'mcp-server', text: 'MCP Server', level: 2 },
-  { id: 'ai-assistant', text: 'AI Assistant', level: 2 },
-  { id: 'advisor', text: 'Advisor', level: 2 }
+  { id: 'ai-assistant', text: 'AI Assistant', level: 2 }
 ];
 
 onMounted(() => {
@@ -218,37 +217,6 @@ onMounted(() => {
         </tbody>
       </table>
 
-      <h2 id="advisor">Advisor</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Default</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>jeffrey.microscope.advisor.max-concurrent-runs</code></td>
-            <td><code>2</code></td>
-            <td>
-              How many event types the Advisor analyzes at the same time. <code>0</code> means no
-              ceiling. Installation-wide &mdash; two profiles analyzed at once share it. Also
-              editable as <strong>Settings &rarr; Advisor &rarr; Parallel analyses</strong>.
-            </td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.advisor.prune-threshold-pct</code></td>
-            <td><code>1.0</code></td>
-            <td>
-              Frames below this share of the call tree are pruned from the prompt the Advisor sends,
-              trading detail for prompt size. Must be greater than <code>0</code> and less than
-              <code>100</code>.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
       <DocsCallout type="tip">
         <strong>API key:</strong> store the provider's API key as a
         <router-link to="/docs/microscope/configuration/secrets">secret</router-link>
@@ -257,7 +225,7 @@ onMounted(() => {
 
       <DocsCallout type="info">
         <strong>Editable at runtime:</strong> every category in <strong>Settings</strong> in the
-        Microscope UI is hot-reloaded — the AI properties above, the Advisor properties, the log level
+        Microscope UI is hot-reloaded — the AI properties above, the log level
         (<code>logging.level.cafe.jeffrey</code>) and the flamegraph thresholds. A change saved there is
         stored in the Microscope database and applied immediately — switching AI provider, pasting an API
         key or raising the log level does not need a restart. Values stored that way take precedence over

@@ -86,12 +86,6 @@ const folderStructure = `$JEFFREY_HOME/
         <li><strong>Top event types</strong> — the largest event types in the recording by samples, linking to flamegraphs and the event-type browser.</li>
       </ul>
 
-      <h2 id="advisor">Advisor</h2>
-      <p>Beside the analysis sections below, a profile also has an <strong>Advisor</strong> mode: point it at a folder of source on the same machine and it turns the profile&rsquo;s own call tree into recommendations and ready-to-apply patches.</p>
-      <p class="docs-read-more">
-        <router-link to="/docs/microscope/profiles/advisor">Read the Advisor reference &rarr;</router-link>
-      </p>
-
       <h2 id="visualization">Visualization</h2>
       <p>Profiling graphs for deep performance analysis — flamegraphs and sub-second analysis tools.</p>
 

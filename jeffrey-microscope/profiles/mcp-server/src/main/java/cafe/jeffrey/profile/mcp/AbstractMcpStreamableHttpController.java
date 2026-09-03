@@ -36,7 +36,7 @@ import java.util.function.Supplier;
  * {@link McpToolProvider}.
  * <p>
  * Subclasses keep their own {@code @RestController}/{@code @RequestMapping}/{@code @PostMapping} plus the
- * scope query parameters they need (e.g. {@code profileId+toolset} or {@code runId}), and delegate to
+ * scope query parameters they need (e.g. {@code profileId+toolset}), and delegate to
  * {@link #dispatch(JsonNode, Supplier)} with a supplier that builds the toolset for that request. The
  * supplier is invoked lazily, only for {@code tools/list} and {@code tools/call}.
  */

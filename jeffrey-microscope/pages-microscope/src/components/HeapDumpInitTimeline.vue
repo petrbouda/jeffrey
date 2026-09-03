@@ -8,7 +8,7 @@
 <!--
   Heap-dump adapter over the generic @shared ProcessingTimeline: it supplies the heap-dump phase
   grouping and step labels and forwards the live/persisted step data. All the layout, timing and
-  sub-phase accordion live in the shared component, reused by the Advisor and future staged features.
+  sub-phase accordion live in the shared component, reusable by future staged features.
 -->
 <script lang="ts">
 // Re-exported so existing importers (ProfileHeapDumpSettings) keep `import { type TimelineStep }` here.

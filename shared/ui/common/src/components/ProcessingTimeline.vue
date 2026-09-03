@@ -19,7 +19,7 @@
 <!--
   A generic staged-processing timeline: phase cards, each with timed step rows, plus an overall progress
   header. The phase grouping and step labels are supplied by the caller through `phases`, so the same
-  component renders the Heap Dump initialization, the Advisor run, and any future staged feature. The
+  component renders the Heap Dump initialization and any future staged feature. The
   backend stores only step id/status/duration; this component owns the layout.
 -->
 <template>

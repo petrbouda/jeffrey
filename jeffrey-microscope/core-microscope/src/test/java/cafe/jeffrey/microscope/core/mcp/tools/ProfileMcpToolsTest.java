@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
 import cafe.jeffrey.profile.manager.FlamegraphManager;
@@ -37,6 +38,7 @@ import org.mockito.quality.Strictness;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
@@ -59,8 +61,11 @@ class ProfileMcpToolsTest {
     @Mock
     HeapDumpManager heapDumpManager;
 
+    @Mock
+    RecordingCommitResolver recordingCommitResolver;
+
     private ProfileMcpTools tools() {
-        return new ProfileMcpTools(profileManager);
+        return new ProfileMcpTools(profileManager, recordingCommitResolver);
     }
 
     private void stubProfile(RecordingEventSource eventSource) {
@@ -72,6 +77,7 @@ class ProfileMcpToolsTest {
         when(profileManager.heapDumpManager()).thenReturn(heapDumpManager);
         when(featuresManager.getDisabledFeatures()).thenReturn(List.of());
         when(flamegraphManager.allEventSummaries()).thenReturn(List.of());
+        when(recordingCommitResolver.resolve("rec-1")).thenReturn(Optional.empty());
     }
 
     @Nested
@@ -86,6 +92,25 @@ class ProfileMcpToolsTest {
 
             assertTrue(result.contains("\"profileId\":\"p-1\""));
             assertTrue(result.contains("\"sizeInBytes\":4096"));
+        }
+
+        /**
+         * The commit is the one fact that lets a client in a checkout know whether it reads the code
+         * that ran; it comes from the recording's tags, not from the profile itself.
+         */
+        @Test
+        void reportsTheRecordingsCommitWhenItWasTagged() {
+            stubProfile(RecordingEventSource.JDK);
+            when(recordingCommitResolver.resolve("rec-1")).thenReturn(Optional.of("abc123"));
+
+            assertTrue(tools().get().contains("\"recordingCommit\":\"abc123\""));
+        }
+
+        @Test
+        void reportsAnUnknownCommitAsNullRatherThanOmittingIt() {
+            stubProfile(RecordingEventSource.JDK);
+
+            assertTrue(tools().get().contains("\"recordingCommit\":null"));
         }
     }
 
