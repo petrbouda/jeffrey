@@ -93,20 +93,24 @@ const removal = `/plugin uninstall microscope@jeffrey`;
       <p>The value is stored per machine, in <code>~/.claude/settings.json</code>. One plugin therefore serves every installation: a non-default port is a setting, not an edit to the manifest, and a laptop can point at a tunnelled staging Jeffrey while the machine beside it stays on localhost.</p>
 
       <h2 id="what-the-plugin-adds">What the Plugin Adds</h2>
-      <p>Registering the server by hand gives you the forty-three tools. The plugin adds two things on top.</p>
+      <p>Registering the server by hand gives you the forty-three tools. The plugin adds three things on top.</p>
 
       <p><strong>The endpoint, already configured</strong> &mdash; including the per-machine setting above, so the same install works on a laptop and against a tunnelled staging Jeffrey.</p>
 
       <p><strong>Five skills</strong>, which Claude picks up on its own when a question calls for them, and which you can also invoke directly:</p>
       <ul>
-        <li><code>/microscope:analyze-profile</code> &mdash; where to start and which family answers which question</li>
+        <li><code>/microscope:analyze-jfr</code> &mdash; where to start and which family answers which question</li>
         <li><code>/microscope:analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the twenty heap tools have to be run in</li>
-        <li><code>/microscope:advise</code> &mdash; from a profile to a code change: hot frames mapped to your checkout, a recommendation, then the edit and a re-profile on request</li>
+        <li><code>/microscope:advise-jfr</code> &mdash; from a profile to a code change: hot frames mapped to your checkout, a recommendation, then the edit and a re-profile on request</li>
         <li><code>/microscope:jfr-sql</code> &mdash; the JFR schema and the DuckDB idioms that go with it</li>
         <li><code>/microscope:heap-sql</code> &mdash; the heap-dump index schema</li>
       </ul>
 
       <p>The <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page covers what each one carries and why it exists.</p>
+
+      <p><strong>One subagent</strong>, <code>microscope:profile-analyst</code>. A single <code>flamegraph_export</code> can run to 120,000 characters &mdash; the cap a tool result is truncated at &mdash; and answering a question properly often takes several of them. The analyst runs a sequence and returns only the findings: the hot frames with their <code>total</code> and <code>self</code> shares, or the retaining classes with their retained bytes and GC-root paths. Everything it read stays in its own context window rather than crowding out the conversation you are having.</p>
+
+      <p>The skills hand it the reading and keep what actually needs your session: mapping frames onto the checkout, the recommendation, and every question put to you. <code>advise-jfr</code> uses it hardest, sending CPU, wall-clock, allocation and blocking out as four parallel delegations instead of pulling four documents into one context. Its tools are the read-only MCP families and nothing else &mdash; no file access, no <code>recordings_</code> &mdash; so it can neither touch your repository nor create a profile.</p>
 
       <h2 id="permissions">Permissions</h2>
       <p>Claude Code asks before each tool the first time. Every tool here reads except the <code>recordings_</code> family, which imports a recording file and builds a profile from it, so approving the whole family once is usually what you want &mdash; from the prompt, or up front with <code>/permissions</code>:</p>

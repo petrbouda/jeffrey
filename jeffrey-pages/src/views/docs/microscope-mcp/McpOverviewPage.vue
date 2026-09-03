@@ -97,7 +97,7 @@ onMounted(() => {
         </tbody>
       </table>
 
-      <p>They are not alternatives; running both is normal. The <router-link to="/docs/ai/overview">AI Analysis</router-link> pages cover the in-app side. What used to be the third thing &mdash; the Profile Advisor, which read one source folder from inside Jeffrey and proposed a patch &mdash; is now the <router-link to="/docs/microscope-mcp/skills#advise"><code>advise</code> skill</router-link> on this side: the same job, done by the agent that can also build, test and re-profile.</p>
+      <p>They are not alternatives; running both is normal. The <router-link to="/docs/ai/overview">AI Analysis</router-link> pages cover the in-app side. What used to be the third thing &mdash; the Profile Advisor, which read one source folder from inside Jeffrey and proposed a patch &mdash; is now the <router-link to="/docs/microscope-mcp/skills#advise-jfr"><code>advise-jfr</code> skill</router-link> on this side: the same job, done by the agent that can also build, test and re-profile.</p>
 
       <h2 id="how-a-request-travels">How a Request Travels</h2>
       <p>The server speaks <strong>MCP over Streamable HTTP</strong> &mdash; JSON-RPC 2.0 against a single endpoint, <code>POST /api/internal/mcp</code>, on the Jeffrey Microscope you already run. There is no separate process to start and no extra port to open.</p>

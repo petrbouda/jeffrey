@@ -64,17 +64,24 @@ both) and not the case for a Jeffrey in a container or on another host.
 
 **Skills**, which you can also invoke directly:
 
-- `/microscope:analyze-profile` — where to start and which family answers which question
+- `/microscope:analyze-jfr` — where to start and which family answers which question
 - `/microscope:analyze-heap` — a heap dump end to end: what is holding the memory, what is leaking,
   which class loader never went away, and the order the heap tools have to be run in
-- `/microscope:advise` — from a profile to a code change: the hottest CPU, wall-clock, allocation
-  and blocking frames mapped to real source in your checkout, a recommendation, then the edit and a
-  re-profile on request
+- `/microscope:advise-jfr [profile-id | recording-file] [cpu|wall|alloc|lock]` — from a profile to a
+  code change: the hottest CPU, wall-clock, allocation and blocking frames mapped to real source in
+  your checkout, a recommendation, then the edit and a re-profile on request
 - `/microscope:jfr-sql` — the JFR schema and the DuckDB idioms that go with it
 - `/microscope:heap-sql` — the heap-dump index schema
 
 The exports carry their own reading instructions, so the skills stay short: they cover the
 workflows and the two schemas, not things the tool output already explains.
+
+**One subagent**, `microscope:profile-analyst`. A single flamegraph export can run to 120,000
+characters, and a question usually takes several. The analyst runs a sequence and returns only the
+findings — the hot frames with their shares, or the retaining classes with their GC-root paths —
+leaving everything it read in its own context. The skills hand it the reading and keep what needs
+your conversation: mapping frames onto the checkout, the recommendation, and every question put to
+you. It reads over MCP only, so it cannot touch your files, import a recording or propose an edit.
 
 ## Permissions
 
