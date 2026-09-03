@@ -61,7 +61,7 @@ elsewhere; Jeffrey's accounting is stated precisely in the document and differs 
 
 ## Choosing a graph
 
-`flamegraph_panels` lists the event types this profile really recorded. Asking for one it did not
+`flamegraph_list` lists the event types this profile really recorded. Asking for one it did not
 record returns an empty tree rather than an error, so check first. Common starting points:
 
 - on-CPU time → `jdk.ExecutionSample`

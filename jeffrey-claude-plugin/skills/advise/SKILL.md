@@ -41,7 +41,7 @@ do only that one.
 | Allocation | `jdk.ObjectAllocationSample`, else `jdk.ObjectAllocationInNewTLAB`, else `jdk.ObjectAllocationOutsideTLAB` | `useWeight: true` (bytes, not call count) |
 | Blocking | `jdk.JavaMonitorEnter`, else `jdk.JavaMonitorWait`, else `jdk.ThreadPark` | `useWeight: true` (nanoseconds blocked) |
 
-`flamegraph_panels` says which of these the profile recorded. A group with no samples is
+`flamegraph_list` says which of these the profile recorded. A group with no samples is
 reported, not analysed, with the async-profiler flag that would capture it next time:
 `event=ctimer` (CPU), `wall=10ms`, `alloc=512k`, `lock=10ms`.
 
@@ -105,7 +105,7 @@ continue from step 4 above with that export instead of the whole-recording one.
 
 ## When something is missing
 
-- `flamegraph_panels` is empty → a heap dump or a recording without samples; there is nothing to
+- `flamegraph_list` is empty → a heap dump or a recording without samples; there is nothing to
   advise on from a flamegraph. For a heap dump, the `heap_` family and the `heap-sql` skill apply.
 - The profile's commit differs from `HEAD` and the user does not want to switch → analyse anyway,
   but say in the summary that every file reference was checked against a different commit than

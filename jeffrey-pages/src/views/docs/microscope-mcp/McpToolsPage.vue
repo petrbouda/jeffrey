@@ -118,7 +118,7 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
         </thead>
         <tbody>
           <tr>
-            <td><code>flamegraph_panels</code></td>
+            <td><code>flamegraph_list</code></td>
             <td><code>profileId</code></td>
             <td>Which event types this profile can be graphed by. Call it first &mdash; asking for a type the profile did not record returns an empty tree, not an error</td>
           </tr>

@@ -42,13 +42,13 @@ import java.util.List;
  * Flamegraphs of one profile, rendered as the Markdown export rather than as the protobuf the browser
  * draws — the same call tree, written to be read.
  * <p>
- * {@code panels} comes first on purpose: which event types a recording actually captured varies by
+ * {@link #list()} comes first on purpose: which event types a recording actually captured varies by
  * profiler configuration, and asking for a graph of an event type that was never recorded returns an
- * empty tree rather than an error. The panel list is the profile's own answer to "what can I graph".
+ * empty tree rather than an error. The list is the profile's own answer to "what can I graph".
  */
 public class FlamegraphMcpTools {
 
-    private static final String NO_PANELS =
+    private static final String NOTHING_TO_GRAPH =
             "This profile has no flamegraph-capable event types. It may be a heap dump "
                     + "(use the heap_* tools) or a recording without execution samples.";
 
@@ -64,11 +64,11 @@ public class FlamegraphMcpTools {
             + "actually recorded, with their sample and weight totals, and the options each graph is "
             + "normally drawn with. Call this before flamegraph_export to learn the valid eventType "
             + "values for this profile.")
-    public String panels() {
+    public String list() {
         List<FlamegraphPanel> panels = panelProvider.panels(
                 profileManager.flamegraphManager().eventSummaries(), PanelContext.PRIMARY);
         if (panels.isEmpty()) {
-            return NO_PANELS;
+            return NOTHING_TO_GRAPH;
         }
         return McpToolOutput.json(panels);
     }
@@ -81,7 +81,7 @@ public class FlamegraphMcpTools {
     public String export(
             @ToolParam(description = "JFR event type to graph, e.g. 'jdk.ExecutionSample' for CPU, "
                     + "'jdk.ObjectAllocationSample' for allocation, 'jdk.JavaMonitorEnter' for lock "
-                    + "contention. Use flamegraph_panels to see what this profile recorded.")
+                    + "contention. Use flamegraph_list to see what this profile recorded.")
             String eventType,
             @ToolParam(description = "Only show frames at or above this percentage of total samples "
                     + "(exclusive range 0-100). Lower means more detail and a longer document; the "
