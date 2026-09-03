@@ -52,7 +52,7 @@ Jeffrey is a self-hosted analysis tool — no cloud services, no account signup,
 docker run -it --network host petrbouda/microscope
 ```
 
-Open [http://localhost:8080](http://localhost:8080) in your browser. That's it — Jeffrey is ready to analyze your recordings.
+Open [http://localhost:8585](http://localhost:8585) in your browser. That's it — Jeffrey is ready to analyze your recordings.
 
 If you want to explore Jeffrey with pre-loaded example data first (recommended for your first time), use the examples image instead:
 
@@ -156,4 +156,4 @@ You can find the source code at [github.com/petrbouda/jeffrey](https://github.co
 docker run -it --network host petrbouda/microscope-examples
 ```
 
-Open [http://localhost:8080](http://localhost:8080), explore the pre-loaded examples, and see what your own recordings reveal.
+Open [http://localhost:8585](http://localhost:8585), explore the pre-loaded examples, and see what your own recordings reveal.

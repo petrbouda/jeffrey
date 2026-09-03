@@ -158,4 +158,4 @@ You can find the source code at [github.com/petrbouda/jeffrey](https://github.co
 docker run -it --network host petrbouda/microscope-examples
 ```
 
-Open [http://localhost:8080](http://localhost:8080) and explore the pre-loaded flamegraph examples hands-on.
+Open [http://localhost:8585](http://localhost:8585) and explore the pre-loaded flamegraph examples hands-on.

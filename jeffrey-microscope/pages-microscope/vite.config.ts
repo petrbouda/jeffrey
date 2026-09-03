@@ -57,7 +57,7 @@ export default defineConfig({
       allow: ['../..']
     },
     proxy: {
-      '/api': 'http://localhost:8080'
+      '/api': 'http://localhost:8585'
     }
   },
   build: {

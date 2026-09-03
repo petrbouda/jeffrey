@@ -41,12 +41,12 @@ onMounted(() => {
 
 const propertyToggle = `jeffrey.microscope.mcp.enabled=false`;
 
-const defaultEndpoint = `http://localhost:8080/api/internal/mcp`;
+const defaultEndpoint = `http://localhost:8585/api/internal/mcp`;
 
-const tunnel = `ssh -N -L 8080:localhost:8080 you@the-host-running-jeffrey`;
+const tunnel = `ssh -N -L 8585:localhost:8585 you@the-host-running-jeffrey`;
 
 const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
-  -X POST http://localhost:8080/api/internal/mcp \\
+  -X POST http://localhost:8585/api/internal/mcp \\
   -H 'Content-Type: application/json' \\
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
 # 404 while disabled, 200 once enabled`;
@@ -72,7 +72,7 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <p>The profile is a tool argument rather than part of the URL, so a client registers this address once and can then move between profiles &mdash; and between the JFR, flamegraph, trace and heap-dump families &mdash; inside a single session.</p>
 
       <DocsCallout type="tip" title="Do not type the URL from memory">
-        The Settings tab shows the endpoint <em>as your browser just reached it</em>, derived from the request rather than hardcoded. Behind a container, a reverse proxy or a non-default port, <code>localhost:8080</code> is wrong &mdash; and wrong in a way you would only discover after pasting the command. Copy the one the tab shows.
+        The Settings tab shows the endpoint <em>as your browser just reached it</em>, derived from the request rather than hardcoded. Behind a container, a reverse proxy or a non-default port, <code>localhost:8585</code> is wrong &mdash; and wrong in a way you would only discover after pasting the command. Copy the one the tab shows.
       </DocsCallout>
 
       <h2 id="turning-it-off">Turning It Off</h2>

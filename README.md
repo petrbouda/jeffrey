@@ -50,7 +50,7 @@ curl -L -o microscope.jar \
 java -jar microscope.jar
 ```
 
-Then open **http://localhost:8080**, go to **Recordings → upload a JFR or Heap dump → Analyze**,
+Then open **http://localhost:8585**, go to **Recordings → upload a JFR or Heap dump → Analyze**,
 and Jeffrey builds a profile you can explore. That's it. 🎉
 
 ## 🧩 The Jeffrey ecosystem

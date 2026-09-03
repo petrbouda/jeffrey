@@ -75,8 +75,8 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><code>server.port</code></td>
-            <td><code>8080</code></td>
-            <td>HTTP port for the Microscope web UI. Standard Spring Boot property.</td>
+            <td><code>8585</code></td>
+            <td>HTTP port for the Microscope web UI. Standard Spring Boot property. Microscope sets 8585 rather than Spring Boot's own 8080, which is usually taken by the application being profiled.</td>
           </tr>
         </tbody>
       </table>

@@ -36,7 +36,7 @@ public final class McpToolsetFactory {
     private static final String TOOLSET_HEAP = "heap";
     private static final String TOOLSET_ADVISOR_SOURCE = "advisor-source";
 
-    private static final String DEFAULT_BASE_URL = "http://127.0.0.1:8080/api/internal/mcp/claude-code";
+    private static final String DEFAULT_BASE_URL = "http://127.0.0.1:8585/api/internal/mcp/claude-code";
 
     private final SettingsStore settingsStore;
     private final List<String> allowedTools;
