@@ -96,9 +96,11 @@ On go, for each accepted finding:
 
 ## When the question is latency, not throughput
 
-"This endpoint is slow" is a traces question first: `traces_operations`, `traces_slowestTraces`,
-`traces_traceExport`, then `traces_spanFlamegraphExport` for the frames inside the slow span —
-the sequence in the `analyze-profile` skill. Once a span's flamegraph names the hot frames,
+"This endpoint is slow" is a traces question first: `traces_operations`, `traces_notifications`
+when the overview reports any (a `CRITICAL` or `HIGH` one is the application's own diagnosis and
+comes before any frame), `traces_slowestTraces`, `traces_traceExport`, then
+`traces_spanFlamegraphExport` for the frames inside the slow span — the sequence in the
+`analyze-profile` skill. Once a span's flamegraph names the hot frames,
 continue from step 4 above with that export instead of the whole-recording one.
 
 ## When something is missing

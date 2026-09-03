@@ -31,6 +31,8 @@ import cafe.jeffrey.provider.profile.api.TraceOperationRecord;
 import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
 import cafe.jeffrey.provider.profile.api.TraceOperationSpanRecord;
 import cafe.jeffrey.provider.profile.api.TraceOperationThreadsRecord;
+import cafe.jeffrey.provider.profile.api.TraceNotificationGroupRecord;
+import cafe.jeffrey.provider.profile.api.TraceNotificationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceNotificationRecord;
 import cafe.jeffrey.provider.profile.api.TraceOverviewRecord;
 import cafe.jeffrey.provider.profile.api.TracePauseRecord;
@@ -48,6 +50,9 @@ import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
+import java.sql.Array;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -1263,6 +1268,9 @@ public class JdbcTraceRepository implements TraceRepository {
                 COALESCE(SUM(span_count), 0)                                AS total_spans,
                 COUNT(*) FILTER (WHERE error_count > 0)                     AS error_traces,
                 COALESCE(SUM(error_count), 0)                               AS error_spans,
+                (SELECT COUNT(*) FROM trace_notifications)                  AS notification_count,
+                (SELECT COUNT(*) FROM trace_notifications
+                    WHERE severity IN (:urgent_severities))                 AS urgent_notification_count,
                 COALESCE(CAST(AVG(duration) AS BIGINT), 0)                  AS avg_ns,
                 COALESCE(CAST(QUANTILE_CONT(duration, 0.95) AS BIGINT), 0)  AS p95_ns,
                 COALESCE(CAST(QUANTILE_CONT(duration, 0.99) AS BIGINT), 0)  AS p99_ns,
@@ -1294,6 +1302,29 @@ public class JdbcTraceRepository implements TraceRepository {
             %s
             """;
 
+    /**
+     * The severities that make a notification a finding rather than context. Spelled once here and
+     * bound as a list, so the overview, the operations list and the grouped read cannot disagree.
+     */
+    private static final List<String> URGENT_SEVERITIES = List.of("CRITICAL", "HIGH");
+    private static final String URGENT_SEVERITIES_PARAM = "urgent_severities";
+
+    /*
+     * The notifications each trace carries, folded to two counters so the operations list can sum
+     * them per type. Joined into the row query only: the count query shares OPERATION_GROUPING and
+     * has no use for columns it never projects.
+     */
+    //language=SQL
+    private static final String OPERATION_NOTIFICATION_COUNTS = """
+            LEFT JOIN (
+                SELECT trace_id,
+                       COUNT(*)                                                    AS notification_count,
+                       COUNT(*) FILTER (WHERE severity IN (:urgent_severities))    AS urgent_count
+                FROM trace_notifications
+                GROUP BY trace_id
+            ) n USING (trace_id)
+            """;
+
     //language=SQL
     private static final String OPERATIONS = """
             SELECT
@@ -1302,15 +1333,76 @@ public class JdbcTraceRepository implements TraceRepository {
                 root_event_type                                     AS event_type,
                 COUNT(*)                                            AS count,
                 COUNT(*) FILTER (WHERE error_count > 0)             AS error_count,
+                COALESCE(SUM(n.notification_count), 0)              AS notification_count,
+                COALESCE(SUM(n.urgent_count), 0)                    AS urgent_notification_count,
                 SUM(span_count)                                     AS span_count,
                 SUM(duration)                                       AS total_ns,
                 CAST(QUANTILE_CONT(duration, 0.5) AS BIGINT)        AS p50_ns,
                 CAST(QUANTILE_CONT(duration, 0.95) AS BIGINT)       AS p95_ns,
                 CAST(QUANTILE_CONT(duration, 0.99) AS BIGINT)       AS p99_ns,
                 MAX(duration)                                       AS max_ns
-            """ + OPERATION_GROUPING + """
+            FROM traces
+            """ + OPERATION_NOTIFICATION_COUNTS + """
+            %s
+            GROUP BY root_name, root_kind, root_event_type
+            %s
             ORDER BY %s, root_name, root_kind, root_event_type
             LIMIT :limit OFFSET :offset
+            """;
+
+    /** How many traces a notification group names as places to look, the slowest first. */
+    private static final int EXEMPLAR_TRACES_PER_GROUP = 5;
+
+    /*
+     * What the application said across the traces a query selects, one row per kind.
+     *
+     * Two levels of aggregation on purpose. The inner one folds each kind to one row per trace, so
+     * the outer one can count traces with COUNT(*) and pick exemplars with an ordered LIST over ids
+     * that are already distinct -- a single level would need DISTINCT inside an ordered aggregate,
+     * which DuckDB does not combine. The slice is a function call rather than `[1:n]`, whose colon
+     * the named-parameter parser would read as a bind parameter.
+     *
+     * Ranked by severity first because that is what the reader wants first: a single CRITICAL
+     * notification outranks a thousand LOW ones, and a frequency ranking would bury it.
+     */
+    //language=SQL
+    private static final String NOTIFICATION_GROUPS = """
+            WITH per_trace AS (
+                SELECT
+                    n.type, n.severity, n.category, n.source, n.message_ref, n.trace_id,
+                    COUNT(*)                                        AS occurrences,
+                    MIN(n.start_timestamp_from_beginning)           AS first_ms,
+                    MAX(n.start_timestamp_from_beginning)           AS last_ms,
+                    ANY_VALUE(t.duration)                           AS duration
+                FROM trace_notifications n
+                JOIN traces t ON t.trace_id = n.trace_id
+                LEFT JOIN trace_notification_messages m ON m.message_id = n.message_ref
+                %s
+                GROUP BY n.type, n.severity, n.category, n.source, n.message_ref, n.trace_id
+            )
+            SELECT
+                p.type, p.severity, p.category, p.source,
+                m.message_text                                      AS message,
+                SUM(p.occurrences)                                  AS count,
+                COUNT(*)                                            AS trace_count,
+                MIN(p.first_ms)                                     AS first_ms,
+                MAX(p.last_ms)                                      AS last_ms,
+                LIST_SLICE(LIST(p.trace_id ORDER BY p.duration DESC, p.trace_id), 1, %d)
+                                                                    AS exemplar_trace_ids
+            FROM per_trace p
+            LEFT JOIN trace_notification_messages m ON m.message_id = p.message_ref
+            GROUP BY p.type, p.severity, p.category, p.source, p.message_ref, m.message_text
+            ORDER BY
+                CASE p.severity
+                    WHEN 'CRITICAL' THEN 0
+                    WHEN 'HIGH' THEN 1
+                    WHEN 'MEDIUM' THEN 2
+                    WHEN 'LOW' THEN 3
+                    ELSE 4
+                END,
+                count DESC,
+                p.type
+            LIMIT :limit
             """;
 
     /**
@@ -1901,6 +1993,69 @@ public class JdbcTraceRepository implements TraceRepository {
     }
 
     @Override
+    public List<TraceNotificationGroupRecord> notifications(TraceNotificationListQuery query) {
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("limit", query.limit());
+
+        List<String> predicates = new ArrayList<>();
+        if (query.hasSeverity()) {
+            predicates.add("n.severity = :severity");
+            params.addValue("severity", query.severity().trim());
+        }
+        if (query.hasType()) {
+            predicates.add("n.type = :type");
+            params.addValue("type", query.type().trim());
+        }
+        if (query.hasCategory()) {
+            predicates.add("n.category = :category");
+            params.addValue("category", query.category().trim());
+        }
+        if (query.hasSource()) {
+            predicates.add("n.source = :source");
+            params.addValue("source", query.source().trim());
+        }
+        if (query.hasMessageFilter()) {
+            predicates.add("m.message_text ILIKE :message_pattern ESCAPE '\\'");
+            params.addValue("message_pattern", containsPattern(query.messageContains()));
+        }
+        if (query.hasOperation()) {
+            predicates.add(OPERATION_PREDICATE);
+            params.addValues(operationParams(query.operation()).getValues());
+        }
+
+        return databaseClient.query(
+                StatementLabel.TRACE_NOTIFICATION_GROUPS,
+                NOTIFICATION_GROUPS.formatted(whereClause(predicates), EXEMPLAR_TRACES_PER_GROUP),
+                params,
+                (rs, _) -> new TraceNotificationGroupRecord(
+                        rs.getString("type"),
+                        rs.getString("severity"),
+                        rs.getString("category"),
+                        rs.getString("source"),
+                        rs.getString("message"),
+                        rs.getLong("count"),
+                        rs.getLong("trace_count"),
+                        rs.getLong("first_ms"),
+                        rs.getLong("last_ms"),
+                        longList(rs, "exemplar_trace_ids")));
+    }
+
+    /** A DuckDB {@code BIGINT[]} column as a list, empty for SQL NULL. */
+    private static List<Long> longList(ResultSet rs, String column) throws SQLException {
+        Array array = rs.getArray(column);
+        if (array == null) {
+            return List.of();
+        }
+        Object[] values = (Object[]) array.getArray();
+        List<Long> result = new ArrayList<>(values.length);
+        for (Object value : values) {
+            if (value instanceof Number number) {
+                result.add(number.longValue());
+            }
+        }
+        return result;
+    }
+
+    @Override
     public List<TraceExceptionRecord> exceptionsOf(long traceId) {
         return databaseClient.query(
                 StatementLabel.TRACE_EXCEPTIONS,
@@ -1998,12 +2153,14 @@ public class JdbcTraceRepository implements TraceRepository {
         return databaseClient.querySingle(
                         StatementLabel.TRACE_OVERVIEW,
                         OVERVIEW,
-                        new MapSqlParameterSource(),
+                        new MapSqlParameterSource().addValue(URGENT_SEVERITIES_PARAM, URGENT_SEVERITIES),
                         (rs, _) -> new TraceOverviewRecord(
                                 rs.getLong("total_traces"),
                                 rs.getLong("total_spans"),
                                 rs.getLong("error_traces"),
                                 rs.getLong("error_spans"),
+                                rs.getLong("notification_count"),
+                                rs.getLong("urgent_notification_count"),
                                 rs.getLong("avg_ns"),
                                 rs.getLong("p95_ns"),
                                 rs.getLong("p99_ns"),
@@ -2037,6 +2194,7 @@ public class JdbcTraceRepository implements TraceRepository {
 
         params.addValue("limit", query.limit());
         params.addValue("offset", query.offset());
+        params.addValue(URGENT_SEVERITIES_PARAM, URGENT_SEVERITIES);
 
         List<TraceOperationRecord> operations = databaseClient.query(
                 StatementLabel.TRACE_OPERATIONS,
@@ -2049,6 +2207,8 @@ public class JdbcTraceRepository implements TraceRepository {
                         rs.getString("event_type"),
                         rs.getLong("count"),
                         rs.getLong("error_count"),
+                        rs.getLong("notification_count"),
+                        rs.getLong("urgent_notification_count"),
                         rs.getLong("span_count"),
                         rs.getLong("total_ns"),
                         rs.getLong("p50_ns"),

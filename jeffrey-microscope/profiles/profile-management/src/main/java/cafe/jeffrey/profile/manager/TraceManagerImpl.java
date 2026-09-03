@@ -27,6 +27,7 @@ import cafe.jeffrey.profile.manager.model.trace.TraceNotificationRow;
 import cafe.jeffrey.profile.manager.model.trace.TracePause;
 import cafe.jeffrey.profile.manager.model.trace.TraceThrottleWindow;
 import cafe.jeffrey.profile.manager.model.trace.TraceEventRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceNotificationGroupRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSpanRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
@@ -42,6 +43,7 @@ import cafe.jeffrey.profile.manager.model.trace.TraceStackFrameRow;
 import cafe.jeffrey.provider.profile.api.EventFieldRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
+import cafe.jeffrey.provider.profile.api.TraceNotificationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationPage;
 import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
@@ -130,6 +132,8 @@ public class TraceManagerImpl implements TraceManager {
                 overview.totalSpans(),
                 overview.errorTraces(),
                 overview.errorSpans(),
+                overview.notificationCount(),
+                overview.urgentNotificationCount(),
                 overview.avgNanos(),
                 overview.p95Nanos(),
                 overview.p99Nanos(),
@@ -443,6 +447,8 @@ public class TraceManagerImpl implements TraceManager {
                                 operation.eventType(),
                                 operation.count(),
                                 operation.errorCount(),
+                                operation.notificationCount(),
+                                operation.urgentNotificationCount(),
                                 operation.spanCount(),
                                 operation.totalNanos(),
                                 operation.p50Nanos(),
@@ -476,6 +482,23 @@ public class TraceManagerImpl implements TraceManager {
                         && row.kind().equals(operation.kind())
                         && row.eventType().equals(operation.eventType()))
                 .findFirst();
+    }
+
+    @Override
+    public List<TraceNotificationGroupRow> notifications(TraceNotificationListQuery query) {
+        return traceRepository.notifications(query).stream()
+                .map(group -> new TraceNotificationGroupRow(
+                        group.type(),
+                        group.severity(),
+                        group.category(),
+                        group.source(),
+                        group.message(),
+                        group.count(),
+                        group.traceCount(),
+                        group.firstMillisFromBeginning(),
+                        group.lastMillisFromBeginning(),
+                        group.exemplarTraceIds().stream().map(TraceManagerImpl::toHex).toList()))
+                .toList();
     }
 
     @Override

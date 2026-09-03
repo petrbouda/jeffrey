@@ -243,6 +243,10 @@ export interface TraceOverview {
   totalSpans: number;
   errorTraces: number;
   errorSpans: number;
+  /** Notifications the application raised inside traces, of any severity. */
+  notificationCount: number;
+  /** How many of those were CRITICAL or HIGH. */
+  urgentNotificationCount: number;
   avgNanos: number;
   p95Nanos: number;
   p99Nanos: number;
@@ -267,6 +271,10 @@ export interface TraceOperationId {
 export interface TraceOperationRow extends TraceOperationId {
   count: number;
   errorCount: number;
+  /** Notifications the application raised inside traces of this operation, of any severity. */
+  notificationCount: number;
+  /** How many of those were CRITICAL or HIGH. */
+  urgentNotificationCount: number;
   spanCount: number;
   totalNanos: number;
   p50Nanos: number;
@@ -389,7 +397,7 @@ export interface TraceContext {
 
 /** What an operation list can be ordered by; must match the backend's `TraceOperationSortField`. */
 export type TraceOperationSortField =
-  'TOTAL_TIME' | 'P50' | 'P95' | 'P99' | 'MAX' | 'COUNT' | 'ERRORS' | 'NAME';
+  'TOTAL_TIME' | 'P50' | 'P95' | 'P99' | 'MAX' | 'COUNT' | 'ERRORS' | 'NOTIFICATIONS' | 'NAME';
 
 /** How the operations list should be narrowed, ordered and paged; every field is optional. */
 export interface TraceOperationListQuery {

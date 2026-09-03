@@ -19,28 +19,19 @@
 package cafe.jeffrey.provider.profile.api;
 
 /**
- * Profile-wide trace totals: how much tracing the recording captured, and how slow it was.
- * <p>
- * Traces and spans are counted separately because they fail separately — a handful of failed traces
- * can carry many failed spans, or one failed span can fail an otherwise healthy trace — and the
- * summary is only worth showing if it distinguishes the two.
+ * Profile-wide trace totals.
  *
- * @param totalTraces        traces in the profile
- * @param totalSpans         spans across all of them
- * @param errorTraces        traces containing at least one failed span
- * @param errorSpans         failed spans, however they are distributed across traces
- * @param avgNanos           mean trace duration
- * @param p95Nanos           95th percentile trace duration
- * @param p99Nanos           99th percentile trace duration
- * @param maxNanos           slowest trace
- * @param totalNanos         summed trace duration across the profile
- * @param distinctOperations distinct trace types, matching what the Traces by Operation view ranks
+ * @param notificationCount       how many notifications the application raised inside traces, of
+ *                                any severity; a notification outside every trace is not counted
+ * @param urgentNotificationCount how many of those were {@code CRITICAL} or {@code HIGH}
  */
 public record TraceOverviewRecord(
         long totalTraces,
         long totalSpans,
         long errorTraces,
         long errorSpans,
+        long notificationCount,
+        long urgentNotificationCount,
         long avgNanos,
         long p95Nanos,
         long p99Nanos,
@@ -50,5 +41,5 @@ public record TraceOverviewRecord(
 
     /** What an untraced profile reports: every counter zero rather than a null-riddled row. */
     public static final TraceOverviewRecord EMPTY =
-            new TraceOverviewRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+            new TraceOverviewRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 }

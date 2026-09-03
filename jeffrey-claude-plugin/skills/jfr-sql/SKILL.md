@@ -37,6 +37,21 @@ Call `jfr_describeTable('events')` first. In particular the duration column is `
 - **`frames`** — `frame_hash` (PK), `class_name`, `method_name`, `frame_type`, `line_number`,
   `bytecode_index`, `hidden_class_id`.
 
+Derived from the events when the profile carries Jeffrey Tracing, and empty otherwise:
+
+- **`traces`** — one row per trace: `trace_id` (PK), `root_name`, `root_kind`, `root_event_type`
+  (together the operation), `start_timestamp`, `start_timestamp_from_beginning`, `duration`,
+  `span_count`, `error_count`.
+- **`trace_spans`** — one row per span: `trace_id`, `span_id`, `parent_span_id`, `name`, `kind`,
+  `status`, `error_type`, `start_timestamp_from_beginning`, `duration`, `self_duration`,
+  `thread_hash`, `event_type`, `attributes` (JSON text).
+- **`trace_notifications`** — what the application said inside a trace: `trace_id`, `span_id`
+  (NULL when no span was open), `notification_id`, `start_timestamp_from_beginning`, `type`,
+  `severity`, `category`, `source`, `attributes`, and `message_ref` into
+  **`trace_notification_messages`** (`message_id`, `message_text`), which holds each distinct
+  sentence once. Prefer `traces_notifications` for the grouped reading; SQL is for a question it
+  does not shape, such as notifications per minute.
+
 ## Idioms that matter
 
 - **Durations are nanoseconds.** `duration / 1000000` → milliseconds.
@@ -57,7 +72,9 @@ CPU `jdk.ExecutionSample`, `jdk.NativeMethodSample` · allocation `jdk.ObjectAll
 `jdk.ObjectAllocationInNewTLAB`, `jdk.ObjectAllocationOutsideTLAB` · GC `jdk.GCPhasePause`,
 `jdk.YoungGarbageCollection`, `jdk.OldGarbageCollection`, `jdk.G1GarbageCollection` · threading
 `jdk.ThreadPark`, `jdk.JavaMonitorEnter`, `jdk.JavaMonitorWait` · I/O `jdk.FileRead`,
-`jdk.FileWrite`, `jdk.SocketRead`, `jdk.SocketWrite` · JIT `jdk.Compilation`, `jdk.CompilerPhase`.
+`jdk.FileWrite`, `jdk.SocketRead`, `jdk.SocketWrite` · JIT `jdk.Compilation`, `jdk.CompilerPhase` ·
+tracing `jeffrey.Notification` (the application's own reports; its `fields` carry `traceId`,
+`type`, `severity`, `message`), plus the span event types listed by `jfr_listEventTypes`.
 
 `jfr_listEventTypes` gives the ones this profile actually recorded, with counts — use it rather than
 assuming.

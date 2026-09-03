@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.ai.trace;
 
 import cafe.jeffrey.profile.manager.model.trace.TraceContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceExceptionRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceNotificationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceContextSlice;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TracePause;
@@ -294,6 +295,112 @@ class TraceAiMarkdownBuilderTest {
     private static String buildWith(List<TraceSpanRow> spans, List<TraceExceptionRow> exceptions) {
         TraceDetail detail = new TraceDetail(detail().trace(), spans, List.of(), exceptions, Map.of());
         return new TraceAiMarkdownBuilder(detail, context()).build();
+    }
+
+    /**
+     * A notification raised {@code offsetMs} into the fixture trace, which starts 60 s into the
+     * recording — so the row carries the recording-relative time and the export has to subtract.
+     */
+    private static TraceNotificationRow notification(
+            String spanId, String notificationId, long offsetMs, String type, String severity,
+            String category, String source, String message, String attributes) {
+
+        return new TraceNotificationRow(
+                spanId, notificationId, 60_000 + offsetMs, (60_000 + offsetMs) * 1_000L,
+                type, message, severity, category, source, attributes, "3001");
+    }
+
+    private static String buildWithNotifications(List<TraceNotificationRow> notifications) {
+        TraceDetail detail = new TraceDetail(
+                detail().trace(), detail().spans(), notifications, List.of(), Map.of());
+        return new TraceAiMarkdownBuilder(detail, context()).build();
+    }
+
+    @Nested
+    @DisplayName("Notifications")
+    class Notifications {
+
+        private List<TraceNotificationRow> poolPressureAndCacheWarmed() {
+            return List.of(
+                    notification("03", "n1", 12, "POOL_PRESSURE", "HIGH", "RESOURCE", "hikari",
+                            "Connection pool has no idle connections", "{\"pool\":\"orders\",\"inUse\":46}"),
+                    notification(null, "n2", 20, "CACHE_WARMED", "LOW", "PERFORMANCE", "cache",
+                            "The cache was warmed", null),
+                    notification("03", "n3", 30, "POOL_PRESSURE", "HIGH", "RESOURCE", "hikari",
+                            "Connection pool has no idle connections", "{\"pool\":\"orders\",\"inUse\":50}"));
+        }
+
+        @Test
+        @DisplayName("groups occurrences by kind and puts the most severe first")
+        void groupsByKindAndLeadsWithSeverity() {
+            String out = buildWithNotifications(poolPressureAndCacheWarmed());
+
+            assertTrue(out.contains("3 notifications recorded, 2 of them CRITICAL or HIGH."), out);
+            String line = lineWith(out, "POOL_PRESSURE ×2");
+            assertTrue(line.contains("[HIGH] — RESOURCE from hikari"), line);
+            assertTrue(out.indexOf("POOL_PRESSURE ×2") < out.indexOf("CACHE_WARMED ×1"),
+                    "HIGH sorts ahead of LOW whatever the order they fired in");
+        }
+
+        @Test
+        @DisplayName("names the span each kind was raised in, and says when none was open")
+        void namesTheSpan() {
+            String out = buildWithNotifications(poolPressureAndCacheWarmed());
+
+            assertTrue(out.contains("raised in: select inventory ×2"), out);
+            assertTrue(out.contains("raised in: outside any span ×1"), out);
+        }
+
+        @Test
+        @DisplayName("places occurrences relative to the trace, not to the recording")
+        void placesOccurrencesRelativeToTheTrace() {
+            String out = buildWithNotifications(poolPressureAndCacheWarmed());
+
+            assertTrue(out.contains("raised at: +12ms to +30ms into the trace"), out);
+            assertTrue(out.contains("raised at: +20ms into the trace"), out);
+            assertFalse(out.contains("+60012ms"), "the row's recording-relative time must be subtracted");
+        }
+
+        @Test
+        @DisplayName("carries the message once per kind and the first occurrence's attributes")
+        void carriesMessageAndAttributes() {
+            String out = buildWithNotifications(poolPressureAndCacheWarmed());
+
+            assertTrue(out.contains("message: Connection pool has no idle connections"), out);
+            assertTrue(out.contains("attributes: {\"pool\":\"orders\",\"inUse\":46}"), out);
+            assertFalse(out.contains("\"inUse\":50"), "one occurrence's specifics stand for the kind");
+        }
+
+        @Test
+        @DisplayName("says so when the application raised none")
+        void notesTheirAbsence() {
+            assertTrue(build().contains("(the application raised no notifications during this trace)"));
+        }
+
+        @Test
+        @DisplayName("keeps the most severe kinds when the list is cut")
+        void truncatesPastTheCap() {
+            List<TraceNotificationRow> many = new ArrayList<>();
+            for (int i = 0; i < 30; i++) {
+                many.add(notification("02", "n" + i, i, "KIND_" + i, i == 29 ? "CRITICAL" : "LOW",
+                        "PERFORMANCE", "test", "kind " + i, null));
+            }
+
+            String out = buildWithNotifications(many);
+
+            assertTrue(out.contains("KIND_29 ×1 [CRITICAL]"), "the one CRITICAL kind survives the cut");
+            assertTrue(out.contains("(truncated: 5 further notification kinds were omitted, out of 30"), out);
+        }
+
+        @Test
+        @DisplayName("the preamble explains the section and the analysis says to read it first")
+        void explainsTheSection() {
+            String out = build();
+
+            assertTrue(out.contains("## Notifications — the application's own account"));
+            assertTrue(out.contains("`outside any span`"), "the span-less case is defined before it appears");
+            assertTrue(out.contains("Read the notifications before the timing"));
+        }
     }
 
     /**

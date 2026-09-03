@@ -43,7 +43,7 @@ Every tool except `profiles_list` and the `recordings_` family takes a `profileI
 |---|---|
 | `profiles_` | `list`, `get` (identity, recording window, size), `features`, `link` (deep link into the Jeffrey UI) |
 | `flamegraph_` | `panels` (which event types this profile can graph — call it first), `export` (the call tree as Markdown) |
-| `traces_` | `overview`, `operations`, `operationExport`, `slowestTraces`, `traceExport`, `spanFlamegraphExport`, `operationFlamegraphExport` |
+| `traces_` | `overview`, `operations`, `notifications`, `operationExport`, `slowestTraces`, `traceExport`, `spanFlamegraphExport`, `operationFlamegraphExport` |
 | `jfr_` | `listTables`, `describeTable`, `listEventTypes`, `queryEvents`, `executeQuery`, `getProfileInfo` — raw DuckDB when no purpose-built tool fits |
 | `heap_` | 20 tools: `getHeapSummary`, `getClassHistogram`, `getBiggestObjects`, `getLeakSuspects`, `getPathToGCRoot`, `getDominatorTree*`, `executeQuery`, … |
 | `recordings_` | `analyzeFile` (a file not in Jeffrey yet), `analyzeRecording` (one already uploaded but never analysed), `list` (the Quick Analysis store) |
@@ -79,6 +79,15 @@ wall-clock actually went) → `traces_operationExport` for the population → `t
 then `traces_traceExport` for one exemplar → `traces_spanFlamegraphExport` for the frames inside a
 single slow span. An operation is identified by the triple `(name, kind, eventType)`, not by name
 alone — an inbound `GET /orders` and an outbound call to the same path are different operations.
+
+Read the application's own account before the timing. `traces_overview` reports how many
+**notifications** — `jeffrey.Notification` events an instrumented application emits about itself,
+a pool exhausted, a fallback taken — were raised inside traces, and how many were `CRITICAL` or
+`HIGH`. When there are any, call `traces_notifications` (filter by `severity`, `type`, `source`, or
+the operation triple) before exporting a trace: a CRITICAL notification usually names the cause
+the span tree only shows the cost of, and its exemplar trace ids are the traces worth exporting.
+The operation and trace exports carry their own Notifications section, and its instructions say
+how to weigh each severity.
 
 ## Grounding claims
 

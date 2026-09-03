@@ -218,6 +218,8 @@ jeffrey.TraceSpan {
       </figure>
 
       <p>Notifications are searchable from <strong>Traces by Attributes</strong>: pick <code>jeffrey.Notification</code> as the event type and its keys appear beside the ones spans carry. A notification condition narrows the <em>trace</em> result set exactly as a span condition does — but the two are indexed apart on purpose: a notification's <code>severity</code> says something went wrong somewhere; a span's <code>status</code> says <em>that span</em> failed. Searching for <code>status = ERROR</code> never matches a notification that merely said so.</p>
+
+      <p>Both families also reach an AI reader. The trace and operation exports &mdash; the <em>Export for AI</em> action, and the <code>traces_traceExport</code> and <code>traces_operationExport</code> tools of the <router-link to="/docs/microscope-mcp">Microscope MCP server</router-link> &mdash; carry a Notifications section and an Exceptions section, and their reading instructions say to weigh a <code>CRITICAL</code> notification before any timing. <code>traces_notifications</code> is the profile-wide reading: every kind the application raised inside a trace, how often, and in which traces.</p>
     </div>
 
     <DocsNavFooter />

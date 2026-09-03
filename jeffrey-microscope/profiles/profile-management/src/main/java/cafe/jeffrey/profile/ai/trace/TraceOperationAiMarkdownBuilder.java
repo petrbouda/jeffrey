@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.profile.ai.trace;
 
+import cafe.jeffrey.profile.manager.model.trace.TraceNotificationGroupRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSpanRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
@@ -50,8 +51,10 @@ public final class TraceOperationAiMarkdownBuilder {
             1. **Header (YAML-ish)** — the operation's identity, how often it ran, and its
                latency percentiles.
             2. **Span breakdown** — where the operation's time goes, by span name.
-            3. **Threads** — what kind of threads carried it.
-            4. **Slowest traces** — individual exemplars worth drilling into.
+            3. **Notifications** — what the application itself reported while traces of
+               this operation ran, grouped by kind.
+            4. **Threads** — what kind of threads carried it.
+            5. **Slowest traces** — individual exemplars worth drilling into.
 
             ## The two time columns — do not mix them
 
@@ -86,6 +89,21 @@ public final class TraceOperationAiMarkdownBuilder {
             interesting one. `max` is a single observation and should not be reasoned about
             as a typical figure.
 
+            ## Notifications — what the application said about itself
+
+            A notification is the application's own report of something going wrong while a
+            request ran — a pool with no idle connections, a fallback taken — emitted by its
+            own code as a `jeffrey.Notification` event. Here they are aggregated across every
+            trace of the operation, one line per kind:
+
+                - <TYPE> ×<count> [<SEVERITY>] in <traces> of <total> traces — <category> from <source>
+
+            followed by the message every occurrence carries and a few trace ids that raised
+            it, the slowest first, as candidates for a single-trace export. `CRITICAL` and
+            `HIGH` are findings in their own right; `MEDIUM` and `LOW` are context. A kind
+            raised in most traces of the operation is a property of the operation; one raised
+            in a few is a property of those requests, and the exemplars are where to look.
+
             ## What this document cannot tell you
 
             It has no per-trace JVM context: the pauses, lock waits and I/O that explain
@@ -96,6 +114,7 @@ public final class TraceOperationAiMarkdownBuilder {
 
     private static final String HEADING_ANALYSIS = "## How to analyze this operation";
     private static final String HEADING_SPANS = "## Span breakdown";
+    private static final String HEADING_NOTIFICATIONS = "## Notifications";
     private static final String HEADING_THREADS = "## Threads";
     private static final String HEADING_SLOWEST = "## Slowest traces";
 
@@ -112,6 +131,12 @@ public final class TraceOperationAiMarkdownBuilder {
             more in aggregate than a slower one that appears once, and an N+1 query pattern
             shows up here as a high occurrence count against a modest median.
 
+            Read the notifications before concluding anything from the timing. A `CRITICAL`
+            or `HIGH` kind raised across most traces of this operation is the operation's
+            own diagnosis, and usually names the cause the span breakdown only shows the cost
+            of; lead with it. Compare the trace count of a kind with the operation's trace
+            count to tell a systematic problem from an occasional one.
+
             Finally, name the traces you would look at next and why, rather than concluding
             from aggregates alone what any single request did.
             """;
@@ -120,18 +145,31 @@ public final class TraceOperationAiMarkdownBuilder {
     private static final String DASH_SEPARATOR = " — ";
     private static final String NO_SPANS_NOTE = "(no spans recorded for this operation)";
     private static final String NO_TRACES_NOTE = "(no traces recorded for this operation)";
+    private static final String NO_NOTIFICATIONS_NOTE =
+            "(the application raised no notifications inside traces of this operation)";
+    private static final String INDENT_UNIT = "  ";
+
+    /** How much of a notification message survives. Enough to identify it, not enough to be a page. */
+    private static final int MAX_MESSAGE_CHARS = 200;
 
     private final TraceOperationRow operation;
     private final TraceOperationSummary summary;
+    private final List<TraceNotificationGroupRow> notifications;
     private final List<TraceRow> slowestTraces;
 
+    /**
+     * @param notifications what the application said inside traces of this operation, grouped by
+     *                      kind and led by severity, already capped by the caller
+     */
     public TraceOperationAiMarkdownBuilder(
             TraceOperationRow operation,
             TraceOperationSummary summary,
+            List<TraceNotificationGroupRow> notifications,
             List<TraceRow> slowestTraces) {
 
         this.operation = operation;
         this.summary = summary;
+        this.notifications = notifications;
         this.slowestTraces = slowestTraces;
     }
 
@@ -142,6 +180,8 @@ public final class TraceOperationAiMarkdownBuilder {
         out.append('\n');
         renderAnalysisInstruction(out);
         renderSpans(out);
+        out.append('\n');
+        renderNotifications(out);
         out.append('\n');
         renderThreads(out);
         out.append('\n');
@@ -155,6 +195,8 @@ public final class TraceOperationAiMarkdownBuilder {
         out.append("event_type: ").append(operation.eventType()).append('\n');
         out.append("trace_count: ").append(operation.count()).append('\n');
         out.append("error_count: ").append(operation.errorCount()).append('\n');
+        out.append("notification_count: ").append(operation.notificationCount()).append('\n');
+        out.append("urgent_notification_count: ").append(operation.urgentNotificationCount()).append('\n');
         out.append("span_count: ").append(operation.spanCount()).append('\n');
         out.append("total_time: ").append(TraceAiFormat.duration(operation.totalNanos())).append('\n');
         out.append("p50: ").append(TraceAiFormat.duration(operation.p50Nanos())).append('\n');
@@ -200,6 +242,56 @@ public final class TraceOperationAiMarkdownBuilder {
                     .append(" in ").append(TraceAiFormat.count(span.traceCount(), "trace"));
             out.append('\n');
         }
+    }
+
+    /**
+     * What the application said, one line per kind, the most severe first. The trace count is
+     * carried beside the operation's own so the reader can tell "every request" from "some".
+     */
+    private void renderNotifications(StringBuilder out) {
+        out.append(HEADING_NOTIFICATIONS).append('\n').append('\n');
+
+        if (notifications.isEmpty()) {
+            out.append(NO_NOTIFICATIONS_NOTE).append('\n');
+            return;
+        }
+
+        for (TraceNotificationGroupRow group : notifications) {
+            out.append(BULLET_PREFIX)
+                    .append(group.type())
+                    .append(" ×").append(group.count())
+                    .append(" [").append(group.severity()).append(']')
+                    .append(" in ").append(group.traceCount())
+                    .append(" of ").append(operation.count()).append(" traces");
+            if (group.category() != null || group.source() != null) {
+                out.append(DASH_SEPARATOR);
+                if (group.category() != null) {
+                    out.append(group.category());
+                }
+                if (group.source() != null) {
+                    out.append(group.category() != null ? " from " : "from ").append(group.source());
+                }
+            }
+            out.append('\n');
+
+            if (group.message() != null && !group.message().isBlank()) {
+                out.append(INDENT_UNIT).append("message: ").append(flatten(group.message())).append('\n');
+            }
+            if (!group.exemplarTraceIds().isEmpty()) {
+                out.append(INDENT_UNIT).append("raised in traces: ")
+                        .append(String.join(", ", group.exemplarTraceIds()))
+                        .append(" (slowest first, for traces_traceExport)")
+                        .append('\n');
+            }
+        }
+    }
+
+    /** A message reduced to one line and a readable length, so a bullet cannot be split by it. */
+    private static String flatten(String message) {
+        String single = message.replaceAll("\\s+", " ").strip();
+        return single.length() <= MAX_MESSAGE_CHARS
+                ? single
+                : single.substring(0, MAX_MESSAGE_CHARS) + "… (truncated)";
     }
 
     private void renderThreads(StringBuilder out) {

@@ -53,7 +53,7 @@ installation.
 |---|---|
 | `profiles_` | The catalogue: which recordings are analysed, what each one can answer, a deep link into the UI |
 | `flamegraph_` | Which graphs a profile supports, and the call tree as Markdown |
-| `traces_` | Trace operations, exemplars, span trees and span-scoped flamegraphs |
+| `traces_` | Trace operations, the application's own notifications, exemplars, span trees and span-scoped flamegraphs |
 | `jfr_` | The profile's DuckDB tables — schema and read-only SQL |
 | `heap_` | Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, and read-only SQL |
 | `recordings_` | The one that writes: imports a recording file and builds a profile from it |

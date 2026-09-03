@@ -31,6 +31,10 @@ package cafe.jeffrey.profile.manager.model.trace;
  * Every percentile here is aggregated over the whole type, so they can be read against each other.
  * A p99 taken from the capped trace list beside a p95 taken from the table would be two different
  * questions in one row, which is why the view showed no p99 at all until this one existed.
+ * <p>
+ * {@code notificationCount} is how many notifications the application raised inside traces of this
+ * type, and {@code urgentNotificationCount} how many of those were {@code CRITICAL} or {@code HIGH}
+ * — the operation's own account of what went wrong, beside the latency that shows what it cost.
  */
 public record TraceOperationRow(
         String name,
@@ -38,6 +42,8 @@ public record TraceOperationRow(
         String eventType,
         long count,
         long errorCount,
+        long notificationCount,
+        long urgentNotificationCount,
         long spanCount,
         long totalNanos,
         long p50Nanos,

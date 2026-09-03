@@ -681,7 +681,7 @@ class TraceManagerImplTest {
         void mapsTheRecord() {
             when(traceRepository.overview())
                     .thenReturn(new TraceOverviewRecord(
-                            12, 340, 3, 5, 40 * MS, 90 * MS, 110 * MS, 120 * MS, 4500 * MS, 8));
+                            12, 340, 3, 5, 7, 2, 40 * MS, 90 * MS, 110 * MS, 120 * MS, 4500 * MS, 8));
 
             TraceOverview overview = new TraceManagerImpl(traceRepository).overview();
 
@@ -690,6 +690,9 @@ class TraceManagerImplTest {
             assertEquals(3, overview.errorTraces());
             assertEquals(5, overview.errorSpans(),
                     "failed spans are counted apart from the traces carrying them");
+            assertEquals(7, overview.notificationCount());
+            assertEquals(2, overview.urgentNotificationCount(),
+                    "the CRITICAL and HIGH ones are counted apart, since they are findings on their own");
             assertEquals(40 * MS, overview.avgNanos());
             assertEquals(90 * MS, overview.p95Nanos());
             assertEquals(110 * MS, overview.p99Nanos());
@@ -703,7 +706,7 @@ class TraceManagerImplTest {
         void untracedProfileIsZeroed() {
             when(traceRepository.overview()).thenReturn(TraceOverviewRecord.EMPTY);
 
-            assertEquals(new TraceOverview(0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
+            assertEquals(new TraceOverview(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0),
                     new TraceManagerImpl(traceRepository).overview());
         }
     }
