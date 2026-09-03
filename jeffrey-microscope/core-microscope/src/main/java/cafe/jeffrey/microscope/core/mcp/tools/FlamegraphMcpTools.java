@@ -25,8 +25,12 @@ import cafe.jeffrey.shared.common.GraphType;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.profile.model.FlamegraphPanel;
+import cafe.jeffrey.profile.model.WeightKind;
+import cafe.jeffrey.profile.model.WeightOption;
+import cafe.jeffrey.profile.panel.FlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.PanelContext;
+import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.ProfilingStartEnd;
 import cafe.jeffrey.shared.common.model.Type;
@@ -36,6 +40,7 @@ import cafe.jeffrey.shared.common.model.time.UndefinedTimeRange;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -52,25 +57,62 @@ public class FlamegraphMcpTools {
             "This profile has no flamegraph-capable event types. It may be a heap dump "
                     + "(use the heap_* tools) or a recording without execution samples.";
 
-    private final ProfileManager profileManager;
-    private final JfrFlamegraphPanelProvider panelProvider;
+    private static final String UNIT_BYTES = "bytes";
+    private static final String UNIT_NANOSECONDS = "nanoseconds";
 
-    public FlamegraphMcpTools(ProfileManager profileManager, JfrFlamegraphPanelProvider panelProvider) {
+    private final ProfileManager profileManager;
+    private final JfrFlamegraphPanelProvider jfrPanelProvider;
+    private final StackSampleFlamegraphPanelProvider stackSamplePanelProvider;
+
+    public FlamegraphMcpTools(
+            ProfileManager profileManager,
+            JfrFlamegraphPanelProvider jfrPanelProvider,
+            StackSampleFlamegraphPanelProvider stackSamplePanelProvider) {
+
         this.profileManager = profileManager;
-        this.panelProvider = panelProvider;
+        this.jfrPanelProvider = jfrPanelProvider;
+        this.stackSamplePanelProvider = stackSamplePanelProvider;
     }
 
-    @Tool(description = "List the flamegraphs available for this profile: which event types were "
-            + "actually recorded, with their sample and weight totals, and the options each graph is "
-            + "normally drawn with. Call this before flamegraph_export to learn the valid eventType "
-            + "values for this profile.")
+    @Tool(description = "List the flamegraphs this profile can actually produce: one entry per event "
+            + "type it recorded, with its sample and weight totals and the argument defaults that "
+            + "event type is normally graphed with. Call this before flamegraph_export to learn the "
+            + "valid eventType values for this profile. 'notRecorded' names the standard groups this "
+            + "recording is missing — a profiler-configuration finding to report, not an error.")
     public String list() {
-        List<FlamegraphPanel> panels = panelProvider.panels(
+        List<FlamegraphPanel> panels = panelProvider().panels(
                 profileManager.flamegraphManager().eventSummaries(), PanelContext.PRIMARY);
-        if (panels.isEmpty()) {
+
+        List<GraphableType> available = new ArrayList<>();
+        List<MissingGroup> notRecorded = new ArrayList<>();
+        for (FlamegraphPanel panel : panels) {
+            // The JFR provider emits the full catalog of standard sections, filling the ones this
+            // recording has no samples for with a zero-sample placeholder so the frontend grid stays
+            // complete. Graphing a placeholder yields an empty tree, so it is reported as a gap in what
+            // the profiler captured rather than offered as a valid eventType.
+            if (panel.event().primary().samples() > 0) {
+                available.add(GraphableType.from(panel));
+            } else {
+                notRecorded.add(new MissingGroup(panel.section(), panel.title()));
+            }
+        }
+
+        if (available.isEmpty()) {
             return NOTHING_TO_GRAPH;
         }
-        return McpToolOutput.json(panels);
+        return McpToolOutput.json(new GraphableTypes(available, notRecorded));
+    }
+
+    /**
+     * The grid this profile's format is drawn as — the same split the UI routes make. pprof and OTLP
+     * carry their own sample dimensions rather than JFR event types, so running them through the JFR
+     * catalog would report every dimension they do have as missing.
+     */
+    private FlamegraphPanelProvider panelProvider() {
+        if (profileManager.info().eventSource().isFlamegraphOnlyImport()) {
+            return stackSamplePanelProvider;
+        }
+        return jfrPanelProvider;
     }
 
     @Tool(description = "Export a flamegraph as Markdown for reading: a nested call tree where every "
@@ -163,5 +205,67 @@ public class FlamegraphMcpTools {
                     "endMs must be greater than startMs: startMs=" + from + " endMs=" + to);
         }
         return TimeRange.create(from, to, false).toRelativeTimeRange(startEnd);
+    }
+
+    /**
+     * What this profile can be graphed by, and which of the standard groups it is missing. The panel
+     * grid is a presentation model — it carries an accent color, a bootstrap icon class and a display
+     * order — so it is projected down to the arguments a caller can act on rather than handed over
+     * whole.
+     */
+    private record GraphableTypes(List<GraphableType> available, List<MissingGroup> notRecorded) {
+    }
+
+    /**
+     * One graphable event type: the {@code eventType} argument to pass to {@code flamegraph_export},
+     * what it weighs, and the argument values the UI draws it with by default.
+     * <p>
+     * {@code weight} and its unit are null together when weighing is meaningless for this event type
+     * (execution samples, wall-clock), so a caller can never read a weight without knowing what it
+     * counts.
+     */
+    private record GraphableType(
+            String eventType,
+            String label,
+            String section,
+            long samples,
+            Long weight,
+            String weightLabel,
+            String weightUnit,
+            boolean defaultUseWeight,
+            boolean defaultThreadMode,
+            boolean defaultExcludeIdle,
+            boolean defaultExcludeNonJava) {
+
+        static GraphableType from(FlamegraphPanel panel) {
+            WeightOption weight = panel.weight();
+            boolean weighable = weight.applicable();
+            return new GraphableType(
+                    panel.event().code(),
+                    panel.title(),
+                    panel.section(),
+                    panel.event().primary().samples(),
+                    weighable ? panel.event().primary().weight() : null,
+                    weighable ? weight.label() : null,
+                    weighable ? unitOf(weight.kind()) : null,
+                    weight.defaultOn(),
+                    panel.threadMode().defaultOn(),
+                    panel.excludeIdle().defaultOn(),
+                    panel.excludeNonJava().defaultOn());
+        }
+
+        private static String unitOf(WeightKind kind) {
+            return switch (kind) {
+                case BYTES -> UNIT_BYTES;
+                case DURATION -> UNIT_NANOSECONDS;
+            };
+        }
+    }
+
+    /**
+     * A standard group this recording captured nothing for — the profiler was not configured to
+     * collect it. Worth reporting to the reader; not a valid {@code eventType}.
+     */
+    private record MissingGroup(String section, String label) {
     }
 }

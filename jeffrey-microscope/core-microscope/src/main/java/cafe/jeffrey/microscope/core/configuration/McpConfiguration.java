@@ -28,6 +28,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -104,11 +105,12 @@ public class McpConfiguration {
             ProfilesMcpTools profilesMcpTools,
             RecordingsMcpTools recordingsMcpTools,
             McpProfileContextCache contextCache,
-            JfrFlamegraphPanelProvider panelProvider,
+            JfrFlamegraphPanelProvider jfrPanelProvider,
+            StackSampleFlamegraphPanelProvider stackSamplePanelProvider,
             RecordingCommitResolver recordingCommitResolver,
             ExternalMcpProperties properties) {
         return new McpToolsetAssembler(
-                profilesMcpTools, recordingsMcpTools, contextCache, panelProvider,
-                recordingCommitResolver, properties);
+                profilesMcpTools, recordingsMcpTools, contextCache, jfrPanelProvider,
+                stackSamplePanelProvider, recordingCommitResolver, properties);
     }
 }
