@@ -58,7 +58,7 @@ onMounted(() => {
           code="docker run -it --network host petrbouda/microscope"
         />
 
-        <p>Then open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a> in your browser.</p>
+        <p>Then open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser.</p>
 
         <h2 id="upload-recording">Upload a Recording</h2>
         <p>Use <strong>Recordings</strong> to analyze your first JFR recording:</p>

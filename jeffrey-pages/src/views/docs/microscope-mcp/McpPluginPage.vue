@@ -87,7 +87,7 @@ const removal = `/plugin uninstall microscope@jeffrey`;
       <DocsCodeBlock :code="pinnedInstall" language="bash" />
 
       <h2 id="pointing-it-elsewhere">Pointing It Elsewhere</h2>
-      <p>The plugin ships pointed at <code>http://localhost:8080/api/internal/mcp</code>. For any other address &mdash; a different port, a container, an SSH tunnel &mdash; change the endpoint in the plugin's own configuration. Claude Code offers the field when you enable the plugin, and <code>/plugin</code> reopens it afterwards:</p>
+      <p>The plugin ships pointed at <code>http://localhost:8585/api/internal/mcp</code>. For any other address &mdash; a different port, a container, an SSH tunnel &mdash; change the endpoint in the plugin's own configuration. Claude Code offers the field when you enable the plugin, and <code>/plugin</code> reopens it afterwards:</p>
       <DocsCodeBlock :code="customUrl" language="text" />
 
       <p>The value is stored per machine, in <code>~/.claude/settings.json</code>. One plugin therefore serves every installation: a non-default port is a setting, not an edit to the manifest, and a laptop can point at a tunnelled staging Jeffrey while the machine beside it stays on localhost.</p>

@@ -30,7 +30,7 @@ claude --plugin-dir ./jeffrey-claude-plugin
 
 ## Pointing it at your Jeffrey
 
-The plugin ships with the endpoint set to `http://localhost:8080/api/internal/mcp`. Anywhere else — a
+The plugin ships with the endpoint set to `http://localhost:8585/api/internal/mcp`. Anywhere else — a
 different port, a container, an SSH tunnel — change it in the plugin's own configuration; Claude Code
 offers the field when you enable the plugin, and `/plugin` reopens it afterwards:
 

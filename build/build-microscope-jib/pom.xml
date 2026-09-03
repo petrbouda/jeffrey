@@ -71,7 +71,7 @@
                     <container>
                         <mainClass>${mainClass}</mainClass>
                         <ports>
-                            <port>8080</port>
+                            <port>8585</port>
                         </ports>
                     </container>
                 </configuration>

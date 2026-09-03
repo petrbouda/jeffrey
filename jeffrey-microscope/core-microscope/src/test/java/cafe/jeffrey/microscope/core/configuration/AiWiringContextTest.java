@@ -70,7 +70,7 @@ class AiWiringContextTest {
             MicroscopeSettingKeys.AI_BASE_URL, "http://localhost:11434",
             MicroscopeSettingKeys.AI_CLI_PATH, "claude",
             MicroscopeSettingKeys.AI_TIMEOUT_SECONDS, "120",
-            MicroscopeSettingKeys.AI_MCP_URL, "http://127.0.0.1:8080/api/internal/mcp/claude-code");
+            MicroscopeSettingKeys.AI_MCP_URL, "http://127.0.0.1:8585/api/internal/mcp/claude-code");
 
     /**
      * The OpenAI SDK infers which service to talk to from the model name, so each provider gets a name

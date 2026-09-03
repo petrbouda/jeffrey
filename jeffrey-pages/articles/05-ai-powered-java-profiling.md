@@ -172,4 +172,4 @@ You can find the source code at [github.com/petrbouda/jeffrey](https://github.co
 docker run -it --network host petrbouda/microscope-examples
 ```
 
-Open [http://localhost:8080](http://localhost:8080), configure your AI provider in Settings, and start asking questions about the pre-loaded profiles.
+Open [http://localhost:8585](http://localhost:8585), configure your AI provider in Settings, and start asking questions about the pre-loaded profiles.

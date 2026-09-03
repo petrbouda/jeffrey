@@ -51,7 +51,7 @@ onMounted(() => {
         <p class="hero-eyebrow"><i class="bi bi-stopwatch"></i> Up and running in minutes</p>
         <h2 class="hero-title">Install, open, analyze.</h2>
         <p class="hero-lede">
-          Pick Docker or a plain Java run, point a browser at <code>localhost:8080</code>, drop a JFR
+          Pick Docker or a plain Java run, point a browser at <code>localhost:8585</code>, drop a JFR
           recording or heap dump, and you're inside the Microscope. The whole loop is four steps.
         </p>
 
@@ -108,11 +108,11 @@ onMounted(() => {
       </section>
 
       <h2 id="open-ui">Open the UI</h2>
-      <p>Microscope listens on port <strong>8080</strong> by default. Open the URL in any modern browser:</p>
+      <p>Microscope listens on port <strong>8585</strong> by default. Open the URL in any modern browser:</p>
 
       <DocsCodeBlock
         language="text"
-        code="http://localhost:8080"
+        code="http://localhost:8585"
       />
 
       <DocsCallout type="info">

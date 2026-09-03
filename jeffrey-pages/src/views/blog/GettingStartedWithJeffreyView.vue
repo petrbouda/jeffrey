@@ -176,7 +176,7 @@ const closeImageModal = (): void => {
             </div>
 
             <p>
-              Open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a> in your browser.
+              Open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser.
               That's it — Jeffrey is ready to analyze your recordings.
             </p>
 
@@ -420,7 +420,7 @@ const closeImageModal = (): void => {
                 <pre><code>docker run -it --network host petrbouda/microscope-examples</code></pre>
               </div>
               <p>
-                Open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a>, explore the
+                Open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a>, explore the
                 pre-loaded examples, and see what your own recordings reveal.
               </p>
               <div class="download-buttons">

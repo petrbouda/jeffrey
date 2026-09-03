@@ -73,7 +73,7 @@ document shows. If the repository is open alongside, read the real source before
 - Every call fails to connect → Jeffrey is not running at that address.
 - The server 404s → this Jeffrey was started with `jeffrey.microscope.mcp.enabled=false`. The server
   is on by default; **Settings → Claude Code (MCP)** reports whether it is serving.
-- Jeffrey is not on `http://localhost:8080` → point the plugin at the real
+- Jeffrey is not on `http://localhost:8585` → point the plugin at the real
   `…/api/internal/mcp` endpoint: run `/plugin`, open the `microscope` plugin's configuration
   and set **Jeffrey MCP endpoint**.
 

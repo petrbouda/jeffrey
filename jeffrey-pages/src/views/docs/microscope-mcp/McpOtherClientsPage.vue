@@ -38,18 +38,18 @@ onMounted(() => {
   setHeadings(headings);
 });
 
-const manualAdd = `claude mcp add --transport http jeffrey http://localhost:8080/api/internal/mcp`;
+const manualAdd = `claude mcp add --transport http jeffrey http://localhost:8585/api/internal/mcp`;
 
 const mcpJson = `{
   "mcpServers": {
     "jeffrey": {
       "type": "http",
-      "url": "http://localhost:8080/api/internal/mcp"
+      "url": "http://localhost:8585/api/internal/mcp"
     }
   }
 }`;
 
-const initialize = `curl -s -X POST http://localhost:8080/api/internal/mcp \\
+const initialize = `curl -s -X POST http://localhost:8585/api/internal/mcp \\
   -H 'Content-Type: application/json' \\
   -d '{
     "jsonrpc": "2.0",
@@ -68,7 +68,7 @@ const initializeResult = `{
   }
 }`;
 
-const toolsCall = `curl -s -X POST http://localhost:8080/api/internal/mcp \\
+const toolsCall = `curl -s -X POST http://localhost:8585/api/internal/mcp \\
   -H 'Content-Type: application/json' \\
   -d '{
     "jsonrpc": "2.0",
@@ -120,7 +120,7 @@ const protocolError = `{
       <DocsCodeBlock :code="mcpJson" language="json" />
 
       <DocsCallout type="tip" title="Both are offered ready-made">
-        <strong>Settings &rarr; Claude Code (MCP)</strong> shows the command and the <code>.mcp.json</code> entry with the URL your browser actually reached Jeffrey on &mdash; correct behind a container, a proxy or a non-default port, where <code>localhost:8080</code> is not.
+        <strong>Settings &rarr; Claude Code (MCP)</strong> shows the command and the <code>.mcp.json</code> entry with the URL your browser actually reached Jeffrey on &mdash; correct behind a container, a proxy or a non-default port, where <code>localhost:8585</code> is not.
       </DocsCallout>
 
       <h2 id="what-you-give-up">What You Give Up</h2>

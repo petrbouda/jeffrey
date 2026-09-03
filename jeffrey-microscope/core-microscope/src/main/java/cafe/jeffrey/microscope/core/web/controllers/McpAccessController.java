@@ -29,7 +29,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
  * command to connect to it.
  * <p>
  * The URL is derived from the request rather than configured, because the address that reaches this
- * Jeffrey is the one the reader's browser just used — a hardcoded {@code localhost:8080} is wrong for
+ * Jeffrey is the one the reader's browser just used — a hardcoded {@code localhost:8585} is wrong for
  * every container, reverse proxy and non-default port, and it is wrong in a way the reader only finds
  * out about after pasting the command.
  * <p>

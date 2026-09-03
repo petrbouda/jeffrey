@@ -70,7 +70,7 @@
                     <container>
                         <mainClass>${mainClass}</mainClass>
                         <ports>
-                            <port>8080</port>
+                            <port>8585</port>
                         </ports>
                         <!--
                           Same default ENTRYPOINT arg as the previous Dockerfile-microscope-examples:
