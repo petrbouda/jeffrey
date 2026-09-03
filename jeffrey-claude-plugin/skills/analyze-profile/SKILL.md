@@ -1,15 +1,33 @@
 ---
 name: analyze-profile
-description: Analyse a JVM profile held by a running Jeffrey Microscope — CPU, allocation, lock contention, GC, latency, traces or a heap dump. Use whenever the question is "why is this slow", "where does the time go", "what is allocating", "what is holding memory", or when a Jeffrey profile, JFR recording or heap dump is mentioned.
+description: Analyse a JVM profile with a running Jeffrey Microscope — CPU, allocation, lock contention, GC, latency, traces or a heap dump — including analysing a .jfr or .hprof file that is not in Jeffrey yet. Use whenever the question is "why is this slow", "where does the time go", "what is allocating", "what is holding memory", or when a Jeffrey profile, a JFR recording or a heap dump file is mentioned.
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---
 
 # Analysing a Jeffrey profile
 
-Jeffrey holds *profiles*: one analysed JFR recording or heap dump each. The tools read them; they
-never write.
+Jeffrey holds *profiles*: one analysed JFR recording or heap dump each. The analysis tools read
+them and never write. The one family that writes is `recordings_`, which turns a recording *file*
+into a profile.
 
-## Always start here
+## Start from a file, or from the catalogue
+
+**If the user named a file** — `target/app.jfr`, `heap.hprof`, anything with a recording extension —
+it may not be in Jeffrey yet. Call **`recordings_analyzeFile`** with its **absolute** path; it
+imports the file, builds the profile, and returns the `profileId` the rest of this skill needs. Then
+carry on from step 2 below.
+
+Two constraints, both easy to trip on:
+
+- The path is opened by the **Jeffrey process**, so the file must be on the machine Jeffrey runs on.
+  A container or a remote Jeffrey cannot see your working directory.
+- Each call imports the file **again** and builds another profile. If the same file may already be
+  analysed, check `recordings_list` or `profiles_list` first and reuse the id.
+
+The call returns only once the profile is built, which for a large recording takes a while — that is
+the analysis running, not a hang.
+
+**Otherwise start from the catalogue:**
 
 1. **`profiles_list`** — every profile in the installation. Nothing else works without an id from it.
 2. **`profiles_features`** — what that profile can actually answer. A JFR recording usually has no
@@ -17,7 +35,7 @@ never write.
    instrumentation. It also lists every event type recorded, with sample counts.
 3. Then the family that matches the question.
 
-Every tool except `profiles_list` takes a `profileId`.
+Every tool except `profiles_list` and the `recordings_` family takes a `profileId`.
 
 ## The families
 
@@ -28,6 +46,7 @@ Every tool except `profiles_list` takes a `profileId`.
 | `traces_` | `overview`, `operations`, `operationExport`, `slowestTraces`, `traceExport`, `spanFlamegraphExport`, `operationFlamegraphExport` |
 | `jfr_` | `listTables`, `describeTable`, `listEventTypes`, `queryEvents`, `executeQuery`, `getProfileInfo` — raw DuckDB when no purpose-built tool fits |
 | `heap_` | 20 tools: `getHeapSummary`, `getClassHistogram`, `getBiggestObjects`, `getLeakSuspects`, `getPathToGCRoot`, `getDominatorTree*`, `executeQuery`, … |
+| `recordings_` | `analyzeFile` (a file not in Jeffrey yet), `analyzeRecording` (one already uploaded but never analysed), `list` (the Quick Analysis store) |
 
 Tool names are camelCase after the prefix: `jfr_listTables`, not `jfr_list_tables`.
 
@@ -70,6 +89,12 @@ document shows. If the repository is open alongside, read the real source before
 ## When something is missing
 
 - A tool answers `Profile … has no heap dump` → it is a JFR recording; use `jfr_`, `flamegraph_`, `traces_`.
+- `recordings_analyzeFile` says the path must be absolute → pass the full path, not a repo-relative one.
+- It says there is no such file, but the file is right there → Jeffrey is looking on *its own*
+  filesystem. Copy or mount the recording somewhere Jeffrey can reach, or upload it in the UI.
+- No `recordings_` tool is advertised at all → this Jeffrey was started with
+  `jeffrey.microscope.mcp.ingest.enabled=false`. Upload and analyse the recording in the Jeffrey UI,
+  then work from `profiles_list`.
 - Every call fails to connect → Jeffrey is not running at that address.
 - The server 404s → this Jeffrey was started with `jeffrey.microscope.mcp.enabled=false`. The server
   is on by default; **Settings → Claude Code (MCP)** reports whether it is serving.

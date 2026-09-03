@@ -53,7 +53,7 @@ class ExternalMcpControllerTest {
     McpToolsetAssembler assembler;
 
     private MockMvcTester mvcWith(boolean enabled) {
-        return mockMvcTesterFor(new ExternalMcpController(assembler, new ExternalMcpProperties(enabled)));
+        return mockMvcTesterFor(new ExternalMcpController(assembler, new ExternalMcpProperties(enabled, true)));
     }
 
     @Nested

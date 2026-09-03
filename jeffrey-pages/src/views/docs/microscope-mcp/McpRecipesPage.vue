@@ -27,6 +27,7 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
+  { id: 'analyse-a-recording-you-just-made', text: 'Analyse a Recording You Just Made', level: 2 },
   { id: 'where-does-the-time-go', text: 'Where Does the Time Go', level: 2 },
   { id: 'explain-a-slow-endpoint', text: 'Explain a Slow Endpoint', level: 2 },
   { id: 'chase-a-memory-problem', text: 'Chase a Memory Problem', level: 2 },
@@ -38,6 +39,9 @@ const headings = [
 onMounted(() => {
   setHeadings(headings);
 });
+
+const promptFreshRecording = `analyze target/checkout-run.jfr in Jeffrey and tell me which of my own
+methods dominate the CPU profile`;
 
 const promptHotPaths = `list the Jeffrey profiles, then show me where the CPU time goes in the most recent one`;
 
@@ -80,6 +84,19 @@ LIMIT 20`;
 
       <DocsCallout type="tip" title="Name the profile if you know it">
         Every prompt below starts with a catalogue lookup because it does not say which profile it means. If you paste a profile name or id, that step is skipped.
+      </DocsCallout>
+
+      <h2 id="analyse-a-recording-you-just-made">Analyse a Recording You Just Made</h2>
+      <DocsCodeBlock :code="promptFreshRecording" language="bash" />
+
+      <p>Drives <code>recordings_analyzeFile</code> &rarr; <code>profiles_features</code> &rarr; <code>flamegraph_panels</code> &rarr; <code>flamegraph_export</code>.</p>
+
+      <p>This is the loop closing. You run a benchmark, a JFR file lands in <code>target/</code>, and the next thing you type is a question about it &mdash; no upload, no browser, no clicking Analyze. The first tool call imports the file and builds the profile, and hands back the <code>profileId</code> every later call uses; the profile is a normal one afterwards, visible in the Jeffrey UI and in <code>profiles_list</code>.</p>
+
+      <p>The same works for a heap dump: <code>analyze heap.hprof and tell me what is retaining the most memory</code> lands as a profile the <code>heap_</code> family answers about instead.</p>
+
+      <DocsCallout type="warning" title="Jeffrey opens the path, you do not upload the file">
+        The path must be absolute and must exist on the machine Jeffrey runs on. That is the same machine for the usual setup &mdash; a Jeffrey and a terminal on one laptop &mdash; and not the same machine for a Jeffrey in a container or on a remote host, where the file has to be mounted or copied across first. Each call builds another profile, so say <em>&ldquo;check whether it is already analysed&rdquo;</em> if you may be repeating yourself.
       </DocsCallout>
 
       <h2 id="where-does-the-time-go">Where Does the Time Go</h2>

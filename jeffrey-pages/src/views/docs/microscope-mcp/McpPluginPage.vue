@@ -93,7 +93,7 @@ const removal = `/plugin uninstall microscope@jeffrey`;
       <p>The value is stored per machine, in <code>~/.claude/settings.json</code>. One plugin therefore serves every installation: a non-default port is a setting, not an edit to the manifest, and a laptop can point at a tunnelled staging Jeffrey while the machine beside it stays on localhost.</p>
 
       <h2 id="what-the-plugin-adds">What the Plugin Adds</h2>
-      <p>Registering the server by hand gives you the thirty-nine tools. The plugin adds two things on top.</p>
+      <p>Registering the server by hand gives you the forty-two tools. The plugin adds two things on top.</p>
 
       <p><strong>The endpoint, already configured</strong> &mdash; including the per-machine setting above, so the same install works on a laptop and against a tunnelled staging Jeffrey.</p>
 
@@ -107,7 +107,7 @@ const removal = `/plugin uninstall microscope@jeffrey`;
       <p>The <router-link to="/docs/microscope-mcp/skills">Skills</router-link> page covers what each one carries and why it exists.</p>
 
       <h2 id="permissions">Permissions</h2>
-      <p>Claude Code asks before each tool the first time. Since every tool here is read-only, approving the whole family once is usually what you want &mdash; from the prompt, or up front with <code>/permissions</code>:</p>
+      <p>Claude Code asks before each tool the first time. Every tool here reads except the <code>recordings_</code> family, which imports a recording file and builds a profile from it, so approving the whole family once is usually what you want &mdash; from the prompt, or up front with <code>/permissions</code>:</p>
       <DocsCodeBlock :code="permissionRule" language="bash" />
 
       <p>The name reads <code>mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;</code>: the <code>microscope</code> plugin, the <code>jeffrey</code> server inside it. In a non-interactive run there is no prompt to answer, so the rule has to be passed explicitly or the run stalls:</p>

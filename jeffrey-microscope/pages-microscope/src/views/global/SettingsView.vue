@@ -649,9 +649,29 @@
               />
             </div>
             <div class="settings-hint">
-              Lets an interactive Claude Code session in your own repository read this Jeffrey —
+              Lets an interactive Claude Code session in your own repository work with this Jeffrey —
               list the analysed profiles, query their DuckDB tables, and pull flamegraph, trace and
-              heap dump exports. Every tool is read-only.
+              heap dump exports. Every analysis tool is read-only.
+            </div>
+            <div v-if="mcpEnabled" class="mcp-state">
+              <Badge
+                :value="mcpIngestEnabled ? 'Ingest on' : 'Ingest off'"
+                :variant="mcpIngestEnabled ? 'success' : 'secondary'"
+                :icon="mcpIngestEnabled ? 'bi bi-box-arrow-in-down' : 'bi bi-slash-circle'"
+                size="s"
+              />
+            </div>
+            <div v-if="mcpEnabled && mcpIngestEnabled" class="settings-hint">
+              Claude can also analyse a recording for you: point it at a <code>.jfr</code> or
+              <code>.hprof</code> file and it imports the file and builds the profile, without you
+              opening this UI. Jeffrey opens the path itself, so the file has to be on this machine.
+              Set <code>jeffrey.microscope.mcp.ingest.enabled=false</code> and restart to go back to a
+              purely read-only server.
+            </div>
+            <div v-else-if="mcpEnabled" class="settings-hint">
+              Ingestion is off, so Claude can read the profiles here but not create new ones. Remove
+              <code>jeffrey.microscope.mcp.ingest.enabled=false</code> and restart to let it analyse a
+              recording file straight from your repository.
             </div>
             <div v-if="!mcpEnabled" class="settings-hint">
               Serving is on unless the deployment turns it off. This one sets
@@ -701,9 +721,9 @@
         <div v-if="mcpEnabled" class="settings-hint mcp-security-note">
           <i class="bi bi-shield-exclamation"></i>
           The MCP endpoint has no authentication yet, exactly like the rest of Jeffrey's API: anyone
-          who can reach this address can read every profile here. Keep Jeffrey bound to localhost,
-          or put it behind an SSH tunnel or an authenticating reverse proxy, before opening this on
-          a shared network.
+          who can reach this address can read every profile here — and, while ingestion is on, have
+          Jeffrey open a file from this machine. Keep Jeffrey bound to localhost, or put it behind an
+          SSH tunnel or an authenticating reverse proxy, before opening this on a shared network.
         </div>
       </div>
     </MainCard>
@@ -875,6 +895,7 @@ const mcpStatus = ref<McpAccessStatus | null>(null);
 // Whether the endpoint serves is the server's answer, not a stored preference: it comes from an
 // application property fixed at startup, so the page reports it rather than offering to change it.
 const mcpEnabled = computed(() => mcpStatus.value?.enabled === true);
+const mcpIngestEnabled = computed(() => mcpStatus.value?.ingestEnabled === true);
 const aiEnabled = computed(() => aiToggle.value);
 
 const isOllama = computed(() => settings.get('jeffrey.microscope.ai.provider') === 'ollama');
