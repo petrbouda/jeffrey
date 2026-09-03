@@ -31,6 +31,8 @@ const headings = [
   { id: 'where-does-the-time-go', text: 'Where Does the Time Go', level: 2 },
   { id: 'explain-a-slow-endpoint', text: 'Explain a Slow Endpoint', level: 2 },
   { id: 'chase-a-memory-problem', text: 'Chase a Memory Problem', level: 2 },
+  { id: 'account-for-the-gc-pauses', text: 'Account for the GC Pauses', level: 2 },
+  { id: 'ask-what-the-jit-is-doing', text: 'Ask What the JIT Is Doing', level: 2 },
   { id: 'does-the-code-agree-with-the-profile', text: 'Does the Code Agree With the Profile', level: 2 },
   { id: 'from-profile-to-patch', text: 'From Profile to Patch', level: 2 },
   { id: 'compare-two-recordings', text: 'Compare Two Recordings', level: 2 },
@@ -51,6 +53,12 @@ what the JVM was doing inside its slowest span`;
 
 const promptMemory = `which classes retain the most memory in the heap dump, and what is keeping
 the biggest one alive?`;
+
+const promptGc = `how much of the run went to GC pauses in the most recent profile, what caused
+them, and which code is producing the garbage?`;
+
+const promptJit = `is the JIT compiler a problem in this profile - anything deoptimising repeatedly,
+or a code cache that filled up?`;
 
 const promptCrossCheck = `the profile says OrderMapper.toDto is 18% of CPU. Read the actual
 implementation in this repo and tell me whether that is plausible, and what
@@ -130,6 +138,24 @@ LIMIT 20`;
       <p>The two-step matters. A class histogram answers &ldquo;what is there&rdquo;; the dominator tree answers &ldquo;what would be freed&rdquo;, which is the one that finds a leak. And <code>heap_getPathToGCRoot</code> is the actual answer to &ldquo;why is this still alive&rdquo; &mdash; a reference chain from a root, usually ending somewhere recognisable like a static cache or a thread-local.</p>
 
       <p>The order is not optional: <code>dominator</code> and <code>retained_size</code> are built lazily, so every retained figure comes back missing until <code>heap_getDominatorTreeRoots</code> has run once. That is what the skill exists to get right.</p>
+
+      <h2 id="account-for-the-gc-pauses">Account for the GC Pauses</h2>
+      <DocsCodeBlock :code="promptGc" language="bash" />
+
+      <p>There is no <code>gc_</code> family &mdash; garbage collection is reached as events, so this drives <code>jfr_listEventTypes</code> &rarr; <code>jfr_executeQuery</code> over <code>jdk.GarbageCollection</code>, <code>jdk.GCHeapSummary</code> and <code>jdk.GCPhasePause</code>, with the <router-link to="/docs/microscope-mcp/skills#jfr-sql"><code>jfr-sql</code></router-link> skill supplying the queries. The last clause of the prompt is what makes it useful: the answer ends in <code>flamegraph_export</code> over <code>jdk.ObjectAllocationSample</code>, because no GC event names the code that produced the garbage.</p>
+
+      <DocsCallout type="warning" title="Pauses are sumOfPauses, not the event duration">
+        For ZGC, Shenandoah and G1&rsquo;s concurrent cycles a <code>jdk.GarbageCollection</code> event&rsquo;s <code>duration</code> spans phases the application ran straight through. Ranking by it reports pauses that never happened; <code>sumOfPauses</code> and <code>longestPause</code> are the stop-the-world figures. The skill carries this, which is why the query it writes is the one to trust over an improvised one.
+      </DocsCallout>
+
+      <p>Jeffrey&rsquo;s UI has the full Garbage Collection section &mdash; pause timeseries and distribution, generation stats, G1 and ZGC deep dives, tenuring, reference processing &mdash; and none of it is exported over MCP. Ask for <code>profiles_link</code> when the dashboard would be faster than another query.</p>
+
+      <h2 id="ask-what-the-jit-is-doing">Ask What the JIT Is Doing</h2>
+      <DocsCodeBlock :code="promptJit" language="bash" />
+
+      <p>Same route, different events: <code>jdk.Compilation</code> for what was compiled and how long it took, <code>jdk.CompilerStatistics</code> for the totals, <code>jdk.Deoptimization</code> grouped by method <em>and</em> reason, and <code>jdk.CodeCacheStatistics</code> with <code>jdk.CodeCacheFull</code> for whether compilation stopped altogether.</p>
+
+      <p>The finding worth having is a method that deoptimises over and over: it ran interpreted for part of the recording, and the reason &mdash; <code>unstable_if</code>, <code>class_check</code> &mdash; is a pointer into your source, which is exactly the hand-off the terminal is good at and the browser is not.</p>
 
       <h2 id="does-the-code-agree-with-the-profile">Does the Code Agree With the Profile</h2>
       <DocsCodeBlock :code="promptCrossCheck" language="bash" />

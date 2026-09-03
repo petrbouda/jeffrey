@@ -1,6 +1,6 @@
 ---
 name: jfr-sql
-description: Write DuckDB SQL against a Jeffrey profile's JFR database — the events, event_types, threads, stacktraces and frames tables. Use when jfr_executeQuery or jfr_queryEvents is needed because no purpose-built flamegraph, trace or heap tool answers the question.
+description: Write DuckDB SQL against a Jeffrey profile's JFR database — the events, event_types, threads, stacktraces and frames tables — with ready queries for garbage collection and JIT compilation, which have no purpose-built tools. Use when jfr_executeQuery or jfr_queryEvents is needed because no flamegraph, trace or heap tool answers the question, or when the question is about GC pauses, heap growth across collections, compilation or deoptimisation.
 allowed-tools: mcp__plugin_microscope_jeffrey__jfr_* mcp__jeffrey__jfr_*
 ---
 
@@ -88,15 +88,120 @@ Derived from the events when the profile carries Jeffrey Tracing, and empty othe
 ## Event types worth knowing
 
 CPU `jdk.ExecutionSample`, `jdk.NativeMethodSample` · allocation `jdk.ObjectAllocationSample`,
-`jdk.ObjectAllocationInNewTLAB`, `jdk.ObjectAllocationOutsideTLAB` · GC `jdk.GCPhasePause`,
-`jdk.YoungGarbageCollection`, `jdk.OldGarbageCollection`, `jdk.G1GarbageCollection` · threading
-`jdk.ThreadPark`, `jdk.JavaMonitorEnter`, `jdk.JavaMonitorWait` · I/O `jdk.FileRead`,
-`jdk.FileWrite`, `jdk.SocketRead`, `jdk.SocketWrite` · JIT `jdk.Compilation`, `jdk.CompilerPhase` ·
+`jdk.ObjectAllocationInNewTLAB`, `jdk.ObjectAllocationOutsideTLAB` · GC `jdk.GarbageCollection`,
+`jdk.GCPhasePause`, `jdk.GCHeapSummary`, `jdk.YoungGarbageCollection`, `jdk.OldGarbageCollection`,
+`jdk.G1GarbageCollection` · threading `jdk.ThreadPark`, `jdk.JavaMonitorEnter`,
+`jdk.JavaMonitorWait` · I/O `jdk.FileRead`, `jdk.FileWrite`, `jdk.SocketRead`, `jdk.SocketWrite` ·
+JIT `jdk.Compilation`, `jdk.Deoptimization`, `jdk.CompilerStatistics`, `jdk.CodeCacheStatistics` ·
 tracing `jeffrey.Notification` (the application's own reports; its `fields` carry `traceId`,
 `type`, `severity`, `message`), plus the span event types listed by `jfr_listEventTypes`.
 
 `jfr_listEventTypes` gives the ones this profile actually recorded, with counts — use it rather than
 assuming.
+
+## Garbage collection has no purpose-built tool
+
+Neither GC nor JIT has an MCP family: `flamegraph_`, `traces_` and `heap_` do not cover them, so
+these queries are the whole route. (Jeffrey's UI has full dashboards for both — `profiles_link`
+opens them when the interactive version would be quicker than a query.)
+
+`jdk.GarbageCollection` is one row per collection, carrying `gcId`, `name` (the collector, `…Full`
+for a full GC), `cause`, `sumOfPauses` and `longestPause`.
+
+**Rank by `sumOfPauses`, never by `duration`.** For ZGC, Shenandoah and G1's concurrent cycles the
+event's `duration` spans phases the application ran straight through, so ordering by it reports
+pauses that never happened. `sumOfPauses` and `longestPause` are the stop-the-world figures; use
+`duration` only where they are absent.
+
+```sql
+SELECT fields->>'name' AS collector,
+       fields->>'cause' AS cause,
+       COUNT(*) AS collections,
+       SUM(CAST(fields->>'sumOfPauses' AS BIGINT)) / 1000000.0 AS total_pause_ms,
+       MAX(CAST(fields->>'longestPause' AS BIGINT)) / 1000000.0 AS worst_pause_ms
+FROM events
+WHERE event_type = 'jdk.GarbageCollection'
+GROUP BY collector, cause
+ORDER BY total_pause_ms DESC
+```
+
+Heap before and after each collection — `jdk.GCHeapSummary` is **two** rows per `gcId`, told apart
+by `when`, so pivot rather than joining the table to itself:
+
+```sql
+WITH summaries AS (
+  SELECT CAST(fields->>'gcId' AS BIGINT) AS gc_id,
+         fields->>'when' AS phase,
+         CAST(fields->>'heapUsed' AS BIGINT) AS heap_used
+  FROM events WHERE event_type = 'jdk.GCHeapSummary'
+)
+SELECT gc_id,
+       MAX(heap_used) FILTER (WHERE phase = 'Before GC') AS before_bytes,
+       MAX(heap_used) FILTER (WHERE phase = 'After GC') AS after_bytes
+FROM summaries
+GROUP BY gc_id
+ORDER BY gc_id
+```
+
+A live set that climbs across `after_bytes` is a retention problem — a heap dump answers it, this
+recording does not.
+
+Where a pause went inside one collection: `jdk.GCPhasePause` (children in `jdk.GCPhasePauseLevel1`
+through `Level4`), grouped by `fields->>'name'` and filtered on `fields->>'gcId'`.
+`jdk.GCPhaseConcurrent` holds the phases outside the pause.
+
+One row each, read before proposing a flag: `jdk.GCConfiguration`, `jdk.GCHeapConfiguration`,
+`jdk.GCSurvivorConfiguration`, `jdk.GCTLABConfiguration`. Collector-specific pressure lives in
+`jdk.ZAllocationStall` (threads that waited for memory — ZGC's latency symptom, not a pause),
+`jdk.EvacuationFailed` and `jdk.TenuringDistribution`.
+
+Nothing here names the code that produced the garbage. Once the pause budget shows GC matters, the
+allocation flamegraph does — `flamegraph_export` on `jdk.ObjectAllocationSample` with
+`useWeight: true`.
+
+## JIT compilation and deoptimisation
+
+`jdk.Compilation` is one row per compilation: `method`, `compileLevel`, `compileId`, `codeSize`,
+`isOsr`, `succeded` (JFR's own spelling — false means the method fell back to the interpreter).
+Method-typed fields are flattened by the parser to `fully.qualified.Type#name`, in `jdk.Compilation`
+and `jdk.Deoptimization` alike, so grouping by `fields->>'method'` gives a string that can be
+grepped for in a checkout — no struct to unpack.
+The event fires only above the recording's threshold setting, so no rows means nothing compiled
+*slowly*; `jdk.CompilerStatistics` has the totals regardless (`compileCount`, `bailoutCount`,
+`invalidatedCount`, `osrCompileCount`, `totalTimeSpent`).
+
+```sql
+SELECT fields->>'method' AS method,
+       CAST(fields->>'compileLevel' AS INTEGER) AS level,
+       duration / 1000000.0 AS compile_ms,
+       CAST(fields->>'codeSize' AS BIGINT) AS code_size,
+       fields->>'succeded' AS succeeded
+FROM events
+WHERE event_type = 'jdk.Compilation'
+ORDER BY duration DESC
+LIMIT 25
+```
+
+Deoptimisation is where the JIT turns into a latency problem. Group by method **and** reason: one
+method deoptimised repeatedly ran interpreted for part of the recording, and the reason
+(`unstable_if`, `class_check`, `null_check`) says what to look for in the source.
+
+```sql
+SELECT fields->>'method' AS method,
+       fields->>'reason' AS reason,
+       fields->>'action' AS action,
+       COUNT(*) AS deopts
+FROM events
+WHERE event_type = 'jdk.Deoptimization'
+GROUP BY method, reason, action
+ORDER BY deopts DESC
+LIMIT 25
+```
+
+`jdk.CodeCacheStatistics` and `jdk.CodeCacheFull` answer whether compilation stopped altogether —
+a full code cache leaves the application at interpreted speed for the rest of the run — and
+`jdk.CompilerQueueUtilization` shows the queues backing up, which reads as a slow warm-up rather
+than a steady-state cost.
 
 ## Results are capped
 

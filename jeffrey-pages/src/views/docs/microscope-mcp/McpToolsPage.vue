@@ -236,6 +236,8 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
 
       <h2 id="jfr">jfr_ &mdash; the profile database</h2>
       <p>Each profile is one DuckDB database. This family is the escape hatch for questions no purpose-built tool covers &mdash; distributions over time, correlations between event types, the cardinality of a field.</p>
+
+      <p>It is also the <strong>only</strong> route to garbage collection and JIT compilation. Neither has a family of its own, so <code>jdk.GarbageCollection</code>, <code>jdk.GCHeapSummary</code>, <code>jdk.GCPhasePause</code>, <code>jdk.Compilation</code>, <code>jdk.Deoptimization</code> and <code>jdk.CodeCacheStatistics</code> are read as events here. The <router-link to="/docs/microscope-mcp/skills#jfr-sql"><code>jfr-sql</code></router-link> skill carries ready queries for both, including the one thing an improvised query gets wrong &mdash; pause time is <code>sumOfPauses</code>, not the event&rsquo;s <code>duration</code>, which for ZGC, Shenandoah and G1&rsquo;s concurrent cycles spans phases the application ran straight through.</p>
       <table>
         <thead>
           <tr>
@@ -479,6 +481,8 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
       <p><strong>No deleting.</strong> The server can add a profile and never removes one, so a session that imported the wrong file leaves it behind for you to delete in the UI.</p>
 
       <p><strong>No OQL.</strong> Jeffrey&rsquo;s <router-link to="/docs/ai/oql-assistant">OQL assistant</router-link> is a UI feature; over MCP, heap questions go through the <code>heap_</code> family and its SQL.</p>
+
+      <p><strong>No GC or JIT family.</strong> Jeffrey&rsquo;s UI has a full Garbage Collection section and a JIT Compilation one &mdash; pause timeseries and distribution, generation stats, G1 and ZGC deep dives, code cache, deoptimisation &mdash; and none of those dashboards is exported as a tool. The underlying events are all in the profile database, so the questions are answerable through <code>jfr_</code>, and the <code>analyze-jfr</code> and <code>jfr-sql</code> skills carry the queries and the reading. For the interactive version, <code>profiles_link</code> opens the profile in the UI.</p>
 
       <p><strong>No shell.</strong> The server answers questions about profiles and, with ingestion on, opens the one recording path it is handed. It runs nothing.</p>
     </div>
