@@ -26,7 +26,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.controllers.profile.HeapDumpManagerToolsDelegate;
-import cafe.jeffrey.profile.advisor.mcp.SourceToolsRegistry;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpMcpTools;
 import cafe.jeffrey.profile.ai.duckdb.jfr.tools.DuckDbMcpTools;
@@ -43,10 +42,8 @@ import tools.jackson.databind.JsonNode;
  * the endpoint and resolves the per-request {@link ReflectiveToolset}.
  * <p>
  * The endpoint is profile-scoped through the {@code profileId} query parameter and tool-family-scoped
- * through {@code toolset} ({@code jfr}|{@code heap}|{@code advisor-source}), so the model only sees the
- * relevant family and always operates on the correct profile. The advisor family is additionally scoped
- * by {@code runId}: its tools read a folder on the user's disk, and that access must end with the run
- * that authorized it rather than persist for the profile's lifetime.
+ * through {@code toolset} ({@code jfr}|{@code heap}), so the model only sees the relevant family and
+ * always operates on the correct profile.
  * <p>
  * The endpoint only serves requests while the {@code claude-code} provider is selected. That is checked
  * per request rather than by registering the controller conditionally: whether a controller exists is
@@ -58,23 +55,18 @@ public class McpStreamableHttpController extends AbstractMcpStreamableHttpContro
 
     private static final String TOOLSET_JFR = "jfr";
     private static final String TOOLSET_HEAP = "heap";
-    private static final String TOOLSET_ADVISOR_SOURCE = "advisor-source";
-    private static final String TOOL_PREFIX_SOURCE = "source";
     private static final String PROVIDER_CLAUDE_CODE = "claude-code";
 
     private final ProfileManagerResolver profileManagerResolver;
     private final DatabaseManagerResolver databaseManagerResolver;
-    private final SourceToolsRegistry sourceToolsRegistry;
     private final SettingsStore settingsStore;
 
     public McpStreamableHttpController(
             ProfileManagerResolver profileManagerResolver,
             DatabaseManagerResolver databaseManagerResolver,
-            SourceToolsRegistry sourceToolsRegistry,
             SettingsStore settingsStore) {
         this.profileManagerResolver = profileManagerResolver;
         this.databaseManagerResolver = databaseManagerResolver;
-        this.sourceToolsRegistry = sourceToolsRegistry;
         this.settingsStore = settingsStore;
     }
 
@@ -82,14 +74,13 @@ public class McpStreamableHttpController extends AbstractMcpStreamableHttpContro
     public ResponseEntity<JsonNode> handle(
             @RequestParam("profileId") String profileId,
             @RequestParam("toolset") String toolset,
-            @RequestParam(value = "runId", required = false) String runId,
             @RequestBody JsonNode request) {
 
         if (!isClaudeCodeSelected()) {
             return ResponseEntity.notFound().build();
         }
 
-        return dispatch(request, () -> toolsetFor(profileId, toolset, runId));
+        return dispatch(request, () -> toolsetFor(profileId, toolset));
     }
 
     private boolean isClaudeCodeSelected() {
@@ -98,7 +89,7 @@ public class McpStreamableHttpController extends AbstractMcpStreamableHttpContro
         return PROVIDER_CLAUDE_CODE.equals(provider);
     }
 
-    private ReflectiveToolset toolsetFor(String profileId, String toolset, String runId) {
+    private ReflectiveToolset toolsetFor(String profileId, String toolset) {
         return switch (toolset) {
             case TOOLSET_JFR -> {
                 ProfileInfo profileInfo = profileManagerResolver.resolve(profileId).info();
@@ -110,10 +101,6 @@ public class McpStreamableHttpController extends AbstractMcpStreamableHttpContro
                         new HeapDumpManagerToolsDelegate(profileManagerResolver.resolve(profileId).heapDumpManager());
                 yield new ReflectiveToolset(new HeapDumpMcpTools(delegate), TOOLSET_HEAP);
             }
-            // Resolving by runId is the authorization check: an unknown or expired run has no tools, so a
-            // CLI that calls back after its run ended cannot reach the source folder it was reading.
-            case TOOLSET_ADVISOR_SOURCE ->
-                    new ReflectiveToolset(sourceToolsRegistry.resolve(runId), TOOL_PREFIX_SOURCE);
             default -> throw new IllegalArgumentException("Unknown toolset: " + toolset);
         };
     }

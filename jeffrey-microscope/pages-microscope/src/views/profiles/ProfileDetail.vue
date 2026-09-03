@@ -14,17 +14,6 @@
           <i class="bi bi-compass"></i>
           <span>Overview</span>
         </div>
-        <!-- Advisor mode (hidden for heap-dump-only profiles; it analyzes sampled call trees) -->
-        <div
-          v-if="!isHeapDumpOnlyProfile"
-          class="nav-pill"
-          :class="{ active: selectedMode === 'Advisor' }"
-          title="AI recommendations from this profile and your source"
-          @click="selectMode('Advisor')"
-        >
-          <i class="bi bi-lightbulb"></i>
-          <span>Advisor</span>
-        </div>
         <!-- JVM Internals mode (hidden for heap-dump-only, pprof and OTLP profiles) -->
         <div
           v-if="!isHeapDumpOnlyProfile && !isPprofOnlyProfile && !isOtlpOnlyProfile"
@@ -603,8 +592,7 @@ const selectMode = (mode: ProfileMode) => {
     Technologies: `/profiles/${profileId}/technologies/hub`,
     Visualization: `/profiles/${profileId}/flamegraphs/primary`,
     HeapDump: `/profiles/${profileId}/heap-dump/settings`,
-    Tools: `/profiles/${profileId}/tools/rename-frames`,
-    Advisor: `/profiles/${profileId}/advisor`
+    Tools: `/profiles/${profileId}/tools/rename-frames`
   };
 
   router.push(firstRoutes[mode]);

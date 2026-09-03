@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
@@ -43,13 +44,18 @@ public class ProfileMcpTools {
     private static final String PROFILE_UI_PATH = "/profiles/%s";
 
     private final ProfileManager profileManager;
+    private final RecordingCommitResolver recordingCommitResolver;
 
-    public ProfileMcpTools(ProfileManager profileManager) {
+    public ProfileMcpTools(ProfileManager profileManager, RecordingCommitResolver recordingCommitResolver) {
         this.profileManager = profileManager;
+        this.recordingCommitResolver = recordingCommitResolver;
     }
 
-    @Tool(description = "Details of one profile: its identity, the recording window it covers, and how "
-            + "much data it holds.")
+    @Tool(description = "Details of one profile: its identity, the recording window it covers, how "
+            + "much data it holds, and — when the recording was tagged with one — the source commit "
+            + "the profiled build came from (recordingCommit, null when unknown). Compare it with the "
+            + "checkout before mapping frames to code: a profile of a different commit describes code "
+            + "that may no longer exist.")
     public String get() {
         ProfileInfo info = profileManager.info();
         return McpToolOutput.json(new ProfileDetail(
@@ -64,7 +70,8 @@ public class ProfileMcpTools {
                 info.createdAt().toString(),
                 info.enabled(),
                 info.modified(),
-                profileManager.sizeInBytes()));
+                profileManager.sizeInBytes(),
+                recordingCommitResolver.resolve(info.recordingId()).orElse(null)));
     }
 
     @Tool(description = "What this profile can answer: which analysis features it has the data for, and "
@@ -131,6 +138,7 @@ public class ProfileMcpTools {
             String createdAt,
             boolean enabled,
             boolean modified,
-            long sizeInBytes) {
+            long sizeInBytes,
+            String recordingCommit) {
     }
 }

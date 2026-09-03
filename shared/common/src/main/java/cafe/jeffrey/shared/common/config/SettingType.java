@@ -40,12 +40,6 @@ public enum SettingType {
     POSITIVE_INT(value -> parseInt(value) instanceof Integer parsed && parsed > 0),
 
     /**
-     * A whole number of zero or more, where zero carries a meaning of its own rather than being an
-     * absent value — the Advisor's concurrency ceiling reads it as "no ceiling".
-     */
-    NON_NEGATIVE_INT(value -> parseInt(value) instanceof Integer parsed && parsed >= 0),
-
-    /**
      * A percentage in the exclusive range {@code (0, 100)}. Matches the invariant enforced by
      * {@code AiExportConfig}, which is constructed per flamegraph request.
      */

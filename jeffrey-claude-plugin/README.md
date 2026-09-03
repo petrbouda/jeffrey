@@ -65,11 +65,14 @@ both) and not the case for a Jeffrey in a container or on another host.
 **Skills**, which you can also invoke directly:
 
 - `/microscope:analyze-profile` — where to start and which family answers which question
+- `/microscope:advise` — from a profile to a code change: the hottest CPU, wall-clock, allocation
+  and blocking frames mapped to real source in your checkout, a recommendation, then the edit and a
+  re-profile on request
 - `/microscope:jfr-sql` — the JFR schema and the DuckDB idioms that go with it
 - `/microscope:heap-sql` — the heap-dump index schema
 
-The exports carry their own reading instructions, so the skills stay short: they cover the workflow
-and the two schemas, not things the tool output already explains.
+The exports carry their own reading instructions, so the skills stay short: they cover the
+workflows and the two schemas, not things the tool output already explains.
 
 ## Permissions
 
@@ -93,6 +96,10 @@ Or, starting from a recording that is not in Jeffrey yet:
 
 > the `GET /api/orders` operation is slow — find a slow example and tell me what the JVM was doing
 > inside its slowest span
+
+Or, once the hotspot is known, in the repository that produced it:
+
+> advise on the most recent Jeffrey profile — what should I change in this repo?
 
 ## Security
 

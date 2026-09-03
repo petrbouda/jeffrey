@@ -88,7 +88,7 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
           <tr>
             <td><code>profiles_get</code></td>
             <td><code>profileId</code></td>
-            <td>Identity, the recording window it covers, and its size</td>
+            <td>Identity, the recording window it covers, its size, and the source commit the profiled build came from (<code>recordingCommit</code>, <code>null</code> when the recording carries no commit tag)</td>
           </tr>
           <tr>
             <td><code>profiles_features</code></td>

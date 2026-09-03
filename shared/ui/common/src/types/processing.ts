@@ -18,7 +18,7 @@
 
 /**
  * Types for the generic ProcessingTimeline component — a phased, timed progress view shared by the
- * Heap Dump initialization and the Advisor run (and any future staged feature).
+ * Heap Dump initialization (and any future staged feature).
  */
 
 /** One row inside a step's expandable breakdown (e.g. a sub-phase of an index build). */

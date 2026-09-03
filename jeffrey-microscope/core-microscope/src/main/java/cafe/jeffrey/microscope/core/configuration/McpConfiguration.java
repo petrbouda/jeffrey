@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.configuration;
 
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.ExternalMcpProperties;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
@@ -87,14 +88,27 @@ public class McpConfiguration {
         return new RecordingsMcpTools(recordingsManager);
     }
 
+    /**
+     * Reads the commit a recording was tagged with, so {@code profiles_get} can tell a client holding
+     * a checkout whether it is looking at the code that actually ran.
+     */
+    @Bean
+    public RecordingCommitResolver recordingCommitResolver(
+            MicroscopeCorePersistenceProvider localCorePersistenceProvider) {
+        return new RecordingCommitResolver(
+                localCorePersistenceProvider.localCoreRepositories().recordingTagsRepository());
+    }
+
     @Bean
     public McpToolsetAssembler mcpToolsetAssembler(
             ProfilesMcpTools profilesMcpTools,
             RecordingsMcpTools recordingsMcpTools,
             McpProfileContextCache contextCache,
             JfrFlamegraphPanelProvider panelProvider,
+            RecordingCommitResolver recordingCommitResolver,
             ExternalMcpProperties properties) {
         return new McpToolsetAssembler(
-                profilesMcpTools, recordingsMcpTools, contextCache, panelProvider, properties);
+                profilesMcpTools, recordingsMcpTools, contextCache, panelProvider,
+                recordingCommitResolver, properties);
     }
 }

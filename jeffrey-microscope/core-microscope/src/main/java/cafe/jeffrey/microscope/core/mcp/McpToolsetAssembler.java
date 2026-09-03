@@ -21,6 +21,7 @@ package cafe.jeffrey.microscope.core.mcp;
 import cafe.jeffrey.microscope.core.mcp.tools.FlamegraphMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.TracesMcpTools;
 import cafe.jeffrey.microscope.core.web.controllers.profile.HeapDumpManagerToolsDelegate;
@@ -78,12 +79,14 @@ public class McpToolsetAssembler {
             RecordingsMcpTools recordingsMcpTools,
             McpProfileContextCache contextCache,
             JfrFlamegraphPanelProvider panelProvider,
+            RecordingCommitResolver recordingCommitResolver,
             ExternalMcpProperties properties) {
 
         List<McpToolProvider> families = new ArrayList<>(List.of(
                 new ReflectiveToolset(profilesMcpTools, PREFIX_PROFILES),
                 new ProfileScopedToolset<>(ProfileMcpTools.class, PREFIX_PROFILES,
-                        profileId -> new ProfileMcpTools(profileManager(contextCache, profileId))),
+                        profileId -> new ProfileMcpTools(
+                                profileManager(contextCache, profileId), recordingCommitResolver)),
                 new ProfileScopedToolset<>(DuckDbMcpTools.class, PREFIX_JFR,
                         profileId -> new DuckDbMcpTools(contextCache.context(profileId).dataSource()),
                         WRITE_TOOLS),

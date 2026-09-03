@@ -28,7 +28,7 @@ import java.util.List;
  * stages into phases. Putting labels here would drag display decisions across the wire and make
  * renaming a heading a backend change.</p>
  *
- * @param pipelineId identifies the pipeline itself (e.g. {@code heap-dump-init}, {@code advisor}); it
+ * @param pipelineId identifies the pipeline itself (e.g. {@code heap-dump-init}, {@code profile-init}); it
  *                   is the key a stored run is filed under
  * @param stageIds   the stage ids in run order; must be non-empty and unique
  */

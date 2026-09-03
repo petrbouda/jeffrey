@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
@@ -53,12 +54,16 @@ class McpToolsetAssemblerTest {
     @Mock
     JfrFlamegraphPanelProvider panelProvider;
 
+    @Mock
+    RecordingCommitResolver recordingCommitResolver;
+
     private List<String> toolNamesWithIngest(boolean ingestEnabled) {
         McpToolsetAssembler assembler = new McpToolsetAssembler(
                 new ProfilesMcpTools(coreRepositories),
                 new RecordingsMcpTools(recordingsManager),
                 contextCache,
                 panelProvider,
+                recordingCommitResolver,
                 new ExternalMcpProperties(true, ingestEnabled));
 
         return assembler.toolset().specs().stream().map(McpToolSpec::name).toList();
@@ -114,6 +119,7 @@ class McpToolsetAssemblerTest {
                     new RecordingsMcpTools(recordingsManager),
                     contextCache,
                     panelProvider,
+                    recordingCommitResolver,
                     new ExternalMcpProperties(true, false));
 
             assertThrows(

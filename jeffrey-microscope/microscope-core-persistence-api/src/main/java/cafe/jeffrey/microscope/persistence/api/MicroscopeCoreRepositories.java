@@ -44,7 +44,4 @@ public interface MicroscopeCoreRepositories {
      * and a Quick Analysis profile stores a null there, which no equality comparison matches.
      */
     List<ProfileInfo> findAllProfiles();
-
-    AdvisorSettingsRepository advisorSettingsRepository();
-
 }

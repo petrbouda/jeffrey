@@ -73,8 +73,8 @@ describe('profileNavConfig', () => {
     // 6 Overview (incl. Dashboards) + 19 JVM (incl. GC/JIT submenu parents + children)
     // + 16 Application (incl. Memory Issues submenu) + 4 Traces (Traces by Operation,
     // Search Traces, Attribute Values, Latency by Attributes) + 4 Visualization
-    // + 17 HeapDump + 4 Tools + 4 Advisor + 35 Technologies
-    expect(allItems.length).toBe(109);
+    // + 17 HeapDump + 4 Tools + 35 Technologies
+    expect(allItems.length).toBe(105);
   });
 
   it('every item has a label and a bootstrap icon', () => {
@@ -139,8 +139,7 @@ describe('profileNavConfig', () => {
   const LEGACY_REDIRECTS: Array<[string, string]> = [
     ['leak-candidates', 'memory-issues/leak-candidates'],
     ['garbage-collection/finalizers', 'memory-issues/finalizers'],
-    ['garbage-collection/reference-processing', 'memory-issues/reference-processing'],
-    ['advisor/findings', 'advisor/recommendations']
+    ['garbage-collection/reference-processing', 'memory-issues/reference-processing']
   ];
 
   it('legacy paths redirect to their new location', () => {
