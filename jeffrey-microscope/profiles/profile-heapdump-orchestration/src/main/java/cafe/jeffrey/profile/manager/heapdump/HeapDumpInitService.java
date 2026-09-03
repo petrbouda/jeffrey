@@ -39,7 +39,7 @@ import java.util.Set;
  * live per-stage statuses instead of orchestrating eleven sequential requests itself.
  *
  * <p>The run bookkeeping — the registry, the per-stage timing, the live timer — is
- * {@link PipelineRunRegistry}, shared with the Advisor. What stays here is the only part that is
+ * {@link PipelineRunRegistry}, shared with profile initialization. What stays here is the only part that is
  * genuinely about heap dumps: which analyses run, in what order, and how the atomic index build is
  * surfaced as three stages.</p>
  *

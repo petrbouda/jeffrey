@@ -24,6 +24,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.TracesMcpTools;
 import cafe.jeffrey.microscope.core.web.controllers.profile.HeapDumpManagerToolsDelegate;
+import cafe.jeffrey.microscope.persistence.api.RecordingTagsRepository;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpMcpTools;
 import cafe.jeffrey.profile.ai.duckdb.jfr.tools.DuckDbMcpTools;
 import cafe.jeffrey.profile.manager.ProfileManager;
@@ -78,12 +79,21 @@ public class McpToolsetAssembler {
             RecordingsMcpTools recordingsMcpTools,
             McpProfileContextCache contextCache,
             JfrFlamegraphPanelProvider panelProvider,
+            RecordingTagsRepository recordingTagsRepository,
             ExternalMcpProperties properties) {
+
+        // The tag-key preference the in-app Advisor already resolves commits by, reused rather than
+        // restated: a build tagged in a way one of them understands must not be a build the other
+        // cannot identify.
+        RecordingCommitResolver commitResolver = new RecordingCommitResolver(recordingTagsRepository);
 
         List<McpToolProvider> families = new ArrayList<>(List.of(
                 new ReflectiveToolset(profilesMcpTools, PREFIX_PROFILES),
                 new ProfileScopedToolset<>(ProfileMcpTools.class, PREFIX_PROFILES,
-                        profileId -> new ProfileMcpTools(profileManager(contextCache, profileId))),
+                        profileId -> new ProfileMcpTools(
+                                profileManager(contextCache, profileId),
+                                commitResolver,
+                                recordingTagsRepository)),
                 new ProfileScopedToolset<>(DuckDbMcpTools.class, PREFIX_JFR,
                         profileId -> new DuckDbMcpTools(contextCache.context(profileId).dataSource()),
                         WRITE_TOOLS),

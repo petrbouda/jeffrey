@@ -105,7 +105,7 @@ public class ProfileInitializerImpl implements ProfileInitializer {
         // the pin; the cached pool stays warm for subsequent reads and is closed later by idle
         // eviction, not here.
         try (DatabaseLease lease = databaseManager.acquire(profileInfo.id())) {
-            // Runs as a tracked pipeline, the way heap-dump initialization and the Advisor already
+            // Runs as a tracked pipeline, the way heap-dump initialization already
             // do. Each step below is a stage, which gives it three things it did not have: a
             // duration recorded against a stable id, a way to say a step was skipped rather than
             // merely fast, and somewhere for a failure to land -- a failed initialization used to

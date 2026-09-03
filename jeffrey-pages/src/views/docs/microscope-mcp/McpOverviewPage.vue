@@ -86,7 +86,7 @@ onMounted(() => {
           </tr>
           <tr>
             <td>Sees your source code</td>
-            <td>Only the folder the Advisor is pointed at</td>
+            <td>No &mdash; it reads the profile, not your repository</td>
             <td>Yes &mdash; the client is already in your checkout</td>
           </tr>
           <tr>
@@ -105,7 +105,7 @@ onMounted(() => {
       <p>A call arrives naming a tool and a <code>profileId</code>. Jeffrey resolves that id to the profile's own DuckDB database, holds a lease on it for as long as the session stays active, runs the tool, and returns Markdown or a result table. The heavy machinery &mdash; the flamegraph builder, the trace analysis, the heap-dump index &mdash; is the same code the UI renders from, so what the model reads and what you see on screen cannot drift apart.</p>
 
       <h2 id="what-it-can-read">What It Can Read</h2>
-      <p>Forty-two tools in six families:</p>
+      <p>Forty-three tools in six families:</p>
       <table>
         <thead>
           <tr>
@@ -117,8 +117,8 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><code>profiles_</code></td>
-            <td>4</td>
-            <td>The catalogue: which recordings are analysed, what each one can answer, a deep link into the UI</td>
+            <td>5</td>
+            <td>The catalogue: which recordings are analysed, what each one can answer, what build each came from, a deep link into the UI</td>
           </tr>
           <tr>
             <td><code>flamegraph_</code></td>
@@ -158,6 +158,7 @@ onMounted(() => {
       <ul>
         <li><router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> &mdash; the endpoint URL, the security posture, and how to switch it off</li>
         <li><router-link to="/docs/microscope-mcp/plugin">Claude Code Plugin</router-link> &mdash; one install instead of a hand-written command per machine</li>
+        <li><router-link to="/docs/microscope-mcp/changes">From Profile to Change</router-link> &mdash; acting on a profile in the repository that produced it</li>
         <li><router-link to="/docs/microscope-mcp/recipes">Recipes</router-link> &mdash; worked sessions, from &ldquo;where does the time go&rdquo; to a leak hunt</li>
         <li><router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> &mdash; connecting without the plugin, and the wire protocol</li>
       </ul>

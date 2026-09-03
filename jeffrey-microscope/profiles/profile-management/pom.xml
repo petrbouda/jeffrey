@@ -70,10 +70,6 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>profile-advisor</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
             <artifactId>duckdb-jfr-mcp</artifactId>
         </dependency>
         <dependency>

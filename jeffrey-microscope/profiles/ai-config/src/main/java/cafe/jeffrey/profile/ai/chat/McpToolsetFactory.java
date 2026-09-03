@@ -34,7 +34,6 @@ public final class McpToolsetFactory {
     private static final String SERVER_NAME = "jeffrey";
     private static final String TOOLSET_JFR = "jfr";
     private static final String TOOLSET_HEAP = "heap";
-    private static final String TOOLSET_ADVISOR_SOURCE = "advisor-source";
 
     private static final String DEFAULT_BASE_URL = "http://127.0.0.1:8585/api/internal/mcp/claude-code";
 
@@ -59,25 +58,10 @@ public final class McpToolsetFactory {
         return build(profileId, TOOLSET_HEAP);
     }
 
-    /**
-     * The read-only source tools of one advisor run. Scoped by {@code runId} rather than by profile
-     * because the tools are bound to a source folder only for the duration of that run: a CLI that
-     * calls back afterwards must find nothing, not somebody else's source.
-     */
-    public McpToolset forAdvisorRun(String profileId, String runId) {
-        return build(profileId, TOOLSET_ADVISOR_SOURCE,
-                "&runId=" + URLEncoder.encode(runId, StandardCharsets.UTF_8));
-    }
-
     private McpToolset build(String profileId, String toolset) {
-        return build(profileId, toolset, "");
-    }
-
-    private McpToolset build(String profileId, String toolset, String extraQuery) {
         String url = settingsStore.getString(MicroscopeSettingKeys.AI_MCP_URL, DEFAULT_BASE_URL)
                 + "?profileId=" + URLEncoder.encode(profileId, StandardCharsets.UTF_8)
-                + "&toolset=" + toolset
-                + extraQuery;
+                + "&toolset=" + toolset;
         return new McpToolset(SERVER_NAME, url, allowedTools);
     }
 }

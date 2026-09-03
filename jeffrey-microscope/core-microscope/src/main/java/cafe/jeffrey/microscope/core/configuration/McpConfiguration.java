@@ -93,8 +93,14 @@ public class McpConfiguration {
             RecordingsMcpTools recordingsMcpTools,
             McpProfileContextCache contextCache,
             JfrFlamegraphPanelProvider panelProvider,
+            MicroscopeCorePersistenceProvider localCorePersistenceProvider,
             ExternalMcpProperties properties) {
         return new McpToolsetAssembler(
-                profilesMcpTools, recordingsMcpTools, contextCache, panelProvider, properties);
+                profilesMcpTools,
+                recordingsMcpTools,
+                contextCache,
+                panelProvider,
+                localCorePersistenceProvider.localCoreRepositories().recordingTagsRepository(),
+                properties);
     }
 }

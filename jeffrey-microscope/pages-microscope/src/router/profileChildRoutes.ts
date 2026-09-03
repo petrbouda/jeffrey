@@ -645,42 +645,6 @@ const toolsRoutes = [
   }
 ];
 
-// AI advisor: the run overview (phased, timed processing, with the source folder set inline) lands
-// first, then the three artifacts a run produces — the prompt, the recommendations and the patch —
-// each on its own page.
-const advisorRoutes = [
-  {
-    path: 'advisor',
-    name: 'profile-advisor',
-    component: () => import('@/views/profiles/detail/advisor/AdvisorRunOverview.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'advisor/prompt',
-    name: 'profile-advisor-prompt',
-    component: () => import('@/views/profiles/detail/advisor/AdvisorPrompt.vue'),
-    meta: { layout: 'profile' }
-  },
-  {
-    path: 'advisor/recommendations',
-    name: 'profile-advisor-recommendations',
-    component: () => import('@/views/profiles/detail/advisor/AdvisorRecommendations.vue'),
-    meta: { layout: 'profile' }
-  },
-  // The page was called Findings until the Advisor's pages were named after the three artifacts a run
-  // produces; keep the old path working for anyone who bookmarked it.
-  {
-    path: 'advisor/findings',
-    redirect: redirectTo('advisor/recommendations')
-  },
-  {
-    path: 'advisor/patches',
-    name: 'profile-advisor-patches',
-    component: () => import('@/views/profiles/detail/advisor/AdvisorPatches.vue'),
-    meta: { layout: 'profile' }
-  }
-];
-
 // Traces — a top-level feature of its own, not one of the technologies
 const traceRoutes = [
   {
@@ -720,6 +684,5 @@ export const profileChildRoutes = [
   ...heapDumpRoutes,
   ...technologyRoutes,
   ...traceRoutes,
-  ...toolsRoutes,
-  ...advisorRoutes
+  ...toolsRoutes
 ];

@@ -51,7 +51,7 @@ installation.
 
 | Family | What it does |
 |---|---|
-| `profiles_` | The catalogue: which recordings are analysed, what each one can answer, a deep link into the UI |
+| `profiles_` | The catalogue: which recordings are analysed, what each one can answer, what build each came from, a deep link into the UI |
 | `flamegraph_` | Which graphs a profile supports, and the call tree as Markdown |
 | `traces_` | Trace operations, exemplars, span trees and span-scoped flamegraphs |
 | `jfr_` | The profile's DuckDB tables — schema and read-only SQL |
@@ -65,6 +65,8 @@ both) and not the case for a Jeffrey in a container or on another host.
 **Skills**, which you can also invoke directly:
 
 - `/microscope:analyze-profile` — where to start and which family answers which question
+- `/microscope:optimize-from-profile` — turning a profile into changes in the repository you are in,
+  starting with the check that it *is* the right repository
 - `/microscope:jfr-sql` — the JFR schema and the DuckDB idioms that go with it
 - `/microscope:heap-sql` — the heap-dump index schema
 

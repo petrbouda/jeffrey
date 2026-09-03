@@ -132,8 +132,7 @@ export const microscopeNavigation: DocSection[] = [
     icon: 'bi-collection-play',
     children: [
       { title: 'Recordings', to: '/docs/microscope/recordings' },
-      { title: 'Profiles', to: '/docs/microscope/profiles' },
-      { title: 'Advisor', to: '/docs/microscope/profiles/advisor' }
+      { title: 'Profiles', to: '/docs/microscope/profiles' }
     ]
   },
   {
@@ -237,6 +236,12 @@ export const microscopeMcpNavigation: DocSection[] = [
       { title: 'Tool Reference', to: '/docs/microscope-mcp/tools' },
       { title: 'Skills', to: '/docs/microscope-mcp/skills' }
     ]
+  },
+  {
+    title: 'Making Changes',
+    path: '_microscope-mcp-changes',
+    icon: 'bi-wrench-adjustable',
+    children: [{ title: 'From Profile to Change', to: '/docs/microscope-mcp/changes' }]
   },
   {
     title: 'Recipes',

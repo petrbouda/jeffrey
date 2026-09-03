@@ -45,6 +45,4 @@ public interface MicroscopeCoreRepositories {
      */
     List<ProfileInfo> findAllProfiles();
 
-    AdvisorSettingsRepository advisorSettingsRepository();
-
 }

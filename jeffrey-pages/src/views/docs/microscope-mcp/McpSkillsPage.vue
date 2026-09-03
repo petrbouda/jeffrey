@@ -29,6 +29,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'why-skills-at-all', text: 'Why Skills at All', level: 2 },
   { id: 'analyze-profile', text: 'analyze-profile', level: 2 },
+  { id: 'optimize-from-profile', text: 'optimize-from-profile', level: 2 },
   { id: 'jfr-sql', text: 'jfr-sql', level: 2 },
   { id: 'heap-sql', text: 'heap-sql', level: 2 },
   { id: 'invoking-one-directly', text: 'Invoking One Directly', level: 2 },
@@ -40,6 +41,7 @@ onMounted(() => {
 });
 
 const invoke = `/microscope:analyze-profile
+/microscope:optimize-from-profile
 /microscope:jfr-sql
 /microscope:heap-sql`;
 
@@ -58,7 +60,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
     />
 
     <div class="docs-content">
-      <p>The <router-link to="/docs/microscope-mcp/plugin">plugin</router-link> ships three skills. Claude loads one on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
+      <p>The <router-link to="/docs/microscope-mcp/plugin">plugin</router-link> ships four skills. Claude loads one on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
 
       <h2 id="why-skills-at-all">Why Skills at All</h2>
       <p>Most of what a model needs in order to <em>read</em> Jeffrey&rsquo;s output already travels with the output. Every flamegraph and trace export opens with a preamble that defines what <code>self</code> means against <code>total</code>, what the frame tags mean, what was pruned, and how to analyse that particular event type. Nothing needs to repeat that, and a skill that did would go stale the moment the preamble changed.</p>
@@ -72,9 +74,18 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <h2 id="analyze-profile">analyze-profile</h2>
       <p><em>Orientation.</em> Loaded whenever the question is &ldquo;why is this slow&rdquo;, &ldquo;where does the time go&rdquo;, &ldquo;what is allocating&rdquo;, &ldquo;what is holding memory&rdquo;, or when a Jeffrey profile, a JFR recording or a heap dump is mentioned.</p>
 
-      <p>It carries the entry sequence &mdash; <code>profiles_list</code>, then <code>profiles_features</code>, then the family that matches the question &mdash; a map of the six families to the questions each answers, when to start instead from <code>recordings_analyzeFile</code> because the user named a file Jeffrey has never seen, the rule that every scoped tool takes a <code>profileId</code>, which flamegraph to pick for CPU versus allocation versus lock contention versus wall-clock, the order to work a latency question in traces, and what a failure means (a <code>404</code> means the server was switched off, not a bug).</p>
+      <p>It carries the entry sequence &mdash; <code>profiles_list</code>, then <code>profiles_features</code>, then the family that matches the question &mdash; a map of the analysis families to the questions each answers, when to start instead from <code>recordings_analyzeFile</code> because the user named a file Jeffrey has never seen, the rule that every scoped tool takes a <code>profileId</code>, which flamegraph to pick for CPU versus allocation versus lock contention versus wall-clock, the order to work a latency question in traces, and what a failure means (a <code>404</code> means the server was switched off, not a bug).</p>
 
       <p>It also tells the model to <strong>ground its claims</strong>: the exports contain call paths and numbers, not source locations, so file and line numbers must be read from the repository rather than inferred from a profile.</p>
+
+      <h2 id="optimize-from-profile">optimize-from-profile</h2>
+      <p><em>Acting on the profile.</em> Loaded when the ask is to make something faster, cut allocation or reduce contention &mdash; when the profile and the source are in the same place and the deliverable is a change, not an explanation.</p>
+
+      <p>It runs the ordinary tools in a particular order: <code>profiles_buildInfo</code> first, then <code>flamegraph_panels</code> and <code>flamegraph_export</code>. Its first section is the one that matters most &mdash; a table of what to do when the recording&rsquo;s commit matches HEAD, disagrees with it, is missing but the main class plainly belongs to this repository, or identifies nothing at all. Only the first two rows lead to an edit; the last is a stop.</p>
+
+      <p>The rest is what the call tree cannot say: which method a <code>$$Lambda</code> frame belongs to, why an <code>[INL]</code> frame has no separate cost to optimise, why a <code>[SYNTHETIC]</code> frame is not in the source at all, why a frame whose <code>self</code> is far below its <code>total</code> is usually fixed one level up, and that a hotspot in the JDK or a library is changed at your call site rather than in code you do not own. It closes by requiring a build and the repository&rsquo;s own tests before anything is reported as done.</p>
+
+      <p>See <router-link to="/docs/microscope-mcp/changes">From Profile to Change</router-link> for the workflow it carries.</p>
 
       <h2 id="jfr-sql">jfr-sql</h2>
       <p><em>The profile database.</em> Loaded when a question needs <code>jfr_executeQuery</code> or <code>jfr_queryEvents</code> because no purpose-built tool covers it.</p>

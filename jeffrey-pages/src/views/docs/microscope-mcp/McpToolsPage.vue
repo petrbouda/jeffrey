@@ -56,7 +56,7 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
     />
 
     <div class="docs-content">
-      <p>Forty-two tools in six families. Five families read a profile; the sixth, <code>recordings_</code>, is the only one that creates one.</p>
+      <p>Forty-three tools in six families. Five families read a profile; the sixth, <code>recordings_</code>, is the only one that creates one.</p>
 
       <h2 id="rules-that-apply-to-all-of-them">Rules That Apply to All of Them</h2>
 
@@ -96,6 +96,11 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
             <td>Which analysis features this profile has the data for, plus every event type recorded with sample counts</td>
           </tr>
           <tr>
+            <td><code>profiles_buildInfo</code></td>
+            <td><code>profileId</code></td>
+            <td>What build the profile was recorded from: the commit its recording was tagged with, every recording tag, and the JVM and application command line. Call it before reading a profile beside a checkout</td>
+          </tr>
+          <tr>
             <td><code>profiles_link</code></td>
             <td><code>profileId</code></td>
             <td>A deep link that opens the profile in the Jeffrey UI</td>
@@ -106,6 +111,8 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
       <DocsCallout type="tip" title="profiles_features is the cheap way to avoid dead ends">
         A JFR recording usually has no heap dump; a heap dump has no flamegraphs; traces exist only if the application ran Jeffrey&rsquo;s tracing instrumentation. One call rules out a whole family before it is tried.
       </DocsCallout>
+
+      <p><code>profiles_buildInfo</code> is the only tool here that answers a question about somewhere else. Reading a profile beside a working copy assumes the two belong together, and the commit a recording was tagged with &mdash; <code>git.commit</code>, <code>git.commit.id</code>, <code>git_commit</code>, <code>vcs.revision</code> or <code>org.opencontainers.image.revision</code> &mdash; plus the <code>jdk.JVMInformation</code> command line are the only evidence Jeffrey holds that can be checked against one. See <router-link to="/docs/microscope-mcp/changes">From Profile to Change</router-link>.</p>
 
       <h2 id="flamegraph">flamegraph_ &mdash; call trees</h2>
       <table>

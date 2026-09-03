@@ -31,6 +31,7 @@ const headings = [
   { id: 'what-are-profiles', text: 'What are Profiles?', level: 2 },
   { id: 'profile-storage', text: 'Profile Storage', level: 2 },
   { id: 'summary-dashboard', text: 'Summary Dashboard', level: 2 },
+  { id: 'acting-on-a-profile', text: 'Acting on a Profile', level: 2 },
   { id: 'visualization', text: 'Visualization', level: 2 },
   { id: 'jvm-internals', text: 'JVM Internals', level: 2 },
   { id: 'traces', text: 'Traces', level: 2 },
@@ -86,10 +87,10 @@ const folderStructure = `$JEFFREY_HOME/
         <li><strong>Top event types</strong> — the largest event types in the recording by samples, linking to flamegraphs and the event-type browser.</li>
       </ul>
 
-      <h2 id="advisor">Advisor</h2>
-      <p>Beside the analysis sections below, a profile also has an <strong>Advisor</strong> mode: point it at a folder of source on the same machine and it turns the profile&rsquo;s own call tree into recommendations and ready-to-apply patches.</p>
+      <h2 id="acting-on-a-profile">Acting on a Profile</h2>
+      <p>Turning a profile into code changes happens where the code is. A Claude Code session in your own repository reads the profile through <strong>Microscope MCP</strong> &mdash; the same call trees and exports this page describes &mdash; and makes the edits with its own tools, so the result is a diff you review and a build you can run.</p>
       <p class="docs-read-more">
-        <router-link to="/docs/microscope/profiles/advisor">Read the Advisor reference &rarr;</router-link>
+        <router-link to="/docs/microscope-mcp/changes">From profile to change &rarr;</router-link>
       </p>
 
       <h2 id="visualization">Visualization</h2>

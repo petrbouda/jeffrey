@@ -144,34 +144,3 @@ CREATE TABLE IF NOT EXISTS settings
     PRIMARY KEY (category, name)
 );
 
---
--- PROFILE ADVISOR SETTINGS TABLE
--- Per-profile configuration for the profile Advisor: the working-copy location the Advisor reads.
--- Keyed by profile_id so it works for every profile — a locally-uploaded (Quick Analysis) recording
--- has no project to key by, and requiring one would lock the Advisor out of the most common local use.
---
--- source_path points at the working copy on THIS machine. Installation-wide advisor knobs (such as
--- the prune threshold) live in the global settings table, not here.
---
-CREATE TABLE IF NOT EXISTS profile_advisor_settings
-(
-    profile_id  VARCHAR     NOT NULL PRIMARY KEY,
-    source_path VARCHAR,
-    modified_at TIMESTAMPTZ NOT NULL
-);
-
---
--- ADVISOR PROJECT FOLDERS TABLE
--- The installation-wide list of working copies the Advisor may read, managed from Settings → Advisor.
--- Deliberately flat: an entry is a name the user chose plus an absolute path on THIS machine, with no
--- workspace, project or hub key. A folder is picked by name when the Advisor runs on a profile, which
--- is why the name is unique — two entries with the same name would be indistinguishable in the picker.
---
-CREATE TABLE IF NOT EXISTS advisor_project_folders
-(
-    folder_id  VARCHAR     NOT NULL PRIMARY KEY,
-    name       VARCHAR     NOT NULL,
-    path       VARCHAR     NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL,
-    UNIQUE (name)
-);

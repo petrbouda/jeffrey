@@ -16,7 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cafe.jeffrey.profile.advisor.source;
+package cafe.jeffrey.microscope.core.mcp;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,16 +27,15 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Finds the commit a recording's build came from, so the advisor can tell the user whether the source
- * folder on disk is the source that actually ran.
+ * Finds the commit a recording's build came from, so a client reading the profile beside a checkout can
+ * tell whether that checkout is the code that actually ran.
  *
- * <p>Against a remote clone this decided <em>what to check out</em>. Against a local working copy it
- * decides <em>what to warn about</em>: Jeffrey cannot move somebody's working tree, but it can say
- * "this profile came from a different commit than the one you have checked out" instead of letting the
- * model reason confidently about code that never executed.</p>
+ * <p>Jeffrey cannot inspect somebody's working tree, and does not try. It reports the commit the
+ * recording was tagged with and leaves the comparison to the reader, who has the checkout in front of
+ * them — {@code profiles_buildInfo} is the tool that hands this over.</p>
  *
- * <p>When no tag is present the answer is empty rather than a guess, and the UI reports the commit as
- * unknown rather than quietly implying the source matched.</p>
+ * <p>When no tag is present the answer is empty rather than a guess, so an absent commit reads as
+ * unknown rather than as a match.</p>
  */
 public class RecordingCommitResolver {
 

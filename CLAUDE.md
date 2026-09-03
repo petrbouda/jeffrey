@@ -76,7 +76,6 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `ai-config` — AI configuration for profile analysis
 - `oql-assistant` — OQL AI assistant
 - `duckdb-jfr-mcp`, `duckdb-heapdump-mcp` — MCP servers for AI integration
-- `profile-advisor` — AI recommendations and patches from the profile and a local source folder
 - `claude-code-headless` — Claude Code (headless) AI backend
 - `mcp-server` — The MCP protocol layer, shared by every MCP endpoint: the JSON-RPC/Streamable-HTTP envelope (`AbstractMcpStreamableHttpController`), the `@Tool`-to-MCP adapter (`ReflectiveToolset`), and `ProfileScopedToolset` / `CompositeToolset` for resolving a tool class per call from a `profileId` and merging tool families into one server. **Only place that knows the protocol** — do not re-implement it in a controller
 
@@ -172,7 +171,6 @@ jeffrey/
 │       ├── duckdb-jfr-mcp/           # DuckDB MCP server for AI
 │       ├── duckdb-heapdump-mcp/      # Heap dump MCP server for AI
 │       ├── mcp-server/                # Shared MCP protocol layer (JSON-RPC envelope, toolsets)
-│       └── profile-advisor/           # AI recommendations from a local source folder
 ├── jeffrey-hub/                    # Multi-workspace server deployment
 │   ├── core-hub/                   # Main Spring Boot app (HubApplication)
 │   │   └── src/.../server/core/
@@ -423,7 +421,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 
 ## AI Integration
 - Spring AI 2.0.0-M3 with Claude and OpenAI providers
-- AI modules: `jeffrey-microscope/profiles/ai-config/`, `jeffrey-microscope/profiles/oql-assistant/`, `jeffrey-microscope/profiles/duckdb-jfr-mcp/`, `jeffrey-microscope/profiles/duckdb-heapdump-mcp/`, `jeffrey-microscope/profiles/profile-advisor/`
+- AI modules: `jeffrey-microscope/profiles/ai-config/`, `jeffrey-microscope/profiles/oql-assistant/`, `jeffrey-microscope/profiles/duckdb-jfr-mcp/`, `jeffrey-microscope/profiles/duckdb-heapdump-mcp/`
 - Config: `jeffrey.ai.provider=claude`, `jeffrey.ai.model=claude-opus-4-8`
 - **Two directions, do not confuse them.** The modules above run AI *inside* Jeffrey (Jeffrey calls out to a provider). The external MCP server at `POST /api/internal/mcp` is the reverse: an outside client — an interactive Claude Code session in the developer's own repository — calls *in* and reads every analysed profile. Its tools are read-only, its protocol layer is `profiles/mcp-server`, and it is packaged as the `microscope` Claude Code plugin (`/plugin install microscope@jeffrey`)
 
@@ -432,7 +430,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 
 ### Structure of the Database
 - Three-tier architecture: microscope core database, server database, and per-profile databases (isolated)
-- Local Core DB: hubs, recordings, profiles, settings, per-project advisor settings. Workspaces and projects are NOT stored locally — they are listed live from a hub over gRPC, so anything per-project is keyed by the `(workspace_id, project_id)` pair
+- Local Core DB: hubs, recordings, profiles, settings. Workspaces and projects are NOT stored locally — they are listed live from a hub over gRPC, so anything per-project is keyed by the `(workspace_id, project_id)` pair
 - Server DB: server-side workspaces, projects, scheduling
 - Profile DB: events, flamegraph data, analysis results for a single profile
 - `profile_id` gathers all data related to a specific profile
@@ -458,13 +456,13 @@ When modifying code, keep the corresponding documentation pages in `jeffrey-page
 | Code module | Documentation pages |
 |---|---|
 | `jeffrey-microscope/core-microscope` | `docs/microscope/` — overview, quick start, workspaces, recordings, storage, profiler settings; `docs/microscope/projects/` — projects, instances, event streaming; `docs/microscope/configuration/` — application/advanced properties, secrets |
-| `jeffrey-microscope/profiles/**` | `docs/microscope/profiles/` — one page per analysis feature (GC, allocations, threads, JIT, NMT, heap dump, Advisor, ...) |
+| `jeffrey-microscope/profiles/**` | `docs/microscope/profiles/` — one page per analysis feature (GC, allocations, threads, JIT, NMT, heap dump, ...) |
 | `jeffrey-hub/core-hub` | `docs/hub/` — overview, architecture, storage, gRPC API; `docs/hub/recording-sessions/` — lifecycle, configuration; `docs/hub/configuration/`; `docs/hub/deployment/` — shared volume, Helm chart, Jib, Provisioner |
 | `shared/hub-api/` (proto changes) | `docs/hub/HubGrpcApiPage.vue` — service and RPC reference |
 | `jeffrey-agent/` + tracing instrumentation | `docs/tracing/` — concepts, getting started, configuration, `@Traced`, instrumentation and event pages; `docs/tracing/tracer-api/` — one page per Tracer API method |
 | `jeffrey-provisioner/` | `docs/provisioner/` — overview, configuration, directory structure, generated output |
 | Jib build/deployment | `docs/jib/` — overview, setup, configuration |
-| In-app AI modules (`ai-config`, `oql-assistant`, `duckdb-jfr-mcp`, `duckdb-heapdump-mcp`, `claude-code-headless`, `profile-advisor`) | `docs/ai/` — overview, JFR analysis, heap dump analysis, OQL assistant |
+| In-app AI modules (`ai-config`, `oql-assistant`, `duckdb-jfr-mcp`, `duckdb-heapdump-mcp`, `claude-code-headless`) | `docs/ai/` — overview, JFR analysis, heap dump analysis, OQL assistant |
 | External MCP server (`core-microscope/.../mcp/`, `profiles/mcp-server`) + `jeffrey-claude-plugin/` | `docs/microscope-mcp/` — overview, enabling the server, Claude Code plugin, tool reference, skills, recipes, other clients |
 | IntelliJ plugin | `docs/intellij-plugin/` — overview, setup, configuration, JFR profiler |
 | Architecture changes | `docs/architecture/ArchitectureOverviewPage.vue` |

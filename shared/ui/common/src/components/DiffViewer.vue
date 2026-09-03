@@ -65,7 +65,7 @@ const props = withDefaults(
     /** Basename for the downloaded file, without the .patch suffix. */
     fileName?: string;
   }>(),
-  { fileName: 'advisor' }
+  { fileName: 'changes' }
 );
 
 const PATH_SEGMENTS_SHOWN = 2;

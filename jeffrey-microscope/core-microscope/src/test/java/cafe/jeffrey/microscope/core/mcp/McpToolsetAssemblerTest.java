@@ -22,6 +22,7 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
+import cafe.jeffrey.microscope.persistence.api.RecordingTagsRepository;
 import cafe.jeffrey.profile.mcp.McpToolSpec;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import org.junit.jupiter.api.Nested;
@@ -53,12 +54,16 @@ class McpToolsetAssemblerTest {
     @Mock
     JfrFlamegraphPanelProvider panelProvider;
 
+    @Mock
+    RecordingTagsRepository recordingTagsRepository;
+
     private List<String> toolNamesWithIngest(boolean ingestEnabled) {
         McpToolsetAssembler assembler = new McpToolsetAssembler(
                 new ProfilesMcpTools(coreRepositories),
                 new RecordingsMcpTools(recordingsManager),
                 contextCache,
                 panelProvider,
+                recordingTagsRepository,
                 new ExternalMcpProperties(true, ingestEnabled));
 
         return assembler.toolset().specs().stream().map(McpToolSpec::name).toList();
@@ -83,6 +88,7 @@ class McpToolsetAssemblerTest {
             assertTrue(names.contains("profiles_list"));
             assertTrue(names.contains("flamegraph_export"));
             assertTrue(names.contains("heap_getHeapSummary"));
+            assertTrue(names.contains("profiles_buildInfo"));
         }
 
         /**
@@ -114,6 +120,7 @@ class McpToolsetAssemblerTest {
                     new RecordingsMcpTools(recordingsManager),
                     contextCache,
                     panelProvider,
+                    recordingTagsRepository,
                     new ExternalMcpProperties(true, false));
 
             assertThrows(
@@ -127,6 +134,7 @@ class McpToolsetAssemblerTest {
 
             assertTrue(names.contains("profiles_list"));
             assertTrue(names.contains("heap_getHeapSummary"));
+            assertTrue(names.contains("profiles_buildInfo"));
         }
     }
 }

@@ -335,7 +335,7 @@ public final class PipelineRunRegistry<K> {
             span.end();
             if (span.shouldCommit()) {
                 // What this run was for. The key identifies the profile and the scope the pipeline's
-                // unit of work -- the event type for an advisor batch, empty for a once-per-profile
+                // unit of work -- named for a fan-out pipeline, empty for a once-per-profile
                 // run -- which is what tells two runs of the same pipeline apart in the trace list.
                 span.attributes = Json.toString(Map.of(
                         "key", String.valueOf(request.key()),

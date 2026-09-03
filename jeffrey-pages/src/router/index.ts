@@ -203,11 +203,9 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsProfilesHeapDump',
         component: () => import('@/views/docs/microscope/profiles/HeapDumpAnalysisPage.vue')
       },
-      {
-        path: 'microscope/profiles/advisor',
-        name: 'DocsProfilesAdvisor',
-        component: () => import('@/views/docs/microscope/profiles/ProfileAdvisorPage.vue')
-      },
+      // The in-app Advisor was removed; acting on a profile now happens in the repository, through
+      // Microscope MCP. Anyone holding a link to the old page lands on the page that replaced it.
+      { path: 'microscope/profiles/advisor', redirect: '/docs/microscope-mcp/changes' },
       {
         path: 'microscope/profiles/garbage-collection',
         name: 'DocsProfilesGarbageCollection',
@@ -684,6 +682,11 @@ const routes: RouteRecordRaw[] = [
         path: 'microscope-mcp/skills',
         name: 'DocsMicroscopeMcpSkills',
         component: () => import('@/views/docs/microscope-mcp/McpSkillsPage.vue')
+      },
+      {
+        path: 'microscope-mcp/changes',
+        name: 'DocsMicroscopeMcpChanges',
+        component: () => import('@/views/docs/microscope-mcp/McpChangesPage.vue')
       },
       {
         path: 'microscope-mcp/recipes',

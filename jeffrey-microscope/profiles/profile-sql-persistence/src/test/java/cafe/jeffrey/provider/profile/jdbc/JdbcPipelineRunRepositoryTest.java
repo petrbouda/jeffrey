@@ -39,13 +39,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Both pipelines store their runs in one table, so the round-trip that matters is the one that proves
- * they coexist: a heap-dump run keyed by an empty scope alongside per-event-type advisor runs.
+ * they coexist: a run keyed by an empty scope alongside per-scope runs of another pipeline.
  */
 @DuckDBTest(migration = "classpath:db/migration/profile")
 class JdbcPipelineRunRepositoryTest {
 
     private static final String HEAP_DUMP = "heap-dump-init";
-    private static final String ADVISOR = "advisor";
+    private static final String SCOPED = "scoped-pipeline";
 
     private static final Instant STARTED_AT = Instant.parse("2026-01-01T10:00:00Z");
     private static final Instant COMPLETED_AT = Instant.parse("2026-01-01T10:02:30Z");
@@ -123,7 +123,7 @@ class JdbcPipelineRunRepositoryTest {
 
         @Test
         void returnsEmptyWhenNothingHasRun(DataSource dataSource) {
-            Optional<PipelineRunResult> found = repository(dataSource).find(ADVISOR, "jdk.ExecutionSample");
+            Optional<PipelineRunResult> found = repository(dataSource).find(SCOPED, "jdk.ExecutionSample");
 
             assertTrue(found.isEmpty());
         }
@@ -137,25 +137,25 @@ class JdbcPipelineRunRepositoryTest {
             JdbcPipelineRunRepository repository = repository(dataSource);
 
             repository.upsert(completed(HEAP_DUMP, "", List.of(stage("load", 130L))));
-            repository.upsert(completed(ADVISOR, "jdk.ExecutionSample", List.of(stage("prompt", 10L))));
-            repository.upsert(completed(ADVISOR, "jdk.ObjectAllocationSample", List.of(stage("prompt", 20L))));
+            repository.upsert(completed(SCOPED, "jdk.ExecutionSample", List.of(stage("prompt", 10L))));
+            repository.upsert(completed(SCOPED, "jdk.ObjectAllocationSample", List.of(stage("prompt", 20L))));
 
             assertEquals(1, repository.findAll(HEAP_DUMP).size());
-            List<PipelineRunResult> advisorRuns = repository.findAll(ADVISOR);
-            assertEquals(2, advisorRuns.size());
+            List<PipelineRunResult> scopedRuns = repository.findAll(SCOPED);
+            assertEquals(2, scopedRuns.size());
             assertEquals(List.of("jdk.ExecutionSample", "jdk.ObjectAllocationSample"),
-                    advisorRuns.stream().map(PipelineRunResult::scopeId).toList());
+                    scopedRuns.stream().map(PipelineRunResult::scopeId).toList());
         }
 
         @Test
         void replacesTheRunForAScopeRatherThanAppendingToIt(DataSource dataSource) {
             JdbcPipelineRunRepository repository = repository(dataSource);
 
-            repository.upsert(completed(ADVISOR, "jdk.ExecutionSample", List.of(stage("prompt", 10L))));
-            repository.upsert(completed(ADVISOR, "jdk.ExecutionSample",
+            repository.upsert(completed(SCOPED, "jdk.ExecutionSample", List.of(stage("prompt", 10L))));
+            repository.upsert(completed(SCOPED, "jdk.ExecutionSample",
                     List.of(stage("prompt", 10L), stage("source", 5L))));
 
-            List<PipelineRunResult> runs = repository.findAll(ADVISOR);
+            List<PipelineRunResult> runs = repository.findAll(SCOPED);
             assertEquals(1, runs.size());
             assertEquals(2, runs.getFirst().stages().size());
         }
@@ -164,11 +164,11 @@ class JdbcPipelineRunRepositoryTest {
         void deletingOnePipelineLeavesTheOtherAlone(DataSource dataSource) {
             JdbcPipelineRunRepository repository = repository(dataSource);
             repository.upsert(completed(HEAP_DUMP, "", List.of(stage("load", 130L))));
-            repository.upsert(completed(ADVISOR, "jdk.ExecutionSample", List.of(stage("prompt", 10L))));
+            repository.upsert(completed(SCOPED, "jdk.ExecutionSample", List.of(stage("prompt", 10L))));
 
-            repository.deleteAll(ADVISOR);
+            repository.deleteAll(SCOPED);
 
-            assertTrue(repository.findAll(ADVISOR).isEmpty());
+            assertTrue(repository.findAll(SCOPED).isEmpty());
             assertEquals(1, repository.findAll(HEAP_DUMP).size());
         }
     }

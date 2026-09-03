@@ -313,7 +313,7 @@
   --color-border-input: #d8e2ef;
 
   /* The stroke of the diagonal hatch that marks a surface as ruled out — present, but with nothing
-     in it (e.g. an Advisor event type this recording carries no samples for). */
+     in it (e.g. a feature this recording carries no samples for). */
   --hatch-line: rgba(116, 129, 148, 0.09);
   
   /* Background Colors */

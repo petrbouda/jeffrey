@@ -36,8 +36,7 @@ final class PipelineCategories {
 
     private static final Map<String, NotificationCategory> BY_PIPELINE_ID = Map.of(
             "profile-init", NotificationCategory.PROFILE,
-            "heap-dump-init", NotificationCategory.HEAP_DUMP,
-            "advisor", NotificationCategory.AI);
+            "heap-dump-init", NotificationCategory.HEAP_DUMP);
 
     private PipelineCategories() {
     }
