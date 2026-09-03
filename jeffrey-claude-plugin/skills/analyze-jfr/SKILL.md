@@ -83,6 +83,24 @@ the code that produced it.
 3. `traces_operationExport` for the population, then `traces_slowestTraces` → `traces_traceExport`
    for one exemplar, then `traces_spanFlamegraphExport` for the frames inside a single slow span.
 
+## Hand the reading to the analyst
+
+An export can run to 120,000 characters, and answering a question well often takes several. The
+plugin ships a subagent, **`microscope:profile-analyst`**, that runs a sequence and returns only
+the findings — the hottest frames with their shares, the causes named. Everything it read stays in
+its own context.
+
+Delegate when more than one export is in play — several event types, a whole trace operation, a
+deep chase down one path — and give it the `profileId` and the one question. Independent questions
+go out in a single message so they run at once.
+
+Read an export here, in this conversation, when there is exactly one and its result will be
+discussed turn by turn. The analyst returns a report; it cannot answer a follow-up about a document
+the conversation never saw.
+
+Whatever it reports, keep here: mapping frames onto the checkout, the recommendation, and every
+question to the user. The analyst has no file tools and never proposes changes.
+
 ## Grounding claims
 
 The exports carry call paths and figures, not source locations. Cite the path and the numbers the

@@ -33,6 +33,7 @@ const headings = [
   { id: 'advise-jfr', text: 'advise-jfr', level: 2 },
   { id: 'jfr-sql', text: 'jfr-sql', level: 2 },
   { id: 'heap-sql', text: 'heap-sql', level: 2 },
+  { id: 'the-analyst', text: 'The Analyst They Delegate To', level: 2 },
   { id: 'invoking-one-directly', text: 'Invoking One Directly', level: 2 },
   { id: 'what-they-deliberately-omit', text: 'What They Deliberately Omit', level: 2 }
 ];
@@ -65,7 +66,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
     />
 
     <div class="docs-content">
-      <p>The <router-link to="/docs/microscope-mcp/plugin">plugin</router-link> ships five skills. Claude loads one on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
+      <p>The <router-link to="/docs/microscope-mcp/plugin">plugin</router-link> ships five skills and <a href="#the-analyst">one subagent</a>. Claude loads one on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
 
       <h2 id="why-skills-at-all">Why Skills at All</h2>
       <p>Most of what a model needs in order to <em>read</em> Jeffrey&rsquo;s output already travels with the output. Every flamegraph and trace export opens with a preamble that defines what <code>self</code> means against <code>total</code>, what the frame tags mean, what was pruned, and how to analyse that particular event type. Nothing needs to repeat that, and a skill that did would go stale the moment the preamble changed.</p>
@@ -131,6 +132,13 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <p>It carries the index schema &mdash; <code>class</code>, <code>instance</code>, <code>outbound_ref</code>, <code>gc_root</code>, <code>dominator</code>, <code>retained_size</code>, <code>string</code>, <code>dump_metadata</code> &mdash; with the details that are not guessable: <code>dominator</code> and <code>retained_size</code> are built lazily and are empty until something asks for them; <code>class.name</code> is already dot-notation; <code>record_kind</code> is a small integer enum; and the <code>string</code> table is the HPROF UTF-8 <em>name</em> pool, not the contents of Java <code>String</code> instances.</p>
 
       <p>It opens by pointing back at <code>analyze-heap</code> and saying to try the purpose-built tools first &mdash; several are pre-computed reports, and reproducing one in SQL is slower and easier to get wrong. This skill is the escape hatch for what they do not cover, not the way in.</p>
+
+      <h2 id="the-analyst">The Analyst They Delegate To</h2>
+      <p>Three of the skills do not read the big documents themselves. A single <code>flamegraph_export</code> can run to 120,000 characters, and a question worth asking usually takes several &mdash; four of them in <code>advise-jfr</code>, one per group. Pulled into the session, they leave little room for the thing that has to happen next: reading the actual source behind the frames.</p>
+
+      <p>So the plugin ships a subagent, <code>microscope:profile-analyst</code>, and the skills hand it the reading. It runs the sequence, follows the profile where it leads &mdash; deeper into a subtree, a lower threshold on one path, the GC-root path of the class the histogram named &mdash; and returns the findings alone: frames with their <code>total</code> and <code>self</code> shares, or classes with their retained bytes and root paths. What it read stays in its context.</p>
+
+      <p>What it is not allowed to do is as much of the design as what it does. Its tools are the read-only MCP families and nothing else &mdash; no file access, no <code>recordings_</code> &mdash; so it cannot map a frame to a line, invent a file name that would arrive looking measured, edit anything, or build a profile. Mapping onto the checkout, the recommendation, and every question put to you stay in the session, where you can answer them.</p>
 
       <h2 id="invoking-one-directly">Invoking One Directly</h2>
       <p>Each skill is also a slash command, namespaced by the plugin:</p>

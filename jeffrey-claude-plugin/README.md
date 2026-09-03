@@ -76,6 +76,13 @@ both) and not the case for a Jeffrey in a container or on another host.
 The exports carry their own reading instructions, so the skills stay short: they cover the
 workflows and the two schemas, not things the tool output already explains.
 
+**One subagent**, `microscope:profile-analyst`. A single flamegraph export can run to 120,000
+characters, and a question usually takes several. The analyst runs a sequence and returns only the
+findings — the hot frames with their shares, or the retaining classes with their GC-root paths —
+leaving everything it read in its own context. The skills hand it the reading and keep what needs
+your conversation: mapping frames onto the checkout, the recommendation, and every question put to
+you. It reads over MCP only, so it cannot touch your files, import a recording or propose an edit.
+
 ## Permissions
 
 Claude Code asks before each tool the first time. Every Jeffrey tool except `recordings_` is

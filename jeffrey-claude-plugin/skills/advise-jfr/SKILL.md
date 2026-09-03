@@ -63,10 +63,16 @@ that would capture it next time: `event=ctimer` (cpu), `wall=10ms`, `alloc=512k`
 
 ## 3. Export and read
 
-`flamegraph_export` once per group, whole recording, default threshold. Every export opens with
-its own reading instructions and an analysis section written for that event type — what counts as
-a hotspot, what the frame tags mean, what to skip. Follow that document rather than generic
-flamegraph lore. Lower `thresholdPct` only to chase one specific path deeper.
+One export per group, whole recording, default threshold. Every export opens with its own reading
+instructions and an analysis section written for that event type — what counts as a hotspot, what
+the frame tags mean, what to skip. That document governs, not generic flamegraph lore. Lower
+`thresholdPct` only to chase one specific path deeper.
+
+Send the groups to **`microscope:profile-analyst`**, one delegation per group and all of them in a
+single message so they run at once. Each returns the hot frames with their shares; four raw
+exports would otherwise crowd out the source reading that step 4 depends on. Call
+`flamegraph_export` here only when you are working a single group and want the document in front
+of you.
 
 ## 4. Ground every finding in source
 

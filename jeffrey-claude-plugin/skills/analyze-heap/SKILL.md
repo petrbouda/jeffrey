@@ -88,6 +88,17 @@ path says *why those instances are still reachable*. Do not report a leak withou
 skip weak and soft references, so an object reachable only through a `WeakHashMap` or a soft cache
 shows no path — that is the answer, not an error.
 
+## Hand the reading to the analyst
+
+The plugin ships a subagent, **`microscope:profile-analyst`**, that runs a heap route and returns
+only the findings — class, retained bytes, GC-root path — with everything it read left in its own
+context. Delegate a whole route from step 5 (give it the `profileId` and the question), and send
+independent questions in one message so they run at once.
+
+Work here instead when a single tool answers the question, or when the user is walking the
+dominator tree with you object by object. Reading the real source behind a retaining field, and
+every question to the user, stays here either way.
+
 ## 6. Grounding claims
 
 - Cite the **class name, the retained bytes and the GC-root path** together; the three are what
