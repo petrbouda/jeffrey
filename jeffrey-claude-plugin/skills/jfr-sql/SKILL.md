@@ -33,7 +33,9 @@ Call `jfr_describeTable('events')` first. In particular the duration column is `
 - **`event_types`** — `name`, `label`, `description`, `categories`. Metadata for every type present.
 - **`threads`** — `thread_hash` (PK), `name`, `os_id` (null for virtual threads), `java_id`, `is_virtual`.
 - **`stacktraces`** — `stacktrace_hash` (PK), `type_id`, `frame_hashes` (BIGINT array, ordered
-  top-frame first).
+  **root-first** — see the stacks idiom below), `tag_ids` (INTEGER array; `0` marks an idle stack,
+  `1` an unsafe allocation — the tags the flamegraph's `excludeIdle` option filters on, matched with
+  `list_has_any(tag_ids, [0])`).
 - **`frames`** — `frame_hash` (PK), `class_name`, `method_name`, `frame_type`, `line_number`,
   `bytecode_index`, `hidden_class_id`.
 
@@ -58,8 +60,25 @@ Derived from the events when the profile carries Jeffrey Tracing, and empty othe
 - **Event-specific data is JSON** in `fields`: `fields->>'key'`, or `json_extract(fields, '$.key')`.
   Cast before comparing numerically: `CAST(fields->>'bytesRead' AS BIGINT) > 100`.
 - **Timestamps**: `epoch_ms(start_timestamp)` for epoch millis.
-- **Stacks**: `UNNEST(frame_hashes)` and join to `frames`. Preserve ordinality if the order matters —
-  index 0 is the topmost frame.
+- **Stacks**: `UNNEST(frame_hashes)` and join to `frames`. The array is stored **root-first**: the
+  first element is the thread entry point (`Thread.run`) and the **last** is the leaf that was
+  actually executing. Taking the first element as "the hot method" is the mistake to avoid — it
+  returns the entry point on every stack in the recording. Keep the position with
+  `generate_subscripts(frame_hashes, 1)` beside the `UNNEST`, and order by it descending for the
+  topmost-first reading a stack trace normally has:
+
+  ```sql
+  WITH positioned AS (
+    SELECT UNNEST(frame_hashes) AS frame_hash,
+           generate_subscripts(frame_hashes, 1) AS depth
+    FROM stacktraces WHERE stacktrace_hash = ?
+  )
+  SELECT f.class_name, f.method_name FROM positioned p
+  JOIN frames f USING (frame_hash) ORDER BY p.depth DESC
+  ```
+
+  For the leaf alone, `frame_hashes[-1]` — DuckDB lists are 1-based, and negative indices count
+  from the end.
 - **Hidden classes**: `class_name` never carries the per-run address of a JEP 371 hidden class
   (lambda proxy, method-handle form, indified string concat). The address lives in `hidden_class_id`,
   so `hidden_class_id IS NOT NULL` selects hidden frames — a null check, not a `LIKE`.

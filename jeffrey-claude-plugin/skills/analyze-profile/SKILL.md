@@ -67,7 +67,8 @@ record returns an empty tree rather than an error, so check first. Common starti
 - on-CPU time → `jdk.ExecutionSample`
 - allocation → `jdk.ObjectAllocationSample` (add `useWeight: true` to rank by bytes, not by call count)
 - lock contention → `jdk.JavaMonitorEnter` (with `useWeight: true`, weight is nanoseconds blocked)
-- wall-clock latency, including off-CPU → `jdk.WallClockSample`
+- wall-clock latency, including off-CPU → `profiler.WallClockSample` — async-profiler's event, so
+  it does **not** carry the `jdk.` prefix its neighbours here do
 
 `thresholdPct` controls how much detail survives pruning. Raise it for an overview, lower it to
 chase a specific path.
