@@ -34,7 +34,25 @@ wrong. Reach for `heap_executeQuery` only for a question they do not cover. `hea
 - **`retained_size`** — `instance_id`, `bytes`. Populated alongside `dominator`, so LEFT JOIN it and
   expect NULLs on a heap whose dominator tree has not been built.
 - **`string`** — `string_id`, `value`. The HPROF **UTF-8 string pool** (class and field names), *not*
-  the contents of Java `String` instances.
+  the contents of Java `String` instances — those are in `string_content`.
+- **`string_content`** — `instance_id`, `content_length`, `content`. The decoded text of every
+  `java.lang.String` *instance*: this is the table to query for what a string actually says.
+  `content_length` is always the full character count, but `content` is NULL for a string longer
+  than the index's large-content threshold, so a predicate on `content` silently misses the long
+  ones. Size questions belong on `content_length`, which covers every string.
+- **`class_instance_field`** — `class_id`, `field_index`, `name`, `basic_type`. Field names per
+  class, in declaration order, and the only way to name a field in SQL. An object's full layout is
+  its own class's rows plus every ancestor's, most-derived first; `field_index` is positional
+  within one class, not across the hierarchy.
+- **`class_interface`** — `class_id`, `interface_class_id`. Which interfaces a class implements.
+- **`stack_frame`** and **`stack_trace_frame`** — the thread stacks the dump recorded.
+  `stack_frame` has `frame_id` (PK), `class_name` (already resolved), `method_name`,
+  `method_signature`, `source_file`, `line_number` (raw HPROF: `-1` no info, `-2` compiled,
+  `-3` native); `stack_trace_frame` has `trace_serial`, `thread_serial`, `frame_index` (0-based,
+  **topmost first**, the opposite of the JFR side) and `frame_id`.
+- **`parse_warning`** — `file_offset`, `record_kind`, `severity` (`0` info, `1` warn, `2` error),
+  `message`. What the parser skipped, truncated or recovered; `dump_metadata.warning_count` is
+  the count of these, and reading them explains a dump whose totals look wrong.
 
 ## Idioms
 

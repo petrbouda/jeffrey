@@ -28,6 +28,8 @@ package cafe.jeffrey.profile.manager.model.trace;
  * @param totalSpans         spans across all of them
  * @param errorTraces        traces containing at least one failed span
  * @param errorSpans         failed spans, however they are distributed across traces
+ * @param notificationCount  notifications the application raised inside traces, of any severity
+ * @param urgentNotificationCount how many of those were {@code CRITICAL} or {@code HIGH}
  * @param avgNanos           mean trace duration
  * @param p95Nanos           95th percentile trace duration
  * @param p99Nanos           99th percentile trace duration
@@ -40,6 +42,8 @@ public record TraceOverview(
         long totalSpans,
         long errorTraces,
         long errorSpans,
+        long notificationCount,
+        long urgentNotificationCount,
         long avgNanos,
         long p95Nanos,
         long p99Nanos,

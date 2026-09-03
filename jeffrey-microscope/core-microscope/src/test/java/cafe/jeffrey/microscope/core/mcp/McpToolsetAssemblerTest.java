@@ -87,6 +87,7 @@ class McpToolsetAssemblerTest {
 
             assertTrue(names.contains("profiles_list"));
             assertTrue(names.contains("flamegraph_export"));
+            assertTrue(names.contains("traces_notifications"));
             assertTrue(names.contains("heap_getHeapSummary"));
         }
 

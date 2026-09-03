@@ -114,7 +114,9 @@ LIMIT 20`;
       <h2 id="explain-a-slow-endpoint">Explain a Slow Endpoint</h2>
       <DocsCodeBlock :code="promptSlowEndpoint" language="bash" />
 
-      <p>Drives <code>traces_overview</code> &rarr; <code>traces_operations</code> &rarr; <code>traces_operationExport</code> &rarr; <code>traces_slowestTraces</code> &rarr; <code>traces_traceExport</code> &rarr; <code>traces_spanFlamegraphExport</code>.</p>
+      <p>Drives <code>traces_overview</code> &rarr; <code>traces_operations</code> &rarr; <code>traces_notifications</code> &rarr; <code>traces_operationExport</code> &rarr; <code>traces_slowestTraces</code> &rarr; <code>traces_traceExport</code> &rarr; <code>traces_spanFlamegraphExport</code>.</p>
+
+      <p>The notifications step is the one that reads the application&rsquo;s own account first. When the overview reports any <code>CRITICAL</code> or <code>HIGH</code> notifications, <code>traces_notifications</code> says what kind, how often, and in which traces &mdash; and a &ldquo;connection pool has no idle connections&rdquo; raised inside the slow operation is the answer before any span is timed. The exports that follow carry the same notifications in context, against the span each was raised in.</p>
 
       <p>This is the sequence that only works because both halves are in one place. The operation export gives the population &mdash; percentiles, and which spans the wall-clock went to. A single slow trace gives the span tree for one real request. The span flamegraph then shows the JVM frames sampled <em>while that one span was open</em>, so &ldquo;the query span takes 400ms&rdquo; becomes &ldquo;380ms of it is result-set deserialisation in this method&rdquo;.</p>
 

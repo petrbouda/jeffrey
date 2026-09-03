@@ -101,7 +101,15 @@ public final class HeapDumpAnalysisSystemPrompt {
             - **`retained_size`** — `instance_id`, `bytes`. Populated alongside `dominator`. LEFT JOIN
               this table and expect NULLs on heaps where the dominator tree hasn't been built yet.
             - **`string`** — `string_id`, `value`. HPROF UTF-8 string pool (class names, field names —
-              NOT Java `String` instance content; for the latter use the `instance` table's String rows).
+              NOT Java `String` instance content; for the latter use `string_content`).
+            - **`string_content`** — `instance_id`, `content_length`, `content`. The decoded text of every
+              `java.lang.String` instance: this is the table that answers what a string says.
+              `content_length` is always the full character count; `content` is NULL for a string longer
+              than the index's large-content threshold, so a predicate on `content` silently misses the
+              long ones and size questions belong on `content_length`.
+            - **`class_instance_field`** — `class_id`, `field_index`, `name`, `basic_type`. Field names per
+              class in declaration order; the only way to name a field in SQL. An object's full layout is
+              its own class's rows plus every ancestor's, most-derived first.
 
             Query idioms:
 

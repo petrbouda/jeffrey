@@ -19,27 +19,11 @@
 package cafe.jeffrey.provider.profile.api;
 
 /**
- * Latency of one trace type across the profile — the aggregate view that answers "which kind of
- * request is generally slow", as opposed to "which single trace was slow".
- * <p>
- * A trace type is identified by its root span's name. Nested spans are not types of their own: they
- * are explored through the trace's span tree, not through this list.
+ * One trace type, aggregated over every trace of it.
  *
- * @param name       the root operation name the traces share
- * @param kind       {@code SERVER}, {@code CLIENT} or {@code INTERNAL}
- * @param eventType  the event type that opened the trace, e.g. {@code jeffrey.HttpServerExchange} —
- *                   which instrumentation produced the operation, something the name alone does not
- *                   say
- * @param count      how many traces of this type the profile holds
- * @param errorCount how many of them contain at least one failed span
- * @param spanCount  spans across all of them, which separates a one-span type from a deep one
- * @param totalNanos summed trace duration, for ranking by total time rather than by average
- * @param p50Nanos   median trace duration
- * @param p95Nanos   95th percentile trace duration
- * @param p99Nanos   99th percentile trace duration. Aggregated here rather than worked out from the
- *                   trace list, which is capped: a p99 over the first page beside a p95 over the
- *                   whole type is two different questions printed in one row
- * @param maxNanos   slowest trace of the type
+ * @param notificationCount       how many notifications the application raised inside traces of this
+ *                                type, of any severity
+ * @param urgentNotificationCount how many of those were {@code CRITICAL} or {@code HIGH}
  */
 public record TraceOperationRecord(
         String name,
@@ -47,6 +31,8 @@ public record TraceOperationRecord(
         String eventType,
         long count,
         long errorCount,
+        long notificationCount,
+        long urgentNotificationCount,
         long spanCount,
         long totalNanos,
         long p50Nanos,

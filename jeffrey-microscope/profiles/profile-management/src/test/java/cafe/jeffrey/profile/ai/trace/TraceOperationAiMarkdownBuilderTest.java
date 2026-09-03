@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.profile.ai.trace;
 
+import cafe.jeffrey.profile.manager.model.trace.TraceNotificationGroupRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSpanRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
@@ -38,7 +39,7 @@ class TraceOperationAiMarkdownBuilderTest {
     private static TraceOperationRow operation() {
         return new TraceOperationRow(
                 "POST /api/orders", "SERVER", "jeffrey.HttpServerExchange",
-                214, 3, 1_712, 40_000 * MS, 180 * MS, 320 * MS, 410 * MS, 980 * MS);
+                214, 3, 9, 4, 1_712, 40_000 * MS, 180 * MS, 320 * MS, 410 * MS, 980 * MS);
     }
 
     /**
@@ -69,8 +70,52 @@ class TraceOperationAiMarkdownBuilderTest {
                 60_000, 1_700_000_000_000L, 980 * MS, 12, 1, true));
     }
 
+    private static List<TraceNotificationGroupRow> notifications() {
+        return List.of(
+                new TraceNotificationGroupRow(
+                        "POOL_PRESSURE", "HIGH", "RESOURCE", "hikari",
+                        "Connection pool has no idle connections", 4, 3, 60_012, 61_200,
+                        List.of("7f3a91", "7f3a92")),
+                new TraceNotificationGroupRow(
+                        "CACHE_WARMED", "LOW", "PERFORMANCE", "cache",
+                        "The cache was warmed", 5, 5, 60_000, 60_000, List.of("7f3a91")));
+    }
+
     private static String build() {
-        return new TraceOperationAiMarkdownBuilder(operation(), summary(), slowest()).build();
+        return new TraceOperationAiMarkdownBuilder(operation(), summary(), notifications(), slowest()).build();
+    }
+
+    private static String buildWithoutNotifications() {
+        return new TraceOperationAiMarkdownBuilder(operation(), summary(), List.of(), slowest()).build();
+    }
+
+    @Nested
+    @DisplayName("Notifications")
+    class Notifications {
+
+        @Test
+        @DisplayName("reports each kind against the operation's trace count, the most severe first")
+        void reportsKindsAgainstTheTraceCount() {
+            String out = build();
+
+            assertTrue(out.contains("POOL_PRESSURE ×4 [HIGH] in 3 of 214 traces — RESOURCE from hikari"), out);
+            assertTrue(out.indexOf("POOL_PRESSURE") < out.indexOf("CACHE_WARMED ×5"),
+                    "severity outranks frequency");
+        }
+
+        @Test
+        @DisplayName("names exemplar traces to export next")
+        void namesExemplars() {
+            assertTrue(build().contains("raised in traces: 7f3a91, 7f3a92 (slowest first"));
+        }
+
+        @Test
+        @DisplayName("carries the counts in the header and says so when there are none")
+        void carriesCountsAndAbsence() {
+            assertTrue(build().contains("notification_count: 9\nurgent_notification_count: 4\n"));
+            assertTrue(buildWithoutNotifications()
+                    .contains("(the application raised no notifications inside traces of this operation)"));
+        }
     }
 
     @Nested
@@ -156,7 +201,7 @@ class TraceOperationAiMarkdownBuilderTest {
             TraceOperationSummary empty = new TraceOperationSummary(
                     List.of(), new TraceOperationThreads(0, 0, 0, 0));
 
-            assertTrue(new TraceOperationAiMarkdownBuilder(operation(), empty, List.of()).build()
+            assertTrue(new TraceOperationAiMarkdownBuilder(operation(), empty, List.of(), List.of()).build()
                     .contains("no spans recorded"));
         }
     }

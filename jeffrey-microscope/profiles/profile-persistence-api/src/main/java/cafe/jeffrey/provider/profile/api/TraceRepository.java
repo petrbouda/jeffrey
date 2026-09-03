@@ -121,6 +121,20 @@ public interface TraceRepository {
     List<TraceNotificationRecord> notificationsOf(long traceId);
 
     /**
+     * What the application said across many traces, grouped by kind and led by severity: the
+     * profile-wide reading of the notifications {@link #notificationsOf(long)} lists for one trace.
+     * <p>
+     * Aggregated in SQL rather than by folding {@link #notificationsOf(long)} over every trace, for
+     * the same reason {@link #overview()} is: the question is about the population, and reading it
+     * a trace at a time would touch every row to answer it.
+     *
+     * @return one row per kind, the most severe first and then the most frequent, capped at the
+     *         query's limit; empty when no notification matches, or none was ever raised inside a
+     *         trace
+     */
+    List<TraceNotificationGroupRecord> notifications(TraceNotificationListQuery query);
+
+    /**
      * Every throw recorded inside one trace, oldest first, each already attributed to the innermost
      * span open on its thread at the instant it was thrown.
      */

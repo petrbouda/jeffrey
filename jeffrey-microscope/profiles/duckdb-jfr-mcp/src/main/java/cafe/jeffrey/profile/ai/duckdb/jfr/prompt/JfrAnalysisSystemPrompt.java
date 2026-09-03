@@ -58,7 +58,9 @@ public final class JfrAnalysisSystemPrompt {
 
                 - **event_types**: Event type metadata with name, label, description, categories
                 - **threads**: Thread information with thread_hash, name, os_id, java_id, is_virtual
-                - **stacktraces**: Stack trace data with stacktrace_hash, type_id, frame_hashes (array)
+                - **stacktraces**: Stack trace data with stacktrace_hash, type_id, frame_hashes (array),
+                  tag_ids (array). frame_hashes is stored ROOT-FIRST: the first element is the thread
+                  entry point and the LAST is the leaf that was executing.
                 - **frames**: Code frame information with frame_hash, class_name, method_name, frame_type, line_number,
                   bytecode_index and hidden_class_id. class_name never contains a hidden-class address; for a hidden
                   class (lambda proxy, method-handle form, indified string concat) the per-run address lives in
@@ -113,7 +115,10 @@ public final class JfrAnalysisSystemPrompt {
                 - The `duration` column stores values in **nanoseconds**. Use `duration / 1000000` to convert to milliseconds.
                 - Use `epoch_ms(start_timestamp)` to convert timestamps to milliseconds
                 - JSON extraction: `fields->>'fieldName'` or `json_extract(fields, '$.fieldName')`
-                - Array operations: Use UNNEST for frame_hashes arrays
+                - Array operations: Use UNNEST for frame_hashes arrays. The array is root-first, so the
+                  first element is never the hot method — it is Thread.run on every stack. Pair UNNEST with
+                  `generate_subscripts(frame_hashes, 1)` and ORDER BY it DESC for topmost-first, or take
+                  `frame_hashes[-1]` for the leaf alone (DuckDB lists are 1-based; negative counts from the end).
                 - Aggregations: COUNT(*), SUM(samples), AVG(duration), etc.
                 - **GROUP BY rule**: When using aggregate functions (COUNT, SUM, AVG, MIN, MAX), ALL non-aggregated columns in the SELECT must appear in the GROUP BY clause.
                 - **Common pitfall**: `SELECT event_type, COUNT(*) FROM events` is INVALID — it must be `SELECT event_type, COUNT(*) FROM events GROUP BY event_type`.

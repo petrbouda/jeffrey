@@ -34,6 +34,8 @@ import cafe.jeffrey.provider.profile.api.ThreadWindowEventRecord;
 import cafe.jeffrey.provider.profile.api.ThreadWindowEventsPage;
 import cafe.jeffrey.provider.profile.api.TraceContextCategory;
 import cafe.jeffrey.provider.profile.api.TraceExceptionRecord;
+import cafe.jeffrey.provider.profile.api.TraceNotificationGroupRecord;
+import cafe.jeffrey.provider.profile.api.TraceNotificationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceNotificationRecord;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
@@ -1103,7 +1105,7 @@ class JdbcTraceRepositoryTest {
 
             // SUM, MAX and QUANTILE_CONT over no rows are all SQL NULL, which getLong would flatten
             // to 0 silently -- asserted here so the COALESCEs cannot be dropped unnoticed.
-            assertEquals(new TraceOverviewRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0), empty.overview());
+            assertEquals(new TraceOverviewRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), empty.overview());
         }
 
         @Test
@@ -1692,6 +1694,131 @@ class JdbcTraceRepositoryTest {
                     "the pooled monitor class belongs in the payload: " + wait.eventFields());
             assertTrue(wait.eventFields().contains("worker-3"),
                     "the fields that were never pooled stay too: " + wait.eventFields());
+        }
+    }
+
+    @Nested
+    @DisplayName("Notification groups and counts")
+    class NotificationGroups {
+
+        private static JdbcTraceRepository withEntries(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-notifications.sql");
+            JdbcTraceRepository repository = new JdbcTraceRepository(new DatabaseClientProvider(dataSource));
+            repository.derive();
+            return repository;
+        }
+
+        private static TraceNotificationGroupRecord groupOfType(
+                List<TraceNotificationGroupRecord> groups, String type) {
+            return groups.stream()
+                    .filter(group -> type.equals(group.type()))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("no group of type " + type + " in " + groups));
+        }
+
+        @Test
+        @DisplayName("folds every occurrence of a kind into one row, and counts the traces apart")
+        void foldsAKindIntoOneRow(DataSource dataSource) throws SQLException {
+            List<TraceNotificationGroupRecord> groups =
+                    withEntries(dataSource).notifications(TraceNotificationListQuery.all(50));
+
+            TraceNotificationGroupRecord warmed = groupOfType(groups, "CACHE_WARMED");
+            assertEquals(2, warmed.count(), "two events of one kind");
+            assertEquals(1, warmed.traceCount(), "both inside the one trace");
+            assertEquals("The cache was warmed after the profile finished initializing", warmed.message());
+            assertEquals("LOW", warmed.severity());
+            assertEquals(List.of(SLOW_TRACE), warmed.exemplarTraceIds());
+            assertEquals(30, warmed.firstMillisFromBeginning());
+            assertEquals(30, warmed.lastMillisFromBeginning());
+        }
+
+        @Test
+        @DisplayName("leaves out what belongs to no trace of this profile")
+        void leavesOutUntracedNotifications(DataSource dataSource) throws SQLException {
+            List<String> types = withEntries(dataSource).notifications(TraceNotificationListQuery.all(50)).stream()
+                    .map(TraceNotificationGroupRecord::type)
+                    .toList();
+
+            assertEquals(4, types.size(), types.toString());
+            assertFalse(types.contains("STARTUP_COMPLETE"), "no trace was open when it fired");
+            assertFalse(types.contains("ORPHANED"), "its trace id matches no trace here");
+        }
+
+        @Test
+        @DisplayName("ranks by severity before frequency")
+        void ranksBySeverity(DataSource dataSource) throws SQLException {
+            List<String> types = withEntries(dataSource).notifications(TraceNotificationListQuery.all(50)).stream()
+                    .map(TraceNotificationGroupRecord::type)
+                    .toList();
+
+            // The two MEDIUM kinds lead although CACHE_WARMED, a LOW one, was raised most often.
+            assertTrue(types.indexOf("QUERY_PLAN_FALLBACK") < types.indexOf("CACHE_WARMED"), types.toString());
+            assertTrue(types.indexOf("POOL_PRESSURE") < types.indexOf("CACHE_WARMED"), types.toString());
+        }
+
+        @Test
+        @DisplayName("narrows by severity, source, message and operation")
+        void narrows(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            assertEquals(
+                    List.of("POOL_PRESSURE", "QUERY_PLAN_FALLBACK"),
+                    repository.notifications(new TraceNotificationListQuery("MEDIUM", null, null, null, null, null, 50))
+                            .stream().map(TraceNotificationGroupRecord::type).sorted().toList());
+            assertEquals(
+                    List.of("POOL_PRESSURE"),
+                    repository.notifications(new TraceNotificationListQuery(null, null, null, "hikari", null, null, 50))
+                            .stream().map(TraceNotificationGroupRecord::type).toList());
+            assertEquals(
+                    List.of("QUERY_PLAN_FALLBACK"),
+                    repository.notifications(new TraceNotificationListQuery(null, null, null, null, "NOT USABLE", null, 50))
+                            .stream().map(TraceNotificationGroupRecord::type).toList(),
+                    "the message filter is a case-insensitive substring");
+            assertEquals(
+                    4,
+                    repository.notifications(TraceNotificationListQuery.ofOperation(FLAMEGRAPH_OPERATION, 50)).size(),
+                    "every notification of the fixture was raised inside the flamegraph operation");
+            assertTrue(
+                    repository.notifications(TraceNotificationListQuery.ofOperation(HEALTH_OPERATION, 50)).isEmpty(),
+                    "and none inside the health check");
+        }
+
+        @Test
+        @DisplayName("caps the number of kinds, keeping the most severe")
+        void capsTheKinds(DataSource dataSource) throws SQLException {
+            List<TraceNotificationGroupRecord> groups =
+                    withEntries(dataSource).notifications(TraceNotificationListQuery.all(1));
+
+            assertEquals(1, groups.size());
+            assertEquals("MEDIUM", groups.getFirst().severity());
+        }
+
+        @Test
+        @DisplayName("an operation row and the overview carry the same counts")
+        void countsAgreeAcrossReads(DataSource dataSource) throws SQLException {
+            JdbcTraceRepository repository = withEntries(dataSource);
+
+            TraceOperationRecord flamegraph = repository.operations(TraceOperationListQuery.busiest(10))
+                    .operations().stream()
+                    .filter(row -> row.name().equals(FLAMEGRAPH_OPERATION.name()))
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals(5, flamegraph.notificationCount(), "two CACHE_WARMED and three other kinds");
+            assertEquals(0, flamegraph.urgentNotificationCount(), "the only HIGH one belonged to no trace");
+
+            TraceOverviewRecord overview = repository.overview();
+            assertEquals(5, overview.notificationCount());
+            assertEquals(0, overview.urgentNotificationCount());
+        }
+
+        @Test
+        @DisplayName("sorts operations by their notification count when asked")
+        void sortsByNotifications(DataSource dataSource) throws SQLException {
+            List<TraceOperationRecord> rows = withEntries(dataSource).operations(new TraceOperationListQuery(
+                    null, false, TraceOperationSortField.NOTIFICATIONS, true, 10, 0)).operations();
+
+            assertEquals(FLAMEGRAPH_OPERATION.name(), rows.getFirst().name());
         }
     }
 

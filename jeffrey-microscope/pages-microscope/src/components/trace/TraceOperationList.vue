@@ -106,6 +106,13 @@
 
     <template #right="{ item }">
       <Badge
+        v-if="item.notificationCount > 0"
+        :value="notificationLabel(item.notificationCount)"
+        :variant="item.urgentNotificationCount > 0 ? 'warning' : 'secondary'"
+        size="s"
+        icon="bi bi-bell"
+      />
+      <Badge
         v-if="item.errorCount > 0"
         :value="errorLabel(item.errorCount)"
         variant="danger"
@@ -128,6 +135,7 @@ import type {
 } from '@/services/api/model/trace/TraceModels';
 import {
   errorLabel,
+  notificationLabel,
   operationKey,
   parseOperationName,
   spanKindVariant
@@ -136,7 +144,7 @@ import {
 /** The subset of the backend's sort fields this list offers a button for. */
 export type TraceOperationSortKey = Extract<
   TraceOperationSortField,
-  'TOTAL_TIME' | 'P95' | 'P99' | 'MAX' | 'COUNT' | 'ERRORS'
+  'TOTAL_TIME' | 'P95' | 'P99' | 'MAX' | 'COUNT' | 'ERRORS' | 'NOTIFICATIONS'
 >;
 
 defineProps<{
@@ -161,7 +169,12 @@ const sortOptions: MetricSortOption[] = [
   { key: 'P99', label: 'P99', compare: (a, b) => b.p99Nanos - a.p99Nanos },
   { key: 'MAX', label: 'Max', compare: (a, b) => b.maxNanos - a.maxNanos },
   { key: 'COUNT', label: 'Count', compare: (a, b) => b.count - a.count },
-  { key: 'ERRORS', label: 'Errors', compare: (a, b) => b.errorCount - a.errorCount }
+  { key: 'ERRORS', label: 'Errors', compare: (a, b) => b.errorCount - a.errorCount },
+  {
+    key: 'NOTIFICATIONS',
+    label: 'Notifications',
+    compare: (a, b) => b.notificationCount - a.notificationCount
+  }
 ];
 </script>
 

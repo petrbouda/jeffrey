@@ -34,6 +34,7 @@ public enum TraceOperationSortField {
     MAX("max_ns"),
     COUNT("count"),
     ERRORS("error_count"),
+    NOTIFICATIONS("notification_count"),
     NAME("name");
 
     private final String expression;

@@ -56,7 +56,7 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
     />
 
     <div class="docs-content">
-      <p>Forty-two tools in six families. Five families read a profile; the sixth, <code>recordings_</code>, is the only one that creates one.</p>
+      <p>Forty-three tools in six families. Five families read a profile; the sixth, <code>recordings_</code>, is the only one that creates one.</p>
 
       <h2 id="rules-that-apply-to-all-of-them">Rules That Apply to All of Them</h2>
 
@@ -130,7 +130,7 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
         </tbody>
       </table>
 
-      <p>Common starting points: <code>jdk.ExecutionSample</code> for on-CPU time, <code>jdk.ObjectAllocationSample</code> for allocation (with <code>useWeight</code> to rank by bytes rather than call count), <code>jdk.JavaMonitorEnter</code> for lock contention (weight is nanoseconds blocked), <code>jdk.WallClockSample</code> for latency including off-CPU. <code>thresholdPct</code> controls how much survives pruning &mdash; raise it for an overview, lower it to chase one path.</p>
+      <p>Common starting points: <code>jdk.ExecutionSample</code> for on-CPU time, <code>jdk.ObjectAllocationSample</code> for allocation (with <code>useWeight</code> to rank by bytes rather than call count), <code>jdk.JavaMonitorEnter</code> for lock contention (weight is nanoseconds blocked), <code>profiler.WallClockSample</code> for latency including off-CPU &mdash; async-profiler&rsquo;s event, so unlike its neighbours it carries no <code>jdk.</code> prefix. <code>thresholdPct</code> controls how much survives pruning &mdash; raise it for an overview, lower it to chase one path.</p>
 
       <h2 id="traces">traces_ &mdash; latency</h2>
       <p>Available only for a profile recorded with <router-link to="/docs/tracing">Jeffrey Tracing</router-link>. An operation is identified by the <strong>triple</strong> <code>(name, kind, eventType)</code>, not by name alone: an inbound <code>GET /orders</code> and an outbound call to the same path are different operations.</p>
@@ -146,12 +146,12 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
           <tr>
             <td><code>traces_overview</code></td>
             <td><code>profileId</code></td>
-            <td>Profile-wide totals: how many traces and spans, how many failed</td>
+            <td>Profile-wide totals: how many traces and spans, how many failed, and how many notifications the application raised inside them (with the <code>CRITICAL</code> and <code>HIGH</code> ones counted apart)</td>
           </tr>
           <tr>
             <td><code>traces_operations</code></td>
             <td><code>profileId</code>, <code>search?</code>, <code>errorsOnly?</code>, <code>sort?</code> (<code>TOTAL_TIME</code>), <code>limit?</code> (50)</td>
-            <td>One row per operation with call count, latency percentiles and errors</td>
+            <td>One row per operation with call count, latency percentiles, errors and notification counts; <code>sort</code> also accepts <code>NOTIFICATIONS</code></td>
           </tr>
           <tr>
             <td><code>traces_operationExport</code></td>
@@ -178,8 +178,15 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
             <td><code>profileId</code>, <code>name</code>, <code>kind</code>, <code>eventType</code>, <code>graphEventType</code>, <code>threadMode?</code>, <code>useWeight?</code></td>
             <td>The same, aggregated over every trace of one operation</td>
           </tr>
+          <tr>
+            <td><code>traces_notifications</code></td>
+            <td><code>profileId</code>, <code>severity?</code>, <code>type?</code>, <code>category?</code>, <code>source?</code>, <code>search?</code>, <code>name?</code>, <code>kind?</code>, <code>eventType?</code>, <code>limit?</code> (50)</td>
+            <td>What the application reported about itself while traces ran &mdash; every <code>jeffrey.Notification</code> raised inside a trace, grouped by kind, the most severe first, each with its count, how many traces raised it, and exemplar trace ids for <code>traces_traceExport</code>. The operation triple, given whole or not at all, narrows to one operation</td>
+          </tr>
         </tbody>
       </table>
+
+      <p>A notification is the application&rsquo;s own account of what went wrong &mdash; a pool exhausted, a fallback taken &mdash; emitted by its own code, so it is a diagnosis where every other tool reports a measurement. The trace and operation exports carry a Notifications section of their own; <code>traces_notifications</code> is the profile-wide reading, and the place to start when <code>traces_overview</code> reports any <code>CRITICAL</code> or <code>HIGH</code> ones.</p>
 
       <DocsCallout type="info" title="Two event types, two different meanings">
         On the flamegraph exports, <code>eventType</code> is the event that <em>opened the trace</em> (e.g. <code>jeffrey.HttpServerExchange</code>) while <code>graphEventType</code> is what to <em>graph</em> (e.g. <code>jdk.ExecutionSample</code>). They are never the same value.

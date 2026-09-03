@@ -40,6 +40,7 @@ import cafe.jeffrey.profile.manager.model.trace.TraceStacktrace;
 import cafe.jeffrey.profile.resources.request.GenerateTraceOperationFlamegraphRequest;
 import cafe.jeffrey.profile.resources.request.GenerateTraceSpanFlamegraphRequest;
 import cafe.jeffrey.profile.resources.request.SpanFlamegraphOptions;
+import cafe.jeffrey.provider.profile.api.TraceNotificationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
 import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
@@ -97,6 +98,8 @@ public class TracesController {
     private static final int AI_EXPORT_SPANS_LIMIT = 40;
     /** Exemplars to name at the end of an operation bundle, as candidates to export individually. */
     private static final int AI_EXPORT_EXEMPLARS_LIMIT = 10;
+    /** Notification kinds an operation bundle carries, the most severe first. */
+    private static final int AI_EXPORT_NOTIFICATION_KINDS_LIMIT = 25;
     /** Busiest-first: what the operations list showed before it could be sorted at all. */
     private static final String DEFAULT_OPERATION_SORT = "TOTAL_TIME";
     /** Enough points to see where an operation got busy, few enough to stay readable. */
@@ -225,6 +228,8 @@ public class TracesController {
         return new TraceOperationAiMarkdownBuilder(
                 operation,
                 traceManager.operationSummary(operationId, AI_EXPORT_SPANS_LIMIT),
+                traceManager.notifications(
+                        TraceNotificationListQuery.ofOperation(operationId, AI_EXPORT_NOTIFICATION_KINDS_LIMIT)),
                 traceManager.tracesOfOperation(operationId, AI_EXPORT_EXEMPLARS_LIMIT))
                 .build();
     }

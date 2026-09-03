@@ -76,7 +76,9 @@ public final class TraceAiMarkdownBuilder {
             4. **Where the time went** — the same accounting, ranked.
             5. **I/O operations** — the socket and file operations grouped by what
                they were against, and the shape they made.
-            6. **Exceptions** — every throw recorded inside the trace, grouped.
+            6. **Notifications** — what the application itself reported while the
+               trace ran, grouped by kind.
+            7. **Exceptions** — every throw recorded inside the trace, grouped.
 
             ## What the numbers mean — read this before reasoning about them
 
@@ -173,6 +175,32 @@ public final class TraceAiMarkdownBuilder {
             these counts as evidence that a pattern exists, never as a measurement of how often
             it does — and never subtract them from a span's self time.
 
+            ## Notifications — the application's own account
+
+            A notification is something the application said about itself while the
+            trace ran: a pool with no idle connections, a query plan that fell back, a
+            circuit breaker that opened. It is emitted by the application's own code
+            (Jeffrey's `jeffrey.Notification` event), so unlike every other section it is
+            a *diagnosis* rather than a measurement — the code that knew what went wrong
+            saying so, at the moment it happened. Each line reads:
+
+                - <TYPE> ×<count> [<SEVERITY>] — <category> from <source>
+
+            followed by the message every occurrence of that kind carries, where in the
+            trace it was raised — the span, or `outside any span` when none was open or the
+            one it named was not recorded — and when, in milliseconds after the trace
+            started. `attributes` are what the first occurrence attached to itself: the
+            specifics (which pool, how many in use) that the message, being one sentence
+            per kind, deliberately leaves out.
+
+            Severity is the emitter's own judgement, in four steps: `CRITICAL` and `HIGH`
+            are findings in their own right, and usually name the cause a slow span only
+            shows the cost of; `MEDIUM` and `LOW` are context to read beside the timing,
+            not to report on their own.
+
+            *Caveat:* only an application instrumented to emit notifications has any. An
+            empty section means none were recorded, not that nothing went wrong.
+
             ## Exceptions — a throw is not an error
 
             The **Exceptions** section lists the throws the recording captured inside this
@@ -201,6 +229,7 @@ public final class TraceAiMarkdownBuilder {
     private static final String HEADING_CONTEXT = "## JVM context";
     private static final String HEADING_RANKING = "## Where the time went";
     private static final String HEADING_IO = "## I/O operations";
+    private static final String HEADING_NOTIFICATIONS = "## Notifications";
     private static final String HEADING_EXCEPTIONS = "## Exceptions";
     private static final String HEADING_ANALYSIS = "## How to analyze this trace";
 
@@ -227,6 +256,14 @@ public final class TraceAiMarkdownBuilder {
             and worth naming as one; a group that escaped is why something broke, and belongs
             in the answer before any timing does.
 
+            Read the notifications before the timing, not after it. A `CRITICAL` or `HIGH`
+            notification is the application's own diagnosis of what went wrong while this
+            request ran — the pool that was exhausted, the fallback that was taken — and it
+            usually names the cause that the span tree only shows the cost of. Lead with it
+            when one is present, and check whether the slow span is the one it was raised in.
+            A `MEDIUM` or `LOW` one is context: cite it beside the span it explains, and do
+            not report it as a finding on its own.
+
             Say plainly when the evidence does not support a conclusion. A trace is one
             sample of one request; a single slow trace does not establish that anything is
             systematically slow.
@@ -249,6 +286,8 @@ public final class TraceAiMarkdownBuilder {
             "(no socket or file operations were recorded during this trace)";
     private static final String NO_THROWS_NOTE =
             "(no exceptions or errors were recorded during this trace)";
+    private static final String NO_NOTIFICATIONS_NOTE =
+            "(the application raised no notifications during this trace)";
     private static final String SMALL_OPS_MARKER = " !small-ops";
     private static final String ESCAPED_MARKER = " !escaped";
 
@@ -271,6 +310,13 @@ public final class TraceAiMarkdownBuilder {
     /** How many span names one throw group names before it summarises the rest. */
     private static final int MAX_THROW_SITES = 5;
 
+    /**
+     * How many notification kinds a bundle carries, and how many spans each names. The same
+     * reasoning as the throw caps: the list is ranked, so the tail is the part that matters least.
+     */
+    private static final int MAX_NOTIFICATION_GROUPS = 25;
+    private static final int MAX_NOTIFICATION_SITES = 5;
+
     /** How much of an exception message survives. Enough to identify it, not enough to be a page. */
     private static final int MAX_MESSAGE_CHARS = 200;
 
@@ -278,12 +324,15 @@ public final class TraceAiMarkdownBuilder {
     private final TraceContext context;
     private final TraceIoSummary io;
     private final TraceThrowSummary throwSummary;
+    private final TraceNotificationSummary notificationSummary;
 
     public TraceAiMarkdownBuilder(TraceDetail detail, TraceContext context) {
         this.detail = detail;
         this.context = context;
         this.io = TraceIoSummary.of(detail.spans());
         this.throwSummary = TraceThrowSummary.of(detail.exceptions(), detail.spans());
+        this.notificationSummary = TraceNotificationSummary.of(
+                detail.notifications(), detail.spans(), detail.trace().startMillisFromBeginning());
     }
 
     public String build() {
@@ -299,6 +348,8 @@ public final class TraceAiMarkdownBuilder {
         renderRanking(out);
         out.append('\n');
         renderIo(out);
+        out.append('\n');
+        renderNotifications(out);
         out.append('\n');
         renderThrows(out);
         return out.toString();
@@ -542,6 +593,100 @@ public final class TraceAiMarkdownBuilder {
 
         if (target.smallOperations()) {
             out.append(SMALL_OPS_MARKER);
+        }
+        out.append('\n');
+    }
+
+    /**
+     * What the application said while the trace ran, grouped by kind and led by severity.
+     * <p>
+     * Rendered before the throws on purpose: a throw is something the JVM observed, a notification
+     * is something the code that knew what was wrong chose to say, and the reader should meet the
+     * diagnosis before the symptom.
+     */
+    private void renderNotifications(StringBuilder out) {
+        out.append(HEADING_NOTIFICATIONS).append('\n').append('\n');
+
+        if (notificationSummary.isEmpty()) {
+            out.append(NO_NOTIFICATIONS_NOTE).append('\n');
+            return;
+        }
+
+        out.append(TraceAiFormat.count(notificationSummary.total(), "notification")).append(" recorded, ");
+        if (notificationSummary.urgent() == 0) {
+            out.append("none of them CRITICAL or HIGH");
+        } else {
+            out.append(notificationSummary.urgent()).append(" of them CRITICAL or HIGH");
+        }
+        out.append('.').append('\n').append('\n');
+
+        List<TraceNotificationGroup> groups = notificationSummary.groups();
+        int rendered = Math.min(groups.size(), MAX_NOTIFICATION_GROUPS);
+        for (int i = 0; i < rendered; i++) {
+            renderNotificationGroup(out, groups.get(i));
+        }
+
+        if (groups.size() > rendered) {
+            out.append(BULLET_PREFIX)
+                    .append("(truncated: ")
+                    .append(groups.size() - rendered)
+                    .append(" further notification kinds were omitted, out of ")
+                    .append(groups.size())
+                    .append(" — they are the least severe, since this list is ranked by severity)")
+                    .append('\n');
+        }
+    }
+
+    private void renderNotificationGroup(StringBuilder out, TraceNotificationGroup group) {
+        out.append(BULLET_PREFIX)
+                .append(group.type())
+                .append(" ×").append(group.count())
+                .append(" [").append(group.severity()).append(']');
+        if (group.category() != null || group.source() != null) {
+            out.append(DASH_SEPARATOR);
+            if (group.category() != null) {
+                out.append(group.category());
+            }
+            if (group.source() != null) {
+                out.append(group.category() != null ? " from " : "from ").append(group.source());
+            }
+        }
+        out.append('\n');
+
+        if (group.message() != null && !group.message().isBlank()) {
+            out.append(INDENT_UNIT).append("message: ").append(flatten(group.message())).append('\n');
+        }
+        renderNotificationSites(out, group);
+        out.append(INDENT_UNIT).append("raised at: ");
+        if (group.count() == 1 || group.firstOffsetMs() == group.lastOffsetMs()) {
+            out.append('+').append(group.firstOffsetMs()).append("ms");
+        } else {
+            out.append('+').append(group.firstOffsetMs()).append("ms to +")
+                    .append(group.lastOffsetMs()).append("ms");
+        }
+        out.append(" into the trace").append('\n');
+        if (group.attributes() != null && !group.attributes().isBlank()) {
+            out.append(INDENT_UNIT).append("attributes: ").append(flatten(group.attributes())).append('\n');
+        }
+    }
+
+    private void renderNotificationSites(StringBuilder out, TraceNotificationGroup group) {
+        List<TraceNotificationGroup.Site> sites = group.spans();
+        if (sites.isEmpty()) {
+            return;
+        }
+
+        out.append(INDENT_UNIT).append("raised in: ");
+        int rendered = Math.min(sites.size(), MAX_NOTIFICATION_SITES);
+        for (int i = 0; i < rendered; i++) {
+            if (i > 0) {
+                out.append(", ");
+            }
+            TraceNotificationGroup.Site site = sites.get(i);
+            out.append(site.spanName()).append(" ×").append(site.count());
+        }
+        if (sites.size() > rendered) {
+            out.append(", and ").append(sites.size() - rendered).append(" further spans");
         }
         out.append('\n');
     }

@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.profile.manager.model.trace.TraceContext;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.profile.manager.model.trace.TraceNotificationGroupRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
@@ -29,6 +30,7 @@ import cafe.jeffrey.profile.manager.model.trace.TraceSpanEvents;
 import cafe.jeffrey.profile.manager.model.trace.TraceStacktrace;
 import cafe.jeffrey.profile.manager.model.trace.TraceTimelineBucket;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
+import cafe.jeffrey.provider.profile.api.TraceNotificationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.SpanInterval;
@@ -134,6 +136,15 @@ public interface TraceManager {
      * @return empty when the profile has no such operation
      */
     Optional<TraceOperationRow> operation(TraceOperationId operation);
+
+    /**
+     * What the application said across many traces, grouped by kind and led by severity — the
+     * profile-wide reading of the notifications one trace's detail lists individually.
+     *
+     * @return one row per kind, the most severe first, capped at the query's limit; empty when
+     *         nothing matches or no notification was ever raised inside a trace
+     */
+    List<TraceNotificationGroupRow> notifications(TraceNotificationListQuery query);
 
     /**
      * What one operation's summary needs beyond the traces the caller already has: its span

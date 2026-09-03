@@ -429,6 +429,11 @@ export function errorLabel(count: number): string {
   return count === 1 ? '1 error' : `${count} errors`;
 }
 
+/** The badge text for an operation's notification count, worded like its error count. */
+export function notificationLabel(count: number): string {
+  return count === 1 ? '1 notification' : `${count} notifications`;
+}
+
 /**
  * The badge variant a span kind is drawn in. One mapping, used everywhere a kind appears, so a
  * CLIENT span cannot read as one colour in the operation list and another in the waterfall.
