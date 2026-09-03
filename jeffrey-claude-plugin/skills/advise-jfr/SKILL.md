@@ -1,5 +1,5 @@
 ---
-name: advise
+name: advise-jfr
 description: Turns a Jeffrey profile into concrete code changes in the current repository — maps the hottest CPU, wall-clock, allocation and blocking frames to real source, recommends minimal behaviour-preserving edits, applies them on request and verifies with the tests and a re-profile. Use whenever the user asks what to change, optimise or fix based on a profile, JFR recording or flamegraph, or a hotspot is known and the question is what to do about it.
 argument-hint: "[profile-id | recording-file] [cpu|wall|alloc|lock]"
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
@@ -34,7 +34,7 @@ before the recommendation has been read cannot be reviewed on its own terms. Tra
 ## 1. Resolve the profile and its commit
 
 Start from `profiles_list`, or `recordings_analyzeFile` when the user named a file (the
-`analyze-profile` skill covers that path). Then `profiles_get` and read `recordingCommit`:
+`analyze-jfr` skill covers that path). Then `profiles_get` and read `recordingCommit`:
 
 - equal to `git rev-parse HEAD` — say so in one line and continue;
 - different — say so **before anything else**, name both commits, and ask whether to check the
@@ -115,7 +115,7 @@ For each accepted finding:
 when the overview reports any (a `CRITICAL` or `HIGH` one is the application's own diagnosis and
 comes before any frame), `traces_slowestTraces`, `traces_traceExport`, then
 `traces_spanFlamegraphExport` for the frames inside the slow span — the sequence in the
-`analyze-profile` skill. Once a span's flamegraph names the hot frames, continue from step 4 with
+`analyze-jfr` skill. Once a span's flamegraph names the hot frames, continue from step 4 with
 that export instead of the whole-recording one.
 
 ## When something is missing

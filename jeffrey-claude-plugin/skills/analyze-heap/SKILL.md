@@ -101,7 +101,7 @@ shows no path — that is the answer, not an error.
 
 ## When something fails
 
-- `Profile … has no heap dump` → it is a JFR recording; the `analyze-profile` skill applies.
+- `Profile … has no heap dump` → it is a JFR recording; the `analyze-jfr` skill applies.
 - `… is still being indexed` → open the profile once in the Jeffrey UI to build the index, then retry.
 - Retained sizes come back empty → the dominator tree has not been built; go back to step 4.
 - `… has not been run yet` → a pre-computed report; step 4 says what to do.

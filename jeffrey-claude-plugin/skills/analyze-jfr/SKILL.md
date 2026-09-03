@@ -1,5 +1,5 @@
 ---
-name: analyze-profile
+name: analyze-jfr
 description: Analyses a JVM profile held by a running Jeffrey Microscope — CPU, wall-clock, allocation, lock contention and trace latency — starting from the catalogue or from a .jfr file Jeffrey has not seen yet. Use whenever the user asks why something is slow, where the time goes, what is allocating, what a JFR recording or flamegraph shows, or mentions a Jeffrey profile, a .jfr file or async-profiler output. For a heap dump or .hprof file, analyze-heap applies instead.
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---
@@ -87,7 +87,7 @@ the code that produced it.
 
 The exports carry call paths and figures, not source locations. Cite the path and the numbers the
 document shows. If the repository is open alongside, read the real source before naming a file,
-method or line — never infer them from a frame name. The `advise` skill carries the full
+method or line — never infer them from a frame name. The `advise-jfr` skill carries the full
 profile-to-code-change workflow.
 
 ## When something fails
@@ -105,4 +105,4 @@ profile-to-code-change workflow.
   by default.
 
 Related skills: `analyze-heap` for a heap dump, `jfr-sql` for raw SQL against the profile,
-`advise` to go from a hotspot to an edit in this repository.
+`advise-jfr` to go from a hotspot to an edit in this repository.

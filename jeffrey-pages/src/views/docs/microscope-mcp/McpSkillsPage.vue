@@ -28,9 +28,9 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'why-skills-at-all', text: 'Why Skills at All', level: 2 },
-  { id: 'analyze-profile', text: 'analyze-profile', level: 2 },
+  { id: 'analyze-jfr', text: 'analyze-jfr', level: 2 },
   { id: 'analyze-heap', text: 'analyze-heap', level: 2 },
-  { id: 'advise', text: 'advise', level: 2 },
+  { id: 'advise-jfr', text: 'advise-jfr', level: 2 },
   { id: 'jfr-sql', text: 'jfr-sql', level: 2 },
   { id: 'heap-sql', text: 'heap-sql', level: 2 },
   { id: 'invoking-one-directly', text: 'Invoking One Directly', level: 2 },
@@ -41,14 +41,14 @@ onMounted(() => {
   setHeadings(headings);
 });
 
-const invoke = `/microscope:analyze-profile
+const invoke = `/microscope:analyze-jfr
 /microscope:analyze-heap
-/microscope:advise
+/microscope:advise-jfr
 /microscope:jfr-sql
 /microscope:heap-sql`;
 
 const advisePrompt = `advise on the most recent Jeffrey profile - what should I change in this repo?
-/microscope:advise 019f885e-8e69-7d65-8ac7-32a70b92cb94 alloc`;
+/microscope:advise-jfr 019f885e-8e69-7d65-8ac7-32a70b92cb94 alloc`;
 
 const eventsView = `-- correct
 SELECT event_type, COUNT(*) FROM events GROUP BY event_type
@@ -77,7 +77,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
         <li><strong>The two database schemas.</strong> Jeffrey&rsquo;s in-app assistant is given the JFR and heap-dump schemas in its system prompt. An external client never sees that prompt, so without a skill it would be guessing at column names.</li>
       </ul>
 
-      <h2 id="analyze-profile">analyze-profile</h2>
+      <h2 id="analyze-jfr">analyze-jfr</h2>
       <p><em>Orientation.</em> Loaded whenever the question is &ldquo;why is this slow&rdquo;, &ldquo;where does the time go&rdquo;, &ldquo;what is allocating&rdquo;, &ldquo;what is holding memory&rdquo;, or when a Jeffrey profile, a JFR recording or a heap dump is mentioned.</p>
 
       <p>It carries the entry sequence &mdash; <code>profiles_list</code>, then <code>profiles_features</code>, then the family that matches the question &mdash; a map of the six families to the questions each answers, when to start instead from <code>recordings_analyzeFile</code> because the user named a file Jeffrey has never seen, the rule that every scoped tool takes a <code>profileId</code>, which flamegraph to pick for CPU versus allocation versus lock contention versus wall-clock, the order to work a latency question in traces, and what a failure means (a <code>404</code> means the server was switched off, not a bug).</p>
@@ -96,9 +96,9 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
 
       <p>On top of that it carries the routes &mdash; the histogram and top consumers for what is using the heap, leak suspects into a GC-root path for what is leaking, <code>heap_getClassLoaderLeakChains</code> for the redeploy case that leaves a class loader behind, string and collection analysis for waste, and instance browsing for one particular class &mdash; plus how to enter from a <code>.hprof</code> file Jeffrey has never seen, and what the two guard messages mean when a profile turns out to have no heap dump or an index that is still being built.</p>
 
-      <p>It grounds claims the way <code>analyze-profile</code> does: cite the class name, the retained bytes and the GC-root path together, never carry an object id between dumps, and say whether one dump is being read as a leak or as a large working set &mdash; a single dump cannot tell those apart.</p>
+      <p>It grounds claims the way <code>analyze-jfr</code> does: cite the class name, the retained bytes and the GC-root path together, never carry an object id between dumps, and say whether one dump is being read as a leak or as a large working set &mdash; a single dump cannot tell those apart.</p>
 
-      <h2 id="advise">advise</h2>
+      <h2 id="advise-jfr">advise-jfr</h2>
       <p><em>From a profile to a code change.</em> Loaded when the question is &ldquo;what should I change&rdquo;, &ldquo;optimise this&rdquo;, or when a hotspot has been found and the next question is what to do about it. It is the successor of the in-app Profile Advisor: the same job, done by the agent that is already in your checkout and can build, test and re-profile, instead of by a model given a read-only view of one folder.</p>
       <DocsCodeBlock :code="advisePrompt" language="bash" />
 

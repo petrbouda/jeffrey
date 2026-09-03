@@ -141,7 +141,7 @@ LIMIT 20`;
       <h2 id="from-profile-to-patch">From Profile to Patch</h2>
       <DocsCodeBlock :code="promptAdvise" language="bash" />
 
-      <p>Drives the <router-link to="/docs/microscope-mcp/skills#advise"><code>advise</code></router-link> skill: <code>profiles_get</code> for the recording&rsquo;s commit, <code>flamegraph_list</code>, then <code>flamegraph_export</code> once per group the profile carries &mdash; CPU, wall-clock, allocation, blocking &mdash; followed by reads of the real source behind the heaviest frames.</p>
+      <p>Drives the <router-link to="/docs/microscope-mcp/skills#advise-jfr"><code>advise-jfr</code></router-link> skill: <code>profiles_get</code> for the recording&rsquo;s commit, <code>flamegraph_list</code>, then <code>flamegraph_export</code> once per group the profile carries &mdash; CPU, wall-clock, allocation, blocking &mdash; followed by reads of the real source behind the heaviest frames.</p>
 
       <p>The previous recipe reconciles one frame with one method. This one is the whole loop: every group at once, a recommendation per hotspot with the measured share that justifies it, and a stop before anything is edited. Say which findings to apply and Claude makes the smallest edit for each, runs the tests, and &mdash; if you name the command that produced the recording &mdash; re-runs it, analyses the new file with <code>recordings_analyzeFile</code> and reports the delta on the frames it changed.</p>
 

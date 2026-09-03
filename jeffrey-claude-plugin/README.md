@@ -64,10 +64,10 @@ both) and not the case for a Jeffrey in a container or on another host.
 
 **Skills**, which you can also invoke directly:
 
-- `/microscope:analyze-profile` — where to start and which family answers which question
+- `/microscope:analyze-jfr` — where to start and which family answers which question
 - `/microscope:analyze-heap` — a heap dump end to end: what is holding the memory, what is leaking,
   which class loader never went away, and the order the heap tools have to be run in
-- `/microscope:advise [profile-id | recording-file] [cpu|wall|alloc|lock]` — from a profile to a
+- `/microscope:advise-jfr [profile-id | recording-file] [cpu|wall|alloc|lock]` — from a profile to a
   code change: the hottest CPU, wall-clock, allocation and blocking frames mapped to real source in
   your checkout, a recommendation, then the edit and a re-profile on request
 - `/microscope:jfr-sql` — the JFR schema and the DuckDB idioms that go with it
