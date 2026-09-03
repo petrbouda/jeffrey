@@ -108,8 +108,8 @@ continue from step 4 above with that export instead of the whole-recording one.
 ## When something is missing
 
 - `flamegraph_list` reports no flamegraph-capable event types → a heap dump or a recording without
-  samples; there is nothing to advise on from a flamegraph. For a heap dump, the `heap_` family and
-  the `heap-sql` skill apply.
+  samples; there is nothing to advise on from a flamegraph. For a heap dump, the `analyze-heap`
+  skill applies instead.
 - The profile's commit differs from `HEAD` and the user does not want to switch → analyse anyway,
   but say in the summary that every file reference was checked against a different commit than
   the one profiled.

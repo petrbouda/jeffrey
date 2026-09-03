@@ -65,6 +65,8 @@ both) and not the case for a Jeffrey in a container or on another host.
 **Skills**, which you can also invoke directly:
 
 - `/microscope:analyze-profile` — where to start and which family answers which question
+- `/microscope:analyze-heap` — a heap dump end to end: what is holding the memory, what is leaking,
+  which class loader never went away, and the order the heap tools have to be run in
 - `/microscope:advise` — from a profile to a code change: the hottest CPU, wall-clock, allocation
   and blocking frames mapped to real source in your checkout, a recommendation, then the edit and a
   re-profile on request
@@ -96,6 +98,10 @@ Or, starting from a recording that is not in Jeffrey yet:
 
 > the `GET /api/orders` operation is slow — find a slow example and tell me what the JVM was doing
 > inside its slowest span
+
+Or, from a heap dump:
+
+> analyze /tmp/heap.hprof in Jeffrey — what is holding the memory, and is anything leaking?
 
 Or, once the hotspot is known, in the repository that produced it:
 

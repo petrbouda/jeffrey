@@ -45,7 +45,7 @@ Every tool except `profiles_list` and the `recordings_` family takes a `profileI
 | `flamegraph_` | `panels` (which event types this profile can graph — call it first), `export` (the call tree as Markdown) |
 | `traces_` | `overview`, `operations`, `notifications`, `operationExport`, `slowestTraces`, `traceExport`, `spanFlamegraphExport`, `operationFlamegraphExport` |
 | `jfr_` | `listTables`, `describeTable`, `listEventTypes`, `queryEvents`, `executeQuery`, `getProfileInfo` — raw DuckDB when no purpose-built tool fits |
-| `heap_` | 20 tools: `getHeapSummary`, `getClassHistogram`, `getBiggestObjects`, `getLeakSuspects`, `getPathToGCRoot`, `getDominatorTree*`, `executeQuery`, … |
+| `heap_` | Everything a heap dump answers — summary, histogram, dominator tree, leak suspects, GC-root paths. The largest family, with an order to work it in: see the `analyze-heap` skill |
 | `recordings_` | `analyzeFile` (a file not in Jeffrey yet), `analyzeRecording` (one already uploaded but never analysed), `list` (the Quick Analysis store) |
 
 Tool names are camelCase after the prefix: `jfr_listTables`, not `jfr_list_tables`.
@@ -101,6 +101,8 @@ document shows. If the repository is open alongside, read the real source before
 ## When something is missing
 
 - A tool answers `Profile … has no heap dump` → it is a JFR recording; use `jfr_`, `flamegraph_`, `traces_`.
+- The profile *is* a heap dump (`profiles_list` shows `event source` = `HEAP_DUMP`) → switch to the
+  `analyze-heap` skill; flamegraphs and traces do not apply to it.
 - `recordings_analyzeFile` says the path must be absolute → pass the full path, not a repo-relative one.
 - It says there is no such file, but the file is right there → Jeffrey is looking on *its own*
   filesystem. Copy or mount the recording somewhere Jeffrey can reach, or upload it in the UI.
@@ -114,6 +116,7 @@ document shows. If the repository is open alongside, read the real source before
   `…/api/internal/mcp` endpoint: run `/plugin`, open the `microscope` plugin's configuration
   and set **Jeffrey MCP endpoint**.
 
-For raw SQL against a profile or a heap dump, see the `jfr-sql` and `heap-sql` skills. To go from
-a profile to a code change — hot frames mapped to this repository, a recommendation, an edit and a
-re-profile — see the `advise` skill.
+For a heap dump — what is holding the memory, what is leaking, which class loader never went away
+— see the `analyze-heap` skill. For raw SQL against a profile or a heap dump, see the `jfr-sql` and
+`heap-sql` skills. To go from a profile to a code change — hot frames mapped to this repository, a
+recommendation, an edit and a re-profile — see the `advise` skill.
