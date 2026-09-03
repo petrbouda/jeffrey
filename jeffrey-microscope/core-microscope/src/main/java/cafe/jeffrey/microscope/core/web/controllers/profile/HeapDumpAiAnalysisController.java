@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.web.controllers.profile;
 
+import cafe.jeffrey.microscope.mcp.HeapDumpManagerToolsDelegate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,7 +32,7 @@ import cafe.jeffrey.profile.ai.chat.AssistantResponse;
 import cafe.jeffrey.profile.ai.chat.ChatMessage;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.model.HeapDumpAnalysisRequest;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.service.HeapDumpAnalysisAssistantService;
-import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpToolsDelegate;
+import cafe.jeffrey.profile.mcp.tools.heapdump.HeapDumpToolsDelegate;
 
 import java.util.List;
 

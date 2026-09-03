@@ -50,6 +50,11 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
+        <!-- Home directory, settings bootstrap and DuckDB persistence shared with microscope-mcp -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>microscope-runtime</artifactId>
+        </dependency>
         <!-- Platform modules (formerly transitive via platform-core) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -66,10 +71,40 @@
             <artifactId>profile-management</artifactId>
         </dependency>
 
+        <!-- External MCP server (endpoint + tool families), shared with microscope-mcp -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>microscope-mcp</artifactId>
+        </dependency>
         <!-- MCP server machinery (JSON-RPC envelope, @Tool toolsets) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>mcp-server</artifactId>
+        </dependency>
+        <!-- In-app AI: chat backends, analysis assistants, Advisor, headless Claude Code -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ai-config</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>oql-assistant</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>profile-advisor</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>duckdb-jfr-mcp</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>duckdb-heapdump-mcp</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>claude-code-headless</artifactId>
         </dependency>
 
         <!-- Third-party -->

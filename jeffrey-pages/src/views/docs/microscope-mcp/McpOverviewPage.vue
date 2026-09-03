@@ -152,6 +152,7 @@ onMounted(() => {
       <h2 id="where-to-go-next">Where to Go Next</h2>
       <ul>
         <li><router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> &mdash; the toggle, the endpoint URL, and the security posture</li>
+        <li><router-link to="/docs/microscope-mcp/headless">Headless Server (microscope-mcp)</router-link> &mdash; the build that serves only this endpoint, always on, for a machine without a browser</li>
         <li><router-link to="/docs/microscope-mcp/plugin">Claude Code Plugin</router-link> &mdash; one install instead of a hand-written command per machine</li>
         <li><router-link to="/docs/microscope-mcp/recipes">Recipes</router-link> &mdash; worked sessions, from &ldquo;where does the time go&rdquo; to a leak hunt</li>
         <li><router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> &mdash; connecting without the plugin, and the wire protocol</li>

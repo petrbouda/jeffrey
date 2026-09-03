@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.microscope.core.manager;
 
+import cafe.jeffrey.microscope.runtime.settings.SettingDescriptor;
+import cafe.jeffrey.microscope.runtime.settings.SettingsMetadata;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -28,8 +30,6 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.boot.logging.LogLevel;
 import org.springframework.boot.logging.LoggingSystem;
-import cafe.jeffrey.microscope.core.configuration.SettingDescriptor;
-import cafe.jeffrey.microscope.core.configuration.SettingsMetadata;
 import cafe.jeffrey.microscope.persistence.api.Setting;
 import cafe.jeffrey.microscope.persistence.api.SettingsRepository;
 import cafe.jeffrey.shared.common.config.SettingsStore;

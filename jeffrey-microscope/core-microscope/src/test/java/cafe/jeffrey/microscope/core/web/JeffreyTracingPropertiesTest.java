@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.web;
 
+import cafe.jeffrey.microscope.runtime.web.JeffreyRequestLoggingFilter;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.Ordered;

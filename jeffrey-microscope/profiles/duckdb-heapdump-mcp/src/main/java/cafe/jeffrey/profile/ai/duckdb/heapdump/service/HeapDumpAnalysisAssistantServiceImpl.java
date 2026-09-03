@@ -30,8 +30,8 @@ import cafe.jeffrey.profile.ai.chat.ToolBinding;
 import cafe.jeffrey.profile.ai.chat.ToolExchange;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.model.HeapDumpAnalysisRequest;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.prompt.HeapDumpAnalysisSystemPrompt;
-import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpMcpTools;
-import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpToolsDelegate;
+import cafe.jeffrey.profile.mcp.tools.heapdump.HeapDumpMcpTools;
+import cafe.jeffrey.profile.mcp.tools.heapdump.HeapDumpToolsDelegate;
 
 import java.util.List;
 import java.util.Set;

@@ -40,7 +40,14 @@
         <!-- Spring AI - the @Tool/@ToolParam annotations the toolsets reflect over -->
         <dependency>
             <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-client-chat</artifactId>
+            <artifactId>spring-ai-model</artifactId>
+            <exclusions>
+                <!-- A tokenizer the annotations never use; only the chat client counts tokens -->
+                <exclusion>
+                    <groupId>com.knuddels</groupId>
+                    <artifactId>jtokkit</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- ResponseEntity for the JSON-RPC endpoint base class -->

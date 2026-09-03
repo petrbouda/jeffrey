@@ -226,6 +226,7 @@ export const microscopeMcpNavigation: DocSection[] = [
     icon: 'bi-rocket-takeoff',
     children: [
       { title: 'Enabling the Server', to: '/docs/microscope-mcp/enabling' },
+      { title: 'Headless Server (microscope-mcp)', to: '/docs/microscope-mcp/headless' },
       { title: 'Claude Code Plugin', to: '/docs/microscope-mcp/plugin' }
     ]
   },

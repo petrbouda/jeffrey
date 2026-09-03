@@ -671,6 +671,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope-mcp/McpEnablingPage.vue')
       },
       {
+        path: 'microscope-mcp/headless',
+        name: 'DocsMicroscopeMcpHeadless',
+        component: () => import('@/views/docs/microscope-mcp/McpHeadlessPage.vue')
+      },
+      {
         path: 'microscope-mcp/plugin',
         name: 'DocsMicroscopeMcpPlugin',
         component: () => import('@/views/docs/microscope-mcp/McpPluginPage.vue')

@@ -28,10 +28,10 @@ jobs:
 
     # Two-step: jib: prefix goal can only be invoked at the project level. Install the
     # reactor up to the two jib modules first, then run jib:build scoped to each.
-    - name: Install reactor up to build-microscope-{,examples-}jib
+    - name: Install reactor up to build-microscope-{,examples-,mcp-}jib
       env:
         JEFFREY_TAG_VERSION: ${{ steps.version.outputs.VERSION }}
-      run: mvn -pl build/build-microscope-jib,build/build-microscope-examples-jib -am -DskipTests=true install
+      run: mvn -pl build/build-microscope-jib,build/build-microscope-examples-jib,build/build-microscope-mcp-jib -am -DskipTests=true install
 
     # docker/login-action shells out to `docker login`; the petrbouda/jeffrey-builder:25
     # container has no docker CLI, so we write ~/.docker/config.json directly. Jib reads
@@ -56,4 +56,9 @@ jobs:
       run: |
         mvn -pl build/build-microscope-examples-jib compile jib:build \
           -Djib.to.image=petrbouda/microscope-examples:${{ steps.version.outputs.VERSION }} \
+          -Djib.to.tags=latest
+    - name: Build & push microscope-mcp (headless, MCP endpoint only)
+      run: |
+        mvn -pl build/build-microscope-mcp-jib compile jib:build \
+          -Djib.to.image=petrbouda/microscope-mcp:${{ steps.version.outputs.VERSION }} \
           -Djib.to.tags=latest

@@ -18,14 +18,14 @@
 
 package cafe.jeffrey.microscope.core.web.controllers;
 
+import cafe.jeffrey.microscope.runtime.settings.SettingDescriptor;
+import cafe.jeffrey.microscope.runtime.settings.SettingsMetadata;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import cafe.jeffrey.microscope.core.configuration.SettingDescriptor;
-import cafe.jeffrey.microscope.core.configuration.SettingsMetadata;
 import cafe.jeffrey.microscope.core.manager.SettingUpdate;
 import cafe.jeffrey.microscope.core.manager.SettingsManager;
 import cafe.jeffrey.microscope.core.web.dto.request.SettingsBatchRequest;

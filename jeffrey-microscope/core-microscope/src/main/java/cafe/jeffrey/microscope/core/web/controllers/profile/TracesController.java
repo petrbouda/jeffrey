@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.web.controllers.profile;
 
+import cafe.jeffrey.profile.manager.builder.SpanScopedGraphParameters;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.ai.trace.TraceAiMarkdownBuilder;
 import cafe.jeffrey.profile.ai.trace.TraceOperationAiMarkdownBuilder;

@@ -18,12 +18,12 @@
 
 package cafe.jeffrey.microscope.core.manager;
 
+import cafe.jeffrey.microscope.runtime.settings.SettingDescriptor;
+import cafe.jeffrey.microscope.runtime.settings.SettingsMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.logging.LogLevel;
 import org.springframework.boot.logging.LoggingSystem;
-import cafe.jeffrey.microscope.core.configuration.SettingDescriptor;
-import cafe.jeffrey.microscope.core.configuration.SettingsMetadata;
 import cafe.jeffrey.microscope.persistence.api.Setting;
 import cafe.jeffrey.microscope.persistence.api.SettingsRepository;
 import cafe.jeffrey.shared.common.config.MicroscopeSettingKeys;

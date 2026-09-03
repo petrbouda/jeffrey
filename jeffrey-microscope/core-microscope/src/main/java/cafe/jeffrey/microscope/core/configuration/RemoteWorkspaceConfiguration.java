@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.configuration;
 
-import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
+import cafe.jeffrey.microscope.runtime.MicroscopeJeffreyDirs;
 import cafe.jeffrey.hub.client.CachedHubClientsFactory;
 import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;

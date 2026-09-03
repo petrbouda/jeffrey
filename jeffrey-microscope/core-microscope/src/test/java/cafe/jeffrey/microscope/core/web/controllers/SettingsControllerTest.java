@@ -18,13 +18,13 @@
 
 package cafe.jeffrey.microscope.core.web.controllers;
 
+import cafe.jeffrey.microscope.runtime.settings.SettingsMetadata;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-import cafe.jeffrey.microscope.core.configuration.SettingsMetadata;
 import cafe.jeffrey.microscope.core.manager.SettingUpdate;
 import cafe.jeffrey.microscope.core.manager.SettingsManager;
 import cafe.jeffrey.shared.common.encryption.MachineFingerprint.BindingMode;

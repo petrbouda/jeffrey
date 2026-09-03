@@ -18,51 +18,33 @@
 
 package cafe.jeffrey.microscope.core.configuration;
 
-import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
-import cafe.jeffrey.microscope.core.mcp.McpToolsetAssembler;
-import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
-import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
+import cafe.jeffrey.microscope.mcp.McpEnablement;
+import cafe.jeffrey.microscope.mcp.McpProfileResolver;
+import cafe.jeffrey.microscope.mcp.McpServerConfiguration;
+import cafe.jeffrey.microscope.mcp.SettingsMcpEnablement;
+import cafe.jeffrey.shared.common.config.SettingsStore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.time.Clock;
+import org.springframework.context.annotation.Import;
 
 /**
- * Wiring for the external MCP server — the endpoint an interactive Claude Code session connects to.
- * <p>
- * Registered unconditionally, like the rest of the AI wiring: whether the server answers is a question
- * the controller asks the settings on each request, so turning it on is a change of answer rather than
- * a change of wiring, and needs no restart.
+ * The full Microscope's contribution to the external MCP server — the endpoint an interactive Claude
+ * Code session connects to. The server itself is wired by {@link McpServerConfiguration}; this class
+ * says how this application resolves a profile (through its workspace and hub managers, so remote
+ * profiles are reachable) and when it answers (the opt-in setting, read per request).
  */
 @Configuration
+@Import(McpServerConfiguration.class)
 public class McpConfiguration {
 
-    /**
-     * Holds each profile an MCP client is working on open between its questions, and lets go once the
-     * client has stopped asking. Closed with the context so the pinned pools are released on shutdown.
-     */
-    @Bean(destroyMethod = "close")
-    public McpProfileContextCache mcpProfileContextCache(
-            ProfileManagerResolver profileManagerResolver,
-            DatabaseManagerResolver databaseManagerResolver,
-            Clock applicationClock) {
-        return new McpProfileContextCache(profileManagerResolver, databaseManagerResolver, applicationClock);
+    @Bean
+    public McpProfileResolver mcpProfileResolver(ProfileManagerResolver profileManagerResolver) {
+        return profileManagerResolver::resolve;
     }
 
     @Bean
-    public ProfilesMcpTools profilesMcpTools(
-            MicroscopeCorePersistenceProvider localCorePersistenceProvider) {
-        return new ProfilesMcpTools(localCorePersistenceProvider.localCoreRepositories());
-    }
-
-    @Bean
-    public McpToolsetAssembler mcpToolsetAssembler(
-            ProfilesMcpTools profilesMcpTools,
-            McpProfileContextCache contextCache,
-            JfrFlamegraphPanelProvider panelProvider) {
-        return new McpToolsetAssembler(profilesMcpTools, contextCache, panelProvider);
+    public McpEnablement mcpEnablement(SettingsStore settingsStore) {
+        return new SettingsMcpEnablement(settingsStore);
     }
 }

@@ -21,7 +21,7 @@ package cafe.jeffrey.profile.ai.duckdb.heapdump.service;
 import cafe.jeffrey.profile.ai.chat.AiAssistantService;
 import cafe.jeffrey.profile.ai.chat.AssistantResponse;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.model.HeapDumpAnalysisRequest;
-import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpToolsDelegate;
+import cafe.jeffrey.profile.mcp.tools.heapdump.HeapDumpToolsDelegate;
 
 /**
  * Service for AI-powered heap dump analysis.

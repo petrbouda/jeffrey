@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.configuration;
 
+import cafe.jeffrey.microscope.runtime.settings.SettingsMetadata;
 import org.springframework.boot.logging.LoggingSystem;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

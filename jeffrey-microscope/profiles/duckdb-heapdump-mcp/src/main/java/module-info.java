@@ -22,6 +22,7 @@
 module cafe.jeffrey.microscope.profile.ai.mcp.duckdb.heapdump {
     requires transitive cafe.jeffrey.microscope.profile.heapdump;
     requires transitive cafe.jeffrey.microscope.profile.ai.config;
+    requires transitive cafe.jeffrey.microscope.profile.mcp.tools;
     requires cafe.jeffrey.shared.common;
     requires transitive spring.ai.client.chat;
     requires spring.ai.model;
@@ -36,7 +37,6 @@ module cafe.jeffrey.microscope.profile.ai.mcp.duckdb.heapdump {
     exports cafe.jeffrey.profile.ai.duckdb.heapdump.model;
     exports cafe.jeffrey.profile.ai.duckdb.heapdump.prompt;
     exports cafe.jeffrey.profile.ai.duckdb.heapdump.service;
-    exports cafe.jeffrey.profile.ai.duckdb.heapdump.tools;
 
     opens cafe.jeffrey.profile.ai.duckdb.heapdump.config to spring.core, spring.beans, spring.context;
 }

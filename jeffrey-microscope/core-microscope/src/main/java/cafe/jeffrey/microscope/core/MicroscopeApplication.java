@@ -19,7 +19,7 @@
 package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.microscope.core.configuration.ApplicationStartedListener;
-import cafe.jeffrey.microscope.core.configuration.SettingsApplicationListener;
+import cafe.jeffrey.microscope.runtime.settings.SettingsApplicationListener;
 import cafe.jeffrey.shared.common.JeffreyVersion;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
@@ -35,8 +35,15 @@ import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.PathResourceResolver;
 
-@SpringBootApplication
+/**
+ * The external MCP endpoint lives in the shared {@code cafe.jeffrey.microscope.mcp} package, outside this
+ * application's own tree, so it is named as a second scan root rather than registered by hand.
+ */
+@SpringBootApplication(scanBasePackages = {MicroscopeApplication.CORE_PACKAGE, MicroscopeApplication.MCP_PACKAGE})
 public class MicroscopeApplication implements WebMvcConfigurer {
+
+    static final String CORE_PACKAGE = "cafe.jeffrey.microscope.core";
+    static final String MCP_PACKAGE = "cafe.jeffrey.microscope.mcp";
 
     static void main(String[] args) {
         if (args.length == 0) {

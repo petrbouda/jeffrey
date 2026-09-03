@@ -33,6 +33,11 @@ jobs:
       with:
         name: microscope-jar
         path: ./build/build-microscope/target/microscope.jar
+    - name: Upload microscope-mcp.jar
+      uses: actions/upload-artifact@v7
+      with:
+        name: microscope-mcp-jar
+        path: ./build/build-microscope-mcp/target/microscope-mcp.jar
 
     - name: Upload jeffrey-hub.jar
       uses: actions/upload-artifact@v7
@@ -78,6 +83,11 @@ jobs:
       uses: actions/download-artifact@v8
       with:
         name: microscope-jar
+        path: ./artifacts
+    - name: Download microscope-mcp.jar
+      uses: actions/download-artifact@v8
+      with:
+        name: microscope-mcp-jar
         path: ./artifacts
 
     - name: Download jeffrey-hub.jar

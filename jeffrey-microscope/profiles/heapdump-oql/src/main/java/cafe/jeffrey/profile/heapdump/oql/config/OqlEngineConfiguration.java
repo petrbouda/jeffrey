@@ -22,7 +22,7 @@ import org.springframework.context.annotation.Bean;
 
 /**
  * Bean definitions for the OQL engine. Wired into the application by
- * {@code ProfilesConfiguration} via {@code @Import(OqlEngineConfiguration.class)}.
+ * {@code ProfileEngineConfiguration} via {@code @Import(OqlEngineConfiguration.class)}.
  */
 public class OqlEngineConfiguration {
 

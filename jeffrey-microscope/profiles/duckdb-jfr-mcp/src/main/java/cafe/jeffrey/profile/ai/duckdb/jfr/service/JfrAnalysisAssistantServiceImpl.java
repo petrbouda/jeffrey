@@ -32,7 +32,7 @@ import cafe.jeffrey.profile.ai.chat.ToolBinding;
 import cafe.jeffrey.profile.ai.chat.ToolExchange;
 import cafe.jeffrey.profile.ai.duckdb.jfr.model.JfrAnalysisRequest;
 import cafe.jeffrey.profile.ai.duckdb.jfr.prompt.JfrAnalysisSystemPrompt;
-import cafe.jeffrey.profile.ai.duckdb.jfr.tools.DuckDbMcpTools;
+import cafe.jeffrey.profile.mcp.tools.jfr.DuckDbMcpTools;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 

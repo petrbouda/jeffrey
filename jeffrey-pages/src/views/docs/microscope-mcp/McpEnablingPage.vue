@@ -38,8 +38,6 @@ onMounted(() => {
   setHeadings(headings);
 });
 
-const propertyToggle = `jeffrey.microscope.mcp.enabled=true`;
-
 const defaultEndpoint = `http://localhost:8080/api/internal/mcp`;
 
 const tunnel = `ssh -N -L 8080:localhost:8080 you@the-host-running-jeffrey`;
@@ -64,10 +62,9 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <h2 id="turn-it-on">Turn It On</h2>
       <p>In the Jeffrey UI, open <strong>Settings &rarr; Claude Code (MCP)</strong> and enable it. The setting is hot-reloaded and checked per request, so it takes effect immediately &mdash; no restart, and turning it back off closes the door on the next call rather than at the next boot.</p>
 
-      <p>The same switch is an ordinary Jeffrey setting, so it can be set up front:</p>
-      <DocsCodeBlock :code="propertyToggle" language="properties" />
+      <p>The switch is a stored Jeffrey setting, not an application property: it lives in the settings table of the home directory&rsquo;s core database and outranks the command line and the environment, so passing <code>jeffrey.microscope.mcp.enabled=true</code> at startup has no effect. Flip it in the UI, or through <code>PUT /api/internal/settings</code>.</p>
 
-      <p>See <router-link to="/docs/microscope/configuration/application-properties">Application Properties</router-link> for where such properties belong.</p>
+      <p>For a machine without a browser &mdash; a container, a CI box, a build server &mdash; there is a second artifact whose only job is this endpoint and which needs no switch at all: see <router-link to="/docs/microscope-mcp/headless">Headless Server (microscope-mcp)</router-link>.</p>
 
       <h2 id="the-endpoint-url">The Endpoint URL</h2>
       <p>One endpoint serves the whole installation:</p>

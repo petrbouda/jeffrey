@@ -77,7 +77,7 @@ public class ProfileAnalysisConfiguration {
     @Bean
     public AutoAnalysisManager.Factory autoAnalysisManagerFactory(
             RecordingStorage recordingStorage,
-            @Qualifier(ProfilesConfiguration.RECORDINGS_PATH) Path recordingsPath) {
+            @Qualifier(ProfileEngineConfiguration.RECORDINGS_PATH) Path recordingsPath) {
 
         return profileInfo -> {
             var profileDb = databaseManagerResolver.open(profileInfo);

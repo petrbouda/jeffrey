@@ -36,7 +36,10 @@
         <module>microscope-core-sql-persistence</module>
         <module>grpc-client</module>
         <module>pages-microscope</module>
+        <module>microscope-runtime</module>
+        <module>microscope-mcp</module>
         <module>core-microscope</module>
+        <module>core-microscope-mcp</module>
         <module>profiles</module>
     </modules>
 

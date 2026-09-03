@@ -35,6 +35,8 @@
         <module>build-microscope</module>
         <module>build-microscope-jib</module>
         <module>build-microscope-examples-jib</module>
+        <module>build-microscope-mcp</module>
+        <module>build-microscope-mcp-jib</module>
         <module>build-hub</module>
         <module>build-hub-jib</module>
         <module>build-provisioner</module>

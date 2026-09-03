@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.web.controllers.profile;
 
+import cafe.jeffrey.profile.manager.builder.SpanScopedGraphParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;

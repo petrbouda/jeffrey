@@ -63,7 +63,10 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `pages-microscope` — Full-featured Vue 3 SPA frontend
 - `profiles/` — All profile analysis modules (see below)
 - REST resources: `/api/internal/workspaces/**`, `/api/internal/projects/**`, `/api/internal/profiles/{profileId}/**`
-- `core-microscope/.../mcp/` — both MCP endpoints. `ExternalMcpController` serves `POST /api/internal/mcp` to an **outside** client (installation-wide, `profileId` as a tool argument, read-only, off by default behind `jeffrey.microscope.mcp.enabled`); `McpStreamableHttpController` serves `/api/internal/mcp/claude-code` to the headless CLI backend Jeffrey spawns for itself (per-profile, provider-gated). They differ on scoping, gating and lifecycle — keep them separate rather than branching on which query parameters are present
+- `microscope-runtime` — what every Microscope process needs to open a home directory: `MicroscopeJeffreyDirs`, the settings bootstrap (`SettingsApplicationListener` + `settings-mappings.conf`: HOCON defaults plus rows of the core DB, registered *above* the environment, so `jeffrey.microscope.mcp.enabled` and friends cannot be set from the command line), the DuckDB persistence providers (`MicroscopeRuntimeConfiguration`) and the Jackson module. Shared by `core-microscope` and `core-microscope-mcp`
+- `microscope-mcp` — the **external** MCP server, package `cafe.jeffrey.microscope.mcp`: `ExternalMcpController` serves `POST /api/internal/mcp` to an outside client (installation-wide, `profileId` as a tool argument, read-only), `McpToolsetAssembler` + `tools/` are the families it advertises, `McpServerConfiguration` wires it. Two seams are left to the host: `McpProfileResolver` (how a profile id becomes a `ProfileManager`) and `McpEnablement` (whether it answers). The full app supplies `ProfileManagerResolver::resolve` + `SettingsMcpEnablement` (off by default behind `jeffrey.microscope.mcp.enabled`) from `core-microscope/.../configuration/McpConfiguration`; the controller is scan-discovered, so `MicroscopeApplication` lists this package as a second scan root
+- `core-microscope-mcp` — **Microscope MCP**, the headless artifact (`microscope-mcp.jar`, image `petrbouda/microscope-mcp`): `MicroscopeMcpApplication` serves only the external MCP endpoint, always on (`McpEnablement.ALWAYS`, `LocalProfileResolver` straight from the core DB), over the same `~/.jeffrey-microscope` the full Microscope writes — no UI, no in-app AI (no Spring AI providers / OpenAI / Anthropic SDKs), no hub client. DuckDB locks its files, so the two binaries take turns on a home directory
+- `core-microscope/.../mcp/McpStreamableHttpController` serves `/api/internal/mcp/claude-code` to the headless CLI backend Jeffrey spawns for itself (per-profile, provider-gated, needs the Advisor). It differs from the external server on scoping, gating and lifecycle — keep them separate rather than branching on which query parameters are present
 
 **jeffrey-microscope/profiles/** (profile analysis, used only by jeffrey-microscope):
 - `profile-management` — Profile analysis features + REST resources (Flamegraph, Timeseries, GC, Threads, HeapDump, AI)
@@ -75,9 +78,11 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `heap-dump` — Heap dump analysis
 - `ai-config` — AI configuration for profile analysis
 - `oql-assistant` — OQL AI assistant
-- `duckdb-jfr-mcp`, `duckdb-heapdump-mcp` — MCP servers for AI integration
+- `mcp-tools` — the read-only `@Tool` families (`DuckDbMcpTools`, `HeapDumpMcpTools` + `HeapDumpToolsDelegate`), depending on `spring-ai-model` for the annotations only, so an MCP server can ship them without a chat client
+- `duckdb-jfr-mcp`, `duckdb-heapdump-mcp` — the in-app AI analysis assistants built on those tools (chat services, prompts, Spring AI providers)
 - `profile-advisor` — AI recommendations and patches from the profile and a local source folder
 - `claude-code-headless` — Claude Code (headless) AI backend
+- `profile-management/.../configuration/ProfileEngineConfiguration` imports the analysis engine only; the in-app AI configurations are aggregated by `core-microscope/.../configuration/AiFeaturesConfiguration`, so `profile-management` has no dependency on `ai-config` or its providers
 - `mcp-server` — The MCP protocol layer, shared by every MCP endpoint: the JSON-RPC/Streamable-HTTP envelope (`AbstractMcpStreamableHttpController`), the `@Tool`-to-MCP adapter (`ReflectiveToolset`), and `ProfileScopedToolset` / `CompositeToolset` for resolving a tool class per call from a `profileId` and merging tool families into one server. **Only place that knows the protocol** — do not re-implement it in a controller
 
 **jeffrey-hub** (`jeffrey-hub/`):
@@ -129,6 +134,9 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 ```
 jeffrey/
 ├── jeffrey-microscope/                     # Standalone deployment
+│   ├── microscope-runtime/            # Home dir, settings bootstrap, DuckDB providers (shared by both apps)
+│   ├── microscope-mcp/                # External MCP server (endpoint + tool families), shared by both apps
+│   ├── core-microscope-mcp/           # Microscope MCP: headless app serving only the MCP endpoint
 │   ├── core-microscope/                    # Main Spring Boot app (MicroscopeApplication)
 │   │   └── src/.../microscope/core/
 │   │       ├── manager/               # Managers (project/, workspace/, downloads, recordings, etc.)
@@ -169,6 +177,7 @@ jeffrey/
 │       ├── heap-dump/                 # Heap dump analysis
 │       ├── ai-config/                 # AI configuration
 │       ├── oql-assistant/             # OQL AI assistant
+│       ├── mcp-tools/                 # Read-only @Tool families (annotations only)
 │       ├── duckdb-jfr-mcp/           # DuckDB MCP server for AI
 │       ├── duckdb-heapdump-mcp/      # Heap dump MCP server for AI
 │       ├── mcp-server/                # Shared MCP protocol layer (JSON-RPC envelope, toolsets)
@@ -204,6 +213,7 @@ jeffrey/
 ├── jeffrey-pages/                     # Documentation site
 ├── build/                             # Build configurations
 │   ├── build-microscope/                   # Local application assembly
+│   ├── build-microscope-mcp/          # microscope-mcp.jar (headless MCP server) + -jib sibling for the image
 │   ├── build-hub/                  # Server application assembly
 │   ├── build-provisioner/             # Provisioner build
 │   ├── build-provisioner-native/     # Native image build
@@ -391,7 +401,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - **jeffrey-microscope REST**: `/api/internal/` for frontend-facing APIs — resources in `jeffrey-microscope/core-microscope/.../resources/`
 - **Profile REST**: `/api/internal/profiles/{profileId}/` for profile features — controllers in `jeffrey-microscope/core-microscope/.../web/controllers/profile/`
 - **jeffrey-hub REST**: `/api/internal/` for minimal server UI — resources in `jeffrey-hub/core-hub/.../resources/`
-- **MCP**: JSON-RPC 2.0 over Streamable HTTP — `POST /api/internal/mcp` (external clients) and `/api/internal/mcp/claude-code` (the headless CLI backend), controllers in `jeffrey-microscope/core-microscope/.../mcp/`, protocol layer in `jeffrey-microscope/profiles/mcp-server/`
+- **MCP**: JSON-RPC 2.0 over Streamable HTTP — `POST /api/internal/mcp` (external clients; controller in `jeffrey-microscope/microscope-mcp/`, also the whole surface of the headless `microscope-mcp.jar`) and `/api/internal/mcp/claude-code` (the headless CLI backend; controller in `jeffrey-microscope/core-microscope/.../mcp/`), protocol layer in `jeffrey-microscope/profiles/mcp-server/`
 - **gRPC**: Remote workspace communication between jeffrey-microscope and jeffrey-hub — proto definitions in `shared/hub-api/src/main/proto/jeffrey/hub/api/v1/`, service implementations in `jeffrey-hub/core-hub/.../grpc/`, clients in `jeffrey-microscope/grpc-client/.../grpc/client/`, aggregated by the `HubClients` record in `shared/hub-client/`
 - gRPC proto files: `workspace_service.proto`, `project_service.proto`, `instance_service.proto`, `recording_download_service.proto`, `repository_service.proto`, `profiler_settings_service.proto`, `event_streaming_service.proto`
 - gRPC clients: `HubClients` record (in `shared/hub-client/`) containing `DiscoveryClient`, `RepositoryClient`, `RecordingStreamClient`, `ProfilerClient`, `InstancesClient`, `ProjectsClient`, `EventStreamingClient`
@@ -465,7 +475,7 @@ When modifying code, keep the corresponding documentation pages in `jeffrey-page
 | `jeffrey-provisioner/` | `docs/provisioner/` — overview, configuration, directory structure, generated output |
 | Jib build/deployment | `docs/jib/` — overview, setup, configuration |
 | In-app AI modules (`ai-config`, `oql-assistant`, `duckdb-jfr-mcp`, `duckdb-heapdump-mcp`, `claude-code-headless`, `profile-advisor`) | `docs/ai/` — overview, JFR analysis, heap dump analysis, OQL assistant |
-| External MCP server (`core-microscope/.../mcp/`, `profiles/mcp-server`) + `jeffrey-claude-plugin/` | `docs/microscope-mcp/` — overview, enabling the server, Claude Code plugin, tool reference, skills, recipes, other clients |
+| External MCP server (`microscope-mcp/`, `core-microscope-mcp/`, `profiles/mcp-server`, `profiles/mcp-tools`) + `jeffrey-claude-plugin/` | `docs/microscope-mcp/` — overview, enabling the server, headless server (microscope-mcp), Claude Code plugin, tool reference, skills, recipes, other clients |
 | IntelliJ plugin | `docs/intellij-plugin/` — overview, setup, configuration, JFR profiler |
 | Architecture changes | `docs/architecture/ArchitectureOverviewPage.vue` |
 | Install/onboarding changes | `docs/getting-started/` — introduction, installation, quick start |

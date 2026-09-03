@@ -24,22 +24,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
+import cafe.jeffrey.microscope.runtime.MicroscopeJeffreyDirs;
+import cafe.jeffrey.microscope.runtime.MicroscopeRuntimeConfiguration;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.ProfilesManagerImpl;
 import cafe.jeffrey.microscope.core.recording.ProjectRecordingInitializer;
-import cafe.jeffrey.microscope.persistence.jdbc.DuckDBMicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.ProfileInitializer;
-import cafe.jeffrey.profile.configuration.ProfilesConfiguration;
+import cafe.jeffrey.profile.configuration.ProfileEngineConfiguration;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.parser.FileTypeDispatchingRecordingInformationParser;
 import cafe.jeffrey.profile.parser.JfrRecordingInformationParser;
-import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
-import cafe.jeffrey.provider.profile.jdbc.DatabaseManagerResolverImpl;
-import cafe.jeffrey.provider.profile.jdbc.DuckDBProfilePersistenceProvider;
-import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.microscope.core.manager.GitHubReleaseChecker;
 import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.ide.IdeMode;
@@ -48,8 +44,6 @@ import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginBridge;
 import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginClient;
 import cafe.jeffrey.microscope.core.manager.ide.JfrProfilerPluginBridge;
 import cafe.jeffrey.microscope.core.manager.ide.PortRange;
-import cafe.jeffrey.shared.common.FrameResolutionMode;
-import cafe.jeffrey.shared.common.StringUtils;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import cafe.jeffrey.storage.recording.api.RecordingStorage;
 import cafe.jeffrey.storage.recording.filesystem.FilesystemRecordingStorage;
@@ -62,20 +56,14 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 
-
 @Configuration
-@Import(ProfilesConfiguration.class)
+@Import({MicroscopeRuntimeConfiguration.class, ProfileEngineConfiguration.class, AiFeaturesConfiguration.class})
 public class AppConfiguration {
 
     private static final Logger LOG = LoggerFactory.getLogger(AppConfiguration.class);
 
     private static final Duration IDE_CLIENT_CONNECT_TIMEOUT = Duration.ofMillis(100);
     private static final Duration IDE_CLIENT_READ_TIMEOUT = Duration.ofMillis(200);
-
-    @Bean
-    public Clock applicationClock() {
-        return Clock.systemUTC();
-    }
 
     @Bean
     public GitHubReleaseChecker gitHubReleaseChecker(
@@ -115,53 +103,6 @@ public class AppConfiguration {
     }
 
     @Bean
-    public MicroscopeCorePersistenceProvider platformPersistenceProvider(
-            MicroscopeJeffreyDirs jeffreyDirs,
-            @Value("${jeffrey.microscope.persistence.database.url:}") String databaseUrl,
-            Clock clock) {
-
-        String resolvedUrl = StringUtils.isNullOrBlank(databaseUrl)
-                ? "jdbc:duckdb:" + jeffreyDirs.homeDir().resolve("jeffrey-data.db")
-                : databaseUrl;
-
-        DuckDBMicroscopeCorePersistenceProvider provider = new DuckDBMicroscopeCorePersistenceProvider();
-        provider.initialize(resolvedUrl, clock);
-        return provider;
-    }
-
-    @Bean
-    public ProfilePersistenceProvider profilePersistenceProvider(
-            MicroscopeJeffreyDirs jeffreyDirs,
-            @Value("${jeffrey.microscope.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode,
-            Clock clock) {
-
-        LOG.info("Using frame resolution mode: mode={}", frameResolutionMode);
-        return new DuckDBProfilePersistenceProvider(jeffreyDirs.profiles(), frameResolutionMode, clock);
-    }
-
-    @Bean
-    public DatabaseManagerResolver databaseManagerResolver(
-            ProfilePersistenceProvider profilePersistenceProvider) {
-
-        return new DatabaseManagerResolverImpl(profilePersistenceProvider.databaseManager());
-    }
-
-    @Bean
-    public MicroscopeJeffreyDirs jeffreyDir(
-            @Value("${jeffrey.microscope.home.dir:${user.home}/.jeffrey}") String homeDir,
-            @Value("${jeffrey.microscope.temp.dir:}") String tempDir) {
-
-        Path homeDirPath = Path.of(homeDir);
-        MicroscopeJeffreyDirs jeffreyDirs = StringUtils.isNullOrBlank(tempDir)
-                ? new MicroscopeJeffreyDirs(homeDirPath)
-                : new MicroscopeJeffreyDirs(homeDirPath, Path.of(tempDir));
-
-        jeffreyDirs.initialize();
-        LOG.info("Using Jeffrey directory: HOME={} TEMP={}", jeffreyDirs.homeDir(), jeffreyDirs.temp());
-        return jeffreyDirs;
-    }
-
-    @Bean
     public ProfilesManager.Factory profilesManager(
             Clock applicationClock,
             MicroscopeCorePersistenceProvider localCorePersistenceProvider,
@@ -180,12 +121,12 @@ public class AppConfiguration {
                         profileInitializer);
     }
 
-    @Bean(ProfilesConfiguration.PROFILES_PATH)
+    @Bean(ProfileEngineConfiguration.PROFILES_PATH)
     public Path profilesPath(MicroscopeJeffreyDirs jeffreyDirs) {
         return jeffreyDirs.profiles();
     }
 
-    @Bean(ProfilesConfiguration.RECORDINGS_PATH)
+    @Bean(ProfileEngineConfiguration.RECORDINGS_PATH)
     public Path recordingsPath(MicroscopeJeffreyDirs jeffreyDirs) {
         return jeffreyDirs.recordings();
     }

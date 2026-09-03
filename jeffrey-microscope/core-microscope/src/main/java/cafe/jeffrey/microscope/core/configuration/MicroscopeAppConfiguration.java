@@ -50,7 +50,7 @@ import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.ProfileInitializerImpl;
-import cafe.jeffrey.profile.configuration.ProfilesConfiguration;
+import cafe.jeffrey.profile.configuration.ProfileEngineConfiguration;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.action.ProfileDataInitializer;
 import cafe.jeffrey.profile.parser.FileTypeDispatchingRecordingInformationParser;
@@ -66,7 +66,7 @@ import cafe.jeffrey.provider.profile.jdbc.DuckDBProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.shared.common.FrameResolutionMode;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
-import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
+import cafe.jeffrey.microscope.runtime.MicroscopeJeffreyDirs;
 
 import java.util.Map;
 import java.util.Optional;
@@ -85,7 +85,7 @@ public class MicroscopeAppConfiguration {
     public RecordingsManager recordingsManager(
             Clock clock,
             MicroscopeJeffreyDirs jeffreyDirs,
-            @Qualifier(ProfilesConfiguration.RECORDINGS_PATH) Path recordingsPath,
+            @Qualifier(ProfileEngineConfiguration.RECORDINGS_PATH) Path recordingsPath,
             ProfileManager.Factory profileManagerFactory,
             ProfileDataInitializer profileDataInitializer,
             // The same registry the project-profile path uses: a Recordings profile is a profile

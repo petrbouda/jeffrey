@@ -39,6 +39,11 @@ export JEFFREY_MCP_URL="http://localhost:9000/api/internal/mcp"
 
 The Settings tab shows the exact URL for your installation.
 
+No browser on the machine that holds the profiles? Run `microscope-mcp.jar` (or the
+`petrbouda/microscope-mcp` image) against the same home directory instead of the full Microscope: it
+serves only this endpoint, always on, on the same default URL. See the
+[Headless Server](https://www.jeffrey-analyst.cafe/docs/microscope-mcp/headless) page.
+
 ## What you get
 
 **Tools**, in five families:

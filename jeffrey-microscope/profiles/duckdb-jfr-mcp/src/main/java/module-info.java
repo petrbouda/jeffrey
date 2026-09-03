@@ -22,6 +22,7 @@
 module cafe.jeffrey.microscope.profile.ai.mcp.duckdb.jfr {
     requires transitive cafe.jeffrey.microscope.profile.persistence.api;
     requires transitive cafe.jeffrey.microscope.profile.ai.config;
+    requires transitive cafe.jeffrey.microscope.profile.mcp.tools;
     requires cafe.jeffrey.shared.common;
     requires cafe.jeffrey.shared.persistence;
     requires cafe.jeffrey.microscope.profile.common;
@@ -39,7 +40,6 @@ module cafe.jeffrey.microscope.profile.ai.mcp.duckdb.jfr {
     exports cafe.jeffrey.profile.ai.duckdb.jfr.model;
     exports cafe.jeffrey.profile.ai.duckdb.jfr.prompt;
     exports cafe.jeffrey.profile.ai.duckdb.jfr.service;
-    exports cafe.jeffrey.profile.ai.duckdb.jfr.tools;
 
     opens cafe.jeffrey.profile.ai.duckdb.jfr.config to spring.core, spring.beans, spring.context;
 }

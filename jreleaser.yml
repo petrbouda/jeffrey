@@ -58,6 +58,7 @@ signing:
 files:
   artifacts:
     - path: artifacts/microscope.jar
+    - path: artifacts/microscope-mcp.jar
     - path: artifacts/jeffrey-hub.jar
     - path: artifacts/provisioner.jar
     - path: artifacts/jeffrey-agent.jar

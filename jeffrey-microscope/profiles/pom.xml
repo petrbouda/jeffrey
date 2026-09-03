@@ -55,6 +55,7 @@
         <module>duckdb-jfr-mcp</module>
         <module>duckdb-heapdump-mcp</module>
         <module>claude-code-headless</module>
+        <module>mcp-tools</module>
         <module>mcp-server</module>
     </modules>
 

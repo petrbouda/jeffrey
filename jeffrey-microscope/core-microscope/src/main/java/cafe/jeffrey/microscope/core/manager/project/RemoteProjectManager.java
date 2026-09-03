@@ -22,7 +22,7 @@ import cafe.jeffrey.hub.client.manager.RemoteInstancesManager;
 import cafe.jeffrey.hub.client.manager.RemoteRepositoryManager;
 import cafe.jeffrey.hub.client.manager.RepositoryManager;
 
-import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
+import cafe.jeffrey.microscope.runtime.MicroscopeJeffreyDirs;
 import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.microscope.core.manager.*;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;

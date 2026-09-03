@@ -96,7 +96,7 @@ public class ProfileCoreConfiguration {
     public ProfileManager.Factory profileManager(
             MicroscopeCorePersistenceProvider localCorePersistenceProvider,
             ProfileManagerFactoryRegistry registry,
-            @Qualifier(ProfilesConfiguration.PROFILES_PATH) Path profilesPath) {
+            @Qualifier(ProfileEngineConfiguration.PROFILES_PATH) Path profilesPath) {
 
         return profileInfo -> new ProfileManagerImpl(
                 profileInfo,
@@ -207,7 +207,7 @@ public class ProfileCoreConfiguration {
     @Bean
     public AdditionalFilesManager.Factory additionalFeaturesManagerFactory(
             RecordingStorage recordingStorage,
-            @Qualifier(ProfilesConfiguration.PROFILES_PATH) Path profilesPath) {
+            @Qualifier(ProfileEngineConfiguration.PROFILES_PATH) Path profilesPath) {
         return profileInfo -> {
             Path heapDumpAnalysisPath = profilesPath
                     .resolve(profileInfo.id())
