@@ -1,11 +1,14 @@
 # Microscope plugin for Claude Code
 
 Read JVM profiles from a running [Jeffrey Microscope](https://www.jeffrey-analyst.cafe/docs/microscope)
-without leaving your terminal: list the recordings you have analysed, query their DuckDB tables, and
-pull flamegraph, trace and heap-dump exports straight into a Claude Code session in your own
-repository — so the profile and the source code are in front of the same reader.
+without leaving your terminal: point Claude at a `.jfr` file in your repository and it analyses it,
+then lists the recordings you have analysed, queries their DuckDB tables, and pulls flamegraph, trace
+and heap-dump exports straight into a Claude Code session in your own repository — so the profile and
+the source code are in front of the same reader.
 
-Everything the plugin exposes is **read-only**.
+Every analysis tool is **read-only**. The one exception is `recordings_`, which creates profiles
+rather than changing them, and which a Jeffrey can switch off with
+`jeffrey.microscope.mcp.ingest.enabled=false`.
 
 Full documentation: [Microscope MCP](https://www.jeffrey-analyst.cafe/docs/microscope-mcp).
 
@@ -44,15 +47,20 @@ installation.
 
 ## What you get
 
-**Tools**, in five families:
+**Tools**, in six families:
 
-| Family | What it reads |
+| Family | What it does |
 |---|---|
 | `profiles_` | The catalogue: which recordings are analysed, what each one can answer, a deep link into the UI |
 | `flamegraph_` | Which graphs a profile supports, and the call tree as Markdown |
 | `traces_` | Trace operations, exemplars, span trees and span-scoped flamegraphs |
 | `jfr_` | The profile's DuckDB tables — schema and read-only SQL |
 | `heap_` | Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, and read-only SQL |
+| `recordings_` | The one that writes: imports a recording file and builds a profile from it |
+
+`recordings_analyzeFile` takes an **absolute path**, and the file has to be on the machine Jeffrey
+runs on — Jeffrey opens it, the client does not upload it. That is the usual case (one laptop running
+both) and not the case for a Jeffrey in a container or on another host.
 
 **Skills**, which you can also invoke directly:
 
@@ -65,8 +73,9 @@ and the two schemas, not things the tool output already explains.
 
 ## Permissions
 
-Claude Code asks before each tool the first time. Since every Jeffrey tool is read-only, approving
-the family once is usually what you want — either from the prompt, or up front with `/permissions`:
+Claude Code asks before each tool the first time. Every Jeffrey tool except `recordings_` is
+read-only, so approving the family once is usually what you want — either from the prompt, or up
+front with `/permissions`:
 
 ```
 mcp__plugin_microscope_jeffrey__*
@@ -77,6 +86,10 @@ mcp__plugin_microscope_jeffrey__*
 With a profile analysed in Jeffrey:
 
 > list the Jeffrey profiles, then show me where the CPU time goes in the most recent one
+
+Or, starting from a recording that is not in Jeffrey yet:
+
+> analyze target/checkout-run.jfr in Jeffrey and tell me which of my methods dominate the profile
 
 > the `GET /api/orders` operation is slow — find a slow example and tell me what the JVM was doing
 > inside its slowest span

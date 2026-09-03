@@ -31,6 +31,7 @@ const headings = [
   { id: 'the-endpoint-url', text: 'The Endpoint URL', level: 2 },
   { id: 'turning-it-off', text: 'Turning It Off', level: 2 },
   { id: 'while-it-is-off', text: 'While It Is Off', level: 2 },
+  { id: 'turning-ingestion-off', text: 'Turning Ingestion Off', level: 2 },
   { id: 'what-a-session-holds-open', text: 'What a Session Holds Open', level: 2 },
   { id: 'security', text: 'Security', level: 2 }
 ];
@@ -40,6 +41,8 @@ onMounted(() => {
 });
 
 const propertyToggle = `jeffrey.microscope.mcp.enabled=false`;
+
+const ingestToggle = `jeffrey.microscope.mcp.ingest.enabled=false`;
 
 const defaultEndpoint = `http://localhost:8585/api/internal/mcp`;
 
@@ -87,6 +90,14 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <p>The practical consequence: if a client reports that the server is unreachable or every tool call fails, check whether this installation set the property above.</p>
       <DocsCodeBlock :code="disabledProbe" language="bash" />
 
+      <h2 id="turning-ingestion-off">Turning Ingestion Off</h2>
+      <p>The <code>recordings_</code> family is the one that writes: it imports a recording file and builds a profile from it, which is what lets a Claude Code session analyse a <code>.jfr</code> straight out of your repository. It is on by default, together with the endpoint, and switches off on its own:</p>
+      <DocsCodeBlock :code="ingestToggle" language="properties" />
+
+      <p>That leaves the server exactly as it was before ingestion existed &mdash; every profile still readable, nothing creatable. It is worth doing on a shared Jeffrey, for the reason in <a href="#security">Security</a> below: the path a client sends is opened by the <em>Jeffrey</em> process, on the machine Jeffrey runs on.</p>
+
+      <p>Like the endpoint toggle, this one is read once at startup, and <strong>Settings &rarr; Claude Code (MCP)</strong> reports which way it is set.</p>
+
       <h2 id="what-a-session-holds-open">What a Session Holds Open</h2>
       <p>Each profile is its own DuckDB database, and Jeffrey's connection pools evict idle databases after a few minutes. That is right for the UI, where a reader moves on, and wrong for an interactive session that may spend twenty minutes on one profile with long pauses for reading.</p>
 
@@ -107,7 +118,11 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
         <li><strong>Behind an authenticating reverse proxy.</strong> For a shared installation. Note that MCP clients send an ordinary <code>Authorization</code> header, so a proxy that expects one works today &mdash; but Jeffrey itself does not check it.</li>
       </ul>
 
-      <p>Two things limit the blast radius even so. Every advertised tool is read-only &mdash; the one JFR tool that writes is deliberately not exposed, so an external client can read Jeffrey's data but not rewrite it. And the server has no shell and no filesystem access: it answers questions about profiles and nothing else.</p>
+      <p>Two things limit the blast radius even so. Every analysis tool is read-only &mdash; the one JFR tool that writes is deliberately not exposed, so an external client can read a profile's data but not rewrite it. And the server has no shell: it answers questions about profiles, and does not run anything.</p>
+
+      <p>The <code>recordings_</code> family is the exception worth understanding, because it is the one place the server touches the filesystem. A client sends a <em>path</em>, not a file &mdash; a JFR recording routinely runs to hundreds of megabytes, and base64 through a JSON-RPC message would spend the client's whole context on bytes neither side ever reads. The path is therefore opened by the Jeffrey process, on the machine Jeffrey runs on, and Jeffrey copies whatever it finds there into the Quick Analysis store.</p>
+
+      <p>On a loopback Jeffrey that is exactly what you want: the file in your repository is on the same disk, and the caller is you. On a shared installation it means a client that can reach the address can have Jeffrey read a file it chooses from that host &mdash; it must carry a recording extension and survive the parser, so it is a narrow door rather than an open one, but it is a door. If the address is reachable by anyone you would not hand a shell to, switch ingestion off with the property in <a href="#turning-ingestion-off">Turning Ingestion Off</a>.</p>
     </div>
 
     <DocsNavFooter />

@@ -46,10 +46,10 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <p class="docs-lede">Jeffrey Microscope serves an <strong>MCP server</strong> that an outside client &mdash; an interactive Claude Code session in your own repository &mdash; can connect to. It turns every profile you have analysed into something a model can read directly: the catalogue, the DuckDB tables behind each profile, and flamegraph, trace and heap-dump exports.</p>
+      <p class="docs-lede">Jeffrey Microscope serves an <strong>MCP server</strong> that an outside client &mdash; an interactive Claude Code session in your own repository &mdash; can connect to. It turns every profile you have analysed into something a model can read directly: the catalogue, the DuckDB tables behind each profile, and flamegraph, trace and heap-dump exports. It can also take a recording file you have <em>not</em> analysed yet and build the profile for you.</p>
 
-      <DocsCallout type="info" title="Everything is read-only">
-        The server hands out data. It cannot modify, rename or delete anything &mdash; data cleanup and frame renaming stay in the Jeffrey UI.
+      <DocsCallout type="info" title="Reading is read-only">
+        Every analysis tool hands out data and nothing more &mdash; it cannot modify, rename or delete a profile, so data cleanup and frame renaming stay in the Jeffrey UI. The single exception is the <code>recordings_</code> family, which creates profiles rather than changing them, and which an installation can switch off on its own.
       </DocsCallout>
 
       <h2 id="why-it-exists">Why It Exists</h2>
@@ -105,7 +105,7 @@ onMounted(() => {
       <p>A call arrives naming a tool and a <code>profileId</code>. Jeffrey resolves that id to the profile's own DuckDB database, holds a lease on it for as long as the session stays active, runs the tool, and returns Markdown or a result table. The heavy machinery &mdash; the flamegraph builder, the trace analysis, the heap-dump index &mdash; is the same code the UI renders from, so what the model reads and what you see on screen cannot drift apart.</p>
 
       <h2 id="what-it-can-read">What It Can Read</h2>
-      <p>Thirty-nine tools in five families:</p>
+      <p>Forty-two tools in six families:</p>
       <table>
         <thead>
           <tr>
@@ -140,13 +140,18 @@ onMounted(() => {
             <td>20</td>
             <td>Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, read-only SQL</td>
           </tr>
+          <tr>
+            <td><code>recordings_</code></td>
+            <td>3</td>
+            <td>The one family that writes: imports a recording file from the machine Jeffrey runs on and builds a profile from it</td>
+          </tr>
         </tbody>
       </table>
 
       <p>The <router-link to="/docs/microscope-mcp/tools">Tool Reference</router-link> lists every one of them with its arguments.</p>
 
       <DocsCallout type="warning" title="Know what it exposes">
-        The endpoint is on by default and has no authentication yet &mdash; anyone who can reach the address can read every profile in that installation. On a Jeffrey bound to loopback, that is only the machine it runs on. <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> covers how to expose it safely, and how to switch it off.
+        The endpoint is on by default and has no authentication yet &mdash; anyone who can reach the address can read every profile in that installation, and ask it to open a recording file from that machine. On a Jeffrey bound to loopback, that is only the machine it runs on. <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> covers how to expose it safely, how to turn ingestion off on its own, and how to switch the whole thing off.
       </DocsCallout>
 
       <h2 id="where-to-go-next">Where to Go Next</h2>

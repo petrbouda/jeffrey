@@ -21,12 +21,20 @@ package cafe.jeffrey.microscope.core.mcp;
 /**
  * Static configuration of the external MCP server at {@code /api/internal/mcp}.
  * <p>
- * Read once from {@code jeffrey.microscope.mcp.enabled} at wiring time rather than from the live
- * settings: the server is on by default, and whether an installation exposes it is a deployment
- * decision made alongside the bind address and the reverse proxy, not a switch a reader flips from the
- * Settings page. Turning it off is therefore an application property and takes a restart.
+ * Read once from {@code jeffrey.microscope.mcp.*} at wiring time rather than from the live settings:
+ * the server is on by default, and whether an installation exposes it is a deployment decision made
+ * alongside the bind address and the reverse proxy, not a switch a reader flips from the Settings page.
+ * Turning either flag off is therefore an application property and takes a restart.
+ * <p>
+ * {@code ingestEnabled} is separate from {@code enabled} because the two answer different questions.
+ * Reading is what the server is for; ingesting is the one thing it does that changes Jeffrey's state,
+ * and it does so by opening a path on the machine Jeffrey runs on. An installation that wants the
+ * original read-only posture back — a shared Jeffrey, say — turns ingestion off and keeps the rest.
  *
- * @param enabled whether the endpoint answers at all; while off it responds {@code 404}
+ * @param enabled       whether the endpoint answers at all; while off it responds {@code 404}
+ * @param ingestEnabled whether the {@code recordings_} family is advertised, which is what lets a
+ *                      client import a local recording file and build a profile from it. While off the
+ *                      family is not advertised at all rather than advertised and refusing
  */
-public record ExternalMcpProperties(boolean enabled) {
+public record ExternalMcpProperties(boolean enabled, boolean ingestEnabled) {
 }

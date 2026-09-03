@@ -169,10 +169,20 @@ onMounted(() => {
             <td><code>jeffrey.microscope.mcp.enabled</code></td>
             <td><code>true</code></td>
             <td>
-              Serves the read-only MCP endpoint at <code>/api/internal/mcp</code>, which an external
-              Claude Code session reads profiles through. Set to <code>false</code> to make it answer
+              Serves the MCP endpoint at <code>/api/internal/mcp</code>, which an external Claude Code
+              session reads profiles through. Set to <code>false</code> to make it answer
               <code>404</code>. Read at startup, so a change takes a restart. See
               <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.mcp.ingest.enabled</code></td>
+            <td><code>true</code></td>
+            <td>
+              Advertises the <code>recordings_</code> tools on that endpoint, which import a recording
+              file from this machine and build a profile from it &mdash; the one family that is not
+              read-only. Set to <code>false</code> to keep the read-only server and nothing else. Read
+              at startup.
             </td>
           </tr>
         </tbody>

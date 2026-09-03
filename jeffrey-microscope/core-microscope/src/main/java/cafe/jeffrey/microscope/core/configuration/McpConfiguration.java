@@ -18,10 +18,12 @@
 
 package cafe.jeffrey.microscope.core.configuration;
 
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.ExternalMcpProperties;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
 import cafe.jeffrey.microscope.core.mcp.McpToolsetAssembler;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
@@ -35,21 +37,26 @@ import java.time.Clock;
 /**
  * Wiring for the external MCP server — the endpoint an interactive Claude Code session connects to.
  * <p>
- * The server is on by default. Whether it answers at all is read once here, from an application
- * property rather than from the live settings: exposing every profile to whatever can reach the address
- * belongs with the bind address and the reverse proxy, decided when the installation is deployed, not
- * with the preferences a reader edits in the UI.
+ * The server is on by default, ingestion included. Both flags are read once here, from application
+ * properties rather than from the live settings: exposing every profile to whatever can reach the
+ * address — and letting it import a file from this machine — belongs with the bind address and the
+ * reverse proxy, decided when the installation is deployed, not with the preferences a reader edits in
+ * the UI.
  */
 @Configuration
 public class McpConfiguration {
 
     /**
-     * @param enabled whether the endpoint serves, from {@code jeffrey.microscope.mcp.enabled}
+     * @param enabled       whether the endpoint serves, from {@code jeffrey.microscope.mcp.enabled}
+     * @param ingestEnabled whether it advertises the {@code recordings_} family, from
+     *                      {@code jeffrey.microscope.mcp.ingest.enabled}. Separate from {@code enabled}
+     *                      so a shared installation can keep the read-only server it had before
      */
     @Bean
     public ExternalMcpProperties externalMcpProperties(
-            @Value("${jeffrey.microscope.mcp.enabled:true}") boolean enabled) {
-        return new ExternalMcpProperties(enabled);
+            @Value("${jeffrey.microscope.mcp.enabled:true}") boolean enabled,
+            @Value("${jeffrey.microscope.mcp.ingest.enabled:true}") boolean ingestEnabled) {
+        return new ExternalMcpProperties(enabled, ingestEnabled);
     }
 
     /**
@@ -70,11 +77,24 @@ public class McpConfiguration {
         return new ProfilesMcpTools(localCorePersistenceProvider.localCoreRepositories());
     }
 
+    /**
+     * The one family that writes. Built unconditionally and left out of the toolset when ingestion is
+     * off: the assembler decides what is advertised, and a bean that exists but is never registered
+     * costs nothing next to a conditional bean the reader has to go looking for.
+     */
+    @Bean
+    public RecordingsMcpTools recordingsMcpTools(RecordingsManager recordingsManager) {
+        return new RecordingsMcpTools(recordingsManager);
+    }
+
     @Bean
     public McpToolsetAssembler mcpToolsetAssembler(
             ProfilesMcpTools profilesMcpTools,
+            RecordingsMcpTools recordingsMcpTools,
             McpProfileContextCache contextCache,
-            JfrFlamegraphPanelProvider panelProvider) {
-        return new McpToolsetAssembler(profilesMcpTools, contextCache, panelProvider);
+            JfrFlamegraphPanelProvider panelProvider,
+            ExternalMcpProperties properties) {
+        return new McpToolsetAssembler(
+                profilesMcpTools, recordingsMcpTools, contextCache, panelProvider, properties);
     }
 }

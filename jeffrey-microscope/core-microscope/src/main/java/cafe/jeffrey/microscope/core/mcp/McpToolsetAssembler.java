@@ -21,6 +21,7 @@ package cafe.jeffrey.microscope.core.mcp;
 import cafe.jeffrey.microscope.core.mcp.tools.FlamegraphMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.TracesMcpTools;
 import cafe.jeffrey.microscope.core.web.controllers.profile.HeapDumpManagerToolsDelegate;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpMcpTools;
@@ -33,6 +34,7 @@ import cafe.jeffrey.profile.mcp.ProfileScopedToolset;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -44,9 +46,14 @@ import java.util.Set;
  * {@link ProfileScopedToolset}, which resolves its target through the {@link McpProfileContextCache}
  * when a call actually arrives.
  * <p>
- * Every family here is read-only. {@code DuckDbMcpTools} is constructed with its single-argument
- * constructor, which leaves {@code executeModification} refusing — an external client gets to read
- * Jeffrey's data, not to rewrite it.
+ * Every analysis family here is read-only. {@code DuckDbMcpTools} is constructed with its
+ * single-argument constructor, which leaves {@code executeModification} refusing — an external client
+ * gets to read a profile's data, not to rewrite it.
+ * <p>
+ * {@link RecordingsMcpTools} is the one exception, and it writes at a different level: it does not
+ * change an analysed profile, it creates one, which is what lets a reader analyse a recording without
+ * leaving the terminal. It is appended only when ingestion is enabled — an installation that wants the
+ * purely read-only server keeps it, minus this family.
  */
 public class McpToolsetAssembler {
 
@@ -55,6 +62,7 @@ public class McpToolsetAssembler {
     private static final String PREFIX_FLAMEGRAPH = "flamegraph";
     private static final String PREFIX_TRACES = "traces";
     private static final String PREFIX_HEAP = "heap";
+    private static final String PREFIX_RECORDINGS = "recordings";
 
     /**
      * The one JFR tool that writes. Left out of the family rather than left in to refuse: an
@@ -67,10 +75,12 @@ public class McpToolsetAssembler {
 
     public McpToolsetAssembler(
             ProfilesMcpTools profilesMcpTools,
+            RecordingsMcpTools recordingsMcpTools,
             McpProfileContextCache contextCache,
-            JfrFlamegraphPanelProvider panelProvider) {
+            JfrFlamegraphPanelProvider panelProvider,
+            ExternalMcpProperties properties) {
 
-        this.toolset = new CompositeToolset(List.of(
+        List<McpToolProvider> families = new ArrayList<>(List.of(
                 new ReflectiveToolset(profilesMcpTools, PREFIX_PROFILES),
                 new ProfileScopedToolset<>(ProfileMcpTools.class, PREFIX_PROFILES,
                         profileId -> new ProfileMcpTools(profileManager(contextCache, profileId))),
@@ -83,6 +93,12 @@ public class McpToolsetAssembler {
                         profileId -> new TracesMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(HeapDumpMcpTools.class, PREFIX_HEAP,
                         profileId -> heapTools(contextCache, profileId))));
+
+        if (properties.ingestEnabled()) {
+            families.add(new ReflectiveToolset(recordingsMcpTools, PREFIX_RECORDINGS));
+        }
+
+        this.toolset = new CompositeToolset(List.copyOf(families));
     }
 
     public McpToolProvider toolset() {

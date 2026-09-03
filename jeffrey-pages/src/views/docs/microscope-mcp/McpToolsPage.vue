@@ -33,6 +33,7 @@ const headings = [
   { id: 'traces', text: 'traces_ — latency', level: 2 },
   { id: 'jfr', text: 'jfr_ — the profile database', level: 2 },
   { id: 'heap', text: 'heap_ — heap dumps', level: 2 },
+  { id: 'recordings', text: 'recordings_ — creating profiles', level: 2 },
   { id: 'what-is-not-here', text: 'What Is Not Here', level: 2 }
 ];
 
@@ -43,6 +44,8 @@ onMounted(() => {
 const nameShape = `flamegraph_export
     ^         ^
   family    method name, camelCase`;
+
+const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the time goes.`;
 </script>
 
 <template>
@@ -53,14 +56,14 @@ const nameShape = `flamegraph_export
     />
 
     <div class="docs-content">
-      <p>Thirty-nine tools in five families. Every one of them reads; none of them writes.</p>
+      <p>Forty-two tools in six families. Five families read a profile; the sixth, <code>recordings_</code>, is the only one that creates one.</p>
 
       <h2 id="rules-that-apply-to-all-of-them">Rules That Apply to All of Them</h2>
 
       <p><strong>Names are <code>family_methodName</code>, camelCase preserved</strong> &mdash; <code>jfr_listTables</code>, not <code>jfr_list_tables</code>.</p>
       <DocsCodeBlock :code="nameShape" language="bash" />
 
-      <p><strong>Every tool except <code>profiles_list</code> takes a <code>profileId</code></strong>, and it is required. That is the id from <code>profiles_list</code>; nothing else works without one.</p>
+      <p><strong>Every tool except <code>profiles_list</code> and the <code>recordings_</code> family takes a <code>profileId</code></strong>, and it is required. That is the id from <code>profiles_list</code>; nothing else works without one.</p>
 
       <p><strong>Output is capped.</strong> A result is truncated at roughly 120,000 characters, with an explicit trailer saying so &mdash; a silently shortened flamegraph would be read as a complete one. The SQL tools cap rows as well, and say when they do. Aggregate in the query rather than pulling rows back to count them.</p>
 
@@ -376,12 +379,55 @@ const nameShape = `flamegraph_export
         <code>dominator</code> and <code>retained_size</code> are empty until something asks for them, so a SQL query joining <code>retained_size</code> on a fresh dump returns nulls. Run <code>heap_getDominatorTreeRoots</code> once first. The bundled <code>heap-sql</code> skill covers the whole schema.
       </DocsCallout>
 
+      <h2 id="recordings">recordings_ &mdash; creating profiles</h2>
+      <p>Everything above answers questions about a profile that already exists. This family is how one comes to exist without leaving the terminal: you point Claude at a recording file in your repository and it imports the file and builds the profile, then carries on with the id it got back.</p>
+      <DocsCodeBlock :code="analyzeExample" language="text" />
+
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Arguments</th>
+            <th>Returns</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>recordings_analyzeFile</code></td>
+            <td><code>path</code>, <code>name?</code></td>
+            <td>Imports the file at <code>path</code> and builds a profile from it &mdash; the <code>profileId</code> every other family takes, plus a UI link</td>
+          </tr>
+          <tr>
+            <td><code>recordings_analyzeRecording</code></td>
+            <td><code>recordingId</code></td>
+            <td>The same, for a recording already in the Quick Analysis store &mdash; one uploaded through the UI but never analysed</td>
+          </tr>
+          <tr>
+            <td><code>recordings_list</code></td>
+            <td>&mdash;</td>
+            <td>Every recording in the Quick Analysis store, analysed or not. A row with an empty <code>profile_id</code> is waiting for <code>recordings_analyzeRecording</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>The file types are the ones Jeffrey analyses anywhere else: <code>.jfr</code>, <code>.jfr.lz4</code>, <code>.hprof</code>, <code>.hprof.gz</code>, <code>.pprof</code> and <code>.otlp</code>. A heap dump lands as a profile the <code>heap_</code> family answers about; the rest land as one the <code>jfr_</code>, <code>flamegraph_</code> and <code>traces_</code> families answer about. <code>profiles_features</code> tells you which you got.</p>
+
+      <DocsCallout type="warning" title="The path is opened by Jeffrey, not by the client">
+        <code>path</code> must be <strong>absolute</strong> and must exist <strong>on the machine Jeffrey runs on</strong>. A relative path is rejected rather than guessed at &mdash; it would resolve against Jeffrey&rsquo;s working directory, not yours. For a Jeffrey in a container or on another host, mount or copy the file where Jeffrey can see it first.
+      </DocsCallout>
+
+      <p>Two more things worth knowing. The call <strong>returns when the profile is built</strong>, which for a large recording is a wait rather than an acknowledgement. And each <code>recordings_analyzeFile</code> imports the file again and builds another profile &mdash; call <code>recordings_list</code> or <code>profiles_list</code> first if the same file may already be there.</p>
+
+      <p>The family is advertised only while ingestion is enabled; see <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> for the property and for why a shared installation might turn it off.</p>
+
       <h2 id="what-is-not-here">What Is Not Here</h2>
-      <p><strong>No write tool.</strong> Jeffrey&rsquo;s JFR toolset has an <code>executeModification</code> that runs <code>UPDATE</code> and <code>DELETE</code>; it is deliberately not advertised to external clients. Not exposed rather than exposed-and-refusing: a tool that always answers &ldquo;not enabled&rdquo; spends a slot in the model&rsquo;s context and invites a call that cannot succeed. Data cleanup and frame renaming happen in the Jeffrey UI.</p>
+      <p><strong>No write tool inside a profile.</strong> Jeffrey&rsquo;s JFR toolset has an <code>executeModification</code> that runs <code>UPDATE</code> and <code>DELETE</code>; it is deliberately not advertised to external clients. Not exposed rather than exposed-and-refusing: a tool that always answers &ldquo;not enabled&rdquo; spends a slot in the model&rsquo;s context and invites a call that cannot succeed. Data cleanup and frame renaming happen in the Jeffrey UI. <code>recordings_</code> is not a counter-example &mdash; it creates profiles, it does not rewrite one.</p>
+
+      <p><strong>No deleting.</strong> The server can add a profile and never removes one, so a session that imported the wrong file leaves it behind for you to delete in the UI.</p>
 
       <p><strong>No OQL.</strong> Jeffrey&rsquo;s <router-link to="/docs/ai/oql-assistant">OQL assistant</router-link> is a UI feature; over MCP, heap questions go through the <code>heap_</code> family and its SQL.</p>
 
-      <p><strong>No shell, no filesystem.</strong> The server answers questions about profiles and nothing else.</p>
+      <p><strong>No shell.</strong> The server answers questions about profiles and, with ingestion on, opens the one recording path it is handed. It runs nothing.</p>
     </div>
 
     <DocsNavFooter />
