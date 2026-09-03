@@ -93,8 +93,14 @@ public class McpStreamableHttpController extends AbstractMcpStreamableHttpContro
         return switch (toolset) {
             case TOOLSET_JFR -> {
                 ProfileInfo profileInfo = profileManagerResolver.resolve(profileId).info();
+                // Excluded for the same reason the external assembler excludes it: this toolset is
+                // built with canModify=false, so the tool could only ever refuse, and an advertised
+                // tool that always refuses spends a slot in the model's context on a call that
+                // cannot succeed. One set, so the two endpoints cannot drift apart.
                 yield new ReflectiveToolset(
-                        new DuckDbMcpTools(databaseManagerResolver.open(profileInfo)), TOOLSET_JFR);
+                        new DuckDbMcpTools(databaseManagerResolver.open(profileInfo)),
+                        TOOLSET_JFR,
+                        McpToolsetAssembler.WRITE_TOOLS);
             }
             case TOOLSET_HEAP -> {
                 HeapDumpManagerToolsDelegate delegate =

@@ -24,6 +24,7 @@ import tools.jackson.databind.JsonNode;
 
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Adapts an object whose methods are annotated with Spring AI's {@link Tool}/{@link ToolParam} into a
@@ -44,8 +45,18 @@ public final class ReflectiveToolset implements McpToolProvider {
     private final ToolMethodIndex index;
 
     public ReflectiveToolset(Object target, String prefix) {
+        this(target, prefix, Set.of());
+    }
+
+    /**
+     * @param excludedMethods tool method names to leave out of this toolset entirely, for a target
+     *                        carrying a tool this endpoint will always refuse. Advertising one costs
+     *                        a slot in the model's context and invites a call that cannot succeed,
+     *                        which is why the exclusion happens here rather than in the tool.
+     */
+    public ReflectiveToolset(Object target, String prefix, Set<String> excludedMethods) {
         this.target = target;
-        this.index = new ToolMethodIndex(target.getClass(), prefix, List.of());
+        this.index = new ToolMethodIndex(target.getClass(), prefix, List.of(), excludedMethods);
     }
 
     @Override

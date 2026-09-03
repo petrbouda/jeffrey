@@ -46,6 +46,9 @@ const ingestToggle = `jeffrey.microscope.mcp.ingest.enabled=false`;
 
 const defaultEndpoint = `http://localhost:8585/api/internal/mcp`;
 
+const loopback = `# application.properties -- reachable from this machine and nowhere else
+server.address=127.0.0.1`;
+
 const tunnel = `ssh -N -L 8585:localhost:8585 you@the-host-running-jeffrey`;
 
 const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
@@ -110,7 +113,9 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
 
       <p>So decide what can reach the address:</p>
       <ul>
-        <li><strong>Bound to loopback.</strong> The default, and enough for a Jeffrey and a Claude Code session on the same machine. This is what makes an on-by-default endpoint safe: it is reachable from that machine and nowhere else.</li>
+        <li><strong>Bound to loopback.</strong> Enough for a Jeffrey and a Claude Code session on the same machine, and the setting worth making first. It is <em>not</em> the default: Jeffrey binds every interface, as Spring Boot does unless told otherwise, so a laptop on a shared network is reachable by that network until you say
+          <DocsCodeBlock :code="loopback" language="properties" />
+          After that the endpoint is reachable from that machine and nowhere else, which is what makes an on-by-default endpoint safe.</li>
         <li><strong>Through an SSH tunnel.</strong> For a Jeffrey on a remote host or in a container, forward the port rather than publishing it:
           <DocsCodeBlock :code="tunnel" language="bash" />
           The client then points at <code>localhost</code> and the endpoint is never exposed.
@@ -118,7 +123,7 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
         <li><strong>Behind an authenticating reverse proxy.</strong> For a shared installation. Note that MCP clients send an ordinary <code>Authorization</code> header, so a proxy that expects one works today &mdash; but Jeffrey itself does not check it.</li>
       </ul>
 
-      <p>Two things limit the blast radius even so. Every analysis tool is read-only &mdash; the one JFR tool that writes is deliberately not exposed, so an external client can read a profile's data but not rewrite it. And the server has no shell: it answers questions about profiles, and does not run anything.</p>
+      <p>Three things limit the blast radius even so. Every analysis tool is read-only &mdash; the one JFR tool that writes is deliberately not exposed, so an external client can read a profile's data but not rewrite it, and the SQL tools refuse a second statement after a semicolon rather than running it. The SQL engine itself is sandboxed: a profile database is opened with DuckDB's external file access and extension autoloading turned off, so a query is confined to that profile's tables and cannot read a file from the host or fetch anything over the network, however it is spelled. And the server has no shell: it answers questions about profiles, and does not run anything.</p>
 
       <p>The <code>recordings_</code> family is the exception worth understanding, because it is the one place the server touches the filesystem. A client sends a <em>path</em>, not a file &mdash; a JFR recording routinely runs to hundreds of megabytes, and base64 through a JSON-RPC message would spend the client's whole context on bytes neither side ever reads. The path is therefore opened by the Jeffrey process, on the machine Jeffrey runs on, and Jeffrey copies whatever it finds there into the Quick Analysis store.</p>
 

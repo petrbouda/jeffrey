@@ -151,7 +151,7 @@ onMounted(() => {
       <p>The <router-link to="/docs/microscope-mcp/tools">Tool Reference</router-link> lists every one of them with its arguments.</p>
 
       <DocsCallout type="warning" title="Know what it exposes">
-        The endpoint is on by default and has no authentication yet &mdash; anyone who can reach the address can read every profile in that installation, and ask it to open a recording file from that machine. On a Jeffrey bound to loopback, that is only the machine it runs on. <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> covers how to expose it safely, how to turn ingestion off on its own, and how to switch the whole thing off.
+        The endpoint is on by default and has no authentication yet &mdash; anyone who can reach the address can read every profile in that installation, and ask it to open a recording file from that machine. Jeffrey binds every interface by default, so on a shared network &ldquo;anyone who can reach the address&rdquo; is wider than it sounds until you bind it to loopback. <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> covers how to expose it safely, how to turn ingestion off on its own, and how to switch the whole thing off.
       </DocsCallout>
 
       <h2 id="where-to-go-next">Where to Go Next</h2>

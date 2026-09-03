@@ -71,7 +71,7 @@ public class McpToolsetAssembler {
      * advertised tool that always answers "not enabled" spends a slot in the model's context and
      * invites a call that cannot succeed.
      */
-    private static final Set<String> WRITE_TOOLS = Set.of("executeModification");
+    static final Set<String> WRITE_TOOLS = Set.of("executeModification");
 
     private final McpToolProvider toolset;
 
