@@ -10,13 +10,12 @@ A parsed heap dump becomes its own DuckDB index, separate from the profile's JFR
 
 ## Try the purpose-built tools first
 
-`heap_getHeapSummary`, `heap_getClassHistogram`, `heap_getBiggestObjects`, `heap_getLeakSuspects`,
-`heap_getClassLoaderLeakChains`, `heap_getTopConsumers`, `heap_getStringAnalysis`,
-`heap_getCollectionAnalysis`, `heap_getDominatorTreeRoots` / `Children`, `heap_getPathToGCRoot`,
-`heap_getReferrers`, `heap_browseClassInstances`, `heap_getInstanceDetail`.
+The `heap_` family already answers the usual questions with pre-computed reports — the summary, the
+histogram, the dominator tree, leak suspects, class-loader leak chains, GC-root paths. The
+`analyze-heap` skill covers which one answers what, and the order to run them in. Reproducing those
+reports in SQL is slower and easier to get wrong.
 
-Several of these are pre-computed reports; reproducing them in SQL is slower and easier to get
-wrong. Reach for `heap_executeQuery` only for a question they do not cover. `heap_listTables` and
+Reach for `heap_executeQuery` only for a question they do not cover. `heap_listTables` and
 `heap_describeTable` give the live schema.
 
 ## The tables

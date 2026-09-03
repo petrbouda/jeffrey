@@ -125,9 +125,11 @@ LIMIT 20`;
       <h2 id="chase-a-memory-problem">Chase a Memory Problem</h2>
       <DocsCodeBlock :code="promptMemory" language="bash" />
 
-      <p>Drives <code>heap_getHeapSummary</code> &rarr; <code>heap_getDominatorTreeRoots</code> &rarr; <code>heap_getPathToGCRoot</code>, usually with <code>heap_getLeakSuspects</code> and <code>heap_getInstanceDetail</code> along the way.</p>
+      <p>Loads <router-link to="/docs/microscope-mcp/skills"><code>/microscope:analyze-heap</code></router-link>, which drives <code>heap_getHeapSummary</code> &rarr; <code>heap_getDominatorTreeRoots</code> &rarr; <code>heap_getPathToGCRoot</code>, usually with <code>heap_getLeakSuspects</code> and <code>heap_getInstanceDetail</code> along the way.</p>
 
       <p>The two-step matters. A class histogram answers &ldquo;what is there&rdquo;; the dominator tree answers &ldquo;what would be freed&rdquo;, which is the one that finds a leak. And <code>heap_getPathToGCRoot</code> is the actual answer to &ldquo;why is this still alive&rdquo; &mdash; a reference chain from a root, usually ending somewhere recognisable like a static cache or a thread-local.</p>
+
+      <p>The order is not optional: <code>dominator</code> and <code>retained_size</code> are built lazily, so every retained figure comes back missing until <code>heap_getDominatorTreeRoots</code> has run once. That is what the skill exists to get right.</p>
 
       <h2 id="does-the-code-agree-with-the-profile">Does the Code Agree With the Profile</h2>
       <DocsCodeBlock :code="promptCrossCheck" language="bash" />

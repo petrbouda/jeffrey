@@ -97,9 +97,10 @@ const removal = `/plugin uninstall microscope@jeffrey`;
 
       <p><strong>The endpoint, already configured</strong> &mdash; including the per-machine setting above, so the same install works on a laptop and against a tunnelled staging Jeffrey.</p>
 
-      <p><strong>Four skills</strong>, which Claude picks up on its own when a question calls for them, and which you can also invoke directly:</p>
+      <p><strong>Five skills</strong>, which Claude picks up on its own when a question calls for them, and which you can also invoke directly:</p>
       <ul>
         <li><code>/microscope:analyze-profile</code> &mdash; where to start and which family answers which question</li>
+        <li><code>/microscope:analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the twenty heap tools have to be run in</li>
         <li><code>/microscope:advise</code> &mdash; from a profile to a code change: hot frames mapped to your checkout, a recommendation, then the edit and a re-profile on request</li>
         <li><code>/microscope:jfr-sql</code> &mdash; the JFR schema and the DuckDB idioms that go with it</li>
         <li><code>/microscope:heap-sql</code> &mdash; the heap-dump index schema</li>

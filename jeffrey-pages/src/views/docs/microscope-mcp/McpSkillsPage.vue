@@ -29,6 +29,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'why-skills-at-all', text: 'Why Skills at All', level: 2 },
   { id: 'analyze-profile', text: 'analyze-profile', level: 2 },
+  { id: 'analyze-heap', text: 'analyze-heap', level: 2 },
   { id: 'advise', text: 'advise', level: 2 },
   { id: 'jfr-sql', text: 'jfr-sql', level: 2 },
   { id: 'heap-sql', text: 'heap-sql', level: 2 },
@@ -41,6 +42,7 @@ onMounted(() => {
 });
 
 const invoke = `/microscope:analyze-profile
+/microscope:analyze-heap
 /microscope:advise
 /microscope:jfr-sql
 /microscope:heap-sql`;
@@ -62,7 +64,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
     />
 
     <div class="docs-content">
-      <p>The <router-link to="/docs/microscope-mcp/plugin">plugin</router-link> ships four skills. Claude loads one on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
+      <p>The <router-link to="/docs/microscope-mcp/plugin">plugin</router-link> ships five skills. Claude loads one on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
 
       <h2 id="why-skills-at-all">Why Skills at All</h2>
       <p>Most of what a model needs in order to <em>read</em> Jeffrey&rsquo;s output already travels with the output. Every flamegraph and trace export opens with a preamble that defines what <code>self</code> means against <code>total</code>, what the frame tags mean, what was pruned, and how to analyse that particular event type. Nothing needs to repeat that, and a skill that did would go stale the moment the preamble changed.</p>
@@ -80,6 +82,19 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <p>It carries the entry sequence &mdash; <code>profiles_list</code>, then <code>profiles_features</code>, then the family that matches the question &mdash; a map of the six families to the questions each answers, when to start instead from <code>recordings_analyzeFile</code> because the user named a file Jeffrey has never seen, the rule that every scoped tool takes a <code>profileId</code>, which flamegraph to pick for CPU versus allocation versus lock contention versus wall-clock, the order to work a latency question in traces, and what a failure means (a <code>404</code> means the server was switched off, not a bug).</p>
 
       <p>It also tells the model to <strong>ground its claims</strong>: the exports contain call paths and numbers, not source locations, so file and line numbers must be read from the repository rather than inferred from a profile.</p>
+
+      <h2 id="analyze-heap">analyze-heap</h2>
+      <p><em>A heap dump end to end.</em> Loaded when the question is &ldquo;what is holding memory&rdquo;, &ldquo;why is the heap growing&rdquo;, &ldquo;why did this OOM&rdquo;, &ldquo;what is leaking&rdquo;, or when retained size, a dominator tree, GC roots or a <code>.hprof</code> file are mentioned.</p>
+
+      <p><code>heap_</code> is the largest family, and the only one whose tools have to be run in an order. Half of its reports say &ldquo;this analysis may need to be run first&rdquo; without saying which one, and nothing in a tool list explains what that means. The skill carries the order and the two rules that decide every heap answer:</p>
+      <ul>
+        <li><strong>Shallow is not retained.</strong> Shallow size is the object itself; retained size is what dies with it. Only the second answers &ldquo;who is holding this memory&rdquo; &mdash; a histogram ranked by shallow size tells you what there is a lot of, not who is responsible for it.</li>
+        <li><strong>The dominator tree is built lazily.</strong> <code>dominator</code> and <code>retained_size</code> stay empty until <code>heap_getDominatorTreeRoots</code> runs, so every retained figure is missing rather than zero. Calling it once, early, is what the reports mean by their warning, and skipping it is the usual reason a heap session stalls on empty results.</li>
+      </ul>
+
+      <p>On top of that it carries the routes &mdash; the histogram and top consumers for what is using the heap, leak suspects into a GC-root path for what is leaking, <code>heap_getClassLoaderLeakChains</code> for the redeploy case that leaves a class loader behind, string and collection analysis for waste, and instance browsing for one particular class &mdash; plus how to enter from a <code>.hprof</code> file Jeffrey has never seen, and what the two guard messages mean when a profile turns out to have no heap dump or an index that is still being built.</p>
+
+      <p>It grounds claims the way <code>analyze-profile</code> does: cite the class name, the retained bytes and the GC-root path together, never carry an object id between dumps, and say whether one dump is being read as a leak or as a large working set &mdash; a single dump cannot tell those apart.</p>
 
       <h2 id="advise">advise</h2>
       <p><em>From a profile to a code change.</em> Loaded when the question is &ldquo;what should I change&rdquo;, &ldquo;optimise this&rdquo;, or when a hotspot has been found and the next question is what to do about it. It is the successor of the in-app Profile Advisor: the same job, done by the agent that is already in your checkout and can build, test and re-profile, instead of by a model given a read-only view of one folder.</p>
@@ -113,7 +128,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
 
       <p>It carries the index schema &mdash; <code>class</code>, <code>instance</code>, <code>outbound_ref</code>, <code>gc_root</code>, <code>dominator</code>, <code>retained_size</code>, <code>string</code>, <code>dump_metadata</code> &mdash; with the details that are not guessable: <code>dominator</code> and <code>retained_size</code> are built lazily and are empty until something asks for them; <code>class.name</code> is already dot-notation; <code>record_kind</code> is a small integer enum; and the <code>string</code> table is the HPROF UTF-8 <em>name</em> pool, not the contents of Java <code>String</code> instances.</p>
 
-      <p>It opens by listing the purpose-built <code>heap_</code> tools and saying to try them first &mdash; several are pre-computed reports, and reproducing one in SQL is slower and easier to get wrong.</p>
+      <p>It opens by pointing back at <code>analyze-heap</code> and saying to try the purpose-built tools first &mdash; several are pre-computed reports, and reproducing one in SQL is slower and easier to get wrong. This skill is the escape hatch for what they do not cover, not the way in.</p>
 
       <h2 id="invoking-one-directly">Invoking One Directly</h2>
       <p>Each skill is also a slash command, namespaced by the plugin:</p>
