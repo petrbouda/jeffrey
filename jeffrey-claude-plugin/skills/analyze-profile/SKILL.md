@@ -70,8 +70,9 @@ document shows. If the repository is open alongside, read the real source before
 ## When something is missing
 
 - A tool answers `Profile … has no heap dump` → it is a JFR recording; use `jfr_`, `flamegraph_`, `traces_`.
-- Every call fails to connect, or the server 404s → the MCP server is off. In Jeffrey: **Settings →
-  Claude Code (MCP) → enable**. It is off by default.
+- Every call fails to connect → Jeffrey is not running at that address.
+- The server 404s → this Jeffrey was started with `jeffrey.microscope.mcp.enabled=false`. The server
+  is on by default; **Settings → Claude Code (MCP)** reports whether it is serving.
 - Jeffrey is not on `http://localhost:8080` → set `JEFFREY_MCP_URL` to the real
   `…/api/internal/mcp` endpoint before starting Claude Code.
 

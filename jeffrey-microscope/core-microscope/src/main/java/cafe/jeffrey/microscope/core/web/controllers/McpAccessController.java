@@ -18,8 +18,7 @@
 
 package cafe.jeffrey.microscope.core.web.controllers;
 
-import cafe.jeffrey.shared.common.config.MicroscopeSettingKeys;
-import cafe.jeffrey.shared.common.config.SettingsStore;
+import cafe.jeffrey.microscope.core.mcp.ExternalMcpProperties;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -56,10 +55,10 @@ public class McpAccessController {
               }
             }""";
 
-    private final SettingsStore settingsStore;
+    private final ExternalMcpProperties properties;
 
-    public McpAccessController(SettingsStore settingsStore) {
-        this.settingsStore = settingsStore;
+    public McpAccessController(ExternalMcpProperties properties) {
+        this.properties = properties;
     }
 
     @GetMapping("/status")
@@ -69,14 +68,14 @@ public class McpAccessController {
                 .toUriString();
 
         return new McpAccessStatus(
-                settingsStore.getBoolean(MicroscopeSettingKeys.MCP_ENABLED, false),
+                properties.enabled(),
                 url,
                 CLAUDE_MCP_ADD_TEMPLATE.formatted(url),
                 MCP_JSON_TEMPLATE.formatted(SERVER_NAME, url));
     }
 
     /**
-     * @param enabled              whether the endpoint currently answers
+     * @param enabled              whether the endpoint answers; off only via {@code jeffrey.microscope.mcp.enabled}
      * @param url                  the MCP endpoint, as reachable from where this request came
      * @param claudeMcpAddCommand  the one-liner that registers it with the Claude Code CLI
      * @param mcpJsonSnippet       the equivalent {@code .mcp.json} entry, for a project-scoped setup

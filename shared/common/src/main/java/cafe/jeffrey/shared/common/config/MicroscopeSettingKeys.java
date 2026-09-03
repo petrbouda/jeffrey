@@ -40,13 +40,6 @@ public final class MicroscopeSettingKeys {
     public static final String AI_MCP_URL = "jeffrey.microscope.ai.mcp-url";
     public static final String AI_API_KEY = "jeffrey.microscope.ai.api-key";
 
-    /**
-     * Whether the MCP server at {@code /api/internal/mcp} answers at all. Off by default: it hands an
-     * external client every profile in the installation, so it is opened deliberately rather than by
-     * upgrading.
-     */
-    public static final String MCP_ENABLED = "jeffrey.microscope.mcp.enabled";
-
     public static final String LOGGING_LEVEL = "logging.level.cafe.jeffrey";
 
     public static final String FLAMEGRAPH_MIN_FRAME_THRESHOLD_PCT =
@@ -73,7 +66,6 @@ public final class MicroscopeSettingKeys {
             Map.entry(AI_TIMEOUT_SECONDS, SettingType.POSITIVE_INT),
             Map.entry(AI_MCP_URL, SettingType.STRING),
             Map.entry(AI_API_KEY, SettingType.STRING),
-            Map.entry(MCP_ENABLED, SettingType.BOOLEAN),
             Map.entry(LOGGING_LEVEL, SettingType.LOG_LEVEL),
             Map.entry(FLAMEGRAPH_MIN_FRAME_THRESHOLD_PCT, SettingType.PERCENTAGE),
             Map.entry(FLAMEGRAPH_FRAME_TEXT_MODE, SettingType.FRAME_TEXT_MODE),

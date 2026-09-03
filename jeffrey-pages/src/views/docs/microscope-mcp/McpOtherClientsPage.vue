@@ -193,7 +193,7 @@ const protocolError = `{
         <li><code>-32603</code> &mdash; an internal failure outside the tool call</li>
       </ul>
 
-      <p>An HTTP <code>404</code> on the endpoint itself is a third thing again: it means the server is disabled, not that the request was wrong. See <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.</p>
+      <p>An HTTP <code>404</code> on the endpoint itself is a third thing again: it means this installation switched the server off, not that the request was wrong. See <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.</p>
     </div>
 
     <DocsNavFooter />

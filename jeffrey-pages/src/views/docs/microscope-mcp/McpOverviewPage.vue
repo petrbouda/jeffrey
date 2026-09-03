@@ -92,7 +92,7 @@ onMounted(() => {
           <tr>
             <td>Configuration</td>
             <td>A provider and an API key or a local subscription</td>
-            <td>One toggle; the client brings its own model</td>
+            <td>Nothing to configure; the client brings its own model</td>
           </tr>
         </tbody>
       </table>
@@ -145,13 +145,13 @@ onMounted(() => {
 
       <p>The <router-link to="/docs/microscope-mcp/tools">Tool Reference</router-link> lists every one of them with its arguments.</p>
 
-      <DocsCallout type="warning" title="Read this before you turn it on">
-        The endpoint has no authentication yet &mdash; anyone who can reach the address can read every profile in that installation. It is off by default for exactly that reason. <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> covers the toggle and how to expose it safely.
+      <DocsCallout type="warning" title="Know what it exposes">
+        The endpoint is on by default and has no authentication yet &mdash; anyone who can reach the address can read every profile in that installation. On a Jeffrey bound to loopback, that is only the machine it runs on. <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> covers how to expose it safely, and how to switch it off.
       </DocsCallout>
 
       <h2 id="where-to-go-next">Where to Go Next</h2>
       <ul>
-        <li><router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> &mdash; the toggle, the endpoint URL, and the security posture</li>
+        <li><router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> &mdash; the endpoint URL, the security posture, and how to switch it off</li>
         <li><router-link to="/docs/microscope-mcp/plugin">Claude Code Plugin</router-link> &mdash; one install instead of a hand-written command per machine</li>
         <li><router-link to="/docs/microscope-mcp/recipes">Recipes</router-link> &mdash; worked sessions, from &ldquo;where does the time go&rdquo; to a leak hunt</li>
         <li><router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> &mdash; connecting without the plugin, and the wire protocol</li>

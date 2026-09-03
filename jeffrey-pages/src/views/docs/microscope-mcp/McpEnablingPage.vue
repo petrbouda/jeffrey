@@ -27,8 +27,9 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
-  { id: 'turn-it-on', text: 'Turn It On', level: 2 },
+  { id: 'it-is-already-on', text: 'It Is Already On', level: 2 },
   { id: 'the-endpoint-url', text: 'The Endpoint URL', level: 2 },
+  { id: 'turning-it-off', text: 'Turning It Off', level: 2 },
   { id: 'while-it-is-off', text: 'While It Is Off', level: 2 },
   { id: 'what-a-session-holds-open', text: 'What a Session Holds Open', level: 2 },
   { id: 'security', text: 'Security', level: 2 }
@@ -38,7 +39,7 @@ onMounted(() => {
   setHeadings(headings);
 });
 
-const propertyToggle = `jeffrey.microscope.mcp.enabled=true`;
+const propertyToggle = `jeffrey.microscope.mcp.enabled=false`;
 
 const defaultEndpoint = `http://localhost:8080/api/internal/mcp`;
 
@@ -59,15 +60,10 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
     />
 
     <div class="docs-content">
-      <p>The MCP server is <strong>off by default</strong>. That is deliberate: turning it on hands any client that can reach the address every profile in the installation, and there is no authentication in front of it yet. It should be a decision, not a default.</p>
+      <p>The MCP server is <strong>on by default</strong>. A fresh Jeffrey already answers on the endpoint below, so connecting a client is the only step &mdash; see <router-link to="/docs/microscope-mcp/plugin">Claude Code Plugin</router-link>.</p>
 
-      <h2 id="turn-it-on">Turn It On</h2>
-      <p>In the Jeffrey UI, open <strong>Settings &rarr; Claude Code (MCP)</strong> and enable it. The setting is hot-reloaded and checked per request, so it takes effect immediately &mdash; no restart, and turning it back off closes the door on the next call rather than at the next boot.</p>
-
-      <p>The same switch is an ordinary Jeffrey setting, so it can be set up front:</p>
-      <DocsCodeBlock :code="propertyToggle" language="properties" />
-
-      <p>See <router-link to="/docs/microscope/configuration/application-properties">Application Properties</router-link> for where such properties belong.</p>
+      <h2 id="it-is-already-on">It Is Already On</h2>
+      <p>Open <strong>Settings &rarr; Claude Code (MCP)</strong> to confirm it and to copy the connection details. The tab reports whether the endpoint is serving; it does not offer a switch, because whether Jeffrey exposes the endpoint at all belongs with the bind address and the reverse proxy rather than with the preferences a reader edits in the UI.</p>
 
       <h2 id="the-endpoint-url">The Endpoint URL</h2>
       <p>One endpoint serves the whole installation:</p>
@@ -79,10 +75,16 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
         The Settings tab shows the endpoint <em>as your browser just reached it</em>, derived from the request rather than hardcoded. Behind a container, a reverse proxy or a non-default port, <code>localhost:8080</code> is wrong &mdash; and wrong in a way you would only discover after pasting the command. Copy the one the tab shows.
       </DocsCallout>
 
+      <h2 id="turning-it-off">Turning It Off</h2>
+      <p>An installation that should not expose the endpoint switches it off with an application property:</p>
+      <DocsCodeBlock :code="propertyToggle" language="properties" />
+
+      <p>It is read once at startup, so the change takes a restart. See <router-link to="/docs/microscope/configuration/application-properties">Application Properties</router-link> for where such properties belong.</p>
+
       <h2 id="while-it-is-off">While It Is Off</h2>
       <p>A disabled server answers <code>404</code>. It does not answer a JSON-RPC error explaining that it is disabled, because a disabled server should look like no server at all rather than like one refusing to talk &mdash; an unauthenticated probe learns nothing about whether this Jeffrey has profiles worth asking for.</p>
 
-      <p>The practical consequence: if a client reports that the server is unreachable or every tool call fails, check the toggle first.</p>
+      <p>The practical consequence: if a client reports that the server is unreachable or every tool call fails, check whether this installation set the property above.</p>
       <DocsCodeBlock :code="disabledProbe" language="bash" />
 
       <h2 id="what-a-session-holds-open">What a Session Holds Open</h2>
@@ -95,9 +97,9 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
         The MCP endpoint carries the same trust assumption as the rest of Jeffrey&rsquo;s API: anyone who can reach the address can read every profile in that installation &mdash; the recordings, their stack traces, their SQL statements, and the contents of any heap dump you have indexed.
       </DocsCallout>
 
-      <p>Before enabling it, decide what can reach the address:</p>
+      <p>So decide what can reach the address:</p>
       <ul>
-        <li><strong>Bound to loopback.</strong> The default, and enough for a Jeffrey and a Claude Code session on the same machine.</li>
+        <li><strong>Bound to loopback.</strong> The default, and enough for a Jeffrey and a Claude Code session on the same machine. This is what makes an on-by-default endpoint safe: it is reachable from that machine and nowhere else.</li>
         <li><strong>Through an SSH tunnel.</strong> For a Jeffrey on a remote host or in a container, forward the port rather than publishing it:
           <DocsCodeBlock :code="tunnel" language="bash" />
           The client then points at <code>localhost</code> and the endpoint is never exposed.

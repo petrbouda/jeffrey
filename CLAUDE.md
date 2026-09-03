@@ -63,7 +63,7 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `pages-microscope` — Full-featured Vue 3 SPA frontend
 - `profiles/` — All profile analysis modules (see below)
 - REST resources: `/api/internal/workspaces/**`, `/api/internal/projects/**`, `/api/internal/profiles/{profileId}/**`
-- `core-microscope/.../mcp/` — both MCP endpoints. `ExternalMcpController` serves `POST /api/internal/mcp` to an **outside** client (installation-wide, `profileId` as a tool argument, read-only, off by default behind `jeffrey.microscope.mcp.enabled`); `McpStreamableHttpController` serves `/api/internal/mcp/claude-code` to the headless CLI backend Jeffrey spawns for itself (per-profile, provider-gated). They differ on scoping, gating and lifecycle — keep them separate rather than branching on which query parameters are present
+- `core-microscope/.../mcp/` — both MCP endpoints. `ExternalMcpController` serves `POST /api/internal/mcp` to an **outside** client (installation-wide, `profileId` as a tool argument, read-only, on by default and switched off only by the `jeffrey.microscope.mcp.enabled` application property, read at startup); `McpStreamableHttpController` serves `/api/internal/mcp/claude-code` to the headless CLI backend Jeffrey spawns for itself (per-profile, provider-gated). They differ on scoping, gating and lifecycle — keep them separate rather than branching on which query parameters are present
 
 **jeffrey-microscope/profiles/** (profile analysis, used only by jeffrey-microscope):
 - `profile-management` — Profile analysis features + REST resources (Flamegraph, Timeseries, GC, Threads, HeapDump, AI)

@@ -19,8 +19,6 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.profile.mcp.AbstractMcpStreamableHttpController;
-import cafe.jeffrey.shared.common.config.MicroscopeSettingKeys;
-import cafe.jeffrey.shared.common.config.SettingsStore;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -39,37 +37,32 @@ import tools.jackson.databind.JsonNode;
  * different needs, and folding the two together would mean branching on which query parameters happen
  * to be present.
  * <p>
- * Serving is opt-in through {@code jeffrey.microscope.mcp.enabled}, checked per request rather than at
- * wiring time so the toggle takes effect without a restart — the same reason the sibling controller
- * checks its provider per request. While it is off the endpoint answers 404: a disabled server should
+ * Serving is on by default and switched off only through the {@code jeffrey.microscope.mcp.enabled}
+ * application property, fixed at wiring time — unlike the sibling controller, whose provider gate is a
+ * live setting checked per request. While it is off the endpoint answers 404: a disabled server should
  * look like no server at all, not like one refusing to talk.
  * <p>
  * Every tool it exposes is read-only. There is no authentication yet, so the endpoint carries the same
- * trust assumption as the rest of {@code /api/internal/**}: reachable means trusted. That is why it is
- * off by default and why the documentation asks for a loopback bind, an SSH tunnel or a reverse proxy
- * in front of anything wider.
+ * trust assumption as the rest of {@code /api/internal/**}: reachable means trusted. That is why the
+ * documentation asks for a loopback bind, an SSH tunnel or a reverse proxy in front of anything wider.
  */
 @RestController
 @RequestMapping("/api/internal/mcp")
 public class ExternalMcpController extends AbstractMcpStreamableHttpController {
 
     private final McpToolsetAssembler assembler;
-    private final SettingsStore settingsStore;
+    private final ExternalMcpProperties properties;
 
-    public ExternalMcpController(McpToolsetAssembler assembler, SettingsStore settingsStore) {
+    public ExternalMcpController(McpToolsetAssembler assembler, ExternalMcpProperties properties) {
         this.assembler = assembler;
-        this.settingsStore = settingsStore;
+        this.properties = properties;
     }
 
     @PostMapping
     public ResponseEntity<JsonNode> handle(@RequestBody JsonNode request) {
-        if (!isEnabled()) {
+        if (!properties.enabled()) {
             return ResponseEntity.notFound().build();
         }
         return dispatch(request, assembler::toolset);
-    }
-
-    private boolean isEnabled() {
-        return settingsStore.getBoolean(MicroscopeSettingKeys.MCP_ENABLED, false);
     }
 }
