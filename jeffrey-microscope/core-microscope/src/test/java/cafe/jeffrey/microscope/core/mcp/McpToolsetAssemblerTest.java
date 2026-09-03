@@ -25,6 +25,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.mcp.McpToolSpec;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,7 +53,10 @@ class McpToolsetAssemblerTest {
     McpProfileContextCache contextCache;
 
     @Mock
-    JfrFlamegraphPanelProvider panelProvider;
+    JfrFlamegraphPanelProvider jfrPanelProvider;
+
+    @Mock
+    StackSampleFlamegraphPanelProvider stackSamplePanelProvider;
 
     @Mock
     RecordingCommitResolver recordingCommitResolver;
@@ -62,7 +66,8 @@ class McpToolsetAssemblerTest {
                 new ProfilesMcpTools(coreRepositories),
                 new RecordingsMcpTools(recordingsManager),
                 contextCache,
-                panelProvider,
+                jfrPanelProvider,
+                stackSamplePanelProvider,
                 recordingCommitResolver,
                 new ExternalMcpProperties(true, ingestEnabled));
 
@@ -86,6 +91,7 @@ class McpToolsetAssemblerTest {
             List<String> names = toolNamesWithIngest(true);
 
             assertTrue(names.contains("profiles_list"));
+            assertTrue(names.contains("flamegraph_list"));
             assertTrue(names.contains("flamegraph_export"));
             assertTrue(names.contains("traces_notifications"));
             assertTrue(names.contains("heap_getHeapSummary"));
@@ -119,7 +125,8 @@ class McpToolsetAssemblerTest {
                     new ProfilesMcpTools(coreRepositories),
                     new RecordingsMcpTools(recordingsManager),
                     contextCache,
-                    panelProvider,
+                    jfrPanelProvider,
+                    stackSamplePanelProvider,
                     recordingCommitResolver,
                     new ExternalMcpProperties(true, false));
 

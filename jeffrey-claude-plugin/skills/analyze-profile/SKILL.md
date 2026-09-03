@@ -61,8 +61,10 @@ elsewhere; Jeffrey's accounting is stated precisely in the document and differs 
 
 ## Choosing a graph
 
-`flamegraph_panels` lists the event types this profile really recorded. Asking for one it did not
-record returns an empty tree rather than an error, so check first. Common starting points:
+`flamegraph_list` lists under `available` the event types this profile really recorded, each with
+the export defaults for that type; `notRecorded` names the groups the profiler did not capture.
+Asking for one it did not record returns an empty tree rather than an error, so check first. Common
+starting points:
 
 - on-CPU time → `jdk.ExecutionSample`
 - allocation → `jdk.ObjectAllocationSample` (add `useWeight: true` to rank by bytes, not by call count)

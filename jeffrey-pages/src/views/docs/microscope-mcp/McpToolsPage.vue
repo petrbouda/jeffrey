@@ -118,9 +118,9 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
         </thead>
         <tbody>
           <tr>
-            <td><code>flamegraph_panels</code></td>
+            <td><code>flamegraph_list</code></td>
             <td><code>profileId</code></td>
-            <td>Which event types this profile can be graphed by. Call it first &mdash; asking for a type the profile did not record returns an empty tree, not an error</td>
+            <td><code>available</code> &mdash; the event types this profile can be graphed by, each with its sample and weight totals and the argument defaults that type is normally graphed with &mdash; plus <code>notRecorded</code>, the standard groups the profiler did not capture. Call it first &mdash; asking for a type the profile did not record returns an empty tree, not an error</td>
           </tr>
           <tr>
             <td><code>flamegraph_export</code></td>

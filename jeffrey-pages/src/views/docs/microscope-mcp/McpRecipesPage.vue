@@ -92,7 +92,7 @@ LIMIT 20`;
       <h2 id="analyse-a-recording-you-just-made">Analyse a Recording You Just Made</h2>
       <DocsCodeBlock :code="promptFreshRecording" language="bash" />
 
-      <p>Drives <code>recordings_analyzeFile</code> &rarr; <code>profiles_features</code> &rarr; <code>flamegraph_panels</code> &rarr; <code>flamegraph_export</code>.</p>
+      <p>Drives <code>recordings_analyzeFile</code> &rarr; <code>profiles_features</code> &rarr; <code>flamegraph_list</code> &rarr; <code>flamegraph_export</code>.</p>
 
       <p>This is the loop closing. You run a benchmark, a JFR file lands in <code>target/</code>, and the next thing you type is a question about it &mdash; no upload, no browser, no clicking Analyze. The first tool call imports the file and builds the profile, and hands back the <code>profileId</code> every later call uses; the profile is a normal one afterwards, visible in the Jeffrey UI and in <code>profiles_list</code>.</p>
 
@@ -105,7 +105,7 @@ LIMIT 20`;
       <h2 id="where-does-the-time-go">Where Does the Time Go</h2>
       <DocsCodeBlock :code="promptHotPaths" language="bash" />
 
-      <p>Drives <code>profiles_list</code> &rarr; <code>profiles_features</code> &rarr; <code>flamegraph_panels</code> &rarr; <code>flamegraph_export</code> with <code>jdk.ExecutionSample</code>.</p>
+      <p>Drives <code>profiles_list</code> &rarr; <code>profiles_features</code> &rarr; <code>flamegraph_list</code> &rarr; <code>flamegraph_export</code> with <code>jdk.ExecutionSample</code>.</p>
 
       <p>The export is a pruned call tree with total and self samples on every frame, and it opens by explaining exactly how those are computed. Expect an answer that names call paths and percentages. Follow up by narrowing: <em>&ldquo;drop the threshold to 0.5% and expand the path through the JDBC driver&rdquo;</em>, or <em>&ldquo;same graph but only the first 30 seconds&rdquo;</em> &mdash; both are arguments to the same tool.</p>
 
@@ -139,7 +139,7 @@ LIMIT 20`;
       <h2 id="from-profile-to-patch">From Profile to Patch</h2>
       <DocsCodeBlock :code="promptAdvise" language="bash" />
 
-      <p>Drives the <router-link to="/docs/microscope-mcp/skills#advise"><code>advise</code></router-link> skill: <code>profiles_get</code> for the recording&rsquo;s commit, <code>flamegraph_panels</code>, then <code>flamegraph_export</code> once per group the profile carries &mdash; CPU, wall-clock, allocation, blocking &mdash; followed by reads of the real source behind the heaviest frames.</p>
+      <p>Drives the <router-link to="/docs/microscope-mcp/skills#advise"><code>advise</code></router-link> skill: <code>profiles_get</code> for the recording&rsquo;s commit, <code>flamegraph_list</code>, then <code>flamegraph_export</code> once per group the profile carries &mdash; CPU, wall-clock, allocation, blocking &mdash; followed by reads of the real source behind the heaviest frames.</p>
 
       <p>The previous recipe reconciles one frame with one method. This one is the whole loop: every group at once, a recommendation per hotspot with the measured share that justifies it, and a stop before anything is edited. Say which findings to apply and Claude makes the smallest edit for each, runs the tests, and &mdash; if you name the command that produced the recording &mdash; re-runs it, analyses the new file with <code>recordings_analyzeFile</code> and reports the delta on the frames it changed.</p>
 

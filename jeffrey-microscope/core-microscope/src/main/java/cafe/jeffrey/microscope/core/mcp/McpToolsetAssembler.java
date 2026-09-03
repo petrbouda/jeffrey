@@ -34,6 +34,7 @@ import cafe.jeffrey.profile.mcp.McpToolProvider;
 import cafe.jeffrey.profile.mcp.ProfileScopedToolset;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -78,7 +79,8 @@ public class McpToolsetAssembler {
             ProfilesMcpTools profilesMcpTools,
             RecordingsMcpTools recordingsMcpTools,
             McpProfileContextCache contextCache,
-            JfrFlamegraphPanelProvider panelProvider,
+            JfrFlamegraphPanelProvider jfrPanelProvider,
+            StackSampleFlamegraphPanelProvider stackSamplePanelProvider,
             RecordingCommitResolver recordingCommitResolver,
             ExternalMcpProperties properties) {
 
@@ -91,7 +93,10 @@ public class McpToolsetAssembler {
                         profileId -> new DuckDbMcpTools(contextCache.context(profileId).dataSource()),
                         WRITE_TOOLS),
                 new ProfileScopedToolset<>(FlamegraphMcpTools.class, PREFIX_FLAMEGRAPH,
-                        profileId -> new FlamegraphMcpTools(profileManager(contextCache, profileId), panelProvider)),
+                        profileId -> new FlamegraphMcpTools(
+                                profileManager(contextCache, profileId),
+                                jfrPanelProvider,
+                                stackSamplePanelProvider)),
                 new ProfileScopedToolset<>(TracesMcpTools.class, PREFIX_TRACES,
                         profileId -> new TracesMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(HeapDumpMcpTools.class, PREFIX_HEAP,
