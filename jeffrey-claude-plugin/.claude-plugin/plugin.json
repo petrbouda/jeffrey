@@ -10,10 +10,18 @@
   "repository": "https://github.com/petrbouda/jeffrey",
   "license": "AGPL-3.0",
   "keywords": ["jfr", "jvm", "profiling", "flamegraph", "heap-dump", "performance"],
+  "userConfig": {
+    "endpoint_url": {
+      "type": "string",
+      "title": "Jeffrey MCP endpoint",
+      "description": "URL of the Microscope MCP endpoint. Keep the default for a Jeffrey on its usual port; change it for another port, a container or an SSH tunnel. Settings → Claude Code (MCP) shows the exact URL for your installation.",
+      "default": "http://localhost:8080/api/internal/mcp"
+    }
+  },
   "mcpServers": {
     "jeffrey": {
       "type": "http",
-      "url": "${JEFFREY_MCP_URL:-http://localhost:8080/api/internal/mcp}"
+      "url": "${user_config.endpoint_url}"
     }
   }
 }

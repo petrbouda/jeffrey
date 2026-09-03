@@ -30,14 +30,17 @@ claude --plugin-dir ./jeffrey-claude-plugin
 
 ## Pointing it at your Jeffrey
 
-The plugin defaults to `http://localhost:8080/api/internal/mcp`. Anywhere else — a different port, a
-container, an SSH tunnel — set the endpoint before starting Claude Code:
+The plugin ships with the endpoint set to `http://localhost:8080/api/internal/mcp`. Anywhere else — a
+different port, a container, an SSH tunnel — change it in the plugin's own configuration; Claude Code
+offers the field when you enable the plugin, and `/plugin` reopens it afterwards:
 
-```bash
-export JEFFREY_MCP_URL="http://localhost:9000/api/internal/mcp"
+```
+Jeffrey MCP endpoint: http://localhost:9000/api/internal/mcp
 ```
 
-The Settings tab shows the exact URL for your installation.
+The setting lives in `~/.claude/settings.json`, so one machine can point at a tunnelled staging
+Jeffrey while another stays on localhost. The Settings tab in Jeffrey shows the exact URL for your
+installation.
 
 ## What you get
 
@@ -87,4 +90,4 @@ network.
 
 ## Licence
 
-AGPL-3.0, as the rest of Jeffrey. See [LICENSE](../LICENSE).
+AGPL-3.0, as the rest of Jeffrey. See [LICENSE](https://github.com/petrbouda/jeffrey/blob/master/LICENSE).

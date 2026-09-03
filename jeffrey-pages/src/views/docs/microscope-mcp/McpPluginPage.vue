@@ -45,7 +45,9 @@ const installMarketplace = `/plugin marketplace add petrbouda/jeffrey
 const installLocal = `git clone https://github.com/petrbouda/jeffrey
 claude --plugin-dir ./jeffrey/jeffrey-claude-plugin`;
 
-const customUrl = `export JEFFREY_MCP_URL="http://localhost:9000/api/internal/mcp"`;
+const customUrl = `Jeffrey MCP endpoint: http://localhost:9000/api/internal/mcp`;
+
+const pinnedInstall = `/plugin marketplace add petrbouda/jeffrey@v1.2.0`;
 
 const permissionRule = `mcp__plugin_microscope_jeffrey__*`;
 
@@ -81,16 +83,19 @@ const removal = `/plugin uninstall microscope@jeffrey`;
       <p>Or, if you would rather work from a clone &mdash; useful when developing against a modified Jeffrey:</p>
       <DocsCodeBlock :code="installLocal" language="bash" />
 
-      <h2 id="pointing-it-elsewhere">Pointing It Elsewhere</h2>
-      <p>The plugin defaults to <code>http://localhost:8080/api/internal/mcp</code>. For any other address &mdash; a different port, a container, an SSH tunnel &mdash; set the endpoint before starting Claude Code:</p>
-      <DocsCodeBlock :code="customUrl" language="bash" />
+      <p>The marketplace is the repository itself, read straight off its default branch, so <code>/plugin marketplace update</code> is all it takes to pick up a newer plugin. To hold a machine on one release instead, add the marketplace at a tag:</p>
+      <DocsCodeBlock :code="pinnedInstall" language="bash" />
 
-      <p>One plugin therefore serves every installation: a non-default port is an environment variable, not an edit to the manifest.</p>
+      <h2 id="pointing-it-elsewhere">Pointing It Elsewhere</h2>
+      <p>The plugin ships pointed at <code>http://localhost:8080/api/internal/mcp</code>. For any other address &mdash; a different port, a container, an SSH tunnel &mdash; change the endpoint in the plugin's own configuration. Claude Code offers the field when you enable the plugin, and <code>/plugin</code> reopens it afterwards:</p>
+      <DocsCodeBlock :code="customUrl" language="text" />
+
+      <p>The value is stored per machine, in <code>~/.claude/settings.json</code>. One plugin therefore serves every installation: a non-default port is a setting, not an edit to the manifest, and a laptop can point at a tunnelled staging Jeffrey while the machine beside it stays on localhost.</p>
 
       <h2 id="what-the-plugin-adds">What the Plugin Adds</h2>
       <p>Registering the server by hand gives you the thirty-nine tools. The plugin adds two things on top.</p>
 
-      <p><strong>The endpoint, already configured</strong> &mdash; including the <code>JEFFREY_MCP_URL</code> indirection above, so the same install works on a laptop and against a tunnelled staging Jeffrey.</p>
+      <p><strong>The endpoint, already configured</strong> &mdash; including the per-machine setting above, so the same install works on a laptop and against a tunnelled staging Jeffrey.</p>
 
       <p><strong>Three skills</strong>, which Claude picks up on its own when a question calls for them, and which you can also invoke directly:</p>
       <ul>
