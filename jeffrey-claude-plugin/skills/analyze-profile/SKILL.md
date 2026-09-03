@@ -1,122 +1,108 @@
 ---
 name: analyze-profile
-description: Analyse a JVM profile with a running Jeffrey Microscope — CPU, allocation, lock contention, GC, latency, traces or a heap dump — including analysing a .jfr or .hprof file that is not in Jeffrey yet. Use whenever the question is "why is this slow", "where does the time go", "what is allocating", "what is holding memory", or when a Jeffrey profile, a JFR recording or a heap dump file is mentioned.
+description: Analyses a JVM profile held by a running Jeffrey Microscope — CPU, wall-clock, allocation, lock contention and trace latency — starting from the catalogue or from a .jfr file Jeffrey has not seen yet. Use whenever the user asks why something is slow, where the time goes, what is allocating, what a JFR recording or flamegraph shows, or mentions a Jeffrey profile, a .jfr file or async-profiler output. For a heap dump or .hprof file, analyze-heap applies instead.
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---
 
 # Analysing a Jeffrey profile
 
-Jeffrey holds *profiles*: one analysed JFR recording or heap dump each. The analysis tools read
-them and never write. The one family that writes is `recordings_`, which turns a recording *file*
-into a profile.
+Jeffrey holds *profiles*: one analysed JFR recording or heap dump each. Every tool reads; the one
+family that writes is `recordings_`, which turns a recording *file* into a profile.
 
-## Start from a file, or from the catalogue
+Tool names below omit the server prefix — `mcp__plugin_microscope_jeffrey__` for the plugin,
+`mcp__jeffrey__` for a hand-registered server. The part after it is exact and camelCase:
+`jfr_listTables`, not `jfr_list_tables`.
 
-**If the user named a file** — `target/app.jfr`, `heap.hprof`, anything with a recording extension —
-it may not be in Jeffrey yet. Call **`recordings_analyzeFile`** with its **absolute** path; it
-imports the file, builds the profile, and returns the `profileId` the rest of this skill needs. Then
-carry on from step 2 below.
+## 1. Get a `profileId`
 
-Two constraints, both easy to trip on:
+Every tool except `profiles_list` and the `recordings_` family takes one.
 
-- The path is opened by the **Jeffrey process**, so the file must be on the machine Jeffrey runs on.
-  A container or a remote Jeffrey cannot see your working directory.
-- Each call imports the file **again** and builds another profile. If the same file may already be
-  analysed, check `recordings_list` or `profiles_list` first and reuse the id.
+**The user named a file** (`target/app.jfr`, anything with a recording extension) — it may not be
+in Jeffrey yet. Check `recordings_list` or `profiles_list` for it first, because every
+`recordings_analyzeFile` call imports the file again and creates another profile. If it is absent,
+call `recordings_analyzeFile` with the **absolute** path. The Jeffrey process opens that path, so
+the file has to be on the machine Jeffrey runs on — a container or a remote Jeffrey cannot see your
+working directory. The call returns once the profile is built, which takes a while for a large
+recording; that is the analysis running, not a hang.
 
-The call returns only once the profile is built, which for a large recording takes a while — that is
-the analysis running, not a hang.
+**Otherwise** — `profiles_list`, pick the profile, then `profiles_features` to learn what it can
+answer before asking for it: `disabledFeatures` names what the profile lacks (traces exist only if
+the app ran Jeffrey's instrumentation; `HEAP_DUMP` there means no dump), and `eventTypes` lists
+every recorded event type with its sample and weight totals.
 
-**Otherwise start from the catalogue:**
+A profile whose `event source` column reads `HEAP_DUMP` is a heap dump: switch to the
+`analyze-heap` skill, because flamegraphs and traces do not apply to it.
 
-1. **`profiles_list`** — every profile in the installation. Nothing else works without an id from it.
-2. **`profiles_features`** — what that profile can actually answer. A JFR recording usually has no
-   heap dump; a heap dump has no flamegraphs; traces exist only if the app ran Jeffrey's tracing
-   instrumentation. It also lists every event type recorded, with sample counts.
-3. Then the family that matches the question.
+## 2. Pick the family that matches the question
 
-Every tool except `profiles_list` and the `recordings_` family takes a `profileId`.
-
-## The families
-
-| Family | Use it for |
+| Family | Tools |
 |---|---|
-| `profiles_` | `list`, `get` (identity, recording window, size), `features`, `link` (deep link into the Jeffrey UI) |
-| `flamegraph_` | `panels` (which event types this profile can graph — call it first), `export` (the call tree as Markdown) |
+| `profiles_` | `list`, `get` (identity, recording window, size, source commit), `features`, `link` (deep link into the Jeffrey UI) |
+| `flamegraph_` | `list` (which event types this profile can graph — call it first), `export` (the call tree as Markdown) |
 | `traces_` | `overview`, `operations`, `notifications`, `operationExport`, `slowestTraces`, `traceExport`, `spanFlamegraphExport`, `operationFlamegraphExport` |
-| `jfr_` | `listTables`, `describeTable`, `listEventTypes`, `queryEvents`, `executeQuery`, `getProfileInfo` — raw DuckDB when no purpose-built tool fits |
-| `heap_` | Everything a heap dump answers — summary, histogram, dominator tree, leak suspects, GC-root paths. The largest family, with an order to work it in: see the `analyze-heap` skill |
-| `recordings_` | `analyzeFile` (a file not in Jeffrey yet), `analyzeRecording` (one already uploaded but never analysed), `list` (the Quick Analysis store) |
+| `jfr_` | `listTables`, `describeTable`, `listEventTypes`, `queryEvents`, `executeQuery`, `getProfileInfo` — raw DuckDB when no purpose-built tool fits; the `jfr-sql` skill has the schema |
+| `heap_` | Everything a heap dump answers — the `analyze-heap` skill has the order to run it in |
+| `recordings_` | `analyzeFile` (a file not in Jeffrey yet), `analyzeRecording` (uploaded but never analysed), `list` (the Quick Analysis store) |
 
-Tool names are camelCase after the prefix: `jfr_listTables`, not `jfr_list_tables`.
+## 3. Choosing a flamegraph
 
-## Reading the exports
-
-`flamegraph_export`, `traces_traceExport` and `traces_operationExport` return Markdown documents
-that **carry their own reading instructions** — what `self` versus `total` means, what the frame
-tags mean, what was pruned, and how to analyse that particular event type. Read the preamble the
-document gives you and follow it. Do not substitute assumptions about flamegraph conventions from
-elsewhere; Jeffrey's accounting is stated precisely in the document and differs in places (its
-`self` is a merged-interval computation, not a subtraction).
-
-## Choosing a graph
-
-`flamegraph_list` lists under `available` the event types this profile really recorded, each with
-the export defaults for that type; `notRecorded` names the groups the profiler did not capture.
-Asking for one it did not record returns an empty tree rather than an error, so check first. Common
-starting points:
+`flamegraph_list` returns `available` — the event types this profile really recorded, each with
+the export defaults for that type — and `notRecorded`, the standard groups the profiler did not
+capture. Asking for a type it did not record returns an empty tree rather than an error, so check
+first. Starting points:
 
 - on-CPU time → `jdk.ExecutionSample`
-- allocation → `jdk.ObjectAllocationSample` (add `useWeight: true` to rank by bytes, not by call count)
-- lock contention → `jdk.JavaMonitorEnter` (with `useWeight: true`, weight is nanoseconds blocked)
-- wall-clock latency, including off-CPU → `profiler.WallClockSample` — async-profiler's event, so
-  it does **not** carry the `jdk.` prefix its neighbours here do
+- allocation → `jdk.ObjectAllocationSample`, with `useWeight: true` to rank by bytes rather than call count
+- lock contention → `jdk.JavaMonitorEnter`, with `useWeight: true` (weight is nanoseconds blocked)
+- wall-clock latency including off-CPU → `profiler.WallClockSample` — async-profiler's event, so it
+  does **not** carry the `jdk.` prefix its neighbours do
 
-`thresholdPct` controls how much detail survives pruning. Raise it for an overview, lower it to
-chase a specific path.
+`thresholdPct` decides how much survives pruning: raise it for an overview, lower it to chase one
+specific path.
 
-## Working a latency question with traces
+## 4. Read the export the way it tells you to
 
-`traces_overview` → `traces_operations` (sorted by `TOTAL_TIME` by default, which is where the
-wall-clock actually went) → `traces_operationExport` for the population → `traces_slowestTraces`
-then `traces_traceExport` for one exemplar → `traces_spanFlamegraphExport` for the frames inside a
-single slow span. An operation is identified by the triple `(name, kind, eventType)`, not by name
-alone — an inbound `GET /orders` and an outbound call to the same path are different operations.
+`flamegraph_export`, `traces_traceExport` and `traces_operationExport` return Markdown documents
+that open with their own reading instructions — what `self` versus `total` means, what the frame
+tags mean, what was pruned, and how to analyse that event type. Follow that preamble rather than
+generic flamegraph conventions; Jeffrey's accounting is stated there in the version that matches
+the code that produced it.
 
-Read the application's own account before the timing. `traces_overview` reports how many
-**notifications** — `jeffrey.Notification` events an instrumented application emits about itself,
-a pool exhausted, a fallback taken — were raised inside traces, and how many were `CRITICAL` or
-`HIGH`. When there are any, call `traces_notifications` (filter by `severity`, `type`, `source`, or
-the operation triple) before exporting a trace: a CRITICAL notification usually names the cause
-the span tree only shows the cost of, and its exemplar trace ids are the traces worth exporting.
-The operation and trace exports carry their own Notifications section, and its instructions say
-how to weigh each severity.
+## Latency: work the traces first
+
+"This endpoint is slow" is a traces question before it is a flamegraph question:
+
+1. `traces_overview` — totals, and how many **notifications** were raised inside traces.
+   Notifications are `jeffrey.Notification` events an instrumented application emits about
+   itself (a pool exhausted, a fallback taken). When any are `CRITICAL` or `HIGH`, call
+   `traces_notifications` *before* exporting a trace: such a notification usually names the cause
+   the span tree only shows the cost of, and its exemplar trace ids are the ones worth exporting.
+2. `traces_operations` — sorted by `TOTAL_TIME` by default, which is where the wall-clock went.
+   An operation is the triple `(name, kind, eventType)`, not a name alone: an inbound
+   `GET /orders` and an outbound call to the same path are different operations.
+3. `traces_operationExport` for the population, then `traces_slowestTraces` → `traces_traceExport`
+   for one exemplar, then `traces_spanFlamegraphExport` for the frames inside a single slow span.
 
 ## Grounding claims
 
-The exports contain call paths and numbers, not source locations. Cite the path and the figures the
-document shows. If the repository is open alongside, read the real source before proposing a change
-— do not infer file or line numbers from a profile.
+The exports carry call paths and figures, not source locations. Cite the path and the numbers the
+document shows. If the repository is open alongside, read the real source before naming a file,
+method or line — never infer them from a frame name. The `advise` skill carries the full
+profile-to-code-change workflow.
 
-## When something is missing
+## When something fails
 
-- A tool answers `Profile … has no heap dump` → it is a JFR recording; use `jfr_`, `flamegraph_`, `traces_`.
-- The profile *is* a heap dump (`profiles_list` shows `event source` = `HEAP_DUMP`) → switch to the
-  `analyze-heap` skill; flamegraphs and traces do not apply to it.
-- `recordings_analyzeFile` says the path must be absolute → pass the full path, not a repo-relative one.
-- It says there is no such file, but the file is right there → Jeffrey is looking on *its own*
-  filesystem. Copy or mount the recording somewhere Jeffrey can reach, or upload it in the UI.
-- No `recordings_` tool is advertised at all → this Jeffrey was started with
-  `jeffrey.microscope.mcp.ingest.enabled=false`. Upload and analyse the recording in the Jeffrey UI,
-  then work from `profiles_list`.
-- Every call fails to connect → Jeffrey is not running at that address.
-- The server 404s → this Jeffrey was started with `jeffrey.microscope.mcp.enabled=false`. The server
-  is on by default; **Settings → Claude Code (MCP)** reports whether it is serving.
-- Jeffrey is not on `http://localhost:8585` → point the plugin at the real
-  `…/api/internal/mcp` endpoint: run `/plugin`, open the `microscope` plugin's configuration
-  and set **Jeffrey MCP endpoint**.
+- `Profile … has no heap dump` → it is a JFR recording; stay with `jfr_`, `flamegraph_`, `traces_`.
+- `The recording path must be absolute` → pass the full path, not a repository-relative one.
+- `No such recording file` but the file is right there → Jeffrey is looking on *its own*
+  filesystem. Copy or mount the recording where Jeffrey can reach it, or upload it in the UI.
+- No `recordings_` tool advertised → this Jeffrey runs with `jeffrey.microscope.mcp.ingest.enabled=false`.
+  Upload and analyse in the Jeffrey UI, then work from `profiles_list`.
+- Every call fails to connect → Jeffrey is not running at the configured address. Point the plugin
+  at the real `…/api/internal/mcp` endpoint: `/plugin` → `microscope` → **Jeffrey MCP endpoint**;
+  Jeffrey's **Settings → Claude Code (MCP)** shows the URL for the installation.
+- The server answers 404 → it was started with `jeffrey.microscope.mcp.enabled=false`; it is on
+  by default.
 
-For a heap dump — what is holding the memory, what is leaking, which class loader never went away
-— see the `analyze-heap` skill. For raw SQL against a profile or a heap dump, see the `jfr-sql` and
-`heap-sql` skills. To go from a profile to a code change — hot frames mapped to this repository, a
-recommendation, an edit and a re-profile — see the `advise` skill.
+Related skills: `analyze-heap` for a heap dump, `jfr-sql` for raw SQL against the profile,
+`advise` to go from a hotspot to an edit in this repository.

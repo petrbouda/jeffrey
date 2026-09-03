@@ -47,7 +47,8 @@ const invoke = `/microscope:analyze-profile
 /microscope:jfr-sql
 /microscope:heap-sql`;
 
-const advisePrompt = `advise on the most recent Jeffrey profile - what should I change in this repo?`;
+const advisePrompt = `advise on the most recent Jeffrey profile - what should I change in this repo?
+/microscope:advise 019f885e-8e69-7d65-8ac7-32a70b92cb94 alloc`;
 
 const eventsView = `-- correct
 SELECT event_type, COUNT(*) FROM events GROUP BY event_type
@@ -86,10 +87,11 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <h2 id="analyze-heap">analyze-heap</h2>
       <p><em>A heap dump end to end.</em> Loaded when the question is &ldquo;what is holding memory&rdquo;, &ldquo;why is the heap growing&rdquo;, &ldquo;why did this OOM&rdquo;, &ldquo;what is leaking&rdquo;, or when retained size, a dominator tree, GC roots or a <code>.hprof</code> file are mentioned.</p>
 
-      <p><code>heap_</code> is the largest family, and the only one whose tools have to be run in an order. Half of its reports say &ldquo;this analysis may need to be run first&rdquo; without saying which one, and nothing in a tool list explains what that means. The skill carries the order and the two rules that decide every heap answer:</p>
+      <p><code>heap_</code> is the largest family, and the only one whose tools have to be run in an order. Half of its reports say &ldquo;this analysis may need to be run first&rdquo; without saying which one, and nothing in a tool list explains what that means. The skill carries the order and the three rules that decide every heap answer:</p>
       <ul>
         <li><strong>Shallow is not retained.</strong> Shallow size is the object itself; retained size is what dies with it. Only the second answers &ldquo;who is holding this memory&rdquo; &mdash; a histogram ranked by shallow size tells you what there is a lot of, not who is responsible for it.</li>
-        <li><strong>The dominator tree is built lazily.</strong> <code>dominator</code> and <code>retained_size</code> stay empty until <code>heap_getDominatorTreeRoots</code> runs, so every retained figure is missing rather than zero. Calling it once, early, is what the reports mean by their warning, and skipping it is the usual reason a heap session stalls on empty results.</li>
+        <li><strong>The dominator tree is built lazily.</strong> <code>dominator</code> and <code>retained_size</code> stay empty until <code>heap_getDominatorTreeRoots</code> runs, so every retained figure is missing rather than zero. Calling it once, early, is what makes retained sizes appear, and skipping it is the usual reason a heap session stalls on empty results.</li>
+        <li><strong>Six reports are pre-computed in the UI.</strong> Leak Suspects, Biggest Objects, Class Loader Analysis, Top Consumers, String Analysis and Collection Analysis are computed when someone opens them in Jeffrey and only <em>read</em> over MCP; until then their tools answer &ldquo;has not been run yet&rdquo;. The skill names which tools those are, tells the model to hand the user the <code>profiles_link</code> URL and the report to run instead of retrying, and gives an on-demand route for the same question &mdash; the dominator tree into <code>heap_getPathToGCRoot</code> &mdash; so the answer does not wait on the UI.</li>
       </ul>
 
       <p>On top of that it carries the routes &mdash; the histogram and top consumers for what is using the heap, leak suspects into a GC-root path for what is leaking, <code>heap_getClassLoaderLeakChains</code> for the redeploy case that leaves a class loader behind, string and collection analysis for waste, and instance browsing for one particular class &mdash; plus how to enter from a <code>.hprof</code> file Jeffrey has never seen, and what the two guard messages mean when a profile turns out to have no heap dump or an index that is still being built.</p>
@@ -100,7 +102,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <p><em>From a profile to a code change.</em> Loaded when the question is &ldquo;what should I change&rdquo;, &ldquo;optimise this&rdquo;, or when a hotspot has been found and the next question is what to do about it. It is the successor of the in-app Profile Advisor: the same job, done by the agent that is already in your checkout and can build, test and re-profile, instead of by a model given a read-only view of one folder.</p>
       <DocsCodeBlock :code="advisePrompt" language="bash" />
 
-      <p>It works in two phases with a stop between them &mdash; <strong>recommend</strong>, then <strong>change</strong> &mdash; and carries what neither the exports nor the tool list say:</p>
+      <p>It takes an optional argument &mdash; a profile id or a recording file, then one of <code>cpu</code>, <code>wall</code>, <code>alloc</code>, <code>lock</code> to narrow the analysis to one group &mdash; and works in two phases with a stop between them, <strong>recommend</strong>, then <strong>change</strong>, tracked as a checklist so the gate is visible. It carries what neither the exports nor the tool list say:</p>
       <ul>
         <li><strong>The commit check.</strong> <code>profiles_get</code> reports the commit the profiled build came from when the recording was tagged with one. The skill compares it with <code>HEAD</code> before mapping a single frame, and says so when they differ or when the commit is unknown &mdash; a profile of another commit describes code that may no longer exist.</li>
         <li><strong>The four groups.</strong> CPU, wall-clock, allocation and blocking, each with the event type that answers it and the fallback when a recording carries an older one (the TLAB pair for allocation; monitor-wait and park for blocking), weighted by bytes or nanoseconds where that is the meaningful ranking. A group with no samples is reported with the profiler flag that would capture it next time.</li>
