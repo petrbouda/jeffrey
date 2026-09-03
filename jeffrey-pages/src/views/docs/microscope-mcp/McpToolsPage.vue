@@ -226,7 +226,7 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
           <tr>
             <td><code>jfr_executeQuery</code></td>
             <td><code>profileId</code>, <code>query</code></td>
-            <td>An arbitrary read-only query (<code>SELECT</code> / <code>WITH</code> only)</td>
+            <td>An arbitrary read-only query (<code>SELECT</code> / <code>WITH</code> only), one statement per call, capped at 1,000 rows and 30 seconds</td>
           </tr>
           <tr>
             <td><code>jfr_getProfileInfo</code></td>
@@ -236,7 +236,11 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
         </tbody>
       </table>
 
-      <DocsCallout type="warning" title="Query events, never events_raw">
+      <DocsCallout type="info" title="The engine is sandboxed, not just the syntax">
+        The engine behind these two is sandboxed rather than merely checked: the profile database is opened with DuckDB&rsquo;s external file access and extension autoloading disabled, so a query cannot reach the host&rsquo;s filesystem through <code>read_text</code>, <code>read_csv</code> or <code>glob</code>, and cannot <code>ATTACH</code> another database. A second statement after a semicolon is refused rather than run. What a query can reach is this profile&rsquo;s own tables, which is what the family is for.
+      </DocsCallout>
+
+      <DocsCallout type="warning" title="Query the events view, not events_raw">
         <code>jfr_listTables</code> shows both. <code>events</code> is a view over <code>events_raw</code> that splices back the one large string field the parser pools out of each row; querying <code>events_raw</code> silently returns truncated JSON in <code>fields</code>, with no error to warn you. The bundled <code>jfr-sql</code> skill carries this and the rest of the schema.
       </DocsCallout>
 

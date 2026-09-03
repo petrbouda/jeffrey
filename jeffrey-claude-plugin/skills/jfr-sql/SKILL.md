@@ -103,7 +103,15 @@ assuming.
 `jfr_executeQuery` caps rows and total characters and says so when it truncates. Aggregate in SQL
 rather than pulling rows back to count them.
 
-## No writes
+## One statement, and no way out of the database
 
-`jfr_executeModification` is not exposed to external clients. Data cleanup and frame renaming happen
-in the Jeffrey UI.
+`jfr_executeModification` is not exposed to external clients: data cleanup and frame renaming happen
+in the Jeffrey UI. Two rules follow from how the read tools are sandboxed, and both fail loudly
+rather than silently:
+
+- **One statement per call.** Anything after a semicolon is refused before the query runs. Send the
+  `SELECT` on its own.
+- **The engine has no filesystem.** The profile database is opened with DuckDB's external file
+  access off, so `read_text`, `read_csv`, `read_parquet`, `glob` and `ATTACH` all fail. Nothing is
+  lost for analysis — every table you need is in this database — but a query that reaches for one
+  comes back with a permission error rather than a confusing empty result.

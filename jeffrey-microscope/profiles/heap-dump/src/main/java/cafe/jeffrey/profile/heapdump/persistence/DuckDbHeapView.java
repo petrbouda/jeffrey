@@ -191,6 +191,14 @@ public final class DuckDbHeapView implements HeapView {
         String url = "jdbc:duckdb:" + indexDbPath.toAbsolutePath();
         Properties props = new Properties();
         props.setProperty("duckdb.read_only", "true");
+        // Read-only stops a write to the index; it does nothing about the host filesystem, which a
+        // SELECT reaches through read_text/read_csv/glob unless external access is turned off. This
+        // connection serves heap queries that originate outside Jeffrey (the MCP heap_ family), so
+        // it is confined to the index it opened. Only the read path: building the index legitimately
+        // uses COPY and read_parquet, and that runs on HeapDumpIndexDb's own connection.
+        props.setProperty("enable_external_access", "false");
+        props.setProperty("autoinstall_known_extensions", "false");
+        props.setProperty("autoload_known_extensions", "false");
         Connection conn = DriverManager.getConnection(url, props);
         LOG.debug("Opened heap dump index for reading: path={} hprof_attached={}",
                 indexDbPath, hprof != null);

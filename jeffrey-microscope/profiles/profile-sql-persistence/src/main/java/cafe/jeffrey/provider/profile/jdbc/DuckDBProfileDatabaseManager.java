@@ -50,6 +50,35 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
     // cache) alive between requests; further connections are created on demand
     private static final int MIN_IDLE_CONNECTIONS = 1;
 
+    /**
+     * DuckDB settings that confine a query to this database file.
+     * <p>
+     * DuckDB treats SQL as code: its own guidance is not to run SQL from an untrusted source without
+     * sandboxing the engine first. A {@code SELECT} can reach the host filesystem through
+     * {@code read_text}, {@code read_csv}, {@code read_parquet} and {@code glob}, and can pull an
+     * extension over the network by naming one, all of which are enabled by default. That matters
+     * here because the external MCP server hands a caller's SQL string to this pool
+     * ({@code jfr_executeQuery}), and no string check in front of it is a substitute — a prefix test
+     * is not a parser, and the reach is a function call rather than a statement keyword.
+     * <p>
+     * Turning external access off costs this database nothing: nothing in Jeffrey reads or writes a
+     * file through SQL on a profile database. Ingestion goes through {@code DuckDBAppender}, and the
+     * heap-dump index, which genuinely does use {@code COPY} and {@code read_parquet}, is a separate
+     * database with its own connection. <b>A feature that needs a file function on a profile database
+     * has to weigh that against reopening this hole.</b>
+     */
+    private static final String EXTERNAL_ACCESS_SETTING = "enable_external_access";
+    private static final String EXTERNAL_ACCESS_VALUE = "false";
+
+    /**
+     * Stops a query causing an extension to be fetched and loaded. Autoloading turns naming an
+     * unknown function into a network request, which is both a way out of the sandbox above and a
+     * surprising cost inside an ordinary query.
+     */
+    private static final String AUTOINSTALL_EXTENSIONS_SETTING = "autoinstall_known_extensions";
+    private static final String AUTOLOAD_EXTENSIONS_SETTING = "autoload_known_extensions";
+    private static final String EXTENSION_AUTOLOADING_VALUE = "false";
+
     private static final String WAL_AUTOCHECKPOINT_PROPERTY = "wal_autocheckpoint";
 
     /**
@@ -109,6 +138,9 @@ public class DuckDBProfileDatabaseManager implements DatabaseManager {
                 .keepAliveTime(Duration.ZERO)
                 .additionalProperty(WAL_AUTOCHECKPOINT_PROPERTY, WAL_AUTOCHECKPOINT_THRESHOLD)
                 .additionalProperty(PRESERVE_INSERTION_ORDER_SETTING, PRESERVE_INSERTION_ORDER_VALUE)
+                .additionalProperty(EXTERNAL_ACCESS_SETTING, EXTERNAL_ACCESS_VALUE)
+                .additionalProperty(AUTOINSTALL_EXTENSIONS_SETTING, EXTENSION_AUTOLOADING_VALUE)
+                .additionalProperty(AUTOLOAD_EXTENSIONS_SETTING, EXTENSION_AUTOLOADING_VALUE)
                 .build();
 
         return DataSourceProvider.open(params);

@@ -39,6 +39,17 @@ public class DuckDbMcpTools {
     private static final int MAX_ROWS = 1000;
     private static final int MAX_QUERY_RESULT_LENGTH = 50000;
 
+    /**
+     * How long a caller's query may run. Matches the heap side's SqlExecutor, which is the existing
+     * precedent. Without it a cartesian join holds one of the profile pool's connections until the
+     * process dies, and that pool is the one the UI reads the same profile through.
+     */
+    private static final int QUERY_TIMEOUT_SECONDS = 30;
+
+    private static final String MULTIPLE_STATEMENTS_MESSAGE =
+            "Only one statement per call. Send the SELECT on its own, without a second statement "
+                    + "after a semicolon.";
+
     private final DataSource dataSource;
     private final boolean canModify;
 
@@ -129,22 +140,46 @@ public class DuckDbMcpTools {
             return "Error: Query is required";
         }
 
+        // Defence in depth, and deliberately not the boundary. What confines this query is the
+        // connection: the profile DataSource disables DuckDB's external file access and extension
+        // autoloading, so no spelling of a SELECT reaches read_text, glob or ATTACH. A prefix test
+        // could never do that on its own -- it is a string check, not a parser, and the reach is a
+        // function call rather than a leading keyword. It stays only to turn an obvious write into
+        // a clear message instead of an engine error.
         String normalizedQuery = query.trim().toLowerCase();
         if (!normalizedQuery.startsWith("select") && !normalizedQuery.startsWith("with")) {
-            return "Error: Only SELECT queries are allowed for security reasons";
+            return "Error: Only SELECT and WITH queries are allowed";
         }
 
-        // Add LIMIT if not present
-        String safeQuery = query;
-        if (!normalizedQuery.contains("limit")) {
-            safeQuery = query + " LIMIT " + MAX_ROWS;
+        // prepareStatement, not createStatement, for three reasons. DuckDB refuses a prepared
+        // statement carrying more than one statement, so ';' cannot smuggle a second one in. The row
+        // cap and the timeout are enforced by the driver rather than by appending text, which the
+        // old "does the query contain the word limit" test got wrong in both directions -- a query
+        // mentioning it in a comment or an alias went uncapped, and a trailing line comment
+        // swallowed the appended clause. And Statement.executeQuery reports every binder failure as
+        // "unsuccessful or closed pending query result", where a prepared statement surfaces the
+        // engine's real message: the missing column, or the permission error from the sandbox above.
+        // That message is the only thing the caller can act on.
+        if (carriesMultipleStatements(query)) {
+            return "Error: " + MULTIPLE_STATEMENTS_MESSAGE;
         }
 
+        // prepareStatement, not createStatement, for the error messages: Statement.executeQuery
+        // reports a missing column, a missing table and a refusal from the sandbox identically, as
+        // "unsuccessful or closed pending query result", where a prepared statement carries the
+        // engine's real message. That message is the only thing a caller can correct itself from.
+        //
+        // The row cap is applied while reading, not with setMaxRows: DuckDB's driver accepts that
+        // call and ignores it (getMaxRows stays 0). Reading is cheap because results stream, so
+        // stopping at the cap does not make the engine materialise the rest.
         try (Connection conn = dataSource.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(safeQuery)) {
+             PreparedStatement stmt = conn.prepareStatement(query)) {
 
-            return formatResultSet(rs);
+            stmt.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                return formatResultSet(rs);
+            }
         } catch (SQLException e) {
             LOG.error("Failed to execute query: query={} message={}", query, e.getMessage(), e);
             return "Error: Query execution failed: " + e.getMessage();
@@ -239,14 +274,18 @@ public class DuckDbMcpTools {
                 WHERE event_type = ?
                 """);
 
+        if (whereClause != null && !whereClause.isBlank() && carriesMultipleStatements(whereClause)) {
+            return "Error: " + MULTIPLE_STATEMENTS_MESSAGE;
+        }
+
         if (whereClause != null && !whereClause.isBlank()) {
-            // Basic SQL injection prevention
-            String sanitized = whereClause.toLowerCase();
-            if (sanitized.contains("drop") || sanitized.contains("delete") ||
-                    sanitized.contains("insert") || sanitized.contains("update") ||
-                    sanitized.contains("alter") || sanitized.contains("create")) {
-                return "Error: Invalid WHERE clause: contains forbidden keywords";
-            }
+            // The fragment is caller-supplied SQL spliced into the statement, and it is confined by
+            // the same thing executeQuery is: the connection has no filesystem and no extension
+            // loading, so the worst a fragment can do is read this profile's own tables -- which is
+            // what the tool is for. The keyword denylist that used to stand here was worse than
+            // nothing: it missed ATTACH, COPY and every file function, so a scalar subquery walked
+            // straight through the AND (...) it lands in, while it rejected honest filters over any
+            // value containing "created" or "updated".
             queryBuilder.append(" AND (").append(whereClause).append(")");
         }
 
@@ -257,6 +296,7 @@ public class DuckDbMcpTools {
 
             stmt.setString(1, eventType);
             stmt.setInt(2, safeLimit);
+            stmt.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 return formatResultSet(rs);
@@ -373,9 +413,9 @@ public class DuckDbMcpTools {
         result.append("\n");
         result.append("-".repeat(widths.stream().mapToInt(Integer::intValue).sum() + widths.size())).append("\n");
 
-        // Build data rows
+        // Build data rows. Two caps: the row count, and the size of the rendered output.
         int rowCount = 0;
-        while (rs.next() && result.length() < MAX_QUERY_RESULT_LENGTH) {
+        while (rowCount < MAX_ROWS && result.length() < MAX_QUERY_RESULT_LENGTH && rs.next()) {
             for (int i = 1; i <= columnCount; i++) {
                 Object value = rs.getObject(i);
                 String strValue = value != null ? value.toString() : "NULL";
@@ -390,10 +430,91 @@ public class DuckDbMcpTools {
 
         if (result.length() >= MAX_QUERY_RESULT_LENGTH) {
             result.append("\n... (output truncated, ").append(rowCount).append(" rows shown)");
+        } else if (rowCount == MAX_ROWS && rs.next()) {
+            // Asked once more, so this says what is true rather than what is likely. A capped answer
+            // is otherwise indistinguishable from a complete one, and a reader that cannot see the
+            // cap reports the first page as the whole story.
+            result.append("\n").append(rowCount)
+                    .append(" row(s) returned - the ").append(MAX_ROWS)
+                    .append(" row cap was reached and there are more. ")
+                    .append("Aggregate in SQL rather than pulling rows back to count them.");
         } else {
             result.append("\n").append(rowCount).append(" row(s) returned");
         }
 
         return result.toString();
+    }
+
+    /**
+     * Whether the text carries more than one statement.
+     * <p>
+     * DuckDB's driver runs every statement in the string and only afterwards complains that
+     * {@code executeQuery} produced no result set — by which time the second one has already run.
+     * {@code SELECT 1; DROP TABLE events} therefore satisfies a leading-keyword check and still drops
+     * the table, which is how a tool documented as read-only turns out to write. Nothing else here
+     * stops it: the engine sandbox blocks the filesystem, not DDL against this database.
+     * <p>
+     * A semicolon inside a string literal, a quoted identifier or a comment is not a separator, so
+     * those are masked out before looking. A single trailing semicolon is a statement terminator, not
+     * a second statement.
+     */
+    static boolean carriesMultipleStatements(String sql) {
+        String masked = maskLiteralsAndComments(sql);
+        int separator = masked.indexOf(';');
+        return separator >= 0 && !masked.substring(separator + 1).isBlank();
+    }
+
+    /**
+     * The same text with every string literal, quoted identifier and comment blanked out, keeping the
+     * original length so positions still line up. Anything unterminated blanks to the end, which
+     * hides a semicolon rather than inventing one — the safe direction here is to under-report a
+     * separator inside a malformed query, since DuckDB rejects the query anyway.
+     */
+    private static String maskLiteralsAndComments(String sql) {
+        char[] out = sql.toCharArray();
+        int i = 0;
+        while (i < out.length) {
+            char current = out[i];
+            if (current == '\'' || current == '"') {
+                i = maskUntil(out, i, current);
+            } else if (current == '-' && i + 1 < out.length && out[i + 1] == '-') {
+                while (i < out.length && out[i] != '\n') {
+                    out[i++] = ' ';
+                }
+            } else if (current == '/' && i + 1 < out.length && out[i + 1] == '*') {
+                i = maskBlockComment(out, i);
+            } else {
+                i++;
+            }
+        }
+        return new String(out);
+    }
+
+    /** Blanks a quoted run, including both quotes, and returns the index just past it. */
+    private static int maskUntil(char[] out, int start, char quote) {
+        out[start] = ' ';
+        int i = start + 1;
+        while (i < out.length) {
+            boolean closing = out[i] == quote;
+            out[i++] = ' ';
+            if (closing) {
+                return i;
+            }
+        }
+        return i;
+    }
+
+    private static int maskBlockComment(char[] out, int start) {
+        int i = start;
+        out[i++] = ' ';
+        while (i < out.length) {
+            boolean closing = out[i] == '*' && i + 1 < out.length && out[i + 1] == '/';
+            out[i++] = ' ';
+            if (closing) {
+                out[i++] = ' ';
+                return i;
+            }
+        }
+        return i;
     }
 }
