@@ -31,6 +31,7 @@ const headings = [
   { id: 'uploads', text: 'File Uploads', level: 2 },
   { id: 'core-directories', text: 'Core Directories', level: 2 },
   { id: 'update-check', text: 'Update Check', level: 2 },
+  { id: 'mcp-server', text: 'MCP Server', level: 2 },
   { id: 'ai-assistant', text: 'AI Assistant', level: 2 },
   { id: 'advisor', text: 'Advisor', level: 2 }
 ];
@@ -149,6 +150,29 @@ onMounted(() => {
             <td>
               Periodically checks GitHub releases for new Microscope versions.
               Set to <code>false</code> in air-gapped environments.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="mcp-server">MCP Server</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>jeffrey.microscope.mcp.enabled</code></td>
+            <td><code>true</code></td>
+            <td>
+              Serves the read-only MCP endpoint at <code>/api/internal/mcp</code>, which an external
+              Claude Code session reads profiles through. Set to <code>false</code> to make it answer
+              <code>404</code>. Read at startup, so a change takes a restart. See
+              <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
             </td>
           </tr>
         </tbody>

@@ -68,8 +68,8 @@ const removal = `/plugin uninstall microscope@jeffrey`;
     <div class="docs-content">
       <p>The <strong>Microscope plugin</strong> packages the MCP server together with a few skills, so connecting is one install rather than a hand-written command per machine and per repository. It is a convenience over the plain server &mdash; everything it does can be done by hand, as <router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> describes.</p>
 
-      <DocsCallout type="warning" title="Enable the server first">
-        The plugin will install and load whether or not Jeffrey is serving, and then every tool call fails. Turn the server on in <strong>Settings &rarr; Claude Code (MCP)</strong> &mdash; see <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
+      <DocsCallout type="info" title="Jeffrey has to be running">
+        The plugin installs and loads whether or not Jeffrey is serving, and then every tool call fails. The server is on by default, so a running Jeffrey is usually all it takes &mdash; <strong>Settings &rarr; Claude Code (MCP)</strong> reports whether the endpoint is serving. See <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
       </DocsCallout>
 
       <h2 id="install-it">Install It</h2>
@@ -118,7 +118,7 @@ const removal = `/plugin uninstall microscope@jeffrey`;
       <p>To remove it:</p>
       <DocsCodeBlock :code="removal" language="bash" />
 
-      <p>Uninstalling takes the skills with it. It does not change anything inside Jeffrey &mdash; the MCP server stays enabled until you turn it off in Settings.</p>
+      <p>Uninstalling takes the skills with it. It does not change anything inside Jeffrey &mdash; the MCP server keeps serving.</p>
     </div>
 
     <DocsNavFooter />

@@ -19,8 +19,6 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
-import cafe.jeffrey.shared.common.config.MicroscopeSettingKeys;
-import cafe.jeffrey.shared.common.config.SettingsStore;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,8 +27,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-
-import java.util.Map;
 
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -57,19 +53,15 @@ class ExternalMcpControllerTest {
     McpToolsetAssembler assembler;
 
     private MockMvcTester mvcWith(boolean enabled) {
-        SettingsStore settingsStore = new SettingsStore(
-                Map.of(MicroscopeSettingKeys.MCP_ENABLED, "false"),
-                Map.of(MicroscopeSettingKeys.MCP_ENABLED, String.valueOf(enabled)));
-        return mockMvcTesterFor(new ExternalMcpController(assembler, settingsStore));
+        return mockMvcTesterFor(new ExternalMcpController(assembler, new ExternalMcpProperties(enabled)));
     }
 
     @Nested
     class Disabled {
 
         /**
-         * A disabled server should look like no server at all, so a client that was pointed at a
-         * Jeffrey with the toggle off gets a clean "no such endpoint" rather than a refusal it might
-         * retry.
+         * A disabled server should look like no server at all, so a client pointed at a Jeffrey that
+         * turned the endpoint off gets a clean "no such endpoint" rather than a refusal it might retry.
          */
         @Test
         void answers404() {

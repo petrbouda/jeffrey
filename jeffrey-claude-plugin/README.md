@@ -11,11 +11,11 @@ Full documentation: [Microscope MCP](https://www.jeffrey-analyst.cafe/docs/micro
 
 ## Install
 
-Jeffrey's MCP server is **off by default**. Turn it on first:
+Jeffrey's MCP server is **on by default** — a running Jeffrey is already serving it.
+**Settings → Claude Code (MCP)** reports whether the endpoint is serving and shows the
+connection details for this installation.
 
-> **Settings → Claude Code (MCP) → enable**
-
-Then, from Claude Code:
+From Claude Code:
 
 ```
 /plugin marketplace add petrbouda/jeffrey

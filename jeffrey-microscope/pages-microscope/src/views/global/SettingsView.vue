@@ -640,23 +640,23 @@
         <div class="settings-form-grid settings-form-grid-single">
           <div class="settings-form-group">
             <label class="settings-label">MCP Server</label>
-            <div class="form-check form-switch">
-              <input
-                id="mcpEnabledToggle"
-                class="form-check-input"
-                type="checkbox"
-                role="switch"
-                :checked="mcpEnabled"
-                @change="onMcpToggle(($event.target as HTMLInputElement).checked)"
+            <div class="mcp-state">
+              <Badge
+                :value="mcpEnabled ? 'Serving' : 'Disabled'"
+                :variant="mcpEnabled ? 'success' : 'secondary'"
+                :icon="mcpEnabled ? 'bi bi-check-circle-fill' : 'bi bi-slash-circle'"
+                size="s"
               />
-              <label class="form-check-label" for="mcpEnabledToggle">
-                {{ mcpEnabled ? 'Enabled' : 'Disabled' }}
-              </label>
             </div>
             <div class="settings-hint">
               Lets an interactive Claude Code session in your own repository read this Jeffrey —
               list the analysed profiles, query their DuckDB tables, and pull flamegraph, trace and
               heap dump exports. Every tool is read-only.
+            </div>
+            <div v-if="!mcpEnabled" class="settings-hint">
+              Serving is on unless the deployment turns it off. This one sets
+              <code>jeffrey.microscope.mcp.enabled=false</code>, so the endpoint answers
+              <code>404</code>. Remove that property and restart Jeffrey to serve again.
             </div>
           </div>
         </div>
@@ -871,8 +871,10 @@ const previewSingleLine = ref<HTMLCanvasElement | null>(null);
 const previewTwoLine = ref<HTMLCanvasElement | null>(null);
 
 const aiToggle = ref(false);
-const mcpEnabled = ref(false);
 const mcpStatus = ref<McpAccessStatus | null>(null);
+// Whether the endpoint serves is the server's answer, not a stored preference: it comes from an
+// application property fixed at startup, so the page reports it rather than offering to change it.
+const mcpEnabled = computed(() => mcpStatus.value?.enabled === true);
 const aiEnabled = computed(() => aiToggle.value);
 
 const isOllama = computed(() => settings.get('jeffrey.microscope.ai.provider') === 'ollama');
@@ -1077,10 +1079,7 @@ onMounted(async () => {
     }
 
     aiToggle.value = settings.get('jeffrey.microscope.ai.provider') !== 'none';
-    mcpEnabled.value = settings.get('jeffrey.microscope.mcp.enabled') === 'true';
-    if (mcpEnabled.value) {
-      await loadMcpStatus();
-    }
+    await loadMcpStatus();
     frameTextMode.value =
       settings.get('jeffrey.microscope.visualization.flamegraph.frame-text-mode') || 'single-line';
 
@@ -1305,29 +1304,6 @@ async function loadMcpStatus() {
   } catch (e) {
     console.error('Failed to load MCP status', e);
     mcpStatus.value = null;
-  }
-}
-
-/**
- * Saved immediately rather than behind a Save button: it is one switch, and the value it writes is
- * the whole of what the tab configures.
- */
-async function onMcpToggle(enabled: boolean) {
-  mcpEnabled.value = enabled;
-  setSetting('jeffrey.microscope.mcp.enabled', String(enabled));
-  await save(
-    [
-      {
-        category: 'mcp',
-        name: 'jeffrey.microscope.mcp.enabled',
-        value: String(enabled),
-        secret: false
-      }
-    ],
-    () => ToastService.success('Settings', enabled ? 'MCP server enabled' : 'MCP server disabled')
-  );
-  if (enabled) {
-    await loadMcpStatus();
   }
 }
 
@@ -1876,6 +1852,10 @@ function announceAiChange(message: string) {
 }
 
 /* Claude Code (MCP) tab */
+.mcp-state {
+  margin-bottom: 8px;
+}
+
 .mcp-snippet {
   display: flex;
   align-items: flex-start;

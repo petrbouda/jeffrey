@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.configuration;
 
+import cafe.jeffrey.microscope.core.mcp.ExternalMcpProperties;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
 import cafe.jeffrey.microscope.core.mcp.McpToolsetAssembler;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
@@ -25,6 +26,7 @@ import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -33,12 +35,22 @@ import java.time.Clock;
 /**
  * Wiring for the external MCP server — the endpoint an interactive Claude Code session connects to.
  * <p>
- * Registered unconditionally, like the rest of the AI wiring: whether the server answers is a question
- * the controller asks the settings on each request, so turning it on is a change of answer rather than
- * a change of wiring, and needs no restart.
+ * The server is on by default. Whether it answers at all is read once here, from an application
+ * property rather than from the live settings: exposing every profile to whatever can reach the address
+ * belongs with the bind address and the reverse proxy, decided when the installation is deployed, not
+ * with the preferences a reader edits in the UI.
  */
 @Configuration
 public class McpConfiguration {
+
+    /**
+     * @param enabled whether the endpoint serves, from {@code jeffrey.microscope.mcp.enabled}
+     */
+    @Bean
+    public ExternalMcpProperties externalMcpProperties(
+            @Value("${jeffrey.microscope.mcp.enabled:true}") boolean enabled) {
+        return new ExternalMcpProperties(enabled);
+    }
 
     /**
      * Holds each profile an MCP client is working on open between its questions, and lets go once the
