@@ -234,7 +234,8 @@ export const microscopeMcpNavigation: DocSection[] = [
     icon: 'bi-list-columns',
     children: [
       { title: 'Tool Reference', to: '/docs/microscope-mcp/tools' },
-      { title: 'Skills', to: '/docs/microscope-mcp/skills' }
+      { title: 'Skills', to: '/docs/microscope-mcp/skills' },
+      { title: 'Subagent', to: '/docs/microscope-mcp/agent' }
     ]
   },
   {
