@@ -25,6 +25,8 @@ import cafe.jeffrey.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.profile.manager.FlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileConfigurationManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.profile.manager.VmOperationManager;
 import cafe.jeffrey.profile.manager.gc.GarbageCollectionManager;
 import cafe.jeffrey.profile.manager.model.gc.GCEfficiency;
@@ -40,16 +42,22 @@ import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.EventSummary;
 import cafe.jeffrey.shared.common.model.EventTypeName;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import tools.jackson.databind.JsonNode;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -61,6 +69,21 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class JvmMcpToolsTest {
+
+    /**
+     * The tools build a UI link off the incoming request, the way ProfileMcpTools#link does.
+     */
+    @BeforeEach
+    void bindRequest() {
+        RequestContextHolder.setRequestAttributes(
+                new ServletRequestAttributes(new MockHttpServletRequest()));
+    }
+
+    @AfterEach
+    void unbindRequest() {
+        RequestContextHolder.resetRequestAttributes();
+    }
+
 
     private static final long MILLI_IN_NANOS = 1_000_000L;
 
@@ -83,6 +106,10 @@ class JvmMcpToolsTest {
     ProfileConfigurationManager configurationManager;
 
     private JvmMcpTools tools() {
+        // Every rendered section carries a link to the page it is drawn on, built from the profile id.
+        when(profileManager.info()).thenReturn(new ProfileInfo(
+                "p-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
+                Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         return new JvmMcpTools(profileManager);
     }
 

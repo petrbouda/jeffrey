@@ -108,7 +108,7 @@ public class HeapDumpMcpTools {
             }
 
             result.append("\n").append(entries.size()).append(" class(es) returned");
-            return result.toString();
+            return withNextSteps(result.toString(), STEP_INSTANCES, STEP_GC_ROOT_PATH);
         } catch (Exception e) {
             LOG.error("Failed to get class histogram: message={}", e.getMessage(), e);
             return "Error: Failed to get class histogram: " + e.getMessage();
@@ -148,7 +148,7 @@ public class HeapDumpMcpTools {
                         entry.objectId()));
             }
 
-            return result.toString();
+            return withNextSteps(result.toString(), STEP_GC_ROOT_PATH, STEP_DOMINATOR_FIRST);
         } catch (Exception e) {
             LOG.error("Failed to get biggest objects: message={}", e.getMessage(), e);
             return "Error: Failed to get biggest objects: " + e.getMessage();
@@ -218,7 +218,7 @@ public class HeapDumpMcpTools {
                 }
             }
 
-            return result.toString();
+            return withNextSteps(result.toString(), STEP_GC_ROOT_PATH, STEP_DOMINATOR_FIRST);
         } catch (Exception e) {
             LOG.error("Failed to get leak suspects: message={}", e.getMessage(), e);
             return "Error: Failed to get leak suspects: " + e.getMessage();
@@ -689,7 +689,7 @@ public class HeapDumpMcpTools {
             + "class (loaded Java classes), instance (every live object), outbound_ref (reference graph), "
             + "gc_root (GC root entries), dominator (dominator tree), retained_size (retained heap sizes per instance), "
             + "string (HPROF string pool), dump_metadata (parser + heap-shape metadata). "
-            + "Use describeTable to get column types for a specific table.")
+            + "Use heap_describeTable to get column types for a specific table.")
     public String listTables() {
         OQLQueryResult result = delegate.executeQuery(new OQLQueryRequest(
                 "SELECT table_name FROM information_schema.tables "
@@ -703,7 +703,7 @@ public class HeapDumpMcpTools {
         for (var row : result.results()) {
             sb.append("- ").append(row.value()).append("\n");
         }
-        sb.append("\nUse describeTable to get column types of a specific table.");
+        sb.append("\nUse heap_describeTable to get column types of a specific table.");
         return sb.toString();
     }
 
@@ -745,7 +745,7 @@ public class HeapDumpMcpTools {
 
     @Tool(description = "Execute a read-only DuckDB SQL query against the heap-dump index database. "
             + "Only SELECT and WITH (CTE) queries are accepted; results are capped at 100 rows and a 30-second timeout. "
-            + "Use listTables/describeTable first to learn the schema. "
+            + "Use heap_listTables and heap_describeTable first to learn the schema. "
             + "Tips: (1) join `instance` with `class` on class_id to get class names; "
             + "(2) join with `retained_size` on instance_id for retained-heap totals; "
             + "(3) use `outbound_ref` (source_id, target_id, field_kind, field_id) to walk the reference graph; "
@@ -805,4 +805,31 @@ public class HeapDumpMcpTools {
         }
         return s.substring(0, maxLength - 3) + "...";
     }
+
+    /**
+     * Where the next answer lives, appended to a report.
+     * <p>
+     * These reports name an object or a class and stop; the tool that turns that observation into a
+     * cause is a separate call, and the description saying so was read many turns earlier. The lines
+     * route and never diagnose - none of them claims the figures above are bad.
+     */
+    private static String withNextSteps(String body, String... steps) {
+        StringBuilder builder = new StringBuilder(body)
+                .append("\nWhere to go next:");
+        for (String step : steps) {
+            builder.append("\n- ").append(step);
+        }
+        return builder.toString();
+    }
+
+    private static final String STEP_GC_ROOT_PATH =
+            "A size is an observation, not a cause. heap_getPathToGCRoot on an object id says why "
+                    + "those instances are still reachable, which is what makes a leak claim checkable.";
+    private static final String STEP_DOMINATOR_FIRST =
+            "Retained sizes and the dominator tree are built lazily: run heap_getDominatorTreeRoots "
+                    + "once before ranking by retained size, or every retained figure is missing rather "
+                    + "than zero.";
+    private static final String STEP_INSTANCES =
+            "heap_browseClassInstances lists the individual instances of a class, and "
+                    + "heap_getInstanceDetail opens one of them.";
 }

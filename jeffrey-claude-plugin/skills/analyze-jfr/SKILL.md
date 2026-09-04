@@ -37,11 +37,18 @@ A profile whose `event source` column reads `HEAP_DUMP` is a heap dump: switch t
 
 | Family | Tools |
 |---|---|
-| `profiles_` | `list`, `get` (identity, recording window, size, source commit), `features`, `link` (deep link into the Jeffrey UI) |
+| `profiles_` | `list`, `get` (identity, recording window, size, source commit), `features`, `samplerHealth` (whether the samples can be trusted), `link` (the profile in the Jeffrey UI), `viewLink` (one named page) |
 | `flamegraph_` | `list` (which event types this profile can graph — call it first), `export` (the call tree as Markdown) |
 | `compare_` | `list` (whether two profiles are comparable at all — call it first), `movements` (what moved, ranked), `flamegraph` (the differential call tree) — the `compare-jfr` skill has the workflow |
 | `traces_` | `overview`, `operations`, `notifications`, `operationExport`, `slowestTraces`, `traceExport`, `spanFlamegraphExport`, `operationFlamegraphExport` |
-| `jvm_` | `sections` (call it first), `autoAnalysis`, `gc`, `safepoints`, `jit`, `threads`, `nativeMemory`, `container`, `configuration` — the machine underneath the application |
+| `jvm_` | `sections` (call it first), `autoAnalysis`, `gc`, `safepoints`, `jit`, `threads`, `threadDumps`, `threadDump`, `nativeMemory`, `container`, `configuration`, `flags` — the machine underneath the application |
+| `http_` | `overview`, `endpoint` — the HTTP traffic the application served |
+| `jdbc_` | `overview`, `statementGroup`, `pools` — the queries it ran, and the pool in front of them |
+| `grpc_` | `overview`, `service`, `traffic` — gRPC latency, and the message sizes moved |
+| `methodtracing_` | `overview`, `slowest`, `timing` — instrumented method timings (JEP 520) |
+| `io_` | `overview`, `endpoints`, `slowest` — socket and file I/O, the waiting a CPU graph cannot see |
+| `blocking_` | `overview`, `monitors`, `pinnedThreads` — contended locks, waits, parks, virtual-thread pinning |
+| `timeline_` | `hotWindows` (when the samples landed), `zoom` (sub-second, inside one window) |
 | `jfr_` | `listTables`, `describeTable`, `listEventTypes`, `queryEvents`, `executeQuery`, `getProfileInfo` — raw DuckDB when no purpose-built tool fits; the `jfr-sql` skill has the schema |
 | `heap_` | Everything a heap dump answers — the `analyze-heap` skill has the order to run it in |
 | `recordings_` | `analyzeFile` (a file not in Jeffrey yet), `analyzeRecording` (uploaded but never analysed), `list` (the Quick Analysis store) |
@@ -79,7 +86,9 @@ the code that produced it.
 
 ## Latency: work the traces first
 
-"This endpoint is slow" is a traces question before it is a flamegraph question:
+"This endpoint is slow" is a traces question before it is a flamegraph question. When the profile has
+no traces, `http_overview` and `jdbc_overview` answer the same question in aggregate — see the
+technology families below. With traces, they answer it request by request:
 
 1. `traces_overview` — totals, and how many **notifications** were raised inside traces.
    Notifications are `jeffrey.Notification` events an instrumented application emits about
@@ -117,6 +126,9 @@ Follow it: the figures are one half of an answer, and the other half is usually 
 | `jvm_nativeMemory` | RSS and its growth, direct buffers, NMT categories — memory outside the Java heap |
 | `jvm_container` | cgroup limits and whether the scheduler throttled the process |
 | `jvm_configuration` | What the JVM was started with, in the UI's own tabs; one section at a time |
+| `jvm_flags` | The flag list with each value's **origin** — default, command line, or the JVM's own ergonomics |
+| `jvm_threadDumps` | The dumps together: deadlocks, monitors threads queued on, threads stuck across dumps |
+| `jvm_threadDump` | One dump in full, every thread with its state and stack |
 
 Four things the tools know and a hand-written query does not:
 
@@ -132,12 +144,85 @@ Four things the tools know and a hand-written query does not:
   event is threshold-gated, and the compiler statistics are there either way. A method
   deoptimising over and over ran interpreted for part of the recording, and the reason
   (`unstable_if`, `class_check`) is the pointer into the source.
-- **Before proposing any flag,** read `jvm_configuration`. A tuning claim is only worth making
-  against the values the JVM really ran with, not against what a deployment manifest says.
+- **Before proposing any flag,** read `jvm_flags` — it is the only place that separates a flag
+  somebody set from one the JVM's ergonomics chose, and the two justify very different advice.
+  `jvm_configuration` is the companion read: the collector, heap and compiler settings that resulted.
+  A tuning claim is worth making against those values, never against a deployment manifest.
+- **"It stopped responding"** is `jvm_threadDumps`, not a flamegraph. A deadlock or a pool all
+  blocked on one lock produces no samples worth graphing; it produces threads sitting still, which
+  only the dumps show.
 
 `jvm_autoAnalysis` reads a cache the Jeffrey UI fills; when it has not been computed the tool says
 so and the other sections still answer. For anything these do not shape — a distribution over
 time, a correlation between two event types — the `jfr-sql` skill has the schema and the queries.
+
+## The edges of the application: `http_`, `jdbc_`, `grpc_`, `methodtracing_`
+
+Where `jvm_` answers for the machine, these answer for what the application did at its boundaries.
+Each `_overview` is the whole dashboard in one call — the header totals, the entities ranked, the
+status breakdown and the slowest individual operations — so reach for a drill-down only to narrow to
+one endpoint, service or statement group.
+
+| Tool | The question it answers |
+|---|---|
+| `http_overview` | Requests, response-time percentiles, success rate, 4xx/5xx, endpoints by traffic, slowest requests |
+| `http_endpoint` | The same for one URI, taken from the endpoints list |
+| `jdbc_overview` | Statement count and percentiles, the operation mix, statement groups by cost, slowest statements with their SQL |
+| `jdbc_statementGroup` | The same, narrowed to one group |
+| `jdbc_pools` | Configured min/max against peak and average use, threads that waited, acquisition timeouts |
+| `grpc_overview` / `grpc_service` | gRPC latency overall and per service, broken down by method |
+| `grpc_traffic` | Message sizes rather than timings — where an oversized payload shows up |
+| `methodtracing_overview` / `_slowest` / `_timing` | Instrumented method timings: by cost, the worst invocations, the JVM's own aggregates |
+
+Three things worth knowing before reading them:
+
+- **"This endpoint is slow" starts here, not in a flamegraph.** `http_overview` names the endpoint
+  and `jdbc_overview` says whether the database is the reason, in two calls. Go to `traces_` when
+  the question is *which request* and what it did span by span, and to `flamegraph_export` once the
+  question is which frames burned the time.
+- **Slow requests whose statements are all fast are usually waiting for a connection.** That is
+  `jdbc_pools`, and nothing in the statement view can show it — a pool with acquisition timeouts
+  makes every query look fine while the request waits in front of them.
+- **Server-side only.** HTTP and gRPC read the server exchange events; there is no client-side data
+  behind the UI's client/server switch, so these tools take no direction argument. The per-second
+  chart series are left out on purpose — the percentiles carry the same information, and the shape
+  over time is what the `uiLink` on each answer is for.
+
+An event type the recording never captured is reported in words rather than as a zeroed dashboard:
+"no HTTP server data" is a finding about the profiler's configuration, not a healthy service.
+
+## When, not where: the `timeline_` family
+
+A flamegraph of a whole recording flattens a thirty-second spike into a five-minute average, and the
+spike stops being visible. `flamegraph_export`, `compare_flamegraph` and the trace exports all take
+`startMs` and `endMs`, and nothing else in the surface helps you choose them.
+
+1. `timeline_hotWindows` with the event type — the recording bucketed, the busiest windows ranked,
+   and a one-line shape so a steady load, a ramp and a single burst are told apart. Pass `useWeight`
+   for bytes or nanoseconds rather than sample counts.
+2. `flamegraph_export` with the `startMs` and `endMs` of the window it named. That graph shows what
+   the whole-recording one averaged away.
+3. `timeline_zoom` when a second is too coarse — a startup, or the inside of one spike. It is the
+   only view that resolves below a second.
+
+Neither returns the raw series: what comes back is the ranked windows and the shape, because a curve
+is thousands of numbers a reader cannot act on and the window bounds are the part the next tool takes.
+
+## Waiting rather than running: `io_` and `blocking_`
+
+A thread blocked on a socket read or a monitor is not on-CPU, so it contributes no samples and a CPU
+flamegraph reports the application as idle rather than as waiting. These two families are where that
+time is.
+
+- `io_overview` with kind `SOCKET` or `FILE`, then `io_endpoints` for the targets and `io_slowest`
+  for the individual operations. "What is this talking to, and how slow is it."
+- `blocking_overview` for contended monitors, waits, parks, sleeps and virtual-thread pinning, then
+  `blocking_monitors` — aggregated per lock, which names the monitor rather than the call site that
+  happened to hit it — and `blocking_pinnedThreads` for Loom.
+
+Both report whether the event type was recorded at all, because these events are threshold-gated: a
+recording can hold none because nothing blocked for long enough as well as because the profiler was
+never asked. The two are different findings and the tools distinguish them.
 
 ## Hand the reading to the analyst
 

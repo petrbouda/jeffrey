@@ -28,11 +28,16 @@ import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.shared.common.model.EventSummary;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
@@ -40,12 +45,29 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class ProfileMcpToolsTest {
+
+    /**
+     * The tools build a UI link off the incoming request, the way ProfileMcpTools#link does.
+     */
+    @BeforeEach
+    void bindRequest() {
+        RequestContextHolder.setRequestAttributes(
+                new ServletRequestAttributes(new MockHttpServletRequest()));
+    }
+
+    @AfterEach
+    void unbindRequest() {
+        RequestContextHolder.resetRequestAttributes();
+    }
+
 
     private static final Instant START = Instant.parse("2026-01-01T10:00:00Z");
 
@@ -157,6 +179,53 @@ class ProfileMcpToolsTest {
 
             assertTrue(result.contains(FeatureType.SUBSECOND.name()));
             assertTrue(result.contains(FeatureType.TIMESERIES.name()));
+        }
+    }
+
+    @Nested
+    class ViewLink {
+
+        @Test
+        void buildsALinkToTheNamedView() {
+            stubProfile(RecordingEventSource.JDK);
+
+            assertTrue(tools().viewLink("garbage-collection", null)
+                    .endsWith("/profiles/p-1/garbage-collection"));
+        }
+
+        @Test
+        void keepsAMultiSegmentViewIntact() {
+            stubProfile(RecordingEventSource.JDK);
+
+            assertTrue(tools().viewLink("heap-dump/leak-suspects", null)
+                    .endsWith("/profiles/p-1/heap-dump/leak-suspects"));
+        }
+
+        /**
+         * The one curated view that takes an argument; every other view ignores it rather than
+         * carrying a parameter it does not read.
+         */
+        @Test
+        void passesAnObjectIdOnlyToTheGcRootPathView() {
+            stubProfile(RecordingEventSource.JDK);
+
+            assertTrue(tools().viewLink("heap-dump/gc-root-path", "42").endsWith("?objectId=42"));
+            assertFalse(tools().viewLink("garbage-collection", "42").contains("objectId"));
+        }
+
+        /**
+         * A wrong guess has to fail as a wrong guess: a silently accepted name would become a link
+         * that 404s into the SPA fallback, which the reader only discovers after clicking it.
+         */
+        @Test
+        void refusesAnUnknownViewAndNamesTheValidOnes() {
+            stubProfile(RecordingEventSource.JDK);
+
+            IllegalArgumentException thrown = assertThrows(
+                    IllegalArgumentException.class, () -> tools().viewLink("gc", null));
+
+            assertTrue(thrown.getMessage().contains("Unknown view 'gc'"), thrown.getMessage());
+            assertTrue(thrown.getMessage().contains("garbage-collection"), thrown.getMessage());
         }
     }
 }

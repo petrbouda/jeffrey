@@ -19,17 +19,21 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
+import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import org.springframework.ai.tool.annotation.Tool;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * What can be said about one profile before analysing anything in it: its identity, what it is capable
@@ -41,7 +45,57 @@ import java.util.List;
  */
 public class ProfileMcpTools {
 
-    private static final String PROFILE_UI_PATH = "/profiles/%s";
+    /**
+     * The views a link can point at. Curated rather than a mirror of every route: a name here is a
+     * promise that the page answers something, and an unknown one is rejected with the list, so a
+     * wrong guess fails loudly instead of becoming a link that 404s after the reader clicks it.
+     * <p>
+     * A name is the route's own sub-path, so the set doubles as the mapping.
+     */
+    private static final Set<String> VIEWS = Set.of(
+            "dashboard",
+            "auto-analysis",
+            "overview",
+            "event-types",
+            "flags",
+            "garbage-collection",
+            "garbage-collection/timeseries",
+            "garbage-collection/configuration",
+            "allocations",
+            "nmt",
+            "native-memory",
+            "memory-issues/leak-candidates",
+            "thread-statistics",
+            "threads-timeline",
+            "virtual-threads",
+            "thread-dumps",
+            "jit-compilation",
+            "class-loading",
+            "exceptions",
+            "vm-operations",
+            "container/cpu-throttling",
+            "blocking-operations",
+            "socket-io",
+            "file-io",
+            "heap-dump/leak-suspects",
+            "heap-dump/biggest-objects",
+            "heap-dump/dominator-tree",
+            "heap-dump/histogram",
+            "heap-dump/gc-root-path");
+
+    private static final String NO_SAMPLER_HEALTH =
+            "This profile carries no jdk.CPUTimeSampleLoss events, so there is nothing to say about "
+                    + "dropped samples. That event type comes with JDK 25's CPU-time sampler (JEP 509); "
+                    + "a recording made with the older jdk.ExecutionSample sampler reports loss nowhere.";
+
+    private static final List<String> SAMPLER_HEALTH_STEPS = List.of(
+            "Loss is not spread evenly: the kernel drops samples when the queue is full, which is "
+                    + "during the busiest moments, so a lossy recording understates its own hot paths.",
+            "profiles_features lists every event type this profile recorded, with its sample totals.");
+
+    /** The one curated view that takes an argument. */
+    private static final String GC_ROOT_PATH_VIEW = "heap-dump/gc-root-path";
+    private static final String OBJECT_ID_PARAM = "objectId";
 
     private final ProfileManager profileManager;
     private final RecordingCommitResolver recordingCommitResolver;
@@ -71,7 +125,8 @@ public class ProfileMcpTools {
                 info.enabled(),
                 info.modified(),
                 profileManager.sizeInBytes(),
-                recordingCommitResolver.resolve(info.recordingId()).orElse(null)));
+                recordingCommitResolver.resolve(info.recordingId()).orElse(null),
+                UiLinks.profile(info.id())));
     }
 
     @Tool(description = "What this profile can answer: which analysis features it has the data for, and "
@@ -90,12 +145,63 @@ public class ProfileMcpTools {
                         .toList()));
     }
 
+    @Tool(description = "Whether the samples every other tool reasons over can be trusted: how many "
+            + "CPU-time samples the profiler captured, how many the kernel dropped, and how many loss "
+            + "events there were. A recording that lost a large share of its samples under load is "
+            + "biased exactly where it matters most - the busiest moments are the ones the profiler "
+            + "misses - so a flamegraph built on it understates the hot paths rather than being merely "
+            + "noisy. Worth one call before reporting shares as fact.")
+    public String samplerHealth() {
+        CpuTimeSampleLoss loss = profileManager.samplerHealthManager().cpuTimeSampleLoss();
+        if (loss == null || (loss.capturedSamples() == 0 && loss.lostSamples() == 0)) {
+            return NO_SAMPLER_HEALTH;
+        }
+
+        return McpToolOutput.json(new SamplerHealth(
+                loss.capturedSamples(),
+                loss.lostSamples(),
+                loss.lossEvents(),
+                SAMPLER_HEALTH_STEPS,
+                UiLinks.profile(profileManager.info().id())));
+    }
+
     @Tool(description = "A link that opens this profile in the Jeffrey web UI, for a reader who wants "
             + "to look at the interactive version of what was just analysed.")
     public String link() {
-        return ServletUriComponentsBuilder.fromCurrentContextPath()
-                .replacePath(PROFILE_UI_PATH.formatted(profileManager.info().id()))
-                .toUriString();
+        return UiLinks.profile(profileManager.info().id());
+    }
+
+    @Tool(description = "A link that opens one specific view of this profile in the Jeffrey web UI - "
+            + "the GC, thread, JIT and memory pages, the heap-dump reports, and the rest of the "
+            + "dashboards. Use it to hand the reader the page that shows what you just described. The "
+            + "URL is for them, not for you: it carries nothing you can analyse and reading it back "
+            + "tells you nothing, so call this to end an explanation, not to gather information.")
+    public String viewLink(
+            @ToolParam(description = "Which view to open. One of: dashboard, auto-analysis, overview, "
+                    + "event-types, flags, garbage-collection, garbage-collection/timeseries, "
+                    + "garbage-collection/configuration, allocations, nmt, native-memory, "
+                    + "memory-issues/leak-candidates, thread-statistics, threads-timeline, "
+                    + "virtual-threads, thread-dumps, jit-compilation, class-loading, exceptions, "
+                    + "vm-operations, container/cpu-throttling, blocking-operations, socket-io, "
+                    + "file-io, heap-dump/leak-suspects, heap-dump/biggest-objects, "
+                    + "heap-dump/dominator-tree, heap-dump/histogram, heap-dump/gc-root-path")
+            String view,
+            @ToolParam(description = "Object id to preselect. Only meaningful for "
+                    + "heap-dump/gc-root-path, where it runs the path-to-GC-root search for that "
+                    + "object; ignored by every other view.")
+            String objectId) {
+
+        if (!VIEWS.contains(view)) {
+            throw new IllegalArgumentException(
+                    "Unknown view '" + view + "'. Valid views: "
+                            + String.join(", ", VIEWS.stream().sorted().toList()));
+        }
+
+        Map<String, String> query = UiLinks.query();
+        if (GC_ROOT_PATH_VIEW.equals(view)) {
+            query.put(OBJECT_ID_PARAM, objectId);
+        }
+        return UiLinks.view(profileManager.info().id(), view, query);
     }
 
     /**
@@ -123,6 +229,14 @@ public class ProfileMcpTools {
             List<RecordedEventType> eventTypes) {
     }
 
+    private record SamplerHealth(
+            long capturedSamples,
+            long lostSamples,
+            long lossEvents,
+            List<String> nextSteps,
+            String uiLink) {
+    }
+
     private record RecordedEventType(String name, String label, long samples, long weight) {
     }
 
@@ -139,6 +253,7 @@ public class ProfileMcpTools {
             boolean enabled,
             boolean modified,
             long sizeInBytes,
-            String recordingCommit) {
+            String recordingCommit,
+            String uiLink) {
     }
 }

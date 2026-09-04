@@ -19,6 +19,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
@@ -27,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -58,7 +58,6 @@ public class RecordingsMcpTools {
 
     private static final Logger LOG = LoggerFactory.getLogger(RecordingsMcpTools.class);
 
-    private static final String PROFILE_UI_PATH = "/profiles/%s";
     private static final String HOME_PREFIX = "~";
     private static final String USER_HOME_PROPERTY = "user.home";
 
@@ -155,7 +154,7 @@ public class RecordingsMcpTools {
                 recordingId,
                 name == null || name.isBlank() ? recording.recordingName() : name.trim(),
                 eventSourceOf(recording),
-                uiLink(profileId)));
+                UiLinks.profile(profileId)));
     }
 
     /**
@@ -202,12 +201,6 @@ public class RecordingsMcpTools {
     private static String eventSourceOf(Recording recording) {
         RecordingEventSource eventSource = recording.eventSource();
         return eventSource == null ? RecordingEventSource.UNKNOWN.name() : eventSource.name();
-    }
-
-    private static String uiLink(String profileId) {
-        return ServletUriComponentsBuilder.fromCurrentContextPath()
-                .replacePath(PROFILE_UI_PATH.formatted(profileId))
-                .toUriString();
     }
 
     /**

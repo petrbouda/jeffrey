@@ -105,7 +105,7 @@ onMounted(() => {
       <p>A call arrives naming a tool and a <code>profileId</code>. Jeffrey resolves that id to the profile's own DuckDB database, holds a lease on it for as long as the session stays active, runs the tool, and returns Markdown or a result table. The heavy machinery &mdash; the flamegraph builder, the trace analysis, the heap-dump index &mdash; is the same code the UI renders from, so what the model reads and what you see on screen cannot drift apart.</p>
 
       <h2 id="what-it-can-read">What It Can Read</h2>
-      <p>Fifty-five tools in eight families:</p>
+      <p>Seventy-nine tools in fifteen families:</p>
       <table>
         <thead>
           <tr>
@@ -117,7 +117,7 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><code>profiles_</code></td>
-            <td>4</td>
+            <td>6</td>
             <td>The catalogue: which recordings are analysed, what each one can answer, a deep link into the UI</td>
           </tr>
           <tr>
@@ -137,8 +137,43 @@ onMounted(() => {
           </tr>
           <tr>
             <td><code>jvm_</code></td>
-            <td>9</td>
+            <td>12</td>
             <td>The machine underneath: garbage collection, safepoints, JIT compilation, threads, native memory, the container, and what the JVM was started with</td>
+          </tr>
+          <tr>
+            <td><code>http_</code></td>
+            <td>2</td>
+            <td>The HTTP server dashboard: latency percentiles, endpoints, status codes, slowest requests</td>
+          </tr>
+          <tr>
+            <td><code>jdbc_</code></td>
+            <td>3</td>
+            <td>Statement timings and statement groups, plus the connection pools in front of them</td>
+          </tr>
+          <tr>
+            <td><code>grpc_</code></td>
+            <td>3</td>
+            <td>gRPC latency per service and method, and the message sizes moved</td>
+          </tr>
+          <tr>
+            <td><code>methodtracing_</code></td>
+            <td>3</td>
+            <td>Instrumented method timings (JEP 520): the methods by cost, the slowest invocations, per-method statistics</td>
+          </tr>
+          <tr>
+            <td><code>io_</code></td>
+            <td>3</td>
+            <td>Socket and file I/O: bytes, targets and slowest operations &mdash; the waiting a CPU flamegraph cannot see</td>
+          </tr>
+          <tr>
+            <td><code>blocking_</code></td>
+            <td>3</td>
+            <td>Contended monitors, waits, parks, sleeps and virtual-thread pinning</td>
+          </tr>
+          <tr>
+            <td><code>timeline_</code></td>
+            <td>2</td>
+            <td>When the samples landed: the busiest windows ranked, and sub-second zoom inside one</td>
           </tr>
           <tr>
             <td><code>jfr_</code></td>
@@ -159,6 +194,8 @@ onMounted(() => {
       </table>
 
       <p>The <router-link to="/docs/microscope-mcp/tools">Tool Reference</router-link> lists every one of them with its arguments.</p>
+
+      <p>Analysis answers carry a link back to the view that shows them &mdash; the flamegraph with its filters applied, the operation on its slowest tab, the GC dashboard, the endpoint detail. The link is for you, not for Claude: a URL is nothing a model can analyse, which is exactly why it travels attached to an answer rather than behind a tool the model would reasonably never call.</p>
 
       <DocsCallout type="warning" title="Know what it exposes">
         The endpoint is on by default and has no authentication yet &mdash; anyone who can reach the address can read every profile in that installation, and ask it to open a recording file from that machine. Jeffrey binds every interface by default, so on a shared network &ldquo;anyone who can reach the address&rdquo; is wider than it sounds until you bind it to loopback. <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> covers how to expose it safely, how to turn ingestion off on its own, and how to switch the whole thing off.
