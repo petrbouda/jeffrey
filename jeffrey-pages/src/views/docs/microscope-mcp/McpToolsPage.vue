@@ -30,6 +30,7 @@ const headings = [
   { id: 'rules-that-apply-to-all-of-them', text: 'Rules That Apply to All of Them', level: 2 },
   { id: 'profiles', text: 'profiles_ — the catalogue', level: 2 },
   { id: 'flamegraph', text: 'flamegraph_ — call trees', level: 2 },
+  { id: 'compare', text: 'compare_ — two profiles', level: 2 },
   { id: 'traces', text: 'traces_ — latency', level: 2 },
   { id: 'jfr', text: 'jfr_ — the profile database', level: 2 },
   { id: 'heap', text: 'heap_ — heap dumps', level: 2 },
@@ -56,7 +57,7 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
     />
 
     <div class="docs-content">
-      <p>Forty-three tools in six families. Five families read a profile; the sixth, <code>recordings_</code>, is the only one that creates one.</p>
+      <p>Forty-six tools in seven families. Six families read a profile; the seventh, <code>recordings_</code>, is the only one that creates one.</p>
 
       <h2 id="rules-that-apply-to-all-of-them">Rules That Apply to All of Them</h2>
 
@@ -131,6 +132,47 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
       </table>
 
       <p>Common starting points: <code>jdk.ExecutionSample</code> for on-CPU time, <code>jdk.ObjectAllocationSample</code> for allocation (with <code>useWeight</code> to rank by bytes rather than call count), <code>jdk.JavaMonitorEnter</code> for lock contention (weight is nanoseconds blocked), <code>profiler.WallClockSample</code> for latency including off-CPU &mdash; async-profiler&rsquo;s event, so unlike its neighbours it carries no <code>jdk.</code> prefix. <code>thresholdPct</code> controls how much survives pruning &mdash; raise it for an overview, lower it to chase one path.</p>
+
+      <h2 id="compare">compare_ &mdash; two profiles</h2>
+      <p>The only family scoped to a <strong>pair</strong>. <code>profileId</code> is the run under examination and <code>baselineProfileId</code> is what it is measured against, so a positive delta always means the primary spends more &mdash; a regression. Get the direction wrong and every regression reads as an improvement.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Arguments</th>
+            <th>Returns</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>compare_list</code></td>
+            <td><code>profileId</code>, <code>baselineProfileId</code></td>
+            <td>Both recordings&rsquo; length, the event types they have in common with each side&rsquo;s totals, the types only one of them recorded, and the notes that decide whether the pair is comparable at all</td>
+          </tr>
+          <tr>
+            <td><code>compare_movements</code></td>
+            <td><code>profileId</code>, <code>baselineProfileId</code>, <code>eventType</code>, <code>limit?</code>, <code>startMs?</code>, <code>endMs?</code>, <code>useWeight?</code>, <code>excludeIdle?</code>, <code>excludeNonJava?</code></td>
+            <td>The methods that grew and the ones that shrank, ranked by how much work moved with them, as Markdown</td>
+          </tr>
+          <tr>
+            <td><code>compare_flamegraph</code></td>
+            <td><code>profileId</code>, <code>baselineProfileId</code>, <code>eventType</code>, <code>thresholdPct?</code>, <code>startMs?</code>, <code>endMs?</code>, <code>useWeight?</code>, <code>excludeIdle?</code>, <code>excludeNonJava?</code></td>
+            <td>The differential call tree as Markdown, every frame carrying both sides and the movement between them</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <DocsCallout type="warning" title="compare_list is not a warm-up call">
+        Any two recordings can be subtracted, and the result always looks like a finding. Whether it <em>is</em> one depends on facts the deltas do not show &mdash; comparable recording length, comparable volume, the same profiler settings &mdash; and nothing inside a JFR file proves them. <code>compare_list</code> is the step that decides whether the rest means anything, and &ldquo;these two runs are not comparable&rdquo; is a real result.
+      </DocsCallout>
+
+      <p><strong>Movements are attributed by self weight.</strong> A delta taken on subtree totals charges a change to every caller above it, so one slow leaf reports <code>main</code>, the thread-pool runnable and every framework frame in between as having regressed by the same amount. <code>compare_movements</code> ranks by the work that stopped <em>at</em> each method, which moves only where the work moved; <code>compare_flamegraph</code> is the drill-down once a method has been named.</p>
+
+      <p><strong>The baseline is scaled onto the primary&rsquo;s recording length</strong> before any delta is taken, because a sampling profiler emits samples at a roughly fixed rate and a run that lasted twice as long carries twice as many of them. Both documents print the raw figure, the scaled figure and the factor, so the correction is visible rather than merely applied. It assumes a steady workload measured over time and is wrong for a fixed-size benchmark &mdash; there the share column is the honest one.</p>
+
+      <p><strong>A rename is not a regression.</strong> The diff matches method names level by level, so a renamed, moved or extracted method breaks the match and its work appears once as new and once as gone, often of near-identical size. Both documents list such pairs as candidate renames &mdash; suspicions for a reader holding the source diff to confirm, never a resolution, because weight alone cannot tell a rename from a coincidence.</p>
+
+      <p>Pruning in <code>compare_flamegraph</code> is by <strong>movement</strong>, not by size: a subtree in which nothing changed is dropped however large it is, and unmoved ancestors are kept so the frames that did move can still be placed. Absence there means &ldquo;did not move&rdquo;, the opposite of what it means in <code>flamegraph_export</code>.</p>
 
       <h2 id="traces">traces_ &mdash; latency</h2>
       <p>Available only for a profile recorded with <router-link to="/docs/tracing">Jeffrey Tracing</router-link>. An operation is identified by the <strong>triple</strong> <code>(name, kind, eventType)</code>, not by name alone: an inbound <code>GET /orders</code> and an outbound call to the same path are different operations.</p>

@@ -105,7 +105,7 @@ onMounted(() => {
       <p>A call arrives naming a tool and a <code>profileId</code>. Jeffrey resolves that id to the profile's own DuckDB database, holds a lease on it for as long as the session stays active, runs the tool, and returns Markdown or a result table. The heavy machinery &mdash; the flamegraph builder, the trace analysis, the heap-dump index &mdash; is the same code the UI renders from, so what the model reads and what you see on screen cannot drift apart.</p>
 
       <h2 id="what-it-can-read">What It Can Read</h2>
-      <p>Forty-three tools in six families:</p>
+      <p>Forty-six tools in seven families:</p>
       <table>
         <thead>
           <tr>
@@ -126,8 +126,13 @@ onMounted(() => {
             <td>Which graphs a profile supports, and the call tree as Markdown</td>
           </tr>
           <tr>
+            <td><code>compare_</code></td>
+            <td>3</td>
+            <td>Two profiles against each other: whether they are comparable, what moved, and the differential call tree</td>
+          </tr>
+          <tr>
             <td><code>traces_</code></td>
-            <td>7</td>
+            <td>8</td>
             <td>Trace operations, exemplars, span trees and span-scoped flamegraphs</td>
           </tr>
           <tr>

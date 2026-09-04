@@ -109,12 +109,15 @@ public class ProfileVisualizationConfiguration {
             DataSource primaryDb = databaseManagerResolver.open(primary);
             DataSource secondaryDb = databaseManagerResolver.open(secondary);
             return new DiffFlamegraphManagerImpl(
+                    primary,
+                    secondary,
                     profileRepositories.newEventTypeRepository(primaryDb),
                     profileRepositories.newEventTypeRepository(secondaryDb),
                     new DbBasedDiffgraphGenerator(
                             profileRepositories.newEventStreamRepository(primaryDb),
                             profileRepositories.newEventStreamRepository(secondaryDb),
-                            minFrameThresholdPct(settingsStore))
+                            minFrameThresholdPct(settingsStore)),
+                    new AiExportConfig(aiExportMinFrameThresholdPct(settingsStore))
             );
         };
     }

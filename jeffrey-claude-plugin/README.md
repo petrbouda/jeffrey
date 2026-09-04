@@ -47,12 +47,13 @@ installation.
 
 ## What you get
 
-**Tools**, in six families:
+**Tools**, in seven families:
 
 | Family | What it does |
 |---|---|
 | `profiles_` | The catalogue: which recordings are analysed, what each one can answer, a deep link into the UI |
 | `flamegraph_` | Which graphs a profile supports, and the call tree as Markdown |
+| `compare_` | Two profiles against each other: whether they are comparable, what moved, and the differential call tree |
 | `traces_` | Trace operations, the application's own notifications, exemplars, span trees and span-scoped flamegraphs |
 | `jfr_` | The profile's DuckDB tables — schema and read-only SQL |
 | `heap_` | Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, and read-only SQL |
@@ -67,6 +68,8 @@ both) and not the case for a Jeffrey in a container or on another host.
 - `/microscope:analyze-jfr` — where to start and which family answers which question
 - `/microscope:analyze-heap` — a heap dump end to end: what is holding the memory, what is leaking,
   which class loader never went away, and the order the heap tools have to be run in
+- `/microscope:compare-jfr` — before against after: whether a change made it slower, which methods
+  moved, and whether the two recordings were comparable in the first place
 - `/microscope:advise-jfr [profile-id | recording-file] [cpu|wall|alloc|lock]` — from a profile to a
   code change: the hottest CPU, wall-clock, allocation and blocking frames mapped to real source in
   your checkout, a recommendation, then the edit and a re-profile on request

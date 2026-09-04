@@ -24,7 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.FlamegraphManager;
+import cafe.jeffrey.profile.manager.DifferentialFlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.shared.common.exception.Exceptions;
@@ -48,7 +48,7 @@ class DifferentialFlamegraphControllerTest {
     ProfileManager secondary;
 
     @Mock
-    FlamegraphManager diffManager;
+    DifferentialFlamegraphManager diffManager;
 
     @Test
     void listsEvents() {

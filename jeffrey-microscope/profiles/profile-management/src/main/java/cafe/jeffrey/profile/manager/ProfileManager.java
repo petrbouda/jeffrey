@@ -51,7 +51,7 @@ public interface ProfileManager {
 
     FlamegraphManager flamegraphManager();
 
-    FlamegraphManager diffFlamegraphManager(ProfileManager secondaryManager);
+    DifferentialFlamegraphManager diffFlamegraphManager(ProfileManager secondaryManager);
 
     SubSecondManager subSecondManager();
 

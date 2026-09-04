@@ -36,7 +36,7 @@ public interface FlamegraphManager {
     }
 
     @FunctionalInterface
-    interface DifferentialFactory extends BiFunction<ProfileInfo, ProfileInfo, FlamegraphManager> {
+    interface DifferentialFactory extends BiFunction<ProfileInfo, ProfileInfo, DifferentialFlamegraphManager> {
     }
 
     List<EventSummaryResult> eventSummaries();
@@ -74,8 +74,7 @@ public interface FlamegraphManager {
      *
      * @param graphParameters graph parameters
      * @return Markdown string suitable for pasting into an LLM
-     * @throws UnsupportedOperationException for graph modes that do not
-     *                                       support AI export (e.g. differential)
+     * @throws UnsupportedOperationException for graph modes that do not support AI export
      */
     String generateAiExport(GraphParameters graphParameters);
 

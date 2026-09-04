@@ -20,8 +20,6 @@ package cafe.jeffrey.flamegraph.ai;
 
 import cafe.jeffrey.frameir.Frame;
 import cafe.jeffrey.profile.common.model.FrameType;
-import cafe.jeffrey.shared.common.BytesUtils;
-import cafe.jeffrey.shared.common.DurationUtils;
 import cafe.jeffrey.shared.common.model.Type;
 
 import java.util.ArrayList;
@@ -205,29 +203,18 @@ public final class FlamegraphAiMarkdownBuilder {
     private static final String THREADS_MODE_PER_THREAD = "per-thread";
     private static final String THREADS_MODE_AGGREGATED = "aggregated";
 
-    private static final LongFunction<String> ALLOCATION_FORMATTER =
-            weight -> BytesUtils.format(weight) + " Allocated";
-    private static final LongFunction<String> BLOCKING_FORMATTER =
-            weight -> DurationUtils.formatNanos2Units(weight) + " Blocked";
-    private static final LongFunction<String> LATENCY_FORMATTER =
-            weight -> DurationUtils.formatNanos2Units(weight) + " Latency";
-
-    /** Per-frame weights carry the value alone; the header's suffix would repeat on every line. */
-    private static final LongFunction<String> BYTES_VALUE_FORMATTER = BytesUtils::format;
-    private static final LongFunction<String> NANOS_VALUE_FORMATTER = DurationUtils::formatNanos2Units;
-
     private static final String WEIGHT_SEPARATOR = " · ";
 
     private final Type eventType;
     private final AiExportConfig config;
-    private final ExportContext ctx;
+    private final WeightContext ctx;
     private final AnalysisCategory category;
     private final List<HeaderField> extraHeaderFields = new ArrayList<>();
 
     public FlamegraphAiMarkdownBuilder(Type eventType, AiExportConfig config) {
         this.eventType = eventType;
         this.config = config;
-        this.ctx = resolveContext(eventType);
+        this.ctx = WeightContext.of(eventType);
         this.category = AnalysisCategory.resolve(eventType);
     }
 
@@ -281,13 +268,13 @@ public final class FlamegraphAiMarkdownBuilder {
 
     private void renderHeader(StringBuilder out, long totalSamples, long totalWeight) {
         out.append("event_type: ").append(eventType.code()).append('\n');
-        out.append("unit: ").append(ctx.unit).append('\n');
+        out.append("unit: ").append(ctx.unit()).append('\n');
         out.append("samples_total: ").append(totalSamples).append('\n');
-        if (ctx.weightUnit != null) {
-            out.append("weight_unit: ").append(ctx.weightUnit).append('\n');
+        if (ctx.weightUnit() != null) {
+            out.append("weight_unit: ").append(ctx.weightUnit()).append('\n');
             out.append("weight_total: ").append(totalWeight);
-            if (ctx.weightFormatter != null) {
-                out.append(" (").append(ctx.weightFormatter.apply(totalWeight)).append(')');
+            if (ctx.totalFormatter() != null) {
+                out.append(" (").append(ctx.totalFormatter().apply(totalWeight)).append(')');
             }
             out.append('\n');
         }
@@ -323,11 +310,11 @@ public final class FlamegraphAiMarkdownBuilder {
             out.append(')');
         }
         if (ctx.weighted() && root.totalWeight() > 0) {
-            out.append(WEIGHT_SEPARATOR).append(ctx.weightValueFormatter.apply(root.totalWeight()));
+            out.append(WEIGHT_SEPARATOR).append(ctx.valueFormatter().apply(root.totalWeight()));
             out.append(" (100%");
             long prunedWeight = prunedTailWeight(root, minMeasure);
             if (prunedWeight > 0) {
-                out.append(", +pruned ").append(ctx.weightValueFormatter.apply(prunedWeight));
+                out.append(", +pruned ").append(ctx.valueFormatter().apply(prunedWeight));
             }
             out.append(')');
         }
@@ -368,7 +355,7 @@ public final class FlamegraphAiMarkdownBuilder {
      * root's, the frame's own, and what its pruned children came to in the same unit.
      */
     private void renderWeightClause(StringBuilder out, Frame frame, Frame root, long minMeasure) {
-        LongFunction<String> format = ctx.weightValueFormatter;
+        LongFunction<String> format = ctx.valueFormatter();
         out.append(WEIGHT_SEPARATOR).append(format.apply(frame.totalWeight()));
         out.append(" (").append(formatPercent(frame.totalWeight(), root.totalWeight()));
         out.append(", self ").append(format.apply(frame.selfWeight()));
@@ -498,39 +485,6 @@ public final class FlamegraphAiMarkdownBuilder {
             return "?";
         }
         return title.replace(';', '_').replace('\n', '_').replace('\r', '_');
-    }
-
-    private static ExportContext resolveContext(Type eventType) {
-        if (eventType.isAllocationEvent()) {
-            return new ExportContext("samples", "bytes", ALLOCATION_FORMATTER, BYTES_VALUE_FORMATTER);
-        }
-        if (eventType.isBlockingEvent()) {
-            return new ExportContext("samples", "nanoseconds", BLOCKING_FORMATTER, NANOS_VALUE_FORMATTER);
-        }
-        if (eventType.isMethodTraceEvent()) {
-            return new ExportContext("samples", "nanoseconds", LATENCY_FORMATTER, NANOS_VALUE_FORMATTER);
-        }
-        return new ExportContext("samples", null, null, null);
-    }
-
-    /**
-     * How the event type is measured.
-     *
-     * @param unit                 what the tree counts, always samples
-     * @param weightUnit           what a sample's weight is in, or {@code null} for an unweighted
-     *                             event such as a CPU sample
-     * @param weightFormatter      the header's total, with its noun ("... Allocated")
-     * @param weightValueFormatter a bare per-frame value in the same unit
-     */
-    private record ExportContext(
-            String unit,
-            String weightUnit,
-            LongFunction<String> weightFormatter,
-            LongFunction<String> weightValueFormatter) {
-
-        boolean weighted() {
-            return weightUnit != null;
-        }
     }
 
     private record HeaderField(String key, String value) {

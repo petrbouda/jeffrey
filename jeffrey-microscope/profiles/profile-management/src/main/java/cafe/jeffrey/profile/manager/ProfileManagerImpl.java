@@ -84,7 +84,7 @@ public class ProfileManagerImpl implements ProfileManager {
     }
 
     @Override
-    public FlamegraphManager diffFlamegraphManager(ProfileManager secondaryManager) {
+    public DifferentialFlamegraphManager diffFlamegraphManager(ProfileManager secondaryManager) {
         return registry.visualization().flamegraphDiff().apply(profileInfo, secondaryManager.info());
     }
 
