@@ -180,7 +180,7 @@ jeffrey-claude-plugin/
 ```
 
 The directory keeps its `jeffrey-claude-plugin` name so existing installs and marketplace entries
-keep resolving; it has served both clients since 1.1.0.
+keep resolving; it serves both clients.
 
 ## Security
 
