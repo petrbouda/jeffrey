@@ -20,6 +20,7 @@ package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.mcp.tools.CompareMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.FlamegraphMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.JvmMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
@@ -54,6 +55,11 @@ import java.util.Set;
  * {@code baselineProfileId} through the same cache, so both profiles stay pinned for the session
  * rather than the baseline being reopened on every call.
  * <p>
+ * {@code JvmMcpTools} is the machine-level family — garbage collection, safepoints, JIT compilation,
+ * threads, native memory, the container and the JVM's configuration. Each of its tools renders the
+ * manager behind the matching Jeffrey UI page, which is what keeps a subsystem question to one call
+ * instead of a handful of invented SQL queries, several of which a reader reliably gets wrong.
+ * <p>
  * Every analysis family here is read-only. {@code DuckDbMcpTools} is constructed with its
  * single-argument constructor, which leaves {@code executeModification} refusing — an external client
  * gets to read a profile's data, not to rewrite it.
@@ -70,6 +76,7 @@ public class McpToolsetAssembler {
     private static final String PREFIX_FLAMEGRAPH = "flamegraph";
     private static final String PREFIX_COMPARE = "compare";
     private static final String PREFIX_TRACES = "traces";
+    private static final String PREFIX_JVM = "jvm";
     private static final String PREFIX_HEAP = "heap";
     private static final String PREFIX_RECORDINGS = "recordings";
 
@@ -110,6 +117,8 @@ public class McpToolsetAssembler {
                                 baselineId -> profileManager(contextCache, baselineId))),
                 new ProfileScopedToolset<>(TracesMcpTools.class, PREFIX_TRACES,
                         profileId -> new TracesMcpTools(profileManager(contextCache, profileId))),
+                new ProfileScopedToolset<>(JvmMcpTools.class, PREFIX_JVM,
+                        profileId -> new JvmMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(HeapDumpMcpTools.class, PREFIX_HEAP,
                         profileId -> heapTools(contextCache, profileId))));
 

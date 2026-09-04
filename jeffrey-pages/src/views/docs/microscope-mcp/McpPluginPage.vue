@@ -93,7 +93,7 @@ const removal = `/plugin uninstall microscope@jeffrey`;
       <p>The value is stored per machine, in <code>~/.claude/settings.json</code>. One plugin therefore serves every installation: a non-default port is a setting, not an edit to the manifest, and a laptop can point at a tunnelled staging Jeffrey while the machine beside it stays on localhost.</p>
 
       <h2 id="what-the-plugin-adds">What the Plugin Adds</h2>
-      <p>Registering the server by hand gives you the forty-three tools. The plugin adds three things on top.</p>
+      <p>Registering the server by hand gives you the fifty-five tools. The plugin adds three things on top.</p>
 
       <p><strong>The endpoint, already configured</strong> &mdash; including the per-machine setting above, so the same install works on a laptop and against a tunnelled staging Jeffrey.</p>
 

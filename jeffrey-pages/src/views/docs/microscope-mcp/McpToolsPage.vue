@@ -32,6 +32,7 @@ const headings = [
   { id: 'flamegraph', text: 'flamegraph_ — call trees', level: 2 },
   { id: 'compare', text: 'compare_ — two profiles', level: 2 },
   { id: 'traces', text: 'traces_ — latency', level: 2 },
+  { id: 'jvm', text: 'jvm_ — the machine underneath', level: 2 },
   { id: 'jfr', text: 'jfr_ — the profile database', level: 2 },
   { id: 'heap', text: 'heap_ — heap dumps', level: 2 },
   { id: 'recordings', text: 'recordings_ — creating profiles', level: 2 },
@@ -57,7 +58,7 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
     />
 
     <div class="docs-content">
-      <p>Forty-six tools in seven families. Six families read a profile; the seventh, <code>recordings_</code>, is the only one that creates one.</p>
+      <p>Fifty-five tools in eight families. Seven families read a profile; the eighth, <code>recordings_</code>, is the only one that creates one.</p>
 
       <h2 id="rules-that-apply-to-all-of-them">Rules That Apply to All of Them</h2>
 
@@ -234,8 +235,84 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
         On the flamegraph exports, <code>eventType</code> is the event that <em>opened the trace</em> (e.g. <code>jeffrey.HttpServerExchange</code>) while <code>graphEventType</code> is what to <em>graph</em> (e.g. <code>jdk.ExecutionSample</code>). They are never the same value.
       </DocsCallout>
 
+      <h2 id="jvm">jvm_ &mdash; the machine underneath</h2>
+      <p>Garbage collection, safepoints, JIT compilation, threads, native memory, the container and the JVM&rsquo;s own configuration. Each tool renders the manager behind the matching Jeffrey UI page, so the numbers come from the same tested builders the UI draws its charts from.</p>
+
+      <p>These questions are all answerable with <code>jfr_executeQuery</code>, and that is exactly why the family exists. Answering &ldquo;how much of the run went to GC pauses&rdquo; by hand is six round trips of invented SQL, and several of those queries are ones a reader reliably gets wrong: pause time is <code>sumOfPauses</code> rather than an event&rsquo;s duration, <code>jdk.GCHeapSummary</code> is two rows per collection, <code>jdk.SafepointLatency</code> fires once per thread per safepoint. One call, the same answer the UI would give.</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Arguments</th>
+            <th>Returns</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>jvm_sections</code></td>
+            <td><code>profileId</code></td>
+            <td>Which sections this profile can answer, each with the event types it is built from</td>
+          </tr>
+          <tr>
+            <td><code>jvm_autoAnalysis</code></td>
+            <td><code>profileId</code></td>
+            <td>Jeffrey&rsquo;s rule set over the recording &mdash; findings with a severity, an explanation and a suggested fix</td>
+          </tr>
+          <tr>
+            <td><code>jvm_gc</code></td>
+            <td><code>profileId</code></td>
+            <td>The stop-the-world budget, collections by generation and cause, bytes freed, the longest collections</td>
+          </tr>
+          <tr>
+            <td><code>jvm_safepoints</code></td>
+            <td><code>profileId</code></td>
+            <td>VM operations, time to safepoint, and the threads that kept the others waiting with the state they were in</td>
+          </tr>
+          <tr>
+            <td><code>jvm_jit</code></td>
+            <td><code>profileId</code></td>
+            <td>Compiler totals, the slowest compilations, code cache occupancy, deoptimisation by method and reason</td>
+          </tr>
+          <tr>
+            <td><code>jvm_threads</code></td>
+            <td><code>profileId</code></td>
+            <td>Population and peak, sleeps, parks and monitor blocks, top CPU and allocating threads, virtual-thread pinning</td>
+          </tr>
+          <tr>
+            <td><code>jvm_nativeMemory</code></td>
+            <td><code>profileId</code></td>
+            <td>Resident set size and its growth, direct buffers, native libraries, NMT categories when NMT was enabled</td>
+          </tr>
+          <tr>
+            <td><code>jvm_container</code></td>
+            <td><code>profileId</code></td>
+            <td>cgroup limits, and whether the scheduler throttled the process, with the verdict and its counters</td>
+          </tr>
+          <tr>
+            <td><code>jvm_configuration</code></td>
+            <td><code>profileId</code>, <code>section?</code></td>
+            <td>What the JVM was started with, in the UI&rsquo;s own tabs; without a section, the section names</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <DocsCallout type="info" title="Every result says what it cannot answer">
+        Each dashboard comes back wrapped with a <code>nextSteps</code> list &mdash; the same idea as the reading instructions a flamegraph or trace export opens with. <code>jvm_gc</code> says that no event in it names the code that produced the garbage and points at the allocation flamegraph; <code>jvm_container</code> points back at per-thread CPU load; <code>jvm_configuration</code> says to prefer these values over a deployment manifest. They route and never diagnose: no threshold decides whether they appear, and none of them claims the figures beside them are bad.
+      </DocsCallout>
+
+      <DocsCallout type="info" title="Call jvm_sections first">
+        A recording holds only what the profiler was told to capture. Every section reports whether this profile carries its events, and a section asked for anyway is refused naming the events it needed &mdash; a dashboard rendered from events that were never recorded is a page of zeroes, which reads like a finding rather than like an absence.
+      </DocsCallout>
+
+      <DocsCallout type="warning" title="Auto analysis is read from a cache, not computed here">
+        Generating it loads the whole recording through the JMC toolkit, which is bounded neither in time nor in memory by anything the server controls &mdash; a poor trade inside a tool whose point is being cheap. The Auto Analysis page in the Jeffrey UI computes and caches it; every call afterwards is a cache read. Until then the tool says so, and the other sections still answer.
+      </DocsCallout>
+
       <h2 id="jfr">jfr_ &mdash; the profile database</h2>
       <p>Each profile is one DuckDB database. This family is the escape hatch for questions no purpose-built tool covers &mdash; distributions over time, correlations between event types, the cardinality of a field.</p>
+
+      <p>For garbage collection, safepoints and JIT compilation, reach for <code>jvm_</code> first: those dashboards are computed by the same builders the UI uses, and reproducing one here is slower and easier to get wrong. This family is for the questions they do not shape &mdash; a distribution over time, a correlation between two event types, one field a dashboard does not carry. The <router-link to="/docs/microscope-mcp/skills#jfr-sql"><code>jfr-sql</code></router-link> skill has the schema and the queries.</p>
       <table>
         <thead>
           <tr>
@@ -479,6 +556,8 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
       <p><strong>No deleting.</strong> The server can add a profile and never removes one, so a session that imported the wrong file leaves it behind for you to delete in the UI.</p>
 
       <p><strong>No OQL.</strong> Jeffrey&rsquo;s <router-link to="/docs/ai/oql-assistant">OQL assistant</router-link> is a UI feature; over MCP, heap questions go through the <code>heap_</code> family and its SQL.</p>
+
+      <p><strong>No charts.</strong> The <code>jvm_</code> family carries the numbers behind each UI dashboard, not the timeseries they are drawn from: pause and throttling timelines, the G1 and ZGC deep dives, tenuring and reference processing, the thread timeline and the sub-second view stay in the UI, where a reader can scrub them. <code>profiles_link</code> opens the profile there.</p>
 
       <p><strong>No shell.</strong> The server answers questions about profiles and, with ingestion on, opens the one recording path it is handed. It runs nothing.</p>
     </div>
