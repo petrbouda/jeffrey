@@ -18,11 +18,18 @@
 
 package cafe.jeffrey.shared.ui.workspace.dto;
 
+/**
+ * @param source {@code "CONFIG"} for a hub declared in configuration — the UI marks it read-only,
+ *               because the next startup would recreate anything deleted here — or {@code "USER"}
+ *               for one added through the UI. Carried as the enum name so the DTO stays a plain
+ *               record over JSON-friendly types.
+ */
 public record HubResponse(
         String id,
         String name,
         String hostname,
         int port,
         boolean plaintext,
-        long createdAt) {
+        long createdAt,
+        String source) {
 }

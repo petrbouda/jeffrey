@@ -36,5 +36,13 @@ public interface HubsRepository {
 
     HubInfo create(HubInfo serverInfo);
 
+    /**
+     * Replaces the name, address and source of an existing row, keyed by {@code hubId}.
+     * {@code created_at} is deliberately left untouched — a hub re-pointed at a new address is
+     * still the same hub, and its id is referenced by the {@code origin.hubId} tag on every
+     * recording downloaded from it.
+     */
+    void update(HubInfo serverInfo);
+
     void delete(String hubId);
 }

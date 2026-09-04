@@ -35,6 +35,7 @@ import cafe.jeffrey.hub.client.DiscoveryClient;
 import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.shared.common.model.hub.HubAddress;
 import cafe.jeffrey.shared.common.model.hub.HubInfo;
+import cafe.jeffrey.shared.common.model.hub.HubSource;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.ui.workspace.bridge.HubRegistry;
 import cafe.jeffrey.shared.ui.workspace.dto.HubResponse;
@@ -52,6 +53,8 @@ import java.util.List;
 public class HubsController {
 
     private static final Logger LOG = LoggerFactory.getLogger(HubsController.class);
+
+    private static final String CONFIGURED_HUBS_PROPERTY = "jeffrey.microscope.hubs";
 
     private final HubRegistry hubRegistry;
     private final HubClients.Factory clientsFactory;
@@ -73,6 +76,10 @@ public class HubsController {
         validate(request);
 
         HubAddress address = new HubAddress(request.hostname(), request.port(), request.plaintext());
+        // The hubs table is UNIQUE (hostname, port); without this the insert below surfaces as a
+        // raw constraint violation. Configured hubs make the collision far more likely, since they
+        // claim their addresses before anyone opens the UI.
+        rejectIfAddressTaken(address);
         // Probe the gRPC endpoint before persisting so the user gets immediate feedback
         // for an unreachable / misconfigured server instead of a stored unusable pointer.
         try {
@@ -107,9 +114,33 @@ public class HubsController {
     @DeleteMapping("/{hubId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable("hubId") String hubId) {
-        hubRegistry.findById(hubId)
+        HubInfo info = hubRegistry.findById(hubId)
                 .orElseThrow(() -> Exceptions.invalidRequest("Hub not found: " + hubId));
+
+        // Deleting it would only last until the next startup, which recreates it from the
+        // configuration that owns it -- so refuse with the instruction that actually works.
+        if (info.source() == HubSource.CONFIG) {
+            throw Exceptions.invalidRequest(
+                    "Hub '%s' is declared in configuration and cannot be removed here. Remove it from %s and restart."
+                            .formatted(info.name(), CONFIGURED_HUBS_PROPERTY));
+        }
+
         hubRegistry.delete(hubId);
+    }
+
+    private void rejectIfAddressTaken(HubAddress address) {
+        for (HubInfo existing : hubRegistry.findAll()) {
+            if (existing.address().hostname().equals(address.hostname())
+                    && existing.address().port() == address.port()) {
+
+                String suffix = existing.source() == HubSource.CONFIG
+                        ? " It is declared in " + CONFIGURED_HUBS_PROPERTY + "."
+                        : "";
+                throw Exceptions.invalidRequest(
+                        "Already connected to %s:%d as '%s'.%s"
+                                .formatted(address.hostname(), address.port(), existing.name(), suffix));
+            }
+        }
     }
 
     private static void validate(AddRemoteServerRequest request) {
@@ -131,6 +162,7 @@ public class HubsController {
                 info.address().hostname(),
                 info.address().port(),
                 info.address().plaintext(),
-                info.createdAt() != null ? info.createdAt().toEpochMilli() : 0L);
+                info.createdAt() != null ? info.createdAt().toEpochMilli() : 0L,
+                info.source().name());
     }
 }

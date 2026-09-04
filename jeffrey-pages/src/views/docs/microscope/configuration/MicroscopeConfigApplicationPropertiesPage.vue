@@ -20,6 +20,7 @@
 import { onMounted } from 'vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 import DocsCallout from '@/components/docs/DocsCallout.vue';
+import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 
@@ -31,9 +32,22 @@ const headings = [
   { id: 'uploads', text: 'File Uploads', level: 2 },
   { id: 'core-directories', text: 'Core Directories', level: 2 },
   { id: 'update-check', text: 'Update Check', level: 2 },
+  { id: 'hubs', text: 'Declared Hubs', level: 2 },
   { id: 'mcp-server', text: 'MCP Server', level: 2 },
   { id: 'ai-assistant', text: 'AI Assistant', level: 2 }
 ];
+
+const hubsPropertiesExample = `jeffrey.microscope.hubs.production.name=Production
+jeffrey.microscope.hubs.production.hostname=hub.example.com
+jeffrey.microscope.hubs.production.port=443
+
+jeffrey.microscope.hubs.staging.hostname=staging.internal
+jeffrey.microscope.hubs.staging.port=9090
+jeffrey.microscope.hubs.staging.plaintext=true`;
+
+const hubsEnvExample = `JEFFREY_MICROSCOPE_HUBS_PRODUCTION_NAME=Production
+JEFFREY_MICROSCOPE_HUBS_PRODUCTION_HOSTNAME=hub.example.com
+JEFFREY_MICROSCOPE_HUBS_PRODUCTION_PORT=443`;
 
 onMounted(() => {
   setHeadings(headings);
@@ -153,6 +167,79 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+
+      <h2 id="hubs">Declared Hubs</h2>
+      <p>
+        Connections to <router-link to="/docs/hub">Jeffrey Hub</router-link> can be declared
+        up front, so a container or a pod starts already connected instead of waiting for someone to
+        add a hub through the UI. Each hub is declared under a key of your choosing
+        (<code>production</code>, <code>staging</code>, …), which names the hub and is what its stored
+        id is derived from — keep it stable.
+      </p>
+
+      <DocsCodeBlock language="properties" :code="hubsPropertiesExample" />
+
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>jeffrey.microscope.hubs.&lt;key&gt;.hostname</code></td>
+            <td>—</td>
+            <td><strong>Required.</strong> Host name of the hub's gRPC endpoint.</td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.hubs.&lt;key&gt;.port</code></td>
+            <td><code>9090</code></td>
+            <td>gRPC port. Note this is the gRPC port, not the hub's HTTP port.</td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.hubs.&lt;key&gt;.name</code></td>
+            <td>the key</td>
+            <td>Display name shown in the server switcher.</td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.hubs.&lt;key&gt;.plaintext</code></td>
+            <td><code>false</code></td>
+            <td>
+              Connect in cleartext h2c instead of TLS. Enable for in-cluster Service DNS or
+              trusted-LAN setups.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>Every property has the usual environment-variable form:</p>
+
+      <DocsCodeBlock language="bash" :code="hubsEnvExample" />
+
+      <DocsCallout type="info">
+        <strong>Configuration owns these hubs.</strong> On every startup the declared hubs are added,
+        updated and removed so the registry matches this configuration, and they appear in the UI with
+        a <strong>Config</strong> badge and a disabled remove button — deleting one there would only
+        last until the next restart. Hubs added through the UI are never touched by this. To remove a
+        declared hub, drop it from the configuration and restart.
+      </DocsCallout>
+
+      <DocsCallout type="warning">
+        <strong>Environment-variable keys must be a single alphanumeric token.</strong> A dashed key
+        does not survive the translation — <code>JEFFREY_MICROSCOPE_HUBS_PROD_EU_HOSTNAME</code> is
+        read as the key <code>prod</code> with an unrecognised <code>eu.hostname</code> underneath it.
+        Use <code>JEFFREY_MICROSCOPE_HUBS_PRODEU_HOSTNAME</code> instead. A hub written
+        <code>prod-eu</code> in a properties file and <code>prodeu</code> in an environment variable
+        resolves to the same hub, so a configuration can move between the two forms.
+      </DocsCallout>
+
+      <DocsCallout type="tip">
+        <strong>No connection is attempted at startup.</strong> A declared hub is registered whether
+        or not it answers, so a hub that boots after Microscope — the normal case in a compose file or
+        a pod — starts working as soon as it comes up.
+      </DocsCallout>
 
       <h2 id="mcp-server">MCP Server</h2>
       <table>

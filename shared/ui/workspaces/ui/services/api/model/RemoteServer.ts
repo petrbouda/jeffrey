@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+export type HubSource = 'CONFIG' | 'USER';
+
 export default interface RemoteServer {
   id: string;
   name: string;
@@ -23,4 +25,10 @@ export default interface RemoteServer {
   port: number;
   plaintext: boolean;
   createdAt: number;
+  /**
+   * 'CONFIG' when the hub is declared under jeffrey.microscope.hubs.* — the UI shows it as
+   * read-only, since the next startup recreates anything deleted here. Optional so a backend
+   * that does not send it degrades to the editable behaviour rather than breaking.
+   */
+  source?: HubSource;
 }

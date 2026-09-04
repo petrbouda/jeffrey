@@ -23,6 +23,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.shared.common.model.hub.HubInfo;
 import cafe.jeffrey.microscope.persistence.api.HubsRepository;
 import cafe.jeffrey.shared.common.model.hub.HubAddress;
+import cafe.jeffrey.shared.common.model.hub.HubSource;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.StatementLabel;
 import cafe.jeffrey.shared.persistence.client.DatabaseClient;
@@ -45,8 +46,15 @@ public class JdbcHubsRepository implements HubsRepository {
 
     //language=SQL
     private static final String INSERT = """
-            INSERT INTO hubs (hub_id, name, hostname, port, plaintext, created_at)
-            VALUES (:hub_id, :name, :hostname, :port, :plaintext, :created_at)""";
+            INSERT INTO hubs (hub_id, name, hostname, port, plaintext, created_at, source)
+            VALUES (:hub_id, :name, :hostname, :port, :plaintext, :created_at, :source)""";
+
+    //language=SQL
+    private static final String UPDATE = """
+            UPDATE hubs
+            SET name = :name, hostname = :hostname, port = :port,
+                plaintext = :plaintext, source = :source
+            WHERE hub_id = :hub_id""";
 
     //language=SQL
     private static final String DELETE =
@@ -84,10 +92,24 @@ public class JdbcHubsRepository implements HubsRepository {
                 .addValue("hostname", serverInfo.address().hostname())
                 .addValue("port", serverInfo.address().port())
                 .addValue("plaintext", serverInfo.address().plaintext())
-                .addValue("created_at", Timestamp.from(serverInfo.createdAt()));
+                .addValue("created_at", Timestamp.from(serverInfo.createdAt()))
+                .addValue("source", serverInfo.source().name());
 
         databaseClient.update(StatementLabel.INSERT_REMOTE_SERVER, INSERT, params);
         return serverInfo;
+    }
+
+    @Override
+    public void update(HubInfo serverInfo) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("hub_id", serverInfo.hubId())
+                .addValue("name", serverInfo.name())
+                .addValue("hostname", serverInfo.address().hostname())
+                .addValue("port", serverInfo.address().port())
+                .addValue("plaintext", serverInfo.address().plaintext())
+                .addValue("source", serverInfo.source().name());
+
+        databaseClient.update(StatementLabel.UPDATE_REMOTE_SERVER, UPDATE, params);
     }
 
     @Override
@@ -106,6 +128,7 @@ public class JdbcHubsRepository implements HubsRepository {
                         rs.getString("hostname"),
                         rs.getInt("port"),
                         rs.getBoolean("plaintext")),
-                rs.getTimestamp("created_at").toInstant().atZone(ZoneOffset.UTC).toInstant());
+                rs.getTimestamp("created_at").toInstant().atZone(ZoneOffset.UTC).toInstant(),
+                HubSource.fromDb(rs.getString("source")));
     }
 }
