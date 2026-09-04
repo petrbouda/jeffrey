@@ -62,7 +62,7 @@ The complete toolbox — Microscope and Hub are the core, the rest round it out:
 | **[Jeffrey Microscope](https://www.jeffrey-analyst.cafe/docs/microscope)**                      | The standalone analyzer. Open a JFR recording or heap dump — or connect to a Hub — and read flamegraphs, sub-second timelines, JVM & tech dashboards, plus an AI assistant. Runs as a JAR or container. |
 | **[Jeffrey Hub](https://www.jeffrey-analyst.cafe/docs/hub)**                                    | A containerised collector for Kubernetes. Collects JFR recordings, artifacts and lifecycle events from your running services via shared volume, and serves them over gRPC to Microscope. |
 | **[IntelliJ Plugin](https://plugins.jetbrains.com/plugin/31963-jeffrey-microscope)**            | Jump from any flamegraph frame straight to the source line in your open IntelliJ — Java & Kotlin — or pull inline source back into the profile. |
-| **[Microscope MCP](https://www.jeffrey-analyst.cafe/docs/microscope-mcp)**                      | Analyse your profiles from an interactive Claude Code session in your own repository — list recordings, query their tables, and pull flamegraph, trace and heap-dump exports, so the profile and the source code sit in front of the same reader. One `/plugin install microscope@jeffrey`. |
+| **[Microscope MCP](https://www.jeffrey-analyst.cafe/docs/microscope-mcp)**                      | Analyse your profiles from an interactive Claude Code or Codex session in your own repository — list recordings, query their tables, and pull flamegraph, trace and heap-dump exports, so the profile and the source code sit in front of the same reader. One `/plugin install microscope@jeffrey`, or `codex plugin marketplace add petrbouda/jeffrey`. |
 | **[Provisioner](https://www.jeffrey-analyst.cafe/docs/provisioner)**                            | One HOCON file lays out your workspace / project / session tree, registers sessions with the Hub, and generates the JVM argfile that starts your app under the profiler. |
 | **[Jeffrey JIB](https://www.jeffrey-analyst.cafe/docs/jib)**                                    | A Jib (Gradle/Maven) extension that wraps your container entrypoint so profiling starts before your app does — no command override, no binaries baked into the image. |
 | **Jeffrey Agent**                                                                               | A tiny `-javaagent` that writes a heartbeat file to the shared volume, so the Hub can track liveness and tell a clean shutdown from a crash. No network, no gRPC. |
@@ -73,7 +73,7 @@ The complete toolbox — Microscope and Hub are the core, the rest round it out:
 - 🌐 **Website:** https://www.jeffrey-analyst.cafe/
 - 📦 **Releases:** https://github.com/petrbouda/jeffrey/releases
 - 🧩 **IntelliJ plugin:** https://plugins.jetbrains.com/plugin/31963-jeffrey-microscope
-- 🔌 **Microscope MCP (Claude Code plugin):** https://www.jeffrey-analyst.cafe/docs/microscope-mcp
+- 🔌 **Microscope MCP (Claude Code & Codex plugin):** https://www.jeffrey-analyst.cafe/docs/microscope-mcp
 - 📡 **Jeffrey Events:** https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-events
 
 ## 📄 License

@@ -953,7 +953,7 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
       <DocsCodeBlock :code="exHeap" language="json" />
 
       <h2 id="recordings">recordings_ &mdash; creating profiles</h2>
-      <p>Everything above answers questions about a profile that already exists. This family is how one comes to exist without leaving the terminal: you point Claude at a recording file in your repository and it imports the file and builds the profile, then carries on with the id it got back.</p>
+      <p>Everything above answers questions about a profile that already exists. This family is how one comes to exist without leaving the terminal: you point the agent at a recording file in your repository and it imports the file and builds the profile, then carries on with the id it got back.</p>
       <DocsCodeBlock :code="analyzeExample" language="text" />
 
       <table>

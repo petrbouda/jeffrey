@@ -461,7 +461,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/ai/AiOqlAssistantPage.vue')
       },
       // The MCP integration moved to its own top-level product at /docs/microscope-mcp.
-      { path: 'ai/claude-code-plugin', redirect: '/docs/microscope-mcp/plugin' },
+      { path: 'ai/claude-code-plugin', redirect: '/docs/microscope-mcp/claude-code' },
 
       // ──── Jeffrey Events ────
       // The event catalog lives with the Jeffrey Tracing product, whose events it lists;
@@ -657,9 +657,14 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope-mcp/McpEnablingPage.vue')
       },
       {
-        path: 'microscope-mcp/plugin',
-        name: 'DocsMicroscopeMcpPlugin',
-        component: () => import('@/views/docs/microscope-mcp/McpPluginPage.vue')
+        path: 'microscope-mcp/claude-code',
+        name: 'DocsMicroscopeMcpClaudeCode',
+        component: () => import('@/views/docs/microscope-mcp/McpClaudeCodePage.vue')
+      },
+      {
+        path: 'microscope-mcp/codex',
+        name: 'DocsMicroscopeMcpCodex',
+        component: () => import('@/views/docs/microscope-mcp/McpCodexPage.vue')
       },
       {
         path: 'microscope-mcp/tools',
@@ -688,6 +693,8 @@ const routes: RouteRecordRaw[] = [
       },
       // Back-compat redirect: the overview was promoted out of a nested path.
       { path: 'microscope-mcp/overview', redirect: '/docs/microscope-mcp' },
+      // The plugin page became one page per coding agent; the old URL points at the Claude Code one.
+      { path: 'microscope-mcp/plugin', redirect: '/docs/microscope-mcp/claude-code' },
 
       // ──── IntelliJ Plugin (standalone product) ────
       {

@@ -63,15 +63,17 @@ const removal = `/plugin uninstall microscope@jeffrey`;
 <template>
   <article class="docs-article">
     <DocsPageHeader
-      title="Claude Code Plugin"
+      title="Claude Code"
       icon="bi bi-plug"
     />
 
     <div class="docs-content">
-      <p>The <strong>Microscope plugin</strong> packages the MCP server together with a few skills, so connecting is one install rather than a hand-written command per machine and per repository. It is a convenience over the plain server &mdash; everything it does can be done by hand, as <router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> describes.</p>
+      <p>The <strong>Microscope plugin</strong> packages the MCP server together with a few skills and a subagent, so connecting is one install rather than a hand-written command per machine and per repository. It is a convenience over the plain server &mdash; everything it does can be done by hand, as <router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> describes.</p>
+
+      <p>One package serves every agent. Claude Code reads the <code>.claude-plugin/</code> manifest described here; <router-link to="/docs/microscope-mcp/codex">Codex</router-link> and the other Agent Plugins clients read a second manifest in the same directory. The skills and the MCP server underneath are the same files. What this page covers that the Codex one cannot: a <strong>configurable endpoint</strong> and a <strong>subagent</strong>, neither of which the portable format carries.</p>
 
       <DocsCallout type="info" title="Jeffrey has to be running">
-        The plugin installs and loads whether or not Jeffrey is serving, and then every tool call fails. The server is on by default, so a running Jeffrey is usually all it takes &mdash; <strong>Settings &rarr; Claude Code (MCP)</strong> reports whether the endpoint is serving. See <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
+        The plugin installs and loads whether or not Jeffrey is serving, and then every tool call fails. The server is on by default, so a running Jeffrey is usually all it takes &mdash; <strong>Settings &rarr; Coding Agents (MCP)</strong> reports whether the endpoint is serving. See <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
       </DocsCallout>
 
       <h2 id="install-it">Install It</h2>
@@ -92,8 +94,12 @@ const removal = `/plugin uninstall microscope@jeffrey`;
 
       <p>The value is stored per machine, in <code>~/.claude/settings.json</code>. One plugin therefore serves every installation: a non-default port is a setting, not an edit to the manifest, and a laptop can point at a tunnelled staging Jeffrey while the machine beside it stays on localhost.</p>
 
+      <DocsCallout type="info" title="This part is Claude Code only">
+        The portable Agent Plugins format forbids placeholder expansion in a server URL, so the plugin's Codex half is fixed at <code>localhost:8585</code> and a different address is a hand-written <code>config.toml</code> block. See <router-link to="/docs/microscope-mcp/codex">Codex</router-link>.
+      </DocsCallout>
+
       <h2 id="what-the-plugin-adds">What the Plugin Adds</h2>
-      <p>Registering the server by hand gives you the fifty-five tools. The plugin adds three things on top.</p>
+      <p>Registering the server by hand gives you the eighty-five tools. The plugin adds three things on top.</p>
 
       <p><strong>The endpoint, already configured</strong> &mdash; including the per-machine setting above, so the same install works on a laptop and against a tunnelled staging Jeffrey.</p>
 

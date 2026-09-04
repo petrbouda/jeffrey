@@ -46,7 +46,7 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <p class="docs-lede">Jeffrey Microscope serves an <strong>MCP server</strong> that an outside client &mdash; an interactive Claude Code session in your own repository &mdash; can connect to. It turns every profile you have analysed into something a model can read directly: the catalogue, the DuckDB tables behind each profile, and flamegraph, trace and heap-dump exports. It can also take a recording file you have <em>not</em> analysed yet and build the profile for you.</p>
+      <p class="docs-lede">Jeffrey Microscope serves an <strong>MCP server</strong> that an outside coding agent &mdash; an interactive Claude Code or Codex session in your own repository &mdash; can connect to. It turns every profile you have analysed into something a model can read directly: the catalogue, the DuckDB tables behind each profile, and flamegraph, trace and heap-dump exports. It can also take a recording file you have <em>not</em> analysed yet and build the profile for you.</p>
 
       <DocsCallout type="info" title="Reading is read-only">
         Every analysis tool hands out data and nothing more &mdash; it cannot modify, rename or delete a profile, so data cleanup and frame renaming stay in the Jeffrey UI. The single exception is the <code>recordings_</code> family, which creates profiles rather than changing them, and which an installation can switch off on its own.
@@ -55,7 +55,7 @@ onMounted(() => {
       <h2 id="why-it-exists">Why It Exists</h2>
       <p>Reading a profile and reading the code that produced it are the same job, and until now they happened in two places. You would export a flamegraph out of the browser, paste it into a chat, and then describe from memory what the code around the hot frame looks like &mdash; or paste that too, and hope you picked the right file.</p>
 
-      <p>With the MCP server the profile comes to the code instead. Claude Code is already sitting in your repository; it can now pull <code>jdk.ExecutionSample</code> for the profile you just recorded, see that 21% of the samples land in one method, open that method's actual source, and tell you whether the two agree. The interesting questions &mdash; <em>&ldquo;the profile says this loop is hot; is it doing what I think it is?&rdquo;</em> &mdash; only become askable when both halves are in front of the same reader.</p>
+      <p>With the MCP server the profile comes to the code instead. The agent is already sitting in your repository; it can now pull <code>jdk.ExecutionSample</code> for the profile you just recorded, see that 21% of the samples land in one method, open that method's actual source, and tell you whether the two agree. The interesting questions &mdash; <em>&ldquo;the profile says this loop is hot; is it doing what I think it is?&rdquo;</em> &mdash; only become askable when both halves are in front of the same reader.</p>
 
       <h2 id="not-the-in-app-assistant">Not the In-App Assistant</h2>
       <p>Jeffrey has two AI integrations and they point in opposite directions.</p>
@@ -209,9 +209,10 @@ onMounted(() => {
       <h2 id="where-to-go-next">Where to Go Next</h2>
       <ul>
         <li><router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> &mdash; the endpoint URL, the security posture, and how to switch it off</li>
-        <li><router-link to="/docs/microscope-mcp/plugin">Claude Code Plugin</router-link> &mdash; one install instead of a hand-written command per machine</li>
+        <li><router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> &mdash; installing the plugin, pointing it at this Jeffrey, and the subagent only that client can carry</li>
+        <li><router-link to="/docs/microscope-mcp/codex">Codex</router-link> &mdash; the same plugin through the portable Agent Plugins format, and what changes with it</li>
         <li><router-link to="/docs/microscope-mcp/recipes">Recipes</router-link> &mdash; worked sessions, from &ldquo;where does the time go&rdquo; to a leak hunt</li>
-        <li><router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> &mdash; connecting without the plugin, and the wire protocol</li>
+        <li><router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> &mdash; Cursor, Copilot, VS Code and Kiro, connecting without a plugin, and the wire protocol</li>
       </ul>
     </div>
 

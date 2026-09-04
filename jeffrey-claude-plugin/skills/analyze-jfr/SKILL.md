@@ -9,8 +9,9 @@ allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 Jeffrey holds *profiles*: one analysed JFR recording or heap dump each. Every tool reads; the one
 family that writes is `recordings_`, which turns a recording *file* into a profile.
 
-Tool names below omit the server prefix — `mcp__plugin_microscope_jeffrey__` for the plugin,
-`mcp__jeffrey__` for a hand-registered server. The part after it is exact and camelCase:
+Tool names below omit the prefix your client puts in front of them —
+`mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
+hand-registered server. The part after it is exact and camelCase:
 `jfr_listTables`, not `jfr_list_tables`.
 
 ## 1. Get a `profileId`
@@ -258,10 +259,12 @@ zero candidates.
 
 ## Hand the reading to the analyst
 
-An export can run to 120,000 characters, and answering a question well often takes several. The
-plugin ships a subagent, **`microscope:profile-analyst`**, that runs a sequence and returns only
-the findings — the hottest frames with their shares, the causes named. Everything it read stays in
-its own context.
+An export can run to 120,000 characters, and answering a question well often takes several. A
+**`profile-analyst`** agent runs a sequence and returns only the findings — the hottest frames with
+their shares, the causes named. Everything it read stays in its own context. The Claude Code plugin
+ships it as `microscope:profile-analyst`; in Codex it is the custom agent from
+`codex/agents/profile-analyst.toml`. If your client has no such agent, read the exports here and
+keep the sequence short.
 
 Delegate when more than one export is in play — several event types, a whole trace operation, a
 deep chase down one path — and give it the `profileId` and the one question. Independent questions
@@ -289,9 +292,10 @@ profile-to-code-change workflow.
   filesystem. Copy or mount the recording where Jeffrey can reach it, or upload it in the UI.
 - No `recordings_` tool advertised → this Jeffrey runs with `jeffrey.microscope.mcp.ingest.enabled=false`.
   Upload and analyse in the Jeffrey UI, then work from `profiles_list`.
-- Every call fails to connect → Jeffrey is not running at the configured address. Point the plugin
-  at the real `…/api/internal/mcp` endpoint: `/plugin` → `microscope` → **Jeffrey MCP endpoint**;
-  Jeffrey's **Settings → Claude Code (MCP)** shows the URL for the installation.
+- Every call fails to connect → Jeffrey is not running at the configured address. Point the client
+  at the real `…/api/internal/mcp` endpoint: in Claude Code, `/plugin` → `microscope` → **Jeffrey MCP
+  endpoint**; in Codex, the `[mcp_servers.jeffrey]` block in `~/.codex/config.toml`. Jeffrey's
+  **Settings → Coding Agents (MCP)** shows the URL for the installation.
 - The server answers 404 → it was started with `jeffrey.microscope.mcp.enabled=false`; it is on
   by default.
 

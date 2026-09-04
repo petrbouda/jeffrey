@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "jeffrey": {
+      "type": "streamable-http",
+      "url": "http://localhost:8585/api/internal/mcp"
+    }
+  }
+}

@@ -66,10 +66,10 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
     />
 
     <div class="docs-content">
-      <p>The MCP server is <strong>on by default</strong>. A fresh Jeffrey already answers on the endpoint below, so connecting a client is the only step &mdash; see <router-link to="/docs/microscope-mcp/plugin">Claude Code Plugin</router-link>.</p>
+      <p>The MCP server is <strong>on by default</strong>. A fresh Jeffrey already answers on the endpoint below, so connecting a client is the only step &mdash; see <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> or <router-link to="/docs/microscope-mcp/codex">Codex</router-link>.</p>
 
       <h2 id="it-is-already-on">It Is Already On</h2>
-      <p>Open <strong>Settings &rarr; Claude Code (MCP)</strong> to confirm it and to copy the connection details. The tab reports whether the endpoint is serving; it does not offer a switch, because whether Jeffrey exposes the endpoint at all belongs with the bind address and the reverse proxy rather than with the preferences a reader edits in the UI.</p>
+      <p>Open <strong>Settings &rarr; Coding Agents (MCP)</strong> to confirm it and to copy the connection details. The tab reports whether the endpoint is serving; it does not offer a switch, because whether Jeffrey exposes the endpoint at all belongs with the bind address and the reverse proxy rather than with the preferences a reader edits in the UI.</p>
 
       <h2 id="the-endpoint-url">The Endpoint URL</h2>
       <p>One endpoint serves the whole installation:</p>
@@ -94,12 +94,12 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <DocsCodeBlock :code="disabledProbe" language="bash" />
 
       <h2 id="turning-ingestion-off">Turning Ingestion Off</h2>
-      <p>The <code>recordings_</code> family is the one that writes: it imports a recording file and builds a profile from it, which is what lets a Claude Code session analyse a <code>.jfr</code> straight out of your repository. It is on by default, together with the endpoint, and switches off on its own:</p>
+      <p>The <code>recordings_</code> family is the one that writes: it imports a recording file and builds a profile from it, which is what lets a coding-agent session analyse a <code>.jfr</code> straight out of your repository. It is on by default, together with the endpoint, and switches off on its own:</p>
       <DocsCodeBlock :code="ingestToggle" language="properties" />
 
       <p>That leaves the server exactly as it was before ingestion existed &mdash; every profile still readable, nothing creatable. It is worth doing on a shared Jeffrey, for the reason in <a href="#security">Security</a> below: the path a client sends is opened by the <em>Jeffrey</em> process, on the machine Jeffrey runs on.</p>
 
-      <p>Like the endpoint toggle, this one is read once at startup, and <strong>Settings &rarr; Claude Code (MCP)</strong> reports which way it is set.</p>
+      <p>Like the endpoint toggle, this one is read once at startup, and <strong>Settings &rarr; Coding Agents (MCP)</strong> reports which way it is set.</p>
 
       <h2 id="what-a-session-holds-open">What a Session Holds Open</h2>
       <p>Each profile is its own DuckDB database, and Jeffrey's connection pools evict idle databases after a few minutes. That is right for the UI, where a reader moves on, and wrong for an interactive session that may spend twenty minutes on one profile with long pauses for reading.</p>
@@ -113,7 +113,7 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
 
       <p>So decide what can reach the address:</p>
       <ul>
-        <li><strong>Bound to loopback.</strong> Enough for a Jeffrey and a Claude Code session on the same machine, and the setting worth making first. It is <em>not</em> the default: Jeffrey binds every interface, as Spring Boot does unless told otherwise, so a laptop on a shared network is reachable by that network until you say
+        <li><strong>Bound to loopback.</strong> Enough for a Jeffrey and an agent session on the same machine, and the setting worth making first. It is <em>not</em> the default: Jeffrey binds every interface, as Spring Boot does unless told otherwise, so a laptop on a shared network is reachable by that network until you say
           <DocsCodeBlock :code="loopback" language="properties" />
           After that the endpoint is reachable from that machine and nowhere else, which is what makes an on-by-default endpoint safe.</li>
         <li><strong>Through an SSH tunnel.</strong> For a Jeffrey on a remote host or in a container, forward the port rather than publishing it:

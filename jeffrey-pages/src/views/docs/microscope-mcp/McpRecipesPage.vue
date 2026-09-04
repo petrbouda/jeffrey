@@ -159,7 +159,7 @@ LIMIT 20`;
       <h2 id="chase-a-memory-problem">Chase a Memory Problem</h2>
       <DocsCodeBlock :code="promptMemory" language="bash" />
 
-      <p>Loads <router-link to="/docs/microscope-mcp/skills"><code>/microscope:analyze-heap</code></router-link>, which drives <code>heap_getHeapSummary</code> &rarr; <code>heap_getDominatorTreeRoots</code> &rarr; <code>heap_getPathToGCRoot</code>, usually with <code>heap_getLeakSuspects</code> and <code>heap_getInstanceDetail</code> along the way.</p>
+      <p>Loads the <router-link to="/docs/microscope-mcp/skills"><code>analyze-heap</code></router-link> skill, which drives <code>heap_getHeapSummary</code> &rarr; <code>heap_getDominatorTreeRoots</code> &rarr; <code>heap_getPathToGCRoot</code>, usually with <code>heap_getLeakSuspects</code> and <code>heap_getInstanceDetail</code> along the way.</p>
 
       <p>The two-step matters. A class histogram answers &ldquo;what is there&rdquo;; the dominator tree answers &ldquo;what would be freed&rdquo;, which is the one that finds a leak. And <code>heap_getPathToGCRoot</code> is the actual answer to &ldquo;why is this still alive&rdquo; &mdash; a reference chain from a root, usually ending somewhere recognisable like a static cache or a thread-local.</p>
 
@@ -186,7 +186,7 @@ LIMIT 20`;
       <h2 id="does-the-code-agree-with-the-profile">Does the Code Agree With the Profile</h2>
       <DocsCodeBlock :code="promptCrossCheck" language="bash" />
 
-      <p>This is the one that has no equivalent in the Jeffrey UI, and the reason the MCP server exists. Claude pulls the flamegraph, then reads the real method in your checkout &mdash; not a guess at what it probably does &mdash; and reconciles the two: an N+1 in a mapper, a regex recompiled per call, a defensive copy in a loop.</p>
+      <p>This is the one that has no equivalent in the Jeffrey UI, and the reason the MCP server exists. The agent pulls the flamegraph, then reads the real method in your checkout &mdash; not a guess at what it probably does &mdash; and reconciles the two: an N+1 in a mapper, a regex recompiled per call, a defensive copy in a loop.</p>
 
       <p>Two things make the answers trustworthy: the numbers come from the profile rather than from intuition, and the code comes from disk rather than from memory of a similar codebase. Ask for the diff once you agree with the diagnosis.</p>
 
@@ -214,7 +214,7 @@ LIMIT 20`;
 
       <p>Two things the output will not let you misread. Movements are attributed by <strong>self</strong> weight, so a change lands on the method that moved rather than on every caller above it &mdash; without that, one slow leaf reports its whole call stack as regressed. And a renamed or extracted method appears once as new and once as gone, of near-identical size, which reads as two dramatic findings; those pairs are listed as <strong>candidate renames</strong> for you to settle against the source diff, which the profile cannot see.</p>
 
-      <p>The <code>/microscope:compare-jfr</code> skill carries the whole sequence, so the prompt above does not have to name any of it.</p>
+      <p>The <code>compare-jfr</code> skill carries the whole sequence, so the prompt above does not have to name any of it.</p>
 
       <h2 id="a-question-with-no-tool">A Question With No Tool</h2>
       <DocsCodeBlock :code="promptSql" language="bash" />

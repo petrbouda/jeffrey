@@ -27,7 +27,8 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
-  { id: 'why-a-subagent', text: 'Why a Subagent', level: 2 },
+  { id: 'why-a-separate-agent', text: 'Why a Separate Agent', level: 2 },
+  { id: 'installing-it', text: 'Installing It', level: 2 },
   { id: 'what-it-is-given', text: 'What It Is Given', level: 2 },
   { id: 'what-it-returns', text: 'What It Returns', level: 2 },
   { id: 'what-it-never-does', text: 'What It Never Does', level: 2 },
@@ -62,22 +63,29 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
 <template>
   <article class="docs-article">
     <DocsPageHeader
-      title="The profile-analyst Subagent"
+      title="The profile-analyst Agent"
       icon="bi bi-person-badge"
     />
 
     <div class="docs-content">
-      <p>The <router-link to="/docs/microscope-mcp/plugin">plugin</router-link> ships one subagent, <code>microscope:profile-analyst</code>. It reads a Jeffrey export end to end and returns only the findings. Registering the MCP server by hand gives you the <router-link to="/docs/microscope-mcp/tools">tools</router-link> but not this.</p>
+      <p><code>profile-analyst</code> reads a Jeffrey export end to end and returns only the findings. Registering the MCP server by hand gives you the <router-link to="/docs/microscope-mcp/tools">tools</router-link> but not this.</p>
 
-      <h2 id="why-a-subagent">Why a Subagent</h2>
+      <h2 id="why-a-separate-agent">Why a Separate Agent</h2>
       <p>A single <code>flamegraph_export</code> can run to 120,000 characters, and a question worth asking usually takes several &mdash; four in <code>advise-jfr</code>, one per group. Pulled into your session, they crowd out the thing that has to happen next: reading the actual source behind the frames, and holding the conversation about what to change.</p>
 
       <p>So the reading happens somewhere else. The analyst runs the sequence, follows the profile where it leads &mdash; deeper into a heavy subtree, a lower <code>thresholdPct</code> on one path, the GC-root path of the class the histogram named &mdash; and returns a report. Everything it read stays in its context, not yours. Extra reads cost you nothing, which is why it is told to keep going until it can name the causes rather than stopping at the first export.</p>
 
+      <h2 id="installing-it">Installing It</h2>
+      <p>In <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> it arrives with the plugin as <code>microscope:profile-analyst</code>, and there is nothing to do.</p>
+
+      <p>In <router-link to="/docs/microscope-mcp/codex">Codex</router-link> it is a file to copy. The Agent Plugins format defines exactly two component types &mdash; skills and MCP servers &mdash; so no plugin can hand a Codex install an agent, however the plugin was written. The analyst ships as <code>codex/agents/profile-analyst.toml</code>; copy it to <code>~/.codex/agents/</code> for every repository, or <code>.codex/agents/</code> for one.</p>
+
+      <p>The skills delegate to an agent of that name when the client has one and read the exports themselves when it does not, so skipping this costs context rather than correctness.</p>
+
       <h2 id="what-it-is-given">What It Is Given</h2>
       <p>A <code>profileId</code> and one question. For a comparison, a second id as the <strong>baseline</strong>: the <code>profileId</code> is the run under examination and the baseline is what it is measured against, and it never swaps them to make a result read better.</p>
 
-      <p>The <router-link to="/docs/microscope-mcp/skills"><code>analyze-jfr</code>, <code>analyze-heap</code> and <code>compare-jfr</code></router-link> skills are preloaded, so it already carries the entry sequence, which flamegraph answers which question, the order to work a latency question in traces, the heap rules (shallow versus retained, the lazily built dominator tree, which reports only the Jeffrey UI can compute), and &mdash; for a comparison &mdash; that <code>compare_list</code> runs first and &ldquo;these two runs are not comparable&rdquo; is a finding to report rather than an obstacle to work around.</p>
+      <p>The <router-link to="/docs/microscope-mcp/skills"><code>analyze-jfr</code>, <code>analyze-heap</code> and <code>compare-jfr</code></router-link> skills come with it &mdash; preloaded in Claude Code, read on demand in Codex &mdash; so it carries the entry sequence, which flamegraph answers which question, the order to work a latency question in traces, the heap rules (shallow versus retained, the lazily built dominator tree, which reports only the Jeffrey UI can compute), and &mdash; for a comparison &mdash; that <code>compare_list</code> runs first and &ldquo;these two runs are not comparable&rdquo; is a finding to report rather than an obstacle to work around.</p>
 
       <DocsCallout type="info" title="It will not pick a profile for you">
         If the request names no <code>profileId</code>, it says so and stops. The caller knows which profile the conversation is about and the analyst does not &mdash; guessing would produce a confident report about the wrong run.
@@ -96,9 +104,13 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
       <ul>
         <li><strong>No source.</strong> It has no file tools and cannot read your repository. It names the frame, never a file or a line &mdash; mapping frames onto the checkout is yours, and a guess made there would arrive looking measured.</li>
         <li><strong>No recommendations.</strong> It reports what the profile shows. Whether to change anything, and what, stays in your session where you can be asked.</li>
-        <li><strong>No writing.</strong> The <code>recordings_</code> family is disallowed outright, so it cannot import a recording or build a profile. If the profile it was given does not exist or is not ready, it reports that and stops.</li>
-        <li><strong>No nesting.</strong> The skills it preloads tell <em>their</em> reader to delegate export reading to the analyst; that instruction is written for your session, not for it. It does the reading itself and never spawns another agent.</li>
+        <li><strong>No writing.</strong> It cannot import a recording or build a profile. If the profile it was given does not exist or is not ready, it reports that and stops.</li>
+        <li><strong>No nesting.</strong> The skills it carries tell <em>their</em> reader to delegate export reading to the analyst; that instruction is written for your session, not for it. It does the reading itself and never spawns another agent.</li>
       </ul>
+
+      <DocsCallout type="warning" title="Enforced in Claude Code, instructed in Codex">
+        The Claude Code subagent is denied file tools and the <code>recordings_</code> family in its own definition, so the first two rules hold whatever the model decides. Codex has no per-agent tool deny-list: its copy is sandboxed read-only against your files, and the rest is instruction. To make it a wall there, deny <code>recordings_</code> at the server with <code>disabled_tools</code> &mdash; the <router-link to="/docs/microscope-mcp/codex">Codex</router-link> page has the block.
+      </DocsCallout>
 
       <h2 id="delegating-to-it">Delegating to It</h2>
       <p>Usually you do not: the skills delegate on your behalf when more than one export is in play. To do it yourself, give it the id and the one question.</p>

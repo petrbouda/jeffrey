@@ -51,15 +51,29 @@ const askExamples = `# each of these loads a skill on its own - no slash command
 "what should I change in this repo to fix it?"           -> advise-jfr
 "how many events of each type are in the recording?"     -> jfr-sql`;
 
-const invoke = `/microscope:analyze-jfr
+const invoke = `# Claude Code
+/microscope:analyze-jfr
 /microscope:analyze-heap
 /microscope:compare-jfr
 /microscope:advise-jfr
 /microscope:jfr-sql
-/microscope:heap-sql`;
+/microscope:heap-sql
+
+# Codex
+$analyze-jfr
+$analyze-heap
+$compare-jfr
+$advise-jfr
+$jfr-sql
+$heap-sql`;
 
 const advisePrompt = `advise on the most recent Jeffrey profile - what should I change in this repo?
 /microscope:advise-jfr 019f885e-8e69-7d65-8ac7-32a70b92cb94 alloc`;
+
+const skillFrontmatter = `---
+name: analyze-jfr
+description: Analyses a JVM profile held by a running Jeffrey Microscope - CPU, ...
+---`;
 
 const eventsView = `-- correct
 SELECT event_type, COUNT(*) FROM events GROUP BY event_type
@@ -76,10 +90,15 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
     />
 
     <div class="docs-content">
-      <p>The <router-link to="/docs/microscope-mcp/plugin">plugin</router-link> ships six skills and <router-link to="/docs/microscope-mcp/agent">one subagent</router-link>. Claude loads one on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
+      <p>The plugin ships six skills and <router-link to="/docs/microscope-mcp/agent">one analyst agent</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
+
+      <p>The six are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> with two frontmatter fields, and a body:</p>
+      <DocsCodeBlock :code="skillFrontmatter" language="yaml" />
+
+      <p>That format is shared, so <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> and <router-link to="/docs/microscope-mcp/codex">Codex</router-link> load the same files out of the same directory rather than each getting a copy. Everything on this page applies to both; only the way you invoke one by hand differs.</p>
 
       <h2 id="which-skill">Which Skill Answers Your Question</h2>
-      <p>Every row is a question you would actually type. You do not pick from this table &mdash; Claude does, from the same descriptions &mdash; but it is the fastest way to see what the six cover between them, and what each one needs before it can start.</p>
+      <p>Every row is a question you would actually type. You do not pick from this table &mdash; the agent does, from the same descriptions &mdash; but it is the fastest way to see what the six cover between them, and what each one needs before it can start.</p>
       <table class="skill-chooser">
         <thead>
           <tr>
@@ -368,18 +387,18 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <h2 id="the-analyst">The Analyst They Delegate To</h2>
       <p>Three of the skills do not read the big documents themselves. A single <code>flamegraph_export</code> can run to 120,000 characters, and a question worth asking usually takes several &mdash; four of them in <code>advise-jfr</code>, one per group. Pulled into the session, they leave little room for the thing that has to happen next: reading the actual source behind the frames.</p>
 
-      <p>So the plugin ships a subagent, <code>microscope:profile-analyst</code>, and the skills hand it the reading. It runs the sequence, follows the profile where it leads &mdash; deeper into a subtree, a lower threshold on one path, the GC-root path of the class the histogram named &mdash; and returns the findings alone. What it read stays in its context.</p>
+      <p>So there is an analyst agent, and the skills hand it the reading &mdash; <code>microscope:profile-analyst</code> from the Claude Code plugin, or the custom agent a Codex user copies in. It runs the sequence, follows the profile where it leads &mdash; deeper into a subtree, a lower threshold on one path, the GC-root path of the class the histogram named &mdash; and returns the findings alone. What it read stays in its context.</p>
 
-      <p>What it is not allowed to do is as much of the design as what it does: no file access and no <code>recordings_</code>, so it cannot map a frame to a line, edit anything, or build a profile. Mapping onto the checkout, the recommendation, and every question put to you stay in the session, where you can answer them. <router-link to="/docs/microscope-mcp/agent">The subagent reference</router-link> has the full contract &mdash; what it is given, the report shape it returns, and when to read an export yourself instead.</p>
+      <p>What it is not allowed to do is as much of the design as what it does: no file access and no <code>recordings_</code>, so it cannot map a frame to a line, edit anything, or build a profile. Mapping onto the checkout, the recommendation, and every question put to you stay in the session, where you can answer them. <router-link to="/docs/microscope-mcp/agent">The analyst reference</router-link> has the full contract &mdash; what it is given, the report shape it returns, and when to read an export yourself instead.</p>
 
       <h2 id="invoking-one-directly">Invoking One Directly</h2>
-      <p>You do not normally have to. Claude loads the skill whose description matches the question, so plain English is enough:</p>
+      <p>You do not normally have to. The agent loads the skill whose description matches the question, so plain English is enough:</p>
       <DocsCodeBlock :code="askExamples" language="bash" />
 
-      <p>Each skill is also a slash command, namespaced by the plugin:</p>
+      <p>Each skill can also be named directly &mdash; a slash command namespaced by the plugin in Claude Code, a <code>$</code> name in Codex:</p>
       <DocsCodeBlock :code="invoke" language="bash" />
 
-      <p>Useful when you want the schema in front of you before asking a question, or when Claude has gone off in a direction the skill would have corrected.</p>
+      <p>Useful when you want the schema in front of you before asking a question, or when the agent has gone off in a direction the skill would have corrected.</p>
 
       <h2 id="what-they-deliberately-omit">What They Deliberately Omit</h2>
       <p>The skills stay short on purpose. They do not restate frame tags, the bullet grammar of an export, pruning semantics, or what <code>self</code> means &mdash; every export says all of that itself, in the version that matches the code that produced it. A skill repeating it would be a second source of truth, and the one that drifts.</p>
