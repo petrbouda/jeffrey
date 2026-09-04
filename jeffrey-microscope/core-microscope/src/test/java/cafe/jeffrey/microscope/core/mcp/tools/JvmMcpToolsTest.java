@@ -171,6 +171,52 @@ class JvmMcpToolsTest {
     }
 
     @Nested
+    class NextSteps {
+
+        /**
+         * The figures alone do not say what to do next, and the tool description that does was read
+         * many turns earlier. The exports have always opened with their own reading instructions;
+         * a dashboard carries the same thing beside the numbers it is read with.
+         */
+        @Test
+        void sendsAGcReaderOnToTheAllocationFlamegraph() {
+            recorded(EventTypeName.GARBAGE_COLLECTION);
+            when(gcManager.garbageCollectorType()).thenReturn(GarbageCollectorType.G1);
+            when(gcManager.overviewData()).thenReturn(Gc.overview());
+
+            String result = tools().gc();
+
+            assertTrue(result.contains("jdk.ObjectAllocationSample"));
+            assertTrue(result.contains("jvm_safepoints"));
+        }
+
+        /**
+         * Routing, never a verdict: the lines are unconditional, so nothing here claims that this
+         * particular recording spent too long collecting.
+         */
+        @Test
+        void carriesTheSameRoutingWhateverTheFiguresSay() {
+            recorded(EventTypeName.GARBAGE_COLLECTION);
+            when(gcManager.garbageCollectorType()).thenReturn(GarbageCollectorType.G1);
+            when(gcManager.overviewData()).thenReturn(Gc.overview());
+
+            String result = tools().gc();
+
+            assertTrue(result.contains("\"nextSteps\""));
+            assertTrue(result.contains("\"section\":\"gc\""));
+            assertTrue(result.contains("\"dashboard\""));
+        }
+
+        @Test
+        void tellsAConfigurationReaderToPreferTheseValuesOverAManifest() {
+            recorded(EventTypeName.JVM_INFORMATION);
+            when(configurationManager.configuration()).thenReturn(Configuration.configuration());
+
+            assertTrue(tools().configuration(null).contains("deployment manifest"));
+        }
+    }
+
+    @Nested
     class Gc {
 
         /**
@@ -203,7 +249,7 @@ class JvmMcpToolsTest {
             assertTrue(result.contains("\"diagnosticGcCalls\":1"));
         }
 
-        private static GCOverviewData overview() {
+        static GCOverviewData overview() {
             GCHeader header = new GCHeader(
                     12, 9, 2, 1,
                     40 * MILLI_IN_NANOS, 30 * MILLI_IN_NANOS, 35 * MILLI_IN_NANOS,
@@ -321,7 +367,7 @@ class JvmMcpToolsTest {
             assertTrue(result.contains("no configuration section named 'Nonexistent'"));
         }
 
-        private static JsonNode configuration() {
+        static JsonNode configuration() {
             return Json.readObjectNode("""
                     {
                       "JVM Information": {"JVM Version": "25.0.1"},

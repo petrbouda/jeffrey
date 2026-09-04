@@ -297,6 +297,10 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
         </tbody>
       </table>
 
+      <DocsCallout type="info" title="Every result says what it cannot answer">
+        Each dashboard comes back wrapped with a <code>nextSteps</code> list &mdash; the same idea as the reading instructions a flamegraph or trace export opens with. <code>jvm_gc</code> says that no event in it names the code that produced the garbage and points at the allocation flamegraph; <code>jvm_container</code> points back at per-thread CPU load; <code>jvm_configuration</code> says to prefer these values over a deployment manifest. They route and never diagnose: no threshold decides whether they appear, and none of them claims the figures beside them are bad.
+      </DocsCallout>
+
       <DocsCallout type="info" title="Call jvm_sections first">
         A recording holds only what the profiler was told to capture. Every section reports whether this profile carries its events, and a section asked for anyway is refused naming the events it needed &mdash; a dashboard rendered from events that were never recorded is a page of zeroes, which reads like a finding rather than like an absence.
       </DocsCallout>

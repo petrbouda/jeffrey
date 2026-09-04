@@ -20,6 +20,7 @@ package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
 import cafe.jeffrey.shared.common.model.Type;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -65,6 +66,18 @@ public sealed interface JvmSection permits
      * An empty set means the section does not depend on the recording's contents.
      */
     Set<Type> eventTypes();
+
+    /**
+     * What this dashboard cannot answer, and which tool answers it — carried back with every result.
+     * <p>
+     * The figures alone do not say what to do next, and the tool description that does say it was
+     * read many turns earlier. Jeffrey's flamegraph and trace exports have always opened with their
+     * own reading instructions for exactly this reason; a dashboard is no different. These lines
+     * route, they never diagnose: no threshold decides whether they appear, and none of them claims
+     * that this particular recording is bad. The reader is told where the next answer lives and left
+     * to decide whether to go there.
+     */
+    List<String> nextSteps();
 
     /**
      * The dashboard itself, as a record tree that serialises to JSON.

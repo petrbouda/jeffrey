@@ -67,6 +67,14 @@ public record JitSection(ProfileManager profileManager) implements JvmSection {
             Type.CODE_CACHE_STATISTICS,
             Type.COMPILER_QUEUE_UTILIZATION);
 
+    private static final List<String> NEXT_STEPS = List.of(
+            "An empty compilations list means nothing crossed the recording's threshold, not that nothing "
+                    + "compiled; the statistics are there either way.",
+            "A deoptimisation reason and method point into source. Read the method rather than inferring "
+                    + "what it does from its name.",
+            "Compiler threads also appear in the CPU flamegraph: flamegraph_export with "
+                    + "jdk.ExecutionSample, or jdk.CPUTimeSample on a JDK 25 recording.");
+
     @Override
     public String id() {
         return ID;
@@ -80,6 +88,11 @@ public record JitSection(ProfileManager profileManager) implements JvmSection {
     @Override
     public Set<Type> eventTypes() {
         return EVENT_TYPES;
+    }
+
+    @Override
+    public List<String> nextSteps() {
+        return NEXT_STEPS;
     }
 
     @Override

@@ -187,14 +187,14 @@ public class JvmMcpTools {
             return notRecorded(declared);
         }
         if (section == null || section.isBlank()) {
-            return McpToolOutput.json(configurationSection.sectionNames());
+            return McpToolOutput.json(result(declared, configurationSection.sectionNames()));
         }
 
         JsonNode content = configurationSection.section(section);
         if (content == null) {
             return McpToolOutput.error(NO_SUCH_CONFIGURATION_SECTION.formatted(section));
         }
-        return McpToolOutput.json(content);
+        return McpToolOutput.json(result(declared, content));
     }
 
     private String render(String id) {
@@ -202,7 +202,29 @@ public class JvmMcpTools {
         if (!sections.isAvailable(section)) {
             return notRecorded(section);
         }
-        return McpToolOutput.json(section.render());
+        return McpToolOutput.json(result(section, section.render()));
+    }
+
+    /**
+     * A dashboard with the routing that belongs beside it.
+     * <p>
+     * The envelope is the family's contract rather than each dashboard's, so a section describes what
+     * it cannot answer once and every result carries it — at the moment the figures are read, not in
+     * a tool description from many turns earlier.
+     */
+    private static SectionResult result(JvmSection section, Object dashboard) {
+        return new SectionResult(section.id(), section.title(), section.nextSteps(), dashboard);
+    }
+
+    /**
+     * @param nextSteps what this dashboard cannot answer and which tool answers it — routing, never a
+     *                  verdict on whether the figures below are good or bad
+     */
+    private record SectionResult(
+            String section,
+            String title,
+            List<String> nextSteps,
+            Object dashboard) {
     }
 
     private static String notRecorded(JvmSection section) {

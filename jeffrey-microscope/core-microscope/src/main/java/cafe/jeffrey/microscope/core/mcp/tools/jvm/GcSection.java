@@ -62,6 +62,14 @@ public record GcSection(ProfileManager profileManager) implements JvmSection {
             Type.Z_YOUNG_GARBAGE_COLLECTION,
             Type.Z_OLD_GARBAGE_COLLECTION);
 
+    private static final List<String> NEXT_STEPS = List.of(
+            "No event in this section names the code that produced the garbage. For the call paths, "
+                    + "flamegraph_export with eventType jdk.ObjectAllocationSample and useWeight true.",
+            "Pauses that are not collections are in jvm_safepoints. A small budget here does not mean "
+                    + "the application was not being stopped.",
+            "What is retained rather than churned is a heap-dump question; profiles_features says whether "
+                    + "this profile has one.");
+
     @Override
     public String id() {
         return ID;
@@ -75,6 +83,11 @@ public record GcSection(ProfileManager profileManager) implements JvmSection {
     @Override
     public Set<Type> eventTypes() {
         return EVENT_TYPES;
+    }
+
+    @Override
+    public List<String> nextSteps() {
+        return NEXT_STEPS;
     }
 
     @Override

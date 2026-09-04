@@ -61,6 +61,13 @@ public record SafepointsSection(ProfileManager profileManager) implements JvmSec
             Type.SAFEPOINT_STATE_SYNCHRONIZATION,
             Type.SAFEPOINT_LATENCY);
 
+    private static final List<String> NEXT_STEPS = List.of(
+            "The collector's own pauses are in jvm_gc; this section is everything else that stops the "
+                    + "application.",
+            "A thread slow from _thread_in_Java is a loop the JIT stripped the safepoint poll out of; one "
+                    + "slow from _thread_in_native is inside a call the JVM cannot interrupt. Read the method "
+                    + "in the checkout before concluding which.");
+
     @Override
     public String id() {
         return ID;
@@ -74,6 +81,11 @@ public record SafepointsSection(ProfileManager profileManager) implements JvmSec
     @Override
     public Set<Type> eventTypes() {
         return EVENT_TYPES;
+    }
+
+    @Override
+    public List<String> nextSteps() {
+        return NEXT_STEPS;
     }
 
     @Override

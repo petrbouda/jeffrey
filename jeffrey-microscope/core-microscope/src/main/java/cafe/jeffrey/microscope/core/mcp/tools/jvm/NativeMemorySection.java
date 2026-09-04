@@ -55,6 +55,13 @@ public record NativeMemorySection(ProfileManager profileManager) implements JvmS
             Type.DIRECT_BUFFER_STATISTICS,
             Type.NATIVE_LIBRARY);
 
+    private static final List<String> NEXT_STEPS = List.of(
+            "Memory outside the Java heap does not appear in a heap dump. The native allocation "
+                    + "flamegraphs are profiler.Malloc and jeffrey.NativeLeak when the recording carries them; "
+                    + "flamegraph_list says whether it does.",
+            "A large untracked figure means something outside the JVM's own allocators holds the memory, "
+                    + "which NMT cannot attribute for you.");
+
     @Override
     public String id() {
         return ID;
@@ -68,6 +75,11 @@ public record NativeMemorySection(ProfileManager profileManager) implements JvmS
     @Override
     public Set<Type> eventTypes() {
         return EVENT_TYPES;
+    }
+
+    @Override
+    public List<String> nextSteps() {
+        return NEXT_STEPS;
     }
 
     @Override

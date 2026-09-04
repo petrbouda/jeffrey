@@ -103,6 +103,10 @@ renders — the same tested builders, one call instead of six invented SQL queri
 section reports whether this one carries its events. A section asked for anyway is refused with the
 events it needed, so an absence never arrives as a page of zeroes.
 
+Every result carries a `nextSteps` list beside the figures, saying what that dashboard cannot
+answer and which tool answers it — the same idea as the reading instructions an export opens with.
+Follow it: the figures are one half of an answer, and the other half is usually in another family.
+
 | Tool | The question it answers |
 |---|---|
 | `jvm_autoAnalysis` | Jeffrey's rule set over the whole recording — findings with a severity and a suggested fix. The cheapest first question about any profile. |

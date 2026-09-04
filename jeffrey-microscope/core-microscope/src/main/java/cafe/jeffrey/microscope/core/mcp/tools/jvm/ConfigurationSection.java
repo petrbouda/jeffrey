@@ -56,6 +56,11 @@ public record ConfigurationSection(ProfileManager profileManager) implements Jvm
             Type.CONTAINER_CONFIGURATION,
             Type.VIRTUALIZATION_INFORMATION);
 
+    private static final List<String> NEXT_STEPS = List.of(
+            "These are the values the JVM really ran with. Prefer them over a deployment manifest when "
+                    + "proposing any flag.",
+            "What the collector and the compiler actually did with these settings is in jvm_gc and jvm_jit.");
+
     @Override
     public String id() {
         return ID;
@@ -69,6 +74,11 @@ public record ConfigurationSection(ProfileManager profileManager) implements Jvm
     @Override
     public Set<Type> eventTypes() {
         return EVENT_TYPES;
+    }
+
+    @Override
+    public List<String> nextSteps() {
+        return NEXT_STEPS;
     }
 
     @Override

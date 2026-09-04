@@ -24,6 +24,7 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.model.container.ContainerCpuThrottlingData;
 import cafe.jeffrey.shared.common.model.Type;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -45,6 +46,12 @@ public record ContainerSection(ProfileManager profileManager) implements JvmSect
             Type.CONTAINER_CONFIGURATION,
             Type.CONTAINER_CPU_THROTTLING);
 
+    private static final List<String> NEXT_STEPS = List.of(
+            "Throttling caps CPU without appearing in a flamegraph — frames simply stop being sampled. "
+                    + "Compare these limits against the per-thread CPU load in jvm_threads.",
+            "These are the limits the JVM read at start-up, which can differ from what the orchestrator's "
+                    + "manifest says today.");
+
     @Override
     public String id() {
         return ID;
@@ -58,6 +65,11 @@ public record ContainerSection(ProfileManager profileManager) implements JvmSect
     @Override
     public Set<Type> eventTypes() {
         return EVENT_TYPES;
+    }
+
+    @Override
+    public List<String> nextSteps() {
+        return NEXT_STEPS;
     }
 
     @Override

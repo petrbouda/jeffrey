@@ -52,6 +52,12 @@ public record AutoAnalysisSection(ProfileManager profileManager) implements JvmS
      */
     private static final Set<Type> EVENT_TYPES = Set.of();
 
+    private static final List<String> NEXT_STEPS = List.of(
+            "Each finding names a subsystem: follow it into the matching jvm_ section for the figures "
+                    + "rather than repeating the rule's suggestion as a conclusion.",
+            "The rules never read your source. Check a finding against the profile and the checkout before "
+                    + "acting on it.");
+
     @Override
     public String id() {
         return ID;
@@ -65,6 +71,11 @@ public record AutoAnalysisSection(ProfileManager profileManager) implements JvmS
     @Override
     public Set<Type> eventTypes() {
         return EVENT_TYPES;
+    }
+
+    @Override
+    public List<String> nextSteps() {
+        return NEXT_STEPS;
     }
 
     @Override

@@ -64,6 +64,14 @@ public record ThreadsSection(ProfileManager profileManager) implements JvmSectio
             Type.VIRTUAL_THREAD_START,
             Type.VIRTUAL_THREAD_PINNED);
 
+    private static final List<String> NEXT_STEPS = List.of(
+            "A flamegraph aggregates across threads. For one thread's frames, flamegraph_export with "
+                    + "threadMode true.",
+            "Allocation per thread says who allocated; the allocation flamegraph says where — "
+                    + "jdk.ObjectAllocationSample with useWeight true.",
+            "A pinning reason names a synchronized block or a native call. Read that code before proposing "
+                    + "the fix.");
+
     @Override
     public String id() {
         return ID;
@@ -77,6 +85,11 @@ public record ThreadsSection(ProfileManager profileManager) implements JvmSectio
     @Override
     public Set<Type> eventTypes() {
         return EVENT_TYPES;
+    }
+
+    @Override
+    public List<String> nextSteps() {
+        return NEXT_STEPS;
     }
 
     @Override
