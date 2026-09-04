@@ -31,8 +31,8 @@
     <artifactId>hub-api</artifactId>
 
     <properties>
-        <grpc.version>1.81.0</grpc.version>
-        <protobuf.version>4.35.0</protobuf.version>
+        <grpc.version>1.84.0</grpc.version>
+        <protobuf.version>4.36.1</protobuf.version>
         <protoc-gen-grpc-java.version>${grpc.version}</protoc-gen-grpc-java.version>
     </properties>
 
@@ -97,7 +97,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>3.6.0</version>
+                <version>3.6.3</version>
                 <executions>
                     <execution>
                         <id>generate-grpc-docs</id>

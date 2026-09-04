@@ -32,7 +32,7 @@
     <properties>
         <mainClass>cafe.jeffrey.hub.core.HubApplication</mainClass>
         <finalName>jeffrey-hub</finalName>
-        <jib-maven-plugin.version>3.4.6</jib-maven-plugin.version>
+        <jib-maven-plugin.version>3.5.2</jib-maven-plugin.version>
         <jeffrey-jib-maven.version>1.0-SNAPSHOT</jeffrey-jib-maven.version>
         <image.from>eclipse-temurin:25-jdk</image.from>
         <image.to>petrbouda/jeffrey-hub:${project.version}</image.to>

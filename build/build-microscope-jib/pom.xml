@@ -32,7 +32,7 @@
     <properties>
         <mainClass>cafe.jeffrey.microscope.core.MicroscopeApplication</mainClass>
         <finalName>microscope</finalName>
-        <jib-maven-plugin.version>3.4.6</jib-maven-plugin.version>
+        <jib-maven-plugin.version>3.5.2</jib-maven-plugin.version>
         <image.from>eclipse-temurin:25-jdk</image.from>
         <image.to>petrbouda/microscope:${project.version}</image.to>
     </properties>

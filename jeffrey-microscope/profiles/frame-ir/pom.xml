@@ -29,10 +29,6 @@
 
     <artifactId>frame-ir</artifactId>
 
-    <properties>
-        <kotlin.version>2.0.20</kotlin.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>

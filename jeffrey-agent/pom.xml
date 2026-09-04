@@ -36,7 +36,7 @@
           framework happens to manage. Worth keeping in step with what core-hub and core-microscope
           resolve, but they do not decide it.
         -->
-        <byte-buddy.version>1.18.10</byte-buddy.version>
+        <byte-buddy.version>1.18.13</byte-buddy.version>
     </properties>
 
     <dependencies>

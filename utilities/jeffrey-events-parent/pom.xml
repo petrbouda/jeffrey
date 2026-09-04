@@ -69,19 +69,19 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- Java 25: the tracing API is built on ScopedValue and jdk.jfr.Contextual. -->
         <maven.compiler.release>25</maven.compiler.release>
-        <junit.version>6.0.3</junit.version>
+        <junit.version>6.1.3</junit.version>
         <!--
           Compile-time only: every framework dependency below is `provided`, so a
           consumer brings its own version and nothing here is imposed on them.
         -->
-        <spring-boot.version>4.1.0</spring-boot.version>
-        <hikaricp.version>7.0.2</hikaricp.version>
-        <duckdb.version>1.5.3.0</duckdb.version>
+        <spring-boot.version>4.1.1</spring-boot.version>
+        <hikaricp.version>7.1.0</hikaricp.version>
+        <duckdb.version>1.5.5.1</duckdb.version>
         <mybatis.version>3.5.19</mybatis.version>
-        <grpc.version>1.81.0</grpc.version>
-        <protobuf.version>4.35.0</protobuf.version>
-        <maven-compiler-plugin.version>3.14.0</maven-compiler-plugin.version>
-        <maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
+        <grpc.version>1.84.0</grpc.version>
+        <protobuf.version>4.36.1</protobuf.version>
+        <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
     </properties>
 
     <dependencyManagement>

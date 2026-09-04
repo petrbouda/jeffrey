@@ -36,7 +36,7 @@
       unit test in either module can do on its own.
     -->
     <properties>
-        <maven-failsafe-plugin.version>3.5.4</maven-failsafe-plugin.version>
+        <maven-failsafe-plugin.version>3.6.0</maven-failsafe-plugin.version>
         <!--
           The jar the release publishes, by the name build-agent's finalName gives it. Not resolved
           as a dependency: that resolves to build-agent's main artifact, which is the thin jar
