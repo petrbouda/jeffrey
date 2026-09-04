@@ -122,6 +122,9 @@ export const microscopeNavigation: DocSection[] = [
     path: '_microscope-architecture',
     icon: 'bi-diagram-3',
     children: [
+      // Cross-product page (how Microscope and Hub fit together, plus the staged pipelines
+      // both share). It lives under /docs/architecture/*, which resolves to this sidebar.
+      { title: 'Platform Overview', to: '/docs/architecture/overview' },
       { title: 'Overview', to: '/docs/microscope/architecture' },
       { title: 'Storage', to: '/docs/microscope/storage' }
     ]

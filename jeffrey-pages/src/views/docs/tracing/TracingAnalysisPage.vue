@@ -72,7 +72,7 @@ const virtualThreadExample = `POST /api/internal/recordings/…   tomcat-handler
 
       <p>Traces by Operation answers "which <em>kind</em> of run is slow, across every time it ran". One card per <strong>trace type</strong>: an operation's name is derived from what the root did — <code>GET /api/internal/profiles/{profileId}</code>, <code>jeffrey.api.v1.ProjectService/List</code> — rather than read out of the recording, so the same endpoint is one operation whichever version of the library recorded it. A trace type is keyed by name <em>plus</em> the root's kind and event type — an inbound <code>GET /orders</code> and an outbound call to the same path are named identically and are not the same operation.</p>
 
-      <p>Each card leads with the call count, then Spans / Total / P50 / P95 / Max badges, with an error-count badge when the type has failures; sort by total, P95, max, call count or errors. The profile-wide tiles above the list read an uncapped SQL aggregate, so they never change value as you filter the capped list below. Clicking a card opens the operation drill-down — the selection lives in the URL, so it can be linked to directly — with four tabs:</p>
+      <p>Each card leads with the call count, then Spans / Total / P50 / P95 / P99 / Max badges, with a notification badge when the type produced notifications (amber once any of them is urgent) and an error-count badge when it has failures; sort by total, P95, P99, max, call count, errors or notifications. The profile-wide tiles above the list read an uncapped SQL aggregate, so they never change value as you filter the capped list below. Clicking a card opens the operation drill-down — the selection lives in the URL, so it can be linked to directly — with four tabs:</p>
 
       <ul>
         <li><strong>Summary</strong> — call count, latency percentiles, total time and the share of all trace time it accounts for; a latency histogram, the platform/virtual thread split, where the operation's time goes span by span, and its slowest runs.</li>
@@ -83,7 +83,7 @@ const virtualThreadExample = `POST /api/internal/recordings/…   tomcat-handler
 
       <figure class="docs-figure">
         <img src="/images/docs/tracing/operations.webp" alt="Traces by Operation with stat tiles and one card per operation" />
-        <figcaption>Traces by Operation &mdash; the profile-wide tiles above, one card per trace type below, sortable by total, P95, max, count or errors.</figcaption>
+        <figcaption>Traces by Operation &mdash; the profile-wide tiles above, one card per trace type below, sortable by total, P95, P99, max, count, errors or notifications.</figcaption>
       </figure>
 
       <figure class="docs-figure">

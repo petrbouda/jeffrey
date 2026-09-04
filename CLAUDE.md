@@ -197,7 +197,7 @@ jeffrey/
 ├── jeffrey-agent/                     # Agent module
 ├── jeffrey-claude-plugin/             # Claude Code plugin "microscope" (MCP server + skills + agent)
 │   ├── .claude-plugin/plugin.json     # Manifest, with the MCP server declared inline
-│   ├── skills/                        # analyze-jfr, analyze-heap, advise-jfr, jfr-sql, heap-sql
+│   ├── skills/                        # analyze-jfr, analyze-heap, advise-jfr, compare-jfr, jfr-sql, heap-sql
 │   └── agents/                        # profile-analyst — reads an export, returns only the findings
 ├── .claude-plugin/marketplace.json    # Makes the repo itself a Claude Code plugin marketplace
 ├── jeffrey-pages/                     # Documentation site

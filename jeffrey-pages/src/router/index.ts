@@ -146,21 +146,12 @@ const routes: RouteRecordRaw[] = [
       },
 
       // ──── Getting Started ────
-      {
-        path: 'getting-started/introduction',
-        name: 'DocsIntroduction',
-        component: () => import('@/views/docs/getting-started/GettingStartedIntroductionPage.vue')
-      },
-      {
-        path: 'getting-started/installation',
-        name: 'DocsInstallation',
-        component: () => import('@/views/docs/getting-started/GettingStartedInstallationPage.vue')
-      },
-      {
-        path: 'getting-started/quick-start',
-        name: 'DocsQuickStart',
-        component: () => import('@/views/docs/getting-started/GettingStartedQuickStartPage.vue')
-      },
+      // Retired: the standalone Getting Started group was superseded by the Microscope
+      // overview and its single Quick Start page (which merged install + first steps).
+      // Kept as redirects so inbound links to the old URLs keep working.
+      { path: 'getting-started/introduction', redirect: '/docs/microscope' },
+      { path: 'getting-started/installation', redirect: '/docs/microscope/quick-start' },
+      { path: 'getting-started/quick-start', redirect: '/docs/microscope/quick-start' },
 
       // ──── Architecture ────
       {
