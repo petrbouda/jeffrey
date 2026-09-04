@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.profile.manager.custom.ExchangeDirection;
 import cafe.jeffrey.profile.manager.custom.GrpcManager;
 import cafe.jeffrey.profile.manager.custom.HttpManager;
 import cafe.jeffrey.profile.manager.custom.JdbcPoolManager;
@@ -65,13 +66,13 @@ public class ProfileCustomManagerImpl implements ProfileCustomManager {
     }
 
     @Override
-    public HttpManager httpManager() {
-        return httpManagerFactory.apply(parent.info());
+    public HttpManager httpManager(ExchangeDirection direction) {
+        return httpManagerFactory.apply(parent.info(), direction);
     }
 
     @Override
-    public GrpcManager grpcManager() {
-        return grpcManagerFactory.apply(parent.info());
+    public GrpcManager grpcManager(ExchangeDirection direction) {
+        return grpcManagerFactory.apply(parent.info(), direction);
     }
 
     @Override

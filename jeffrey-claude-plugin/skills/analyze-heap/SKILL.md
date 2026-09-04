@@ -105,7 +105,12 @@ every question to the user, stays here either way.
   makes a claim checkable.
 - Object ids are stable within one dump and meaningless across dumps. Carry the class name and
   the path between dumps, never an id.
-- A dump shows a state, not a trend. One dump cannot distinguish a leak from a large working set;
+- **Two dumps settle it.** `heap_diff` compares this dump against an earlier one class by class, ranked
+by growth: it is the one tool that separates a leak from a large working set, which no single-dump
+report can do. Pass the earlier dump as the baseline — backwards, every growth reads as a shrink.
+Both dumps have to be indexed first, and the tool says which one is not.
+
+A dump shows a state, not a trend. One dump cannot distinguish a leak from a large working set;
   say which of the two you are claiming, and ask for a second dump taken later when it matters.
 - If the repository is open alongside, read the real source of the retaining field before naming
   a cause. Do not infer a code path from a class name.

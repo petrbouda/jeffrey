@@ -59,21 +59,23 @@ public class ProfileCustomFactoriesConfiguration {
 
     @Bean
     public HttpManager.Factory httpManagerFactory() {
-        return profileInfo -> {
+        return (profileInfo, direction) -> {
             DataSource dataSource = databaseManagerResolver.open(profileInfo);
             return new HttpManagerImpl(
-                    profileInfo, repositories.newEventStreamRepository(dataSource));
+                    profileInfo,
+                    repositories.newEventStreamRepository(dataSource),
+                    direction.httpEventType());
         };
     }
 
     @Bean
-    public GrpcManager.Factory grpcServerManagerFactory() {
-        return profileInfo -> {
+    public GrpcManager.Factory grpcManagerFactory() {
+        return (profileInfo, direction) -> {
             DataSource dataSource = databaseManagerResolver.open(profileInfo);
             return new GrpcManagerImpl(
                     profileInfo,
                     repositories.newEventStreamRepository(dataSource),
-                    Type.GRPC_SERVER_EXCHANGE);
+                    direction.grpcEventType());
         };
     }
 

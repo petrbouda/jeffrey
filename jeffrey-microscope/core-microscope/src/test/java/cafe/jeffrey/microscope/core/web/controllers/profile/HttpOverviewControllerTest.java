@@ -30,6 +30,7 @@ import cafe.jeffrey.profile.manager.custom.HttpManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 
@@ -52,7 +53,7 @@ class HttpOverviewControllerTest {
     void getsOverview() {
         when(resolver.resolve("p-1")).thenReturn(profileManager);
         when(profileManager.custom()).thenReturn(customManager);
-        when(customManager.httpManager()).thenReturn(httpManager);
+        when(customManager.httpManager(any())).thenReturn(httpManager);
         when(httpManager.overviewData()).thenReturn(null);
 
         MockMvcTester mvc = mockMvcTesterFor(new HttpOverviewController(resolver));

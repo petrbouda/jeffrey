@@ -22,6 +22,7 @@ import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.manager.custom.ExchangeDirection;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpHeader;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpMethodStats;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpOverviewData;
@@ -32,15 +33,17 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
- * The inbound HTTP traffic the profiled JVM served: how much of it there was, how slow it was, which
- * endpoints carried it and which individual requests were the worst.
+ * The HTTP traffic that crossed this JVM: how much of it there was, how slow it was, which endpoints
+ * carried it and which individual requests were the worst.
  * <p>
- * Only server-side exchanges exist here. {@code HttpManagerImpl} reads
- * {@code Type.HTTP_SERVER_EXCHANGE} and nothing else, so there is no client half to select and these
- * tools take no direction argument, even though the UI shows a client/server switch.
+ * Both directions are answerable and they are different questions. SERVER is what this application
+ * was asked to do; CLIENT is what it asked of somebody else, where a slow figure belongs to a
+ * dependency and the only local fixes are to call less often or to stop waiting. Averaging the two
+ * together would hide both.
  * <p>
  * The per-second response-time and request-count series that back the dashboard's charts are left out
  * of every answer: they are thousands of points describing a shape, which costs a large part of the
@@ -52,7 +55,6 @@ public class HttpMcpTools {
     private static final String OVERVIEW_VIEW = "technologies/http/overview";
     private static final String ENDPOINTS_VIEW = "technologies/http/endpoints";
     private static final String MODE_PARAM = "mode";
-    private static final String SERVER_MODE = "server";
     private static final String URI_PARAM = "uri";
 
     /**
@@ -63,13 +65,16 @@ public class HttpMcpTools {
     private static final int MAX_ENDPOINTS = 40;
 
     private static final String NO_HTTP_DATA =
-            "This profile holds no HTTP server data: the recording did not capture "
-                    + "jdk.HttpServerExchange events. That is a profiler-configuration finding worth "
-                    + "reporting - the application may well serve HTTP, but this recording cannot show it.";
+            "This profile holds no %s-side HTTP data: the recording did not capture %s events. That is "
+                    + "a profiler-configuration finding worth reporting - the application may well "
+                    + "handle HTTP in that direction, but this recording cannot show it.";
 
     private static final String STEP_ENDPOINT =
-            "This is the whole service. For one URI - its own percentiles, status codes and slowest "
-                    + "requests - http_endpoint takes a uri from the endpoints list above.";
+            "This is one whole direction. For a single URI - its own percentiles, status codes and "
+                    + "slowest requests - http_endpoint takes a uri from the endpoints list above.";
+    private static final String STEP_OTHER_SIDE =
+            "This is one side of the traffic. The other - what this application called out to, or what "
+                    + "it served - is the same tool with the other direction.";
     private static final String STEP_FRAMES =
             "Which frames burned the time inside a request is a flamegraph question, not an HTTP one: "
                     + "flamegraph_export with jdk.ExecutionSample.";
@@ -95,12 +100,17 @@ public class HttpMcpTools {
             + "rate and 4xx/5xx counts, plus the endpoints ranked by traffic, the status-code and "
             + "method breakdowns, and the slowest individual requests. Start here for 'is the service "
             + "slow' and 'which endpoint is the problem'.")
-    public String overview() {
-        if (DashboardFeature.missing(profileManager, FeatureType.HTTP_SERVER_DASHBOARD)) {
-            return NO_HTTP_DATA;
+    public String overview(
+            @ToolParam(description = "Which side to report on: 'SERVER' for requests this application "
+                    + "answered (the default), 'CLIENT' for requests it made to somebody else.")
+            String direction) {
+
+        ExchangeDirection side = ExchangeDirection.from(direction);
+        if (DashboardFeature.missing(profileManager, feature(side))) {
+            return noData(side);
         }
 
-        HttpOverviewData data = profileManager.custom().httpManager().overviewData();
+        HttpOverviewData data = profileManager.custom().httpManager(side).overviewData();
         return LinkedOutput.json(new HttpDashboard(
                 data.header(),
                 trim(data.uris()),
@@ -110,9 +120,10 @@ public class HttpMcpTools {
                 NextSteps.builder()
                         .add(STEP_ENDPOINT)
                         .when(failuresOccurred(data.header()), STEP_FAILURES)
+                        .add(STEP_OTHER_SIDE)
                         .add(STEP_FRAMES)
                         .build(),
-                UiLinks.view(profileId(), OVERVIEW_VIEW, mode())));
+                UiLinks.view(profileId(), OVERVIEW_VIEW, mode(side))));
     }
 
     @Tool(description = "One endpoint in detail: the same percentiles, status codes, methods and "
@@ -121,13 +132,17 @@ public class HttpMcpTools {
     public String endpoint(
             @ToolParam(description = "The URI exactly as the server recorded it, e.g. '/api/orders'. "
                     + "Take it from the endpoints list in http_overview.")
-            String uri) {
+            String uri,
+            @ToolParam(description = "Which side the endpoint belongs to: 'SERVER' (the default) or "
+                    + "'CLIENT'. Use the same one http_overview listed it under.")
+            String direction) {
 
-        if (DashboardFeature.missing(profileManager, FeatureType.HTTP_SERVER_DASHBOARD)) {
-            return NO_HTTP_DATA;
+        ExchangeDirection side = ExchangeDirection.from(direction);
+        if (DashboardFeature.missing(profileManager, feature(side))) {
+            return noData(side);
         }
 
-        HttpOverviewData data = profileManager.custom().httpManager().overviewData(uri);
+        HttpOverviewData data = profileManager.custom().httpManager(side).overviewData(uri);
         // The manager filters by URI while streaming, so an unmatched one yields an empty list rather
         // than an error. Reported as a bad argument, with real URIs to correct it from.
         if (data.uris().isEmpty()) {
@@ -145,17 +160,17 @@ public class HttpMcpTools {
                         .when(failuresOccurred(data.header()), STEP_FAILURES)
                         .add(STEP_FRAMES)
                         .build(),
-                UiLinks.view(profileId(), ENDPOINTS_VIEW, endpointQuery(uri))));
+                UiLinks.view(profileId(), ENDPOINTS_VIEW, endpointQuery(side, uri))));
     }
 
-    private Map<String, String> mode() {
+    private static Map<String, String> mode(ExchangeDirection direction) {
         Map<String, String> query = UiLinks.query();
-        query.put(MODE_PARAM, SERVER_MODE);
+        query.put(MODE_PARAM, direction.name().toLowerCase(Locale.ROOT));
         return query;
     }
 
-    private Map<String, String> endpointQuery(String uri) {
-        Map<String, String> query = mode();
+    private static Map<String, String> endpointQuery(ExchangeDirection direction, String uri) {
+        Map<String, String> query = mode(direction);
         query.put(URI_PARAM, uri);
         return query;
     }
@@ -164,6 +179,17 @@ public class HttpMcpTools {
      * Whether any request failed at all - not whether the failure rate is high, which would be a
      * verdict rather than a route.
      */
+    private static FeatureType feature(ExchangeDirection direction) {
+        return direction == ExchangeDirection.SERVER
+                ? FeatureType.HTTP_SERVER_DASHBOARD
+                : FeatureType.HTTP_CLIENT_DASHBOARD;
+    }
+
+    private static String noData(ExchangeDirection direction) {
+        return NO_HTTP_DATA.formatted(
+                direction.name().toLowerCase(Locale.ROOT), direction.httpEventType().code());
+    }
+
     private static boolean failuresOccurred(HttpHeader header) {
         return header.count4xx() > 0 || header.count5xx() > 0;
     }

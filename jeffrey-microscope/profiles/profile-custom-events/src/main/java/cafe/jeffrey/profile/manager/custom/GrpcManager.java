@@ -23,12 +23,16 @@ import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcServiceDetailData;
 import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcTrafficData;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 
-import java.util.function.Function;
 
 public interface GrpcManager {
 
     @FunctionalInterface
-    interface Factory extends Function<ProfileInfo, GrpcManager> {
+    /**
+     * Built per direction: the server and client halves read different event types, so a manager is
+     * bound to one of them rather than deciding per call.
+     */
+    interface Factory {
+        GrpcManager apply(ProfileInfo profileInfo, ExchangeDirection direction);
     }
 
     GrpcOverviewData overviewData();

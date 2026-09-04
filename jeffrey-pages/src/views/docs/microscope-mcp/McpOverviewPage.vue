@@ -105,7 +105,7 @@ onMounted(() => {
       <p>A call arrives naming a tool and a <code>profileId</code>. Jeffrey resolves that id to the profile's own DuckDB database, holds a lease on it for as long as the session stays active, runs the tool, and returns Markdown or a result table. The heavy machinery &mdash; the flamegraph builder, the trace analysis, the heap-dump index &mdash; is the same code the UI renders from, so what the model reads and what you see on screen cannot drift apart.</p>
 
       <h2 id="what-it-can-read">What It Can Read</h2>
-      <p>Seventy-nine tools in fifteen families:</p>
+      <p>Eighty-five tools in sixteen families:</p>
       <table>
         <thead>
           <tr>
@@ -132,7 +132,7 @@ onMounted(() => {
           </tr>
           <tr>
             <td><code>traces_</code></td>
-            <td>8</td>
+            <td>11</td>
             <td>Trace operations, exemplars, span trees and span-scoped flamegraphs</td>
           </tr>
           <tr>
@@ -176,14 +176,19 @@ onMounted(() => {
             <td>When the samples landed: the busiest windows ranked, and sub-second zoom inside one</td>
           </tr>
           <tr>
+            <td><code>memory_</code></td>
+            <td>2</td>
+            <td>Allocation by type rather than by call site, and JFR-side leak candidates that need no heap dump</td>
+          </tr>
+          <tr>
             <td><code>jfr_</code></td>
             <td>6</td>
             <td>The profile&rsquo;s DuckDB tables &mdash; schema, event types and read-only SQL</td>
           </tr>
           <tr>
             <td><code>heap_</code></td>
-            <td>20</td>
-            <td>Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, read-only SQL</td>
+            <td>21</td>
+            <td>Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, a two-dump diff, read-only SQL</td>
           </tr>
           <tr>
             <td><code>recordings_</code></td>

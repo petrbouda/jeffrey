@@ -36,6 +36,7 @@ const headings = [
   { id: 'technologies', text: 'http_, jdbc_, grpc_, methodtracing_ — the technology dashboards', level: 2 },
   { id: 'waiting', text: 'io_, blocking_ — waiting rather than running', level: 2 },
   { id: 'timeline', text: 'timeline_ — when, not where', level: 2 },
+  { id: 'memory', text: 'memory_ — allocation and leaks without a heap dump', level: 2 },
   { id: 'jfr', text: 'jfr_ — the profile database', level: 2 },
   { id: 'heap', text: 'heap_ — heap dumps', level: 2 },
   { id: 'recordings', text: 'recordings_ — creating profiles', level: 2 },
@@ -231,6 +232,21 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
             <td>A flamegraph of the samples taken while one span was open</td>
           </tr>
           <tr>
+            <td><code>traces_attributeKeys</code></td>
+            <td><code>profileId</code>, <code>eventType?</code></td>
+            <td>The attribute keys the traces carried, each identified by its (source, owner, key) triple</td>
+          </tr>
+          <tr>
+            <td><code>traces_attributeValues</code></td>
+            <td><code>profileId</code>, <code>key</code>, <code>source?</code>, <code>owner?</code>, <code>eventType?</code>, <code>sort?</code>, <code>limit?</code></td>
+            <td>One key split into its values, each with its own p50, p95, max and error count</td>
+          </tr>
+          <tr>
+            <td><code>traces_attributeSearch</code></td>
+            <td><code>profileId</code>, <code>key</code>, <code>operator?</code>, <code>value?</code>, <code>source?</code>, <code>owner?</code>, <code>scope?</code>, <code>limit?</code></td>
+            <td>The individual traces carrying one value, with their ids</td>
+          </tr>
+          <tr>
             <td><code>traces_operationFlamegraphExport</code></td>
             <td><code>profileId</code>, <code>name</code>, <code>kind</code>, <code>eventType</code>, <code>graphEventType</code>, <code>threadMode?</code>, <code>useWeight?</code></td>
             <td>The same, aggregated over every trace of one operation</td>
@@ -411,7 +427,7 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
         These managers answer an event type that was never recorded with a well-formed empty result &mdash; zero statements, a perfect success rate. Every tool here checks first and says so in words instead, because &ldquo;the profiler did not capture this&rdquo; is a finding about the recording, not a clean bill of health for the database.
       </DocsCallout>
 
-      <p><strong>Server-side only.</strong> The HTTP and gRPC dashboards read <code>HTTP_SERVER_EXCHANGE</code> and <code>GRPC_SERVER_EXCHANGE</code>; there is no client-side manager behind the UI&rsquo;s client/server switch, so these tools take no direction argument.</p>
+      <p><strong>Both directions.</strong> <code>http_</code> and <code>grpc_</code> take a <code>direction</code> of <code>SERVER</code> (the default) or <code>CLIENT</code>, and they are different questions: SERVER is what the application was asked to do, CLIENT what it asked of somebody else, where a slow figure belongs to a dependency and the only local fixes are to call less often or stop waiting. The two are gated separately, so &ldquo;no client-side data&rdquo; means the recording captured no outbound calls.</p>
 
       <p><strong>No chart series.</strong> The per-second series that draw the dashboard&rsquo;s graphs are left out of every answer &mdash; thousands of points describing a shape the percentiles already summarise. The shape is what the UI link is for. SQL text is truncated for the same reason: it is there to identify a statement, not to be executed.</p>
 
@@ -493,6 +509,34 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
 
       <p>The workflow is three calls: <code>timeline_hotWindows</code> to find the window, <code>flamegraph_export</code> with its bounds to see what ran inside it, and <code>timeline_zoom</code> when a second is too coarse &mdash; a startup, or the inside of a spike.</p>
 
+      <h2 id="memory">memory_ &mdash; allocation and leaks without a heap dump</h2>
+      <p>Two memory questions a plain JFR recording answers on its own.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Arguments</th>
+            <th>Returns</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>memory_allocations</code></td>
+            <td><code>profileId</code></td>
+            <td>Total bytes, the TLAB split, distinct types, and the types ranked by bytes</td>
+          </tr>
+          <tr>
+            <td><code>memory_leakCandidates</code></td>
+            <td><code>profileId</code></td>
+            <td>Objects the JVM sampled and watched survive collections, with size and age</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p><strong>The other axis from a flamegraph.</strong> An allocation flamegraph ranks the call <em>sites</em> &mdash; where the allocating code is. This ranks the <em>types</em> allocated, and the two disagree usefully: <code>byte[]</code> and <code>char[]</code> at the top read very differently from a domain class, and one call site allocating many types looks nothing like one type coming from everywhere.</p>
+
+      <p><strong>Leak candidates come from <code>jdk.OldObjectSample</code></strong>, which is off in most recordings. Their absence says nothing about whether the application leaks, and the tool says exactly that rather than reporting zero candidates &mdash; the difference between &ldquo;measured and found nothing&rdquo; and &ldquo;never measured&rdquo; is the whole finding.</p>
+
       <h2 id="jfr">jfr_ &mdash; the profile database</h2>
       <p>Each profile is one DuckDB database. This family is the escape hatch for questions no purpose-built tool covers &mdash; distributions over time, correlations between event types, the cardinality of a field.</p>
 
@@ -548,6 +592,7 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
       </DocsCallout>
 
       <h2 id="heap">heap_ &mdash; heap dumps</h2>
+      <p><code>heap_diff</code> is the one that needs two profiles: it compares this dump against an earlier one class by class, ranked by growth, and is the only way to separate a leak from a large working set &mdash; a single dump shows a state, and a state cannot tell the two apart. Pass the earlier dump as <code>baselineProfileId</code>; backwards, every growth reads as a shrink. Both dumps have to be indexed first, and the tool says which one is not.</p>
       <p>Twenty tools against a parsed heap dump&rsquo;s own DuckDB index, separate from the profile&rsquo;s JFR database. Asking for them on a profile with no heap dump fails immediately with a message saying so, rather than deep inside the engine.</p>
 
       <p><strong>Reports</strong> &mdash; pre-computed, and faster and safer than reproducing them in SQL:</p>

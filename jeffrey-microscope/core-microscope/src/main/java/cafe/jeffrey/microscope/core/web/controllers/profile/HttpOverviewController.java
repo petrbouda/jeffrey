@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
+import cafe.jeffrey.profile.manager.custom.ExchangeDirection;
 import cafe.jeffrey.profile.manager.custom.HttpManager;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpOverviewData;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpSingleUriData;
@@ -47,18 +48,21 @@ public class HttpOverviewController {
     }
 
     @GetMapping
-    public HttpOverviewData overviewData(@PathVariable("profileId") String profileId) {
+    public HttpOverviewData overviewData(
+            @PathVariable("profileId") String profileId,
+            @RequestParam(value = "mode", required = false) String mode) {
         LOG.debug("Fetching HTTP overview");
-        return mgr(profileId).overviewData();
+        return mgr(profileId, mode).overviewData();
     }
 
     @GetMapping("/single")
     public HttpSingleUriData singleUriData(
             @PathVariable("profileId") String profileId,
+            @RequestParam(value = "mode", required = false) String mode,
             @RequestParam("uri") String uri) {
         LOG.debug("Fetching HTTP single URI data: uri={}", uri);
         String decoded = URLDecoder.decode(uri, UTF_8);
-        HttpOverviewData data = mgr(profileId).overviewData(decoded);
+        HttpOverviewData data = mgr(profileId, mode).overviewData(decoded);
         return new HttpSingleUriData(
                 data.header(),
                 data.uris().getFirst(),
@@ -69,7 +73,7 @@ public class HttpOverviewController {
                 data.requestCountSerie());
     }
 
-    private HttpManager mgr(String profileId) {
-        return resolver.resolve(profileId).custom().httpManager();
+    private HttpManager mgr(String profileId, String mode) {
+        return resolver.resolve(profileId).custom().httpManager(ExchangeDirection.from(mode));
     }
 }

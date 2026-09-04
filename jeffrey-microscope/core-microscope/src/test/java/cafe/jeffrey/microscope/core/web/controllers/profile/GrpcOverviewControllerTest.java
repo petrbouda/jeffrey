@@ -30,6 +30,7 @@ import cafe.jeffrey.profile.manager.custom.GrpcManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 
@@ -52,7 +53,7 @@ class GrpcOverviewControllerTest {
     void getsTraffic() {
         when(resolver.resolve("p-1")).thenReturn(profileManager);
         when(profileManager.custom()).thenReturn(customManager);
-        when(customManager.grpcManager()).thenReturn(grpcManager);
+        when(customManager.grpcManager(any())).thenReturn(grpcManager);
         when(grpcManager.trafficData()).thenReturn(null);
 
         MockMvcTester mvc = mockMvcTesterFor(new GrpcOverviewController(resolver));
