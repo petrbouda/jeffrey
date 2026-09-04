@@ -1,6 +1,6 @@
 ---
 name: jfr-sql
-description: Write DuckDB SQL against a Jeffrey profile's JFR database — the events, event_types, threads, stacktraces and frames tables — with ready queries for garbage collection and JIT compilation, which have no purpose-built tools. Use when jfr_executeQuery or jfr_queryEvents is needed because no flamegraph, trace or heap tool answers the question, or when the question is about GC pauses, heap growth across collections, compilation or deoptimisation.
+description: Write DuckDB SQL against a Jeffrey profile's JFR database — the events, event_types, threads, stacktraces and frames tables — including the event_types columns that say what a type's fields are and how the recording was configured. Use when jfr_executeQuery or jfr_queryEvents is needed because no flamegraph, trace, heap or jvm dashboard tool answers the question: a distribution over time, a correlation between event types, the cardinality of a field.
 allowed-tools: mcp__plugin_microscope_jeffrey__jfr_* mcp__jeffrey__jfr_*
 ---
 
@@ -30,7 +30,16 @@ Call `jfr_describeTable('events')` first. In particular the duration column is `
   `start_timestamp_from_beginning` (BIGINT millis since recording start — sargable, prefer it for
   relative time filters), `duration`, `samples`, `weight`, `weight_entity`, `stacktrace_hash`,
   `thread_hash`, `fields` (JSON).
-- **`event_types`** — `name`, `label`, `description`, `categories`. Metadata for every type present.
+- **`event_types`** — `name`, `label`, `description`, `categories`, `source`, `subtype`,
+  `has_stacktrace`, `extras`, plus two columns worth knowing about because `jfr_listEventTypes`
+  does not return them:
+  - **`columns`** — a JSON array of `{field, header, type, description}`: the *declared fields* of
+    that event type. `SELECT columns FROM event_types WHERE name = 'jdk.Deoptimization'` is the
+    answer to "what is in `fields` for this type", instead of guessing at key names.
+  - **`settings`** — how the recording was configured for that type. This is what settles "was
+    this event switched off, or did it genuinely not happen": a threshold-gated type
+    (`jdk.Compilation`, the I/O and monitor events) with no rows may simply have had nothing cross
+    its threshold.
 - **`threads`** — `thread_hash` (PK), `name`, `os_id` (null for virtual threads), `java_id`, `is_virtual`.
 - **`stacktraces`** — `stacktrace_hash` (PK), `type_id`, `frame_hashes` (BIGINT array, ordered
   **root-first** — see the stacks idiom below), `tag_ids` (INTEGER array; `0` marks an idle stack,
@@ -99,11 +108,12 @@ tracing `jeffrey.Notification` (the application's own reports; its `fields` carr
 `jfr_listEventTypes` gives the ones this profile actually recorded, with counts — use it rather than
 assuming.
 
-## Garbage collection has no purpose-built tool
+## GC and JIT: try the `jvm_` family first
 
-Neither GC nor JIT has an MCP family: `flamegraph_`, `traces_` and `heap_` do not cover them, so
-these queries are the whole route. (Jeffrey's UI has full dashboards for both — `profiles_link`
-opens them when the interactive version would be quicker than a query.)
+`jvm_gc`, `jvm_safepoints` and `jvm_jit` render the dashboards the Jeffrey UI renders, from the
+same tested builders, in one call. Everything below is the escape hatch for what they do not shape
+— a distribution over time, a correlation with another event type, one field they do not carry.
+Reproducing a dashboard here is slower and easier to get wrong.
 
 `jdk.GarbageCollection` is one row per collection, carrying `gcId`, `name` (the collector, `…Full`
 for a full GC), `cause`, `sumOfPauses` and `longestPause`.
@@ -160,6 +170,9 @@ allocation flamegraph does — `flamegraph_export` on `jdk.ObjectAllocationSampl
 `useWeight: true`.
 
 ## JIT compilation and deoptimisation
+
+`jvm_jit` already carries all of this aggregated. These are for the follow-up questions — a single
+method's compilation history, deoptimisations bucketed by time, a join against another event type.
 
 `jdk.Compilation` is one row per compilation: `method`, `compileLevel`, `compileId`, `codeSize`,
 `isOsr`, `succeded` (JFR's own spelling — false means the method fell back to the interpreter).

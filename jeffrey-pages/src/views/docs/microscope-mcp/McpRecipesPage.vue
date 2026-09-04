@@ -142,20 +142,20 @@ LIMIT 20`;
       <h2 id="account-for-the-gc-pauses">Account for the GC Pauses</h2>
       <DocsCodeBlock :code="promptGc" language="bash" />
 
-      <p>There is no <code>gc_</code> family &mdash; garbage collection is reached as events, so this drives <code>jfr_listEventTypes</code> &rarr; <code>jfr_executeQuery</code> over <code>jdk.GarbageCollection</code>, <code>jdk.GCHeapSummary</code> and <code>jdk.GCPhasePause</code>, with the <router-link to="/docs/microscope-mcp/skills#jfr-sql"><code>jfr-sql</code></router-link> skill supplying the queries. The last clause of the prompt is what makes it useful: the answer ends in <code>flamegraph_export</code> over <code>jdk.ObjectAllocationSample</code>, because no GC event names the code that produced the garbage.</p>
+      <p>Drives <code>jvm_sections</code> &rarr; <code>jvm_gc</code>, one call for the whole dashboard: the stop-the-world budget, collections split by generation, the causes, bytes freed, the longest individual collections. The last clause of the prompt is what makes it useful &mdash; the answer ends in <code>flamegraph_export</code> over <code>jdk.ObjectAllocationSample</code>, because no GC event names the code that produced the garbage.</p>
 
       <DocsCallout type="warning" title="Pauses are sumOfPauses, not the event duration">
-        For ZGC, Shenandoah and G1&rsquo;s concurrent cycles a <code>jdk.GarbageCollection</code> event&rsquo;s <code>duration</code> spans phases the application ran straight through. Ranking by it reports pauses that never happened; <code>sumOfPauses</code> and <code>longestPause</code> are the stop-the-world figures. The skill carries this, which is why the query it writes is the one to trust over an improvised one.
+        For ZGC, Shenandoah and G1&rsquo;s concurrent cycles a <code>jdk.GarbageCollection</code> event&rsquo;s <code>duration</code> spans phases the application ran straight through, so ranking by it reports pauses that never happened. <code>jvm_gc</code> reads <code>sumOfPauses</code> and <code>longestPause</code> because the builder behind it always has &mdash; which is the argument for the tool over an improvised query.
       </DocsCallout>
 
-      <p>Jeffrey&rsquo;s UI has the full Garbage Collection section &mdash; pause timeseries and distribution, generation stats, G1 and ZGC deep dives, tenuring, reference processing &mdash; and none of it is exported over MCP. Ask for <code>profiles_link</code> when the dashboard would be faster than another query.</p>
+      <p>If the budget comes back small and the application still stalls, the pauses are not the collector&rsquo;s: <code>jvm_safepoints</code> has the VM operations, and names the threads that were slow to reach the safepoint with the state they were in.</p>
 
       <h2 id="ask-what-the-jit-is-doing">Ask What the JIT Is Doing</h2>
       <DocsCodeBlock :code="promptJit" language="bash" />
 
-      <p>Same route, different events: <code>jdk.Compilation</code> for what was compiled and how long it took, <code>jdk.CompilerStatistics</code> for the totals, <code>jdk.Deoptimization</code> grouped by method <em>and</em> reason, and <code>jdk.CodeCacheStatistics</code> with <code>jdk.CodeCacheFull</code> for whether compilation stopped altogether.</p>
+      <p>One call to <code>jvm_jit</code>: the compiler&rsquo;s totals, the slowest compilations, code cache occupancy per heap, and deoptimisations aggregated by method and by reason.</p>
 
-      <p>The finding worth having is a method that deoptimises over and over: it ran interpreted for part of the recording, and the reason &mdash; <code>unstable_if</code>, <code>class_check</code> &mdash; is a pointer into your source, which is exactly the hand-off the terminal is good at and the browser is not.</p>
+      <p>The finding worth having is a method that deoptimises over and over &mdash; it ran interpreted for part of the recording, and the reason (<code>unstable_if</code>, <code>class_check</code>) is a pointer into your source, which is exactly the hand-off the terminal is good at and the browser is not. A code cache that ran full is the other one: compilation stops, and the application quietly settles at interpreted speed with nothing in a CPU profile to say why.</p>
 
       <h2 id="does-the-code-agree-with-the-profile">Does the Code Agree With the Profile</h2>
       <DocsCodeBlock :code="promptCrossCheck" language="bash" />

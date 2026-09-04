@@ -1,6 +1,6 @@
 ---
 name: analyze-jfr
-description: Analyses a JVM profile held by a running Jeffrey Microscope — CPU, wall-clock, allocation, lock contention, garbage collection, JIT compilation and trace latency — starting from the catalogue or from a .jfr file Jeffrey has not seen yet. Use whenever the user asks why something is slow, where the time goes, what is allocating, why GC pauses are long or the heap keeps filling, what the JIT compiler or deoptimisation is doing, what a JFR recording or flamegraph shows, or mentions a Jeffrey profile, a .jfr file or async-profiler output. For a heap dump or .hprof file, analyze-heap applies instead.
+description: Analyses a JVM profile held by a running Jeffrey Microscope — CPU, wall-clock, allocation, lock contention, trace latency, and the machine underneath: garbage collection, safepoints, JIT compilation, threads, native memory, the container and the JVM's configuration. Starts from the catalogue or from a .jfr file Jeffrey has not seen yet. Use whenever the user asks why something is slow, where the time goes, what is allocating, why GC pauses are long, what is pausing the JVM, what the JIT compiler or deoptimisation is doing, which threads are burning CPU, why memory grows outside the heap, whether the container is throttling, what a JFR recording or flamegraph shows, or mentions a Jeffrey profile, a .jfr file or async-profiler output. For a heap dump or .hprof file, analyze-heap applies instead.
 allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---
 
@@ -41,7 +41,8 @@ A profile whose `event source` column reads `HEAP_DUMP` is a heap dump: switch t
 | `flamegraph_` | `list` (which event types this profile can graph — call it first), `export` (the call tree as Markdown) |
 | `compare_` | `list` (whether two profiles are comparable at all — call it first), `movements` (what moved, ranked), `flamegraph` (the differential call tree) — the `compare-jfr` skill has the workflow |
 | `traces_` | `overview`, `operations`, `notifications`, `operationExport`, `slowestTraces`, `traceExport`, `spanFlamegraphExport`, `operationFlamegraphExport` |
-| `jfr_` | `listTables`, `describeTable`, `listEventTypes`, `queryEvents`, `executeQuery`, `getProfileInfo` — raw DuckDB when no purpose-built tool fits, and the **only** route to garbage collection and JIT compilation; the `jfr-sql` skill has the schema |
+| `jvm_` | `sections` (call it first), `autoAnalysis`, `gc`, `safepoints`, `jit`, `threads`, `nativeMemory`, `container`, `configuration` — the machine underneath the application |
+| `jfr_` | `listTables`, `describeTable`, `listEventTypes`, `queryEvents`, `executeQuery`, `getProfileInfo` — raw DuckDB when no purpose-built tool fits; the `jfr-sql` skill has the schema |
 | `heap_` | Everything a heap dump answers — the `analyze-heap` skill has the order to run it in |
 | `recordings_` | `analyzeFile` (a file not in Jeffrey yet), `analyzeRecording` (uploaded but never analysed), `list` (the Quick Analysis store) |
 
@@ -52,11 +53,18 @@ the export defaults for that type — and `notRecorded`, the standard groups the
 capture. Asking for a type it did not record returns an empty tree rather than an error, so check
 first. Starting points:
 
-- on-CPU time → `jdk.ExecutionSample`
+- on-CPU time → `jdk.ExecutionSample`, or `jdk.CPUTimeSample` — JDK 25's CPU-time sampler (JEP 509)
+  writes that type instead, so a recording made with it holds no `ExecutionSample` at all. Take
+  whichever `flamegraph_list` offers rather than assuming the older one.
 - allocation → `jdk.ObjectAllocationSample`, with `useWeight: true` to rank by bytes rather than call count
-- lock contention → `jdk.JavaMonitorEnter`, with `useWeight: true` (weight is nanoseconds blocked)
+- lock contention → `jdk.JavaMonitorEnter`, with `useWeight: true` (weight is nanoseconds blocked);
+  `jdk.JavaMonitorWait`, `jdk.ThreadPark`, `jdk.ThreadSleep` and `jdk.VirtualThreadPinned` graph the
+  same way
 - wall-clock latency including off-CPU → `profiler.WallClockSample` — async-profiler's event, so it
   does **not** carry the `jdk.` prefix its neighbours do
+- native allocation → `profiler.Malloc`, and `jeffrey.NativeLeak` for what was never freed —
+  async-profiler's `nativemem` mode, the flamegraph counterpart to `jvm_nativeMemory`
+- one instrumented method's callers → `jdk.MethodTrace`
 
 `thresholdPct` decides how much survives pruning: raise it for an overview, lower it to chase one
 specific path.
@@ -84,64 +92,48 @@ the code that produced it.
 3. `traces_operationExport` for the population, then `traces_slowestTraces` → `traces_traceExport`
    for one exemplar, then `traces_spanFlamegraphExport` for the frames inside a single slow span.
 
-## GC and JIT: no family of their own
+## The machine underneath: the `jvm_` family
 
-Neither subsystem has a purpose-built family, so `flamegraph_list` will not offer them and nothing
-in the tool list points at them. Over MCP they are reached as events: `jfr_listEventTypes` for what
-this recording carries, then `jfr_queryEvents` or `jfr_executeQuery` — the `jfr-sql` skill has the
-schema and the queries. Jeffrey's UI has full Garbage Collection and JIT Compilation dashboards
-(timeseries, pause distribution, G1 and ZGC deep dives, code cache, deoptimisation) that are not
-exported over MCP, so hand the user `profiles_link` when the interactive version answers faster
-than a query would.
+Garbage collection, safepoints, JIT compilation, per-thread attribution, native memory, the
+container and the JVM's own configuration are not flamegraph questions and `flamegraph_list` will
+not offer them. They have their own family, and each tool renders the dashboard the Jeffrey UI
+renders — the same tested builders, one call instead of six invented SQL queries.
 
-**Garbage collection.** `jdk.GarbageCollection` is one row per collection: `gcId`, `name` (the
-collector — `…Full` marks a full GC), `cause`, `sumOfPauses`, `longestPause`.
+`jvm_sections` first: a recording holds only what the profiler was told to capture, and each
+section reports whether this one carries its events. A section asked for anyway is refused with the
+events it needed, so an absence never arrives as a page of zeroes.
 
-- **Rank by `sumOfPauses`, never by the event's `duration`.** For ZGC, Shenandoah and G1's
-  concurrent cycles the duration covers phases the application ran straight through; only
-  `sumOfPauses` and `longestPause` are stop-the-world. Fall back to `duration` only when those
-  fields are absent.
-- Start with the pause budget: total stop-the-world time against the recording window from
-  `profiles_get`. That is what decides whether GC is the problem at all, and it is the number to
-  quote.
-- Then the causes. `Allocation Rate` and `G1 Evacuation Pause` point back at allocating code;
-  `System.gc()` and `Diagnostic Command` mean something is collecting by hand; `Metadata GC
-  Threshold` is a class-loading problem wearing a GC costume.
-- Reclaimed bytes and whether the live set is growing: `jdk.GCHeapSummary`, two rows per `gcId`
-  told apart by `when` (`Before GC` / `After GC`).
-- Where one pause went: `jdk.GCPhasePause` and its `Level1`–`Level4` children per `gcId`;
-  `jdk.GCPhaseConcurrent` for the work outside the pause.
-- Before proposing a flag, read the configuration the JVM actually ran with — `jdk.GCConfiguration`,
-  `jdk.GCHeapConfiguration`, `jdk.GCSurvivorConfiguration`, `jdk.GCTLABConfiguration`.
-- Collector-specific pressure: `jdk.ZAllocationStall` (a thread waited for memory — the ZGC
-  symptom that surfaces as latency, not as a pause), `jdk.EvacuationFailed` for G1,
-  `jdk.TenuringDistribution` for survivor sizing.
+| Tool | The question it answers |
+|---|---|
+| `jvm_autoAnalysis` | Jeffrey's rule set over the whole recording — findings with a severity and a suggested fix. The cheapest first question about any profile. |
+| `jvm_gc` | The stop-the-world budget, collections by generation and cause, what was freed, the longest collections |
+| `jvm_safepoints` | The pauses that are **not** GC, and the threads that were slow to reach them |
+| `jvm_jit` | Compiler totals, the slowest compilations, code cache, deoptimisation by method and reason |
+| `jvm_threads` | Population and peak, top CPU and allocating threads, virtual-thread pinning |
+| `jvm_nativeMemory` | RSS and its growth, direct buffers, NMT categories — memory outside the Java heap |
+| `jvm_container` | cgroup limits and whether the scheduler throttled the process |
+| `jvm_configuration` | What the JVM was started with, in the UI's own tabs; one section at a time |
 
-**The cause of GC is allocation.** Pauses are the symptom; the code that produced the garbage is
-the fix, and no GC event names it. Once the budget shows GC matters, go to the allocation
-flamegraph — `jdk.ObjectAllocationSample` with `useWeight: true` — for the call paths. A heap dump
-of the same application answers the other half, what is *retained* rather than what is churned;
-that is the `analyze-heap` skill.
+Four things the tools know and a hand-written query does not:
 
-**JIT compilation.** `jdk.Compilation` is one row per compilation: `method`, `compileLevel`,
-`compileId`, `codeSize`, `isOsr`, and `succeded` (JFR's own spelling; false means the method fell
-back to the interpreter). The parser flattens every method-typed field to `fully.qualified.Type#name`,
-so a `method` value here can be grepped for in the checkout as it stands.
+- **The cause of GC is allocation.** Pauses are the symptom; no GC event names the code that
+  produced the garbage. Once `jvm_gc` shows the budget matters, the allocation flamegraph —
+  `jdk.ObjectAllocationSample`, `useWeight: true` — is what names the call paths. A heap dump
+  answers the other half, what is *retained* rather than churned; that is `analyze-heap`.
+- **"GC looks fine and we still have pauses"** is `jvm_safepoints`. Every VM operation stops the
+  application the same way a collection does, and a thread slow to yield holds all the others
+  there — `_thread_in_Java` means a loop the JIT stripped the safepoint poll out of,
+  `_thread_in_native` a call the JVM cannot interrupt.
+- **An empty compilation list means nothing compiled *slowly*,** not that nothing compiled: the
+  event is threshold-gated, and the compiler statistics are there either way. A method
+  deoptimising over and over ran interpreted for part of the recording, and the reason
+  (`unstable_if`, `class_check`) is the pointer into the source.
+- **Before proposing any flag,** read `jvm_configuration`. A tuning claim is only worth making
+  against the values the JVM really ran with, not against what a deployment manifest says.
 
-- The event only fires above the recording's threshold setting, so no rows means nothing compiled
-  *slowly*, not that nothing compiled. `jdk.CompilerStatistics` carries the totals either way —
-  `compileCount`, `bailoutCount`, `invalidatedCount`, `osrCompileCount`, `totalTimeSpent`.
-- `jdk.Deoptimization` is where the JIT becomes a latency problem: `method`, `lineNumber`, `bci`,
-  `reason`, `action`. One method deoptimised repeatedly (group by both `method` and `reason`) ran
-  interpreted for part of the recording, and `unstable_if` or `class_check` on a hot method is
-  worth chasing into the source.
-- `jdk.CodeCacheStatistics` and `jdk.CodeCacheFull`: once the code cache fills, compilation stops
-  and the application quietly settles at interpreted speed for the rest of its life.
-- `jdk.CompilerQueueUtilization` shows the compiler queues backing up, which is a slow warm-up
-  rather than a steady-state problem.
-- Compiler threads also show up in the CPU flamegraph. Heavy JIT work at the start of a recording
-  is warm-up; the same work sustained to the end is churn, and the deoptimisation events usually
-  say why.
+`jvm_autoAnalysis` reads a cache the Jeffrey UI fills; when it has not been computed the tool says
+so and the other sections still answer. For anything these do not shape — a distribution over
+time, a correlation between two event types — the `jfr-sql` skill has the schema and the queries.
 
 ## Hand the reading to the analyst
 

@@ -98,6 +98,26 @@ class McpToolsetAssemblerTest {
         }
 
         /**
+         * The machine-level family is the only route to garbage collection, safepoints, JIT
+         * compilation, threads, native memory and the container: no other family covers them, and
+         * without these tools the questions fall back to hand-written SQL.
+         */
+        @Test
+        void advertisesTheMachineLevelFamily() {
+            List<String> names = toolNamesWithIngest(true);
+
+            assertTrue(names.contains("jvm_sections"));
+            assertTrue(names.contains("jvm_autoAnalysis"));
+            assertTrue(names.contains("jvm_gc"));
+            assertTrue(names.contains("jvm_safepoints"));
+            assertTrue(names.contains("jvm_jit"));
+            assertTrue(names.contains("jvm_threads"));
+            assertTrue(names.contains("jvm_nativeMemory"));
+            assertTrue(names.contains("jvm_container"));
+            assertTrue(names.contains("jvm_configuration"));
+        }
+
+        /**
          * The one JFR tool that writes inside a profile stays out either way — ingestion creates
          * profiles, it does not open the door to rewriting one.
          */

@@ -47,7 +47,7 @@ installation.
 
 ## What you get
 
-**Tools**, in seven families:
+**Tools**, in eight families:
 
 | Family | What it does |
 |---|---|
@@ -55,6 +55,7 @@ installation.
 | `flamegraph_` | Which graphs a profile supports, and the call tree as Markdown |
 | `compare_` | Two profiles against each other: whether they are comparable, what moved, and the differential call tree |
 | `traces_` | Trace operations, the application's own notifications, exemplars, span trees and span-scoped flamegraphs |
+| `jvm_` | The machine underneath: garbage collection, safepoints, JIT compilation, threads, native memory, the container, and what the JVM was started with |
 | `jfr_` | The profile's DuckDB tables — schema and read-only SQL |
 | `heap_` | Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, and read-only SQL |
 | `recordings_` | The one that writes: imports a recording file and builds a profile from it |
