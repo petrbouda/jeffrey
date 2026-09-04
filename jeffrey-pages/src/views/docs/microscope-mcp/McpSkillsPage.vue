@@ -43,6 +43,14 @@ onMounted(() => {
   setHeadings(headings);
 });
 
+const askExamples = `# each of these loads a skill on its own - no slash command needed
+"why is the checkout endpoint slow?"                     -> analyze-jfr
+"analyze target/run.jfr and tell me where the time goes" -> analyze-jfr
+"what is holding memory in this heap dump?"              -> analyze-heap
+"did my change make it slower?"                          -> compare-jfr
+"what should I change in this repo to fix it?"           -> advise-jfr
+"how many events of each type are in the recording?"     -> jfr-sql`;
+
 const invoke = `/microscope:analyze-jfr
 /microscope:analyze-heap
 /microscope:compare-jfr
@@ -125,12 +133,14 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <p><em>From a profile to a code change.</em> Loaded when the question is &ldquo;what should I change&rdquo;, &ldquo;optimise this&rdquo;, or when a hotspot has been found and the next question is what to do about it. It is the successor of the in-app Profile Advisor: the same job, done by the agent that is already in your checkout and can build, test and re-profile, instead of by a model given a read-only view of one folder.</p>
       <DocsCodeBlock :code="advisePrompt" language="bash" />
 
-      <p>It takes an optional argument &mdash; a profile id or a recording file, then one of <code>cpu</code>, <code>wall</code>, <code>alloc</code>, <code>lock</code> to narrow the analysis to one group &mdash; and works in two phases with a stop between them, <strong>recommend</strong>, then <strong>change</strong>, tracked as a checklist so the gate is visible. It carries what neither the exports nor the tool list say:</p>
+      <p>It takes an optional argument &mdash; a profile id or a recording file, then one of <code>cpu</code>, <code>wall</code>, <code>alloc</code>, <code>lock</code>, <code>latency</code>, <code>waiting</code> or <code>memory</code> to narrow the analysis to one area &mdash; and works in two phases with a stop between them, <strong>recommend</strong>, then <strong>change</strong>, tracked as a checklist so the gate is visible. It carries what neither the exports nor the tool list say:</p>
       <ul>
         <li><strong>The commit check.</strong> <code>profiles_get</code> reports the commit the profiled build came from when the recording was tagged with one. The skill compares it with <code>HEAD</code> before mapping a single frame, and says so when they differ or when the commit is unknown &mdash; a profile of another commit describes code that may no longer exist.</li>
-        <li><strong>The four groups.</strong> CPU, wall-clock, allocation and blocking, each with the event type that answers it and the fallback when a recording carries an older one (the TLAB pair for allocation; monitor-wait and park for blocking), weighted by bytes or nanoseconds where that is the meaningful ranking. A group with no samples is reported with the profiler flag that would capture it next time.</li>
+        <li><strong>Which evidence to gather, and which to skip.</strong> The four flamegraph groups &mdash; CPU, wall-clock, allocation and blocking &mdash; each with the event type that answers it and the fallback when a recording carries an older one, weighted by bytes or nanoseconds where that is the meaningful ranking. Beyond them, traces for latency and for one slow population, <code>blocking_</code> and <code>io_</code> for the waiting a flamegraph structurally cannot show (a blocked thread is not on-CPU, so it is never sampled), <code>memory_</code> for allocation by type, and the database and HTTP dashboards. The skill reads <code>profiles_features</code> first and picks what the profile actually carries: analysing every family unconditionally costs a dozen calls and buries the two findings that matter. A group with no samples is reported with the profiler flag that would capture it next time.</li>
+        <li><strong>How each source reaches a line of code.</strong> Every row of that table says it, because evidence that cannot reach source is not something the skill can act on: a span flamegraph gives frames for one span, a monitor class names the lock to find in the checkout, an I/O target names the dependency and the change is at the calling code, an allocated type goes back to the allocation export to find its site.</li>
         <li><strong>The grounding rules.</strong> Never name a file, method or line that was not read; tie every finding to a frame and its share from the export; prefer a few high-impact findings over many speculative ones; say when a hotspot cannot be located rather than guessing.</li>
-        <li><strong>The output shape</strong> of the recommendation &mdash; a summary, one section per file and method with the cause, the measured share and the proposed change in prose &mdash; and the gate: nothing is edited until the recommendation has been read and a finding has been accepted.</li>
+        <li><strong>The output shape</strong> of the recommendation &mdash; a summary, then <strong>code findings</strong> one section per file and method with the cause, the measured share and the proposed change in prose &mdash; and the gate: nothing is edited until the recommendation has been read and a finding has been accepted.</li>
+        <li><strong>Configuration findings kept apart from code.</strong> A pool that ran out of connections, a flag left at an ergonomic default, a container quota the scheduler enforced: real findings, often the largest single win, and none of them a code change. Presenting one as an edit would misrepresent both the fix and the risk, so they are listed separately with the setting, its current value and the evidence &mdash; and verified differently, since a pool size takes effect on the next run of the application rather than the next test.</li>
         <li><strong>The verification loop.</strong> The smallest edit that implements the finding, the project&rsquo;s own build and tests, and where the recording can be reproduced, a re-run analysed with <code>recordings_analyzeFile</code> and exported with identical parameters so the delta is real. A saving that was not measured is capped at the frame&rsquo;s own share, since a change cannot save more time than the frame used.</li>
       </ul>
 
@@ -165,7 +175,10 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <p>What it is not allowed to do is as much of the design as what it does: no file access and no <code>recordings_</code>, so it cannot map a frame to a line, edit anything, or build a profile. Mapping onto the checkout, the recommendation, and every question put to you stay in the session, where you can answer them. <router-link to="/docs/microscope-mcp/agent">The subagent reference</router-link> has the full contract &mdash; what it is given, the report shape it returns, and when to read an export yourself instead.</p>
 
       <h2 id="invoking-one-directly">Invoking One Directly</h2>
-      <p>Each skill is also a slash command, namespaced by the plugin:</p>
+      <p>You do not normally have to. Claude loads the skill whose description matches the question, so plain English is enough:</p>
+      <DocsCodeBlock :code="askExamples" language="bash" />
+
+      <p>Each skill is also a slash command, namespaced by the plugin, for when you want the schema in front of you or Claude has gone in a direction the skill would have corrected:</p>
       <DocsCodeBlock :code="invoke" language="bash" />
 
       <p>Useful when you want the schema in front of you before asking a question, or when Claude has gone off in a direction the skill would have corrected.</p>

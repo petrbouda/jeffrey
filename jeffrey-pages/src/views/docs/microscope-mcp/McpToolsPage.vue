@@ -52,6 +52,74 @@ const nameShape = `flamegraph_export
     ^         ^
   family    method name, camelCase`;
 
+const exProfiles = `profiles_list  { "search": "checkout" }
+profiles_features  { "profileId": "019f885e-..." }
+profiles_viewLink  { "profileId": "019f885e-...", "view": "garbage-collection" }`;
+
+const exFlamegraph = `flamegraph_list    { "profileId": "019f885e-..." }
+flamegraph_export  { "profileId": "019f885e-...",
+                     "eventType": "jdk.ObjectAllocationSample",
+                     "useWeight": true, "thresholdPct": 2 }`;
+
+const exTimeline = `# 1. where the mass is
+timeline_hotWindows  { "profileId": "019f885e-...",
+                       "eventType": "jdk.ObjectAllocationSample", "useWeight": true }
+#    -> { "startMs": 31000, "endMs": 32000, "percentOfTotal": 10.5 }
+
+# 2. graph only that window
+flamegraph_export    { "profileId": "019f885e-...",
+                       "eventType": "jdk.ObjectAllocationSample",
+                       "useWeight": true, "startMs": 31000, "endMs": 36000 }
+
+# 3. below one second, for a startup or the inside of a spike
+timeline_zoom        { "profileId": "019f885e-...",
+                       "eventType": "jdk.ObjectAllocationSample",
+                       "startMs": 31000, "endMs": 33000, "bucketMs": 20 }`;
+
+const exTraces = `traces_overview     { "profileId": "019f885e-..." }
+traces_operations   { "profileId": "019f885e-...", "sort": "TOTAL_TIME", "limit": 20 }
+traces_traceExport  { "profileId": "019f885e-...", "traceId": "2291db38124f4a53" }
+
+# find one trace by correlation id, then open it
+traces_attributeSearch { "profileId": "019f885e-...", "key": "correlationId",
+                         "source": "ATTRIBUTE", "operator": "EQ",
+                         "value": "01a03fb5-d51f-7292-974c-bdfcef9d35de" }`;
+
+const exTechnologies = `http_overview  { "profileId": "019f885e-...", "direction": "SERVER" }
+http_endpoint  { "profileId": "019f885e-...", "uri": "/api/orders", "direction": "SERVER" }
+jdbc_overview  { "profileId": "019f885e-..." }
+jdbc_pools     { "profileId": "019f885e-..." }
+grpc_traffic   { "profileId": "019f885e-...", "direction": "CLIENT" }`;
+
+const exWaiting = `blocking_overview  { "profileId": "019f885e-..." }
+blocking_monitors  { "profileId": "019f885e-..." }
+io_overview        { "profileId": "019f885e-...", "kind": "SOCKET" }
+io_slowest         { "profileId": "019f885e-...", "kind": "FILE" }`;
+
+const exJvm = `jvm_sections   { "profileId": "019f885e-..." }
+jvm_gc         { "profileId": "019f885e-..." }
+jvm_flags      { "profileId": "019f885e-..." }
+jvm_threadDumps { "profileId": "019f885e-..." }`;
+
+const exMemory = `memory_allocations    { "profileId": "019f885e-..." }
+memory_leakCandidates { "profileId": "019f885e-..." }`;
+
+const exCompare = `compare_list       { "profileId": "<after>", "baselineProfileId": "<before>" }
+compare_movements  { "profileId": "<after>", "baselineProfileId": "<before>",
+                     "eventType": "jdk.ExecutionSample", "limit": 20 }`;
+
+const exHeap = `heap_getDominatorTreeRoots { "profileId": "01a06c53-...", "limit": 20 }
+heap_getPathToGCRoot       { "profileId": "01a06c53-...", "objectId": 27908898928 }
+heap_diff                  { "profileId": "<later>", "baselineProfileId": "<earlier>" }`;
+
+const exJfr = `jfr_listTables   { "profileId": "019f885e-..." }
+jfr_executeQuery { "profileId": "019f885e-...",
+                   "query": "SELECT event_type, COUNT(*) FROM events GROUP BY 1 ORDER BY 2 DESC" }`;
+
+const exRecordings = `recordings_analyzeFile { "path": "/abs/path/target/checkout-run.jfr",
+                         "name": "checkout run" }
+#  -> { "profileId": "019f885e-...", "link": "http://localhost:8585/profiles/019f885e-..." }`;
+
 const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the time goes.`;
 </script>
 
@@ -124,6 +192,9 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
         A JFR recording usually has no heap dump; a heap dump has no flamegraphs; traces exist only if the application ran Jeffrey&rsquo;s tracing instrumentation. One call rules out a whole family before it is tried.
       </DocsCallout>
 
+      <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
+      <DocsCodeBlock :code="exProfiles" language="json" />
+
       <h2 id="flamegraph">flamegraph_ &mdash; call trees</h2>
       <table>
         <thead>
@@ -148,6 +219,9 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
       </table>
 
       <p>Common starting points: <code>jdk.ExecutionSample</code> for on-CPU time, <code>jdk.ObjectAllocationSample</code> for allocation (with <code>useWeight</code> to rank by bytes rather than call count), <code>jdk.JavaMonitorEnter</code> for lock contention (weight is nanoseconds blocked), <code>profiler.WallClockSample</code> for latency including off-CPU &mdash; async-profiler&rsquo;s event, so unlike its neighbours it carries no <code>jdk.</code> prefix. <code>thresholdPct</code> controls how much survives pruning &mdash; raise it for an overview, lower it to chase one path.</p>
+
+      <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
+      <DocsCodeBlock :code="exFlamegraph" language="json" />
 
       <h2 id="compare">compare_ &mdash; two profiles</h2>
       <p>The only family scoped to a <strong>pair</strong>. <code>profileId</code> is the run under examination and <code>baselineProfileId</code> is what it is measured against, so a positive delta always means the primary spends more &mdash; a regression. Get the direction wrong and every regression reads as an improvement.</p>
@@ -189,6 +263,9 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
       <p><strong>A rename is not a regression.</strong> The diff matches method names level by level, so a renamed, moved or extracted method breaks the match and its work appears once as new and once as gone, often of near-identical size. Both documents list such pairs as candidate renames &mdash; suspicions for a reader holding the source diff to confirm, never a resolution, because weight alone cannot tell a rename from a coincidence.</p>
 
       <p>Pruning in <code>compare_flamegraph</code> is by <strong>movement</strong>, not by size: a subtree in which nothing changed is dropped however large it is, and unmoved ancestors are kept so the frames that did move can still be placed. Absence there means &ldquo;did not move&rdquo;, the opposite of what it means in <code>flamegraph_export</code>.</p>
+
+      <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
+      <DocsCodeBlock :code="exCompare" language="json" />
 
       <h2 id="traces">traces_ &mdash; latency</h2>
       <p>Available only for a profile recorded with <router-link to="/docs/tracing">Jeffrey Tracing</router-link>. An operation is identified by the <strong>triple</strong> <code>(name, kind, eventType)</code>, not by name alone: an inbound <code>GET /orders</code> and an outbound call to the same path are different operations.</p>
@@ -264,6 +341,9 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
       <DocsCallout type="info" title="Two event types, two different meanings">
         On the flamegraph exports, <code>eventType</code> is the event that <em>opened the trace</em> (e.g. <code>jeffrey.HttpServerExchange</code>) while <code>graphEventType</code> is what to <em>graph</em> (e.g. <code>jdk.ExecutionSample</code>). They are never the same value.
       </DocsCallout>
+
+      <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
+      <DocsCodeBlock :code="exTraces" language="json" />
 
       <h2 id="jvm">jvm_ &mdash; the machine underneath</h2>
       <p>Garbage collection, safepoints, JIT compilation, threads, native memory, the container and the JVM&rsquo;s own configuration. Each tool renders the manager behind the matching Jeffrey UI page, so the numbers come from the same tested builders the UI draws its charts from.</p>
@@ -354,6 +434,9 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
         Generating it loads the whole recording through the JMC toolkit, which is bounded neither in time nor in memory by anything the server controls &mdash; a poor trade inside a tool whose point is being cheap. The Auto Analysis page in the Jeffrey UI computes and caches it; every call afterwards is a cache read. Until then the tool says so, and the other sections still answer.
       </DocsCallout>
 
+      <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
+      <DocsCodeBlock :code="exJvm" language="json" />
+
       <h2 id="technologies">http_, jdbc_, grpc_, methodtracing_ &mdash; the technology dashboards</h2>
       <p>Where <code>jvm_</code> answers for the machine, these four answer for what the application did at its edges: the calls it served, the queries it ran, the methods it instrumented. Each <code>_overview</code> is the whole dashboard in one call &mdash; header totals, the entities ranked, the status breakdown and the slowest individual operations &mdash; so the drill-down tools exist only to narrow to one endpoint, service or group.</p>
       <table>
@@ -433,6 +516,9 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
 
       <p><strong>Method tracing is JEP 520</strong>, not distributed tracing: instrumented method timings. Request-level spans are the <code>traces_</code> family above. Its two event types are independent, and a recording often carries one without the other, so each tool reports its own half as empty rather than returning zeros.</p>
 
+      <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
+      <DocsCodeBlock :code="exTechnologies" language="json" />
+
       <h2 id="waiting">io_, blocking_ &mdash; waiting rather than running</h2>
       <p>A thread blocked on a socket read or a monitor is not on-CPU, so it produces no samples and a CPU flamegraph reports the application as idle rather than as waiting. These two families are where that time is.</p>
       <table>
@@ -479,6 +565,9 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
 
       <p>These event types are threshold-gated, so a recording can hold none of them because nothing blocked for long enough as well as because the profiler was never asked. The tools report which of the two it is rather than returning a zero that reads like health.</p>
 
+      <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
+      <DocsCodeBlock :code="exWaiting" language="json" />
+
       <h2 id="timeline">timeline_ &mdash; when, not where</h2>
       <p><code>flamegraph_export</code>, <code>compare_flamegraph</code> and the trace exports all accept <code>startMs</code> and <code>endMs</code>, and nothing else in the surface helps you choose them. A flamegraph of a whole recording flattens a thirty-second spike into a five-minute average, and the spike stops being visible.</p>
       <table>
@@ -509,6 +598,9 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
 
       <p>The workflow is three calls: <code>timeline_hotWindows</code> to find the window, <code>flamegraph_export</code> with its bounds to see what ran inside it, and <code>timeline_zoom</code> when a second is too coarse &mdash; a startup, or the inside of a spike.</p>
 
+      <p><strong>The three-call loop.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
+      <DocsCodeBlock :code="exTimeline" language="json" />
+
       <h2 id="memory">memory_ &mdash; allocation and leaks without a heap dump</h2>
       <p>Two memory questions a plain JFR recording answers on its own.</p>
       <table>
@@ -536,6 +628,9 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
       <p><strong>The other axis from a flamegraph.</strong> An allocation flamegraph ranks the call <em>sites</em> &mdash; where the allocating code is. This ranks the <em>types</em> allocated, and the two disagree usefully: <code>byte[]</code> and <code>char[]</code> at the top read very differently from a domain class, and one call site allocating many types looks nothing like one type coming from everywhere.</p>
 
       <p><strong>Leak candidates come from <code>jdk.OldObjectSample</code></strong>, which is off in most recordings. Their absence says nothing about whether the application leaks, and the tool says exactly that rather than reporting zero candidates &mdash; the difference between &ldquo;measured and found nothing&rdquo; and &ldquo;never measured&rdquo; is the whole finding.</p>
+
+      <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
+      <DocsCodeBlock :code="exMemory" language="json" />
 
       <h2 id="jfr">jfr_ &mdash; the profile database</h2>
       <p>Each profile is one DuckDB database. This family is the escape hatch for questions no purpose-built tool covers &mdash; distributions over time, correlations between event types, the cardinality of a field.</p>
@@ -590,6 +685,9 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
       <DocsCallout type="warning" title="Query the events view, not events_raw">
         <code>jfr_listTables</code> shows both. <code>events</code> is a view over <code>events_raw</code> that splices back the one large string field the parser pools out of each row; querying <code>events_raw</code> silently returns truncated JSON in <code>fields</code>, with no error to warn you. The bundled <code>jfr-sql</code> skill carries this and the rest of the schema.
       </DocsCallout>
+
+      <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
+      <DocsCodeBlock :code="exJfr" language="json" />
 
       <h2 id="heap">heap_ &mdash; heap dumps</h2>
       <p><code>heap_diff</code> is the one that needs two profiles: it compares this dump against an earlier one class by class, ranked by growth, and is the only way to separate a leak from a large working set &mdash; a single dump shows a state, and a state cannot tell the two apart. Pass the earlier dump as <code>baselineProfileId</code>; backwards, every growth reads as a shrink. Both dumps have to be indexed first, and the tool says which one is not.</p>
@@ -738,6 +836,9 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
         <code>dominator</code> and <code>retained_size</code> are empty until something asks for them, so a SQL query joining <code>retained_size</code> on a fresh dump returns nulls. Run <code>heap_getDominatorTreeRoots</code> once first. The bundled <code>heap-sql</code> skill covers the whole schema.
       </DocsCallout>
 
+      <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
+      <DocsCodeBlock :code="exHeap" language="json" />
+
       <h2 id="recordings">recordings_ &mdash; creating profiles</h2>
       <p>Everything above answers questions about a profile that already exists. This family is how one comes to exist without leaving the terminal: you point Claude at a recording file in your repository and it imports the file and builds the profile, then carries on with the id it got back.</p>
       <DocsCodeBlock :code="analyzeExample" language="text" />
@@ -778,6 +879,9 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
       <p>Two more things worth knowing. The call <strong>returns when the profile is built</strong>, which for a large recording is a wait rather than an acknowledgement. And each <code>recordings_analyzeFile</code> imports the file again and builds another profile &mdash; call <code>recordings_list</code> or <code>profiles_list</code> first if the same file may already be there.</p>
 
       <p>The family is advertised only while ingestion is enabled; see <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> for the property and for why a shared installation might turn it off.</p>
+
+      <p><strong>Example.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
+      <DocsCodeBlock :code="exRecordings" language="json" />
 
       <h2 id="links">Links Back to the UI</h2>
       <p>Analysis answers carry a link to the view that shows them &mdash; a <code>uiLink</code> field on the JSON answers, and a trailing <code>Open in Jeffrey: &hellip;</code> line on the Markdown exports. The flamegraph link reproduces the event type and filters the export was built with, the operation link opens on its slowest or flames tab, and a trace link opens that trace&rsquo;s span waterfall.</p>
