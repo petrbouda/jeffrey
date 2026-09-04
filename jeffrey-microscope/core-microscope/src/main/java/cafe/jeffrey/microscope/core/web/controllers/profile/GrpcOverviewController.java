@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
+import cafe.jeffrey.profile.manager.custom.ExchangeDirection;
 import cafe.jeffrey.profile.manager.custom.GrpcManager;
 import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcOverviewData;
 import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcServiceDetailData;
@@ -48,34 +49,39 @@ public class GrpcOverviewController {
     }
 
     @GetMapping
-    public GrpcOverviewData overviewData(@PathVariable("profileId") String profileId) {
+    public GrpcOverviewData overviewData(
+            @PathVariable("profileId") String profileId,
+            @RequestParam(value = "mode", required = false) String mode) {
         LOG.debug("Fetching gRPC overview");
-        return mgr(profileId).overviewData();
+        return mgr(profileId, mode).overviewData();
     }
 
     @GetMapping("/service")
     public GrpcServiceDetailData serviceDetail(
             @PathVariable("profileId") String profileId,
+            @RequestParam(value = "mode", required = false) String mode,
             @RequestParam("service") String service) {
         LOG.debug("Fetching gRPC service detail: service={}", service);
-        return mgr(profileId).serviceDetailData(URLDecoder.decode(service, UTF_8));
+        return mgr(profileId, mode).serviceDetailData(URLDecoder.decode(service, UTF_8));
     }
 
     @GetMapping("/traffic")
-    public GrpcTrafficData traffic(@PathVariable("profileId") String profileId) {
+    public GrpcTrafficData traffic(@PathVariable("profileId") String profileId,
+            @RequestParam(value = "mode", required = false) String mode) {
         LOG.debug("Fetching gRPC traffic data");
-        return mgr(profileId).trafficData();
+        return mgr(profileId, mode).trafficData();
     }
 
     @GetMapping("/traffic/service")
     public GrpcTrafficData trafficByService(
             @PathVariable("profileId") String profileId,
+            @RequestParam(value = "mode", required = false) String mode,
             @RequestParam("service") String service) {
         LOG.debug("Fetching gRPC traffic data for service: service={}", service);
-        return mgr(profileId).trafficData(URLDecoder.decode(service, UTF_8));
+        return mgr(profileId, mode).trafficData(URLDecoder.decode(service, UTF_8));
     }
 
-    private GrpcManager mgr(String profileId) {
-        return resolver.resolve(profileId).custom().grpcManager();
+    private GrpcManager mgr(String profileId, String mode) {
+        return resolver.resolve(profileId).custom().grpcManager(ExchangeDirection.from(mode));
     }
 }

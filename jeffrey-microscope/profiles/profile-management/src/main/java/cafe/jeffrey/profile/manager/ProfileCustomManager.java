@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.profile.manager;
 
+import cafe.jeffrey.profile.manager.custom.ExchangeDirection;
 import cafe.jeffrey.profile.manager.custom.GrpcManager;
 import cafe.jeffrey.profile.manager.custom.HttpManager;
 import cafe.jeffrey.profile.manager.custom.JdbcPoolManager;
@@ -38,9 +39,14 @@ public interface ProfileCustomManager {
 
     JdbcStatementManager jdbcStatementManager();
 
-    HttpManager httpManager();
+    /**
+     * The HTTP dashboard for one direction. There is no direction-less accessor on purpose: the
+     * server and client halves answer different questions, and a caller that did not choose would
+     * silently get one of them.
+     */
+    HttpManager httpManager(ExchangeDirection direction);
 
-    GrpcManager grpcManager();
+    GrpcManager grpcManager(ExchangeDirection direction);
 
     MethodTracingManager methodTracingManager();
 }

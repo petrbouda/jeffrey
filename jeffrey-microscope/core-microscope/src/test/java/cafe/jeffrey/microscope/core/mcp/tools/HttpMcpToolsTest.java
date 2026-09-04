@@ -49,7 +49,9 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -78,7 +80,7 @@ class HttpMcpToolsTest {
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         when(profileManager.custom()).thenReturn(customManager);
         when(profileManager.featuresManager()).thenReturn(featuresManager);
-        when(customManager.httpManager()).thenReturn(httpManager);
+        when(customManager.httpManager(any())).thenReturn(httpManager);
         when(featuresManager.getDisabledFeatures()).thenReturn(List.of());
     }
 
@@ -113,7 +115,7 @@ class HttpMcpToolsTest {
         void carriesTheHeaderTotalsAndTheEndpoints() {
             when(httpManager.overviewData()).thenReturn(data(List.of(uri("/api/orders"))));
 
-            String out = tools().overview();
+            String out = tools().overview(null);
 
             assertTrue(out.contains("\"requestCount\":1200"), out);
             assertTrue(out.contains("/api/orders"), out);
@@ -128,7 +130,7 @@ class HttpMcpToolsTest {
         void leavesTheChartSeriesOut() {
             when(httpManager.overviewData()).thenReturn(data(List.of(uri("/api/orders"))));
 
-            String out = tools().overview();
+            String out = tools().overview(null);
 
             assertFalse(out.contains("responseTimeSerie"), out);
             assertFalse(out.contains("requestCountSerie"), out);
@@ -139,8 +141,8 @@ class HttpMcpToolsTest {
             when(httpManager.overviewData()).thenReturn(data(List.of(uri("/api/orders"))));
 
             assertTrue(
-                    tools().overview().contains("/profiles/p-1/technologies/http/overview?mode=server"),
-                    tools().overview());
+                    tools().overview(null).contains("/profiles/p-1/technologies/http/overview?mode=server"),
+                    tools().overview(null));
         }
 
         /**
@@ -152,9 +154,9 @@ class HttpMcpToolsTest {
             when(featuresManager.getDisabledFeatures())
                     .thenReturn(List.of(FeatureType.HTTP_SERVER_DASHBOARD));
 
-            String out = tools().overview();
+            String out = tools().overview(null);
 
-            assertTrue(out.contains("no HTTP server data"), out);
+            assertTrue(out.contains("no server-side HTTP data"), out);
             assertFalse(out.contains("requestCount"), out);
         }
     }
@@ -166,7 +168,7 @@ class HttpMcpToolsTest {
         void narrowsToTheRequestedUriAndLinksToItsDetail() {
             when(httpManager.overviewData("/api/orders")).thenReturn(data(List.of(uri("/api/orders"))));
 
-            String out = tools().endpoint("/api/orders");
+            String out = tools().endpoint("/api/orders", null);
 
             assertTrue(out.contains("\"endpoint\""), out);
             assertTrue(out.contains("uri=%2Fapi%2Forders"), out);
@@ -180,7 +182,7 @@ class HttpMcpToolsTest {
         void reportsAnUnknownUriInsteadOfFailing() {
             when(httpManager.overviewData("/nope")).thenReturn(data(List.of()));
 
-            String out = tools().endpoint("/nope");
+            String out = tools().endpoint("/nope", null);
 
             assertTrue(out.contains("No requests were recorded for '/nope'"), out);
         }
@@ -209,23 +211,23 @@ class HttpMcpToolsTest {
         void alwaysRoutesToTheEndpointDetail() {
             when(httpManager.overviewData()).thenReturn(withStatuses(0, 0));
 
-            assertTrue(tools().overview().contains("http_endpoint"));
+            assertTrue(tools().overview(null).contains("http_endpoint"));
         }
 
         @Test
         void namesTheFailureTrailOnlyWhenSomethingActuallyFailed() {
             when(httpManager.overviewData()).thenReturn(withStatuses(0, 0));
-            assertFalse(tools().overview().contains("traces_notifications"));
+            assertFalse(tools().overview(null).contains("traces_notifications"));
 
             when(httpManager.overviewData()).thenReturn(withStatuses(0, 3));
-            assertTrue(tools().overview().contains("traces_notifications"));
+            assertTrue(tools().overview(null).contains("traces_notifications"));
         }
 
         @Test
         void aClientErrorCountsAsSomethingHavingHappenedToo() {
             when(httpManager.overviewData()).thenReturn(withStatuses(11, 0));
 
-            assertTrue(tools().overview().contains("traces_notifications"));
+            assertTrue(tools().overview(null).contains("traces_notifications"));
         }
 
         /**
@@ -236,11 +238,59 @@ class HttpMcpToolsTest {
         void theGatedLineRoutesRatherThanJudging() {
             when(httpManager.overviewData()).thenReturn(withStatuses(0, 3));
 
-            String out = tools().overview().toLowerCase();
+            String out = tools().overview(null).toLowerCase();
 
             assertFalse(out.contains("too many"), out);
             assertFalse(out.contains("unacceptable"), out);
             assertFalse(out.contains("is high"), out);
+        }
+    }
+
+    /**
+     * The client half had a FeatureType and an event type and no manager behind it, so every client
+     * question was silently answered with server figures - or, once the tools gated on the server
+     * feature, refused outright.
+     */
+    @Nested
+    class Direction {
+
+        @Test
+        void readsTheClientSideWhenAskedFor() {
+            when(httpManager.overviewData()).thenReturn(data(List.of(uri("https://payments/charge"))));
+
+            String out = tools().overview("CLIENT");
+
+            assertTrue(out.contains("payments/charge"), out);
+            assertTrue(out.contains("mode=client"), out);
+        }
+
+        @Test
+        void defaultsToTheServerSide() {
+            when(httpManager.overviewData()).thenReturn(data(List.of(uri("/api/orders"))));
+
+            assertTrue(tools().overview(null).contains("mode=server"));
+        }
+
+        /**
+         * The two halves are gated separately: a recording with inbound traffic and no outbound calls
+         * must answer the client question with "not recorded", not with the inbound figures.
+         */
+        @Test
+        void gatesEachDirectionOnItsOwnFeature() {
+            when(featuresManager.getDisabledFeatures())
+                    .thenReturn(List.of(FeatureType.HTTP_CLIENT_DASHBOARD));
+            when(httpManager.overviewData()).thenReturn(data(List.of(uri("/api/orders"))));
+
+            assertTrue(tools().overview("CLIENT").contains("no client-side HTTP data"));
+            assertTrue(tools().overview("SERVER").contains("requestCount"));
+        }
+
+        @Test
+        void refusesAnUnknownDirectionByName() {
+            IllegalArgumentException thrown = assertThrows(
+                    IllegalArgumentException.class, () -> tools().overview("inbound"));
+
+            assertTrue(thrown.getMessage().contains("SERVER, CLIENT"), thrown.getMessage());
         }
     }
 }

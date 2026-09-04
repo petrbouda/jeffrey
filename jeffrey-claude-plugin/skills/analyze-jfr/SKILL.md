@@ -40,15 +40,16 @@ A profile whose `event source` column reads `HEAP_DUMP` is a heap dump: switch t
 | `profiles_` | `list`, `get` (identity, recording window, size, source commit), `features`, `samplerHealth` (whether the samples can be trusted), `link` (the profile in the Jeffrey UI), `viewLink` (one named page) |
 | `flamegraph_` | `list` (which event types this profile can graph — call it first), `export` (the call tree as Markdown) |
 | `compare_` | `list` (whether two profiles are comparable at all — call it first), `movements` (what moved, ranked), `flamegraph` (the differential call tree) — the `compare-jfr` skill has the workflow |
-| `traces_` | `overview`, `operations`, `notifications`, `operationExport`, `slowestTraces`, `traceExport`, `spanFlamegraphExport`, `operationFlamegraphExport` |
+| `traces_` | `overview`, `operations`, `notifications`, `operationExport`, `slowestTraces`, `traceExport`, `spanFlamegraphExport`, `operationFlamegraphExport`, plus `attributeKeys`/`attributeValues`/`attributeSearch` |
 | `jvm_` | `sections` (call it first), `autoAnalysis`, `gc`, `safepoints`, `jit`, `threads`, `threadDumps`, `threadDump`, `nativeMemory`, `container`, `configuration`, `flags` — the machine underneath the application |
-| `http_` | `overview`, `endpoint` — the HTTP traffic the application served |
+| `http_` | `overview`, `endpoint` — HTTP traffic, `SERVER` (served) or `CLIENT` (called out) |
 | `jdbc_` | `overview`, `statementGroup`, `pools` — the queries it ran, and the pool in front of them |
-| `grpc_` | `overview`, `service`, `traffic` — gRPC latency, and the message sizes moved |
+| `grpc_` | `overview`, `service`, `traffic` — gRPC latency and message sizes, `SERVER` or `CLIENT` |
 | `methodtracing_` | `overview`, `slowest`, `timing` — instrumented method timings (JEP 520) |
 | `io_` | `overview`, `endpoints`, `slowest` — socket and file I/O, the waiting a CPU graph cannot see |
 | `blocking_` | `overview`, `monitors`, `pinnedThreads` — contended locks, waits, parks, virtual-thread pinning |
 | `timeline_` | `hotWindows` (when the samples landed), `zoom` (sub-second, inside one window) |
+| `memory_` | `allocations` (by type, not call site), `leakCandidates` (JFR-side, needs no heap dump) |
 | `jfr_` | `listTables`, `describeTable`, `listEventTypes`, `queryEvents`, `executeQuery`, `getProfileInfo` — raw DuckDB when no purpose-built tool fits; the `jfr-sql` skill has the schema |
 | `heap_` | Everything a heap dump answers — the `analyze-heap` skill has the order to run it in |
 | `recordings_` | `analyzeFile` (a file not in Jeffrey yet), `analyzeRecording` (uploaded but never analysed), `list` (the Quick Analysis store) |
@@ -183,10 +184,12 @@ Three things worth knowing before reading them:
 - **Slow requests whose statements are all fast are usually waiting for a connection.** That is
   `jdbc_pools`, and nothing in the statement view can show it — a pool with acquisition timeouts
   makes every query look fine while the request waits in front of them.
-- **Server-side only.** HTTP and gRPC read the server exchange events; there is no client-side data
-  behind the UI's client/server switch, so these tools take no direction argument. The per-second
-  chart series are left out on purpose — the percentiles carry the same information, and the shape
-  over time is what the `uiLink` on each answer is for.
+- **Both directions, and they are different questions.** `direction: SERVER` is what the application
+  was asked to do; `CLIENT` is what it asked of somebody else, where a slow figure belongs to a
+  dependency and the only local fixes are to call less often or stop waiting. They are gated
+  separately, so "no client-side data" means the recording captured no outbound calls, not that the
+  dashboard is broken. The per-second chart series are left out on purpose — the percentiles carry
+  the same information, and the shape over time is what `timeline_` and the `uiLink` are for.
 
 An event type the recording never captured is reported in words rather than as a zeroed dashboard:
 "no HTTP server data" is a finding about the profiler's configuration, not a healthy service.
@@ -223,6 +226,35 @@ time is.
 Both report whether the event type was recorded at all, because these events are threshold-gated: a
 recording can hold none because nothing blocked for long enough as well as because the profiler was
 never asked. The two are different findings and the tools distinguish them.
+
+## Which population, not which operation: trace attributes
+
+`traces_operations` groups by the shape of the request. That cannot answer the question most latency
+investigations actually end at — one population is slow and the rest is fine. The same endpoint,
+fast for almost everyone and terrible for one tenant, has a healthy average and a p99 nobody can
+locate.
+
+1. `traces_attributeKeys` — what the spans recorded. A key is the triple `(source, owner, key)`, and
+   the other two tools take all three; an `EVENT_FIELD` always has an owner, an `ATTRIBUTE` usually
+   does not.
+2. `traces_attributeValues` — one key split into its values, each with its own p50, p95, max and
+   error count. A value whose p95 stands apart from the rest names the population. Trace counts do
+   not sum to the profile's total: a trace whose spans recorded two values counts under both.
+3. `traces_attributeSearch` — the individual traces carrying one value, whose ids go to
+   `traces_traceExport`.
+
+An attribute says *which* population was slow and never *why*. The span tree of one of its traces
+says why.
+
+## Memory without a heap dump
+
+`memory_allocations` ranks the **types** allocated where the allocation flamegraph ranks the call
+**sites** — the other axis, and often the one that names the problem, since `byte[]` and `char[]` at
+the top read very differently from a domain class. `memory_leakCandidates` reads
+`jdk.OldObjectSample`: objects the JVM watched survive collections, which is leak evidence from a
+plain recording when nobody captured a dump and the process has gone. Its absence is not a clean
+bill of health — that sampler is off in most profiles, and the tool says so rather than reporting
+zero candidates.
 
 ## Hand the reading to the analyst
 

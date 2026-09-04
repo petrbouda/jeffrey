@@ -19,11 +19,14 @@
 package cafe.jeffrey.profile.parser;
 
 import jdk.jfr.consumer.RecordedEvent;
+import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedMethod;
+import jdk.jfr.consumer.RecordedStackTrace;
 import cafe.jeffrey.shared.common.model.Type;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 
 import static cafe.jeffrey.shared.common.model.Type.*;
 import java.util.Map;
@@ -87,14 +90,42 @@ public class WeightExtractorRegistry {
      * Null when the field is absent rather than falling back to the frame: the fallback is precisely
      * the wrong answer, and a silently wrong method name is worse than a missing one.
      */
+    /**
+     * The method a {@code jdk.MethodTrace} event was recorded for.
+     * <p>
+     * JEP 520 puts it in a {@code method} field, and that is read first. Not every recording carries
+     * one: an event written by a profiler that emits the type itself, or by a JDK that shipped the
+     * event before the field, arrives with only a start time, a duration and a stack. Those events
+     * are not unattributable — the traced method is the innermost frame of the stack the event was
+     * taken at, by construction, because the event is written from inside that method. Falling back
+     * to it is what keeps the Method Tracing dashboard from reporting a recording with real traces in
+     * it as having none: without an entity every record is dropped, and the totals come back zero
+     * while the events sit in the table.
+     */
     private static String extractTracedMethod(RecordedEvent event) {
-        if (!event.hasField(METHOD_FIELD)) {
+        if (event.hasField(METHOD_FIELD)) {
+            RecordedMethod method = event.getValue(METHOD_FIELD);
+            if (method != null) {
+                return format(method);
+            }
+        }
+        return topFrameMethod(event);
+    }
+
+    private static String topFrameMethod(RecordedEvent event) {
+        RecordedStackTrace stackTrace = event.getStackTrace();
+        if (stackTrace == null) {
             return null;
         }
-        RecordedMethod method = event.getValue(METHOD_FIELD);
-        if (method == null) {
+        List<RecordedFrame> frames = stackTrace.getFrames();
+        if (frames.isEmpty()) {
             return null;
         }
+        RecordedMethod method = frames.getFirst().getMethod();
+        return method == null ? null : format(method);
+    }
+
+    private static String format(RecordedMethod method) {
         return method.getType().getName() + METHOD_SEPARATOR + method.getName();
     }
 }

@@ -34,10 +34,16 @@ public class HttpManagerImpl implements HttpManager {
 
     private final ProfileInfo profileInfo;
     private final ProfileEventStreamRepository eventStreamRepository;
+    private final Type eventType;
 
-    public HttpManagerImpl(ProfileInfo profileInfo, ProfileEventStreamRepository eventStreamRepository) {
+    public HttpManagerImpl(
+            ProfileInfo profileInfo,
+            ProfileEventStreamRepository eventStreamRepository,
+            Type eventType) {
+
         this.profileInfo = profileInfo;
         this.eventStreamRepository = eventStreamRepository;
+        this.eventType = eventType;
     }
 
     @Override
@@ -54,7 +60,7 @@ public class HttpManagerImpl implements HttpManager {
         RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
 
         EventQueryConfigurer configurer = new EventQueryConfigurer()
-                .withEventType(Type.HTTP_SERVER_EXCHANGE)
+                .withEventType(eventType)
                 .withTimeRange(timeRange)
                 .withJsonFields();
 

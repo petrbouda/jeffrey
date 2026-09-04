@@ -47,14 +47,14 @@ installation.
 
 ## What you get
 
-**Tools**, in fifteen families:
+**Tools**, in sixteen families:
 
 | Family | What it does |
 |---|---|
 | `profiles_` | The catalogue: which recordings are analysed, what each one can answer, and deep links into the UI |
 | `flamegraph_` | Which graphs a profile supports, and the call tree as Markdown |
 | `compare_` | Two profiles against each other: whether they are comparable, what moved, and the differential call tree |
-| `traces_` | Trace operations, the application's own notifications, exemplars, span trees and span-scoped flamegraphs |
+| `traces_` | Trace operations, the application's own notifications, exemplars, span trees, span-scoped flamegraphs, and the attributes that say which population a trace belonged to |
 | `jvm_` | The machine underneath: garbage collection, safepoints, JIT compilation, threads, thread dumps, native memory, the container, the JVM flags and what it was started with |
 | `http_` | The HTTP traffic the application served: percentiles, endpoints, status codes, slowest requests |
 | `jdbc_` | Statement timings and groups, and the connection pool in front of them |
@@ -63,8 +63,9 @@ installation.
 | `io_` | Socket and file I/O: bytes, targets and the slowest operations — the waiting a CPU graph cannot see |
 | `blocking_` | Contended monitors, waits, parks and virtual-thread pinning |
 | `timeline_` | When the samples landed: the busiest windows, and sub-second zoom inside one |
+| `memory_` | Allocation by type, and JFR-side leak candidates that need no heap dump |
 | `jfr_` | The profile's DuckDB tables — schema and read-only SQL |
-| `heap_` | Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, and read-only SQL |
+| `heap_` | Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, a two-dump diff, and read-only SQL |
 | `recordings_` | The one that writes: imports a recording file and builds a profile from it |
 
 `recordings_analyzeFile` takes an **absolute path**, and the file has to be on the machine Jeffrey

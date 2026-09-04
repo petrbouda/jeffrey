@@ -22,10 +22,13 @@ import cafe.jeffrey.microscope.core.mcp.tools.CompareMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.FlamegraphMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.BlockingMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.GrpcMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HeapDiffMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.IoMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HttpMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.JdbcMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.MemoryMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.MethodTracingMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.TraceAttributesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.TimelineMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.JvmMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileMcpTools;
@@ -91,6 +94,7 @@ public class McpToolsetAssembler {
     private static final String PREFIX_IO = "io";
     private static final String PREFIX_BLOCKING = "blocking";
     private static final String PREFIX_TIMELINE = "timeline";
+    private static final String PREFIX_MEMORY = "memory";
     private static final String PREFIX_HEAP = "heap";
     private static final String PREFIX_RECORDINGS = "recordings";
 
@@ -147,6 +151,14 @@ public class McpToolsetAssembler {
                         profileId -> new BlockingMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(TimelineMcpTools.class, PREFIX_TIMELINE,
                         profileId -> new TimelineMcpTools(profileManager(contextCache, profileId))),
+                new ProfileScopedToolset<>(MemoryMcpTools.class, PREFIX_MEMORY,
+                        profileId -> new MemoryMcpTools(profileManager(contextCache, profileId))),
+                new ProfileScopedToolset<>(TraceAttributesMcpTools.class, PREFIX_TRACES,
+                        profileId -> new TraceAttributesMcpTools(profileManager(contextCache, profileId))),
+                new ProfileScopedToolset<>(HeapDiffMcpTools.class, PREFIX_HEAP,
+                        profileId -> new HeapDiffMcpTools(
+                                profileManager(contextCache, profileId),
+                                baselineId -> profileManager(contextCache, baselineId))),
                 new ProfileScopedToolset<>(HeapDumpMcpTools.class, PREFIX_HEAP,
                         profileId -> heapTools(contextCache, profileId))));
 

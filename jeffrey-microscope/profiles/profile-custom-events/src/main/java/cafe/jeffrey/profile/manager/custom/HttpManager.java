@@ -21,12 +21,16 @@ package cafe.jeffrey.profile.manager.custom;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpOverviewData;
 
-import java.util.function.Function;
 
 public interface HttpManager {
 
     @FunctionalInterface
-    interface Factory extends Function<ProfileInfo, HttpManager> {
+    /**
+     * Built per direction: the server and client halves read different event types, so a manager is
+     * bound to one of them rather than deciding per call.
+     */
+    interface Factory {
+        HttpManager apply(ProfileInfo profileInfo, ExchangeDirection direction);
     }
 
     HttpOverviewData overviewData();
