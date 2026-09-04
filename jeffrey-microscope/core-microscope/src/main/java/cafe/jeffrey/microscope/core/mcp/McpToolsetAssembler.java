@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
+import cafe.jeffrey.microscope.core.mcp.tools.CompareMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.FlamegraphMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
@@ -48,6 +49,11 @@ import java.util.Set;
  * {@link ProfileScopedToolset}, which resolves its target through the {@link McpProfileContextCache}
  * when a call actually arrives.
  * <p>
+ * Every family here is scoped to one profile except {@link CompareMcpTools}, which is scoped to a
+ * pair: the toolset resolves the {@code profileId} as usual and the tool resolves its
+ * {@code baselineProfileId} through the same cache, so both profiles stay pinned for the session
+ * rather than the baseline being reopened on every call.
+ * <p>
  * Every analysis family here is read-only. {@code DuckDbMcpTools} is constructed with its
  * single-argument constructor, which leaves {@code executeModification} refusing — an external client
  * gets to read a profile's data, not to rewrite it.
@@ -62,6 +68,7 @@ public class McpToolsetAssembler {
     private static final String PREFIX_PROFILES = "profiles";
     private static final String PREFIX_JFR = "jfr";
     private static final String PREFIX_FLAMEGRAPH = "flamegraph";
+    private static final String PREFIX_COMPARE = "compare";
     private static final String PREFIX_TRACES = "traces";
     private static final String PREFIX_HEAP = "heap";
     private static final String PREFIX_RECORDINGS = "recordings";
@@ -97,6 +104,10 @@ public class McpToolsetAssembler {
                                 profileManager(contextCache, profileId),
                                 jfrPanelProvider,
                                 stackSamplePanelProvider)),
+                new ProfileScopedToolset<>(CompareMcpTools.class, PREFIX_COMPARE,
+                        profileId -> new CompareMcpTools(
+                                profileManager(contextCache, profileId),
+                                baselineId -> profileManager(contextCache, baselineId))),
                 new ProfileScopedToolset<>(TracesMcpTools.class, PREFIX_TRACES,
                         profileId -> new TracesMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(HeapDumpMcpTools.class, PREFIX_HEAP,

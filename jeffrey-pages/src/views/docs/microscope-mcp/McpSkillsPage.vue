@@ -30,6 +30,7 @@ const headings = [
   { id: 'why-skills-at-all', text: 'Why Skills at All', level: 2 },
   { id: 'analyze-jfr', text: 'analyze-jfr', level: 2 },
   { id: 'analyze-heap', text: 'analyze-heap', level: 2 },
+  { id: 'compare-jfr', text: 'compare-jfr', level: 2 },
   { id: 'advise-jfr', text: 'advise-jfr', level: 2 },
   { id: 'jfr-sql', text: 'jfr-sql', level: 2 },
   { id: 'heap-sql', text: 'heap-sql', level: 2 },
@@ -44,6 +45,7 @@ onMounted(() => {
 
 const invoke = `/microscope:analyze-jfr
 /microscope:analyze-heap
+/microscope:compare-jfr
 /microscope:advise-jfr
 /microscope:jfr-sql
 /microscope:heap-sql`;
@@ -81,7 +83,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <h2 id="analyze-jfr">analyze-jfr</h2>
       <p><em>Orientation.</em> Loaded whenever the question is &ldquo;why is this slow&rdquo;, &ldquo;where does the time go&rdquo;, &ldquo;what is allocating&rdquo;, &ldquo;what is holding memory&rdquo;, or when a Jeffrey profile, a JFR recording or a heap dump is mentioned.</p>
 
-      <p>It carries the entry sequence &mdash; <code>profiles_list</code>, then <code>profiles_features</code>, then the family that matches the question &mdash; a map of the six families to the questions each answers, when to start instead from <code>recordings_analyzeFile</code> because the user named a file Jeffrey has never seen, the rule that every scoped tool takes a <code>profileId</code>, which flamegraph to pick for CPU versus allocation versus lock contention versus wall-clock, the order to work a latency question in traces, and what a failure means (a <code>404</code> means the server was switched off, not a bug).</p>
+      <p>It carries the entry sequence &mdash; <code>profiles_list</code>, then <code>profiles_features</code>, then the family that matches the question &mdash; a map of the seven families to the questions each answers, when to start instead from <code>recordings_analyzeFile</code> because the user named a file Jeffrey has never seen, the rule that every scoped tool takes a <code>profileId</code>, which flamegraph to pick for CPU versus allocation versus lock contention versus wall-clock, the order to work a latency question in traces, and what a failure means (a <code>404</code> means the server was switched off, not a bug).</p>
 
       <p>It also tells the model to <strong>ground its claims</strong>: the exports contain call paths and numbers, not source locations, so file and line numbers must be read from the repository rather than inferred from a profile.</p>
 
@@ -98,6 +100,20 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <p>On top of that it carries the routes &mdash; the histogram and top consumers for what is using the heap, leak suspects into a GC-root path for what is leaking, <code>heap_getClassLoaderLeakChains</code> for the redeploy case that leaves a class loader behind, string and collection analysis for waste, and instance browsing for one particular class &mdash; plus how to enter from a <code>.hprof</code> file Jeffrey has never seen, and what the two guard messages mean when a profile turns out to have no heap dump or an index that is still being built.</p>
 
       <p>It grounds claims the way <code>analyze-jfr</code> does: cite the class name, the retained bytes and the GC-root path together, never carry an object id between dumps, and say whether one dump is being read as a leak or as a large working set &mdash; a single dump cannot tell those apart.</p>
+
+      <h2 id="compare-jfr">compare-jfr</h2>
+      <p><em>Before against after.</em> Loaded when the question is &ldquo;did my change make it slower&rdquo;, &ldquo;what got faster&rdquo;, &ldquo;compare these two runs&rdquo;, or when a baseline, a before/after or a performance regression is mentioned. It is the question a session in your own checkout actually has &mdash; the agent holds the code diff, and Jeffrey holds the behaviour diff &mdash; and the one no single-profile tool can answer.</p>
+
+      <p>Most of the skill is spent on the failure mode that makes this analysis worse than useless. Any two recordings can be subtracted, and the result always looks like a finding; whether it <em>is</em> one depends on facts the deltas do not show, and nothing in a JFR file proves them. So it carries:</p>
+      <ul>
+        <li><strong>Comparability first, as a real result.</strong> <code>compare_list</code> before anything else, and &ldquo;these two runs are not comparable&rdquo; reported as a finding rather than worked around &mdash; a far better answer than a confident regression that was really a recording twice as long. It names the three cases to stop on: different recording lengths, an event type only one side recorded (a profiler-configuration difference, not a change in the application), and nothing in common at all.</li>
+        <li><strong>The direction.</strong> The after run is the <code>profileId</code> and the before run is the <code>baselineProfileId</code>. Backwards, every regression reads as an improvement.</li>
+        <li><strong>Ranked first, tree second.</strong> <code>compare_movements</code> attributes by self weight, so a change is charged to the method that moved rather than to every caller above it; <code>compare_flamegraph</code> follows one movement down its call paths. Pruning there is by movement, so absence means &ldquo;did not move&rdquo; &mdash; the opposite of what it means in a single-profile export.</li>
+        <li><strong>What a rename looks like.</strong> A renamed or extracted method appears once as new and once as gone, of near-identical size, and reads as two dramatic findings. The skill has the model check the source diff &mdash; which it has and the profile does not &mdash; before reporting either half.</li>
+        <li><strong>The limits, stated.</strong> Share and delta answer different questions and must be quoted as the one they are; one pair of recordings cannot separate a 5% move from run-to-run variance; and one event type&rsquo;s distribution is not a wall-clock benchmark, so a shifted CPU profile is never evidence that the application got faster end to end.</li>
+      </ul>
+
+      <p>It ends where <code>advise-jfr</code> begins: the profile says where, never why, so the located movements are mapped onto the actual diff with the real source read first.</p>
 
       <h2 id="advise-jfr">advise-jfr</h2>
       <p><em>From a profile to a code change.</em> Loaded when the question is &ldquo;what should I change&rdquo;, &ldquo;optimise this&rdquo;, or when a hotspot has been found and the next question is what to do about it. It is the successor of the in-app Profile Advisor: the same job, done by the agent that is already in your checkout and can build, test and re-profile, instead of by a model given a read-only view of one folder.</p>

@@ -15,6 +15,7 @@ model: inherit
 skills:
   - analyze-jfr
   - analyze-heap
+  - compare-jfr
 color: orange
 ---
 
@@ -26,9 +27,13 @@ come back.
 ## What you are given
 
 A `profileId`, and one question — an event type to graph, a trace operation to work, or a heap
-question. The `analyze-jfr` and `analyze-heap` skills are preloaded: they carry the tool families,
-the entry sequence, the flamegraph choice per question, the trace order, and the heap rules
-(shallow versus retained, the lazily built dominator tree, which reports only the UI can compute).
+question. A comparison question comes with a second id, the **baseline**: the `profileId` is the run
+under examination and the baseline is what it is measured against, and you never swap them to make a
+result read better. The `analyze-jfr`, `analyze-heap` and `compare-jfr` skills are preloaded: they
+carry the tool families, the entry sequence, the flamegraph choice per question, the trace order,
+the heap rules (shallow versus retained, the lazily built dominator tree, which reports only the UI
+can compute), and — for a comparison — that `compare_list` runs first and that "these two runs are
+not comparable" is a finding to report rather than an obstacle to work around.
 Follow them. If the request names no `profileId`, say so and stop rather than picking one — the
 caller knows which profile the conversation is about and you do not.
 

@@ -20,19 +20,22 @@ package cafe.jeffrey.profile.manager;
 
 import cafe.jeffrey.flamegraph.ai.AiExportConfig;
 
+import cafe.jeffrey.flamegraph.diff.DbBasedDiffgraphGenerator;
+import cafe.jeffrey.flamegraph.diff.ProfileComparison;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.shared.common.model.EventSummary;
+import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.SpanScope;
 import cafe.jeffrey.shared.common.model.Type;
-import cafe.jeffrey.flamegraph.GraphGenerator;
 import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class DiffFlamegraphManagerImpl implements FlamegraphManager {
+public class DiffFlamegraphManagerImpl implements DifferentialFlamegraphManager {
 
     private static final List<Type> SUPPORTED_EVENTS = List.of(
             Type.EXECUTION_SAMPLE,
@@ -44,18 +47,27 @@ public class DiffFlamegraphManagerImpl implements FlamegraphManager {
             Type.OBJECT_ALLOCATION_OUTSIDE_TLAB,
             Type.VIRTUAL_THREAD_PINNED);
 
+    private final ProfileInfo primaryInfo;
+    private final ProfileInfo secondaryInfo;
     private final ProfileEventTypeRepository primaryEventTypeRepository;
     private final ProfileEventTypeRepository secondaryEventTypeRepository;
-    private final GraphGenerator generator;
+    private final DbBasedDiffgraphGenerator generator;
+    private final AiExportConfig aiExportConfig;
 
     public DiffFlamegraphManagerImpl(
+            ProfileInfo primaryInfo,
+            ProfileInfo secondaryInfo,
             ProfileEventTypeRepository primaryEventTypeRepository,
             ProfileEventTypeRepository secondaryEventTypeRepository,
-            GraphGenerator generator) {
+            DbBasedDiffgraphGenerator generator,
+            AiExportConfig aiExportConfig) {
 
+        this.primaryInfo = primaryInfo;
+        this.secondaryInfo = secondaryInfo;
         this.primaryEventTypeRepository = primaryEventTypeRepository;
         this.secondaryEventTypeRepository = secondaryEventTypeRepository;
         this.generator = generator;
+        this.aiExportConfig = aiExportConfig;
     }
 
     @Override
@@ -65,14 +77,37 @@ public class DiffFlamegraphManagerImpl implements FlamegraphManager {
 
     @Override
     public String generateAiExport(GraphParameters parameters) {
-        throw new UnsupportedOperationException(
-                "AI export is not supported for differential flamegraphs");
+        return generateAiExport(parameters, null);
     }
 
     @Override
-    public String generateAiExport(GraphParameters parameters, AiExportConfig aiExportConfig) {
-        throw new UnsupportedOperationException(
-                "AI export is not supported for differential flamegraphs");
+    public String generateAiExport(GraphParameters parameters, AiExportConfig exportConfig) {
+        return ProfileComparison.treeMarkdown(
+                parameters.eventType(),
+                generator.diffFrame(parameters),
+                duration(primaryInfo),
+                duration(secondaryInfo),
+                exportConfig == null ? aiExportConfig : exportConfig);
+    }
+
+    @Override
+    public String rankedMovements(GraphParameters parameters, int limit) {
+        return ProfileComparison.rankedMarkdown(
+                parameters.eventType(),
+                generator.diffFrame(parameters),
+                duration(primaryInfo),
+                duration(secondaryInfo),
+                limit);
+    }
+
+    /**
+     * A profile that reports no duration cannot be put on a time base, and
+     * {@link cafe.jeffrey.flamegraph.diff.ComparisonScale} says so in its own warning rather than
+     * being handed a fabricated one here.
+     */
+    private static Duration duration(ProfileInfo profileInfo) {
+        Duration duration = profileInfo.duration();
+        return duration == null ? Duration.ZERO : duration;
     }
 
     @Override

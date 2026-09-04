@@ -39,6 +39,7 @@ A profile whose `event source` column reads `HEAP_DUMP` is a heap dump: switch t
 |---|---|
 | `profiles_` | `list`, `get` (identity, recording window, size, source commit), `features`, `link` (deep link into the Jeffrey UI) |
 | `flamegraph_` | `list` (which event types this profile can graph — call it first), `export` (the call tree as Markdown) |
+| `compare_` | `list` (whether two profiles are comparable at all — call it first), `movements` (what moved, ranked), `flamegraph` (the differential call tree) — the `compare-jfr` skill has the workflow |
 | `traces_` | `overview`, `operations`, `notifications`, `operationExport`, `slowestTraces`, `traceExport`, `spanFlamegraphExport`, `operationFlamegraphExport` |
 | `jfr_` | `listTables`, `describeTable`, `listEventTypes`, `queryEvents`, `executeQuery`, `getProfileInfo` — raw DuckDB when no purpose-built tool fits; the `jfr-sql` skill has the schema |
 | `heap_` | Everything a heap dump answers — the `analyze-heap` skill has the order to run it in |
@@ -122,5 +123,6 @@ profile-to-code-change workflow.
 - The server answers 404 → it was started with `jeffrey.microscope.mcp.enabled=false`; it is on
   by default.
 
-Related skills: `analyze-heap` for a heap dump, `jfr-sql` for raw SQL against the profile,
-`advise-jfr` to go from a hotspot to an edit in this repository.
+Related skills: `analyze-heap` for a heap dump, `compare-jfr` when there is a before and an after
+to weigh against each other, `jfr-sql` for raw SQL against the profile, `advise-jfr` to go from a
+hotspot to an edit in this repository.

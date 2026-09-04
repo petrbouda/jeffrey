@@ -60,18 +60,9 @@ public class DbBasedDiffgraphGenerator implements GraphGenerator {
          */
         CompletableFuture<cafe.jeffrey.flamegraph.proto.FlamegraphData> flameFuture;
         if (GraphComponents.isFlamegraphCompatible(params.graphComponents())) {
-            FlamegraphDataProvider primaryFlame = FlamegraphDataProvider.differential(primaryRepository, params);
-            FlamegraphDataProvider secondaryFlame = FlamegraphDataProvider.differential(secondaryRepository, params);
-
-            CompletableFuture<Frame> primaryFlameFuture = CompletableFuture.supplyAsync(
-                    primaryFlame::provideFrame, Schedulers.sharedParallel());
-            CompletableFuture<Frame> secondaryFlameFuture = CompletableFuture.supplyAsync(
-                    secondaryFlame::provideFrame, Schedulers.sharedParallel());
-
-            flameFuture = primaryFlameFuture.thenCombine(secondaryFlameFuture, (primary, secondary) -> {
-                DiffFrame differentialFrames = new DiffTreeGenerator(primary, secondary).generate();
-                return new DiffgraphProtoFormatter(differentialFrames, minFrameThresholdPct, params.useWeight()).format();
-            });
+            flameFuture = diffFrameAsync(params).thenApply(differentialFrames ->
+                    new DiffgraphProtoFormatter(
+                            differentialFrames, minFrameThresholdPct, params.useWeight()).format());
         } else {
             flameFuture = CompletableFuture.completedFuture(null);
         }
@@ -109,6 +100,31 @@ public class DbBasedDiffgraphGenerator implements GraphGenerator {
         }
 
         return graphBuilder.build().toByteArray();
+    }
+
+    /**
+     * The merged call tree of the two profiles, as the intermediate representation rather than as the
+     * protobuf the browser draws.
+     * <p>
+     * The AI-facing exports read this: they rank and prune by <em>movement</em>, which the protobuf
+     * has already thrown away in favour of what a renderer needs. Same tree either way, so the two
+     * views of one comparison cannot disagree.
+     */
+    public DiffFrame diffFrame(GraphParameters params) {
+        return diffFrameAsync(params).join();
+    }
+
+    private CompletableFuture<DiffFrame> diffFrameAsync(GraphParameters params) {
+        FlamegraphDataProvider primaryFlame = FlamegraphDataProvider.differential(primaryRepository, params);
+        FlamegraphDataProvider secondaryFlame = FlamegraphDataProvider.differential(secondaryRepository, params);
+
+        CompletableFuture<Frame> primaryFlameFuture = CompletableFuture.supplyAsync(
+                primaryFlame::provideFrame, Schedulers.sharedParallel());
+        CompletableFuture<Frame> secondaryFlameFuture = CompletableFuture.supplyAsync(
+                secondaryFlame::provideFrame, Schedulers.sharedParallel());
+
+        return primaryFlameFuture.thenCombine(secondaryFlameFuture,
+                (primary, secondary) -> new DiffTreeGenerator(primary, secondary).generate());
     }
 
     private static cafe.jeffrey.flamegraph.proto.TimeseriesData convertTimeseries(TimeseriesData data) {

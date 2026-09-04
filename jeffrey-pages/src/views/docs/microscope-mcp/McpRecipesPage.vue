@@ -58,8 +58,8 @@ you would change`;
 
 const promptAdvise = `advise on the most recent Jeffrey profile - what should I change in this repo?`;
 
-const promptCompare = `compare the allocation flamegraphs of the before and after profiles and
-tell me what actually changed`;
+const promptCompare = `compare the allocation profiles of the before and after runs and tell me
+what actually changed - and whether the two runs are even comparable`;
 
 const promptSql = `across the whole recording, what is the distribution of jdk.FileRead
 durations per file, and which file is worst?`;
@@ -152,9 +152,17 @@ LIMIT 20`;
       <h2 id="compare-two-recordings">Compare Two Recordings</h2>
       <DocsCodeBlock :code="promptCompare" language="bash" />
 
-      <p>Nothing special is needed: <code>profiles_list</code> returns both, and every tool takes a <code>profileId</code>, so the same export runs twice in one session. Comparison is where a terminal beats two browser tabs &mdash; the model holds both trees at once and reports the delta rather than making you scan for it.</p>
+      <p>The <code>compare_</code> family does this as one operation rather than as two exports the model has to hold side by side. <code>compare_list</code> first &mdash; both recordings&rsquo; length, the event types they share, and the ones only one of them captured. Then <code>compare_movements</code>, which ranks the methods that moved. Then <code>compare_flamegraph</code> on whichever one the answer turned out to be.</p>
 
-      <p>Keep the graph parameters identical across the two calls; a threshold difference will read as a change that is not there.</p>
+      <p>Pass the <strong>after</strong> run as <code>profileId</code> and the <strong>before</strong> run as <code>baselineProfileId</code>. A positive delta then means the primary spends more, which is a regression; swap them and every regression reads as an improvement.</p>
+
+      <DocsCallout type="warning" title="The first question is whether they are comparable at all">
+        Two recordings can always be subtracted, and the difference always looks like a finding. Recording lengths that differ, a volume that stays far apart after scaling, an event type only one profiler captured &mdash; each produces a confident number that means nothing. <code>compare_list</code> reports all three, and every comparison document repeats them in a comparability section before it shows a single delta. &ldquo;These two runs are not comparable&rdquo; is a real answer, and a better one than the alternative.
+      </DocsCallout>
+
+      <p>Two things the output will not let you misread. Movements are attributed by <strong>self</strong> weight, so a change lands on the method that moved rather than on every caller above it &mdash; without that, one slow leaf reports its whole call stack as regressed. And a renamed or extracted method appears once as new and once as gone, of near-identical size, which reads as two dramatic findings; those pairs are listed as <strong>candidate renames</strong> for you to settle against the source diff, which the profile cannot see.</p>
+
+      <p>The <code>/microscope:compare-jfr</code> skill carries the whole sequence, so the prompt above does not have to name any of it.</p>
 
       <h2 id="a-question-with-no-tool">A Question With No Tool</h2>
       <DocsCodeBlock :code="promptSql" language="bash" />
