@@ -9,7 +9,7 @@
     {
       "name": "microscope",
       "source": "./jeffrey-claude-plugin",
-      "version": "1.1.0",
+      "version": "1.0.0",
       "description": "Analyze JVM recordings with a running Jeffrey Microscope: point it at a JFR file or heap dump to build a profile, then read flamegraphs, traces, the JVM and technology dashboards, and heap-dump reports without leaving the terminal.",
       "author": {
         "name": "Petr Bouda",
