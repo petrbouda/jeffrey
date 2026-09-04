@@ -1,5 +1,9 @@
 FROM node:22
 
+# node:22 bundles npm 10, whose dependency resolver crashes on optional peer chains
+# ("Cannot read properties of null (reading 'edgesOut')"). Fixed in npm 11.
+RUN npm install -g npm@11
+
 ARG MAVEN_VERSION=3.9.11
 ARG JAVA_MAJOR_VERSION=25
 ARG JAVA_VERSION=25

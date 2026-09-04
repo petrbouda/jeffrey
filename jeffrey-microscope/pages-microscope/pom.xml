@@ -58,6 +58,12 @@
                                      production-flavoured environment (NODE_ENV=production) would
                                      otherwise prune it and silently skip the check. -->
                                 <argument>--include=dev</argument>
+                                <!-- npm 10's dependency resolver crashes ("Cannot read properties
+                                     of null (reading 'edgesOut')") while walking the optional peer
+                                     chain vitest -> jsdom -> canvas. The bug is fixed in npm 11+,
+                                     but the builder image (node:22) still ships npm 10, so skip
+                                     the peer walk here. Drop this once the image carries npm 11+. -->
+                                <argument>--legacy-peer-deps</argument>
                             </arguments>
                         </configuration>
                     </execution>
