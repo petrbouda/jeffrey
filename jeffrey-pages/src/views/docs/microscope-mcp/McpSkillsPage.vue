@@ -43,6 +43,14 @@ onMounted(() => {
   setHeadings(headings);
 });
 
+const askExamples = `# each of these loads a skill on its own - no slash command needed
+"why is the checkout endpoint slow?"                     -> analyze-jfr
+"analyze target/run.jfr and tell me where the time goes" -> analyze-jfr
+"what is holding memory in this heap dump?"              -> analyze-heap
+"did my change make it slower?"                          -> compare-jfr
+"what should I change in this repo to fix it?"           -> advise-jfr
+"how many events of each type are in the recording?"     -> jfr-sql`;
+
 const invoke = `/microscope:analyze-jfr
 /microscope:analyze-heap
 /microscope:compare-jfr
@@ -167,7 +175,10 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <p>What it is not allowed to do is as much of the design as what it does. Its tools are the read-only MCP families and nothing else &mdash; no file access, no <code>recordings_</code> &mdash; so it cannot map a frame to a line, invent a file name that would arrive looking measured, edit anything, or build a profile. Mapping onto the checkout, the recommendation, and every question put to you stay in the session, where you can answer them.</p>
 
       <h2 id="invoking-one-directly">Invoking One Directly</h2>
-      <p>Each skill is also a slash command, namespaced by the plugin:</p>
+      <p>You do not normally have to. Claude loads the skill whose description matches the question, so plain English is enough:</p>
+      <DocsCodeBlock :code="askExamples" language="bash" />
+
+      <p>Each skill is also a slash command, namespaced by the plugin, for when you want the schema in front of you or Claude has gone in a direction the skill would have corrected:</p>
       <DocsCodeBlock :code="invoke" language="bash" />
 
       <p>Useful when you want the schema in front of you before asking a question, or when Claude has gone off in a direction the skill would have corrected.</p>

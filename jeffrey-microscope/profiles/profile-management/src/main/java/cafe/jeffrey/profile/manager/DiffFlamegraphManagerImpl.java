@@ -72,7 +72,7 @@ public class DiffFlamegraphManagerImpl implements DifferentialFlamegraphManager 
 
     @Override
     public byte[] generate(GraphParameters parameters) {
-        return generator.generate(parameters);
+        return generator.generate(adjust(parameters));
     }
 
     @Override
@@ -84,7 +84,7 @@ public class DiffFlamegraphManagerImpl implements DifferentialFlamegraphManager 
     public String generateAiExport(GraphParameters parameters, AiExportConfig exportConfig) {
         return ProfileComparison.treeMarkdown(
                 parameters.eventType(),
-                generator.diffFrame(parameters),
+                generator.diffFrame(adjust(parameters)),
                 duration(primaryInfo),
                 duration(secondaryInfo),
                 exportConfig == null ? aiExportConfig : exportConfig);
@@ -94,10 +94,34 @@ public class DiffFlamegraphManagerImpl implements DifferentialFlamegraphManager 
     public String rankedMovements(GraphParameters parameters, int limit) {
         return ProfileComparison.rankedMarkdown(
                 parameters.eventType(),
-                generator.diffFrame(parameters),
+                generator.diffFrame(adjust(parameters)),
                 duration(primaryInfo),
                 duration(secondaryInfo),
                 limit);
+    }
+
+    /**
+     * Settles whether the comparison is weighed by bytes and nanoseconds or counted by samples, the
+     * way {@code PrimaryFlamegraphManager} settles it for a single profile.
+     * <p>
+     * {@code useWeight} is nullable and means "the caller did not say", which the diff path had no
+     * answer for: the flag reached {@code FlamegraphDataProvider}, which takes a primitive, and threw
+     * before any comparison ran.
+     * <p>
+     * The repair is to answer it the way the single-profile path answers it rather than to pick
+     * {@code false}, so that "the caller did not say" cannot mean one thing for a flamegraph and
+     * another for a comparison of the same event type. Whether the two settings render differently
+     * depends on the profile - on recordings whose weight tracks their sample count they do not -
+     * but the two paths now agree by construction rather than by coincidence.
+     */
+    private static GraphParameters adjust(GraphParameters parameters) {
+        if (parameters.useWeight() != null) {
+            return parameters;
+        }
+        Type eventType = parameters.eventType();
+        return parameters.toBuilder()
+                .withUseWeight(eventType.isAllocationEvent() || eventType.isBlockingEvent())
+                .build();
     }
 
     /**
