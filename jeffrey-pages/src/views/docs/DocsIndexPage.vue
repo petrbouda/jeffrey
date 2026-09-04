@@ -29,7 +29,7 @@ const serverComponents = ['Continuous recording', 'Scheduler', 'gRPC API', 'Agen
 const provisionerComponents = ['HOCON config', 'JVM argfile', 'Session layout', 'Workspace events', 'Native binary'];
 const jibComponents = ['Gradle/Maven', 'Entrypoint wrapper', 'Shared volume', 'Kill switch'];
 const pluginComponents = ['Open in IDE', 'Inline source', 'Java & Kotlin', 'Auto-pairing'];
-const mcpComponents = ['39 read-only tools', 'Claude Code & Codex', 'DuckDB SQL', 'Flamegraph exports', 'Heap analysis'];
+const mcpComponents = ['82 read-only tools', 'Claude Code & Codex', 'DuckDB SQL', 'Flamegraph exports', 'Heap analysis'];
 const tracingComponents = ['Tracer API', '@Traced agent', 'HTTP/gRPC/JDBC', 'JFR-native', 'Waterfall'];
 
 onMounted(() => {

@@ -1,0 +1,59 @@
+# The repository root doubles as a plugin marketplace for two ecosystems: users run
+# `/plugin marketplace add petrbouda/jeffrey` in Claude Code, which reads
+# .claude-plugin/marketplace.json, or `codex plugin marketplace add petrbouda/jeffrey`
+# in Codex, which reads .agents/plugins/marketplace.json. Both are read straight off the
+# default branch, and there is no release step in between, so a malformed manifest on
+# master breaks every install and update the moment it lands. This job is that missing
+# gate - the Claude Code half through the validator the docs tell plugin authors to run,
+# the portable Agent Plugins half through the checks in build/scripts.
+name: Validate Plugin
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - '.claude-plugin/**'
+      - '.agents/plugins/**'
+      - 'jeffrey-claude-plugin/**'
+      - 'build/scripts/validate-agent-plugin.py'
+      - '.github/workflows/validate-plugin.yml'
+  pull_request:
+    paths:
+      - '.claude-plugin/**'
+      - '.agents/plugins/**'
+      - 'jeffrey-claude-plugin/**'
+      - 'build/scripts/validate-agent-plugin.py'
+      - '.github/workflows/validate-plugin.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    - name: Install Claude Code CLI
+      run: npm install -g @anthropic-ai/claude-code
+
+    # Checks JSON syntax, duplicate plugin names, source path traversal, and that the
+    # version on the marketplace entry matches the one in the plugin's own manifest.
+    - name: Validate the marketplace manifest
+      run: claude plugin validate .
+
+    # --strict turns warnings (unrecognised fields, typos in field names) into failures.
+    - name: Validate the microscope plugin
+      run: claude plugin validate ./jeffrey-claude-plugin --strict
+
+    # The Agent Plugins manifest and MCP configuration Codex and the other portable
+    # clients read, the skills both halves share, and the version agreement across all
+    # four manifests. Also checks each skill carries usable front matter - the Claude
+    # validator does not look inside skills, and one missing its front matter loads as
+    # an unnamed no-op.
+    - name: Validate the Agent Plugins manifest
+      run: python3 build/scripts/validate-agent-plugin.py .

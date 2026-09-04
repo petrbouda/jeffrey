@@ -162,7 +162,7 @@ const protocolError = `{
       </DocsCallout>
 
       <h2 id="what-you-give-up">What You Give Up</h2>
-      <p>The same fifty-five tools, named <code>mcp__jeffrey__*</code> rather than <code>mcp__plugin_microscope_jeffrey__*</code> &mdash; a hand-registered server is not namespaced by a plugin. Adjust any <code>/permissions</code> rule accordingly.</p>
+      <p>The same eighty-five tools, named <code>mcp__jeffrey__*</code> rather than the <code>mcp__plugin_microscope_jeffrey__*</code> Claude Code gives a plugin's server &mdash; a hand-registered server is not namespaced by a plugin. Adjust any approval rule accordingly: <code>/permissions</code> in Claude Code, the <code>[mcp_servers.jeffrey]</code> block in Codex.</p>
 
       <p>What does not come along is the <router-link to="/docs/microscope-mcp/skills">skills</router-link>: the entry sequence and the two database schemas. The tools still work; the model just starts colder, and is more likely to guess a column name than to call <code>jfr_describeTable</code> first.</p>
 
@@ -209,7 +209,7 @@ const protocolError = `{
       <DocsCodeBlock :code="initialize" language="bash" />
       <DocsCodeBlock :code="initializeResult" language="json" />
 
-      <p>Then <code>tools/list</code> with the same envelope returns all fifty-five specs. To run one:</p>
+      <p>Then <code>tools/list</code> with the same envelope returns all eighty-five specs. To run one:</p>
       <DocsCodeBlock :code="toolsCall" language="bash" />
 
       <p>The result arrives as MCP text content &mdash; for the export tools, the same Markdown document the plugin would hand to Claude, preamble included.</p>

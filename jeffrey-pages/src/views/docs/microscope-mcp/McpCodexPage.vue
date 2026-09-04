@@ -113,7 +113,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <p>The skills keep working either way &mdash; they name tools by the part after the prefix, and the server is still called <code>jeffrey</code>. Only the registration moves.</p>
 
       <h2 id="what-the-plugin-adds">What the Plugin Adds</h2>
-      <p>Registering the server by hand gives you the fifty-five tools. The plugin adds the endpoint already configured, and <strong>six skills</strong>, which Codex picks up on its own when a question calls for them and which you can also invoke directly with <code>$</code>:</p>
+      <p>Registering the server by hand gives you the eighty-five tools. The plugin adds the endpoint already configured, and <strong>six skills</strong>, which Codex picks up on its own when a question calls for them and which you can also invoke directly with <code>$</code>:</p>
       <ul>
         <li><code>$analyze-jfr</code> &mdash; where to start and which family answers which question</li>
         <li><code>$analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the twenty heap tools have to be run in</li>
