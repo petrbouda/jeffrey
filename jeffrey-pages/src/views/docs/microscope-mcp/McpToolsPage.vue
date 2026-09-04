@@ -28,6 +28,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'rules-that-apply-to-all-of-them', text: 'Rules That Apply to All of Them', level: 2 },
+  { id: 'family-map', text: 'Which Family Answers Your Question', level: 2 },
   { id: 'profiles', text: 'profiles_ — the catalogue', level: 2 },
   { id: 'flamegraph', text: 'flamegraph_ — call trees', level: 2 },
   { id: 'compare', text: 'compare_ — two profiles', level: 2 },
@@ -131,7 +132,7 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
     />
 
     <div class="docs-content">
-      <p>Fifty-five tools in eight families. Seven families read a profile; the eighth, <code>recordings_</code>, is the only one that creates one.</p>
+      <p>Eighty-five tools in sixteen families. Fifteen of them read a profile; the sixteenth, <code>recordings_</code>, is the only one that creates one.</p>
 
       <h2 id="rules-that-apply-to-all-of-them">Rules That Apply to All of Them</h2>
 
@@ -143,6 +144,118 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
       <p><strong>Output is capped.</strong> A result is truncated at roughly 120,000 characters, with an explicit trailer saying so &mdash; a silently shortened flamegraph would be read as a complete one. The SQL tools cap rows as well, and say when they do. Aggregate in the query rather than pulling rows back to count them.</p>
 
       <p><strong>The Markdown exports carry their own reading instructions.</strong> <code>flamegraph_export</code>, <code>traces_traceExport</code> and <code>traces_operationExport</code> return documents that open by explaining what <code>self</code> means against <code>total</code>, what the frame tags mean, and what was pruned. Read the preamble the document gives you rather than assuming conventions from elsewhere &mdash; Jeffrey&rsquo;s <code>self</code> is a merged-interval computation, not a subtraction.</p>
+
+      <h2 id="family-map">Which Family Answers Your Question</h2>
+      <p>Sixteen families is more than anyone reads through. They group into six questions, and the question you arrived with picks the family for you &mdash; the same taxonomy the <router-link to="/docs/microscope-mcp/skills#analyze-jfr"><code>analyze-jfr</code></router-link> skill routes by, so the docs and the skill tell the same story. Every row links to its section below.</p>
+      <table class="family-map">
+        <thead>
+          <tr>
+            <th>Family</th>
+            <th>Tools</th>
+            <th>What it answers</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="map-group">
+            <th colspan="3">Start here</th>
+          </tr>
+          <tr>
+            <td><a href="#profiles"><code>profiles_</code></a></td>
+            <td class="map-count">6</td>
+            <td>Which recordings are analysed, what each one can answer, and a deep link into the UI. Every <code>profileId</code> comes from here.</td>
+          </tr>
+          <tr>
+            <td><a href="#recordings"><code>recordings_</code></a></td>
+            <td class="map-count">3</td>
+            <td>A recording Jeffrey has never seen. The only family that creates a profile rather than reading one, and the only one an installation can switch off on its own.</td>
+          </tr>
+          <tr class="map-group">
+            <th colspan="3">Where the time went</th>
+          </tr>
+          <tr>
+            <td><a href="#flamegraph"><code>flamegraph_</code></a></td>
+            <td class="map-count">2</td>
+            <td>Which graphs this profile supports, and the call tree as Markdown &mdash; CPU, allocation, lock contention or wall-clock.</td>
+          </tr>
+          <tr>
+            <td><a href="#timeline"><code>timeline_</code></a></td>
+            <td class="map-count">2</td>
+            <td><em>When</em> the samples landed: the busiest windows ranked, and sub-second zoom inside one. A graph of a whole recording averages a spike away.</td>
+          </tr>
+          <tr>
+            <td><a href="#compare"><code>compare_</code></a></td>
+            <td class="map-count">3</td>
+            <td>Two profiles against each other: whether they are comparable at all, what moved, and the differential call tree.</td>
+          </tr>
+          <tr class="map-group">
+            <th colspan="3">Why a request was slow</th>
+          </tr>
+          <tr>
+            <td><a href="#traces"><code>traces_</code></a></td>
+            <td class="map-count">11</td>
+            <td>Trace operations, exemplars, span trees and span-scoped flamegraphs, plus attribute search to find one trace by correlation id.</td>
+          </tr>
+          <tr>
+            <td><a href="#technologies"><code>http_</code></a></td>
+            <td class="map-count">2</td>
+            <td>The HTTP dashboard: latency percentiles, endpoints, status codes, slowest requests. Where &ldquo;this endpoint is slow&rdquo; starts.</td>
+          </tr>
+          <tr>
+            <td><a href="#technologies"><code>jdbc_</code></a></td>
+            <td class="map-count">3</td>
+            <td>Statement timings and statement groups, plus the connection pools in front of them &mdash; the answer when every statement is fast and the request is not.</td>
+          </tr>
+          <tr>
+            <td><a href="#technologies"><code>grpc_</code></a></td>
+            <td class="map-count">3</td>
+            <td>gRPC latency per service and method, and the message sizes moved.</td>
+          </tr>
+          <tr>
+            <td><a href="#technologies"><code>methodtracing_</code></a></td>
+            <td class="map-count">3</td>
+            <td>Instrumented method timings (JEP 520): the methods by cost, the slowest invocations, per-method statistics.</td>
+          </tr>
+          <tr>
+            <td><a href="#waiting"><code>io_</code></a></td>
+            <td class="map-count">3</td>
+            <td>Socket and file I/O: bytes, targets and slowest operations &mdash; waiting that produces no samples, so a flamegraph shows it as idle.</td>
+          </tr>
+          <tr>
+            <td><a href="#waiting"><code>blocking_</code></a></td>
+            <td class="map-count">3</td>
+            <td>Contended monitors, waits, parks, sleeps and virtual-thread pinning.</td>
+          </tr>
+          <tr class="map-group">
+            <th colspan="3">The machine underneath</th>
+          </tr>
+          <tr>
+            <td><a href="#jvm"><code>jvm_</code></a></td>
+            <td class="map-count">12</td>
+            <td>Garbage collection, safepoints, JIT compilation, threads, native memory, the container quota, and what the JVM was actually started with.</td>
+          </tr>
+          <tr class="map-group">
+            <th colspan="3">Memory</th>
+          </tr>
+          <tr>
+            <td><a href="#memory"><code>memory_</code></a></td>
+            <td class="map-count">2</td>
+            <td>Allocation by type rather than by call site, and JFR-side leak candidates that need no heap dump.</td>
+          </tr>
+          <tr>
+            <td><a href="#heap"><code>heap_</code></a></td>
+            <td class="map-count">21</td>
+            <td>Heap dumps: histogram, dominator tree, GC-root paths, class-loader leak chains, and a diff between two dumps.</td>
+          </tr>
+          <tr class="map-group">
+            <th colspan="3">When nothing else fits</th>
+          </tr>
+          <tr>
+            <td><a href="#jfr"><code>jfr_</code></a></td>
+            <td class="map-count">6</td>
+            <td>Raw SQL over the profile database, for a distribution over time, a correlation between two event types, or one field no dashboard carries.</td>
+          </tr>
+        </tbody>
+      </table>
 
       <h2 id="profiles">profiles_ &mdash; the catalogue</h2>
       <p>Start here. <code>profiles_list</code> is the only tool that does not need a <code>profileId</code>, because it is where ids come from.</p>
@@ -906,4 +1019,32 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
 
 <style scoped>
 @import '@/views/docs/docs-page.css';
+
+/* ============================
+   Family Map
+   ============================ */
+.family-map tr.map-group th {
+  padding-top: 1rem;
+  background: #f1f2ff;
+  color: #3b40c9;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.family-map tr.map-group:first-child th {
+  padding-top: 0.75rem;
+}
+
+.family-map tr.map-group:hover {
+  background: #f1f2ff;
+}
+
+.family-map .map-count {
+  width: 4.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #6c757d;
+}
 </style>

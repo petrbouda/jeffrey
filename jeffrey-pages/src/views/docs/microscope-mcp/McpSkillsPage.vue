@@ -18,7 +18,6 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import DocsCallout from '@/components/docs/DocsCallout.vue';
 import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
@@ -27,6 +26,7 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
+  { id: 'which-skill', text: 'Which Skill Answers Your Question', level: 2 },
   { id: 'why-skills-at-all', text: 'Why Skills at All', level: 2 },
   { id: 'analyze-jfr', text: 'analyze-jfr', level: 2 },
   { id: 'analyze-heap', text: 'analyze-heap', level: 2 },
@@ -78,6 +78,50 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
     <div class="docs-content">
       <p>The <router-link to="/docs/microscope-mcp/plugin">plugin</router-link> ships six skills and <router-link to="/docs/microscope-mcp/agent">one subagent</router-link>. Claude loads one on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
 
+      <h2 id="which-skill">Which Skill Answers Your Question</h2>
+      <p>Every row is a question you would actually type. You do not pick from this table &mdash; Claude does, from the same descriptions &mdash; but it is the fastest way to see what the six cover between them, and what each one needs before it can start.</p>
+      <table class="skill-chooser">
+        <thead>
+          <tr>
+            <th>You are asking</th>
+            <th>Skill</th>
+            <th>Needs</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>&ldquo;Why is this slow?&rdquo; &middot; &ldquo;Where does the time go?&rdquo; &middot; &ldquo;What is allocating?&rdquo;</td>
+            <td><a href="#analyze-jfr"><code>analyze-jfr</code></a></td>
+            <td>One JFR profile</td>
+          </tr>
+          <tr>
+            <td>&ldquo;What is holding memory?&rdquo; &middot; &ldquo;Why did this OOM?&rdquo; &middot; &ldquo;What is leaking?&rdquo;</td>
+            <td><a href="#analyze-heap"><code>analyze-heap</code></a></td>
+            <td>A heap dump</td>
+          </tr>
+          <tr>
+            <td>&ldquo;Did my change make it slower?&rdquo; &middot; &ldquo;What got faster?&rdquo;</td>
+            <td><a href="#compare-jfr"><code>compare-jfr</code></a></td>
+            <td>Two profiles, before and after</td>
+          </tr>
+          <tr>
+            <td>&ldquo;What should I change in this repo to fix it?&rdquo;</td>
+            <td><a href="#advise-jfr"><code>advise-jfr</code></a></td>
+            <td>A profile, and the checkout it was built from</td>
+          </tr>
+          <tr>
+            <td>&ldquo;How many events of each type are there?&rdquo; &mdash; anything no purpose-built tool covers</td>
+            <td><a href="#jfr-sql"><code>jfr-sql</code></a></td>
+            <td>One JFR profile</td>
+          </tr>
+          <tr>
+            <td>The heap tools do not answer it, and it needs raw SQL</td>
+            <td><a href="#heap-sql"><code>heap-sql</code></a></td>
+            <td>A heap dump, indexed</td>
+          </tr>
+        </tbody>
+      </table>
+
       <h2 id="why-skills-at-all">Why Skills at All</h2>
       <p>Most of what a model needs in order to <em>read</em> Jeffrey&rsquo;s output already travels with the output. Every flamegraph and trace export opens with a preamble that defines what <code>self</code> means against <code>total</code>, what the frame tags mean, what was pruned, and how to analyse that particular event type. Nothing needs to repeat that, and a skill that did would go stale the moment the preamble changed.</p>
 
@@ -89,83 +133,237 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       </ul>
 
       <h2 id="analyze-jfr">analyze-jfr</h2>
-      <p><em>Orientation.</em> Loaded whenever the question is &ldquo;why is this slow&rdquo;, &ldquo;where does the time go&rdquo;, &ldquo;what is allocating&rdquo;, &ldquo;what is holding memory&rdquo;, or when a Jeffrey profile, a JFR recording or a heap dump is mentioned.</p>
+      <div class="skill-card">
+        <div class="skill-head">
+          <p class="skill-question">&ldquo;Why is the checkout endpoint slow, and where does the time actually go?&rdquo;</p>
+          <span class="skill-role">Orientation</span>
+        </div>
 
-      <p>It carries the entry sequence &mdash; <code>profiles_list</code>, then <code>profiles_features</code>, then the family that matches the question &mdash; a map of the fifteen families to the questions each answers, when to start instead from <code>recordings_analyzeFile</code> because the user named a file Jeffrey has never seen, the rule that every scoped tool takes a <code>profileId</code>, which flamegraph to pick for CPU versus allocation versus lock contention versus wall-clock, the order to work a latency question in traces, and what a failure means (a <code>404</code> means the server was switched off, not a bug).</p>
+        <section class="skill-block">
+          <h4>Entry sequence</h4>
+          <ul>
+            <li><code>profiles_list</code>, then <code>profiles_features</code>, then the family that matches the question. The middle call is the cheap one: it rules out a whole family before it is tried, and a tool list nowhere says to make it.</li>
+            <li>Start instead from <code>recordings_analyzeFile</code> when the user named a file Jeffrey has never seen.</li>
+            <li>Every scoped tool takes a <code>profileId</code>, and it is required. A <code>404</code> means the server was switched off, not that something is broken.</li>
+          </ul>
+        </section>
 
-      <p>It also routes the machine-level questions to the <router-link to="/docs/microscope-mcp/tools#jvm"><code>jvm_</code></router-link> family, which <code>flamegraph_list</code> never offers and a tool list alone does not explain the order of: <code>jvm_sections</code> first, then the dashboard that matches. What the skill adds on top of the tools is what to do with the answer. The cause of GC is allocation, so a pause budget that shows GC matters ends in the allocation flamegraph &mdash; the only thing that names the code producing the garbage. &ldquo;GC looks fine and we still have pauses&rdquo; is <code>jvm_safepoints</code>, not a deeper GC query. An empty compilation list means nothing compiled <em>slowly</em>, not that nothing compiled. And no flag should be proposed before <code>jvm_flags</code> says where each value came from &mdash; a default, the command line, or the JVM&rsquo;s own ergonomics, which is what separates a flag somebody set from one the machine chose.</p>
+        <section class="skill-block">
+          <h4>What it decides for you</h4>
+          <ul>
+            <li>Which flamegraph answers which question &mdash; CPU against allocation against lock contention against wall-clock &mdash; and the order to work a latency question in traces.</li>
+            <li>That the cause of GC is allocation. A pause budget showing that GC matters therefore ends in the allocation flamegraph, the only thing that names the code producing the garbage.</li>
+            <li>That &ldquo;GC looks fine and we still have pauses&rdquo; is <code>jvm_safepoints</code>, not a deeper GC query &mdash; and that an empty compilation list means nothing compiled <em>slowly</em>, not that nothing compiled.</li>
+            <li>That no flag is proposed before <code>jvm_flags</code> says where its value came from: a default, the command line, or the JVM&rsquo;s own ergonomics. That is what separates a flag somebody set from one the machine chose.</li>
+          </ul>
+        </section>
 
-      <p>Three more families the skill routes into, each answering something a flamegraph structurally cannot. The <router-link to="/docs/microscope-mcp/tools#technologies">technology dashboards</router-link> answer for the edges of the application: &ldquo;this endpoint is slow&rdquo; starts at <code>http_overview</code> and <code>jdbc_overview</code>, two calls, before any frame is read &mdash; and requests that are slow while every statement is fast are waiting for a connection, which is <code>jdbc_pools</code> and nothing else. <router-link to="/docs/microscope-mcp/tools#waiting"><code>io_</code> and <code>blocking_</code></router-link> hold the time spent waiting rather than running, which produces no samples at all: a blocked thread is not on-CPU, so a flamegraph reports the application as idle. And <router-link to="/docs/microscope-mcp/tools#timeline"><code>timeline_</code></router-link> answers <em>when</em>: a flamegraph of a whole recording averages a spike away, so the skill has the model find the window first and export it second.</p>
+        <section class="skill-block">
+          <h4>Routes into</h4>
+          <ul>
+            <li><router-link to="/docs/microscope-mcp/tools#jvm"><code>jvm_</code></router-link> for the machine underneath, which <code>flamegraph_list</code> never offers and a tool list does not explain the order of: <code>jvm_sections</code> first, then the dashboard that matches.</li>
+            <li>The <router-link to="/docs/microscope-mcp/tools#technologies">technology dashboards</router-link> for the edges of the application. &ldquo;This endpoint is slow&rdquo; starts at <code>http_overview</code> and <code>jdbc_overview</code> &mdash; two calls, before a single frame is read. Requests that are slow while every statement is fast are waiting for a connection, which is <code>jdbc_pools</code> and nothing else.</li>
+            <li><router-link to="/docs/microscope-mcp/tools#waiting"><code>io_</code> and <code>blocking_</code></router-link> for time spent waiting rather than running. That time produces no samples at all: a blocked thread is not on-CPU, so a flamegraph reports the application as idle.</li>
+            <li><router-link to="/docs/microscope-mcp/tools#timeline"><code>timeline_</code></router-link> for <em>when</em>. A flamegraph of a whole recording averages a spike away, so the skill has the model find the window first and export it second.</li>
+            <li>Whatever each answer&rsquo;s own <code>nextSteps</code> list names. Every tool result says what it cannot tell you and which tool can, so the routing survives the many turns between reading a tool description and needing it. Those lines route and never diagnose &mdash; following one is not the same as accepting a verdict.</li>
+          </ul>
+        </section>
 
-      <p>The skill leans on something the tools now do themselves. Every answer comes back with a <code>nextSteps</code> list saying what that result cannot tell you and which tool can, so the routing survives the many turns between reading a tool description and needing it. The skill tells the model to follow those lines &mdash; they route and never diagnose, so following one is never the same as accepting a verdict.</p>
-
-      <p>It also tells the model to <strong>ground its claims</strong>: the exports contain call paths and numbers, not source locations, so file and line numbers must be read from the repository rather than inferred from a profile.</p>
+        <aside class="skill-trap">
+          <span class="skill-trap-label">Trap</span>
+          <p>An export contains call paths and numbers, not source locations. Every file and line number must be read from the repository; inferring one from a profile is how a confident answer ends up pointing at code that does not exist.</p>
+        </aside>
+      </div>
 
       <h2 id="analyze-heap">analyze-heap</h2>
-      <p><em>A heap dump end to end.</em> Loaded when the question is &ldquo;what is holding memory&rdquo;, &ldquo;why is the heap growing&rdquo;, &ldquo;why did this OOM&rdquo;, &ldquo;what is leaking&rdquo;, or when retained size, a dominator tree, GC roots or a <code>.hprof</code> file are mentioned.</p>
+      <div class="skill-card">
+        <div class="skill-head">
+          <p class="skill-question">&ldquo;The heap keeps growing &mdash; what is holding it, and is this a leak?&rdquo;</p>
+          <span class="skill-role">A heap dump end to end</span>
+        </div>
 
-      <p><code>heap_</code> is the largest family, and the only one whose tools have to be run in an order. Half of its reports say &ldquo;this analysis may need to be run first&rdquo; without saying which one, and nothing in a tool list explains what that means. The skill carries the order and the three rules that decide every heap answer:</p>
-      <ul>
-        <li><strong>Shallow is not retained.</strong> Shallow size is the object itself; retained size is what dies with it. Only the second answers &ldquo;who is holding this memory&rdquo; &mdash; a histogram ranked by shallow size tells you what there is a lot of, not who is responsible for it.</li>
-        <li><strong>The dominator tree is built lazily.</strong> <code>dominator</code> and <code>retained_size</code> stay empty until <code>heap_getDominatorTreeRoots</code> runs, so every retained figure is missing rather than zero. Calling it once, early, is what makes retained sizes appear, and skipping it is the usual reason a heap session stalls on empty results.</li>
-        <li><strong>Six reports are pre-computed in the UI.</strong> Leak Suspects, Biggest Objects, Class Loader Analysis, Top Consumers, String Analysis and Collection Analysis are computed when someone opens them in Jeffrey and only <em>read</em> over MCP; until then their tools answer &ldquo;has not been run yet&rdquo;. The skill names which tools those are, tells the model to hand the user the <code>profiles_link</code> URL and the report to run instead of retrying, and gives an on-demand route for the same question &mdash; the dominator tree into <code>heap_getPathToGCRoot</code> &mdash; so the answer does not wait on the UI.</li>
-      </ul>
+        <section class="skill-block">
+          <h4>Entry sequence</h4>
+          <ul>
+            <li><code>heap_</code> is the largest family and the only one whose tools have to be run in an order. Half its reports say &ldquo;this analysis may need to be run first&rdquo; without saying which one.</li>
+            <li><code>heap_getDominatorTreeRoots</code> once, early. <code>dominator</code> and <code>retained_size</code> are built lazily, so before it runs every retained figure is <em>missing</em> rather than zero &mdash; and skipping it is the usual reason a heap session stalls on empty results.</li>
+            <li>How to enter from a <code>.hprof</code> file Jeffrey has never seen, and what the two guard messages mean when a profile turns out to have no heap dump, or an index that is still being built.</li>
+          </ul>
+        </section>
 
-      <p>On top of that it carries the routes &mdash; the histogram and top consumers for what is using the heap, leak suspects into a GC-root path for what is leaking, <code>heap_getClassLoaderLeakChains</code> for the redeploy case that leaves a class loader behind, string and collection analysis for waste, and instance browsing for one particular class &mdash; plus how to enter from a <code>.hprof</code> file Jeffrey has never seen, and what the two guard messages mean when a profile turns out to have no heap dump or an index that is still being built.</p>
+        <section class="skill-block">
+          <h4>What it decides for you</h4>
+          <ul>
+            <li><strong>Shallow is not retained.</strong> Shallow size is the object itself; retained size is what dies with it. Only the second answers &ldquo;who is holding this memory&rdquo; &mdash; a histogram ranked by shallow size tells you what there is a lot of, not who is responsible for it.</li>
+            <li><strong>Six reports are pre-computed in the UI.</strong> Leak Suspects, Biggest Objects, Class Loader Analysis, Top Consumers, String Analysis and Collection Analysis are computed when someone opens them in Jeffrey and only <em>read</em> over MCP; until then their tools answer &ldquo;has not been run yet&rdquo;. The skill names which tools those are and has the model hand you the <code>profiles_link</code> URL and the report to run, instead of retrying.</li>
+            <li>That the same question has an on-demand route which does not wait on the UI: the dominator tree into <code>heap_getPathToGCRoot</code>.</li>
+          </ul>
+        </section>
 
-      <p>It grounds claims the way <code>analyze-jfr</code> does: cite the class name, the retained bytes and the GC-root path together, never carry an object id between dumps, and say whether one dump is being read as a leak or as a large working set &mdash; a single dump cannot tell those apart.</p>
+        <section class="skill-block">
+          <h4>Routes into</h4>
+          <ul>
+            <li>The histogram and top consumers for what is using the heap; leak suspects into a GC-root path for what is leaking.</li>
+            <li><code>heap_getClassLoaderLeakChains</code> for the redeploy case that leaves a class loader behind.</li>
+            <li>String and collection analysis for waste, and instance browsing when the question is about one particular class.</li>
+          </ul>
+        </section>
+
+        <aside class="skill-trap">
+          <span class="skill-trap-label">Trap</span>
+          <p>One dump cannot separate a leak from a large working set, so the skill makes the model say which reading it is offering. Object ids are never carried between dumps, and a finding is cited as class name, retained bytes and GC-root path together &mdash; any one of the three alone is unfalsifiable.</p>
+        </aside>
+      </div>
 
       <h2 id="compare-jfr">compare-jfr</h2>
-      <p><em>Before against after.</em> Loaded when the question is &ldquo;did my change make it slower&rdquo;, &ldquo;what got faster&rdquo;, &ldquo;compare these two runs&rdquo;, or when a baseline, a before/after or a performance regression is mentioned. It is the question a session in your own checkout actually has &mdash; the agent holds the code diff, and Jeffrey holds the behaviour diff &mdash; and the one no single-profile tool can answer.</p>
+      <div class="skill-card">
+        <div class="skill-head">
+          <p class="skill-question">&ldquo;Did my change make it slower?&rdquo;</p>
+          <span class="skill-role">Before against after</span>
+        </div>
 
-      <p>Most of the skill is spent on the failure mode that makes this analysis worse than useless. Any two recordings can be subtracted, and the result always looks like a finding; whether it <em>is</em> one depends on facts the deltas do not show, and nothing in a JFR file proves them. So it carries:</p>
-      <ul>
-        <li><strong>Comparability first, as a real result.</strong> <code>compare_list</code> before anything else, and &ldquo;these two runs are not comparable&rdquo; reported as a finding rather than worked around &mdash; a far better answer than a confident regression that was really a recording twice as long. It names the three cases to stop on: different recording lengths, an event type only one side recorded (a profiler-configuration difference, not a change in the application), and nothing in common at all.</li>
-        <li><strong>The direction.</strong> The after run is the <code>profileId</code> and the before run is the <code>baselineProfileId</code>. Backwards, every regression reads as an improvement.</li>
-        <li><strong>Ranked first, tree second.</strong> <code>compare_movements</code> attributes by self weight, so a change is charged to the method that moved rather than to every caller above it; <code>compare_flamegraph</code> follows one movement down its call paths. Pruning there is by movement, so absence means &ldquo;did not move&rdquo; &mdash; the opposite of what it means in a single-profile export.</li>
-        <li><strong>What a rename looks like.</strong> A renamed or extracted method appears once as new and once as gone, of near-identical size, and reads as two dramatic findings. The skill has the model check the source diff &mdash; which it has and the profile does not &mdash; before reporting either half.</li>
-        <li><strong>The limits, stated.</strong> Share and delta answer different questions and must be quoted as the one they are; one pair of recordings cannot separate a 5% move from run-to-run variance; and one event type&rsquo;s distribution is not a wall-clock benchmark, so a shifted CPU profile is never evidence that the application got faster end to end.</li>
-      </ul>
+        <p>The question a session in your own checkout actually has &mdash; the agent holds the code diff, Jeffrey holds the behaviour diff &mdash; and the one no single-profile tool can answer. Most of the skill is spent on the failure mode that makes this analysis worse than useless: any two recordings can be subtracted, and the result always looks like a finding.</p>
 
-      <p>It ends where <code>advise-jfr</code> begins: the profile says where, never why, so the located movements are mapped onto the actual diff with the real source read first.</p>
+        <section class="skill-block">
+          <h4>Entry sequence</h4>
+          <ul>
+            <li><code>compare_list</code> before anything else, and <strong>&ldquo;these two runs are not comparable&rdquo; reported as a result</strong> rather than worked around. It is a far better answer than a confident regression that was really a recording twice as long.</li>
+            <li>Three cases to stop on: different recording lengths, an event type only one side recorded (a profiler-configuration difference, not a change in the application), and nothing in common at all.</li>
+            <li>Then <code>compare_movements</code> for the ranking, and <code>compare_flamegraph</code> to follow one movement down its call paths.</li>
+          </ul>
+        </section>
+
+        <section class="skill-block">
+          <h4>What it decides for you</h4>
+          <ul>
+            <li><strong>The direction.</strong> The after run is the <code>profileId</code>; the before run is the <code>baselineProfileId</code>. Backwards, every regression reads as an improvement.</li>
+            <li><strong>Ranked first, tree second.</strong> <code>compare_movements</code> attributes by self weight, so a change is charged to the method that moved rather than to every caller above it.</li>
+            <li><strong>The limits, stated rather than assumed.</strong> Share and delta answer different questions and must be quoted as the one they are; one pair of recordings cannot separate a 5% move from run-to-run variance; and one event type&rsquo;s distribution is not a wall-clock benchmark, so a shifted CPU profile is never evidence that the application got faster end to end.</li>
+          </ul>
+        </section>
+
+        <section class="skill-block">
+          <h4>Routes into</h4>
+          <ul>
+            <li><a href="#advise-jfr"><code>advise-jfr</code></a>, which is where it ends: the profile says where, never why, so the located movements are mapped onto the actual diff with the real source read first.</li>
+          </ul>
+        </section>
+
+        <aside class="skill-trap">
+          <span class="skill-trap-label">Two traps</span>
+          <p>Pruning in <code>compare_flamegraph</code> is by <em>movement</em>, so an absent frame means &ldquo;did not move&rdquo; &mdash; the opposite of what absence means in a single-profile export. And a renamed or extracted method appears twice, once as new and once as gone, at near-identical size, reading as two dramatic findings; the skill has the model check the source diff &mdash; which it has and the profile does not &mdash; before reporting either half.</p>
+        </aside>
+      </div>
 
       <h2 id="advise-jfr">advise-jfr</h2>
-      <p><em>From a profile to a code change.</em> Loaded when the question is &ldquo;what should I change&rdquo;, &ldquo;optimise this&rdquo;, or when a hotspot has been found and the next question is what to do about it. It is the successor of the in-app Profile Advisor: the same job, done by the agent that is already in your checkout and can build, test and re-profile, instead of by a model given a read-only view of one folder.</p>
-      <DocsCodeBlock :code="advisePrompt" language="bash" />
+      <div class="skill-card">
+        <div class="skill-head">
+          <p class="skill-question">&ldquo;What should I change in this repo to fix it?&rdquo;</p>
+          <span class="skill-role">From a profile to a code change</span>
+        </div>
 
-      <p>It takes an optional argument &mdash; a profile id or a recording file, then one of <code>cpu</code>, <code>wall</code>, <code>alloc</code>, <code>lock</code>, <code>latency</code>, <code>waiting</code> or <code>memory</code> to narrow the analysis to one area &mdash; and works in two phases with a stop between them, <strong>recommend</strong>, then <strong>change</strong>, tracked as a checklist so the gate is visible. It carries what neither the exports nor the tool list say:</p>
-      <ul>
-        <li><strong>The commit check.</strong> <code>profiles_get</code> reports the commit the profiled build came from when the recording was tagged with one. The skill compares it with <code>HEAD</code> before mapping a single frame, and says so when they differ or when the commit is unknown &mdash; a profile of another commit describes code that may no longer exist.</li>
-        <li><strong>Which evidence to gather, and which to skip.</strong> The four flamegraph groups &mdash; CPU, wall-clock, allocation and blocking &mdash; each with the event type that answers it and the fallback when a recording carries an older one, weighted by bytes or nanoseconds where that is the meaningful ranking. Beyond them, traces for latency and for one slow population, <code>blocking_</code> and <code>io_</code> for the waiting a flamegraph structurally cannot show (a blocked thread is not on-CPU, so it is never sampled), <code>memory_</code> for allocation by type, and the database and HTTP dashboards. The skill reads <code>profiles_features</code> first and picks what the profile actually carries: analysing every family unconditionally costs a dozen calls and buries the two findings that matter. A group with no samples is reported with the profiler flag that would capture it next time.</li>
-        <li><strong>How each source reaches a line of code.</strong> Every row of that table says it, because evidence that cannot reach source is not something the skill can act on: a span flamegraph gives frames for one span, a monitor class names the lock to find in the checkout, an I/O target names the dependency and the change is at the calling code, an allocated type goes back to the allocation export to find its site.</li>
-        <li><strong>The grounding rules.</strong> Never name a file, method or line that was not read; tie every finding to a frame and its share from the export; prefer a few high-impact findings over many speculative ones; say when a hotspot cannot be located rather than guessing.</li>
-        <li><strong>The output shape</strong> of the recommendation &mdash; a summary, then <strong>code findings</strong> one section per file and method with the cause, the measured share and the proposed change in prose &mdash; and the gate: nothing is edited until the recommendation has been read and a finding has been accepted.</li>
-        <li><strong>Configuration findings kept apart from code.</strong> A pool that ran out of connections, a flag left at an ergonomic default, a container quota the scheduler enforced: real findings, often the largest single win, and none of them a code change. Presenting one as an edit would misrepresent both the fix and the risk, so they are listed separately with the setting, its current value and the evidence &mdash; and verified differently, since a pool size takes effect on the next run of the application rather than the next test.</li>
-        <li><strong>The verification loop.</strong> The smallest edit that implements the finding, the project&rsquo;s own build and tests, and where the recording can be reproduced, a re-run analysed with <code>recordings_analyzeFile</code> and exported with identical parameters so the delta is real. A saving that was not measured is capped at the frame&rsquo;s own share, since a change cannot save more time than the frame used.</li>
-      </ul>
+        <p>The successor of the in-app Profile Advisor: the same job, done by the agent that is already in your checkout and can build, test and re-profile, instead of by a model given a read-only view of one folder.</p>
+        <DocsCodeBlock :code="advisePrompt" language="bash" />
 
-      <p>What it deliberately does not carry is how to read a CPU, allocation or blocking graph. Every export already opens with an analysis section written for its event type, so the skill says to follow that document rather than restating it.</p>
+        <section class="skill-block">
+          <h4>Entry sequence</h4>
+          <ul>
+            <li>An optional argument &mdash; a profile id or a recording file, then one of <code>cpu</code>, <code>wall</code>, <code>alloc</code>, <code>lock</code>, <code>latency</code>, <code>waiting</code> or <code>memory</code> &mdash; narrows the analysis to one area.</li>
+            <li><code>profiles_get</code> first, for the commit the profiled build came from, compared against <code>HEAD</code> before a single frame is mapped. The skill says so out loud when they differ or the commit is unknown: a profile of another commit describes code that may no longer exist.</li>
+            <li><code>profiles_features</code> next, so only what the profile actually carries gets analysed. Working every family unconditionally costs a dozen calls and buries the two findings that matter.</li>
+          </ul>
+        </section>
+
+        <section class="skill-block">
+          <h4>What it decides for you</h4>
+          <ul>
+            <li><strong>Two phases with a stop between them</strong> &mdash; <em>recommend</em>, then <em>change</em> &mdash; tracked as a checklist so the gate is visible. Nothing is edited until the recommendation has been read and a finding accepted.</li>
+            <li><strong>The output shape:</strong> a summary, then code findings, one section per file and method, each with the cause, the measured share and the proposed change in prose.</li>
+            <li><strong>Configuration findings kept apart from code.</strong> A pool that ran out of connections, a flag left at an ergonomic default, a container quota the scheduler enforced: real findings, often the largest single win, and none of them a code change. Presenting one as an edit would misrepresent both the fix and the risk, so they are listed separately with the setting, its current value and the evidence &mdash; and verified differently, since a pool size takes effect on the next run of the application rather than the next test.</li>
+            <li><strong>The verification loop:</strong> the smallest edit that implements the finding, the project&rsquo;s own build and tests, then &mdash; where the recording can be reproduced &mdash; a re-run analysed with <code>recordings_analyzeFile</code> and exported with identical parameters, so the delta is real. A saving that was not measured is capped at the frame&rsquo;s own share, since a change cannot save more time than the frame used.</li>
+          </ul>
+        </section>
+
+        <section class="skill-block">
+          <h4>Routes into</h4>
+          <ul>
+            <li>The four flamegraph groups &mdash; CPU, wall-clock, allocation and blocking &mdash; each with the event type that answers it, the fallback when a recording carries an older one, and the weighting (bytes or nanoseconds) that makes the ranking meaningful.</li>
+            <li>Beyond them: traces for latency and for one slow population, <code>blocking_</code> and <code>io_</code> for the waiting a flamegraph structurally cannot show, <code>memory_</code> for allocation by type, and the database and HTTP dashboards. A group with no samples is reported together with the profiler flag that would capture it next time.</li>
+            <li>Each source was picked for <strong>how it reaches a line of code</strong>, because evidence that cannot reach source is not something the skill can act on: a span flamegraph gives frames for one span, a monitor class names the lock to find in the checkout, an I/O target names the dependency and the change is at the calling code, an allocated type goes back to the allocation export to find its site.</li>
+          </ul>
+        </section>
+
+        <aside class="skill-trap">
+          <span class="skill-trap-label">Trap</span>
+          <p>Never name a file, method or line that was not read. Every finding is tied to a frame and its share from the export, a few high-impact findings are preferred over many speculative ones, and a hotspot that cannot be located is reported as such rather than guessed at.</p>
+        </aside>
+      </div>
+
+      <p>What <code>advise-jfr</code> deliberately does not carry is how to read a CPU, allocation or blocking graph. Every export already opens with an analysis section written for its event type, so the skill says to follow that document rather than restating it.</p>
 
       <h2 id="jfr-sql">jfr-sql</h2>
-      <p><em>The profile database.</em> Loaded when a question needs <code>jfr_executeQuery</code> or <code>jfr_queryEvents</code> because no purpose-built tool covers it.</p>
+      <div class="skill-card">
+        <div class="skill-head">
+          <p class="skill-question">&ldquo;How many events of each type are in the recording?&rdquo;</p>
+          <span class="skill-role">The profile database</span>
+        </div>
 
-      <p>It carries the schema &mdash; <code>events</code>, <code>event_types</code>, <code>threads</code>, <code>stacktraces</code>, <code>frames</code> &mdash; and the handful of idioms that separate a working query from a wrong one: durations are nanoseconds; event-specific data lives in a JSON <code>fields</code> column and must be cast before a numeric comparison; stacks are frame-hash arrays to <code>UNNEST</code> and join; a JEP 371 hidden class is found with <code>hidden_class_id IS NOT NULL</code>, not a <code>LIKE</code>.</p>
+        <section class="skill-block">
+          <h4>Entry sequence</h4>
+          <ul>
+            <li>Loaded when a question needs <code>jfr_executeQuery</code> or <code>jfr_queryEvents</code> because no purpose-built tool covers it.</li>
+            <li><code>jfr_describeTable('events')</code> is one call, and it ends the guessing. The duration column is <code>duration</code> &mdash; not <code>duration_ns</code>, not <code>duration_ms</code>.</li>
+          </ul>
+        </section>
 
-      <p>It keeps the GC and JIT queries as the escape hatch behind the <code>jvm_</code> dashboards &mdash; collections ranked by <code>sumOfPauses</code>, the <code>jdk.GCHeapSummary</code> pivot that turns two rows per <code>gcId</code> into reclaimed bytes and a live-set trend, deoptimisations grouped by method <em>and</em> reason &mdash; for the follow-up a dashboard does not shape. And it documents the two <code>event_types</code> columns <code>jfr_listEventTypes</code> does not return: <code>columns</code>, which is the declared field list of an event type and so the end of guessing at key names, and <code>settings</code>, which settles whether an event was switched off or simply never crossed its threshold.</p>
+        <section class="skill-block">
+          <h4>What it decides for you</h4>
+          <ul>
+            <li>The schema &mdash; <code>events</code>, <code>event_types</code>, <code>threads</code>, <code>stacktraces</code>, <code>frames</code> &mdash; and the handful of idioms that separate a working query from a wrong one: durations are nanoseconds; event-specific data lives in a JSON <code>fields</code> column and must be cast before a numeric comparison; stacks are frame-hash arrays to <code>UNNEST</code> and join; a JEP 371 hidden class is found with <code>hidden_class_id IS NOT NULL</code>, not a <code>LIKE</code>.</li>
+            <li>The two <code>event_types</code> columns <code>jfr_listEventTypes</code> does not return: <code>columns</code>, the declared field list of an event type and so the end of guessing at key names, and <code>settings</code>, which settles whether an event was switched off or simply never crossed its threshold.</li>
+          </ul>
+        </section>
 
-      <p>And the trap that has no error message:</p>
-      <DocsCodeBlock :code="eventsView" language="sql" />
+        <section class="skill-block">
+          <h4>Routes into</h4>
+          <ul>
+            <li>The escape hatch behind the <router-link to="/docs/microscope-mcp/tools#jvm"><code>jvm_</code></router-link> dashboards, for the follow-up a dashboard does not shape: collections ranked by <code>sumOfPauses</code>, the <code>jdk.GCHeapSummary</code> pivot that turns two rows per <code>gcId</code> into reclaimed bytes and a live-set trend, and deoptimisations grouped by method <em>and</em> reason.</li>
+          </ul>
+        </section>
 
-      <DocsCallout type="info" title="It also says: do not guess column names">
-        <code>jfr_describeTable('events')</code> is one call. The duration column is <code>duration</code> &mdash; not <code>duration_ns</code>, not <code>duration_ms</code>.
-      </DocsCallout>
+        <aside class="skill-trap">
+          <span class="skill-trap-label">Trap, and it has no error message</span>
+          <DocsCodeBlock :code="eventsView" language="sql" />
+        </aside>
+      </div>
 
       <h2 id="heap-sql">heap-sql</h2>
-      <p><em>The heap-dump index.</em> Loaded when <code>heap_executeQuery</code> is needed because the purpose-built heap tools do not answer the question.</p>
+      <div class="skill-card">
+        <div class="skill-head">
+          <p class="skill-question">&ldquo;The heap tools do not answer this &mdash; can I query the index directly?&rdquo;</p>
+          <span class="skill-role">The heap-dump index</span>
+        </div>
 
-      <p>It carries the index schema &mdash; <code>class</code>, <code>instance</code>, <code>outbound_ref</code>, <code>gc_root</code>, <code>dominator</code>, <code>retained_size</code>, <code>string</code>, <code>dump_metadata</code> &mdash; with the details that are not guessable: <code>dominator</code> and <code>retained_size</code> are built lazily and are empty until something asks for them; <code>class.name</code> is already dot-notation; <code>record_kind</code> is a small integer enum; and the <code>string</code> table is the HPROF UTF-8 <em>name</em> pool, not the contents of Java <code>String</code> instances.</p>
+        <section class="skill-block">
+          <h4>Entry sequence</h4>
+          <ul>
+            <li>It opens by pointing back at <a href="#analyze-heap"><code>analyze-heap</code></a> and saying to try the purpose-built tools first. Several of them are pre-computed reports, and reproducing one in SQL is slower and easier to get wrong.</li>
+            <li>Loaded when <code>heap_executeQuery</code> is genuinely needed. This skill is the escape hatch for what the tools do not cover, not the way in.</li>
+          </ul>
+        </section>
 
-      <p>It opens by pointing back at <code>analyze-heap</code> and saying to try the purpose-built tools first &mdash; several are pre-computed reports, and reproducing one in SQL is slower and easier to get wrong. This skill is the escape hatch for what they do not cover, not the way in.</p>
+        <section class="skill-block">
+          <h4>What it decides for you</h4>
+          <ul>
+            <li>The index schema &mdash; <code>class</code>, <code>instance</code>, <code>outbound_ref</code>, <code>gc_root</code>, <code>dominator</code>, <code>retained_size</code>, <code>string</code>, <code>dump_metadata</code> &mdash; with the details that are not guessable from the names.</li>
+          </ul>
+        </section>
+
+        <aside class="skill-trap">
+          <span class="skill-trap-label">Trap</span>
+          <p><code>dominator</code> and <code>retained_size</code> are built lazily and stay empty until something asks for them. <code>class.name</code> is already dot-notation, so no conversion is needed. <code>record_kind</code> is a small integer enum. And the <code>string</code> table is the HPROF UTF-8 <em>name</em> pool &mdash; class and field names &mdash; not the contents of Java <code>String</code> instances.</p>
+        </aside>
+      </div>
 
       <h2 id="the-analyst">The Analyst They Delegate To</h2>
       <p>Three of the skills do not read the big documents themselves. A single <code>flamegraph_export</code> can run to 120,000 characters, and a question worth asking usually takes several &mdash; four of them in <code>advise-jfr</code>, one per group. Pulled into the session, they leave little room for the thing that has to happen next: reading the actual source behind the frames.</p>
@@ -178,7 +376,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <p>You do not normally have to. Claude loads the skill whose description matches the question, so plain English is enough:</p>
       <DocsCodeBlock :code="askExamples" language="bash" />
 
-      <p>Each skill is also a slash command, namespaced by the plugin, for when you want the schema in front of you or Claude has gone in a direction the skill would have corrected:</p>
+      <p>Each skill is also a slash command, namespaced by the plugin:</p>
       <DocsCodeBlock :code="invoke" language="bash" />
 
       <p>Useful when you want the schema in front of you before asking a question, or when Claude has gone off in a direction the skill would have corrected.</p>
@@ -195,4 +393,132 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
 
 <style scoped>
 @import '@/views/docs/docs-page.css';
+
+/* ============================
+   Chooser Table
+   ============================ */
+.skill-chooser td:nth-child(2) {
+  white-space: nowrap;
+}
+
+/* ============================
+   Skill Card
+   ============================ */
+.skill-card {
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.skill-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.skill-question {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #343a40;
+}
+
+.skill-role {
+  flex-shrink: 0;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  background: #eef0ff;
+  color: #5e64ff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ============================
+   Labelled Blocks
+   ============================ */
+.skill-block {
+  margin-bottom: 1.25rem;
+}
+
+.skill-block:last-child {
+  margin-bottom: 0;
+}
+
+.skill-block h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6c757d;
+}
+
+.skill-block ul {
+  margin-bottom: 0;
+  padding-left: 1.25rem;
+}
+
+.skill-block li {
+  margin-bottom: 0.5rem;
+}
+
+.skill-block li:last-child {
+  margin-bottom: 0;
+}
+
+.skill-card > p {
+  margin-bottom: 1.25rem;
+}
+
+/* ============================
+   Trap Callout
+   ============================ */
+.skill-trap {
+  margin-top: 1.25rem;
+  padding: 1rem 1.25rem;
+  border-left: 3px solid #f0a63a;
+  border-radius: 0 6px 6px 0;
+  background: #fdf7ed;
+}
+
+.skill-trap-label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #a4670c;
+}
+
+.skill-trap p {
+  margin-bottom: 0;
+  color: #495057;
+}
+
+.skill-trap :deep(.docs-code-block) {
+  margin-bottom: 0;
+}
+
+/* ============================
+   Responsive
+   ============================ */
+@media (max-width: 640px) {
+  .skill-card {
+    padding: 1.125rem;
+  }
+
+  .skill-head {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
 </style>
