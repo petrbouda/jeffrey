@@ -27,7 +27,11 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
-  { id: 'claude-code-without-the-plugin', text: 'Claude Code, Without the Plugin', level: 2 },
+  { id: 'agent-plugins-clients', text: 'Agent Plugins Clients', level: 2 },
+  { id: 'cursor', text: 'Cursor', level: 3 },
+  { id: 'vs-code-and-github-copilot', text: 'VS Code and GitHub Copilot', level: 3 },
+  { id: 'kiro', text: 'Kiro', level: 3 },
+  { id: 'any-mcp-client', text: 'Any MCP Client', level: 2 },
   { id: 'what-you-give-up', text: 'What You Give Up', level: 2 },
   { id: 'the-wire-protocol', text: 'The Wire Protocol', level: 2 },
   { id: 'a-session-by-hand', text: 'A Session by Hand', level: 2 },
@@ -38,7 +42,21 @@ onMounted(() => {
   setHeadings(headings);
 });
 
-const manualAdd = `claude mcp add --transport http jeffrey http://localhost:8585/api/internal/mcp`;
+const clonePlugin = `git clone https://github.com/petrbouda/jeffrey
+# the plugin directory is ./jeffrey/jeffrey-claude-plugin`;
+
+const vscodeMcpJson = `{
+  "servers": {
+    "jeffrey": {
+      "type": "http",
+      "url": "http://localhost:8585/api/internal/mcp"
+    }
+  }
+}`;
+
+const manualAdd = `claude mcp add --transport http jeffrey http://localhost:8585/api/internal/mcp
+
+codex mcp add jeffrey --url http://localhost:8585/api/internal/mcp`;
 
 const mcpJson = `{
   "mcpServers": {
@@ -110,9 +128,29 @@ const protocolError = `{
     />
 
     <div class="docs-content">
-      <p>The <router-link to="/docs/microscope-mcp/plugin">plugin</router-link> is a convenience over an ordinary MCP server. Anything that speaks MCP over Streamable HTTP can connect instead.</p>
+      <p>The plugin &mdash; in <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> or <router-link to="/docs/microscope-mcp/codex">Codex</router-link> &mdash; is a convenience over an ordinary MCP server. Anything that speaks MCP over Streamable HTTP can connect instead.</p>
 
-      <h2 id="claude-code-without-the-plugin">Claude Code, Without the Plugin</h2>
+      <h2 id="agent-plugins-clients">Agent Plugins Clients</h2>
+      <p>The plugin carries an <a href="https://agent-plugins.org/" target="_blank" rel="noopener">Agent Plugins</a> manifest, the vendor-neutral format <strong>Cursor</strong>, <strong>GitHub Copilot</strong>, <strong>VS Code</strong> and <strong>Kiro</strong> read alongside Codex. Where a client installs a plugin from a directory, <code>jeffrey-claude-plugin/</code> in a clone is that directory:</p>
+      <DocsCodeBlock :code="clonePlugin" language="bash" />
+
+      <p>What is standardised is the manifest, the six skills and the <code>streamable-http</code> server entry. Everything past that &mdash; how a plugin is browsed and installed, how skills are invoked, how tools are approved &mdash; is the client's own, and moves faster than this page can. The <router-link to="/docs/microscope-mcp/codex">Codex</router-link> page is the closest map, since it documents the same portable half in detail.</p>
+
+      <p>None of them can carry the analyst agent, for the reason that page gives: Agent Plugins defines skills and MCP servers, and nothing else. And in all of them the endpoint is fixed at <code>localhost:8585</code>, because the format forbids placeholder expansion in a server URL &mdash; a Jeffrey anywhere else is registered by hand, as below.</p>
+
+      <h3 id="cursor">Cursor</h3>
+      <p>Install the plugin from the cloned directory through Cursor's plugin browser. Without it, add the server to Cursor's MCP configuration &mdash; <code>~/.cursor/mcp.json</code> for every project, <code>.cursor/mcp.json</code> for one &mdash; using the <code>mcpServers</code> entry from <a href="#any-mcp-client">Any MCP Client</a> below. The tools then appear as <code>jeffrey</code> in Cursor's MCP settings, one toggle per tool.</p>
+
+      <h3 id="vs-code-and-github-copilot">VS Code and GitHub Copilot</h3>
+      <p>Copilot's agent mode reads MCP servers from <code>.vscode/mcp.json</code> in the workspace, or from your user settings for every workspace. The shape differs slightly from the one Claude Code uses &mdash; the key is <code>servers</code>:</p>
+      <DocsCodeBlock :code="vscodeMcpJson" language="json" />
+
+      <p>Check it in and everyone working in that repository gets the same Jeffrey, assuming they run one. The command palette's <em>MCP: List Servers</em> shows whether it connected.</p>
+
+      <h3 id="kiro">Kiro</h3>
+      <p>Kiro reads MCP servers from <code>.kiro/settings/mcp.json</code> in the workspace or <code>~/.kiro/settings/mcp.json</code> for every workspace, in the same <code>mcpServers</code> shape as <a href="#any-mcp-client">below</a>. Its autoApprove list is the equivalent of the approval rules the plugin pages describe: naming the read-only tools there stops it asking each time.</p>
+
+      <h2 id="any-mcp-client">Any MCP Client</h2>
       <p>Register the server directly &mdash; useful when you want it in one project only, or when you would rather not add a marketplace:</p>
       <DocsCodeBlock :code="manualAdd" language="bash" />
 
@@ -120,7 +158,7 @@ const protocolError = `{
       <DocsCodeBlock :code="mcpJson" language="json" />
 
       <DocsCallout type="tip" title="Both are offered ready-made">
-        <strong>Settings &rarr; Claude Code (MCP)</strong> shows the command and the <code>.mcp.json</code> entry with the URL your browser actually reached Jeffrey on &mdash; correct behind a container, a proxy or a non-default port, where <code>localhost:8585</code> is not.
+        <strong>Settings &rarr; Coding Agents (MCP)</strong> shows both CLI commands, the <code>.mcp.json</code> entry and the <code>config.toml</code> block, with the URL your browser actually reached Jeffrey on &mdash; correct behind a container, a proxy or a non-default port, where <code>localhost:8585</code> is not.
       </DocsCallout>
 
       <h2 id="what-you-give-up">What You Give Up</h2>
@@ -129,7 +167,7 @@ const protocolError = `{
       <p>What does not come along is the <router-link to="/docs/microscope-mcp/skills">skills</router-link>: the entry sequence and the two database schemas. The tools still work; the model just starts colder, and is more likely to guess a column name than to call <code>jfr_describeTable</code> first.</p>
 
       <h2 id="the-wire-protocol">The Wire Protocol</h2>
-      <p>For a client that is not Claude Code, the endpoint is plain <strong>JSON-RPC 2.0 over HTTP POST</strong>. No SSE stream, no session header, no handshake beyond what the protocol requires.</p>
+      <p>Whatever the client, the endpoint is plain <strong>JSON-RPC 2.0 over HTTP POST</strong>. No SSE stream, no session header, no handshake beyond what the protocol requires. A <code>GET</code> on the endpoint answers <code>405</code>, which is what the MCP specification prescribes for a server that does not offer the optional server-to-client stream &mdash; a client that treats that as fatal rather than as the documented refusal is at fault.</p>
 
       <table>
         <thead>

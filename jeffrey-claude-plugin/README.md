@@ -1,49 +1,70 @@
-# Microscope plugin for Claude Code
+# Microscope plugin
 
 Read JVM profiles from a running [Jeffrey Microscope](https://www.jeffrey-analyst.cafe/docs/microscope)
-without leaving your terminal: point Claude at a `.jfr` file in your repository and it analyses it,
-then lists the recordings you have analysed, queries their DuckDB tables, and pulls flamegraph, trace
-and heap-dump exports straight into a Claude Code session in your own repository — so the profile and
-the source code are in front of the same reader.
+without leaving your terminal: point your coding agent at a `.jfr` file in your repository and it
+analyses it, then lists the recordings you have analysed, queries their DuckDB tables, and pulls
+flamegraph, trace and heap-dump exports straight into a session in your own repository — so the
+profile and the source code are in front of the same reader.
+
+One package, two plugin formats. **Claude Code** reads `.claude-plugin/plugin.json`; **Codex** and
+the other [Agent Plugins](https://agent-plugins.org/) clients read the root `plugin.json` and
+`mcp.json`. The skills and the MCP server underneath are the same files for both.
 
 Every analysis tool is **read-only**. The one exception is `recordings_`, which creates profiles
 rather than changing them, and which a Jeffrey can switch off with
 `jeffrey.microscope.mcp.ingest.enabled=false`.
 
-Full documentation: [Microscope MCP](https://www.jeffrey-analyst.cafe/docs/microscope-mcp).
+Full documentation: [Microscope MCP](https://www.jeffrey-analyst.cafe/docs/microscope-mcp) —
+[Claude Code](https://www.jeffrey-analyst.cafe/docs/microscope-mcp/claude-code),
+[Codex](https://www.jeffrey-analyst.cafe/docs/microscope-mcp/codex),
+[other clients](https://www.jeffrey-analyst.cafe/docs/microscope-mcp/other-clients).
 
 ## Install
 
 Jeffrey's MCP server is **on by default** — a running Jeffrey is already serving it.
-**Settings → Claude Code (MCP)** reports whether the endpoint is serving and shows the
-connection details for this installation.
+**Settings → Coding Agents (MCP)** reports whether the endpoint is serving and shows the connection
+details for this installation.
 
-From Claude Code:
+**Claude Code:**
 
 ```
 /plugin marketplace add petrbouda/jeffrey
 /plugin install microscope@jeffrey
 ```
 
-Or, working from a clone:
+**Codex:**
 
 ```bash
-claude --plugin-dir ./jeffrey-claude-plugin
+codex plugin marketplace add petrbouda/jeffrey
 ```
+
+then `/plugins` in Codex, or work from a clone with `codex plugin marketplace add ./jeffrey`.
+
+Either client can also skip the plugin and register the endpoint by hand — the docs above cover
+`claude mcp add`, `codex mcp add`, and the raw JSON-RPC for anything else.
 
 ## Pointing it at your Jeffrey
 
-The plugin ships with the endpoint set to `http://localhost:8585/api/internal/mcp`. Anywhere else — a
-different port, a container, an SSH tunnel — change it in the plugin's own configuration; Claude Code
-offers the field when you enable the plugin, and `/plugin` reopens it afterwards:
+The plugin ships with the endpoint set to `http://localhost:8585/api/internal/mcp`.
+
+In **Claude Code** anywhere else — a different port, a container, an SSH tunnel — is a setting:
+Claude Code offers the field when you enable the plugin, `/plugin` reopens it afterwards, and the
+value lives per machine in `~/.claude/settings.json`.
 
 ```
 Jeffrey MCP endpoint: http://localhost:9000/api/internal/mcp
 ```
 
-The setting lives in `~/.claude/settings.json`, so one machine can point at a tunnelled staging
-Jeffrey while another stays on localhost. The Settings tab in Jeffrey shows the exact URL for your
-installation.
+**Codex has no equivalent.** The Agent Plugins format forbids placeholder expansion in a server URL,
+so a plugin-provided endpoint is fixed at `localhost:8585`. For any other address, disable the
+plugin's server and register your own in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.jeffrey]
+url = "http://localhost:9000/api/internal/mcp"
+```
+
+The skills keep working; only the server registration moves.
 
 ## What you get
 
@@ -72,37 +93,52 @@ installation.
 runs on — Jeffrey opens it, the client does not upload it. That is the usual case (one laptop running
 both) and not the case for a Jeffrey in a container or on another host.
 
-**Skills**, which you can also invoke directly:
+**Skills**, which the agent picks up on its own and you can also invoke directly —
+`/microscope:analyze-jfr` in Claude Code, `$analyze-jfr` in Codex:
 
-- `/microscope:analyze-jfr` — where to start and which family answers which question
-- `/microscope:analyze-heap` — a heap dump end to end: what is holding the memory, what is leaking,
+- `analyze-jfr` — where to start and which family answers which question
+- `analyze-heap` — a heap dump end to end: what is holding the memory, what is leaking,
   which class loader never went away, and the order the heap tools have to be run in
-- `/microscope:compare-jfr` — before against after: whether a change made it slower, which methods
+- `compare-jfr` — before against after: whether a change made it slower, which methods
   moved, and whether the two recordings were comparable in the first place
-- `/microscope:advise-jfr [profile-id | recording-file] [cpu|wall|alloc|lock]` — from a profile to a
-  code change: the hottest CPU, wall-clock, allocation and blocking frames mapped to real source in
-  your checkout, a recommendation, then the edit and a re-profile on request
-- `/microscope:jfr-sql` — the JFR schema and the DuckDB idioms that go with it
-- `/microscope:heap-sql` — the heap-dump index schema
+- `advise-jfr` — from a profile to a code change: the hottest CPU, wall-clock, allocation and
+  blocking frames mapped to real source in your checkout, a recommendation, then the edit and a
+  re-profile on request
+- `jfr-sql` — the JFR schema and the DuckDB idioms that go with it
+- `heap-sql` — the heap-dump index schema
 
 The exports carry their own reading instructions, so the skills stay short: they cover the
 workflows and the two schemas, not things the tool output already explains.
 
-**One subagent**, `microscope:profile-analyst`. A single flamegraph export can run to 120,000
-characters, and a question usually takes several. The analyst runs a sequence and returns only the
-findings — the hot frames with their shares, or the retaining classes with their GC-root paths —
-leaving everything it read in its own context. The skills hand it the reading and keep what needs
-your conversation: mapping frames onto the checkout, the recommendation, and every question put to
-you. It reads over MCP only, so it cannot touch your files, import a recording or propose an edit.
+**One analyst agent**, `profile-analyst`. A single flamegraph export can run to 120,000 characters,
+and a question usually takes several. The analyst runs a sequence and returns only the findings — the
+hot frames with their shares, or the retaining classes with their GC-root paths — leaving everything
+it read in its own context. The skills hand it the reading and keep what needs your conversation:
+mapping frames onto the checkout, the recommendation, and every question put to you.
+
+Claude Code gets it from the plugin as `microscope:profile-analyst`, restricted to the read-only MCP
+families so it cannot touch your files, import a recording or propose an edit. **Agent Plugins
+defines only skills and MCP servers**, so Codex cannot receive an agent from a plugin — copy
+[`codex/agents/profile-analyst.toml`](codex/agents/profile-analyst.toml) to `~/.codex/agents/`
+instead. That version is sandboxed read-only, but its tool restriction is instruction-level rather
+than enforced.
 
 ## Permissions
 
-Claude Code asks before each tool the first time. Every Jeffrey tool except `recordings_` is
-read-only, so approving the family once is usually what you want — either from the prompt, or up
-front with `/permissions`:
+Both clients ask before each tool the first time. Every Jeffrey tool except `recordings_` is
+read-only, so approving the family once is usually what you want.
+
+Claude Code, from the prompt or up front with `/permissions`:
 
 ```
 mcp__plugin_microscope_jeffrey__*
+```
+
+Codex, in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.jeffrey]
+default_tools_approval_mode = "auto"
 ```
 
 ## Try it
@@ -125,6 +161,26 @@ Or, from a heap dump:
 Or, once the hotspot is known, in the repository that produced it:
 
 > advise on the most recent Jeffrey profile — what should I change in this repo?
+
+## Package layout
+
+```
+jeffrey-claude-plugin/
+├── plugin.json               Agent Plugins 1.0.0 manifest — Codex, Cursor, Copilot, VS Code, Kiro
+├── mcp.json                  Agent Plugins MCP config — the streamable-http endpoint
+├── .claude-plugin/
+│   └── plugin.json           Claude Code manifest — same plugin, with the configurable endpoint
+├── .codex-plugin/
+│   └── plugin.json           Codex-native manifest, pointing at the same skills and mcp.json
+├── skills/                   Six skills, read by both formats
+├── agents/
+│   └── profile-analyst.md    Claude Code subagent
+└── codex/agents/
+    └── profile-analyst.toml  The same analyst as a Codex custom agent, installed by hand
+```
+
+The directory keeps its `jeffrey-claude-plugin` name so existing installs and marketplace entries
+keep resolving; it has served both clients since 1.1.0.
 
 ## Security
 

@@ -1,0 +1,15 @@
+{
+  "name": "microscope",
+  "version": "1.1.0",
+  "description": "Analyze JVM recordings with a running Jeffrey Microscope — point it at a JFR file or heap dump to build a profile, then list analysed recordings, query their DuckDB tables, and pull flamegraph, trace and heap-dump exports without leaving the terminal.",
+  "author": {
+    "name": "Petr Bouda",
+    "url": "https://www.jeffrey-analyst.cafe/"
+  },
+  "homepage": "https://www.jeffrey-analyst.cafe/docs/microscope-mcp/codex",
+  "repository": "https://github.com/petrbouda/jeffrey",
+  "license": "AGPL-3.0",
+  "keywords": ["jfr", "jvm", "profiling", "flamegraph", "heap-dump", "performance"],
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

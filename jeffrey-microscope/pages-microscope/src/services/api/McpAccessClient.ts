@@ -29,6 +29,8 @@ export interface McpAccessStatus {
   url: string;
   claudeMcpAddCommand: string;
   mcpJsonSnippet: string;
+  codexMcpAddCommand: string;
+  codexConfigTomlSnippet: string;
 }
 
 export default class McpAccessClient extends BasePlatformClient {

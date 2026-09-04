@@ -54,7 +54,7 @@
           @click="activeTab = 'mcp'"
         >
           <i class="bi bi-plug"></i>
-          Claude Code (MCP)
+          Coding Agents (MCP)
         </button>
       </div>
 
@@ -408,7 +408,7 @@
         </div>
       </div>
 
-      <!-- Claude Code (MCP) Tab -->
+      <!-- Coding Agents (MCP) Tab -->
       <div v-if="activeTab === 'mcp'" id="mcp" class="settings-content">
         <div class="settings-form-grid settings-form-grid-single">
           <div class="settings-form-group">
@@ -422,9 +422,10 @@
               />
             </div>
             <div class="settings-hint">
-              Lets an interactive Claude Code session in your own repository work with this Jeffrey —
-              list the analysed profiles, query their DuckDB tables, and pull flamegraph, trace and
-              heap dump exports. Every analysis tool is read-only.
+              Lets an interactive coding agent in your own repository — Claude Code, Codex, or
+              anything else that speaks MCP — work with this Jeffrey: list the analysed profiles,
+              query their DuckDB tables, and pull flamegraph, trace and heap dump exports. Every
+              analysis tool is read-only.
             </div>
             <div v-if="mcpEnabled" class="mcp-state">
               <Badge
@@ -435,14 +436,14 @@
               />
             </div>
             <div v-if="mcpEnabled && mcpIngestEnabled" class="settings-hint">
-              Claude can also analyse a recording for you: point it at a <code>.jfr</code> or
+              The agent can also analyse a recording for you: point it at a <code>.jfr</code> or
               <code>.hprof</code> file and it imports the file and builds the profile, without you
               opening this UI. Jeffrey opens the path itself, so the file has to be on this machine.
               Set <code>jeffrey.microscope.mcp.ingest.enabled=false</code> and restart to go back to a
               purely read-only server.
             </div>
             <div v-else-if="mcpEnabled" class="settings-hint">
-              Ingestion is off, so Claude can read the profiles here but not create new ones. Remove
+              Ingestion is off, so the agent can read the profiles here but not create new ones. Remove
               <code>jeffrey.microscope.mcp.ingest.enabled=false</code> and restart to let it analyse a
               recording file straight from your repository.
             </div>
@@ -487,6 +488,41 @@
             </div>
             <div class="settings-hint">
               Shares the server with everyone working in that repository.
+            </div>
+          </div>
+
+          <div class="settings-form-group">
+            <label class="settings-label">Register with the Codex CLI</label>
+            <div class="mcp-snippet">
+              <code>{{ mcpStatus.codexMcpAddCommand }}</code>
+              <button
+                class="btn-secondary mcp-copy"
+                @click="copyToClipboard(mcpStatus.codexMcpAddCommand, 'Command')"
+              >
+                <i class="bi bi-clipboard"></i>
+                Copy
+              </button>
+            </div>
+            <div class="settings-hint">
+              Registers the server for every repository you open with Codex.
+            </div>
+          </div>
+
+          <div class="settings-form-group">
+            <label class="settings-label">Or write it into <code>~/.codex/config.toml</code></label>
+            <div class="mcp-snippet">
+              <pre>{{ mcpStatus.codexConfigTomlSnippet }}</pre>
+              <button
+                class="btn-secondary mcp-copy"
+                @click="copyToClipboard(mcpStatus.codexConfigTomlSnippet, 'Snippet')"
+              >
+                <i class="bi bi-clipboard"></i>
+                Copy
+              </button>
+            </div>
+            <div class="settings-hint">
+              Also how a Codex user reaches a Jeffrey that is not on the port the plugin ships with —
+              Codex has no per-install setting for the endpoint.
             </div>
           </div>
         </div>
@@ -1106,7 +1142,7 @@ function announceAiChange(message: string) {
   justify-content: flex-end;
 }
 
-/* Claude Code (MCP) tab */
+/* Coding Agents (MCP) tab */
 .mcp-state {
   margin-bottom: 8px;
 }

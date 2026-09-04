@@ -45,6 +45,9 @@ public class McpAccessController {
     private static final String CLAUDE_MCP_ADD_TEMPLATE =
             "claude mcp add --transport http " + SERVER_NAME + " %s";
 
+    private static final String CODEX_MCP_ADD_TEMPLATE =
+            "codex mcp add " + SERVER_NAME + " --url %s";
+
     private static final String MCP_JSON_TEMPLATE = """
             {
               "mcpServers": {
@@ -54,6 +57,10 @@ public class McpAccessController {
                 }
               }
             }""";
+
+    private static final String CODEX_CONFIG_TOML_TEMPLATE = """
+            [mcp_servers.%s]
+            url = "%s\"""";
 
     private final ExternalMcpProperties properties;
 
@@ -72,7 +79,9 @@ public class McpAccessController {
                 properties.ingestEnabled(),
                 url,
                 CLAUDE_MCP_ADD_TEMPLATE.formatted(url),
-                MCP_JSON_TEMPLATE.formatted(SERVER_NAME, url));
+                MCP_JSON_TEMPLATE.formatted(SERVER_NAME, url),
+                CODEX_MCP_ADD_TEMPLATE.formatted(url),
+                CODEX_CONFIG_TOML_TEMPLATE.formatted(SERVER_NAME, url));
     }
 
     /**
@@ -83,12 +92,18 @@ public class McpAccessController {
      * @param url                  the MCP endpoint, as reachable from where this request came
      * @param claudeMcpAddCommand  the one-liner that registers it with the Claude Code CLI
      * @param mcpJsonSnippet       the equivalent {@code .mcp.json} entry, for a project-scoped setup
+     * @param codexMcpAddCommand   the one-liner that registers it with the Codex CLI
+     * @param codexConfigTomlSnippet the equivalent {@code ~/.codex/config.toml} block, which is also
+     *                             how a Codex user points at a Jeffrey that is not on the port the
+     *                             plugin ships with — Codex has no per-install setting for it
      */
     public record McpAccessStatus(
             boolean enabled,
             boolean ingestEnabled,
             String url,
             String claudeMcpAddCommand,
-            String mcpJsonSnippet) {
+            String mcpJsonSnippet,
+            String codexMcpAddCommand,
+            String codexConfigTomlSnippet) {
     }
 }

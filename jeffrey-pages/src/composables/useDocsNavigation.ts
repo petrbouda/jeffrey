@@ -213,9 +213,10 @@ export const microscopeNavigation: DocSection[] = [
 ];
 
 export const microscopeMcpNavigation: DocSection[] = [
-  // Standalone product section for the MCP integration — the server that lets an outside client
-  // (an interactive Claude Code session) read the profiles this Microscope has analysed. Single-page
-  // entries use synthetic `_` paths with absolute `to:` children; groups render as collapsible sections.
+  // Standalone product section for the MCP integration — the server that lets an outside coding
+  // agent (Claude Code, Codex, anything that speaks MCP) read the profiles this Microscope has
+  // analysed. Single-page entries use synthetic `_` paths with absolute `to:` children; groups
+  // render as collapsible sections.
   {
     title: 'Overview',
     path: '_microscope-mcp-overview',
@@ -226,9 +227,18 @@ export const microscopeMcpNavigation: DocSection[] = [
     title: 'Getting Started',
     path: '_microscope-mcp-getting-started',
     icon: 'bi-rocket-takeoff',
+    children: [{ title: 'Enabling the Server', to: '/docs/microscope-mcp/enabling' }]
+  },
+  {
+    // One page per coding agent: each covers installing, pointing it at this Jeffrey, updating and
+    // removing, and what that client can and cannot carry.
+    title: 'Coding Agents',
+    path: '_microscope-mcp-coding-agents',
+    icon: 'bi-robot',
     children: [
-      { title: 'Enabling the Server', to: '/docs/microscope-mcp/enabling' },
-      { title: 'Claude Code Plugin', to: '/docs/microscope-mcp/plugin' }
+      { title: 'Claude Code', to: '/docs/microscope-mcp/claude-code' },
+      { title: 'Codex', to: '/docs/microscope-mcp/codex' },
+      { title: 'Other Clients', to: '/docs/microscope-mcp/other-clients' }
     ]
   },
   {
@@ -238,7 +248,7 @@ export const microscopeMcpNavigation: DocSection[] = [
     children: [
       { title: 'Tool Reference', to: '/docs/microscope-mcp/tools' },
       { title: 'Skills', to: '/docs/microscope-mcp/skills' },
-      { title: 'Subagent', to: '/docs/microscope-mcp/agent' }
+      { title: 'Analyst Agent', to: '/docs/microscope-mcp/agent' }
     ]
   },
   {
@@ -246,12 +256,6 @@ export const microscopeMcpNavigation: DocSection[] = [
     path: '_microscope-mcp-recipes',
     icon: 'bi-lightbulb',
     children: [{ title: 'Recipes', to: '/docs/microscope-mcp/recipes' }]
-  },
-  {
-    title: 'Other Clients',
-    path: '_microscope-mcp-other-clients',
-    icon: 'bi-terminal-split',
-    children: [{ title: 'Other Clients', to: '/docs/microscope-mcp/other-clients' }]
   },
   {
     // The in-app assistant is the other direction; Microscope MCP keeps just a link.

@@ -11,13 +11,15 @@ trees, finds the code behind the heaviest frames in the checkout you are sitting
 the smallest change that would reduce the measured cost — then, only when asked, makes it and
 checks that it helped.
 
-Requested scope: `$ARGUMENTS` — a profile id or a recording file, then optionally one area
-(`cpu`, `wall`, `alloc`, `lock`, `latency`, `waiting`, `memory`). Empty means the profile the
+Requested scope: `$ARGUMENTS` — substituted by Claude Code; where a client does not substitute it,
+take the same scope from the request itself. A profile id or a recording file, then optionally one
+area (`cpu`, `wall`, `alloc`, `lock`, `latency`, `waiting`, `memory`). Empty means the profile the
 conversation is about (or the most recently modified one in `profiles_list`) and whatever evidence
 it actually carries.
 
-Tool names below omit the server prefix (`mcp__plugin_microscope_jeffrey__` for the plugin,
-`mcp__jeffrey__` for a hand-registered server).
+Tool names below omit the prefix your client puts in front of them
+(`mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
+hand-registered server).
 
 Two phases with a stop between them — **recommend**, then **change** — because an edit made
 before the recommendation has been read cannot be reviewed on its own terms. Track progress:
@@ -99,11 +101,12 @@ instructions and an analysis section written for that event type — what counts
 the frame tags mean, what to skip. That document governs, not generic flamegraph lore. Lower
 `thresholdPct` only to chase one specific path deeper.
 
-Send the groups to **`microscope:profile-analyst`**, one delegation per group and all of them in a
-single message so they run at once. Each returns the hot frames with their shares; four raw
-exports would otherwise crowd out the source reading that step 4 depends on. Call
-`flamegraph_export` here only when you are working a single group and want the document in front
-of you.
+Send the groups to a **`profile-analyst`** agent — `microscope:profile-analyst` from the Claude
+Code plugin, or the Codex custom agent from `codex/agents/profile-analyst.toml` — one delegation per
+group and all of them in a single message so they run at once. Each returns the hot frames with
+their shares; four raw exports would otherwise crowd out the source reading that step 4 depends on.
+Call `flamegraph_export` here only when you are working a single group and want the document in
+front of you, or when your client has no agent to delegate to.
 
 ## 4. Ground every finding in source
 

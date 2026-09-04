@@ -10,8 +10,9 @@ Two recordings of the same application — one from before a change, one from af
 frame by frame. The **primary** is the run under examination and the **baseline** is what it is
 measured against; a positive delta always means the primary spends *more*.
 
-Tool names below omit the server prefix — `mcp__plugin_microscope_jeffrey__` for the plugin,
-`mcp__jeffrey__` for a hand-registered server. The part after it is exact and camelCase:
+Tool names below omit the prefix your client puts in front of them —
+`mcp__plugin_microscope_jeffrey__` for the Claude Code plugin, `mcp__jeffrey__` in Codex and for any
+hand-registered server. The part after it is exact and camelCase:
 `compare_movements`, not `compare_movements_list`.
 
 ## The one thing that makes this analysis worthless
@@ -117,8 +118,9 @@ finding; one that does not is a lead, and often a rename or an unrelated shift i
 
 ## Hand the reading to the analyst
 
-Comparison documents are large, and answering well often takes several. The plugin ships
-**`microscope:profile-analyst`**, which runs a sequence and returns only the findings. Give it both
+Comparison documents are large, and answering well often takes several. A **`profile-analyst`**
+agent — `microscope:profile-analyst` from the Claude Code plugin, or the Codex custom agent from
+`codex/agents/profile-analyst.toml` — runs a sequence and returns only the findings. Give it both
 profile ids, which is the baseline, and the one question. Delegate when more than one event type is
 in play or the chase runs deep; read here when there is exactly one document and it will be
 discussed turn by turn.

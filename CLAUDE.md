@@ -195,11 +195,15 @@ jeffrey/
 │   └── filesystem-recording-storage/  # Filesystem storage implementation
 ├── jeffrey-provisioner/               # Provisioner tool (GraalVM Native Image)
 ├── jeffrey-agent/                     # Agent module
-├── jeffrey-claude-plugin/             # Claude Code plugin "microscope" (MCP server + skills + agent)
-│   ├── .claude-plugin/plugin.json     # Manifest, with the MCP server declared inline
+├── jeffrey-claude-plugin/             # The "microscope" plugin — one package, two manifests
+│   ├── .claude-plugin/plugin.json     # Claude Code manifest, with the configurable MCP endpoint inline
+│   ├── plugin.json + mcp.json         # Agent Plugins 1.0.0 — Codex, Cursor, Copilot, VS Code, Kiro
+│   ├── .codex-plugin/plugin.json      # Codex-native manifest, pointing at the same skills and mcp.json
 │   ├── skills/                        # analyze-jfr, analyze-heap, advise-jfr, compare-jfr, jfr-sql, heap-sql
-│   └── agents/                        # profile-analyst — reads an export, returns only the findings
-├── .claude-plugin/marketplace.json    # Makes the repo itself a Claude Code plugin marketplace
+│   ├── agents/                        # profile-analyst — reads an export, returns only the findings
+│   └── codex/agents/                  # The same analyst as a Codex TOML, installed by hand
+├── .claude-plugin/marketplace.json    # Makes the repo a Claude Code plugin marketplace
+├── .agents/plugins/marketplace.json   # …and a Codex one; Codex reads either
 ├── jeffrey-pages/                     # Documentation site
 ├── build/                             # Build configurations
 │   ├── build-microscope/                   # Local application assembly
@@ -424,7 +428,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - Spring AI 2.0.0-M3 with Claude and OpenAI providers
 - AI modules: `jeffrey-microscope/profiles/ai-config/`, `jeffrey-microscope/profiles/oql-assistant/`, `jeffrey-microscope/profiles/duckdb-jfr-mcp/`, `jeffrey-microscope/profiles/duckdb-heapdump-mcp/`
 - Config: `jeffrey.ai.provider=claude`, `jeffrey.ai.model=claude-opus-4-8`
-- **Two directions, do not confuse them.** The modules above run AI *inside* Jeffrey (Jeffrey calls out to a provider). The external MCP server at `POST /api/internal/mcp` is the reverse: an outside client — an interactive Claude Code session in the developer's own repository — calls *in* and reads every analysed profile. Its tools are read-only, its protocol layer is `profiles/mcp-server`, and it is packaged as the `microscope` Claude Code plugin (`/plugin install microscope@jeffrey`)
+- **Two directions, do not confuse them.** The modules above run AI *inside* Jeffrey (Jeffrey calls out to a provider). The external MCP server at `POST /api/internal/mcp` is the reverse: an outside coding agent — an interactive Claude Code or Codex session in the developer's own repository — calls *in* and reads every analysed profile. Its tools are read-only, its protocol layer is `profiles/mcp-server`, and it is packaged as the `microscope` plugin, which carries a Claude Code manifest (`/plugin install microscope@jeffrey`) and an [Agent Plugins](https://agent-plugins.org/) one (`codex plugin marketplace add petrbouda/jeffrey`) over one set of skills. Two things do not survive the portable format — a user-configurable endpoint URL and the subagent — so a Codex user gets a fixed `localhost:8585` and a hand-copied `codex/agents/profile-analyst.toml`
 
 ## DuckDB MCP Servers
 - You can use MCP Server to connect to DuckDB database to get information about the current data
