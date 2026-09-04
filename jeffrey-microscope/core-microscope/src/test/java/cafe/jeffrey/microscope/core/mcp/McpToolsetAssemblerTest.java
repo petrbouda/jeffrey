@@ -32,7 +32,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -161,6 +166,80 @@ class McpToolsetAssemblerTest {
 
             assertTrue(names.contains("profiles_list"));
             assertTrue(names.contains("heap_getHeapSummary"));
+        }
+    }
+
+    /**
+     * The routing this server carries is only as good as the names in it. A description or a
+     * nextSteps line that points at a tool which does not exist sends the reader nowhere and looks
+     * exactly like one that works — three such references survived in the pre-prefix SQL families
+     * until this test was written, and a rename would have created more.
+     */
+    @Nested
+    class ToolReferences {
+
+        /** {@code family_toolName} as it appears inside prose. */
+        private static final Pattern REFERENCE = Pattern.compile("\\b([a-z][a-z]*_[a-zA-Z][a-zA-Z0-9]*)\\b");
+
+        /**
+         * Names that look like a tool reference and are not: deliberate counter-examples, and the one
+         * write tool the external server excludes on purpose.
+         */
+        private static final Set<String> NOT_REFERENCES = Set.of(
+                "jfr_list_tables", "heap_get_leak_suspects", "compare_movements_list",
+                "jfr_executeModification");
+
+        private List<McpToolSpec> specs() {
+            return new McpToolsetAssembler(
+                    new ProfilesMcpTools(coreRepositories),
+                    new RecordingsMcpTools(recordingsManager),
+                    contextCache,
+                    jfrPanelProvider,
+                    stackSamplePanelProvider,
+                    recordingCommitResolver,
+                    new ExternalMcpProperties(true, true))
+                    .toolset().specs();
+        }
+
+        @Test
+        void everyToolNamedInADescriptionIsAToolThatExists() {
+            List<McpToolSpec> specs = specs();
+            Set<String> registered = specs.stream().map(McpToolSpec::name).collect(Collectors.toSet());
+            Set<String> prefixes = registered.stream()
+                    .map(name -> name.substring(0, name.indexOf('_')))
+                    .collect(Collectors.toSet());
+
+            List<String> dangling = new ArrayList<>();
+            for (McpToolSpec spec : specs) {
+                Matcher matcher = REFERENCE.matcher(spec.description());
+                while (matcher.find()) {
+                    String reference = matcher.group(1);
+                    if (NOT_REFERENCES.contains(reference) || registered.contains(reference)) {
+                        continue;
+                    }
+                    // Only a token whose prefix is a real family is claiming to be a tool; anything
+                    // else is ordinary prose that happens to contain an underscore.
+                    if (prefixes.contains(reference.substring(0, reference.indexOf('_')))) {
+                        dangling.add(spec.name() + " -> " + reference);
+                    }
+                }
+            }
+
+            assertTrue(dangling.isEmpty(), "Descriptions naming tools that do not exist: " + dangling);
+        }
+
+        /**
+         * Every family the assembler registers has to be reachable from the schema too: a tool whose
+         * arguments are undocumented is as unusable as one that does not exist.
+         */
+        @Test
+        void everyRegisteredToolCarriesADescription() {
+            List<String> undescribed = specs().stream()
+                    .filter(spec -> spec.description() == null || spec.description().isBlank())
+                    .map(McpToolSpec::name)
+                    .toList();
+
+            assertTrue(undescribed.isEmpty(), "Tools without a description: " + undescribed);
         }
     }
 }

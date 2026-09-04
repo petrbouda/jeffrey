@@ -47,15 +47,22 @@ installation.
 
 ## What you get
 
-**Tools**, in eight families:
+**Tools**, in fifteen families:
 
 | Family | What it does |
 |---|---|
-| `profiles_` | The catalogue: which recordings are analysed, what each one can answer, a deep link into the UI |
+| `profiles_` | The catalogue: which recordings are analysed, what each one can answer, and deep links into the UI |
 | `flamegraph_` | Which graphs a profile supports, and the call tree as Markdown |
 | `compare_` | Two profiles against each other: whether they are comparable, what moved, and the differential call tree |
 | `traces_` | Trace operations, the application's own notifications, exemplars, span trees and span-scoped flamegraphs |
-| `jvm_` | The machine underneath: garbage collection, safepoints, JIT compilation, threads, native memory, the container, and what the JVM was started with |
+| `jvm_` | The machine underneath: garbage collection, safepoints, JIT compilation, threads, thread dumps, native memory, the container, the JVM flags and what it was started with |
+| `http_` | The HTTP traffic the application served: percentiles, endpoints, status codes, slowest requests |
+| `jdbc_` | Statement timings and groups, and the connection pool in front of them |
+| `grpc_` | gRPC latency per service and method, and the message sizes moved |
+| `methodtracing_` | Instrumented method timings (JEP 520): by cost, the worst invocations, the JVM's aggregates |
+| `io_` | Socket and file I/O: bytes, targets and the slowest operations — the waiting a CPU graph cannot see |
+| `blocking_` | Contended monitors, waits, parks and virtual-thread pinning |
+| `timeline_` | When the samples landed: the busiest windows, and sub-second zoom inside one |
 | `jfr_` | The profile's DuckDB tables — schema and read-only SQL |
 | `heap_` | Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, and read-only SQL |
 | `recordings_` | The one that writes: imports a recording file and builds a profile from it |

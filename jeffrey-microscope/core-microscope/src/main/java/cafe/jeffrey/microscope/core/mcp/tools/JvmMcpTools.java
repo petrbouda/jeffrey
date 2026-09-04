@@ -28,7 +28,12 @@ import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSections;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.NativeMemorySection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.SafepointsSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ThreadsSection;
+import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.manager.FlagsData;
+import cafe.jeffrey.profile.manager.model.thread.dump.ParsedDump;
+import cafe.jeffrey.profile.manager.model.thread.dump.ThreadDumpAnalysis;
+import cafe.jeffrey.provider.profile.api.JvmFlagDetail;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.shared.common.model.Type;
 import tools.jackson.databind.JsonNode;
@@ -36,6 +41,7 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * The machine underneath the application: garbage collection, safepoints, JIT compilation, threads,
@@ -56,6 +62,24 @@ import java.util.List;
  */
 public class JvmMcpTools {
 
+    /**
+     * The page in the Jeffrey UI each section is drawn on, so an answer can hand the reader the
+     * dashboard it came from. Only the sections that have a page of their own are here; one without an
+     * entry simply carries no link rather than a guessed one.
+     */
+    private static final String THREAD_DUMPS_VIEW = "thread-dumps";
+    private static final String FLAGS_VIEW = "flags";
+
+    private static final Map<String, String> SECTION_VIEWS = Map.of(
+            AutoAnalysisSection.ID, "auto-analysis",
+            GcSection.ID, "garbage-collection",
+            SafepointsSection.ID, "vm-operations",
+            JitSection.ID, "jit-compilation",
+            ThreadsSection.ID, "thread-statistics",
+            NativeMemorySection.ID, "native-memory",
+            ContainerSection.ID, "container/configuration",
+            ConfigurationSection.ID, "overview");
+
     private static final String NOT_RECORDED = "This profile has no data for the %s section. It is "
             + "built from %s, and this recording carries none of them — the profiler was not "
             + "configured to capture them. Call jvm_sections to see which sections this profile can "
@@ -67,6 +91,31 @@ public class JvmMcpTools {
             + "call profiles_link for the URL. Meanwhile the other jvm_ sections answer the same "
             + "subsystems directly from the parsed events.";
 
+    private static final String NO_THREAD_DUMPS =
+            "This profile carries no thread dumps. They come from jdk.ThreadDump events, which a "
+                    + "recording only holds when the profiler was asked for them - jvm_threads answers "
+                    + "the per-thread CPU and allocation questions either way.";
+
+    private static final String NO_SUCH_DUMP =
+            "This profile has no thread dump at index %d. jvm_threadDumps lists the dumps it does have, "
+                    + "each with its index and time offset.";
+
+    private static final String NO_FLAGS =
+            "This profile recorded no JVM flag events, so the flags the JVM ran with are unknown. "
+                    + "jvm_configuration still reports the collector, heap and compiler settings the "
+                    + "JVM applied.";
+
+    private static final List<String> THREAD_DUMP_STEPS = List.of(
+            "A deadlock names the threads in the cycle; jvm_threadDump opens one dump in full, with "
+                    + "every stack as the JVM printed it.",
+            "A thread stuck across consecutive dumps is waiting on something. What it waits on is "
+                    + "blocking_monitors; what it was executing is its top frame here.");
+
+    private static final List<String> FLAGS_STEPS = List.of(
+            "An origin of 'default' means nobody set the flag; 'ergonomic' means the JVM chose it from "
+                    + "the machine it started on, which is why it can differ between environments.",
+            "What the collector and compiler actually did with these values is in jvm_gc and jvm_jit.");
+
     private static final String NO_SUCH_CONFIGURATION_SECTION =
             "This profile has no configuration section named '%s'. Call jvm_configuration without a "
                     + "section to see the sections it does have.";
@@ -74,8 +123,10 @@ public class JvmMcpTools {
     private final JvmSections sections;
     private final AutoAnalysisSection autoAnalysisSection;
     private final ConfigurationSection configurationSection;
+    private final ProfileManager profileManager;
 
     public JvmMcpTools(ProfileManager profileManager) {
+        this.profileManager = profileManager;
         // Two of the sections answer more than "render me": auto analysis reports whether it has been
         // computed at all, and configuration is asked for one tab at a time. They are built here and
         // handed to the registry so there is one instance of each, not one per caller.
@@ -197,6 +248,72 @@ public class JvmMcpTools {
         return McpToolOutput.json(result(declared, content));
     }
 
+    @Tool(description = "The thread dumps this recording captured, analysed together: how many dumps "
+            + "and at what offsets, peak thread count, the deadlocks found, the monitors threads were "
+            + "queueing on, the threads stuck across consecutive dumps, and the frames that appear "
+            + "most often. This is the tool for 'it stopped responding' - a deadlock or a thread pool "
+            + "all blocked on one lock is visible here and in nothing else.")
+    public String threadDumps() {
+        ThreadDumpAnalysis analysis = profileManager.threadManager().threadDumpAnalysis();
+        if (analysis == null || analysis.header().dumpCount() == 0) {
+            return NO_THREAD_DUMPS;
+        }
+
+        return McpToolOutput.json(new ThreadDumps(
+                analysis.header(),
+                analysis.dumps(),
+                analysis.deadlocks(),
+                analysis.lockContention(),
+                analysis.stuckThreads(),
+                analysis.topFrames(),
+                THREAD_DUMP_STEPS,
+                UiLinks.view(profileManager.info().id(), THREAD_DUMPS_VIEW)));
+    }
+
+    @Tool(description = "One thread dump in full: every thread with its state and stack, and the "
+            + "deadlocks the JVM detected in it. Use it after jvm_threadDumps has named the dump worth "
+            + "reading - the analysis says which index holds the deadlock or the stuck threads.")
+    public String threadDump(
+            @ToolParam(description = "Index of the dump, as listed by jvm_threadDumps")
+            Integer index) {
+
+        if (index == null) {
+            throw new IllegalArgumentException("index is required; jvm_threadDumps lists the dumps");
+        }
+
+        ParsedDump dump = profileManager.threadManager().threadDump(index);
+        if (dump == null) {
+            return NO_SUCH_DUMP.formatted(index);
+        }
+
+        return McpToolOutput.json(new ThreadDumpDetail(
+                index,
+                dump.timeOffsetMillis(),
+                dump.threads(),
+                dump.deadlocks(),
+                THREAD_DUMP_STEPS,
+                UiLinks.view(profileManager.info().id(), THREAD_DUMPS_VIEW)));
+    }
+
+    @Tool(description = "The JVM flags this run actually used, grouped by where each value came from - "
+            + "a default, the command line, or the JVM's own ergonomics. Read this before proposing "
+            + "any flag: it is the only place that distinguishes a flag someone set from one the JVM "
+            + "chose, and a deployment manifest is not evidence of either. jvm_configuration reports "
+            + "the resulting collector and heap settings; this reports the switches.")
+    public String flags() {
+        FlagsData flags = profileManager.flagsManager().getAllFlags();
+        if (flags == null || flags.totalFlags() == 0) {
+            return NO_FLAGS;
+        }
+
+        return McpToolOutput.json(new Flags(
+                flags.totalFlags(),
+                flags.changedFlags(),
+                flags.flagsByOrigin(),
+                FLAGS_STEPS,
+                UiLinks.view(profileManager.info().id(), FLAGS_VIEW)));
+    }
+
     private String render(String id) {
         JvmSection section = sections.get(id);
         if (!sections.isAvailable(section)) {
@@ -212,19 +329,58 @@ public class JvmMcpTools {
      * it cannot answer once and every result carries it — at the moment the figures are read, not in
      * a tool description from many turns earlier.
      */
-    private static SectionResult result(JvmSection section, Object dashboard) {
-        return new SectionResult(section.id(), section.title(), section.nextSteps(), dashboard);
+    private SectionResult result(JvmSection section, Object dashboard) {
+        return new SectionResult(
+                section.id(), section.title(), section.nextSteps(), dashboard, viewLink(section));
+    }
+
+    /**
+     * The dashboard's own page, for the reader rather than for the model - a URL carries nothing that
+     * can be analysed, which is why it travels with an answer instead of behind a tool of its own.
+     */
+    private String viewLink(JvmSection section) {
+        String view = SECTION_VIEWS.get(section.id());
+        return view == null ? null : UiLinks.view(profileManager.info().id(), view);
     }
 
     /**
      * @param nextSteps what this dashboard cannot answer and which tool answers it — routing, never a
      *                  verdict on whether the figures below are good or bad
      */
+    private record ThreadDumps(
+            ThreadDumpAnalysis.Header header,
+            List<ThreadDumpAnalysis.DumpDescriptor> dumps,
+            List<ThreadDumpAnalysis.DeadlockEntry> deadlocks,
+            List<ThreadDumpAnalysis.LockContention> lockContention,
+            List<ThreadDumpAnalysis.StuckThread> stuckThreads,
+            List<ThreadDumpAnalysis.FrameStat> topFrames,
+            List<String> nextSteps,
+            String uiLink) {
+    }
+
+    private record ThreadDumpDetail(
+            int index,
+            long timeOffsetMillis,
+            List<ParsedDump.ParsedThread> threads,
+            List<ParsedDump.Deadlock> deadlocks,
+            List<String> nextSteps,
+            String uiLink) {
+    }
+
+    private record Flags(
+            int totalFlags,
+            int changedFlags,
+            Map<String, List<JvmFlagDetail>> flagsByOrigin,
+            List<String> nextSteps,
+            String uiLink) {
+    }
+
     private record SectionResult(
             String section,
             String title,
             List<String> nextSteps,
-            Object dashboard) {
+            Object dashboard,
+            String uiLink) {
     }
 
     private static String notRecorded(JvmSection section) {

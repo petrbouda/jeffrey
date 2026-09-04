@@ -23,7 +23,8 @@ import cafe.jeffrey.profile.common.config.GraphComponents;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.shared.common.GraphType;
 import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.mcp.McpToolOutput;
+import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
+import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.model.FlamegraphPanel;
 import cafe.jeffrey.profile.model.WeightKind;
 import cafe.jeffrey.profile.model.WeightOption;
@@ -42,6 +43,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Flamegraphs of one profile, rendered as the Markdown export rather than as the protobuf the browser
@@ -52,6 +54,36 @@ import java.util.List;
  * empty tree rather than an error. The list is the profile's own answer to "what can I graph".
  */
 public class FlamegraphMcpTools {
+
+    private static final String GRID_VIEW = "flamegraphs/primary";
+    private static final String GRAPH_VIEW = "flamegraph-view";
+    private static final String EVENT_TYPE_PARAM = "eventType";
+    private static final String GRAPH_MODE_PARAM = "graphMode";
+    private static final String PRIMARY_GRAPH_MODE = "PRIMARY";
+    private static final String USE_WEIGHT_PARAM = "useWeight";
+    private static final String USE_THREAD_MODE_PARAM = "useThreadMode";
+    private static final String EXCLUDE_IDLE_PARAM = "excludeIdleSamples";
+    private static final String EXCLUDE_NON_JAVA_PARAM = "excludeNonJavaSamples";
+
+    /**
+     * What the link cannot carry. The rendered view has no query parameter for a time window or a
+     * search term, so a filtered export would otherwise hand the reader a URL that quietly shows a
+     * different graph than the one just described.
+     */
+    private static final String STEP_EXPORT =
+            "flamegraph_export draws one of these: pass an eventType from available, with the "
+                    + "defaults listed beside it.";
+    private static final String STEP_PER_THREAD =
+            "A flamegraph aggregates across threads. Which thread burned it is jvm_threads, or this "
+                    + "same export with threadMode true.";
+    private static final String STEP_COMPARE =
+            "Whether this is worse than it was is not visible in one profile: compare_list then "
+                    + "compare_movements against a baseline.";
+    private static final String STEP_WHEN =
+            "This is the whole recording flattened. When it happened - and the window to re-export "
+                    + "with startMs and endMs - is timeline_hotWindows.";
+    private static final String UNFILTERED_LINK_NOTE =
+            "full recording - the export's time window and search are not part of the link";
 
     private static final String NOTHING_TO_GRAPH =
             "This profile has no flamegraph-capable event types. It may be a heap dump "
@@ -100,7 +132,11 @@ public class FlamegraphMcpTools {
         if (available.isEmpty()) {
             return NOTHING_TO_GRAPH;
         }
-        return McpToolOutput.json(new GraphableTypes(available, notRecorded));
+        return LinkedOutput.json(new GraphableTypes(
+                available,
+                notRecorded,
+                NextSteps.builder().add(STEP_EXPORT).build(),
+                UiLinks.view(profileManager.info().id(), GRID_VIEW)));
     }
 
     /**
@@ -163,8 +199,41 @@ public class FlamegraphMcpTools {
                 .withSearchPattern(search)
                 .build();
 
-        return McpToolOutput.capped(
-                profileManager.flamegraphManager().generateAiExport(params, aiExportConfig(thresholdPct)));
+        String export =
+                profileManager.flamegraphManager().generateAiExport(params, aiExportConfig(thresholdPct));
+        String url = UiLinks.view(
+                profileManager.info().id(),
+                GRAPH_VIEW,
+                graphQuery(type, threadMode, useWeight, excludeIdle, excludeNonJava));
+
+        boolean windowed = startMs != null || endMs != null;
+        List<String> steps = NextSteps.builder()
+                .add(STEP_PER_THREAD)
+                .when(!windowed, STEP_WHEN)
+                .add(STEP_COMPARE)
+                .build();
+
+        boolean filtered = windowed || (search != null && !search.isBlank());
+        return filtered
+                ? LinkedOutput.of(export, steps, url, UNFILTERED_LINK_NOTE)
+                : LinkedOutput.of(export, steps, url);
+    }
+
+    /**
+     * The arguments the rendered view can reproduce. Flags are sent only when on, spelled the way the
+     * frontend spells them - the views compare against the literal "true" and the grid omits the rest.
+     */
+    private static Map<String, String> graphQuery(
+            Type type, Boolean threadMode, Boolean useWeight, Boolean excludeIdle, Boolean excludeNonJava) {
+
+        Map<String, String> query = UiLinks.query();
+        query.put(EVENT_TYPE_PARAM, type.code());
+        query.put(GRAPH_MODE_PARAM, PRIMARY_GRAPH_MODE);
+        query.put(USE_WEIGHT_PARAM, UiLinks.flag(useWeight));
+        query.put(USE_THREAD_MODE_PARAM, UiLinks.flag(threadMode));
+        query.put(EXCLUDE_IDLE_PARAM, UiLinks.flag(excludeIdle));
+        query.put(EXCLUDE_NON_JAVA_PARAM, UiLinks.flag(excludeNonJava));
+        return query;
     }
 
     /**
@@ -213,7 +282,11 @@ public class FlamegraphMcpTools {
      * order — so it is projected down to the arguments a caller can act on rather than handed over
      * whole.
      */
-    private record GraphableTypes(List<GraphableType> available, List<MissingGroup> notRecorded) {
+    private record GraphableTypes(
+            List<GraphableType> available,
+            List<MissingGroup> notRecorded,
+            List<String> nextSteps,
+            String uiLink) {
     }
 
     /**

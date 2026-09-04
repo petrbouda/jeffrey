@@ -24,6 +24,8 @@ import cafe.jeffrey.profile.common.config.GraphComponents;
 import cafe.jeffrey.profile.common.config.GraphParameters;
 import cafe.jeffrey.profile.manager.DifferentialFlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
+import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.shared.common.GraphType;
@@ -61,6 +63,16 @@ public class CompareMcpTools {
 
     /** Beyond this ratio the recordings are different enough that the reader should be told. */
     private static final double DURATION_NOTICE_RATIO = 1.25;
+
+    private static final String STEP_DRILL =
+            "compare_flamegraph shows the call paths a movement travelled through - pass the same "
+                    + "eventType and read the frame this ranking flagged.";
+    private static final String STEP_RENAME =
+            "A method that appears on one side only may be a rename rather than a change. You have the "
+                    + "source diff and the profile does not; check before reporting either half.";
+    private static final String STEP_WHOLE =
+            "This tree prunes by movement, so a frame absent here did not move - it is not missing. "
+                    + "flamegraph_export on either profile shows what it costs in absolute terms.";
 
     private static final String NOTHING_COMPARABLE =
             "These two profiles have no event type in common that can be compared. They may be "
@@ -162,8 +174,10 @@ public class CompareMcpTools {
 
         ProfileManager baseline = baseline(baselineProfileId);
         GraphParameters params = params(eventType, startMs, endMs, useWeight, excludeIdle, excludeNonJava);
-        return McpToolOutput.capped(
-                diffManager(baseline).rankedMovements(params, boundedLimit(limit)));
+        return LinkedOutput.of(
+                diffManager(baseline).rankedMovements(params, boundedLimit(limit)),
+                List.of(STEP_DRILL, STEP_RENAME),
+                UiLinks.profile(primaryManager.info().id()));
     }
 
     @Tool(description = "Export the differential flamegraph of two profiles as Markdown: the merged "
@@ -199,8 +213,10 @@ public class CompareMcpTools {
 
         ProfileManager baseline = baseline(baselineProfileId);
         GraphParameters params = params(eventType, startMs, endMs, useWeight, excludeIdle, excludeNonJava);
-        return McpToolOutput.capped(
-                diffManager(baseline).generateAiExport(params, aiExportConfig(thresholdPct)));
+        return LinkedOutput.of(
+                diffManager(baseline).generateAiExport(params, aiExportConfig(thresholdPct)),
+                List.of(STEP_WHOLE, STEP_RENAME),
+                UiLinks.profile(primaryManager.info().id()));
     }
 
     private ProfileManager baseline(String baselineProfileId) {

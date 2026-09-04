@@ -2,7 +2,6 @@
 name: advise-jfr
 description: Turns a Jeffrey profile into concrete code changes in the current repository — maps the hottest CPU, wall-clock, allocation and blocking frames to real source, recommends minimal behaviour-preserving edits, applies them on request and verifies with the tests and a re-profile. Use whenever the user asks what to change, optimise or fix based on a profile, JFR recording or flamegraph, or a hotspot is known and the question is what to do about it.
 argument-hint: "[profile-id | recording-file] [cpu|wall|alloc|lock]"
-allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---
 
 # From a profile to a code change
@@ -123,6 +122,11 @@ comes before any frame), `traces_slowestTraces`, `traces_traceExport`, then
 `traces_spanFlamegraphExport` for the frames inside the slow span — the sequence in the
 `analyze-jfr` skill. Once a span's flamegraph names the hot frames, continue from step 4 with
 that export instead of the whole-recording one.
+
+Without traces, or before them: `http_overview` names the endpoint and `jdbc_overview` says whether
+the database is the reason, in two calls. `jdbc_pools` is the one to reach for when the statements
+are all fast and the requests are not — a connection wait shows up nowhere else, and no code change
+to a query will fix it.
 
 ## When something is missing
 

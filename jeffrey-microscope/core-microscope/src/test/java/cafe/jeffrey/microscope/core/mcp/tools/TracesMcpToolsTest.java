@@ -19,20 +19,28 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.profile.manager.TraceManager;
 import cafe.jeffrey.profile.manager.model.trace.TraceNotificationGroupRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
 import cafe.jeffrey.provider.profile.api.TraceNotificationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -47,6 +55,21 @@ import static org.mockito.Mockito.when;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class TracesMcpToolsTest {
 
+    /**
+     * The tools build a UI link off the incoming request, the way ProfileMcpTools#link does.
+     */
+    @BeforeEach
+    void bindRequest() {
+        RequestContextHolder.setRequestAttributes(
+                new ServletRequestAttributes(new MockHttpServletRequest()));
+    }
+
+    @AfterEach
+    void unbindRequest() {
+        RequestContextHolder.resetRequestAttributes();
+    }
+
+
     private static final TraceOverview TRACED = new TraceOverview(12, 340, 3, 5, 7, 2, 0, 0, 0, 0, 0, 8);
     private static final TraceOverview UNTRACED = new TraceOverview(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
@@ -58,6 +81,10 @@ class TracesMcpToolsTest {
 
     private TracesMcpTools tools() {
         when(profileManager.traceManager()).thenReturn(traceManager);
+        // The answers carry a link to the matching UI view, which is built from the profile's id.
+        when(profileManager.info()).thenReturn(new ProfileInfo(
+                "p-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
+                Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         return new TracesMcpTools(profileManager);
     }
 

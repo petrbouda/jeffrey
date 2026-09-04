@@ -33,9 +33,13 @@ const headings = [
   { id: 'compare', text: 'compare_ — two profiles', level: 2 },
   { id: 'traces', text: 'traces_ — latency', level: 2 },
   { id: 'jvm', text: 'jvm_ — the machine underneath', level: 2 },
+  { id: 'technologies', text: 'http_, jdbc_, grpc_, methodtracing_ — the technology dashboards', level: 2 },
+  { id: 'waiting', text: 'io_, blocking_ — waiting rather than running', level: 2 },
+  { id: 'timeline', text: 'timeline_ — when, not where', level: 2 },
   { id: 'jfr', text: 'jfr_ — the profile database', level: 2 },
   { id: 'heap', text: 'heap_ — heap dumps', level: 2 },
   { id: 'recordings', text: 'recordings_ — creating profiles', level: 2 },
+  { id: 'links', text: 'Links Back to the UI', level: 2 },
   { id: 'what-is-not-here', text: 'What Is Not Here', level: 2 }
 ];
 
@@ -101,6 +105,16 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
             <td><code>profiles_link</code></td>
             <td><code>profileId</code></td>
             <td>A deep link that opens the profile in the Jeffrey UI</td>
+          </tr>
+          <tr>
+            <td><code>profiles_samplerHealth</code></td>
+            <td><code>profileId</code></td>
+            <td>Captured versus dropped CPU-time samples &mdash; whether the figures every other tool reports can be trusted</td>
+          </tr>
+          <tr>
+            <td><code>profiles_viewLink</code></td>
+            <td><code>profileId</code>, <code>view</code>, <code>objectId?</code></td>
+            <td>A deep link to one named view &mdash; the GC, thread, JIT, memory and heap-dump pages. An unknown <code>view</code> is refused with the list of valid ones</td>
           </tr>
         </tbody>
       </table>
@@ -294,11 +308,26 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
             <td><code>profileId</code>, <code>section?</code></td>
             <td>What the JVM was started with, in the UI&rsquo;s own tabs; without a section, the section names</td>
           </tr>
+          <tr>
+            <td><code>jvm_flags</code></td>
+            <td><code>profileId</code></td>
+            <td>The flag list grouped by <strong>origin</strong> &mdash; a default, the command line, or the JVM&rsquo;s own ergonomics</td>
+          </tr>
+          <tr>
+            <td><code>jvm_threadDumps</code></td>
+            <td><code>profileId</code></td>
+            <td>The dumps together: deadlocks, monitors threads queued on, threads stuck across consecutive dumps, and the most frequent frames</td>
+          </tr>
+          <tr>
+            <td><code>jvm_threadDump</code></td>
+            <td><code>profileId</code>, <code>index</code></td>
+            <td>One dump in full, every thread with its state and stack</td>
+          </tr>
         </tbody>
       </table>
 
       <DocsCallout type="info" title="Every result says what it cannot answer">
-        Each dashboard comes back wrapped with a <code>nextSteps</code> list &mdash; the same idea as the reading instructions a flamegraph or trace export opens with. <code>jvm_gc</code> says that no event in it names the code that produced the garbage and points at the allocation flamegraph; <code>jvm_container</code> points back at per-thread CPU load; <code>jvm_configuration</code> says to prefer these values over a deployment manifest. They route and never diagnose: no threshold decides whether they appear, and none of them claims the figures beside them are bad.
+        Each dashboard comes back wrapped with a <code>nextSteps</code> list &mdash; the same idea as the reading instructions a flamegraph or trace export opens with. <code>jvm_gc</code> says that no event in it names the code that produced the garbage and points at the allocation flamegraph; <code>jvm_container</code> points back at per-thread CPU load; <code>jvm_configuration</code> says to prefer these values over a deployment manifest. Every other family now carries the same envelope. They route and never diagnose: no threshold decides whether they appear, and none of them claims the figures beside them are bad.
       </DocsCallout>
 
       <DocsCallout type="info" title="Call jvm_sections first">
@@ -308,6 +337,161 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
       <DocsCallout type="warning" title="Auto analysis is read from a cache, not computed here">
         Generating it loads the whole recording through the JMC toolkit, which is bounded neither in time nor in memory by anything the server controls &mdash; a poor trade inside a tool whose point is being cheap. The Auto Analysis page in the Jeffrey UI computes and caches it; every call afterwards is a cache read. Until then the tool says so, and the other sections still answer.
       </DocsCallout>
+
+      <h2 id="technologies">http_, jdbc_, grpc_, methodtracing_ &mdash; the technology dashboards</h2>
+      <p>Where <code>jvm_</code> answers for the machine, these four answer for what the application did at its edges: the calls it served, the queries it ran, the methods it instrumented. Each <code>_overview</code> is the whole dashboard in one call &mdash; header totals, the entities ranked, the status breakdown and the slowest individual operations &mdash; so the drill-down tools exist only to narrow to one endpoint, service or group.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Arguments</th>
+            <th>Returns</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>http_overview</code></td>
+            <td><code>profileId</code></td>
+            <td>Requests, response-time percentiles, success rate, 4xx/5xx counts, endpoints by traffic, status and method breakdowns, slowest requests</td>
+          </tr>
+          <tr>
+            <td><code>http_endpoint</code></td>
+            <td><code>profileId</code>, <code>uri</code></td>
+            <td>The same, narrowed to one URI</td>
+          </tr>
+          <tr>
+            <td><code>jdbc_overview</code></td>
+            <td><code>profileId</code></td>
+            <td>Statement count, execution-time percentiles, the operation mix, statement groups by cost, and the slowest statements with their SQL</td>
+          </tr>
+          <tr>
+            <td><code>jdbc_statementGroup</code></td>
+            <td><code>profileId</code>, <code>group</code></td>
+            <td>The same, narrowed to one statement group</td>
+          </tr>
+          <tr>
+            <td><code>jdbc_pools</code></td>
+            <td><code>profileId</code></td>
+            <td>Each connection pool: configured min/max against peak and average use, threads that waited, acquisition timeouts</td>
+          </tr>
+          <tr>
+            <td><code>grpc_overview</code></td>
+            <td><code>profileId</code></td>
+            <td>Calls, response-time percentiles, success rate, services by traffic, status codes, slowest calls</td>
+          </tr>
+          <tr>
+            <td><code>grpc_service</code></td>
+            <td><code>profileId</code>, <code>service</code></td>
+            <td>One service broken down by method</td>
+          </tr>
+          <tr>
+            <td><code>grpc_traffic</code></td>
+            <td><code>profileId</code></td>
+            <td>Message sizes rather than timings: bytes moved, the size distribution, largest calls</td>
+          </tr>
+          <tr>
+            <td><code>methodtracing_overview</code></td>
+            <td><code>profileId</code></td>
+            <td>Invocations, duration percentiles, and the methods ranked by count and by total time</td>
+          </tr>
+          <tr>
+            <td><code>methodtracing_slowest</code></td>
+            <td><code>profileId</code></td>
+            <td>The slowest individual invocations, each with its thread</td>
+          </tr>
+          <tr>
+            <td><code>methodtracing_timing</code></td>
+            <td><code>profileId</code></td>
+            <td>Per-method statistics as the JVM aggregated them: count with min, average and max</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <DocsCallout type="info" title="An empty dashboard and a missing one are different answers">
+        These managers answer an event type that was never recorded with a well-formed empty result &mdash; zero statements, a perfect success rate. Every tool here checks first and says so in words instead, because &ldquo;the profiler did not capture this&rdquo; is a finding about the recording, not a clean bill of health for the database.
+      </DocsCallout>
+
+      <p><strong>Server-side only.</strong> The HTTP and gRPC dashboards read <code>HTTP_SERVER_EXCHANGE</code> and <code>GRPC_SERVER_EXCHANGE</code>; there is no client-side manager behind the UI&rsquo;s client/server switch, so these tools take no direction argument.</p>
+
+      <p><strong>No chart series.</strong> The per-second series that draw the dashboard&rsquo;s graphs are left out of every answer &mdash; thousands of points describing a shape the percentiles already summarise. The shape is what the UI link is for. SQL text is truncated for the same reason: it is there to identify a statement, not to be executed.</p>
+
+      <p><strong>Method tracing is JEP 520</strong>, not distributed tracing: instrumented method timings. Request-level spans are the <code>traces_</code> family above. Its two event types are independent, and a recording often carries one without the other, so each tool reports its own half as empty rather than returning zeros.</p>
+
+      <h2 id="waiting">io_, blocking_ &mdash; waiting rather than running</h2>
+      <p>A thread blocked on a socket read or a monitor is not on-CPU, so it produces no samples and a CPU flamegraph reports the application as idle rather than as waiting. These two families are where that time is.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Arguments</th>
+            <th>Returns</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>io_overview</code></td>
+            <td><code>profileId</code>, <code>kind</code> (<code>SOCKET</code> | <code>FILE</code>)</td>
+            <td>Bytes read and written, operation count, and the slowest single operation with its target</td>
+          </tr>
+          <tr>
+            <td><code>io_endpoints</code></td>
+            <td><code>profileId</code>, <code>kind</code></td>
+            <td>The hosts, ports or paths ranked by cost, each with operations, bytes, total and maximum time</td>
+          </tr>
+          <tr>
+            <td><code>io_slowest</code></td>
+            <td><code>profileId</code>, <code>kind</code></td>
+            <td>The slowest individual operations, each with its target, bytes and the thread that waited</td>
+          </tr>
+          <tr>
+            <td><code>blocking_overview</code></td>
+            <td><code>profileId</code></td>
+            <td>Contended monitors and time blocked, waits, parks, sleeps, and virtual-thread pinning &mdash; each with whether its event type was recorded at all</td>
+          </tr>
+          <tr>
+            <td><code>blocking_monitors</code></td>
+            <td><code>profileId</code></td>
+            <td>Contention aggregated per lock class, with the waits alongside</td>
+          </tr>
+          <tr>
+            <td><code>blocking_pinnedThreads</code></td>
+            <td><code>profileId</code></td>
+            <td>Virtual threads that pinned their carrier, and for how long</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>These event types are threshold-gated, so a recording can hold none of them because nothing blocked for long enough as well as because the profiler was never asked. The tools report which of the two it is rather than returning a zero that reads like health.</p>
+
+      <h2 id="timeline">timeline_ &mdash; when, not where</h2>
+      <p><code>flamegraph_export</code>, <code>compare_flamegraph</code> and the trace exports all accept <code>startMs</code> and <code>endMs</code>, and nothing else in the surface helps you choose them. A flamegraph of a whole recording flattens a thirty-second spike into a five-minute average, and the spike stops being visible.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Arguments</th>
+            <th>Returns</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>timeline_hotWindows</code></td>
+            <td><code>profileId</code>, <code>eventType</code>, <code>useWeight?</code>, <code>top?</code> (5)</td>
+            <td>The recording bucketed, the busiest windows ranked with the bounds to pass on, and a one-line shape</td>
+          </tr>
+          <tr>
+            <td><code>timeline_zoom</code></td>
+            <td><code>profileId</code>, <code>eventType</code>, <code>startMs</code>, <code>endMs</code>, <code>bucketMs?</code> (20)</td>
+            <td>The same at sub-second resolution inside one window &mdash; the only view that resolves below a second</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <DocsCallout type="info" title="The reduction is the product, not the series">
+        The managers behind these return chart geometry &mdash; three hundred points for a five-minute recording at one-second resolution, thirty thousand at ten milliseconds. A curve is not something a model can act on, which is why the dashboards drop their series entirely. What comes back instead is the ranked windows, each with the <code>startMs</code> and <code>endMs</code> the next tool takes, and a coarse shape line so a steady load, a ramp, a sawtooth and a single burst are told apart at a glance.
+      </DocsCallout>
+
+      <p>The workflow is three calls: <code>timeline_hotWindows</code> to find the window, <code>flamegraph_export</code> with its bounds to see what ran inside it, and <code>timeline_zoom</code> when a second is too coarse &mdash; a startup, or the inside of a spike.</p>
 
       <h2 id="jfr">jfr_ &mdash; the profile database</h2>
       <p>Each profile is one DuckDB database. This family is the escape hatch for questions no purpose-built tool covers &mdash; distributions over time, correlations between event types, the cardinality of a field.</p>
@@ -549,6 +733,11 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
       <p>Two more things worth knowing. The call <strong>returns when the profile is built</strong>, which for a large recording is a wait rather than an acknowledgement. And each <code>recordings_analyzeFile</code> imports the file again and builds another profile &mdash; call <code>recordings_list</code> or <code>profiles_list</code> first if the same file may already be there.</p>
 
       <p>The family is advertised only while ingestion is enabled; see <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> for the property and for why a shared installation might turn it off.</p>
+
+      <h2 id="links">Links Back to the UI</h2>
+      <p>Analysis answers carry a link to the view that shows them &mdash; a <code>uiLink</code> field on the JSON answers, and a trailing <code>Open in Jeffrey: &hellip;</code> line on the Markdown exports. The flamegraph link reproduces the event type and filters the export was built with, the operation link opens on its slowest or flames tab, and a trace link opens that trace&rsquo;s span waterfall.</p>
+      <p>The link is for the reader, not for the model. A URL carries nothing that can be analysed further and does not help choose the next tool, which is exactly why it travels attached to an answer rather than behind a tool of its own: a model weighing its own context would reasonably skip a call whose result it cannot use. <code>profiles_viewLink</code> is there for the pages an answer did not come from.</p>
+      <p>The host comes from the request the client made, so the address is by definition one that reaches this installation. Two things a link cannot reproduce: the rendered flamegraph view has no query parameter for a time window or a search term, so a filtered export says so in its link line rather than quietly opening a different graph.</p>
 
       <h2 id="what-is-not-here">What Is Not Here</h2>
       <p><strong>No write tool inside a profile.</strong> Jeffrey&rsquo;s JFR toolset has an <code>executeModification</code> that runs <code>UPDATE</code> and <code>DELETE</code>; it is deliberately not advertised to external clients. Not exposed rather than exposed-and-refusing: a tool that always answers &ldquo;not enabled&rdquo; spends a slot in the model&rsquo;s context and invites a call that cannot succeed. Data cleanup and frame renaming happen in the Jeffrey UI. <code>recordings_</code> is not a counter-example &mdash; it creates profiles, it does not rewrite one.</p>

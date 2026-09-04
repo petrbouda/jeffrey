@@ -241,7 +241,7 @@ public class DuckDbMcpTools {
     }
 
     @Tool(description = "Query JFR events by type with optional filtering. Returns event data including timestamps, " +
-            "durations, samples, and JSON fields. Use list_event_types first to see available event types.")
+            "durations, samples, and JSON fields. Use jfr_listEventTypes first to see available event types.")
     public String queryEvents(
             @ToolParam(description = "JFR event type name (e.g., 'jdk.ExecutionSample', 'jdk.GCPhasePause')")
             String eventType,

@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
+import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.microscope.core.web.controllers.profile.SpanScopedGraphParameters;
 import cafe.jeffrey.profile.ai.trace.TraceAiMarkdownBuilder;
 import cafe.jeffrey.profile.ai.trace.TraceOperationAiMarkdownBuilder;
@@ -28,6 +30,8 @@ import cafe.jeffrey.profile.manager.TraceManager;
 import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
 import cafe.jeffrey.profile.manager.model.trace.TraceNotificationGroupRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
+import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
+import cafe.jeffrey.profile.manager.model.trace.TraceRow;
 import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.profile.resources.request.GenerateTraceSpanFlamegraphRequest;
@@ -43,6 +47,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Jeffrey traces: what the application was asked to do, and what the JVM was doing underneath while it
@@ -54,6 +59,16 @@ import java.util.Locale;
  * the same recording here.
  */
 public class TracesMcpTools {
+
+    private static final String OPERATIONS_VIEW = "traces/operations";
+    private static final String ATTRIBUTE_SEARCH_VIEW = "traces/attributes/search";
+    private static final String OPERATION_PARAM = "operation";
+    private static final String KIND_PARAM = "kind";
+    private static final String EVENT_TYPE_PARAM = "eventType";
+    private static final String TAB_PARAM = "tab";
+    private static final String TRACE_PARAM = "trace";
+    private static final String FLAMES_TAB = "flames";
+    private static final String SLOWEST_TAB = "slowest";
 
     private static final int DEFAULT_OPERATIONS_LIMIT = 50;
     private static final int DEFAULT_TRACES_LIMIT = 20;
@@ -71,6 +86,23 @@ public class TracesMcpTools {
     private static final int DEFAULT_NOTIFICATIONS_LIMIT = 50;
 
     private static final int HEX_RADIX = 16;
+
+    private static final String STEP_OPERATIONS =
+            "traces_operations ranks the operations by where the wall-clock went; an operation is the "
+                    + "triple (name, kind, eventType).";
+    private static final String STEP_NOTIFICATIONS_URGENT =
+            "This recording carries CRITICAL or HIGH notifications. Read traces_notifications before "
+                    + "exporting anything: the application's own account of what went wrong usually "
+                    + "names the cause a span tree only shows the cost of.";
+    private static final String STEP_SPAN_FRAMES =
+            "The span tree says where the time went, not what code was running. For the frames inside "
+                    + "one span, traces_spanFlamegraphExport with that trace id and span id.";
+    private static final String STEP_EXEMPLAR =
+            "This is one request. Whether it is typical or an outlier is traces_operationExport for "
+                    + "the whole population.";
+    private static final String STEP_SLOWEST =
+            "traces_slowestTraces lists individual traces of this operation, and traces_traceExport "
+                    + "opens one of them span by span.";
 
     private static final String NO_TRACES =
             "This profile contains no traces. Traces come from the Jeffrey tracing instrumentation "
@@ -94,7 +126,14 @@ public class TracesMcpTools {
             + "those were CRITICAL or HIGH), and the latency distribution across all of them. Call "
             + "this first to see whether the profile has traces at all.")
     public String overview() {
-        return McpToolOutput.json(traceManager().overview());
+        TraceOverview overview = traceManager().overview();
+        return LinkedOutput.json(new TraceOverviewResult(
+                overview,
+                NextSteps.builder()
+                        .when(overview.urgentNotificationCount() > 0, STEP_NOTIFICATIONS_URGENT)
+                        .add(STEP_OPERATIONS)
+                        .build(),
+                UiLinks.view(profileId(), OPERATIONS_VIEW)));
     }
 
     @Tool(description = "The operations this recording traced, one row per operation with its call "
@@ -149,13 +188,18 @@ public class TracesMcpTools {
                     + " (kind=" + kind + ", eventType=" + eventType + "). Use traces_operations to list them.");
         }
 
-        return McpToolOutput.capped(new TraceOperationAiMarkdownBuilder(
+        String export = new TraceOperationAiMarkdownBuilder(
                 operation,
                 traceManager.operationSummary(operationId, AI_EXPORT_SPANS_LIMIT),
                 traceManager.notifications(
                         TraceNotificationListQuery.ofOperation(operationId, AI_EXPORT_NOTIFICATION_KINDS_LIMIT)),
                 traceManager.tracesOfOperation(operationId, AI_EXPORT_EXEMPLARS_LIMIT))
-                .build());
+                .build();
+
+        return LinkedOutput.of(
+                export,
+                NextSteps.builder().add(STEP_SLOWEST).build(),
+                operationUrl(name, kind, eventType, null));
     }
 
     @Tool(description = "What the application reported about itself while traces ran: every "
@@ -217,8 +261,11 @@ public class TracesMcpTools {
             @ToolParam(description = "Maximum number of traces to return (default 20)")
             Integer limit) {
 
-        return McpToolOutput.json(traceManager().tracesOfOperation(
-                operationId(name, kind, eventType), boundedLimit(limit, DEFAULT_TRACES_LIMIT)));
+        return LinkedOutput.json(new SlowestTracesResult(
+                traceManager().tracesOfOperation(
+                        operationId(name, kind, eventType), boundedLimit(limit, DEFAULT_TRACES_LIMIT)),
+                NextSteps.builder().add(STEP_EXEMPLAR).build(),
+                operationUrl(name, kind, eventType, SLOWEST_TAB)));
     }
 
     @Tool(description = "One trace written as Markdown for reading: its span tree with self time and "
@@ -235,7 +282,11 @@ public class TracesMcpTools {
         if (detail == null) {
             return McpToolOutput.error("No such trace: " + traceId);
         }
-        return McpToolOutput.capped(new TraceAiMarkdownBuilder(detail, traceManager.context(id)).build());
+        String export = new TraceAiMarkdownBuilder(detail, traceManager.context(id)).build();
+        return LinkedOutput.of(
+                export,
+                NextSteps.builder().add(STEP_SPAN_FRAMES).add(STEP_EXEMPLAR).build(),
+                traceUrl(traceId));
     }
 
     @Tool(description = "A flamegraph of the samples taken while one span was open, exported as "
@@ -261,7 +312,7 @@ public class TracesMcpTools {
         if (intervals.isEmpty()) {
             return McpToolOutput.error("Span has no samples to show: " + spanId);
         }
-        return exportScoped(SpanScope.of(intervals), eventType, threadMode, useWeight);
+        return exportScoped(SpanScope.of(intervals), eventType, threadMode, useWeight, traceUrl(traceId));
     }
 
     @Tool(description = "A flamegraph of the samples taken while any trace of one operation was "
@@ -286,7 +337,8 @@ public class TracesMcpTools {
         requireText(kind, "kind");
         requireText(eventType, "eventType");
         return exportScoped(
-                new SpanScope.Operation(name, kind, eventType), graphEventType, threadMode, useWeight);
+                new SpanScope.Operation(name, kind, eventType), graphEventType, threadMode, useWeight,
+                operationUrl(name, kind, eventType, FLAMES_TAB));
     }
 
     /**
@@ -294,7 +346,7 @@ public class TracesMcpTools {
      * the same samples.
      */
     private String exportScoped(
-            SpanScope scope, String graphEventType, Boolean threadMode, Boolean useWeight) {
+            SpanScope scope, String graphEventType, Boolean threadMode, Boolean useWeight, String url) {
 
         Type type = FlamegraphMcpTools.requireEventType(graphEventType);
         GenerateTraceSpanFlamegraphRequest request = new GenerateTraceSpanFlamegraphRequest(
@@ -308,7 +360,36 @@ public class TracesMcpTools {
                 GraphComponents.FLAMEGRAPH_ONLY);
 
         GraphParameters params = SpanScopedGraphParameters.of(profileManager.info(), request, scope);
-        return McpToolOutput.capped(profileManager.flamegraphManager().generateAiExport(params));
+        return LinkedOutput.of(profileManager.flamegraphManager().generateAiExport(params), url);
+    }
+
+    /**
+     * The operations page showing one operation, optionally on one of its tabs. All three parts of the
+     * identity travel: a link carrying only the name would resolve to whichever of an inbound and an
+     * outbound call of that name came first.
+     */
+    private String operationUrl(String name, String kind, String eventType, String tab) {
+        Map<String, String> query = UiLinks.query();
+        query.put(OPERATION_PARAM, name);
+        query.put(KIND_PARAM, kind);
+        query.put(EVENT_TYPE_PARAM, eventType);
+        query.put(TAB_PARAM, tab);
+        return UiLinks.view(profileId(), OPERATIONS_VIEW, query);
+    }
+
+    /**
+     * One trace's span waterfall. Addressed through the attribute-search page because that view opens
+     * the waterfall from the id alone - the operations page resolves a trace against the rows it has
+     * loaded, which a bare id cannot assume.
+     */
+    private String traceUrl(String traceId) {
+        Map<String, String> query = UiLinks.query();
+        query.put(TRACE_PARAM, traceId);
+        return UiLinks.view(profileId(), ATTRIBUTE_SEARCH_VIEW, query);
+    }
+
+    private String profileId() {
+        return profileManager.info().id();
     }
 
     private TraceManager traceManager() {
@@ -381,5 +462,17 @@ public class TracesMcpTools {
             throw new IllegalArgumentException(
                     argument + " must be a 16-character hex id, got: " + hex);
         }
+    }
+
+    /**
+     * The link travels as a field rather than as a line appended after the JSON, so the answer stays
+     * parseable as the one document it claims to be.
+     */
+    private record TraceOverviewResult(
+            TraceOverview overview, List<String> nextSteps, String uiLink) {
+    }
+
+    private record SlowestTracesResult(
+            List<TraceRow> traces, List<String> nextSteps, String uiLink) {
     }
 }

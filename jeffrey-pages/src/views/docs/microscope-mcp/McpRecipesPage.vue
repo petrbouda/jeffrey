@@ -30,6 +30,8 @@ const headings = [
   { id: 'analyse-a-recording-you-just-made', text: 'Analyse a Recording You Just Made', level: 2 },
   { id: 'where-does-the-time-go', text: 'Where Does the Time Go', level: 2 },
   { id: 'explain-a-slow-endpoint', text: 'Explain a Slow Endpoint', level: 2 },
+  { id: 'find-when-it-happened', text: 'Find When It Happened', level: 2 },
+  { id: 'the-cpu-is-idle-and-it-is-still-slow', text: 'The CPU Is Idle and It Is Still Slow', level: 2 },
   { id: 'chase-a-memory-problem', text: 'Chase a Memory Problem', level: 2 },
   { id: 'account-for-the-gc-pauses', text: 'Account for the GC Pauses', level: 2 },
   { id: 'ask-what-the-jit-is-doing', text: 'Ask What the JIT Is Doing', level: 2 },
@@ -50,6 +52,12 @@ const promptHotPaths = `list the Jeffrey profiles, then show me where the CPU ti
 
 const promptSlowEndpoint = `the GET /api/orders operation is slow - find a slow example and tell me
 what the JVM was doing inside its slowest span`;
+
+const promptWhen = `allocation in this profile looks bursty - find the window where most of it
+happened and graph just that window`;
+
+const promptWaiting = `the CPU looks idle but requests are slow - what is this application
+waiting on?`;
 
 const promptMemory = `which classes retain the most memory in the heap dump, and what is keeping
 the biggest one alive?`;
@@ -128,7 +136,25 @@ LIMIT 20`;
 
       <p>This is the sequence that only works because both halves are in one place. The operation export gives the population &mdash; percentiles, and which spans the wall-clock went to. A single slow trace gives the span tree for one real request. The span flamegraph then shows the JVM frames sampled <em>while that one span was open</em>, so &ldquo;the query span takes 400ms&rdquo; becomes &ldquo;380ms of it is result-set deserialisation in this method&rdquo;.</p>
 
-      <p>Requires a profile recorded with <router-link to="/docs/tracing">Jeffrey Tracing</router-link>; <code>profiles_features</code> says whether one was.</p>
+      <p>Requires a profile recorded with <router-link to="/docs/tracing">Jeffrey Tracing</router-link>; <code>profiles_features</code> says whether one was. Without traces, <code>http_overview</code> and <code>jdbc_overview</code> answer the same question in aggregate &mdash; which endpoint carries the traffic, which statements cost the most, and whether the pool in front of them was the real constraint.</p>
+
+      <h2 id="find-when-it-happened">Find When It Happened</h2>
+      <DocsCodeBlock :code="promptWhen" language="bash" />
+
+      <p>Drives <code>timeline_hotWindows</code> &rarr; <code>flamegraph_export</code> with the window it returned, and <code>timeline_zoom</code> when a second is too coarse.</p>
+
+      <p>This is the recipe for anything bursty, and for a startup. A flamegraph of a whole recording is an average, and an average hides a spike: on a real Jeffrey recording, a quarter of all allocation landed in five seconds out of nearly eight hours, and exporting only those five seconds moved the top frame from 56% to 99% of the graph. The tool returns the <code>startMs</code> and <code>endMs</code> ready to pass on, plus a one-line shape so a steady load, a ramp and a single burst are told apart before anything is exported.</p>
+
+      <p><code>timeline_zoom</code> is the only view that resolves below a second, which is what a startup needs &mdash; one-second buckets hide everything that happens while the JVM is warming up.</p>
+
+      <h2 id="the-cpu-is-idle-and-it-is-still-slow">The CPU Is Idle and It Is Still Slow</h2>
+      <DocsCodeBlock :code="promptWaiting" language="bash" />
+
+      <p>Drives <code>blocking_overview</code> &rarr; <code>blocking_monitors</code> or <code>blocking_pinnedThreads</code>, and <code>io_overview</code> &rarr; <code>io_endpoints</code> &rarr; <code>io_slowest</code>.</p>
+
+      <p>A CPU flamegraph cannot answer this question at all, and the reason is structural: a thread blocked on a monitor or a socket read is not on-CPU, so it is never sampled and the graph reports the application as idle rather than as waiting. <code>blocking_monitors</code> aggregates per lock class, which names the monitor rather than whichever call site happened to reach it, and <code>blocking_pinnedThreads</code> covers the failure mode Loom introduces &mdash; a pinned carrier blocks every virtual thread scheduled on it while looking merely busy.</p>
+
+      <p>For a request that is slow while every statement is fast, the answer is usually <code>jdbc_pools</code>: a connection wait shows up nowhere in the statement timings, and no change to a query will fix it.</p>
 
       <h2 id="chase-a-memory-problem">Chase a Memory Problem</h2>
       <DocsCodeBlock :code="promptMemory" language="bash" />

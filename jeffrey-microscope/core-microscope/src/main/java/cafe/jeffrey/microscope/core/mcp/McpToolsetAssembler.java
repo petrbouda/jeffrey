@@ -20,6 +20,13 @@ package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.mcp.tools.CompareMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.FlamegraphMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.BlockingMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.GrpcMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.IoMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HttpMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.JdbcMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.MethodTracingMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.TimelineMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.JvmMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
@@ -77,6 +84,13 @@ public class McpToolsetAssembler {
     private static final String PREFIX_COMPARE = "compare";
     private static final String PREFIX_TRACES = "traces";
     private static final String PREFIX_JVM = "jvm";
+    private static final String PREFIX_HTTP = "http";
+    private static final String PREFIX_JDBC = "jdbc";
+    private static final String PREFIX_GRPC = "grpc";
+    private static final String PREFIX_METHOD_TRACING = "methodtracing";
+    private static final String PREFIX_IO = "io";
+    private static final String PREFIX_BLOCKING = "blocking";
+    private static final String PREFIX_TIMELINE = "timeline";
     private static final String PREFIX_HEAP = "heap";
     private static final String PREFIX_RECORDINGS = "recordings";
 
@@ -119,6 +133,20 @@ public class McpToolsetAssembler {
                         profileId -> new TracesMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(JvmMcpTools.class, PREFIX_JVM,
                         profileId -> new JvmMcpTools(profileManager(contextCache, profileId))),
+                new ProfileScopedToolset<>(HttpMcpTools.class, PREFIX_HTTP,
+                        profileId -> new HttpMcpTools(profileManager(contextCache, profileId))),
+                new ProfileScopedToolset<>(JdbcMcpTools.class, PREFIX_JDBC,
+                        profileId -> new JdbcMcpTools(profileManager(contextCache, profileId))),
+                new ProfileScopedToolset<>(GrpcMcpTools.class, PREFIX_GRPC,
+                        profileId -> new GrpcMcpTools(profileManager(contextCache, profileId))),
+                new ProfileScopedToolset<>(MethodTracingMcpTools.class, PREFIX_METHOD_TRACING,
+                        profileId -> new MethodTracingMcpTools(profileManager(contextCache, profileId))),
+                new ProfileScopedToolset<>(IoMcpTools.class, PREFIX_IO,
+                        profileId -> new IoMcpTools(profileManager(contextCache, profileId))),
+                new ProfileScopedToolset<>(BlockingMcpTools.class, PREFIX_BLOCKING,
+                        profileId -> new BlockingMcpTools(profileManager(contextCache, profileId))),
+                new ProfileScopedToolset<>(TimelineMcpTools.class, PREFIX_TIMELINE,
+                        profileId -> new TimelineMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(HeapDumpMcpTools.class, PREFIX_HEAP,
                         profileId -> heapTools(contextCache, profileId))));
 
