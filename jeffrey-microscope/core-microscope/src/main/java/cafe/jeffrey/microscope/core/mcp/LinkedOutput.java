@@ -69,26 +69,31 @@ public final class LinkedOutput {
      * export is exactly the one whose reader most needs to know what to do with it.
      */
     public static String of(String body, List<String> nextSteps, String url) {
-        return of(appendNextSteps(McpToolOutput.capped(body), nextSteps), url);
+        return LINK_BLOCK.formatted(cappedWithNextSteps(body, nextSteps), url);
     }
 
     /**
      * The same, for a link that cannot reproduce everything the answer was built with.
      */
     public static String of(String body, List<String> nextSteps, String url, String note) {
-        return of(appendNextSteps(McpToolOutput.capped(body), nextSteps), url, note);
+        return LINK_BLOCK_WITH_NOTE.formatted(cappedWithNextSteps(body, nextSteps), note, url);
     }
 
     /**
-     * Appended to an already-capped body: {@link #of(String, String)} caps again, which is a no-op on
-     * a string that already fits and keeps these steps out of the truncated region either way.
+     * The body capped, with the routing after it — capped exactly once.
+     * <p>
+     * Capping twice is what this avoids, and it is not a hypothetical: an oversized body comes back
+     * from {@link McpToolOutput#capped(String)} already <em>at</em> the limit plus its truncation
+     * note, so appending anything and capping again cuts the note and the steps straight back off.
+     * The steps were being dropped from precisely the answers they were added for.
      */
-    private static String appendNextSteps(String cappedBody, List<String> nextSteps) {
+    private static String cappedWithNextSteps(String body, List<String> nextSteps) {
+        String capped = McpToolOutput.capped(body);
         if (nextSteps.isEmpty()) {
-            return cappedBody;
+            return capped;
         }
 
-        StringBuilder builder = new StringBuilder(cappedBody)
+        StringBuilder builder = new StringBuilder(capped)
                 .append(System.lineSeparator())
                 .append(System.lineSeparator())
                 .append(NEXT_STEPS_HEADING);

@@ -19,7 +19,6 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -63,7 +62,7 @@ public class ProfilesMcpTools {
 
         List<ProfileInfo> profiles = coreRepositories.findAllProfiles().stream()
                 .filter(profile -> matches(profile, search))
-                .limit(boundedLimit(limit))
+                .limit(ToolArguments.boundedLimit(limit, DEFAULT_LIST_LIMIT, MAX_LIST_LIMIT))
                 .toList();
 
         if (profiles.isEmpty()) {
@@ -72,26 +71,27 @@ public class ProfilesMcpTools {
                     : "No profile matches: " + search;
         }
 
-        StringBuilder out = new StringBuilder(1024);
-        out.append("| profile_id | name | project | event source | recorded | duration | ready | modified |\n");
-        out.append("|---|---|---|---|---|---|---|---|\n");
+        MarkdownTable table = MarkdownTable.withColumns(
+                "profile_id", "name", "project", "event source", "recorded", "duration", "ready",
+                "modified");
         for (ProfileInfo profile : profiles) {
-            out.append("| ").append(profile.id())
-                    .append(" | ").append(sanitize(profile.name()))
-                    .append(" | ").append(projectOf(profile))
-                    .append(" | ").append(profile.eventSource())
-                    .append(" | ").append(profile.profilingStartedAt())
-                    .append(" | ").append(profile.duration())
-                    .append(" | ").append(readiness(profile))
-                    .append(" | ").append(profile.modified() ? "yes" : "no")
-                    .append(" |\n");
+            table.row(
+                    profile.id(),
+                    profile.name(),
+                    projectOf(profile),
+                    profile.eventSource(),
+                    profile.profilingStartedAt(),
+                    profile.duration(),
+                    readiness(profile),
+                    profile.modified() ? "yes" : "no");
         }
-        out.append("\nA `modified` profile has had frames renamed or collapsed, so its frame names may "
-                + "differ from the source code.\n");
-        out.append("A profile listed as `building` has a row but not yet its events: its recording is "
-                + "still being parsed. Its id is real, and every analysis tool will answer emptily "
-                + "until it is `yes` - recordings_status says when.\n");
-        return McpToolOutput.capped(out.toString());
+        return table
+                .note("A `modified` profile has had frames renamed or collapsed, so its frame names may "
+                        + "differ from the source code.")
+                .note("A profile listed as `building` has a row but not yet its events: its recording is "
+                        + "still being parsed. Its id is real, and every analysis tool will answer "
+                        + "emptily until it is `yes` - recordings_status says when.")
+                .render();
     }
 
     /**
@@ -104,13 +104,6 @@ public class ProfilesMcpTools {
      */
     private static String readiness(ProfileInfo profile) {
         return profile.enabled() ? "yes" : "building";
-    }
-
-    private static long boundedLimit(Integer limit) {
-        if (limit == null || limit < 1) {
-            return DEFAULT_LIST_LIMIT;
-        }
-        return Math.min(limit, MAX_LIST_LIMIT);
     }
 
     private static boolean matches(ProfileInfo profile, String search) {

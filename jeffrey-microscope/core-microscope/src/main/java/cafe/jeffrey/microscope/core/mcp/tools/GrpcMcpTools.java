@@ -34,6 +34,7 @@ import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcSizeBucket;
 import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcSlowCall;
 import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcStatusStats;
 import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcTrafficData;
+import cafe.jeffrey.profile.mcp.McpToolOutput;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
@@ -79,6 +80,9 @@ public class GrpcMcpTools {
             "No calls were recorded for service '%s'. Call grpc_overview and take a name from its "
                     + "services list.";
 
+    private static final String NO_SERVICE_RECOVERY =
+            "Call grpc_overview and take a name from its services list.";
+
     private final ProfileManager profileManager;
 
     public GrpcMcpTools(ProfileManager profileManager) {
@@ -102,7 +106,7 @@ public class GrpcMcpTools {
         GrpcOverviewData data = profileManager.custom().grpcManager(side).overviewData();
         return LinkedOutput.json(new GrpcDashboard(
                 data.header(),
-                trim(data.services()),
+                ToolArguments.firstOf(data.services(), MAX_SERVICES),
                 data.statusCodes(),
                 data.slowCalls(),
                 NextSteps.builder()
@@ -117,7 +121,7 @@ public class GrpcMcpTools {
             + "the status codes it returned and its slowest calls. Use it after grpc_overview has "
             + "named the service worth looking at.")
     public String service(
-            @ToolParam(required = false, description = "Service name exactly as recorded, taken from the services list "
+            @ToolParam(required = true, description = "Service name exactly as recorded, taken from the services list "
                     + "in grpc_overview.")
             String service,
             @ToolParam(required = false, description = "Which side to report on: 'SERVER' for calls this application "
@@ -125,15 +129,19 @@ public class GrpcMcpTools {
             @ToolParamValues({"SERVER", "CLIENT"})
             String direction) {
 
+        // Insisted on rather than passed through: the manager reads a null service as "no filter", so
+        // an omitted one would return every service's methods under the heading of one service.
+        String name = ToolArguments.required(service, "service", NO_SERVICE_RECOVERY);
+
         ExchangeDirection side = ExchangeDirection.from(direction);
         if (DashboardFeature.missing(profileManager, feature(side))) {
             return noData(side);
         }
 
         GrpcServiceDetailData data =
-                profileManager.custom().grpcManager(side).serviceDetailData(service);
+                profileManager.custom().grpcManager(side).serviceDetailData(name);
         if (data.methods().isEmpty()) {
-            return NO_SUCH_SERVICE.formatted(service);
+            return McpToolOutput.error(NO_SUCH_SERVICE.formatted(name));
         }
 
         return LinkedOutput.json(new GrpcServiceDetail(
@@ -145,7 +153,7 @@ public class GrpcMcpTools {
                         .when(data.header().errorCount() > 0, STEP_ERRORS)
                         .add(STEP_TRAFFIC)
                         .build(),
-                UiLinks.view(profileId(), SERVICES_VIEW, serviceQuery(side, service))));
+                UiLinks.view(profileId(), SERVICES_VIEW, serviceQuery(side, name))));
     }
 
     @Tool(description = "gRPC message sizes rather than timings: bytes sent and received, average and "
@@ -193,10 +201,6 @@ public class GrpcMcpTools {
     private static String noData(ExchangeDirection direction) {
         return NO_GRPC_DATA.formatted(
                 direction.name().toLowerCase(Locale.ROOT), direction.grpcEventType().code());
-    }
-
-    private static List<GrpcServiceInfo> trim(List<GrpcServiceInfo> services) {
-        return services.size() <= MAX_SERVICES ? services : services.subList(0, MAX_SERVICES);
     }
 
     private String profileId() {

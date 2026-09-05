@@ -105,6 +105,23 @@ class McpToolOutputTest {
         assertTrue(first.get("kept").asInt() < 20_000);
     }
 
+    /**
+     * Which list was cut is the part a reader needs. An answer carrying several of them, reporting
+     * only that "an array" lost rows, leaves them no better off than the field's own length did.
+     */
+    @Test
+    void namesTheFieldWhoseListWasTrimmed() {
+        List<String> rows = new ArrayList<>();
+        for (int i = 0; i < 20_000; i++) {
+            rows.add("row-" + i + "-with-enough-text-to-push-the-document-past-the-cap");
+        }
+
+        JsonNode parsed = Json.readTree(McpToolOutput.json(new Dashboard("cpu", rows)));
+
+        assertTrue(parsed.get("_truncated").has("rows"),
+                "the trimmed list is reported under the field holding it");
+    }
+
     @Test
     void aJsonResultThatFitsIsLeftExactlyAsItWas() {
         String rendered = McpToolOutput.json(new Dashboard("cpu", List.of("a", "b")));

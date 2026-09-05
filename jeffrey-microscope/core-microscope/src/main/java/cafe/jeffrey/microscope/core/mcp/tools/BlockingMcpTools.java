@@ -114,8 +114,8 @@ public class BlockingMcpTools {
         }
 
         return LinkedOutput.json(new Monitors(
-                trimContention(contention),
-                trimWaits(waits),
+                ToolArguments.firstOf(contention, MAX_ROWS),
+                ToolArguments.firstOf(waits, MAX_ROWS),
                 NextSteps.builder().add(STEP_FRAMES).add(STEP_OVERVIEW).build(),
                 UiLinks.view(profileId(), BLOCKING_VIEW)));
     }
@@ -131,7 +131,7 @@ public class BlockingMcpTools {
         }
 
         return LinkedOutput.json(new Pinned(
-                trimPinned(pinned),
+                ToolArguments.firstOf(pinned, MAX_ROWS),
                 NextSteps.builder().add(STEP_PIN_CAUSE).add(STEP_OVERVIEW).build(),
                 UiLinks.view(profileId(), VIRTUAL_THREADS_VIEW)));
     }
@@ -146,18 +146,6 @@ public class BlockingMcpTools {
                 && !overview.hasParks()
                 && !overview.hasSleeps()
                 && !overview.hasPinned();
-    }
-
-    private static List<ContentionStat> trimContention(List<ContentionStat> stats) {
-        return stats.size() <= MAX_ROWS ? stats : stats.subList(0, MAX_ROWS);
-    }
-
-    private static List<MonitorWaitStat> trimWaits(List<MonitorWaitStat> stats) {
-        return stats.size() <= MAX_ROWS ? stats : stats.subList(0, MAX_ROWS);
-    }
-
-    private static List<PinnedThreadEntry> trimPinned(List<PinnedThreadEntry> entries) {
-        return entries.size() <= MAX_ROWS ? entries : entries.subList(0, MAX_ROWS);
     }
 
     private String profileId() {

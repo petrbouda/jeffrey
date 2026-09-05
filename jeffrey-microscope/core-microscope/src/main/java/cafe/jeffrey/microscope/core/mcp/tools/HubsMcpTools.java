@@ -143,25 +143,25 @@ public class HubsMcpTools {
 
         Map<String, Optional<String>> versions = probeAll(hubs);
 
-        StringBuilder out = new StringBuilder(512);
-        out.append("| hub | hub_id | address | source | status | hub_version |\n");
-        out.append("|---|---|---|---|---|---|\n");
+        MarkdownTable table = MarkdownTable.withColumns(
+                "hub", "hub_id", "address", "source", "status", "hub_version");
         for (HubManager hub : hubs) {
             HubInfo info = hub.info();
             Optional<String> version = versions.getOrDefault(info.hubId(), Optional.empty());
-            out.append("| ").append(sanitize(info.name()))
-                    .append(" | ").append(info.hubId())
-                    .append(" | ").append(address(info))
-                    .append(" | ").append(info.source() == null ? "" : info.source().name().toLowerCase(Locale.ROOT))
-                    .append(" | ").append(version.isPresent() ? STATUS_OK : STATUS_UNREACHABLE)
-                    .append(" | ").append(version.orElse(""))
-                    .append(" |\n");
+            table.row(
+                    info.name(),
+                    info.hubId(),
+                    address(info),
+                    info.source() == null ? "" : info.source().name().toLowerCase(Locale.ROOT),
+                    version.isPresent() ? STATUS_OK : STATUS_UNREACHABLE,
+                    version.orElse(""));
         }
-        out.append("\nA hub marked `").append(STATUS_UNREACHABLE)
-                .append("` did not answer just now, so hubs_sessions can list nothing from it. A hub "
-                        + "whose source is `config` is declared in this installation's configuration "
-                        + "and cannot be removed from the UI.\n");
-        return McpToolOutput.capped(out.toString());
+        return table
+                .note("A hub marked `" + STATUS_UNREACHABLE + "` did not answer just now, so "
+                        + "hubs_sessions can list nothing from it. A hub whose source is `config` is "
+                        + "declared in this installation's configuration and cannot be removed from "
+                        + "the UI.")
+                .render();
     }
 
     @Tool(description = "Recording sessions across every connected Jeffrey Hub, newest first, in one "
@@ -190,7 +190,7 @@ public class HubsMcpTools {
             @ToolParam(required = false, description = "Most rows to return across all hubs. Default 50, maximum 500")
             Integer limit) {
 
-        int rowLimit = boundedLimit(limit);
+        int rowLimit = ToolArguments.boundedLimit(limit, DEFAULT_LIMIT, MAX_LIMIT);
         HubScanFilter filter = new HubScanFilter(
                 hub, workspace, project, sessionFilter(withinLastMinutes, status, rowLimit));
 
@@ -201,26 +201,24 @@ public class HubsMcpTools {
 
         DownloadedSessionIndex local = DownloadedSessionIndex.build(recordingsManager);
 
-        StringBuilder out = new StringBuilder(2048);
-        out.append("| hub | workspace | project | started | duration | status | files | size | local | session_ref |\n");
-        out.append("|---|---|---|---|---|---|---|---|---|---|\n");
+        MarkdownTable table = MarkdownTable.withColumns(
+                "hub", "workspace", "project", "started", "duration", "status", "files", "size",
+                "local", "session_ref");
         for (HubSessionScan.Row row : result.rows()) {
             RecordingSession session = row.session();
-            out.append("| ").append(sanitize(row.hubName()))
-                    .append(" | ").append(sanitize(row.workspaceName()))
-                    .append(" | ").append(sanitize(row.projectName()))
-                    .append(" | ").append(session.createdAt())
-                    .append(" | ").append(duration(session))
-                    .append(" | ").append(session.status())
-                    .append(" | ").append(session.files() == null ? 0 : session.files().size())
-                    .append(" | ").append(size(session.totalSizeBytes()))
-                    .append(" | ").append(localColumn(local, row.ref()))
-                    .append(" | ").append(row.ref().encode())
-                    .append(" |\n");
+            table.row(
+                    row.hubName(),
+                    row.workspaceName(),
+                    row.projectName(),
+                    session.createdAt(),
+                    duration(session),
+                    session.status(),
+                    session.files() == null ? 0 : session.files().size(),
+                    size(session.totalSizeBytes()),
+                    localColumn(local, row.ref()),
+                    row.ref().encode());
         }
-
-        out.append('\n').append(footer(result));
-        return McpToolOutput.capped(out.toString());
+        return table.note(footer(result)).render();
     }
 
     @Tool(description = "Download one recording session from its hub into this Jeffrey, merging the "
@@ -258,9 +256,12 @@ public class HubsMcpTools {
         if (transferred.isEmpty()) {
             // Nothing to poll but this tool: it answers from the local store first, so calling it again
             // with the same ref reports the finished copy once the transfer lands.
+            // Names travel unescaped here. Replacing a pipe is a Markdown-cell concern, and these
+            // two answers are JSON, where the serialiser escapes what needs escaping and a mangled
+            // name is simply the wrong name.
             return McpToolOutput.json(new DownloadInProgress(
                     ref.sessionId(),
-                    sanitize(session.name()),
+                    session.name(),
                     session.totalSizeBytes(),
                     DOWNLOAD_STILL_RUNNING));
         }
@@ -269,9 +270,9 @@ public class HubsMcpTools {
         List<RepositoryFile> finished = finishedFiles(session);
         return McpToolOutput.json(new DownloadedSession(
                 recordingId,
-                sanitize(session.name()),
-                sanitize(hubInfo.name()),
-                sanitize(project.info().name()),
+                session.name(),
+                hubInfo.name(),
+                project.info().name(),
                 ref.sessionId(),
                 (int) finished.stream().filter(RepositoryFile::isRecordingFile).count(),
                 (int) finished.stream().filter(RepositoryFile::isArtifactFile).count(),
@@ -347,13 +348,6 @@ public class HubsMcpTools {
         }
         throw new IllegalArgumentException(
                 "Unknown session status: " + status + ". Use ACTIVE or FINISHED, or omit it for both.");
-    }
-
-    private static int boundedLimit(Integer limit) {
-        if (limit == null || limit < 1) {
-            return DEFAULT_LIMIT;
-        }
-        return Math.min(limit, MAX_LIMIT);
     }
 
     private static String emptyResult(Integer withinLastMinutes) {
@@ -506,16 +500,6 @@ public class HubsMcpTools {
             return Math.round(bytes / (1024.0 * 1024)) + "MB";
         }
         return String.format(Locale.ROOT, "%.1fGB", bytes / (1024.0 * 1024 * 1024));
-    }
-
-    /**
-     * Keeps a name on one table row: a pipe in a project or hub name would otherwise split the cell.
-     */
-    private static String sanitize(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.replace('|', '/').replace('\n', ' ').replace('\r', ' ');
     }
 
     /**

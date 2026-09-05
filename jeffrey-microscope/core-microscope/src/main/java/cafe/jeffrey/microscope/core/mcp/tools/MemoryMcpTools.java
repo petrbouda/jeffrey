@@ -99,7 +99,7 @@ public class MemoryMcpTools {
 
         return LinkedOutput.json(new Allocations(
                 overview,
-                trimTypes(types),
+                ToolArguments.firstOf(types, MAX_TYPES),
                 NextSteps.builder().add(STEP_WHERE).add(STEP_WHEN).add(STEP_GC_COST).build(),
                 UiLinks.view(profileId(), ALLOCATIONS_VIEW)));
     }
@@ -118,17 +118,9 @@ public class MemoryMcpTools {
 
         return LinkedOutput.json(new LeakCandidates(
                 overview,
-                trimCandidates(candidates),
+                ToolArguments.firstOf(candidates, MAX_CANDIDATES),
                 NextSteps.builder().add(STEP_AGE).add(STEP_RETAINED).build(),
                 UiLinks.view(profileId(), LEAK_CANDIDATES_VIEW)));
-    }
-
-    private static List<AllocatedType> trimTypes(List<AllocatedType> types) {
-        return types.size() <= MAX_TYPES ? types : types.subList(0, MAX_TYPES);
-    }
-
-    private static List<LeakCandidate> trimCandidates(List<LeakCandidate> candidates) {
-        return candidates.size() <= MAX_CANDIDATES ? candidates : candidates.subList(0, MAX_CANDIDATES);
     }
 
     private String profileId() {

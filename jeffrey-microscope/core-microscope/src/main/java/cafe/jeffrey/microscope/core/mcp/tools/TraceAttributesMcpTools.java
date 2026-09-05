@@ -145,7 +145,7 @@ public class TraceAttributesMcpTools {
                 keyId(key, source, owner),
                 valueSort(sort),
                 true,
-                boundedLimit(limit),
+                ToolArguments.boundedLimit(limit, DEFAULT_LIMIT, MAX_LIMIT),
                 blankToNull(eventType));
 
         TraceAttributeValues values = profileManager.traceAttributesManager().values(query);
@@ -194,7 +194,7 @@ public class TraceAttributesMcpTools {
                 scope(scope),
                 TraceSortField.DURATION,
                 true,
-                boundedLimit(limit),
+                ToolArguments.boundedLimit(limit, DEFAULT_LIMIT, MAX_LIMIT),
                 0);
 
         TraceAttributeSearchResult result = profileManager.traceAttributesManager().search(query);
@@ -282,10 +282,6 @@ public class TraceAttributesMcpTools {
 
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
-    }
-
-    private static int boundedLimit(Integer limit) {
-        return limit == null ? DEFAULT_LIMIT : Math.clamp(limit, 1, MAX_LIMIT);
     }
 
     private String profileId() {

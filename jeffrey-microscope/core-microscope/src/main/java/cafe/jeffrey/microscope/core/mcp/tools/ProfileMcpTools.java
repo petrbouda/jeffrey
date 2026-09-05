@@ -222,7 +222,7 @@ public class ProfileMcpTools {
             + "URL is for them, not for you: it carries nothing you can analyse and reading it back "
             + "tells you nothing, so call this to end an explanation, not to gather information.")
     public String viewLink(
-            @ToolParam(required = false, description = "Which view to open. One of: dashboard, auto-analysis, overview, "
+            @ToolParam(required = true, description = "Which view to open. One of: dashboard, auto-analysis, overview, "
                     + "event-types, flags, garbage-collection, garbage-collection/timeseries, "
                     + "garbage-collection/configuration, allocations, nmt, native-memory, "
                     + "memory-issues/leak-candidates, thread-statistics, threads-timeline, "
@@ -239,17 +239,18 @@ public class ProfileMcpTools {
                     + "object; ignored by every other view.")
             String objectId) {
 
-        if (!VIEWS.contains(view)) {
+        if (view == null || !VIEWS.contains(view.trim())) {
             throw new IllegalArgumentException(
                     "Unknown view '" + view + "'. Valid views: "
                             + String.join(", ", VIEWS.stream().sorted().toList()));
         }
+        String requested = view.trim();
 
         Map<String, String> query = UiLinks.query();
-        if (GC_ROOT_PATH_VIEW.equals(view)) {
+        if (GC_ROOT_PATH_VIEW.equals(requested)) {
             query.put(OBJECT_ID_PARAM, objectId);
         }
-        return UiLinks.view(profileManager.info().id(), view, query);
+        return UiLinks.view(profileManager.info().id(), requested, query);
     }
 
     /**

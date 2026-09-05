@@ -101,6 +101,10 @@ class ExternalMcpControllerTest {
                     .extractingPath("$.result.protocolVersion").asString().isEqualTo("2025-06-18");
         }
 
+        /**
+         * Names rather than positions: the order a family is listed in is stable (the index sorts by
+         * method name), but what this asserts is that both tools reached the client.
+         */
         @Test
         void listsTheAssembledTools() {
             when(assembler.toolset()).thenReturn(new ReflectiveToolset(new SampleTools(), "sample"));
@@ -108,7 +112,8 @@ class ExternalMcpControllerTest {
             assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(TOOLS_LIST))
                     .hasStatusOk()
                     .bodyJson()
-                    .extractingPath("$.result.tools[0].name").asString().isEqualTo("sample_ping");
+                    .extractingPath("$.result.tools[*].name").asArray()
+                    .containsExactly("sample_boom", "sample_ping");
         }
 
         @Test
