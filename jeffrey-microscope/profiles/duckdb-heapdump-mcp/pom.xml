@@ -84,5 +84,9 @@
             <artifactId>test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>mcp-server</artifactId>
+        </dependency>
     </dependencies>
 </project>

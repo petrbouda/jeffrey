@@ -21,6 +21,12 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.AutoAnalysisSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ConfigurationSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ContainerSection;
+import cafe.jeffrey.microscope.core.mcp.tools.jvm.ClassLoadingSection;
+import cafe.jeffrey.microscope.core.mcp.tools.jvm.ExceptionsSection;
+import cafe.jeffrey.microscope.core.mcp.tools.jvm.GcDetailSection;
+import cafe.jeffrey.microscope.core.mcp.tools.jvm.SecuritySection;
+import cafe.jeffrey.microscope.core.mcp.tools.jvm.SystemSection;
+import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.GcSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.JitSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSection;
@@ -86,10 +92,20 @@ public class JvmMcpTools {
             + "answer.";
 
     private static final String AUTO_ANALYSIS_NOT_COMPUTED = "Auto Analysis has not been computed for "
-            + "this profile yet. It runs the JMC rule set over the whole recording, which is done "
-            + "once from the Auto Analysis page in the Jeffrey UI and cached for every later read — "
-            + "call profiles_link for the URL. Meanwhile the other jvm_ sections answer the same "
-            + "subsystems directly from the parsed events.";
+            + "this profile yet. Call this tool again with compute true to run it — it reads the whole "
+            + "recording through the JMC rule set, which takes a while and is cached afterwards. It can "
+            + "also be run from the Auto Analysis page in the Jeffrey UI; call profiles_link for the "
+            + "URL. Meanwhile the other jvm_ sections answer the same subsystems directly from the "
+            + "parsed events.";
+
+    private static final String NO_SUCH_GC_PAGE = "No garbage-collection page named '%s'. The pages "
+            + "are: %s.";
+
+    private static final String AUTO_ANALYSIS_COMPUTE_DISABLED = "Auto Analysis has not been computed "
+            + "for this profile, and this Jeffrey runs with jeffrey.microscope.mcp.compute.enabled "
+            + "false, so it cannot be computed from here. Run it once from the Auto Analysis page in "
+            + "the Jeffrey UI — call profiles_link for the URL — or use the other jvm_ sections, which "
+            + "answer the same subsystems directly from the parsed events.";
 
     private static final String NO_THREAD_DUMPS =
             "This profile carries no thread dumps. They come from jdk.ThreadDump events, which a "
@@ -123,23 +139,41 @@ public class JvmMcpTools {
     private final JvmSections sections;
     private final AutoAnalysisSection autoAnalysisSection;
     private final ConfigurationSection configurationSection;
+    private final GcDetailSection gcDetailSection;
     private final ProfileManager profileManager;
+    private final boolean computeEnabled;
 
     public JvmMcpTools(ProfileManager profileManager) {
+        this(profileManager, true);
+    }
+
+    /**
+     * @param computeEnabled whether this installation lets a tool build something before answering.
+     *                       Only auto analysis is affected: everything else in the family reads events
+     *                       that were parsed when the profile was created
+     */
+    public JvmMcpTools(ProfileManager profileManager, boolean computeEnabled) {
         this.profileManager = profileManager;
+        this.computeEnabled = computeEnabled;
         // Two of the sections answer more than "render me": auto analysis reports whether it has been
         // computed at all, and configuration is asked for one tab at a time. They are built here and
         // handed to the registry so there is one instance of each, not one per caller.
         this.autoAnalysisSection = new AutoAnalysisSection(profileManager);
         this.configurationSection = new ConfigurationSection(profileManager);
+        this.gcDetailSection = new GcDetailSection(profileManager);
 
         this.sections = new JvmSections(profileManager, List.of(
                 autoAnalysisSection,
                 new GcSection(profileManager),
+                gcDetailSection,
                 new SafepointsSection(profileManager),
                 new JitSection(profileManager),
                 new ThreadsSection(profileManager),
                 new NativeMemorySection(profileManager),
+                new ClassLoadingSection(profileManager),
+                new ExceptionsSection(profileManager),
+                new SystemSection(profileManager),
+                new SecuritySection(profileManager),
                 new ContainerSection(profileManager),
                 configurationSection));
     }
@@ -156,13 +190,94 @@ public class JvmMcpTools {
     @Tool(description = "Jeffrey's Auto Analysis: the JMC rule set run over the whole recording, as "
             + "findings with a severity, an explanation and a suggested fix. The cheapest first "
             + "question about any profile — each finding names a subsystem worth following up in. "
-            + "Computed once from the Auto Analysis page in the Jeffrey UI and cached; this tool "
-            + "reads that cache and says so when it is empty.")
-    public String autoAnalysis() {
+            + "Cached once computed, and read from that cache here. When nothing has computed it yet, "
+            + "pass compute true to run it: that reads the whole recording through the rule set, which "
+            + "is slow and unbounded in memory, so it is asked for rather than assumed.")
+    public String autoAnalysis(
+            @ToolParam(required = false, description = "Run the rule set now if it has not been run "
+                    + "before. Off by default because it reads the entire recording through the JMC "
+                    + "toolkit, which on a large one takes a while and holds a lot of heap. Ignored "
+                    + "when the analysis is already computed, which is then simply returned")
+            Boolean compute) {
+
         if (!autoAnalysisSection.isComputed()) {
-            return AUTO_ANALYSIS_NOT_COMPUTED;
+            if (!Boolean.TRUE.equals(compute)) {
+                return AUTO_ANALYSIS_NOT_COMPUTED;
+            }
+            if (!computeEnabled) {
+                return AUTO_ANALYSIS_COMPUTE_DISABLED;
+            }
+            profileManager.autoAnalysisManager().generate();
         }
         return render(AutoAnalysisSection.ID);
+    }
+
+    @Tool(description = "The garbage-collection pages beneath the overview, one at a time: the tenuring "
+            + "distribution, the IHOP and MMU behind a concurrent cycle, G1's regions and evacuation "
+            + "failures, ZGC's allocation stalls and relocations, the string and symbol tables, "
+            + "finalizers, reference processing, the parallel phase breakdown, and PLAB statistics. "
+            + "Reach for one after jvm_gc has shown that collection matters and said which collector "
+            + "ran — most of these are collector-specific and are empty on the others. Call it with no "
+            + "page for the list.")
+    public String gcDetail(
+            @ToolParam(required = false, description = "Which page to render. Omit for the list of pages.")
+            @ToolParamValues({"configuration", "tenuring", "ihop", "g1", "zgc", "stringTables",
+                    "finalizers", "references", "phases", "plab"})
+            String page) {
+
+        JvmSection declared = sections.get(GcDetailSection.ID);
+        if (!sections.isAvailable(declared)) {
+            return notRecorded(declared);
+        }
+        if (page == null || page.isBlank()) {
+            return McpToolOutput.json(result(declared, GcDetailSection.pageNames()));
+        }
+
+        Object content = gcDetailSection.page(page.trim());
+        if (content == null) {
+            return McpToolOutput.error(NO_SUCH_GC_PAGE.formatted(
+                    page, String.join(", ", GcDetailSection.pageNames())));
+        }
+        return McpToolOutput.json(result(declared, content));
+    }
+
+    @Tool(description = "What the JVM loaded and who loaded it: classes currently loaded, loaded and "
+            + "unloaded over the run, the metaspace they hold, the class loaders ranked by what they "
+            + "carry, the slowest individual loads where the recording captured them, and any "
+            + "redefinitions an agent made. Answers 'why is start-up slow' when no method is, and is "
+            + "where a metaspace that keeps growing first shows itself.")
+    public String classLoading() {
+        return render(ClassLoadingSection.ID);
+    }
+
+    @Tool(description = "What the application threw: how many throwables in total, how many were "
+            + "sampled with a stack, how many were Errors, and the types ranked by count with their "
+            + "commonest messages. Constructing an exception walks the stack, so a type thrown in a "
+            + "loop is a real cost that no flamegraph frame names. A large total with no types listed "
+            + "means the throw events were not recorded, which the result says rather than reporting "
+            + "nothing thrown.")
+    public String exceptions() {
+        return render(ExceptionsSection.ID);
+    }
+
+    @Tool(description = "The machine underneath the JVM: machine CPU against this JVM's own, what the "
+            + "difference leaves for everything else on the box, the peak context-switch rate, the "
+            + "other processes running there and any this JVM started. Answers 'is it my JVM or the "
+            + "box' — a profile whose own CPU is modest while the machine is saturated describes an "
+            + "application being starved, and every flamegraph from it reads differently once that is "
+            + "known.")
+    public String system() {
+        return render(SystemSection.ID);
+    }
+
+    @Tool(description = "TLS, certificates and deserialization: how many handshakes and to how many "
+            + "distinct peers, the protocols and ciphers negotiated, certificates that are expired, "
+            + "expiring or weakly signed, and what was deserialized including anything a filter "
+            + "rejected. Many handshakes for few peers means connections are not being reused; the "
+            + "certificate findings are about the deployment rather than the code, and are evidence of "
+            + "what the JVM actually presented.")
+    public String security() {
+        return render(SecuritySection.ID);
     }
 
     @Tool(description = "The garbage collection dashboard: the stop-the-world budget this recording "
@@ -274,7 +389,7 @@ public class JvmMcpTools {
             + "deadlocks the JVM detected in it. Use it after jvm_threadDumps has named the dump worth "
             + "reading - the analysis says which index holds the deadlock or the stuck threads.")
     public String threadDump(
-            @ToolParam(description = "Index of the dump, as listed by jvm_threadDumps")
+            @ToolParam(required = true, description = "Index of the dump, as listed by jvm_threadDumps")
             Integer index) {
 
         if (index == null) {

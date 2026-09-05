@@ -26,6 +26,14 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
 
+const promptsCall = `curl -s http://localhost:8585/api/internal/mcp \\
+  -H 'Content-Type: application/json' \\
+  -d '{"jsonrpc":"2.0","id":1,"method":"prompts/get","params":{"name":"analyze-jfr"}}'`;
+
+const resourcesCall = `curl -s http://localhost:8585/api/internal/mcp \\
+  -H 'Content-Type: application/json' \\
+  -d '{"jsonrpc":"2.0","id":2,"method":"resources/read","params":{"uri":"jeffrey://profiles"}}'`;
+
 const headings = [
   { id: 'agent-plugins-clients', text: 'Agent Plugins Clients', level: 2 },
   { id: 'cursor', text: 'Cursor', level: 3 },
@@ -33,6 +41,7 @@ const headings = [
   { id: 'kiro', text: 'Kiro', level: 3 },
   { id: 'any-mcp-client', text: 'Any MCP Client', level: 2 },
   { id: 'what-you-give-up', text: 'What You Give Up', level: 2 },
+  { id: 'prompts-and-resources', text: 'Prompts and Resources', level: 2 },
   { id: 'the-wire-protocol', text: 'The Wire Protocol', level: 2 },
   { id: 'a-session-by-hand', text: 'A Session by Hand', level: 2 },
   { id: 'errors', text: 'Errors', level: 2 }
@@ -134,9 +143,9 @@ const protocolError = `{
       <p>The plugin carries an <a href="https://agent-plugins.org/" target="_blank" rel="noopener">Agent Plugins</a> manifest, the vendor-neutral format <strong>Cursor</strong>, <strong>GitHub Copilot</strong>, <strong>VS Code</strong> and <strong>Kiro</strong> read alongside Codex. Where a client installs a plugin from a directory, <code>jeffrey-claude-plugin/</code> in a clone is that directory:</p>
       <DocsCodeBlock :code="clonePlugin" language="bash" />
 
-      <p>What is standardised is the manifest, the seven skills and the <code>streamable-http</code> server entry. Everything past that &mdash; how a plugin is browsed and installed, how skills are invoked, how tools are approved &mdash; is the client's own, and moves faster than this page can. The <router-link to="/docs/microscope-mcp/codex">Codex</router-link> page is the closest map, since it documents the same portable half in detail.</p>
+      <p>What is standardised is the manifest, the nine skills and the <code>streamable-http</code> server entry. Everything past that &mdash; how a plugin is browsed and installed, how skills are invoked, how tools are approved &mdash; is the client's own, and moves faster than this page can. The <router-link to="/docs/microscope-mcp/codex">Codex</router-link> page is the closest map, since it documents the same portable half in detail.</p>
 
-      <p>None of them can carry the analyst agent, for the reason that page gives: Agent Plugins defines skills and MCP servers, and nothing else. And in all of them the endpoint is fixed at <code>localhost:8585</code>, because the format forbids placeholder expansion in a server URL &mdash; a Jeffrey anywhere else is registered by hand, as below.</p>
+      <p>None of them can carry the two agents, for the reason that page gives: Agent Plugins defines skills and MCP servers, and nothing else. And in all of them the endpoint is fixed at <code>localhost:8585</code>, because the format forbids placeholder expansion in a server URL &mdash; a Jeffrey anywhere else is registered by hand, as below.</p>
 
       <h3 id="cursor">Cursor</h3>
       <p>Install the plugin from the cloned directory through Cursor's plugin browser. Without it, add the server to Cursor's MCP configuration &mdash; <code>~/.cursor/mcp.json</code> for every project, <code>.cursor/mcp.json</code> for one &mdash; using the <code>mcpServers</code> entry from <a href="#any-mcp-client">Any MCP Client</a> below. The tools then appear as <code>jeffrey</code> in Cursor's MCP settings, one toggle per tool.</p>
@@ -162,9 +171,20 @@ const protocolError = `{
       </DocsCallout>
 
       <h2 id="what-you-give-up">What You Give Up</h2>
-      <p>The same eighty-eight tools, named <code>mcp__jeffrey__*</code> rather than the <code>mcp__plugin_microscope_jeffrey__*</code> Claude Code gives a plugin's server &mdash; a hand-registered server is not namespaced by a plugin. Adjust any approval rule accordingly: <code>/permissions</code> in Claude Code, the <code>[mcp_servers.jeffrey]</code> block in Codex.</p>
+      <p>The same ninety-nine tools, named <code>mcp__jeffrey__*</code> rather than the <code>mcp__plugin_microscope_jeffrey__*</code> Claude Code gives a plugin's server &mdash; a hand-registered server is not namespaced by a plugin. Adjust any approval rule accordingly: <code>/permissions</code> in Claude Code, the <code>[mcp_servers.jeffrey]</code> block in Codex.</p>
 
-      <p>What does not come along is the <router-link to="/docs/microscope-mcp/skills">skills</router-link>: the entry sequence and the two database schemas. The tools still work; the model just starts colder, and is more likely to guess a column name than to call <code>jfr_describeTable</code> first.</p>
+      <p>What does not come along as <em>skills</em> is the guidance: the entry sequence and the two database schemas. But it is not lost. The server offers the same files over the protocol as <strong>prompts</strong>, so a client that speaks <code>prompts/list</code> can load any of them without a plugin at all &mdash; see below. What is genuinely missing is the <router-link to="/docs/microscope-mcp/agent">agents</router-link>, which no MCP server can provide, and the automatic loading: a plugin client picks a skill up when a question calls for it, where here somebody has to ask for the prompt.</p>
+
+      <h2 id="prompts-and-resources">Prompts and Resources</h2>
+      <p>Two capabilities beyond the tools, and they exist for exactly this page&rsquo;s readers.</p>
+
+      <p><strong>Prompts</strong> are the plugin&rsquo;s skills, served over the protocol. <code>prompts/list</code> names them &mdash; <code>analyze-jfr</code>, <code>analyze-heap</code>, <code>analyze-hub</code>, <code>compare-jfr</code>, <code>advise-jfr</code>, <code>profile-run</code>, <code>regression-check</code>, <code>jfr-sql</code>, <code>heap-sql</code> &mdash; and <code>prompts/get</code> returns one as a message to insert. They are the same files the plugin ships, copied onto the server&rsquo;s classpath when it is built, so they cannot drift from what a Claude Code or Codex user gets.</p>
+
+      <DocsCodeBlock :code="promptsCall" language="bash" />
+
+      <p><strong>Resources</strong> are the parts of a profile a client can attach rather than call for. <code>jeffrey://profiles</code> is the catalogue; <code>resources/templates/list</code> offers <code>jeffrey://profile/&#123;profileId&#125;/summary</code> and <code>jeffrey://profile/&#123;profileId&#125;/flamegraph/&#123;eventType&#125;</code>. The distinction is worth the two extra methods: a tool result scrolls away, where a resource a client has attached stays in view and can be referred back to. Reading one runs the tool that would have answered the same question, so the two never disagree.</p>
+
+      <DocsCodeBlock :code="resourcesCall" language="bash" />
 
       <h2 id="the-wire-protocol">The Wire Protocol</h2>
       <p>Whatever the client, the endpoint is plain <strong>JSON-RPC 2.0 over HTTP POST</strong>. No SSE stream, no session header, no handshake beyond what the protocol requires. A <code>GET</code> on the endpoint answers <code>405</code>, which is what the MCP specification prescribes for a server that does not offer the optional server-to-client stream &mdash; a client that treats that as fatal rather than as the documented refusal is at fault.</p>
@@ -209,7 +229,7 @@ const protocolError = `{
       <DocsCodeBlock :code="initialize" language="bash" />
       <DocsCodeBlock :code="initializeResult" language="json" />
 
-      <p>Then <code>tools/list</code> with the same envelope returns all eighty-eight specs. To run one:</p>
+      <p>Then <code>tools/list</code> with the same envelope returns all ninety-nine specs. To run one:</p>
       <DocsCodeBlock :code="toolsCall" language="bash" />
 
       <p>The result arrives as MCP text content &mdash; for the export tools, the same Markdown document the plugin would hand to Claude, preamble included.</p>

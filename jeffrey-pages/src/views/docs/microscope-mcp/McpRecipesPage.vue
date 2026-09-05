@@ -34,6 +34,7 @@ const headings = [
   { id: 'find-when-it-happened', text: 'Find When It Happened', level: 2 },
   { id: 'the-cpu-is-idle-and-it-is-still-slow', text: 'The CPU Is Idle and It Is Still Slow', level: 2 },
   { id: 'chase-a-memory-problem', text: 'Chase a Memory Problem', level: 2 },
+  { id: 'prepare-a-dump-nobody-has-opened', text: 'Prepare a Dump Nobody Has Opened', level: 2 },
   { id: 'account-for-the-gc-pauses', text: 'Account for the GC Pauses', level: 2 },
   { id: 'ask-what-the-jit-is-doing', text: 'Ask What the JIT Is Doing', level: 2 },
   { id: 'does-the-code-agree-with-the-profile', text: 'Does the Code Agree With the Profile', level: 2 },
@@ -65,6 +66,8 @@ waiting on?`;
 
 const promptMemory = `which classes retain the most memory in the heap dump, and what is keeping
 the biggest one alive?`;
+
+const promptPrepare = `prepare the heap dump in profile <id>, then tell me what is holding the memory`;
 
 const promptGc = `how much of the run went to GC pauses in the most recent profile, what caused
 them, and which code is producing the garbage?`;
@@ -185,6 +188,19 @@ LIMIT 20`;
       <p>The two-step matters. A class histogram answers &ldquo;what is there&rdquo;; the dominator tree answers &ldquo;what would be freed&rdquo;, which is the one that finds a leak. And <code>heap_getPathToGCRoot</code> is the actual answer to &ldquo;why is this still alive&rdquo; &mdash; a reference chain from a root, usually ending somewhere recognisable like a static cache or a thread-local.</p>
 
       <p>The order is not optional: <code>dominator</code> and <code>retained_size</code> are built lazily, so every retained figure comes back missing until <code>heap_getDominatorTreeRoots</code> has run once. That is what the skill exists to get right.</p>
+
+      <p>On a dump nobody has opened in the UI, the cached reports have not been built either, and their tools say so. The skill&rsquo;s first move there is <code>heap_prepare</code>, which builds the index, the dominator tree and all nine reports and returns straight away; <code>heap_status</code> says how far it has got. Expect minutes on a large heap &mdash; and expect the session to do something else meanwhile rather than poll.</p>
+
+      <h2 id="prepare-a-dump-nobody-has-opened">Prepare a Dump Nobody Has Opened</h2>
+      <DocsCodeBlock :code="promptPrepare" language="bash" />
+
+      <p>The honest answer to a heap dump that has just been imported: most of what makes it answerable does not exist yet. The index is built when the profile is created, but the dominator tree that retained sizes come from, and the reports behind Leak Suspects, Biggest Objects, Class Loader Analysis, Top Consumers, String Analysis and Collection Analysis, are computed on demand and stored.</p>
+
+      <p><code>heap_prepare</code> starts all of it and returns immediately. <code>heap_status</code> reports the stages, and each answer becomes readable as its stage completes rather than at the end &mdash; so the histogram is available long before the class-loader analysis is. Pass a report name to build just one on a dump that already has an index.</p>
+
+      <DocsCallout type="info" title="It shares the run with the UI">
+        This is the same pipeline the <strong>Initialize</strong> button runs, on the same registry. A run started from a session shows up in the browser and the other way round, and asking twice joins the run in flight rather than starting a second. If <code>heap_prepare</code> is not advertised at all, the installation has <code>jeffrey.microscope.mcp.compute.enabled=false</code> and the reports have to be run from the UI.
+      </DocsCallout>
 
       <h2 id="account-for-the-gc-pauses">Account for the GC Pauses</h2>
       <DocsCodeBlock :code="promptGc" language="bash" />

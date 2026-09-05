@@ -51,13 +51,41 @@ class ProfilesMcpToolsTest {
     }
 
     private static ProfileInfo profile(String id, String name, String projectId) {
+        return profile(id, name, projectId, true);
+    }
+
+    private static ProfileInfo profile(String id, boolean enabled) {
+        return profile(id, "Profile " + id, null, enabled);
+    }
+
+    /**
+     * @param enabled whether the profile has finished being built; false is a row whose recording is
+     *                still being parsed
+     */
+    private static ProfileInfo profile(String id, String name, String projectId, boolean enabled) {
         return new ProfileInfo(
                 id, projectId, projectId == null ? null : "ws-1", name, RecordingEventSource.JDK,
-                START, START.plusSeconds(120), START, true, false, "rec-" + id);
+                START, START.plusSeconds(120), START, enabled, false, "rec-" + id);
     }
 
     @Nested
     class ListProfiles {
+
+        /**
+         * A profile row exists before its recording has been parsed, so the catalogue has to
+         * distinguish a profile that can be analysed from one that merely has an id.
+         */
+        @Test
+        void marksAProfileThatIsStillBeingBuilt() {
+            when(coreRepositories.findAllProfiles())
+                    .thenReturn(List.of(profile("p-1", true), profile("p-2", false)));
+
+            String result = tools.list(null, null);
+
+            assertTrue(result.contains("| yes |"), result);
+            assertTrue(result.contains("| building |"), result);
+            assertTrue(result.contains("still being parsed"));
+        }
 
         @Test
         void listsEveryProfileWithItsId() {
@@ -143,4 +171,5 @@ class ProfilesMcpToolsTest {
             assertTrue(row.contains("before/after"));
         }
     }
+
 }

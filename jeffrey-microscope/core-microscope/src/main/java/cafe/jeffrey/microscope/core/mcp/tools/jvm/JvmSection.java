@@ -41,12 +41,17 @@ import java.util.Set;
  */
 public sealed interface JvmSection permits
         AutoAnalysisSection,
+        ClassLoadingSection,
         ConfigurationSection,
         ContainerSection,
+        ExceptionsSection,
         GcSection,
+        GcDetailSection,
         JitSection,
         NativeMemorySection,
         SafepointsSection,
+        SecuritySection,
+        SystemSection,
         ThreadsSection {
 
     /**

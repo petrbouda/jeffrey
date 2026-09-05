@@ -34,6 +34,7 @@ import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
+import cafe.jeffrey.profile.heapdump.view.SqlQueryResult;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
@@ -128,6 +129,11 @@ public record HeapDumpManagerToolsDelegate(HeapDumpManager manager) implements H
     @Override
     public InstanceTreeResponse getReferrers(long objectId, int limit, int offset) {
         return manager.getReferrers(objectId, limit, offset);
+    }
+
+    @Override
+    public SqlQueryResult executeSql(String sql, int maxRows) {
+        return manager.executeSql(sql, maxRows);
     }
 
     @Override

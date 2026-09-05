@@ -9,12 +9,19 @@
   "homepage": "https://www.jeffrey-analyst.cafe/docs/microscope-mcp",
   "repository": "https://github.com/petrbouda/jeffrey",
   "license": "AGPL-3.0",
-  "keywords": ["jfr", "jvm", "profiling", "flamegraph", "heap-dump", "performance"],
+  "keywords": [
+    "jfr",
+    "jvm",
+    "profiling",
+    "flamegraph",
+    "heap-dump",
+    "performance"
+  ],
   "userConfig": {
     "endpoint_url": {
       "type": "string",
       "title": "Jeffrey MCP endpoint",
-      "description": "URL of the Microscope MCP endpoint. Keep the default for a Jeffrey on its usual port; change it for another port, a container or an SSH tunnel. Settings → Claude Code (MCP) shows the exact URL for your installation.",
+      "description": "URL of the Microscope MCP endpoint. Keep the default for a Jeffrey on its usual port; change it for another port, a container or an SSH tunnel. Settings → Coding Agents (MCP) shows the exact URL for your installation.",
       "default": "http://localhost:8585/api/internal/mcp"
     }
   },
@@ -23,5 +30,6 @@
       "type": "http",
       "url": "${user_config.endpoint_url}"
     }
-  }
+  },
+  "hooks": "./hooks/hooks.json"
 }

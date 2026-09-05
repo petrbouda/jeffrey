@@ -25,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
@@ -32,6 +33,8 @@ import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+
+import java.util.Set;
 
 @ExtendWith(MockitoExtension.class)
 class ExternalMcpControllerTest {
@@ -52,8 +55,16 @@ class ExternalMcpControllerTest {
     @Mock
     McpToolsetAssembler assembler;
 
+    private MockMvcTester mvcWith(ExternalMcpProperties properties) {
+        return mockMvcTesterFor(new ExternalMcpController(
+                assembler, properties, new McpRequestGuard(properties.token())));
+    }
+
     private MockMvcTester mvcWith(boolean enabled) {
-        return mockMvcTesterFor(new ExternalMcpController(assembler, new ExternalMcpProperties(enabled, true, true)));
+        return mockMvcTesterFor(new ExternalMcpController(
+                assembler,
+                new ExternalMcpProperties(enabled, true, true, true, Set.of(), ""),
+                new McpRequestGuard("")));
     }
 
     @Nested
@@ -136,7 +147,7 @@ class ExternalMcpControllerTest {
         @Test
         void rejectsAnUnknownMethod() {
             String unknown = """
-                    {"jsonrpc":"2.0","id":5,"method":"resources/list"}""";
+                    {"jsonrpc":"2.0","id":5,"method":"completion/complete"}""";
 
             assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(unknown))
                     .hasStatusOk()
@@ -155,6 +166,184 @@ class ExternalMcpControllerTest {
 
             assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(notification))
                     .hasStatus(202);
+        }
+    }
+
+    @Nested
+    class Guarding {
+
+        /**
+         * A CLI client sends no Origin at all, which is what makes refusing a foreign one free.
+         */
+        @Test
+        void servesARequestThatCarriesNoOrigin() {
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(INITIALIZE))
+                    .hasStatusOk();
+        }
+
+        @Test
+        void refusesARequestFromAForeignOrigin() {
+            assertThat(mvcWith(true).post().uri(URI)
+                    .header("Origin", "http://evil.example")
+                    .contentType(APPLICATION_JSON).content(INITIALIZE))
+                    .hasStatus(HttpStatus.FORBIDDEN);
+        }
+
+        @Test
+        void refusesARequestWithoutTheConfiguredToken() {
+            ExternalMcpProperties guarded =
+                    new ExternalMcpProperties(true, true, true, true, Set.of(), "s3cret");
+
+            assertThat(mvcWith(guarded).post().uri(URI).contentType(APPLICATION_JSON).content(INITIALIZE))
+                    .hasStatus(HttpStatus.FORBIDDEN);
+        }
+
+        @Test
+        void servesARequestCarryingTheConfiguredToken() {
+            ExternalMcpProperties guarded =
+                    new ExternalMcpProperties(true, true, true, true, Set.of(), "s3cret");
+
+            assertThat(mvcWith(guarded).post().uri(URI)
+                    .header("Authorization", "Bearer s3cret")
+                    .contentType(APPLICATION_JSON).content(INITIALIZE))
+                    .hasStatusOk();
+        }
+    }
+
+    @Nested
+    class ProtocolVersion {
+
+    
+    /**
+     * The workflows ship as plugin skills, which a client that cannot install a plugin cannot read.
+     * Serving them as prompts is how Cursor, VS Code and Kiro get them.
+     */
+    @Nested
+    class Prompts {
+
+        @Test
+        void advertisesThePromptCapability() {
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(INITIALIZE))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.result.capabilities.prompts").isNotNull();
+        }
+
+        @Test
+        void listsTheSkillsAsPrompts() {
+            String list = """
+                    {"jsonrpc":"2.0","id":6,"method":"prompts/list"}""";
+
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(list))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.result.prompts[*].name").asArray()
+                    .contains("analyze-jfr", "analyze-heap", "compare-jfr");
+        }
+
+        @Test
+        void handsBackTheSkillBody() {
+            String get = """
+                    {"jsonrpc":"2.0","id":7,"method":"prompts/get",
+                     "params":{"name":"analyze-jfr"}}""";
+
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(get))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.result.messages[0].content.text").asString()
+                    .contains("profiles_list");
+        }
+
+        @Test
+        void refusesAPromptItDoesNotHave() {
+            String get = """
+                    {"jsonrpc":"2.0","id":8,"method":"prompts/get",
+                     "params":{"name":"nonsense"}}""";
+
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(get))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.error.code").isEqualTo(-32602);
+        }
+    }
+
+    @Nested
+    class Resources {
+
+        @Test
+        void advertisesTheResourceCapability() {
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(INITIALIZE))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.result.capabilities.resources").isNotNull();
+        }
+
+        @Test
+        void listsTheCatalogue() {
+            String list = """
+                    {"jsonrpc":"2.0","id":9,"method":"resources/list"}""";
+
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(list))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.result.resources[0].uri").asString().isEqualTo("jeffrey://profiles");
+        }
+
+        /**
+         * A template carries placeholders and is not itself fetchable, so it goes under uriTemplate —
+         * a client that reads it as a uri will try to fetch it.
+         */
+        @Test
+        void listsThePerProfileTemplatesSeparately() {
+            String list = """
+                    {"jsonrpc":"2.0","id":10,"method":"resources/templates/list"}""";
+
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(list))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.result.resourceTemplates[*].uriTemplate").asArray()
+                    .contains("jeffrey://profile/{profileId}/summary");
+        }
+
+        @Test
+        void refusesAUriItDoesNotServe() {
+            String read = """
+                    {"jsonrpc":"2.0","id":11,"method":"resources/read",
+                     "params":{"uri":"jeffrey://nonsense"}}""";
+
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(read))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.error.code").isEqualTo(-32602);
+        }
+    }
+
+    /**
+         * Echoing a version the server may not speak promises something it cannot keep, so an
+         * unrecognised one is answered with what this server does implement.
+         */
+        @Test
+        void answersAnUnknownProtocolVersionWithTheOneItSpeaks() {
+            String future = """
+                    {"jsonrpc":"2.0","id":1,"method":"initialize",
+                     "params":{"protocolVersion":"2099-01-01","capabilities":{}}}""";
+
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(future))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.result.protocolVersion").asString().isEqualTo("2025-06-18");
+        }
+
+        @Test
+        void keepsAnOlderVersionItStillSpeaks() {
+            String older = """
+                    {"jsonrpc":"2.0","id":1,"method":"initialize",
+                     "params":{"protocolVersion":"2024-11-05","capabilities":{}}}""";
+
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(older))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.result.protocolVersion").asString().isEqualTo("2024-11-05");
         }
     }
 

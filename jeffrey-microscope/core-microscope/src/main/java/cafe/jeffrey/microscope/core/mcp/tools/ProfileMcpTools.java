@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
+import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.feature.FeatureType;
@@ -81,7 +83,23 @@ public class ProfileMcpTools {
             "heap-dump/biggest-objects",
             "heap-dump/dominator-tree",
             "heap-dump/histogram",
-            "heap-dump/gc-root-path");
+            "heap-dump/gc-root-path",
+            "security",
+            "system",
+            "modules",
+            "string-symbol-tables",
+            "garbage-collection/g1",
+            "garbage-collection/zgc",
+            "memory-issues/finalizers",
+            "memory-issues/reference-processing",
+            "events",
+            "oql");
+
+    /**
+     * How many auto-analysis findings the summary carries. They are ordered by severity, so the first
+     * few are the ones worth acting on; the rest are what jvm_autoAnalysis is for.
+     */
+    private static final int TOP_FINDINGS_LIMIT = 5;
 
     private static final String NO_SAMPLER_HEALTH =
             "This profile carries no jdk.CPUTimeSampleLoss events, so there is nothing to say about "
@@ -136,13 +154,17 @@ public class ProfileMcpTools {
     public String features() {
         return McpToolOutput.json(new ProfileCapabilities(
                 disabledFeatures().stream().map(Enum::name).sorted().toList(),
-                profileManager.flamegraphManager().allEventSummaries().stream()
-                        .map(summary -> new RecordedEventType(
-                                summary.code(),
-                                summary.label(),
-                                summary.primary().samples(),
-                                summary.primary().weight()))
-                        .toList()));
+                recordedEventTypes()));
+    }
+
+    private List<RecordedEventType> recordedEventTypes() {
+        return profileManager.flamegraphManager().allEventSummaries().stream()
+                .map(summary -> new RecordedEventType(
+                        summary.code(),
+                        summary.label(),
+                        summary.primary().samples(),
+                        summary.primary().weight()))
+                .toList();
     }
 
     @Tool(description = "Whether the samples every other tool reasons over can be trusted: how many "
@@ -165,6 +187,29 @@ public class ProfileMcpTools {
                 UiLinks.profile(profileManager.info().id())));
     }
 
+    @Tool(description = "One call that orients you in a profile: what it is and what it covers, which "
+            + "analysis features it has data for, every event type it recorded with its totals, "
+            + "whether the samples can be trusted, and the auto-analysis findings when they have been "
+            + "computed. Start here rather than with profiles_get, profiles_features and "
+            + "profiles_samplerHealth in turn — this is those three and the findings, and what it "
+            + "reports decides which family answers the question.")
+    public String summary() {
+        ProfileInfo info = profileManager.info();
+        List<AutoAnalysisResult> findings = profileManager.autoAnalysisManager().analysisResults();
+
+        return LinkedOutput.json(new ProfileSummary(
+                info.id(),
+                info.name(),
+                info.eventSource().name(),
+                info.profilingStartedAt() == null ? null : info.profilingStartedAt().toEpochMilli(),
+                info.profilingFinishedAt() == null ? null : info.profilingFinishedAt().toEpochMilli(),
+                disabledFeatures().stream().map(Enum::name).sorted().toList(),
+                recordedEventTypes(),
+                findings.stream().limit(TOP_FINDINGS_LIMIT).map(Finding::of).toList(),
+                findings.isEmpty(),
+                UiLinks.profile(info.id())));
+    }
+
     @Tool(description = "A link that opens this profile in the Jeffrey web UI, for a reader who wants "
             + "to look at the interactive version of what was just analysed.")
     public String link() {
@@ -177,16 +222,19 @@ public class ProfileMcpTools {
             + "URL is for them, not for you: it carries nothing you can analyse and reading it back "
             + "tells you nothing, so call this to end an explanation, not to gather information.")
     public String viewLink(
-            @ToolParam(description = "Which view to open. One of: dashboard, auto-analysis, overview, "
+            @ToolParam(required = false, description = "Which view to open. One of: dashboard, auto-analysis, overview, "
                     + "event-types, flags, garbage-collection, garbage-collection/timeseries, "
                     + "garbage-collection/configuration, allocations, nmt, native-memory, "
                     + "memory-issues/leak-candidates, thread-statistics, threads-timeline, "
                     + "virtual-threads, thread-dumps, jit-compilation, class-loading, exceptions, "
                     + "vm-operations, container/cpu-throttling, blocking-operations, socket-io, "
-                    + "file-io, heap-dump/leak-suspects, heap-dump/biggest-objects, "
-                    + "heap-dump/dominator-tree, heap-dump/histogram, heap-dump/gc-root-path")
+                    + "file-io, security, system, modules, string-symbol-tables, events, oql, "
+                    + "garbage-collection/g1, garbage-collection/zgc, memory-issues/finalizers, "
+                    + "memory-issues/reference-processing, heap-dump/leak-suspects, "
+                    + "heap-dump/biggest-objects, heap-dump/dominator-tree, heap-dump/histogram, "
+                    + "heap-dump/gc-root-path")
             String view,
-            @ToolParam(description = "Object id to preselect. Only meaningful for "
+            @ToolParam(required = false, description = "Object id to preselect. Only meaningful for "
                     + "heap-dump/gc-root-path, where it runs the path-to-GC-root search for that "
                     + "object; ignored by every other view.")
             String objectId) {
@@ -227,6 +275,30 @@ public class ProfileMcpTools {
     private record ProfileCapabilities(
             List<String> disabledFeatures,
             List<RecordedEventType> eventTypes) {
+    }
+
+    /**
+     * @param autoAnalysisComputed false when nothing has run the rule set yet, which is why findings is
+     *                             empty — different from a profile the rules found nothing wrong with
+     */
+    private record ProfileSummary(
+            String profileId,
+            String name,
+            String eventSource,
+            Long startedAtMillis,
+            Long finishedAtMillis,
+            List<String> disabledFeatures,
+            List<RecordedEventType> eventTypes,
+            List<Finding> topFindings,
+            boolean autoAnalysisPending,
+            String uiLink) {
+    }
+
+    private record Finding(String rule, String severity, String summary) {
+
+        static Finding of(AutoAnalysisResult result) {
+            return new Finding(result.rule(), result.severity().name(), result.summary());
+        }
     }
 
     private record SamplerHealth(

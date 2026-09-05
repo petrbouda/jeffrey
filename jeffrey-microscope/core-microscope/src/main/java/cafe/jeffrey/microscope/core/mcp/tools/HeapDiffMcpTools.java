@@ -88,10 +88,10 @@ public class HeapDiffMcpTools {
             + "question - one dump cannot tell a leak from a large working set, and two can. Pass the "
             + "earlier dump as the baseline; backwards, every growth reads as a shrink.")
     public String diff(
-            @ToolParam(description = "Profile id of the earlier heap dump to measure against. The "
+            @ToolParam(required = true, description = "Profile id of the earlier heap dump to measure against. The "
                     + "profile this tool is called on is the later one.")
             String baselineProfileId,
-            @ToolParam(description = "How many classes to rank (default 30, maximum 200)")
+            @ToolParam(required = false, description = "How many classes to rank (default 30, maximum 200)")
             Integer topN) {
 
         HeapDumpManager primary = profileManager.heapDumpManager();

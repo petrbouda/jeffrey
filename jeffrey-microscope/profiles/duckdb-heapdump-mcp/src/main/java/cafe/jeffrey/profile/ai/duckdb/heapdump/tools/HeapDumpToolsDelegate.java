@@ -19,6 +19,7 @@
 package cafe.jeffrey.profile.ai.duckdb.heapdump.tools;
 
 import cafe.jeffrey.profile.heapdump.model.*;
+import cafe.jeffrey.profile.heapdump.view.SqlQueryResult;
 
 import java.util.List;
 
@@ -57,6 +58,14 @@ public interface HeapDumpToolsDelegate {
     InstanceTreeResponse getReferrers(long objectId, int limit, int offset);
 
     OQLQueryResult executeQuery(OQLQueryRequest request);
+
+    /**
+     * Runs a read-only SQL query against the heap-dump index, capped at {@code maxRows}.
+     * <p>
+     * Distinct from {@link #executeQuery(OQLQueryRequest)}, which parses OQL: OQL asks object
+     * questions over the graph, this asks table questions of the index the graph is stored in.
+     */
+    SqlQueryResult executeSql(String sql, int maxRows);
 
     ClassLoaderReport getClassLoaderAnalysis();
 

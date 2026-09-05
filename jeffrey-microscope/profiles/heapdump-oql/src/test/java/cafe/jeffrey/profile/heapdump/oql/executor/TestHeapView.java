@@ -18,6 +18,7 @@
 package cafe.jeffrey.profile.heapdump.oql.executor;
 
 import cafe.jeffrey.profile.heapdump.view.DumpMetadata;
+import cafe.jeffrey.profile.heapdump.view.SqlQueryResult;
 import cafe.jeffrey.profile.heapdump.view.GcRootRow;
 import cafe.jeffrey.profile.heapdump.view.HeapView;
 import cafe.jeffrey.profile.heapdump.view.HistogramRow;
@@ -405,4 +406,14 @@ final class TestHeapView implements HeapView {
     public long readLong(long fileOffset) {
         throw new UnsupportedOperationException();
     }
+
+    /**
+     * Ad-hoc SQL is not what these tests exercise — they drive the OQL executors against a hand-built
+     * graph, and a fake that answered SQL would have to be a database.
+     */
+    @Override
+    public SqlQueryResult query(String sql, int maxRows) {
+        throw new UnsupportedOperationException("TestHeapView does not run SQL");
+    }
+
 }

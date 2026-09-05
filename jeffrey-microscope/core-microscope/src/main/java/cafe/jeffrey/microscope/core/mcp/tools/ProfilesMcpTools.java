@@ -52,11 +52,13 @@ public class ProfilesMcpTools {
 
     @Tool(description = "List every profile analysed in this Jeffrey installation. Start here: every "
             + "other tool takes one of the profile ids this returns. A profile is one analysed "
-            + "recording (JFR) or heap dump.")
+            + "recording (JFR) or heap dump. A row whose `ready` column reads 'building' is still "
+            + "being parsed and cannot be analysed yet - recordings_status reports how far it has "
+            + "got.")
     public String list(
-            @ToolParam(description = "Optional case-insensitive substring matched against the profile name")
+            @ToolParam(required = false, description = "Optional case-insensitive substring matched against the profile name")
             String search,
-            @ToolParam(description = "Maximum number of profiles to return (default 100)")
+            @ToolParam(required = false, description = "Maximum number of profiles to return (default 100)")
             Integer limit) {
 
         List<ProfileInfo> profiles = coreRepositories.findAllProfiles().stream()
@@ -71,8 +73,8 @@ public class ProfilesMcpTools {
         }
 
         StringBuilder out = new StringBuilder(1024);
-        out.append("| profile_id | name | project | event source | recorded | duration | modified |\n");
-        out.append("|---|---|---|---|---|---|---|\n");
+        out.append("| profile_id | name | project | event source | recorded | duration | ready | modified |\n");
+        out.append("|---|---|---|---|---|---|---|---|\n");
         for (ProfileInfo profile : profiles) {
             out.append("| ").append(profile.id())
                     .append(" | ").append(sanitize(profile.name()))
@@ -80,12 +82,28 @@ public class ProfilesMcpTools {
                     .append(" | ").append(profile.eventSource())
                     .append(" | ").append(profile.profilingStartedAt())
                     .append(" | ").append(profile.duration())
+                    .append(" | ").append(readiness(profile))
                     .append(" | ").append(profile.modified() ? "yes" : "no")
                     .append(" |\n");
         }
         out.append("\nA `modified` profile has had frames renamed or collapsed, so its frame names may "
                 + "differ from the source code.\n");
+        out.append("A profile listed as `building` has a row but not yet its events: its recording is "
+                + "still being parsed. Its id is real, and every analysis tool will answer emptily "
+                + "until it is `yes` - recordings_status says when.\n");
         return McpToolOutput.capped(out.toString());
+    }
+
+    /**
+     * Whether a profile can actually be analysed.
+     * <p>
+     * A profile row is inserted before its recording is parsed, so a profile can exist for minutes
+     * without holding a single event. Listing it is right — it is real, and hiding it would make an
+     * import look lost — but listing it as though it were finished is not: every tool would answer
+     * about an empty database and nothing would say why.
+     */
+    private static String readiness(ProfileInfo profile) {
+        return profile.enabled() ? "yes" : "building";
     }
 
     private static long boundedLimit(Integer limit) {

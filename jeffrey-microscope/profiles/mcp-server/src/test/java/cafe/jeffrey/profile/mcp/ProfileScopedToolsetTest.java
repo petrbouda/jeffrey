@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -60,11 +61,17 @@ class ProfileScopedToolsetTest {
         }
 
         @Test
-        void marksProfileIdRequiredAndNothingElse() {
+        void marksProfileIdRequiredAlongsideTheParametersThatSaidTheyWere() {
             McpToolSpec spec = specOf("sample_describe");
-            ArrayNode required = (ArrayNode) spec.inputSchema().get("required");
-            assertEquals(1, required.size());
-            assertEquals(ProfileScopedToolset.PROFILE_ID_ARGUMENT, required.get(0).asString());
+            List<String> required = requiredOf(spec);
+            assertTrue(required.contains(ProfileScopedToolset.PROFILE_ID_ARGUMENT));
+            assertTrue(required.contains("suffix"), "a @ToolParam that is required should say so in the schema");
+        }
+
+        @Test
+        void leavesAnOptionalParameterOutOfRequired() {
+            List<String> required = requiredOf(specOf("sample_greet"));
+            assertEquals(List.of(ProfileScopedToolset.PROFILE_ID_ARGUMENT), required);
         }
 
         @Test
@@ -144,6 +151,14 @@ class ProfileScopedToolsetTest {
                 .findFirst()
                 .orElseThrow();
     }
+    private static List<String> requiredOf(McpToolSpec spec) {
+        ArrayNode required = (ArrayNode) spec.inputSchema().get("required");
+        List<String> names = new ArrayList<>();
+        for (JsonNode node : required) {
+            names.add(node.asString());
+        }
+        return names;
+    }
 
     /**
      * Stands in for a real profile-scoped tool class: constructed against one profile, then asked a
@@ -160,6 +175,12 @@ class ProfileScopedToolsetTest {
         @Tool(description = "Describe the profile this toolset was resolved for")
         public String describe(@ToolParam(description = "appended to the answer") String suffix) {
             return profileId + (suffix == null ? "" : suffix);
+        }
+
+        @Tool(description = "Greet, with everything optional")
+        public String greet(
+                @ToolParam(required = false, description = "who to greet") String name) {
+            return profileId + (name == null ? "" : name);
         }
     }
 }

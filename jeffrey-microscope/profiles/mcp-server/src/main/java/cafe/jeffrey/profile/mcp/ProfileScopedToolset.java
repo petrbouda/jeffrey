@@ -67,12 +67,27 @@ public final class ProfileScopedToolset<T> implements McpToolProvider {
             String prefix,
             Function<String, T> targetResolver,
             Set<String> excludedMethods) {
+        this(targetType, prefix, targetResolver, excludedMethods, McpToolAnnotations.READ_ONLY);
+    }
+
+    /**
+     * @param defaultAnnotations what this family does to the world. Every profile-scoped family reads,
+     *                           so the default stands unless a single method declares otherwise with
+     *                           {@link McpToolHints} — the compute tools, which build an index or a report.
+     */
+    public ProfileScopedToolset(
+            Class<T> targetType,
+            String prefix,
+            Function<String, T> targetResolver,
+            Set<String> excludedMethods,
+            McpToolAnnotations defaultAnnotations) {
         this.prefix = prefix;
         this.index = new ToolMethodIndex(
                 targetType,
                 prefix,
                 List.of(new ToolMethodIndex.SyntheticParam(PROFILE_ID_ARGUMENT, PROFILE_ID_DESCRIPTION)),
-                excludedMethods);
+                excludedMethods,
+                defaultAnnotations);
         this.targetResolver = targetResolver;
     }
 

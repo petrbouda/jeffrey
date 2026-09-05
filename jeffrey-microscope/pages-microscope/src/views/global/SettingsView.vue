@@ -440,6 +440,18 @@
                 :icon="mcpHubsEnabled ? 'bi bi-hdd-network' : 'bi bi-slash-circle'"
                 size="s"
               />
+              <Badge
+                :value="mcpComputeEnabled ? 'Compute on' : 'Compute off'"
+                :variant="mcpComputeEnabled ? 'success' : 'secondary'"
+                :icon="mcpComputeEnabled ? 'bi bi-cpu' : 'bi bi-slash-circle'"
+                size="s"
+              />
+              <Badge
+                :value="mcpTokenRequired ? 'Token required' : 'No token'"
+                :variant="mcpTokenRequired ? 'success' : 'warning'"
+                :icon="mcpTokenRequired ? 'bi bi-shield-lock-fill' : 'bi bi-shield-exclamation'"
+                size="s"
+              />
             </div>
             <div v-if="mcpEnabled && mcpIngestEnabled" class="settings-hint">
               The agent can also analyse a recording for you: point it at a <code>.jfr</code> or
@@ -464,6 +476,26 @@
               Hub access is off, so the agent works only with recordings already on this machine.
               Remove <code>jeffrey.microscope.mcp.hubs.enabled=false</code> and restart to let it
               pull recordings from a connected hub.
+            </div>
+            <div v-if="mcpEnabled && mcpComputeEnabled" class="settings-hint">
+              The agent can also build what a heap dump needs before it can be read &mdash; the index,
+              the dominator tree that retained sizes come from, and the cached reports like Leak
+              Suspects. Without this it can only read reports somebody already opened here. Each run
+              can hold a core for minutes; set
+              <code>jeffrey.microscope.mcp.compute.enabled=false</code> and restart on a Jeffrey that
+              shares a machine.
+            </div>
+            <div v-else-if="mcpEnabled" class="settings-hint">
+              Compute is off, so the agent reads heap reports but cannot build one. A dump nobody has
+              opened here will answer <em>&ldquo;has not been run yet&rdquo;</em> to it. Remove
+              <code>jeffrey.microscope.mcp.compute.enabled=false</code> and restart to let it prepare
+              a dump itself.
+            </div>
+            <div v-if="mcpEnabled && !mcpTokenRequired" class="settings-hint">
+              The endpoint has no token, so anything that can reach this address can read every
+              profile here. That is fine while Jeffrey is on localhost. Before exposing it to another
+              machine, set <code>jeffrey.microscope.mcp.token</code> and restart &mdash; the snippets
+              below then carry the header your client has to send.
             </div>
             <div v-if="!mcpEnabled" class="settings-hint">
               Serving is on unless the deployment turns it off. This one sets
@@ -637,6 +669,8 @@ const mcpStatus = ref<McpAccessStatus | null>(null);
 const mcpEnabled = computed(() => mcpStatus.value?.enabled === true);
 const mcpIngestEnabled = computed(() => mcpStatus.value?.ingestEnabled === true);
 const mcpHubsEnabled = computed(() => mcpStatus.value?.hubsEnabled === true);
+const mcpComputeEnabled = computed(() => mcpStatus.value?.computeEnabled === true);
+const mcpTokenRequired = computed(() => mcpStatus.value?.tokenRequired === true);
 const aiEnabled = computed(() => aiToggle.value);
 
 const isOllama = computed(() => settings.get('jeffrey.microscope.ai.provider') === 'ollama');

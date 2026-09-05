@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.server.HubManager;
@@ -105,7 +106,17 @@ public class HubsMcpTools {
     private final HubsManager hubsManager;
     private final ProjectManagerResolver resolver;
     private final RecordingsManager recordingsManager;
+    private static final String DOWNLOAD_STILL_RUNNING =
+            "The transfer is still running. Call hubs_download again with the same session_ref to "
+                    + "check: it answers from the local store first, so once the transfer lands it "
+                    + "returns the recordingId rather than fetching the session a second time.";
+
     private final Clock clock;
+
+    /**
+     * One transfer per session at a time, and no call waits longer than a client will.
+     */
+    private final BoundedJobs<String, String> downloads = new BoundedJobs<>();
     private final HubSessionScan scan;
 
     public HubsMcpTools(
@@ -160,22 +171,23 @@ public class HubsMcpTools {
             + "column says a session has already been pulled into this Jeffrey, so it can be analysed "
             + "without downloading it again.")
     public String sessions(
-            @ToolParam(description = "Optional hub filter: a hub id, or part of a hub name as "
+            @ToolParam(required = false, description = "Optional hub filter: a hub id, or part of a hub name as "
                     + "hubs_list prints it, e.g. production. Omit to search every hub")
             String hub,
-            @ToolParam(description = "Optional filter on part of a workspace name or its reference id")
+            @ToolParam(required = false, description = "Optional filter on part of a workspace name or its reference id")
             String workspace,
-            @ToolParam(description = "Optional filter on part of a project name or label, e.g. checkout")
+            @ToolParam(required = false, description = "Optional filter on part of a project name or label, e.g. checkout")
             String project,
-            @ToolParam(description = "Only sessions that were recording at some point within the last "
+            @ToolParam(required = false, description = "Only sessions that were recording at some point within the last "
                     + "N minutes - 60 for the last hour, 1440 for the last day. This is an overlap, "
                     + "not a start time: a JVM that began recording three hours ago and is still "
                     + "running does match a 60-minute window")
             Integer withinLastMinutes,
-            @ToolParam(description = "Only sessions in this status: ACTIVE for one still recording, "
+            @ToolParam(required = false, description = "Only sessions in this status: ACTIVE for one still recording, "
                     + "FINISHED for one that has stopped. Omit for both")
+            @ToolParamValues({"ACTIVE", "FINISHED"})
             String status,
-            @ToolParam(description = "Most rows to return across all hubs. Default 50, maximum 500")
+            @ToolParam(required = false, description = "Most rows to return across all hubs. Default 50, maximum 500")
             Integer limit) {
 
         int rowLimit = boundedLimit(limit);
@@ -215,12 +227,13 @@ public class HubsMcpTools {
             + "session's finished recording files into a single local recording and bringing its "
             + "artifacts - heap dumps, JVM and application logs - with it. Takes the session_ref from "
             + "a hubs_sessions row and nothing else. Returns a recording id: pass it to "
-            + "recordings_analyzeRecording to build the profile the analysis tools take. The call "
-            + "returns when the transfer finishes, which for a large session is a wait rather than an "
-            + "acknowledgement. A session already downloaded is returned as it is rather than fetched "
-            + "twice.")
+            + "recordings_analyzeRecording to build the profile the analysis tools take. A small "
+            + "session transfers inside this call; a large one takes longer than a client waits, so "
+            + "the answer is a status saying the transfer continues and calling this tool again with "
+            + "the same session_ref reports it once it lands. A session already downloaded is returned "
+            + "as it is rather than fetched twice.")
     public String download(
-            @ToolParam(description = "The session_ref from a hubs_sessions row, copied exactly")
+            @ToolParam(required = true, description = "The session_ref from a hubs_sessions row, copied exactly")
             String sessionRef) {
 
         HubSessionRef ref = HubSessionRef.decode(sessionRef);
@@ -239,7 +252,19 @@ public class HubsMcpTools {
 
         LOG.info("Downloading a hub session over MCP: hub_id={} project_id={} session_id={}",
                 ref.hubId(), ref.projectId(), ref.sessionId());
-        String recordingId = project.recordingsDownloadManager().mergeAndDownloadSession(ref.sessionId());
+        Optional<String> transferred = downloads.runWithin(
+                ref.sessionId(),
+                () -> project.recordingsDownloadManager().mergeAndDownloadSession(ref.sessionId()));
+        if (transferred.isEmpty()) {
+            // Nothing to poll but this tool: it answers from the local store first, so calling it again
+            // with the same ref reports the finished copy once the transfer lands.
+            return McpToolOutput.json(new DownloadInProgress(
+                    ref.sessionId(),
+                    sanitize(session.name()),
+                    session.totalSizeBytes(),
+                    DOWNLOAD_STILL_RUNNING));
+        }
+        String recordingId = transferred.get();
 
         List<RepositoryFile> finished = finishedFiles(session);
         return McpToolOutput.json(new DownloadedSession(
@@ -491,6 +516,14 @@ public class HubsMcpTools {
             return "";
         }
         return value.replace('|', '/').replace('\n', ' ').replace('\r', ' ');
+    }
+
+    /**
+     * @param status what to do next, rather than a bare flag: the caller is holding a tool result and
+     *               needs to know that calling the same tool again is the way to check
+     */
+    private record DownloadInProgress(
+            String sessionId, String sessionName, long totalSizeBytes, String status) {
     }
 
     private record DownloadedSession(

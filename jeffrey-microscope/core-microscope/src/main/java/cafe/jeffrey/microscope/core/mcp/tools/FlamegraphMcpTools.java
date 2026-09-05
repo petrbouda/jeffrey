@@ -157,30 +157,30 @@ public class FlamegraphMcpTools {
             + "go'. Frames below the prune threshold are dropped and their weight rolled up into the "
             + "parent, so the accounting stays exact.")
     public String export(
-            @ToolParam(description = "JFR event type to graph, e.g. 'jdk.ExecutionSample' for CPU, "
+            @ToolParam(required = true, description = "JFR event type to graph, e.g. 'jdk.ExecutionSample' for CPU, "
                     + "'jdk.ObjectAllocationSample' for allocation, 'jdk.JavaMonitorEnter' for lock "
                     + "contention. Use flamegraph_list to see what this profile recorded.")
             String eventType,
-            @ToolParam(description = "Only show frames at or above this percentage of total samples "
+            @ToolParam(required = false, description = "Only show frames at or above this percentage of total samples "
                     + "(exclusive range 0-100). Lower means more detail and a longer document; the "
                     + "configured default is used when omitted.")
             Double thresholdPct,
-            @ToolParam(description = "Start of the window, in milliseconds from the beginning of the "
+            @ToolParam(required = false, description = "Start of the window, in milliseconds from the beginning of the "
                     + "recording. Omit for the whole recording.")
             Long startMs,
-            @ToolParam(description = "End of the window, in milliseconds from the beginning of the "
+            @ToolParam(required = false, description = "End of the window, in milliseconds from the beginning of the "
                     + "recording. Omit for the whole recording.")
             Long endMs,
-            @ToolParam(description = "Split the graph per thread instead of aggregating all threads")
+            @ToolParam(required = false, description = "Split the graph per thread instead of aggregating all threads")
             Boolean threadMode,
-            @ToolParam(description = "Weigh frames by the event's weight (bytes allocated, nanoseconds "
+            @ToolParam(required = false, description = "Weigh frames by the event's weight (bytes allocated, nanoseconds "
                     + "blocked) instead of by sample count")
             Boolean useWeight,
-            @ToolParam(description = "Highlight frames matching this substring")
+            @ToolParam(required = false, description = "Highlight frames matching this substring")
             String search,
-            @ToolParam(description = "Drop samples of threads that were idle")
+            @ToolParam(required = false, description = "Drop samples of threads that were idle")
             Boolean excludeIdle,
-            @ToolParam(description = "Drop samples that were not executing Java code")
+            @ToolParam(required = false, description = "Drop samples that were not executing Java code")
             Boolean excludeNonJava) {
 
         Type type = requireEventType(eventType);

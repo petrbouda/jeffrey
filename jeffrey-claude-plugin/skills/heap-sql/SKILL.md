@@ -86,7 +86,15 @@ WITH RECURSIVE subs AS (
 
 ## Caps and caveats
 
-`heap_executeQuery` accepts SELECT/WITH only and enforces a row cap and a timeout — aggregate in SQL.
+`heap_executeQuery` accepts SELECT and WITH only, caps the rows and times out after thirty seconds —
+aggregate in SQL rather than fetching rows to count them. It runs against the index directly, so
+`information_schema` works and so do CTEs.
+
+**SQL is not the only query language here.** `heap_oql` runs Jeffrey's OQL against the object graph
+the index implies: every instance of a type *including its subclasses*
+(`SELECT * FROM INSTANCEOF java.util.Map`), the retained set of a selection
+(`SELECT AS RETAINED SET * FROM com.acme.Cache`), a filter over an object's own fields. Those have no
+SQL spelling. Reach for SQL when the question is about the tables, and OQL when it is about objects.
 Shallow size is the object itself; retained size is what dies with it, and only the second answers
 "who is holding this memory". Object ids are stable within one dump and meaningless across dumps.
 

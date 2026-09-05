@@ -22,11 +22,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import cafe.jeffrey.shared.common.Json;
+import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -69,9 +71,51 @@ class ReflectiveToolsetTest {
     }
 
     @Test
+    void emitsAllowedValuesForAStringParameterThatDeclaresThem() {
+        ObjectNode properties = (ObjectNode) specOf("test_pick").inputSchema().get("properties");
+        ArrayNode allowed = (ArrayNode) properties.get("direction").get("enum");
+        assertEquals(2, allowed.size());
+        assertEquals("SERVER", allowed.get(0).asString());
+        assertEquals("CLIENT", allowed.get(1).asString());
+    }
+
+    @Test
+    void emitsAllowedValuesForAnEnumTypedParameter() {
+        ObjectNode properties = (ObjectNode) specOf("test_sort").inputSchema().get("properties");
+        ArrayNode allowed = (ArrayNode) properties.get("order").get("enum");
+        assertEquals(2, allowed.size());
+    }
+
+    @Test
+    void bindsAnEnumTypedArgumentByName() {
+        String result = toolset.call("test_sort", Json.createObject().put("order", "desc"));
+        assertEquals("DESC", result);
+    }
+
+    @Test
+    void refusesAnUnknownEnumValueNamingTheAlternatives() {
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> toolset.call("test_sort", Json.createObject().put("order", "sideways")));
+        assertTrue(e.getMessage().contains("ASC"));
+    }
+
+    @Test
+    void marksEveryToolReadOnlyUnlessItSaysOtherwise() {
+        assertTrue(specOf("test_pick").annotations().readOnly());
+        assertFalse(specOf("test_write").annotations().readOnly());
+    }
+
+    @Test
     void rejectsUnknownTool() {
         assertThrows(IllegalArgumentException.class,
                 () -> toolset.call("test_missing", Json.createObject()));
+    }
+
+    private McpToolSpec specOf(String name) {
+        return toolset.specs().stream()
+                .filter(spec -> spec.name().equals(name))
+                .findFirst()
+                .orElseThrow();
     }
 
     static class SampleTools {
@@ -87,5 +131,28 @@ class ReflectiveToolsetTest {
                 @ToolParam(description = "second addend") int b) {
             return String.valueOf(a + b);
         }
+
+        @Tool(description = "Pick a direction carried as a string")
+        public String pick(
+                @ToolParam(required = false, description = "which side")
+                @ToolParamValues({"SERVER", "CLIENT"})
+                String direction) {
+            return String.valueOf(direction);
+        }
+
+        @Tool(description = "Sort in an order named by a real enum")
+        public String sort(@ToolParam(required = false, description = "which way") Order order) {
+            return order == null ? "none" : order.name();
+        }
+
+        @Tool(description = "A tool that writes")
+        @McpToolHints(readOnly = false)
+        public String write() {
+            return "written";
+        }
+    }
+
+    enum Order {
+        ASC, DESC
     }
 }

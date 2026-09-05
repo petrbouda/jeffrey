@@ -18,6 +18,12 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.shared.common.model.ProfileInfo;
+import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunRequest;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
+import cafe.jeffrey.profile.ProfileInitStages;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
@@ -36,6 +42,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -45,6 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -60,14 +71,20 @@ class RecordingsMcpToolsTest {
     @Mock
     RecordingsManager recordingsManager;
 
+    private static final Clock CLOCK =
+            Clock.fixed(Instant.parse("2026-03-01T12:00:00Z"), ZoneOffset.UTC);
+
     private RecordingsMcpTools tools;
+    private PipelineRunRegistry<String> runRegistry;
 
     @TempDir
     Path tempDir;
 
     @BeforeEach
     void setUp() {
-        tools = new RecordingsMcpTools(recordingsManager);
+        runRegistry = new PipelineRunRegistry<>(
+                ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK);
+        tools = new RecordingsMcpTools(recordingsManager, runRegistry);
         // The tools build a UI link off the incoming request, the way ProfileMcpTools#link does.
         RequestContextHolder.setRequestAttributes(
                 new ServletRequestAttributes(new MockHttpServletRequest()));
@@ -77,6 +94,18 @@ class RecordingsMcpToolsTest {
         Path file = tempDir.resolve(filename);
         Files.writeString(file, "not really a recording, but a real file");
         return file;
+    }
+
+    /**
+     * Whether the profile behind the recording is finished and usable.
+     */
+    private void profileIs(boolean enabled) {
+        ProfileManager profileManager = mock(ProfileManager.class);
+        when(profileManager.info()).thenReturn(new ProfileInfo(
+                PROFILE_ID, null, null, "app.jfr", RecordingEventSource.JDK,
+                Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, enabled, false,
+                RECORDING_ID));
+        when(recordingsManager.profile(PROFILE_ID)).thenReturn(Optional.of(profileManager));
     }
 
     private static Recording recording(boolean hasProfile) {
@@ -270,4 +299,116 @@ class RecordingsMcpToolsTest {
             assertTrue(row.contains("before/after"));
         }
     }
+
+    /**
+     * Parsing a large recording outlasts the call, and what the caller does with that answer decides
+     * whether they end up with one profile or two.
+     */
+    @Nested
+    class SlowAnalysis {
+
+        @Test
+        void handsBackSomethingToPollRatherThanHangingOn() {
+            // A budget short enough that the stubbed work cannot beat it, so the timeout path is the
+            // one under test rather than a race.
+            RecordingsMcpTools slow = new RecordingsMcpTools(
+                    recordingsManager, runRegistry, new BoundedJobs<>(Duration.ofMillis(50)));
+            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
+                Thread.sleep(Duration.ofSeconds(5));
+                return PROFILE_ID;
+            });
+
+            String result = slow.analyzeRecording(RECORDING_ID);
+
+            assertTrue(result.contains("\"status\":\"running\""));
+            assertTrue(result.contains(RECORDING_ID));
+            // Explicitly null rather than absent: the field is always there, and its emptiness is what
+            // says there is no profile to reach for yet.
+            assertTrue(result.contains("\"profileId\":null"), result);
+        }
+
+        /**
+         * The whole point of a status tool: a second analyze call would parse the file again.
+         */
+        @Test
+        void reportsTheProfileOnceItIsReady() {
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+            profileIs(true);
+
+            String result = tools.status(RECORDING_ID);
+
+            assertTrue(result.contains(PROFILE_ID));
+            verify(recordingsManager, never()).analyzeRecording(RECORDING_ID);
+        }
+
+        /**
+         * The profile row is inserted before the parse starts, so a recording "having" a profile says
+         * nothing about whether that profile works yet. Reporting it as finished hands back an id whose
+         * events are still being written -- which reads as success, and is the one answer worse than
+         * "not yet".
+         */
+        @Test
+        void doesNotReportAProfileThatIsNotEnabledYet() {
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+            profileIs(false);
+
+            String result = tools.status(RECORDING_ID);
+
+            assertTrue(result.contains("\"status\":\"running\""),
+                    "a profile that is not enabled is still being built: " + result);
+            assertTrue(result.contains("still being written"));
+        }
+
+        /**
+         * A boolean cannot say whether a parse is a minute in or nearly done; the stages can.
+         */
+        @Test
+        void carriesTheStagesTheRegistryKnowsAbout() {
+            runRegistry.runInline(PipelineRunRequest.of(
+                    PROFILE_ID, run -> run.runStage(ProfileInitStages.PARSE, () -> {
+                    })));
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+            profileIs(false);
+
+            String result = tools.status(RECORDING_ID);
+
+            assertTrue(result.contains("\"stages\""));
+            assertTrue(result.contains(ProfileInitStages.PARSE), result);
+        }
+
+        /**
+         * A parse started by a process that has since restarted leaves nothing to report but the state
+         * of the profile itself, which is honest rather than empty.
+         */
+        @Test
+        void reportsNoStagesWhenNoRunIsTracked() {
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+            profileIs(false);
+
+            String result = tools.status(RECORDING_ID);
+
+            assertTrue(result.contains("\"stages\":[]"), result);
+            assertTrue(result.contains("\"status\":\"running\""));
+        }
+
+        @Test
+        void saysNothingIsBuildingOneWhenNothingIs() {
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(false)));
+
+            String result = tools.status(RECORDING_ID);
+
+            assertTrue(result.contains("\"status\":\"not_started\""));
+        }
+
+        @Test
+        void refusesAStatusCallForARecordingThatIsNotThere() {
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.empty());
+
+            IllegalArgumentException e = assertThrows(
+                    IllegalArgumentException.class, () -> tools.status(RECORDING_ID));
+
+            assertTrue(e.getMessage().contains("No such recording"));
+        }
+    }
+
 }

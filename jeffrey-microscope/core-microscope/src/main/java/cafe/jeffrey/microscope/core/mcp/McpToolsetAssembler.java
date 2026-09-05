@@ -19,10 +19,12 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.mcp.tools.CompareMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.EventTypeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.FlamegraphMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.BlockingMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.GrpcMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapDiffMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HeapOqlMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.IoMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HttpMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.JdbcMcpTools;
@@ -41,8 +43,12 @@ import cafe.jeffrey.microscope.core.web.controllers.profile.HeapDumpManagerTools
 import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpMcpTools;
 import cafe.jeffrey.profile.ai.duckdb.jfr.tools.DuckDbMcpTools;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.mcp.tools.HeapComputeMcpTools;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.mcp.CompositeToolset;
+import cafe.jeffrey.profile.mcp.McpToolAnnotations;
+import cafe.jeffrey.profile.mcp.McpToolSpec;
 import cafe.jeffrey.profile.mcp.McpToolProvider;
 import cafe.jeffrey.profile.mcp.ProfileScopedToolset;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
@@ -117,6 +123,7 @@ public class McpToolsetAssembler {
             JfrFlamegraphPanelProvider jfrPanelProvider,
             StackSampleFlamegraphPanelProvider stackSamplePanelProvider,
             RecordingCommitResolver recordingCommitResolver,
+            HeapDumpInitService heapDumpInitService,
             ExternalMcpProperties properties) {
 
         List<McpToolProvider> families = new ArrayList<>(List.of(
@@ -124,6 +131,8 @@ public class McpToolsetAssembler {
                 new ProfileScopedToolset<>(ProfileMcpTools.class, PREFIX_PROFILES,
                         profileId -> new ProfileMcpTools(
                                 profileManager(contextCache, profileId), recordingCommitResolver)),
+                new ProfileScopedToolset<>(EventTypeMcpTools.class, PREFIX_JFR,
+                        profileId -> new EventTypeMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(DuckDbMcpTools.class, PREFIX_JFR,
                         profileId -> new DuckDbMcpTools(contextCache.context(profileId).dataSource()),
                         WRITE_TOOLS),
@@ -139,7 +148,8 @@ public class McpToolsetAssembler {
                 new ProfileScopedToolset<>(TracesMcpTools.class, PREFIX_TRACES,
                         profileId -> new TracesMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(JvmMcpTools.class, PREFIX_JVM,
-                        profileId -> new JvmMcpTools(profileManager(contextCache, profileId))),
+                        profileId -> new JvmMcpTools(
+                                profileManager(contextCache, profileId), properties.computeEnabled())),
                 new ProfileScopedToolset<>(HttpMcpTools.class, PREFIX_HTTP,
                         profileId -> new HttpMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(JdbcMcpTools.class, PREFIX_JDBC,
@@ -162,21 +172,65 @@ public class McpToolsetAssembler {
                         profileId -> new HeapDiffMcpTools(
                                 profileManager(contextCache, profileId),
                                 baselineId -> profileManager(contextCache, baselineId))),
+                new ProfileScopedToolset<>(HeapOqlMcpTools.class, PREFIX_HEAP,
+                        profileId -> new HeapOqlMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(HeapDumpMcpTools.class, PREFIX_HEAP,
                         profileId -> heapTools(contextCache, profileId))));
 
+        if (properties.computeEnabled()) {
+            families.add(new ProfileScopedToolset<>(HeapComputeMcpTools.class, PREFIX_HEAP,
+                    profileId -> new HeapComputeMcpTools(
+                            profileManager(contextCache, profileId), heapDumpInitService),
+                    Set.of(),
+                    McpToolAnnotations.CREATES));
+        }
         if (properties.ingestEnabled()) {
-            families.add(new ReflectiveToolset(recordingsMcpTools, PREFIX_RECORDINGS));
+            families.add(new ReflectiveToolset(
+                    recordingsMcpTools, PREFIX_RECORDINGS, Set.of(), McpToolAnnotations.CREATES));
         }
         if (properties.hubsAdvertised()) {
-            families.add(new ReflectiveToolset(hubsMcpTools, PREFIX_HUBS));
+            families.add(new ReflectiveToolset(
+                    hubsMcpTools, PREFIX_HUBS, Set.of(), McpToolAnnotations.READS_REMOTE));
         }
 
-        this.toolset = new CompositeToolset(List.copyOf(families));
+        this.toolset = new CompositeToolset(retained(families, properties));
     }
 
     public McpToolProvider toolset() {
         return toolset;
+    }
+
+    /**
+     * The families this installation actually serves.
+     * <p>
+     * Filtering happens here, on assembled families, rather than at each registration: the list above
+     * reads as the whole surface, and what a particular installation withholds is one decision applied
+     * once. A family named in the property but not built is simply absent — the alternative, refusing at
+     * startup, would turn a stale property into a Jeffrey that will not boot.
+     */
+    private static List<McpToolProvider> retained(
+            List<McpToolProvider> families, ExternalMcpProperties properties) {
+        List<McpToolProvider> retained = new ArrayList<>();
+        for (McpToolProvider family : families) {
+            if (properties.advertises(prefixOf(family))) {
+                retained.add(family);
+            }
+        }
+        return List.copyOf(retained);
+    }
+
+    /**
+     * The family name a provider answers to, taken from the first tool it advertises — every tool in a
+     * family carries the prefix, so the first one names the family.
+     */
+    private static String prefixOf(McpToolProvider family) {
+        List<McpToolSpec> specs = family.specs();
+        if (specs.isEmpty()) {
+            return "";
+        }
+        String name = specs.getFirst().name();
+        int separator = name.indexOf('_');
+        return separator < 0 ? name : name.substring(0, separator);
     }
 
     private static ProfileManager profileManager(McpProfileContextCache contextCache, String profileId) {

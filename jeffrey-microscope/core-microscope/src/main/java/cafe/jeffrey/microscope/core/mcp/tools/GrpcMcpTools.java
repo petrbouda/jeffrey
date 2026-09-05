@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.feature.FeatureType;
@@ -88,8 +89,9 @@ public class GrpcMcpTools {
             + "rate and error count, the services ranked by traffic, the status-code breakdown and the "
             + "slowest individual calls. Start here for gRPC latency questions.")
     public String overview(
-            @ToolParam(description = "Which side to report on: 'SERVER' for calls this application "
+            @ToolParam(required = false, description = "Which side to report on: 'SERVER' for calls this application "
                     + "answered (the default), 'CLIENT' for calls it made to somebody else.")
+            @ToolParamValues({"SERVER", "CLIENT"})
             String direction) {
 
         ExchangeDirection side = ExchangeDirection.from(direction);
@@ -115,11 +117,12 @@ public class GrpcMcpTools {
             + "the status codes it returned and its slowest calls. Use it after grpc_overview has "
             + "named the service worth looking at.")
     public String service(
-            @ToolParam(description = "Service name exactly as recorded, taken from the services list "
+            @ToolParam(required = false, description = "Service name exactly as recorded, taken from the services list "
                     + "in grpc_overview.")
             String service,
-            @ToolParam(description = "Which side to report on: 'SERVER' for calls this application "
+            @ToolParam(required = false, description = "Which side to report on: 'SERVER' for calls this application "
                     + "answered (the default), 'CLIENT' for calls it made to somebody else.")
+            @ToolParamValues({"SERVER", "CLIENT"})
             String direction) {
 
         ExchangeDirection side = ExchangeDirection.from(direction);
@@ -150,8 +153,9 @@ public class GrpcMcpTools {
             + "individual calls. This is where an oversized payload shows up - it will not be visible "
             + "in the latency percentiles until it is already a problem.")
     public String traffic(
-            @ToolParam(description = "Which side to report on: 'SERVER' for calls this application "
+            @ToolParam(required = false, description = "Which side to report on: 'SERVER' for calls this application "
                     + "answered (the default), 'CLIENT' for calls it made to somebody else.")
+            @ToolParamValues({"SERVER", "CLIENT"})
             String direction) {
 
         ExchangeDirection side = ExchangeDirection.from(direction);

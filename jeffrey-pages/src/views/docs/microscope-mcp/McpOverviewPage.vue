@@ -30,6 +30,7 @@ const headings = [
   { id: 'not-the-in-app-assistant', text: 'Not the In-App Assistant', level: 2 },
   { id: 'how-a-request-travels', text: 'How a Request Travels', level: 2 },
   { id: 'what-it-can-read', text: 'What It Can Read', level: 2 },
+  { id: 'more-than-tools', text: 'More Than Tools', level: 2 },
   { id: 'where-to-go-next', text: 'Where to Go Next', level: 2 }
 ];
 
@@ -49,7 +50,7 @@ onMounted(() => {
       <p class="docs-lede">Jeffrey Microscope serves an <strong>MCP server</strong> that an outside coding agent &mdash; an interactive Claude Code or Codex session in your own repository &mdash; can connect to. It turns every profile you have analysed into something a model can read directly: the catalogue, the DuckDB tables behind each profile, and flamegraph, trace and heap-dump exports. It can also take a recording file you have <em>not</em> analysed yet and build the profile for you &mdash; or find one that never reached this machine at all, on a connected Jeffrey Hub, and pull it down first.</p>
 
       <DocsCallout type="info" title="Reading is read-only">
-        Every analysis tool hands out data and nothing more &mdash; it cannot modify, rename or delete a profile, so data cleanup and frame renaming stay in the Jeffrey UI. The exceptions are the <code>recordings_</code> and <code>hubs_</code> families, which create profiles rather than changing them &mdash; from a local file, and from a recording still on a connected hub &mdash; and which an installation can switch off on their own.
+        Every analysis tool hands out data and nothing more &mdash; it cannot modify, rename or delete a profile, so data cleanup and frame renaming stay in the Jeffrey UI. The exceptions are the <code>recordings_</code> and <code>hubs_</code> families, which create profiles rather than changing them &mdash; from a local file, and from a recording still on a connected hub &mdash; and <code>heap_prepare</code>, which builds a heap dump&rsquo;s index and reports. Each can be switched off on its own.
       </DocsCallout>
 
       <h2 id="why-it-exists">Why It Exists</h2>
@@ -105,7 +106,7 @@ onMounted(() => {
       <p>A call arrives naming a tool and a <code>profileId</code>. Jeffrey resolves that id to the profile's own DuckDB database, holds a lease on it for as long as the session stays active, runs the tool, and returns Markdown or a result table. The heavy machinery &mdash; the flamegraph builder, the trace analysis, the heap-dump index &mdash; is the same code the UI renders from, so what the model reads and what you see on screen cannot drift apart.</p>
 
       <h2 id="what-it-can-read">What It Can Read</h2>
-      <p>Eighty-eight tools in seventeen families:</p>
+      <p>Ninety-nine tools in seventeen families:</p>
       <table>
         <thead>
           <tr>
@@ -117,7 +118,7 @@ onMounted(() => {
         <tbody>
           <tr>
             <td><code>profiles_</code></td>
-            <td>6</td>
+            <td>7</td>
             <td>The catalogue: which recordings are analysed, what each one can answer, a deep link into the UI</td>
           </tr>
           <tr>
@@ -127,7 +128,7 @@ onMounted(() => {
           </tr>
           <tr>
             <td><code>compare_</code></td>
-            <td>3</td>
+            <td>4</td>
             <td>Two profiles against each other: whether they are comparable, what moved, and the differential call tree</td>
           </tr>
           <tr>
@@ -137,8 +138,8 @@ onMounted(() => {
           </tr>
           <tr>
             <td><code>jvm_</code></td>
-            <td>12</td>
-            <td>The machine underneath: garbage collection, safepoints, JIT compilation, threads, native memory, the container, and what the JVM was started with</td>
+            <td>17</td>
+            <td>The machine underneath: garbage collection and the pages beneath it, safepoints, JIT compilation, threads, native memory, class loading, exceptions, the host, TLS and certificates, the container, and what the JVM was started with</td>
           </tr>
           <tr>
             <td><code>http_</code></td>
@@ -182,17 +183,17 @@ onMounted(() => {
           </tr>
           <tr>
             <td><code>jfr_</code></td>
-            <td>6</td>
+            <td>7</td>
             <td>The profile&rsquo;s DuckDB tables &mdash; schema, event types and read-only SQL</td>
           </tr>
           <tr>
             <td><code>heap_</code></td>
-            <td>21</td>
-            <td>Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, a two-dump diff, read-only SQL</td>
+            <td>24</td>
+            <td>Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, a two-dump diff, read-only SQL and OQL, and the pair that builds an index before it can be read</td>
           </tr>
           <tr>
             <td><code>recordings_</code></td>
-            <td>3</td>
+            <td>4</td>
             <td>One of the two families that write: imports a recording file from the machine Jeffrey runs on and builds a profile from it</td>
           </tr>
           <tr>
@@ -208,13 +209,22 @@ onMounted(() => {
       <p>Analysis answers carry a link back to the view that shows them &mdash; the flamegraph with its filters applied, the operation on its slowest tab, the GC dashboard, the endpoint detail. The link is for you, not for Claude: a URL is nothing a model can analyse, which is exactly why it travels attached to an answer rather than behind a tool the model would reasonably never call.</p>
 
       <DocsCallout type="warning" title="Know what it exposes">
-        The endpoint is on by default and has no authentication yet &mdash; anyone who can reach the address can read every profile in that installation, ask it to open a recording file from that machine, and have it pull a recording down from a connected hub. Jeffrey binds every interface by default, so on a shared network &ldquo;anyone who can reach the address&rdquo; is wider than it sounds until you bind it to loopback. <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> covers how to expose it safely, how to turn ingestion and hub access off on their own, and how to switch the whole thing off.
+        The endpoint is on by default and unauthenticated unless you give it a token &mdash; anyone who can reach the address can read every profile in that installation, ask it to open a recording file from that machine, and have it pull a recording down from a connected hub. Jeffrey binds every interface by default, so on a shared network &ldquo;anyone who can reach the address&rdquo; is wider than it sounds until you bind it to loopback. It does refuse a request carrying a foreign <code>Origin</code>, which closes the browser path but nothing else. <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> covers how to expose it safely, how to require a bearer token, how to turn ingestion, hub access and compute off on their own, and how to switch the whole thing off.
       </DocsCallout>
+
+      <h2 id="more-than-tools">More Than Tools</h2>
+      <p>Tools are what a model calls. The server offers two other things a client can use, and both exist for the same reason: a hundred tools are only usable if something says which to reach for first.</p>
+
+      <p><strong>Prompts</strong> are the plugin&rsquo;s <router-link to="/docs/microscope-mcp/skills">skills</router-link>, served over the protocol. A Claude Code or Codex user gets them from the plugin; every other MCP client &mdash; Cursor, VS Code, Kiro, anything registered by hand &mdash; cannot install a plugin, and would otherwise have the tools with no account of how to use them. <code>prompts/list</code> names them and <code>prompts/get</code> returns one. They are the same files the plugin ships, copied onto the server&rsquo;s classpath when it is built, so the two cannot drift apart.</p>
+
+      <p><strong>Resources</strong> are the parts of a profile a client can attach rather than call for: the catalogue at <code>jeffrey://profiles</code>, and templates for a profile&rsquo;s summary and a flamegraph export. A tool result scrolls away; a resource a client has attached stays in view. Reading one runs the tool that would have answered the same question, so the two never disagree.</p>
+
+      <p><router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> has the calls.</p>
 
       <h2 id="where-to-go-next">Where to Go Next</h2>
       <ul>
         <li><router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> &mdash; the endpoint URL, the security posture, and how to switch it off</li>
-        <li><router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> &mdash; installing the plugin, pointing it at this Jeffrey, and the subagent only that client can carry</li>
+        <li><router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> &mdash; installing the plugin, pointing it at this Jeffrey, and the two subagents only that client can carry</li>
         <li><router-link to="/docs/microscope-mcp/codex">Codex</router-link> &mdash; the same plugin through the portable Agent Plugins format, and what changes with it</li>
         <li><router-link to="/docs/microscope-mcp/recipes">Recipes</router-link> &mdash; worked sessions, from &ldquo;where does the time go&rdquo; to a leak hunt</li>
         <li><router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> &mdash; Cursor, Copilot, VS Code and Kiro, connecting without a plugin, and the wire protocol</li>

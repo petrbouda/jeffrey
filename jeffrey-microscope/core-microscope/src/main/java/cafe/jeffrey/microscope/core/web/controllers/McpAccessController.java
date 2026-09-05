@@ -45,8 +45,15 @@ public class McpAccessController {
     private static final String CLAUDE_MCP_ADD_TEMPLATE =
             "claude mcp add --transport http " + SERVER_NAME + " %s";
 
+    private static final String CLAUDE_MCP_ADD_WITH_TOKEN_TEMPLATE =
+            "claude mcp add --transport http " + SERVER_NAME
+                    + " %s --header \"Authorization: Bearer %s\"";
+
     private static final String CODEX_MCP_ADD_TEMPLATE =
             "codex mcp add " + SERVER_NAME + " --url %s";
+
+    private static final String CODEX_MCP_ADD_WITH_TOKEN_TEMPLATE =
+            "codex mcp add " + SERVER_NAME + " --url %s --header \"Authorization: Bearer %s\"";
 
     private static final String MCP_JSON_TEMPLATE = """
             {
@@ -57,10 +64,26 @@ public class McpAccessController {
                 }
               }
             }""";
+    private static final String MCP_JSON_WITH_TOKEN_TEMPLATE = """
+            {
+              "mcpServers": {
+                "%s": {
+                  "type": "http",
+                  "url": "%s",
+                  "headers": {
+                    "Authorization": "Bearer %s"
+                  }
+                }
+              }
+            }""";
 
     private static final String CODEX_CONFIG_TOML_TEMPLATE = """
             [mcp_servers.%s]
             url = "%s\"""";
+    private static final String CODEX_CONFIG_TOML_WITH_TOKEN_TEMPLATE = """
+            [mcp_servers.%s]
+            url = "%s"
+            http_headers = { Authorization = "Bearer %s" }""";
 
     private final ExternalMcpProperties properties;
 
@@ -74,15 +97,27 @@ public class McpAccessController {
                 .path(MCP_PATH)
                 .toUriString();
 
+        String token = properties.token();
+        boolean guarded = properties.tokenRequired();
         return new McpAccessStatus(
                 properties.enabled(),
                 properties.ingestEnabled(),
                 properties.hubsAdvertised(),
+                properties.computeEnabled(),
+                guarded,
                 url,
-                CLAUDE_MCP_ADD_TEMPLATE.formatted(url),
-                MCP_JSON_TEMPLATE.formatted(SERVER_NAME, url),
-                CODEX_MCP_ADD_TEMPLATE.formatted(url),
-                CODEX_CONFIG_TOML_TEMPLATE.formatted(SERVER_NAME, url));
+                guarded
+                        ? CLAUDE_MCP_ADD_WITH_TOKEN_TEMPLATE.formatted(url, token)
+                        : CLAUDE_MCP_ADD_TEMPLATE.formatted(url),
+                guarded
+                        ? MCP_JSON_WITH_TOKEN_TEMPLATE.formatted(SERVER_NAME, url, token)
+                        : MCP_JSON_TEMPLATE.formatted(SERVER_NAME, url),
+                guarded
+                        ? CODEX_MCP_ADD_WITH_TOKEN_TEMPLATE.formatted(url, token)
+                        : CODEX_MCP_ADD_TEMPLATE.formatted(url),
+                guarded
+                        ? CODEX_CONFIG_TOML_WITH_TOKEN_TEMPLATE.formatted(SERVER_NAME, url, token)
+                        : CODEX_CONFIG_TOML_TEMPLATE.formatted(SERVER_NAME, url));
     }
 
     /**
@@ -90,6 +125,13 @@ public class McpAccessController {
      * @param ingestEnabled        whether it also advertises the {@code recordings_} family, which
      *                             imports a local recording file and builds a profile from it; off via
      *                             {@code jeffrey.microscope.mcp.ingest.enabled}
+     * @param computeEnabled       whether it also advertises the tools that build an index, a dominator
+     *                             tree or a cached report before answering; off via
+     *                             {@code jeffrey.microscope.mcp.compute.enabled}
+     * @param tokenRequired        whether the endpoint requires a bearer token, set with
+     *                             {@code jeffrey.microscope.mcp.token}. The token itself is not
+     *                             reported separately — it is already inside the snippets below, which
+     *                             is where a reader needs it
      * @param hubsEnabled          whether it also advertises the {@code hubs_} family, which lists and
      *                             downloads recordings from the connected Jeffrey Hubs; off via
      *                             {@code jeffrey.microscope.mcp.hubs.enabled}, and never advertised
@@ -107,6 +149,8 @@ public class McpAccessController {
             boolean enabled,
             boolean ingestEnabled,
             boolean hubsEnabled,
+            boolean computeEnabled,
+            boolean tokenRequired,
             String url,
             String claudeMcpAddCommand,
             String mcpJsonSnippet,

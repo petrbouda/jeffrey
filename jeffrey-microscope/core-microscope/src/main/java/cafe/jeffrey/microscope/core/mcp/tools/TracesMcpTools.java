@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.microscope.core.web.controllers.profile.SpanScopedGraphParameters;
@@ -141,15 +142,15 @@ public class TracesMcpTools {
             + "'GET /orders' served over HTTP, say — identified by the triple (name, kind, eventType) "
             + "that every other traces_* tool takes.")
     public String operations(
-            @ToolParam(description = "Optional case-insensitive substring matched against the operation name")
+            @ToolParam(required = false, description = "Optional case-insensitive substring matched against the operation name")
             String search,
-            @ToolParam(description = "Keep only operations that failed at least once")
+            @ToolParam(required = false, description = "Keep only operations that failed at least once")
             Boolean errorsOnly,
-            @ToolParam(description = "Order by one of: TOTAL_TIME, P50, P95, P99, MAX, COUNT, ERRORS, "
+            @ToolParam(required = false, description = "Order by one of: TOTAL_TIME, P50, P95, P99, MAX, COUNT, ERRORS, "
                     + "NOTIFICATIONS, NAME. Defaults to TOTAL_TIME, which surfaces where the wall-clock "
                     + "actually went.")
             String sort,
-            @ToolParam(description = "Maximum number of operations to return (default 50)")
+            @ToolParam(required = false, description = "Maximum number of operations to return (default 50)")
             Integer limit) {
 
         TraceOperationListQuery query = new TraceOperationListQuery(
@@ -173,11 +174,12 @@ public class TracesMcpTools {
             + "its time went broken down by span, and its slowest individual traces named as exemplars "
             + "to export next with traces_traceExport.")
     public String operationExport(
-            @ToolParam(description = "Operation name, e.g. 'GET /orders'")
+            @ToolParam(required = true, description = "Operation name, e.g. 'GET /orders'")
             String name,
-            @ToolParam(description = "Span kind of the operation's root, e.g. 'SERVER' or 'CLIENT'")
+            @ToolParam(required = true, description = "Span kind of the operation's root, e.g. 'SERVER' or 'CLIENT'")
+            @ToolParamValues({"SERVER", "CLIENT", "INTERNAL", "PRODUCER", "CONSUMER"})
             String kind,
-            @ToolParam(description = "Event type that opened the trace, e.g. 'jeffrey.HttpServerExchange'")
+            @ToolParam(required = true, description = "Event type that opened the trace, e.g. 'jeffrey.HttpServerExchange'")
             String eventType) {
 
         TraceOperationId operationId = operationId(name, kind, eventType);
@@ -209,25 +211,26 @@ public class TracesMcpTools {
             + "for traces_traceExport. This is the tool for 'what went wrong during this recording' "
             + "before any timing is read; traces_overview says how many there are in all.")
     public String notifications(
-            @ToolParam(description = "Keep only one severity: CRITICAL, HIGH, MEDIUM or LOW")
+            @ToolParam(required = false, description = "Keep only one severity: CRITICAL, HIGH, MEDIUM or LOW")
             String severity,
-            @ToolParam(description = "Keep only one notification type, e.g. 'CONNECTION_POOL_EXHAUSTED'")
+            @ToolParam(required = false, description = "Keep only one notification type, e.g. 'CONNECTION_POOL_EXHAUSTED'")
             String type,
-            @ToolParam(description = "Keep only one category, e.g. 'RESOURCE' or 'PERFORMANCE'")
+            @ToolParam(required = false, description = "Keep only one category, e.g. 'RESOURCE' or 'PERFORMANCE'")
             String category,
-            @ToolParam(description = "Keep only notifications raised by one source component, e.g. 'hikari'")
+            @ToolParam(required = false, description = "Keep only notifications raised by one source component, e.g. 'hikari'")
             String source,
-            @ToolParam(description = "Optional case-insensitive substring matched against the message")
+            @ToolParam(required = false, description = "Optional case-insensitive substring matched against the message")
             String search,
-            @ToolParam(description = "Operation name, to keep only notifications raised inside traces "
+            @ToolParam(required = false, description = "Operation name, to keep only notifications raised inside traces "
                     + "of one operation; give kind and eventType with it")
             String name,
-            @ToolParam(description = "Span kind of that operation's root, e.g. 'SERVER'")
+            @ToolParam(required = false, description = "Span kind of that operation's root, e.g. 'SERVER'")
+            @ToolParamValues({"SERVER", "CLIENT", "INTERNAL", "PRODUCER", "CONSUMER"})
             String kind,
-            @ToolParam(description = "Event type that opened that operation's traces, e.g. "
+            @ToolParam(required = false, description = "Event type that opened that operation's traces, e.g. "
                     + "'jeffrey.HttpServerExchange'")
             String eventType,
-            @ToolParam(description = "Maximum number of notification kinds to return (default 50)")
+            @ToolParam(required = false, description = "Maximum number of notification kinds to return (default 50)")
             Integer limit) {
 
         TraceNotificationListQuery query = new TraceNotificationListQuery(
@@ -252,13 +255,14 @@ public class TracesMcpTools {
     @Tool(description = "Individual traces of one operation, slowest first, with their ids. Use the id "
             + "of an interesting one with traces_traceExport.")
     public String slowestTraces(
-            @ToolParam(description = "Operation name, e.g. 'GET /orders'")
+            @ToolParam(required = true, description = "Operation name, e.g. 'GET /orders'")
             String name,
-            @ToolParam(description = "Span kind of the operation's root, e.g. 'SERVER'")
+            @ToolParam(required = true, description = "Span kind of the operation's root, e.g. 'SERVER'")
+            @ToolParamValues({"SERVER", "CLIENT", "INTERNAL", "PRODUCER", "CONSUMER"})
             String kind,
-            @ToolParam(description = "Event type that opened the trace")
+            @ToolParam(required = true, description = "Event type that opened the trace")
             String eventType,
-            @ToolParam(description = "Maximum number of traces to return (default 20)")
+            @ToolParam(required = false, description = "Maximum number of traces to return (default 20)")
             Integer limit) {
 
         return LinkedOutput.json(new SlowestTracesResult(
@@ -273,7 +277,7 @@ public class TracesMcpTools {
             + "accounting of where its wall-clock went, its I/O shape and its exceptions. This is the "
             + "tool for 'why was this request slow'.")
     public String traceExport(
-            @ToolParam(description = "Trace id as a 16-character hex string, from traces_slowestTraces")
+            @ToolParam(required = true, description = "Trace id as a 16-character hex string, from traces_slowestTraces")
             String traceId) {
 
         long id = parseId(traceId, "traceId");
@@ -293,18 +297,18 @@ public class TracesMcpTools {
             + "Markdown. Answers 'what code was running inside this span', which the span tree alone "
             + "cannot say.")
     public String spanFlamegraphExport(
-            @ToolParam(description = "Trace id as a 16-character hex string")
+            @ToolParam(required = true, description = "Trace id as a 16-character hex string")
             String traceId,
-            @ToolParam(description = "Span id as a 16-character hex string, from the span tree in traces_traceExport")
+            @ToolParam(required = true, description = "Span id as a 16-character hex string, from the span tree in traces_traceExport")
             String spanId,
-            @ToolParam(description = "Event type to graph, e.g. 'jdk.ExecutionSample'")
+            @ToolParam(required = false, description = "Event type to graph, e.g. 'jdk.ExecutionSample'")
             String eventType,
-            @ToolParam(description = "Cut the span's children out of the window, so the graph shows only "
+            @ToolParam(required = false, description = "Cut the span's children out of the window, so the graph shows only "
                     + "the work the span did itself")
             Boolean selfOnly,
-            @ToolParam(description = "Split the graph per thread instead of aggregating")
+            @ToolParam(required = false, description = "Split the graph per thread instead of aggregating")
             Boolean threadMode,
-            @ToolParam(description = "Weigh frames by event weight instead of sample count")
+            @ToolParam(required = false, description = "Weigh frames by event weight instead of sample count")
             Boolean useWeight) {
 
         List<SpanInterval> intervals = traceManager().spanIntervals(
@@ -319,18 +323,19 @@ public class TracesMcpTools {
             + "running, exported as Markdown. Answers 'what does this kind of request spend its time "
             + "on' across every occurrence, rather than in one exemplar.")
     public String operationFlamegraphExport(
-            @ToolParam(description = "Operation name, e.g. 'GET /orders'")
+            @ToolParam(required = true, description = "Operation name, e.g. 'GET /orders'")
             String name,
-            @ToolParam(description = "Span kind of the operation's root, e.g. 'SERVER'")
+            @ToolParam(required = true, description = "Span kind of the operation's root, e.g. 'SERVER'")
+            @ToolParamValues({"SERVER", "CLIENT", "INTERNAL", "PRODUCER", "CONSUMER"})
             String kind,
-            @ToolParam(description = "Event type that opened the trace, e.g. 'jeffrey.HttpServerExchange'")
+            @ToolParam(required = true, description = "Event type that opened the trace, e.g. 'jeffrey.HttpServerExchange'")
             String eventType,
-            @ToolParam(description = "Event type to graph, e.g. 'jdk.ExecutionSample'. Different from "
+            @ToolParam(required = false, description = "Event type to graph, e.g. 'jdk.ExecutionSample'. Different from "
                     + "eventType, which identifies the operation.")
             String graphEventType,
-            @ToolParam(description = "Split the graph per thread instead of aggregating")
+            @ToolParam(required = false, description = "Split the graph per thread instead of aggregating")
             Boolean threadMode,
-            @ToolParam(description = "Weigh frames by event weight instead of sample count")
+            @ToolParam(required = false, description = "Weigh frames by event weight instead of sample count")
             Boolean useWeight) {
 
         requireText(name, "name");

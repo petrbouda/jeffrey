@@ -19,6 +19,9 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.profile.mcp.AbstractMcpStreamableHttpController;
+import cafe.jeffrey.profile.mcp.McpServerFeatures;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -52,17 +55,43 @@ public class ExternalMcpController extends AbstractMcpStreamableHttpController {
 
     private final McpToolsetAssembler assembler;
     private final ExternalMcpProperties properties;
+    private final McpRequestGuard guard;
+    private final McpServerFeatures features;
 
-    public ExternalMcpController(McpToolsetAssembler assembler, ExternalMcpProperties properties) {
+    public ExternalMcpController(
+            McpToolsetAssembler assembler,
+            ExternalMcpProperties properties,
+            McpRequestGuard guard) {
+        this(assembler, properties, guard, new McpPromptRegistry());
+    }
+
+    public ExternalMcpController(
+            McpToolsetAssembler assembler,
+            ExternalMcpProperties properties,
+            McpRequestGuard guard,
+            McpPromptRegistry prompts) {
         this.assembler = assembler;
         this.properties = properties;
+        this.guard = guard;
+        // Prompts and resources are fixed for the installation the way the toolset is, so they are
+        // built once here rather than per request.
+        this.features = new McpServerFeatures(
+                assembler::toolset,
+                () -> prompts,
+                () -> new McpResources(assembler.toolset()));
     }
 
     @PostMapping
-    public ResponseEntity<JsonNode> handle(@RequestBody JsonNode request) {
+    public ResponseEntity<JsonNode> handle(
+            @RequestBody JsonNode request,
+            HttpServletRequest httpRequest) {
         if (!properties.enabled()) {
             return ResponseEntity.notFound().build();
         }
-        return dispatch(request, assembler::toolset);
+        String refusal = guard.refusalReason(httpRequest);
+        if (refusal != null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return dispatch(request, features);
     }
 }

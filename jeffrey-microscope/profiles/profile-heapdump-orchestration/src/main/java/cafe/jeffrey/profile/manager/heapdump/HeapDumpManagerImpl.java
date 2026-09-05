@@ -63,6 +63,7 @@ import cafe.jeffrey.profile.heapdump.model.InstanceTreeRequest;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
+import cafe.jeffrey.profile.heapdump.view.SqlQueryResult;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
 import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
@@ -126,6 +127,13 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
 
     private static final int MAX_QUERY_LIMIT = 100;
+
+    /**
+     * The row ceiling for an ad-hoc SQL query. Higher than the OQL limit because a SQL result is a
+     * table of scalars a reader aggregates, where an OQL result is a list of objects each of which
+     * invites a follow-up call.
+     */
+    private static final int MAX_SQL_ROWS = 500;
 
     private static final long DOMINATOR_ROOT_ID = 0L;
 
@@ -216,6 +224,21 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
     }
 
     // --- OQL execution against the heap-dump-index DuckDB ---------------
+
+    @Override
+    public SqlQueryResult executeSql(String sql, int maxRows) {
+        int cap = Math.clamp(maxRows, 1, MAX_SQL_ROWS);
+        return withSession(session -> {
+            try {
+                return session.view().query(sql, cap);
+            } catch (SQLException e) {
+                // The engine's own message names the missing column or table, which is the only thing
+                // the caller can correct itself from; a generic failure would send it guessing.
+                throw new IllegalArgumentException("Query failed: " + e.getMessage(), e);
+            }
+        }).orElseThrow(() -> new IllegalStateException(
+                "Heap dump not available for this profile, or its index has not been built."));
+    }
 
     @Override
     public OQLQueryResult executeQuery(OQLQueryRequest request) {

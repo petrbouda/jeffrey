@@ -46,6 +46,7 @@ import cafe.jeffrey.profile.heapdump.view.HistogramRow;
 import cafe.jeffrey.profile.heapdump.view.HprofTag;
 import cafe.jeffrey.profile.heapdump.view.InstanceRow;
 import cafe.jeffrey.profile.heapdump.view.JavaClassRow;
+import cafe.jeffrey.profile.heapdump.view.SqlQueryResult;
 
 class HeapViewTest {
 
@@ -330,4 +331,89 @@ class HeapViewTest {
             assertThrows(IOException.class, () -> HeapView.open(missing));
         }
     }
+
+    /**
+     * The heap index is a real DuckDB database with a documented schema, and the MCP heap_ family
+     * promises SQL against it. These are the queries that promise is made of.
+     */
+    @Nested
+    class AdHocSql {
+
+        @Test
+        void listsTheTablesTheSchemaActuallyHas(@TempDir Path tmp) throws Exception {
+            try (HeapView view = HeapView.open(buildIndex(tmp))) {
+                SqlQueryResult result = view.query(
+                        "SELECT table_name FROM information_schema.tables "
+                                + "WHERE table_schema = 'main' AND table_name NOT LIKE 'flyway_%' "
+                                + "ORDER BY table_name", 100);
+
+                List<String> tables = result.rows().stream().map(row -> row.getFirst()).toList();
+                assertTrue(tables.contains("class"), tables.toString());
+                assertTrue(tables.contains("instance"), tables.toString());
+                assertTrue(tables.contains("gc_root"), tables.toString());
+            }
+        }
+
+        @Test
+        void joinsInstancesToTheirClasses(@TempDir Path tmp) throws Exception {
+            try (HeapView view = HeapView.open(buildIndex(tmp))) {
+                SqlQueryResult result = view.query(
+                        "SELECT c.name, COUNT(*) AS instances FROM instance i "
+                                + "JOIN class c ON c.class_id = i.class_id "
+                                + "GROUP BY c.name ORDER BY instances DESC", 100);
+
+                assertEquals(List.of("name", "instances"), result.columns());
+                assertFalse(result.rows().isEmpty());
+            }
+        }
+
+        /**
+         * A CTE is the shape the tool description promises and the OQL grammar never had.
+         */
+        @Test
+        void runsACommonTableExpression(@TempDir Path tmp) throws Exception {
+            try (HeapView view = HeapView.open(buildIndex(tmp))) {
+                SqlQueryResult result = view.query(
+                        "WITH counts AS (SELECT class_id, COUNT(*) AS n FROM instance GROUP BY class_id) "
+                                + "SELECT SUM(n) FROM counts", 10);
+
+                assertEquals(1, result.rows().size());
+            }
+        }
+
+        @Test
+        void saysWhenItStoppedAtTheCap(@TempDir Path tmp) throws Exception {
+            try (HeapView view = HeapView.open(buildIndex(tmp))) {
+                SqlQueryResult capped = view.query("SELECT instance_id FROM instance", 1);
+                assertEquals(1, capped.rows().size());
+                assertTrue(capped.capped());
+
+                SqlQueryResult complete = view.query("SELECT instance_id FROM instance", 1000);
+                assertFalse(complete.capped());
+            }
+        }
+
+        @Test
+        void refusesAnythingThatIsNotAReadOnlyQuery(@TempDir Path tmp) throws Exception {
+            try (HeapView view = HeapView.open(buildIndex(tmp))) {
+                assertThrows(IllegalArgumentException.class,
+                        () -> view.query("DELETE FROM instance", 10));
+                assertThrows(IllegalArgumentException.class,
+                        () -> view.query("   ", 10));
+            }
+        }
+
+        /**
+         * Read-only stops a write to the index; this is the separate guarantee that a SELECT cannot
+         * reach the host filesystem.
+         */
+        @Test
+        void cannotReachTheFilesystem(@TempDir Path tmp) throws Exception {
+            try (HeapView view = HeapView.open(buildIndex(tmp))) {
+                assertThrows(SQLException.class,
+                        () -> view.query("SELECT * FROM read_csv('/etc/passwd')", 10));
+            }
+        }
+    }
+
 }

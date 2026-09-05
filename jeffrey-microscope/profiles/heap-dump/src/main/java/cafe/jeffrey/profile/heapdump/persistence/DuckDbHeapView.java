@@ -38,6 +38,7 @@ import cafe.jeffrey.profile.heapdump.parser.HprofMappedFile;
 import cafe.jeffrey.profile.heapdump.view.DumpMetadata;
 import cafe.jeffrey.profile.heapdump.view.GcRootRow;
 import cafe.jeffrey.profile.heapdump.view.HeapView;
+import cafe.jeffrey.profile.heapdump.view.SqlQueryResult;
 import cafe.jeffrey.profile.heapdump.view.HistogramRow;
 import cafe.jeffrey.profile.heapdump.view.HprofTag;
 import cafe.jeffrey.profile.heapdump.view.HprofTypeSize;
@@ -147,6 +148,12 @@ public final class DuckDbHeapView implements HeapView {
                     + "FROM instance i LEFT JOIN class c ON i.class_id = c.class_id "
                     + "GROUP BY i.class_id, c.name "
                     + "ORDER BY total DESC, cnt DESC";
+
+    /**
+     * How long an ad-hoc query may run. A reader can write a join across the instance table that never
+     * finishes; the purpose-built analyzers cannot, which is why only this path needs a budget.
+     */
+    private static final int QUERY_TIMEOUT_SECONDS = 30;
 
     private final Path path;
     private final Connection connection;
@@ -785,4 +792,66 @@ public final class DuckDbHeapView implements HeapView {
     private interface RowMapper<T> {
         T map(ResultSet rs) throws SQLException;
     }
+
+    @Override
+    public SqlQueryResult query(String sql, int maxRows) throws SQLException {
+        String statement = requireReadOnly(sql);
+        int cap = Math.max(1, maxRows);
+        // A prepared statement, for two reasons that matter more than they look. DuckDB refuses to
+        // prepare more than one statement, so a ';' cannot smuggle a second one past the check above.
+        // And where Statement.executeQuery reports a missing column, a missing table and a refusal
+        // from the sandbox identically -- "unsuccessful or closed pending query result" -- a prepared
+        // one carries the engine's real message, which is the only thing a caller can correct itself
+        // from.
+        try (PreparedStatement stmt = connection.prepareStatement(statement)) {
+            stmt.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return read(rs, cap);
+            }
+        }
+    }
+
+    private static SqlQueryResult read(ResultSet rs, int cap) throws SQLException {
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
+        List<String> columns = new ArrayList<>(columnCount);
+        for (int i = 1; i <= columnCount; i++) {
+            columns.add(metaData.getColumnLabel(i));
+        }
+
+        // Read to the cap, then ask for one more. The row cap is applied here rather than with
+        // setMaxRows because DuckDB's driver accepts that call and ignores it; results stream, so
+        // stopping early does not make the engine materialise the rest.
+        List<List<String>> rows = new ArrayList<>();
+        while (rows.size() < cap && rs.next()) {
+            List<String> row = new ArrayList<>(columnCount);
+            for (int i = 1; i <= columnCount; i++) {
+                Object value = rs.getObject(i);
+                row.add(value == null ? null : value.toString());
+            }
+            rows.add(row);
+        }
+        return new SqlQueryResult(columns, rows, rs.next());
+    }
+
+    /**
+     * The statement, or a refusal naming what is accepted.
+     * <p>
+     * Defence in depth rather than the boundary — the boundary is the connection, which is read-only
+     * and cannot reach the filesystem. This turns an attempted write into a message a reader can act
+     * on instead of an engine error about a read-only database.
+     */
+    private static String requireReadOnly(String sql) {
+        if (sql == null || sql.isBlank()) {
+            throw new IllegalArgumentException("A SQL query is required.");
+        }
+        String statement = sql.strip();
+        String normalized = statement.toLowerCase(Locale.ROOT);
+        if (!normalized.startsWith("select") && !normalized.startsWith("with")) {
+            throw new IllegalArgumentException(
+                    "Only SELECT and WITH queries are allowed against the heap-dump index.");
+        }
+        return statement;
+    }
+
 }

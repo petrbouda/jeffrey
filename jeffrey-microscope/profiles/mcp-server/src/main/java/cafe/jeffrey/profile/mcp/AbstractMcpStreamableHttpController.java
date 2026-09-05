@@ -26,6 +26,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -44,6 +45,13 @@ public abstract class AbstractMcpStreamableHttpController {
 
     private static final String JSONRPC_VERSION = "2.0";
     private static final String DEFAULT_PROTOCOL_VERSION = "2025-06-18";
+
+    /**
+     * The revisions this server implements. The envelope has not changed across them in any way Jeffrey
+     * uses, so an older client is served as it asks; anything else is answered with the default.
+     */
+    private static final Set<String> SUPPORTED_PROTOCOL_VERSIONS =
+            Set.of("2024-11-05", "2025-03-26", DEFAULT_PROTOCOL_VERSION);
     private static final String SERVER_NAME = "jeffrey";
     private static final String SERVER_VERSION = "1.0.0";
 
@@ -51,6 +59,11 @@ public abstract class AbstractMcpStreamableHttpController {
     private static final String METHOD_TOOLS_LIST = "tools/list";
     private static final String METHOD_TOOLS_CALL = "tools/call";
     private static final String METHOD_PING = "ping";
+    private static final String METHOD_PROMPTS_LIST = "prompts/list";
+    private static final String METHOD_PROMPTS_GET = "prompts/get";
+    private static final String METHOD_RESOURCES_LIST = "resources/list";
+    private static final String METHOD_RESOURCES_TEMPLATES_LIST = "resources/templates/list";
+    private static final String METHOD_RESOURCES_READ = "resources/read";
     private static final String NOTIFICATION_PREFIX = "notifications/";
 
     private static final int ERROR_METHOD_NOT_FOUND = -32601;
@@ -64,6 +77,15 @@ public abstract class AbstractMcpStreamableHttpController {
      * {@code tools/list} and {@code tools/call} resolve the toolset via {@code toolsetSupplier}.
      */
     protected ResponseEntity<JsonNode> dispatch(JsonNode request, Supplier<McpToolProvider> toolsetSupplier) {
+        return dispatch(request, McpServerFeatures.ofTools(toolsetSupplier));
+    }
+
+    /**
+     * Routes a single JSON-RPC request against everything the endpoint offers. Each provider is
+     * resolved only for the methods that need it, so a failure building the toolset cannot stop the
+     * endpoint from answering {@code initialize}.
+     */
+    protected ResponseEntity<JsonNode> dispatch(JsonNode request, McpServerFeatures features) {
         String method = request.path("method").asString();
         JsonNode id = request.get("id");
 
@@ -74,12 +96,25 @@ public abstract class AbstractMcpStreamableHttpController {
 
         try {
             return switch (method) {
-                case METHOD_INITIALIZE -> ResponseEntity.ok(initializeResult(id, request));
+                case METHOD_INITIALIZE -> ResponseEntity.ok(initializeResult(id, request, features));
                 case METHOD_PING -> ResponseEntity.ok(success(id, Json.createObject()));
-                case METHOD_TOOLS_LIST -> ResponseEntity.ok(toolsList(id, toolsetSupplier.get()));
-                case METHOD_TOOLS_CALL -> ResponseEntity.ok(toolsCall(id, toolsetSupplier.get(), request.path("params")));
+                case METHOD_TOOLS_LIST -> ResponseEntity.ok(toolsList(id, features.tools().get()));
+                case METHOD_TOOLS_CALL ->
+                        ResponseEntity.ok(toolsCall(id, features.tools().get(), request.path("params")));
+                case METHOD_PROMPTS_LIST -> ResponseEntity.ok(promptsList(id, prompts(features)));
+                case METHOD_PROMPTS_GET ->
+                        ResponseEntity.ok(promptsGet(id, prompts(features), request.path("params")));
+                case METHOD_RESOURCES_LIST -> ResponseEntity.ok(resourcesList(id, resources(features)));
+                case METHOD_RESOURCES_TEMPLATES_LIST ->
+                        ResponseEntity.ok(resourceTemplatesList(id, resources(features)));
+                case METHOD_RESOURCES_READ ->
+                        ResponseEntity.ok(resourcesRead(id, resources(features), request.path("params")));
                 default -> ResponseEntity.ok(error(id, ERROR_METHOD_NOT_FOUND, "Method not found: " + method));
             };
+        } catch (UnsupportedOperationException e) {
+            // A capability this endpoint never advertised. Method-not-found is the honest answer: the
+            // method exists in the protocol, it is this server that does not offer it.
+            return ResponseEntity.ok(error(id, ERROR_METHOD_NOT_FOUND, e.getMessage()));
         } catch (IllegalArgumentException e) {
             log.warn("Invalid MCP request: method={} message={}", method, e.getMessage());
             return ResponseEntity.ok(error(id, ERROR_INVALID_PARAMS, e.getMessage()));
@@ -89,12 +124,37 @@ public abstract class AbstractMcpStreamableHttpController {
         }
     }
 
-    private JsonNode initializeResult(JsonNode id, JsonNode request) {
+    private static McpPromptProvider prompts(McpServerFeatures features) {
+        if (!features.hasPrompts()) {
+            throw new UnsupportedOperationException("This endpoint offers no prompts");
+        }
+        return features.prompts().get();
+    }
+
+    private static McpResourceProvider resources(McpServerFeatures features) {
+        if (!features.hasResources()) {
+            throw new UnsupportedOperationException("This endpoint offers no resources");
+        }
+        return features.resources().get();
+    }
+
+    private JsonNode initializeResult(JsonNode id, JsonNode request, McpServerFeatures features) {
         String requestedProtocol = request.path("params").path("protocolVersion").asString();
-        String protocolVersion = requestedProtocol.isEmpty() ? DEFAULT_PROTOCOL_VERSION : requestedProtocol;
+        // Agreeing to whatever the client names is not negotiation — it promises a version this server
+        // may not speak. An unrecognised one is answered with what it does speak, and the client decides.
+        String protocolVersion = SUPPORTED_PROTOCOL_VERSIONS.contains(requestedProtocol)
+                ? requestedProtocol
+                : DEFAULT_PROTOCOL_VERSION;
         ObjectNode result = Json.createObject();
         result.put("protocolVersion", protocolVersion);
-        result.putObject("capabilities").putObject("tools").put("listChanged", false);
+        ObjectNode capabilities = result.putObject("capabilities");
+        capabilities.putObject("tools").put("listChanged", false);
+        if (features.hasPrompts()) {
+            capabilities.putObject("prompts").put("listChanged", false);
+        }
+        if (features.hasResources()) {
+            capabilities.putObject("resources").put("subscribe", false).put("listChanged", false);
+        }
         ObjectNode serverInfo = result.putObject("serverInfo");
         serverInfo.put("name", SERVER_NAME);
         serverInfo.put("version", SERVER_VERSION);
@@ -109,6 +169,11 @@ public abstract class AbstractMcpStreamableHttpController {
             tool.put("name", spec.name());
             tool.put("description", spec.description());
             tool.set("inputSchema", spec.inputSchema());
+            ObjectNode annotations = tool.putObject("annotations");
+            annotations.put("readOnlyHint", spec.annotations().readOnly());
+            annotations.put("destructiveHint", spec.annotations().destructive());
+            annotations.put("idempotentHint", spec.annotations().idempotent());
+            annotations.put("openWorldHint", spec.annotations().openWorld());
         }
         return success(id, result);
     }
@@ -129,6 +194,77 @@ public abstract class AbstractMcpStreamableHttpController {
             result.put("isError", true);
         }
         return success(id, result);
+    }
+
+    private JsonNode promptsList(JsonNode id, McpPromptProvider provider) {
+        ObjectNode result = Json.createObject();
+        ArrayNode prompts = result.putArray("prompts");
+        for (McpPrompt prompt : provider.prompts()) {
+            ObjectNode node = prompts.addObject();
+            node.put("name", prompt.name());
+            node.put("title", prompt.title());
+            node.put("description", prompt.description());
+            ArrayNode arguments = node.putArray("arguments");
+            for (McpPrompt.Argument argument : prompt.arguments()) {
+                arguments.addObject()
+                        .put("name", argument.name())
+                        .put("description", argument.description())
+                        .put("required", argument.required());
+            }
+        }
+        return success(id, result);
+    }
+
+    private JsonNode promptsGet(JsonNode id, McpPromptProvider provider, JsonNode params) {
+        McpPrompt prompt = provider.prompt(params.path("name").asString());
+        ObjectNode result = Json.createObject();
+        result.put("description", prompt.description());
+        ObjectNode message = result.putArray("messages").addObject();
+        message.put("role", "user");
+        message.putObject("content").put("type", "text").put("text", prompt.text());
+        return success(id, result);
+    }
+
+    private JsonNode resourcesList(JsonNode id, McpResourceProvider provider) {
+        return success(id, resourceArray("resources", provider.resources()));
+    }
+
+    private JsonNode resourceTemplatesList(JsonNode id, McpResourceProvider provider) {
+        ObjectNode result = Json.createObject();
+        ArrayNode templates = result.putArray("resourceTemplates");
+        for (McpResource resource : provider.templates()) {
+            // The key is uriTemplate rather than uri: a template carries placeholders and is not
+            // itself fetchable, and a client that reads it as a uri will try anyway.
+            templates.addObject()
+                    .put("uriTemplate", resource.uri())
+                    .put("name", resource.name())
+                    .put("description", resource.description())
+                    .put("mimeType", resource.mimeType());
+        }
+        return success(id, result);
+    }
+
+    private JsonNode resourcesRead(JsonNode id, McpResourceProvider provider, JsonNode params) {
+        McpResourceProvider.Contents contents = provider.read(params.path("uri").asString());
+        ObjectNode result = Json.createObject();
+        result.putArray("contents").addObject()
+                .put("uri", contents.uri())
+                .put("mimeType", contents.mimeType())
+                .put("text", contents.text());
+        return success(id, result);
+    }
+
+    private static ObjectNode resourceArray(String field, java.util.List<McpResource> resources) {
+        ObjectNode result = Json.createObject();
+        ArrayNode array = result.putArray(field);
+        for (McpResource resource : resources) {
+            array.addObject()
+                    .put("uri", resource.uri())
+                    .put("name", resource.name())
+                    .put("description", resource.description())
+                    .put("mimeType", resource.mimeType());
+        }
+        return result;
     }
 
     private JsonNode success(JsonNode id, JsonNode result) {

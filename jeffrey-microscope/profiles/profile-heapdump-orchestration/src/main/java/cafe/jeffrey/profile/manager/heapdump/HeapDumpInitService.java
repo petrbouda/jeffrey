@@ -32,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * Server-side heap-dump initialization pipeline: one POST starts the whole run in the background (index
@@ -115,6 +116,69 @@ public final class HeapDumpInitService {
         run.runStage(HeapDumpStages.CONSUMERS, manager::runConsumerReport);
         run.runStage(HeapDumpStages.DUPLICATES, () -> manager.runDuplicateData(DUPLICATE_DATA_TOP_N));
     }
+
+
+    /**
+     * Starts a run that computes one report and skips the rest.
+     * <p>
+     * The whole pipeline is the right thing for a dump nobody has opened yet. This is for the dump that
+     * is already indexed and missing one answer — Leak Suspects, say, on a heap whose index was built
+     * months ago. Re-running everything to get it would cost minutes for work already done.
+     * <p>
+     * The index group is not skipped: {@link HeapDumpManager#initialize} returns immediately when the
+     * cache is ready, and a report asked for on a dump that was never indexed has to build one first.
+     *
+     * @param report the stage to compute, one of {@link HeapDumpStages#REPORTS}
+     * @return {@code false} when a run is already in progress for this profile
+     */
+    public boolean startReport(
+            String profileId, HeapDumpManager manager, String report, Boolean compressedOopsOverride) {
+
+        if (!HeapDumpStages.REPORTS.contains(report)) {
+            throw new IllegalArgumentException(
+                    "Unknown report: " + report + ". Expected one of: "
+                            + String.join(", ", HeapDumpStages.REPORTS));
+        }
+        return registry.start(new PipelineRunRequest<>(
+                profileId,
+                "",
+                run -> runSingleReport(run, manager, report, compressedOopsOverride),
+                manager::storeInitPipelineResult));
+    }
+
+    private static void runSingleReport(
+            PipelineRun run, HeapDumpManager manager, String report, Boolean compressedOopsOverride) {
+
+        runIndexGroup(run, manager, compressedOopsOverride);
+        for (String stage : HeapDumpStages.REPORTS) {
+            if (stage.equals(report)) {
+                run.runStage(stage, () -> runReport(manager, stage));
+            } else {
+                run.skipStage(stage);
+            }
+        }
+    }
+
+    /**
+     * The work behind one report stage. A map from stage id to the manager call, rather than a switch
+     * ladder, so adding a report is one entry in each of two places that sit next to each other.
+     */
+    private static void runReport(HeapDumpManager manager, String stage) {
+        REPORT_WORK.get(stage).accept(manager);
+    }
+
+    private static final Map<String, Consumer<HeapDumpManager>> REPORT_WORK = Map.of(
+            HeapDumpStages.STRINGS, manager -> manager.runStringAnalysis(STRING_ANALYSIS_TOP_N),
+            HeapDumpStages.DOMINATOR, HeapDumpManager::runComputeDominator,
+            HeapDumpStages.THREADS, HeapDumpManager::runThreadAnalysis,
+            HeapDumpStages.BIGGEST, manager -> manager.runBiggestObjects(BIGGEST_OBJECTS_TOP_N),
+            HeapDumpStages.COLLECTIONS, HeapDumpManager::runCollectionAnalysis,
+            HeapDumpStages.LEAKS, HeapDumpManager::runLeakSuspects,
+            HeapDumpStages.CLASSLOADERS, HeapDumpManager::runClassLoaderAnalysis,
+            HeapDumpStages.BIGGEST_COLLECTIONS,
+                    manager -> manager.runBiggestCollections(BIGGEST_COLLECTIONS_TOP_N),
+            HeapDumpStages.CONSUMERS, HeapDumpManager::runConsumerReport,
+            HeapDumpStages.DUPLICATES, manager -> manager.runDuplicateData(DUPLICATE_DATA_TOP_N));
 
     /**
      * Runs the atomic index build once, advancing the three {@link HeapDumpStages#INDEX_GROUP} stages

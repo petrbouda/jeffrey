@@ -32,10 +32,12 @@ const headings = [
   { id: 'analyze-heap', text: 'analyze-heap', level: 2 },
   { id: 'analyze-hub', text: 'analyze-hub', level: 2 },
   { id: 'compare-jfr', text: 'compare-jfr', level: 2 },
+  { id: 'profile-run', text: 'profile-run', level: 2 },
+  { id: 'regression-check', text: 'regression-check', level: 2 },
   { id: 'advise-jfr', text: 'advise-jfr', level: 2 },
   { id: 'jfr-sql', text: 'jfr-sql', level: 2 },
   { id: 'heap-sql', text: 'heap-sql', level: 2 },
-  { id: 'the-analyst', text: 'The Analyst They Delegate To', level: 2 },
+  { id: 'the-analyst', text: 'The Agents They Delegate To', level: 2 },
   { id: 'invoking-one-directly', text: 'Invoking One Directly', level: 2 },
   { id: 'what-they-deliberately-omit', text: 'What They Deliberately Omit', level: 2 }
 ];
@@ -50,6 +52,8 @@ const askExamples = `# each of these loads a skill on its own - no slash command
 "what is holding memory in this heap dump?"              -> analyze-heap
 "analyse what production recorded in the last hour"      -> analyze-hub
 "did my change make it slower?"                          -> compare-jfr
+"profile this benchmark and tell me where it spends time" -> profile-run
+"did the last three commits regress performance?"        -> regression-check
 "what should I change in this repo to fix it?"           -> advise-jfr
 "how many events of each type are in the recording?"     -> jfr-sql
 "which threads still reference that classloader?"        -> heap-sql`;
@@ -59,6 +63,8 @@ const invoke = `# Claude Code
 /microscope:analyze-heap
 /microscope:analyze-hub
 /microscope:compare-jfr
+/microscope:profile-run
+/microscope:regression-check
 /microscope:advise-jfr
 /microscope:jfr-sql
 /microscope:heap-sql
@@ -68,6 +74,8 @@ $analyze-jfr
 $analyze-heap
 $analyze-hub
 $compare-jfr
+$profile-run
+$regression-check
 $advise-jfr
 $jfr-sql
 $heap-sql`;
@@ -96,15 +104,15 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
     />
 
     <div class="docs-content">
-      <p>The plugin ships seven skills and <router-link to="/docs/microscope-mcp/agent">one analyst agent</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
+      <p>The plugin ships nine skills and <router-link to="/docs/microscope-mcp/agent">two agents</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
 
-      <p>The seven are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> whose front matter carries the two required fields plus the tools it may call, and a body:</p>
+      <p>The nine are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> whose front matter carries the two required fields plus the tools it may call, and a body:</p>
       <DocsCodeBlock :code="skillFrontmatter" language="yaml" />
 
       <p>That format is shared, so <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> and <router-link to="/docs/microscope-mcp/codex">Codex</router-link> load the same files out of the same directory rather than each getting a copy. Everything on this page applies to both; only the way you invoke one by hand differs.</p>
 
       <h2 id="which-skill">Which Skill Answers Your Question</h2>
-      <p>Every row is a question you would actually type. You do not pick from this table &mdash; the agent does, from the same descriptions &mdash; but it is the fastest way to see what the seven cover between them, and what each one needs before it can start.</p>
+      <p>Every row is a question you would actually type. You do not pick from this table &mdash; the agent does, from the same descriptions &mdash; but it is the fastest way to see what the nine cover between them, and what each one needs before it can start.</p>
       <table class="skill-chooser">
         <thead>
           <tr>
@@ -133,6 +141,16 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
             <td>&ldquo;Did my change make it slower?&rdquo; &middot; &ldquo;What got faster?&rdquo;</td>
             <td><a href="#compare-jfr"><code>compare-jfr</code></a></td>
             <td>Two profiles, before and after</td>
+          </tr>
+          <tr>
+            <td>&ldquo;Profile this benchmark&rdquo; &middot; &ldquo;Record a JFR while the tests run&rdquo;</td>
+            <td><a href="#profile-run"><code>profile-run</code></a></td>
+            <td>A command to run &mdash; nothing recorded yet</td>
+          </tr>
+          <tr>
+            <td>&ldquo;Did this commit regress performance?&rdquo; &middot; &ldquo;Is main slower than the release?&rdquo;</td>
+            <td><a href="#regression-check"><code>regression-check</code></a></td>
+            <td>Two revisions and a workload both can run</td>
           </tr>
           <tr>
             <td>&ldquo;What should I change in this repo to fix it?&rdquo;</td>
@@ -225,7 +243,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
           <h4>What it decides for you</h4>
           <ul>
             <li><strong>Shallow is not retained.</strong> Shallow size is the object itself; retained size is what dies with it. Only the second answers &ldquo;who is holding this memory&rdquo; &mdash; a histogram ranked by shallow size tells you what there is a lot of, not who is responsible for it.</li>
-            <li><strong>Six reports are pre-computed in the UI.</strong> Leak Suspects, Biggest Objects, Class Loader Analysis, Top Consumers, String Analysis and Collection Analysis are computed when someone opens them in Jeffrey and only <em>read</em> over MCP; until then their tools answer &ldquo;has not been run yet&rdquo;. The skill names which tools those are and has the model hand you the <code>profiles_link</code> URL and the report to run, instead of retrying.</li>
+            <li><strong>Six reports have to be built before they can be read.</strong> Leak Suspects, Biggest Objects, Class Loader Analysis, Top Consumers, String Analysis and Collection Analysis are cached results, and until something computes one its tool says so. The skill maps each to the <code>heap_prepare</code> report that builds it, so the model prepares the dump and carries on rather than sending you to the browser &mdash; and knows to fall back to the UI when the installation has compute switched off.</li>
             <li>That the same question has an on-demand route which does not wait on the UI: the dominator tree into <code>heap_getPathToGCRoot</code>.</li>
           </ul>
         </section>
@@ -314,6 +332,86 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
         <aside class="skill-trap">
           <span class="skill-trap-label">Two traps</span>
           <p>Pruning in <code>compare_flamegraph</code> is by <em>movement</em>, so an absent frame means &ldquo;did not move&rdquo; &mdash; the opposite of what absence means in a single-profile export. And a renamed or extracted method appears twice, once as new and once as gone, at near-identical size, reading as two dramatic findings; the skill has the model check the source diff &mdash; which it has and the profile does not &mdash; before reporting either half.</p>
+        </aside>
+      </div>
+
+      <h2 id="profile-run">profile-run</h2>
+      <div class="skill-card">
+        <div class="skill-head">
+          <p class="skill-question">&ldquo;Profile this benchmark.&rdquo;</p>
+          <span class="skill-role">A command, not a recording</span>
+        </div>
+
+        <p>Every other skill here starts from a recording that already exists. This one starts from a command that does not have one yet &mdash; a benchmark, a test, a load script, the application itself &mdash; and ends where <a href="#analyze-jfr"><code>analyze-jfr</code></a> begins. Most of it is the recording, because a profile taken badly cannot be rescued by reading it well.</p>
+
+        <section class="skill-block">
+          <h4>Entry sequence</h4>
+          <ul>
+            <li><strong>Name the command and the file before running either.</strong> Profiling costs minutes and a load test may touch things off this machine. The target is looked for in order &mdash; the one the user named, a JMH harness, the test task, an entry point with a <code>main</code> &mdash; and asked for when none is obvious.</li>
+            <li>Record, then <code>recordings_analyzeFile</code> with an absolute path. A large file comes back <code>running</code>: poll <code>recordings_status</code> with the <code>recordingId</code> rather than importing again, which would build a second profile of the same recording.</li>
+            <li><code>profiles_summary</code> first, before any analysis. It reports what the recording actually captured, which is the thing to check after a run you configured yourself.</li>
+          </ul>
+        </section>
+
+        <section class="skill-block">
+          <h4>What it decides for you</h4>
+          <ul>
+            <li><strong>JFR with <code>settings=profile</code>,</strong> not <code>default</code> &mdash; the default configuration omits allocation sampling and most of what makes a profile worth reading &mdash; passed through whatever the build uses: Maven&rsquo;s <code>-DargLine=</code>, Gradle&rsquo;s <code>jvmArgs</code>, JMH&rsquo;s <code>-jvmArgsAppend</code>, <code>JAVA_TOOL_OPTIONS</code> for something started by a script.</li>
+            <li><strong>When JFR is not enough.</strong> Wall-clock and off-CPU time are not sampled by JFR at all and need async-profiler&rsquo;s <code>event=wall</code>; short, frequent contention needs the 20ms <code>jdk.JavaMonitorEnter</code> threshold lowered in a custom <code>.jfc</code>.</li>
+            <li><strong>Long enough to be worth reading.</strong> A run of a few seconds is a few hundred samples, and a flamegraph of a few hundred samples is noise with a shape. A minute of steady state, after warm-up, with the JIT-sensitive first iterations discarded rather than profiled.</li>
+          </ul>
+        </section>
+
+        <section class="skill-block">
+          <h4>Routes into</h4>
+          <ul>
+            <li><a href="#analyze-jfr"><code>analyze-jfr</code></a> for reading what it produced, <a href="#compare-jfr"><code>compare-jfr</code></a> for the re-profile after a change &mdash; the point of recording rather than opening an old file is that you can do it twice &mdash; and <a href="#advise-jfr"><code>advise-jfr</code></a> to turn a hotspot into an edit in this checkout.</li>
+          </ul>
+        </section>
+
+        <aside class="skill-trap">
+          <span class="skill-trap-label">Trap</span>
+          <p>The file has to land where <strong>Jeffrey</strong> can open it, not merely where you can: same machine, absolute path, a mounted directory if Jeffrey runs in a container. And an empty <code>jdk.ObjectAllocationSample</code> in the summary is a fact about the flags, not about the application &mdash; the settings did not take. The skill also declines two things: it will not attach a profiler to production, which is a <a href="#analyze-hub"><code>analyze-hub</code></a> question, and it will not pick the workload silently, because a benchmark that does not represent the problem answers the wrong question convincingly.</p>
+        </aside>
+      </div>
+
+      <h2 id="regression-check">regression-check</h2>
+      <div class="skill-card">
+        <div class="skill-head">
+          <p class="skill-question">&ldquo;Did this commit make it slower?&rdquo;</p>
+          <span class="skill-role">Two revisions, one workload</span>
+        </div>
+
+        <p><a href="#compare-jfr"><code>compare-jfr</code></a> reads two profiles that already exist. This one produces them, which is where most of the rigour lives: build and record each revision, import both, then weigh them. Six tracked steps, because steps two and three are long and it is easy to lose which build is on disk.</p>
+
+        <section class="skill-block">
+          <h4>Entry sequence</h4>
+          <ul>
+            <li>Pick the pair and a workload <strong>both revisions can run</strong> &mdash; a benchmark that exists only on the candidate measures nothing &mdash; defaulting to the merge base against <code>HEAD</code>, said out loud before the minutes are spent.</li>
+            <li>Record baseline, then candidate, each imported with a <code>name</code> that survives the session. Both may come back <code>running</code>; poll <code>recordings_status</code>.</li>
+            <li><code>compare_list</code> before reading any difference, then <code>compare_movements</code> for the ranking and <code>compare_flamegraph</code> for where in the call tree, with <code>useWeight: true</code> when the question is allocation or lock time rather than sample counts.</li>
+          </ul>
+        </section>
+
+        <section class="skill-block">
+          <h4>What it decides for you</h4>
+          <ul>
+            <li><strong>The two runs differ in exactly one thing.</strong> Same JVM, same flags, same duration, same machine, same warm-up &mdash; and <strong>never in parallel</strong>, because two profiled JVMs on one machine contend for CPU and each records the other&rsquo;s interference as its own slowness. Alternating repeats when the machine is noisy or the difference is expected to be small.</li>
+            <li><strong>The verdict first, then the uncertainty.</strong> One run each on a shared machine supports &ldquo;no obvious change&rdquo;; it does not support &ldquo;3% slower&rdquo;. A movement smaller than the gap between two runs of the <em>same</em> revision is noise, and the honest way to know that is to record the baseline twice.</li>
+            <li><strong>Housekeeping is part of the measurement.</strong> The working tree is checked clean before revisions are switched and put back afterwards; a stash left behind is a worse outcome than an unanswered question.</li>
+          </ul>
+        </section>
+
+        <section class="skill-block">
+          <h4>Routes into</h4>
+          <ul>
+            <li><a href="#advise-jfr"><code>advise-jfr</code></a> once a regression is confirmed, and <a href="#profile-run"><code>profile-run</code></a> for the recording flags themselves, which this skill does not restate.</li>
+          </ul>
+        </section>
+
+        <aside class="skill-trap">
+          <span class="skill-trap-label">Trap</span>
+          <p>A cold JIT on one side and a warm one on the other is the commonest false regression. And a regression with no candidate in the diff is still a finding &mdash; reported as one, rather than hunted until something fits. The skill will not bisect a range of commits silently either: that is many builds and many profiles, so it proposes the cost and lets you decide.</p>
         </aside>
       </div>
 
@@ -427,12 +525,12 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
         </aside>
       </div>
 
-      <h2 id="the-analyst">The Analyst They Delegate To</h2>
+      <h2 id="the-analyst">The Agents They Delegate To</h2>
       <p>Four of the skills do not read the big documents themselves. A single <code>flamegraph_export</code> can run to 120,000 characters, and a question worth asking usually takes several &mdash; four of them in <code>advise-jfr</code>, one per group. Pulled into the session, they leave little room for the thing that has to happen next: reading the actual source behind the frames.</p>
 
-      <p>So there is an analyst agent, and the skills hand it the reading &mdash; <code>microscope:profile-analyst</code> from the Claude Code plugin, or the custom agent a Codex user copies in. It runs the sequence, follows the profile where it leads &mdash; deeper into a subtree, a lower threshold on one path, the GC-root path of the class the histogram named &mdash; and returns the findings alone. What it read stays in its context.</p>
+      <p>So there are agents, and the skills hand them the reading &mdash; <code>microscope:profile-analyst</code> and <code>microscope:heap-triage</code> from the Claude Code plugin, or the custom agents a Codex user copies in. It runs the sequence, follows the profile where it leads &mdash; deeper into a subtree, a lower threshold on one path, the GC-root path of the class the histogram named &mdash; and returns the findings alone. What it read stays in its context.</p>
 
-      <p>What it is not allowed to do is as much of the design as what it does: no file access, no <code>recordings_</code> and no <code>hubs_</code>, so it cannot map a frame to a line, edit anything, or build a profile from a file or from a hub. Mapping onto the checkout, the recommendation, and every question put to you stay in the session, where you can answer them. <router-link to="/docs/microscope-mcp/agent">The analyst reference</router-link> has the full contract &mdash; what it is given, the report shape it returns, and when to read an export yourself instead.</p>
+      <p>What it is not allowed to do is as much of the design as what it does: no file access, no <code>recordings_</code> and no <code>hubs_</code>, so it cannot map a frame to a line, edit anything, or build a profile from a file or from a hub. Mapping onto the checkout, the recommendation, and every question put to you stay in the session, where you can answer them. <router-link to="/docs/microscope-mcp/agent">The agent reference</router-link> has the full contract &mdash; what it is given, the report shape it returns, and when to read an export yourself instead.</p>
 
       <h2 id="invoking-one-directly">Invoking One Directly</h2>
       <p>You do not normally have to. The agent loads the skill whose description matches the question, so plain English is enough:</p>

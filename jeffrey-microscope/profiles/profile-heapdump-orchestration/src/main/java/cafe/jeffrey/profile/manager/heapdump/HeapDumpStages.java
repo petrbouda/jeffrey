@@ -53,6 +53,15 @@ public final class HeapDumpStages {
      */
     public static final List<String> INDEX_GROUP = List.of(LOAD, PARSE, INDEX);
 
+    /**
+     * The stages that compute an answer rather than build the index — everything a reader can ask for
+     * one at a time. {@code DOMINATOR} is among them because retained sizes are exactly that kind of
+     * answer, and several of the others cannot run until it has.
+     */
+    public static final List<String> REPORTS = List.of(
+            STRINGS, DOMINATOR, THREADS, BIGGEST, COLLECTIONS, LEAKS, CLASSLOADERS,
+            BIGGEST_COLLECTIONS, CONSUMERS, DUPLICATES);
+
     public static final PipelineDefinition DEFINITION = new PipelineDefinition(
             PIPELINE_ID,
             List.of(LOAD, PARSE, INDEX, STRINGS, DOMINATOR, THREADS, BIGGEST, COLLECTIONS, LEAKS,

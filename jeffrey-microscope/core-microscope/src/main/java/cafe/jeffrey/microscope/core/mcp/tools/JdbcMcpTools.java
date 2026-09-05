@@ -108,7 +108,7 @@ public class JdbcMcpTools {
             + "the overview, narrowed to a single group. Use it after jdbc_overview has named the "
             + "group worth looking at.")
     public String statementGroup(
-            @ToolParam(description = "Group name exactly as recorded, taken from the groups list in "
+            @ToolParam(required = false, description = "Group name exactly as recorded, taken from the groups list in "
                     + "jdbc_overview.")
             String group) {
 

@@ -26,6 +26,10 @@ import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
+import cafe.jeffrey.profile.ProfileInitStages;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.mcp.McpToolSpec;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
@@ -45,6 +49,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -81,15 +86,21 @@ class McpToolsetAssemblerTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-03-01T12:00:00Z"), ZoneOffset.UTC);
 
     private McpToolsetAssembler assembler(boolean ingestEnabled, boolean hubsEnabled) {
+        return assembler(new ExternalMcpProperties(true, ingestEnabled, hubsEnabled, true, Set.of(), ""));
+    }
+
+    private McpToolsetAssembler assembler(ExternalMcpProperties properties) {
         return new McpToolsetAssembler(
                 new ProfilesMcpTools(coreRepositories),
-                new RecordingsMcpTools(recordingsManager),
+                new RecordingsMcpTools(recordingsManager, new PipelineRunRegistry<>(
+                        ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK)),
                 new HubsMcpTools(hubsManager, projectManagerResolver, recordingsManager, CLOCK),
                 contextCache,
                 jfrPanelProvider,
                 stackSamplePanelProvider,
                 recordingCommitResolver,
-                new ExternalMcpProperties(true, ingestEnabled, hubsEnabled));
+                new HeapDumpInitService(CLOCK),
+                properties);
     }
 
     private List<String> toolNames(boolean ingestEnabled, boolean hubsEnabled) {
@@ -317,4 +328,72 @@ class McpToolsetAssemblerTest {
             assertTrue(undescribed.isEmpty(), "Tools without a description: " + undescribed);
         }
     }
+
+    @Nested
+    class FamilyFilter {
+
+        /**
+         * A client that pays for every schema on every turn can be given only what it uses.
+         */
+        @Test
+        void advertisesOnlyTheNamedFamilies() {
+            McpToolsetAssembler assembler = assembler(new ExternalMcpProperties(
+                    true, true, true, true, Set.of("profiles", "flamegraph"), ""));
+
+            Set<String> prefixes = assembler.toolset().specs().stream()
+                    .map(spec -> spec.name().substring(0, spec.name().indexOf('_')))
+                    .collect(Collectors.toUnmodifiableSet());
+
+            assertEquals(Set.of("profiles", "flamegraph"), prefixes);
+        }
+
+        @Test
+        void anEmptyFilterKeepsEverything() {
+            McpToolsetAssembler filtered = assembler(
+                    new ExternalMcpProperties(true, true, true, true, Set.of(), ""));
+
+            assertEquals(assembler(true, true).toolset().specs().size(),
+                    filtered.toolset().specs().size());
+        }
+    }
+
+
+    @Nested
+    class ComputeTools {
+
+        @Test
+        void advertisesThemWhenComputeIsOn() {
+            List<String> names = assembler(new ExternalMcpProperties(
+                    true, true, true, true, Set.of(), "")).toolset().specs().stream()
+                    .map(McpToolSpec::name).toList();
+
+            assertTrue(names.contains("heap_prepare"));
+            assertTrue(names.contains("heap_status"));
+        }
+
+        /**
+         * Not advertised rather than advertised-and-refusing, for the same reason as the ingest family.
+         */
+        @Test
+        void withholdsThemWhenComputeIsOff() {
+            McpToolsetAssembler assembler = assembler(new ExternalMcpProperties(
+                    true, true, true, false, Set.of(), ""));
+            List<String> names = assembler.toolset().specs().stream().map(McpToolSpec::name).toList();
+
+            assertFalse(names.contains("heap_prepare"));
+            assertThrows(IllegalArgumentException.class,
+                    () -> assembler.toolset().call("heap_prepare", null));
+        }
+
+        @Test
+        void leavesTheReadingHeapToolsAlone() {
+            List<String> names = assembler(new ExternalMcpProperties(
+                    true, true, true, false, Set.of(), "")).toolset().specs().stream()
+                    .map(McpToolSpec::name).toList();
+
+            assertTrue(names.contains("heap_getHeapSummary"));
+            assertTrue(names.contains("heap_executeQuery"));
+        }
+    }
+
 }
