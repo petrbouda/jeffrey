@@ -138,7 +138,7 @@ onMounted(() => {
       </div>
 
       <h3 id="ai-integration">AI Integration</h3>
-      <p>The assistant is wired through Spring AI with pluggable Claude, ChatGPT, Ollama, and Claude Code providers, selected by <code>jeffrey.microscope.ai.provider</code> and <code>jeffrey.microscope.ai.model</code>. Two MCP servers expose the data: <code>duckdb-jfr-mcp</code> answers JFR questions by running OQL against the active profile's DuckDB, and <code>duckdb-heapdump-mcp</code> handles heap-dump queries. Configuration and capability detail live on the <router-link to="/docs/ai/overview">AI Overview</router-link> page. A third MCP server points the other way &mdash; it lets an outside Claude Code session read every analysed profile; see <router-link to="/docs/microscope-mcp">Microscope MCP</router-link>.</p>
+      <p>The assistant is wired through Spring AI with pluggable Claude, ChatGPT, Ollama, and Claude Code providers, selected by <code>jeffrey.microscope.ai.provider</code> and <code>jeffrey.microscope.ai.model</code>. Two MCP servers expose the data: <code>duckdb-jfr-mcp</code> answers JFR questions by running OQL against the active profile's DuckDB, and <code>duckdb-heapdump-mcp</code> handles heap-dump queries. Configuration and capability detail live on the <router-link to="/docs/ai/overview">AI Overview</router-link> page. A third MCP server points the other way &mdash; it lets an outside Claude Code session read every analysed profile, build one from a recording file, and pull a recording off a connected Jeffrey Hub to analyse; see <router-link to="/docs/microscope-mcp">Microscope MCP</router-link>.</p>
 
       <div class="arch-flow">
         <div class="flow-node"><i class="bi bi-chat-dots"></i><span>Assistant</span></div>

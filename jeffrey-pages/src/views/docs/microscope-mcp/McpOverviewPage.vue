@@ -46,7 +46,7 @@ onMounted(() => {
     />
 
     <div class="docs-content">
-      <p class="docs-lede">Jeffrey Microscope serves an <strong>MCP server</strong> that an outside coding agent &mdash; an interactive Claude Code or Codex session in your own repository &mdash; can connect to. It turns every profile you have analysed into something a model can read directly: the catalogue, the DuckDB tables behind each profile, and flamegraph, trace and heap-dump exports. It can also take a recording file you have <em>not</em> analysed yet and build the profile for you.</p>
+      <p class="docs-lede">Jeffrey Microscope serves an <strong>MCP server</strong> that an outside coding agent &mdash; an interactive Claude Code or Codex session in your own repository &mdash; can connect to. It turns every profile you have analysed into something a model can read directly: the catalogue, the DuckDB tables behind each profile, and flamegraph, trace and heap-dump exports. It can also take a recording file you have <em>not</em> analysed yet and build the profile for you &mdash; or find one that never reached this machine at all, on a connected Jeffrey Hub, and pull it down first.</p>
 
       <DocsCallout type="info" title="Reading is read-only">
         Every analysis tool hands out data and nothing more &mdash; it cannot modify, rename or delete a profile, so data cleanup and frame renaming stay in the Jeffrey UI. The exceptions are the <code>recordings_</code> and <code>hubs_</code> families, which create profiles rather than changing them &mdash; from a local file, and from a recording still on a connected hub &mdash; and which an installation can switch off on their own.
@@ -208,7 +208,7 @@ onMounted(() => {
       <p>Analysis answers carry a link back to the view that shows them &mdash; the flamegraph with its filters applied, the operation on its slowest tab, the GC dashboard, the endpoint detail. The link is for you, not for Claude: a URL is nothing a model can analyse, which is exactly why it travels attached to an answer rather than behind a tool the model would reasonably never call.</p>
 
       <DocsCallout type="warning" title="Know what it exposes">
-        The endpoint is on by default and has no authentication yet &mdash; anyone who can reach the address can read every profile in that installation, and ask it to open a recording file from that machine. Jeffrey binds every interface by default, so on a shared network &ldquo;anyone who can reach the address&rdquo; is wider than it sounds until you bind it to loopback. <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> covers how to expose it safely, how to turn ingestion off on its own, and how to switch the whole thing off.
+        The endpoint is on by default and has no authentication yet &mdash; anyone who can reach the address can read every profile in that installation, ask it to open a recording file from that machine, and have it pull a recording down from a connected hub. Jeffrey binds every interface by default, so on a shared network &ldquo;anyone who can reach the address&rdquo; is wider than it sounds until you bind it to loopback. <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> covers how to expose it safely, how to turn ingestion and hub access off on their own, and how to switch the whole thing off.
       </DocsCallout>
 
       <h2 id="where-to-go-next">Where to Go Next</h2>

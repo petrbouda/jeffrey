@@ -271,6 +271,18 @@ onMounted(() => {
               at startup.
             </td>
           </tr>
+          <tr>
+            <td><code>jeffrey.microscope.mcp.hubs.enabled</code></td>
+            <td><code>true</code></td>
+            <td>
+              Advertises the <code>hubs_</code> tools, which list the recording sessions on the
+              connected <router-link to="/docs/hub">Jeffrey Hubs</router-link> and pull one in to be
+              analysed. Its own switch because it reaches <em>off</em> this machine where ingestion
+              reaches into it. Never advertised while
+              <code>jeffrey.microscope.mcp.ingest.enabled</code> is <code>false</code>, since analysing
+              what it downloads needs the <code>recordings_</code> family. Read at startup.
+            </td>
+          </tr>
         </tbody>
       </table>
 

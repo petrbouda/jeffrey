@@ -71,7 +71,7 @@ timeline_hotWindows  { "profileId": "019f885e-...",
 # 2. graph only that window
 flamegraph_export    { "profileId": "019f885e-...",
                        "eventType": "jdk.ObjectAllocationSample",
-                       "useWeight": true, "startMs": 31000, "endMs": 36000 }
+                       "useWeight": true, "startMs": 31000, "endMs": 32000 }
 
 # 3. below one second, for a startup or the inside of a spike
 timeline_zoom        { "profileId": "019f885e-...",
@@ -127,8 +127,8 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
 const hubsExample = `Analyse what production recorded in the last hour.`;
 
 const exHubs = `hubs_sessions { "hub": "production", "withinLastMinutes": 60 }
-#  -> | hub | project | started | duration | status | files | size | local | session_ref |
-#     | production | checkout | 2026-03-01T11:41Z | 18m3s | FINISHED | 4 | 240MB | | h1Y2ZnLX... |
+#  -> | hub | workspace | project | started | duration | status | files | size | local | session_ref |
+#     | production | default | checkout | 2026-03-01T11:41Z | 18m3s | FINISHED | 4 | 240MB | | h1Y2ZnLX... |
 
 hubs_download { "sessionRef": "h1Y2ZnLX..." }
 #  -> { "recordingId": "019f885e-...", "recordingFiles": 2, "artifactFiles": 2,
@@ -389,7 +389,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p><strong>The baseline is scaled onto the primary&rsquo;s recording length</strong> before any delta is taken, because a sampling profiler emits samples at a roughly fixed rate and a run that lasted twice as long carries twice as many of them. Both documents print the raw figure, the scaled figure and the factor, so the correction is visible rather than merely applied. It assumes a steady workload measured over time and is wrong for a fixed-size benchmark &mdash; there the share column is the honest one.</p>
 
-      <p><strong>A rename is not a regression.</strong> The diff matches method names level by level, so a renamed, moved or extracted method breaks the match and its work appears once as new and once as gone, often of near-identical size. Both documents list such pairs as candidate renames &mdash; suspicions for a reader holding the source diff to confirm, never a resolution, because weight alone cannot tell a rename from a coincidence.</p>
+      <p><strong>A rename is not a regression.</strong> The diff matches method names level by level, so a renamed, moved or extracted method breaks the match and its work appears once as new and once as gone, often of near-identical size. <code>compare_movements</code> lists such pairs under a candidate-renames heading &mdash; suspicions for a reader holding the source diff to confirm, never a resolution, because weight alone cannot tell a rename from a coincidence. <code>compare_flamegraph</code> does not pair them for you: it marks the two halves <code>[NEW]</code> and <code>[GONE]</code> and says in its preamble to check the diff you have and it does not.</p>
 
       <p>Pruning in <code>compare_flamegraph</code> is by <strong>movement</strong>, not by size: a subtree in which nothing changed is dropped however large it is, and unmoved ancestors are kept so the frames that did move can still be placed. Absence there means &ldquo;did not move&rdquo;, the opposite of what it means in <code>flamegraph_export</code>.</p>
 
@@ -468,7 +468,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
       <p>A notification is the application&rsquo;s own account of what went wrong &mdash; a pool exhausted, a fallback taken &mdash; emitted by its own code, so it is a diagnosis where every other tool reports a measurement. The trace and operation exports carry a Notifications section of their own; <code>traces_notifications</code> is the profile-wide reading, and the place to start when <code>traces_overview</code> reports any <code>CRITICAL</code> or <code>HIGH</code> ones.</p>
 
       <DocsCallout type="info" title="Two event types, two different meanings">
-        On the flamegraph exports, <code>eventType</code> is the event that <em>opened the trace</em> (e.g. <code>jeffrey.HttpServerExchange</code>) while <code>graphEventType</code> is what to <em>graph</em> (e.g. <code>jdk.ExecutionSample</code>). They are never the same value.
+        On <code>traces_operationFlamegraphExport</code>, <code>eventType</code> is the event that <em>opened the trace</em> (e.g. <code>jeffrey.HttpServerExchange</code>) while <code>graphEventType</code> is what to <em>graph</em> (e.g. <code>jdk.ExecutionSample</code>). They are never the same value. <code>traces_spanFlamegraphExport</code> has no such split: the span is already identified by <code>traceId</code> and <code>spanId</code>, so its <code>eventType</code> is what to graph.
       </DocsCallout>
 
       <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
@@ -552,7 +552,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
       </table>
 
       <DocsCallout type="info" title="Every result says what it cannot answer">
-        Each dashboard comes back wrapped with a <code>nextSteps</code> list &mdash; the same idea as the reading instructions a flamegraph or trace export opens with. <code>jvm_gc</code> says that no event in it names the code that produced the garbage and points at the allocation flamegraph; <code>jvm_container</code> points back at per-thread CPU load; <code>jvm_configuration</code> says to prefer these values over a deployment manifest. Every other family now carries the same envelope. They route and never diagnose: no threshold decides whether they appear, and none of them claims the figures beside them are bad.
+        Each dashboard comes back wrapped with a <code>nextSteps</code> list &mdash; the same idea as the reading instructions a flamegraph or trace export opens with. <code>jvm_gc</code> says that no event in it names the code that produced the garbage and points at the allocation flamegraph; <code>jvm_container</code> points back at per-thread CPU load; <code>jvm_configuration</code> says to prefer these values over a deployment manifest. Every other analysis family carries the same envelope; the raw-SQL <code>jfr_</code> tools do not, and neither do <code>traces_operations</code> and <code>traces_notifications</code>. They route and never diagnose: no threshold decides whether they appear, and none of them claims the figures beside them are bad.
       </DocsCallout>
 
       <DocsCallout type="info" title="Call jvm_sections first">
@@ -579,12 +579,12 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
         <tbody>
           <tr>
             <td><code>http_overview</code></td>
-            <td><code>profileId</code></td>
+            <td><code>profileId</code>, <code>direction?</code></td>
             <td>Requests, response-time percentiles, success rate, 4xx/5xx counts, endpoints by traffic, status and method breakdowns, slowest requests</td>
           </tr>
           <tr>
             <td><code>http_endpoint</code></td>
-            <td><code>profileId</code>, <code>uri</code></td>
+            <td><code>profileId</code>, <code>uri</code>, <code>direction?</code></td>
             <td>The same, narrowed to one URI</td>
           </tr>
           <tr>
@@ -604,17 +604,17 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           </tr>
           <tr>
             <td><code>grpc_overview</code></td>
-            <td><code>profileId</code></td>
+            <td><code>profileId</code>, <code>direction?</code></td>
             <td>Calls, response-time percentiles, success rate, services by traffic, status codes, slowest calls</td>
           </tr>
           <tr>
             <td><code>grpc_service</code></td>
-            <td><code>profileId</code>, <code>service</code></td>
+            <td><code>profileId</code>, <code>service</code>, <code>direction?</code></td>
             <td>One service broken down by method</td>
           </tr>
           <tr>
             <td><code>grpc_traffic</code></td>
-            <td><code>profileId</code></td>
+            <td><code>profileId</code>, <code>direction?</code></td>
             <td>Message sizes rather than timings: bytes moved, the size distribution, largest calls</td>
           </tr>
           <tr>
@@ -812,7 +812,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
       </DocsCallout>
 
       <DocsCallout type="warning" title="Query the events view, not events_raw">
-        <code>jfr_listTables</code> shows both. <code>events</code> is a view over <code>events_raw</code> that splices back the one large string field the parser pools out of each row; querying <code>events_raw</code> silently returns truncated JSON in <code>fields</code>, with no error to warn you. The bundled <code>jfr-sql</code> skill carries this and the rest of the schema.
+        <code>jfr_listTables</code> lists tables only, so <code>events_raw</code> appears there and <code>events</code> does not &mdash; query <code>events</code> anyway. It is a view over <code>events_raw</code> that splices back the one large string field the parser pools out of each row; querying <code>events_raw</code> silently returns truncated JSON in <code>fields</code>, with no error to warn you. The bundled <code>jfr-sql</code> skill carries this and the rest of the schema.
       </DocsCallout>
 
       <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
@@ -820,9 +820,12 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <h2 id="heap">heap_ &mdash; heap dumps</h2>
       <p><code>heap_diff</code> is the one that needs two profiles: it compares this dump against an earlier one class by class, ranked by growth, and is the only way to separate a leak from a large working set &mdash; a single dump shows a state, and a state cannot tell the two apart. Pass the earlier dump as <code>baselineProfileId</code>; backwards, every growth reads as a shrink. Both dumps have to be indexed first, and the tool says which one is not.</p>
-      <p>Twenty tools against a parsed heap dump&rsquo;s own DuckDB index, separate from the profile&rsquo;s JFR database. Asking for them on a profile with no heap dump fails immediately with a message saying so, rather than deep inside the engine.</p>
+      <p>Twenty-one tools against a parsed heap dump&rsquo;s own DuckDB index, separate from the profile&rsquo;s JFR database. Asking for them on a profile with no heap dump fails immediately with a message saying so, rather than deep inside the engine.</p>
 
       <p><strong>Reports</strong> &mdash; pre-computed, and faster and safer than reproducing them in SQL:</p>
+      <DocsCallout type="warning" title="Three of these are computed by the UI, not by the tool">
+        <code>heap_getLeakSuspects</code>, <code>heap_getStringAnalysis</code> and <code>heap_getCollectionAnalysis</code> read a cached result. Until that analysis has been run once from the Jeffrey UI they answer that it has not been run yet, rather than computing it on the spot &mdash; the same arrangement as <code>jvm_autoAnalysis</code>. The other reports here are computed from the index on every call.
+      </DocsCallout>
       <table>
         <thead>
           <tr>
@@ -848,9 +851,14 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
             <td>The largest individual objects by retained size</td>
           </tr>
           <tr>
+            <td><code>heap_diff</code></td>
+            <td><code>profileId</code>, <code>baselineProfileId</code>, <code>topN?</code></td>
+            <td>This dump against an earlier one, class by class, ranked by growth (default 30, maximum 200)</td>
+          </tr>
+          <tr>
             <td><code>heap_getLeakSuspects</code></td>
             <td><code>profileId</code></td>
-            <td>Leak-suspect analysis</td>
+            <td>Leak-suspect analysis, once it has been run from the UI</td>
           </tr>
           <tr>
             <td><code>heap_getClassLoaderLeakChains</code></td>
@@ -1050,7 +1058,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
       <p>The file types are the ones Jeffrey analyses anywhere else: <code>.jfr</code>, <code>.jfr.lz4</code>, <code>.hprof</code>, <code>.hprof.gz</code>, <code>.pprof</code> and <code>.otlp</code>. A heap dump lands as a profile the <code>heap_</code> family answers about; the rest land as one the <code>jfr_</code>, <code>flamegraph_</code> and <code>traces_</code> families answer about. <code>profiles_features</code> tells you which you got.</p>
 
       <DocsCallout type="warning" title="The path is opened by Jeffrey, not by the client">
-        <code>path</code> must be <strong>absolute</strong> and must exist <strong>on the machine Jeffrey runs on</strong>. A relative path is rejected rather than guessed at &mdash; it would resolve against Jeffrey&rsquo;s working directory, not yours. For a Jeffrey in a container or on another host, mount or copy the file where Jeffrey can see it first.
+        <code>path</code> must be <strong>absolute</strong> and must exist <strong>on the machine Jeffrey runs on</strong>. A relative path is rejected rather than guessed at &mdash; it would resolve against Jeffrey&rsquo;s working directory, not yours. A leading <code>~</code> is the one exception, and it expands against <em>Jeffrey&rsquo;s</em> home directory rather than the caller&rsquo;s, so it is only the same file when both are the same account on the same machine. For a Jeffrey in a container or on another host, mount or copy the file where Jeffrey can see it first.
       </DocsCallout>
 
       <p>Two more things worth knowing. The call <strong>returns when the profile is built</strong>, which for a large recording is a wait rather than an acknowledgement. And each <code>recordings_analyzeFile</code> imports the file again and builds another profile &mdash; call <code>recordings_list</code> or <code>profiles_list</code> first if the same file may already be there.</p>
