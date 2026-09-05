@@ -262,38 +262,14 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.microscope.mcp.ingest.enabled</code></td>
-            <td><code>true</code></td>
-            <td>
-              Advertises the <code>recordings_</code> tools on that endpoint, which import a recording
-              file from this machine and build a profile from it &mdash; the one family that is not
-              read-only. Set to <code>false</code> to keep the read-only server and nothing else. Read
-              at startup.
-            </td>
-          </tr>
-          <tr>
             <td><code>jeffrey.microscope.mcp.hubs.enabled</code></td>
             <td><code>true</code></td>
             <td>
               Advertises the <code>hubs_</code> tools, which list the recording sessions on the
               connected <router-link to="/docs/hub">Jeffrey Hubs</router-link> and pull one in to be
-              analysed. Its own switch because it reaches <em>off</em> this machine where ingestion
-              reaches into it. Never advertised while
-              <code>jeffrey.microscope.mcp.ingest.enabled</code> is <code>false</code>, since analysing
-              what it downloads needs the <code>recordings_</code> family. Read at startup.
-            </td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.microscope.mcp.compute.enabled</code></td>
-            <td><code>true</code></td>
-            <td>
-              Advertises the tools that build something before they can answer &mdash; the heap-dump
-              index and its dominator tree, the cached heap reports, and the auto-analysis rule set:
-              <code>heap_prepare</code>, <code>heap_status</code> and the <code>compute</code> flag on
-              <code>jvm_autoAnalysis</code>. They read like every other tool, but each can hold a core
-              for minutes and a large heap while it works. Set to <code>false</code> on a Jeffrey that
-              shares a machine; the tools that only read what is already computed keep working. Read
-              at startup.
+              analysed. Its own switch because it is the one family that reaches <em>off</em> this
+              machine: everything else reads what is already here. Set to <code>false</code> to keep
+              the agent to this machine. Read at startup.
             </td>
           </tr>
           <tr>
@@ -308,8 +284,8 @@ onMounted(() => {
               <code>heap</code>, <code>recordings</code>, <code>hubs</code>. Worth setting only for a
               client that pays for the whole tool list on every turn &mdash; Codex loads every schema
               each time, where Claude Code fetches them on demand. A family named here but not built
-              (ingestion or compute off) is simply absent rather than a startup failure. Read at
-              startup.
+              (<code>hubs</code> with hub access off) is simply absent rather than a startup failure.
+              Read at startup.
             </td>
           </tr>
           <tr>

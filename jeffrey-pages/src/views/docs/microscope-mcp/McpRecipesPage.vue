@@ -199,7 +199,7 @@ LIMIT 20`;
       <p><code>heap_prepare</code> starts all of it and returns immediately. <code>heap_status</code> reports the stages, and each answer becomes readable as its stage completes rather than at the end &mdash; so the histogram is available long before the class-loader analysis is. Pass a report name to build just one on a dump that already has an index.</p>
 
       <DocsCallout type="info" title="It shares the run with the UI">
-        This is the same pipeline the <strong>Initialize</strong> button runs, on the same registry. A run started from a session shows up in the browser and the other way round, and asking twice joins the run in flight rather than starting a second. If <code>heap_prepare</code> is not advertised at all, the installation has <code>jeffrey.microscope.mcp.compute.enabled=false</code> and the reports have to be run from the UI.
+        This is the same pipeline the <strong>Initialize</strong> button runs, on the same registry. A run started from a session shows up in the browser and the other way round, and asking twice joins the run in flight rather than starting a second.
       </DocsCallout>
 
       <h2 id="account-for-the-gc-pauses">Account for the GC Pauses</h2>

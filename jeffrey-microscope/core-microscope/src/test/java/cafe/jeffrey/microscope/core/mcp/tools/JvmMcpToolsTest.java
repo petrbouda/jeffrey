@@ -363,7 +363,8 @@ class JvmMcpToolsTest {
         }
 
         /**
-         * Computing is asked for rather than assumed, but the tool that refuses must also say how.
+         * Computing is asked for rather than assumed: the rule set reads the whole recording, so a
+         * caller opts into that cost with {@code compute} rather than paying it by accident.
          */
         @Test
         void computesItOnRequest() {
@@ -379,17 +380,6 @@ class JvmMcpToolsTest {
 
             verify(autoAnalysisManager).generate();
             assertTrue(result.contains("\"rule\":\"Long GC Pauses\""));
-        }
-
-        @Test
-        void refusesToComputeWhenTheInstallationWithholdsIt() {
-            recorded();
-            when(autoAnalysisManager.analysisResults()).thenReturn(List.of());
-
-            String result = new JvmMcpTools(profileManager, false).autoAnalysis(true);
-
-            assertTrue(result.contains("compute.enabled"));
-            verify(autoAnalysisManager, never()).generate();
         }
 
         @Test

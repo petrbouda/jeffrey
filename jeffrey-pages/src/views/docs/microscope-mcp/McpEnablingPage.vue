@@ -31,9 +31,7 @@ const headings = [
   { id: 'the-endpoint-url', text: 'The Endpoint URL', level: 2 },
   { id: 'turning-it-off', text: 'Turning It Off', level: 2 },
   { id: 'while-it-is-off', text: 'While It Is Off', level: 2 },
-  { id: 'turning-ingestion-off', text: 'Turning Ingestion Off', level: 2 },
   { id: 'turning-hub-access-off', text: 'Turning Hub Access Off', level: 2 },
-  { id: 'turning-compute-off', text: 'Turning Compute Off', level: 2 },
   { id: 'trimming-the-tool-list', text: 'Trimming the Tool List', level: 2 },
   { id: 'what-a-session-holds-open', text: 'What a Session Holds Open', level: 2 },
   { id: 'security', text: 'Security', level: 2 },
@@ -46,11 +44,7 @@ onMounted(() => {
 
 const propertyToggle = `jeffrey.microscope.mcp.enabled=false`;
 
-const ingestToggle = `jeffrey.microscope.mcp.ingest.enabled=false`;
-
 const hubsToggle = `jeffrey.microscope.mcp.hubs.enabled=false`;
-
-const computeToggle = `jeffrey.microscope.mcp.compute.enabled=false`;
 
 const familiesProperty = `# Only these families are advertised; empty (the default) means all of them
 jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap`;
@@ -108,34 +102,16 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <p>The practical consequence: if a client reports that the server is unreachable or every tool call fails, check whether this installation set the property above.</p>
       <DocsCodeBlock :code="disabledProbe" language="bash" />
 
-      <h2 id="turning-ingestion-off">Turning Ingestion Off</h2>
-      <p>The <code>recordings_</code> family is one of the two that write: it imports a recording file and builds a profile from it, which is what lets a coding-agent session analyse a <code>.jfr</code> straight out of your repository. It is on by default, together with the endpoint, and switches off on its own:</p>
-      <DocsCodeBlock :code="ingestToggle" language="properties" />
-
-      <p>That leaves the server exactly as it was before ingestion existed &mdash; every profile still readable, nothing creatable. It is worth doing on a shared Jeffrey, for the reason in <a href="#security">Security</a> below: the path a client sends is opened by the <em>Jeffrey</em> process, on the machine Jeffrey runs on.</p>
-
-      <p>Like the endpoint toggle, this one is read once at startup, and <strong>Settings &rarr; Coding Agents (MCP)</strong> reports which way it is set.</p>
-
       <h2 id="turning-hub-access-off">Turning Hub Access Off</h2>
       <p>The <code>hubs_</code> family lets a session list the recording sessions on the <router-link to="/docs/hub">Jeffrey Hubs</router-link> this Microscope is connected to, and pull one in to analyse. It is on by default with the endpoint, and has its own switch:</p>
       <DocsCodeBlock :code="hubsToggle" language="properties" />
 
-      <p>Separate from the ingestion toggle because it is a larger permission, in a different direction. Ingestion reaches <em>into</em> this machine: it opens a path the client names, on the host Jeffrey runs on. Hub access reaches <em>out</em> of it, to whatever infrastructure the configured hubs point at, and can move gigabytes off it. An installation that is happy for an agent to analyse a developer's own <code>.jfr</code> may not be happy for it to pull production recordings, so the two are decided independently.</p>
+      <p>It is the only family with a switch of its own, because it is the only one that leaves this machine. Everything else the server does &mdash; reading a profile, importing a recording, building a heap index &mdash; happens on the host Jeffrey already runs on. Hub access reaches <em>out</em>, to whatever infrastructure the configured hubs point at, and can move gigabytes off it. An installation happy for an agent to analyse a developer&rsquo;s own <code>.jfr</code> may not be happy for it to pull production recordings.</p>
 
-      <DocsCallout type="info" title="It cannot be more permissive than ingestion">
-        Everything <code>hubs_download</code> produces is turned into a profile by <code>recordings_analyzeRecording</code>. So with ingestion off, the <code>hubs_</code> family is not advertised whatever this property says &mdash; otherwise its own descriptions would point at a tool that is not there. Turning ingestion off turns hub access off with it; the reverse is not true.
-      </DocsCallout>
+      <p>Like the endpoint toggle, this one is read once at startup, and <strong>Settings &rarr; Coding Agents (MCP)</strong> reports which way it is set.</p>
 
-      <p>Like the other two toggles, this one is read once at startup, and <strong>Settings &rarr; Coding Agents (MCP)</strong> reports which way it is set.</p>
-
-      <h2 id="turning-compute-off">Turning Compute Off</h2>
-      <p>A heap dump answers most questions from an index, and the expensive parts of that index &mdash; the dominator tree that retained sizes come from, and the cached reports behind Leak Suspects, Biggest Objects, Class Loader Analysis and the rest &mdash; have to be built before anything can read them. <code>heap_prepare</code> and <code>heap_status</code> let a session build them; <code>jvm_autoAnalysis</code> takes a <code>compute</code> flag for the same reason. They are on by default with the endpoint, and have their own switch:</p>
-      <DocsCodeBlock :code="computeToggle" language="properties" />
-
-      <p>Its own switch because these are the only tools whose cost is measured in minutes rather than milliseconds. Building a dominator tree over a multi-gigabyte heap occupies a core for as long as it takes and holds a large working set while it does. On a laptop that is exactly what you want; on a Jeffrey several people share, it is a decision worth making deliberately.</p>
-
-      <DocsCallout type="info" title="What they write is a cache">
-        These are the only <code>heap_</code> tools that write anything, and what they write is the index and the stored reports &mdash; the same artefacts the <strong>Initialize</strong> button in the UI produces. No dump is altered, nothing is deleted, and a run started from a session shows up in the browser and the other way round. With compute off, the reading tools still answer for any dump somebody has already prepared in the UI.
+      <DocsCallout type="info" title="The expensive tools have no switch">
+        <code>heap_prepare</code> builds the heap index and its dominator tree, and <code>jvm_autoAnalysis</code> takes a <code>compute</code> flag to run the rule set &mdash; each can occupy a core for minutes. They used to be withheld by a property of their own, which was dropped: it never bounded what it claimed to, since a single <code>jfr_executeQuery</code> can cost as much, and withholding them left the heap family telling a reader to go and open the browser instead. What they write is a cache &mdash; the same artefacts the <strong>Initialize</strong> button produces, so a run started from a session shows up in the browser and the other way round. No dump is altered and nothing is deleted.
       </DocsCallout>
 
       <h2 id="trimming-the-tool-list">Trimming the Tool List</h2>
@@ -172,7 +148,7 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
 
       <p>The <code>recordings_</code> family is the first of two exceptions worth understanding, because it is where the server touches this machine's filesystem. A client sends a <em>path</em>, not a file &mdash; a JFR recording routinely runs to hundreds of megabytes, and base64 through a JSON-RPC message would spend the client's whole context on bytes neither side ever reads. The path is therefore opened by the Jeffrey process, on the machine Jeffrey runs on, and Jeffrey copies whatever it finds there into the Quick Analysis store.</p>
 
-      <p>On a loopback Jeffrey that is exactly what you want: the file in your repository is on the same disk, and the caller is you. On a shared installation it means a client that can reach the address can have Jeffrey read a file it chooses from that host &mdash; it must carry a recording extension and survive the parser, so it is a narrow door rather than an open one, but it is a door. If the address is reachable by anyone you would not hand a shell to, switch ingestion off with the property in <a href="#turning-ingestion-off">Turning Ingestion Off</a>.</p>
+      <p>On a loopback Jeffrey that is exactly what you want: the file in your repository is on the same disk, and the caller is you. On a shared installation it means a client that can reach the address can have Jeffrey read a file it chooses from that host &mdash; it must carry a recording extension and survive the parser, so it is a narrow door rather than an open one, but it is a door. There is no property that closes it: if the address is reachable by anyone you would not hand a shell to, bind Jeffrey to loopback or put a token in front of it, as below.</p>
 
       <p>The <code>hubs_</code> family is the second exception, and it points the other way: it is the one place the server reaches <em>off</em> this machine. A client that can reach the endpoint can list what every connected hub holds and have Jeffrey pull a session down &mdash; production stack traces, SQL statements and heap dumps included &mdash; onto the host Jeffrey runs on.</p>
 

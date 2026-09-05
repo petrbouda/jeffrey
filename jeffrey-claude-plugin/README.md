@@ -12,9 +12,9 @@ the other [Agent Plugins](https://agent-plugins.org/) clients read the root `plu
 
 Every analysis tool is **read-only**, and every tool now says so in its MCP annotations rather than
 leaving a client to infer it. The exceptions are `recordings_` and `hubs_`, which create profiles
-rather than changing them, and `heap_prepare`, which writes only a cache. Each can be switched off:
-`jeffrey.microscope.mcp.ingest.enabled=false`, `jeffrey.microscope.mcp.hubs.enabled=false` and
-`jeffrey.microscope.mcp.compute.enabled=false`.
+rather than changing them, and `heap_prepare`, which writes only a cache. `hubs_` is the one family
+that reaches off the machine Jeffrey runs on, and the one with a switch of its own:
+`jeffrey.microscope.mcp.hubs.enabled=false`.
 
 Full documentation: [Microscope MCP](https://www.jeffrey-analyst.cafe/docs/microscope-mcp) —
 [Claude Code](https://www.jeffrey-analyst.cafe/docs/microscope-mcp/claude-code),

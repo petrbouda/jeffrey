@@ -307,8 +307,9 @@ profile-to-code-change workflow.
 - `The recording path must be absolute` → pass the full path, not a repository-relative one.
 - `No such recording file` but the file is right there → Jeffrey is looking on *its own*
   filesystem. Copy or mount the recording where Jeffrey can reach it, or upload it in the UI.
-- No `recordings_` tool advertised → this Jeffrey runs with `jeffrey.microscope.mcp.ingest.enabled=false`.
-  Upload and analyse in the Jeffrey UI, then work from `profiles_list`.
+- No `recordings_` tool advertised → the installation trimmed the tool list with
+  `jeffrey.microscope.mcp.families`. Upload and analyse in the Jeffrey UI, then work from
+  `profiles_list`.
 - Every call fails to connect → Jeffrey is not running at the configured address. Point the client
   at the real `…/api/internal/mcp` endpoint: in Claude Code, `/plugin` → `microscope` → **Jeffrey MCP
   endpoint**; in Codex, the `[mcp_servers.jeffrey]` block in `~/.codex/config.toml`. Jeffrey's

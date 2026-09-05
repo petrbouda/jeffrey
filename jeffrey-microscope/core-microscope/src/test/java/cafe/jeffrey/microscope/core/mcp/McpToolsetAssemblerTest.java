@@ -57,8 +57,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ExtendWith(MockitoExtension.class)
 class McpToolsetAssemblerTest {
 
-    private static final String INGEST_PREFIX = "recordings_";
-
     @Mock
     MicroscopeCoreRepositories coreRepositories;
 
@@ -85,8 +83,8 @@ class McpToolsetAssemblerTest {
 
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-03-01T12:00:00Z"), ZoneOffset.UTC);
 
-    private McpToolsetAssembler assembler(boolean ingestEnabled, boolean hubsEnabled) {
-        return assembler(new ExternalMcpProperties(true, ingestEnabled, hubsEnabled, true, Set.of(), ""));
+    private McpToolsetAssembler assembler(boolean hubsEnabled) {
+        return assembler(new ExternalMcpProperties(true, hubsEnabled, Set.of(), ""));
     }
 
     private McpToolsetAssembler assembler(ExternalMcpProperties properties) {
@@ -103,22 +101,32 @@ class McpToolsetAssemblerTest {
                 properties);
     }
 
-    private List<String> toolNames(boolean ingestEnabled, boolean hubsEnabled) {
-        return assembler(ingestEnabled, hubsEnabled).toolset().specs().stream()
+    private List<String> toolNames(boolean hubsEnabled) {
+        return assembler(hubsEnabled).toolset().specs().stream()
                 .map(McpToolSpec::name)
                 .toList();
     }
 
-    private List<String> toolNamesWithIngest(boolean ingestEnabled) {
-        return toolNames(ingestEnabled, true);
-    }
-
+    /**
+     * Everything except the {@code hubs_} family is advertised unconditionally. Ingestion and the
+     * heap-compute tools used to have switches of their own; both were dropped because neither bounded
+     * what it claimed to — an installation could still spend a core on {@code jfr_executeQuery} — while
+     * withholding compute left the heap family telling the reader to go and use the browser.
+     */
     @Nested
-    class IngestEnabled {
+    class AlwaysAdvertised {
+
+        @Test
+        void advertisesTheHeapComputeTools() {
+            List<String> names = toolNames(true);
+
+            assertTrue(names.contains("heap_prepare"));
+            assertTrue(names.contains("heap_status"));
+        }
 
         @Test
         void advertisesTheRecordingsFamily() {
-            List<String> names = toolNamesWithIngest(true);
+            List<String> names = toolNames(true);
 
             assertTrue(names.contains("recordings_analyzeFile"));
             assertTrue(names.contains("recordings_analyzeRecording"));
@@ -127,7 +135,7 @@ class McpToolsetAssemblerTest {
 
         @Test
         void keepsEveryReadOnlyFamily() {
-            List<String> names = toolNamesWithIngest(true);
+            List<String> names = toolNames(true);
 
             assertTrue(names.contains("profiles_list"));
             assertTrue(names.contains("flamegraph_list"));
@@ -143,7 +151,7 @@ class McpToolsetAssemblerTest {
          */
         @Test
         void advertisesTheMachineLevelFamily() {
-            List<String> names = toolNamesWithIngest(true);
+            List<String> names = toolNames(true);
 
             assertTrue(names.contains("jvm_sections"));
             assertTrue(names.contains("jvm_autoAnalysis"));
@@ -162,37 +170,7 @@ class McpToolsetAssemblerTest {
          */
         @Test
         void stillLeavesTheJfrWriteToolOut() {
-            assertFalse(toolNamesWithIngest(true).contains("jfr_executeModification"));
-        }
-    }
-
-    @Nested
-    class IngestDisabled {
-
-        /**
-         * Not advertised rather than advertised-and-refusing: a tool that can never succeed spends a
-         * slot in the model's context and invites a call whose failure explains nothing.
-         */
-        @Test
-        void advertisesNoIngestTool() {
-            assertFalse(toolNamesWithIngest(false).stream().anyMatch(name -> name.startsWith(INGEST_PREFIX)));
-        }
-
-        @Test
-        void andRefusesOneCalledByName() {
-            McpToolsetAssembler assembler = assembler(false, true);
-
-            assertThrows(
-                    IllegalArgumentException.class,
-                    () -> assembler.toolset().call("recordings_list", null));
-        }
-
-        @Test
-        void leavesTheReadOnlyFamiliesUntouched() {
-            List<String> names = toolNamesWithIngest(false);
-
-            assertTrue(names.contains("profiles_list"));
-            assertTrue(names.contains("heap_getHeapSummary"));
+            assertFalse(toolNames(true).contains("jfr_executeModification"));
         }
     }
 
@@ -201,7 +179,7 @@ class McpToolsetAssemblerTest {
 
         @Test
         void advertisesTheHubsFamily() {
-            List<String> names = toolNames(true, true);
+            List<String> names = toolNames(true);
 
             assertTrue(names.contains("hubs_list"));
             assertTrue(names.contains("hubs_sessions"));
@@ -210,7 +188,7 @@ class McpToolsetAssemblerTest {
 
         @Test
         void keepsEveryOtherFamily() {
-            List<String> names = toolNames(true, true);
+            List<String> names = toolNames(true);
 
             assertTrue(names.contains("profiles_list"));
             assertTrue(names.contains("recordings_list"));
@@ -223,14 +201,14 @@ class McpToolsetAssemblerTest {
 
         @Test
         void advertisesNoHubsTool() {
-            List<String> names = toolNames(true, false);
+            List<String> names = toolNames(false);
 
             assertTrue(names.stream().noneMatch(name -> name.startsWith("hubs_")), names.toString());
         }
 
         @Test
         void andRefusesOneCalledByName() {
-            McpToolsetAssembler assembler = assembler(true, false);
+            McpToolsetAssembler assembler = assembler(false);
 
             assertThrows(
                     IllegalArgumentException.class,
@@ -239,27 +217,10 @@ class McpToolsetAssemblerTest {
 
         @Test
         void leavesTheRecordingsFamilyUntouched() {
-            List<String> names = toolNames(true, false);
+            List<String> names = toolNames(false);
 
             assertTrue(names.contains("recordings_analyzeFile"));
             assertTrue(names.contains("recordings_list"));
-        }
-    }
-
-    /**
-     * A hub download lands in the store ingestion governs, and the only way to turn it into a profile
-     * is {@code recordings_analyzeRecording}. Advertising the family without that tool would put
-     * descriptions in the model's context pointing at something that is not there — which is the very
-     * thing {@link ToolReferences} exists to catch.
-     */
-    @Nested
-    class HubsRequireIngestion {
-
-        @Test
-        void advertisesNoHubsToolWhenIngestionIsOff() {
-            List<String> names = toolNames(false, true);
-
-            assertTrue(names.stream().noneMatch(name -> name.startsWith("hubs_")), names.toString());
         }
     }
 
@@ -284,7 +245,7 @@ class McpToolsetAssemblerTest {
                 "jfr_executeModification");
 
         private List<McpToolSpec> specs() {
-            return assembler(true, true).toolset().specs();
+            return assembler(true).toolset().specs();
         }
 
         @Test
@@ -338,7 +299,7 @@ class McpToolsetAssemblerTest {
         @Test
         void advertisesOnlyTheNamedFamilies() {
             McpToolsetAssembler assembler = assembler(new ExternalMcpProperties(
-                    true, true, true, true, Set.of("profiles", "flamegraph"), ""));
+                    true, true, Set.of("profiles", "flamegraph"), ""));
 
             Set<String> prefixes = assembler.toolset().specs().stream()
                     .map(spec -> spec.name().substring(0, spec.name().indexOf('_')))
@@ -350,49 +311,10 @@ class McpToolsetAssemblerTest {
         @Test
         void anEmptyFilterKeepsEverything() {
             McpToolsetAssembler filtered = assembler(
-                    new ExternalMcpProperties(true, true, true, true, Set.of(), ""));
+                    new ExternalMcpProperties(true, true, Set.of(), ""));
 
-            assertEquals(assembler(true, true).toolset().specs().size(),
+            assertEquals(assembler(true).toolset().specs().size(),
                     filtered.toolset().specs().size());
-        }
-    }
-
-
-    @Nested
-    class ComputeTools {
-
-        @Test
-        void advertisesThemWhenComputeIsOn() {
-            List<String> names = assembler(new ExternalMcpProperties(
-                    true, true, true, true, Set.of(), "")).toolset().specs().stream()
-                    .map(McpToolSpec::name).toList();
-
-            assertTrue(names.contains("heap_prepare"));
-            assertTrue(names.contains("heap_status"));
-        }
-
-        /**
-         * Not advertised rather than advertised-and-refusing, for the same reason as the ingest family.
-         */
-        @Test
-        void withholdsThemWhenComputeIsOff() {
-            McpToolsetAssembler assembler = assembler(new ExternalMcpProperties(
-                    true, true, true, false, Set.of(), ""));
-            List<String> names = assembler.toolset().specs().stream().map(McpToolSpec::name).toList();
-
-            assertFalse(names.contains("heap_prepare"));
-            assertThrows(IllegalArgumentException.class,
-                    () -> assembler.toolset().call("heap_prepare", null));
-        }
-
-        @Test
-        void leavesTheReadingHeapToolsAlone() {
-            List<String> names = assembler(new ExternalMcpProperties(
-                    true, true, true, false, Set.of(), "")).toolset().specs().stream()
-                    .map(McpToolSpec::name).toList();
-
-            assertTrue(names.contains("heap_getHeapSummary"));
-            assertTrue(names.contains("heap_executeQuery"));
         }
     }
 

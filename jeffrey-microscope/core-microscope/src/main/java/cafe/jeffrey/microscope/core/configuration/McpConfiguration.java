@@ -56,33 +56,22 @@ import java.util.Set;
 public class McpConfiguration {
 
     /**
-     * @param enabled       whether the endpoint serves, from {@code jeffrey.microscope.mcp.enabled}
-     * @param ingestEnabled whether it advertises the {@code recordings_} family, from
-     *                      {@code jeffrey.microscope.mcp.ingest.enabled}. Separate from {@code enabled}
-     *                      so a shared installation can keep the read-only server it had before
-     * @param hubsEnabled   whether it advertises the {@code hubs_} family, from
-     *                      {@code jeffrey.microscope.mcp.hubs.enabled}. Its own switch because
-     *                      reaching a remote hub is a larger permission than opening a local file
-     * @param computeEnabled whether it advertises the tools that build an index, a dominator tree or a
-     *                      cached report before answering, from
-     *                      {@code jeffrey.microscope.mcp.compute.enabled}. They read like their
-     *                      neighbours but cost minutes of CPU and a large heap, so a shared installation
-     *                      can withhold them
-     * @param families      the families to advertise, from {@code jeffrey.microscope.mcp.families};
-     *                      empty means all of them
-     * @param token         a bearer token the endpoint requires, from
-     *                      {@code jeffrey.microscope.mcp.token}; empty means none
+     * @param enabled     whether the endpoint serves, from {@code jeffrey.microscope.mcp.enabled}
+     * @param hubsEnabled whether it advertises the {@code hubs_} family, from
+     *                    {@code jeffrey.microscope.mcp.hubs.enabled}. Its own switch because reaching a
+     *                    remote hub is the one thing the server does that leaves this machine
+     * @param families    the families to advertise, from {@code jeffrey.microscope.mcp.families};
+     *                    empty means all of them
+     * @param token       a bearer token the endpoint requires, from
+     *                    {@code jeffrey.microscope.mcp.token}; empty means none
      */
     @Bean
     public ExternalMcpProperties externalMcpProperties(
             @Value("${jeffrey.microscope.mcp.enabled:true}") boolean enabled,
-            @Value("${jeffrey.microscope.mcp.ingest.enabled:true}") boolean ingestEnabled,
             @Value("${jeffrey.microscope.mcp.hubs.enabled:true}") boolean hubsEnabled,
-            @Value("${jeffrey.microscope.mcp.compute.enabled:true}") boolean computeEnabled,
             @Value("${jeffrey.microscope.mcp.families:}") Set<String> families,
             @Value("${jeffrey.microscope.mcp.token:}") String token) {
-        return new ExternalMcpProperties(
-                enabled, ingestEnabled, hubsEnabled, computeEnabled, families, token);
+        return new ExternalMcpProperties(enabled, hubsEnabled, families, token);
     }
 
     /**

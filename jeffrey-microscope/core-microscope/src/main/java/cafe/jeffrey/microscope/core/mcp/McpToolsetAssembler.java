@@ -83,8 +83,12 @@ import java.util.Set;
  * <p>
  * {@link RecordingsMcpTools} is the one exception, and it writes at a different level: it does not
  * change an analysed profile, it creates one, which is what lets a reader analyse a recording without
- * leaving the terminal. It is appended only when ingestion is enabled — an installation that wants the
- * purely read-only server keeps it, minus this family.
+ * leaving the terminal. {@link HeapComputeMcpTools} is the same shape: it builds the index and the
+ * dominator tree the reading heap tools need, rather than altering anything already analysed. Both are
+ * marked {@link McpToolAnnotations#CREATES} so a client can tell them apart from their neighbours.
+ * <p>
+ * {@link HubsMcpTools} is the only family gated by configuration, because it is the only one that
+ * leaves this machine.
  */
 public class McpToolsetAssembler {
 
@@ -148,8 +152,7 @@ public class McpToolsetAssembler {
                 new ProfileScopedToolset<>(TracesMcpTools.class, PREFIX_TRACES,
                         profileId -> new TracesMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(JvmMcpTools.class, PREFIX_JVM,
-                        profileId -> new JvmMcpTools(
-                                profileManager(contextCache, profileId), properties.computeEnabled())),
+                        profileId -> new JvmMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(HttpMcpTools.class, PREFIX_HTTP,
                         profileId -> new HttpMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(JdbcMcpTools.class, PREFIX_JDBC,
@@ -175,20 +178,16 @@ public class McpToolsetAssembler {
                 new ProfileScopedToolset<>(HeapOqlMcpTools.class, PREFIX_HEAP,
                         profileId -> new HeapOqlMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(HeapDumpMcpTools.class, PREFIX_HEAP,
-                        profileId -> heapTools(contextCache, profileId))));
+                        profileId -> heapTools(contextCache, profileId)),
+                new ProfileScopedToolset<>(HeapComputeMcpTools.class, PREFIX_HEAP,
+                        profileId -> new HeapComputeMcpTools(
+                                profileManager(contextCache, profileId), heapDumpInitService),
+                        Set.of(),
+                        McpToolAnnotations.CREATES),
+                new ReflectiveToolset(
+                        recordingsMcpTools, PREFIX_RECORDINGS, Set.of(), McpToolAnnotations.CREATES)));
 
-        if (properties.computeEnabled()) {
-            families.add(new ProfileScopedToolset<>(HeapComputeMcpTools.class, PREFIX_HEAP,
-                    profileId -> new HeapComputeMcpTools(
-                            profileManager(contextCache, profileId), heapDumpInitService),
-                    Set.of(),
-                    McpToolAnnotations.CREATES));
-        }
-        if (properties.ingestEnabled()) {
-            families.add(new ReflectiveToolset(
-                    recordingsMcpTools, PREFIX_RECORDINGS, Set.of(), McpToolAnnotations.CREATES));
-        }
-        if (properties.hubsAdvertised()) {
+        if (properties.hubsEnabled()) {
             families.add(new ReflectiveToolset(
                     hubsMcpTools, PREFIX_HUBS, Set.of(), McpToolAnnotations.READS_REMOTE));
         }

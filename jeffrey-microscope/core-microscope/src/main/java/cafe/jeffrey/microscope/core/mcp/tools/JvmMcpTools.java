@@ -101,12 +101,6 @@ public class JvmMcpTools {
     private static final String NO_SUCH_GC_PAGE = "No garbage-collection page named '%s'. The pages "
             + "are: %s.";
 
-    private static final String AUTO_ANALYSIS_COMPUTE_DISABLED = "Auto Analysis has not been computed "
-            + "for this profile, and this Jeffrey runs with jeffrey.microscope.mcp.compute.enabled "
-            + "false, so it cannot be computed from here. Run it once from the Auto Analysis page in "
-            + "the Jeffrey UI — call profiles_link for the URL — or use the other jvm_ sections, which "
-            + "answer the same subsystems directly from the parsed events.";
-
     private static final String NO_THREAD_DUMPS =
             "This profile carries no thread dumps. They come from jdk.ThreadDump events, which a "
                     + "recording only holds when the profiler was asked for them - jvm_threads answers "
@@ -141,20 +135,9 @@ public class JvmMcpTools {
     private final ConfigurationSection configurationSection;
     private final GcDetailSection gcDetailSection;
     private final ProfileManager profileManager;
-    private final boolean computeEnabled;
 
     public JvmMcpTools(ProfileManager profileManager) {
-        this(profileManager, true);
-    }
-
-    /**
-     * @param computeEnabled whether this installation lets a tool build something before answering.
-     *                       Only auto analysis is affected: everything else in the family reads events
-     *                       that were parsed when the profile was created
-     */
-    public JvmMcpTools(ProfileManager profileManager, boolean computeEnabled) {
         this.profileManager = profileManager;
-        this.computeEnabled = computeEnabled;
         // Two of the sections answer more than "render me": auto analysis reports whether it has been
         // computed at all, and configuration is asked for one tab at a time. They are built here and
         // handed to the registry so there is one instance of each, not one per caller.
@@ -203,9 +186,6 @@ public class JvmMcpTools {
         if (!autoAnalysisSection.isComputed()) {
             if (!Boolean.TRUE.equals(compute)) {
                 return AUTO_ANALYSIS_NOT_COMPUTED;
-            }
-            if (!computeEnabled) {
-                return AUTO_ANALYSIS_COMPUTE_DISABLED;
             }
             profileManager.autoAnalysisManager().generate();
         }

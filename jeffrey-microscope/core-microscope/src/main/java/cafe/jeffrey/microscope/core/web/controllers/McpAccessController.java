@@ -101,9 +101,7 @@ public class McpAccessController {
         boolean guarded = properties.tokenRequired();
         return new McpAccessStatus(
                 properties.enabled(),
-                properties.ingestEnabled(),
-                properties.hubsAdvertised(),
-                properties.computeEnabled(),
+                properties.hubsEnabled(),
                 guarded,
                 url,
                 guarded
@@ -122,21 +120,13 @@ public class McpAccessController {
 
     /**
      * @param enabled              whether the endpoint answers; off only via {@code jeffrey.microscope.mcp.enabled}
-     * @param ingestEnabled        whether it also advertises the {@code recordings_} family, which
-     *                             imports a local recording file and builds a profile from it; off via
-     *                             {@code jeffrey.microscope.mcp.ingest.enabled}
-     * @param computeEnabled       whether it also advertises the tools that build an index, a dominator
-     *                             tree or a cached report before answering; off via
-     *                             {@code jeffrey.microscope.mcp.compute.enabled}
+     * @param hubsEnabled          whether it also advertises the {@code hubs_} family, which lists and
+     *                             downloads recordings from the connected Jeffrey Hubs; off via
+     *                             {@code jeffrey.microscope.mcp.hubs.enabled}
      * @param tokenRequired        whether the endpoint requires a bearer token, set with
      *                             {@code jeffrey.microscope.mcp.token}. The token itself is not
      *                             reported separately — it is already inside the snippets below, which
      *                             is where a reader needs it
-     * @param hubsEnabled          whether it also advertises the {@code hubs_} family, which lists and
-     *                             downloads recordings from the connected Jeffrey Hubs; off via
-     *                             {@code jeffrey.microscope.mcp.hubs.enabled}, and never advertised
-     *                             while ingestion is off, since analysing what it downloads needs the
-     *                             {@code recordings_} family
      * @param url                  the MCP endpoint, as reachable from where this request came
      * @param claudeMcpAddCommand  the one-liner that registers it with the Claude Code CLI
      * @param mcpJsonSnippet       the equivalent {@code .mcp.json} entry, for a project-scoped setup
@@ -147,9 +137,7 @@ public class McpAccessController {
      */
     public record McpAccessStatus(
             boolean enabled,
-            boolean ingestEnabled,
             boolean hubsEnabled,
-            boolean computeEnabled,
             boolean tokenRequired,
             String url,
             String claudeMcpAddCommand,

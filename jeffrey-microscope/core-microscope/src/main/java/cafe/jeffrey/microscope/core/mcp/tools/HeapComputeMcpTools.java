@@ -48,8 +48,7 @@ import java.util.List;
  * starting a rival.
  * <p>
  * These are the only tools in the {@code heap_} family that write anything, and what they write is a
- * cache — no dump is altered and nothing is deleted. An installation that would rather not spend the
- * CPU withholds them with {@code jeffrey.microscope.mcp.compute.enabled=false}.
+ * cache — no dump is altered and nothing is deleted.
  */
 public class HeapComputeMcpTools {
 
