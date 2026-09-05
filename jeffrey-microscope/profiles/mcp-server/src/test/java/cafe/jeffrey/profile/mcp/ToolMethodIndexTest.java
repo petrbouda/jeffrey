@@ -61,6 +61,41 @@ class ToolMethodIndexTest {
         }
     }
 
+    /**
+     * The name and description come from Spring AI's own reading of the annotation, so an explicit
+     * name is honoured rather than silently replaced by the method's. Jeffrey contributes the family
+     * prefix and nothing else.
+     */
+    @Nested
+    class Naming {
+
+        @Test
+        void honoursAnExplicitToolName() {
+            ReflectiveToolset toolset = new ReflectiveToolset(new NamedTools(), "test");
+
+            assertEquals(
+                    List.of("test_run_query"),
+                    toolset.specs().stream().map(McpToolSpec::name).toList());
+        }
+
+        @Test
+        void dispatchesOnTheDeclaredNameRatherThanTheMethodName() {
+            ReflectiveToolset toolset = new ReflectiveToolset(new NamedTools(), "test");
+
+            assertEquals("ran", toolset.call("test_run_query", Json.createObject()));
+            assertThrows(IllegalArgumentException.class,
+                    () -> toolset.call("test_execute", Json.createObject()));
+        }
+
+        @Test
+        void fallsBackToTheMethodNameWhenNoneIsDeclared() {
+            ReflectiveToolset toolset = new ReflectiveToolset(new NumericTools(), "test");
+
+            assertTrue(toolset.specs().stream()
+                    .anyMatch(spec -> spec.name().equals("test_alpha")));
+        }
+    }
+
     @Nested
     class Schema {
 
@@ -133,6 +168,14 @@ class ToolMethodIndexTest {
                 @ToolParam(required = false, description = "primitive") double primitive,
                 @ToolParam(required = false, description = "boxed") Double boxed) {
             return primitive + "/" + boxed;
+        }
+    }
+
+    static class NamedTools {
+
+        @Tool(name = "run_query", description = "A tool that names itself")
+        public String execute() {
+            return "ran";
         }
     }
 

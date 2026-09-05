@@ -20,6 +20,7 @@ package cafe.jeffrey.profile.mcp;
 import cafe.jeffrey.shared.common.Json;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import org.springframework.ai.tool.support.ToolUtils;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -96,7 +97,11 @@ final class ToolMethodIndex {
             Set<String> excludedMethods,
             McpToolAnnotations defaultAnnotations) {
         for (Method method : toolMethods(targetType, excludedMethods)) {
-            String toolName = prefix + TOOL_NAME_SEPARATOR + method.getName();
+            // The name and the description are Spring AI's own reading of the annotation rather than a
+            // second one written here. Jeffrey adds the family prefix and nothing else, so a tool that
+            // names itself with @Tool(name=...) is called what it says, instead of being silently
+            // advertised under its method name.
+            String toolName = prefix + TOOL_NAME_SEPARATOR + ToolUtils.getToolName(method);
             Method previous = methodsByToolName.putIfAbsent(toolName, method);
             if (previous != null) {
                 // Two overloads of one @Tool method. MCP addresses a tool by name alone, so one of the
@@ -105,23 +110,27 @@ final class ToolMethodIndex {
                 // one, so the family refuses to assemble.
                 throw new IllegalStateException(
                         "Duplicate MCP tool name '" + toolName + "' in " + targetType.getName()
-                                + ": a @Tool method must not be overloaded.");
+                                + ": a @Tool method must not be overloaded, and two of them must not "
+                                + "declare the same @Tool(name=...).");
             }
             specs.add(new McpToolSpec(
                     toolName,
-                    method.getAnnotation(Tool.class).description(),
+                    ToolUtils.getToolDescription(method),
                     buildInputSchema(method, syntheticParams),
                     annotationsOf(method, defaultAnnotations)));
         }
     }
 
     /**
-     * The {@code @Tool} methods of a class, by name.
+     * The {@code @Tool} methods of a class, in the order they are advertised.
      * <p>
      * Sorted, because {@link Class#getMethods()} makes no promise about order — the JVM is free to
      * return them differently between runs of the same build. Unsorted, the order a family's tools
      * appear in {@code tools/list} is what a model reads first, and it could change under a client
      * without a line of Jeffrey changing.
+     * <p>
+     * {@code excludedMethods} names Java methods rather than tools, because that is what a caller
+     * excluding one is looking at.
      */
     private static List<Method> toolMethods(Class<?> targetType, Set<String> excludedMethods) {
         List<Method> methods = new ArrayList<>();
@@ -130,7 +139,7 @@ final class ToolMethodIndex {
                 methods.add(method);
             }
         }
-        methods.sort(Comparator.comparing(Method::getName));
+        methods.sort(Comparator.comparing(ToolUtils::getToolName));
         return methods;
     }
 
