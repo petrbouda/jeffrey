@@ -38,6 +38,7 @@ import cafe.jeffrey.shared.common.model.ProjectInstanceInfo.ProjectInstanceStatu
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.repository.FileCategory;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
+import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
@@ -116,8 +117,8 @@ public class RepositoryManagerImpl implements RepositoryManager {
     }
 
     @Override
-    public List<RecordingSession> listRecordingSessions(boolean withFiles) {
-        return repositoryStorage.listSessions(withFiles);
+    public List<RecordingSession> listRecordingSessions(boolean withFiles, RecordingSessionFilter filter) {
+        return filter.apply(repositoryStorage.listSessions(withFiles));
     }
 
     @Override

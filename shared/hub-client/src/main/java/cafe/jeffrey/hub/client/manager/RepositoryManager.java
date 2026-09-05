@@ -19,6 +19,7 @@
 package cafe.jeffrey.hub.client.manager;
 
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
+import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
 
@@ -26,7 +27,18 @@ import java.util.List;
 
 public interface RepositoryManager {
 
-    List<RecordingSession> listRecordingSessions(boolean withFiles);
+    /**
+     * Lists every recording session of the project, newest first.
+     */
+    default List<RecordingSession> listRecordingSessions(boolean withFiles) {
+        return listRecordingSessions(withFiles, RecordingSessionFilter.ALL);
+    }
+
+    /**
+     * Lists the recording sessions that satisfy the filter, newest first. The filter is
+     * evaluated by the hub, so the response carries only the sessions asked for.
+     */
+    List<RecordingSession> listRecordingSessions(boolean withFiles, RecordingSessionFilter filter);
 
     RepositoryStatistics calculateRepositoryStatistics();
 

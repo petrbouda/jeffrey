@@ -27,6 +27,7 @@ import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.repository.FileCategory;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
+import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
 
@@ -55,8 +56,8 @@ public class RemoteRepositoryManager implements RepositoryManager {
     }
 
     @Override
-    public List<RecordingSession> listRecordingSessions(boolean withFiles) {
-        return repositoryClient.recordingSessions(projectInfo.id()).stream()
+    public List<RecordingSession> listRecordingSessions(boolean withFiles, RecordingSessionFilter filter) {
+        return repositoryClient.recordingSessions(projectInfo.id(), filter).stream()
                 .map(RecordingSessionResponse::from)
                 .toList();
     }

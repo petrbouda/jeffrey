@@ -220,7 +220,7 @@ onMounted(() => {
                   <span class="method rpc">RPC</span>
                   <code>ListSessions</code>
                 </div>
-                <p>List all recording sessions</p>
+                <p>List a project's recording sessions, newest first. An optional <code>SessionFilter</code> narrows the listing on the hub: <code>active_from</code>/<code>active_to</code> keep the sessions that were recording at any point inside the window (a still-running session always matches a window reaching the present), <code>status</code> keeps one status and <code>limit</code> caps the count</p>
               </div>
               <div class="endpoint-item">
                 <div class="endpoint-line">
