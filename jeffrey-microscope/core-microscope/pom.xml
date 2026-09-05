@@ -144,6 +144,36 @@
                 <groupId>org.codehaus.mojo</groupId>
             </plugin>
 
+            <!--
+                The MCP prompts are the plugin's skills. Copied in at build time rather than kept as a
+                second copy in this module: a client with the plugin reads the files themselves, and a
+                client that cannot take a plugin reads them over the protocol, and the two must not
+                drift apart. One source, two ways of reaching it.
+            -->
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-mcp-prompts</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/mcp-prompts</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}/../../jeffrey-claude-plugin/skills</directory>
+                                    <includes>
+                                        <include>*/SKILL.md</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 </project>
