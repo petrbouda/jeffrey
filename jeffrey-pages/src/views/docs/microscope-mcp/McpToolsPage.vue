@@ -885,7 +885,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
       </table>
 
       <DocsCallout type="info" title="The one pair here that writes, and what it writes is a cache">
-        <code>heap_prepare</code> runs the same pipeline as the <strong>Initialize</strong> button in the UI, on the same registry &mdash; a run started from a session is visible in the browser and the other way round, and a second request joins the one in flight rather than racing it. It returns immediately because a dominator build over a multi-gigabyte heap takes minutes, which is well past what a client waits for a tool call. No dump is altered and nothing is deleted. Both tools disappear when the installation sets <code>jeffrey.microscope.mcp.compute.enabled=false</code>, and the reading tools then say so.
+        <code>heap_prepare</code> runs the same pipeline as the <strong>Initialize</strong> button in the UI, on the same registry &mdash; a run started from a session is visible in the browser and the other way round, and a second request joins the one in flight rather than racing it. It returns immediately because a dominator build over a multi-gigabyte heap takes minutes, which is well past what a client waits for a tool call. No dump is altered and nothing is deleted.
       </DocsCallout>
 
       <p><strong>Reports</strong> &mdash; cached, and faster and safer than reproducing them in SQL. A report nothing has computed answers that it has not been run for this dump yet, and names the <code>heap_prepare</code> report that computes it:</p>

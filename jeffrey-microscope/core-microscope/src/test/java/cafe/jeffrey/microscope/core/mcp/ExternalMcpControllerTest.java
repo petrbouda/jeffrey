@@ -55,16 +55,11 @@ class ExternalMcpControllerTest {
     @Mock
     McpToolsetAssembler assembler;
 
-    private MockMvcTester mvcWith(ExternalMcpProperties properties) {
-        return mockMvcTesterFor(new ExternalMcpController(
-                assembler, properties, new McpRequestGuard(properties.token())));
-    }
-
     private MockMvcTester mvcWith(boolean enabled) {
         return mockMvcTesterFor(new ExternalMcpController(
                 assembler,
-                new ExternalMcpProperties(enabled, true, true, true, Set.of(), ""),
-                new McpRequestGuard("")));
+                new ExternalMcpProperties(enabled, true, Set.of()),
+                new McpRequestGuard()));
     }
 
     @Nested
@@ -187,26 +182,6 @@ class ExternalMcpControllerTest {
                     .header("Origin", "http://evil.example")
                     .contentType(APPLICATION_JSON).content(INITIALIZE))
                     .hasStatus(HttpStatus.FORBIDDEN);
-        }
-
-        @Test
-        void refusesARequestWithoutTheConfiguredToken() {
-            ExternalMcpProperties guarded =
-                    new ExternalMcpProperties(true, true, true, true, Set.of(), "s3cret");
-
-            assertThat(mvcWith(guarded).post().uri(URI).contentType(APPLICATION_JSON).content(INITIALIZE))
-                    .hasStatus(HttpStatus.FORBIDDEN);
-        }
-
-        @Test
-        void servesARequestCarryingTheConfiguredToken() {
-            ExternalMcpProperties guarded =
-                    new ExternalMcpProperties(true, true, true, true, Set.of(), "s3cret");
-
-            assertThat(mvcWith(guarded).post().uri(URI)
-                    .header("Authorization", "Bearer s3cret")
-                    .contentType(APPLICATION_JSON).content(INITIALIZE))
-                    .hasStatusOk();
         }
     }
 

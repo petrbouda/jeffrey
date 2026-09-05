@@ -12,9 +12,9 @@ the other [Agent Plugins](https://agent-plugins.org/) clients read the root `plu
 
 Every analysis tool is **read-only**, and every tool now says so in its MCP annotations rather than
 leaving a client to infer it. The exceptions are `recordings_` and `hubs_`, which create profiles
-rather than changing them, and `heap_prepare`, which writes only a cache. Each can be switched off:
-`jeffrey.microscope.mcp.ingest.enabled=false`, `jeffrey.microscope.mcp.hubs.enabled=false` and
-`jeffrey.microscope.mcp.compute.enabled=false`.
+rather than changing them, and `heap_prepare`, which writes only a cache. `hubs_` is the one family
+that reaches off the machine Jeffrey runs on, and the one with a switch of its own:
+`jeffrey.microscope.mcp.hubs.enabled=false`.
 
 Full documentation: [Microscope MCP](https://www.jeffrey-analyst.cafe/docs/microscope-mcp) —
 [Claude Code](https://www.jeffrey-analyst.cafe/docs/microscope-mcp/claude-code),
@@ -23,9 +23,9 @@ Full documentation: [Microscope MCP](https://www.jeffrey-analyst.cafe/docs/micro
 
 ## Install
 
-Jeffrey's MCP server is **on by default** — a running Jeffrey is already serving it.
-**Settings → Coding Agents (MCP)** reports whether the endpoint is serving and shows the connection
-details for this installation.
+Jeffrey's MCP server is **on by default** — a running Jeffrey is already serving it, at
+`/api/internal/mcp` on whatever address and port you reach Jeffrey on (`http://localhost:8585` unless
+you changed `server.port`).
 
 **Claude Code:**
 
@@ -221,12 +221,10 @@ The endpoint refuses a request carrying an `Origin` header it did not serve, whi
 MCP specification asks of a local HTTP server — a CLI client sends no `Origin`, so it costs nothing
 here and closes the path where a page in your browser drives the server.
 
-Beyond that it is unauthenticated by default, exactly like the rest of Jeffrey's API: anyone who can
-reach the address can read every profile in that installation. Keep Jeffrey bound to localhost, or
-put it behind an SSH tunnel or an authenticating reverse proxy. When it has to be reachable from
-another machine, set `jeffrey.microscope.mcp.token` and the endpoint requires
-`Authorization: Bearer <token>` — **Settings → Coding Agents (MCP)** shows the client configuration
-with the token already in it.
+Beyond that it is unauthenticated, exactly like the rest of Jeffrey's API: anyone who can reach the
+address can read every profile in that installation, and Jeffrey has nothing of its own to turn on.
+Keep it bound to localhost with `server.address=127.0.0.1`, or put it behind an SSH tunnel or an
+authenticating reverse proxy.
 
 ## Licence
 

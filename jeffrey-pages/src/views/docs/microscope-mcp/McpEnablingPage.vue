@@ -31,13 +31,10 @@ const headings = [
   { id: 'the-endpoint-url', text: 'The Endpoint URL', level: 2 },
   { id: 'turning-it-off', text: 'Turning It Off', level: 2 },
   { id: 'while-it-is-off', text: 'While It Is Off', level: 2 },
-  { id: 'turning-ingestion-off', text: 'Turning Ingestion Off', level: 2 },
   { id: 'turning-hub-access-off', text: 'Turning Hub Access Off', level: 2 },
-  { id: 'turning-compute-off', text: 'Turning Compute Off', level: 2 },
   { id: 'trimming-the-tool-list', text: 'Trimming the Tool List', level: 2 },
   { id: 'what-a-session-holds-open', text: 'What a Session Holds Open', level: 2 },
-  { id: 'security', text: 'Security', level: 2 },
-  { id: 'requiring-a-token', text: 'Requiring a Token', level: 2 }
+  { id: 'security', text: 'Security', level: 2 }
 ];
 
 onMounted(() => {
@@ -46,18 +43,10 @@ onMounted(() => {
 
 const propertyToggle = `jeffrey.microscope.mcp.enabled=false`;
 
-const ingestToggle = `jeffrey.microscope.mcp.ingest.enabled=false`;
-
 const hubsToggle = `jeffrey.microscope.mcp.hubs.enabled=false`;
-
-const computeToggle = `jeffrey.microscope.mcp.compute.enabled=false`;
 
 const familiesProperty = `# Only these families are advertised; empty (the default) means all of them
 jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap`;
-
-const tokenProperty = `jeffrey.microscope.mcp.token=a-long-random-string`;
-
-const tokenHeader = `Authorization: Bearer a-long-random-string`;
 
 const defaultEndpoint = `http://localhost:8585/api/internal/mcp`;
 
@@ -65,6 +54,11 @@ const loopback = `# application.properties -- reachable from this machine and no
 server.address=127.0.0.1`;
 
 const tunnel = `ssh -N -L 8585:localhost:8585 you@the-host-running-jeffrey`;
+
+const serverProbe = `curl -s -X POST http://localhost:8585/api/internal/mcp \\
+  -H 'Content-Type: application/json' \\
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+# a tool list means it is serving; 404 means it was turned off`;
 
 const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
   -X POST http://localhost:8585/api/internal/mcp \\
@@ -84,7 +78,8 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <p>The MCP server is <strong>on by default</strong>. A fresh Jeffrey already answers on the endpoint below, so connecting a client is the only step &mdash; see <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> or <router-link to="/docs/microscope-mcp/codex">Codex</router-link>.</p>
 
       <h2 id="it-is-already-on">It Is Already On</h2>
-      <p>Open <strong>Settings &rarr; Coding Agents (MCP)</strong> to confirm it and to copy the connection details. The tab reports whether the endpoint is serving; it does not offer a switch, because whether Jeffrey exposes the endpoint at all belongs with the bind address and the reverse proxy rather than with the preferences a reader edits in the UI.</p>
+      <p>There is nothing to switch on, and nothing in the UI that reports on it: every property below is read once at startup, so the configuration a Jeffrey runs with is the one it was deployed with. Whether the endpoint is serving belongs with the bind address and the reverse proxy, not with the preferences a reader edits in a browser &mdash; so this page, and the properties file, are where it is decided. To check a running Jeffrey, ask the endpoint itself:</p>
+      <DocsCodeBlock :code="serverProbe" language="bash" />
 
       <h2 id="the-endpoint-url">The Endpoint URL</h2>
       <p>One endpoint serves the whole installation:</p>
@@ -93,7 +88,7 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <p>The profile is a tool argument rather than part of the URL, so a client registers this address once and can then move between profiles &mdash; and between the JFR, flamegraph, trace and heap-dump families &mdash; inside a single session.</p>
 
       <DocsCallout type="tip" title="Do not type the URL from memory">
-        The Settings tab shows the endpoint <em>as your browser just reached it</em>, derived from the request rather than hardcoded. Behind a container, a reverse proxy or a non-default port, <code>localhost:8585</code> is wrong &mdash; and wrong in a way you would only discover after pasting the command. Copy the one the tab shows.
+        Build it from the address bar of the Jeffrey UI you already have open, plus <code>/api/internal/mcp</code>. Behind a container, a reverse proxy or a non-default port, <code>localhost:8585</code> is wrong &mdash; and wrong in a way you would only discover after pasting the command.
       </DocsCallout>
 
       <h2 id="turning-it-off">Turning It Off</h2>
@@ -108,34 +103,16 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <p>The practical consequence: if a client reports that the server is unreachable or every tool call fails, check whether this installation set the property above.</p>
       <DocsCodeBlock :code="disabledProbe" language="bash" />
 
-      <h2 id="turning-ingestion-off">Turning Ingestion Off</h2>
-      <p>The <code>recordings_</code> family is one of the two that write: it imports a recording file and builds a profile from it, which is what lets a coding-agent session analyse a <code>.jfr</code> straight out of your repository. It is on by default, together with the endpoint, and switches off on its own:</p>
-      <DocsCodeBlock :code="ingestToggle" language="properties" />
-
-      <p>That leaves the server exactly as it was before ingestion existed &mdash; every profile still readable, nothing creatable. It is worth doing on a shared Jeffrey, for the reason in <a href="#security">Security</a> below: the path a client sends is opened by the <em>Jeffrey</em> process, on the machine Jeffrey runs on.</p>
-
-      <p>Like the endpoint toggle, this one is read once at startup, and <strong>Settings &rarr; Coding Agents (MCP)</strong> reports which way it is set.</p>
-
       <h2 id="turning-hub-access-off">Turning Hub Access Off</h2>
       <p>The <code>hubs_</code> family lets a session list the recording sessions on the <router-link to="/docs/hub">Jeffrey Hubs</router-link> this Microscope is connected to, and pull one in to analyse. It is on by default with the endpoint, and has its own switch:</p>
       <DocsCodeBlock :code="hubsToggle" language="properties" />
 
-      <p>Separate from the ingestion toggle because it is a larger permission, in a different direction. Ingestion reaches <em>into</em> this machine: it opens a path the client names, on the host Jeffrey runs on. Hub access reaches <em>out</em> of it, to whatever infrastructure the configured hubs point at, and can move gigabytes off it. An installation that is happy for an agent to analyse a developer's own <code>.jfr</code> may not be happy for it to pull production recordings, so the two are decided independently.</p>
+      <p>It is the only family with a switch of its own, because it is the only one that leaves this machine. Everything else the server does &mdash; reading a profile, importing a recording, building a heap index &mdash; happens on the host Jeffrey already runs on. Hub access reaches <em>out</em>, to whatever infrastructure the configured hubs point at, and can move gigabytes off it. An installation happy for an agent to analyse a developer&rsquo;s own <code>.jfr</code> may not be happy for it to pull production recordings.</p>
 
-      <DocsCallout type="info" title="It cannot be more permissive than ingestion">
-        Everything <code>hubs_download</code> produces is turned into a profile by <code>recordings_analyzeRecording</code>. So with ingestion off, the <code>hubs_</code> family is not advertised whatever this property says &mdash; otherwise its own descriptions would point at a tool that is not there. Turning ingestion off turns hub access off with it; the reverse is not true.
-      </DocsCallout>
+      <p>Like the endpoint toggle, this one is read once at startup. Whether a family is advertised shows in the client&rsquo;s own tool list &mdash; no <code>hubs_</code> tool means it is off.</p>
 
-      <p>Like the other two toggles, this one is read once at startup, and <strong>Settings &rarr; Coding Agents (MCP)</strong> reports which way it is set.</p>
-
-      <h2 id="turning-compute-off">Turning Compute Off</h2>
-      <p>A heap dump answers most questions from an index, and the expensive parts of that index &mdash; the dominator tree that retained sizes come from, and the cached reports behind Leak Suspects, Biggest Objects, Class Loader Analysis and the rest &mdash; have to be built before anything can read them. <code>heap_prepare</code> and <code>heap_status</code> let a session build them; <code>jvm_autoAnalysis</code> takes a <code>compute</code> flag for the same reason. They are on by default with the endpoint, and have their own switch:</p>
-      <DocsCodeBlock :code="computeToggle" language="properties" />
-
-      <p>Its own switch because these are the only tools whose cost is measured in minutes rather than milliseconds. Building a dominator tree over a multi-gigabyte heap occupies a core for as long as it takes and holds a large working set while it does. On a laptop that is exactly what you want; on a Jeffrey several people share, it is a decision worth making deliberately.</p>
-
-      <DocsCallout type="info" title="What they write is a cache">
-        These are the only <code>heap_</code> tools that write anything, and what they write is the index and the stored reports &mdash; the same artefacts the <strong>Initialize</strong> button in the UI produces. No dump is altered, nothing is deleted, and a run started from a session shows up in the browser and the other way round. With compute off, the reading tools still answer for any dump somebody has already prepared in the UI.
+      <DocsCallout type="info" title="The expensive tools have no switch">
+        <code>heap_prepare</code> builds the heap index and its dominator tree, and <code>jvm_autoAnalysis</code> takes a <code>compute</code> flag to run the rule set &mdash; each can occupy a core for minutes. They used to be withheld by a property of their own, which was dropped: it never bounded what it claimed to, since a single <code>jfr_executeQuery</code> can cost as much, and withholding them left the heap family telling a reader to go and open the browser instead. What they write is a cache &mdash; the same artefacts the <strong>Initialize</strong> button produces, so a run started from a session shows up in the browser and the other way round. No dump is altered and nothing is deleted.
       </DocsCallout>
 
       <h2 id="trimming-the-tool-list">Trimming the Tool List</h2>
@@ -150,8 +127,8 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <p>So the first tool call for a profile takes a <strong>lease</strong> on that profile's database and holds it. The lease is released after <strong>30 minutes</strong> without a call for that profile; the next call simply takes a new one. Nothing needs closing by hand, and no session breaks halfway through because you stopped to read the code.</p>
 
       <h2 id="security">Security</h2>
-      <DocsCallout type="warning" title="Unauthenticated unless you say otherwise">
-        By default the MCP endpoint carries the same trust assumption as the rest of Jeffrey&rsquo;s API: anyone who can reach the address can read every profile in that installation &mdash; the recordings, their stack traces, their SQL statements, and the contents of any heap dump you have indexed. <a href="#requiring-a-token">A token</a> changes that for this endpoint alone.
+      <DocsCallout type="warning" title="Unauthenticated, with nothing to turn on">
+        The MCP endpoint carries the same trust assumption as the rest of Jeffrey&rsquo;s API: anyone who can reach the address can read every profile in that installation &mdash; the recordings, their stack traces, their SQL statements, and the contents of any heap dump you have indexed. Jeffrey has no authentication to switch on, here or anywhere else, so what decides who can read all of that is the address Jeffrey binds to and whatever sits in front of it.
       </DocsCallout>
 
       <p>One thing it does refuse on its own: a request carrying an <code>Origin</code> header naming somewhere other than the address it served. That is the check the MCP specification asks of every local HTTP server, and it closes a path that has nothing to do with your network &mdash; a page in a browser you merely visited can post to <code>localhost</code>, and without the check the server would answer it. A CLI client sends no <code>Origin</code> at all, so Claude Code and Codex never notice.</p>
@@ -165,31 +142,19 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
           <DocsCodeBlock :code="tunnel" language="bash" />
           The client then points at <code>localhost</code> and the endpoint is never exposed.
         </li>
-        <li><strong>Behind an authenticating reverse proxy.</strong> For a shared installation, and still the right answer when you want one identity per person rather than one shared secret.</li>
+        <li><strong>Behind an authenticating reverse proxy.</strong> The only way to put authentication in front of this endpoint, and the right answer for any installation more than one person can reach &mdash; it also gives one identity per person, which a shared secret never could.</li>
       </ul>
 
       <p>Three things limit the blast radius even so. Every analysis tool is read-only &mdash; the one JFR tool that writes is deliberately not exposed, so an external client can read a profile's data but not rewrite it, and the SQL tools refuse a second statement after a semicolon rather than running it. The SQL engine itself is sandboxed: a profile database is opened with DuckDB's external file access and extension autoloading turned off, so a query is confined to that profile's tables and cannot read a file from the host or fetch anything over the network, however it is spelled. And the server has no shell: it answers questions about profiles, and does not run anything.</p>
 
       <p>The <code>recordings_</code> family is the first of two exceptions worth understanding, because it is where the server touches this machine's filesystem. A client sends a <em>path</em>, not a file &mdash; a JFR recording routinely runs to hundreds of megabytes, and base64 through a JSON-RPC message would spend the client's whole context on bytes neither side ever reads. The path is therefore opened by the Jeffrey process, on the machine Jeffrey runs on, and Jeffrey copies whatever it finds there into the Quick Analysis store.</p>
 
-      <p>On a loopback Jeffrey that is exactly what you want: the file in your repository is on the same disk, and the caller is you. On a shared installation it means a client that can reach the address can have Jeffrey read a file it chooses from that host &mdash; it must carry a recording extension and survive the parser, so it is a narrow door rather than an open one, but it is a door. If the address is reachable by anyone you would not hand a shell to, switch ingestion off with the property in <a href="#turning-ingestion-off">Turning Ingestion Off</a>.</p>
+      <p>On a loopback Jeffrey that is exactly what you want: the file in your repository is on the same disk, and the caller is you. On a shared installation it means a client that can reach the address can have Jeffrey read a file it chooses from that host &mdash; it must carry a recording extension and survive the parser, so it is a narrow door rather than an open one, but it is a door. There is no property that closes it: if the address is reachable by anyone you would not hand a shell to, bind Jeffrey to loopback or put an authenticating proxy in front of it.</p>
 
       <p>The <code>hubs_</code> family is the second exception, and it points the other way: it is the one place the server reaches <em>off</em> this machine. A client that can reach the endpoint can list what every connected hub holds and have Jeffrey pull a session down &mdash; production stack traces, SQL statements and heap dumps included &mdash; onto the host Jeffrey runs on.</p>
 
       <p>What bounds it is that the client cannot name an address. The hubs are the ones this installation was configured with, in a file or through its UI, so the reachable set is the operator's decision and not the caller's; there is no tool that adds one. What it does <em>not</em> bound is which of those hubs, so on an installation connected to production, endpoint access is production-recording access. Switch it off with the property in <a href="#turning-hub-access-off">Turning Hub Access Off</a> if that is not what you want.</p>
 
-      <h2 id="requiring-a-token">Requiring a Token</h2>
-      <p>When the endpoint has to be reachable from more than the machine Jeffrey runs on, give it a token:</p>
-      <DocsCodeBlock :code="tokenProperty" language="properties" />
-
-      <p>The endpoint then requires the matching header on every request and answers <code>403</code> without it:</p>
-      <DocsCodeBlock :code="tokenHeader" language="http" />
-
-      <p>You do not have to write that header into a client by hand. With a token set, <strong>Settings &rarr; Coding Agents (MCP)</strong> shows the <code>claude mcp add</code> command, the <code>codex mcp add</code> command, the <code>.mcp.json</code> entry and the <code>config.toml</code> block with the token already in them &mdash; copy whichever your client uses.</p>
-
-      <DocsCallout type="info" title="Off by default on purpose">
-        Nothing else in Jeffrey is authenticated, and a token here would imply the rest of the API is protected too when it is not. It is opt-in so that turning it on is a decision about this endpoint rather than a claim about the installation. It is a shared secret, not an identity: everyone who has it is the same reader, which is why a reverse proxy remains the better answer for a genuinely multi-person installation.
-      </DocsCallout>
     </div>
 
     <DocsNavFooter />

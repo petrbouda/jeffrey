@@ -96,7 +96,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <p>The same <strong>Microscope plugin</strong> installs into Codex. One directory in the Jeffrey repository carries two manifests &mdash; the one <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> reads, and an <a href="https://agent-plugins.org/" target="_blank" rel="noopener">Agent Plugins</a> manifest that Codex, Cursor, Copilot, VS Code and Kiro read &mdash; over a single set of skills and a single MCP server. Nothing about the endpoint is Claude-specific: it is plain JSON-RPC over Streamable HTTP.</p>
 
       <DocsCallout type="info" title="Jeffrey has to be running">
-        The plugin installs and loads whether or not Jeffrey is serving, and then every tool call fails. The server is on by default, so a running Jeffrey is usually all it takes &mdash; <strong>Settings &rarr; Coding Agents (MCP)</strong> reports whether the endpoint is serving. See <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
+        The plugin installs and loads whether or not Jeffrey is serving, and then every tool call fails. The server is on by default, so a running Jeffrey is usually all it takes. See <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
       </DocsCallout>
 
       <h2 id="install-it">Install It</h2>
@@ -176,7 +176,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <p>Families are named by their tool prefix, and <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> lists them. Leave it alone unless you have a reason &mdash; the skills route between families freely, and one that is not advertised is one their advice sends the model to in vain.</p>
 
       <h2 id="check-it-is-connected">Check It Is Connected</h2>
-      <p>Run <code>codex mcp list</code>, or <code>/mcp</code> inside a session. The <code>jeffrey</code> server should be listed with its tools. If it is not, in order of likelihood: the session predates the install and needs restarting, this installation set <code>jeffrey.microscope.mcp.enabled=false</code> (Settings reports it, but does not change it), Jeffrey is not on <code>localhost:8585</code>, or Jeffrey is not running.</p>
+      <p>Run <code>codex mcp list</code>, or <code>/mcp</code> inside a session. The <code>jeffrey</code> server should be listed with its tools. If it is not, in order of likelihood: the session predates the install and needs restarting, this installation set <code>jeffrey.microscope.mcp.enabled=false</code>, Jeffrey is not on <code>localhost:8585</code>, or Jeffrey is not running.</p>
 
       <p>A server that shows as connected but whose tools never appear is worth reporting upstream rather than debugging in Jeffrey &mdash; Codex's Streamable HTTP client has had that failure mode. <code>curl</code> against the endpoint settles which side is at fault; <router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> has the exact request.</p>
 
@@ -195,7 +195,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <p>The endpoint is an ordinary MCP server, so one command connects it with no marketplace involved:</p>
       <DocsCodeBlock :code="manualAdd" language="bash" />
 
-      <p>Or write the <code>[mcp_servers.jeffrey]</code> block from <a href="#pointing-it-elsewhere">above</a> straight into <code>~/.codex/config.toml</code>. <strong>Settings &rarr; Coding Agents (MCP)</strong> in Jeffrey offers both, filled in with the URL your browser actually reached Jeffrey on &mdash; correct behind a container, a proxy or a non-default port, where <code>localhost:8585</code> is not.</p>
+      <p>Or write the <code>[mcp_servers.jeffrey]</code> block from <a href="#pointing-it-elsewhere">above</a> straight into <code>~/.codex/config.toml</code>. Use the address you actually reach Jeffrey on &mdash; behind a container, a proxy or a non-default port, <code>localhost:8585</code> is not it.</p>
 
       <p>What you give up is the skills: the entry sequence and the two database schemas. The tools still work; the model just starts colder, and is more likely to guess a column name than to call <code>jfr_describeTable</code> first.</p>
 

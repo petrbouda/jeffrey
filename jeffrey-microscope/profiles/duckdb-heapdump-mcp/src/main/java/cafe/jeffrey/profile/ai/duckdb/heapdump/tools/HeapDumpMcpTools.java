@@ -51,9 +51,7 @@ public class HeapDumpMcpTools {
     private static final String NOT_RUN_YET =
             "%s has not been run for this heap dump yet. Call heap_prepare with report '%s' to compute "
                     + "it, then read this tool again — heap_status reports progress meanwhile. It can "
-                    + "also be run from the matching page in the Jeffrey UI. If heap_prepare is not "
-                    + "advertised, this Jeffrey runs with jeffrey.microscope.mcp.compute.enabled false "
-                    + "and the report has to be run from the UI.";
+                    + "also be run from the matching page in the Jeffrey UI.";
 
     private static final int MAX_HEADER_RULE = 120;
 

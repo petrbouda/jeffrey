@@ -48,14 +48,6 @@
           <i class="bi bi-stars"></i>
           AI Export
         </button>
-        <button
-          class="settings-tab"
-          :class="{ active: activeTab === 'mcp' }"
-          @click="activeTab = 'mcp'"
-        >
-          <i class="bi bi-plug"></i>
-          Coding Agents (MCP)
-        </button>
       </div>
 
       <!-- AI Configuration Tab -->
@@ -408,183 +400,6 @@
         </div>
       </div>
 
-      <!-- Coding Agents (MCP) Tab -->
-      <div v-if="activeTab === 'mcp'" id="mcp" class="settings-content">
-        <div class="settings-form-grid settings-form-grid-single">
-          <div class="settings-form-group">
-            <label class="settings-label">MCP Server</label>
-            <div class="mcp-state">
-              <Badge
-                :value="mcpEnabled ? 'Serving' : 'Disabled'"
-                :variant="mcpEnabled ? 'success' : 'secondary'"
-                :icon="mcpEnabled ? 'bi bi-check-circle-fill' : 'bi bi-slash-circle'"
-                size="s"
-              />
-            </div>
-            <div class="settings-hint">
-              Lets an interactive coding agent in your own repository — Claude Code, Codex, or
-              anything else that speaks MCP — work with this Jeffrey: list the analysed profiles,
-              query their DuckDB tables, and pull flamegraph, trace and heap dump exports. Every
-              analysis tool is read-only.
-            </div>
-            <div v-if="mcpEnabled" class="mcp-state">
-              <Badge
-                :value="mcpIngestEnabled ? 'Ingest on' : 'Ingest off'"
-                :variant="mcpIngestEnabled ? 'success' : 'secondary'"
-                :icon="mcpIngestEnabled ? 'bi bi-box-arrow-in-down' : 'bi bi-slash-circle'"
-                size="s"
-              />
-              <Badge
-                :value="mcpHubsEnabled ? 'Hubs on' : 'Hubs off'"
-                :variant="mcpHubsEnabled ? 'success' : 'secondary'"
-                :icon="mcpHubsEnabled ? 'bi bi-hdd-network' : 'bi bi-slash-circle'"
-                size="s"
-              />
-              <Badge
-                :value="mcpComputeEnabled ? 'Compute on' : 'Compute off'"
-                :variant="mcpComputeEnabled ? 'success' : 'secondary'"
-                :icon="mcpComputeEnabled ? 'bi bi-cpu' : 'bi bi-slash-circle'"
-                size="s"
-              />
-              <Badge
-                :value="mcpTokenRequired ? 'Token required' : 'No token'"
-                :variant="mcpTokenRequired ? 'success' : 'warning'"
-                :icon="mcpTokenRequired ? 'bi bi-shield-lock-fill' : 'bi bi-shield-exclamation'"
-                size="s"
-              />
-            </div>
-            <div v-if="mcpEnabled && mcpIngestEnabled" class="settings-hint">
-              The agent can also analyse a recording for you: point it at a <code>.jfr</code> or
-              <code>.hprof</code> file and it imports the file and builds the profile, without you
-              opening this UI. Jeffrey opens the path itself, so the file has to be on this machine.
-              Set <code>jeffrey.microscope.mcp.ingest.enabled=false</code> and restart to go back to a
-              purely read-only server.
-            </div>
-            <div v-else-if="mcpEnabled" class="settings-hint">
-              Ingestion is off, so the agent can read the profiles here but not create new ones. Remove
-              <code>jeffrey.microscope.mcp.ingest.enabled=false</code> and restart to let it analyse a
-              recording file straight from your repository.
-            </div>
-            <div v-if="mcpEnabled && mcpHubsEnabled" class="settings-hint">
-              The agent can also reach the Jeffrey Hubs this Microscope is connected to: it lists
-              the recording sessions on them and pulls one in to analyse, so a question like
-              <em>&ldquo;what did production record in the last hour&rdquo;</em> never needs a
-              download by hand. Set <code>jeffrey.microscope.mcp.hubs.enabled=false</code> and
-              restart to keep the agent to what is already here.
-            </div>
-            <div v-else-if="mcpEnabled && mcpIngestEnabled" class="settings-hint">
-              Hub access is off, so the agent works only with recordings already on this machine.
-              Remove <code>jeffrey.microscope.mcp.hubs.enabled=false</code> and restart to let it
-              pull recordings from a connected hub.
-            </div>
-            <div v-if="mcpEnabled && mcpComputeEnabled" class="settings-hint">
-              The agent can also build what a heap dump needs before it can be read &mdash; the index,
-              the dominator tree that retained sizes come from, and the cached reports like Leak
-              Suspects. Without this it can only read reports somebody already opened here. Each run
-              can hold a core for minutes; set
-              <code>jeffrey.microscope.mcp.compute.enabled=false</code> and restart on a Jeffrey that
-              shares a machine.
-            </div>
-            <div v-else-if="mcpEnabled" class="settings-hint">
-              Compute is off, so the agent reads heap reports but cannot build one. A dump nobody has
-              opened here will answer <em>&ldquo;has not been run yet&rdquo;</em> to it. Remove
-              <code>jeffrey.microscope.mcp.compute.enabled=false</code> and restart to let it prepare
-              a dump itself.
-            </div>
-            <div v-if="mcpEnabled && !mcpTokenRequired" class="settings-hint">
-              The endpoint has no token, so anything that can reach this address can read every
-              profile here. That is fine while Jeffrey is on localhost. Before exposing it to another
-              machine, set <code>jeffrey.microscope.mcp.token</code> and restart &mdash; the snippets
-              below then carry the header your client has to send.
-            </div>
-            <div v-if="!mcpEnabled" class="settings-hint">
-              Serving is on unless the deployment turns it off. This one sets
-              <code>jeffrey.microscope.mcp.enabled=false</code>, so the endpoint answers
-              <code>404</code>. Remove that property and restart Jeffrey to serve again.
-            </div>
-          </div>
-        </div>
-
-        <div v-if="mcpEnabled && mcpStatus" class="settings-form-grid settings-form-grid-single">
-          <div class="settings-form-group">
-            <label class="settings-label">Register with the Claude Code CLI</label>
-            <div class="mcp-snippet">
-              <code>{{ mcpStatus.claudeMcpAddCommand }}</code>
-              <button
-                class="btn-secondary mcp-copy"
-                @click="copyToClipboard(mcpStatus.claudeMcpAddCommand, 'Command')"
-              >
-                <i class="bi bi-clipboard"></i>
-                Copy
-              </button>
-            </div>
-            <div class="settings-hint">
-              Run this once in the repository you want to analyse from, then ask Claude to list the
-              profiles.
-            </div>
-          </div>
-
-          <div class="settings-form-group">
-            <label class="settings-label">Or check it in as <code>.mcp.json</code></label>
-            <div class="mcp-snippet">
-              <pre>{{ mcpStatus.mcpJsonSnippet }}</pre>
-              <button
-                class="btn-secondary mcp-copy"
-                @click="copyToClipboard(mcpStatus.mcpJsonSnippet, 'Snippet')"
-              >
-                <i class="bi bi-clipboard"></i>
-                Copy
-              </button>
-            </div>
-            <div class="settings-hint">
-              Shares the server with everyone working in that repository.
-            </div>
-          </div>
-
-          <div class="settings-form-group">
-            <label class="settings-label">Register with the Codex CLI</label>
-            <div class="mcp-snippet">
-              <code>{{ mcpStatus.codexMcpAddCommand }}</code>
-              <button
-                class="btn-secondary mcp-copy"
-                @click="copyToClipboard(mcpStatus.codexMcpAddCommand, 'Command')"
-              >
-                <i class="bi bi-clipboard"></i>
-                Copy
-              </button>
-            </div>
-            <div class="settings-hint">
-              Registers the server for every repository you open with Codex.
-            </div>
-          </div>
-
-          <div class="settings-form-group">
-            <label class="settings-label">Or write it into <code>~/.codex/config.toml</code></label>
-            <div class="mcp-snippet">
-              <pre>{{ mcpStatus.codexConfigTomlSnippet }}</pre>
-              <button
-                class="btn-secondary mcp-copy"
-                @click="copyToClipboard(mcpStatus.codexConfigTomlSnippet, 'Snippet')"
-              >
-                <i class="bi bi-clipboard"></i>
-                Copy
-              </button>
-            </div>
-            <div class="settings-hint">
-              Also how a Codex user reaches a Jeffrey that is not on the port the plugin ships with —
-              Codex has no per-install setting for the endpoint.
-            </div>
-          </div>
-        </div>
-
-        <div v-if="mcpEnabled" class="settings-hint mcp-security-note">
-          <i class="bi bi-shield-exclamation"></i>
-          The MCP endpoint has no authentication yet, exactly like the rest of Jeffrey's API: anyone
-          who can reach this address can read every profile here — and, while ingestion is on, have
-          Jeffrey open a file from this machine. Keep Jeffrey bound to localhost, or put it behind an
-          SSH tunnel or an authenticating reverse proxy, before opening this on a shared network.
-        </div>
-      </div>
     </MainCard>
   </div>
 </template>
@@ -600,16 +415,13 @@ import ToastService from '@shared/services/ToastService';
 import MainCard from '@shared/components/MainCard.vue';
 import MainCardHeader from '@shared/components/MainCardHeader.vue';
 import DataTable from '@shared/components/table/DataTable.vue';
-import Badge from '@shared/components/Badge.vue';
-import McpAccessClient, { type McpAccessStatus } from '@/services/api/McpAccessClient';
 
 const route = useRoute();
 const SUPPORTED_TABS: ReadonlySet<string> = new Set([
   'ai',
   'general',
   'visualization',
-  'ai-export',
-  'mcp'
+  'ai-export'
 ]);
 
 interface ModelInfo {
@@ -644,7 +456,6 @@ const ollamaModels: ModelInfo[] = [
 ];
 
 const client = new SettingsClient();
-const mcpAccessClient = new McpAccessClient();
 
 const activeTab = ref('ai');
 watch(activeTab, tab => {
@@ -663,14 +474,6 @@ const previewSingleLine = ref<HTMLCanvasElement | null>(null);
 const previewTwoLine = ref<HTMLCanvasElement | null>(null);
 
 const aiToggle = ref(false);
-const mcpStatus = ref<McpAccessStatus | null>(null);
-// Whether the endpoint serves is the server's answer, not a stored preference: it comes from an
-// application property fixed at startup, so the page reports it rather than offering to change it.
-const mcpEnabled = computed(() => mcpStatus.value?.enabled === true);
-const mcpIngestEnabled = computed(() => mcpStatus.value?.ingestEnabled === true);
-const mcpHubsEnabled = computed(() => mcpStatus.value?.hubsEnabled === true);
-const mcpComputeEnabled = computed(() => mcpStatus.value?.computeEnabled === true);
-const mcpTokenRequired = computed(() => mcpStatus.value?.tokenRequired === true);
 const aiEnabled = computed(() => aiToggle.value);
 
 const isOllama = computed(() => settings.get('jeffrey.microscope.ai.provider') === 'ollama');
@@ -711,7 +514,6 @@ onMounted(async () => {
     }
 
     aiToggle.value = settings.get('jeffrey.microscope.ai.provider') !== 'none';
-    await loadMcpStatus();
     frameTextMode.value =
       settings.get('jeffrey.microscope.visualization.flamegraph.frame-text-mode') || 'single-line';
 
@@ -922,38 +724,6 @@ async function saveVisualizationSettings() {
     ],
     () => ToastService.success('Settings', 'Visualization settings applied')
   );
-}
-
-/**
- * The connection details are fetched rather than composed here: the reachable URL depends on the
- * request, and only the server sees that.
- */
-async function loadMcpStatus() {
-  try {
-    mcpStatus.value = await mcpAccessClient.fetchStatus();
-  } catch (e) {
-    console.error('Failed to load MCP status', e);
-    mcpStatus.value = null;
-  }
-}
-
-async function copyToClipboard(text: string, label: string) {
-  // The Clipboard API is undefined on a plain-HTTP origin, which is how a self-hosted Jeffrey is
-  // usually served — so say that rather than blaming the copy for failing.
-  if (!window.isSecureContext || navigator.clipboard === undefined) {
-    ToastService.error(
-      'Copy unavailable',
-      'The browser only allows copying over HTTPS or on localhost. Select the text instead.'
-    );
-    return;
-  }
-  try {
-    await navigator.clipboard.writeText(text);
-    ToastService.success('Copied', `${label} copied to clipboard.`);
-  } catch (e) {
-    console.error('Clipboard write failed', e);
-    ToastService.error('Copy Failed', 'Could not copy to the clipboard.');
-  }
 }
 
 async function saveAiExportSettings() {
@@ -1195,51 +965,6 @@ function announceAiChange(message: string) {
   justify-content: flex-end;
 }
 
-/* Coding Agents (MCP) tab */
-.mcp-state {
-  margin-bottom: 8px;
-}
-
-.mcp-snippet {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  background: var(--color-light);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 10px 12px;
-}
-
-.mcp-snippet code,
-.mcp-snippet pre {
-  flex: 1;
-  margin: 0;
-  font-family: var(--font-family-monospace);
-  font-size: 12px;
-  color: var(--color-text);
-  background: none;
-  /* The command is one long line and the JSON is several: both scroll rather than reflow, so the
-     text stays copyable as written. */
-  overflow-x: auto;
-  white-space: pre;
-}
-
-.mcp-copy {
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.mcp-security-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 16px;
-  padding: 10px 12px;
-  background: var(--color-warning-bg);
-  border: 1px solid var(--color-warning-border);
-  border-radius: var(--radius-md);
-  color: var(--color-warning-text);
-}
 
 .content-header-with-toggle {
   display: flex;

@@ -26,57 +26,27 @@ import java.util.Set;
  * Read once from {@code jeffrey.microscope.mcp.*} at wiring time rather than from the live settings:
  * the server is on by default, and whether an installation exposes it is a deployment decision made
  * alongside the bind address and the reverse proxy, not a switch a reader flips from the Settings page.
- * Turning either flag off is therefore an application property and takes a restart.
+ * Turning it off is therefore an application property and takes a restart.
  * <p>
- * {@code ingestEnabled} is separate from {@code enabled} because the two answer different questions.
- * Reading is what the server is for; ingesting is the one thing it does that changes Jeffrey's state,
- * and it does so by opening a path on the machine Jeffrey runs on. An installation that wants the
- * original read-only posture back — a shared Jeffrey, say — turns ingestion off and keeps the rest.
+ * The endpoint has no authentication of its own, in common with everything else under
+ * {@code /api/internal}. What limits who can reach it is the address Jeffrey binds to and whatever
+ * sits in front of it.
  *
- * @param enabled       whether the endpoint answers at all; while off it responds {@code 404}
- * @param ingestEnabled whether the {@code recordings_} family is advertised, which is what lets a
- *                      client import a local recording file and build a profile from it. While off the
- *                      family is not advertised at all rather than advertised and refusing
- * @param hubsEnabled   whether the {@code hubs_} family is advertised, which lets a client list and
- *                      pull recordings from a connected Jeffrey Hub. Separate from
- *                      {@code ingestEnabled} because it is a larger permission — ingestion reads a
- *                      file on this machine, while this reaches out to remote infrastructure and can
- *                      move gigabytes off it — so an installation can allow the first and refuse the
- *                      second. It cannot be the more permissive of the two: everything it produces is
- *                      analysed by the {@code recordings_} family, so it is advertised only when
- *                      ingestion is on as well
- * @param computeEnabled whether the tools that build something before answering are advertised —
- *                      the heap-dump index, the dominator tree, a cached heap report, the auto-analysis
- *                      rule set. They read no differently from their neighbours, but each can occupy a
- *                      core for minutes and hold a large heap while it works, so an installation that
- *                      shares a machine can withhold them and leave the reading tools alone
- * @param families      the tool families to advertise, empty meaning all of them. A client that pays
- *                      for every schema on every turn can be given only the families it uses
- * @param token         a bearer token the endpoint requires, empty meaning none. Jeffrey has no
- *                      authentication anywhere else, so this is opt-in rather than a default that would
- *                      imply the rest of the API is protected too
+ * @param enabled     whether the endpoint answers at all; while off it responds {@code 404}
+ * @param hubsEnabled whether the {@code hubs_} family is advertised, which lets a client list and
+ *                    pull recordings from a connected Jeffrey Hub. Its own switch because it is the
+ *                    one family that reaches past this machine: everything else reads what is already
+ *                    here, while this one talks to remote infrastructure and can move gigabytes off it
+ * @param families    the tool families to advertise, empty meaning all of them. A client that pays
+ *                    for every schema on every turn can be given only the families it uses
  */
 public record ExternalMcpProperties(
         boolean enabled,
-        boolean ingestEnabled,
         boolean hubsEnabled,
-        boolean computeEnabled,
-        Set<String> families,
-        String token) {
+        Set<String> families) {
 
     public ExternalMcpProperties {
         families = families == null ? Set.of() : Set.copyOf(families);
-        token = token == null ? "" : token.trim();
-    }
-
-    /**
-     * Whether the {@code hubs_} family should be advertised. A hub download lands in the same store
-     * ingestion governs and its next step is {@code recordings_analyzeRecording}, so advertising it
-     * without ingestion would put a family in the model's context whose own descriptions point at a
-     * tool that is not there.
-     */
-    public boolean hubsAdvertised() {
-        return hubsEnabled && ingestEnabled;
     }
 
     /**
@@ -88,12 +58,5 @@ public record ExternalMcpProperties(
      */
     public boolean advertises(String family) {
         return families.isEmpty() || families.contains(family);
-    }
-
-    /**
-     * Whether the endpoint requires a bearer token.
-     */
-    public boolean tokenRequired() {
-        return !token.isEmpty();
     }
 }

@@ -80,10 +80,6 @@ stages as they complete, and each answer becomes readable as its stage finishes 
 end. A dominator build over a multi-gigabyte heap takes minutes, so do something else meanwhile
 rather than polling tightly.
 
-If `heap_prepare` is not advertised at all, this Jeffrey runs with
-`jeffrey.microscope.mcp.compute.enabled=false`. Then the old rule applies: give the user the
-`profiles_link` URL and the report's name, and use the on-demand route in step 5 meanwhile.
-
 ## 5. Pick the route
 
 | Question | Sequence | Without the report |
@@ -143,8 +139,8 @@ A dump shows a state, not a trend. One dump cannot distinguish a leak from a lar
   from the table in step 4.
 - `… is still being indexed` → `heap_prepare` is already running or the UI is; `heap_status` says
   how far it has got.
-- No `recordings_` tool advertised → this Jeffrey runs with `jeffrey.microscope.mcp.ingest.enabled=false`;
-  upload the dump in the UI and work from `profiles_list`.
+- No `recordings_` tool advertised → the installation trimmed the tool list with
+  `jeffrey.microscope.mcp.families`; upload the dump in the UI and work from `profiles_list`.
 - Every call fails to connect → Jeffrey is not running at the configured address. Point the client
   at the real `…/api/internal/mcp` endpoint: in Claude Code, `/plugin` → `microscope` → **Jeffrey MCP
   endpoint**; in Codex, the `[mcp_servers.jeffrey]` block in `~/.codex/config.toml`.
