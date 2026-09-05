@@ -283,8 +283,57 @@ onMounted(() => {
               what it downloads needs the <code>recordings_</code> family. Read at startup.
             </td>
           </tr>
+          <tr>
+            <td><code>jeffrey.microscope.mcp.compute.enabled</code></td>
+            <td><code>true</code></td>
+            <td>
+              Advertises the tools that build something before they can answer &mdash; the heap-dump
+              index and its dominator tree, the cached heap reports, and the auto-analysis rule set:
+              <code>heap_prepare</code>, <code>heap_status</code> and the <code>compute</code> flag on
+              <code>jvm_autoAnalysis</code>. They read like every other tool, but each can hold a core
+              for minutes and a large heap while it works. Set to <code>false</code> on a Jeffrey that
+              shares a machine; the tools that only read what is already computed keep working. Read
+              at startup.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.mcp.families</code></td>
+            <td><em>empty</em></td>
+            <td>
+              Which tool families to advertise, comma-separated; empty means all of them. Families are
+              named by their tool prefix: <code>profiles</code>, <code>jfr</code>,
+              <code>flamegraph</code>, <code>compare</code>, <code>traces</code>, <code>jvm</code>,
+              <code>http</code>, <code>jdbc</code>, <code>grpc</code>, <code>methodtracing</code>,
+              <code>io</code>, <code>blocking</code>, <code>timeline</code>, <code>memory</code>,
+              <code>heap</code>, <code>recordings</code>, <code>hubs</code>. Worth setting only for a
+              client that pays for the whole tool list on every turn &mdash; Codex loads every schema
+              each time, where Claude Code fetches them on demand. A family named here but not built
+              (ingestion or compute off) is simply absent rather than a startup failure. Read at
+              startup.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.mcp.token</code></td>
+            <td><em>empty</em></td>
+            <td>
+              A bearer token the MCP endpoint requires, empty meaning none. With it set the endpoint
+              answers <code>403</code> to a request without
+              <code>Authorization: Bearer &lt;token&gt;</code>, and
+              <strong>Settings &rarr; Coding Agents (MCP)</strong> shows the client configuration with
+              the header already in it. Off by default because nothing else in Jeffrey is
+              authenticated and a token here would imply the rest of the API is protected too. Read at
+              startup. See
+              <router-link to="/docs/microscope-mcp/enabling#requiring-a-token">Requiring a Token</router-link>.
+            </td>
+          </tr>
         </tbody>
       </table>
+
+      <DocsCallout type="info">
+        <strong>The endpoint also refuses a foreign <code>Origin</code> on its own</strong>, whatever
+        these properties say &mdash; the DNS-rebinding check the MCP specification asks of a local HTTP
+        server. A CLI client sends no <code>Origin</code>, so Claude Code and Codex never notice.
+      </DocsCallout>
 
       <h2 id="ai-assistant">AI Assistant</h2>
       <table>

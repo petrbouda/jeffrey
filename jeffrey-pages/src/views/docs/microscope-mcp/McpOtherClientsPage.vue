@@ -90,7 +90,11 @@ const initializeResult = `{
   "id": 1,
   "result": {
     "protocolVersion": "2025-06-18",
-    "capabilities": { "tools": { "listChanged": false } },
+    "capabilities": {
+      "tools": { "listChanged": false },
+      "prompts": { "listChanged": false },
+      "resources": { "subscribe": false, "listChanged": false }
+    },
     "serverInfo": { "name": "jeffrey", "version": "1.0.0" }
   }
 }`;
@@ -203,11 +207,19 @@ const protocolError = `{
           </tr>
           <tr>
             <td><code>tools/list</code></td>
-            <td>Every tool with its description and JSON-Schema input</td>
+            <td>Every tool with its description, its JSON-Schema input (including <code>required</code> and <code>enum</code>) and its <code>annotations</code></td>
           </tr>
           <tr>
             <td><code>tools/call</code></td>
             <td>Runs one tool; the result is text content</td>
+          </tr>
+          <tr>
+            <td><code>prompts/list</code>, <code>prompts/get</code></td>
+            <td>The plugin&rsquo;s skills as prompts &mdash; see <a href="#prompts-and-resources">above</a></td>
+          </tr>
+          <tr>
+            <td><code>resources/list</code>, <code>resources/templates/list</code>, <code>resources/read</code></td>
+            <td>The catalogue, the per-profile templates, and the content behind a <code>jeffrey://</code> URI</td>
           </tr>
           <tr>
             <td><code>ping</code></td>
@@ -220,7 +232,11 @@ const protocolError = `{
         </tbody>
       </table>
 
-      <p>The default protocol version is <code>2025-06-18</code>; a version the client asks for is echoed back.</p>
+      <p>The server speaks <code>2024-11-05</code>, <code>2025-03-26</code> and <code>2025-06-18</code>, and <code>2025-06-18</code> is the default. <code>initialize</code> answers with the version the client asked for when it is one of those three, and with the default when it is not &mdash; echoing back an unrecognised version would promise a revision the server may not speak, so the client is told what it will actually get and decides from there.</p>
+
+      <DocsCallout type="info" title="Every tool says whether it writes">
+        Each spec in <code>tools/list</code> carries MCP <code>annotations</code>: <code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code> and <code>openWorldHint</code>. Almost everything Jeffrey exposes only reads a profile, and declares it. What does not is the <code>recordings_</code> family, which creates a profile, and <code>heap_prepare</code>, which builds a cache. <code>destructiveHint</code> is false throughout &mdash; nothing here deletes a profile, a recording or a dump &mdash; and <code>openWorldHint</code> marks the <code>hubs_</code> family, the only one that reaches a machine other than this installation. A client that gates approval on those hints does not need a hand-written deny-list.
+      </DocsCallout>
 
       <h2 id="a-session-by-hand">A Session by Hand</h2>
       <p>Everything below works with <code>curl</code>, which makes it a good way to check that the server is up before blaming a client.</p>

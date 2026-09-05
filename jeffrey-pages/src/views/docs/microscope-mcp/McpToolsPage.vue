@@ -152,7 +152,11 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p><strong>Every tool except <code>profiles_list</code> and the <code>recordings_</code> and <code>hubs_</code> families takes a <code>profileId</code></strong>, and it is required. That is the id from <code>profiles_list</code>; nothing else works without one.</p>
 
-      <p><strong>Output is capped.</strong> A result is truncated at roughly 120,000 characters, with an explicit trailer saying so &mdash; a silently shortened flamegraph would be read as a complete one. The SQL tools cap rows as well, and say when they do. Aggregate in the query rather than pulling rows back to count them.</p>
+      <p><strong>Output is capped at 120,000 characters, and says so when it cuts.</strong> A silently shortened flamegraph would be read as a complete one, so nothing is trimmed quietly. A Markdown answer &mdash; the exports, the listings &mdash; ends with an explicit <code>TRUNCATED</code> line naming the cap and suggesting a narrower query. A JSON answer is trimmed <em>in the tree</em> instead of at a character count: the largest array is shortened until the document fits, so what comes back is still parseable rather than ending mid-token, and it carries a <code>_truncated</code> object saying how many elements each shortened array kept out of how many it had. The SQL tools cap rows as well, and say when they do. Aggregate in the query rather than pulling rows back to count them.</p>
+
+      <p><strong>The schema says what is required, and what the alternatives are.</strong> <code>tools/list</code> returns a JSON Schema per tool with a real <code>required</code> array &mdash; a missing argument is refused by the client before the call rather than deep inside Jeffrey &mdash; and parameters that are enumerations (<code>direction</code>, <code>kind</code>, <code>status</code>, <code>sortBy</code>, <code>page</code>, <code>report</code>) carry an <code>enum</code> rather than listing their values only in prose. In the tables below, an argument marked <code>name?</code> is one the schema leaves optional.</p>
+
+      <p><strong>Every tool declares what it does to the world.</strong> Each spec carries MCP <code>annotations</code> &mdash; <code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code>, <code>openWorldHint</code> &mdash; so a client can tell the handful that write from the great majority that only read, without reading a hundred descriptions. Nothing Jeffrey exposes is destructive: no tool deletes a profile, a recording or a dump. <code>openWorldHint</code> marks the <code>hubs_</code> family, which is the only one that reaches a machine other than this installation.</p>
 
       <p><strong>The Markdown exports carry their own reading instructions.</strong> <code>flamegraph_export</code>, <code>traces_traceExport</code> and <code>traces_operationExport</code> return documents that open by explaining what <code>self</code> means against <code>total</code>, what the frame tags mean, and what was pruned. Read the preamble the document gives you rather than assuming conventions from elsewhere &mdash; Jeffrey&rsquo;s <code>self</code> is a merged-interval computation, not a subtraction.</p>
 
@@ -439,7 +443,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           </tr>
           <tr>
             <td><code>traces_spanFlamegraphExport</code></td>
-            <td><code>profileId</code>, <code>traceId</code>, <code>spanId</code>, <code>eventType</code>, <code>selfOnly?</code>, <code>threadMode?</code>, <code>useWeight?</code></td>
+            <td><code>profileId</code>, <code>traceId</code>, <code>spanId</code>, <code>eventType?</code>, <code>selfOnly?</code>, <code>threadMode?</code>, <code>useWeight?</code></td>
             <td>A flamegraph of the samples taken while one span was open</td>
           </tr>
           <tr>
@@ -454,12 +458,12 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           </tr>
           <tr>
             <td><code>traces_attributeSearch</code></td>
-            <td><code>profileId</code>, <code>key</code>, <code>operator?</code>, <code>value?</code>, <code>source?</code>, <code>owner?</code>, <code>scope?</code>, <code>limit?</code></td>
+            <td><code>profileId</code>, <code>key</code>, <code>operator</code>, <code>value?</code>, <code>source?</code>, <code>owner?</code>, <code>scope?</code>, <code>limit?</code></td>
             <td>The individual traces carrying one value, with their ids</td>
           </tr>
           <tr>
             <td><code>traces_operationFlamegraphExport</code></td>
-            <td><code>profileId</code>, <code>name</code>, <code>kind</code>, <code>eventType</code>, <code>graphEventType</code>, <code>threadMode?</code>, <code>useWeight?</code></td>
+            <td><code>profileId</code>, <code>name</code>, <code>kind</code>, <code>eventType</code>, <code>graphEventType?</code>, <code>threadMode?</code>, <code>useWeight?</code></td>
             <td>The same, aggregated over every trace of one operation</td>
           </tr>
           <tr>
@@ -1034,7 +1038,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
       </table>
 
       <DocsCallout type="info" title="The dominator tree is built lazily">
-        <code>dominator</code> and <code>retained_size</code> are empty until something asks for them, so a SQL query joining <code>retained_size</code> on a fresh dump returns nulls. Run <code>heap_getDominatorTreeRoots</code> once first. The bundled <code>heap-sql</code> skill covers the whole schema.
+        <code>dominator</code> and <code>retained_size</code> are empty until something builds them, so a SQL query joining <code>retained_size</code> on a fresh dump returns nulls rather than zeros. Build them first with <code>heap_prepare</code> and <code>report: "dominator"</code>, then watch <code>heap_status</code>; <code>heap_getDominatorTreeRoots</code> also triggers the build on a dump small enough to finish inside the call. The bundled <code>heap-sql</code> skill covers the whole schema.
       </DocsCallout>
 
       <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
@@ -1066,7 +1070,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           <tr>
             <td><code>hubs_download</code></td>
             <td><code>sessionRef</code></td>
-            <td>Pulls that session in &mdash; its recording files merged into one, its heap dumps and logs alongside &mdash; and returns a <code>recordingId</code> for <code>recordings_analyzeRecording</code></td>
+            <td>Pulls that session in &mdash; its recording files merged into one, its heap dumps and logs alongside &mdash; and returns a <code>recordingId</code> for <code>recordings_analyzeRecording</code>. A transfer that outlasts the call comes back with a status saying so; call the tool again with the same <code>sessionRef</code> to check</td>
           </tr>
         </tbody>
       </table>
@@ -1076,6 +1080,8 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
       <p><strong><code>withinLastMinutes</code> is an overlap, not a start time.</strong> A JVM that began recording three hours ago and is still running matches a sixty-minute window, because it <em>was</em> recording during it. That is what someone asking for "the last hour" means, and the opposite of what filtering on start time would return.</p>
 
       <p><strong>Downloading and analysing are two calls on purpose.</strong> <code>hubs_download</code> stops at a recording and hands back its id; <code>recordings_analyzeRecording</code> builds the profile. A single call covering a multi-gigabyte transfer <em>and</em> a full analysis is the shape that trips a client's tool timeout, and a timeout partway through says nothing about whether the work survived.</p>
+
+      <p><strong>The download itself is bounded too.</strong> It waits about forty-five seconds and then answers with a status saying the transfer continues, rather than holding the call open until the bytes land. It needs no separate status tool: it answers from the local store first, so calling <code>hubs_download</code> again with the same <code>sessionRef</code> <em>is</em> the poll, and a second call while the first is still running joins it rather than fetching the session twice.</p>
 
       <DocsCallout type="tip" title="Read the local column before downloading">
         A row whose <code>local</code> reads <code>profile:&lt;id&gt;</code> is already analysed and that id works immediately; <code>recording:&lt;id&gt;</code> is downloaded but not yet analysed. Jeffrey recognises a session it has seen before from the <code>origin.*</code> tags it wrote at download time, so a repeated <code>hubs_download</code> returns what is already there rather than moving the bytes again &mdash; but reading the column first saves the round trip.
@@ -1130,7 +1136,11 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
         <code>path</code> must be <strong>absolute</strong> and must exist <strong>on the machine Jeffrey runs on</strong>. A relative path is rejected rather than guessed at &mdash; it would resolve against Jeffrey&rsquo;s working directory, not yours. A leading <code>~</code> is the one exception, and it expands against <em>Jeffrey&rsquo;s</em> home directory rather than the caller&rsquo;s, so it is only the same file when both are the same account on the same machine. For a Jeffrey in a container or on another host, mount or copy the file where Jeffrey can see it first.
       </DocsCallout>
 
-      <p>Two more things worth knowing. The call <strong>returns when the profile is built</strong>, which for a large recording is a wait rather than an acknowledgement. And each <code>recordings_analyzeFile</code> imports the file again and builds another profile &mdash; call <code>recordings_list</code> or <code>profiles_list</code> first if the same file may already be there.</p>
+      <DocsCallout type="warning" title="A large recording outlasts the call &mdash; poll, do not re-analyse">
+        Both analyse tools wait about <strong>forty-five seconds</strong> for the parse. A small recording finishes inside that and its <code>profileId</code> comes straight back, exactly as before. A large one comes back with a status of <code>running</code> while the parse carries on in the background, and <code>recordings_status</code> reports the stage it is on and the <code>profileId</code> once it lands. Poll that rather than calling the analyse tool again: a second <code>recordings_analyzeFile</code> imports the file a second time and leaves you with two profiles of one recording and no way to tell them apart. A second <code>recordings_analyzeRecording</code> for the same recording is safe &mdash; it joins the run already in flight rather than racing it.
+      </DocsCallout>
+
+      <p>One more thing worth knowing: each <code>recordings_analyzeFile</code> imports the file again and builds another profile &mdash; call <code>recordings_list</code> or <code>profiles_list</code> first if the same file may already be there.</p>
 
       <p>The family is advertised only while ingestion is enabled; see <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> for the property and for why a shared installation might turn it off.</p>
 
