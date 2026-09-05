@@ -45,6 +45,21 @@ public abstract class ClientProtoMappers {
         };
     }
 
+    /**
+     * Domain-to-proto status for a filter, where {@code null} means "any status" and maps to
+     * {@code UNSPECIFIED}.
+     */
+    public static cafe.jeffrey.hub.api.v1.RecordingStatus recordingStatus(RecordingStatus status) {
+        if (status == null) {
+            return cafe.jeffrey.hub.api.v1.RecordingStatus.RECORDING_STATUS_UNSPECIFIED;
+        }
+        return switch (status) {
+            case ACTIVE -> cafe.jeffrey.hub.api.v1.RecordingStatus.RECORDING_STATUS_ACTIVE;
+            case FINISHED -> cafe.jeffrey.hub.api.v1.RecordingStatus.RECORDING_STATUS_FINISHED;
+            case UNKNOWN -> cafe.jeffrey.hub.api.v1.RecordingStatus.RECORDING_STATUS_UNKNOWN;
+        };
+    }
+
     public static WorkspaceStatus workspaceStatus(cafe.jeffrey.hub.api.v1.WorkspaceStatus status) {
         return switch (status) {
             case WORKSPACE_STATUS_AVAILABLE -> WorkspaceStatus.AVAILABLE;

@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.core.manager.RepositoryManager;
+import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 
 import java.util.List;
@@ -41,12 +42,14 @@ public class RepositoryGrpcService extends RepositoryServiceGrpc.RepositoryServi
     public void listSessions(ListSessionsRequest request, StreamObserver<ListSessionsResponse> responseObserver) {
         GrpcUnary.respond(responseObserver, () -> {
             RepositoryManager repoManager = lookups.repositoryManagerForProject(request.getProjectId());
+            RecordingSessionFilter filter = ProtoMappers.sessionFilter(request.getFilter());
 
-            List<RecordingSession> sessions = repoManager.listRecordingSessions(true).stream()
+            List<RecordingSession> sessions = repoManager.listRecordingSessions(true, filter).stream()
                     .map(RepositoryGrpcService::toProto)
                     .toList();
 
-            LOG.debug("Listed sessions via gRPC: projectId={} count={}", request.getProjectId(), sessions.size());
+            LOG.debug("Listed sessions via gRPC: projectId={} filter={} count={}",
+                    request.getProjectId(), filter, sessions.size());
 
             return ListSessionsResponse.newBuilder()
                     .addAllSessions(sessions)

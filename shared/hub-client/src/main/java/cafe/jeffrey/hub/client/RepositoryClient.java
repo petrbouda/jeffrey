@@ -26,6 +26,7 @@ import cafe.jeffrey.hub.api.v1.*;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryFileResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
+import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
 import java.util.List;
@@ -41,14 +42,36 @@ public class RepositoryClient {
     }
 
     public List<RecordingSessionResponse> recordingSessions(String projectId) {
+        return recordingSessions(projectId, RecordingSessionFilter.ALL);
+    }
+
+    /**
+     * Lists the sessions of a project that satisfy the filter, newest first. The filter travels
+     * to the hub, so only the matching sessions come back over the wire.
+     */
+    public List<RecordingSessionResponse> recordingSessions(String projectId, RecordingSessionFilter filter) {
         ListSessionsResponse response = stub.listSessions(
                 ListSessionsRequest.newBuilder()
                         .setProjectId(projectId)
+                        .setFilter(toProto(filter))
                         .build());
 
         return response.getSessionsList().stream()
                 .map(RepositoryClient::toSessionResponse)
                 .toList();
+    }
+
+    private static SessionFilter toProto(RecordingSessionFilter filter) {
+        SessionFilter.Builder builder = SessionFilter.newBuilder()
+                .setStatus(ClientProtoMappers.recordingStatus(filter.status()))
+                .setLimit(filter.limit());
+        if (filter.activeFrom() != null) {
+            builder.setActiveFrom(filter.activeFrom().toEpochMilli());
+        }
+        if (filter.activeTo() != null) {
+            builder.setActiveTo(filter.activeTo().toEpochMilli());
+        }
+        return builder.build();
     }
 
     public RecordingSessionResponse recordingSession(String sessionId) {

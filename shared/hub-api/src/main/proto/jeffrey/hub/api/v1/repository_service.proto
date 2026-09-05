@@ -10,7 +10,9 @@ import "jeffrey/hub/api/v1/common.proto";
 // Manages the recording repository — JFR files, heap dumps, and other artifacts
 // organized into recording sessions. Provides session listing, statistics, and deletion.
 service RepositoryService {
-  // Lists all recording sessions for a project, optionally including finished ones.
+  // Lists the recording sessions of a project, newest first. An optional filter narrows the
+  // listing to sessions that were recording inside a time window, to one status, or to the
+  // newest N, so a caller asking for "the last hour" gets exactly those sessions back.
   rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
 
   // Gets detailed information about a single recording session, including its files.
@@ -32,6 +34,23 @@ service RepositoryService {
 
 message ListSessionsRequest {
   string project_id = 1;
+  // Narrows the listing. Absent, or with every field unset, returns every session.
+  SessionFilter filter = 2;
+}
+
+// Constraints on a session listing. Every field is optional and an unset field does not
+// restrict anything; set fields are combined with AND.
+message SessionFilter {
+  // Only sessions that were recording at some point between active_from and active_to
+  // (epoch millis). A session overlaps the window when it started at or before active_to and
+  // had not finished before active_from, so a session that is still running always matches a
+  // window that reaches the present. Either bound may be left unset to leave that side open.
+  optional int64 active_from = 1;
+  optional int64 active_to = 2;
+  // Only sessions in this status. RECORDING_STATUS_UNSPECIFIED matches every status.
+  RecordingStatus status = 3;
+  // Return at most this many sessions, newest first. Zero means no cap.
+  int32 limit = 4;
 }
 
 message ListSessionsResponse {

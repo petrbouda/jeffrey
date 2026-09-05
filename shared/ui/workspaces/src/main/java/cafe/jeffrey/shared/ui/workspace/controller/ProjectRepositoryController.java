@@ -29,12 +29,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
 import cafe.jeffrey.hub.client.dto.RecordingSessionResponse;
 import cafe.jeffrey.hub.client.dto.RepositoryStatisticsResponse;
 import cafe.jeffrey.hub.client.manager.RepositoryManager;
+import cafe.jeffrey.shared.common.InstantUtils;
+import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.shared.common.model.repository.RecordingStatus;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.StreamedRecordingFile;
 import cafe.jeffrey.shared.ui.workspace.bridge.RemoteProjectAccess;
@@ -64,16 +68,31 @@ public class ProjectRepositoryController {
         this.clock = clock;
     }
 
+    /**
+     * Lists the project's recording sessions, newest first. All query parameters are optional and
+     * narrow the listing on the hub: {@code activeFrom}/{@code activeTo} (epoch millis) keep the
+     * sessions that were recording inside the window, {@code status} keeps one status and
+     * {@code limit} caps the count. Without parameters every session is returned.
+     */
     @GetMapping("/sessions")
     public List<RecordingSessionResponse> listRepositorySessions(
             @PathVariable("hubId") String hubId,
             @PathVariable("workspaceId") String workspaceId,
-            @PathVariable("projectId") String projectId) {
+            @PathVariable("projectId") String projectId,
+            @RequestParam(value = "activeFrom", required = false) Long activeFrom,
+            @RequestParam(value = "activeTo", required = false) Long activeTo,
+            @RequestParam(value = "status", required = false) RecordingStatus status,
+            @RequestParam(value = "limit", defaultValue = "0") int limit) {
+        RecordingSessionFilter filter = new RecordingSessionFilter(
+                InstantUtils.fromEpochMilli(activeFrom),
+                InstantUtils.fromEpochMilli(activeTo),
+                status,
+                limit);
         var result = projectAccess.repositoryManager(hubId, workspaceId, projectId)
-                .listRecordingSessions(true).stream()
+                .listRecordingSessions(true, filter).stream()
                 .map(s -> RecordingSessionResponse.from(s, clock))
                 .toList();
-        LOG.debug("Listed repository sessions: projectId={} count={}", projectId, result.size());
+        LOG.debug("Listed repository sessions: projectId={} filter={} count={}", projectId, filter, result.size());
         return result;
     }
 

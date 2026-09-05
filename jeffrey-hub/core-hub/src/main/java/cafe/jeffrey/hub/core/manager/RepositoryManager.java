@@ -22,6 +22,7 @@ import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.RepositoryInfo;
 import cafe.jeffrey.shared.common.model.repository.RecordingSession;
+import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.ProjectInstanceSessionInfo;
 import cafe.jeffrey.shared.common.model.repository.InstanceStats;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
@@ -66,12 +67,23 @@ public interface RepositoryManager {
     Optional<RecordingSession> findRecordingSessions(String recordingSessionId);
 
     /**
-     * Lists all recording sessions in the repository.
+     * Lists all recording sessions in the repository, newest first.
      *
      * @param withFiles whether to include file details in the sessions
      * @return list of recording sessions
      */
-    List<RecordingSession> listRecordingSessions(boolean withFiles);
+    default List<RecordingSession> listRecordingSessions(boolean withFiles) {
+        return listRecordingSessions(withFiles, RecordingSessionFilter.ALL);
+    }
+
+    /**
+     * Lists the recording sessions that satisfy the filter, newest first.
+     *
+     * @param withFiles whether to include file details in the sessions
+     * @param filter    the window, status and count constraints to apply
+     * @return list of matching recording sessions
+     */
+    List<RecordingSession> listRecordingSessions(boolean withFiles, RecordingSessionFilter filter);
 
     /**
      * Calculates comprehensive repository statistics including session counts,

@@ -96,7 +96,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     }
 
     @Override
-    public void mergeAndDownloadSession(String recordingSessionId) {
+    public String mergeAndDownloadSession(String recordingSessionId) {
         RecordingSessionResponse recordingSession = repositoryClient.recordingSession(
                 recordingSessionId);
 
@@ -105,11 +105,11 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                 .filter(RepositoryFile::isFinished)
                 .toList();
 
-        processRecordingSession(recordingSessionId, files);
+        return processRecordingSession(recordingSessionId, files);
     }
 
     @Override
-    public void mergeAndDownloadRecordings(String recordingSessionId, List<String> fileIds) {
+    public String mergeAndDownloadRecordings(String recordingSessionId, List<String> fileIds) {
         RecordingSessionResponse recordingSession = repositoryClient.recordingSession(
                 recordingSessionId);
 
@@ -120,11 +120,11 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                 .filter(file -> requestedFileIds.contains(file.id()))
                 .toList();
 
-        processRecordingSession(recordingSessionId, files);
+        return processRecordingSession(recordingSessionId, files);
     }
 
     // TODO: Simplify this behaviour
-    private void processRecordingSession(String recordingSessionId, List<RepositoryFile> files) {
+    private String processRecordingSession(String recordingSessionId, List<RepositoryFile> files) {
         // At least one recording file must be present, otherwise nothing to merge and download
         // 0...n additional recording files can be present (e.g. HeapDump, logs, etc.)
         if (files.stream().noneMatch(RepositoryFile::isRecordingFile)) {
@@ -158,7 +158,7 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                     .toList();
 
             // Persist into Recordings storage with origin tags
-            persistToRecordings(recordingSessionId, recordingPath, artifactPaths);
+            return persistToRecordings(recordingSessionId, recordingPath, artifactPaths);
         }
     }
 
@@ -186,8 +186,9 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
      * @param recordingSessionId the recording session ID
      * @param fileIds            the list of file IDs to download
      * @param progressCallback   callback for receiving progress updates
+     * @return id of the recording created in the local store
      */
-    public void mergeAndDownloadRecordingsWithProgress(
+    public String mergeAndDownloadRecordingsWithProgress(
             String recordingSessionId,
             List<String> fileIds,
             ProgressCallback progressCallback) {
@@ -202,10 +203,10 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
                 .filter(file -> requestedFileIds.contains(file.id()))
                 .toList();
 
-        processRecordingSessionWithProgress(recordingSession, files, progressCallback);
+        return processRecordingSessionWithProgress(recordingSession, files, progressCallback);
     }
 
-    private void processRecordingSessionWithProgress(
+    private String processRecordingSessionWithProgress(
             RecordingSessionResponse recordingSession,
             List<RepositoryFile> files,
             ProgressCallback progressCallback) {
@@ -348,11 +349,14 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
             progressCallback.onProcessing();
 
             // Persist into Recordings storage with origin tags
-            persistToRecordings(recordingSessionId, recordingPath, artifactPaths);
+            String recordingId = persistToRecordings(recordingSessionId, recordingPath, artifactPaths);
 
             // Completed successfully
             progressCallback.onComplete();
-            LOG.info("Parallel download completed: sessionId={} artifacts={}", recordingSessionId, artifactPaths.size());
+            LOG.info("Parallel download completed: sessionId={} recordingId={} artifacts={}",
+                    recordingSessionId, recordingId, artifactPaths.size());
+
+            return recordingId;
 
         } catch (CancellationException e) {
             LOG.info("Download cancelled: sessionId={}", recordingSessionId);
@@ -413,12 +417,14 @@ public class RemoteRecordingsDownloadManager implements RecordingsDownloadManage
     /**
      * Persist the merged recording + any artifact files into Recordings storage,
      * tagged with the {@code origin.*} system tags from {@link #originContext}.
+     *
+     * @return id of the newly created local recording
      */
-    private void persistToRecordings(
+    private String persistToRecordings(
             String recordingSessionId, Path recordingPath, List<Path> artifactPaths) {
 
         Map<String, String> originTags = originContext.toTagMap(recordingSessionId);
-        recordingsManager.createDownloadedRecording(
+        return recordingsManager.createDownloadedRecording(
                 recordingSessionId, recordingPath, artifactPaths, originTags);
     }
 }

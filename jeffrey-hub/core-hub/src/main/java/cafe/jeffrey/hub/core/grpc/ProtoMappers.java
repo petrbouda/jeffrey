@@ -20,10 +20,14 @@ package cafe.jeffrey.hub.core.grpc;
 
 import cafe.jeffrey.hub.api.v1.InstanceStatus;
 import cafe.jeffrey.hub.api.v1.RecordingStatus;
+import cafe.jeffrey.hub.api.v1.SessionFilter;
 import cafe.jeffrey.hub.api.v1.SettingsLevel;
 import cafe.jeffrey.hub.api.v1.WorkspaceStatus;
 import cafe.jeffrey.shared.common.model.EffectiveProfilerSettings;
 import cafe.jeffrey.shared.common.model.ProjectInstanceInfo;
+import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
+
+import java.time.Instant;
 
 /**
  * Shared domain-to-proto conversions for the hub gRPC services. Centralizes the null-to-empty-string
@@ -45,6 +49,28 @@ public abstract class ProtoMappers {
             case ACTIVE -> RecordingStatus.RECORDING_STATUS_ACTIVE;
             case FINISHED -> RecordingStatus.RECORDING_STATUS_FINISHED;
             case UNKNOWN -> RecordingStatus.RECORDING_STATUS_UNKNOWN;
+        };
+    }
+
+    /**
+     * Proto-to-domain conversion of a session filter. An unset bound stays open, an
+     * {@code UNSPECIFIED} status matches every status and a zero limit means no cap, so a
+     * default-instance filter converts to {@link RecordingSessionFilter#ALL}. An empty window
+     * surfaces as {@link IllegalArgumentException}, which the unary envelope reports as
+     * {@code INVALID_ARGUMENT}.
+     */
+    public static RecordingSessionFilter sessionFilter(SessionFilter filter) {
+        Instant activeFrom = filter.hasActiveFrom() ? Instant.ofEpochMilli(filter.getActiveFrom()) : null;
+        Instant activeTo = filter.hasActiveTo() ? Instant.ofEpochMilli(filter.getActiveTo()) : null;
+        return new RecordingSessionFilter(activeFrom, activeTo, statusFilter(filter.getStatus()), filter.getLimit());
+    }
+
+    private static cafe.jeffrey.shared.common.model.repository.RecordingStatus statusFilter(RecordingStatus status) {
+        return switch (status) {
+            case RECORDING_STATUS_ACTIVE -> cafe.jeffrey.shared.common.model.repository.RecordingStatus.ACTIVE;
+            case RECORDING_STATUS_FINISHED -> cafe.jeffrey.shared.common.model.repository.RecordingStatus.FINISHED;
+            case RECORDING_STATUS_UNKNOWN -> cafe.jeffrey.shared.common.model.repository.RecordingStatus.UNKNOWN;
+            case RECORDING_STATUS_UNSPECIFIED, UNRECOGNIZED -> null;
         };
     }
 

@@ -29,11 +29,13 @@ import cafe.jeffrey.hub.persistence.api.SessionWithRepository;
 import cafe.jeffrey.hub.persistence.api.ProjectRepository;
 import cafe.jeffrey.hub.persistence.api.HubPlatformRepositories;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
+import cafe.jeffrey.shared.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.shared.common.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.shared.common.model.repository.RepositoryStatistics.FileTypeStats;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -70,7 +72,7 @@ class RepositoryGrpcServiceTest {
         @Test
         void returnsSessionList() throws Exception {
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.listRecordingSessions(true)).thenReturn(List.of(
+            when(repoManager.listRecordingSessions(true, RecordingSessionFilter.ALL)).thenReturn(List.of(
                     new cafe.jeffrey.shared.common.model.repository.RecordingSession(
                             SESSION_ID, "session-name", "inst-1",
                             FIXED_TIME, null,
@@ -124,7 +126,7 @@ class RepositoryGrpcServiceTest {
         @Test
         void returnsEmptyListWhenNoSessions() throws Exception {
             var repoManager = mock(RepositoryManager.class);
-            when(repoManager.listRecordingSessions(true)).thenReturn(List.of());
+            when(repoManager.listRecordingSessions(true, RecordingSessionFilter.ALL)).thenReturn(List.of());
 
             var stub = startServer(serviceWithProject(repoManager));
 
@@ -147,6 +149,78 @@ class RepositoryGrpcServiceTest {
                                     .build()));
 
             assertEquals(Status.Code.NOT_FOUND, ex.getStatus().getCode());
+        }
+
+        @Test
+        void filterFieldsReachTheRepositoryManager() throws Exception {
+            var repoManager = mock(RepositoryManager.class);
+            Instant from = FIXED_TIME.minus(Duration.ofHours(1));
+            var expected = new RecordingSessionFilter(
+                    from, FIXED_TIME, cafe.jeffrey.shared.common.model.repository.RecordingStatus.FINISHED, 5);
+            when(repoManager.listRecordingSessions(true, expected)).thenReturn(List.of(
+                    new cafe.jeffrey.shared.common.model.repository.RecordingSession(
+                            SESSION_ID, "session-name", null,
+                            from, FIXED_TIME,
+                            cafe.jeffrey.shared.common.model.repository.RecordingStatus.FINISHED,
+                            null, null, List.of(), false)));
+
+            var stub = startServer(serviceWithProject(repoManager));
+
+            ListSessionsResponse response = stub.listSessions(
+                    ListSessionsRequest.newBuilder()
+                            .setProjectId(PROJECT_ID)
+                            .setFilter(SessionFilter.newBuilder()
+                                    .setActiveFrom(from.toEpochMilli())
+                                    .setActiveTo(FIXED_TIME.toEpochMilli())
+                                    .setStatus(RecordingStatus.RECORDING_STATUS_FINISHED)
+                                    .setLimit(5))
+                            .build());
+
+            assertEquals(1, response.getSessionsCount());
+            assertEquals(SESSION_ID, response.getSessions(0).getId());
+            verify(repoManager).listRecordingSessions(true, expected);
+        }
+
+        @Test
+        void absentFilterListsEverything() throws Exception {
+            var repoManager = mock(RepositoryManager.class);
+            when(repoManager.listRecordingSessions(true, RecordingSessionFilter.ALL)).thenReturn(List.of());
+
+            var stub = startServer(serviceWithProject(repoManager));
+
+            stub.listSessions(ListSessionsRequest.newBuilder().setProjectId(PROJECT_ID).build());
+
+            verify(repoManager).listRecordingSessions(true, RecordingSessionFilter.ALL);
+        }
+
+        @Test
+        void emptyWindow_returnsInvalidArgument() throws Exception {
+            var stub = startServer(serviceWithProject(mock(RepositoryManager.class)));
+
+            StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.listSessions(
+                            ListSessionsRequest.newBuilder()
+                                    .setProjectId(PROJECT_ID)
+                                    .setFilter(SessionFilter.newBuilder()
+                                            .setActiveFrom(FIXED_TIME.toEpochMilli())
+                                            .setActiveTo(FIXED_TIME.minusSeconds(1).toEpochMilli()))
+                                    .build()));
+
+            assertEquals(Status.Code.INVALID_ARGUMENT, ex.getStatus().getCode());
+        }
+
+        @Test
+        void negativeLimit_returnsInvalidArgument() throws Exception {
+            var stub = startServer(serviceWithProject(mock(RepositoryManager.class)));
+
+            StatusRuntimeException ex = assertThrows(StatusRuntimeException.class, () ->
+                    stub.listSessions(
+                            ListSessionsRequest.newBuilder()
+                                    .setProjectId(PROJECT_ID)
+                                    .setFilter(SessionFilter.newBuilder().setLimit(-1))
+                                    .build()));
+
+            assertEquals(Status.Code.INVALID_ARGUMENT, ex.getStatus().getCode());
         }
     }
 

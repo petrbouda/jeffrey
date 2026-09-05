@@ -22,7 +22,21 @@ import java.util.List;
 
 public interface RecordingsDownloadManager {
 
-    void mergeAndDownloadSession(String recordingSessionId);
+    /**
+     * Downloads every finished file of the session and stores it as one local recording.
+     *
+     * @param recordingSessionId the upstream session to download
+     * @return id of the recording created in the local store, so the caller can go on to
+     * analyse it without having to search the store for whatever appeared last
+     */
+    String mergeAndDownloadSession(String recordingSessionId);
 
-    void mergeAndDownloadRecordings(String recordingSessionId, List<String> rawRecordingIds);
+    /**
+     * Downloads the named files of the session and stores them as one local recording.
+     *
+     * @param recordingSessionId the upstream session to download
+     * @param rawRecordingIds    ids of the files to take from that session
+     * @return id of the recording created in the local store
+     */
+    String mergeAndDownloadRecordings(String recordingSessionId, List<String> rawRecordingIds);
 }
