@@ -24,6 +24,9 @@ import cafe.jeffrey.profile.common.event.GarbageCollectorType;
 import cafe.jeffrey.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.profile.manager.FlamegraphManager;
 import cafe.jeffrey.profile.manager.ProfileConfigurationManager;
+import cafe.jeffrey.profile.manager.ExceptionsManager;
+import cafe.jeffrey.profile.manager.ClassLoadingManager;
+import cafe.jeffrey.profile.manager.SystemResourcesManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
@@ -103,6 +106,18 @@ class JvmMcpToolsTest {
     AutoAnalysisManager autoAnalysisManager;
 
     @Mock
+    ExceptionsManager exceptionsManager;
+
+    @Mock
+    ClassLoadingManager classLoadingManager;
+
+    @Mock
+    SystemResourcesManager systemResourcesManager;
+
+    @Mock
+    cafe.jeffrey.profile.manager.SecurityManager securityManager;
+
+    @Mock
     ProfileConfigurationManager configurationManager;
 
     private JvmMcpTools tools() {
@@ -123,6 +138,10 @@ class JvmMcpToolsTest {
         when(profileManager.vmOperationManager()).thenReturn(vmOperationManager);
         when(profileManager.autoAnalysisManager()).thenReturn(autoAnalysisManager);
         when(profileManager.profileConfigurationManager()).thenReturn(configurationManager);
+        when(profileManager.exceptionsManager()).thenReturn(exceptionsManager);
+        when(profileManager.classLoadingManager()).thenReturn(classLoadingManager);
+        when(profileManager.systemResourcesManager()).thenReturn(systemResourcesManager);
+        when(profileManager.securityManager()).thenReturn(securityManager);
 
         when(flamegraphManager.allEventSummaries()).thenReturn(
                 List.of(eventTypes).stream()
@@ -433,4 +452,79 @@ class JvmMcpToolsTest {
                     """);
         }
     }
+
+    /**
+     * The areas the UI has always answered and the MCP surface did not: exceptions, class loading,
+     * system and host, security, and the GC pages beneath the overview.
+     */
+    @Nested
+    class NewSections {
+
+        @Test
+        void everyNewSectionIsListedWithTheEventsItNeeds() {
+            recorded();
+
+            String result = tools().sections();
+
+            assertTrue(result.contains("\"id\":\"exceptions\""));
+            assertTrue(result.contains("\"id\":\"classLoading\""));
+            assertTrue(result.contains("\"id\":\"system\""));
+            assertTrue(result.contains("\"id\":\"security\""));
+            assertTrue(result.contains("\"id\":\"gcDetail\""));
+        }
+
+        /**
+         * A section whose events were never captured is refused with the event types it needed, so an
+         * absence never arrives as a page of zeroes.
+         */
+        @Test
+        void refusesASectionWhoseEventsWereNotRecorded() {
+            recorded();
+
+            assertTrue(tools().exceptions().contains("no data"));
+            assertTrue(tools().classLoading().contains("no data"));
+            assertTrue(tools().system().contains("no data"));
+            assertTrue(tools().security().contains("no data"));
+        }
+
+        @Test
+        void namesTheEventTypesASectionNeededWhenRefusing() {
+            recorded();
+
+            assertTrue(tools().exceptions().contains("jdk.ExceptionStatistics"));
+        }
+    }
+
+    @Nested
+    class GcDetail {
+
+        @Test
+        void listsThePagesWhenNoneIsAskedFor() {
+            recorded("jdk.GarbageCollection");
+
+            String result = tools().gcDetail(null);
+
+            assertTrue(result.contains("tenuring"));
+            assertTrue(result.contains("zgc"));
+            assertTrue(result.contains("plab"));
+        }
+
+        @Test
+        void refusesAPageThatDoesNotExistNamingTheOnesThatDo() {
+            recorded("jdk.GarbageCollection");
+
+            String result = tools().gcDetail("nonsense");
+
+            assertTrue(result.startsWith("Error: "));
+            assertTrue(result.contains("tenuring"));
+        }
+
+        @Test
+        void refusesEveryPageWhenNoCollectionWasRecorded() {
+            recorded();
+
+            assertTrue(tools().gcDetail("tenuring").contains("no data"));
+        }
+    }
+
 }

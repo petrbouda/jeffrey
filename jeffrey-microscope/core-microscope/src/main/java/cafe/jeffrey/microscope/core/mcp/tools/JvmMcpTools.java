@@ -21,6 +21,12 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.AutoAnalysisSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ConfigurationSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ContainerSection;
+import cafe.jeffrey.microscope.core.mcp.tools.jvm.ClassLoadingSection;
+import cafe.jeffrey.microscope.core.mcp.tools.jvm.ExceptionsSection;
+import cafe.jeffrey.microscope.core.mcp.tools.jvm.GcDetailSection;
+import cafe.jeffrey.microscope.core.mcp.tools.jvm.SecuritySection;
+import cafe.jeffrey.microscope.core.mcp.tools.jvm.SystemSection;
+import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.GcSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.JitSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSection;
@@ -92,6 +98,9 @@ public class JvmMcpTools {
             + "URL. Meanwhile the other jvm_ sections answer the same subsystems directly from the "
             + "parsed events.";
 
+    private static final String NO_SUCH_GC_PAGE = "No garbage-collection page named '%s'. The pages "
+            + "are: %s.";
+
     private static final String AUTO_ANALYSIS_COMPUTE_DISABLED = "Auto Analysis has not been computed "
             + "for this profile, and this Jeffrey runs with jeffrey.microscope.mcp.compute.enabled "
             + "false, so it cannot be computed from here. Run it once from the Auto Analysis page in "
@@ -130,6 +139,7 @@ public class JvmMcpTools {
     private final JvmSections sections;
     private final AutoAnalysisSection autoAnalysisSection;
     private final ConfigurationSection configurationSection;
+    private final GcDetailSection gcDetailSection;
     private final ProfileManager profileManager;
     private final boolean computeEnabled;
 
@@ -150,14 +160,20 @@ public class JvmMcpTools {
         // handed to the registry so there is one instance of each, not one per caller.
         this.autoAnalysisSection = new AutoAnalysisSection(profileManager);
         this.configurationSection = new ConfigurationSection(profileManager);
+        this.gcDetailSection = new GcDetailSection(profileManager);
 
         this.sections = new JvmSections(profileManager, List.of(
                 autoAnalysisSection,
                 new GcSection(profileManager),
+                gcDetailSection,
                 new SafepointsSection(profileManager),
                 new JitSection(profileManager),
                 new ThreadsSection(profileManager),
                 new NativeMemorySection(profileManager),
+                new ClassLoadingSection(profileManager),
+                new ExceptionsSection(profileManager),
+                new SystemSection(profileManager),
+                new SecuritySection(profileManager),
                 new ContainerSection(profileManager),
                 configurationSection));
     }
@@ -194,6 +210,74 @@ public class JvmMcpTools {
             profileManager.autoAnalysisManager().generate();
         }
         return render(AutoAnalysisSection.ID);
+    }
+
+    @Tool(description = "The garbage-collection pages beneath the overview, one at a time: the tenuring "
+            + "distribution, the IHOP and MMU behind a concurrent cycle, G1's regions and evacuation "
+            + "failures, ZGC's allocation stalls and relocations, the string and symbol tables, "
+            + "finalizers, reference processing, the parallel phase breakdown, and PLAB statistics. "
+            + "Reach for one after jvm_gc has shown that collection matters and said which collector "
+            + "ran — most of these are collector-specific and are empty on the others. Call it with no "
+            + "page for the list.")
+    public String gcDetail(
+            @ToolParam(required = false, description = "Which page to render. Omit for the list of pages.")
+            @ToolParamValues({"configuration", "tenuring", "ihop", "g1", "zgc", "stringTables",
+                    "finalizers", "references", "phases", "plab"})
+            String page) {
+
+        JvmSection declared = sections.get(GcDetailSection.ID);
+        if (!sections.isAvailable(declared)) {
+            return notRecorded(declared);
+        }
+        if (page == null || page.isBlank()) {
+            return McpToolOutput.json(result(declared, GcDetailSection.pageNames()));
+        }
+
+        Object content = gcDetailSection.page(page.trim());
+        if (content == null) {
+            return McpToolOutput.error(NO_SUCH_GC_PAGE.formatted(
+                    page, String.join(", ", GcDetailSection.pageNames())));
+        }
+        return McpToolOutput.json(result(declared, content));
+    }
+
+    @Tool(description = "What the JVM loaded and who loaded it: classes currently loaded, loaded and "
+            + "unloaded over the run, the metaspace they hold, the class loaders ranked by what they "
+            + "carry, the slowest individual loads where the recording captured them, and any "
+            + "redefinitions an agent made. Answers 'why is start-up slow' when no method is, and is "
+            + "where a metaspace that keeps growing first shows itself.")
+    public String classLoading() {
+        return render(ClassLoadingSection.ID);
+    }
+
+    @Tool(description = "What the application threw: how many throwables in total, how many were "
+            + "sampled with a stack, how many were Errors, and the types ranked by count with their "
+            + "commonest messages. Constructing an exception walks the stack, so a type thrown in a "
+            + "loop is a real cost that no flamegraph frame names. A large total with no types listed "
+            + "means the throw events were not recorded, which the result says rather than reporting "
+            + "nothing thrown.")
+    public String exceptions() {
+        return render(ExceptionsSection.ID);
+    }
+
+    @Tool(description = "The machine underneath the JVM: machine CPU against this JVM's own, what the "
+            + "difference leaves for everything else on the box, the peak context-switch rate, the "
+            + "other processes running there and any this JVM started. Answers 'is it my JVM or the "
+            + "box' — a profile whose own CPU is modest while the machine is saturated describes an "
+            + "application being starved, and every flamegraph from it reads differently once that is "
+            + "known.")
+    public String system() {
+        return render(SystemSection.ID);
+    }
+
+    @Tool(description = "TLS, certificates and deserialization: how many handshakes and to how many "
+            + "distinct peers, the protocols and ciphers negotiated, certificates that are expired, "
+            + "expiring or weakly signed, and what was deserialized including anything a filter "
+            + "rejected. Many handshakes for few peers means connections are not being reused; the "
+            + "certificate findings are about the deployment rather than the code, and are evidence of "
+            + "what the JVM actually presented.")
+    public String security() {
+        return render(SecuritySection.ID);
     }
 
     @Tool(description = "The garbage collection dashboard: the stop-the-world budget this recording "

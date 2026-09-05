@@ -19,6 +19,7 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.mcp.tools.CompareMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.EventTypeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.FlamegraphMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.BlockingMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.GrpcMcpTools;
@@ -130,6 +131,8 @@ public class McpToolsetAssembler {
                 new ProfileScopedToolset<>(ProfileMcpTools.class, PREFIX_PROFILES,
                         profileId -> new ProfileMcpTools(
                                 profileManager(contextCache, profileId), recordingCommitResolver)),
+                new ProfileScopedToolset<>(EventTypeMcpTools.class, PREFIX_JFR,
+                        profileId -> new EventTypeMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(DuckDbMcpTools.class, PREFIX_JFR,
                         profileId -> new DuckDbMcpTools(contextCache.context(profileId).dataSource()),
                         WRITE_TOOLS),
