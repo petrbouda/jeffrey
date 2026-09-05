@@ -143,9 +143,9 @@ const protocolError = `{
       <p>The plugin carries an <a href="https://agent-plugins.org/" target="_blank" rel="noopener">Agent Plugins</a> manifest, the vendor-neutral format <strong>Cursor</strong>, <strong>GitHub Copilot</strong>, <strong>VS Code</strong> and <strong>Kiro</strong> read alongside Codex. Where a client installs a plugin from a directory, <code>jeffrey-claude-plugin/</code> in a clone is that directory:</p>
       <DocsCodeBlock :code="clonePlugin" language="bash" />
 
-      <p>What is standardised is the manifest, the seven skills and the <code>streamable-http</code> server entry. Everything past that &mdash; how a plugin is browsed and installed, how skills are invoked, how tools are approved &mdash; is the client's own, and moves faster than this page can. The <router-link to="/docs/microscope-mcp/codex">Codex</router-link> page is the closest map, since it documents the same portable half in detail.</p>
+      <p>What is standardised is the manifest, the nine skills and the <code>streamable-http</code> server entry. Everything past that &mdash; how a plugin is browsed and installed, how skills are invoked, how tools are approved &mdash; is the client's own, and moves faster than this page can. The <router-link to="/docs/microscope-mcp/codex">Codex</router-link> page is the closest map, since it documents the same portable half in detail.</p>
 
-      <p>None of them can carry the analyst agent, for the reason that page gives: Agent Plugins defines skills and MCP servers, and nothing else. And in all of them the endpoint is fixed at <code>localhost:8585</code>, because the format forbids placeholder expansion in a server URL &mdash; a Jeffrey anywhere else is registered by hand, as below.</p>
+      <p>None of them can carry the two agents, for the reason that page gives: Agent Plugins defines skills and MCP servers, and nothing else. And in all of them the endpoint is fixed at <code>localhost:8585</code>, because the format forbids placeholder expansion in a server URL &mdash; a Jeffrey anywhere else is registered by hand, as below.</p>
 
       <h3 id="cursor">Cursor</h3>
       <p>Install the plugin from the cloned directory through Cursor's plugin browser. Without it, add the server to Cursor's MCP configuration &mdash; <code>~/.cursor/mcp.json</code> for every project, <code>.cursor/mcp.json</code> for one &mdash; using the <code>mcpServers</code> entry from <a href="#any-mcp-client">Any MCP Client</a> below. The tools then appear as <code>jeffrey</code> in Cursor's MCP settings, one toggle per tool.</p>
@@ -171,7 +171,7 @@ const protocolError = `{
       </DocsCallout>
 
       <h2 id="what-you-give-up">What You Give Up</h2>
-      <p>The same eighty-eight tools, named <code>mcp__jeffrey__*</code> rather than the <code>mcp__plugin_microscope_jeffrey__*</code> Claude Code gives a plugin's server &mdash; a hand-registered server is not namespaced by a plugin. Adjust any approval rule accordingly: <code>/permissions</code> in Claude Code, the <code>[mcp_servers.jeffrey]</code> block in Codex.</p>
+      <p>The same ninety-nine tools, named <code>mcp__jeffrey__*</code> rather than the <code>mcp__plugin_microscope_jeffrey__*</code> Claude Code gives a plugin's server &mdash; a hand-registered server is not namespaced by a plugin. Adjust any approval rule accordingly: <code>/permissions</code> in Claude Code, the <code>[mcp_servers.jeffrey]</code> block in Codex.</p>
 
       <p>What does not come along as <em>skills</em> is the guidance: the entry sequence and the two database schemas. But it is not lost. The server offers the same files over the protocol as <strong>prompts</strong>, so a client that speaks <code>prompts/list</code> can load any of them without a plugin at all &mdash; see below. What is genuinely missing is the <router-link to="/docs/microscope-mcp/agent">agents</router-link>, which no MCP server can provide, and the automatic loading: a plugin client picks a skill up when a question calls for it, where here somebody has to ask for the prompt.</p>
 
@@ -229,7 +229,7 @@ const protocolError = `{
       <DocsCodeBlock :code="initialize" language="bash" />
       <DocsCodeBlock :code="initializeResult" language="json" />
 
-      <p>Then <code>tools/list</code> with the same envelope returns all eighty-eight specs. To run one:</p>
+      <p>Then <code>tools/list</code> with the same envelope returns all ninety-nine specs. To run one:</p>
       <DocsCodeBlock :code="toolsCall" language="bash" />
 
       <p>The result arrives as MCP text content &mdash; for the export tools, the same Markdown document the plugin would hand to Claude, preamble included.</p>

@@ -69,9 +69,9 @@ const removal = `/plugin uninstall microscope@jeffrey`;
     />
 
     <div class="docs-content">
-      <p>The <strong>Microscope plugin</strong> packages the MCP server together with a few skills and a subagent, so connecting is one install rather than a hand-written command per machine and per repository. It is a convenience over the plain server &mdash; everything it does can be done by hand, as <router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> describes.</p>
+      <p>The <strong>Microscope plugin</strong> packages the MCP server together with nine skills and two subagents, so connecting is one install rather than a hand-written command per machine and per repository. It is a convenience over the plain server &mdash; everything it does can be done by hand, as <router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> describes.</p>
 
-      <p>One package serves every agent. Claude Code reads the <code>.claude-plugin/</code> manifest described here; <router-link to="/docs/microscope-mcp/codex">Codex</router-link> and the other Agent Plugins clients read a second manifest in the same directory. The skills and the MCP server underneath are the same files. What this page covers that the Codex one cannot: a <strong>configurable endpoint</strong> and a <strong>subagent</strong>, neither of which the portable format carries.</p>
+      <p>One package serves every agent. Claude Code reads the <code>.claude-plugin/</code> manifest described here; <router-link to="/docs/microscope-mcp/codex">Codex</router-link> and the other Agent Plugins clients read a second manifest in the same directory. The skills and the MCP server underneath are the same files. What this page covers that the Codex one cannot: a <strong>configurable endpoint</strong> and the <strong>subagents</strong>, neither of which the portable format carries.</p>
 
       <DocsCallout type="info" title="Jeffrey has to be running">
         The plugin installs and loads whether or not Jeffrey is serving, and then every tool call fails. The server is on by default, so a running Jeffrey is usually all it takes &mdash; <strong>Settings &rarr; Coding Agents (MCP)</strong> reports whether the endpoint is serving. See <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
@@ -100,7 +100,7 @@ const removal = `/plugin uninstall microscope@jeffrey`;
       </DocsCallout>
 
       <h2 id="what-the-plugin-adds">What the Plugin Adds</h2>
-      <p>Registering the server by hand gives you the eighty-eight tools. The plugin adds three things on top.</p>
+      <p>Registering the server by hand gives you all ninety-nine tools. The plugin adds three things on top.</p>
 
       <p><strong>The endpoint, already configured</strong> &mdash; including the per-machine setting above, so the same install works on a laptop and against a tunnelled staging Jeffrey.</p>
 
@@ -109,7 +109,7 @@ const removal = `/plugin uninstall microscope@jeffrey`;
       <p><strong>Nine skills</strong>, which Claude picks up on its own when a question calls for them, and which you can also invoke directly:</p>
       <ul>
         <li><code>/microscope:analyze-jfr</code> &mdash; where to start and which family answers which question</li>
-        <li><code>/microscope:analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the twenty-one heap tools have to be run in</li>
+        <li><code>/microscope:analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the twenty-four heap tools have to be run in</li>
         <li><code>/microscope:analyze-hub</code> &mdash; the recordings that never reached this machine: finds the session across the connected Jeffrey Hubs, pulls it in, and hands off to <code>analyze-jfr</code> or <code>analyze-heap</code></li>
         <li><code>/microscope:compare-jfr</code> &mdash; before against after: whether a change made it slower, which methods moved, and whether the two recordings were comparable in the first place</li>
         <li><code>/microscope:profile-run</code> &mdash; a workload with no recording yet: what to run it under, for how long, and where the file has to land for Jeffrey to open it</li>
@@ -123,7 +123,7 @@ const removal = `/plugin uninstall microscope@jeffrey`;
 
       <p><strong>Two subagents.</strong> <code>microscope:profile-analyst</code> is the general one. A single <code>flamegraph_export</code> can run to 120,000 characters &mdash; the cap a tool result is truncated at &mdash; and answering a question properly often takes several of them. The analyst runs a sequence and returns only the findings: the hot frames with their <code>total</code> and <code>self</code> shares, or the retaining classes with their retained bytes and GC-root paths. Everything it read stays in its own context window rather than crowding out the conversation you are having.</p>
 
-      <p>The skills hand it the reading and keep what actually needs your session: mapping frames onto the checkout, the recommendation, and every question put to you. <code>advise-jfr</code> uses it hardest, sending CPU, wall-clock, allocation and blocking out as four parallel delegations instead of pulling four documents into one context. Its tools are the read-only MCP families and nothing else &mdash; no file access, no <code>recordings_</code>, no <code>hubs_</code> &mdash; so it can neither touch your repository nor create a profile. <router-link to="/docs/microscope-mcp/agent">The subagent reference</router-link> covers what it returns and when to read an export yourself instead.</p>
+      <p>The skills hand it the reading and keep what actually needs your session: mapping frames onto the checkout, the recommendation, and every question put to you. <code>advise-jfr</code> uses it hardest, sending CPU, wall-clock, allocation and blocking out as four parallel delegations instead of pulling four documents into one context. Its tools are the read-only MCP families and nothing else &mdash; no file access, no <code>recordings_</code>, no <code>hubs_</code> &mdash; so it can neither touch your repository nor create a profile. <router-link to="/docs/microscope-mcp/agent">The agent reference</router-link> covers what it returns and when to read an export yourself instead.</p>
 
       <p><code>microscope:heap-triage</code> is the heap specialist. It carries <code>analyze-heap</code> and <code>heap-sql</code>, runs the whole leak route &mdash; histogram, dominator tree, GC-root path &mdash; and returns class names with retained bytes and the paths that make each claim checkable. The difference that matters: it will run <code>heap_prepare</code> when a report or a retained size has not been built, where the analyst would report the gap and stop.</p>
 

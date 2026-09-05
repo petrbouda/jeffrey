@@ -63,7 +63,7 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `pages-microscope` — Full-featured Vue 3 SPA frontend
 - `profiles/` — All profile analysis modules (see below)
 - REST resources: `/api/internal/workspaces/**`, `/api/internal/projects/**`, `/api/internal/profiles/{profileId}/**`
-- `core-microscope/.../mcp/` — both MCP endpoints. `ExternalMcpController` serves `POST /api/internal/mcp` to an **outside** client (installation-wide, `profileId` as a tool argument, on by default and switched off only by the `jeffrey.microscope.mcp.enabled` application property, read at startup). Every analysis family it exposes is read-only; the one exception is `RecordingsMcpTools`, which imports a recording file from the machine Jeffrey runs on and builds a profile from it, gated separately by `jeffrey.microscope.mcp.ingest.enabled`; `McpStreamableHttpController` serves `/api/internal/mcp/claude-code` to the headless CLI backend Jeffrey spawns for itself (per-profile, provider-gated). They differ on scoping, gating and lifecycle — keep them separate rather than branching on which query parameters are present
+- `core-microscope/.../mcp/` — both MCP endpoints. `ExternalMcpController` serves `POST /api/internal/mcp` to an **outside** client (installation-wide, `profileId` as a tool argument, on by default and switched off only by the `jeffrey.microscope.mcp.enabled` application property, read at startup). It also serves MCP **prompts** (the plugin's skills, copied onto the classpath at build time) and **resources** (the profile catalogue, plus summary and flamegraph URI templates). Most families are read-only; three are not, and each has its own switch: `RecordingsMcpTools` imports a recording file from the machine Jeffrey runs on (`jeffrey.microscope.mcp.ingest.enabled`), `HubsMcpTools` pulls a recording off a remote hub (`jeffrey.microscope.mcp.hubs.enabled`, effective only when ingestion is on too), and `HeapComputeMcpTools` builds a dominator tree or a cached report (`jeffrey.microscope.mcp.compute.enabled`). `jeffrey.microscope.mcp.families` narrows what is advertised at all, and `jeffrey.microscope.mcp.token` puts a bearer token in front of the endpoint, which `McpRequestGuard` checks alongside the `Origin` rejection the MCP spec asks of a local server. `McpStreamableHttpController` serves `/api/internal/mcp/claude-code` to the headless CLI backend Jeffrey spawns for itself (per-profile, provider-gated). They differ on scoping, gating and lifecycle — keep them separate rather than branching on which query parameters are present
 
 **jeffrey-microscope/profiles/** (profile analysis, used only by jeffrey-microscope):
 - `profile-management` — Profile analysis features + REST resources (Flamegraph, Timeseries, GC, Threads, HeapDump, AI)
@@ -77,7 +77,7 @@ The project supports two deployment modes: **jeffrey-microscope** (standalone) a
 - `oql-assistant` — OQL AI assistant
 - `duckdb-jfr-mcp`, `duckdb-heapdump-mcp` — MCP servers for AI integration
 - `claude-code-headless` — Claude Code (headless) AI backend
-- `mcp-server` — The MCP protocol layer, shared by every MCP endpoint: the JSON-RPC/Streamable-HTTP envelope (`AbstractMcpStreamableHttpController`), the `@Tool`-to-MCP adapter (`ReflectiveToolset`), and `ProfileScopedToolset` / `CompositeToolset` for resolving a tool class per call from a `profileId` and merging tool families into one server. **Only place that knows the protocol** — do not re-implement it in a controller
+- `mcp-server` — The MCP protocol layer, shared by every MCP endpoint: the JSON-RPC/Streamable-HTTP envelope (`AbstractMcpStreamableHttpController`, with protocol-version negotiation), the `@Tool`-to-MCP adapter (`ReflectiveToolset`), `ProfileScopedToolset` / `CompositeToolset` for resolving a tool class per call from a `profileId` and merging tool families into one server, the tool-contract types (`McpToolAnnotations`, `McpToolHints`, `ToolParamValues`, `McpToolOutput`), and the non-tool capabilities — `McpPrompt` / `McpPromptProvider`, `McpResource` / `McpResourceProvider`, bundled per endpoint by `McpServerFeatures`. **Only place that knows the protocol** — do not re-implement it in a controller
 
 **jeffrey-hub** (`jeffrey-hub/`):
 - `core-hub` — Main Spring Boot app (HubApplication), gRPC service implementations, scheduler/jobs, JFR streaming
@@ -170,7 +170,7 @@ jeffrey/
 │       ├── oql-assistant/             # OQL AI assistant
 │       ├── duckdb-jfr-mcp/           # DuckDB MCP server for AI
 │       ├── duckdb-heapdump-mcp/      # Heap dump MCP server for AI
-│       └── mcp-server/                # Shared MCP protocol layer (JSON-RPC envelope, toolsets)
+│       └── mcp-server/                # Shared MCP protocol layer (JSON-RPC envelope, toolsets, prompts, resources)
 ├── jeffrey-hub/                    # Multi-workspace server deployment
 │   ├── core-hub/                   # Main Spring Boot app (HubApplication)
 │   │   └── src/.../server/core/
@@ -195,13 +195,15 @@ jeffrey/
 │   └── filesystem-recording-storage/  # Filesystem storage implementation
 ├── jeffrey-provisioner/               # Provisioner tool (GraalVM Native Image)
 ├── jeffrey-agent/                     # Agent module
-├── jeffrey-claude-plugin/             # The "microscope" plugin — one package, two manifests
+├── jeffrey-claude-plugin/             # The "microscope" plugin — one package, three manifests
 │   ├── .claude-plugin/plugin.json     # Claude Code manifest, with the configurable MCP endpoint inline
 │   ├── plugin.json + mcp.json         # Agent Plugins 1.0.0 — Codex, Cursor, Copilot, VS Code, Kiro
 │   ├── .codex-plugin/plugin.json      # Codex-native manifest, pointing at the same skills and mcp.json
-│   ├── skills/                        # analyze-jfr, analyze-heap, advise-jfr, compare-jfr, jfr-sql, heap-sql
-│   ├── agents/                        # profile-analyst — reads an export, returns only the findings
-│   └── codex/agents/                  # The same analyst as a Codex TOML, installed by hand
+│   ├── hooks/                         # SessionStart check — is Jeffrey actually serving (Claude Code only)
+│   ├── skills/                        # analyze-jfr, analyze-heap, analyze-hub, compare-jfr, profile-run,
+│   │                                  #   regression-check, advise-jfr, jfr-sql, heap-sql — also served as MCP prompts
+│   ├── agents/                        # profile-analyst and heap-triage — read an export, return only the findings
+│   └── codex/agents/                  # The same two agents as Codex TOMLs, installed by hand
 ├── .claude-plugin/marketplace.json    # Makes the repo a Claude Code plugin marketplace
 ├── .agents/plugins/marketplace.json   # …and a Codex one; Codex reads either
 ├── jeffrey-pages/                     # Documentation site
@@ -428,7 +430,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - Spring AI 2.0.0-M3 with Claude and OpenAI providers
 - AI modules: `jeffrey-microscope/profiles/ai-config/`, `jeffrey-microscope/profiles/oql-assistant/`, `jeffrey-microscope/profiles/duckdb-jfr-mcp/`, `jeffrey-microscope/profiles/duckdb-heapdump-mcp/`
 - Config: `jeffrey.ai.provider=claude`, `jeffrey.ai.model=claude-opus-4-8`
-- **Two directions, do not confuse them.** The modules above run AI *inside* Jeffrey (Jeffrey calls out to a provider). The external MCP server at `POST /api/internal/mcp` is the reverse: an outside coding agent — an interactive Claude Code or Codex session in the developer's own repository — calls *in* and reads every analysed profile. Its tools are read-only, its protocol layer is `profiles/mcp-server`, and it is packaged as the `microscope` plugin, which carries a Claude Code manifest (`/plugin install microscope@jeffrey`) and an [Agent Plugins](https://agent-plugins.org/) one (`codex plugin marketplace add petrbouda/jeffrey`) over one set of skills. Two things do not survive the portable format — a user-configurable endpoint URL and the subagent — so a Codex user gets a fixed `localhost:8585` and a hand-copied `codex/agents/profile-analyst.toml`
+- **Two directions, do not confuse them.** The modules above run AI *inside* Jeffrey (Jeffrey calls out to a provider). The external MCP server at `POST /api/internal/mcp` is the reverse: an outside coding agent — an interactive Claude Code or Codex session in the developer's own repository — calls *in* and reads every analysed profile. Its analysis families are read-only; the three that are not (`recordings_`, `hubs_`, `heap_prepare`) create profiles or caches rather than changing an analysed one, and each has its own property. Its protocol layer is `profiles/mcp-server`, and it also serves the skills as MCP prompts and the profile catalogue as MCP resources, so a client that cannot install a plugin is not left with a hundred tools and no account of how to use them. It is packaged as the `microscope` plugin, which carries a Claude Code manifest (`/plugin install microscope@jeffrey`) and an [Agent Plugins](https://agent-plugins.org/) one (`codex plugin marketplace add petrbouda/jeffrey`) over one set of skills. Two things do not survive the portable format — a user-configurable endpoint URL and the subagents — so a Codex user gets a fixed `localhost:8585` and hand-copied `codex/agents/profile-analyst.toml` and `codex/agents/heap-triage.toml`
 
 ## DuckDB MCP Servers
 - You can use MCP Server to connect to DuckDB database to get information about the current data
@@ -468,7 +470,7 @@ When modifying code, keep the corresponding documentation pages in `jeffrey-page
 | `jeffrey-provisioner/` | `docs/provisioner/` — overview, configuration, directory structure, generated output |
 | Jib build/deployment | `docs/jib/` — overview, setup, configuration |
 | In-app AI modules (`ai-config`, `oql-assistant`, `duckdb-jfr-mcp`, `duckdb-heapdump-mcp`, `claude-code-headless`) | `docs/ai/` — overview, JFR analysis, heap dump analysis, OQL assistant |
-| External MCP server (`core-microscope/.../mcp/`, `profiles/mcp-server`) + `jeffrey-claude-plugin/` | `docs/microscope-mcp/` — overview, enabling the server, Claude Code plugin, tool reference, skills, recipes, other clients |
+| External MCP server (`core-microscope/.../mcp/`, `profiles/mcp-server`) + `jeffrey-claude-plugin/` | `docs/microscope-mcp/` — overview, enabling the server, Claude Code plugin, Codex plugin, tool reference, skills, analysis agents, recipes, other clients |
 | IntelliJ plugin | `docs/intellij-plugin/` — overview, setup, configuration, JFR profiler |
 | Architecture changes | `docs/architecture/ArchitectureOverviewPage.vue` |
 | Install/onboarding changes | `docs/getting-started/` — introduction, installation, quick start |

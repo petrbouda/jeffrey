@@ -63,7 +63,7 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
 <template>
   <article class="docs-article">
     <DocsPageHeader
-      title="The profile-analyst Agent"
+      title="The Analysis Agents"
       icon="bi bi-person-badge"
     />
 
@@ -85,7 +85,7 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
       <h2 id="what-it-is-given">What It Is Given</h2>
       <p>A <code>profileId</code> and one question. For a comparison, a second id as the <strong>baseline</strong>: the <code>profileId</code> is the run under examination and the baseline is what it is measured against, and it never swaps them to make a result read better.</p>
 
-      <p>The <router-link to="/docs/microscope-mcp/skills"><code>analyze-jfr</code>, <code>analyze-heap</code> and <code>compare-jfr</code></router-link> skills come with it &mdash; preloaded in Claude Code, read on demand in Codex &mdash; so it carries the entry sequence, which flamegraph answers which question, the order to work a latency question in traces, the heap rules (shallow versus retained, the lazily built dominator tree, which reports only the Jeffrey UI can compute), and &mdash; for a comparison &mdash; that <code>compare_list</code> runs first and &ldquo;these two runs are not comparable&rdquo; is a finding to report rather than an obstacle to work around.</p>
+      <p>The <router-link to="/docs/microscope-mcp/skills"><code>analyze-jfr</code>, <code>analyze-heap</code> and <code>compare-jfr</code></router-link> skills come with it &mdash; preloaded in Claude Code, read on demand in Codex &mdash; so it carries the entry sequence, which flamegraph answers which question, the order to work a latency question in traces, the heap rules (shallow versus retained, the lazily built dominator tree, which reports have to be built before they can be read), and &mdash; for a comparison &mdash; that <code>compare_list</code> runs first and &ldquo;these two runs are not comparable&rdquo; is a finding to report rather than an obstacle to work around.</p>
 
       <DocsCallout type="info" title="It will not pick a profile for you">
         If the request names no <code>profileId</code>, it says so and stops. The caller knows which profile the conversation is about and the analyst does not &mdash; guessing would produce a confident report about the wrong run.

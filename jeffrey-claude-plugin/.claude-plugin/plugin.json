@@ -21,7 +21,7 @@
     "endpoint_url": {
       "type": "string",
       "title": "Jeffrey MCP endpoint",
-      "description": "URL of the Microscope MCP endpoint. Keep the default for a Jeffrey on its usual port; change it for another port, a container or an SSH tunnel. Settings → Claude Code (MCP) shows the exact URL for your installation.",
+      "description": "URL of the Microscope MCP endpoint. Keep the default for a Jeffrey on its usual port; change it for another port, a container or an SSH tunnel. Settings → Coding Agents (MCP) shows the exact URL for your installation.",
       "default": "http://localhost:8585/api/internal/mcp"
     }
   },

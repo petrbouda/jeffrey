@@ -70,7 +70,7 @@ The skills keep working; only the server registration moves.
 
 ## What you get
 
-**Tools**, in sixteen families:
+**Tools**, in seventeen families:
 
 | Family | What it does |
 |---|---|
@@ -137,6 +137,21 @@ defines only skills and MCP servers**, so Codex cannot receive an agent from a p
 [`codex/agents/heap-triage.toml`](codex/agents/heap-triage.toml) to `~/.codex/agents/` instead. Those
 versions are sandboxed read-only, but their tool restriction is instruction-level rather than
 enforced.
+
+**Prompts and resources.** The server also serves the nine skills over the protocol itself, as MCP
+prompts — the same files the plugin ships, copied onto the server's classpath when it is built, so
+the two cannot drift. A client that cannot install a plugin (Cursor, VS Code, Kiro, anything
+registered by hand) gets them through `prompts/list` and `prompts/get` rather than being left with
+the tools and no account of how to use them. `resources/list` and `resources/read` expose the profile
+catalogue the same way, with URI templates for one profile's summary
+(`jeffrey://profile/{profileId}/summary`) and a flamegraph of one event type
+(`jeffrey://profile/{profileId}/flamegraph/{eventType}`) — a client can pin one into the conversation
+instead of spending a tool call on it.
+
+**Narrowing what is advertised.** `jeffrey.microscope.mcp.families` takes a comma-separated
+allow-list of family prefixes — `profiles,flamegraph,jfr,heap`, say — and everything outside it is
+left out of `tools/list` entirely. Empty, the default, advertises all of them. It is the blunt
+instrument for a shared installation, and it composes with the three per-family switches above.
 
 ## Permissions
 
