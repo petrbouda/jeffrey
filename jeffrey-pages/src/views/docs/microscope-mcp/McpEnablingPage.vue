@@ -32,6 +32,7 @@ const headings = [
   { id: 'turning-it-off', text: 'Turning It Off', level: 2 },
   { id: 'while-it-is-off', text: 'While It Is Off', level: 2 },
   { id: 'turning-ingestion-off', text: 'Turning Ingestion Off', level: 2 },
+  { id: 'turning-hub-access-off', text: 'Turning Hub Access Off', level: 2 },
   { id: 'what-a-session-holds-open', text: 'What a Session Holds Open', level: 2 },
   { id: 'security', text: 'Security', level: 2 }
 ];
@@ -43,6 +44,8 @@ onMounted(() => {
 const propertyToggle = `jeffrey.microscope.mcp.enabled=false`;
 
 const ingestToggle = `jeffrey.microscope.mcp.ingest.enabled=false`;
+
+const hubsToggle = `jeffrey.microscope.mcp.hubs.enabled=false`;
 
 const defaultEndpoint = `http://localhost:8585/api/internal/mcp`;
 
@@ -100,6 +103,18 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <p>That leaves the server exactly as it was before ingestion existed &mdash; every profile still readable, nothing creatable. It is worth doing on a shared Jeffrey, for the reason in <a href="#security">Security</a> below: the path a client sends is opened by the <em>Jeffrey</em> process, on the machine Jeffrey runs on.</p>
 
       <p>Like the endpoint toggle, this one is read once at startup, and <strong>Settings &rarr; Coding Agents (MCP)</strong> reports which way it is set.</p>
+
+      <h2 id="turning-hub-access-off">Turning Hub Access Off</h2>
+      <p>The <code>hubs_</code> family lets a session list the recording sessions on the <router-link to="/docs/hub">Jeffrey Hubs</router-link> this Microscope is connected to, and pull one in to analyse. It is on by default with the endpoint, and has its own switch:</p>
+      <DocsCodeBlock :code="hubsToggle" language="properties" />
+
+      <p>Separate from the ingestion toggle because it is a larger permission, in a different direction. Ingestion reaches <em>into</em> this machine: it opens a path the client names, on the host Jeffrey runs on. Hub access reaches <em>out</em> of it, to whatever infrastructure the configured hubs point at, and can move gigabytes off it. An installation that is happy for an agent to analyse a developer's own <code>.jfr</code> may not be happy for it to pull production recordings, so the two are decided independently.</p>
+
+      <DocsCallout type="info" title="It cannot be more permissive than ingestion">
+        Everything <code>hubs_download</code> produces is turned into a profile by <code>recordings_analyzeRecording</code>. So with ingestion off, the <code>hubs_</code> family is not advertised whatever this property says &mdash; otherwise its own descriptions would point at a tool that is not there. Turning ingestion off turns hub access off with it; the reverse is not true.
+      </DocsCallout>
+
+      <p>Like the other two toggles, this one is read once at startup, and <strong>Settings &rarr; Coding Agents (MCP)</strong> reports which way it is set.</p>
 
       <h2 id="what-a-session-holds-open">What a Session Holds Open</h2>
       <p>Each profile is its own DuckDB database, and Jeffrey's connection pools evict idle databases after a few minutes. That is right for the UI, where a reader moves on, and wrong for an interactive session that may spend twenty minutes on one profile with long pauses for reading.</p>

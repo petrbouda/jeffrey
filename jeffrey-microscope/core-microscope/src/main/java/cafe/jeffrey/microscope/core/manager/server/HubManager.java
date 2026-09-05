@@ -70,6 +70,18 @@ public class HubManager {
     }
 
     /**
+     * Whether this hub answers at all, and what it is running. Empty when it cannot be reached.
+     * <p>
+     * Needed because {@link #workspaces()} reports a hub that is down and a hub that is empty the
+     * same way — as no workspaces — which is the right thing for a UI that would otherwise show an
+     * error banner, and the wrong thing for a caller that has to tell a reader why a listing came
+     * back empty. One cheap round trip separates the two.
+     */
+    public Optional<DiscoveryClient.PublicApiInfo> tryInfo() {
+        return remoteClients.discovery().tryInfo();
+    }
+
+    /**
      * Lists all workspaces on this server (live gRPC ListWorkspaces call).
      */
     public List<WorkspaceInfo> workspaces() {

@@ -20,8 +20,11 @@ package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.microscope.core.manager.server.HubsManager;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
+import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.mcp.McpToolSpec;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
@@ -32,6 +35,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -66,17 +72,34 @@ class McpToolsetAssemblerTest {
     @Mock
     RecordingCommitResolver recordingCommitResolver;
 
-    private List<String> toolNamesWithIngest(boolean ingestEnabled) {
-        McpToolsetAssembler assembler = new McpToolsetAssembler(
+    @Mock
+    HubsManager hubsManager;
+
+    @Mock
+    ProjectManagerResolver projectManagerResolver;
+
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-03-01T12:00:00Z"), ZoneOffset.UTC);
+
+    private McpToolsetAssembler assembler(boolean ingestEnabled, boolean hubsEnabled) {
+        return new McpToolsetAssembler(
                 new ProfilesMcpTools(coreRepositories),
                 new RecordingsMcpTools(recordingsManager),
+                new HubsMcpTools(hubsManager, projectManagerResolver, recordingsManager, CLOCK),
                 contextCache,
                 jfrPanelProvider,
                 stackSamplePanelProvider,
                 recordingCommitResolver,
-                new ExternalMcpProperties(true, ingestEnabled));
+                new ExternalMcpProperties(true, ingestEnabled, hubsEnabled));
+    }
 
-        return assembler.toolset().specs().stream().map(McpToolSpec::name).toList();
+    private List<String> toolNames(boolean ingestEnabled, boolean hubsEnabled) {
+        return assembler(ingestEnabled, hubsEnabled).toolset().specs().stream()
+                .map(McpToolSpec::name)
+                .toList();
+    }
+
+    private List<String> toolNamesWithIngest(boolean ingestEnabled) {
+        return toolNames(ingestEnabled, true);
     }
 
     @Nested
@@ -146,14 +169,7 @@ class McpToolsetAssemblerTest {
 
         @Test
         void andRefusesOneCalledByName() {
-            McpToolsetAssembler assembler = new McpToolsetAssembler(
-                    new ProfilesMcpTools(coreRepositories),
-                    new RecordingsMcpTools(recordingsManager),
-                    contextCache,
-                    jfrPanelProvider,
-                    stackSamplePanelProvider,
-                    recordingCommitResolver,
-                    new ExternalMcpProperties(true, false));
+            McpToolsetAssembler assembler = assembler(false, true);
 
             assertThrows(
                     IllegalArgumentException.class,
@@ -166,6 +182,73 @@ class McpToolsetAssemblerTest {
 
             assertTrue(names.contains("profiles_list"));
             assertTrue(names.contains("heap_getHeapSummary"));
+        }
+    }
+
+    @Nested
+    class HubsEnabled {
+
+        @Test
+        void advertisesTheHubsFamily() {
+            List<String> names = toolNames(true, true);
+
+            assertTrue(names.contains("hubs_list"));
+            assertTrue(names.contains("hubs_sessions"));
+            assertTrue(names.contains("hubs_download"));
+        }
+
+        @Test
+        void keepsEveryOtherFamily() {
+            List<String> names = toolNames(true, true);
+
+            assertTrue(names.contains("profiles_list"));
+            assertTrue(names.contains("recordings_list"));
+            assertTrue(names.contains("heap_getHeapSummary"));
+        }
+    }
+
+    @Nested
+    class HubsDisabled {
+
+        @Test
+        void advertisesNoHubsTool() {
+            List<String> names = toolNames(true, false);
+
+            assertTrue(names.stream().noneMatch(name -> name.startsWith("hubs_")), names.toString());
+        }
+
+        @Test
+        void andRefusesOneCalledByName() {
+            McpToolsetAssembler assembler = assembler(true, false);
+
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () -> assembler.toolset().call("hubs_sessions", null));
+        }
+
+        @Test
+        void leavesTheRecordingsFamilyUntouched() {
+            List<String> names = toolNames(true, false);
+
+            assertTrue(names.contains("recordings_analyzeFile"));
+            assertTrue(names.contains("recordings_list"));
+        }
+    }
+
+    /**
+     * A hub download lands in the store ingestion governs, and the only way to turn it into a profile
+     * is {@code recordings_analyzeRecording}. Advertising the family without that tool would put
+     * descriptions in the model's context pointing at something that is not there — which is the very
+     * thing {@link ToolReferences} exists to catch.
+     */
+    @Nested
+    class HubsRequireIngestion {
+
+        @Test
+        void advertisesNoHubsToolWhenIngestionIsOff() {
+            List<String> names = toolNames(false, true);
+
+            assertTrue(names.stream().noneMatch(name -> name.startsWith("hubs_")), names.toString());
         }
     }
 
@@ -190,15 +273,7 @@ class McpToolsetAssemblerTest {
                 "jfr_executeModification");
 
         private List<McpToolSpec> specs() {
-            return new McpToolsetAssembler(
-                    new ProfilesMcpTools(coreRepositories),
-                    new RecordingsMcpTools(recordingsManager),
-                    contextCache,
-                    jfrPanelProvider,
-                    stackSamplePanelProvider,
-                    recordingCommitResolver,
-                    new ExternalMcpProperties(true, true))
-                    .toolset().specs();
+            return assembler(true, true).toolset().specs();
         }
 
         @Test

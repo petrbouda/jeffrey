@@ -23,8 +23,11 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.ExternalMcpProperties;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
 import cafe.jeffrey.microscope.core.mcp.McpToolsetAssembler;
+import cafe.jeffrey.microscope.core.manager.server.HubsManager;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
+import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
@@ -53,12 +56,16 @@ public class McpConfiguration {
      * @param ingestEnabled whether it advertises the {@code recordings_} family, from
      *                      {@code jeffrey.microscope.mcp.ingest.enabled}. Separate from {@code enabled}
      *                      so a shared installation can keep the read-only server it had before
+     * @param hubsEnabled   whether it advertises the {@code hubs_} family, from
+     *                      {@code jeffrey.microscope.mcp.hubs.enabled}. Its own switch because
+     *                      reaching a remote hub is a larger permission than opening a local file
      */
     @Bean
     public ExternalMcpProperties externalMcpProperties(
             @Value("${jeffrey.microscope.mcp.enabled:true}") boolean enabled,
-            @Value("${jeffrey.microscope.mcp.ingest.enabled:true}") boolean ingestEnabled) {
-        return new ExternalMcpProperties(enabled, ingestEnabled);
+            @Value("${jeffrey.microscope.mcp.ingest.enabled:true}") boolean ingestEnabled,
+            @Value("${jeffrey.microscope.mcp.hubs.enabled:true}") boolean hubsEnabled) {
+        return new ExternalMcpProperties(enabled, ingestEnabled, hubsEnabled);
     }
 
     /**
@@ -90,6 +97,19 @@ public class McpConfiguration {
     }
 
     /**
+     * Lists and downloads recordings from the connected hubs. Built unconditionally for the same
+     * reason as {@code recordingsMcpTools}: what is advertised is the assembler's decision.
+     */
+    @Bean
+    public HubsMcpTools hubsMcpTools(
+            HubsManager hubsManager,
+            ProjectManagerResolver projectManagerResolver,
+            RecordingsManager recordingsManager,
+            Clock applicationClock) {
+        return new HubsMcpTools(hubsManager, projectManagerResolver, recordingsManager, applicationClock);
+    }
+
+    /**
      * Reads the commit a recording was tagged with, so {@code profiles_get} can tell a client holding
      * a checkout whether it is looking at the code that actually ran.
      */
@@ -104,13 +124,14 @@ public class McpConfiguration {
     public McpToolsetAssembler mcpToolsetAssembler(
             ProfilesMcpTools profilesMcpTools,
             RecordingsMcpTools recordingsMcpTools,
+            HubsMcpTools hubsMcpTools,
             McpProfileContextCache contextCache,
             JfrFlamegraphPanelProvider jfrPanelProvider,
             StackSampleFlamegraphPanelProvider stackSamplePanelProvider,
             RecordingCommitResolver recordingCommitResolver,
             ExternalMcpProperties properties) {
         return new McpToolsetAssembler(
-                profilesMcpTools, recordingsMcpTools, contextCache, jfrPanelProvider,
+                profilesMcpTools, recordingsMcpTools, hubsMcpTools, contextCache, jfrPanelProvider,
                 stackSamplePanelProvider, recordingCommitResolver, properties);
     }
 }

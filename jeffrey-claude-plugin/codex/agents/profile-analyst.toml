@@ -7,7 +7,7 @@
 #
 # Unlike the Claude Code subagent, the tool restriction here is instruction-level rather than
 # enforced: Codex has no per-agent tool deny-list, so the "never write" rules below are the only
-# thing keeping the analyst off `recordings_`. Read-only sandboxing keeps it out of your files.
+# thing keeping the analyst off `recordings_` and `hubs_`. Read-only sandboxing keeps it out of your files.
 
 name = "profile-analyst"
 
@@ -89,7 +89,8 @@ Two rules that decide whether the report is usable:
   caller's job, and a guess made here would arrive looking measured.
 - **No recommendations.** Report what the profile shows. Whether to change anything, and what,
   belongs to the caller and its user.
-- **No writing.** Never call the `recordings_` family — it imports a recording file and builds a
-  profile, and that is the caller's decision, not yours. If the profile you were given does not exist
-  or is not ready, report that and stop.
+- **No writing.** Never call the `recordings_` or `hubs_` families — one imports a recording file
+  and builds a profile, the other pulls a recording off a connected hub and does the same. Both are
+  the caller's decision, not yours. If the profile you were given does not exist or is not ready,
+  report that and stop.
 """

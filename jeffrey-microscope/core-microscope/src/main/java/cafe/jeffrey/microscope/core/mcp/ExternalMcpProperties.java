@@ -35,6 +35,24 @@ package cafe.jeffrey.microscope.core.mcp;
  * @param ingestEnabled whether the {@code recordings_} family is advertised, which is what lets a
  *                      client import a local recording file and build a profile from it. While off the
  *                      family is not advertised at all rather than advertised and refusing
+ * @param hubsEnabled   whether the {@code hubs_} family is advertised, which lets a client list and
+ *                      pull recordings from a connected Jeffrey Hub. Separate from
+ *                      {@code ingestEnabled} because it is a larger permission — ingestion reads a
+ *                      file on this machine, while this reaches out to remote infrastructure and can
+ *                      move gigabytes off it — so an installation can allow the first and refuse the
+ *                      second. It cannot be the more permissive of the two: everything it produces is
+ *                      analysed by the {@code recordings_} family, so it is advertised only when
+ *                      ingestion is on as well
  */
-public record ExternalMcpProperties(boolean enabled, boolean ingestEnabled) {
+public record ExternalMcpProperties(boolean enabled, boolean ingestEnabled, boolean hubsEnabled) {
+
+    /**
+     * Whether the {@code hubs_} family should be advertised. A hub download lands in the same store
+     * ingestion governs and its next step is {@code recordings_analyzeRecording}, so advertising it
+     * without ingestion would put a family in the model's context whose own descriptions point at a
+     * tool that is not there.
+     */
+    public boolean hubsAdvertised() {
+        return hubsEnabled && ingestEnabled;
+    }
 }

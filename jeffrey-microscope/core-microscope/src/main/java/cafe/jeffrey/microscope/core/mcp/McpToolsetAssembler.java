@@ -34,6 +34,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.JvmMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
+import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.TracesMcpTools;
 import cafe.jeffrey.microscope.core.web.controllers.profile.HeapDumpManagerToolsDelegate;
@@ -97,6 +98,7 @@ public class McpToolsetAssembler {
     private static final String PREFIX_MEMORY = "memory";
     private static final String PREFIX_HEAP = "heap";
     private static final String PREFIX_RECORDINGS = "recordings";
+    private static final String PREFIX_HUBS = "hubs";
 
     /**
      * The one JFR tool that writes. Left out of the family rather than left in to refuse: an
@@ -110,6 +112,7 @@ public class McpToolsetAssembler {
     public McpToolsetAssembler(
             ProfilesMcpTools profilesMcpTools,
             RecordingsMcpTools recordingsMcpTools,
+            HubsMcpTools hubsMcpTools,
             McpProfileContextCache contextCache,
             JfrFlamegraphPanelProvider jfrPanelProvider,
             StackSampleFlamegraphPanelProvider stackSamplePanelProvider,
@@ -164,6 +167,9 @@ public class McpToolsetAssembler {
 
         if (properties.ingestEnabled()) {
             families.add(new ReflectiveToolset(recordingsMcpTools, PREFIX_RECORDINGS));
+        }
+        if (properties.hubsAdvertised()) {
+            families.add(new ReflectiveToolset(hubsMcpTools, PREFIX_HUBS));
         }
 
         this.toolset = new CompositeToolset(List.copyOf(families));

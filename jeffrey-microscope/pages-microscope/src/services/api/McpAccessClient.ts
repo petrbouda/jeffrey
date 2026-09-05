@@ -26,6 +26,7 @@ import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 export interface McpAccessStatus {
   enabled: boolean;
   ingestEnabled: boolean;
+  hubsEnabled: boolean;
   url: string;
   claudeMcpAddCommand: string;
   mcpJsonSnippet: string;

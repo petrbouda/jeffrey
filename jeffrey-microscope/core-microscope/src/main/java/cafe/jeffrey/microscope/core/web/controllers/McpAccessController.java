@@ -77,6 +77,7 @@ public class McpAccessController {
         return new McpAccessStatus(
                 properties.enabled(),
                 properties.ingestEnabled(),
+                properties.hubsAdvertised(),
                 url,
                 CLAUDE_MCP_ADD_TEMPLATE.formatted(url),
                 MCP_JSON_TEMPLATE.formatted(SERVER_NAME, url),
@@ -89,6 +90,11 @@ public class McpAccessController {
      * @param ingestEnabled        whether it also advertises the {@code recordings_} family, which
      *                             imports a local recording file and builds a profile from it; off via
      *                             {@code jeffrey.microscope.mcp.ingest.enabled}
+     * @param hubsEnabled          whether it also advertises the {@code hubs_} family, which lists and
+     *                             downloads recordings from the connected Jeffrey Hubs; off via
+     *                             {@code jeffrey.microscope.mcp.hubs.enabled}, and never advertised
+     *                             while ingestion is off, since analysing what it downloads needs the
+     *                             {@code recordings_} family
      * @param url                  the MCP endpoint, as reachable from where this request came
      * @param claudeMcpAddCommand  the one-liner that registers it with the Claude Code CLI
      * @param mcpJsonSnippet       the equivalent {@code .mcp.json} entry, for a project-scoped setup
@@ -100,6 +106,7 @@ public class McpAccessController {
     public record McpAccessStatus(
             boolean enabled,
             boolean ingestEnabled,
+            boolean hubsEnabled,
             String url,
             String claudeMcpAddCommand,
             String mcpJsonSnippet,

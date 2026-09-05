@@ -63,6 +63,11 @@ public class RemoteRepositoryManager implements RepositoryManager {
     }
 
     @Override
+    public RecordingSession recordingSession(String sessionId) {
+        return RecordingSessionResponse.from(repositoryClient.recordingSession(sessionId));
+    }
+
+    @Override
     public RepositoryStatistics calculateRepositoryStatistics() {
         RepositoryStatisticsResponse response =
                 repositoryClient.repositoryStatistics(projectInfo.id());

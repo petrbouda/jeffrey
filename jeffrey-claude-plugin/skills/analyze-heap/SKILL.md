@@ -24,6 +24,10 @@ The Jeffrey process opens that path, so the file has to be on the machine Jeffre
 call returns once the dump is parsed, which takes a while for a large dump; that is the work, not
 a hang.
 
+**The dump is on a hub** — the user asked about a deployed application rather than a file. Switch to
+the **analyze-hub** skill: a hub session carries its heap dump alongside the recording, and it comes
+back here with a `profileId`.
+
 **Otherwise** — `profiles_list`, where the `event source` column reads `HEAP_DUMP` for the profiles
 this skill applies to. `profiles_features` lists `HEAP_DUMP` under `disabledFeatures` when the
 profile has no dump or its index is not ready yet.

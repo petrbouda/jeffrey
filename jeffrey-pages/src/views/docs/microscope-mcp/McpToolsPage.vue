@@ -40,6 +40,7 @@ const headings = [
   { id: 'memory', text: 'memory_ — allocation and leaks without a heap dump', level: 2 },
   { id: 'jfr', text: 'jfr_ — the profile database', level: 2 },
   { id: 'heap', text: 'heap_ — heap dumps', level: 2 },
+  { id: 'hubs', text: 'hubs_ — recordings that are not on this machine', level: 2 },
   { id: 'recordings', text: 'recordings_ — creating profiles', level: 2 },
   { id: 'links', text: 'Links Back to the UI', level: 2 },
   { id: 'what-is-not-here', text: 'What Is Not Here', level: 2 }
@@ -122,6 +123,16 @@ const exRecordings = `recordings_analyzeFile { "path": "/abs/path/target/checkou
 #  -> { "profileId": "019f885e-...", "link": "http://localhost:8585/profiles/019f885e-..." }`;
 
 const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the time goes.`;
+
+const hubsExample = `Analyse what production recorded in the last hour.`;
+
+const exHubs = `hubs_sessions { "hub": "production", "withinLastMinutes": 60 }
+#  -> | hub | project | started | duration | status | files | size | local | session_ref |
+#     | production | checkout | 2026-03-01T11:41Z | 18m3s | FINISHED | 4 | 240MB | | h1Y2ZnLX... |
+
+hubs_download { "sessionRef": "h1Y2ZnLX..." }
+#  -> { "recordingId": "019f885e-...", "recordingFiles": 2, "artifactFiles": 2,
+#       "nextStep": "Call recordings_analyzeRecording with recordingId=019f885e-..." }`;
 </script>
 
 <template>
@@ -132,21 +143,21 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
     />
 
     <div class="docs-content">
-      <p>Eighty-five tools in sixteen families. Fifteen of them read a profile; the sixteenth, <code>recordings_</code>, is the only one that creates one.</p>
+      <p>Eighty-eight tools in seventeen families. Fifteen of them read a profile; the other two, <code>recordings_</code> and <code>hubs_</code>, are the ones that create one &mdash; from a file on this machine, or from a recording still sitting on a Jeffrey Hub.</p>
 
       <h2 id="rules-that-apply-to-all-of-them">Rules That Apply to All of Them</h2>
 
       <p><strong>Names are <code>family_methodName</code>, camelCase preserved</strong> &mdash; <code>jfr_listTables</code>, not <code>jfr_list_tables</code>.</p>
       <DocsCodeBlock :code="nameShape" language="bash" />
 
-      <p><strong>Every tool except <code>profiles_list</code> and the <code>recordings_</code> family takes a <code>profileId</code></strong>, and it is required. That is the id from <code>profiles_list</code>; nothing else works without one.</p>
+      <p><strong>Every tool except <code>profiles_list</code> and the <code>recordings_</code> and <code>hubs_</code> families takes a <code>profileId</code></strong>, and it is required. That is the id from <code>profiles_list</code>; nothing else works without one.</p>
 
       <p><strong>Output is capped.</strong> A result is truncated at roughly 120,000 characters, with an explicit trailer saying so &mdash; a silently shortened flamegraph would be read as a complete one. The SQL tools cap rows as well, and say when they do. Aggregate in the query rather than pulling rows back to count them.</p>
 
       <p><strong>The Markdown exports carry their own reading instructions.</strong> <code>flamegraph_export</code>, <code>traces_traceExport</code> and <code>traces_operationExport</code> return documents that open by explaining what <code>self</code> means against <code>total</code>, what the frame tags mean, and what was pruned. Read the preamble the document gives you rather than assuming conventions from elsewhere &mdash; Jeffrey&rsquo;s <code>self</code> is a merged-interval computation, not a subtraction.</p>
 
       <h2 id="family-map">Which Family Answers Your Question</h2>
-      <p>Sixteen families is more than anyone reads through. They group into six questions, and the question you arrived with picks the family for you &mdash; the same taxonomy the <router-link to="/docs/microscope-mcp/skills#analyze-jfr"><code>analyze-jfr</code></router-link> skill routes by, so the docs and the skill tell the same story. Every row links to its section below.</p>
+      <p>Seventeen families is more than anyone reads through. They group into six questions, and the question you arrived with picks the family for you &mdash; the same taxonomy the <router-link to="/docs/microscope-mcp/skills#analyze-jfr"><code>analyze-jfr</code></router-link> skill routes by, so the docs and the skill tell the same story. Every row links to its section below.</p>
       <table class="family-map">
         <thead>
           <tr>
@@ -167,7 +178,12 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
           <tr>
             <td><a href="#recordings"><code>recordings_</code></a></td>
             <td class="map-count">3</td>
-            <td>A recording Jeffrey has never seen. The only family that creates a profile rather than reading one, and the only one an installation can switch off on its own.</td>
+            <td>A recording Jeffrey has never seen, as a file on this machine. Creates a profile rather than reading one, and an installation can switch it off on its own.</td>
+          </tr>
+          <tr>
+            <td><a href="#hubs"><code>hubs_</code></a></td>
+            <td class="map-count">3</td>
+            <td>The recordings that never reached this machine &mdash; what a deployed application sent to a connected Jeffrey Hub. Finds a session and pulls it in; <code>recordings_</code> then turns it into a profile.</td>
           </tr>
           <tr class="map-group">
             <th colspan="3">Where the time went</th>
@@ -951,6 +967,54 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
 
       <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
       <DocsCodeBlock :code="exHeap" language="json" />
+
+      <h2 id="hubs">hubs_ &mdash; recordings that are not on this machine</h2>
+      <p>Everything above starts from something Jeffrey already holds, and <code>recordings_</code> below starts from a file on the machine Jeffrey runs on. This family starts from neither: it is the recordings a <em>deployed</em> application sent to a connected <router-link to="/docs/hub">Jeffrey Hub</router-link>, which is where the interesting ones usually are.</p>
+      <DocsCodeBlock :code="hubsExample" language="text" />
+
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Arguments</th>
+            <th>Returns</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>hubs_list</code></td>
+            <td>&mdash;</td>
+            <td>Every connected hub with its address, whether it was declared in configuration or added through the UI, and whether it answers right now</td>
+          </tr>
+          <tr>
+            <td><code>hubs_sessions</code></td>
+            <td><code>hub?</code>, <code>workspace?</code>, <code>project?</code>, <code>withinLastMinutes?</code>, <code>status?</code>, <code>limit?</code></td>
+            <td>Recording sessions across <strong>every</strong> hub at once, newest first, each row carrying a <code>session_ref</code> and a <code>local</code> column saying whether it is already here</td>
+          </tr>
+          <tr>
+            <td><code>hubs_download</code></td>
+            <td><code>sessionRef</code></td>
+            <td>Pulls that session in &mdash; its recording files merged into one, its heap dumps and logs alongside &mdash; and returns a <code>recordingId</code> for <code>recordings_analyzeRecording</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p><strong>Flat, not a tree.</strong> A hub holds workspaces holding projects holding sessions, and the web UI lets you walk that. There is deliberately no tool for the walk. One <code>hubs_sessions</code> call fans out across every hub and returns flat rows, because four calls before anything is downloaded is four chances for a model to pair a workspace with the wrong project. The hierarchy survives as the <code>hub</code>, <code>workspace</code> and <code>project</code> filters, all matched loosely against names, and as columns you can read.</p>
+
+      <p><strong><code>withinLastMinutes</code> is an overlap, not a start time.</strong> A JVM that began recording three hours ago and is still running matches a sixty-minute window, because it <em>was</em> recording during it. That is what someone asking for "the last hour" means, and the opposite of what filtering on start time would return.</p>
+
+      <p><strong>Downloading and analysing are two calls on purpose.</strong> <code>hubs_download</code> stops at a recording and hands back its id; <code>recordings_analyzeRecording</code> builds the profile. A single call covering a multi-gigabyte transfer <em>and</em> a full analysis is the shape that trips a client's tool timeout, and a timeout partway through says nothing about whether the work survived.</p>
+
+      <DocsCallout type="tip" title="Read the local column before downloading">
+        A row whose <code>local</code> reads <code>profile:&lt;id&gt;</code> is already analysed and that id works immediately; <code>recording:&lt;id&gt;</code> is downloaded but not yet analysed. Jeffrey recognises a session it has seen before from the <code>origin.*</code> tags it wrote at download time, so a repeated <code>hubs_download</code> returns what is already there rather than moving the bytes again &mdash; but reading the column first saves the round trip.
+      </DocsCallout>
+
+      <p>A hub that does not answer is reported <em>under the table</em> rather than as a failure, and it is reported even when no rows came back at all. That case is the one worth getting right: "no sessions found" and "production is unreachable" lead to completely different next steps, and the managers underneath this family return an empty list for both, so the family probes each hub explicitly to tell them apart.</p>
+
+      <p>The family is advertised only while both hub access and ingestion are enabled; see <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> for the properties and why the two are linked.</p>
+
+      <p><strong>Example.</strong></p>
+      <DocsCodeBlock :code="exHubs" language="json" />
 
       <h2 id="recordings">recordings_ &mdash; creating profiles</h2>
       <p>Everything above answers questions about a profile that already exists. This family is how one comes to exist without leaving the terminal: you point the agent at a recording file in your repository and it imports the file and builds the profile, then carries on with the id it got back.</p>
