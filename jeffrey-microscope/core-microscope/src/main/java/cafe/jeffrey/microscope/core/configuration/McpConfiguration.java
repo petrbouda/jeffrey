@@ -31,6 +31,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
@@ -152,9 +153,10 @@ public class McpConfiguration {
             JfrFlamegraphPanelProvider jfrPanelProvider,
             StackSampleFlamegraphPanelProvider stackSamplePanelProvider,
             RecordingCommitResolver recordingCommitResolver,
+            HeapDumpInitService heapDumpInitService,
             ExternalMcpProperties properties) {
         return new McpToolsetAssembler(
                 profilesMcpTools, recordingsMcpTools, hubsMcpTools, contextCache, jfrPanelProvider,
-                stackSamplePanelProvider, recordingCommitResolver, properties);
+                stackSamplePanelProvider, recordingCommitResolver, heapDumpInitService, properties);
     }
 }

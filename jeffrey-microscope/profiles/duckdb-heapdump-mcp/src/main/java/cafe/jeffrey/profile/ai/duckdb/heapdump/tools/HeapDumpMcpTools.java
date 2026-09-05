@@ -43,6 +43,18 @@ public class HeapDumpMcpTools {
 
     /** Row caps applied per-tool when calling delegate.executeQuery — match the same MAX_QUERY_LIMIT the manager enforces. */
     /** How wide the rule under a table header may get, however long the header is. */
+    /**
+     * What a report that was never computed says. It names the tool that computes it rather than
+     * sending the reader to the browser: over MCP the UI may not even be reachable, and a dead end
+     * that offers no next call is where a heap session stops.
+     */
+    private static final String NOT_RUN_YET =
+            "%s has not been run for this heap dump yet. Call heap_prepare with report '%s' to compute "
+                    + "it, then read this tool again — heap_status reports progress meanwhile. It can "
+                    + "also be run from the matching page in the Jeffrey UI. If heap_prepare is not "
+                    + "advertised, this Jeffrey runs with jeffrey.microscope.mcp.compute.enabled false "
+                    + "and the report has to be run from the UI.";
+
     private static final int MAX_HEADER_RULE = 120;
 
     private static final int LIST_TABLES_ROW_CAP = 100;
@@ -133,7 +145,7 @@ public class HeapDumpMcpTools {
 
             BiggestObjectsReport report = delegate.getBiggestObjects(effectiveTopN);
             if (report == null) {
-                return "Biggest objects analysis has not been run yet. The user needs to run it from the UI first.";
+                return NOT_RUN_YET.formatted("Biggest objects analysis", "biggest");
             }
 
             StringBuilder result = new StringBuilder();
@@ -170,7 +182,7 @@ public class HeapDumpMcpTools {
         try {
             LeakSuspectsReport report = delegate.getLeakSuspects();
             if (report == null) {
-                return "Leak suspects analysis has not been run yet. The user needs to run it from the UI first.";
+                return NOT_RUN_YET.formatted("Leak suspects analysis", "leaks");
             }
 
             StringBuilder result = new StringBuilder();
@@ -241,7 +253,7 @@ public class HeapDumpMcpTools {
         try {
             ClassLoaderReport report = delegate.getClassLoaderAnalysis();
             if (report == null) {
-                return "Class loader analysis has not been run yet. The user needs to run it from the UI first.";
+                return NOT_RUN_YET.formatted("Class loader analysis", "classloaders");
             }
             List<ClassLoaderLeakChain> chains = report.leakChains();
             if (chains == null || chains.isEmpty()) {
@@ -287,7 +299,7 @@ public class HeapDumpMcpTools {
         try {
             ConsumerReport report = delegate.getConsumerReport();
             if (report == null) {
-                return "Consumer report has not been run yet. The user needs to run it from the UI first.";
+                return NOT_RUN_YET.formatted("Consumer report", "consumers");
             }
             StringBuilder result = new StringBuilder();
             result.append("Top Consumers (by package + class loader):\n");
@@ -326,7 +338,7 @@ public class HeapDumpMcpTools {
         try {
             StringAnalysisReport report = delegate.getStringAnalysis();
             if (report == null) {
-                return "String analysis has not been run yet. The user needs to run it from the UI first.";
+                return NOT_RUN_YET.formatted("String analysis", "strings");
             }
 
             StringBuilder result = new StringBuilder();
@@ -370,7 +382,7 @@ public class HeapDumpMcpTools {
         try {
             CollectionAnalysisReport report = delegate.getCollectionAnalysis();
             if (report == null) {
-                return "Collection analysis has not been run yet. The user needs to run it from the UI first.";
+                return NOT_RUN_YET.formatted("Collection analysis", "collections");
             }
 
             StringBuilder result = new StringBuilder();

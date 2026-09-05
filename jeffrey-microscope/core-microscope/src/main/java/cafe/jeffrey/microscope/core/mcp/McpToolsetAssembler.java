@@ -42,6 +42,8 @@ import cafe.jeffrey.microscope.core.web.controllers.profile.HeapDumpManagerTools
 import cafe.jeffrey.profile.ai.duckdb.heapdump.tools.HeapDumpMcpTools;
 import cafe.jeffrey.profile.ai.duckdb.jfr.tools.DuckDbMcpTools;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.mcp.tools.HeapComputeMcpTools;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.mcp.CompositeToolset;
 import cafe.jeffrey.profile.mcp.McpToolAnnotations;
@@ -120,6 +122,7 @@ public class McpToolsetAssembler {
             JfrFlamegraphPanelProvider jfrPanelProvider,
             StackSampleFlamegraphPanelProvider stackSamplePanelProvider,
             RecordingCommitResolver recordingCommitResolver,
+            HeapDumpInitService heapDumpInitService,
             ExternalMcpProperties properties) {
 
         List<McpToolProvider> families = new ArrayList<>(List.of(
@@ -142,7 +145,8 @@ public class McpToolsetAssembler {
                 new ProfileScopedToolset<>(TracesMcpTools.class, PREFIX_TRACES,
                         profileId -> new TracesMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(JvmMcpTools.class, PREFIX_JVM,
-                        profileId -> new JvmMcpTools(profileManager(contextCache, profileId))),
+                        profileId -> new JvmMcpTools(
+                                profileManager(contextCache, profileId), properties.computeEnabled())),
                 new ProfileScopedToolset<>(HttpMcpTools.class, PREFIX_HTTP,
                         profileId -> new HttpMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(JdbcMcpTools.class, PREFIX_JDBC,
@@ -170,6 +174,13 @@ public class McpToolsetAssembler {
                 new ProfileScopedToolset<>(HeapDumpMcpTools.class, PREFIX_HEAP,
                         profileId -> heapTools(contextCache, profileId))));
 
+        if (properties.computeEnabled()) {
+            families.add(new ProfileScopedToolset<>(HeapComputeMcpTools.class, PREFIX_HEAP,
+                    profileId -> new HeapComputeMcpTools(
+                            profileManager(contextCache, profileId), heapDumpInitService),
+                    Set.of(),
+                    McpToolAnnotations.CREATES));
+        }
         if (properties.ingestEnabled()) {
             families.add(new ReflectiveToolset(
                     recordingsMcpTools, PREFIX_RECORDINGS, Set.of(), McpToolAnnotations.CREATES));

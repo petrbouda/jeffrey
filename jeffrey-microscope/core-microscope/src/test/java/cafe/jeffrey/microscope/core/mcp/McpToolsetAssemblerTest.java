@@ -26,6 +26,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
+import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.mcp.McpToolSpec;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
@@ -94,6 +95,7 @@ class McpToolsetAssemblerTest {
                 jfrPanelProvider,
                 stackSamplePanelProvider,
                 recordingCommitResolver,
+                new HeapDumpInitService(CLOCK),
                 properties);
     }
 
@@ -348,6 +350,45 @@ class McpToolsetAssemblerTest {
 
             assertEquals(assembler(true, true).toolset().specs().size(),
                     filtered.toolset().specs().size());
+        }
+    }
+
+
+    @Nested
+    class ComputeTools {
+
+        @Test
+        void advertisesThemWhenComputeIsOn() {
+            List<String> names = assembler(new ExternalMcpProperties(
+                    true, true, true, true, Set.of(), "")).toolset().specs().stream()
+                    .map(McpToolSpec::name).toList();
+
+            assertTrue(names.contains("heap_prepare"));
+            assertTrue(names.contains("heap_status"));
+        }
+
+        /**
+         * Not advertised rather than advertised-and-refusing, for the same reason as the ingest family.
+         */
+        @Test
+        void withholdsThemWhenComputeIsOff() {
+            McpToolsetAssembler assembler = assembler(new ExternalMcpProperties(
+                    true, true, true, false, Set.of(), ""));
+            List<String> names = assembler.toolset().specs().stream().map(McpToolSpec::name).toList();
+
+            assertFalse(names.contains("heap_prepare"));
+            assertThrows(IllegalArgumentException.class,
+                    () -> assembler.toolset().call("heap_prepare", null));
+        }
+
+        @Test
+        void leavesTheReadingHeapToolsAlone() {
+            List<String> names = assembler(new ExternalMcpProperties(
+                    true, true, true, false, Set.of(), "")).toolset().specs().stream()
+                    .map(McpToolSpec::name).toList();
+
+            assertTrue(names.contains("heap_getHeapSummary"));
+            assertTrue(names.contains("heap_executeQuery"));
         }
     }
 

@@ -336,11 +336,41 @@ class JvmMcpToolsTest {
             recorded();
             when(autoAnalysisManager.analysisResults()).thenReturn(List.of());
 
-            String result = tools().autoAnalysis();
+            String result = tools().autoAnalysis(null);
 
             assertTrue(result.contains("has not been computed"));
             assertTrue(result.contains("profiles_link"));
             assertFalse(result.contains("\"findings\""));
+        }
+
+        /**
+         * Computing is asked for rather than assumed, but the tool that refuses must also say how.
+         */
+        @Test
+        void computesItOnRequest() {
+            recorded();
+            when(autoAnalysisManager.analysisResults())
+                    .thenReturn(List.of())
+                    .thenReturn(List.of(new AutoAnalysisResult(
+                            "Long GC Pauses", AnalysisResult.Severity.WARNING,
+                            "Pauses above 100ms were observed", "GC pauses are long",
+                            "Consider a larger young generation", "78")));
+
+            String result = tools().autoAnalysis(true);
+
+            verify(autoAnalysisManager).generate();
+            assertTrue(result.contains("\"rule\":\"Long GC Pauses\""));
+        }
+
+        @Test
+        void refusesToComputeWhenTheInstallationWithholdsIt() {
+            recorded();
+            when(autoAnalysisManager.analysisResults()).thenReturn(List.of());
+
+            String result = new JvmMcpTools(profileManager, false).autoAnalysis(true);
+
+            assertTrue(result.contains("compute.enabled"));
+            verify(autoAnalysisManager, never()).generate();
         }
 
         @Test
@@ -351,7 +381,7 @@ class JvmMcpToolsTest {
                     "Pauses above 100ms were observed", "GC pauses are long",
                     "Consider a larger young generation", "78")));
 
-            String result = tools().autoAnalysis();
+            String result = tools().autoAnalysis(null);
 
             assertTrue(result.contains("\"rule\":\"Long GC Pauses\""));
             assertTrue(result.contains("\"severity\":\"WARNING\""));
