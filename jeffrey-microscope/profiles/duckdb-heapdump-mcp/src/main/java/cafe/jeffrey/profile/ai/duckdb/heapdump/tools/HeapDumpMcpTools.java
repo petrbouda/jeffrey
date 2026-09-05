@@ -24,8 +24,10 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.profile.heapdump.model.*;
+import cafe.jeffrey.profile.heapdump.view.SqlQueryResult;
 import cafe.jeffrey.shared.common.BytesUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -40,6 +42,9 @@ public class HeapDumpMcpTools {
     private static final int MAX_RESULT_LENGTH = 50000;
 
     /** Row caps applied per-tool when calling delegate.executeQuery — match the same MAX_QUERY_LIMIT the manager enforces. */
+    /** How wide the rule under a table header may get, however long the header is. */
+    private static final int MAX_HEADER_RULE = 120;
+
     private static final int LIST_TABLES_ROW_CAP = 100;
     private static final int DESCRIBE_TABLE_ROW_CAP = 200;
     private static final int EXECUTE_QUERY_ROW_CAP = 100;
@@ -693,20 +698,13 @@ public class HeapDumpMcpTools {
             + "string (HPROF string pool), dump_metadata (parser + heap-shape metadata). "
             + "Use heap_describeTable to get column types for a specific table.")
     public String listTables() {
-        OQLQueryResult result = delegate.executeQuery(new OQLQueryRequest(
+        return sqlAnswer(
                 "SELECT table_name FROM information_schema.tables "
                         + "WHERE table_schema = 'main' AND table_name NOT LIKE 'flyway_%' "
                         + "ORDER BY table_name",
-                LIST_TABLES_ROW_CAP, 0, false));
-        if (result.errorMessage() != null) {
-            return "Error: " + result.errorMessage();
-        }
-        StringBuilder sb = new StringBuilder("Tables in the heap-dump index database:\n\n");
-        for (var row : result.results()) {
-            sb.append("- ").append(row.value()).append("\n");
-        }
-        sb.append("\nUse heap_describeTable to get column types of a specific table.");
-        return sb.toString();
+                LIST_TABLES_ROW_CAP,
+                "Tables in the heap-dump index database",
+                "\nUse heap_describeTable to get column types of a specific table.");
     }
 
     @Tool(description = "Get the schema of a specific heap-dump table including column names, types, and nullability. "
@@ -719,30 +717,26 @@ public class HeapDumpMcpTools {
             @ToolParam(required = true, description = "Name of the table to describe (e.g. 'instance', 'class', 'outbound_ref')")
             String tableName) {
         if (tableName == null || tableName.isBlank()) {
-            return "Error: Table name is required";
+            return "Error: A table name is required. Call heap_listTables to see them.";
         }
-        // Use parameterless interpolation via SQL since DuckDB doesn't support parameters in DESCRIBE/information_schema
-        // table name. The query is constrained by information_schema and table_name string equality — no injection risk.
+        // The name is compared as a string against information_schema rather than interpolated into a
+        // FROM clause, so it can only ever match a table or match nothing.
         String safeName = tableName.replace("'", "");
-        OQLQueryResult result = delegate.executeQuery(new OQLQueryRequest(
-                "SELECT column_name, data_type, is_nullable "
-                        + "FROM information_schema.columns "
-                        + "WHERE table_schema = 'main' AND table_name = '" + safeName + "' "
-                        + "ORDER BY ordinal_position",
-                DESCRIBE_TABLE_ROW_CAP, 0, false));
-        if (result.errorMessage() != null) {
-            return "Error: " + result.errorMessage();
+        SqlQueryResult result;
+        try {
+            result = delegate.executeSql(
+                    "SELECT column_name, data_type, is_nullable "
+                            + "FROM information_schema.columns "
+                            + "WHERE table_schema = 'main' AND table_name = '" + safeName + "' "
+                            + "ORDER BY ordinal_position",
+                    DESCRIBE_TABLE_ROW_CAP);
+        } catch (RuntimeException e) {
+            return "Error: " + e.getMessage();
         }
-        if (result.results().isEmpty()) {
-            return "Error: Table '" + tableName + "' not found";
+        if (result.rows().isEmpty()) {
+            return "Error: Table '" + tableName + "' not found. Call heap_listTables to see them.";
         }
-        StringBuilder sb = new StringBuilder("Schema for table '").append(tableName).append("':\n\n");
-        sb.append(String.format("%-25s %-20s %-10s%n", "COLUMN", "TYPE", "NULLABLE"));
-        sb.append("-".repeat(55)).append("\n");
-        for (var row : result.results()) {
-            sb.append(row.value()).append("\n");
-        }
-        return sb.toString();
+        return render(result, "Schema for table '" + tableName + "'", null);
     }
 
     @Tool(description = "Execute a read-only DuckDB SQL query against the heap-dump index database. "
@@ -759,43 +753,19 @@ public class HeapDumpMcpTools {
         if (query == null || query.isBlank()) {
             return "Error: Query is required";
         }
-        OQLQueryResult result = delegate.executeQuery(new OQLQueryRequest(query, EXECUTE_QUERY_ROW_CAP, 0, false));
-        if (result.errorMessage() != null) {
-            return "Error: " + result.errorMessage();
-        }
-        StringBuilder sb = new StringBuilder();
-        sb.append("Query result (")
-                .append(result.results().size()).append(" row(s), ")
-                .append(result.executionTimeMs()).append("ms");
-        if (result.hasMore()) {
-            sb.append(", row cap reached — consider tightening WHERE or adding LIMIT");
-        }
-        sb.append("):\n\n");
-        for (var row : result.results()) {
-            if (sb.length() > MAX_RESULT_LENGTH) {
-                sb.append("\n... (output truncated)");
-                break;
-            }
-            sb.append(row.value()).append("\n");
-        }
-        return sb.toString();
+        return sqlAnswer(query, EXECUTE_QUERY_ROW_CAP, "Query result", null);
     }
 
     @Tool(description = "Get the heap-dump's high-level parser/shape metadata: HPROF version, id size (4 or 8 bytes), "
             + "compressed-oops flag, total bytes parsed, record count, warning count, parser version, and parse timestamp. "
             + "Call this once at the start of analysis to orient yourself.")
     public String getDumpMetadata() {
-        OQLQueryResult result = delegate.executeQuery(new OQLQueryRequest(
+        return sqlAnswer(
                 "SELECT id_size, hprof_version, compressed_oops, bytes_parsed, record_count, "
-                        + "warning_count, truncated, parser_version, parsed_at_ms FROM dump_metadata LIMIT 1",
-                DUMP_METADATA_ROW_CAP, 0, false));
-        if (result.errorMessage() != null) {
-            return "Error: " + result.errorMessage();
-        }
-        if (result.results().isEmpty()) {
-            return "No dump metadata available — the heap-dump index may not be built yet.";
-        }
-        return "Heap-dump metadata:\n\n" + result.results().get(0).value();
+                        + "warning_count, truncated, parser_version, parsed_at_ms FROM dump_metadata",
+                DUMP_METADATA_ROW_CAP,
+                "Heap-dump metadata",
+                null);
     }
 
     private String truncate(String s, int maxLength) {
@@ -848,6 +818,53 @@ public class HeapDumpMcpTools {
                             + "heap_browseClassInstances or heap_getDominatorTreeRoots.");
         }
         return objectId;
+    }
+
+
+    /**
+     * Runs one read-only SQL query and renders it, turning a refusal into a sentence.
+     */
+    private String sqlAnswer(String sql, int rowCap, String title, String footer) {
+        try {
+            return render(delegate.executeSql(sql, rowCap), title, footer);
+        } catch (RuntimeException e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    /**
+     * A result as a delimited table, and it says when it was capped.
+     * <p>
+     * A capped result that reads like a complete one is the failure this guards against: the model
+     * reports the visible rows as the whole answer, and nothing in the text contradicts it.
+     */
+    private static String render(SqlQueryResult result, String title, String footer) {
+        if (result.rows().isEmpty()) {
+            return title + ": no rows.";
+        }
+        String header = String.join(" | ", result.columns());
+        StringBuilder sb = new StringBuilder(title)
+                .append(" (").append(result.rows().size()).append(" row(s)");
+        if (result.capped()) {
+            sb.append(", row cap reached \u2014 tighten the WHERE clause or add a LIMIT");
+        }
+        sb.append("):\n\n").append(header).append("\n")
+                .append("-".repeat(Math.min(MAX_HEADER_RULE, header.length()))).append("\n");
+        for (List<String> row : result.rows()) {
+            if (sb.length() > MAX_RESULT_LENGTH) {
+                sb.append("\n... (output truncated)");
+                break;
+            }
+            List<String> cells = new ArrayList<>(row.size());
+            for (String value : row) {
+                cells.add(value == null ? "NULL" : value);
+            }
+            sb.append(String.join(" | ", cells)).append("\n");
+        }
+        if (footer != null) {
+            sb.append(footer);
+        }
+        return sb.toString();
     }
 
 }

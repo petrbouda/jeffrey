@@ -23,6 +23,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.FlamegraphMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.BlockingMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.GrpcMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapDiffMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.HeapOqlMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.IoMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HttpMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.JdbcMcpTools;
@@ -164,6 +165,8 @@ public class McpToolsetAssembler {
                         profileId -> new HeapDiffMcpTools(
                                 profileManager(contextCache, profileId),
                                 baselineId -> profileManager(contextCache, baselineId))),
+                new ProfileScopedToolset<>(HeapOqlMcpTools.class, PREFIX_HEAP,
+                        profileId -> new HeapOqlMcpTools(profileManager(contextCache, profileId))),
                 new ProfileScopedToolset<>(HeapDumpMcpTools.class, PREFIX_HEAP,
                         profileId -> heapTools(contextCache, profileId))));
 

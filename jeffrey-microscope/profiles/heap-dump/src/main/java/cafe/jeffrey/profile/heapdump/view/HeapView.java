@@ -145,6 +145,27 @@ public interface HeapView extends AutoCloseable {
      */
     boolean hasDominatorTree() throws SQLException;
 
+    /**
+     * Runs a read-only SQL query against the index and returns at most {@code maxRows} rows.
+     * <p>
+     * The purpose-built methods above answer the questions Jeffrey knows to ask. This is for the ones
+     * it does not: a correlation between two tables, a grouping nothing on the interface exposes, a
+     * question a reader thought of that no analyzer anticipated. The index is a real DuckDB database
+     * with a documented schema, and there is no reason to make that unreachable.
+     * <p>
+     * What confines the query is the connection rather than the statement: the view opens the index
+     * read-only with external file access and extension loading turned off, so no spelling of a
+     * {@code SELECT} reaches the host filesystem. Implementations are expected to refuse anything that
+     * is not a single {@code SELECT} or {@code WITH} as well, so that an attempted write comes back as
+     * a sentence rather than an engine error.
+     *
+     * @param sql     a single {@code SELECT} or {@code WITH} statement
+     * @param maxRows the most rows to read; the result says whether there were more
+     * @throws SQLException             if the query fails
+     * @throws IllegalArgumentException if the statement is not a single read-only query
+     */
+    SqlQueryResult query(String sql, int maxRows) throws SQLException;
+
     // ---- Class fields + instance values ----------------------------------
 
     /**

@@ -43,6 +43,7 @@ import cafe.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
 import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
+import cafe.jeffrey.profile.heapdump.view.SqlQueryResult;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
 import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
@@ -135,6 +136,22 @@ public interface HeapDumpManager {
      * @return query result
      */
     OQLQueryResult executeQuery(OQLQueryRequest request);
+
+    /**
+     * Runs a read-only SQL query against the heap-dump index.
+     * <p>
+     * The counterpart to {@link #executeQuery(OQLQueryRequest)}, and not a replacement for it. OQL
+     * asks object questions -- what a class retains, what path holds an instance alive, what is
+     * reachable from where -- over a graph the index only implies. SQL asks table questions of the
+     * index as it actually is: join {@code instance} to {@code class}, group by loader, correlate two
+     * tables nothing on this interface pairs. Neither expresses the other well, so both are offered.
+     *
+     * @param sql     a single {@code SELECT} or {@code WITH} statement
+     * @param maxRows the most rows to return; the result says whether there were more
+     * @throws IllegalArgumentException if the statement is not a single read-only query
+     * @throws IllegalStateException    if the profile has no heap dump, or its index is not built
+     */
+    SqlQueryResult executeSql(String sql, int maxRows);
 
     /**
      * Get thread information from the heap.
