@@ -27,12 +27,11 @@ import tools.jackson.databind.node.ObjectNode;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Indexes the {@link Tool}-annotated methods of a class into MCP tool specs, and binds JSON arguments
@@ -44,6 +43,10 @@ import java.util.stream.Collectors;
  * Tool names are {@code <prefix>_<methodName>}. Argument names rely on {@code -parameters} being enabled
  * at compile time (it is, in the project's compiler configuration). All {@link Tool} methods are expected
  * to return a {@link String}.
+ * <p>
+ * Two things are rejected here rather than left to fail later, both because the failure would otherwise
+ * be silent or far from its cause: two {@code @Tool} methods that would share one tool name, and a
+ * parameter of a type {@link ToolParamTypes} cannot carry across JSON.
  */
 final class ToolMethodIndex {
 
@@ -54,12 +57,6 @@ final class ToolMethodIndex {
     private static final String SCHEMA_REQUIRED = "required";
     private static final String SCHEMA_DESCRIPTION = "description";
     private static final String SCHEMA_ENUM = "enum";
-
-    private static final String JSON_TYPE_OBJECT = "object";
-    private static final String JSON_TYPE_STRING = "string";
-    private static final String JSON_TYPE_INTEGER = "integer";
-    private static final String JSON_TYPE_NUMBER = "number";
-    private static final String JSON_TYPE_BOOLEAN = "boolean";
 
     private final Map<String, Method> methodsByToolName = new LinkedHashMap<>();
     private final List<McpToolSpec> specs = new ArrayList<>();
@@ -98,19 +95,43 @@ final class ToolMethodIndex {
             List<SyntheticParam> syntheticParams,
             Set<String> excludedMethods,
             McpToolAnnotations defaultAnnotations) {
-        for (Method method : targetType.getMethods()) {
-            Tool tool = method.getAnnotation(Tool.class);
-            if (tool == null || excludedMethods.contains(method.getName())) {
-                continue;
-            }
+        for (Method method : toolMethods(targetType, excludedMethods)) {
             String toolName = prefix + TOOL_NAME_SEPARATOR + method.getName();
-            methodsByToolName.put(toolName, method);
+            Method previous = methodsByToolName.putIfAbsent(toolName, method);
+            if (previous != null) {
+                // Two overloads of one @Tool method. MCP addresses a tool by name alone, so one of the
+                // two could never be reached however the model called it, and tools/list would carry
+                // the name twice. There is no correct behaviour to fall back on, only a quieter wrong
+                // one, so the family refuses to assemble.
+                throw new IllegalStateException(
+                        "Duplicate MCP tool name '" + toolName + "' in " + targetType.getName()
+                                + ": a @Tool method must not be overloaded.");
+            }
             specs.add(new McpToolSpec(
                     toolName,
-                    tool.description(),
+                    method.getAnnotation(Tool.class).description(),
                     buildInputSchema(method, syntheticParams),
                     annotationsOf(method, defaultAnnotations)));
         }
+    }
+
+    /**
+     * The {@code @Tool} methods of a class, by name.
+     * <p>
+     * Sorted, because {@link Class#getMethods()} makes no promise about order — the JVM is free to
+     * return them differently between runs of the same build. Unsorted, the order a family's tools
+     * appear in {@code tools/list} is what a model reads first, and it could change under a client
+     * without a line of Jeffrey changing.
+     */
+    private static List<Method> toolMethods(Class<?> targetType, Set<String> excludedMethods) {
+        List<Method> methods = new ArrayList<>();
+        for (Method method : targetType.getMethods()) {
+            if (method.isAnnotationPresent(Tool.class) && !excludedMethods.contains(method.getName())) {
+                methods.add(method);
+            }
+        }
+        methods.sort(Comparator.comparing(Method::getName));
+        return methods;
     }
 
     /**
@@ -149,30 +170,28 @@ final class ToolMethodIndex {
         for (int i = 0; i < parameters.length; i++) {
             Parameter parameter = parameters[i];
             JsonNode value = arguments == null ? null : arguments.get(parameter.getName());
-            args[i] = convert(value, parameter.getType());
+            args[i] = ToolParamTypes.convert(value, parameter.getType());
         }
         return args;
     }
 
     private static ObjectNode buildInputSchema(Method method, List<SyntheticParam> syntheticParams) {
         ObjectNode schema = Json.createObject();
-        schema.put(SCHEMA_TYPE, JSON_TYPE_OBJECT);
+        schema.put(SCHEMA_TYPE, ToolParamTypes.JSON_TYPE_OBJECT);
         ObjectNode properties = schema.putObject(SCHEMA_PROPERTIES);
+        List<String> requiredNames = new ArrayList<>();
 
         for (SyntheticParam synthetic : syntheticParams) {
             ObjectNode property = properties.putObject(synthetic.name());
-            property.put(SCHEMA_TYPE, JSON_TYPE_STRING);
+            property.put(SCHEMA_TYPE, ToolParamTypes.JSON_TYPE_STRING);
             property.put(SCHEMA_DESCRIPTION, synthetic.description());
-        }
-
-        List<String> requiredNames = new ArrayList<>();
-        for (SyntheticParam synthetic : syntheticParams) {
             requiredNames.add(synthetic.name());
         }
 
         for (Parameter parameter : method.getParameters()) {
+            requireSupportedType(method, parameter);
             ObjectNode property = properties.putObject(parameter.getName());
-            property.put(SCHEMA_TYPE, jsonType(parameter.getType()));
+            property.put(SCHEMA_TYPE, ToolParamTypes.jsonType(parameter.getType()));
             ToolParam toolParam = parameter.getAnnotation(ToolParam.class);
             if (toolParam != null && !toolParam.description().isBlank()) {
                 property.put(SCHEMA_DESCRIPTION, toolParam.description());
@@ -192,6 +211,24 @@ final class ToolMethodIndex {
             }
         }
         return schema;
+    }
+
+    /**
+     * Refuses a parameter type the toolset cannot carry, at the moment the family is indexed.
+     * <p>
+     * Left to the call, it would be advertised under whatever type the schema guessed and then fail
+     * inside {@code Method.invoke} with a message naming neither the tool nor the argument. Here it
+     * fails where a developer is looking, and names both.
+     */
+    private static void requireSupportedType(Method method, Parameter parameter) {
+        if (!ToolParamTypes.supports(parameter.getType())) {
+            throw new IllegalStateException(
+                    "Tool " + method.getDeclaringClass().getSimpleName() + "." + method.getName()
+                            + " declares parameter '" + parameter.getName() + "' of unsupported type "
+                            + parameter.getType().getName()
+                            + ". A @Tool parameter must be a String, a boxed or primitive number or "
+                            + "boolean, or an enum.");
+        }
     }
 
     /**
@@ -215,77 +252,9 @@ final class ToolMethodIndex {
             return List.of(declared.value());
         }
         if (parameter.getType().isEnum()) {
-            return Arrays.stream(parameter.getType().getEnumConstants())
-                    .map(constant -> ((Enum<?>) constant).name())
-                    .toList();
+            return ToolParamTypes.constants(parameter.getType());
         }
         return List.of();
-    }
-
-    private static Object convert(JsonNode value, Class<?> type) {
-        boolean missing = value == null || value.isNull();
-        if (type == String.class) {
-            return missing ? null : value.asString();
-        }
-        if (type == int.class) {
-            return missing ? 0 : value.asInt();
-        }
-        if (type == Integer.class) {
-            return missing ? null : value.asInt();
-        }
-        if (type == long.class) {
-            return missing ? 0L : value.asLong();
-        }
-        if (type == Long.class) {
-            return missing ? null : value.asLong();
-        }
-        if (type == boolean.class) {
-            return missing ? Boolean.FALSE : value.asBoolean();
-        }
-        if (type == Boolean.class) {
-            return missing ? null : value.asBoolean();
-        }
-        if (type == double.class) {
-            return missing ? 0d : value.asDouble();
-        }
-        if (type == Double.class) {
-            return missing ? null : value.asDouble();
-        }
-        if (type.isEnum()) {
-            return missing ? null : enumConstant(type, value.asString());
-        }
-        // Fallback: pass the raw text (or null) for any other type.
-        return missing ? null : value.asString();
-    }
-
-    /**
-     * Resolves an enum argument by name, refusing an unknown one with the alternatives spelled out —
-     * the schema already carries them, but a client is free to ignore it and the message is what the
-     * model actually reads.
-     */
-    private static Object enumConstant(Class<?> type, String name) {
-        for (Object constant : type.getEnumConstants()) {
-            if (((Enum<?>) constant).name().equalsIgnoreCase(name)) {
-                return constant;
-            }
-        }
-        String allowed = Arrays.stream(type.getEnumConstants())
-                .map(constant -> ((Enum<?>) constant).name())
-                .collect(Collectors.joining(", "));
-        throw new IllegalArgumentException("Unknown value '" + name + "'. Expected one of: " + allowed);
-    }
-
-    private static String jsonType(Class<?> type) {
-        if (type == int.class || type == Integer.class || type == long.class || type == Long.class) {
-            return JSON_TYPE_INTEGER;
-        }
-        if (type == boolean.class || type == Boolean.class) {
-            return JSON_TYPE_BOOLEAN;
-        }
-        if (type == double.class || type == Double.class || type == float.class || type == Float.class) {
-            return JSON_TYPE_NUMBER;
-        }
-        return JSON_TYPE_STRING;
     }
 
     /**

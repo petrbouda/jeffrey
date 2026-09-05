@@ -28,6 +28,7 @@ import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcHeader;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcOperationStats;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcOverviewData;
 import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcSlowStatement;
+import cafe.jeffrey.profile.mcp.McpToolOutput;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
@@ -85,6 +86,9 @@ public class JdbcMcpTools {
             "No statements were recorded for group '%s'. Call jdbc_overview and take a name from its "
                     + "groups list.";
 
+    private static final String NO_GROUP_RECOVERY =
+            "Call jdbc_overview and take a name from its groups list.";
+
     private final ProfileManager profileManager;
 
     public JdbcMcpTools(ProfileManager profileManager) {
@@ -108,21 +112,25 @@ public class JdbcMcpTools {
             + "the overview, narrowed to a single group. Use it after jdbc_overview has named the "
             + "group worth looking at.")
     public String statementGroup(
-            @ToolParam(required = false, description = "Group name exactly as recorded, taken from the groups list in "
+            @ToolParam(required = true, description = "Group name exactly as recorded, taken from the groups list in "
                     + "jdbc_overview.")
             String group) {
+
+        // Insisted on rather than passed through: the manager reads a null group as "no filter", so an
+        // omitted one would return the whole statement dashboard under the heading of one group.
+        String name = ToolArguments.required(group, "group", NO_GROUP_RECOVERY);
 
         if (DashboardFeature.missing(profileManager, FeatureType.JDBC_STATEMENTS_DASHBOARD)) {
             return NO_STATEMENT_DATA;
         }
 
-        JdbcOverviewData data = profileManager.custom().jdbcStatementManager().overviewData(group);
+        JdbcOverviewData data = profileManager.custom().jdbcStatementManager().overviewData(name);
         if (data.groups().isEmpty() && data.slowStatements().isEmpty()) {
-            return NO_SUCH_GROUP.formatted(group);
+            return McpToolOutput.error(NO_SUCH_GROUP.formatted(name));
         }
 
         return LinkedOutput.json(
-                dashboard(data, UiLinks.view(profileId(), STATEMENT_GROUPS_VIEW, groupQuery(group))));
+                dashboard(data, UiLinks.view(profileId(), STATEMENT_GROUPS_VIEW, groupQuery(name))));
     }
 
     @Tool(description = "The JDBC connection pools: their configured minimum and maximum sizes against "
@@ -148,7 +156,7 @@ public class JdbcMcpTools {
         return new JdbcDashboard(
                 data.header(),
                 data.operations(),
-                trim(data.groups()),
+                ToolArguments.firstOf(data.groups(), MAX_GROUPS),
                 data.slowStatements().stream().map(JdbcMcpTools::readable).toList(),
                 NextSteps.builder()
                         .add(STEP_GROUP)
@@ -165,10 +173,6 @@ public class JdbcMcpTools {
     private static boolean contentionOccurred(List<JdbcPoolData> pools) {
         return pools.stream().anyMatch(pool ->
                 pool.statistics().timeoutsCount() > 0 || pool.statistics().maxPendingThreadCount() > 0);
-    }
-
-    private static List<JdbcGroup> trim(List<JdbcGroup> groups) {
-        return groups.size() <= MAX_GROUPS ? groups : groups.subList(0, MAX_GROUPS);
     }
 
     /**

@@ -30,6 +30,7 @@ import cafe.jeffrey.profile.manager.custom.model.http.HttpOverviewData;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpSlowRequest;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpStatusStats;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpUriInfo;
+import cafe.jeffrey.profile.mcp.McpToolOutput;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
@@ -91,6 +92,9 @@ public class HttpMcpTools {
             "No requests were recorded for '%s'. The URI has to match exactly what the server saw - "
                     + "call http_overview and take one from its endpoints list.";
 
+    private static final String NO_URI_RECOVERY =
+            "Call http_overview and take a URI from its endpoints list.";
+
     private final ProfileManager profileManager;
 
     public HttpMcpTools(ProfileManager profileManager) {
@@ -115,7 +119,7 @@ public class HttpMcpTools {
         HttpOverviewData data = profileManager.custom().httpManager(side).overviewData();
         return LinkedOutput.json(new HttpDashboard(
                 data.header(),
-                trim(data.uris()),
+                ToolArguments.firstOf(data.uris(), MAX_ENDPOINTS),
                 data.statusCodes(),
                 data.methods(),
                 data.slowRequests(),
@@ -132,7 +136,7 @@ public class HttpMcpTools {
             + "slowest requests as the overview, but for a single URI. Use it after http_overview has "
             + "named the endpoint worth looking at.")
     public String endpoint(
-            @ToolParam(required = false, description = "The URI exactly as the server recorded it, e.g. '/api/orders'. "
+            @ToolParam(required = true, description = "The URI exactly as the server recorded it, e.g. '/api/orders'. "
                     + "Take it from the endpoints list in http_overview.")
             String uri,
             @ToolParam(required = false, description = "Which side the endpoint belongs to: 'SERVER' (the default) or "
@@ -140,16 +144,21 @@ public class HttpMcpTools {
             @ToolParamValues({"SERVER", "CLIENT"})
             String direction) {
 
+        // Insisted on rather than passed through: the manager reads a null uri as "no filter", so an
+        // omitted one would produce the whole dashboard and this tool would hand back its busiest
+        // endpoint as though it were the one that was asked for.
+        String endpoint = ToolArguments.required(uri, "uri", NO_URI_RECOVERY);
+
         ExchangeDirection side = ExchangeDirection.from(direction);
         if (DashboardFeature.missing(profileManager, feature(side))) {
             return noData(side);
         }
 
-        HttpOverviewData data = profileManager.custom().httpManager(side).overviewData(uri);
+        HttpOverviewData data = profileManager.custom().httpManager(side).overviewData(endpoint);
         // The manager filters by URI while streaming, so an unmatched one yields an empty list rather
         // than an error. Reported as a bad argument, with real URIs to correct it from.
         if (data.uris().isEmpty()) {
-            return NO_SUCH_ENDPOINT.formatted(uri);
+            return McpToolOutput.error(NO_SUCH_ENDPOINT.formatted(endpoint));
         }
 
         return LinkedOutput.json(new HttpEndpointDetail(
@@ -163,7 +172,7 @@ public class HttpMcpTools {
                         .when(failuresOccurred(data.header()), STEP_FAILURES)
                         .add(STEP_FRAMES)
                         .build(),
-                UiLinks.view(profileId(), ENDPOINTS_VIEW, endpointQuery(side, uri))));
+                UiLinks.view(profileId(), ENDPOINTS_VIEW, endpointQuery(side, endpoint))));
     }
 
     private static Map<String, String> mode(ExchangeDirection direction) {
@@ -179,8 +188,8 @@ public class HttpMcpTools {
     }
 
     /**
-     * Whether any request failed at all - not whether the failure rate is high, which would be a
-     * verdict rather than a route.
+     * Which dashboard feature carries this direction. The two are recorded independently, so a profile
+     * can hold one and not the other.
      */
     private static FeatureType feature(ExchangeDirection direction) {
         return direction == ExchangeDirection.SERVER
@@ -193,12 +202,12 @@ public class HttpMcpTools {
                 direction.name().toLowerCase(Locale.ROOT), direction.httpEventType().code());
     }
 
+    /**
+     * Whether any request failed at all - not whether the failure rate is high, which would be a
+     * verdict rather than a route.
+     */
     private static boolean failuresOccurred(HttpHeader header) {
         return header.count4xx() > 0 || header.count5xx() > 0;
-    }
-
-    private static List<HttpUriInfo> trim(List<HttpUriInfo> uris) {
-        return uris.size() <= MAX_ENDPOINTS ? uris : uris.subList(0, MAX_ENDPOINTS);
     }
 
     private String profileId() {

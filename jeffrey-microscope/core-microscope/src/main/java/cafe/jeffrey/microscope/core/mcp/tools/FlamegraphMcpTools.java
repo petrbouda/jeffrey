@@ -239,8 +239,11 @@ public class FlamegraphMcpTools {
     /**
      * A per-call threshold override, or {@code null} to keep the one the server was configured with.
      * Validated here rather than deep in the generator so a bad argument fails as a bad argument.
+     * <p>
+     * Shared with {@link CompareMcpTools}, whose differential export takes the same argument and has
+     * to reject the same values — two copies of one range check is one copy too many to keep in step.
      */
-    private static AiExportConfig aiExportConfig(Double thresholdPct) {
+    static AiExportConfig aiExportConfig(Double thresholdPct) {
         if (thresholdPct == null) {
             return null;
         }

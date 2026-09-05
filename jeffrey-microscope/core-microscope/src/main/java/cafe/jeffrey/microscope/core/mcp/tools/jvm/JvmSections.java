@@ -68,7 +68,9 @@ public class JvmSections {
     }
 
     /**
-     * The named section, or null when this profile cannot answer it.
+     * The section registered under that id, or null when no section goes by it — which is a wiring
+     * mistake rather than something about this profile. Whether the profile can <em>answer</em> the
+     * section is a separate question, and {@link #isAvailable} is the one that asks it.
      */
     public JvmSection get(String id) {
         return sections.get(id);

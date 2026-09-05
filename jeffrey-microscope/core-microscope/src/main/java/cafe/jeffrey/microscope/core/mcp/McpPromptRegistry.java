@@ -118,8 +118,14 @@ public class McpPromptRegistry implements McpPromptProvider {
      * Deliberately not a YAML parser. The frontmatter Jeffrey's skills carry is two scalar keys and
      * sometimes a third, and a parser would be a dependency and a schema for a format that already has
      * one — the plugin's. A file that does not look like a skill is skipped rather than guessed at.
+     * <p>
+     * Package-private rather than private so its edge cases can be exercised directly: the input is a
+     * file written elsewhere in the repository, and the failure mode of every hand-rolled parser is to
+     * return something plausible for input it did not anticipate.
+     *
+     * @return the prompt, or {@code null} when the content does not look like a skill at all
      */
-    private static McpPrompt parse(String content) {
+    static McpPrompt parse(String content) {
         String normalized = content.stripLeading();
         if (!normalized.startsWith(FRONTMATTER_DELIMITER)) {
             return null;

@@ -111,14 +111,15 @@ public final class McpToolOutput {
         ObjectNode truncated = Json.createObject();
         String rendered = Json.toString(tree);
         for (int pass = 0; pass < MAX_TRIM_PASSES && rendered.length() > MAX_CHARS; pass++) {
-            ArrayNode largest = largestArray(tree);
-            if (largest == null || largest.isEmpty()) {
+            NamedArray largest = largestArray(tree);
+            if (largest == null || largest.node().isEmpty()) {
                 break;
             }
-            int before = largest.size();
+            ArrayNode node = largest.node();
+            int before = node.size();
             int keep = Math.max(1, (int) (before * TRIM_RATIO));
-            while (largest.size() > keep) {
-                largest.remove(largest.size() - 1);
+            while (node.size() > keep) {
+                node.remove(node.size() - 1);
             }
             recordTrim(truncated, largest, before);
             rendered = Json.toString(tree);
@@ -134,33 +135,70 @@ public final class McpToolOutput {
     /**
      * Notes one trimmed array under the name of the field holding it, falling back to a counter when the
      * array is nested somewhere without a name of its own.
+     * <p>
+     * The name is what makes the record worth carrying. "slowRequests: kept 20 of 500" tells a reader
+     * which of the answer's lists they are seeing part of; a bare counter tells them only that
+     * something was cut, which they could already see from the field being there at all.
      */
-    private static void recordTrim(ObjectNode truncated, ArrayNode trimmed, int originalSize) {
-        String label = ARRAY_LABEL_PREFIX + (truncated.size() + 1);
-        ObjectNode entry = truncated.putObject(label);
-        entry.put(TRUNCATED_KEPT, trimmed.size());
-        entry.put(TRUNCATED_ORIGINAL, originalSize);
+    private static void recordTrim(ObjectNode truncated, NamedArray trimmed, int originalSize) {
+        String label = trimmed.name() == null
+                ? ARRAY_LABEL_PREFIX + (truncated.size() + 1)
+                : trimmed.name();
+
+        // The same list can be the biggest one twice over. Its record is then updated rather than
+        // written again: two entries for one field would read as two lists having been cut, and the
+        // second one's "original" would be the size it had already been trimmed to.
+        ObjectNode entry = truncated.has(label)
+                ? (ObjectNode) truncated.get(label)
+                : truncated.putObject(label).put(TRUNCATED_ORIGINAL, originalSize);
+        entry.put(TRUNCATED_KEPT, trimmed.node().size());
     }
 
     /**
-     * The array holding the most elements anywhere in the tree — the one whose loss buys the most room.
+     * The array holding the most elements anywhere in the tree — the one whose loss buys the most room
+     * — together with the field name it sits under, where it has one.
      */
-    private static ArrayNode largestArray(JsonNode node) {
-        ArrayNode largest = null;
-        Deque<JsonNode> pending = new ArrayDeque<>();
-        pending.push(node);
+    private static NamedArray largestArray(JsonNode root) {
+        NamedArray largest = null;
+        Deque<NamedArray> pending = new ArrayDeque<>();
+        pending.push(new NamedArray(null, root));
         while (!pending.isEmpty()) {
-            JsonNode current = pending.pop();
-            if (current.isArray() && (largest == null || current.size() > largest.size())) {
-                largest = (ArrayNode) current;
+            NamedArray current = pending.pop();
+            JsonNode value = current.value();
+            if (value.isArray() && (largest == null || value.size() > largest.node().size())) {
+                largest = current;
             }
-            for (JsonNode child : current) {
-                if (child.isArray() || child.isObject()) {
-                    pending.push(child);
+            if (value.isObject()) {
+                // An object names its children; an array does not, so its elements inherit its own
+                // name and a trimmed one is still reported under the field a reader can find.
+                value.propertyStream()
+                        .filter(property -> isContainer(property.getValue()))
+                        .forEach(property ->
+                                pending.push(new NamedArray(property.getKey(), property.getValue())));
+            } else {
+                for (JsonNode child : value) {
+                    if (isContainer(child)) {
+                        pending.push(new NamedArray(current.name(), child));
+                    }
                 }
             }
         }
         return largest;
+    }
+
+    private static boolean isContainer(JsonNode node) {
+        return node.isObject() || node.isArray();
+    }
+
+    /**
+     * A node in the tree, with the object field it hangs off — {@code null} at the root and anywhere
+     * an array's own elements are being walked.
+     */
+    private record NamedArray(String name, JsonNode value) {
+
+        ArrayNode node() {
+            return (ArrayNode) value;
+        }
     }
 
     /**

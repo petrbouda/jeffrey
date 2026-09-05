@@ -443,7 +443,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           </tr>
           <tr>
             <td><code>traces_spanFlamegraphExport</code></td>
-            <td><code>profileId</code>, <code>traceId</code>, <code>spanId</code>, <code>eventType?</code>, <code>selfOnly?</code>, <code>threadMode?</code>, <code>useWeight?</code></td>
+            <td><code>profileId</code>, <code>traceId</code>, <code>spanId</code>, <code>eventType</code>, <code>selfOnly?</code>, <code>threadMode?</code>, <code>useWeight?</code></td>
             <td>A flamegraph of the samples taken while one span was open</td>
           </tr>
           <tr>
@@ -463,7 +463,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           </tr>
           <tr>
             <td><code>traces_operationFlamegraphExport</code></td>
-            <td><code>profileId</code>, <code>name</code>, <code>kind</code>, <code>eventType</code>, <code>graphEventType?</code>, <code>threadMode?</code>, <code>useWeight?</code></td>
+            <td><code>profileId</code>, <code>name</code>, <code>kind</code>, <code>eventType</code>, <code>graphEventType</code>, <code>threadMode?</code>, <code>useWeight?</code></td>
             <td>The same, aggregated over every trace of one operation</td>
           </tr>
           <tr>
@@ -477,7 +477,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
       <p>A notification is the application&rsquo;s own account of what went wrong &mdash; a pool exhausted, a fallback taken &mdash; emitted by its own code, so it is a diagnosis where every other tool reports a measurement. The trace and operation exports carry a Notifications section of their own; <code>traces_notifications</code> is the profile-wide reading, and the place to start when <code>traces_overview</code> reports any <code>CRITICAL</code> or <code>HIGH</code> ones.</p>
 
       <DocsCallout type="info" title="Two event types, two different meanings">
-        On <code>traces_operationFlamegraphExport</code>, <code>eventType</code> is the event that <em>opened the trace</em> (e.g. <code>jeffrey.HttpServerExchange</code>) while <code>graphEventType</code> is what to <em>graph</em> (e.g. <code>jdk.ExecutionSample</code>). They are never the same value. <code>traces_spanFlamegraphExport</code> has no such split: the span is already identified by <code>traceId</code> and <code>spanId</code>, so its <code>eventType</code> is what to graph.
+        On <code>traces_operationFlamegraphExport</code>, <code>eventType</code> is the event that <em>opened the trace</em> (e.g. <code>jeffrey.HttpServerExchange</code>) while <code>graphEventType</code> is what to <em>graph</em> (e.g. <code>jdk.ExecutionSample</code>). They are never the same value. <code>traces_spanFlamegraphExport</code> has no such split: the span is already identified by <code>traceId</code> and <code>spanId</code>, so its <code>eventType</code> is what to graph. Both are required: there is no event type that is right to graph for every profile &mdash; a recording made with the CPU-time sampler carries no <code>jdk.ExecutionSample</code> at all &mdash; and a default would draw an empty graph for exactly those profiles.
       </DocsCallout>
 
       <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>

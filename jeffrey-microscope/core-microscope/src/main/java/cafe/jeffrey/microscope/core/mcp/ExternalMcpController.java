@@ -20,6 +20,7 @@ package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.profile.mcp.AbstractMcpStreamableHttpController;
 import cafe.jeffrey.profile.mcp.McpServerFeatures;
+import cafe.jeffrey.shared.common.Json;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -52,6 +53,9 @@ import tools.jackson.databind.JsonNode;
 @RestController
 @RequestMapping("/api/internal/mcp")
 public class ExternalMcpController extends AbstractMcpStreamableHttpController {
+
+    /** Where a refused request is told why, outside the JSON-RPC envelope it never entered. */
+    private static final String REFUSAL_FIELD = "error";
 
     private final McpToolsetAssembler assembler;
     private final ExternalMcpProperties properties;
@@ -90,7 +94,11 @@ public class ExternalMcpController extends AbstractMcpStreamableHttpController {
         }
         String refusal = guard.refusalReason(httpRequest);
         if (refusal != null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            // The reason travels with the refusal. A bare 403 from a server that is otherwise
+            // answering is the kind of thing somebody debugs a proxy over; the sentence says it was
+            // the origin check and nothing else.
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Json.createObject().put(REFUSAL_FIELD, refusal));
         }
         return dispatch(request, features);
     }

@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.flamegraph.ai.AiExportConfig;
 import cafe.jeffrey.flamegraph.ai.WeightContext;
 import cafe.jeffrey.profile.common.config.GraphComponents;
 import cafe.jeffrey.profile.common.config.GraphParameters;
@@ -40,6 +39,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Two profiles of the same application, compared — the question a reader in their own repository
@@ -123,7 +123,7 @@ public class CompareMcpTools {
 
         Set<String> comparableCodes = comparable.stream()
                 .map(ComparableType::eventType)
-                .collect(LinkedHashSet::new, Set::add, Set::addAll);
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
         List<String> onlyInPrimary = exclusiveTypes(primaryManager, comparableCodes);
         List<String> onlyInBaseline = exclusiveTypes(baseline, comparableCodes);
@@ -175,7 +175,9 @@ public class CompareMcpTools {
         ProfileManager baseline = baseline(baselineProfileId);
         GraphParameters params = params(eventType, startMs, endMs, useWeight, excludeIdle, excludeNonJava);
         return LinkedOutput.of(
-                diffManager(baseline).rankedMovements(params, boundedLimit(limit)),
+                diffManager(baseline).rankedMovements(
+                        params,
+                        ToolArguments.boundedLimit(limit, DEFAULT_MOVEMENT_LIMIT, MAX_MOVEMENT_LIMIT)),
                 List.of(STEP_DRILL, STEP_RENAME),
                 UiLinks.profile(primaryManager.info().id()));
     }
@@ -214,7 +216,8 @@ public class CompareMcpTools {
         ProfileManager baseline = baseline(baselineProfileId);
         GraphParameters params = params(eventType, startMs, endMs, useWeight, excludeIdle, excludeNonJava);
         return LinkedOutput.of(
-                diffManager(baseline).generateAiExport(params, aiExportConfig(thresholdPct)),
+                diffManager(baseline).generateAiExport(
+                        params, FlamegraphMcpTools.aiExportConfig(thresholdPct)),
                 List.of(STEP_WHOLE, STEP_RENAME),
                 UiLinks.profile(primaryManager.info().id()));
     }
@@ -259,24 +262,6 @@ public class CompareMcpTools {
                 .withGraphType(GraphType.DIFFERENTIAL)
                 .withGraphComponents(GraphComponents.FLAMEGRAPH_ONLY)
                 .build();
-    }
-
-    private static AiExportConfig aiExportConfig(Double thresholdPct) {
-        if (thresholdPct == null) {
-            return null;
-        }
-        if (!(thresholdPct > 0.0 && thresholdPct < 100.0)) {
-            throw new IllegalArgumentException(
-                    "thresholdPct must be between 0 and 100 (exclusive): " + thresholdPct);
-        }
-        return new AiExportConfig(thresholdPct);
-    }
-
-    private static int boundedLimit(Integer limit) {
-        if (limit == null || limit < 1) {
-            return DEFAULT_MOVEMENT_LIMIT;
-        }
-        return Math.min(limit, MAX_MOVEMENT_LIMIT);
     }
 
     /**

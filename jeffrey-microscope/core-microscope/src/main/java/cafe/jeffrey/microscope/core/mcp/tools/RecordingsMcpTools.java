@@ -163,20 +163,20 @@ public class RecordingsMcpTools {
             return NO_RECORDINGS;
         }
 
-        StringBuilder out = new StringBuilder(1024);
-        out.append("| recording_id | name | event source | recorded | profile_id |\n");
-        out.append("|---|---|---|---|---|\n");
+        MarkdownTable table = MarkdownTable.withColumns(
+                "recording_id", "name", "event source", "recorded", "profile_id");
         for (Recording recording : recordings) {
-            out.append("| ").append(recording.id())
-                    .append(" | ").append(sanitize(recording.recordingName()))
-                    .append(" | ").append(recording.eventSource())
-                    .append(" | ").append(recording.recordingStartedAt())
-                    .append(" | ").append(recording.hasProfile() ? recording.profileId() : "")
-                    .append(" |\n");
+            table.row(
+                    recording.id(),
+                    recording.recordingName(),
+                    recording.eventSource(),
+                    recording.recordingStartedAt(),
+                    recording.hasProfile() ? recording.profileId() : "");
         }
-        out.append("\nA row with an empty `profile_id` has not been analysed yet - pass its "
-                + "`recording_id` to recordings_analyzeRecording.\n");
-        return McpToolOutput.capped(out.toString());
+        return table
+                .note("A row with an empty `profile_id` has not been analysed yet - pass its "
+                        + "`recording_id` to recordings_analyzeRecording.")
+                .render();
     }
 
 
@@ -315,16 +315,6 @@ public class RecordingsMcpTools {
     private static String eventSourceOf(Recording recording) {
         RecordingEventSource eventSource = recording.eventSource();
         return eventSource == null ? RecordingEventSource.UNKNOWN.name() : eventSource.name();
-    }
-
-    /**
-     * Keeps a name on one table row: a pipe in a recording name would otherwise split the cell.
-     */
-    private static String sanitize(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.replace('|', '/').replace('\n', ' ').replace('\r', ' ');
     }
 
     /**

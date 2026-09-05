@@ -158,7 +158,7 @@ public class TracesMcpTools {
                 Boolean.TRUE.equals(errorsOnly),
                 sortField(sort),
                 true,
-                boundedLimit(limit, DEFAULT_OPERATIONS_LIMIT),
+                ToolArguments.boundedLimit(limit, DEFAULT_OPERATIONS_LIMIT, MAX_LIMIT),
                 0);
 
         TraceOperationsPage page = traceManager().operations(query);
@@ -240,7 +240,7 @@ public class TracesMcpTools {
                 source,
                 search,
                 optionalOperationId(name, kind, eventType),
-                boundedLimit(limit, DEFAULT_NOTIFICATIONS_LIMIT));
+                ToolArguments.boundedLimit(limit, DEFAULT_NOTIFICATIONS_LIMIT, MAX_LIMIT));
 
         List<TraceNotificationGroupRow> groups = traceManager().notifications(query);
         if (groups.isEmpty()) {
@@ -267,7 +267,8 @@ public class TracesMcpTools {
 
         return LinkedOutput.json(new SlowestTracesResult(
                 traceManager().tracesOfOperation(
-                        operationId(name, kind, eventType), boundedLimit(limit, DEFAULT_TRACES_LIMIT)),
+                        operationId(name, kind, eventType),
+                        ToolArguments.boundedLimit(limit, DEFAULT_TRACES_LIMIT, MAX_LIMIT)),
                 NextSteps.builder().add(STEP_EXEMPLAR).build(),
                 operationUrl(name, kind, eventType, SLOWEST_TAB)));
     }
@@ -301,7 +302,9 @@ public class TracesMcpTools {
             String traceId,
             @ToolParam(required = true, description = "Span id as a 16-character hex string, from the span tree in traces_traceExport")
             String spanId,
-            @ToolParam(required = false, description = "Event type to graph, e.g. 'jdk.ExecutionSample'")
+            @ToolParam(required = true, description = "Event type to graph, e.g. 'jdk.ExecutionSample' for on-CPU time "
+                    + "or 'jdk.ObjectAllocationSample' for allocation. flamegraph_list names the ones "
+                    + "this profile recorded.")
             String eventType,
             @ToolParam(required = false, description = "Cut the span's children out of the window, so the graph shows only "
                     + "the work the span did itself")
@@ -330,8 +333,9 @@ public class TracesMcpTools {
             String kind,
             @ToolParam(required = true, description = "Event type that opened the trace, e.g. 'jeffrey.HttpServerExchange'")
             String eventType,
-            @ToolParam(required = false, description = "Event type to graph, e.g. 'jdk.ExecutionSample'. Different from "
-                    + "eventType, which identifies the operation.")
+            @ToolParam(required = true, description = "Event type to graph, e.g. 'jdk.ExecutionSample'. Different from "
+                    + "eventType, which identifies the operation: this one names the samples to draw, "
+                    + "and flamegraph_list names the ones this profile recorded.")
             String graphEventType,
             @ToolParam(required = false, description = "Split the graph per thread instead of aggregating")
             Boolean threadMode,
@@ -349,6 +353,11 @@ public class TracesMcpTools {
     /**
      * A span-scoped flamegraph, built exactly as the drawn one next to it in the UI so the two describe
      * the same samples.
+     * <p>
+     * The event type to graph is required rather than defaulted. There is no answer that is right for
+     * every profile — a recording made with the CPU-time sampler carries no {@code jdk.ExecutionSample}
+     * at all — and a default would draw an empty graph for exactly those profiles, which reads as "this
+     * span ran no code" rather than as "you asked for samples this recording does not hold".
      */
     private String exportScoped(
             SpanScope scope, String graphEventType, Boolean threadMode, Boolean useWeight, String url) {
@@ -439,13 +448,6 @@ public class TracesMcpTools {
             throw new IllegalArgumentException("Unknown sort field: " + sort
                     + ". One of: TOTAL_TIME, P50, P95, P99, MAX, COUNT, ERRORS, NOTIFICATIONS, NAME.");
         }
-    }
-
-    private static int boundedLimit(Integer limit, int fallback) {
-        if (limit == null || limit < 1) {
-            return fallback;
-        }
-        return Math.min(limit, MAX_LIMIT);
     }
 
     private static String requireText(String value, String argument) {

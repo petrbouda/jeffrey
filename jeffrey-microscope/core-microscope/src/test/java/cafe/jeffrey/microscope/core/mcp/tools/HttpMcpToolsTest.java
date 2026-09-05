@@ -186,6 +186,32 @@ class HttpMcpToolsTest {
 
             assertTrue(out.contains("No requests were recorded for '/nope'"), out);
         }
+
+        /**
+         * The manager reads a null uri as "no filter", so an omitted one used to produce the whole
+         * dashboard and this tool handed back its busiest endpoint as though it were the one asked
+         * for - an answer to a different question, with nothing in it saying so.
+         */
+        @Test
+        void refusesAMissingUriRatherThanReportingTheBusiestEndpoint() {
+            IllegalArgumentException thrown = assertThrows(
+                    IllegalArgumentException.class, () -> tools().endpoint(null, null));
+
+            assertTrue(thrown.getMessage().contains("uri is required"), thrown.getMessage());
+            assertTrue(thrown.getMessage().contains("http_overview"), thrown.getMessage());
+        }
+
+        @Test
+        void refusesABlankUriTheSameWay() {
+            assertThrows(IllegalArgumentException.class, () -> tools().endpoint("  ", null));
+        }
+
+        @Test
+        void trimsTheUriBeforeMatching() {
+            when(httpManager.overviewData("/api/orders")).thenReturn(data(List.of(uri("/api/orders"))));
+
+            assertTrue(tools().endpoint("  /api/orders  ", null).contains("\"endpoint\""));
+        }
     }
 
     /**

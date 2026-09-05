@@ -111,7 +111,7 @@ public class IoMcpTools {
 
         return LinkedOutput.json(new IoEndpoints(
                 ioKind.name(),
-                trim(endpoints),
+                ToolArguments.firstOf(endpoints, MAX_ENDPOINTS),
                 NextSteps.builder().add(STEP_SLOWEST).add(STEP_OTHER_KIND).build(),
                 UiLinks.view(profileId(), view(ioKind))));
     }
@@ -155,10 +155,6 @@ public class IoMcpTools {
 
     private static String view(IoKind kind) {
         return kind == IoKind.SOCKET ? SOCKET_VIEW : FILE_VIEW;
-    }
-
-    private static List<IoEndpoint> trim(List<IoEndpoint> endpoints) {
-        return endpoints.size() <= MAX_ENDPOINTS ? endpoints : endpoints.subList(0, MAX_ENDPOINTS);
     }
 
     private String profileId() {
