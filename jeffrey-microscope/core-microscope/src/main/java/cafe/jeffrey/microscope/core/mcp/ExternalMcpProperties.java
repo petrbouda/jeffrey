@@ -27,6 +27,10 @@ import java.util.Set;
  * the server is on by default, and whether an installation exposes it is a deployment decision made
  * alongside the bind address and the reverse proxy, not a switch a reader flips from the Settings page.
  * Turning it off is therefore an application property and takes a restart.
+ * <p>
+ * The endpoint has no authentication of its own, in common with everything else under
+ * {@code /api/internal}. What limits who can reach it is the address Jeffrey binds to and whatever
+ * sits in front of it.
  *
  * @param enabled     whether the endpoint answers at all; while off it responds {@code 404}
  * @param hubsEnabled whether the {@code hubs_} family is advertised, which lets a client list and
@@ -35,19 +39,14 @@ import java.util.Set;
  *                    here, while this one talks to remote infrastructure and can move gigabytes off it
  * @param families    the tool families to advertise, empty meaning all of them. A client that pays
  *                    for every schema on every turn can be given only the families it uses
- * @param token       a bearer token the endpoint requires, empty meaning none. Jeffrey has no
- *                    authentication anywhere else, so this is opt-in rather than a default that would
- *                    imply the rest of the API is protected too
  */
 public record ExternalMcpProperties(
         boolean enabled,
         boolean hubsEnabled,
-        Set<String> families,
-        String token) {
+        Set<String> families) {
 
     public ExternalMcpProperties {
         families = families == null ? Set.of() : Set.copyOf(families);
-        token = token == null ? "" : token.trim();
     }
 
     /**
@@ -59,12 +58,5 @@ public record ExternalMcpProperties(
      */
     public boolean advertises(String family) {
         return families.isEmpty() || families.contains(family);
-    }
-
-    /**
-     * Whether the endpoint requires a bearer token.
-     */
-    public boolean tokenRequired() {
-        return !token.isEmpty();
     }
 }

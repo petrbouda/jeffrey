@@ -84,7 +84,7 @@ class McpToolsetAssemblerTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-03-01T12:00:00Z"), ZoneOffset.UTC);
 
     private McpToolsetAssembler assembler(boolean hubsEnabled) {
-        return assembler(new ExternalMcpProperties(true, hubsEnabled, Set.of(), ""));
+        return assembler(new ExternalMcpProperties(true, hubsEnabled, Set.of()));
     }
 
     private McpToolsetAssembler assembler(ExternalMcpProperties properties) {
@@ -299,7 +299,7 @@ class McpToolsetAssemblerTest {
         @Test
         void advertisesOnlyTheNamedFamilies() {
             McpToolsetAssembler assembler = assembler(new ExternalMcpProperties(
-                    true, true, Set.of("profiles", "flamegraph"), ""));
+                    true, true, Set.of("profiles", "flamegraph")));
 
             Set<String> prefixes = assembler.toolset().specs().stream()
                     .map(spec -> spec.name().substring(0, spec.name().indexOf('_')))
@@ -311,7 +311,7 @@ class McpToolsetAssemblerTest {
         @Test
         void anEmptyFilterKeepsEverything() {
             McpToolsetAssembler filtered = assembler(
-                    new ExternalMcpProperties(true, true, Set.of(), ""));
+                    new ExternalMcpProperties(true, true, Set.of()));
 
             assertEquals(assembler(true).toolset().specs().size(),
                     filtered.toolset().specs().size());

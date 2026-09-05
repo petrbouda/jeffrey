@@ -62,24 +62,21 @@ public class McpConfiguration {
      *                    remote hub is the one thing the server does that leaves this machine
      * @param families    the families to advertise, from {@code jeffrey.microscope.mcp.families};
      *                    empty means all of them
-     * @param token       a bearer token the endpoint requires, from
-     *                    {@code jeffrey.microscope.mcp.token}; empty means none
      */
     @Bean
     public ExternalMcpProperties externalMcpProperties(
             @Value("${jeffrey.microscope.mcp.enabled:true}") boolean enabled,
             @Value("${jeffrey.microscope.mcp.hubs.enabled:true}") boolean hubsEnabled,
-            @Value("${jeffrey.microscope.mcp.families:}") Set<String> families,
-            @Value("${jeffrey.microscope.mcp.token:}") String token) {
-        return new ExternalMcpProperties(enabled, hubsEnabled, families, token);
+            @Value("${jeffrey.microscope.mcp.families:}") Set<String> families) {
+        return new ExternalMcpProperties(enabled, hubsEnabled, families);
     }
 
     /**
-     * The origin and token checks the external endpoint applies before it serves anything.
+     * The origin check the external endpoint applies before it serves anything.
      */
     @Bean
-    public McpRequestGuard mcpRequestGuard(ExternalMcpProperties properties) {
-        return new McpRequestGuard(properties.token());
+    public McpRequestGuard mcpRequestGuard() {
+        return new McpRequestGuard();
     }
 
     /**

@@ -288,20 +288,6 @@ onMounted(() => {
               Read at startup.
             </td>
           </tr>
-          <tr>
-            <td><code>jeffrey.microscope.mcp.token</code></td>
-            <td><em>empty</em></td>
-            <td>
-              A bearer token the MCP endpoint requires, empty meaning none. With it set the endpoint
-              answers <code>403</code> to a request without
-              <code>Authorization: Bearer &lt;token&gt;</code>, and
-              <strong>Settings &rarr; Coding Agents (MCP)</strong> shows the client configuration with
-              the header already in it. Off by default because nothing else in Jeffrey is
-              authenticated and a token here would imply the rest of the API is protected too. Read at
-              startup. See
-              <router-link to="/docs/microscope-mcp/enabling#requiring-a-token">Requiring a Token</router-link>.
-            </td>
-          </tr>
         </tbody>
       </table>
 

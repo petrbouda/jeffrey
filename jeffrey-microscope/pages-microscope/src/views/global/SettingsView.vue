@@ -434,18 +434,12 @@
                 :icon="mcpHubsEnabled ? 'bi bi-hdd-network' : 'bi bi-slash-circle'"
                 size="s"
               />
-              <Badge
-                :value="mcpTokenRequired ? 'Token required' : 'No token'"
-                :variant="mcpTokenRequired ? 'success' : 'warning'"
-                :icon="mcpTokenRequired ? 'bi bi-shield-lock-fill' : 'bi bi-shield-exclamation'"
-                size="s"
-              />
             </div>
             <div v-if="mcpEnabled" class="settings-hint">
               The agent can also analyse a recording for you: point it at a <code>.jfr</code> or
               <code>.hprof</code> file and it imports the file and builds the profile, without you
               opening this UI. Jeffrey opens the path itself, so the file has to be on this machine
-              &mdash; one more reason to keep the endpoint on localhost or behind a token.
+              &mdash; one more reason to keep the endpoint on localhost.
             </div>
             <div v-if="mcpEnabled && mcpHubsEnabled" class="settings-hint">
               The agent can also reach the Jeffrey Hubs this Microscope is connected to: it lists
@@ -465,11 +459,11 @@
               &mdash; so a dump nobody has opened here still answers. Those runs are the expensive
               ones: each can hold a core for minutes.
             </div>
-            <div v-if="mcpEnabled && !mcpTokenRequired" class="settings-hint">
-              The endpoint has no token, so anything that can reach this address can read every
-              profile here. That is fine while Jeffrey is on localhost. Before exposing it to another
-              machine, set <code>jeffrey.microscope.mcp.token</code> and restart &mdash; the snippets
-              below then carry the header your client has to send.
+            <div v-if="mcpEnabled" class="settings-hint">
+              The endpoint does not authenticate, so anything that can reach this address can read
+              every profile here. That is fine while Jeffrey is on localhost, which is what
+              <code>server.address=127.0.0.1</code> guarantees. Anywhere else, put a reverse proxy
+              that authenticates in front of it &mdash; Jeffrey has nothing of its own.
             </div>
             <div v-if="!mcpEnabled" class="settings-hint">
               Serving is on unless the deployment turns it off. This one sets
@@ -642,7 +636,6 @@ const mcpStatus = ref<McpAccessStatus | null>(null);
 // application property fixed at startup, so the page reports it rather than offering to change it.
 const mcpEnabled = computed(() => mcpStatus.value?.enabled === true);
 const mcpHubsEnabled = computed(() => mcpStatus.value?.hubsEnabled === true);
-const mcpTokenRequired = computed(() => mcpStatus.value?.tokenRequired === true);
 const aiEnabled = computed(() => aiToggle.value);
 
 const isOllama = computed(() => settings.get('jeffrey.microscope.ai.provider') === 'ollama');

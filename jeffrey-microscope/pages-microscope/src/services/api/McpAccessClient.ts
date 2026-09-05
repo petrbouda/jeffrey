@@ -26,11 +26,6 @@ import BasePlatformClient from '@shared/services/api/BasePlatformClient';
 export interface McpAccessStatus {
   enabled: boolean;
   hubsEnabled: boolean;
-  /**
-   * Whether the endpoint requires a bearer token. The token itself is not carried separately -- it is
-   * already inside the snippets below, which is the only place a reader needs it.
-   */
-  tokenRequired: boolean;
   url: string;
   claudeMcpAddCommand: string;
   mcpJsonSnippet: string;

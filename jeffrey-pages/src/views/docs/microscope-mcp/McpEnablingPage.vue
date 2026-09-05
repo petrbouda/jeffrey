@@ -34,8 +34,7 @@ const headings = [
   { id: 'turning-hub-access-off', text: 'Turning Hub Access Off', level: 2 },
   { id: 'trimming-the-tool-list', text: 'Trimming the Tool List', level: 2 },
   { id: 'what-a-session-holds-open', text: 'What a Session Holds Open', level: 2 },
-  { id: 'security', text: 'Security', level: 2 },
-  { id: 'requiring-a-token', text: 'Requiring a Token', level: 2 }
+  { id: 'security', text: 'Security', level: 2 }
 ];
 
 onMounted(() => {
@@ -48,10 +47,6 @@ const hubsToggle = `jeffrey.microscope.mcp.hubs.enabled=false`;
 
 const familiesProperty = `# Only these families are advertised; empty (the default) means all of them
 jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap`;
-
-const tokenProperty = `jeffrey.microscope.mcp.token=a-long-random-string`;
-
-const tokenHeader = `Authorization: Bearer a-long-random-string`;
 
 const defaultEndpoint = `http://localhost:8585/api/internal/mcp`;
 
@@ -126,8 +121,8 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <p>So the first tool call for a profile takes a <strong>lease</strong> on that profile's database and holds it. The lease is released after <strong>30 minutes</strong> without a call for that profile; the next call simply takes a new one. Nothing needs closing by hand, and no session breaks halfway through because you stopped to read the code.</p>
 
       <h2 id="security">Security</h2>
-      <DocsCallout type="warning" title="Unauthenticated unless you say otherwise">
-        By default the MCP endpoint carries the same trust assumption as the rest of Jeffrey&rsquo;s API: anyone who can reach the address can read every profile in that installation &mdash; the recordings, their stack traces, their SQL statements, and the contents of any heap dump you have indexed. <a href="#requiring-a-token">A token</a> changes that for this endpoint alone.
+      <DocsCallout type="warning" title="Unauthenticated, with nothing to turn on">
+        The MCP endpoint carries the same trust assumption as the rest of Jeffrey&rsquo;s API: anyone who can reach the address can read every profile in that installation &mdash; the recordings, their stack traces, their SQL statements, and the contents of any heap dump you have indexed. Jeffrey has no authentication to switch on, here or anywhere else, so what decides who can read all of that is the address Jeffrey binds to and whatever sits in front of it.
       </DocsCallout>
 
       <p>One thing it does refuse on its own: a request carrying an <code>Origin</code> header naming somewhere other than the address it served. That is the check the MCP specification asks of every local HTTP server, and it closes a path that has nothing to do with your network &mdash; a page in a browser you merely visited can post to <code>localhost</code>, and without the check the server would answer it. A CLI client sends no <code>Origin</code> at all, so Claude Code and Codex never notice.</p>
@@ -141,31 +136,19 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
           <DocsCodeBlock :code="tunnel" language="bash" />
           The client then points at <code>localhost</code> and the endpoint is never exposed.
         </li>
-        <li><strong>Behind an authenticating reverse proxy.</strong> For a shared installation, and still the right answer when you want one identity per person rather than one shared secret.</li>
+        <li><strong>Behind an authenticating reverse proxy.</strong> The only way to put authentication in front of this endpoint, and the right answer for any installation more than one person can reach &mdash; it also gives one identity per person, which a shared secret never could.</li>
       </ul>
 
       <p>Three things limit the blast radius even so. Every analysis tool is read-only &mdash; the one JFR tool that writes is deliberately not exposed, so an external client can read a profile's data but not rewrite it, and the SQL tools refuse a second statement after a semicolon rather than running it. The SQL engine itself is sandboxed: a profile database is opened with DuckDB's external file access and extension autoloading turned off, so a query is confined to that profile's tables and cannot read a file from the host or fetch anything over the network, however it is spelled. And the server has no shell: it answers questions about profiles, and does not run anything.</p>
 
       <p>The <code>recordings_</code> family is the first of two exceptions worth understanding, because it is where the server touches this machine's filesystem. A client sends a <em>path</em>, not a file &mdash; a JFR recording routinely runs to hundreds of megabytes, and base64 through a JSON-RPC message would spend the client's whole context on bytes neither side ever reads. The path is therefore opened by the Jeffrey process, on the machine Jeffrey runs on, and Jeffrey copies whatever it finds there into the Quick Analysis store.</p>
 
-      <p>On a loopback Jeffrey that is exactly what you want: the file in your repository is on the same disk, and the caller is you. On a shared installation it means a client that can reach the address can have Jeffrey read a file it chooses from that host &mdash; it must carry a recording extension and survive the parser, so it is a narrow door rather than an open one, but it is a door. There is no property that closes it: if the address is reachable by anyone you would not hand a shell to, bind Jeffrey to loopback or put a token in front of it, as below.</p>
+      <p>On a loopback Jeffrey that is exactly what you want: the file in your repository is on the same disk, and the caller is you. On a shared installation it means a client that can reach the address can have Jeffrey read a file it chooses from that host &mdash; it must carry a recording extension and survive the parser, so it is a narrow door rather than an open one, but it is a door. There is no property that closes it: if the address is reachable by anyone you would not hand a shell to, bind Jeffrey to loopback or put an authenticating proxy in front of it.</p>
 
       <p>The <code>hubs_</code> family is the second exception, and it points the other way: it is the one place the server reaches <em>off</em> this machine. A client that can reach the endpoint can list what every connected hub holds and have Jeffrey pull a session down &mdash; production stack traces, SQL statements and heap dumps included &mdash; onto the host Jeffrey runs on.</p>
 
       <p>What bounds it is that the client cannot name an address. The hubs are the ones this installation was configured with, in a file or through its UI, so the reachable set is the operator's decision and not the caller's; there is no tool that adds one. What it does <em>not</em> bound is which of those hubs, so on an installation connected to production, endpoint access is production-recording access. Switch it off with the property in <a href="#turning-hub-access-off">Turning Hub Access Off</a> if that is not what you want.</p>
 
-      <h2 id="requiring-a-token">Requiring a Token</h2>
-      <p>When the endpoint has to be reachable from more than the machine Jeffrey runs on, give it a token:</p>
-      <DocsCodeBlock :code="tokenProperty" language="properties" />
-
-      <p>The endpoint then requires the matching header on every request and answers <code>403</code> without it:</p>
-      <DocsCodeBlock :code="tokenHeader" language="http" />
-
-      <p>You do not have to write that header into a client by hand. With a token set, <strong>Settings &rarr; Coding Agents (MCP)</strong> shows the <code>claude mcp add</code> command, the <code>codex mcp add</code> command, the <code>.mcp.json</code> entry and the <code>config.toml</code> block with the token already in them &mdash; copy whichever your client uses.</p>
-
-      <DocsCallout type="info" title="Off by default on purpose">
-        Nothing else in Jeffrey is authenticated, and a token here would imply the rest of the API is protected too when it is not. It is opt-in so that turning it on is a decision about this endpoint rather than a claim about the installation. It is a shared secret, not an identity: everyone who has it is the same reader, which is why a reverse proxy remains the better answer for a genuinely multi-person installation.
-      </DocsCallout>
     </div>
 
     <DocsNavFooter />

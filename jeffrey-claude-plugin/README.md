@@ -221,12 +221,11 @@ The endpoint refuses a request carrying an `Origin` header it did not serve, whi
 MCP specification asks of a local HTTP server — a CLI client sends no `Origin`, so it costs nothing
 here and closes the path where a page in your browser drives the server.
 
-Beyond that it is unauthenticated by default, exactly like the rest of Jeffrey's API: anyone who can
-reach the address can read every profile in that installation. Keep Jeffrey bound to localhost, or
-put it behind an SSH tunnel or an authenticating reverse proxy. When it has to be reachable from
-another machine, set `jeffrey.microscope.mcp.token` and the endpoint requires
-`Authorization: Bearer <token>` — **Settings → Coding Agents (MCP)** shows the client configuration
-with the token already in it.
+Beyond that it is unauthenticated, exactly like the rest of Jeffrey's API: anyone who can reach the
+address can read every profile in that installation, and Jeffrey has nothing of its own to turn on.
+Keep it bound to localhost with `server.address=127.0.0.1`, or put it behind an SSH tunnel or an
+authenticating reverse proxy. **Settings → Coding Agents (MCP)** shows the client configuration for
+your installation.
 
 ## Licence
 
