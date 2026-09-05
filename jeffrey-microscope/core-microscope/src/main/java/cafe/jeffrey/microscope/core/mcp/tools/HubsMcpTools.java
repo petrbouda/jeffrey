@@ -106,7 +106,17 @@ public class HubsMcpTools {
     private final HubsManager hubsManager;
     private final ProjectManagerResolver resolver;
     private final RecordingsManager recordingsManager;
+    private static final String DOWNLOAD_STILL_RUNNING =
+            "The transfer is still running. Call hubs_download again with the same session_ref to "
+                    + "check: it answers from the local store first, so once the transfer lands it "
+                    + "returns the recordingId rather than fetching the session a second time.";
+
     private final Clock clock;
+
+    /**
+     * One transfer per session at a time, and no call waits longer than a client will.
+     */
+    private final BoundedJobs<String, String> downloads = new BoundedJobs<>();
     private final HubSessionScan scan;
 
     public HubsMcpTools(
@@ -217,10 +227,11 @@ public class HubsMcpTools {
             + "session's finished recording files into a single local recording and bringing its "
             + "artifacts - heap dumps, JVM and application logs - with it. Takes the session_ref from "
             + "a hubs_sessions row and nothing else. Returns a recording id: pass it to "
-            + "recordings_analyzeRecording to build the profile the analysis tools take. The call "
-            + "returns when the transfer finishes, which for a large session is a wait rather than an "
-            + "acknowledgement. A session already downloaded is returned as it is rather than fetched "
-            + "twice.")
+            + "recordings_analyzeRecording to build the profile the analysis tools take. A small "
+            + "session transfers inside this call; a large one takes longer than a client waits, so "
+            + "the answer is a status saying the transfer continues and calling this tool again with "
+            + "the same session_ref reports it once it lands. A session already downloaded is returned "
+            + "as it is rather than fetched twice.")
     public String download(
             @ToolParam(required = true, description = "The session_ref from a hubs_sessions row, copied exactly")
             String sessionRef) {
@@ -241,7 +252,19 @@ public class HubsMcpTools {
 
         LOG.info("Downloading a hub session over MCP: hub_id={} project_id={} session_id={}",
                 ref.hubId(), ref.projectId(), ref.sessionId());
-        String recordingId = project.recordingsDownloadManager().mergeAndDownloadSession(ref.sessionId());
+        Optional<String> transferred = downloads.runWithin(
+                ref.sessionId(),
+                () -> project.recordingsDownloadManager().mergeAndDownloadSession(ref.sessionId()));
+        if (transferred.isEmpty()) {
+            // Nothing to poll but this tool: it answers from the local store first, so calling it again
+            // with the same ref reports the finished copy once the transfer lands.
+            return McpToolOutput.json(new DownloadInProgress(
+                    ref.sessionId(),
+                    sanitize(session.name()),
+                    session.totalSizeBytes(),
+                    DOWNLOAD_STILL_RUNNING));
+        }
+        String recordingId = transferred.get();
 
         List<RepositoryFile> finished = finishedFiles(session);
         return McpToolOutput.json(new DownloadedSession(
@@ -493,6 +516,14 @@ public class HubsMcpTools {
             return "";
         }
         return value.replace('|', '/').replace('\n', ' ').replace('\r', ' ');
+    }
+
+    /**
+     * @param status what to do next, rather than a bare flag: the caller is holding a tool result and
+     *               needs to know that calling the same tool again is the way to check
+     */
+    private record DownloadInProgress(
+            String sessionId, String sessionName, long totalSizeBytes, String status) {
     }
 
     private record DownloadedSession(

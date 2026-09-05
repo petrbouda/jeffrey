@@ -33,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The one family that writes: it takes a recording Jeffrey has never seen and turns it into a profile
@@ -65,20 +66,41 @@ public class RecordingsMcpTools {
             "The Quick Analysis store is empty. Use recordings_analyzeFile with the absolute path of a "
                     + "JFR recording or heap dump to add one.";
 
+    /**
+     * What a caller is told when the parse is still going. A status rather than an error: nothing has
+     * gone wrong, the answer is simply not ready, and the difference decides whether the model waits
+     * or starts over.
+     */
+    private static final String STILL_RUNNING = "running";
+
+    /**
+     * The recording has no profile and nothing is building one — the analysis failed, or this process
+     * restarted while it ran. Either way the honest next step is to ask for it again.
+     */
+    private static final String NEVER_STARTED = "not_started";
+
     private final RecordingsManager recordingsManager;
+    private final BoundedJobs<String, String> jobs;
 
     public RecordingsMcpTools(RecordingsManager recordingsManager) {
+        this(recordingsManager, new BoundedJobs<>());
+    }
+
+    public RecordingsMcpTools(RecordingsManager recordingsManager, BoundedJobs<String, String> jobs) {
         this.recordingsManager = recordingsManager;
+        this.jobs = jobs;
     }
 
     @Tool(description = "Analyze a recording file that is not in Jeffrey yet: imports the file at the "
             + "given path into the Quick Analysis store and builds a profile from it, returning the "
             + "profile id every other tool takes. Use this when the user points at a .jfr, .jfr.lz4, "
             + ".hprof, .hprof.gz, .pprof or .otlp file in their repository or filesystem. The path is "
-            + "opened by the Jeffrey process, so the file must be on the machine Jeffrey runs on. The "
-            + "call returns once the profile is built, which for a large recording can take a while. "
-            + "Each call imports the file again and builds another profile - call recordings_list "
-            + "first if the same file may already be analysed.")
+            + "opened by the Jeffrey process, so the file must be on the machine Jeffrey runs on. A "
+            + "small recording is analysed inside this call and its profileId comes straight back; a "
+            + "large one takes longer than a client waits, so the answer is a status of 'running' and "
+            + "recordings_status says when it is done. Each call imports the file again and builds "
+            + "another profile - call recordings_list first if the same file may already be analysed, "
+            + "and poll recordings_status rather than calling this a second time.")
     public String analyzeFile(
             @ToolParam(required = true, description = "Absolute path of the recording file to import, e.g. "
                     + "/home/dev/project/target/app.jfr. A leading ~ is expanded. Relative paths are "
@@ -96,8 +118,10 @@ public class RecordingsMcpTools {
     }
 
     @Tool(description = "Analyze a recording that is already in Jeffrey's Quick Analysis store but has "
-            + "no profile yet - one uploaded through the web UI, or one recordings_list shows with "
-            + "profile_id empty. Returns the profile id every other tool takes. A recording that "
+            + "no profile yet - one uploaded through the web UI, one pulled in by hubs_download, or "
+            + "one recordings_list shows with profile_id empty. Returns the profile id every other "
+            + "tool takes, or a status of 'running' when the recording is large enough that parsing "
+            + "outlasts the call - recordings_status then says when it is done. A recording that "
             + "already has a profile is returned as it is rather than analysed twice.")
     public String analyzeRecording(
             @ToolParam(required = true, description = "Recording id, as returned by recordings_list")
@@ -136,12 +160,50 @@ public class RecordingsMcpTools {
         return McpToolOutput.capped(out.toString());
     }
 
+
+    @Tool(description = "Whether a recording that recordings_analyzeFile or recordings_analyzeRecording "
+            + "left running has finished, and the profile id once it has. Call it when either of those "
+            + "came back with status running rather than a profile id — a large recording takes longer "
+            + "to parse than a tool call waits, so the analysis carries on in the background. Poll this "
+            + "rather than analysing again: a second analysis of the same file would build a second "
+            + "profile of it.")
+    public String status(
+            @ToolParam(required = true, description = "Recording id, as returned by the analyze tool "
+                    + "that reported the analysis was still running")
+            String recordingId) {
+
+        if (recordingId == null || recordingId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "A recording id is required. Call recordings_list to see them.");
+        }
+        String id = recordingId.trim();
+        Recording recording = recordingsManager.findRecording(id)
+                .orElseThrow(() -> new IllegalArgumentException("No such recording: " + id));
+
+        if (recording.hasProfile()) {
+            return McpToolOutput.json(new AnalyzedProfile(
+                    recording.profileId(),
+                    id,
+                    recording.recordingName(),
+                    eventSourceOf(recording),
+                    UiLinks.profile(recording.profileId())));
+        }
+        return McpToolOutput.json(new AnalysisStarted(
+                id, jobs.isRunning(id) ? STILL_RUNNING : NEVER_STARTED));
+    }
+
     /**
      * Builds the profile and renders what the model needs next: the id the other families take, and a
      * link for the reader who wants to look at the interactive version.
      */
     private String analyzed(String recordingId, String name) {
-        String profileId = recordingsManager.analyzeRecording(recordingId);
+        Optional<String> finished =
+                jobs.runWithin(recordingId, () -> recordingsManager.analyzeRecording(recordingId));
+        if (finished.isEmpty()) {
+            return McpToolOutput.json(new AnalysisStarted(recordingId, STILL_RUNNING));
+        }
+
+        String profileId = finished.get();
         if (name != null && !name.isBlank()) {
             recordingsManager.updateProfileName(profileId, name.trim());
         }
@@ -211,6 +273,13 @@ public class RecordingsMcpTools {
             return "";
         }
         return value.replace('|', '/').replace('\n', ' ').replace('\r', ' ');
+    }
+
+    /**
+     * @param status {@code running} while the parse continues, {@code not_started} when nothing is
+     *               building a profile for this recording
+     */
+    private record AnalysisStarted(String recordingId, String status) {
     }
 
     private record AnalyzedProfile(

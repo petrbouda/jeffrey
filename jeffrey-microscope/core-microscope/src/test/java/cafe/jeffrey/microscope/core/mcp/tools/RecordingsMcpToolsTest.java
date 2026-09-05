@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -270,4 +271,63 @@ class RecordingsMcpToolsTest {
             assertTrue(row.contains("before/after"));
         }
     }
+
+    /**
+     * Parsing a large recording outlasts the call, and what the caller does with that answer decides
+     * whether they end up with one profile or two.
+     */
+    @Nested
+    class SlowAnalysis {
+
+        @Test
+        void handsBackSomethingToPollRatherThanHangingOn() {
+            // A budget short enough that the stubbed work cannot beat it, so the timeout path is the
+            // one under test rather than a race.
+            RecordingsMcpTools slow = new RecordingsMcpTools(
+                    recordingsManager, new BoundedJobs<>(Duration.ofMillis(50)));
+            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
+                Thread.sleep(Duration.ofSeconds(5));
+                return PROFILE_ID;
+            });
+
+            String result = slow.analyzeRecording(RECORDING_ID);
+
+            assertTrue(result.contains("\"status\":\"running\""));
+            assertTrue(result.contains(RECORDING_ID));
+            assertFalse(result.contains("\"profileId\""));
+        }
+
+        /**
+         * The whole point of a status tool: a second analyze call would parse the file again.
+         */
+        @Test
+        void reportsTheProfileOnceTheRecordingHasOne() {
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
+
+            String result = tools.status(RECORDING_ID);
+
+            assertTrue(result.contains(PROFILE_ID));
+            verify(recordingsManager, never()).analyzeRecording(RECORDING_ID);
+        }
+
+        @Test
+        void saysNothingIsBuildingOneWhenNothingIs() {
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(false)));
+
+            String result = tools.status(RECORDING_ID);
+
+            assertTrue(result.contains("\"status\":\"not_started\""));
+        }
+
+        @Test
+        void refusesAStatusCallForARecordingThatIsNotThere() {
+            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.empty());
+
+            IllegalArgumentException e = assertThrows(
+                    IllegalArgumentException.class, () -> tools.status(RECORDING_ID));
+
+            assertTrue(e.getMessage().contains("No such recording"));
+        }
+    }
+
 }
