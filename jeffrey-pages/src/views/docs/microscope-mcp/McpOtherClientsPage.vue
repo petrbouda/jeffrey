@@ -171,7 +171,7 @@ const protocolError = `{
       <DocsCodeBlock :code="mcpJson" language="json" />
 
       <DocsCallout type="tip" title="Both are offered ready-made">
-        <strong>Settings &rarr; Coding Agents (MCP)</strong> shows both CLI commands, the <code>.mcp.json</code> entry and the <code>config.toml</code> block, with the URL your browser actually reached Jeffrey on &mdash; correct behind a container, a proxy or a non-default port, where <code>localhost:8585</code> is not.
+        Build each of them around the address you actually reach Jeffrey on &mdash; behind a container, a proxy or a non-default port, <code>localhost:8585</code> is not it.
       </DocsCallout>
 
       <h2 id="what-you-give-up">What You Give Up</h2>

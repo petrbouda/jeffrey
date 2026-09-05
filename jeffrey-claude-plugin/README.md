@@ -23,9 +23,9 @@ Full documentation: [Microscope MCP](https://www.jeffrey-analyst.cafe/docs/micro
 
 ## Install
 
-Jeffrey's MCP server is **on by default** — a running Jeffrey is already serving it.
-**Settings → Coding Agents (MCP)** reports whether the endpoint is serving and shows the connection
-details for this installation.
+Jeffrey's MCP server is **on by default** — a running Jeffrey is already serving it, at
+`/api/internal/mcp` on whatever address and port you reach Jeffrey on (`http://localhost:8585` unless
+you changed `server.port`).
 
 **Claude Code:**
 
@@ -224,8 +224,7 @@ here and closes the path where a page in your browser drives the server.
 Beyond that it is unauthenticated, exactly like the rest of Jeffrey's API: anyone who can reach the
 address can read every profile in that installation, and Jeffrey has nothing of its own to turn on.
 Keep it bound to localhost with `server.address=127.0.0.1`, or put it behind an SSH tunnel or an
-authenticating reverse proxy. **Settings → Coding Agents (MCP)** shows the client configuration for
-your installation.
+authenticating reverse proxy.
 
 ## Licence
 

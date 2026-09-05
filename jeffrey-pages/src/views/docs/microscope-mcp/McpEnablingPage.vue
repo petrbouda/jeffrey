@@ -55,6 +55,11 @@ server.address=127.0.0.1`;
 
 const tunnel = `ssh -N -L 8585:localhost:8585 you@the-host-running-jeffrey`;
 
+const serverProbe = `curl -s -X POST http://localhost:8585/api/internal/mcp \\
+  -H 'Content-Type: application/json' \\
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+# a tool list means it is serving; 404 means it was turned off`;
+
 const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
   -X POST http://localhost:8585/api/internal/mcp \\
   -H 'Content-Type: application/json' \\
@@ -73,7 +78,8 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <p>The MCP server is <strong>on by default</strong>. A fresh Jeffrey already answers on the endpoint below, so connecting a client is the only step &mdash; see <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> or <router-link to="/docs/microscope-mcp/codex">Codex</router-link>.</p>
 
       <h2 id="it-is-already-on">It Is Already On</h2>
-      <p>Open <strong>Settings &rarr; Coding Agents (MCP)</strong> to confirm it and to copy the connection details. The tab reports whether the endpoint is serving; it does not offer a switch, because whether Jeffrey exposes the endpoint at all belongs with the bind address and the reverse proxy rather than with the preferences a reader edits in the UI.</p>
+      <p>There is nothing to switch on, and nothing in the UI that reports on it: every property below is read once at startup, so the configuration a Jeffrey runs with is the one it was deployed with. Whether the endpoint is serving belongs with the bind address and the reverse proxy, not with the preferences a reader edits in a browser &mdash; so this page, and the properties file, are where it is decided. To check a running Jeffrey, ask the endpoint itself:</p>
+      <DocsCodeBlock :code="serverProbe" language="bash" />
 
       <h2 id="the-endpoint-url">The Endpoint URL</h2>
       <p>One endpoint serves the whole installation:</p>
@@ -82,7 +88,7 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <p>The profile is a tool argument rather than part of the URL, so a client registers this address once and can then move between profiles &mdash; and between the JFR, flamegraph, trace and heap-dump families &mdash; inside a single session.</p>
 
       <DocsCallout type="tip" title="Do not type the URL from memory">
-        The Settings tab shows the endpoint <em>as your browser just reached it</em>, derived from the request rather than hardcoded. Behind a container, a reverse proxy or a non-default port, <code>localhost:8585</code> is wrong &mdash; and wrong in a way you would only discover after pasting the command. Copy the one the tab shows.
+        Build it from the address bar of the Jeffrey UI you already have open, plus <code>/api/internal/mcp</code>. Behind a container, a reverse proxy or a non-default port, <code>localhost:8585</code> is wrong &mdash; and wrong in a way you would only discover after pasting the command.
       </DocsCallout>
 
       <h2 id="turning-it-off">Turning It Off</h2>
@@ -103,7 +109,7 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
 
       <p>It is the only family with a switch of its own, because it is the only one that leaves this machine. Everything else the server does &mdash; reading a profile, importing a recording, building a heap index &mdash; happens on the host Jeffrey already runs on. Hub access reaches <em>out</em>, to whatever infrastructure the configured hubs point at, and can move gigabytes off it. An installation happy for an agent to analyse a developer&rsquo;s own <code>.jfr</code> may not be happy for it to pull production recordings.</p>
 
-      <p>Like the endpoint toggle, this one is read once at startup, and <strong>Settings &rarr; Coding Agents (MCP)</strong> reports which way it is set.</p>
+      <p>Like the endpoint toggle, this one is read once at startup. Whether a family is advertised shows in the client&rsquo;s own tool list &mdash; no <code>hubs_</code> tool means it is off.</p>
 
       <DocsCallout type="info" title="The expensive tools have no switch">
         <code>heap_prepare</code> builds the heap index and its dominator tree, and <code>jvm_autoAnalysis</code> takes a <code>compute</code> flag to run the rule set &mdash; each can occupy a core for minutes. They used to be withheld by a property of their own, which was dropped: it never bounded what it claimed to, since a single <code>jfr_executeQuery</code> can cost as much, and withholding them left the heap family telling a reader to go and open the browser instead. What they write is a cache &mdash; the same artefacts the <strong>Initialize</strong> button produces, so a run started from a session shows up in the browser and the other way round. No dump is altered and nothing is deleted.

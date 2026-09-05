@@ -74,7 +74,7 @@ const removal = `/plugin uninstall microscope@jeffrey`;
       <p>One package serves every agent. Claude Code reads the <code>.claude-plugin/</code> manifest described here; <router-link to="/docs/microscope-mcp/codex">Codex</router-link> and the other Agent Plugins clients read a second manifest in the same directory. The skills and the MCP server underneath are the same files. What this page covers that the Codex one cannot: a <strong>configurable endpoint</strong> and the <strong>subagents</strong>, neither of which the portable format carries.</p>
 
       <DocsCallout type="info" title="Jeffrey has to be running">
-        The plugin installs and loads whether or not Jeffrey is serving, and then every tool call fails. The server is on by default, so a running Jeffrey is usually all it takes &mdash; <strong>Settings &rarr; Coding Agents (MCP)</strong> reports whether the endpoint is serving. See <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
+        The plugin installs and loads whether or not Jeffrey is serving, and then every tool call fails. The server is on by default, so a running Jeffrey is usually all it takes. See <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
       </DocsCallout>
 
       <h2 id="install-it">Install It</h2>
@@ -146,7 +146,7 @@ const removal = `/plugin uninstall microscope@jeffrey`;
       </DocsCallout>
 
       <h2 id="check-it-is-connected">Check It Is Connected</h2>
-      <p>Run <code>/mcp</code> in Claude Code. The <code>jeffrey</code> server should be listed as connected. If it is not, in order of likelihood: this installation set <code>jeffrey.microscope.mcp.enabled=false</code> (Settings reports which way it is set, but does not change it), Jeffrey is not on the address the plugin is pointed at, or Jeffrey is not running.</p>
+      <p>Run <code>/mcp</code> in Claude Code. The <code>jeffrey</code> server should be listed as connected. If it is not, in order of likelihood: this installation set <code>jeffrey.microscope.mcp.enabled=false</code>, Jeffrey is not on the address the plugin is pointed at, or Jeffrey is not running.</p>
 
       <h2 id="updating-and-removing">Updating and Removing</h2>
       <p>Refresh the marketplace, then update the plugin from it &mdash; a restart of Claude Code applies the new version:</p>
