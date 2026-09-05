@@ -104,12 +104,12 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
       <ul>
         <li><strong>No source.</strong> It has no file tools and cannot read your repository. It names the frame, never a file or a line &mdash; mapping frames onto the checkout is yours, and a guess made there would arrive looking measured.</li>
         <li><strong>No recommendations.</strong> It reports what the profile shows. Whether to change anything, and what, stays in your session where you can be asked.</li>
-        <li><strong>No writing.</strong> It cannot import a recording or build a profile. If the profile it was given does not exist or is not ready, it reports that and stops.</li>
+        <li><strong>No writing.</strong> It can neither import a recording from this machine nor pull one off a connected hub, so it cannot build a profile either way. If the profile it was given does not exist or is not ready, it reports that and stops.</li>
         <li><strong>No nesting.</strong> The skills it carries tell <em>their</em> reader to delegate export reading to the analyst; that instruction is written for your session, not for it. It does the reading itself and never spawns another agent.</li>
       </ul>
 
       <DocsCallout type="warning" title="Enforced in Claude Code, instructed in Codex">
-        The Claude Code subagent is denied file tools and the <code>recordings_</code> family in its own definition, so the first two rules hold whatever the model decides. Codex has no per-agent tool deny-list: its copy is sandboxed read-only against your files, and the rest is instruction. To make it a wall there, deny <code>recordings_</code> at the server with <code>disabled_tools</code> &mdash; the <router-link to="/docs/microscope-mcp/codex">Codex</router-link> page has the block.
+        The Claude Code subagent is denied file tools and both writing families &mdash; <code>recordings_</code> and <code>hubs_</code> &mdash; in its own definition, so the first two rules hold whatever the model decides. Codex has no per-agent tool deny-list: its copy is sandboxed read-only against your files, and the rest is instruction. To make it a wall there, deny both families at the server with <code>disabled_tools</code> &mdash; the <router-link to="/docs/microscope-mcp/codex">Codex</router-link> page has the block.
       </DocsCallout>
 
       <h2 id="delegating-to-it">Delegating to It</h2>

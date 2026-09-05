@@ -106,7 +106,8 @@ const removal = `/plugin uninstall microscope@jeffrey`;
       <p><strong>Seven skills</strong>, which Claude picks up on its own when a question calls for them, and which you can also invoke directly:</p>
       <ul>
         <li><code>/microscope:analyze-jfr</code> &mdash; where to start and which family answers which question</li>
-        <li><code>/microscope:analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the twenty heap tools have to be run in</li>
+        <li><code>/microscope:analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the twenty-one heap tools have to be run in</li>
+        <li><code>/microscope:analyze-hub</code> &mdash; the recordings that never reached this machine: finds the session across the connected Jeffrey Hubs, pulls it in, and hands off to <code>analyze-jfr</code> or <code>analyze-heap</code></li>
         <li><code>/microscope:compare-jfr</code> &mdash; before against after: whether a change made it slower, which methods moved, and whether the two recordings were comparable in the first place</li>
         <li><code>/microscope:advise-jfr</code> &mdash; from a profile to a code change: hot frames mapped to your checkout, a recommendation, then the edit and a re-profile on request</li>
         <li><code>/microscope:jfr-sql</code> &mdash; the JFR schema and the DuckDB idioms that go with it</li>
@@ -117,17 +118,17 @@ const removal = `/plugin uninstall microscope@jeffrey`;
 
       <p><strong>One subagent</strong>, <code>microscope:profile-analyst</code>. A single <code>flamegraph_export</code> can run to 120,000 characters &mdash; the cap a tool result is truncated at &mdash; and answering a question properly often takes several of them. The analyst runs a sequence and returns only the findings: the hot frames with their <code>total</code> and <code>self</code> shares, or the retaining classes with their retained bytes and GC-root paths. Everything it read stays in its own context window rather than crowding out the conversation you are having.</p>
 
-      <p>The skills hand it the reading and keep what actually needs your session: mapping frames onto the checkout, the recommendation, and every question put to you. <code>advise-jfr</code> uses it hardest, sending CPU, wall-clock, allocation and blocking out as four parallel delegations instead of pulling four documents into one context. Its tools are the read-only MCP families and nothing else &mdash; no file access, no <code>recordings_</code> &mdash; so it can neither touch your repository nor create a profile. <router-link to="/docs/microscope-mcp/agent">The subagent reference</router-link> covers what it returns and when to read an export yourself instead.</p>
+      <p>The skills hand it the reading and keep what actually needs your session: mapping frames onto the checkout, the recommendation, and every question put to you. <code>advise-jfr</code> uses it hardest, sending CPU, wall-clock, allocation and blocking out as four parallel delegations instead of pulling four documents into one context. Its tools are the read-only MCP families and nothing else &mdash; no file access, no <code>recordings_</code>, no <code>hubs_</code> &mdash; so it can neither touch your repository nor create a profile. <router-link to="/docs/microscope-mcp/agent">The subagent reference</router-link> covers what it returns and when to read an export yourself instead.</p>
 
       <h2 id="permissions">Permissions</h2>
-      <p>Claude Code asks before each tool the first time. Every tool here reads except the <code>recordings_</code> family, which imports a recording file and builds a profile from it, so approving the whole family once is usually what you want &mdash; from the prompt, or up front with <code>/permissions</code>:</p>
+      <p>Claude Code asks before each tool the first time. Every tool here reads except the <code>recordings_</code> and <code>hubs_</code> families, which build a profile from a recording file on this machine or from a session on a connected hub, so approving the read-only families once is usually what you want &mdash; from the prompt, or up front with <code>/permissions</code>:</p>
       <DocsCodeBlock :code="permissionRule" language="bash" />
 
       <p>The name reads <code>mcp__plugin_&lt;plugin&gt;_&lt;server&gt;__&lt;tool&gt;</code>: the <code>microscope</code> plugin, the <code>jeffrey</code> server inside it. In a non-interactive run there is no prompt to answer, so the rule has to be passed explicitly or the run stalls:</p>
       <DocsCodeBlock :code="headlessRun" language="bash" />
 
       <h2 id="check-it-is-connected">Check It Is Connected</h2>
-      <p>Run <code>/mcp</code> in Claude Code. The <code>jeffrey</code> server should be listed as connected. If it is not, in order of likelihood: the MCP server is still off in Settings, Jeffrey is not on the address the plugin is pointed at, or Jeffrey is not running.</p>
+      <p>Run <code>/mcp</code> in Claude Code. The <code>jeffrey</code> server should be listed as connected. If it is not, in order of likelihood: this installation set <code>jeffrey.microscope.mcp.enabled=false</code> (Settings reports which way it is set, but does not change it), Jeffrey is not on the address the plugin is pointed at, or Jeffrey is not running.</p>
 
       <h2 id="updating-and-removing">Updating and Removing</h2>
       <p>Refresh the marketplace, then update the plugin from it &mdash; a restart of Claude Code applies the new version:</p>

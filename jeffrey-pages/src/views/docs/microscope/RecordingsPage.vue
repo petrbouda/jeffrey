@@ -151,6 +151,7 @@ onMounted(() => {
           <div class="step-content">
             <h4><i class="bi bi-cloud-arrow-down"></i> Auto-download from a project session</h4>
             <p>From a project's <strong>Instances</strong> view, open a session and click <strong>Download</strong>. The merged recording (plus heap dumps and logs) is streamed to local storage and shows up tagged with its origin.</p>
+            <p>A coding agent can do the same without the UI: the <router-link to="/docs/microscope-mcp/tools#hubs"><code>hubs_</code> tools</router-link> list the sessions across every connected hub and pull one down, writing the same origin tags. Those tags are what lets a later listing say a session is already here rather than fetching it twice.</p>
           </div>
         </div>
         <div class="workflow-step">

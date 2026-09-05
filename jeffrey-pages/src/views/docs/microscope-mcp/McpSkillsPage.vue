@@ -51,7 +51,8 @@ const askExamples = `# each of these loads a skill on its own - no slash command
 "analyse what production recorded in the last hour"      -> analyze-hub
 "did my change make it slower?"                          -> compare-jfr
 "what should I change in this repo to fix it?"           -> advise-jfr
-"how many events of each type are in the recording?"     -> jfr-sql`;
+"how many events of each type are in the recording?"     -> jfr-sql
+"which threads still reference that classloader?"        -> heap-sql`;
 
 const invoke = `# Claude Code
 /microscope:analyze-jfr
@@ -77,6 +78,7 @@ const advisePrompt = `advise on the most recent Jeffrey profile - what should I 
 const skillFrontmatter = `---
 name: analyze-jfr
 description: Analyses a JVM profile held by a running Jeffrey Microscope - CPU, ...
+allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 ---`;
 
 const eventsView = `-- correct
@@ -96,7 +98,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
     <div class="docs-content">
       <p>The plugin ships seven skills and <router-link to="/docs/microscope-mcp/agent">one analyst agent</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
 
-      <p>The six are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> with two frontmatter fields, and a body:</p>
+      <p>The seven are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> whose front matter carries the two required fields plus the tools it may call, and a body:</p>
       <DocsCodeBlock :code="skillFrontmatter" language="yaml" />
 
       <p>That format is shared, so <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> and <router-link to="/docs/microscope-mcp/codex">Codex</router-link> load the same files out of the same directory rather than each getting a copy. Everything on this page applies to both; only the way you invoke one by hand differs.</p>
@@ -426,11 +428,11 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       </div>
 
       <h2 id="the-analyst">The Analyst They Delegate To</h2>
-      <p>Three of the skills do not read the big documents themselves. A single <code>flamegraph_export</code> can run to 120,000 characters, and a question worth asking usually takes several &mdash; four of them in <code>advise-jfr</code>, one per group. Pulled into the session, they leave little room for the thing that has to happen next: reading the actual source behind the frames.</p>
+      <p>Four of the skills do not read the big documents themselves. A single <code>flamegraph_export</code> can run to 120,000 characters, and a question worth asking usually takes several &mdash; four of them in <code>advise-jfr</code>, one per group. Pulled into the session, they leave little room for the thing that has to happen next: reading the actual source behind the frames.</p>
 
       <p>So there is an analyst agent, and the skills hand it the reading &mdash; <code>microscope:profile-analyst</code> from the Claude Code plugin, or the custom agent a Codex user copies in. It runs the sequence, follows the profile where it leads &mdash; deeper into a subtree, a lower threshold on one path, the GC-root path of the class the histogram named &mdash; and returns the findings alone. What it read stays in its context.</p>
 
-      <p>What it is not allowed to do is as much of the design as what it does: no file access and no <code>recordings_</code>, so it cannot map a frame to a line, edit anything, or build a profile. Mapping onto the checkout, the recommendation, and every question put to you stay in the session, where you can answer them. <router-link to="/docs/microscope-mcp/agent">The analyst reference</router-link> has the full contract &mdash; what it is given, the report shape it returns, and when to read an export yourself instead.</p>
+      <p>What it is not allowed to do is as much of the design as what it does: no file access, no <code>recordings_</code> and no <code>hubs_</code>, so it cannot map a frame to a line, edit anything, or build a profile from a file or from a hub. Mapping onto the checkout, the recommendation, and every question put to you stay in the session, where you can answer them. <router-link to="/docs/microscope-mcp/agent">The analyst reference</router-link> has the full contract &mdash; what it is given, the report shape it returns, and when to read an export yourself instead.</p>
 
       <h2 id="invoking-one-directly">Invoking One Directly</h2>
       <p>You do not normally have to. The agent loads the skill whose description matches the question, so plain English is enough:</p>

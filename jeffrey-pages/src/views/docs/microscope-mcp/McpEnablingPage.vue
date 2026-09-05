@@ -97,7 +97,7 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <DocsCodeBlock :code="disabledProbe" language="bash" />
 
       <h2 id="turning-ingestion-off">Turning Ingestion Off</h2>
-      <p>The <code>recordings_</code> family is the one that writes: it imports a recording file and builds a profile from it, which is what lets a coding-agent session analyse a <code>.jfr</code> straight out of your repository. It is on by default, together with the endpoint, and switches off on its own:</p>
+      <p>The <code>recordings_</code> family is one of the two that write: it imports a recording file and builds a profile from it, which is what lets a coding-agent session analyse a <code>.jfr</code> straight out of your repository. It is on by default, together with the endpoint, and switches off on its own:</p>
       <DocsCodeBlock :code="ingestToggle" language="properties" />
 
       <p>That leaves the server exactly as it was before ingestion existed &mdash; every profile still readable, nothing creatable. It is worth doing on a shared Jeffrey, for the reason in <a href="#security">Security</a> below: the path a client sends is opened by the <em>Jeffrey</em> process, on the machine Jeffrey runs on.</p>
@@ -140,9 +140,13 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
 
       <p>Three things limit the blast radius even so. Every analysis tool is read-only &mdash; the one JFR tool that writes is deliberately not exposed, so an external client can read a profile's data but not rewrite it, and the SQL tools refuse a second statement after a semicolon rather than running it. The SQL engine itself is sandboxed: a profile database is opened with DuckDB's external file access and extension autoloading turned off, so a query is confined to that profile's tables and cannot read a file from the host or fetch anything over the network, however it is spelled. And the server has no shell: it answers questions about profiles, and does not run anything.</p>
 
-      <p>The <code>recordings_</code> family is the exception worth understanding, because it is the one place the server touches the filesystem. A client sends a <em>path</em>, not a file &mdash; a JFR recording routinely runs to hundreds of megabytes, and base64 through a JSON-RPC message would spend the client's whole context on bytes neither side ever reads. The path is therefore opened by the Jeffrey process, on the machine Jeffrey runs on, and Jeffrey copies whatever it finds there into the Quick Analysis store.</p>
+      <p>The <code>recordings_</code> family is the first of two exceptions worth understanding, because it is where the server touches this machine's filesystem. A client sends a <em>path</em>, not a file &mdash; a JFR recording routinely runs to hundreds of megabytes, and base64 through a JSON-RPC message would spend the client's whole context on bytes neither side ever reads. The path is therefore opened by the Jeffrey process, on the machine Jeffrey runs on, and Jeffrey copies whatever it finds there into the Quick Analysis store.</p>
 
       <p>On a loopback Jeffrey that is exactly what you want: the file in your repository is on the same disk, and the caller is you. On a shared installation it means a client that can reach the address can have Jeffrey read a file it chooses from that host &mdash; it must carry a recording extension and survive the parser, so it is a narrow door rather than an open one, but it is a door. If the address is reachable by anyone you would not hand a shell to, switch ingestion off with the property in <a href="#turning-ingestion-off">Turning Ingestion Off</a>.</p>
+
+      <p>The <code>hubs_</code> family is the second exception, and it points the other way: it is the one place the server reaches <em>off</em> this machine. A client that can reach the endpoint can list what every connected hub holds and have Jeffrey pull a session down &mdash; production stack traces, SQL statements and heap dumps included &mdash; onto the host Jeffrey runs on.</p>
+
+      <p>What bounds it is that the client cannot name an address. The hubs are the ones this installation was configured with, in a file or through its UI, so the reachable set is the operator's decision and not the caller's; there is no tool that adds one. What it does <em>not</em> bound is which of those hubs, so on an installation connected to production, endpoint access is production-recording access. Switch it off with the property in <a href="#turning-hub-access-off">Turning Hub Access Off</a> if that is not what you want.</p>
     </div>
 
     <DocsNavFooter />

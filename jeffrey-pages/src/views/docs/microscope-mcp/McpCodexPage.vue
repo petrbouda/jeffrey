@@ -62,7 +62,10 @@ const approvalRule = `[mcp_servers.jeffrey]
 default_tools_approval_mode = "auto"`;
 
 const ingestDenyRule = `[mcp_servers.jeffrey]
-disabled_tools = ["recordings_analyzeFile", "recordings_analyzeRecording"]`;
+disabled_tools = [
+  "recordings_analyzeFile", "recordings_analyzeRecording", "recordings_list",
+  "hubs_list", "hubs_sessions", "hubs_download",
+]`;
 
 const manualAdd = `codex mcp add jeffrey --url http://localhost:8585/api/internal/mcp`;
 
@@ -116,7 +119,8 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <p>Registering the server by hand gives you the eighty-eight tools. The plugin adds the endpoint already configured, and <strong>seven skills</strong>, which Codex picks up on its own when a question calls for them and which you can also invoke directly with <code>$</code>:</p>
       <ul>
         <li><code>$analyze-jfr</code> &mdash; where to start and which family answers which question</li>
-        <li><code>$analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the twenty heap tools have to be run in</li>
+        <li><code>$analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the twenty-one heap tools have to be run in</li>
+        <li><code>$analyze-hub</code> &mdash; the recordings that never reached this machine: finds the session across the connected Jeffrey Hubs, pulls it in, and hands off to <code>analyze-jfr</code> or <code>analyze-heap</code></li>
         <li><code>$compare-jfr</code> &mdash; before against after: whether a change made it slower, which methods moved, and whether the two recordings were comparable in the first place</li>
         <li><code>$advise-jfr</code> &mdash; from a profile to a code change: hot frames mapped to your checkout, a recommendation, then the edit and a re-profile on request</li>
         <li><code>$jfr-sql</code> &mdash; the JFR schema and the DuckDB idioms that go with it</li>
@@ -133,17 +137,17 @@ const removal = `codex plugin marketplace remove jeffrey`;
 
       <p><code>~/.codex/agents/</code> makes it available in every repository; <code>.codex/agents/</code> inside a checkout scopes it to that one. The skills look for an agent by that name and delegate to it when one exists, and read the exports themselves when none does &mdash; so this step is optional, and skipping it costs context rather than correctness.</p>
 
-      <p>One difference worth knowing: the Claude Code subagent is denied the <code>recordings_</code> tools by its own definition, so it cannot create a profile even if it tried. Codex has no per-agent tool deny-list, so the Codex version is sandboxed read-only against your files and told not to write &mdash; an instruction rather than a wall. If that distinction matters to you, deny the family at the server instead:</p>
+      <p>One difference worth knowing: the Claude Code subagent is denied the <code>recordings_</code> and <code>hubs_</code> tools by its own definition, so it cannot create a profile even if it tried. Codex has no per-agent tool deny-list, so the Codex version is sandboxed read-only against your files and told not to write &mdash; an instruction rather than a wall. If that distinction matters to you, deny the family at the server instead:</p>
       <DocsCodeBlock :code="ingestDenyRule" language="toml" />
 
       <h2 id="approvals">Approvals</h2>
-      <p>Codex asks before each tool the first time. Every tool here reads except the <code>recordings_</code> family, which imports a recording file and builds a profile from it, so approving the server once is usually what you want:</p>
+      <p>Codex asks before each tool the first time. Every tool here reads except the <code>recordings_</code> and <code>hubs_</code> families, which build a profile from a recording file on this machine or from a session on a connected hub, so approving the server once is usually what you want:</p>
       <DocsCodeBlock :code="approvalRule" language="toml" />
 
       <p>Tool names arrive prefixed with the server they came from &mdash; <code>mcp__jeffrey__flamegraph_export</code> and so on. <code>enabled_tools</code> and <code>disabled_tools</code> on the same block narrow what the model sees at all, which is the sharper instrument when you want a strictly read-only Jeffrey for one machine regardless of what the server advertises.</p>
 
       <h2 id="check-it-is-connected">Check It Is Connected</h2>
-      <p>Run <code>codex mcp list</code>, or <code>/mcp</code> inside a session. The <code>jeffrey</code> server should be listed with its tools. If it is not, in order of likelihood: the session predates the install and needs restarting, the MCP server is off in Jeffrey's Settings, Jeffrey is not on <code>localhost:8585</code>, or Jeffrey is not running.</p>
+      <p>Run <code>codex mcp list</code>, or <code>/mcp</code> inside a session. The <code>jeffrey</code> server should be listed with its tools. If it is not, in order of likelihood: the session predates the install and needs restarting, this installation set <code>jeffrey.microscope.mcp.enabled=false</code> (Settings reports it, but does not change it), Jeffrey is not on <code>localhost:8585</code>, or Jeffrey is not running.</p>
 
       <p>A server that shows as connected but whose tools never appear is worth reporting upstream rather than debugging in Jeffrey &mdash; Codex's Streamable HTTP client has had that failure mode. <code>curl</code> against the endpoint settles which side is at fault; <router-link to="/docs/microscope-mcp/other-clients">Other Clients</router-link> has the exact request.</p>
 
@@ -190,8 +194,8 @@ const removal = `codex plugin marketplace remove jeffrey`;
           </tr>
           <tr>
             <td>Skills</td>
-            <td>Six, invoked <code>/microscope:analyze-jfr</code></td>
-            <td>The same six, invoked <code>$analyze-jfr</code></td>
+            <td>Seven, invoked <code>/microscope:analyze-jfr</code></td>
+            <td>The same seven, invoked <code>$analyze-jfr</code></td>
           </tr>
           <tr>
             <td>Endpoint</td>
