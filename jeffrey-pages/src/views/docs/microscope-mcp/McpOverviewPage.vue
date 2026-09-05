@@ -128,7 +128,7 @@ onMounted(() => {
           </tr>
           <tr>
             <td><code>compare_</code></td>
-            <td>4</td>
+            <td>3</td>
             <td>Two profiles against each other: whether they are comparable, what moved, and the differential call tree</td>
           </tr>
           <tr>
