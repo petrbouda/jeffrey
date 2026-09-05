@@ -28,6 +28,7 @@ const { setHeadings } = useDocHeadings();
 
 const headings = [
   { id: 'analyse-a-recording-you-just-made', text: 'Analyse a Recording You Just Made', level: 2 },
+  { id: 'analyse-what-production-recorded', text: 'Analyse What Production Recorded', level: 2 },
   { id: 'where-does-the-time-go', text: 'Where Does the Time Go', level: 2 },
   { id: 'explain-a-slow-endpoint', text: 'Explain a Slow Endpoint', level: 2 },
   { id: 'find-when-it-happened', text: 'Find When It Happened', level: 2 },
@@ -47,6 +48,9 @@ onMounted(() => {
 
 const promptFreshRecording = `analyze target/checkout-run.jfr in Jeffrey and tell me which of my own
 methods dominate the CPU profile`;
+
+const promptFromHub = `analyse what production recorded in the last hour and tell me where the time
+went`;
 
 const promptHotPaths = `list the Jeffrey profiles, then show me where the CPU time goes in the most recent one`;
 
@@ -117,6 +121,23 @@ LIMIT 20`;
       <DocsCallout type="warning" title="Jeffrey opens the path, you do not upload the file">
         The path must be absolute and must exist on the machine Jeffrey runs on. That is the same machine for the usual setup &mdash; a Jeffrey and a terminal on one laptop &mdash; and not the same machine for a Jeffrey in a container or on a remote host, where the file has to be mounted or copied across first. Each call builds another profile, so say <em>&ldquo;check whether it is already analysed&rdquo;</em> if you may be repeating yourself.
       </DocsCallout>
+
+      <h2 id="analyse-what-production-recorded">Analyse What Production Recorded</h2>
+      <DocsCodeBlock :code="promptFromHub" language="bash" />
+
+      <p>Drives <code>hubs_sessions</code> &rarr; <code>hubs_download</code> &rarr; <code>recordings_analyzeRecording</code> &rarr; the usual analysis.</p>
+
+      <p>The recording you actually want is rarely on your laptop. This is the same loop as the recipe above, starting one step further back: the first call searches every connected <router-link to="/docs/hub">Jeffrey Hub</router-link> at once and comes back with a flat list of sessions, newest first, each carrying a reference the download takes. Nothing asks you to pick a hub, then a workspace, then a project &mdash; that hierarchy is filters and columns here, not a sequence of questions.</p>
+
+      <p>&ldquo;The last hour&rdquo; means <em>recording during</em> the last hour, not <em>started within</em> it, so a JVM that came up this morning and is still running is included. That is almost always what the question meant.</p>
+
+      <p>You will be asked to choose only when the choice is real &mdash; several projects matched, or the session is large enough that pulling it is worth a moment's thought &mdash; and when you are, the projects, durations and sizes come with the question.</p>
+
+      <DocsCallout type="tip" title="The second time costs nothing">
+        Sessions already pulled in are marked in the listing, with the profile id when they have been analysed. Ask the same question tomorrow and yesterday's session is not downloaded again.
+      </DocsCallout>
+
+      <p>A heap dump in the session arrives with it, so <em>&ldquo;pull the dump from the pod that OOMed and tell me what was holding memory&rdquo;</em> is the same recipe ending in the <code>heap_</code> family instead.</p>
 
       <h2 id="where-does-the-time-go">Where Does the Time Go</h2>
       <DocsCodeBlock :code="promptHotPaths" language="bash" />

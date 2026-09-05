@@ -26,6 +26,11 @@ the file has to be on the machine Jeffrey runs on — a container or a remote Je
 working directory. The call returns once the profile is built, which takes a while for a large
 recording; that is the analysis running, not a hang.
 
+**The recording is on a hub** — the user asked about an environment rather than a file
+("production", "staging", "what recorded in the last hour"), and nothing local matches. Switch to
+the **analyze-hub** skill: it finds the session across the connected hubs, pulls it in and comes
+back here with a `profileId`.
+
 **Otherwise** — `profiles_list`, pick the profile, then `profiles_features` to learn what it can
 answer before asking for it: `disabledFeatures` names what the profile lacks (traces exist only if
 the app ran Jeffrey's instrumentation; `HEAP_DUMP` there means no dump), and `eventTypes` lists

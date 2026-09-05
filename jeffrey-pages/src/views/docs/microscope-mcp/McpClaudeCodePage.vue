@@ -99,11 +99,11 @@ const removal = `/plugin uninstall microscope@jeffrey`;
       </DocsCallout>
 
       <h2 id="what-the-plugin-adds">What the Plugin Adds</h2>
-      <p>Registering the server by hand gives you the eighty-five tools. The plugin adds three things on top.</p>
+      <p>Registering the server by hand gives you the eighty-eight tools. The plugin adds three things on top.</p>
 
       <p><strong>The endpoint, already configured</strong> &mdash; including the per-machine setting above, so the same install works on a laptop and against a tunnelled staging Jeffrey.</p>
 
-      <p><strong>Six skills</strong>, which Claude picks up on its own when a question calls for them, and which you can also invoke directly:</p>
+      <p><strong>Seven skills</strong>, which Claude picks up on its own when a question calls for them, and which you can also invoke directly:</p>
       <ul>
         <li><code>/microscope:analyze-jfr</code> &mdash; where to start and which family answers which question</li>
         <li><code>/microscope:analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the twenty heap tools have to be run in</li>

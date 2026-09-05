@@ -8,9 +8,15 @@ disallowedTools:
   - mcp__plugin_microscope_jeffrey__recordings_analyzeFile
   - mcp__plugin_microscope_jeffrey__recordings_analyzeRecording
   - mcp__plugin_microscope_jeffrey__recordings_list
+  - mcp__plugin_microscope_jeffrey__hubs_list
+  - mcp__plugin_microscope_jeffrey__hubs_sessions
+  - mcp__plugin_microscope_jeffrey__hubs_download
   - mcp__jeffrey__recordings_analyzeFile
   - mcp__jeffrey__recordings_analyzeRecording
   - mcp__jeffrey__recordings_list
+  - mcp__jeffrey__hubs_list
+  - mcp__jeffrey__hubs_sessions
+  - mcp__jeffrey__hubs_download
 model: inherit
 skills:
   - analyze-jfr

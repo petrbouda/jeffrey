@@ -30,6 +30,7 @@ const headings = [
   { id: 'why-skills-at-all', text: 'Why Skills at All', level: 2 },
   { id: 'analyze-jfr', text: 'analyze-jfr', level: 2 },
   { id: 'analyze-heap', text: 'analyze-heap', level: 2 },
+  { id: 'analyze-hub', text: 'analyze-hub', level: 2 },
   { id: 'compare-jfr', text: 'compare-jfr', level: 2 },
   { id: 'advise-jfr', text: 'advise-jfr', level: 2 },
   { id: 'jfr-sql', text: 'jfr-sql', level: 2 },
@@ -47,6 +48,7 @@ const askExamples = `# each of these loads a skill on its own - no slash command
 "why is the checkout endpoint slow?"                     -> analyze-jfr
 "analyze target/run.jfr and tell me where the time goes" -> analyze-jfr
 "what is holding memory in this heap dump?"              -> analyze-heap
+"analyse what production recorded in the last hour"      -> analyze-hub
 "did my change make it slower?"                          -> compare-jfr
 "what should I change in this repo to fix it?"           -> advise-jfr
 "how many events of each type are in the recording?"     -> jfr-sql`;
@@ -54,6 +56,7 @@ const askExamples = `# each of these loads a skill on its own - no slash command
 const invoke = `# Claude Code
 /microscope:analyze-jfr
 /microscope:analyze-heap
+/microscope:analyze-hub
 /microscope:compare-jfr
 /microscope:advise-jfr
 /microscope:jfr-sql
@@ -62,6 +65,7 @@ const invoke = `# Claude Code
 # Codex
 $analyze-jfr
 $analyze-heap
+$analyze-hub
 $compare-jfr
 $advise-jfr
 $jfr-sql
@@ -90,7 +94,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
     />
 
     <div class="docs-content">
-      <p>The plugin ships six skills and <router-link to="/docs/microscope-mcp/agent">one analyst agent</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
+      <p>The plugin ships seven skills and <router-link to="/docs/microscope-mcp/agent">one analyst agent</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
 
       <p>The six are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> with two frontmatter fields, and a body:</p>
       <DocsCodeBlock :code="skillFrontmatter" language="yaml" />
@@ -98,7 +102,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <p>That format is shared, so <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> and <router-link to="/docs/microscope-mcp/codex">Codex</router-link> load the same files out of the same directory rather than each getting a copy. Everything on this page applies to both; only the way you invoke one by hand differs.</p>
 
       <h2 id="which-skill">Which Skill Answers Your Question</h2>
-      <p>Every row is a question you would actually type. You do not pick from this table &mdash; the agent does, from the same descriptions &mdash; but it is the fastest way to see what the six cover between them, and what each one needs before it can start.</p>
+      <p>Every row is a question you would actually type. You do not pick from this table &mdash; the agent does, from the same descriptions &mdash; but it is the fastest way to see what the seven cover between them, and what each one needs before it can start.</p>
       <table class="skill-chooser">
         <thead>
           <tr>
@@ -117,6 +121,11 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
             <td>&ldquo;What is holding memory?&rdquo; &middot; &ldquo;Why did this OOM?&rdquo; &middot; &ldquo;What is leaking?&rdquo;</td>
             <td><a href="#analyze-heap"><code>analyze-heap</code></a></td>
             <td>A heap dump</td>
+          </tr>
+          <tr>
+            <td>&ldquo;What did production record in the last hour?&rdquo; &middot; &ldquo;Why was staging slow this morning?&rdquo;</td>
+            <td><a href="#analyze-hub"><code>analyze-hub</code></a></td>
+            <td>A connected Jeffrey Hub</td>
           </tr>
           <tr>
             <td>&ldquo;Did my change make it slower?&rdquo; &middot; &ldquo;What got faster?&rdquo;</td>
@@ -231,6 +240,38 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
         <aside class="skill-trap">
           <span class="skill-trap-label">Trap</span>
           <p>One dump cannot separate a leak from a large working set, so the skill makes the model say which reading it is offering. Object ids are never carried between dumps, and a finding is cited as class name, retained bytes and GC-root path together &mdash; any one of the three alone is unfalsifiable.</p>
+        </aside>
+      </div>
+
+      <h2 id="analyze-hub">analyze-hub</h2>
+      <div class="skill-card">
+        <div class="skill-head">
+          <p class="skill-question">&ldquo;Analyse what production recorded in the last hour.&rdquo;</p>
+          <span class="skill-role">Retrieval</span>
+        </div>
+
+        <section class="skill-block">
+          <h4>Entry sequence</h4>
+          <ul>
+            <li><code>hubs_sessions</code> with a window &mdash; one call, across every connected hub &mdash; then <code>hubs_download</code> on the row&rsquo;s <code>session_ref</code>, then <code>recordings_analyzeRecording</code> for the <code>profileId</code>.</li>
+            <li>From there it hands off: <code>analyze-jfr</code> for a recording, <code>analyze-heap</code> for a dump. There is no hub-specific analysis, because a downloaded session is an ordinary profile.</li>
+            <li>No <code>hubs_</code> tool advertised means hub access is off or no hub is connected &mdash; a fact to report, not a path to guess at.</li>
+          </ul>
+        </section>
+
+        <section class="skill-block">
+          <h4>What it decides for you</h4>
+          <ul>
+            <li>That the hub, workspace and project hierarchy is a set of filters and columns, never a sequence of questions. Asking &ldquo;which hub?&rdquo;, then &ldquo;which workspace?&rdquo;, then &ldquo;which project?&rdquo; costs three turns and asks for ids nobody knows by heart.</li>
+            <li>When to involve you at all: not when one session obviously matches, and once &mdash; quoting project, duration and size &mdash; when several do or the download is large.</li>
+            <li>To read the <code>local</code> column before downloading anything. A session already here needs no transfer, and one already analysed needs no work at all.</li>
+            <li>That a session still recording is a normal thing to download, not an error to wait out: the transfer takes the chunks that have been rolled so far.</li>
+          </ul>
+        </section>
+
+        <aside class="skill-trap">
+          <span class="skill-trap-label">Trap</span>
+          <p>An empty result is not the same as no recordings. A hub that did not answer is reported under the table, and the managers underneath report a hub that is down and a hub that is empty identically &mdash; so the answer to &ldquo;nothing came back&rdquo; is to read the footer, or call <code>hubs_list</code>, before telling anyone their recordings are missing.</p>
         </aside>
       </div>
 

@@ -434,6 +434,12 @@
                 :icon="mcpIngestEnabled ? 'bi bi-box-arrow-in-down' : 'bi bi-slash-circle'"
                 size="s"
               />
+              <Badge
+                :value="mcpHubsEnabled ? 'Hubs on' : 'Hubs off'"
+                :variant="mcpHubsEnabled ? 'success' : 'secondary'"
+                :icon="mcpHubsEnabled ? 'bi bi-hdd-network' : 'bi bi-slash-circle'"
+                size="s"
+              />
             </div>
             <div v-if="mcpEnabled && mcpIngestEnabled" class="settings-hint">
               The agent can also analyse a recording for you: point it at a <code>.jfr</code> or
@@ -446,6 +452,18 @@
               Ingestion is off, so the agent can read the profiles here but not create new ones. Remove
               <code>jeffrey.microscope.mcp.ingest.enabled=false</code> and restart to let it analyse a
               recording file straight from your repository.
+            </div>
+            <div v-if="mcpEnabled && mcpHubsEnabled" class="settings-hint">
+              The agent can also reach the Jeffrey Hubs this Microscope is connected to: it lists
+              the recording sessions on them and pulls one in to analyse, so a question like
+              <em>&ldquo;what did production record in the last hour&rdquo;</em> never needs a
+              download by hand. Set <code>jeffrey.microscope.mcp.hubs.enabled=false</code> and
+              restart to keep the agent to what is already here.
+            </div>
+            <div v-else-if="mcpEnabled && mcpIngestEnabled" class="settings-hint">
+              Hub access is off, so the agent works only with recordings already on this machine.
+              Remove <code>jeffrey.microscope.mcp.hubs.enabled=false</code> and restart to let it
+              pull recordings from a connected hub.
             </div>
             <div v-if="!mcpEnabled" class="settings-hint">
               Serving is on unless the deployment turns it off. This one sets
@@ -618,6 +636,7 @@ const mcpStatus = ref<McpAccessStatus | null>(null);
 // application property fixed at startup, so the page reports it rather than offering to change it.
 const mcpEnabled = computed(() => mcpStatus.value?.enabled === true);
 const mcpIngestEnabled = computed(() => mcpStatus.value?.ingestEnabled === true);
+const mcpHubsEnabled = computed(() => mcpStatus.value?.hubsEnabled === true);
 const aiEnabled = computed(() => aiToggle.value);
 
 const isOllama = computed(() => settings.get('jeffrey.microscope.ai.provider') === 'ollama');

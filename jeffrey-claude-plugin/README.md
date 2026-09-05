@@ -10,9 +10,9 @@ One package, two plugin formats. **Claude Code** reads `.claude-plugin/plugin.js
 the other [Agent Plugins](https://agent-plugins.org/) clients read the root `plugin.json` and
 `mcp.json`. The skills and the MCP server underneath are the same files for both.
 
-Every analysis tool is **read-only**. The one exception is `recordings_`, which creates profiles
-rather than changing them, and which a Jeffrey can switch off with
-`jeffrey.microscope.mcp.ingest.enabled=false`.
+Every analysis tool is **read-only**. The exceptions are `recordings_` and `hubs_`, which create
+profiles rather than changing them, and which a Jeffrey can switch off with
+`jeffrey.microscope.mcp.ingest.enabled=false` and `jeffrey.microscope.mcp.hubs.enabled=false`.
 
 Full documentation: [Microscope MCP](https://www.jeffrey-analyst.cafe/docs/microscope-mcp) —
 [Claude Code](https://www.jeffrey-analyst.cafe/docs/microscope-mcp/claude-code),
@@ -87,7 +87,8 @@ The skills keep working; only the server registration moves.
 | `memory_` | Allocation by type, and JFR-side leak candidates that need no heap dump |
 | `jfr_` | The profile's DuckDB tables — schema and read-only SQL |
 | `heap_` | Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, a two-dump diff, and read-only SQL |
-| `recordings_` | The one that writes: imports a recording file and builds a profile from it |
+| `recordings_` | One of the two that write: imports a recording file and builds a profile from it |
+| `hubs_` | The recordings still on a connected Jeffrey Hub: lists sessions across every hub and pulls one in |
 
 `recordings_analyzeFile` takes an **absolute path**, and the file has to be on the machine Jeffrey
 runs on — Jeffrey opens it, the client does not upload it. That is the usual case (one laptop running
@@ -99,6 +100,8 @@ both) and not the case for a Jeffrey in a container or on another host.
 - `analyze-jfr` — where to start and which family answers which question
 - `analyze-heap` — a heap dump end to end: what is holding the memory, what is leaking,
   which class loader never went away, and the order the heap tools have to be run in
+- `analyze-hub` — the recordings that never reached this machine: finds a session across the
+  connected Jeffrey Hubs, pulls it in, and hands off to `analyze-jfr` or `analyze-heap`
 - `compare-jfr` — before against after: whether a change made it slower, which methods
   moved, and whether the two recordings were comparable in the first place
 - `advise-jfr` — from a profile to a code change: the hottest CPU, wall-clock, allocation and
@@ -125,8 +128,8 @@ than enforced.
 
 ## Permissions
 
-Both clients ask before each tool the first time. Every Jeffrey tool except `recordings_` is
-read-only, so approving the family once is usually what you want.
+Both clients ask before each tool the first time. Every Jeffrey tool except `recordings_` and
+`hubs_` is read-only, so approving the family once is usually what you want.
 
 Claude Code, from the prompt or up front with `/permissions`:
 
@@ -172,7 +175,7 @@ jeffrey-claude-plugin/
 │   └── plugin.json           Claude Code manifest — same plugin, with the configurable endpoint
 ├── .codex-plugin/
 │   └── plugin.json           Codex-native manifest, pointing at the same skills and mcp.json
-├── skills/                   Six skills, read by both formats
+├── skills/                   Seven skills, read by both formats
 ├── agents/
 │   └── profile-analyst.md    Claude Code subagent
 └── codex/agents/

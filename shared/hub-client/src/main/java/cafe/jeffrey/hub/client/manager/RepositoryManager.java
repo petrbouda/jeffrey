@@ -40,6 +40,15 @@ public interface RepositoryManager {
      */
     List<RecordingSession> listRecordingSessions(boolean withFiles, RecordingSessionFilter filter);
 
+    /**
+     * The session as the hub currently has it, files included.
+     *
+     * @param sessionId the session to fetch
+     * @return the session
+     * @throws RuntimeException when the hub no longer has it, or cannot be reached
+     */
+    RecordingSession recordingSession(String sessionId);
+
     RepositoryStatistics calculateRepositoryStatistics();
 
     void deleteRecordingSession(String recordingSessionId);
