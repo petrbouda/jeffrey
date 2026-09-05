@@ -274,7 +274,7 @@ public class JvmMcpTools {
             + "deadlocks the JVM detected in it. Use it after jvm_threadDumps has named the dump worth "
             + "reading - the analysis says which index holds the deadlock or the stuck threads.")
     public String threadDump(
-            @ToolParam(description = "Index of the dump, as listed by jvm_threadDumps")
+            @ToolParam(required = true, description = "Index of the dump, as listed by jvm_threadDumps")
             Integer index) {
 
         if (index == null) {

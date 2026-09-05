@@ -110,7 +110,7 @@ public class CompareMcpTools {
             + "between the runs rather than a change in the application. A comparison of recordings of "
             + "very different length or volume produces numbers that look precise and mean nothing.")
     public String list(
-            @ToolParam(description = "Id of the profile to compare against — the baseline, normally "
+            @ToolParam(required = true, description = "Id of the profile to compare against — the baseline, normally "
                     + "the run from before the change. As listed by profiles_list.")
             String baselineProfileId) {
 
@@ -149,27 +149,27 @@ public class CompareMcpTools {
             + "baseline is scaled onto the primary's recording length first. The output opens with a "
             + "comparability section — read it before reporting any finding.")
     public String movements(
-            @ToolParam(description = "Id of the profile to compare against — the baseline, normally "
+            @ToolParam(required = true, description = "Id of the profile to compare against — the baseline, normally "
                     + "the run from before the change.")
             String baselineProfileId,
-            @ToolParam(description = "JFR event type to compare, e.g. 'jdk.ExecutionSample' for CPU or "
+            @ToolParam(required = true, description = "JFR event type to compare, e.g. 'jdk.ExecutionSample' for CPU or "
                     + "'jdk.ObjectAllocationSample' for allocation. Use compare_list to see which "
                     + "types these two profiles have in common.")
             String eventType,
-            @ToolParam(description = "How many movements to report in each direction (default 15)")
+            @ToolParam(required = false, description = "How many movements to report in each direction (default 15)")
             Integer limit,
-            @ToolParam(description = "Start of the window, in milliseconds from the beginning of each "
+            @ToolParam(required = false, description = "Start of the window, in milliseconds from the beginning of each "
                     + "recording. Applied at the same offset into both. Omit for the whole recording.")
             Long startMs,
-            @ToolParam(description = "End of the window, in milliseconds from the beginning of each "
+            @ToolParam(required = false, description = "End of the window, in milliseconds from the beginning of each "
                     + "recording. Omit for the whole recording.")
             Long endMs,
-            @ToolParam(description = "Compare by the event's weight (bytes allocated, nanoseconds "
+            @ToolParam(required = false, description = "Compare by the event's weight (bytes allocated, nanoseconds "
                     + "blocked) instead of by sample count")
             Boolean useWeight,
-            @ToolParam(description = "Drop samples of threads that were idle")
+            @ToolParam(required = false, description = "Drop samples of threads that were idle")
             Boolean excludeIdle,
-            @ToolParam(description = "Drop samples that were not executing Java code")
+            @ToolParam(required = false, description = "Drop samples that were not executing Java code")
             Boolean excludeNonJava) {
 
         ProfileManager baseline = baseline(baselineProfileId);
@@ -187,28 +187,28 @@ public class CompareMcpTools {
             + "in which nothing moved are pruned, so absence here means 'did not change', not 'not "
             + "present'.")
     public String flamegraph(
-            @ToolParam(description = "Id of the profile to compare against — the baseline, normally "
+            @ToolParam(required = true, description = "Id of the profile to compare against — the baseline, normally "
                     + "the run from before the change.")
             String baselineProfileId,
-            @ToolParam(description = "JFR event type to compare. Use compare_list to see which types "
+            @ToolParam(required = true, description = "JFR event type to compare. Use compare_list to see which types "
                     + "these two profiles have in common.")
             String eventType,
-            @ToolParam(description = "Keep only subtrees containing a movement of at least this "
+            @ToolParam(required = false, description = "Keep only subtrees containing a movement of at least this "
                     + "percentage of the primary's total (exclusive range 0-100). Lower means more "
                     + "detail and a longer document; the configured default is used when omitted.")
             Double thresholdPct,
-            @ToolParam(description = "Start of the window, in milliseconds from the beginning of each "
+            @ToolParam(required = false, description = "Start of the window, in milliseconds from the beginning of each "
                     + "recording. Applied at the same offset into both. Omit for the whole recording.")
             Long startMs,
-            @ToolParam(description = "End of the window, in milliseconds from the beginning of each "
+            @ToolParam(required = false, description = "End of the window, in milliseconds from the beginning of each "
                     + "recording. Omit for the whole recording.")
             Long endMs,
-            @ToolParam(description = "Compare by the event's weight (bytes allocated, nanoseconds "
+            @ToolParam(required = false, description = "Compare by the event's weight (bytes allocated, nanoseconds "
                     + "blocked) instead of by sample count")
             Boolean useWeight,
-            @ToolParam(description = "Drop samples of threads that were idle")
+            @ToolParam(required = false, description = "Drop samples of threads that were idle")
             Boolean excludeIdle,
-            @ToolParam(description = "Drop samples that were not executing Java code")
+            @ToolParam(required = false, description = "Drop samples that were not executing Java code")
             Boolean excludeNonJava) {
 
         ProfileManager baseline = baseline(baselineProfileId);

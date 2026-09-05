@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.feature.FeatureType;
@@ -101,8 +102,9 @@ public class HttpMcpTools {
             + "method breakdowns, and the slowest individual requests. Start here for 'is the service "
             + "slow' and 'which endpoint is the problem'.")
     public String overview(
-            @ToolParam(description = "Which side to report on: 'SERVER' for requests this application "
+            @ToolParam(required = false, description = "Which side to report on: 'SERVER' for requests this application "
                     + "answered (the default), 'CLIENT' for requests it made to somebody else.")
+            @ToolParamValues({"SERVER", "CLIENT"})
             String direction) {
 
         ExchangeDirection side = ExchangeDirection.from(direction);
@@ -130,11 +132,12 @@ public class HttpMcpTools {
             + "slowest requests as the overview, but for a single URI. Use it after http_overview has "
             + "named the endpoint worth looking at.")
     public String endpoint(
-            @ToolParam(description = "The URI exactly as the server recorded it, e.g. '/api/orders'. "
+            @ToolParam(required = false, description = "The URI exactly as the server recorded it, e.g. '/api/orders'. "
                     + "Take it from the endpoints list in http_overview.")
             String uri,
-            @ToolParam(description = "Which side the endpoint belongs to: 'SERVER' (the default) or "
+            @ToolParam(required = false, description = "Which side the endpoint belongs to: 'SERVER' (the default) or "
                     + "'CLIENT'. Use the same one http_overview listed it under.")
+            @ToolParamValues({"SERVER", "CLIENT"})
             String direction) {
 
         ExchangeDirection side = ExchangeDirection.from(direction);

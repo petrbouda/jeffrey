@@ -43,6 +43,8 @@ import cafe.jeffrey.profile.ai.duckdb.jfr.tools.DuckDbMcpTools;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.mcp.CompositeToolset;
+import cafe.jeffrey.profile.mcp.McpToolAnnotations;
+import cafe.jeffrey.profile.mcp.McpToolSpec;
 import cafe.jeffrey.profile.mcp.McpToolProvider;
 import cafe.jeffrey.profile.mcp.ProfileScopedToolset;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
@@ -166,17 +168,52 @@ public class McpToolsetAssembler {
                         profileId -> heapTools(contextCache, profileId))));
 
         if (properties.ingestEnabled()) {
-            families.add(new ReflectiveToolset(recordingsMcpTools, PREFIX_RECORDINGS));
+            families.add(new ReflectiveToolset(
+                    recordingsMcpTools, PREFIX_RECORDINGS, Set.of(), McpToolAnnotations.CREATES));
         }
         if (properties.hubsAdvertised()) {
-            families.add(new ReflectiveToolset(hubsMcpTools, PREFIX_HUBS));
+            families.add(new ReflectiveToolset(
+                    hubsMcpTools, PREFIX_HUBS, Set.of(), McpToolAnnotations.READS_REMOTE));
         }
 
-        this.toolset = new CompositeToolset(List.copyOf(families));
+        this.toolset = new CompositeToolset(retained(families, properties));
     }
 
     public McpToolProvider toolset() {
         return toolset;
+    }
+
+    /**
+     * The families this installation actually serves.
+     * <p>
+     * Filtering happens here, on assembled families, rather than at each registration: the list above
+     * reads as the whole surface, and what a particular installation withholds is one decision applied
+     * once. A family named in the property but not built is simply absent — the alternative, refusing at
+     * startup, would turn a stale property into a Jeffrey that will not boot.
+     */
+    private static List<McpToolProvider> retained(
+            List<McpToolProvider> families, ExternalMcpProperties properties) {
+        List<McpToolProvider> retained = new ArrayList<>();
+        for (McpToolProvider family : families) {
+            if (properties.advertises(prefixOf(family))) {
+                retained.add(family);
+            }
+        }
+        return List.copyOf(retained);
+    }
+
+    /**
+     * The family name a provider answers to, taken from the first tool it advertises — every tool in a
+     * family carries the prefix, so the first one names the family.
+     */
+    private static String prefixOf(McpToolProvider family) {
+        List<McpToolSpec> specs = family.specs();
+        if (specs.isEmpty()) {
+            return "";
+        }
+        String name = specs.getFirst().name();
+        int separator = name.indexOf('_');
+        return separator < 0 ? name : name.substring(0, separator);
     }
 
     private static ProfileManager profileManager(McpProfileContextCache contextCache, String profileId) {

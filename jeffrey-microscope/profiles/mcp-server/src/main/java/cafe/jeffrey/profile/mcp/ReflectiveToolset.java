@@ -55,8 +55,22 @@ public final class ReflectiveToolset implements McpToolProvider {
      *                        which is why the exclusion happens here rather than in the tool.
      */
     public ReflectiveToolset(Object target, String prefix, Set<String> excludedMethods) {
+        this(target, prefix, excludedMethods, McpToolAnnotations.READ_ONLY);
+    }
+
+    /**
+     * @param defaultAnnotations what this family does to the world. Read-only is the right default for
+     *                           almost every Jeffrey family; one that writes says so here, and a single
+     *                           method that differs from its neighbours says so with {@link McpToolHints}.
+     */
+    public ReflectiveToolset(
+            Object target,
+            String prefix,
+            Set<String> excludedMethods,
+            McpToolAnnotations defaultAnnotations) {
         this.target = target;
-        this.index = new ToolMethodIndex(target.getClass(), prefix, List.of(), excludedMethods);
+        this.index = new ToolMethodIndex(
+                target.getClass(), prefix, List.of(), excludedMethods, defaultAnnotations);
     }
 
     @Override

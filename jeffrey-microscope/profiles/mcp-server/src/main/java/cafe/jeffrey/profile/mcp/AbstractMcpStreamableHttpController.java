@@ -26,6 +26,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -44,6 +45,13 @@ public abstract class AbstractMcpStreamableHttpController {
 
     private static final String JSONRPC_VERSION = "2.0";
     private static final String DEFAULT_PROTOCOL_VERSION = "2025-06-18";
+
+    /**
+     * The revisions this server implements. The envelope has not changed across them in any way Jeffrey
+     * uses, so an older client is served as it asks; anything else is answered with the default.
+     */
+    private static final Set<String> SUPPORTED_PROTOCOL_VERSIONS =
+            Set.of("2024-11-05", "2025-03-26", DEFAULT_PROTOCOL_VERSION);
     private static final String SERVER_NAME = "jeffrey";
     private static final String SERVER_VERSION = "1.0.0";
 
@@ -91,7 +99,11 @@ public abstract class AbstractMcpStreamableHttpController {
 
     private JsonNode initializeResult(JsonNode id, JsonNode request) {
         String requestedProtocol = request.path("params").path("protocolVersion").asString();
-        String protocolVersion = requestedProtocol.isEmpty() ? DEFAULT_PROTOCOL_VERSION : requestedProtocol;
+        // Agreeing to whatever the client names is not negotiation — it promises a version this server
+        // may not speak. An unrecognised one is answered with what it does speak, and the client decides.
+        String protocolVersion = SUPPORTED_PROTOCOL_VERSIONS.contains(requestedProtocol)
+                ? requestedProtocol
+                : DEFAULT_PROTOCOL_VERSION;
         ObjectNode result = Json.createObject();
         result.put("protocolVersion", protocolVersion);
         result.putObject("capabilities").putObject("tools").put("listChanged", false);
@@ -109,6 +121,11 @@ public abstract class AbstractMcpStreamableHttpController {
             tool.put("name", spec.name());
             tool.put("description", spec.description());
             tool.set("inputSchema", spec.inputSchema());
+            ObjectNode annotations = tool.putObject("annotations");
+            annotations.put("readOnlyHint", spec.annotations().readOnly());
+            annotations.put("destructiveHint", spec.annotations().destructive());
+            annotations.put("idempotentHint", spec.annotations().idempotent());
+            annotations.put("openWorldHint", spec.annotations().openWorld());
         }
         return success(id, result);
     }

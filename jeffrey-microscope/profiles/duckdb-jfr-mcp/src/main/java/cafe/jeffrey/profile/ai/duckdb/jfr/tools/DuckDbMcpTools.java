@@ -87,7 +87,7 @@ public class DuckDbMcpTools {
     @Tool(description = "Get the schema of a specific table including column names, types, and nullability. " +
             "Use this before querying to understand the table structure.")
     public String describeTable(
-            @ToolParam(description = "Name of the table to describe (e.g., 'events', 'threads', 'frames')")
+            @ToolParam(required = true, description = "Name of the table to describe (e.g., 'events', 'threads', 'frames')")
             String tableName) {
         if (tableName == null || tableName.isBlank()) {
             return "Error: Table name is required";
@@ -134,7 +134,7 @@ public class DuckDbMcpTools {
             "IMPORTANT: When using aggregate functions (COUNT, SUM, AVG, MIN, MAX), all non-aggregated columns " +
             "in the SELECT must appear in the GROUP BY clause.")
     public String executeQuery(
-            @ToolParam(description = "SQL SELECT query to execute. Must be a read-only query.")
+            @ToolParam(required = true, description = "SQL SELECT query to execute. Must be a read-only query.")
             String query) {
         if (query == null || query.isBlank()) {
             return "Error: Query is required";
@@ -243,11 +243,11 @@ public class DuckDbMcpTools {
     @Tool(description = "Query JFR events by type with optional filtering. Returns event data including timestamps, " +
             "durations, samples, and JSON fields. Use jfr_listEventTypes first to see available event types.")
     public String queryEvents(
-            @ToolParam(description = "JFR event type name (e.g., 'jdk.ExecutionSample', 'jdk.GCPhasePause')")
+            @ToolParam(required = true, description = "JFR event type name (e.g., 'jdk.ExecutionSample', 'jdk.GCPhasePause')")
             String eventType,
-            @ToolParam(description = "Maximum number of events to return (default: 100, max: " + MAX_ROWS + ")")
+            @ToolParam(required = false, description = "Maximum number of events to return (default: 100, max: " + MAX_ROWS + ")")
             Integer limit,
-            @ToolParam(description = "Optional SQL WHERE clause for filtering (without 'WHERE' keyword). " +
+            @ToolParam(required = false, description = "Optional SQL WHERE clause for filtering (without 'WHERE' keyword). " +
                     "Use column names exactly as they exist in the events table (e.g., 'duration', NOT 'duration_ns'). " +
                     "The duration column stores nanoseconds as BIGINT.")
             String whereClause) {
@@ -348,7 +348,7 @@ public class DuckDbMcpTools {
             "This tool is only available when modification mode is explicitly enabled by the user. " +
             "A WHERE clause is required to prevent accidental full-table modifications.")
     public String executeModification(
-            @ToolParam(description = "SQL UPDATE or DELETE query. Must include a WHERE clause for safety.")
+            @ToolParam(required = false, description = "SQL UPDATE or DELETE query. Must include a WHERE clause for safety.")
             String query) {
 
         if (!canModify) {

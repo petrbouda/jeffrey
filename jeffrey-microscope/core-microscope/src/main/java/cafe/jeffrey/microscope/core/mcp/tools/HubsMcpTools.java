@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.server.HubManager;
@@ -160,22 +161,23 @@ public class HubsMcpTools {
             + "column says a session has already been pulled into this Jeffrey, so it can be analysed "
             + "without downloading it again.")
     public String sessions(
-            @ToolParam(description = "Optional hub filter: a hub id, or part of a hub name as "
+            @ToolParam(required = false, description = "Optional hub filter: a hub id, or part of a hub name as "
                     + "hubs_list prints it, e.g. production. Omit to search every hub")
             String hub,
-            @ToolParam(description = "Optional filter on part of a workspace name or its reference id")
+            @ToolParam(required = false, description = "Optional filter on part of a workspace name or its reference id")
             String workspace,
-            @ToolParam(description = "Optional filter on part of a project name or label, e.g. checkout")
+            @ToolParam(required = false, description = "Optional filter on part of a project name or label, e.g. checkout")
             String project,
-            @ToolParam(description = "Only sessions that were recording at some point within the last "
+            @ToolParam(required = false, description = "Only sessions that were recording at some point within the last "
                     + "N minutes - 60 for the last hour, 1440 for the last day. This is an overlap, "
                     + "not a start time: a JVM that began recording three hours ago and is still "
                     + "running does match a 60-minute window")
             Integer withinLastMinutes,
-            @ToolParam(description = "Only sessions in this status: ACTIVE for one still recording, "
+            @ToolParam(required = false, description = "Only sessions in this status: ACTIVE for one still recording, "
                     + "FINISHED for one that has stopped. Omit for both")
+            @ToolParamValues({"ACTIVE", "FINISHED"})
             String status,
-            @ToolParam(description = "Most rows to return across all hubs. Default 50, maximum 500")
+            @ToolParam(required = false, description = "Most rows to return across all hubs. Default 50, maximum 500")
             Integer limit) {
 
         int rowLimit = boundedLimit(limit);
@@ -220,7 +222,7 @@ public class HubsMcpTools {
             + "acknowledgement. A session already downloaded is returned as it is rather than fetched "
             + "twice.")
     public String download(
-            @ToolParam(description = "The session_ref from a hubs_sessions row, copied exactly")
+            @ToolParam(required = true, description = "The session_ref from a hubs_sessions row, copied exactly")
             String sessionRef) {
 
         HubSessionRef ref = HubSessionRef.decode(sessionRef);

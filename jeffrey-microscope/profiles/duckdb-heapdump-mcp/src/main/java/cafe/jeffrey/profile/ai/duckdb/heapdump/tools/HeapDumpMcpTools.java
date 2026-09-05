@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
+import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.profile.heapdump.model.*;
 import cafe.jeffrey.shared.common.BytesUtils;
 
@@ -80,9 +81,10 @@ public class HeapDumpMcpTools {
     @Tool(description = "Get class histogram showing top classes by memory usage or instance count. " +
             "Returns class name, instance count, and total size for each class.")
     public String getClassHistogram(
-            @ToolParam(description = "Number of top classes to return (default: 50, max: 200)")
+            @ToolParam(required = false, description = "Number of top classes to return (default: 50, max: 200)")
             Integer topN,
-            @ToolParam(description = "Sort criteria: SIZE (default) or COUNT")
+            @ToolParam(required = false, description = "Sort criteria: SIZE (default) or COUNT")
+            @ToolParamValues({"SIZE", "COUNT"})
             String sortBy) {
         try {
             int effectiveTopN = topN != null ? Math.min(Math.max(1, topN), 200) : 50;
@@ -119,7 +121,7 @@ public class HeapDumpMcpTools {
             "This helps identify which single objects hold the most memory. " +
             "Note: This analysis may need to be run first if results don't exist yet.")
     public String getBiggestObjects(
-            @ToolParam(description = "Number of biggest objects to return (default: 20, max: 50)")
+            @ToolParam(required = false, description = "Number of biggest objects to return (default: 20, max: 50)")
             Integer topN) {
         try {
             int effectiveTopN = topN != null ? Math.min(Math.max(1, topN), 50) : 20;
@@ -442,11 +444,11 @@ public class HeapDumpMcpTools {
     @Tool(description = "Browse instances of a specific class. Returns a paginated list of instances " +
             "with their object IDs and shallow sizes. Use this to explore specific classes found in the histogram.")
     public String browseClassInstances(
-            @ToolParam(description = "Fully qualified class name (e.g., 'java.lang.String', 'java.util.HashMap')")
+            @ToolParam(required = true, description = "Fully qualified class name (e.g., 'java.lang.String', 'java.util.HashMap')")
             String className,
-            @ToolParam(description = "Maximum number of instances to return (default: 20, max: 50)")
+            @ToolParam(required = false, description = "Maximum number of instances to return (default: 20, max: 50)")
             Integer limit,
-            @ToolParam(description = "Offset for pagination (default: 0)")
+            @ToolParam(required = false, description = "Offset for pagination (default: 0)")
             Integer offset) {
         try {
             if (className == null || className.isBlank()) {
@@ -488,10 +490,10 @@ public class HeapDumpMcpTools {
     @Tool(description = "Get detailed information about a specific object instance including all its fields and values. " +
             "Use this to inspect individual objects found via class instance browsing or other analyses.")
     public String getInstanceDetail(
-            @ToolParam(description = "The object ID of the instance to inspect")
-            long objectId) {
+            @ToolParam(required = true, description = "The object ID of the instance to inspect")
+            Long objectId) {
         try {
-            InstanceDetail detail = delegate.getInstanceDetail(objectId, false);
+            InstanceDetail detail = delegate.getInstanceDetail(requireObjectId(objectId), false);
             if (detail == null) {
                 return "Error: Instance not found for object ID: " + objectId;
             }
@@ -528,7 +530,7 @@ public class HeapDumpMcpTools {
     @Tool(description = "Get the dominator tree roots - the objects with the largest retained size in the heap. " +
             "The dominator tree shows which objects are responsible for keeping other objects alive.")
     public String getDominatorTreeRoots(
-            @ToolParam(description = "Maximum number of root entries to return (default: 20, max: 50)")
+            @ToolParam(required = false, description = "Maximum number of root entries to return (default: 20, max: 50)")
             Integer limit) {
         try {
             int effectiveLimit = limit != null ? Math.min(Math.max(1, limit), 50) : 20;
@@ -562,14 +564,14 @@ public class HeapDumpMcpTools {
     @Tool(description = "Get children of a dominator tree node - objects retained by the given object. " +
             "Use this to drill down into the dominator tree from a root entry.")
     public String getDominatorTreeChildren(
-            @ToolParam(description = "Object ID of the parent node in the dominator tree")
-            long objectId,
-            @ToolParam(description = "Maximum number of children to return (default: 20, max: 50)")
+            @ToolParam(required = true, description = "Object ID of the parent node in the dominator tree")
+            Long objectId,
+            @ToolParam(required = false, description = "Maximum number of children to return (default: 20, max: 50)")
             Integer limit) {
         try {
             int effectiveLimit = limit != null ? Math.min(Math.max(1, limit), 50) : 20;
 
-            DominatorTreeResponse response = delegate.getDominatorTreeChildren(objectId, effectiveLimit);
+            DominatorTreeResponse response = delegate.getDominatorTreeChildren(requireObjectId(objectId), effectiveLimit);
 
             StringBuilder result = new StringBuilder();
             result.append("Dominator Tree Children of Object ID ").append(objectId).append(":\n\n");
@@ -599,14 +601,14 @@ public class HeapDumpMcpTools {
             "This shows why an object is kept alive and cannot be garbage collected. " +
             "Essential for memory leak analysis.")
     public String getPathToGCRoot(
-            @ToolParam(description = "Object ID of the target object")
-            long objectId,
-            @ToolParam(description = "Maximum number of paths to return (default: 3, max: 5)")
+            @ToolParam(required = true, description = "Object ID of the target object")
+            Long objectId,
+            @ToolParam(required = false, description = "Maximum number of paths to return (default: 3, max: 5)")
             Integer maxPaths) {
         try {
             int effectiveMaxPaths = maxPaths != null ? Math.min(Math.max(1, maxPaths), 5) : 3;
 
-            List<GCRootPath> paths = delegate.getPathsToGCRoot(objectId, true, effectiveMaxPaths);
+            List<GCRootPath> paths = delegate.getPathsToGCRoot(requireObjectId(objectId), true, effectiveMaxPaths);
 
             if (paths.isEmpty()) {
                 return "No paths to GC root found for object ID: " + objectId;
@@ -648,14 +650,14 @@ public class HeapDumpMcpTools {
     @Tool(description = "Get objects that reference a given object (referrers/incoming references). " +
             "Use this to understand what keeps an object alive.")
     public String getReferrers(
-            @ToolParam(description = "Object ID to find referrers for")
-            long objectId,
-            @ToolParam(description = "Maximum number of referrers to return (default: 20, max: 50)")
+            @ToolParam(required = true, description = "Object ID to find referrers for")
+            Long objectId,
+            @ToolParam(required = false, description = "Maximum number of referrers to return (default: 20, max: 50)")
             Integer limit) {
         try {
             int effectiveLimit = limit != null ? Math.min(Math.max(1, limit), 50) : 20;
 
-            InstanceTreeResponse response = delegate.getReferrers(objectId, effectiveLimit, 0);
+            InstanceTreeResponse response = delegate.getReferrers(requireObjectId(objectId), effectiveLimit, 0);
 
             StringBuilder result = new StringBuilder();
             result.append("Referrers of Object ID ").append(objectId).append(":\n\n");
@@ -714,7 +716,7 @@ public class HeapDumpMcpTools {
             + "(3) The retained_size table is populated only after the dominator tree has been built; LEFT JOIN it and "
             + "expect NULLs on heaps where dominator-tree analysis hasn't run yet.")
     public String describeTable(
-            @ToolParam(description = "Name of the table to describe (e.g. 'instance', 'class', 'outbound_ref')")
+            @ToolParam(required = true, description = "Name of the table to describe (e.g. 'instance', 'class', 'outbound_ref')")
             String tableName) {
         if (tableName == null || tableName.isBlank()) {
             return "Error: Table name is required";
@@ -751,7 +753,7 @@ public class HeapDumpMcpTools {
             + "(3) use `outbound_ref` (source_id, target_id, field_kind, field_id) to walk the reference graph; "
             + "(4) class.name uses dot-notation (e.g. 'java.util.HashMap').")
     public String executeQuery(
-            @ToolParam(description = "DuckDB SQL query (SELECT or WITH) to run against the heap-dump index. "
+            @ToolParam(required = true, description = "DuckDB SQL query (SELECT or WITH) to run against the heap-dump index. "
                     + "Add an explicit LIMIT to control how much you fetch; an implicit 100-row cap is applied otherwise.")
             String query) {
         if (query == null || query.isBlank()) {
@@ -832,4 +834,20 @@ public class HeapDumpMcpTools {
     private static final String STEP_INSTANCES =
             "heap_browseClassInstances lists the individual instances of a class, and "
                     + "heap_getInstanceDetail opens one of them.";
+
+    /**
+     * An object id the caller actually supplied.
+     * <p>
+     * The delegate takes a primitive, so an absent id would unbox to zero and quietly inspect whichever
+     * object happens to be numbered nought rather than saying that nothing was asked for.
+     */
+    private static long requireObjectId(Long objectId) {
+        if (objectId == null) {
+            throw new IllegalArgumentException(
+                    "objectId is required. Object ids come from heap_getClassHistogram, "
+                            + "heap_browseClassInstances or heap_getDominatorTreeRoots.");
+        }
+        return objectId;
+    }
+
 }

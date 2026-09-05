@@ -80,12 +80,12 @@ public class RecordingsMcpTools {
             + "Each call imports the file again and builds another profile - call recordings_list "
             + "first if the same file may already be analysed.")
     public String analyzeFile(
-            @ToolParam(description = "Absolute path of the recording file to import, e.g. "
+            @ToolParam(required = true, description = "Absolute path of the recording file to import, e.g. "
                     + "/home/dev/project/target/app.jfr. A leading ~ is expanded. Relative paths are "
                     + "rejected because they would resolve against Jeffrey's working directory, not "
                     + "the caller's")
             String path,
-            @ToolParam(description = "Optional name for the profile. Defaults to the file name")
+            @ToolParam(required = false, description = "Optional name for the profile. Defaults to the file name")
             String name) {
 
         Path recordingPath = validatedPath(path);
@@ -100,7 +100,7 @@ public class RecordingsMcpTools {
             + "profile_id empty. Returns the profile id every other tool takes. A recording that "
             + "already has a profile is returned as it is rather than analysed twice.")
     public String analyzeRecording(
-            @ToolParam(description = "Recording id, as returned by recordings_list")
+            @ToolParam(required = true, description = "Recording id, as returned by recordings_list")
             String recordingId) {
 
         if (recordingId == null || recordingId.isBlank()) {

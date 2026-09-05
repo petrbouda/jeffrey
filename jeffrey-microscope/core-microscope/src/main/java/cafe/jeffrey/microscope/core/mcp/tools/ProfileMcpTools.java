@@ -177,7 +177,7 @@ public class ProfileMcpTools {
             + "URL is for them, not for you: it carries nothing you can analyse and reading it back "
             + "tells you nothing, so call this to end an explanation, not to gather information.")
     public String viewLink(
-            @ToolParam(description = "Which view to open. One of: dashboard, auto-analysis, overview, "
+            @ToolParam(required = false, description = "Which view to open. One of: dashboard, auto-analysis, overview, "
                     + "event-types, flags, garbage-collection, garbage-collection/timeseries, "
                     + "garbage-collection/configuration, allocations, nmt, native-memory, "
                     + "memory-issues/leak-candidates, thread-statistics, threads-timeline, "
@@ -186,7 +186,7 @@ public class ProfileMcpTools {
                     + "file-io, heap-dump/leak-suspects, heap-dump/biggest-objects, "
                     + "heap-dump/dominator-tree, heap-dump/histogram, heap-dump/gc-root-path")
             String view,
-            @ToolParam(description = "Object id to preselect. Only meaningful for "
+            @ToolParam(required = false, description = "Object id to preselect. Only meaningful for "
                     + "heap-dump/gc-root-path, where it runs the path-to-GC-root search for that "
                     + "object; ignored by every other view.")
             String objectId) {

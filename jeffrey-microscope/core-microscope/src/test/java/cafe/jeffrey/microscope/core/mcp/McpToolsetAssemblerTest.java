@@ -45,6 +45,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -81,6 +82,10 @@ class McpToolsetAssemblerTest {
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-03-01T12:00:00Z"), ZoneOffset.UTC);
 
     private McpToolsetAssembler assembler(boolean ingestEnabled, boolean hubsEnabled) {
+        return assembler(new ExternalMcpProperties(true, ingestEnabled, hubsEnabled, true, Set.of(), ""));
+    }
+
+    private McpToolsetAssembler assembler(ExternalMcpProperties properties) {
         return new McpToolsetAssembler(
                 new ProfilesMcpTools(coreRepositories),
                 new RecordingsMcpTools(recordingsManager),
@@ -89,7 +94,7 @@ class McpToolsetAssemblerTest {
                 jfrPanelProvider,
                 stackSamplePanelProvider,
                 recordingCommitResolver,
-                new ExternalMcpProperties(true, ingestEnabled, hubsEnabled));
+                properties);
     }
 
     private List<String> toolNames(boolean ingestEnabled, boolean hubsEnabled) {
@@ -317,4 +322,33 @@ class McpToolsetAssemblerTest {
             assertTrue(undescribed.isEmpty(), "Tools without a description: " + undescribed);
         }
     }
+
+    @Nested
+    class FamilyFilter {
+
+        /**
+         * A client that pays for every schema on every turn can be given only what it uses.
+         */
+        @Test
+        void advertisesOnlyTheNamedFamilies() {
+            McpToolsetAssembler assembler = assembler(new ExternalMcpProperties(
+                    true, true, true, true, Set.of("profiles", "flamegraph"), ""));
+
+            Set<String> prefixes = assembler.toolset().specs().stream()
+                    .map(spec -> spec.name().substring(0, spec.name().indexOf('_')))
+                    .collect(Collectors.toUnmodifiableSet());
+
+            assertEquals(Set.of("profiles", "flamegraph"), prefixes);
+        }
+
+        @Test
+        void anEmptyFilterKeepsEverything() {
+            McpToolsetAssembler filtered = assembler(
+                    new ExternalMcpProperties(true, true, true, true, Set.of(), ""));
+
+            assertEquals(assembler(true, true).toolset().specs().size(),
+                    filtered.toolset().specs().size());
+        }
+    }
+
 }

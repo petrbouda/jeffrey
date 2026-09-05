@@ -15,22 +15,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package cafe.jeffrey.profile.mcp;
 
 import tools.jackson.databind.node.ObjectNode;
 
 /**
- * The {@code tools/list} description of a single MCP tool: its name, human-readable description, and
- * JSON-Schema input definition.
+ * The {@code tools/list} description of a single MCP tool: its name, human-readable description,
+ * JSON-Schema input definition, and the behavioural hints a client shows before approving a call.
  *
  * @param name        the tool name as seen by the model ({@code mcp__<server>__<name>})
  * @param description the tool description
  * @param inputSchema the JSON-Schema object describing the tool's arguments
+ * @param annotations what the tool does to the world — read-only unless it says otherwise
  */
 public record McpToolSpec(
         String name,
         String description,
-        ObjectNode inputSchema
+        ObjectNode inputSchema,
+        McpToolAnnotations annotations
 ) {
 }

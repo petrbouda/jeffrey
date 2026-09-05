@@ -98,7 +98,7 @@ public class TraceAttributesMcpTools {
             + "distinct values and traces it covers. Call this first: a key is identified by the "
             + "triple (source, owner, key), and the other tools in this family take all three.")
     public String attributeKeys(
-            @ToolParam(description = "Optional event type to restrict the keys to, e.g. "
+            @ToolParam(required = false, description = "Optional event type to restrict the keys to, e.g. "
                     + "'jeffrey.HttpServerExchange'. Omit for every key in the profile.")
             String eventType) {
 
@@ -123,22 +123,22 @@ public class TraceAttributesMcpTools {
             + "do not sum to the profile's total, because a trace whose spans recorded two values "
             + "counts under both.")
     public String attributeValues(
-            @ToolParam(description = "The attribute key name, from traces_attributeKeys")
+            @ToolParam(required = true, description = "The attribute key name, from traces_attributeKeys")
             String key,
-            @ToolParam(description = "Where the key comes from, as traces_attributeKeys reported it: "
+            @ToolParam(required = false, description = "Where the key comes from, as traces_attributeKeys reported it: "
                     + "ATTRIBUTE (the default), EVENT_FIELD, SPAN_SHAPE, NOTIFICATION_ATTRIBUTE or "
                     + "NOTIFICATION_SHAPE")
             String source,
-            @ToolParam(description = "The owner from traces_attributeKeys - for an EVENT_FIELD this is "
+            @ToolParam(required = false, description = "The owner from traces_attributeKeys - for an EVENT_FIELD this is "
                     + "the event type declaring it, and it is required there. Omit when the key row "
                     + "showed none.")
             String owner,
-            @ToolParam(description = "Optional event type to restrict to")
+            @ToolParam(required = false, description = "Optional event type to restrict to")
             String eventType,
-            @ToolParam(description = "Order by one of: TOTAL_TIME (default), TRACES, P50, P95, MAX, "
+            @ToolParam(required = false, description = "Order by one of: TOTAL_TIME (default), TRACES, P50, P95, MAX, "
                     + "ERRORS, VALUE")
             String sort,
-            @ToolParam(description = "Maximum number of values to return (default 25, maximum 200)")
+            @ToolParam(required = false, description = "Maximum number of values to return (default 25, maximum 200)")
             Integer limit) {
 
         TraceAttributeValueQuery query = new TraceAttributeValueQuery(
@@ -168,22 +168,22 @@ public class TraceAttributesMcpTools {
             + "traces_traceExport. Use traces_attributeValues first to see which value is worth "
             + "chasing - this returns traces, not a comparison between populations.")
     public String attributeSearch(
-            @ToolParam(description = "The attribute key name, from traces_attributeKeys")
+            @ToolParam(required = true, description = "The attribute key name, from traces_attributeKeys")
             String key,
-            @ToolParam(description = "How to match: EQ (the default), NOT_EQ, CONTAINS, GT, GTE, LT, "
+            @ToolParam(required = true, description = "How to match: EQ (the default), NOT_EQ, CONTAINS, GT, GTE, LT, "
                     + "LTE, or EXISTS for 'carried the key at all'")
             String operator,
-            @ToolParam(description = "The value to match. Not needed for EXISTS.")
+            @ToolParam(required = false, description = "The value to match. Not needed for EXISTS.")
             String value,
-            @ToolParam(description = "Key source as traces_attributeKeys reported it: ATTRIBUTE (the "
+            @ToolParam(required = false, description = "Key source as traces_attributeKeys reported it: ATTRIBUTE (the "
                     + "default), EVENT_FIELD, SPAN_SHAPE, NOTIFICATION_ATTRIBUTE, NOTIFICATION_SHAPE")
             String source,
-            @ToolParam(description = "Key owner, required for an EVENT_FIELD")
+            @ToolParam(required = false, description = "Key owner, required for an EVENT_FIELD")
             String owner,
-            @ToolParam(description = "TRACE (the default) matches when any span of the trace satisfies "
+            @ToolParam(required = false, description = "TRACE (the default) matches when any span of the trace satisfies "
                     + "the condition; SPAN requires one single span to satisfy it")
             String scope,
-            @ToolParam(description = "Maximum number of traces to return (default 25, maximum 200)")
+            @ToolParam(required = false, description = "Maximum number of traces to return (default 25, maximum 200)")
             Integer limit) {
 
         TraceAttributeCondition condition = new TraceAttributeCondition(

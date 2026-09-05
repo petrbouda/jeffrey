@@ -25,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
@@ -32,6 +33,8 @@ import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+
+import java.util.Set;
 
 @ExtendWith(MockitoExtension.class)
 class ExternalMcpControllerTest {
@@ -52,8 +55,16 @@ class ExternalMcpControllerTest {
     @Mock
     McpToolsetAssembler assembler;
 
+    private MockMvcTester mvcWith(ExternalMcpProperties properties) {
+        return mockMvcTesterFor(new ExternalMcpController(
+                assembler, properties, new McpRequestGuard(properties.token())));
+    }
+
     private MockMvcTester mvcWith(boolean enabled) {
-        return mockMvcTesterFor(new ExternalMcpController(assembler, new ExternalMcpProperties(enabled, true, true)));
+        return mockMvcTesterFor(new ExternalMcpController(
+                assembler,
+                new ExternalMcpProperties(enabled, true, true, true, Set.of(), ""),
+                new McpRequestGuard("")));
     }
 
     @Nested
@@ -136,7 +147,7 @@ class ExternalMcpControllerTest {
         @Test
         void rejectsAnUnknownMethod() {
             String unknown = """
-                    {"jsonrpc":"2.0","id":5,"method":"resources/list"}""";
+                    {"jsonrpc":"2.0","id":5,"method":"completion/complete"}""";
 
             assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(unknown))
                     .hasStatusOk()
@@ -155,6 +166,79 @@ class ExternalMcpControllerTest {
 
             assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(notification))
                     .hasStatus(202);
+        }
+    }
+
+    @Nested
+    class Guarding {
+
+        /**
+         * A CLI client sends no Origin at all, which is what makes refusing a foreign one free.
+         */
+        @Test
+        void servesARequestThatCarriesNoOrigin() {
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(INITIALIZE))
+                    .hasStatusOk();
+        }
+
+        @Test
+        void refusesARequestFromAForeignOrigin() {
+            assertThat(mvcWith(true).post().uri(URI)
+                    .header("Origin", "http://evil.example")
+                    .contentType(APPLICATION_JSON).content(INITIALIZE))
+                    .hasStatus(HttpStatus.FORBIDDEN);
+        }
+
+        @Test
+        void refusesARequestWithoutTheConfiguredToken() {
+            ExternalMcpProperties guarded =
+                    new ExternalMcpProperties(true, true, true, true, Set.of(), "s3cret");
+
+            assertThat(mvcWith(guarded).post().uri(URI).contentType(APPLICATION_JSON).content(INITIALIZE))
+                    .hasStatus(HttpStatus.FORBIDDEN);
+        }
+
+        @Test
+        void servesARequestCarryingTheConfiguredToken() {
+            ExternalMcpProperties guarded =
+                    new ExternalMcpProperties(true, true, true, true, Set.of(), "s3cret");
+
+            assertThat(mvcWith(guarded).post().uri(URI)
+                    .header("Authorization", "Bearer s3cret")
+                    .contentType(APPLICATION_JSON).content(INITIALIZE))
+                    .hasStatusOk();
+        }
+    }
+
+    @Nested
+    class ProtocolVersion {
+
+        /**
+         * Echoing a version the server may not speak promises something it cannot keep, so an
+         * unrecognised one is answered with what this server does implement.
+         */
+        @Test
+        void answersAnUnknownProtocolVersionWithTheOneItSpeaks() {
+            String future = """
+                    {"jsonrpc":"2.0","id":1,"method":"initialize",
+                     "params":{"protocolVersion":"2099-01-01","capabilities":{}}}""";
+
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(future))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.result.protocolVersion").asString().isEqualTo("2025-06-18");
+        }
+
+        @Test
+        void keepsAnOlderVersionItStillSpeaks() {
+            String older = """
+                    {"jsonrpc":"2.0","id":1,"method":"initialize",
+                     "params":{"protocolVersion":"2024-11-05","capabilities":{}}}""";
+
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(older))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.result.protocolVersion").asString().isEqualTo("2024-11-05");
         }
     }
 

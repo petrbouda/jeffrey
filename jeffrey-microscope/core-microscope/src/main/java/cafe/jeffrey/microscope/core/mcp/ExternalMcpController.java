@@ -19,6 +19,8 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.profile.mcp.AbstractMcpStreamableHttpController;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -52,16 +54,27 @@ public class ExternalMcpController extends AbstractMcpStreamableHttpController {
 
     private final McpToolsetAssembler assembler;
     private final ExternalMcpProperties properties;
+    private final McpRequestGuard guard;
 
-    public ExternalMcpController(McpToolsetAssembler assembler, ExternalMcpProperties properties) {
+    public ExternalMcpController(
+            McpToolsetAssembler assembler,
+            ExternalMcpProperties properties,
+            McpRequestGuard guard) {
         this.assembler = assembler;
         this.properties = properties;
+        this.guard = guard;
     }
 
     @PostMapping
-    public ResponseEntity<JsonNode> handle(@RequestBody JsonNode request) {
+    public ResponseEntity<JsonNode> handle(
+            @RequestBody JsonNode request,
+            HttpServletRequest httpRequest) {
         if (!properties.enabled()) {
             return ResponseEntity.notFound().build();
+        }
+        String refusal = guard.refusalReason(httpRequest);
+        if (refusal != null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return dispatch(request, assembler::toolset);
     }

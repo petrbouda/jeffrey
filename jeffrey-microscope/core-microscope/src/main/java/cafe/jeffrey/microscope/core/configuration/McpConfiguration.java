@@ -21,6 +21,7 @@ package cafe.jeffrey.microscope.core.configuration;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.ExternalMcpProperties;
+import cafe.jeffrey.microscope.core.mcp.McpRequestGuard;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
 import cafe.jeffrey.microscope.core.mcp.McpToolsetAssembler;
 import cafe.jeffrey.microscope.core.manager.server.HubsManager;
@@ -38,6 +39,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Clock;
+import java.util.Set;
 
 /**
  * Wiring for the external MCP server — the endpoint an interactive Claude Code session connects to.
@@ -59,13 +61,34 @@ public class McpConfiguration {
      * @param hubsEnabled   whether it advertises the {@code hubs_} family, from
      *                      {@code jeffrey.microscope.mcp.hubs.enabled}. Its own switch because
      *                      reaching a remote hub is a larger permission than opening a local file
+     * @param computeEnabled whether it advertises the tools that build an index, a dominator tree or a
+     *                      cached report before answering, from
+     *                      {@code jeffrey.microscope.mcp.compute.enabled}. They read like their
+     *                      neighbours but cost minutes of CPU and a large heap, so a shared installation
+     *                      can withhold them
+     * @param families      the families to advertise, from {@code jeffrey.microscope.mcp.families};
+     *                      empty means all of them
+     * @param token         a bearer token the endpoint requires, from
+     *                      {@code jeffrey.microscope.mcp.token}; empty means none
      */
     @Bean
     public ExternalMcpProperties externalMcpProperties(
             @Value("${jeffrey.microscope.mcp.enabled:true}") boolean enabled,
             @Value("${jeffrey.microscope.mcp.ingest.enabled:true}") boolean ingestEnabled,
-            @Value("${jeffrey.microscope.mcp.hubs.enabled:true}") boolean hubsEnabled) {
-        return new ExternalMcpProperties(enabled, ingestEnabled, hubsEnabled);
+            @Value("${jeffrey.microscope.mcp.hubs.enabled:true}") boolean hubsEnabled,
+            @Value("${jeffrey.microscope.mcp.compute.enabled:true}") boolean computeEnabled,
+            @Value("${jeffrey.microscope.mcp.families:}") Set<String> families,
+            @Value("${jeffrey.microscope.mcp.token:}") String token) {
+        return new ExternalMcpProperties(
+                enabled, ingestEnabled, hubsEnabled, computeEnabled, families, token);
+    }
+
+    /**
+     * The origin and token checks the external endpoint applies before it serves anything.
+     */
+    @Bean
+    public McpRequestGuard mcpRequestGuard(ExternalMcpProperties properties) {
+        return new McpRequestGuard(properties.token());
     }
 
     /**

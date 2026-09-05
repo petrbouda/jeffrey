@@ -54,9 +54,9 @@ public class ProfilesMcpTools {
             + "other tool takes one of the profile ids this returns. A profile is one analysed "
             + "recording (JFR) or heap dump.")
     public String list(
-            @ToolParam(description = "Optional case-insensitive substring matched against the profile name")
+            @ToolParam(required = false, description = "Optional case-insensitive substring matched against the profile name")
             String search,
-            @ToolParam(description = "Maximum number of profiles to return (default 100)")
+            @ToolParam(required = false, description = "Maximum number of profiles to return (default 100)")
             Integer limit) {
 
         List<ProfileInfo> profiles = coreRepositories.findAllProfiles().stream()

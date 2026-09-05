@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.manager.ProfileManager;
@@ -73,7 +74,8 @@ public class IoMcpTools {
             + "to, and how slow is it'. Time spent waiting here never appears in a CPU flamegraph, "
             + "because a blocked thread produces no samples.")
     public String overview(
-            @ToolParam(description = "Which I/O to report: 'SOCKET' for network, 'FILE' for disk")
+            @ToolParam(required = true, description = "Which I/O to report: 'SOCKET' for network, 'FILE' for disk")
+            @ToolParamValues({"SOCKET", "FILE"})
             String kind) {
 
         IoKind ioKind = requireKind(kind);
@@ -97,7 +99,8 @@ public class IoMcpTools {
             + "hosts and ports, for files the paths, each with its operation count, bytes and total "
             + "and maximum time. Use it after io_overview to see which endpoint the time went to.")
     public String endpoints(
-            @ToolParam(description = "Which I/O to report: 'SOCKET' for network, 'FILE' for disk")
+            @ToolParam(required = true, description = "Which I/O to report: 'SOCKET' for network, 'FILE' for disk")
+            @ToolParamValues({"SOCKET", "FILE"})
             String kind) {
 
         IoKind ioKind = requireKind(kind);
@@ -117,7 +120,8 @@ public class IoMcpTools {
             + "and the thread that waited. A single pathological operation and a uniformly slow "
             + "endpoint look identical in the totals and different here.")
     public String slowest(
-            @ToolParam(description = "Which I/O to report: 'SOCKET' for network, 'FILE' for disk")
+            @ToolParam(required = true, description = "Which I/O to report: 'SOCKET' for network, 'FILE' for disk")
+            @ToolParamValues({"SOCKET", "FILE"})
             String kind) {
 
         IoKind ioKind = requireKind(kind);

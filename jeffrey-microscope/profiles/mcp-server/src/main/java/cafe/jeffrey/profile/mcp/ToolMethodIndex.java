@@ -27,10 +27,12 @@ import tools.jackson.databind.node.ObjectNode;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Indexes the {@link Tool}-annotated methods of a class into MCP tool specs, and binds JSON arguments
@@ -51,6 +53,7 @@ final class ToolMethodIndex {
     private static final String SCHEMA_PROPERTIES = "properties";
     private static final String SCHEMA_REQUIRED = "required";
     private static final String SCHEMA_DESCRIPTION = "description";
+    private static final String SCHEMA_ENUM = "enum";
 
     private static final String JSON_TYPE_OBJECT = "object";
     private static final String JSON_TYPE_STRING = "string";
@@ -69,7 +72,7 @@ final class ToolMethodIndex {
      *                         omits one cannot be served at all
      */
     ToolMethodIndex(Class<?> targetType, String prefix, List<SyntheticParam> syntheticParams) {
-        this(targetType, prefix, syntheticParams, Set.of());
+        this(targetType, prefix, syntheticParams, Set.of(), McpToolAnnotations.READ_ONLY);
     }
 
     /**
@@ -82,6 +85,19 @@ final class ToolMethodIndex {
             String prefix,
             List<SyntheticParam> syntheticParams,
             Set<String> excludedMethods) {
+        this(targetType, prefix, syntheticParams, excludedMethods, McpToolAnnotations.READ_ONLY);
+    }
+
+    /**
+     * @param defaultAnnotations what the tools of this family do to the world, for the ones that do not
+     *                           declare it themselves with {@link McpToolHints}
+     */
+    ToolMethodIndex(
+            Class<?> targetType,
+            String prefix,
+            List<SyntheticParam> syntheticParams,
+            Set<String> excludedMethods,
+            McpToolAnnotations defaultAnnotations) {
         for (Method method : targetType.getMethods()) {
             Tool tool = method.getAnnotation(Tool.class);
             if (tool == null || excludedMethods.contains(method.getName())) {
@@ -89,8 +105,24 @@ final class ToolMethodIndex {
             }
             String toolName = prefix + TOOL_NAME_SEPARATOR + method.getName();
             methodsByToolName.put(toolName, method);
-            specs.add(new McpToolSpec(toolName, tool.description(), buildInputSchema(method, syntheticParams)));
+            specs.add(new McpToolSpec(
+                    toolName,
+                    tool.description(),
+                    buildInputSchema(method, syntheticParams),
+                    annotationsOf(method, defaultAnnotations)));
         }
+    }
+
+    /**
+     * The family's hints, unless the method overrides them.
+     */
+    private static McpToolAnnotations annotationsOf(Method method, McpToolAnnotations defaultAnnotations) {
+        McpToolHints hints = method.getAnnotation(McpToolHints.class);
+        if (hints == null) {
+            return defaultAnnotations;
+        }
+        return new McpToolAnnotations(
+                hints.readOnly(), hints.destructive(), hints.idempotent(), hints.openWorld());
     }
 
     List<McpToolSpec> specs() {
@@ -133,6 +165,11 @@ final class ToolMethodIndex {
             property.put(SCHEMA_DESCRIPTION, synthetic.description());
         }
 
+        List<String> requiredNames = new ArrayList<>();
+        for (SyntheticParam synthetic : syntheticParams) {
+            requiredNames.add(synthetic.name());
+        }
+
         for (Parameter parameter : method.getParameters()) {
             ObjectNode property = properties.putObject(parameter.getName());
             property.put(SCHEMA_TYPE, jsonType(parameter.getType()));
@@ -140,17 +177,49 @@ final class ToolMethodIndex {
             if (toolParam != null && !toolParam.description().isBlank()) {
                 property.put(SCHEMA_DESCRIPTION, toolParam.description());
             }
+            addAllowedValues(property, parameter);
+            // A parameter is required when it says so. An unannotated one carries no contract at all,
+            // so it stays optional rather than inheriting the annotation's default.
+            if (toolParam != null && toolParam.required()) {
+                requiredNames.add(parameter.getName());
+            }
         }
 
-        // The method's own parameters are all treated as optional: the underlying tools default missing
-        // values. Only the synthetic ones are required — without them the call cannot be routed at all.
-        if (!syntheticParams.isEmpty()) {
+        if (!requiredNames.isEmpty()) {
             ArrayNode required = schema.putArray(SCHEMA_REQUIRED);
-            for (SyntheticParam synthetic : syntheticParams) {
-                required.add(synthetic.name());
+            for (String name : requiredNames) {
+                required.add(name);
             }
         }
         return schema;
+    }
+
+    /**
+     * The values the parameter accepts, from its own type when it is an {@code enum} and from
+     * {@link ToolParamValues} when the alternatives travel as strings.
+     */
+    private static void addAllowedValues(ObjectNode property, Parameter parameter) {
+        List<String> values = allowedValues(parameter);
+        if (values.isEmpty()) {
+            return;
+        }
+        ArrayNode allowed = property.putArray(SCHEMA_ENUM);
+        for (String value : values) {
+            allowed.add(value);
+        }
+    }
+
+    private static List<String> allowedValues(Parameter parameter) {
+        ToolParamValues declared = parameter.getAnnotation(ToolParamValues.class);
+        if (declared != null) {
+            return List.of(declared.value());
+        }
+        if (parameter.getType().isEnum()) {
+            return Arrays.stream(parameter.getType().getEnumConstants())
+                    .map(constant -> ((Enum<?>) constant).name())
+                    .toList();
+        }
+        return List.of();
     }
 
     private static Object convert(JsonNode value, Class<?> type) {
@@ -182,8 +251,28 @@ final class ToolMethodIndex {
         if (type == Double.class) {
             return missing ? null : value.asDouble();
         }
+        if (type.isEnum()) {
+            return missing ? null : enumConstant(type, value.asString());
+        }
         // Fallback: pass the raw text (or null) for any other type.
         return missing ? null : value.asString();
+    }
+
+    /**
+     * Resolves an enum argument by name, refusing an unknown one with the alternatives spelled out —
+     * the schema already carries them, but a client is free to ignore it and the message is what the
+     * model actually reads.
+     */
+    private static Object enumConstant(Class<?> type, String name) {
+        for (Object constant : type.getEnumConstants()) {
+            if (((Enum<?>) constant).name().equalsIgnoreCase(name)) {
+                return constant;
+            }
+        }
+        String allowed = Arrays.stream(type.getEnumConstants())
+                .map(constant -> ((Enum<?>) constant).name())
+                .collect(Collectors.joining(", "));
+        throw new IllegalArgumentException("Unknown value '" + name + "'. Expected one of: " + allowed);
     }
 
     private static String jsonType(Class<?> type) {

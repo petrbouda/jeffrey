@@ -110,13 +110,13 @@ public class TimelineMcpTools {
             + "startMs and endMs of a window here are what make the export show it. Answers 'when did "
             + "the allocation happen', 'was this load steady or a burst', 'which minute was the bad one'.")
     public String hotWindows(
-            @ToolParam(description = "Event type to profile over time, e.g. 'jdk.ExecutionSample' or "
+            @ToolParam(required = true, description = "Event type to profile over time, e.g. 'jdk.ExecutionSample' or "
                     + "'jdk.ObjectAllocationSample'. Use flamegraph_list to see what this profile recorded.")
             String eventType,
-            @ToolParam(description = "Weigh buckets by the event's weight (bytes allocated, nanoseconds "
+            @ToolParam(required = false, description = "Weigh buckets by the event's weight (bytes allocated, nanoseconds "
                     + "blocked) instead of by sample count")
             Boolean useWeight,
-            @ToolParam(description = "How many windows to rank (default 5, maximum 25)")
+            @ToolParam(required = false, description = "How many windows to rank (default 5, maximum 25)")
             Integer top) {
 
         if (timelineUnavailable()) {
@@ -147,14 +147,14 @@ public class TimelineMcpTools {
             + "one-second buckets hide everything - or to see the inside of a spike timeline_hotWindows "
             + "found. Narrow the window rather than widening the buckets; the bucket count is capped.")
     public String zoom(
-            @ToolParam(description = "Event type to profile, e.g. 'jdk.ExecutionSample'")
+            @ToolParam(required = true, description = "Event type to profile, e.g. 'jdk.ExecutionSample'")
             String eventType,
-            @ToolParam(description = "Start of the window, in milliseconds from the beginning of the "
+            @ToolParam(required = true, description = "Start of the window, in milliseconds from the beginning of the "
                     + "recording")
             Long startMs,
-            @ToolParam(description = "End of the window, in milliseconds from the beginning of the recording")
+            @ToolParam(required = true, description = "End of the window, in milliseconds from the beginning of the recording")
             Long endMs,
-            @ToolParam(description = "Bucket width in milliseconds (default 20). Below one second is the "
+            @ToolParam(required = false, description = "Bucket width in milliseconds (default 20). Below one second is the "
                     + "point of this tool; a window that would need more than 200 buckets is refused "
                     + "rather than silently coarsened.")
             Integer bucketMs) {
