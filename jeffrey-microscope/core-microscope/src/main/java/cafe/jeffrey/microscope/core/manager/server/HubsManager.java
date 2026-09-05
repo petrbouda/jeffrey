@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.model.hub.HubInfo;
 import cafe.jeffrey.microscope.persistence.api.HubsRepository;
 import cafe.jeffrey.shared.common.model.hub.HubAddress;
+import cafe.jeffrey.shared.common.model.hub.HubSource;
 import cafe.jeffrey.shared.common.IDGenerator;
 
 import java.time.Clock;
@@ -70,7 +71,8 @@ public class HubsManager {
                 IDGenerator.generate(),
                 request.name().trim(),
                 request.address(),
-                clock.instant());
+                clock.instant(),
+                HubSource.USER);
 
         HubInfo created = repository.create(info);
         LOG.info("Added hub: hub_id={} name={} address={}",

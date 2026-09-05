@@ -103,6 +103,16 @@ onMounted(() => {
         and its workspaces stay intact. Re-adding the same hostname/port restores access.
       </DocsCallout>
 
+      <DocsCallout type="info">
+        <strong>Provisioning without the UI:</strong> hubs can also be declared up front with
+        <router-link to="/docs/microscope/configuration/application-properties#hubs"><code>jeffrey.microscope.hubs.*</code></router-link>,
+        so a container or a pod starts already connected. A hub declared that way is shown with a
+        <strong>Config</strong> badge and its remove button is disabled — configuration owns it, and
+        the next startup would recreate anything deleted here. Unlike the form above, declared hubs
+        are registered without a reachability check, so a hub that boots after Microscope starts
+        working as soon as it comes up.
+      </DocsCallout>
+
       <h2 id="create-workspace">Step 2 — Create a Workspace</h2>
       <p>
         Pick a server in the rail, then click <strong>Create Workspace</strong> in the workspace

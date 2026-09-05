@@ -19,6 +19,9 @@
 package cafe.jeffrey.microscope.core.configuration;
 
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
+import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredHubsProperties;
+import cafe.jeffrey.microscope.core.initializer.ConfiguredHubsPlanner;
+import cafe.jeffrey.microscope.core.initializer.ConfiguredHubsReconciler;
 import cafe.jeffrey.hub.client.CachedHubClientsFactory;
 import cafe.jeffrey.hub.client.HubClients;
 import cafe.jeffrey.microscope.core.manager.ProfilesManager;
@@ -31,6 +34,7 @@ import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider
 import cafe.jeffrey.microscope.persistence.api.HubsRepository;
 import cafe.jeffrey.microscope.persistence.jdbc.JdbcHubsRepository;
 import cafe.jeffrey.microscope.persistence.jdbc.JdbcWorkspaceRepository;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -39,6 +43,7 @@ import java.time.Clock;
 
 @Configuration
 @Import(AppConfiguration.class)
+@EnableConfigurationProperties(ConfiguredHubsProperties.class)
 public class RemoteWorkspaceConfiguration {
 
     @Bean
@@ -83,6 +88,30 @@ public class RemoteWorkspaceConfiguration {
                     remoteServersRepository,
                     remoteClientsFactory);
         };
+    }
+
+    @Bean
+    public ConfiguredHubsPlanner configuredHubsPlanner(Clock clock) {
+        return new ConfiguredHubsPlanner(clock);
+    }
+
+    /**
+     * Reconciled through an init method rather than an {@code ApplicationRunner} so the registry is
+     * settled before the HTTP connector starts serving; runners are called after the context has
+     * finished refreshing.
+     */
+    @Bean(initMethod = "reconcile")
+    public ConfiguredHubsReconciler configuredHubsReconciler(
+            HubsRepository remoteServersRepository,
+            CachedHubClientsFactory remoteClientsFactory,
+            ConfiguredHubsProperties configuredHubsProperties,
+            ConfiguredHubsPlanner configuredHubsPlanner) {
+
+        return new ConfiguredHubsReconciler(
+                remoteServersRepository,
+                remoteClientsFactory,
+                configuredHubsProperties,
+                configuredHubsPlanner);
     }
 
     @Bean

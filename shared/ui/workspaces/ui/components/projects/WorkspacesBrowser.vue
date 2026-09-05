@@ -73,10 +73,16 @@
             <h3 class="ws-head-name">
               <i class="bi bi-server text-primary"></i>
               {{ selectedServer.name }}
+              <Badge v-if="isConfigManaged(selectedServer)" value="Config" variant="info" size="xs" />
             </h3>
             <button
               class="ws-head-btn danger"
-              title="Remove server (does not delete server-side data)"
+              :disabled="isConfigManaged(selectedServer)"
+              :title="
+                isConfigManaged(selectedServer)
+                  ? 'Declared in jeffrey.microscope.hubs — remove it from the configuration and restart to delete'
+                  : 'Remove server (does not delete server-side data)'
+              "
               @click="confirmDeleteServer"
             >
               <i class="bi bi-trash"></i>
@@ -529,6 +535,11 @@ const deleteServerMessage = computed(() =>
     : ''
 );
 
+// A hub declared in configuration is recreated on every startup, so deleting it here would only
+// look like it worked. The optional `source` means a backend that does not send it stays editable.
+const isConfigManaged = (server: RemoteServer | null | undefined): boolean =>
+  server?.source === 'CONFIG';
+
 const statusLabelFor = (hubId: string): string => {
   switch (serverStatuses.value[hubId]) {
     case 'online':
@@ -692,7 +703,7 @@ const handleServerAdded = async () => {
 };
 
 const confirmDeleteServer = () => {
-  if (!selectedServer.value) {
+  if (!selectedServer.value || isConfigManaged(selectedServer.value)) {
     return;
   }
   showDeleteServerModal.value = true;

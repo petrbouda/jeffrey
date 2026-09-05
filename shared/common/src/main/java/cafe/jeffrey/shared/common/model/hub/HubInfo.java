@@ -23,10 +23,15 @@ import java.time.Instant;
 /**
  * Locally stored reference to a connected jeffrey-hub.
  * Workspaces hosted on the server are listed live via gRPC and are not cached here.
+ *
+ * @param source who owns this pointer. {@link HubSource#CONFIG} rows are reconciled against
+ *               {@code jeffrey.microscope.hubs.*} on every startup and cannot be deleted from
+ *               the UI; {@link HubSource#USER} rows are never touched by that reconciliation.
  */
 public record HubInfo(
         String hubId,
         String name,
         HubAddress address,
-        Instant createdAt) {
+        Instant createdAt,
+        HubSource source) {
 }

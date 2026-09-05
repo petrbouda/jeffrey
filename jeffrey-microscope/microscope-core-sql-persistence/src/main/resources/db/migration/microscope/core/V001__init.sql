@@ -38,6 +38,10 @@ CREATE TABLE IF NOT EXISTS hubs
     -- in-cluster Service DNS or trusted-LAN setups.
     plaintext   BOOLEAN NOT NULL DEFAULT FALSE,
     created_at  TIMESTAMPTZ NOT NULL,
+    -- 'CONFIG' for a hub declared under jeffrey.microscope.hubs.* — configuration owns the row,
+    -- it is reconciled on every startup and the UI cannot delete it. 'USER' for a hub added
+    -- through the UI, which the reconciliation never touches.
+    source      VARCHAR NOT NULL DEFAULT 'USER',
     UNIQUE (hostname, port)
 );
 
