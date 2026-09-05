@@ -26,6 +26,9 @@ import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
+import cafe.jeffrey.profile.ProfileInitStages;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.mcp.McpToolSpec;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
@@ -89,7 +92,8 @@ class McpToolsetAssemblerTest {
     private McpToolsetAssembler assembler(ExternalMcpProperties properties) {
         return new McpToolsetAssembler(
                 new ProfilesMcpTools(coreRepositories),
-                new RecordingsMcpTools(recordingsManager),
+                new RecordingsMcpTools(recordingsManager, new PipelineRunRegistry<>(
+                        ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK)),
                 new HubsMcpTools(hubsManager, projectManagerResolver, recordingsManager, CLOCK),
                 contextCache,
                 jfrPanelProvider,

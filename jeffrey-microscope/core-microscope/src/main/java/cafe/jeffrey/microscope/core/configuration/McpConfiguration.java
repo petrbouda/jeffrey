@@ -31,6 +31,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
@@ -116,8 +117,10 @@ public class McpConfiguration {
      * costs nothing next to a conditional bean the reader has to go looking for.
      */
     @Bean
-    public RecordingsMcpTools recordingsMcpTools(RecordingsManager recordingsManager) {
-        return new RecordingsMcpTools(recordingsManager);
+    public RecordingsMcpTools recordingsMcpTools(
+            RecordingsManager recordingsManager,
+            PipelineRunRegistry<String> profileInitRunRegistry) {
+        return new RecordingsMcpTools(recordingsManager, profileInitRunRegistry);
     }
 
     /**

@@ -20,6 +20,7 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
+import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
@@ -79,15 +80,33 @@ public class RecordingsMcpTools {
      */
     private static final String NEVER_STARTED = "not_started";
 
+    /**
+     * Said when the profile row exists and the profile does not yet work. Without it a caller reading
+     * a profileId beside a running status would reasonably try to use it.
+     */
+    private static final String NOT_READY_YET =
+            "The profile exists but its events are still being written, so it cannot be analysed yet. "
+                    + "Wait for this tool to report it without a status before using the profileId.";
+
     private final RecordingsManager recordingsManager;
+    private final PipelineRunRegistry<String> runRegistry;
     private final BoundedJobs<String, String> jobs;
 
-    public RecordingsMcpTools(RecordingsManager recordingsManager) {
-        this(recordingsManager, new BoundedJobs<>());
+    public RecordingsMcpTools(
+            RecordingsManager recordingsManager, PipelineRunRegistry<String> runRegistry) {
+        this(recordingsManager, runRegistry, new BoundedJobs<>());
     }
 
-    public RecordingsMcpTools(RecordingsManager recordingsManager, BoundedJobs<String, String> jobs) {
+    /**
+     * @param runRegistry the profile-init pipeline, so a poll can report which stage the parse is on
+     *                    rather than only that it has not finished
+     */
+    public RecordingsMcpTools(
+            RecordingsManager recordingsManager,
+            PipelineRunRegistry<String> runRegistry,
+            BoundedJobs<String, String> jobs) {
         this.recordingsManager = recordingsManager;
+        this.runRegistry = runRegistry;
         this.jobs = jobs;
     }
 
@@ -161,12 +180,13 @@ public class RecordingsMcpTools {
     }
 
 
-    @Tool(description = "Whether a recording that recordings_analyzeFile or recordings_analyzeRecording "
-            + "left running has finished, and the profile id once it has. Call it when either of those "
-            + "came back with status running rather than a profile id — a large recording takes longer "
-            + "to parse than a tool call waits, so the analysis carries on in the background. Poll this "
-            + "rather than analysing again: a second analysis of the same file would build a second "
-            + "profile of it.")
+    @Tool(description = "How far the analysis of a recording has got, and the profile id once it is "
+            + "ready to use. Call it when recordings_analyzeFile or recordings_analyzeRecording came "
+            + "back with a status of running rather than a profile id — a large recording takes longer "
+            + "to parse than a tool call waits, so the work carries on in the background. The answer "
+            + "carries the pipeline stages, so you can see whether it is still parsing events or "
+            + "nearly done. Poll this rather than analysing again: a second analysis of the same file "
+            + "would build a second profile of it.")
     public String status(
             @ToolParam(required = true, description = "Recording id, as returned by the analyze tool "
                     + "that reported the analysis was still running")
@@ -180,17 +200,48 @@ public class RecordingsMcpTools {
         Recording recording = recordingsManager.findRecording(id)
                 .orElseThrow(() -> new IllegalArgumentException("No such recording: " + id));
 
-        if (recording.hasProfile()) {
-            return McpToolOutput.json(new AnalyzedProfile(
-                    recording.profileId(),
-                    id,
-                    recording.recordingName(),
-                    eventSourceOf(recording),
-                    UiLinks.profile(recording.profileId())));
+        if (!recording.hasProfile()) {
+            return McpToolOutput.json(new AnalysisProgress(
+                    id, null, jobs.isRunning(id) ? STILL_RUNNING : NEVER_STARTED, List.of(), null));
         }
-        return McpToolOutput.json(new AnalysisStarted(
-                id, jobs.isRunning(id) ? STILL_RUNNING : NEVER_STARTED));
+
+        // A profile row appears before the parse begins -- it is inserted first so the recordings list
+        // can show a run in progress -- and is enabled only once every stage has finished. Reporting
+        // the id at the sight of the row would hand back a profile whose events are still being
+        // written, which reads as success and is the one answer worse than "not yet".
+        String profileId = recording.profileId();
+        if (!isReady(profileId)) {
+            return McpToolOutput.json(new AnalysisProgress(
+                    id, profileId, STILL_RUNNING, stages(profileId), NOT_READY_YET));
+        }
+
+        return McpToolOutput.json(new AnalyzedProfile(
+                profileId,
+                id,
+                recording.recordingName(),
+                eventSourceOf(recording),
+                UiLinks.profile(profileId)));
     }
+
+    /**
+     * Whether the profile is finished and usable, rather than merely present.
+     */
+    private boolean isReady(String profileId) {
+        return recordingsManager.profile(profileId)
+                .map(profile -> profile.info().enabled())
+                .orElse(false);
+    }
+
+    /**
+     * The stages of the run building this profile, empty when none is tracked here — the parse may
+     * have been started by a different process, or by one that has since restarted.
+     */
+    private List<Stage> stages(String profileId) {
+        return runRegistry.progress(profileId).stages().stream()
+                .map(stage -> new Stage(stage.id(), stage.status().name(), stage.durationMs()))
+                .toList();
+    }
+
 
     /**
      * Builds the profile and renders what the model needs next: the id the other families take, and a
@@ -200,7 +251,8 @@ public class RecordingsMcpTools {
         Optional<String> finished =
                 jobs.runWithin(recordingId, () -> recordingsManager.analyzeRecording(recordingId));
         if (finished.isEmpty()) {
-            return McpToolOutput.json(new AnalysisStarted(recordingId, STILL_RUNNING));
+            return McpToolOutput.json(new AnalysisProgress(
+                    recordingId, null, STILL_RUNNING, List.of(), null));
         }
 
         String profileId = finished.get();
@@ -276,10 +328,25 @@ public class RecordingsMcpTools {
     }
 
     /**
-     * @param status {@code running} while the parse continues, {@code not_started} when nothing is
-     *               building a profile for this recording
+     * @param profileId the profile being built, once its row exists — present but not yet usable, so
+     *                  it is reported for context rather than as something to pass to another tool
+     * @param status    {@code running} while the parse continues, {@code not_started} when nothing is
+     *                  building a profile for this recording
+     * @param stages    the pipeline stages, so a caller can tell parsing from nearly finished
+     * @param note      what the status means, when it is not obvious from the status alone
      */
-    private record AnalysisStarted(String recordingId, String status) {
+    private record AnalysisProgress(
+            String recordingId,
+            String profileId,
+            String status,
+            List<Stage> stages,
+            String note) {
+    }
+
+    /**
+     * @param durationMs null while the stage has not finished
+     */
+    private record Stage(String id, String status, Long durationMs) {
     }
 
     private record AnalyzedProfile(
