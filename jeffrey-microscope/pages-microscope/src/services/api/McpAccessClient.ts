@@ -27,6 +27,12 @@ export interface McpAccessStatus {
   enabled: boolean;
   ingestEnabled: boolean;
   hubsEnabled: boolean;
+  computeEnabled: boolean;
+  /**
+   * Whether the endpoint requires a bearer token. The token itself is not carried separately -- it is
+   * already inside the snippets below, which is the only place a reader needs it.
+   */
+  tokenRequired: boolean;
   url: string;
   claudeMcpAddCommand: string;
   mcpJsonSnippet: string;

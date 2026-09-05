@@ -68,7 +68,7 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
     />
 
     <div class="docs-content">
-      <p><code>profile-analyst</code> reads a Jeffrey export end to end and returns only the findings. Registering the MCP server by hand gives you the <router-link to="/docs/microscope-mcp/tools">tools</router-link> but not this.</p>
+      <p><code>profile-analyst</code> reads a Jeffrey export end to end and returns only the findings. <code>heap-triage</code> does the same for a heap dump, and will build a missing dominator tree or report with <code>heap_prepare</code> rather than reporting an empty result. Registering the MCP server by hand gives you the <router-link to="/docs/microscope-mcp/tools">tools</router-link> but not these.</p>
 
       <h2 id="why-a-separate-agent">Why a Separate Agent</h2>
       <p>A single <code>flamegraph_export</code> can run to 120,000 characters, and a question worth asking usually takes several &mdash; four in <code>advise-jfr</code>, one per group. Pulled into your session, they crowd out the thing that has to happen next: reading the actual source behind the frames, and holding the conversation about what to change.</p>
@@ -76,9 +76,9 @@ Notes: threshold 1%, weighted by bytes. Frames below 1% rolled into parents.`;
       <p>So the reading happens somewhere else. The analyst runs the sequence, follows the profile where it leads &mdash; deeper into a heavy subtree, a lower <code>thresholdPct</code> on one path, the GC-root path of the class the histogram named &mdash; and returns a report. Everything it read stays in its context, not yours. Extra reads cost you nothing, which is why it is told to keep going until it can name the causes rather than stopping at the first export.</p>
 
       <h2 id="installing-it">Installing It</h2>
-      <p>In <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> it arrives with the plugin as <code>microscope:profile-analyst</code>, and there is nothing to do.</p>
+      <p>In <router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> they arrive with the plugin as <code>microscope:profile-analyst</code> and <code>microscope:heap-triage</code>, and there is nothing to do.</p>
 
-      <p>In <router-link to="/docs/microscope-mcp/codex">Codex</router-link> it is a file to copy. The Agent Plugins format defines exactly two component types &mdash; skills and MCP servers &mdash; so no plugin can hand a Codex install an agent, however the plugin was written. The analyst ships as <code>codex/agents/profile-analyst.toml</code>; copy it to <code>~/.codex/agents/</code> for every repository, or <code>.codex/agents/</code> for one.</p>
+      <p>In <router-link to="/docs/microscope-mcp/codex">Codex</router-link> it is a file to copy. The Agent Plugins format defines exactly two component types &mdash; skills and MCP servers &mdash; so no plugin can hand a Codex install an agent, however the plugin was written. They ship as <code>codex/agents/profile-analyst.toml</code> and <code>codex/agents/heap-triage.toml</code>; copy them to <code>~/.codex/agents/</code> for every repository, or <code>.codex/agents/</code> for one.</p>
 
       <p>The skills delegate to an agent of that name when the client has one and read the exports themselves when it does not, so skipping this costs context rather than correctness.</p>
 

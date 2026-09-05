@@ -122,3 +122,14 @@ retention on the hub is the hub's business.
 **It does not reach a hub that is not already configured.** Hubs are declared in Microscope's
 configuration or added through its UI. If the one the user wants is not in `hubs_list`, say so —
 adding it is an operator's decision, not something to work around.
+
+## When a transfer outlasts the call
+
+A large session takes longer to pull than a client waits for a tool call. `hubs_download` then
+returns a status saying the transfer continues rather than a `recordingId`. **Call `hubs_download`
+again with the same `session_ref`** — it answers from the local store first, so once the transfer
+lands it returns the recording rather than fetching the session a second time. There is nothing else
+to poll, and starting a second download of the same session is the one thing worth avoiding.
+
+The same applies one step later: `recordings_analyzeRecording` on a large recording returns a status
+of `running`, and `recordings_status` with the `recordingId` says when the profile is ready.

@@ -31,10 +31,12 @@ recording; that is the analysis running, not a hang.
 the **analyze-hub** skill: it finds the session across the connected hubs, pulls it in and comes
 back here with a `profileId`.
 
-**Otherwise** — `profiles_list`, pick the profile, then `profiles_features` to learn what it can
-answer before asking for it: `disabledFeatures` names what the profile lacks (traces exist only if
-the app ran Jeffrey's instrumentation; `HEAP_DUMP` there means no dump), and `eventTypes` lists
-every recorded event type with its sample and weight totals.
+**Otherwise** — `profiles_list`, pick the profile, then `profiles_summary` to learn what it can
+answer before asking for it. That one call carries what `profiles_get`, `profiles_features` and
+`profiles_samplerHealth` each carry a part of: `disabledFeatures` names what the profile lacks
+(traces exist only if the app ran Jeffrey's instrumentation; `HEAP_DUMP` there means no dump),
+`eventTypes` lists every recorded event type with its totals, and `topFindings` carries the
+auto-analysis findings when they have been computed.
 
 A profile whose `event source` column reads `HEAP_DUMP` is a heap dump: switch to the
 `analyze-heap` skill, because flamegraphs and traces do not apply to it.
@@ -43,11 +45,11 @@ A profile whose `event source` column reads `HEAP_DUMP` is a heap dump: switch t
 
 | Family | Tools |
 |---|---|
-| `profiles_` | `list`, `get` (identity, recording window, size, source commit), `features`, `samplerHealth` (whether the samples can be trusted), `link` (the profile in the Jeffrey UI), `viewLink` (one named page) |
+| `profiles_` | `list`, `summary` (identity, features, recorded event types and the top findings in one call — start here), `get`, `features`, `samplerHealth` (whether the samples can be trusted), `link` (the profile in the Jeffrey UI), `viewLink` (one named page) |
 | `flamegraph_` | `list` (which event types this profile can graph — call it first), `export` (the call tree as Markdown) |
 | `compare_` | `list` (whether two profiles are comparable at all — call it first), `movements` (what moved, ranked), `flamegraph` (the differential call tree) — the `compare-jfr` skill has the workflow |
 | `traces_` | `overview`, `operations`, `notifications`, `operationExport`, `slowestTraces`, `traceExport`, `spanFlamegraphExport`, `operationFlamegraphExport`, plus `attributeKeys`/`attributeValues`/`attributeSearch` |
-| `jvm_` | `sections` (call it first), `autoAnalysis`, `gc`, `safepoints`, `jit`, `threads`, `threadDumps`, `threadDump`, `nativeMemory`, `container`, `configuration`, `flags` — the machine underneath the application |
+| `jvm_` | `sections` (call it first), `autoAnalysis`, `gc`, `gcDetail`, `safepoints`, `jit`, `threads`, `threadDumps`, `threadDump`, `nativeMemory`, `classLoading`, `exceptions`, `system`, `security`, `container`, `configuration`, `flags` — the machine underneath the application |
 | `http_` | `overview`, `endpoint` — HTTP traffic, `SERVER` (served) or `CLIENT` (called out) |
 | `jdbc_` | `overview`, `statementGroup`, `pools` — the queries it ran, and the pool in front of them |
 | `grpc_` | `overview`, `service`, `traffic` — gRPC latency and message sizes, `SERVER` or `CLIENT` |
@@ -56,9 +58,9 @@ A profile whose `event source` column reads `HEAP_DUMP` is a heap dump: switch t
 | `blocking_` | `overview`, `monitors`, `pinnedThreads` — contended locks, waits, parks, virtual-thread pinning |
 | `timeline_` | `hotWindows` (when the samples landed), `zoom` (sub-second, inside one window) |
 | `memory_` | `allocations` (by type, not call site), `leakCandidates` (JFR-side, needs no heap dump) |
-| `jfr_` | `listTables`, `describeTable`, `listEventTypes`, `queryEvents`, `executeQuery`, `getProfileInfo` — raw DuckDB when no purpose-built tool fits; the `jfr-sql` skill has the schema |
+| `jfr_` | `listTables`, `describeTable`, `describeEventType` (the fields inside one event type), `listEventTypes`, `queryEvents`, `executeQuery`, `getProfileInfo` — raw DuckDB when no purpose-built tool fits; the `jfr-sql` skill has the schema |
 | `heap_` | Everything a heap dump answers — the `analyze-heap` skill has the order to run it in |
-| `recordings_` | `analyzeFile` (a file not in Jeffrey yet), `analyzeRecording` (uploaded but never analysed), `list` (the Quick Analysis store) |
+| `recordings_` | `analyzeFile` (a file not in Jeffrey yet), `analyzeRecording` (uploaded but never analysed), `status` (whether a slow analysis has finished), `list` (the Quick Analysis store) |
 
 ## 3. Choosing a flamegraph
 
@@ -136,6 +138,11 @@ Follow it: the figures are one half of an answer, and the other half is usually 
 | `jvm_flags` | The flag list with each value's **origin** — default, command line, or the JVM's own ergonomics |
 | `jvm_threadDumps` | The dumps together: deadlocks, monitors threads queued on, threads stuck across dumps |
 | `jvm_threadDump` | One dump in full, every thread with its state and stack |
+| `jvm_gcDetail` | The GC pages beneath the overview, one at a time: tenuring, IHOP, G1 regions and evacuation failures, ZGC stalls, string tables, finalizers, reference processing, phases, PLAB |
+| `jvm_classLoading` | What was loaded and who loaded it: metaspace, the loaders ranked, the slowest loads, agent redefinitions |
+| `jvm_exceptions` | What the application threw, and what kinds — constructing one walks the stack, so a type thrown in a loop is a cost no frame names |
+| `jvm_system` | The machine underneath: machine CPU against this JVM's own, and what the difference leaves for everything else on the box |
+| `jvm_security` | TLS handshakes, the protocols and ciphers negotiated, certificates expiring or weakly signed, what was deserialized |
 
 Four things the tools know and a hand-written query does not:
 
@@ -155,12 +162,17 @@ Four things the tools know and a hand-written query does not:
   somebody set from one the JVM's ergonomics chose, and the two justify very different advice.
   `jvm_configuration` is the companion read: the collector, heap and compiler settings that resulted.
   A tuning claim is worth making against those values, never against a deployment manifest.
+- **"Is it my JVM or the box?"** is `jvm_system`, and it is worth asking before trusting any
+  flamegraph. It reports the machine's CPU and this JVM's separately, and the gap is everything else
+  running there. A profile whose own CPU is modest while the machine is saturated describes an
+  application being starved, not a slow one.
 - **"It stopped responding"** is `jvm_threadDumps`, not a flamegraph. A deadlock or a pool all
   blocked on one lock produces no samples worth graphing; it produces threads sitting still, which
   only the dumps show.
 
-`jvm_autoAnalysis` reads a cache the Jeffrey UI fills; when it has not been computed the tool says
-so and the other sections still answer. For anything these do not shape — a distribution over
+`jvm_autoAnalysis` reads a cache. When nothing has computed it, pass `compute: true` to run the rule
+set now — it reads the whole recording through the JMC toolkit, so it is slow and asked for rather
+than assumed. The other sections answer either way. For anything these do not shape — a distribution over
 time, a correlation between two event types — the `jfr-sql` skill has the schema and the queries.
 
 ## The edges of the application: `http_`, `jdbc_`, `grpc_`, `methodtracing_`

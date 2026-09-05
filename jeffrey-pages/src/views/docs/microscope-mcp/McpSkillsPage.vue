@@ -96,7 +96,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
     />
 
     <div class="docs-content">
-      <p>The plugin ships seven skills and <router-link to="/docs/microscope-mcp/agent">one analyst agent</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
+      <p>The plugin ships nine skills and <router-link to="/docs/microscope-mcp/agent">two agents</router-link>. The client loads a skill on its own when a question calls for it; you can also invoke any of them directly. Registering the MCP server by hand gives you the tools but not these.</p>
 
       <p>The seven are <a href="https://agentskills.io/specification" target="_blank" rel="noopener">Agent Skills</a> &mdash; one directory each, a <code>SKILL.md</code> whose front matter carries the two required fields plus the tools it may call, and a body:</p>
       <DocsCodeBlock :code="skillFrontmatter" language="yaml" />
@@ -225,7 +225,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
           <h4>What it decides for you</h4>
           <ul>
             <li><strong>Shallow is not retained.</strong> Shallow size is the object itself; retained size is what dies with it. Only the second answers &ldquo;who is holding this memory&rdquo; &mdash; a histogram ranked by shallow size tells you what there is a lot of, not who is responsible for it.</li>
-            <li><strong>Six reports are pre-computed in the UI.</strong> Leak Suspects, Biggest Objects, Class Loader Analysis, Top Consumers, String Analysis and Collection Analysis are computed when someone opens them in Jeffrey and only <em>read</em> over MCP; until then their tools answer &ldquo;has not been run yet&rdquo;. The skill names which tools those are and has the model hand you the <code>profiles_link</code> URL and the report to run, instead of retrying.</li>
+            <li><strong>Six reports have to be built before they can be read.</strong> Leak Suspects, Biggest Objects, Class Loader Analysis, Top Consumers, String Analysis and Collection Analysis are cached results, and until something computes one its tool says so. The skill maps each to the <code>heap_prepare</code> report that builds it, so the model prepares the dump and carries on rather than sending you to the browser &mdash; and knows to fall back to the UI when the installation has compute switched off.</li>
             <li>That the same question has an on-demand route which does not wait on the UI: the dominator tree into <code>heap_getPathToGCRoot</code>.</li>
           </ul>
         </section>
@@ -430,7 +430,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <h2 id="the-analyst">The Analyst They Delegate To</h2>
       <p>Four of the skills do not read the big documents themselves. A single <code>flamegraph_export</code> can run to 120,000 characters, and a question worth asking usually takes several &mdash; four of them in <code>advise-jfr</code>, one per group. Pulled into the session, they leave little room for the thing that has to happen next: reading the actual source behind the frames.</p>
 
-      <p>So there is an analyst agent, and the skills hand it the reading &mdash; <code>microscope:profile-analyst</code> from the Claude Code plugin, or the custom agent a Codex user copies in. It runs the sequence, follows the profile where it leads &mdash; deeper into a subtree, a lower threshold on one path, the GC-root path of the class the histogram named &mdash; and returns the findings alone. What it read stays in its context.</p>
+      <p>So there are agents, and the skills hand them the reading &mdash; <code>microscope:profile-analyst</code> and <code>microscope:heap-triage</code> from the Claude Code plugin, or the custom agents a Codex user copies in. It runs the sequence, follows the profile where it leads &mdash; deeper into a subtree, a lower threshold on one path, the GC-root path of the class the histogram named &mdash; and returns the findings alone. What it read stays in its context.</p>
 
       <p>What it is not allowed to do is as much of the design as what it does: no file access, no <code>recordings_</code> and no <code>hubs_</code>, so it cannot map a frame to a line, edit anything, or build a profile from a file or from a hub. Mapping onto the checkout, the recommendation, and every question put to you stay in the session, where you can answer them. <router-link to="/docs/microscope-mcp/agent">The analyst reference</router-link> has the full contract &mdash; what it is given, the report shape it returns, and when to read an export yourself instead.</p>
 

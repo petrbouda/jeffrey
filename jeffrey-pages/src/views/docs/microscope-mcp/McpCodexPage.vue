@@ -26,12 +26,22 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
 
+const timeoutConfig = `[mcp_servers.jeffrey]
+url = "http://localhost:8585/api/internal/mcp"
+# Codex gives a tool call 60 seconds by default
+tool_timeout_sec = 120`;
+
+const familiesProperty = `# On the Jeffrey side, in application.properties
+jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap`;
+
 const headings = [
   { id: 'install-it', text: 'Install It', level: 2 },
   { id: 'pointing-it-elsewhere', text: 'Pointing It Elsewhere', level: 2 },
   { id: 'what-the-plugin-adds', text: 'What the Plugin Adds', level: 2 },
   { id: 'the-analyst-agent', text: 'The Analyst Agent', level: 2 },
   { id: 'approvals', text: 'Approvals', level: 2 },
+  { id: 'timeouts', text: 'Timeouts on Long Calls', level: 2 },
+  { id: 'the-tool-list', text: 'The Size of the Tool List', level: 2 },
   { id: 'check-it-is-connected', text: 'Check It Is Connected', level: 2 },
   { id: 'updating-and-removing', text: 'Updating and Removing', level: 2 },
   { id: 'without-the-plugin', text: 'Without the Plugin', level: 2 },
@@ -56,7 +66,8 @@ const disablePluginServer = `[plugins."microscope@jeffrey"]
 mcp_servers.jeffrey.enabled = false`;
 
 const agentInstall = `mkdir -p ~/.codex/agents
-cp jeffrey/jeffrey-claude-plugin/codex/agents/profile-analyst.toml ~/.codex/agents/`;
+cp jeffrey/jeffrey-claude-plugin/codex/agents/profile-analyst.toml ~/.codex/agents/
+cp jeffrey/jeffrey-claude-plugin/codex/agents/heap-triage.toml ~/.codex/agents/`;
 
 const approvalRule = `[mcp_servers.jeffrey]
 default_tools_approval_mode = "auto"`;
@@ -116,7 +127,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <p>The skills keep working either way &mdash; they name tools by the part after the prefix, and the server is still called <code>jeffrey</code>. Only the registration moves.</p>
 
       <h2 id="what-the-plugin-adds">What the Plugin Adds</h2>
-      <p>Registering the server by hand gives you the eighty-eight tools. The plugin adds the endpoint already configured, and <strong>seven skills</strong>, which Codex picks up on its own when a question calls for them and which you can also invoke directly with <code>$</code>:</p>
+      <p>Registering the server by hand gives you every tool. The plugin adds the endpoint already configured, and <strong>nine skills</strong>, which Codex picks up on its own when a question calls for them and which you can also invoke directly with <code>$</code>:</p>
       <ul>
         <li><code>$analyze-jfr</code> &mdash; where to start and which family answers which question</li>
         <li><code>$analyze-heap</code> &mdash; a heap dump end to end: what is holding the memory, what is leaking, and the order the twenty-one heap tools have to be run in</li>
@@ -145,6 +156,22 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <DocsCodeBlock :code="approvalRule" language="toml" />
 
       <p>Tool names arrive prefixed with the server they came from &mdash; <code>mcp__jeffrey__flamegraph_export</code> and so on. <code>enabled_tools</code> and <code>disabled_tools</code> on the same block narrow what the model sees at all, which is the sharper instrument when you want a strictly read-only Jeffrey for one machine regardless of what the server advertises.</p>
+
+      <h2 id="timeouts">Timeouts on Long Calls</h2>
+      <p>Codex abandons a tool call after <strong>sixty seconds</strong> by default. Most of Jeffrey&rsquo;s tools answer in well under a second, but three do real work: importing a recording parses every event in it, and pulling a session off a hub moves however many gigabytes it holds.</p>
+
+      <p>Those three are built for it. <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code> wait about forty-five seconds and then hand back a status of <code>running</code>, and <code>recordings_status</code> reports when the profile is ready. <code>hubs_download</code> does the same, and calling it again with the same <code>session_ref</code> is how you check &mdash; it answers from the local store first. <strong>What matters is not retrying the analyze call:</strong> a second one imports the file again and builds a second profile of it. The skills know this; a hand-driven session should too.</p>
+
+      <p>If you would rather wait than poll, raise the client&rsquo;s own timeout:</p>
+      <DocsCodeBlock :code="timeoutConfig" language="toml" />
+
+      <h2 id="the-tool-list">The Size of the Tool List</h2>
+      <p>This is the one place Codex and Claude Code differ in cost rather than capability. Claude Code fetches a tool&rsquo;s schema when it needs it; Codex loads every schema into the model&rsquo;s context on every turn, and Jeffrey advertises a hundred-odd tools across seventeen families.</p>
+
+      <p>That is usually fine and occasionally not. If it matters for your work, the Jeffrey side can advertise fewer:</p>
+      <DocsCodeBlock :code="familiesProperty" language="properties" />
+
+      <p>Families are named by their tool prefix, and <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> lists them. Leave it alone unless you have a reason &mdash; the skills route between families freely, and one that is not advertised is one their advice sends the model to in vain.</p>
 
       <h2 id="check-it-is-connected">Check It Is Connected</h2>
       <p>Run <code>codex mcp list</code>, or <code>/mcp</code> inside a session. The <code>jeffrey</code> server should be listed with its tools. If it is not, in order of likelihood: the session predates the install and needs restarting, this installation set <code>jeffrey.microscope.mcp.enabled=false</code> (Settings reports it, but does not change it), Jeffrey is not on <code>localhost:8585</code>, or Jeffrey is not running.</p>

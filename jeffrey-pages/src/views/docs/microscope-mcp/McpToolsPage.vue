@@ -290,6 +290,11 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
             <td>Every profile in the installation, with its id</td>
           </tr>
           <tr>
+            <td><code>profiles_summary</code></td>
+            <td><code>profileId</code></td>
+            <td>What one profile is, what it can answer, every event type it recorded and the top auto-analysis findings &mdash; <code>profiles_get</code>, <code>features</code> and <code>samplerHealth</code> in one call. The orienting question, in one round trip instead of four</td>
+          </tr>
+          <tr>
             <td><code>profiles_get</code></td>
             <td><code>profileId</code></td>
             <td>Identity, the recording window it covers, its size, and the source commit the profiled build came from (<code>recordingCommit</code>, <code>null</code> when the recording carries no commit tag)</td>
@@ -475,7 +480,7 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
       <DocsCodeBlock :code="exTraces" language="json" />
 
       <h2 id="jvm">jvm_ &mdash; the machine underneath</h2>
-      <p>Garbage collection, safepoints, JIT compilation, threads, native memory, the container and the JVM&rsquo;s own configuration. Each tool renders the manager behind the matching Jeffrey UI page, so the numbers come from the same tested builders the UI draws its charts from.</p>
+      <p>Garbage collection, safepoints, JIT compilation, threads, native memory, class loading, exceptions, the host, TLS, the container and the JVM&rsquo;s own configuration. Each tool renders the manager behind the matching Jeffrey UI page, so the numbers come from the same tested builders the UI draws its charts from.</p>
 
       <p>These questions are all answerable with <code>jfr_executeQuery</code>, and that is exactly why the family exists. Answering &ldquo;how much of the run went to GC pauses&rdquo; by hand is six round trips of invented SQL, and several of those queries are ones a reader reliably gets wrong: pause time is <code>sumOfPauses</code> rather than an event&rsquo;s duration, <code>jdk.GCHeapSummary</code> is two rows per collection, <code>jdk.SafepointLatency</code> fires once per thread per safepoint. One call, the same answer the UI would give.</p>
 
@@ -495,8 +500,8 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
           </tr>
           <tr>
             <td><code>jvm_autoAnalysis</code></td>
-            <td><code>profileId</code></td>
-            <td>Jeffrey&rsquo;s rule set over the recording &mdash; findings with a severity, an explanation and a suggested fix</td>
+            <td><code>profileId</code>, <code>compute?</code> (false)</td>
+            <td>Jeffrey&rsquo;s rule set over the recording &mdash; findings with a severity, an explanation and a suggested fix. Cached; <code>compute</code> runs it when nothing has, which reads the whole recording and is slow</td>
           </tr>
           <tr>
             <td><code>jvm_gc</code></td>
@@ -537,6 +542,31 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
             <td><code>jvm_flags</code></td>
             <td><code>profileId</code></td>
             <td>The flag list grouped by <strong>origin</strong> &mdash; a default, the command line, or the JVM&rsquo;s own ergonomics</td>
+          </tr>
+          <tr>
+            <td><code>jvm_gcDetail</code></td>
+            <td><code>profileId</code>, <code>page?</code></td>
+            <td>The GC pages beneath the overview, one at a time: <code>tenuring</code>, <code>ihop</code>, <code>g1</code>, <code>zgc</code>, <code>stringTables</code>, <code>finalizers</code>, <code>references</code>, <code>phases</code>, <code>plab</code>, <code>configuration</code>. Omit <code>page</code> for the list</td>
+          </tr>
+          <tr>
+            <td><code>jvm_classLoading</code></td>
+            <td><code>profileId</code></td>
+            <td>Classes loaded and unloaded, the metaspace they hold, the loaders ranked by what they carry, the slowest individual loads, and any redefinitions an agent made</td>
+          </tr>
+          <tr>
+            <td><code>jvm_exceptions</code></td>
+            <td><code>profileId</code></td>
+            <td>How many throwables, how many were sampled with a stack, how many were Errors, and the types ranked with their commonest messages</td>
+          </tr>
+          <tr>
+            <td><code>jvm_system</code></td>
+            <td><code>profileId</code></td>
+            <td>Machine CPU against this JVM&rsquo;s own, what the difference leaves for everything else on the box, the peak context-switch rate, and the other processes running there</td>
+          </tr>
+          <tr>
+            <td><code>jvm_security</code></td>
+            <td><code>profileId</code></td>
+            <td>TLS handshakes and distinct peers, the protocols and ciphers negotiated, certificates expired or weakly signed, and what was deserialized</td>
           </tr>
           <tr>
             <td><code>jvm_threadDumps</code></td>
@@ -785,6 +815,11 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
             <td>Column names, types and nullability</td>
           </tr>
           <tr>
+            <td><code>jfr_describeEventType</code></td>
+            <td><code>profileId</code>, <code>eventType</code></td>
+            <td>The fields inside one event type, with their labels and types, and whether it carries a stack trace. <code>jfr_describeTable</code> can only say that <code>events</code> has a JSON column; this says what is in it</td>
+          </tr>
+          <tr>
             <td><code>jfr_listEventTypes</code></td>
             <td><code>profileId</code></td>
             <td>Every event type present, with counts and descriptions</td>
@@ -822,10 +857,34 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
       <p><code>heap_diff</code> is the one that needs two profiles: it compares this dump against an earlier one class by class, ranked by growth, and is the only way to separate a leak from a large working set &mdash; a single dump shows a state, and a state cannot tell the two apart. Pass the earlier dump as <code>baselineProfileId</code>; backwards, every growth reads as a shrink. Both dumps have to be indexed first, and the tool says which one is not.</p>
       <p>Twenty-one tools against a parsed heap dump&rsquo;s own DuckDB index, separate from the profile&rsquo;s JFR database. Asking for them on a profile with no heap dump fails immediately with a message saying so, rather than deep inside the engine.</p>
 
-      <p><strong>Reports</strong> &mdash; pre-computed, and faster and safer than reproducing them in SQL:</p>
-      <DocsCallout type="warning" title="Three of these are computed by the UI, not by the tool">
-        <code>heap_getLeakSuspects</code>, <code>heap_getStringAnalysis</code> and <code>heap_getCollectionAnalysis</code> read a cached result. Until that analysis has been run once from the Jeffrey UI they answer that it has not been run yet, rather than computing it on the spot &mdash; the same arrangement as <code>jvm_autoAnalysis</code>. The other reports here are computed from the index on every call.
+      <p><strong>Preparing a dump.</strong> Retained sizes, the dominator tree and the cached reports do not exist until something builds them. Two tools do:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Arguments</th>
+            <th>Returns</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>heap_prepare</code></td>
+            <td><code>profileId</code>, <code>report?</code></td>
+            <td>Starts the index, the dominator tree and the cached reports, and returns straight away with the stage list. Pass a report name &mdash; <code>leaks</code>, <code>biggest</code>, <code>classloaders</code>, <code>consumers</code>, <code>strings</code>, <code>collections</code>, <code>dominator</code>, <code>threads</code>, <code>biggest-collections</code>, <code>duplicates</code> &mdash; to compute one on a dump that is already indexed</td>
+          </tr>
+          <tr>
+            <td><code>heap_status</code></td>
+            <td><code>profileId</code></td>
+            <td>How far that has got, stage by stage. Poll this rather than retrying the report tool, which cannot tell &ldquo;still building&rdquo; from &ldquo;never asked for&rdquo;</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <DocsCallout type="info" title="The one pair here that writes, and what it writes is a cache">
+        <code>heap_prepare</code> runs the same pipeline as the <strong>Initialize</strong> button in the UI, on the same registry &mdash; a run started from a session is visible in the browser and the other way round, and a second request joins the one in flight rather than racing it. It returns immediately because a dominator build over a multi-gigabyte heap takes minutes, which is well past what a client waits for a tool call. No dump is altered and nothing is deleted. Both tools disappear when the installation sets <code>jeffrey.microscope.mcp.compute.enabled=false</code>, and the reading tools then say so.
       </DocsCallout>
+
+      <p><strong>Reports</strong> &mdash; cached, and faster and safer than reproducing them in SQL. A report nothing has computed answers that it has not been run for this dump yet, and names the <code>heap_prepare</code> report that computes it:</p>
       <table>
         <thead>
           <tr>
@@ -966,6 +1025,11 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
             <td><code>profileId</code>, <code>query</code></td>
             <td>A read-only query against the index</td>
           </tr>
+          <tr>
+            <td><code>heap_oql</code></td>
+            <td><code>profileId</code>, <code>query</code>, <code>limit?</code> (50, max 100), <code>includeRetainedSize?</code></td>
+            <td>Jeffrey&rsquo;s OQL against the object graph: <code>SELECT * FROM INSTANCEOF java.util.Map</code>, <code>SELECT AS RETAINED SET * FROM com.acme.Cache</code>, a filter over an object&rsquo;s own fields. Rows carry an <code>objectId</code> the other tools take</td>
+          </tr>
         </tbody>
       </table>
 
@@ -1046,6 +1110,11 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
             <td><code>recordings_analyzeRecording</code></td>
             <td><code>recordingId</code></td>
             <td>The same, for a recording already in the Quick Analysis store &mdash; one uploaded through the UI but never analysed</td>
+          </tr>
+          <tr>
+            <td><code>recordings_status</code></td>
+            <td><code>recordingId</code></td>
+            <td>Whether an analysis that outlasted its call has finished, and the profile id once it has. Poll this rather than analysing again, which would build a second profile of the same file</td>
           </tr>
           <tr>
             <td><code>recordings_list</code></td>

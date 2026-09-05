@@ -233,3 +233,14 @@ rather than silently:
   access off, so `read_text`, `read_csv`, `read_parquet`, `glob` and `ATTACH` all fail. Nothing is
   lost for analysis — every table you need is in this database — but a query that reaches for one
   comes back with a permission error rather than a confusing empty result.
+
+## Before writing a query against an unfamiliar event type
+
+`jfr_describeTable` can only tell you that `events` has a JSON `fields` column. What is *inside* it
+differs per event type, and the names are JFR's rather than Jeffrey's — `sumOfPauses` not `duration`,
+`allocationSize` not `size`. **`jfr_describeEventType`** lists them with their labels and types, and
+also says whether the type carries a stack trace, which is what decides whether it can be drawn as a
+flamegraph at all.
+
+Call it once for an event type you have not queried before. Guessing a JFR field name is how a query
+comes back empty against a recording that holds exactly the data you asked for.

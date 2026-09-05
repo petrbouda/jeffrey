@@ -55,26 +55,34 @@ answers a different one — what there is a lot of, not who is responsible for i
 `heap_getPathToGCRoot`, `heap_getReferrers`, `heap_browseClassInstances`, `heap_getInstanceDetail`,
 `heap_getThreads`, `heap_getGCRootSummary`, and the SQL tools.
 
-Retained sizes and the dominator tree are built lazily by **`heap_getDominatorTreeRoots`**. Until
-it has run once, the `dominator` and `retained_size` tables are empty and every retained figure is
-*missing*, not zero. Call it once, early, before anything that ranks by retained size — skipping it
-is the usual reason a heap session stalls on empty results.
+Retained sizes and the dominator tree are built lazily by **`heap_getDominatorTreeRoots`**, or
+explicitly by `heap_prepare` with report `dominator`. Until one of them has run, the `dominator` and
+`retained_size` tables are empty and every retained figure is *missing*, not zero. Do it once, early,
+before anything that ranks by retained size — skipping it is the usual reason a heap session stalls
+on empty results.
 
-**Pre-computed reports.** Jeffrey computes these when the user opens the report in the UI and
-stores the result; over MCP they can only be read. Each answers `… has not been run yet` until then:
+**Cached reports, which you can build.** These are computed once and stored. Until something computes
+one it answers `… has not been run for this heap dump yet`, and the fix is `heap_prepare`:
 
-| Tool | Report to run in the Jeffrey UI |
+| Tool | `heap_prepare` report |
 |---|---|
-| `heap_getLeakSuspects` | Leak Suspects |
-| `heap_getBiggestObjects` | Biggest Objects |
-| `heap_getClassLoaderLeakChains` | Class Loader Analysis |
-| `heap_getTopConsumers` | Top Consumers |
-| `heap_getStringAnalysis` | String Analysis |
-| `heap_getCollectionAnalysis` | Collection Analysis |
+| `heap_getLeakSuspects` | `leaks` |
+| `heap_getBiggestObjects` | `biggest` |
+| `heap_getClassLoaderLeakChains` | `classloaders` |
+| `heap_getTopConsumers` | `consumers` |
+| `heap_getStringAnalysis` | `strings` |
+| `heap_getCollectionAnalysis` | `collections` |
 
-When one answers that way, do not retry it. Give the user the `profiles_link` URL and the report's
-name, and carry on with the on-demand route for the same question meanwhile — the table in step 5
-names it — so the answer does not wait on the UI.
+`heap_prepare` with no argument builds everything — the index, the dominator tree and all of the
+above — which is the right call for a dump nobody has opened yet. Pass one report name to compute
+just that one on a dump that is already indexed. It returns immediately; `heap_status` reports the
+stages as they complete, and each answer becomes readable as its stage finishes rather than at the
+end. A dominator build over a multi-gigabyte heap takes minutes, so do something else meanwhile
+rather than polling tightly.
+
+If `heap_prepare` is not advertised at all, this Jeffrey runs with
+`jeffrey.microscope.mcp.compute.enabled=false`. Then the old rule applies: give the user the
+`profiles_link` URL and the report's name, and use the on-demand route in step 5 meanwhile.
 
 ## 5. Pick the route
 
@@ -93,14 +101,17 @@ path says *why those instances are still reachable*. Do not report a leak withou
 skip weak and soft references, so an object reachable only through a `WeakHashMap` or a soft cache
 shows no path — that is the answer, not an error.
 
-## Hand the reading to the analyst
+## Hand the reading to an agent
 
-A **`profile-analyst`** agent runs a heap route and returns only the findings — class, retained
-bytes, GC-root path — with everything it read left in its own context. The Claude Code plugin ships
-it as `microscope:profile-analyst`; in Codex it is the custom agent from
-`codex/agents/profile-analyst.toml`; without one, read here. Delegate a whole route from step 5
-(give it the `profileId` and the question), and send independent questions in one message so they
-run at once.
+Two agents can take a heap route and return only the findings — class, retained bytes, GC-root path —
+with everything they read left in their own context. **`heap-triage`** is the one built for this: it
+carries this skill and `heap-sql`, and it will run `heap_prepare` when a report or a retained size is
+missing rather than reporting an empty result. **`profile-analyst`** does the same reading but never
+builds anything, which suits a dump that is already prepared. The Claude Code plugin ships both; in
+Codex they are the custom agents under `codex/agents/`. Without one, read here.
+
+Delegate a whole route from step 5 — give it the `profileId` and the question — and send independent
+questions in one message so they run at once.
 
 Work here instead when a single tool answers the question, or when the user is walking the
 dominator tree with you object by object. Reading the real source behind a retaining field, and
@@ -126,13 +137,21 @@ A dump shows a state, not a trend. One dump cannot distinguish a leak from a lar
 
 - `Profile … has no heap dump` → it is a JFR recording; the `analyze-jfr` skill applies.
 - `… is still being indexed` → open the profile once in the Jeffrey UI to build the index, then retry.
-- Retained sizes come back empty → the dominator tree has not been built; go back to step 4.
-- `… has not been run yet` → a pre-computed report; step 4 says what to do.
+- Retained sizes come back empty → the dominator tree has not been built; `heap_prepare` with report
+  `dominator`, or step 4.
+- `… has not been run for this heap dump yet` → a cached report; `heap_prepare` with the report name
+  from the table in step 4.
+- `… is still being indexed` → `heap_prepare` is already running or the UI is; `heap_status` says
+  how far it has got.
 - No `recordings_` tool advertised → this Jeffrey runs with `jeffrey.microscope.mcp.ingest.enabled=false`;
   upload the dump in the UI and work from `profiles_list`.
 - Every call fails to connect → Jeffrey is not running at the configured address. Point the client
   at the real `…/api/internal/mcp` endpoint: in Claude Code, `/plugin` → `microscope` → **Jeffrey MCP
   endpoint**; in Codex, the `[mcp_servers.jeffrey]` block in `~/.codex/config.toml`.
 
-Jeffrey's OQL engine is not exposed over MCP. For a question none of the tools above cover, drop
-to DuckDB SQL over the heap index — the `heap-sql` skill has the schema.
+For a question none of the tools above cover there are two languages, and they are not
+interchangeable. `heap_executeQuery` runs **SQL** against the index as it is stored — join `instance`
+to `class`, group by loader, correlate two tables; the `heap-sql` skill has the schema. `heap_oql`
+runs **OQL** against the object graph the index implies — every instance of a type including its
+subclasses, the retained set of a selection, a filter over an object's own fields. The retained-set
+and `INSTANCEOF` forms have no SQL spelling at all.
