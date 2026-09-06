@@ -18,9 +18,6 @@
 
 package cafe.jeffrey.shared.common;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 /**
  * A class name split into the part that is stable across JVM runs and, for a hidden class
  * (JEP 371, {@code Lookup.defineHiddenClass}), the per-run identity the JVM appends to it.
@@ -42,23 +39,76 @@ import java.util.regex.Pattern;
  */
 public record HiddenClassName(String className, String hiddenClassId) {
 
-    private static final Pattern HIDDEN_CLASS_SUFFIX = Pattern.compile("^(.+)[./+](0x[0-9a-fA-F]+)$");
+    private static final char ADDRESS_MARKER_ZERO = '0';
+    private static final char ADDRESS_MARKER_X = 'x';
+
+    /**
+     * Characters the JVM is known to put between the stable name and the address. None of them is
+     * a hex digit, which is what makes the scan in {@link #split(String)} unambiguous.
+     */
+    private static final String SEPARATORS = "./+";
 
     /**
      * Splits a raw class name as it arrives from the recording. Names without a hidden-class
      * suffix are returned unchanged with a {@code null} identity.
+     * <p>
+     * This runs once per frame of every stacktrace in a recording, so it walks the name backwards
+     * from the end rather than matching a pattern against it. A name that is not a hidden class —
+     * the overwhelming majority — is rejected by the last character alone, and no name is scanned
+     * further back than its own trailing address.
+     * <p>
+     * The backwards scan finds the only split point there can be. An address is {@code 0x} and a
+     * run of hex digits reaching the end of the name, so the run of hex digits at the end fixes
+     * where the {@code 0x} must sit, and the separator in front of it follows. A second, earlier
+     * split point would have to span the separator of this one, and a separator is never a hex
+     * digit — so at most one split point exists, and it is this one.
      */
     public static HiddenClassName split(String rawClassName) {
         if (rawClassName == null || rawClassName.isEmpty()) {
             return new HiddenClassName(rawClassName, null);
         }
 
-        Matcher matcher = HIDDEN_CLASS_SUFFIX.matcher(rawClassName);
-        if (!matcher.matches()) {
+        int addressStart = addressStart(rawClassName);
+        if (addressStart < 0) {
             return new HiddenClassName(rawClassName, null);
         }
 
-        return new HiddenClassName(matcher.group(1), matcher.group(2));
+        return new HiddenClassName(
+                rawClassName.substring(0, addressStart - 1),
+                rawClassName.substring(addressStart));
+    }
+
+    /**
+     * The index of the {@code 0} of a trailing {@code 0x…} address preceded by a separator and by
+     * at least one character of class name, or {@code -1} when the name does not end in one.
+     */
+    private static int addressStart(String rawClassName) {
+        int hexStart = rawClassName.length();
+        while (hexStart > 0 && isHexDigit(rawClassName.charAt(hexStart - 1))) {
+            hexStart--;
+        }
+
+        // No hex digits at the end, so nothing that could be an address.
+        if (hexStart == rawClassName.length()) {
+            return -1;
+        }
+
+        // The separator, the '0' and the 'x' all have to fit in front of the digits, and the
+        // class name itself needs at least one character in front of the separator.
+        int addressStart = hexStart - 2;
+        if (addressStart < 2) {
+            return -1;
+        }
+
+        boolean isAddress = rawClassName.charAt(hexStart - 1) == ADDRESS_MARKER_X
+                && rawClassName.charAt(addressStart) == ADDRESS_MARKER_ZERO
+                && SEPARATORS.indexOf(rawClassName.charAt(addressStart - 1)) >= 0;
+
+        return isAddress ? addressStart : -1;
+    }
+
+    private static boolean isHexDigit(char c) {
+        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
     }
 
     public boolean isHidden() {
