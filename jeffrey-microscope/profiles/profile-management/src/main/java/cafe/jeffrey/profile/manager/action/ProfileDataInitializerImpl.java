@@ -38,6 +38,7 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
     private static final Logger LOG = LoggerFactory.getLogger(ProfileDataInitializerImpl.class);
 
     private static final String SPAN_THREAD_VIEWER = "threads.rows";
+    private static final String SPAN_AUTO_ANALYSIS = "analysis.autoAnalysis";
 
     private final DatabaseManager databaseManager;
     private final Executor executor;
@@ -57,8 +58,9 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
         ProfileInfo profileInfo = profileManager.info();
 
         // pprof/OTLP profiles are stack-sample imports visualized only as flamegraphs (generated on
-        // demand). The views below -- the thread viewer -- are JFR-specific and read JFR-shaped
-        // fields these imports don't have, so they are skipped for such sources.
+        // demand). The views below -- the thread viewer and the auto analysis -- are JFR-specific:
+        // one reads JFR-shaped fields these imports don't have, the other hands the recording file
+        // to the JMC rule set, which only understands JFR. Both are skipped for such sources.
         if (profileInfo.eventSource().isFlamegraphOnlyImport()) {
             LOG.info("Skipping JFR-specific initialization for a flamegraph-only profile: "
                             + "profile_id={} profile_name={} event_source={}",
@@ -78,12 +80,34 @@ public class ProfileDataInitializerImpl implements ProfileDataInitializer {
         CompletableFuture<Void> threads = warm(SPAN_THREAD_VIEWER, "Thread Viewer", profileInfo,
                 () -> profileManager.threadManager().threadRows());
 
-        return CompletableFuture.allOf(threads)
+        // Auto Analysis is a cache like the thread bands, but it is the only one that does not read
+        // the profile database: the JMC rule set loads the original recording file a second time.
+        // That is why it used to wait for someone to press a button -- and why warming it here is
+        // worth the second parse, since until it is computed the summary dashboard, the MCP
+        // jvm_autoAnalysis tool and the IDE recording panel all show nothing rather than findings.
+        // Skipped without complaint when the recording file is no longer on disk.
+        CompletableFuture<Void> autoAnalysis = warmAutoAnalysis(profileManager, profileInfo);
+
+        return CompletableFuture.allOf(threads, autoAnalysis)
                 .whenComplete((_, _) -> {
                     lease.close();
                     LOG.info("Cached views of the profile have been warmed: profile_id={} profile_name={}",
                             profileInfo.id(), profileInfo.name());
                 });
+    }
+
+    private CompletableFuture<Void> warmAutoAnalysis(
+            ProfileManager profileManager, ProfileInfo profileInfo) {
+
+        if (!profileManager.autoAnalysisManager().canGenerate()) {
+            LOG.info("Skipping auto analysis, the recording file is not available: "
+                            + "profile_id={} profile_name={}",
+                    profileInfo.id(), profileInfo.name());
+            return CompletableFuture.completedFuture(null);
+        }
+
+        return warm(SPAN_AUTO_ANALYSIS, "Auto Analysis", profileInfo,
+                () -> profileManager.autoAnalysisManager().generate());
     }
 
     /**

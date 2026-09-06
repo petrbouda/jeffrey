@@ -605,8 +605,8 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
         A recording holds only what the profiler was told to capture. Every section reports whether this profile carries its events, and a section asked for anyway is refused naming the events it needed &mdash; a dashboard rendered from events that were never recorded is a page of zeroes, which reads like a finding rather than like an absence.
       </DocsCallout>
 
-      <DocsCallout type="warning" title="Auto analysis is read from a cache, not computed here">
-        Generating it loads the whole recording through the JMC toolkit, which is bounded neither in time nor in memory by anything the server controls &mdash; a poor trade inside a tool whose point is being cheap. The Auto Analysis page in the Jeffrey UI computes and caches it; every call afterwards is a cache read. Until then the tool says so, and the other sections still answer.
+      <DocsCallout type="info" title="Auto analysis is read from a cache, not computed here">
+        Generating it loads the whole recording through the JMC toolkit a second time, which is bounded neither in time nor in memory by anything the server controls &mdash; a poor trade inside a tool whose point is being cheap. So Jeffrey computes it when the recording is imported, as part of the same warm-up that builds the thread bands, and caches it: by the time a client asks, the cache is normally already warm. A profile that missed that &mdash; imported before Jeffrey warmed it, or whose recording file has since gone &mdash; makes the tool say so, and <code>compute: true</code> runs it on the spot. A call arriving while a run is already in flight joins that run rather than starting a second one. Either way the other sections still answer.
       </DocsCallout>
 
       <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
