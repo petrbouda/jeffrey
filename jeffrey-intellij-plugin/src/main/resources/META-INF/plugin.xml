@@ -61,7 +61,7 @@
     <actions>
         <action id="cafe.jeffrey.ide.plugin.idea.AnalyzeInMicroscope"
                 class="cafe.jeffrey.ide.plugin.idea.AnalyzeInMicroscopeAction"
-                text="Analyze in Jeffrey Microscope"
+                text="Analyze in Microscope"
                 description="Open this JFR recording or heap dump in Jeffrey Microscope"
                 icon="/icons/jeffrey-icon.svg">
             <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>

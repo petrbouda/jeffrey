@@ -46,7 +46,7 @@ is on. A disabled integration answers `404` — by design, so Microscope's scan 
 ## Configuration
 
 *Settings → Tools → Jeffrey Microscope Plugin* — an enable toggle, the built-in server port, and the
-Microscope address used by the *Analyze in Jeffrey Microscope* context-menu action.
+Microscope address used by the *Analyze in Microscope* context-menu action.
 
 ## Endpoints
 

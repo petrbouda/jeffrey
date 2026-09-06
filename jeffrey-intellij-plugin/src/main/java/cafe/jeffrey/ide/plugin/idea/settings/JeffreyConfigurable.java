@@ -32,7 +32,7 @@ import javax.swing.JPanel;
 /**
  * Settings panel under <em>Settings → Tools → Jeffrey Microscope Plugin</em>: an enable toggle, the
  * built-in server port (which Microscope discovers by scanning), and the Microscope address the
- * "Analyze in Jeffrey Microscope" action opens. Access is limited to localhost; there is no token to
+ * "Analyze in Microscope" action opens. Access is limited to localhost; there is no token to
  * configure.
  */
 public final class JeffreyConfigurable implements Configurable {
@@ -52,7 +52,7 @@ public final class JeffreyConfigurable implements Configurable {
         JBLabel portLabel = new JBLabel(String.valueOf(BuiltInServerManager.getInstance().getPort()));
         JBLabel accessLabel = new JBLabel("Localhost only — Microscope finds this IDE by scanning the built-in server port range.");
         microscopeUrlField = new JBTextField(currentMicroscopeUrl());
-        JBLabel urlLabel = new JBLabel("Used by \"Analyze in Jeffrey Microscope\" to send a recording or heap dump for analysis.");
+        JBLabel urlLabel = new JBLabel("Used by \"Analyze in Microscope\" to send a recording or heap dump for analysis.");
 
         return FormBuilder.createFormBuilder()
                 .addComponent(enabledCheckbox)

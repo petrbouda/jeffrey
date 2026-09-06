@@ -96,10 +96,10 @@ jeffrey.microscope.ide.scan.port-end=63362</code></pre>
           and refusing.</li>
         <li><strong>The built-in server port</strong>, shown for reference &mdash; Microscope finds
           it by scanning, so there is nothing to copy anywhere.</li>
-        <li><strong>The Microscope address</strong>, used by the <em>Analyze in Jeffrey
-          Microscope</em> action to open a <code>.jfr</code> or <code>.hprof</code> file for
-          analysis. This is the one address the plugin cannot work out for itself: Microscope
-          discovers the IDE, not the other way round. It defaults to
+        <li><strong>The Microscope address</strong>, used by the <em>Analyze in Microscope</em>
+          action to open a recording or heap dump for analysis. This is the one address the plugin
+          cannot work out for itself: Microscope discovers the IDE, not the other way round. It
+          defaults to
           <code>http://localhost:8585</code>.</li>
       </ul>
 

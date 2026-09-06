@@ -24,7 +24,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Which file names offer "Analyze in Jeffrey Microscope". The rule has to agree with Microscope's own
+ * Which file names offer "Analyze in Microscope". The rule has to agree with Microscope's own
  * {@code SupportedRecordingFile}: an action that appears and then fails on import is worse than one
  * that never appeared.
  */
