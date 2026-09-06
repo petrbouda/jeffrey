@@ -92,11 +92,14 @@ public class JvmMcpTools {
             + "answer.";
 
     private static final String AUTO_ANALYSIS_NOT_COMPUTED = "Auto Analysis has not been computed for "
-            + "this profile yet. Call this tool again with compute true to run it — it reads the whole "
-            + "recording through the JMC rule set, which takes a while and is cached afterwards. It can "
-            + "also be run from the Auto Analysis page in the Jeffrey UI; call profiles_link for the "
-            + "URL. Meanwhile the other jvm_ sections answer the same subsystems directly from the "
-            + "parsed events.";
+            + "this profile yet. It is normally computed when a recording is imported, so this means "
+            + "one of: the profile predates that, its recording file is no longer on disk, the warm-up "
+            + "failed, or it is still running. Call this tool again with compute true to run it — it "
+            + "reads the whole recording through the JMC rule set, which takes a while and is cached "
+            + "afterwards; a call arriving while a run is already in progress joins that run rather "
+            + "than starting a second one. It can also be run from the Auto Analysis page in the "
+            + "Jeffrey UI; call profiles_link for the URL. Meanwhile the other jvm_ sections answer "
+            + "the same subsystems directly from the parsed events.";
 
     private static final String NO_SUCH_GC_PAGE = "No garbage-collection page named '%s'. The pages "
             + "are: %s.";
@@ -173,14 +176,17 @@ public class JvmMcpTools {
     @Tool(description = "Jeffrey's Auto Analysis: the JMC rule set run over the whole recording, as "
             + "findings with a severity, an explanation and a suggested fix. The cheapest first "
             + "question about any profile — each finding names a subsystem worth following up in. "
-            + "Cached once computed, and read from that cache here. When nothing has computed it yet, "
-            + "pass compute true to run it: that reads the whole recording through the rule set, which "
-            + "is slow and unbounded in memory, so it is asked for rather than assumed.")
+            + "Computed when the recording is imported and cached, so this is normally a cache read. "
+            + "For a profile that missed that — imported before Jeffrey warmed it, or whose recording "
+            + "file has since gone — pass compute true to run it: that reads the whole recording "
+            + "through the rule set, which is slow and unbounded in memory, so it is asked for rather "
+            + "than assumed.")
     public String autoAnalysis(
             @ToolParam(required = false, description = "Run the rule set now if it has not been run "
-                    + "before. Off by default because it reads the entire recording through the JMC "
-                    + "toolkit, which on a large one takes a while and holds a lot of heap. Ignored "
-                    + "when the analysis is already computed, which is then simply returned")
+                    + "before. Rarely needed, since a profile is warmed at import. Off by default "
+                    + "because it reads the entire recording through the JMC toolkit, which on a "
+                    + "large one takes a while and holds a lot of heap. Ignored when the analysis is "
+                    + "already computed, which is then simply returned")
             Boolean compute) {
 
         if (!autoAnalysisSection.isComputed()) {

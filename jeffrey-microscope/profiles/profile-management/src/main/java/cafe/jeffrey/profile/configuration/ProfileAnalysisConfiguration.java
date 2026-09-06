@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import cafe.jeffrey.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.profile.manager.AutoAnalysisManagerImpl;
+import cafe.jeffrey.profile.parser.data.AutoAnalysisDataProvider;
 import cafe.jeffrey.profile.manager.EventViewerManager;
 import cafe.jeffrey.profile.manager.EventViewerManagerImpl;
 import cafe.jeffrey.profile.manager.FlagsManager;
@@ -92,7 +93,8 @@ public class ProfileAnalysisConfiguration {
                 recordingPathResolver = () -> findRecording(recordingsPath, profileInfo.recordingId());
             }
 
-            return new AutoAnalysisManagerImpl(cacheRepository, recordingPathResolver);
+            return new AutoAnalysisManagerImpl(
+                    cacheRepository, recordingPathResolver, AutoAnalysisDataProvider::generate);
         };
     }
 

@@ -61,7 +61,7 @@ public final class ProfileInitStages {
     public static final String CHECKPOINT = "checkpoint";
 
     /**
-     * Starts the thread bands. The stage covers starting them, not
+     * Starts the thread bands and the auto analysis. The stage covers starting them, not
      * finishing them: they are caches, and the profile is usable without them.
      */
     public static final String WARMUP = "warmup";

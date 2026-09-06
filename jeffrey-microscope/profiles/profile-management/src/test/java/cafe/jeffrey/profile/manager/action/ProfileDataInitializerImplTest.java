@@ -18,12 +18,14 @@
 
 package cafe.jeffrey.profile.manager.action;
 
+import cafe.jeffrey.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.manager.thread.ThreadManager;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.persistence.DatabaseLease;
 import cafe.jeffrey.shared.persistence.DatabaseManager;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -52,6 +54,7 @@ class ProfileDataInitializerImplTest {
     private static final String PROFILE_ID = "profile-1";
 
     private final ThreadManager threadManager = mock(ThreadManager.class);
+    private final AutoAnalysisManager autoAnalysisManager = mock(AutoAnalysisManager.class);
 
     /** Records whether the lease taken for the warming was handed back. */
     private final AtomicBoolean leaseReleased = new AtomicBoolean();
@@ -74,7 +77,13 @@ class ProfileDataInitializerImplTest {
         ProfileManager profileManager = mock(ProfileManager.class);
         when(profileManager.info()).thenReturn(profileInfo);
         when(profileManager.threadManager()).thenReturn(threadManager);
+        when(profileManager.autoAnalysisManager()).thenReturn(autoAnalysisManager);
         return profileManager;
+    }
+
+    @BeforeEach
+    void recordingIsOnDisk() {
+        when(autoAnalysisManager.canGenerate()).thenReturn(true);
     }
 
     @Nested
@@ -91,6 +100,7 @@ class ProfileDataInitializerImplTest {
                     .get(5, TimeUnit.SECONDS);
 
             verify(threadManager).threadRows();
+            verify(autoAnalysisManager).generate();
             assertEquals(1, leasesTaken.get());
             assertTrue(leaseReleased.get(), "the warming lease was never released");
         }
@@ -152,6 +162,50 @@ class ProfileDataInitializerImplTest {
     }
 
     @Nested
+    @DisplayName("Auto analysis")
+    class AutoAnalysis {
+
+        /**
+         * The rule set reads the original recording file, not the profile database. A profile whose
+         * recording is gone cannot produce one, and saying so is not a warm-up failure.
+         */
+        @Test
+        @DisplayName("is skipped when the recording file is gone, without failing the warm-up")
+        void skippedWhenTheRecordingIsGone() throws Exception {
+            when(autoAnalysisManager.canGenerate()).thenReturn(false);
+
+            ProfileDataInitializerImpl initializer =
+                    new ProfileDataInitializerImpl(databaseManager(), Runnable::run);
+
+            initializer.initialize(profileManager(RecordingEventSource.JDK))
+                    .get(5, TimeUnit.SECONDS);
+
+            verify(autoAnalysisManager, never()).generate();
+            verify(threadManager).threadRows();
+            assertTrue(leaseReleased.get());
+        }
+
+        /**
+         * The two warms are independent: the analysis is the expensive one and the likeliest to
+         * blow up, and it must not take the thread bands or the lease with it.
+         */
+        @Test
+        @DisplayName("a failing analysis still leaves the thread bands warmed and the lease released")
+        void failureDoesNotAffectTheOtherWarm() throws Exception {
+            when(autoAnalysisManager.generate()).thenThrow(new IllegalStateException("rules blew up"));
+
+            ProfileDataInitializerImpl initializer =
+                    new ProfileDataInitializerImpl(databaseManager(), Runnable::run);
+
+            initializer.initialize(profileManager(RecordingEventSource.JDK))
+                    .get(5, TimeUnit.SECONDS);
+
+            verify(threadManager).threadRows();
+            assertTrue(leaseReleased.get(), "a failed analysis stranded the lease");
+        }
+    }
+
+    @Nested
     @DisplayName("Flamegraph-only imports")
     class FlamegraphOnlyImports {
 
@@ -166,6 +220,7 @@ class ProfileDataInitializerImplTest {
                     .get(5, TimeUnit.SECONDS);
 
             verify(threadManager, never()).threadRows();
+            verify(autoAnalysisManager, never()).generate();
             verify(databaseManager, never()).acquire(any());
             assertEquals(0, leasesTaken.get());
         }

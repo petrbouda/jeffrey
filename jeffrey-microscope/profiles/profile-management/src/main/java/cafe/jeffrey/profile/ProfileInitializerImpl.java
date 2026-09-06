@@ -195,8 +195,8 @@ public class ProfileInitializerImpl implements ProfileInitializer {
 
         // Last, and deliberately not waited for. Everything above leaves the profile queryable --
         // events, traces, event types, threads are all written -- so this is the point the profile
-        // is usable, and the caller enables it as soon as we return. The warmed views' frame trees and
-        // the thread bands are caches: warming them eagerly is worth doing, but making every user
+        // is usable, and the caller enables it as soon as we return. The thread bands and the auto
+        // analysis are caches: warming them eagerly is worth doing, but making every user
         // wait for them before they can open a flamegraph is not. The stage therefore measures
         // starting the warming, not finishing it; the warming holds its own lease until it is done.
         run.runStage(ProfileInitStages.WARMUP, () -> profileDataInitializer.initialize(profileManager));

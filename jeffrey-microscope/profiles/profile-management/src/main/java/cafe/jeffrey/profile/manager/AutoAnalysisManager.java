@@ -30,8 +30,24 @@ public interface AutoAnalysisManager {
     interface Factory extends Function<ProfileInfo, AutoAnalysisManager> {
     }
 
+    /**
+     * The findings already computed for this profile, read from the profile's cache. Empty when
+     * nothing has computed them yet -- the analysis is warmed when the profile is imported, so this
+     * is normally populated by the time anyone asks.
+     */
     List<AutoAnalysisResult> analysisResults();
 
+    /**
+     * Whether the analysis can be run at all, which comes down to whether the recording file the JMC
+     * rule set reads is still on disk. Asked before warming so a profile whose recording is gone is
+     * skipped quietly rather than failing.
+     */
+    boolean canGenerate();
+
+    /**
+     * Runs the rule set and caches the findings. Single-flight: a caller arriving while a run is in
+     * progress joins that run instead of starting a second one.
+     */
     List<AutoAnalysisResult> generate();
 
 }
