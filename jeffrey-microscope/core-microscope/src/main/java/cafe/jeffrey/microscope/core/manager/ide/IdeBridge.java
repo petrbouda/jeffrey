@@ -24,7 +24,7 @@ package cafe.jeffrey.microscope.core.manager.ide;
  * {@code jeffrey.microscope.ide.mode} property (see {@link IdeMode}):
  *
  * <ul>
- *   <li>{@link IdeMode#DEFAULT} → {@link JeffreyPluginBridge}, the first-party Jeffrey IntelliJ
+ *   <li>{@link IdeMode#JEFFREY_PLUGIN} → {@link JeffreyPluginBridge}, the first-party Jeffrey IntelliJ
  *       plugin (instance discovery, per-profile target selection, precise PSI navigation).</li>
  *   <li>{@link IdeMode#JFR_PROFILER_PLUGIN} → {@link JfrProfilerPluginBridge}, which targets the
  *       third-party JFR Profiler IntelliJ plugin via its {@code /ide/{fqn}.{method}} HTTP contract.</li>
@@ -67,6 +67,19 @@ public interface IdeBridge {
      * Fetches the raw source text of a class for display inside Microscope.
      */
     IdeSourceResult fetchSource(IdeSourceRequest request);
+
+    /**
+     * Locates a source position without opening it.
+     *
+     * <p>Not every bridge can answer this: it needs an IDE that will resolve a symbol and report the
+     * result rather than acting on it, which is a capability of the first-party plugin from protocol
+     * version 2 onwards. The default says so in a sentence instead of pretending, because the caller
+     * — typically an agent about to write down a file and a line — must not be handed a guess.
+     */
+    default IdeResolveResult resolve(IdeResolveRequest request) {
+        return IdeResolveResult.failed(
+                "This IDE integration cannot locate a frame without opening it.");
+    }
 
     /**
      * Discovers the IDE windows available as navigation targets for a profile, flagging which contain

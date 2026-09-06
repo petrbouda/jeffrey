@@ -82,7 +82,7 @@ public class HeapDumpAnalysisAssistantServiceImpl extends McpAnalysisAssistantSe
         return runAnalysis(request.message(), () -> {
             HeapDumpMcpTools tools = new HeapDumpMcpTools(delegate);
             McpToolset mcpToolset = mcpToolsetFactory.forHeap(request.profileId());
-            ToolBinding toolBinding = new ToolBinding(tools, mcpToolset);
+            ToolBinding toolBinding = ToolBinding.of(tools, mcpToolset);
 
             return new ToolExchange(
                     HeapDumpAnalysisSystemPrompt.SYSTEM_PROMPT,

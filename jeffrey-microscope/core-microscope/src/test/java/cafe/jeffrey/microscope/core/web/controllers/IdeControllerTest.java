@@ -49,6 +49,7 @@ class IdeControllerTest {
     private static final long PID = 9688L;
     private static final String PROJECT_ID = "loc-hash-1";
     private static final String PROJECT_NAME = "jeffrey";
+    private static final String BASE_PATH = "/code/jeffrey";
     private static final String IDE_NAME = "IntelliJ IDEA";
 
     @Mock
@@ -106,7 +107,7 @@ class IdeControllerTest {
         @Test
         void linkedReportsCachedWindow() {
             when(ideBridge.targetStatus(PROFILE))
-                    .thenReturn(IdeTargetStatus.linked(new IdeTarget(PORT, PROJECT_ID, IDE_NAME, PROJECT_NAME, PID)));
+                    .thenReturn(IdeTargetStatus.linked(new IdeTarget(PORT, PROJECT_ID, IDE_NAME, PROJECT_NAME, BASE_PATH, PID)));
             MockMvcTester mvc = mockMvcTesterFor(new IdeController(ideBridge));
 
             assertThat(mvc.get().uri("/api/internal/ide/status?profileId=p1"))
@@ -149,7 +150,8 @@ class IdeControllerTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""
                             {"profileId":"p1","port":63342,"projectId":"loc-hash-1",
-                             "ideName":"IntelliJ IDEA","projectName":"jeffrey","pid":9688}
+                             "ideName":"IntelliJ IDEA","projectName":"jeffrey",
+                             "basePath":"/code/jeffrey","pid":9688}
                             """))
                     .hasStatusOk()
                     .bodyJson()
@@ -157,7 +159,7 @@ class IdeControllerTest {
 
             verify(ideBridge).selectTarget(eq(PROFILE), targetCaptor.capture());
             assertThat(targetCaptor.getValue())
-                    .isEqualTo(new IdeTarget(PORT, PROJECT_ID, IDE_NAME, PROJECT_NAME, PID));
+                    .isEqualTo(new IdeTarget(PORT, PROJECT_ID, IDE_NAME, PROJECT_NAME, BASE_PATH, PID));
         }
     }
 

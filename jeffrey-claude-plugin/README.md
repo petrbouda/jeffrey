@@ -70,7 +70,7 @@ The skills keep working; only the server registration moves.
 
 ## What you get
 
-**Tools**, in seventeen families:
+**Tools**, in eighteen families:
 
 | Family | What it does |
 |---|---|
@@ -89,8 +89,9 @@ The skills keep working; only the server registration moves.
 | `memory_` | Allocation by type, and JFR-side leak candidates that need no heap dump |
 | `jfr_` | The profile's DuckDB tables — schema, the fields of one event type, and read-only SQL |
 | `heap_` | Heap summary, class histogram, dominator tree, leak suspects, GC-root paths, a two-dump diff, read-only SQL, OQL, and the one pair that builds rather than reads: `heap_prepare` and `heap_status` |
-| `recordings_` | One of the two that write: imports a recording file and builds a profile from it |
+| `recordings_` | One of those that write: imports a recording file and builds a profile from it |
 | `hubs_` | The recordings still on a connected Jeffrey Hub: lists sessions across every hub and pulls one in |
+| `ide_` | Where a frame actually lives, answered by the developer's running IntelliJ: the file and line for a class and method, a class's source, which checkouts are open and on what commit, and — the one tool here with a visible side effect — opening a location in the editor |
 
 `recordings_analyzeFile` takes an **absolute path**, and the file has to be on the machine Jeffrey
 runs on — Jeffrey opens it, the client does not upload it. That is the usual case (one laptop running

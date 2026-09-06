@@ -189,7 +189,9 @@ public class JfrProfilerPluginBridge implements IdeBridge {
      */
     @Override
     public IdeTargetStatus targetStatus(String profileId) {
-        return new IdeTargetStatus(false, true, null, null, 0, 0);
+        // No basePath either: this bridge knows a URL, never which checkout is behind it, so an AI
+        // analysis gets no sources under this mode rather than a directory nobody confirmed.
+        return new IdeTargetStatus(false, true, null, null, null, 0, 0);
     }
 
     /**

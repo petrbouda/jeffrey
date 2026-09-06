@@ -24,6 +24,7 @@ import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.chat.AssistantResponse;
 import cafe.jeffrey.profile.ai.chat.McpAnalysisAssistantService;
 import cafe.jeffrey.profile.ai.chat.McpToolset;
+import cafe.jeffrey.profile.ai.chat.ProfileSourceAccess;
 import cafe.jeffrey.profile.ai.chat.McpToolsetFactory;
 import cafe.jeffrey.profile.ai.chat.SuggestionRules;
 import cafe.jeffrey.profile.ai.chat.SuggestionRules.QuestionRule;
@@ -87,14 +88,17 @@ public class JfrAnalysisAssistantServiceImpl extends McpAnalysisAssistantService
 
     private final DatabaseManagerResolver databaseManagerResolver;
     private final McpToolsetFactory mcpToolsetFactory;
+    private final ProfileSourceAccess profileSourceAccess;
 
     public JfrAnalysisAssistantServiceImpl(
             AiChatBackend chatBackend,
             DatabaseManagerResolver databaseManagerResolver,
-            McpToolsetFactory mcpToolsetFactory) {
+            McpToolsetFactory mcpToolsetFactory,
+            ProfileSourceAccess profileSourceAccess) {
         super(ASSISTANT_NAME, chatBackend, SUGGESTION_RULES);
         this.databaseManagerResolver = databaseManagerResolver;
         this.mcpToolsetFactory = mcpToolsetFactory;
+        this.profileSourceAccess = profileSourceAccess;
     }
 
     @Override
@@ -116,7 +120,8 @@ public class JfrAnalysisAssistantServiceImpl extends McpAnalysisAssistantService
 
             // Bind both tool representations; the active backend uses the one it understands.
             McpToolset mcpToolset = mcpToolsetFactory.forJfr(profileInfo.id());
-            ToolBinding toolBinding = new ToolBinding(tools, mcpToolset);
+            ToolBinding toolBinding = new ToolBinding(
+                    tools, mcpToolset, profileSourceAccess.forProfile(profileInfo.id()).orElse(null));
 
             String contextualMessage = buildContextualMessage(request, profileInfo);
             return new ToolExchange(

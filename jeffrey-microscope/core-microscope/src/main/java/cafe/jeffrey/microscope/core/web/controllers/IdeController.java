@@ -81,7 +81,12 @@ public class IdeController {
     @PostMapping("/target")
     public IdeTargetResponse selectTarget(@RequestBody IdeTargetRequest request) {
         IdeTarget target = new IdeTarget(
-                request.port(), request.projectId(), request.ideName(), request.projectName(), request.pid());
+                request.port(),
+                request.projectId(),
+                request.ideName(),
+                request.projectName(),
+                request.basePath(),
+                request.pid());
         boolean success = ideBridge.selectTarget(request.profileId(), target);
         return new IdeTargetResponse(success);
     }
@@ -100,8 +105,19 @@ public class IdeController {
     public record IdeHasResponse(boolean found) {
     }
 
+    /**
+     * The window the reader picked. {@code basePath} travels with it because the link is what later
+     * decides which directory on disk this profile is allowed to be read against — the picker already
+     * shows it, so the choice and its consequence stay one act rather than a later lookup.
+     */
     public record IdeTargetRequest(
-            String profileId, int port, String projectId, String ideName, String projectName, long pid) {
+            String profileId,
+            int port,
+            String projectId,
+            String ideName,
+            String projectName,
+            String basePath,
+            long pid) {
     }
 
     public record IdeTargetResponse(boolean success) {

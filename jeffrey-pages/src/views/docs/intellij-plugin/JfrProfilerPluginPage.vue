@@ -18,6 +18,8 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
+import DocsCallout from '@/components/docs/DocsCallout.vue';
+import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
@@ -25,12 +27,17 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const headings = [
-  { id: 'install', text: 'Install', level: 2 }
+  { id: 'install', text: 'Install', level: 2 },
+  { id: 'configure', text: 'Point Microscope at It', level: 2 },
+  { id: 'differences', text: 'What You Give Up', level: 2 }
 ];
 
 onMounted(() => {
   setHeadings(headings);
 });
+
+const config = `jeffrey.microscope.ide.mode=jfr-profiler-plugin
+jeffrey.microscope.ide.base-url=http://localhost:4243`;
 </script>
 
 <template>
@@ -56,6 +63,43 @@ onMounted(() => {
           plugins.jetbrains.com/plugin/20937-java-jfr-profiler
         </a>.
       </p>
+
+      <h2 id="configure">Point Microscope at It</h2>
+      <p>
+        Installing the plugin is not enough on its own: Microscope defaults to the first-party
+        plugin and discovers it by scanning. This one is a single URL, so it has to be named. Both
+        properties are required &mdash; the mode alone leaves the bridge with no address to call.
+      </p>
+      <DocsCodeBlock :code="config" language="properties" />
+      <p>
+        The port is the one the JFR Profiler plugin serves on; <code>4243</code> is its default.
+        Both are application properties, so the change takes a restart.
+      </p>
+
+      <h2 id="differences">What You Give Up</h2>
+      <p>
+        The two bridges are not equivalent, and the difference is worth knowing before switching:
+      </p>
+      <ul>
+        <li><strong>No window picker.</strong> A single URL means a single IDE. Microscope cannot
+          list open projects or bind one to a profile, so the profile-wide IDE control shows
+          &ldquo;Connected using JFR Profiler Plugin&rdquo; and nothing to choose.</li>
+        <li><strong>No <code>ide_</code> MCP tools.</strong>
+          <router-link to="/docs/microscope-mcp/tools#ide"><code>ide_resolve</code></router-link>
+          needs an IDE that will locate a frame and report it without opening it, which is a
+          capability of the first-party plugin. <code>ide_source</code> and <code>ide_open</code>
+          still work.</li>
+        <li><strong>No checkout awareness.</strong> Nothing reports the branch or commit, so a
+          profile cannot be checked against the code you have open.</li>
+        <li><strong>Per-frame gating.</strong> The flamegraph&rsquo;s IDE buttons render disabled
+          and enable only once the plugin confirms it has the class, which costs a lookup per frame.</li>
+      </ul>
+
+      <DocsCallout type="info" title="The first-party plugin is the default for a reason">
+        Unless you are already using Java JFR Profiler for its own sake, the
+        <router-link to="/docs/intellij-plugin">Jeffrey Microscope plugin</router-link> needs no
+        configuration at all and supports every feature above.
+      </DocsCallout>
     </div>
 
     <DocsNavFooter />

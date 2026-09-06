@@ -18,10 +18,12 @@
 
 package cafe.jeffrey.profile.ai.duckdb.jfr.config;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.chat.McpToolsetFactory;
 import cafe.jeffrey.profile.ai.duckdb.jfr.service.JfrAnalysisAssistantService;
+import cafe.jeffrey.profile.ai.chat.ProfileSourceAccess;
 import cafe.jeffrey.profile.ai.duckdb.jfr.service.JfrAnalysisAssistantServiceImpl;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 
@@ -33,12 +35,24 @@ import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
  */
 public class DuckDbMcpConfiguration {
 
+    /**
+     * @param profileSourceAccess whether a profile has a checkout the analysis may read. Optional
+     *                            rather than required: what it answers depends on an IDE link this
+     *                            module knows nothing about, and an application that wires no such
+     *                            thing gets {@link ProfileSourceAccess#none()} — the behaviour before
+     *                            source access existed — instead of failing to start
+     */
     @Bean
     public JfrAnalysisAssistantService jfrAnalysisAssistantService(
             AiChatBackend chatBackend,
             DatabaseManagerResolver databaseManagerResolver,
-            McpToolsetFactory mcpToolsetFactory) {
+            McpToolsetFactory mcpToolsetFactory,
+            ObjectProvider<ProfileSourceAccess> profileSourceAccess) {
 
-        return new JfrAnalysisAssistantServiceImpl(chatBackend, databaseManagerResolver, mcpToolsetFactory);
+        return new JfrAnalysisAssistantServiceImpl(
+                chatBackend,
+                databaseManagerResolver,
+                mcpToolsetFactory,
+                profileSourceAccess.getIfAvailable(ProfileSourceAccess::none));
     }
 }

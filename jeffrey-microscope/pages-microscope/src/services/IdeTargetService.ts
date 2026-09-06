@@ -91,6 +91,9 @@ export default class IdeTargetService {
         projectId: project.id,
         ideName: instance.ideName,
         projectName: project.name,
+        // Sent with the selection so the link records which checkout on disk it means, not just
+        // which window: that is what an AI analysis is later allowed to read.
+        basePath: project.basePath,
         pid: instance.pid,
         hasClass: project.hasClass
       }))

@@ -32,6 +32,7 @@ const headings = [
   { id: 'turning-it-off', text: 'Turning It Off', level: 2 },
   { id: 'while-it-is-off', text: 'While It Is Off', level: 2 },
   { id: 'turning-hub-access-off', text: 'Turning Hub Access Off', level: 2 },
+  { id: 'turning-ide-access-off', text: 'Turning IDE Access Off', level: 2 },
   { id: 'trimming-the-tool-list', text: 'Trimming the Tool List', level: 2 },
   { id: 'what-a-session-holds-open', text: 'What a Session Holds Open', level: 2 },
   { id: 'security', text: 'Security', level: 2 }
@@ -44,6 +45,12 @@ onMounted(() => {
 const propertyToggle = `jeffrey.microscope.mcp.enabled=false`;
 
 const hubsToggle = `jeffrey.microscope.mcp.hubs.enabled=false`;
+
+const ideToggle = `jeffrey.microscope.mcp.ide.enabled=false`;
+
+const sourceAccessToggle = `# Off by default: lets Jeffrey's own AI analysis read the checkout of the
+# IDE window a profile is linked to. Read-only, and only that directory.
+jeffrey.microscope.ai.source-access.enabled=true`;
 
 const familiesProperty = `# Only these families are advertised; empty (the default) means all of them
 jeffrey.microscope.mcp.families=profiles,flamegraph,jvm,heap`;
@@ -107,7 +114,7 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <p>The <code>hubs_</code> family lets a session list the recording sessions on the <router-link to="/docs/hub">Jeffrey Hubs</router-link> this Microscope is connected to, and pull one in to analyse. It is on by default with the endpoint, and has its own switch:</p>
       <DocsCodeBlock :code="hubsToggle" language="properties" />
 
-      <p>It is the only family with a switch of its own, because it is the only one that leaves this machine. Everything else the server does &mdash; reading a profile, importing a recording, building a heap index &mdash; happens on the host Jeffrey already runs on. Hub access reaches <em>out</em>, to whatever infrastructure the configured hubs point at, and can move gigabytes off it. An installation happy for an agent to analyse a developer&rsquo;s own <code>.jfr</code> may not be happy for it to pull production recordings.</p>
+      <p>It is one of two families with a switch of its own, because it is the only one that leaves this machine. Everything else the server does &mdash; reading a profile, importing a recording, building a heap index &mdash; happens on the host Jeffrey already runs on. Hub access reaches <em>out</em>, to whatever infrastructure the configured hubs point at, and can move gigabytes off it. An installation happy for an agent to analyse a developer&rsquo;s own <code>.jfr</code> may not be happy for it to pull production recordings.</p>
 
       <p>Like the endpoint toggle, this one is read once at startup. Whether a family is advertised shows in the client&rsquo;s own tool list &mdash; no <code>hubs_</code> tool means it is off.</p>
 
@@ -115,8 +122,24 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
         <code>heap_prepare</code> builds the heap index and its dominator tree, and <code>jvm_autoAnalysis</code> takes a <code>compute</code> flag to run the rule set &mdash; each can occupy a core for minutes. They used to be withheld by a property of their own, which was dropped: it never bounded what it claimed to, since a single <code>jfr_executeQuery</code> can cost as much, and withholding them left the heap family telling a reader to go and open the browser instead. What they write is a cache &mdash; the same artefacts the <strong>Initialize</strong> button produces, so a run started from a session shows up in the browser and the other way round. No dump is altered and nothing is deleted.
       </DocsCallout>
 
+      <h2 id="turning-ide-access-off">Turning IDE Access Off</h2>
+      <p>The <router-link to="/docs/microscope-mcp/tools#ide"><code>ide_</code></router-link> family lets a session ask the developer&rsquo;s running IntelliJ where a frame lives, read a class through it, and open a file in it. It needs the <router-link to="/docs/intellij-plugin">Jeffrey IntelliJ plugin</router-link>, is on by default with the endpoint, and has its own switch:</p>
+      <DocsCodeBlock :code="ideToggle" language="properties" />
+
+      <p>Its own switch for the same reason as <code>hubs_</code>, one step closer to home. Every other family reads a recording Jeffrey already holds; this one reaches into another process on this machine, and <code>ide_open</code> moves a developer&rsquo;s cursor while they are working. Nothing here reads a file the IDE does not already have open as a trusted project, and nothing writes to the checkout &mdash; but an installation that would rather an agent never touched the editor turns the family off here.</p>
+
+      <p>With the family on, it still answers nothing until a window is linked to the profile: a lookup links the single unambiguous candidate and otherwise reports the candidates rather than guessing between two checkouts.</p>
+
+      <h3>Letting Jeffrey&rsquo;s own AI read the sources</h3>
+      <p>Separately from the MCP server, Jeffrey&rsquo;s <router-link to="/docs/ai">in-app AI analysis</router-link> can be given read access to the same linked checkout, so it can point at a loop rather than stopping at a method name:</p>
+      <DocsCodeBlock :code="sourceAccessToggle" language="properties" />
+
+      <DocsCallout type="warning" title="This one sends source to your AI provider">
+        It is off by default, and it is the only setting here that does. With it on, an analysis of a profile with a linked IDE window runs with that directory as its working directory and the reading tools granted &mdash; no writing, no shell, and no other directory. A profile with no linked window is unaffected. Turn it on when the provider you have configured is one you would already paste code into.
+      </DocsCallout>
+
       <h2 id="trimming-the-tool-list">Trimming the Tool List</h2>
-      <p>Jeffrey advertises a hundred-odd tools across seventeen families. Claude Code fetches their schemas on demand; Codex loads every one of them into the model&rsquo;s context on every turn. For a reader who only ever asks one kind of question, that is a lot to carry, and the endpoint can be told to advertise less:</p>
+      <p>Jeffrey advertises a hundred-odd tools across eighteen families. Claude Code fetches their schemas on demand; Codex loads every one of them into the model&rsquo;s context on every turn. For a reader who only ever asks one kind of question, that is a lot to carry, and the endpoint can be told to advertise less:</p>
       <DocsCodeBlock :code="familiesProperty" language="properties" />
 
       <p>Families are named by the prefix their tools carry: <code>profiles</code>, <code>jfr</code>, <code>flamegraph</code>, <code>compare</code>, <code>traces</code>, <code>jvm</code>, <code>http</code>, <code>jdbc</code>, <code>grpc</code>, <code>methodtracing</code>, <code>io</code>, <code>blocking</code>, <code>timeline</code>, <code>memory</code>, <code>heap</code>, <code>recordings</code>, <code>hubs</code>. Leave it empty unless you have a reason: the skills route between families freely, and one that is not advertised is one their advice will send the model to in vain.</p>

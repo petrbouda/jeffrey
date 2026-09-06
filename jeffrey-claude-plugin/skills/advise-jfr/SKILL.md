@@ -46,6 +46,11 @@ Start from `profiles_list`, or `recordings_analyzeFile` when the user named a fi
 - `null` — say the commit is unknown, not that it matched. (Tagging the recording with
   `git.commit` at build time fixes that for next time.)
 
+When the code being advised on is not this checkout but one open in the reader's IntelliJ,
+`ide_windows` reports the branch and HEAD commit of every open window and marks which of them is on
+the commit the recording was built from — the same check, for the tree the reader is actually
+looking at.
+
 ## 2. Choose the evidence
 
 **Ask what the profile carries before asking anything else.** One call to `profiles_features` says
@@ -110,9 +115,17 @@ front of you, or when your client has no agent to delegate to.
 
 ## 4. Ground every finding in source
 
-The export has call paths and numbers, never file or line numbers. Map the heaviest frames to the
-checkout with Read, Grep and Glob, holding to these rules — they are what separates a
-recommendation from a guess:
+The export has call paths and numbers; a frame carries a line only when every sample at it agreed on
+one, so treat a printed line as a place to start reading and its absence as no information. Map the
+heaviest frames to the checkout with Read, Grep and Glob — or, when the reader has IntelliJ open
+with the Jeffrey plugin, ask it: `ide_resolve` returns the file and line for a class and method and
+flags a position that is decompiled, imprecise, or in a file edited since the recording. It is worth
+a call for anything a grep would get wrong — a nested class, a Kotlin facade, an inherited or
+overloaded method — and for library code, where `ide_source` reads what is not in this repository at
+all. It does not move the reader's editor; `ide_open` does, so save that for when they ask to be
+shown something.
+
+Hold to these rules — they are what separates a recommendation from a guess:
 
 - **Never name a file, method or line you have not read.** Open it first.
 - **Tie each finding to a frame and its share** (`total`, `self`, the percentage) from the export,

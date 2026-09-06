@@ -85,8 +85,7 @@ import ideProfileTargetStore from '@/stores/ideProfileTargetStore';
 
 const props = defineProps<{ profileId: string }>();
 
-// TODO: replace with the published JetBrains Marketplace URL for the Jeffrey IntelliJ Plugin.
-const PLUGIN_MARKETPLACE_URL = 'https://plugins.jetbrains.com/';
+const PLUGIN_MARKETPLACE_URL = 'https://plugins.jetbrains.com/plugin/31963-jeffrey-microscope';
 
 const status = ideProfileTargetStore.status;
 

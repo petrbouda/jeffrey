@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
+import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.server.HubsManager;
@@ -81,10 +82,13 @@ class McpToolsetAssemblerTest {
     @Mock
     ProjectManagerResolver projectManagerResolver;
 
+    @Mock
+    IdeBridge ideBridge;
+
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-03-01T12:00:00Z"), ZoneOffset.UTC);
 
     private McpToolsetAssembler assembler(boolean hubsEnabled) {
-        return assembler(new ExternalMcpProperties(true, hubsEnabled, Set.of()));
+        return assembler(new ExternalMcpProperties(true, hubsEnabled, true, Set.of()));
     }
 
     private McpToolsetAssembler assembler(ExternalMcpProperties properties) {
@@ -98,6 +102,7 @@ class McpToolsetAssemblerTest {
                 stackSamplePanelProvider,
                 recordingCommitResolver,
                 new HeapDumpInitService(CLOCK),
+                ideBridge,
                 properties);
     }
 
@@ -299,7 +304,7 @@ class McpToolsetAssemblerTest {
         @Test
         void advertisesOnlyTheNamedFamilies() {
             McpToolsetAssembler assembler = assembler(new ExternalMcpProperties(
-                    true, true, Set.of("profiles", "flamegraph")));
+                    true, true, true, Set.of("profiles", "flamegraph")));
 
             Set<String> prefixes = assembler.toolset().specs().stream()
                     .map(spec -> spec.name().substring(0, spec.name().indexOf('_')))
@@ -311,7 +316,7 @@ class McpToolsetAssemblerTest {
         @Test
         void anEmptyFilterKeepsEverything() {
             McpToolsetAssembler filtered = assembler(
-                    new ExternalMcpProperties(true, true, Set.of()));
+                    new ExternalMcpProperties(true, true, true, Set.of()));
 
             assertEquals(assembler(true).toolset().specs().size(),
                     filtered.toolset().specs().size());

@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.profile.ai.claudecode;
 
+import java.nio.file.Path;
 import java.util.List;
 
 /**
@@ -31,13 +32,19 @@ import java.util.List;
  *                      are exposed)
  * @param allowedTools  the fully-qualified tool identifiers the model may call without prompting
  *                      (e.g. {@code mcp__jeffrey_jfr__execute_query}); empty when no tools are exposed
+ * @param sourceRoot    the directory the CLI runs in and may read, or null to give it no source
+ *                      access at all. It is the working directory rather than an extra readable path
+ *                      because the CLI can always read where it was started: leaving it at Jeffrey's
+ *                      own working directory and merely adding another would widen the reach instead
+ *                      of aiming it
  */
 public record ClaudeCodeRequest(
         String prompt,
         String systemPrompt,
         String model,
         String mcpConfigJson,
-        List<String> allowedTools
+        List<String> allowedTools,
+        Path sourceRoot
 ) {
     public ClaudeCodeRequest {
         if (prompt == null || prompt.isBlank()) {
@@ -47,7 +54,11 @@ public record ClaudeCodeRequest(
     }
 
     public static ClaudeCodeRequest promptOnly(String prompt, String systemPrompt, String model) {
-        return new ClaudeCodeRequest(prompt, systemPrompt, model, null, List.of());
+        return new ClaudeCodeRequest(prompt, systemPrompt, model, null, List.of(), null);
+    }
+
+    public boolean hasSourceRoot() {
+        return sourceRoot != null;
     }
 
     public boolean hasMcpConfig() {

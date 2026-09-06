@@ -128,6 +128,12 @@ public class FrameBuilder implements RecordBuilder<FlamegraphRecord, Frame> {
                     newFrame.bytecodeIndex(),
                     newFrame.hidden());
             parent.put(newFrame.methodName(), resolvedFrame);
+        } else {
+            // Nodes merge by method name, so this record's line may differ from the one the node
+            // already holds — a second call site, or another line of the same hot method. The node
+            // keeps the first line either way; what this records is whether it is the only one, which
+            // is what decides if an export may present it as a source location.
+            resolvedFrame.observeLineNumber(newFrame.lineNumber());
         }
 
         resolvedFrame.increment(newFrame.frameType(), newFrame.sampleWeight(), newFrame.samples(), isTopFrame);

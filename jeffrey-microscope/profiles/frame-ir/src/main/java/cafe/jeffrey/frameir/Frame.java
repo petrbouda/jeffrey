@@ -31,6 +31,20 @@ public class Frame extends TreeMap<String, Frame> {
     private final String methodName;
     private final int lineNumber;
     private final int bci;
+
+    /**
+     * Whether every sample that merged into this node reported {@link #lineNumber}.
+     * <p>
+     * Nodes are keyed by method name, so one node stands for every occurrence of a method at that
+     * point in the tree — a method called from three places in its caller, or a hot loop sampled on
+     * several of its own lines, all merge here and the node keeps whichever line arrived first. That
+     * line is a real line, but it is one of several, and a consumer that presents it as <em>the</em>
+     * location is asserting something the tree does not know.
+     * <p>
+     * Tracking the disagreement costs a boolean and turns "a line" into "the line, when there is only
+     * one" — which is the only form a reader can safely be handed to go and read.
+     */
+    private boolean lineNumberAgreed = true;
     /**
      * The frame's class is a JVM hidden class. A property of the frame's name, so every record
      * merging into this node agrees on it.
@@ -69,6 +83,13 @@ public class Frame extends TreeMap<String, Frame> {
     }
 
     public void merge(Frame frame) {
+        // Whatever the other node knew about its line comes with it: a node that had already seen
+        // several lines cannot be folded into one that still claims a single location.
+        observeLineNumber(frame.lineNumber);
+        if (!frame.lineNumberAgreed) {
+            lineNumberAgreed = false;
+        }
+
         totalSamples += frame.totalSamples;
         totalWeight += frame.totalWeight;
         selfSamples += frame.selfSamples;
@@ -168,6 +189,28 @@ public class Frame extends TreeMap<String, Frame> {
 
     public int lineNumber() {
         return lineNumber;
+    }
+
+    /**
+     * Whether {@link #lineNumber} is the only line the samples at this node reported.
+     * <p>
+     * False when they disagreed — several call sites, or a method sampled across several of its own
+     * lines. The line is still one that was really seen; it is simply not the whole story, and an
+     * export that cites source locations should omit it rather than pick one.
+     */
+    public boolean lineNumberAgreed() {
+        return lineNumberAgreed;
+    }
+
+    /**
+     * Records what another sample of this same node reported, so the node can tell whether its line
+     * is unanimous. Only positive lines count: a missing line (-1, as an unparsed location or a native
+     * frame gives) is not a contradicting observation, it is no observation at all.
+     */
+    public void observeLineNumber(int observed) {
+        if (observed > 0 && lineNumber > 0 && observed != lineNumber) {
+            lineNumberAgreed = false;
+        }
     }
 
     public int bci() {

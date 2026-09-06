@@ -39,6 +39,7 @@ const headings = [
   { id: 'ask-what-the-jit-is-doing', text: 'Ask What the JIT Is Doing', level: 2 },
   { id: 'does-the-code-agree-with-the-profile', text: 'Does the Code Agree With the Profile', level: 2 },
   { id: 'from-profile-to-patch', text: 'From Profile to Patch', level: 2 },
+  { id: 'find-the-file-behind-a-frame', text: 'Find the File Behind a Frame', level: 2 },
   { id: 'compare-two-recordings', text: 'Compare Two Recordings', level: 2 },
   { id: 'a-question-with-no-tool', text: 'A Question With No Tool', level: 2 }
 ];
@@ -80,6 +81,8 @@ implementation in this repo and tell me whether that is plausible, and what
 you would change`;
 
 const promptAdvise = `advise on the most recent Jeffrey profile - what should I change in this repo?`;
+
+const promptLocate = `where is HikariPool.getConnection in my checkout, and is my branch the one that was profiled?`;
 
 const promptCompare = `compare the allocation profiles of the before and after runs and tell me
 what actually changed - and whether the two runs are even comparable`;
@@ -237,6 +240,15 @@ LIMIT 20`;
       <DocsCallout type="info" title="It checks the commit first">
         When the recording was tagged with the commit it was built from, <code>profiles_get</code> reports it and the skill compares it with <code>HEAD</code> before mapping a single frame. A mismatch is stated up front, not discovered after a patch to code that never ran.
       </DocsCallout>
+
+      <h2 id="find-the-file-behind-a-frame">Find the File Behind a Frame</h2>
+      <DocsCodeBlock :code="promptLocate" language="bash" />
+
+      <p>The <router-link to="/docs/microscope-mcp/tools#ide"><code>ide_</code></router-link> family answers this from your running IntelliJ rather than from a grep, which matters exactly where a grep is worst: a nested class, a Kotlin facade compiled to a different file name, an inherited or overloaded method, or a frame in a dependency that is not in your repository at all &mdash; <code>ide_source</code> reads that one through the IDE&rsquo;s attached sources.</p>
+
+      <p><code>ide_resolve</code> does not move your editor, so an agent can call it on every frame it is about to write about while you keep working. It also says when a location cannot be cited as it stands: a decompiled file whose line numbers are the decompiler&rsquo;s, a hit that landed on the declaration rather than the statement, or a file edited well after the recording was taken. <code>ide_windows</code> answers the second half of the question by reporting each open window&rsquo;s branch and HEAD commit against the commit the recording was built from.</p>
+
+      <p>This is what makes the previous two recipes precise rather than merely plausible &mdash; and it needs the <router-link to="/docs/intellij-plugin">Jeffrey IntelliJ plugin</router-link> running.</p>
 
       <h2 id="compare-two-recordings">Compare Two Recordings</h2>
       <DocsCodeBlock :code="promptCompare" language="bash" />

@@ -37,6 +37,7 @@ const NOT_LINKED: IdeTargetStatusResponse = {
   linked: false,
   ideName: null,
   projectName: null,
+  basePath: null,
   port: 0,
   pid: 0
 };
@@ -94,6 +95,7 @@ function toSelection(
     projectId: project.id,
     ideName: instance.ideName,
     projectName: project.name,
+    basePath: project.basePath,
     pid: instance.pid
   };
 }

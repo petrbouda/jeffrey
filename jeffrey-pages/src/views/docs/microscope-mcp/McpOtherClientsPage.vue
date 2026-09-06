@@ -175,7 +175,7 @@ const protocolError = `{
       </DocsCallout>
 
       <h2 id="what-you-give-up">What You Give Up</h2>
-      <p>The same ninety-nine tools, named <code>mcp__jeffrey__*</code> rather than the <code>mcp__plugin_microscope_jeffrey__*</code> Claude Code gives a plugin's server &mdash; a hand-registered server is not namespaced by a plugin. Adjust any approval rule accordingly: <code>/permissions</code> in Claude Code, the <code>[mcp_servers.jeffrey]</code> block in Codex.</p>
+      <p>The same hundred and four tools, named <code>mcp__jeffrey__*</code> rather than the <code>mcp__plugin_microscope_jeffrey__*</code> Claude Code gives a plugin's server &mdash; a hand-registered server is not namespaced by a plugin. Adjust any approval rule accordingly: <code>/permissions</code> in Claude Code, the <code>[mcp_servers.jeffrey]</code> block in Codex.</p>
 
       <p>What does not come along as <em>skills</em> is the guidance: the entry sequence and the two database schemas. But it is not lost. The server offers the same files over the protocol as <strong>prompts</strong>, so a client that speaks <code>prompts/list</code> can load any of them without a plugin at all &mdash; see below. What is genuinely missing is the <router-link to="/docs/microscope-mcp/agent">agents</router-link>, which no MCP server can provide, and the automatic loading: a plugin client picks a skill up when a question calls for it, where here somebody has to ask for the prompt.</p>
 
@@ -245,7 +245,7 @@ const protocolError = `{
       <DocsCodeBlock :code="initialize" language="bash" />
       <DocsCodeBlock :code="initializeResult" language="json" />
 
-      <p>Then <code>tools/list</code> with the same envelope returns all ninety-nine specs. To run one:</p>
+      <p>Then <code>tools/list</code> with the same envelope returns all hundred and four specs. To run one:</p>
       <DocsCodeBlock :code="toolsCall" language="bash" />
 
       <p>The result arrives as MCP text content &mdash; for the export tools, the same Markdown document the plugin would hand to Claude, preamble included.</p>

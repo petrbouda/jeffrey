@@ -106,7 +106,10 @@ onMounted(() => {
       <h2 id="features">Features in Microscope</h2>
       <ul class="usecase-list">
         <li><i class="bi bi-check2-circle"></i> <strong>Open in IDE</strong> from any flame-graph frame — navigates to the method's source line and focuses the IDE window.</li>
-        <li><i class="bi bi-check2-circle"></i> <strong>Inline source preview</strong> in tooltips and detail panels — fetches the class body straight from the IDE so it always matches your local checkout.</li>
+        <li><i class="bi bi-check2-circle"></i> <strong>View Source</strong> from a flame-graph frame — opens the class body, fetched straight from the IDE, in a full-screen viewer with the frame's line highlighted. Library classes come back as attached sources when they exist and as a decompiled reconstruction when they do not.</li>
+        <li><i class="bi bi-check2-circle"></i> <strong>Frame lookup for AI agents</strong> — the <router-link to="/docs/microscope-mcp/tools#ide"><code>ide_</code> MCP tools</router-link> ask the IDE where a class and method live so a coding agent can ground a finding in a real file and line, without your editor moving while you work.</li>
+        <li><i class="bi bi-check2-circle"></i> <strong>Send a recording for analysis</strong> — right-click a <code>.jfr</code> or <code>.hprof</code> file in the project view and open it straight in Microscope.</li>
+        <li><i class="bi bi-check2-circle"></i> <strong>Checkout awareness</strong> — each window reports its branch and HEAD commit, so a profile can be checked against the code you actually have open.</li>
         <li><i class="bi bi-check2-circle"></i> <strong>Per-profile window selection</strong> — when multiple IntelliJ windows are open, choose which one to target for a given profile; the choice is cached.</li>
         <li><i class="bi bi-check2-circle"></i> <strong>Java &amp; Kotlin resolution</strong> — both <code>JavaResolver</code> and <code>KotlinResolver</code> ship with the plugin, so JVM languages resolve symbol locations identically.</li>
       </ul>

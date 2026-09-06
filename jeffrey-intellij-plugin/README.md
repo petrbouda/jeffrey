@@ -7,9 +7,10 @@ inline.
 
 ## How it pairs with Microscope
 
-Microscope's backend talks to this plugin server-side (mode `jeffrey.microscope.ide.mode=default`).
-The plugin advertises itself by writing a registry file under `~/.jeffrey/ide-registry/`, so
-Microscope discovers the IDE's port and auth token without manual configuration.
+Microscope's backend talks to this plugin server-side; the default mode
+(`jeffrey.microscope.ide.mode=jeffrey-plugin`) is this plugin. There is nothing to pair and no token
+to paste: the plugin answers on IntelliJ's built-in server, and Microscope discovers it by scanning
+the localhost port range `63342-63362`.
 
 ## Build
 
@@ -26,24 +27,37 @@ Output: `build/distributions/jeffrey-intellij-plugin-<version>.zip`.
 Useful tasks: `./gradlew runIde` (launch a sandbox IDE with the plugin), `./gradlew verifyPlugin`
 (JetBrains plugin verifier), `./gradlew test`.
 
-- **Target IDE:** IntelliJ IDEA 2026.1+ (`since-build = 261`).
+- **Target IDE:** IntelliJ IDEA 2025.1+ (`since-build = 251`, from `gradle.properties`).
 - **Java level:** 21 (matches the JetBrains Runtime; not related to Jeffrey's Java 25).
 
 ## Install
 
 *Settings → Plugins → ⚙ → Install Plugin from Disk…* → pick the built zip → restart.
 
-## Verify (once endpoints are wired)
+## Verify
 
 ```bash
 curl http://127.0.0.1:63342/api/jeffrey/instance
 ```
 
+Reports the IDE, its protocol version, and the open trusted projects with the branch and commit each
+is on. A disabled integration answers `404` — by design, so Microscope's scan sees nothing.
+
 ## Configuration
 
-*Settings → Tools → Jeffrey Microscope Plugin* — shows the port, auth token (masked), and registry
-file path.
+*Settings → Tools → Jeffrey Microscope Plugin* — an enable toggle, the built-in server port, and the
+Microscope address used by the *Analyze in Jeffrey Microscope* context-menu action.
 
-## Design
+## Endpoints
 
-See the implementation plan in the Jeffrey repo (`CLAUDE_CODE_PLAN.md` and the analysis plan).
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/jeffrey/ping` | Liveness and protocol version. |
+| `GET /api/jeffrey/instance` | This IDE and its open trusted projects, with branch and HEAD commit. |
+| `POST /api/jeffrey/navigate` | Resolve a frame, open it, focus the window. |
+| `POST /api/jeffrey/resolve` | Resolve a frame and report it — **no** editor movement (protocol 2+). |
+| `GET /api/jeffrey/has` | Whether a project contains a class (and optionally a method). |
+| `GET /api/jeffrey/source` | Source text of a class, preferring attached sources. |
+
+`resolve` exists for Microscope's `ide_` MCP tools: an AI agent grounding a finding needs the file
+and the line, and must not move the developer's cursor while doing it.

@@ -28,7 +28,9 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'requirements', text: 'Target IDE', level: 2 },
   { id: 'port-range', text: 'Scan Port Range', level: 2 },
-  { id: 'trusted-projects', text: 'Trusted Projects', level: 2 }
+  { id: 'trusted-projects', text: 'Trusted Projects', level: 2 },
+  { id: 'settings-panel', text: 'The Settings Panel', level: 2 },
+  { id: 'ide-mode', text: 'Choosing a Different Bridge', level: 2 }
 ];
 
 onMounted(() => {
@@ -82,6 +84,34 @@ jeffrey.microscope.ide.scan.port-end=63362</code></pre>
         The plugin only exposes <strong>trusted</strong> projects &mdash; untrusted projects never
         show up in Microscope's per-profile target picker. If an expected project is missing from the
         picker, confirm it is open and marked trusted in IntelliJ.
+      </p>
+
+      <h2 id="settings-panel">The Settings Panel</h2>
+      <p>
+        <em>Settings &rarr; Tools &rarr; Jeffrey Microscope Plugin</em> carries three things:
+      </p>
+      <ul>
+        <li><strong>The enable toggle.</strong> While it is off every endpoint answers
+          <code>404</code>, so a disabled IDE is invisible to Microscope's scan rather than visible
+          and refusing.</li>
+        <li><strong>The built-in server port</strong>, shown for reference &mdash; Microscope finds
+          it by scanning, so there is nothing to copy anywhere.</li>
+        <li><strong>The Microscope address</strong>, used by the <em>Analyze in Jeffrey
+          Microscope</em> action to open a <code>.jfr</code> or <code>.hprof</code> file for
+          analysis. This is the one address the plugin cannot work out for itself: Microscope
+          discovers the IDE, not the other way round. It defaults to
+          <code>http://localhost:8585</code>.</li>
+      </ul>
+
+      <h2 id="ide-mode">Choosing a Different Bridge</h2>
+      <p>
+        Microscope talks to this plugin by default. To route <em>Open in IDE</em> and
+        <em>View Source</em> to the third-party Java JFR Profiler plugin instead, see
+        <router-link to="/docs/intellij-plugin/jfr-profiler">Java JFR Profiler Plugin</router-link>
+        &mdash; it needs both <code>jeffrey.microscope.ide.mode</code> and
+        <code>jeffrey.microscope.ide.base-url</code>, and gives up the window picker, the checkout
+        reporting and the <router-link to="/docs/microscope-mcp/tools#ide"><code>ide_</code> MCP
+        tools</router-link>.
       </p>
     </div>
 

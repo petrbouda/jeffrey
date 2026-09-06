@@ -56,6 +56,13 @@ public final class ClaudeCodeCliClient {
     private static final String FLAG_ALLOWED_TOOLS = "--allowed-tools";
     private static final String FLAG_VERSION = "--version";
 
+    /**
+     * What the model may do with a checkout it has been given: read it. No {@code Edit}, no
+     * {@code Write}, no {@code Bash} — an analysis explains a recording, and a tool that changes the
+     * reader's working tree is not part of explaining anything.
+     */
+    private static final List<String> SOURCE_READING_TOOLS = List.of("Read", "Grep", "Glob");
+
     private static final String SCRATCH_DIR_PREFIX = "jeffrey-claude-code-";
     private static final String SYSTEM_PROMPT_FILE = "system-prompt.txt";
     private static final String MCP_CONFIG_FILE = "mcp-config.json";
@@ -128,10 +135,17 @@ public final class ClaudeCodeCliClient {
             Path stdoutFile = scratchDir.resolve("stdout.jsonl");
             Path stderrFile = scratchDir.resolve("stderr.log");
 
-            Process process = new ProcessBuilder(command)
+            ProcessBuilder builder = new ProcessBuilder(command)
                     .redirectOutput(stdoutFile.toFile())
-                    .redirectError(stderrFile.toFile())
-                    .start();
+                    .redirectError(stderrFile.toFile());
+            if (request.hasSourceRoot()) {
+                // The CLI can read where it runs, so pointing it at the linked checkout is what bounds
+                // its reach — otherwise it would keep Jeffrey's own working directory and gain another.
+                builder.directory(request.sourceRoot().toFile());
+                LOG.debug("Claude Code invocation reads a linked checkout: source_root={}",
+                        request.sourceRoot());
+            }
+            Process process = builder.start();
 
             writePrompt(process, request.prompt());
 
@@ -164,6 +178,20 @@ public final class ClaudeCodeCliClient {
         }
     }
 
+    /**
+     * What the CLI may call without asking. Anything not named here still needs a permission prompt,
+     * and a prompt in {@code --print} mode is a refusal — so this list, not the flags around it, is
+     * what actually bounds the run.
+     */
+    private static List<String> allowedTools(ClaudeCodeRequest request) {
+        if (!request.hasSourceRoot()) {
+            return request.allowedTools();
+        }
+        List<String> allowed = new ArrayList<>(request.allowedTools());
+        allowed.addAll(SOURCE_READING_TOOLS);
+        return allowed;
+    }
+
     private List<String> buildCommand(ClaudeCodeRequest request, Path scratchDir) throws IOException {
         List<String> command = new ArrayList<>();
         command.add(cliPath);
@@ -190,10 +218,14 @@ public final class ClaudeCodeCliClient {
             command.add(FLAG_STRICT_MCP_CONFIG);
             command.add(FLAG_MCP_CONFIG);
             command.add(mcpConfigFile.toString());
-            if (!request.allowedTools().isEmpty()) {
-                command.add(FLAG_ALLOWED_TOOLS);
-                command.add(String.join(",", request.allowedTools()));
-            }
+        }
+
+        // Outside the MCP block: a run may be granted the reading tools without exposing an MCP
+        // server, and nesting the two would silently drop the grant.
+        List<String> allowed = allowedTools(request);
+        if (!allowed.isEmpty()) {
+            command.add(FLAG_ALLOWED_TOOLS);
+            command.add(String.join(",", allowed));
         }
 
         return command;

@@ -50,7 +50,7 @@ onMounted(() => {
       <p class="docs-lede">Jeffrey Microscope serves an <strong>MCP server</strong> that an outside coding agent &mdash; an interactive Claude Code or Codex session in your own repository &mdash; can connect to. It turns every profile you have analysed into something a model can read directly: the catalogue, the DuckDB tables behind each profile, and flamegraph, trace and heap-dump exports. It can also take a recording file you have <em>not</em> analysed yet and build the profile for you &mdash; or find one that never reached this machine at all, on a connected Jeffrey Hub, and pull it down first.</p>
 
       <DocsCallout type="info" title="Reading is read-only">
-        Every analysis tool hands out data and nothing more &mdash; it cannot modify, rename or delete a profile, so data cleanup and frame renaming stay in the Jeffrey UI. The exceptions are the <code>recordings_</code> and <code>hubs_</code> families, which create profiles rather than changing them &mdash; from a local file, and from a recording still on a connected hub &mdash; and <code>heap_prepare</code>, which builds a heap dump&rsquo;s index and reports. Each can be switched off on its own.
+        Every analysis tool hands out data and nothing more &mdash; it cannot modify, rename or delete a profile, so data cleanup and frame renaming stay in the Jeffrey UI. The exceptions are the <code>recordings_</code> and <code>hubs_</code> families, which create profiles rather than changing them &mdash; from a local file, and from a recording still on a connected hub &mdash; <code>heap_prepare</code>, which builds a heap dump&rsquo;s index and reports, and the <code>ide_</code> family, which can link an IDE window to a profile and open a file in your editor. The two that reach outside this server, <code>hubs_</code> and <code>ide_</code>, can each be switched off on their own.
       </DocsCallout>
 
       <h2 id="why-it-exists">Why It Exists</h2>
@@ -106,7 +106,7 @@ onMounted(() => {
       <p>A call arrives naming a tool and a <code>profileId</code>. Jeffrey resolves that id to the profile's own DuckDB database, holds a lease on it for as long as the session stays active, runs the tool, and returns Markdown or a result table. The heavy machinery &mdash; the flamegraph builder, the trace analysis, the heap-dump index &mdash; is the same code the UI renders from, so what the model reads and what you see on screen cannot drift apart.</p>
 
       <h2 id="what-it-can-read">What It Can Read</h2>
-      <p>Ninety-nine tools in seventeen families:</p>
+      <p>A hundred and four tools in eighteen families:</p>
       <table>
         <thead>
           <tr>
@@ -200,6 +200,11 @@ onMounted(() => {
             <td><code>hubs_</code></td>
             <td>3</td>
             <td>The recordings still on a connected Jeffrey Hub: lists the sessions across every hub and pulls one in to be analysed</td>
+          </tr>
+          <tr>
+            <td><code>ide_</code></td>
+            <td>5</td>
+            <td>Where a frame lives in your checkout, answered by your running IntelliJ: the file and line for a class and method, a class&rsquo;s source, which windows are open and on what commit, and opening a location in the editor</td>
           </tr>
         </tbody>
       </table>

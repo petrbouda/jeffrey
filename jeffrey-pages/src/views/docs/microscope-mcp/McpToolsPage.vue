@@ -41,6 +41,7 @@ const headings = [
   { id: 'jfr', text: 'jfr_ — the profile database', level: 2 },
   { id: 'heap', text: 'heap_ — heap dumps', level: 2 },
   { id: 'hubs', text: 'hubs_ — recordings that are not on this machine', level: 2 },
+  { id: 'ide', text: 'ide_ — where the code actually is', level: 2 },
   { id: 'recordings', text: 'recordings_ — creating profiles', level: 2 },
   { id: 'links', text: 'Links Back to the UI', level: 2 },
   { id: 'what-is-not-here', text: 'What Is Not Here', level: 2 }
@@ -126,6 +127,10 @@ const analyzeExample = `Analyze target/checkout-run.jfr and tell me where the ti
 
 const hubsExample = `Analyse what production recorded in the last hour.`;
 
+const exIde = `ide_resolve { "profileId": "019f885e-...", "className": "com.example.OrderService", "methodName": "process", "line": 214 }
+ide_windows { "profileId": "019f885e-...", "className": "com.example.OrderService" }
+ide_source  { "profileId": "019f885e-...", "className": "com.zaxxer.hikari.pool.HikariPool" }`;
+
 const exHubs = `hubs_sessions { "hub": "production", "withinLastMinutes": 60 }
 #  -> | hub | workspace | project | started | duration | status | files | size | local | session_ref |
 #     | production | default | checkout | 2026-03-01T11:41Z | 18m3s | FINISHED | 4 | 240MB | | h1Y2ZnLX... |
@@ -143,25 +148,25 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
     />
 
     <div class="docs-content">
-      <p>Ninety-nine tools in seventeen families. Fifteen of them read a profile; the other two, <code>recordings_</code> and <code>hubs_</code>, are the ones that create one &mdash; from a file on this machine, or from a recording still sitting on a Jeffrey Hub.</p>
+      <p>A hundred and four tools in eighteen families. Fifteen of them read a profile; <code>recordings_</code> and <code>hubs_</code> create one &mdash; from a file on this machine, or from a recording still sitting on a Jeffrey Hub &mdash; and <code>ide_</code> reads the code behind it out of the developer&rsquo;s running IntelliJ.</p>
 
       <h2 id="rules-that-apply-to-all-of-them">Rules That Apply to All of Them</h2>
 
       <p><strong>Names are <code>family_methodName</code>, camelCase preserved</strong> &mdash; <code>jfr_listTables</code>, not <code>jfr_list_tables</code>.</p>
       <DocsCodeBlock :code="nameShape" language="bash" />
 
-      <p><strong>Every tool except <code>profiles_list</code> and the <code>recordings_</code> and <code>hubs_</code> families takes a <code>profileId</code></strong>, and it is required. That is the id from <code>profiles_list</code>; nothing else works without one.</p>
+      <p><strong>Every tool except <code>profiles_list</code> and the <code>recordings_</code> and <code>hubs_</code> families takes a <code>profileId</code></strong> (<code>ide_</code> included: the IDE window is linked per profile), and it is required. That is the id from <code>profiles_list</code>; nothing else works without one.</p>
 
       <p><strong>Output is capped at 120,000 characters, and says so when it cuts.</strong> A silently shortened flamegraph would be read as a complete one, so nothing is trimmed quietly. A Markdown answer &mdash; the exports, the listings &mdash; ends with an explicit <code>TRUNCATED</code> line naming the cap and suggesting a narrower query. A JSON answer is trimmed <em>in the tree</em> instead of at a character count: the largest array is shortened until the document fits, so what comes back is still parseable rather than ending mid-token, and it carries a <code>_truncated</code> object saying how many elements each shortened array kept out of how many it had. The SQL tools cap rows as well, and say when they do. Aggregate in the query rather than pulling rows back to count them.</p>
 
       <p><strong>The schema says what is required, and what the alternatives are.</strong> <code>tools/list</code> returns a JSON Schema per tool with a real <code>required</code> array &mdash; a missing argument is refused by the client before the call rather than deep inside Jeffrey &mdash; and parameters that are enumerations (<code>direction</code>, <code>kind</code>, <code>status</code>, <code>sortBy</code>, <code>page</code>, <code>report</code>) carry an <code>enum</code> rather than listing their values only in prose. In the tables below, an argument marked <code>name?</code> is one the schema leaves optional.</p>
 
-      <p><strong>Every tool declares what it does to the world.</strong> Each spec carries MCP <code>annotations</code> &mdash; <code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code>, <code>openWorldHint</code> &mdash; so a client can tell the handful that write from the great majority that only read, without reading a hundred descriptions. Nothing Jeffrey exposes is destructive: no tool deletes a profile, a recording or a dump. <code>openWorldHint</code> marks the <code>hubs_</code> family, which is the only one that reaches a machine other than this installation.</p>
+      <p><strong>Every tool declares what it does to the world.</strong> Each spec carries MCP <code>annotations</code> &mdash; <code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code>, <code>openWorldHint</code> &mdash; so a client can tell the handful that write from the great majority that only read, without reading a hundred descriptions. Nothing Jeffrey exposes is destructive: no tool deletes a profile, a recording or a dump. <code>openWorldHint</code> marks the <code>hubs_</code> and <code>ide_</code> families, the two that reach outside this server &mdash; a machine other than this installation, and another process on it.</p>
 
       <p><strong>The Markdown exports carry their own reading instructions.</strong> <code>flamegraph_export</code>, <code>traces_traceExport</code> and <code>traces_operationExport</code> return documents that open by explaining what <code>self</code> means against <code>total</code>, what the frame tags mean, and what was pruned. Read the preamble the document gives you rather than assuming conventions from elsewhere &mdash; Jeffrey&rsquo;s <code>self</code> is a merged-interval computation, not a subtraction.</p>
 
       <h2 id="family-map">Which Family Answers Your Question</h2>
-      <p>Seventeen families is more than anyone reads through. They group into six questions, and the question you arrived with picks the family for you &mdash; the same taxonomy the <router-link to="/docs/microscope-mcp/skills#analyze-jfr"><code>analyze-jfr</code></router-link> skill routes by, so the docs and the skill tell the same story. Every row links to its section below.</p>
+      <p>Eighteen families is more than anyone reads through. They group into six questions, and the question you arrived with picks the family for you &mdash; the same taxonomy the <router-link to="/docs/microscope-mcp/skills#analyze-jfr"><code>analyze-jfr</code></router-link> skill routes by, so the docs and the skill tell the same story. Every row links to its section below.</p>
       <table class="family-map">
         <thead>
           <tr>
@@ -188,6 +193,11 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
             <td><a href="#hubs"><code>hubs_</code></a></td>
             <td class="map-count">3</td>
             <td>The recordings that never reached this machine &mdash; what a deployed application sent to a connected Jeffrey Hub. Finds a session and pulls it in; <code>recordings_</code> then turns it into a profile.</td>
+          </tr>
+          <tr>
+            <td><a href="#ide"><code>ide_</code></a></td>
+            <td class="map-count">5</td>
+            <td>Where a frame lives in the reader&rsquo;s checkout, answered by their running IntelliJ. The step every other family stops one short of, and an installation can switch it off on its own.</td>
           </tr>
           <tr class="map-group">
             <th colspan="3">Where the time went</th>
@@ -1093,6 +1103,60 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p><strong>Example.</strong></p>
       <DocsCodeBlock :code="exHubs" language="json" />
+
+      <h2 id="ide">ide_ &mdash; where the code actually is</h2>
+      <p>Every other family ends at a method signature. The exports say so themselves &mdash; they carry call paths and figures, and a source line only where every sample at a frame agreed on one &mdash; which leaves an agent that wants to act on a finding grepping a checkout for a name that may be inherited, overloaded, generated, or a Kotlin facade stored under a different name on disk. This family closes that gap by asking the thing that already knows: an IntelliJ window with the project open, its indexes built, and sources attached for the dependencies too.</p>
+      <p>It needs the <router-link to="/docs/intellij-plugin">Jeffrey IntelliJ plugin</router-link> running, at protocol version 2 or newer for <code>ide_resolve</code>.</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Arguments</th>
+            <th>Returns</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>ide_resolve</code></td>
+            <td><code>className</code>, <code>methodName?</code>, <code>line?</code></td>
+            <td>The absolute file and line, plus whether the position is <code>decompiled</code>, <code>imprecise</code> or <code>stale</code>, and what to do about each. Does <strong>not</strong> move the editor</td>
+          </tr>
+          <tr>
+            <td><code>ide_source</code></td>
+            <td><code>className</code></td>
+            <td>The source text as the IDE has it &mdash; attached sources for a library when they exist, a decompiled reconstruction when they do not</td>
+          </tr>
+          <tr>
+            <td><code>ide_windows</code></td>
+            <td><code>className?</code></td>
+            <td>Every open window, its branch and HEAD commit, whether it holds the class, and whether it is on the commit the recording was built from</td>
+          </tr>
+          <tr>
+            <td><code>ide_link</code></td>
+            <td><code>projectId</code></td>
+            <td>Binds one window to this profile for every later lookup. Only needed when the choice is ambiguous</td>
+          </tr>
+          <tr>
+            <td><code>ide_open</code></td>
+            <td><code>className</code>, <code>methodName?</code>, <code>line?</code></td>
+            <td>Opens the location and brings the window to the front. The one tool here with a visible side effect</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p><strong>Resolving is not jumping.</strong> <code>ide_resolve</code> and <code>ide_open</code> are separate tools because they are separate acts, and only one of them is safe to do a hundred times while writing up an analysis. An agent grounding a finding wants the first; only an explicit &ldquo;show me this&rdquo; wants the second. This is why the plugin grew a <code>resolve</code> endpoint of its own rather than reusing <code>navigate</code>.</p>
+
+      <p><strong>A location arrives with its caveats or not at all.</strong> A decompiled file&rsquo;s line numbers are a decompiler&rsquo;s and match nothing anybody wrote; an imprecise hit is the declaration rather than the statement; a stale file has been edited well after the recording was taken. Each comes back with the one instruction that makes it actionable, because the difference between a line a finding can cite and one it cannot is exactly those three facts.</p>
+
+      <p><strong>The window is chosen once, and only when it is unambiguous.</strong> There is no reader at the other end of an MCP call to answer a picker, so the first lookup links the single window that contains the class &mdash; or the single window there is, which is the normal case for a frame in a dependency &mdash; and otherwise refuses with the candidates named. Guessing between two checkouts is how an analysis ends up quoting the wrong repository.</p>
+
+      <DocsCallout type="info" title="It can put a file on somebody's screen">
+        This family has its own switch, <code>jeffrey.microscope.mcp.ide.enabled</code>, for the same reason <code>hubs_</code> does, one step closer to home: everything else reads a recording Jeffrey already holds, while this reaches into another process on this machine and <code>ide_open</code> moves a developer&rsquo;s cursor. It is on by default and answers nothing until a window is linked. See <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
+      </DocsCallout>
+
+      <p><strong>Examples.</strong></p>
+      <DocsCodeBlock :code="exIde" language="json" />
 
       <h2 id="recordings">recordings_ &mdash; creating profiles</h2>
       <p>Everything above answers questions about a profile that already exists. This family is how one comes to exist without leaving the terminal: you point the agent at a recording file in your repository and it imports the file and builds the profile, then carries on with the id it got back.</p>

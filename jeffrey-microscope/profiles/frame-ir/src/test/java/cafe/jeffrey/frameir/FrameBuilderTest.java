@@ -72,6 +72,10 @@ class FrameBuilderTest {
         return new TestFrame(JIT_COMPILED_CODE, -1, -1, new TestMethod(new TestClass(className), methodName));
     }
 
+    private static JfrStackFrame frameAtLine(String className, String methodName, int line) {
+        return new TestFrame(JIT_COMPILED_CODE, line, -1, new TestMethod(new TestClass(className), methodName));
+    }
+
     /**
      * A frame on a hidden class. {@code className} is already address-free -- the parser splits the
      * JVM's per-run address into {@code hiddenClassId} before anything reaches the frame tree.
@@ -154,6 +158,71 @@ class FrameBuilderTest {
 
     private static String frameName(String className, String methodName) {
         return className + "#" + methodName;
+    }
+
+    /**
+     * Nodes merge by method name, so one node stands for every sample of that method at that point in
+     * the tree. Whether they all reported the same line is the difference between a location an
+     * export may print and one it may not.
+     */
+    @Nested
+    class SourceLineAgreement {
+
+        @Test
+        void aLineEverySampleAgreedOnStandsAsTheLocation() {
+            FrameBuilder builder = new FrameBuilder(false, true, true, null);
+            builder.onRecord(executionRecord(mainThread(),
+                    frameAtLine("com.app.Main", "run", 10), frameAtLine("com.app.Svc", "work", 42)));
+            builder.onRecord(executionRecord(mainThread(),
+                    frameAtLine("com.app.Main", "run", 10), frameAtLine("com.app.Svc", "work", 42)));
+
+            Frame work = builder.build().get("main (1)").get("com.app.Main#run").get("com.app.Svc#work");
+
+            assertEquals(42, work.lineNumber());
+            assertTrue(work.lineNumberAgreed());
+        }
+
+        @Test
+        void twoCallSitesLeaveTheNodeWithNoSingleLine() {
+            FrameBuilder builder = new FrameBuilder(false, true, true, null);
+            builder.onRecord(executionRecord(mainThread(),
+                    frameAtLine("com.app.Main", "run", 10), frameAtLine("com.app.Svc", "work", 42)));
+            builder.onRecord(executionRecord(mainThread(),
+                    frameAtLine("com.app.Main", "run", 10), frameAtLine("com.app.Svc", "work", 87)));
+
+            Frame work = builder.build().get("main (1)").get("com.app.Main#run").get("com.app.Svc#work");
+
+            // The first line is kept - it was really seen - but it is no longer the whole story.
+            assertEquals(42, work.lineNumber());
+            assertFalse(work.lineNumberAgreed());
+        }
+
+        @Test
+        void aSampleWithNoLineDoesNotContradictOne() {
+            // A native or inlined frame reports no line. That is an absence of evidence, not a second
+            // opinion, and treating it as disagreement would suppress most of the lines in a profile.
+            FrameBuilder builder = new FrameBuilder(false, true, true, null);
+            builder.onRecord(executionRecord(mainThread(),
+                    frameAtLine("com.app.Main", "run", 10), frameAtLine("com.app.Svc", "work", 42)));
+            builder.onRecord(executionRecord(mainThread(),
+                    frameAtLine("com.app.Main", "run", 10), frame("com.app.Svc", "work")));
+
+            Frame work = builder.build().get("main (1)").get("com.app.Main#run").get("com.app.Svc#work");
+
+            assertEquals(42, work.lineNumber());
+            assertTrue(work.lineNumberAgreed());
+        }
+
+        @Test
+        void locationsAreNotParsedAtAllWhenTheGraphDidNotAskForThem() {
+            FrameBuilder builder = new FrameBuilder(false, true, false, null);
+            builder.onRecord(executionRecord(mainThread(),
+                    frameAtLine("com.app.Main", "run", 10), frameAtLine("com.app.Svc", "work", 42)));
+
+            Frame work = builder.build().get("main (1)").get("com.app.Main#run").get("com.app.Svc#work");
+
+            assertEquals(-1, work.lineNumber());
+        }
     }
 
     private static JfrThread mainThread() {

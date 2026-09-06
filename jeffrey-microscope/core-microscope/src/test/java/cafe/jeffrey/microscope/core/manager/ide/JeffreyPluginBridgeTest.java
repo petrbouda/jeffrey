@@ -46,6 +46,7 @@ class JeffreyPluginBridgeTest {
     private static final String PROFILE = "p1";
     private static final String PROJECT_ID = "loc-hash-1";
     private static final String PROJECT_NAME = "jeffrey";
+    private static final String BASE_PATH = "/path";
     private static final String IDE_NAME = "IntelliJ IDEA";
     private static final long PID = 9688L;
 
@@ -62,12 +63,13 @@ class JeffreyPluginBridgeTest {
     }
 
     private static IdeTarget target(int port) {
-        return new IdeTarget(port, PROJECT_ID, IDE_NAME, PROJECT_NAME, PID);
+        return new IdeTarget(port, PROJECT_ID, IDE_NAME, PROJECT_NAME, BASE_PATH, PID);
     }
 
     private static PluginInstance instance(int port) {
         return new PluginInstance(1, "iid", IDE_NAME, "IC", "2024.3", PID, port, "now",
-                List.of(new PluginProject(PROJECT_ID, PROJECT_NAME, "/path", true, true, "master")));
+                List.of(new PluginProject(
+                        PROJECT_ID, PROJECT_NAME, BASE_PATH, true, true, "master", "abc123")));
     }
 
     private static PluginNavigateResult resolved() {

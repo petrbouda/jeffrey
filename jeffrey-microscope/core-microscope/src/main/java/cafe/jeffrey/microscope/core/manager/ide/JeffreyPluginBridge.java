@@ -28,11 +28,13 @@ import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginClient.PluginSource
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 /**
- * {@link IdeBridge} for {@link IdeMode#DEFAULT}: talks to the first-party Jeffrey IntelliJ plugin.
+ * {@link IdeBridge} for {@link IdeMode#JEFFREY_PLUGIN}: talks to the first-party Jeffrey IntelliJ plugin.
  * Discovers IDE instances by scanning the built-in-server port range (no token, localhost only),
  * remembers the chosen window per profile ({@link IdeTargetCache}), and navigates / fetches source
  * via {@link JeffreyPluginClient}.
@@ -50,6 +52,9 @@ public final class JeffreyPluginBridge implements IdeBridge {
     private static final String MSG_TARGET_GONE = "The selected IDE window is no longer open";
     private static final String MSG_NOT_RESOLVED = "The IDE could not resolve this location";
     private static final String MSG_SOURCE_UNAVAILABLE = "Source is not available for this class";
+    private static final String MSG_RESOLVE_UNSUPPORTED =
+            "The Jeffrey IntelliJ plugin in this IDE is too old to locate a frame without opening it. "
+                    + "Update the plugin to use this.";
 
     private final PortRange portRange;
     private final JeffreyPluginClient client;
@@ -78,20 +83,49 @@ public final class JeffreyPluginBridge implements IdeBridge {
             return IdeOpenResult.failed(MSG_NO_TARGET, IdeFailureReason.NO_TARGET);
         }
 
-        PluginNavigateResult result = client.navigate(cached.port(), navBody(cached, request));
-        if (result != null) {
-            return openResult(result);
+        PluginNavigateResult result = attempt(
+                request.profileId(),
+                cached,
+                target -> client.navigate(target.port(), navBody(target, request)));
+        if (result == null) {
+            return IdeOpenResult.failed(MSG_TARGET_GONE, IdeFailureReason.UNREACHABLE);
+        }
+        return openResult(result);
+    }
+
+    @Override
+    public IdeResolveResult resolve(IdeResolveRequest request) {
+        IdeTarget cached = cache.get(request.profileId());
+        if (cached == null) {
+            return IdeResolveResult.failed(MSG_NO_TARGET);
         }
 
-        // Unreachable on the cached port — the IDE may have restarted on a new port. Re-resolve once.
-        IdeTarget live = reresolve(request.profileId(), cached);
-        if (live != null) {
-            PluginNavigateResult retry = client.navigate(live.port(), navBody(live, request));
-            if (retry != null) {
-                return openResult(retry);
-            }
+        PluginNavigateResult result;
+        try {
+            result = attempt(
+                    request.profileId(),
+                    cached,
+                    target -> client.resolve(target.port(), resolveBody(target, request)));
+        } catch (JeffreyPluginClient.Unsupported e) {
+            return IdeResolveResult.failed(MSG_RESOLVE_UNSUPPORTED);
         }
-        return IdeOpenResult.failed(MSG_TARGET_GONE, IdeFailureReason.UNREACHABLE);
+
+        if (result == null) {
+            return IdeResolveResult.failed(MSG_TARGET_GONE);
+        }
+        if (!result.resolved()) {
+            return IdeResolveResult.failed(reasonOr(result.reason(), MSG_NOT_RESOLVED));
+        }
+        return new IdeResolveResult(
+                true,
+                result.file(),
+                result.line(),
+                result.source(),
+                result.decompiled(),
+                result.imprecise(),
+                result.stale(),
+                result.sourceMTime(),
+                null);
     }
 
     @Override
@@ -101,19 +135,14 @@ public final class JeffreyPluginBridge implements IdeBridge {
             return IdeSourceResult.failed(MSG_NO_TARGET);
         }
 
-        PluginSourceResult result = client.source(cached.port(), cached.projectId(), request.fqn());
-        if (result != null) {
-            return sourceResult(result);
+        PluginSourceResult result = attempt(
+                request.profileId(),
+                cached,
+                target -> client.source(target.port(), target.projectId(), request.fqn()));
+        if (result == null) {
+            return IdeSourceResult.failed(MSG_TARGET_GONE);
         }
-
-        IdeTarget live = reresolve(request.profileId(), cached);
-        if (live != null) {
-            PluginSourceResult retry = client.source(live.port(), live.projectId(), request.fqn());
-            if (retry != null) {
-                return sourceResult(retry);
-            }
-        }
-        return IdeSourceResult.failed(MSG_TARGET_GONE);
+        return sourceResult(result);
     }
 
     @Override
@@ -151,6 +180,24 @@ public final class JeffreyPluginBridge implements IdeBridge {
     }
 
     /**
+     * One call to the linked window, retried once against a re-discovered instance.
+     *
+     * <p>The retry is what makes a link survive an IDE restart: the port is the volatile half of a
+     * target, so a call that does not come back is far more often a moved port than a closed window.
+     * Discovery is paid for only here, on a failure, rather than on every jump.
+     *
+     * @return what the plugin answered, or null when the window could not be reached at all
+     */
+    private <T> T attempt(String profileId, IdeTarget cached, Function<IdeTarget, T> call) {
+        T result = call.apply(cached);
+        if (result != null) {
+            return result;
+        }
+        IdeTarget live = reresolve(profileId, cached);
+        return live == null ? null : call.apply(live);
+    }
+
+    /**
      * Re-resolves a cached project to whichever live instance currently hosts it (the IDE may have
      * restarted on a new port). Matches by {@code projectId} (the stable locationHash) first, then by
      * {@code projectName}. Refreshes the cache with the live port/pid. Null when found nowhere.
@@ -175,16 +222,44 @@ public final class JeffreyPluginBridge implements IdeBridge {
                         : cached.projectName() != null && cached.projectName().equals(project.name());
                 if (match) {
                     return new IdeTarget(
-                            instance.port(), project.id(), instance.ideName(), project.name(), instance.pid());
+                            instance.port(),
+                            project.id(),
+                            instance.ideName(),
+                            project.name(),
+                            project.basePath(),
+                            instance.pid());
                 }
             }
         }
         return null;
     }
 
+    /**
+     * The body both endpoints take.
+     *
+     * <p>{@code recordingTime} is what lets the IDE answer whether the file has been edited since the
+     * profile was taken, which is the difference between a line a reader can cite and one that may
+     * describe code that no longer exists. Only {@link #resolve} sends it: it is the caller holding a
+     * profile already, and it is the caller whose answer is read rather than looked at — a jump puts
+     * the file itself on screen, where staleness is the developer's own to judge.
+     */
     private static NavigateBody navBody(IdeTarget target, IdeOpenRequest request) {
-        return new NavigateBody(
-                target.projectId(), request.fqn(), simpleMethod(request.method()), request.line(), null);
+        return body(target, request.fqn(), request.method(), request.line(), null);
+    }
+
+    private static NavigateBody resolveBody(IdeTarget target, IdeResolveRequest request) {
+        return body(target, request.fqn(), request.method(), request.line(),
+                asText(request.recordingTime()));
+    }
+
+    private static NavigateBody body(
+            IdeTarget target, String fqn, String method, int line, String recordingTime) {
+
+        return new NavigateBody(target.projectId(), fqn, simpleMethod(method), line, recordingTime);
+    }
+
+    private static String asText(Instant instant) {
+        return instant == null ? null : instant.toString();
     }
 
     private static IdeOpenResult openResult(PluginNavigateResult result) {
@@ -215,7 +290,13 @@ public final class JeffreyPluginBridge implements IdeBridge {
         for (PluginProject project : instance.projects()) {
             boolean hasClass = fqn != null && !fqn.isBlank() && client.has(instance.port(), project.id(), fqn, null);
             projects.add(new IdeProjectView(
-                    project.id(), project.name(), project.basePath(), project.vcsBranch(), project.focused(), hasClass));
+                    project.id(),
+                    project.name(),
+                    project.basePath(),
+                    project.vcsBranch(),
+                    project.headCommit(),
+                    project.focused(),
+                    hasClass));
         }
         return new IdeInstanceView(
                 instance.port(), instance.ideName(), instance.ideVersion(), instance.pid(), projects);

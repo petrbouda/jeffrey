@@ -105,6 +105,66 @@ class FlamegraphAiMarkdownBuilderTest {
         }
     }
 
+    /**
+     * A source line is what turns a frame into somewhere a reader can go and look, and a wrong one
+     * sends them to code that has nothing to do with the measurement. It is printed only when the
+     * tree knows exactly one.
+     */
+    @Nested
+    @DisplayName("Source lines")
+    class SourceLines {
+
+        @Test
+        void aFrameWithAnAgreedLineCarriesIt() {
+            Frame root = Frame.emptyFrame();
+            root.increment(FrameType.NATIVE, 0, 100, false);
+            Frame a = addChildAtLine(root, "com.app.Svc#work", 214);
+            a.increment(FrameType.JIT_COMPILED, 0, 100, true);
+
+            String out = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, DEFAULT_CONFIG).build(root);
+
+            assertTrue(out.contains("com.app.Svc#work:214 [C2]"), "the line follows the frame name");
+        }
+
+        @Test
+        void aFrameSampledAtSeveralLinesCarriesNone() {
+            Frame root = Frame.emptyFrame();
+            root.increment(FrameType.NATIVE, 0, 100, false);
+            Frame a = addChildAtLine(root, "com.app.Svc#work", 214);
+            a.increment(FrameType.JIT_COMPILED, 0, 100, true);
+            a.observeLineNumber(87);
+
+            String out = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, DEFAULT_CONFIG).build(root);
+
+            assertTrue(out.contains("com.app.Svc#work [C2]"), "the frame is still rendered");
+            assertFalse(out.contains("com.app.Svc#work:214"), "no single line can be claimed");
+        }
+
+        @Test
+        void aFrameWithNoLineInformationIsUnchanged() {
+            Frame root = Frame.emptyFrame();
+            root.increment(FrameType.NATIVE, 0, 100, false);
+            Frame a = addChildAtLine(root, "com.app.Svc#work", -1);
+            a.increment(FrameType.JIT_COMPILED, 0, 100, true);
+
+            String out = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, DEFAULT_CONFIG).build(root);
+
+            assertTrue(out.contains("com.app.Svc#work [C2]"));
+            assertFalse(out.contains("com.app.Svc#work:"), "nothing is invented for a frame with no line");
+        }
+
+        @Test
+        void thePreambleSaysWhatAMissingLineMeans() {
+            Frame root = Frame.emptyFrame();
+            root.increment(FrameType.NATIVE, 0, 1, false);
+
+            String out = new FlamegraphAiMarkdownBuilder(Type.EXECUTION_SAMPLE, DEFAULT_CONFIG).build(root);
+
+            assertTrue(out.contains("Absence of a line"),
+                    "a reader must not read a missing line as a missing location");
+        }
+    }
+
     @Nested
     @DisplayName("Pruning")
     class Pruning {
@@ -541,6 +601,12 @@ class FlamegraphAiMarkdownBuilderTest {
 
     private static Frame addChild(Frame parent, String methodName) {
         Frame child = new Frame(parent, methodName, 0, 0);
+        parent.put(methodName, child);
+        return child;
+    }
+
+    private static Frame addChildAtLine(Frame parent, String methodName, int line) {
+        Frame child = new Frame(parent, methodName, line, 0);
         parent.put(methodName, child);
         return child;
     }

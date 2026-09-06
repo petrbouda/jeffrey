@@ -44,8 +44,10 @@ import java.nio.charset.StandardCharsets;
  * server (extension point {@code com.intellij.httpRequestHandler}). Reachable at
  * {@code /api/jeffrey/*} ({@link #PREFIX} is {@code /api}; service name {@code jeffrey}).
  *
- * <p>Endpoints: {@code GET ping}, {@code GET instance}, {@code POST navigate}, {@code GET has},
- * {@code GET source}. There is no app-level token: the built-in server binds to localhost, so
+ * <p>Endpoints: {@code GET ping}, {@code GET instance}, {@code POST navigate},
+ * {@code POST resolve}, {@code GET has}, {@code GET source}. {@code resolve} takes the same body as
+ * {@code navigate} and answers in the same shape, minus the jump — it exists for callers that want
+ * the location of a frame without the developer's editor moving. There is no app-level token: the built-in server binds to localhost, so
  * Microscope discovers and calls instances simply by scanning the port range. Requests carrying a
  * browser {@code Origin} still fall under IntelliJ's default cross-origin protection (see
  * {@link #isOriginAllowed}). When the integration is disabled in settings every endpoint returns
@@ -53,14 +55,18 @@ import java.nio.charset.StandardCharsets;
  */
 public final class JeffreyMicroscopeService extends RestService {
 
-    /** Bumped on breaking wire-protocol changes; echoed by responses. */
-    static final int PROTOCOL_VERSION = 1;
+    /**
+     * Bumped on wire-protocol changes; echoed by responses so Microscope can tell what this plugin
+     * can do. Version 2 added {@code POST resolve} and the checkout fields on a project.
+     */
+    static final int PROTOCOL_VERSION = 2;
 
     private static final String SERVICE_NAME = "jeffrey";
 
     private static final String PATH_PING = "ping";
     private static final String PATH_INSTANCE = "instance";
     private static final String PATH_NAVIGATE = "navigate";
+    private static final String PATH_RESOLVE = "resolve";
     private static final String PATH_HAS = "has";
     private static final String PATH_SOURCE = "source";
 
@@ -105,6 +111,7 @@ public final class JeffreyMicroscopeService extends RestService {
             case PATH_PING -> sendJson(Json.ping(PROTOCOL_VERSION), request, context);
             case PATH_INSTANCE -> sendJson(Json.instance(ProjectRegistry.getInstance().currentInstance()), request, context);
             case PATH_NAVIGATE -> handleNavigate(request, context);
+            case PATH_RESOLVE -> handleResolve(request, context);
             case PATH_HAS -> handleHas(urlDecoder, request, context);
             case PATH_SOURCE -> handleSource(urlDecoder, request, context);
             default -> {
@@ -117,6 +124,15 @@ public final class JeffreyMicroscopeService extends RestService {
     private void handleNavigate(@NotNull FullHttpRequest request, @NotNull ChannelHandlerContext context) throws IOException {
         NavigateRequest req = Json.parseNavigate(request.content().toString(StandardCharsets.UTF_8));
         sendJson(Json.navigate(Navigator.navigate(req)), request, context);
+    }
+
+    /**
+     * Resolution without the jump. Same body, same response shape as {@code navigate}: the two differ
+     * only in whether the editor moves, so a caller switching between them parses one thing.
+     */
+    private void handleResolve(@NotNull FullHttpRequest request, @NotNull ChannelHandlerContext context) throws IOException {
+        NavigateRequest req = Json.parseNavigate(request.content().toString(StandardCharsets.UTF_8));
+        sendJson(Json.navigate(Navigator.resolve(req)), request, context);
     }
 
     /**

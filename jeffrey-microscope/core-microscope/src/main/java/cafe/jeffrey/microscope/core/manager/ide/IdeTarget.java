@@ -24,6 +24,12 @@ package cafe.jeffrey.microscope.core.manager.ide;
  * and {@code pid} are the volatile parts — re-resolved by discovery when the IDE restarts — but the
  * project choice is what the user picked. The display fields ({@code ideName}, {@code projectName})
  * are captured at selection time so the UI can show the linked window without re-scanning.
+ *
+ * <p>{@code basePath} is the checkout on disk. It is here rather than looked up on demand because it
+ * is what makes the link mean something outside the IDE conversation: it is the directory an AI
+ * analysis is allowed to read, and it is captured at selection time so that permission is anchored
+ * to the window the user actually chose.
  */
-public record IdeTarget(int port, String projectId, String ideName, String projectName, long pid) {
+public record IdeTarget(
+        int port, String projectId, String ideName, String projectName, String basePath, long pid) {
 }
