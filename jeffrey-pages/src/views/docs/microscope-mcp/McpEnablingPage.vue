@@ -135,7 +135,7 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <DocsCodeBlock :code="sourceAccessToggle" language="properties" />
 
       <DocsCallout type="warning" title="This one sends source to your AI provider">
-        It is off by default, and it is the only setting here that does. With it on, an analysis of a profile with a linked IDE window runs with that directory as its working directory and the reading tools granted &mdash; no writing, no shell, and no other directory. A profile with no linked window is unaffected. Turn it on when the provider you have configured is one you would already paste code into.
+        It is off by default, and it is the only setting here that does. With it on, an analysis of a profile with a linked IDE window runs with that directory as its working directory and the reading tools granted &mdash; no writing, no shell, and no other directory &mdash; and its system prompt says so, with the rule that it opens a file before naming it. A profile with no linked window is unaffected, and its prompt does not mention reading code at all. Turn it on when the provider you have configured is one you would already paste code into.
       </DocsCallout>
 
       <h2 id="trimming-the-tool-list">Trimming the Tool List</h2>

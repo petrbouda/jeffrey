@@ -38,11 +38,4 @@ public record ToolBinding(
         McpToolset mcpToolset,
         SourceAccess sourceAccess
 ) {
-
-    /**
-     * Tools without source access, which is every binding until an installation turns it on.
-     */
-    public static ToolBinding of(Object springAiTools, McpToolset mcpToolset) {
-        return new ToolBinding(springAiTools, mcpToolset, null);
-    }
 }

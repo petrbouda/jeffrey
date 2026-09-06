@@ -25,6 +25,7 @@ import cafe.jeffrey.profile.ai.chat.AssistantResponse;
 import cafe.jeffrey.profile.ai.chat.McpAnalysisAssistantService;
 import cafe.jeffrey.profile.ai.chat.McpToolset;
 import cafe.jeffrey.profile.ai.chat.ProfileSourceAccess;
+import cafe.jeffrey.profile.ai.chat.SourceAccess;
 import cafe.jeffrey.profile.ai.chat.McpToolsetFactory;
 import cafe.jeffrey.profile.ai.chat.SuggestionRules;
 import cafe.jeffrey.profile.ai.chat.SuggestionRules.QuestionRule;
@@ -114,14 +115,18 @@ public class JfrAnalysisAssistantServiceImpl extends McpAnalysisAssistantService
                 LOG.info("Data modification enabled for analysis: profileId={}", profileInfo.id());
             }
 
+            // Resolved once and used twice: the binding decides what the model may read, and the
+            // prompt decides whether it knows to. Splitting them is how a granted capability goes
+            // unused.
+            SourceAccess sourceAccess = profileSourceAccess.forProfile(profileInfo.id()).orElse(null);
+
             // Build dynamic system prompt with actual DB schema
             String eventsSchema = queryEventsTableSchema(dataSource);
-            String systemPrompt = JfrAnalysisSystemPrompt.buildPrompt(eventsSchema);
+            String systemPrompt = JfrAnalysisSystemPrompt.buildPrompt(eventsSchema, sourceAccess);
 
             // Bind both tool representations; the active backend uses the one it understands.
             McpToolset mcpToolset = mcpToolsetFactory.forJfr(profileInfo.id());
-            ToolBinding toolBinding = new ToolBinding(
-                    tools, mcpToolset, profileSourceAccess.forProfile(profileInfo.id()).orElse(null));
+            ToolBinding toolBinding = new ToolBinding(tools, mcpToolset, sourceAccess);
 
             String contextualMessage = buildContextualMessage(request, profileInfo);
             return new ToolExchange(

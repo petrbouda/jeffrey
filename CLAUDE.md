@@ -437,7 +437,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 
 ### Structure of the Database
 - Three-tier architecture: microscope core database, server database, and per-profile databases (isolated)
-- Local Core DB: hubs, recordings, profiles, settings. Workspaces and projects are NOT stored locally — they are listed live from a hub over gRPC, so anything per-project is keyed by the `(workspace_id, project_id)` pair
+- Local Core DB: hubs, recordings, profiles, settings, IDE links (`ide_targets`, one row per profile). Workspaces and projects are NOT stored locally — they are listed live from a hub over gRPC, so anything per-project is keyed by the `(workspace_id, project_id)` pair
 - Server DB: server-side workspaces, projects, scheduling
 - Profile DB: events, flamegraph data, analysis results for a single profile
 - `profile_id` gathers all data related to a specific profile

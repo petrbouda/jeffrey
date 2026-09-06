@@ -22,6 +22,8 @@ import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.chat.AssistantResponse;
 import cafe.jeffrey.profile.ai.chat.McpAnalysisAssistantService;
 import cafe.jeffrey.profile.ai.chat.McpToolset;
+import cafe.jeffrey.profile.ai.chat.ProfileSourceAccess;
+import cafe.jeffrey.profile.ai.chat.SourceAccess;
 import cafe.jeffrey.profile.ai.chat.McpToolsetFactory;
 import cafe.jeffrey.profile.ai.chat.SuggestionRules;
 import cafe.jeffrey.profile.ai.chat.SuggestionRules.QuestionRule;
@@ -69,12 +71,15 @@ public class HeapDumpAnalysisAssistantServiceImpl extends McpAnalysisAssistantSe
                     "Are there potential memory leaks?"));
 
     private final McpToolsetFactory mcpToolsetFactory;
+    private final ProfileSourceAccess profileSourceAccess;
 
     public HeapDumpAnalysisAssistantServiceImpl(
             AiChatBackend chatBackend,
-            McpToolsetFactory mcpToolsetFactory) {
+            McpToolsetFactory mcpToolsetFactory,
+            ProfileSourceAccess profileSourceAccess) {
         super(ASSISTANT_NAME, chatBackend, SUGGESTION_RULES);
         this.mcpToolsetFactory = mcpToolsetFactory;
+        this.profileSourceAccess = profileSourceAccess;
     }
 
     @Override
@@ -82,10 +87,11 @@ public class HeapDumpAnalysisAssistantServiceImpl extends McpAnalysisAssistantSe
         return runAnalysis(request.message(), () -> {
             HeapDumpMcpTools tools = new HeapDumpMcpTools(delegate);
             McpToolset mcpToolset = mcpToolsetFactory.forHeap(request.profileId());
-            ToolBinding toolBinding = ToolBinding.of(tools, mcpToolset);
+            SourceAccess sourceAccess = profileSourceAccess.forProfile(request.profileId()).orElse(null);
+            ToolBinding toolBinding = new ToolBinding(tools, mcpToolset, sourceAccess);
 
             return new ToolExchange(
-                    HeapDumpAnalysisSystemPrompt.SYSTEM_PROMPT,
+                    HeapDumpAnalysisSystemPrompt.buildPrompt(sourceAccess),
                     request.history(),
                     request.message(),
                     toolBinding,

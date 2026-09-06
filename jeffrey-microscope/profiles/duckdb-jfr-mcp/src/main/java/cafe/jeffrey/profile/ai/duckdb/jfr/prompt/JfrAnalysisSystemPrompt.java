@@ -18,6 +18,9 @@
 
 package cafe.jeffrey.profile.ai.duckdb.jfr.prompt;
 
+import cafe.jeffrey.profile.ai.chat.SourceAccess;
+import cafe.jeffrey.profile.ai.chat.SourceGrounding;
+
 /**
  * System prompt for JFR Analysis Assistant.
  * Builds the prompt dynamically with actual database schema to prevent column name mismatches.
@@ -32,8 +35,11 @@ public final class JfrAnalysisSystemPrompt {
      *
      * @param eventsSchemaDescription column definitions from the real DB, e.g.
      *                                "event_type VARCHAR, start_timestamp TIMESTAMPTZ, duration BIGINT (nanoseconds), ..."
+     * @param sourceAccess            the checkout this analysis may read, or null when it has none.
+     *                                When present the prompt says so and how to use it; when absent it
+     *                                does not mention reading code at all
      */
-    public static String buildPrompt(String eventsSchemaDescription) {
+    public static String buildPrompt(String eventsSchemaDescription, SourceAccess sourceAccess) {
         return """
                 You are an expert Java performance analyst specializing in JFR (Java Flight Recorder) analysis.
                 You have access to tools that allow you to query a DuckDB database containing JFR events from a Java application profile.
@@ -126,6 +132,7 @@ public final class JfrAnalysisSystemPrompt {
 
                 Always explain your analysis in terms that Java developers can understand and act upon.
                 Focus on identifying root causes and providing specific recommendations.
-                """.formatted(eventsSchemaDescription);
+                %s
+                """.formatted(eventsSchemaDescription, SourceGrounding.section(sourceAccess));
     }
 }

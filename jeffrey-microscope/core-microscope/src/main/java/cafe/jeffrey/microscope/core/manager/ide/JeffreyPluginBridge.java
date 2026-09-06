@@ -189,7 +189,10 @@ public final class JeffreyPluginBridge implements IdeBridge {
      * @return what the plugin answered, or null when the window could not be reached at all
      */
     private <T> T attempt(String profileId, IdeTarget cached, Function<IdeTarget, T> call) {
-        T result = call.apply(cached);
+        // A target restored from the store carries no port: the one it had described a process that
+        // has since restarted. Going straight to discovery skips a call that cannot land, and the
+        // warning it would have logged.
+        T result = cached.port() > 0 ? call.apply(cached) : null;
         if (result != null) {
             return result;
         }

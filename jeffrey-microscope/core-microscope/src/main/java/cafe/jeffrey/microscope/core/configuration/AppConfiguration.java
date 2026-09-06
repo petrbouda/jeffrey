@@ -87,8 +87,15 @@ public class AppConfiguration {
         return new GitHubReleaseChecker(objectMapper, clock, enabled);
     }
 
+    /**
+     * @param localCorePersistenceProvider backs the per-profile window link, so a checkout linked once
+     *                                     is still linked after a restart. Only the first-party bridge
+     *                                     has windows to remember; the single-URL one has nothing to
+     *                                     store
+     */
     @Bean
     public IdeBridge ideBridge(
+            MicroscopeCorePersistenceProvider localCorePersistenceProvider,
             @Value("${jeffrey.microscope.ide.mode:jeffrey-plugin}") String mode,
             @Value("${jeffrey.microscope.ide.base-url:}") String baseUrl,
             @Value("${jeffrey.microscope.ide.scan.port-start:63342}") int portStart,
@@ -99,7 +106,8 @@ public class AppConfiguration {
             case JEFFREY_PLUGIN -> new JeffreyPluginBridge(
                     new PortRange(portStart, portEnd),
                     new JeffreyPluginClient(ideRestClientBuilder()),
-                    new IdeTargetCache());
+                    new IdeTargetCache(
+                            localCorePersistenceProvider.localCoreRepositories().ideTargetsRepository()));
             case JFR_PROFILER_PLUGIN -> new JfrProfilerPluginBridge(baseUrl, ideRestClientBuilder());
         };
     }

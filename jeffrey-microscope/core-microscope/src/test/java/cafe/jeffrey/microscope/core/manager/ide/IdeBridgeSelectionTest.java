@@ -19,6 +19,7 @@
 package cafe.jeffrey.microscope.core.manager.ide;
 
 import cafe.jeffrey.microscope.core.configuration.AppConfiguration;
+import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
 
 class IdeBridgeSelectionTest {
 
@@ -63,22 +66,29 @@ class IdeBridgeSelectionTest {
 
         private final AppConfiguration configuration = new AppConfiguration();
 
+        /**
+         * Only the first-party bridge reaches the store, and only when a link is read or written —
+         * which none of these tests does. What is under test is which bridge the mode selects.
+         */
+        private final MicroscopeCorePersistenceProvider persistence =
+                mock(MicroscopeCorePersistenceProvider.class, RETURNS_DEEP_STUBS);
+
         @Test
         void jeffreyPluginModeWiresJeffreyPluginBridge() {
-            IdeBridge bridge = configuration.ideBridge("jeffrey-plugin", BASE_URL, PORT_START, PORT_END);
+            IdeBridge bridge = configuration.ideBridge(persistence, "jeffrey-plugin", BASE_URL, PORT_START, PORT_END);
             assertInstanceOf(JeffreyPluginBridge.class, bridge);
             assertTrue(bridge.isEnabled());
         }
 
         @Test
         void blankModeWiresJeffreyPluginBridge() {
-            IdeBridge bridge = configuration.ideBridge("", BASE_URL, PORT_START, PORT_END);
+            IdeBridge bridge = configuration.ideBridge(persistence, "", BASE_URL, PORT_START, PORT_END);
             assertInstanceOf(JeffreyPluginBridge.class, bridge);
         }
 
         @Test
         void jfrProfilerModeWiresJfrProfilerPluginBridge() {
-            IdeBridge bridge = configuration.ideBridge("jfr-profiler-plugin", BASE_URL, PORT_START, PORT_END);
+            IdeBridge bridge = configuration.ideBridge(persistence, "jfr-profiler-plugin", BASE_URL, PORT_START, PORT_END);
             assertInstanceOf(JfrProfilerPluginBridge.class, bridge);
             assertTrue(bridge.isEnabled());
         }
@@ -86,7 +96,7 @@ class IdeBridgeSelectionTest {
         @Test
         void unknownModeFailsFast() {
             assertThrows(IllegalArgumentException.class,
-                    () -> configuration.ideBridge("bogus", BASE_URL, PORT_START, PORT_END));
+                    () -> configuration.ideBridge(persistence, "bogus", BASE_URL, PORT_START, PORT_END));
         }
     }
 }

@@ -18,6 +18,9 @@
 
 package cafe.jeffrey.profile.ai.duckdb.heapdump.prompt;
 
+import cafe.jeffrey.profile.ai.chat.SourceAccess;
+import cafe.jeffrey.profile.ai.chat.SourceGrounding;
+
 /**
  * System prompt for Heap Dump Analysis Assistant.
  * Defines the AI's role and capabilities for analyzing Java heap dumps.
@@ -27,7 +30,7 @@ public final class HeapDumpAnalysisSystemPrompt {
     private HeapDumpAnalysisSystemPrompt() {
     }
 
-    public static final String SYSTEM_PROMPT = """
+    private static final String SYSTEM_PROMPT = """
             You are an expert Java memory analyst specializing in heap dump analysis.
             You have access to tools that allow you to explore and analyze Java heap dumps loaded from .hprof files.
 
@@ -145,5 +148,18 @@ public final class HeapDumpAnalysisSystemPrompt {
             - When relevant, suggest JVM flags or code changes to address issues
             - Focus on practical recommendations that Java developers can act upon
             - If you find potential memory leaks, explain the reference chain keeping objects alive
+            %s
             """;
+
+    /**
+     * The prompt for one analysis.
+     *
+     * @param sourceAccess the checkout this analysis may read, or null when it has none. A retained
+     *                     object names a class, and the class's own code is what says whether holding
+     *                     it is a bug or the point — so the same grounding the JFR assistant gets
+     *                     applies here unchanged
+     */
+    public static String buildPrompt(SourceAccess sourceAccess) {
+        return SYSTEM_PROMPT.formatted(SourceGrounding.section(sourceAccess));
+    }
 }

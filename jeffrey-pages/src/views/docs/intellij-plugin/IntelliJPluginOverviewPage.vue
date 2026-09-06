@@ -96,6 +96,14 @@ onMounted(() => {
         every profile view.
       </p>
 
+      <p>
+        The link itself outlives both processes. Microscope stores which project, in which IDE, at
+        which path — not the port or the process id, which describe one run and are wrong by the time
+        they are read back. So restarting IntelliJ, or Microscope, or both, leaves the profile linked;
+        the first jump afterwards re-scans once to find the window again and carries on. Disconnecting
+        a window is remembered too: a link you removed does not return at the next start.
+      </p>
+
       <DocsCallout type="info">
         <strong>Custom port range &amp; trusted projects.</strong> The default scan range is
         63342&ndash;63362 (IntelliJ's built-in server defaults), and only trusted projects are
