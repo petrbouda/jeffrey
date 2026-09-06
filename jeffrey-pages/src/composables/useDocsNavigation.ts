@@ -130,12 +130,48 @@ export const microscopeNavigation: DocSection[] = [
     ]
   },
   {
-    title: 'Recordings & Profiles',
+    title: 'Recordings',
     path: '_microscope-core',
     icon: 'bi-collection-play',
+    children: [{ title: 'Recordings', to: '/docs/microscope/recordings' }]
+  },
+  {
+    // The per-feature analysis references. They were reachable only from the Profiles
+    // overview page before, which left them out of the sidebar, the breadcrumbs and the
+    // prev/next chain — all three are derived from this array.
+    title: 'Profiles',
+    path: 'microscope/profiles',
+    icon: 'bi-graph-up',
     children: [
-      { title: 'Recordings', to: '/docs/microscope/recordings' },
-      { title: 'Profiles', to: '/docs/microscope/profiles' }
+      { title: 'Overview', to: '/docs/microscope/profiles' },
+      { title: 'Heap Dump Analysis', to: '/docs/microscope/profiles/heap-dump' },
+      {
+        title: 'Garbage Collection',
+        path: 'garbage-collection',
+        children: [
+          { title: 'Overview', to: '/docs/microscope/profiles/garbage-collection' },
+          { title: 'G1', to: '/docs/microscope/profiles/garbage-collection/g1' },
+          { title: 'ZGC', to: '/docs/microscope/profiles/garbage-collection/zgc' },
+          { title: 'String & Symbol Tables', to: '/docs/microscope/profiles/garbage-collection/string-symbol-tables' },
+          { title: 'Finalizers', to: '/docs/microscope/profiles/garbage-collection/finalizers' }
+        ]
+      },
+      { title: 'Allocations', to: '/docs/microscope/profiles/allocations' },
+      { title: 'Leak Candidates', to: '/docs/microscope/profiles/leak-candidates' },
+      { title: 'Native Memory', to: '/docs/microscope/profiles/native-memory' },
+      { title: 'Native Memory Tracking (NMT)', to: '/docs/microscope/profiles/nmt' },
+      { title: 'JIT Compilation', to: '/docs/microscope/profiles/jit-compilation' },
+      { title: 'Class Loading', to: '/docs/microscope/profiles/class-loading' },
+      { title: 'Exceptions', to: '/docs/microscope/profiles/exceptions' },
+      { title: 'VM Operations & Safepoints', to: '/docs/microscope/profiles/vm-operations' },
+      { title: 'Thread Timeline', to: '/docs/microscope/profiles/thread-timeline' },
+      { title: 'Thread Dumps', to: '/docs/microscope/profiles/thread-dumps' },
+      { title: 'Virtual Threads', to: '/docs/microscope/profiles/virtual-threads' },
+      { title: 'Blocking Operations', to: '/docs/microscope/profiles/blocking-operations' },
+      { title: 'Socket I/O', to: '/docs/microscope/profiles/socket-io' },
+      { title: 'File I/O', to: '/docs/microscope/profiles/file-io' },
+      { title: 'Security & TLS', to: '/docs/microscope/profiles/security' },
+      { title: 'System & Host', to: '/docs/microscope/profiles/system' }
     ]
   },
   {

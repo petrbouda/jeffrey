@@ -34,6 +34,7 @@ const headings = [
   { id: 'update-check', text: 'Update Check', level: 2 },
   { id: 'hubs', text: 'Declared Hubs', level: 2 },
   { id: 'mcp-server', text: 'MCP Server', level: 2 },
+  { id: 'ide-integration', text: 'IDE Integration', level: 2 },
   { id: 'ai-assistant', text: 'AI Assistant', level: 2 }
 ];
 
@@ -273,6 +274,19 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
+            <td><code>jeffrey.microscope.mcp.ide.enabled</code></td>
+            <td><code>true</code></td>
+            <td>
+              Advertises the <code>ide_</code> tools, which ask the developer's running IntelliJ where
+              a frame lives, read a class through it, and open a file in it. Its own switch for the
+              same reason as <code>hubs_</code>, one step closer to home: everything else reads a
+              recording Jeffrey already holds, while this reaches into another process on this machine
+              and can put a file on somebody's screen. It needs the
+              <router-link to="/docs/intellij-plugin">IntelliJ plugin</router-link>, and answers
+              nothing until a window is linked to the profile. Read at startup.
+            </td>
+          </tr>
+          <tr>
             <td><code>jeffrey.microscope.mcp.families</code></td>
             <td><em>empty</em></td>
             <td>
@@ -281,7 +295,8 @@ onMounted(() => {
               <code>flamegraph</code>, <code>compare</code>, <code>traces</code>, <code>jvm</code>,
               <code>http</code>, <code>jdbc</code>, <code>grpc</code>, <code>methodtracing</code>,
               <code>io</code>, <code>blocking</code>, <code>timeline</code>, <code>memory</code>,
-              <code>heap</code>, <code>recordings</code>, <code>hubs</code>. Worth setting only for a
+              <code>heap</code>, <code>recordings</code>, <code>hubs</code>, <code>ide</code>. Worth setting
+              only for a
               client that pays for the whole tool list on every turn &mdash; Codex loads every schema
               each time, where Claude Code fetches them on demand. A family named here but not built
               (<code>hubs</code> with hub access off) is simply absent rather than a startup failure.
@@ -296,6 +311,58 @@ onMounted(() => {
         these properties say &mdash; the DNS-rebinding check the MCP specification asks of a local HTTP
         server. A CLI client sends no <code>Origin</code>, so Claude Code and Codex never notice.
       </DocsCallout>
+
+      <h2 id="ide-integration">IDE Integration</h2>
+      <p>
+        IDE integration is always available &mdash; the per-profile picker shows onboarding until an
+        IntelliJ window is linked. The defaults suit a stock IntelliJ, so these only matter when your
+        IDE binds elsewhere or you want a different bridge. See
+        <router-link to="/docs/intellij-plugin/configuration">IntelliJ Plugin Configuration</router-link>.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>jeffrey.microscope.ide.scan.port-start</code></td>
+            <td><code>63342</code></td>
+            <td>
+              First port of the localhost range Microscope scans to find a running IDE, calling
+              <code>/api/jeffrey/instance</code> on each. The defaults are IntelliJ's built-in server
+              range. Scanning is lazy and the chosen port is cached until it stops responding.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.ide.scan.port-end</code></td>
+            <td><code>63362</code></td>
+            <td>Last port of that range.</td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.ide.mode</code></td>
+            <td><em>Jeffrey plugin</em></td>
+            <td>
+              Which bridge <em>Open in IDE</em> and <em>View Source</em> talk to. Set to
+              <code>jfr-profiler-plugin</code> to route them to the third-party Java JFR Profiler
+              plugin instead, which gives up the window picker, the checkout reporting and the
+              <code>ide_</code> MCP tools. Requires <code>ide.base-url</code> as well.
+            </td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.ide.base-url</code></td>
+            <td><em>none</em></td>
+            <td>
+              Address of that third-party plugin, e.g. <code>http://localhost:4243</code>. Required
+              when &mdash; and only when &mdash; <code>ide.mode</code> selects it; the first-party
+              plugin is discovered by scanning and needs no address.
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       <h2 id="ai-assistant">AI Assistant</h2>
       <table>
@@ -323,6 +390,16 @@ onMounted(() => {
             <td><code>jeffrey.microscope.ai.max-tokens</code></td>
             <td><code>128000</code></td>
             <td>Maximum tokens in an AI response.</td>
+          </tr>
+          <tr>
+            <td><code>jeffrey.microscope.ai.source-access.enabled</code></td>
+            <td><code>false</code></td>
+            <td>
+              Lets an AI analysis read the checkout of the IDE window the profile is linked to, so a
+              finding lands on the code rather than stopping at a method name. Off by default because
+              it is the one setting that sends source to the configured AI provider. Read-only, and
+              only ever the linked directory.
+            </td>
           </tr>
         </tbody>
       </table>

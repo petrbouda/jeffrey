@@ -166,6 +166,7 @@ onMounted(() => {
           <div class="step-content">
             <h4><i class="bi bi-cpu"></i> Analyze</h4>
             <p>Click <strong>Analyze</strong> on a recording or heap dump to create a profile. Jeffrey parses the file and builds a dedicated profile database.</p>
+            <p>Auto Analysis runs as part of that build, not on first view &mdash; when the profile is ready, its findings are ready with it, so the verdict chips and the IDE recording panel have something to show immediately. A profile created before this behaviour existed carries no findings until it is recomputed.</p>
           </div>
         </div>
         <div class="workflow-step">

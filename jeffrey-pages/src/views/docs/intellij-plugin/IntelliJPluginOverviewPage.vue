@@ -165,6 +165,16 @@ onMounted(() => {
         protocol 2 does not serve it, and Microscope says so rather than reporting the IDE as offline.
       </p>
 
+      <p>
+        Traffic goes the other way too, and over exactly one endpoint: the recording tab asks
+        Microscope <code>GET /api/internal/recordings/by-path</code> what it holds for the file you
+        opened, and gets back the whole panel &mdash; whether the file has been analysed, and if so
+        the four figures and the auto-analysis findings. Matching is by <strong>file name plus byte
+        size</strong>, because importing copies the file and records no origin path; the lookup never
+        imports anything as a side effect. One call rather than four means a figure on that tab can
+        only be wrong in one place.
+      </p>
+
       <h2 id="features">Features in Microscope</h2>
       <ul class="usecase-list">
         <li><i class="bi bi-check2-circle"></i> <strong>Open in IDE</strong> from any flame-graph frame — navigates to the method's source line and focuses the IDE window.</li>

@@ -30,7 +30,8 @@ const verifyCommand = 'curl http://127.0.0.1:63342/api/jeffrey/instance';
 const headings = [
   { id: 'marketplace', text: 'From the JetBrains Marketplace', level: 2 },
   { id: 'from-source', text: 'From Source (development)', level: 2 },
-  { id: 'verify', text: 'Verify', level: 2 }
+  { id: 'verify', text: 'Verify', level: 2 },
+  { id: 'panel-rendering', text: 'How the Recording Panel Renders', level: 2 }
 ];
 
 onMounted(() => {
@@ -93,6 +94,17 @@ onMounted(() => {
         It reports the IDE, the protocol version it speaks, and every open trusted project. A
         <code>404</code> means the integration is switched off in that settings panel &mdash; by
         design, so a disabled IDE is invisible to Microscope's scan rather than visible and refusing.
+      </p>
+
+      <h2 id="panel-rendering">How the Recording Panel Renders</h2>
+      <p>
+        The tab you get when you open a <code>.jfr</code> or heap dump is a real web page, drawn in
+        the IDE's bundled Chromium (JCEF). That is what buys it a grid, rounded corners and hover
+        states. Where JCEF is unavailable &mdash; a JetBrains Runtime built without it, or the
+        JetBrains Client &mdash; the plugin falls back to a plainer pane rendered by Swing's HTML
+        kit. It carries the same figures, links and buttons, but Swing's engine ignores rounded
+        corners, flexbox and <code>:hover</code>, so it looks flatter. That is the fallback working,
+        not the panel breaking.
       </p>
     </div>
 
