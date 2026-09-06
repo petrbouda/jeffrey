@@ -1,0 +1,4 @@
+<!-- Declared so the plugin can see the Terminal plugin's classes when it is present. It contributes
+     no extensions of its own: the terminal is reached from AgentLaunchers, not from an extension. -->
+<idea-plugin>
+</idea-plugin>

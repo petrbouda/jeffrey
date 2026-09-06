@@ -49,6 +49,7 @@ dependencies {
 
         // Java PSI: ClassUtil, JavaPsiFacade, PsiMethod, ... (bundled in Community; also <depends> in plugin.xml).
         bundledPlugin("com.intellij.java")
+        bundledPlugin("org.jetbrains.plugins.terminal")
 
         // In-process IDE test fixtures (BasePlatformTestCase, myFixture, ...). JUnit 3/4-based.
         testFramework(TestFrameworkType.Platform)

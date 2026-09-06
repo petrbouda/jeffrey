@@ -21,6 +21,7 @@ package cafe.jeffrey.microscope.core.configuration;
 import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
+import cafe.jeffrey.microscope.core.mcp.McpPromptRegistry;
 import cafe.jeffrey.microscope.core.mcp.ExternalMcpProperties;
 import cafe.jeffrey.microscope.core.mcp.McpRequestGuard;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
@@ -155,5 +156,15 @@ public class McpConfiguration {
                 profilesMcpTools, recordingsMcpTools, hubsMcpTools, contextCache, jfrPanelProvider,
                 stackSamplePanelProvider, recordingCommitResolver, heapDumpInitService, ideBridge,
                 properties);
+    }
+
+    /**
+     * The prompts both MCP endpoints serve — the plugin's skills, copied onto the classpath at build
+     * time. Declared here rather than built inside the controller so the controller keeps the single
+     * constructor component scanning needs.
+     */
+    @Bean
+    public McpPromptRegistry mcpPromptRegistry() {
+        return new McpPromptRegistry();
     }
 }

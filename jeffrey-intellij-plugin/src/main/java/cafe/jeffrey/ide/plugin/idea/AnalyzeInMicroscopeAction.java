@@ -29,8 +29,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Locale;
 
 /**
  * Sends the selected recording or heap dump to Jeffrey Microscope for analysis.
@@ -49,31 +47,6 @@ import java.util.Locale;
  */
 public final class AnalyzeInMicroscopeAction extends AnAction {
 
-    /**
-     * The file names Microscope can turn into a profile on its own.
-     *
-     * <p>Matched as whole suffixes rather than as an extension, because several of them are two
-     * extensions deep: {@code VirtualFile.getExtension()} answers {@code lz4} for
-     * {@code run.jfr.lz4} and {@code gz} for {@code heap.hprof.gz}, so an extension test hides the
-     * action on exactly the files somebody compressed to keep.
-     *
-     * <p>This list mirrors {@code SupportedRecordingFile} on the Microscope side, minus the companion
-     * artifacts — JVM and application logs, performance counters, async-profiler temp files. Those
-     * import, but they describe a run rather than being one, and analysing one alone produces nothing.
-     * The duplication is unavoidable: this plugin is a separate build and cannot see that enum.
-     *
-     * <p>Compared against a lower-cased name, as Microscope's own check is, so a file saved as
-     * {@code HEAP.HPROF} offers the action and then imports.
-     */
-    private static final List<String> ANALYSABLE_SUFFIXES = List.of(
-            ".jfr",
-            ".jfr.lz4",
-            ".hprof",
-            ".hprof.gz",
-            ".pprof",
-            ".pb.gz",
-            ".otlp");
-
     private static final String QUICK_OPEN_PATH = "/quick-open?path=";
 
     @Override
@@ -87,41 +60,18 @@ public final class AnalyzeInMicroscopeAction extends AnAction {
      */
     @Override
     public void update(@NotNull AnActionEvent event) {
-        event.getPresentation().setEnabledAndVisible(analysable(event.getData(CommonDataKeys.VIRTUAL_FILE)));
+        VirtualFile file = event.getData(CommonDataKeys.VIRTUAL_FILE);
+        event.getPresentation().setEnabledAndVisible(AnalysableFiles.isAnalysable(file));
     }
 
     @Override
     public void actionPerformed(@NotNull AnActionEvent event) {
         VirtualFile file = event.getData(CommonDataKeys.VIRTUAL_FILE);
-        if (!analysable(file)) {
+        if (!AnalysableFiles.isAnalysable(file)) {
             return;
         }
         String baseUrl = JeffreySettings.getInstance().microscopeUrl();
         String encodedPath = URLEncoder.encode(file.getPath(), StandardCharsets.UTF_8);
         BrowserUtil.browse(baseUrl + QUICK_OPEN_PATH + encodedPath);
-    }
-
-    private static boolean analysable(VirtualFile file) {
-        if (file == null || file.isDirectory()) {
-            return false;
-        }
-        return analysableName(file.getName());
-    }
-
-    /**
-     * Whether Microscope can build a profile from a file with this name. Separate from the
-     * {@link VirtualFile} check so the rule — the part that is easy to get wrong and was — can be
-     * tested without an IDE fixture.
-     */
-    static boolean analysableName(String name) {
-        // Locale.ROOT, matching Microscope: under a Turkish locale the default toLowerCase() maps I to
-        // a dotless i, which would let a machine's language setting decide what the menu offers.
-        String lower = name.toLowerCase(Locale.ROOT);
-        for (String suffix : ANALYSABLE_SUFFIXES) {
-            if (lower.endsWith(suffix)) {
-                return true;
-            }
-        }
-        return false;
     }
 }

@@ -39,6 +39,7 @@ public final class JeffreyConfigurable implements Configurable {
 
     private JBCheckBox enabledCheckbox;
     private JBTextField microscopeUrlField;
+    private JBCheckBox agentsCheckbox;
 
     /**
      * Kept in step with the {@code displayName} of the {@code applicationConfigurable} declaration:
@@ -58,6 +59,8 @@ public final class JeffreyConfigurable implements Configurable {
         JBLabel accessLabel = new JBLabel("Localhost only — Microscope finds this IDE by scanning the built-in server port range.");
         microscopeUrlField = new JBTextField(currentMicroscopeUrl());
         JBLabel urlLabel = new JBLabel("Used by \"Analyze in Microscope\" to send a recording or heap dump for analysis.");
+        agentsCheckbox = new JBCheckBox("Offer to analyse a profile with a coding agent", currentAgentsEnabled());
+        JBLabel agentsLabel = new JBLabel("Adds buttons to a recording's tab that run Claude Code or Codex in a terminal.");
 
         return FormBuilder.createFormBuilder()
                 .addComponent(enabledCheckbox)
@@ -65,6 +68,8 @@ public final class JeffreyConfigurable implements Configurable {
                 .addComponent(accessLabel)
                 .addLabeledComponent("Microscope address:", microscopeUrlField)
                 .addComponent(urlLabel)
+                .addComponent(agentsCheckbox)
+                .addComponent(agentsLabel)
                 .addComponentFillVertically(new JPanel(), 0)
                 .getPanel();
     }
@@ -72,6 +77,7 @@ public final class JeffreyConfigurable implements Configurable {
     @Override
     public boolean isModified() {
         return enabledCheckbox.isSelected() != currentEnabled()
+                || agentsCheckbox.isSelected() != currentAgentsEnabled()
                 || !microscopeUrlField.getText().equals(currentMicroscopeUrl());
     }
 
@@ -79,6 +85,7 @@ public final class JeffreyConfigurable implements Configurable {
     public void apply() {
         JeffreySettings.getInstance().setEnabled(enabledCheckbox.isSelected());
         JeffreySettings.getInstance().setMicroscopeUrl(microscopeUrlField.getText());
+        JeffreySettings.getInstance().setAgentsEnabled(agentsCheckbox.isSelected());
         // Show what was actually stored: the setting normalises a trailing slash, and a field left
         // holding the un-normalised text would keep Apply enabled with nothing left to apply.
         microscopeUrlField.setText(currentMicroscopeUrl());
@@ -87,11 +94,16 @@ public final class JeffreyConfigurable implements Configurable {
     @Override
     public void reset() {
         enabledCheckbox.setSelected(currentEnabled());
+        agentsCheckbox.setSelected(currentAgentsEnabled());
         microscopeUrlField.setText(currentMicroscopeUrl());
     }
 
     private static boolean currentEnabled() {
         return JeffreySettings.getInstance().isEnabled();
+    }
+
+    private static boolean currentAgentsEnabled() {
+        return JeffreySettings.getInstance().areAgentsEnabled();
     }
 
     private static String currentMicroscopeUrl() {

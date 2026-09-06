@@ -27,6 +27,7 @@ import org.springframework.context.annotation.Import;
 import cafe.jeffrey.microscope.core.initializer.RecordingSeedInitializer;
 import cafe.jeffrey.microscope.core.manager.recordings.JfrRecordingMetadataParserAdapter;
 import cafe.jeffrey.microscope.core.manager.recordings.MicroscopeProfileCleanup;
+import cafe.jeffrey.microscope.core.manager.recordings.IdeRecordingLookup;
 import cafe.jeffrey.microscope.core.manager.recordings.ProfileRecordingsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.server.HubsManager;
@@ -147,6 +148,15 @@ public class MicroscopeAppConfiguration {
             @Value("${jeffrey.microscope.seed.recordings.dir:/jeffrey-examples}") String seedDir) {
 
         return new RecordingSeedInitializer(recordingsManager, Path.of(seedDir));
+    }
+
+    @Bean
+    public IdeRecordingLookup ideRecordingLookup(
+            RecordingsManager recordingsManager,
+            ProfileManagerResolver profileManagerResolver,
+            PipelineRunRegistry<String> profileInitRunRegistry) {
+
+        return new IdeRecordingLookup(recordingsManager, profileManagerResolver, profileInitRunRegistry);
     }
 
     // --- Resolvers (centralise profileId / projectId lookups for controllers) ---

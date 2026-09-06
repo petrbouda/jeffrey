@@ -398,6 +398,7 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - **jeffrey-microscope REST**: `/api/internal/` for frontend-facing APIs — resources in `jeffrey-microscope/core-microscope/.../resources/`
 - **Profile REST**: `/api/internal/profiles/{profileId}/` for profile features — controllers in `jeffrey-microscope/core-microscope/.../web/controllers/profile/`
 - **jeffrey-hub REST**: `/api/internal/` for minimal server UI — resources in `jeffrey-hub/core-hub/.../resources/`
+- **IDE recording panel**: `GET /api/internal/recordings/by-path?path=&sizeInBytes=` — what Microscope holds for a file on the developer's disk (never imports as a side effect), with the panel's figures inline when a profile is ready. Matching is by file name plus byte size, because an import copies the file and records no origin path. Assembled by `IdeRecordingLookup`, served from `RecordingAnalysisController`
 - **MCP**: JSON-RPC 2.0 over Streamable HTTP — `POST /api/internal/mcp` (external clients) and `/api/internal/mcp/claude-code` (the headless CLI backend), controllers in `jeffrey-microscope/core-microscope/.../mcp/`, protocol layer in `jeffrey-microscope/profiles/mcp-server/`
 - **gRPC**: Remote workspace communication between jeffrey-microscope and jeffrey-hub — proto definitions in `shared/hub-api/src/main/proto/jeffrey/hub/api/v1/`, service implementations in `jeffrey-hub/core-hub/.../grpc/`, clients in `jeffrey-microscope/grpc-client/.../grpc/client/`, aggregated by the `HubClients` record in `shared/hub-client/`
 - gRPC proto files: `workspace_service.proto`, `project_service.proto`, `instance_service.proto`, `recording_download_service.proto`, `repository_service.proto`, `profiler_settings_service.proto`, `event_streaming_service.proto`
@@ -443,12 +444,51 @@ built-in server (`ping`, `instance`, `navigate`, `resolve`, `has`, `source`) so 
 `ide_` MCP family can locate a frame's source, and it sends a recording or heap dump the other way
 with the *Analyze in Microscope* action, which opens `/quick-open?path=…` in a browser.
 
-**It never renders profile data.** No flame graphs, no dashboards, no charts, no hot-method tool
-window, no gutter or inlay markers carrying figures. Anything that would *show* a reader their
-profile is a link to Microscope, pointing at a profile-scoped view URL (`/profiles/{id}/{view}` — the
-same ones `profiles_viewLink` hands to MCP clients). A second renderer inside the IDE would be a
-second thing to build every view in and a second place for the two to disagree about what a recording
-says. Its UI is therefore a settings panel and one context-menu item, and stays that way.
+**It never renders profile data**, with one bounded exception written down below. No flame graphs,
+no dashboards, no charts, no hot-method list, no gutter or inlay markers carrying figures. Anything
+that would *show* a reader their profile is a link to Microscope, pointing at a profile-scoped view
+URL (`/profiles/{id}/{view}` — the same ones `profiles_viewLink` hands to MCP clients). A second
+renderer inside the IDE would be a second thing to build every view in and a second place for the two
+to disagree about what a recording says.
+
+**The exception: the recording panel.** Opening a `.jfr`, heap dump or pprof/OTLP file gives it an
+editor tab (`RecordingFileEditorProvider`, placed *before* the default editor rather than hiding it,
+so Ultimate's own JFR viewer stays a click away). The tab says whether Microscope has analysed the
+file, offers the button that does, and links out to the views as a 3×3 grid of tiles — and once a
+profile is ready it shows **four figures and the auto-analysis lines, and nothing else**: recording
+window, sample count, event type count, sample-loss share, then one line per finding. That list is the
+whole allowance. No fifth figure, no chart, no per-method table, no severity histogram; the next
+question is always one more number away, and the answer is the link. All of it comes from a single
+call — `GET /api/internal/recordings/by-path` — so the contract the plugin pins is one endpoint rather
+than four, and a figure it shows can only be wrong in one place.
+
+The body is **markup, not layout code**: two `JEditorPane`s wearing the platform's HTML kit
+(`HTMLEditorKitBuilder` + `ExtendableHTMLViewFactory.Extensions.icons`), built by `PanelHtml` with a
+theme-derived stylesheet from `PanelStyles`. Not JCEF — `JBCefApp.isSupported()` is conditional, so a
+browser panel needs a Swing fallback and is therefore built twice, and it inherits none of the IDE's
+theme. Swing's HTML engine has no flexbox, grid, `border-radius` or `:hover`, so layout is tables and
+the tiles have square corners; that is the price and it is paid knowingly. Buttons and the progress
+bar stay real Swing between the two panes, because an HTML-drawn button always reads as fake.
+
+The ready state also offers **Analyse with Claude** / **Analyse with Codex**, which send
+`<cli> "Analyse Jeffrey profile <id>"` to a terminal tab. The **profileId, never the file path** —
+neither agent can parse a JFR and Microscope already has — and **no question of its own**: the method
+lives in the `analyze-jfr` skill, whose description fires on that exact phrase, and the panel does not
+know what the developer wants to ask. The agents are a list (`AgentCli.ALL`), not two branches, so the
+next CLI costs a row; an agent missing from `PATH` keeps its button, disabled, so the row looks the
+same on every machine. The Terminal plugin is an **optional** dependency — bundled everywhere but
+switchable off — and `AgentLaunchers` degrades to copying the command instead of losing the feature.
+This is the plugin's one reach outside itself, so it has a switch of its own
+(*Settings → Tools → Jeffrey Plugin*), the way `hubs_` and `ide_` do on the Microscope side.
+
+Two buttons that are deliberately **not** there: *Analyze again* on a ready profile (a recording file
+does not change, so it would only import a second copy and build an identical profile — and a file
+that genuinely changed no longer matches by name and size, so it already comes back as never
+analysed), and *Settings…* anywhere except the unreachable and failed states, which are the only two
+where a wrong address is the likely answer.
+
+Its UI is therefore a settings panel, one context-menu item, the file icon, and that panel, and stays
+that way.
 
 Two rules that look like omissions and are not: resolution is Java-PSI and platform APIs only, with
 no dependency on the Kotlin plugin or Git4Idea, so nothing can fail to load in an IDE missing either;

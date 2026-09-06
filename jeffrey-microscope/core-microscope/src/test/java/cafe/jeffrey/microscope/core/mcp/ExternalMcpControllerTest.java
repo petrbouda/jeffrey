@@ -59,7 +59,8 @@ class ExternalMcpControllerTest {
         return mockMvcTesterFor(new ExternalMcpController(
                 assembler,
                 new ExternalMcpProperties(enabled, true, true, Set.of()),
-                new McpRequestGuard()));
+                new McpRequestGuard(),
+                new McpPromptRegistry()));
     }
 
     @Nested
