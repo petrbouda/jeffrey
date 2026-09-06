@@ -74,12 +74,13 @@ public class AnalyzeInMicroscopeActionTest {
     }
 
     /**
-     * Microscope's own suffix check is case-sensitive, so a name accepted here is a name its import
-     * accepts. Showing the action for RUN.JFR would promise something the import then refuses.
+     * Microscope ignores case when it recognises a file, so this does too — a heap dump saved as
+     * HEAP.HPROF is the same file, and the action has to offer what the import will accept.
      */
     @Test
-    public void matchesCaseTheWayMicroscopeDoes() {
-        assertFalse(AnalyzeInMicroscopeAction.analysableName("RUN.JFR"));
-        assertFalse(AnalyzeInMicroscopeAction.analysableName("HEAP.HPROF"));
+    public void ignoresCaseTheWayMicroscopeDoes() {
+        assertTrue(AnalyzeInMicroscopeAction.analysableName("RUN.JFR"));
+        assertTrue(AnalyzeInMicroscopeAction.analysableName("HEAP.HPROF"));
+        assertTrue(AnalyzeInMicroscopeAction.analysableName("Run.Jfr.Lz4"));
     }
 }

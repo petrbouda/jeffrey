@@ -344,17 +344,19 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
         return recordingsDir.resolve(file.recordingId() + "-" + file.filename());
     }
 
+    /**
+     * What kind of events a file holds, from its name.
+     *
+     * <p>Decided by {@link SupportedRecordingFile} rather than by suffix tests of its own: the heap
+     * dump branch used to carry its own copy of {@code .hprof} and {@code .hprof.gz}, which is one
+     * more place to update when a format is added and one more place to disagree about case.
+     */
     private static RecordingEventSource detectEventSource(String filename) {
-        String lower = filename.toLowerCase();
-        if (lower.endsWith(".hprof") || lower.endsWith(".hprof.gz")) {
-            return RecordingEventSource.HEAP_DUMP;
-        }
-        if (SupportedRecordingFile.of(filename) == SupportedRecordingFile.PPROF) {
-            return RecordingEventSource.PPROF;
-        }
-        if (SupportedRecordingFile.of(filename) == SupportedRecordingFile.OTLP_PROFILE) {
-            return RecordingEventSource.OPEN_TELEMETRY;
-        }
-        return RecordingEventSource.UNKNOWN;
+        return switch (SupportedRecordingFile.of(filename)) {
+            case HEAP_DUMP, HEAP_DUMP_GZ -> RecordingEventSource.HEAP_DUMP;
+            case PPROF -> RecordingEventSource.PPROF;
+            case OTLP_PROFILE -> RecordingEventSource.OPEN_TELEMETRY;
+            default -> RecordingEventSource.UNKNOWN;
+        };
     }
 }

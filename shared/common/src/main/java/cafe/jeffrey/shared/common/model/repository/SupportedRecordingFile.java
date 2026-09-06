@@ -25,6 +25,7 @@ import cafe.jeffrey.shared.common.model.repository.matcher.JvmLogFileMatcher;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.function.Predicate;
 
 
@@ -151,8 +152,27 @@ public enum SupportedRecordingFile {
         return UNKNOWN;
     }
 
+    /**
+     * Whether a file of this name is of this type, ignoring the case of the name.
+     *
+     * <p>Normalised here rather than in {@link #of(String)} because this is also an entry point in its
+     * own right — a caller asking one type directly, as the session-finished detector does — and a rule
+     * that held for one door and not the other would be worse than either answer.
+     *
+     * <p>Case-insensitivity is about what a reader has on disk rather than about the formats: a heap
+     * dump saved as {@code HEAP.HPROF}, a recording copied off a case-preserving share, or anything
+     * that has been through a system that upper-cases names is the same file, and refusing it as an
+     * unsupported type explains nothing to the person holding it.
+     *
+     * <p>{@link Locale#ROOT} rather than the default locale: under a Turkish locale
+     * {@code toLowerCase()} maps {@code I} to a dotless {@code ı}, so a machine's language setting
+     * would decide whether a file could be imported.
+     */
     public boolean matches(String filename) {
-        return filenameMatcher.test(filename);
+        if (filename == null) {
+            return false;
+        }
+        return filenameMatcher.test(filename.toLowerCase(Locale.ROOT));
     }
 
     public boolean matches(Path path) {
