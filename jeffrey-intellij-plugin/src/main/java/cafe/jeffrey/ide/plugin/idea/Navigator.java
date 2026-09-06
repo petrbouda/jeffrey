@@ -39,8 +39,15 @@ import com.intellij.psi.util.ClassUtil;
 import java.time.Instant;
 
 /**
- * Turns a {@link NavigateRequest} into an actual jump in the IDE (resolution on a background read
- * action, navigation + window focus on the EDT) and serves source text for Microscope's viewer.
+ * Turns a {@link NavigateRequest} into a source location, and — for {@link #navigate} — into an
+ * actual jump in the IDE (resolution on a background read action, navigation + window focus on the
+ * EDT). Also serves source text for Microscope's viewer.
+ *
+ * <p>Resolving and jumping are separate entry points because they have separate callers. A person
+ * clicking a frame wants the editor to move; an agent asking where a frame lives wants the file and
+ * the line and emphatically does not want the developer's editor to jump under their hands while
+ * they are working. {@link #resolve} answers the question, {@link #navigate} answers it and then
+ * acts on it, and both report it in the same shape so Microscope parses one thing.
  */
 public final class Navigator {
 
@@ -50,42 +57,64 @@ public final class Navigator {
     private Navigator() {
     }
 
+    /**
+     * Where a frame lives, without touching the editor. Nothing here has a side effect the developer
+     * can see, which is what makes it safe to call from an automated reader on every frame it is
+     * about to write about.
+     */
+    public static NavigateResponse resolve(NavigateRequest req) {
+        Located located = locate(req);
+        return located.response();
+    }
+
+    /**
+     * The same resolution, followed by opening the file and bringing the window to the front.
+     */
     public static NavigateResponse navigate(NavigateRequest req) {
+        Located located = locate(req);
+        if (located.found() == null) {
+            return located.response();
+        }
+
+        Project project = located.project();
+        Navigation.Found found = located.found();
+        EdtRunner.runOnEdt(() -> {
+            new OpenFileDescriptor(project, found.file(), found.line(), found.column()).navigate(true);
+            ProjectUtil.focusProjectWindow(project, true);
+        });
+        return located.response();
+    }
+
+    private static Located locate(NavigateRequest req) {
         Project project = ProjectRegistry.findProject(req.projectId());
         if (project == null) {
-            return NavigateResponse.notResolved("project-not-found");
+            return Located.notResolved("project-not-found");
         }
         if (!TrustedProjects.isProjectTrusted(project)) {
-            return NavigateResponse.notResolved("project-not-trusted");
+            return Located.notResolved("project-not-trusted");
         }
 
         Navigation nav = ResolverDispatcher.resolve(project, req);
         if (nav instanceof Navigation.NotFound notFound) {
-            return NavigateResponse.notResolved(notFound.reason());
+            return Located.notResolved(notFound.reason());
         }
 
         Navigation.Found found = (Navigation.Found) nav;
         VirtualFile vFile = found.file();
         boolean decompiled = CLASS_EXTENSION.equals(vFile.getExtension());
         long mtime = vFile.getTimeStamp();
-        String sourceMTime = Instant.ofEpochMilli(mtime).toString();
-        boolean stale = isStale(mtime, req.recordingTime());
 
-        EdtRunner.runOnEdt(() -> {
-            new OpenFileDescriptor(project, vFile, found.line(), found.column()).navigate(true);
-            ProjectUtil.focusProjectWindow(project, true);
-        });
-
-        return new NavigateResponse(
+        NavigateResponse response = new NavigateResponse(
                 true,
                 found.kind().name(),
                 vFile.getPath(),
                 found.line() + 1,
                 decompiled,
                 found.imprecise(),
-                stale,
-                sourceMTime,
+                isStale(mtime, req.recordingTime()),
+                Instant.ofEpochMilli(mtime).toString(),
                 null);
+        return new Located(project, found, response);
     }
 
     public static SourceResponse fetchSource(Project project, String className) {
@@ -112,6 +141,18 @@ public final class Navigator {
             boolean decompiled = vFile != null && CLASS_EXTENSION.equals(vFile.getExtension());
             return new SourceResponse(true, psiFile.getText(), path, decompiled, null);
         });
+    }
+
+    /**
+     * A resolution and everything needed to act on it. {@code found} is null exactly when the
+     * response says unresolved, so a caller that only reports has one field to read and a caller
+     * that also opens the file has the project and the location it needs without resolving twice.
+     */
+    private record Located(Project project, Navigation.Found found, NavigateResponse response) {
+
+        static Located notResolved(String reason) {
+            return new Located(null, null, NavigateResponse.notResolved(reason));
+        }
     }
 
     private static boolean isStale(long mtimeMillis, String recordingTime) {

@@ -21,6 +21,7 @@ package cafe.jeffrey.microscope.core.manager.ide;
 import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginClient.PluginInstance;
 import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginClient.PluginNavigateResult;
 import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginClient.PluginProject;
+import cafe.jeffrey.microscope.persistence.api.IdeTargetsRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,7 @@ class JeffreyPluginBridgeTest {
     private static final String PROFILE = "p1";
     private static final String PROJECT_ID = "loc-hash-1";
     private static final String PROJECT_NAME = "jeffrey";
+    private static final String BASE_PATH = "/path";
     private static final String IDE_NAME = "IntelliJ IDEA";
     private static final long PID = 9688L;
 
@@ -56,18 +58,19 @@ class JeffreyPluginBridgeTest {
     @BeforeEach
     void setUp() {
         client = mock(JeffreyPluginClient.class);
-        cache = new IdeTargetCache();
+        cache = new IdeTargetCache(mock(IdeTargetsRepository.class));
         bridge = new JeffreyPluginBridge(new PortRange(PORT_START, PORT_END), client, cache);
         when(client.instance(anyInt())).thenReturn(Optional.empty());
     }
 
     private static IdeTarget target(int port) {
-        return new IdeTarget(port, PROJECT_ID, IDE_NAME, PROJECT_NAME, PID);
+        return new IdeTarget(port, PROJECT_ID, IDE_NAME, PROJECT_NAME, BASE_PATH, PID);
     }
 
     private static PluginInstance instance(int port) {
         return new PluginInstance(1, "iid", IDE_NAME, "IC", "2024.3", PID, port, "now",
-                List.of(new PluginProject(PROJECT_ID, PROJECT_NAME, "/path", true, true, "master")));
+                List.of(new PluginProject(
+                        PROJECT_ID, PROJECT_NAME, BASE_PATH, true, true, "master", "abc123")));
     }
 
     private static PluginNavigateResult resolved() {

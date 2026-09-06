@@ -28,6 +28,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'what-it-does', text: 'What It Does', level: 2 },
   { id: 'how-pairing-works', text: 'How Pairing Works', level: 2 },
+  { id: 'endpoints', text: 'What the Plugin Serves', level: 2 },
   { id: 'features', text: 'Features in Microscope', level: 2 }
 ];
 
@@ -64,11 +65,15 @@ onMounted(() => {
 
       <h2 id="what-it-does">What It Does</h2>
       <p>
-        Once installed and running, the plugin lets Microscope ask the IDE three things:
-        &ldquo;which classes do you know about?&rdquo;, &ldquo;open <em>this</em> method
-        in the editor&rdquo;, and &ldquo;send me the source of <em>this</em> class.&rdquo;
-        It also exposes an action that opens any <code>.jfr</code> file in your project directly
-        in Microscope, without going through the Recordings upload flow.
+        Once installed and running, the plugin lets Microscope ask the IDE four things:
+        &ldquo;which classes do you know about?&rdquo;, &ldquo;<em>where</em> is this method,
+        without touching my editor?&rdquo;, &ldquo;open <em>this</em> method in the editor&rdquo;,
+        and &ldquo;send me the source of <em>this</em> class.&rdquo; The second is what an AI agent
+        uses when it needs a file and a line for a finding but has no business moving your cursor.
+      </p>
+      <p>
+        It also exposes an action that sends a recording or heap dump in your project straight to
+        Microscope, without going through the Recordings upload flow.
       </p>
 
       <h2 id="how-pairing-works">How Pairing Works</h2>
@@ -96,6 +101,14 @@ onMounted(() => {
         every profile view.
       </p>
 
+      <p>
+        The link itself outlives both processes. Microscope stores which project, in which IDE, at
+        which path — not the port or the process id, which describe one run and are wrong by the time
+        they are read back. So restarting IntelliJ, or Microscope, or both, leaves the profile linked;
+        the first jump afterwards re-scans once to find the window again and carries on. Disconnecting
+        a window is remembered too: a link you removed does not return at the next start.
+      </p>
+
       <DocsCallout type="info">
         <strong>Custom port range &amp; trusted projects.</strong> The default scan range is
         63342&ndash;63362 (IntelliJ's built-in server defaults), and only trusted projects are
@@ -103,13 +116,72 @@ onMounted(() => {
         <router-link to="/docs/intellij-plugin/configuration">Configuration</router-link>.
       </DocsCallout>
 
+      <h2 id="endpoints">What the Plugin Serves</h2>
+      <p>
+        Six endpoints on IntelliJ&rsquo;s built-in server, under <code>/api/jeffrey/</code>. You will
+        not call them by hand &mdash; Microscope does &mdash; but they are what the integration is,
+        and <code>ping</code> is the quickest way to tell whether the plugin is alive:
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Endpoint</th>
+            <th>Answers</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>GET ping</code></td>
+            <td>Liveness, and the protocol version this plugin speaks</td>
+          </tr>
+          <tr>
+            <td><code>GET instance</code></td>
+            <td>This IDE, and every open trusted project &mdash; name, path, focus, branch and HEAD commit</td>
+          </tr>
+          <tr>
+            <td><code>POST navigate</code></td>
+            <td>Resolve a frame, open the file, bring the window to the front</td>
+          </tr>
+          <tr>
+            <td><code>POST resolve</code></td>
+            <td>The same answer with <strong>no editor movement</strong> &mdash; protocol 2 and up</td>
+          </tr>
+          <tr>
+            <td><code>GET has</code></td>
+            <td>Whether a project contains a class, or a class and method</td>
+          </tr>
+          <tr>
+            <td><code>GET source</code></td>
+            <td>A class&rsquo;s source text, attached sources preferred over decompiled</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        <code>resolve</code> exists separately from <code>navigate</code> because they are separate
+        acts, and only one is safe to repeat while somebody is working. It is what the
+        <router-link to="/docs/microscope-mcp/tools#ide"><code>ide_</code> MCP tools</router-link>
+        call, so an agent can check a hundred frames without your editor jumping. A plugin older than
+        protocol 2 does not serve it, and Microscope says so rather than reporting the IDE as offline.
+      </p>
+
       <h2 id="features">Features in Microscope</h2>
       <ul class="usecase-list">
         <li><i class="bi bi-check2-circle"></i> <strong>Open in IDE</strong> from any flame-graph frame — navigates to the method's source line and focuses the IDE window.</li>
-        <li><i class="bi bi-check2-circle"></i> <strong>Inline source preview</strong> in tooltips and detail panels — fetches the class body straight from the IDE so it always matches your local checkout.</li>
+        <li><i class="bi bi-check2-circle"></i> <strong>View Source</strong> from a flame-graph frame — opens the class body, fetched straight from the IDE, in a full-screen viewer with the frame's line highlighted. Library classes come back as attached sources when they exist and as a decompiled reconstruction when they do not.</li>
+        <li><i class="bi bi-check2-circle"></i> <strong>Frame lookup for AI agents</strong> — the <router-link to="/docs/microscope-mcp/tools#ide"><code>ide_</code> MCP tools</router-link> ask the IDE where a class and method live so a coding agent can ground a finding in a real file and line, without your editor moving while you work.</li>
+        <li><i class="bi bi-check2-circle"></i> <strong>Send a recording for analysis</strong> — right-click a JFR recording, heap dump, or pprof/OpenTelemetry profile in the project view and open it straight in Microscope. Compressed forms (<code>.jfr.lz4</code>, <code>.hprof.gz</code>, <code>.pb.gz</code>) are recognised too.</li>
+        <li><i class="bi bi-check2-circle"></i> <strong>Checkout awareness</strong> — each window reports its branch and HEAD commit, so a profile can be checked against the code you actually have open.</li>
         <li><i class="bi bi-check2-circle"></i> <strong>Per-profile window selection</strong> — when multiple IntelliJ windows are open, choose which one to target for a given profile; the choice is cached.</li>
         <li><i class="bi bi-check2-circle"></i> <strong>Java &amp; Kotlin resolution</strong> — both <code>JavaResolver</code> and <code>KotlinResolver</code> ship with the plugin, so JVM languages resolve symbol locations identically.</li>
       </ul>
+
+      <DocsCallout type="info" title="The analysis stays in Microscope">
+        The plugin does not draw flame graphs, dashboards or charts inside the IDE, and it will not
+        grow a tool window that does. Everything that shows you a profile is a link into Microscope,
+        opened in a browser. One renderer, in one place, so what the IDE points at and what you read
+        cannot drift apart &mdash; and the plugin stays a settings panel and a single menu item.
+      </DocsCallout>
 
       <p>
         Prefer to point Microscope at a different IDE plugin instead? See

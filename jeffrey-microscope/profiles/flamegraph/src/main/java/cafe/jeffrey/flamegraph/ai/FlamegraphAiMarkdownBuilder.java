@@ -159,6 +159,19 @@ public final class FlamegraphAiMarkdownBuilder {
             - Frame labels are method signatures. The sanitiser replaces
               semicolons and newlines inside names with `_` so each bullet
               occupies exactly one line.
+            - A label may carry a source line, as `Class.method:214`. It is
+              printed only when every sample at that node reported the same
+              line, so a line that is shown is the line — not one call site
+              of several. A frame with no line either was sampled at more
+              than one (a method called from several places in its caller,
+              or a hot loop spanning lines) or carries no line information
+              at all, as native and inlined frames do. **Absence of a line
+              is not absence of a location**; it means the tree cannot name
+              a single one.
+            - A line is a starting point for reading, never a citation on
+              its own. Open the file before describing what the code does:
+              the line comes from the profiled build, which may not be the
+              checkout in front of you.
             - The list is plain CommonMark — every line is `- <stuff>` at
               some indentation. Render it as a tree.
 
@@ -176,7 +189,8 @@ public final class FlamegraphAiMarkdownBuilder {
               `+pruned` annotation has detail you're not seeing.
             - Suggest concrete code investigations or fixes for the worst
               offenders, citing the call path (read by walking from the
-              bullet back to its less-indented ancestors).
+              bullet back to its less-indented ancestors) and, where one is
+              printed, opening the file at the line given.
 
             ---
             """;
@@ -188,6 +202,7 @@ public final class FlamegraphAiMarkdownBuilder {
     private static final String INDENT_UNIT = "  ";
     private static final String BULLET_PREFIX = "- ";
     private static final String DASH_SEPARATOR = " — ";
+    private static final String LINE_SEPARATOR = ":";
 
     private static final String TAG_C2 = "C2";
     private static final String TAG_C1 = "C1";
@@ -331,6 +346,7 @@ public final class FlamegraphAiMarkdownBuilder {
 
         out.append(INDENT_UNIT.repeat(depth)).append(BULLET_PREFIX);
         out.append(sanitizeFrame(name));
+        appendSourceLine(out, frame);
         out.append(" [").append(resolveTypeTag(frame)).append(']');
         out.append(DASH_SEPARATOR).append(frame.totalSamples());
         out.append(" (").append(formatPercent(frame.totalSamples(), root.totalSamples()));
@@ -478,6 +494,22 @@ public final class FlamegraphAiMarkdownBuilder {
             b.append(", ");
         }
         b.append(label).append(": ").append(count);
+    }
+
+    /**
+     * The frame's source line, when the tree knows exactly one.
+     * <p>
+     * Nodes merge by method name, so a node stands for every sample of that method at that point in
+     * the tree and keeps the line of whichever sample arrived first. Printing that unconditionally
+     * would hand a reader one call site out of several with nothing to say so — and the readers of
+     * this document map frames to code for a living, so a plausible wrong line is worse for them than
+     * no line at all. It is printed only when every sample agreed, which is the common case for a
+     * leaf in a tight loop and for a method with a single call site.
+     */
+    private static void appendSourceLine(StringBuilder out, Frame frame) {
+        if (frame.lineNumber() > 0 && frame.lineNumberAgreed()) {
+            out.append(LINE_SEPARATOR).append(frame.lineNumber());
+        }
     }
 
     private static String sanitizeFrame(String title) {

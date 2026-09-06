@@ -296,10 +296,22 @@ question to the user. The analyst has no file tools and never proposes changes.
 
 ## Grounding claims
 
-The exports carry call paths and figures, not source locations. Cite the path and the numbers the
-document shows. If the repository is open alongside, read the real source before naming a file,
-method or line — never infer them from a frame name. The `advise-jfr` skill carries the full
-profile-to-code-change workflow.
+The exports carry call paths and figures. A frame may also carry a line, as `Class.method:214`, and
+it is printed only when every sample at that frame agreed on it — a frame without one was sampled
+across several lines or has no line information at all. Cite the path and the numbers the document
+shows.
+
+Read the real source before naming a file, method or line — never infer them from a frame name. Two
+ways to reach it:
+
+- If the repository is open in this session, read it with your own file tools.
+- If the reader has IntelliJ open with the Jeffrey plugin, `ide_resolve` answers where a class and
+  method actually live — the file, the line, and whether the position is decompiled, imprecise or
+  older than the recording. It resolves nested classes, Kotlin facades and inherited methods that a
+  grep for the frame name gets wrong, and it does not move the reader's editor. `ide_windows` shows
+  which checkouts are open and which is on the commit the recording was built from.
+
+The `advise-jfr` skill carries the full profile-to-code-change workflow.
 
 ## When something fails
 

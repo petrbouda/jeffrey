@@ -35,8 +35,10 @@ import cafe.jeffrey.microscope.core.mcp.tools.TimelineMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.JvmMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
+import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.mcp.tools.HubsMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.IdeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.TracesMcpTools;
 import cafe.jeffrey.microscope.core.web.controllers.profile.HeapDumpManagerToolsDelegate;
@@ -87,8 +89,9 @@ import java.util.Set;
  * dominator tree the reading heap tools need, rather than altering anything already analysed. Both are
  * marked {@link McpToolAnnotations#CREATES} so a client can tell them apart from their neighbours.
  * <p>
- * {@link HubsMcpTools} is the only family gated by configuration, because it is the only one that
- * leaves this machine.
+ * {@link HubsMcpTools} and {@link IdeMcpTools} are the two families gated by configuration, because
+ * they are the two that reach outside this server: the hub family leaves the machine altogether, and
+ * the IDE family reaches into another process on it and can put a file on the developer's screen.
  */
 public class McpToolsetAssembler {
 
@@ -109,6 +112,7 @@ public class McpToolsetAssembler {
     private static final String PREFIX_HEAP = "heap";
     private static final String PREFIX_RECORDINGS = "recordings";
     private static final String PREFIX_HUBS = "hubs";
+    private static final String PREFIX_IDE = "ide";
 
     /**
      * The one JFR tool that writes. Left out of the family rather than left in to refuse: an
@@ -128,6 +132,7 @@ public class McpToolsetAssembler {
             StackSampleFlamegraphPanelProvider stackSamplePanelProvider,
             RecordingCommitResolver recordingCommitResolver,
             HeapDumpInitService heapDumpInitService,
+            IdeBridge ideBridge,
             ExternalMcpProperties properties) {
 
         List<McpToolProvider> families = new ArrayList<>(List.of(
@@ -186,6 +191,20 @@ public class McpToolsetAssembler {
                         McpToolAnnotations.CREATES),
                 new ReflectiveToolset(
                         recordingsMcpTools, PREFIX_RECORDINGS, Set.of(), McpToolAnnotations.CREATES)));
+
+        if (properties.ideEnabled()) {
+            // Read-only as a family: three of its five tools observe. The two that do not — linking
+            // a window and opening a file — say so themselves with @McpToolHints, which is what that
+            // annotation is for.
+            families.add(new ProfileScopedToolset<>(IdeMcpTools.class, PREFIX_IDE,
+                    profileId -> new IdeMcpTools(
+                            ideBridge,
+                            profileManager(contextCache, profileId),
+                            recordingCommitResolver,
+                            profileId),
+                    Set.of(),
+                    McpToolAnnotations.READS_REMOTE));
+        }
 
         if (properties.hubsEnabled()) {
             families.add(new ReflectiveToolset(

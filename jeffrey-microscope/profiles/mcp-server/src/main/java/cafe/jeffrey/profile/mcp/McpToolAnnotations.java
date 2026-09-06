@@ -27,7 +27,8 @@ package cafe.jeffrey.profile.mcp;
  * <p>
  * {@code destructive} is false throughout: nothing Jeffrey exposes deletes a profile or a recording.
  * {@code openWorld} marks the tools that reach past this installation — the hub family talks to
- * machines this Jeffrey merely knows about, and what they answer is outside its control.
+ * machines this Jeffrey merely knows about, and the IDE family to an editor running beside it. What
+ * either answers is outside Jeffrey's control.
  *
  * @param readOnly   the tool observes and changes nothing
  * @param destructive the tool can destroy or overwrite something that existed before it ran
@@ -58,7 +59,8 @@ public record McpToolAnnotations(
     public static final McpToolAnnotations CREATES_REMOTE = new McpToolAnnotations(false, false, true, true);
 
     /**
-     * A tool that reads, but reads from another machine.
+     * A tool that reads, but reads from something outside this installation — another machine, or
+     * another process on this one.
      */
     public static final McpToolAnnotations READS_REMOTE = new McpToolAnnotations(true, false, true, true);
 }

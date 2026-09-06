@@ -34,6 +34,8 @@ public interface MicroscopeCoreRepositories {
 
     RecordingTagsRepository recordingTagsRepository();
 
+    IdeTargetsRepository ideTargetsRepository();
+
     List<ProfileInfo> findAllProfilesByProject(String projectId);
 
     /**

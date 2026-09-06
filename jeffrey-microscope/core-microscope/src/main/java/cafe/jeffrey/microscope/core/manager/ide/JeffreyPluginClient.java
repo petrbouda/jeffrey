@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.util.List;
 import java.util.Optional;
@@ -100,6 +101,33 @@ public final class JeffreyPluginClient {
         }
     }
 
+    /**
+     * Locates a source position without opening it — the plugin's {@code resolve} endpoint, added in
+     * protocol version 2. Answers in the same shape as {@link #navigate}, so the two differ only in
+     * whether the developer's editor moves.
+     *
+     * <p>A plugin too old to know the endpoint answers rather than staying silent, and that is worth
+     * telling apart from an IDE that has gone away: {@link Unsupported} is thrown for the first so the
+     * caller can say "update the plugin" instead of "the IDE is not running".
+     */
+    public PluginNavigateResult resolve(int port, NavigateBody body) {
+        try {
+            return restClient.post()
+                    .uri(BASE + "resolve", port)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(PluginNavigateResult.class);
+        } catch (RestClientResponseException e) {
+            // The plugin answered and refused: it is running, it simply predates this endpoint.
+            LOG.debug("IDE plugin does not serve resolve: port={} status={}", port, e.getStatusCode());
+            throw new Unsupported();
+        } catch (Exception e) {
+            LOG.warn("Failed to resolve a location via IDE plugin: port={} reason={}", port, e.getMessage());
+            return null;
+        }
+    }
+
     public PluginSourceResult source(int port, String projectId, String className) {
         try {
             return restClient.get()
@@ -138,7 +166,19 @@ public final class JeffreyPluginClient {
             String basePath,
             boolean trusted,
             boolean focused,
-            String vcsBranch) {
+            String vcsBranch,
+            String headCommit) {
+    }
+
+    /**
+     * The IDE is there but does not serve the endpoint that was called — an older plugin. Unchecked
+     * and empty because the only fact it carries is its own type.
+     */
+    public static final class Unsupported extends RuntimeException {
+
+        public Unsupported() {
+            super("The Jeffrey IntelliJ plugin is too old to serve this request");
+        }
     }
 
     public record PluginNavigateResult(

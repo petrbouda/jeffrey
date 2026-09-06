@@ -17,10 +17,10 @@
         </p>
 
         <p>
-            <b>The plugin is headless</b> — it adds no toolbars, tool windows, or actions of its own.
-            It runs quietly in the background and enriches Jeffrey Microscope, letting Microscope
-            discover your open IntelliJ projects and either navigate straight to the matching code or
-            download the sources back into the application directly.
+            <b>The plugin stays out of your way</b> — no toolbars, no tool windows, and a single
+            context-menu action. It runs quietly in the background and enriches Jeffrey Microscope,
+            letting Microscope discover your open IntelliJ projects and either navigate straight to
+            the matching code or download the sources back into the application directly.
         </p>
 
         <p><b>What it does</b></p>
@@ -29,6 +29,14 @@
                 file, line, and column, opens it, and brings the IDE window to the front.</li>
             <li><b>Inline source</b> — serves source text back to Microscope so it can show code next
                 to the profile, preferring attached sources over decompiled <code>.class</code> files.</li>
+            <li><b>Frame lookup without the jump</b> — answers where a class and method live so an AI
+                coding agent working through Microscope can ground its findings in real files and
+                lines, without your editor moving while you work.</li>
+            <li><b>Send a recording for analysis</b> — right-click a JFR recording, a heap dump, or a
+                pprof/OpenTelemetry profile — compressed forms included — and open it straight in
+                Microscope.</li>
+            <li><b>Checkout awareness</b> — reports the branch and commit each window is on, so
+                Microscope can warn when a profile describes different code than you have open.</li>
             <li><b>Zero configuration</b> — Microscope discovers the IDE automatically over IntelliJ's
                 built-in server; there is nothing to pair or paste.</li>
         </ul>
@@ -37,7 +45,7 @@
         <ul>
             <li>Listens on <b>localhost only</b> — never reachable from the network.</li>
             <li>Honors IntelliJ's <b>trusted projects</b>: untrusted projects are never navigated.</li>
-            <li>Toggle it off anytime under <em>Settings → Tools → Jeffrey Microscope Plugin</em>; a
+            <li>Toggle it off anytime under <em>Settings → Tools → Jeffrey Plugin</em>; a
                 disabled IDE is completely invisible to Microscope.</li>
         </ul>
 
@@ -49,6 +57,17 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.java</depends>
+
+    <actions>
+        <action id="cafe.jeffrey.ide.plugin.idea.AnalyzeInMicroscope"
+                class="cafe.jeffrey.ide.plugin.idea.AnalyzeInMicroscopeAction"
+                text="Analyze in Microscope"
+                description="Open this JFR recording or heap dump in Jeffrey Microscope"
+                icon="/icons/jeffrey-icon.svg">
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+            <add-to-group group-id="EditorTabPopupMenu" anchor="last"/>
+        </action>
+    </actions>
 
     <extensions defaultExtensionNs="com.intellij">
         <httpRequestHandler implementation="cafe.jeffrey.ide.plugin.idea.JeffreyMicroscopeService"/>

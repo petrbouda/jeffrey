@@ -20,6 +20,8 @@ package cafe.jeffrey.shared.common.filesystem;
 
 import cafe.jeffrey.shared.common.RecordingPath;
 
+import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,7 +47,7 @@ public abstract class RecordingUtils {
     }
 
     private static Predicate<Path> hasJfrSuffix() {
-        return f -> f.getFileName().toString().endsWith(".jfr");
+        return SupportedRecordingFile.JFR::matches;
     }
 
     private static RecordingPath toRecording(Path directory, Path file) {

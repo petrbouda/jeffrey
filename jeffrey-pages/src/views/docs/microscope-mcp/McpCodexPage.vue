@@ -168,7 +168,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <DocsCodeBlock :code="timeoutConfig" language="toml" />
 
       <h2 id="the-tool-list">The Size of the Tool List</h2>
-      <p>This is the one place Codex and Claude Code differ in cost rather than capability. Claude Code fetches a tool&rsquo;s schema when it needs it; Codex loads every schema into the model&rsquo;s context on every turn, and Jeffrey advertises a hundred-odd tools across seventeen families.</p>
+      <p>This is the one place Codex and Claude Code differ in cost rather than capability. Claude Code fetches a tool&rsquo;s schema when it needs it; Codex loads every schema into the model&rsquo;s context on every turn, and Jeffrey advertises a hundred-odd tools across eighteen families.</p>
 
       <p>That is usually fine and occasionally not. If it matters for your work, the Jeffrey side can advertise fewer:</p>
       <DocsCodeBlock :code="familiesProperty" language="properties" />

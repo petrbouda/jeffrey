@@ -27,8 +27,10 @@ import com.intellij.openapi.application.ApplicationNamesInfo;
 import com.intellij.openapi.components.Service;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
+import com.intellij.openapi.wm.WindowManager;
 import org.jetbrains.ide.BuiltInServerManager;
 
+import java.awt.Window;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -43,8 +45,6 @@ import java.util.UUID;
 @Service(Service.Level.APP)
 public final class ProjectRegistry {
 
-    private static final int PROTOCOL_VERSION = 1;
-
     private final String instanceId = UUID.randomUUID().toString();
     private final String startedAt = Instant.now().toString();
     private final long pid = ProcessHandle.current().pid();
@@ -57,7 +57,9 @@ public final class ProjectRegistry {
         ApplicationInfo appInfo = ApplicationInfo.getInstance();
         ApplicationNamesInfo names = ApplicationNamesInfo.getInstance();
         return new InstanceResponse(
-                PROTOCOL_VERSION,
+                // One constant, on the class that serves the wire, so the version a response reports
+                // cannot drift from the endpoints that actually exist.
+                JeffreyMicroscopeService.PROTOCOL_VERSION,
                 instanceId,
                 names.getFullProductName(),
                 appInfo.getBuild().getProductCode(),
@@ -89,14 +91,35 @@ public final class ProjectRegistry {
         return null;
     }
 
+    /**
+     * One window as Microscope sees it in the picker.
+     *
+     * <p>{@code trusted} is hard-coded true rather than re-asked: the only projects that reach this
+     * method are the ones {@link #openProjects()} already filtered, so a false here could not occur
+     * and a window that is not trusted is absent rather than listed as untrusted.
+     *
+     * <p>The checkout is read per call rather than cached. It changes without the IDE being involved
+     * — a branch switch on the command line moves it — and a stale branch shown next to a profile is
+     * exactly the failure this field exists to prevent. It costs two small file reads.
+     */
     private static ProjectInfo toProjectInfo(Project project) {
-        // TODO: focused via WindowManager, vcsBranch via Git4Idea (best-effort, later).
+        GitHead.Checkout checkout = GitHead.read(project.getBasePath());
         return new ProjectInfo(
                 project.getLocationHash(),
                 project.getName(),
                 project.getBasePath(),
                 true,
-                false,
-                null);
+                isFocused(project),
+                checkout.branch(),
+                checkout.commit());
+    }
+
+    /**
+     * Whether this project's window is the one the developer is looking at. Microscope pre-selects it
+     * in the picker, which is the right guess when several windows contain the class.
+     */
+    private static boolean isFocused(Project project) {
+        Window window = WindowManager.getInstance().suggestParentWindow(project);
+        return window != null && window.isActive();
     }
 }

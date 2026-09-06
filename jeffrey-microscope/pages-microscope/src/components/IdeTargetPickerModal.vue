@@ -55,6 +55,7 @@
           </div>
           <div class="ide-row-meta">
             <span v-if="project.vcsBranch" class="ide-branch">{{ project.vcsBranch }}</span>
+            <span v-if="project.headCommit" class="ide-commit">{{ shortCommit(project.headCommit) }}</span>
             <span v-if="project.basePath" class="ide-path">{{ project.basePath }}</span>
           </div>
         </div>
@@ -86,6 +87,13 @@ import ideTargetPickerStore from '@/stores/ideTargetPickerStore';
 
 const store = ideTargetPickerStore;
 const selectedKey = ref<string>('');
+
+/** Enough of a commit to recognise it next to a branch name, without crowding the row. */
+const SHORT_COMMIT_LENGTH = 8;
+
+function shortCommit(commit: string): string {
+  return commit.slice(0, SHORT_COMMIT_LENGTH);
+}
 
 const KEY_SEPARATOR = '::';
 
@@ -222,6 +230,7 @@ function onShowChange(value: boolean): void {
 }
 
 .ide-branch,
+.ide-commit,
 .ide-path {
   font-family: var(--font-mono, monospace);
   font-size: var(--font-size-xs);

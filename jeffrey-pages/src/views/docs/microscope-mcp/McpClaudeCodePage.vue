@@ -100,7 +100,7 @@ const removal = `/plugin uninstall microscope@jeffrey`;
       </DocsCallout>
 
       <h2 id="what-the-plugin-adds">What the Plugin Adds</h2>
-      <p>Registering the server by hand gives you all ninety-nine tools. The plugin adds three things on top.</p>
+      <p>Registering the server by hand gives you all hundred and four tools. The plugin adds three things on top.</p>
 
       <p><strong>The endpoint, already configured</strong> &mdash; including the per-machine setting above, so the same install works on a laptop and against a tunnelled staging Jeffrey.</p>
 

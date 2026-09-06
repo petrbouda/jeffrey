@@ -24,6 +24,7 @@ import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.chat.ChatExchange;
 import cafe.jeffrey.profile.ai.chat.ChatMessage;
 import cafe.jeffrey.profile.ai.chat.McpToolset;
+import cafe.jeffrey.profile.ai.chat.SourceAccess;
 import cafe.jeffrey.profile.ai.chat.ToolCallResult;
 import cafe.jeffrey.profile.ai.chat.ToolExchange;
 import cafe.jeffrey.shared.common.Json;
@@ -38,7 +39,8 @@ import java.util.List;
  * reuses the host's Claude subscription, so no API key is required. Prompt-only calls run the CLI
  * directly; tool-enabled calls point the CLI at an in-JVM MCP server (described by the request's
  * {@link McpToolset}) restricted to that server's tools, so the model cannot touch the host
- * filesystem or shell.
+ * filesystem or shell — unless the exchange carries a {@link SourceAccess}, which grants read-only
+ * access to one checkout the reader linked themselves.
  */
 public final class ClaudeCodeChatBackend implements AiChatBackend {
 
@@ -89,12 +91,14 @@ public final class ClaudeCodeChatBackend implements AiChatBackend {
             LOG.warn("Claude Code analysis requested without an MCP toolset; running without tool access");
             request = ClaudeCodeRequest.promptOnly(prompt, exchange.systemPrompt(), modelName);
         } else {
+            SourceAccess sourceAccess = exchange.toolBinding().sourceAccess();
             request = new ClaudeCodeRequest(
                     prompt,
                     exchange.systemPrompt(),
                     modelName,
                     buildMcpConfigJson(toolset),
-                    toolset.allowedTools());
+                    toolset.allowedTools(),
+                    sourceAccess == null ? null : sourceAccess.root());
         }
 
         return Tracer.call(exchange.spanName(), SpanKind.CLIENT, () -> {

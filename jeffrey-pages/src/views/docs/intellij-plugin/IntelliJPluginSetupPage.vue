@@ -18,11 +18,14 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue';
+import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
 import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
 import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
 import { useDocHeadings } from '@/composables/useDocHeadings';
 
 const { setHeadings } = useDocHeadings();
+
+const verifyCommand = 'curl http://127.0.0.1:63342/api/jeffrey/instance';
 
 const headings = [
   { id: 'marketplace', text: 'From the JetBrains Marketplace', level: 2 },
@@ -76,11 +79,20 @@ onMounted(() => {
 
       <h2 id="verify">Verify</h2>
       <p>
-        Open <strong>Settings → Tools → Jeffrey Microscope Plugin</strong> — this view shows the
-        bound built-in-server port that Microscope's discovery scan will land on, plus the active
-        plugin version. If that port falls outside the default 63342&ndash;63362 range, adjust
-        Microscope's scan range as described in
+        Open <strong>Settings → Tools → Jeffrey Plugin</strong>. It shows the bound built-in-server
+        port that Microscope's discovery scan will land on. If that port falls outside the default
+        63342&ndash;63362 range, adjust Microscope's scan range as described in
         <router-link to="/docs/intellij-plugin/configuration">Configuration</router-link>.
+      </p>
+      <p>
+        To check the plugin is actually answering, ask it directly &mdash; substituting your port if
+        it differs:
+      </p>
+      <DocsCodeBlock :code="verifyCommand" language="bash" />
+      <p>
+        It reports the IDE, the protocol version it speaks, and every open trusted project. A
+        <code>404</code> means the integration is switched off in that settings panel &mdash; by
+        design, so a disabled IDE is invisible to Microscope's scan rather than visible and refusing.
       </p>
     </div>
 

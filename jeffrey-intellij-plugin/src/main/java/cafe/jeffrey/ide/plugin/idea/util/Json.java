@@ -90,6 +90,7 @@ public final class Json {
         w.name("trusted").value(p.trusted());
         w.name("focused").value(p.focused());
         w.name("vcsBranch").value(p.vcsBranch());
+        w.name("headCommit").value(p.headCommit());
         w.endObject();
     }
 

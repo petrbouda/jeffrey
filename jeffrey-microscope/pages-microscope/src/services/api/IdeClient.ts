@@ -42,6 +42,7 @@ export interface IdeProjectView {
   name: string;
   basePath: string | null;
   vcsBranch: string | null;
+  headCommit: string | null;
   focused: boolean;
   hasClass: boolean;
 }
@@ -69,6 +70,7 @@ export interface IdeTargetStatusResponse {
   linked: boolean;
   ideName: string | null;
   projectName: string | null;
+  basePath: string | null;
   port: number;
   pid: number;
 }
@@ -79,6 +81,7 @@ export interface IdeTargetSelection {
   projectId: string;
   ideName: string;
   projectName: string;
+  basePath: string | null;
   pid: number;
 }
 

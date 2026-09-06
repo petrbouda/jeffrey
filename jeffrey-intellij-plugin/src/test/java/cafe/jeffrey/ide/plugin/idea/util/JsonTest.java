@@ -70,7 +70,8 @@ public class JsonTest {
     public void instanceSerializesNestedProjects() {
         InstanceResponse response = new InstanceResponse(
                 1, "inst-1", "IntelliJ IDEA", "IU", "2026.1.2", 4821, 63342, "2026-05-24T10:00:00Z",
-                List.of(new ProjectInfo("loc-hash", "order-service", "/code/order-service", true, true, "main")));
+                List.of(new ProjectInfo(
+                        "loc-hash", "order-service", "/code/order-service", true, true, "main", "abc123")));
         JsonObject o = parse(Json.instance(response));
         assertEquals("inst-1", o.get("instanceId").getAsString());
         assertEquals(63342, o.get("port").getAsInt());
@@ -79,6 +80,7 @@ public class JsonTest {
         JsonObject project = projects.get(0).getAsJsonObject();
         assertEquals("loc-hash", project.get("id").getAsString());
         assertEquals("main", project.get("vcsBranch").getAsString());
+        assertEquals("abc123", project.get("headCommit").getAsString());
         assertTrue(project.get("focused").getAsBoolean());
     }
 

@@ -37,12 +37,19 @@ import java.util.Set;
  *                    pull recordings from a connected Jeffrey Hub. Its own switch because it is the
  *                    one family that reaches past this machine: everything else reads what is already
  *                    here, while this one talks to remote infrastructure and can move gigabytes off it
+ * @param ideEnabled  whether the {@code ide_} family is advertised, which lets a client ask the
+ *                    developer's running IntelliJ where a frame lives, read a class through it, and
+ *                    move its editor. Its own switch for the same reason as the hub family, one step
+ *                    closer to home: everything else reads a recording Jeffrey already holds, while
+ *                    this reaches into another process on this machine and can put a file on
+ *                    somebody's screen
  * @param families    the tool families to advertise, empty meaning all of them. A client that pays
  *                    for every schema on every turn can be given only the families it uses
  */
 public record ExternalMcpProperties(
         boolean enabled,
         boolean hubsEnabled,
+        boolean ideEnabled,
         Set<String> families) {
 
     public ExternalMcpProperties {

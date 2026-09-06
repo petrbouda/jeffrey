@@ -58,7 +58,7 @@ class ExternalMcpControllerTest {
     private MockMvcTester mvcWith(boolean enabled) {
         return mockMvcTesterFor(new ExternalMcpController(
                 assembler,
-                new ExternalMcpProperties(enabled, true, Set.of()),
+                new ExternalMcpProperties(enabled, true, true, Set.of()),
                 new McpRequestGuard()));
     }
 

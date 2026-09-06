@@ -18,6 +18,7 @@
 
 package cafe.jeffrey.microscope.core.configuration;
 
+import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.ExternalMcpProperties;
@@ -60,6 +61,10 @@ public class McpConfiguration {
      * @param hubsEnabled whether it advertises the {@code hubs_} family, from
      *                    {@code jeffrey.microscope.mcp.hubs.enabled}. Its own switch because reaching a
      *                    remote hub is the one thing the server does that leaves this machine
+     * @param ideEnabled  whether it advertises the {@code ide_} family, from
+     *                    {@code jeffrey.microscope.mcp.ide.enabled}. Its own switch because it is the
+     *                    one family that reaches into another process on this machine and can move the
+     *                    developer's editor
      * @param families    the families to advertise, from {@code jeffrey.microscope.mcp.families};
      *                    empty means all of them
      */
@@ -67,8 +72,9 @@ public class McpConfiguration {
     public ExternalMcpProperties externalMcpProperties(
             @Value("${jeffrey.microscope.mcp.enabled:true}") boolean enabled,
             @Value("${jeffrey.microscope.mcp.hubs.enabled:true}") boolean hubsEnabled,
+            @Value("${jeffrey.microscope.mcp.ide.enabled:true}") boolean ideEnabled,
             @Value("${jeffrey.microscope.mcp.families:}") Set<String> families) {
-        return new ExternalMcpProperties(enabled, hubsEnabled, families);
+        return new ExternalMcpProperties(enabled, hubsEnabled, ideEnabled, families);
     }
 
     /**
@@ -143,9 +149,11 @@ public class McpConfiguration {
             StackSampleFlamegraphPanelProvider stackSamplePanelProvider,
             RecordingCommitResolver recordingCommitResolver,
             HeapDumpInitService heapDumpInitService,
+            IdeBridge ideBridge,
             ExternalMcpProperties properties) {
         return new McpToolsetAssembler(
                 profilesMcpTools, recordingsMcpTools, hubsMcpTools, contextCache, jfrPanelProvider,
-                stackSamplePanelProvider, recordingCommitResolver, heapDumpInitService, properties);
+                stackSamplePanelProvider, recordingCommitResolver, heapDumpInitService, ideBridge,
+                properties);
     }
 }

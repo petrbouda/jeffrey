@@ -51,6 +51,13 @@ public enum StatementLabel {
     DELETE_RECORDING_TAGS,
 
     /**
+     * {@link GroupLabel#IDE_TARGETS}
+     */
+    UPSERT_IDE_TARGET,
+    FIND_IDE_TARGET,
+    DELETE_IDE_TARGET,
+
+    /**
      * {@link GroupLabel#PROFILE_CACHE}
      */
     INSERT_CACHE_ENTRY,

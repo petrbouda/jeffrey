@@ -41,12 +41,17 @@ public record IdeTargetsResult(String selectedProjectId, List<IdeInstanceView> i
     ) {
     }
 
-    /** One open project window. {@code hasClass} marks windows that contain the requested frame. */
+    /**
+     * One open project window. {@code hasClass} marks windows that contain the requested frame, and
+     * {@code vcsBranch} / {@code headCommit} say which checkout it is sitting on — the pair a caller
+     * compares against the commit a recording was tagged with before trusting a file and a line.
+     */
     public record IdeProjectView(
             String id,
             String name,
             String basePath,
             String vcsBranch,
+            String headCommit,
             boolean focused,
             boolean hasClass
     ) {

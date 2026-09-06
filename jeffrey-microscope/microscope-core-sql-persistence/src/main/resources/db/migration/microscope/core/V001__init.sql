@@ -148,3 +148,19 @@ CREATE TABLE IF NOT EXISTS settings
     PRIMARY KEY (category, name)
 );
 
+--
+-- IDE TARGETS TABLE
+-- The IntelliJ window a profile is linked to, so a jump to source survives a restart.
+-- Only the durable half of the link is stored: the port and pid a window had are meaningless
+-- once either process has restarted, and discovery re-resolves them from the project id.
+--
+
+CREATE TABLE IF NOT EXISTS ide_targets
+(
+    profile_id   VARCHAR NOT NULL,
+    project_id   VARCHAR NOT NULL,
+    project_name VARCHAR,
+    ide_name     VARCHAR,
+    base_path    VARCHAR,
+    PRIMARY KEY (profile_id)
+);

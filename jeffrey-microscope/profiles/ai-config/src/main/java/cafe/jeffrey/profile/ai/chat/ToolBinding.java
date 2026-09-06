@@ -29,9 +29,13 @@ package cafe.jeffrey.profile.ai.chat;
  *
  * @param springAiTools the {@code @Tool}-annotated object passed to the Spring AI tool-calling path
  * @param mcpToolset    the MCP exposure for the Claude Code path (may be null when unavailable)
+ * @param sourceAccess  the checkout the model may read while answering, or null for none. Only the
+ *                      Claude Code path can use it — it runs a real agent with file tools, where the
+ *                      Spring AI path has only the {@code @Tool} objects it was handed
  */
 public record ToolBinding(
         Object springAiTools,
-        McpToolset mcpToolset
+        McpToolset mcpToolset,
+        SourceAccess sourceAccess
 ) {
 }

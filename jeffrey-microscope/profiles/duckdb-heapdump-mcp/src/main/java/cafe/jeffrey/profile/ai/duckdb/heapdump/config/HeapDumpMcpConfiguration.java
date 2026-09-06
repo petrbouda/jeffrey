@@ -18,9 +18,11 @@
 
 package cafe.jeffrey.profile.ai.duckdb.heapdump.config;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import cafe.jeffrey.profile.ai.chat.AiChatBackend;
 import cafe.jeffrey.profile.ai.chat.McpToolsetFactory;
+import cafe.jeffrey.profile.ai.chat.ProfileSourceAccess;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.service.HeapDumpAnalysisAssistantService;
 import cafe.jeffrey.profile.ai.duckdb.heapdump.service.HeapDumpAnalysisAssistantServiceImpl;
 
@@ -32,11 +34,22 @@ import cafe.jeffrey.profile.ai.duckdb.heapdump.service.HeapDumpAnalysisAssistant
  */
 public class HeapDumpMcpConfiguration {
 
+    /**
+     * @param profileSourceAccess whether a profile has a checkout the analysis may read. Optional
+     *                            rather than required: what it answers depends on an IDE link this
+     *                            module knows nothing about, and an application that wires no such
+     *                            thing gets {@link ProfileSourceAccess#none()} — the behaviour before
+     *                            source access existed — instead of failing to start
+     */
     @Bean
     public HeapDumpAnalysisAssistantService heapDumpAnalysisAssistantService(
             AiChatBackend chatBackend,
-            McpToolsetFactory mcpToolsetFactory) {
+            McpToolsetFactory mcpToolsetFactory,
+            ObjectProvider<ProfileSourceAccess> profileSourceAccess) {
 
-        return new HeapDumpAnalysisAssistantServiceImpl(chatBackend, mcpToolsetFactory);
+        return new HeapDumpAnalysisAssistantServiceImpl(
+                chatBackend,
+                mcpToolsetFactory,
+                profileSourceAccess.getIfAvailable(ProfileSourceAccess::none));
     }
 }

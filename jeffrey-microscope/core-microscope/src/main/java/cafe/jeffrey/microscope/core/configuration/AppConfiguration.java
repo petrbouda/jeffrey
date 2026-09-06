@@ -43,11 +43,13 @@ import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.microscope.core.manager.GitHubReleaseChecker;
 import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.ide.IdeMode;
+import cafe.jeffrey.microscope.core.manager.ide.IdeProfileSourceAccess;
 import cafe.jeffrey.microscope.core.manager.ide.IdeTargetCache;
 import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginBridge;
 import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginClient;
 import cafe.jeffrey.microscope.core.manager.ide.JfrProfilerPluginBridge;
 import cafe.jeffrey.microscope.core.manager.ide.PortRange;
+import cafe.jeffrey.profile.ai.chat.ProfileSourceAccess;
 import cafe.jeffrey.shared.common.FrameResolutionMode;
 import cafe.jeffrey.shared.common.StringUtils;
 import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
@@ -85,8 +87,15 @@ public class AppConfiguration {
         return new GitHubReleaseChecker(objectMapper, clock, enabled);
     }
 
+    /**
+     * @param localCorePersistenceProvider backs the per-profile window link, so a checkout linked once
+     *                                     is still linked after a restart. Only the first-party bridge
+     *                                     has windows to remember; the single-URL one has nothing to
+     *                                     store
+     */
     @Bean
     public IdeBridge ideBridge(
+            MicroscopeCorePersistenceProvider localCorePersistenceProvider,
             @Value("${jeffrey.microscope.ide.mode:jeffrey-plugin}") String mode,
             @Value("${jeffrey.microscope.ide.base-url:}") String baseUrl,
             @Value("${jeffrey.microscope.ide.scan.port-start:63342}") int portStart,
@@ -97,9 +106,28 @@ public class AppConfiguration {
             case JEFFREY_PLUGIN -> new JeffreyPluginBridge(
                     new PortRange(portStart, portEnd),
                     new JeffreyPluginClient(ideRestClientBuilder()),
-                    new IdeTargetCache());
+                    new IdeTargetCache(
+                            localCorePersistenceProvider.localCoreRepositories().ideTargetsRepository()));
             case JFR_PROFILER_PLUGIN -> new JfrProfilerPluginBridge(baseUrl, ideRestClientBuilder());
         };
+    }
+
+    /**
+     * Whether an AI analysis may read the checkout of the IDE window a profile is linked to.
+     * <p>
+     * Off by default, and an application property rather than a setting in the UI: handing a reader's
+     * source tree to a model is a decision about the installation, made alongside which provider it
+     * talks to, not a preference to be discovered by clicking. With it off, the analysis sees exactly
+     * what it saw before — the recording, and nothing on disk.
+     */
+    @Bean
+    public ProfileSourceAccess profileSourceAccess(
+            IdeBridge ideBridge,
+            @Value("${jeffrey.microscope.ai.source-access.enabled:false}") boolean enabled) {
+        if (enabled) {
+            LOG.info("AI analysis may read the checkout of a profile's linked IDE window");
+        }
+        return new IdeProfileSourceAccess(ideBridge, enabled);
     }
 
     /**

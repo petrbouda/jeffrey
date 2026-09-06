@@ -219,7 +219,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
 
         <aside class="skill-trap">
           <span class="skill-trap-label">Trap</span>
-          <p>An export contains call paths and numbers, not source locations. Every file and line number must be read from the repository; inferring one from a profile is how a confident answer ends up pointing at code that does not exist.</p>
+          <p>An export contains call paths and numbers, and a source line only where every sample at a frame agreed on one &mdash; never a file. Every file and line must be read before it is named, from the repository or through <router-link to="/docs/microscope-mcp/tools#ide"><code>ide_resolve</code></router-link>; inferring one from a frame name is how a confident answer ends up pointing at code that does not exist.</p>
         </aside>
       </div>
 
@@ -453,9 +453,18 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
           </ul>
         </section>
 
+        <section class="skill-block">
+          <h4>How it reaches the source</h4>
+          <ul>
+            <li><strong>Read, Grep and Glob in the checkout the agent is already sitting in</strong> &mdash; the usual case, and the reason the skill runs in your repository rather than against a folder somebody uploaded.</li>
+            <li><strong>Or the reader&rsquo;s own IntelliJ, through the <router-link to="/docs/microscope-mcp/tools#ide"><code>ide_</code></router-link> family.</strong> <code>ide_resolve</code> answers where a class and method actually live, which is worth a call for everything a grep gets wrong: a nested class, a Kotlin facade stored under another file name, an inherited or overloaded method. <code>ide_source</code> reads a dependency that is not in the repository at all. Neither moves the editor.</li>
+            <li><strong>A line in the export is a starting point, not a citation.</strong> A frame carries one only when every sample at it agreed, so its absence means the tree could not name a single line &mdash; not that there is no location.</li>
+          </ul>
+        </section>
+
         <aside class="skill-trap">
           <span class="skill-trap-label">Trap</span>
-          <p>Never name a file, method or line that was not read. Every finding is tied to a frame and its share from the export, a few high-impact findings are preferred over many speculative ones, and a hotspot that cannot be located is reported as such rather than guessed at.</p>
+          <p>Never name a file, method or line that was not read &mdash; whether it came from a grep, from <code>ide_resolve</code> or from a line printed in the export. Every finding is tied to a frame and its share from the export, a few high-impact findings are preferred over many speculative ones, and a hotspot that cannot be located is reported as such rather than guessed at.</p>
         </aside>
       </div>
 
