@@ -29,8 +29,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Locale;
-import java.util.Set;
+import java.util.List;
 
 /**
  * Sends the selected recording or heap dump to Jeffrey Microscope for analysis.
@@ -49,7 +48,29 @@ import java.util.Set;
  */
 public final class AnalyzeInMicroscopeAction extends AnAction {
 
-    private static final Set<String> ANALYSABLE_EXTENSIONS = Set.of("jfr", "hprof");
+    /**
+     * The file names Microscope can turn into a profile on its own.
+     *
+     * <p>Matched as whole suffixes rather than as an extension, because several of them are two
+     * extensions deep: {@code VirtualFile.getExtension()} answers {@code lz4} for
+     * {@code run.jfr.lz4} and {@code gz} for {@code heap.hprof.gz}, so an extension test hides the
+     * action on exactly the files somebody compressed to keep.
+     *
+     * <p>This list mirrors {@code SupportedRecordingFile} on the Microscope side, minus the companion
+     * artifacts — JVM and application logs, performance counters, async-profiler temp files. Those
+     * import, but they describe a run rather than being one, and analysing one alone produces nothing.
+     * The duplication is unavoidable: this plugin is a separate build and cannot see that enum. Match
+     * is case-sensitive for the same reason — Microscope's own check is, so a name this accepts is a
+     * name its import accepts.
+     */
+    private static final List<String> ANALYSABLE_SUFFIXES = List.of(
+            ".jfr",
+            ".jfr.lz4",
+            ".hprof",
+            ".hprof.gz",
+            ".pprof",
+            ".pb.gz",
+            ".otlp");
 
     private static final String QUICK_OPEN_PATH = "/quick-open?path=";
 
@@ -82,8 +103,20 @@ public final class AnalyzeInMicroscopeAction extends AnAction {
         if (file == null || file.isDirectory()) {
             return false;
         }
-        String extension = file.getExtension();
-        return extension != null
-                && ANALYSABLE_EXTENSIONS.contains(extension.toLowerCase(Locale.ROOT));
+        return analysableName(file.getName());
+    }
+
+    /**
+     * Whether Microscope can build a profile from a file with this name. Separate from the
+     * {@link VirtualFile} check so the rule — the part that is easy to get wrong and was — can be
+     * tested without an IDE fixture.
+     */
+    static boolean analysableName(String name) {
+        for (String suffix : ANALYSABLE_SUFFIXES) {
+            if (name.endsWith(suffix)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

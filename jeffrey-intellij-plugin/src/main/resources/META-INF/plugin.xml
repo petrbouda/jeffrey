@@ -32,8 +32,9 @@
             <li><b>Frame lookup without the jump</b> — answers where a class and method live so an AI
                 coding agent working through Microscope can ground its findings in real files and
                 lines, without your editor moving while you work.</li>
-            <li><b>Send a recording for analysis</b> — right-click a <code>.jfr</code> recording or a
-                <code>.hprof</code> heap dump and open it straight in Microscope.</li>
+            <li><b>Send a recording for analysis</b> — right-click a JFR recording, a heap dump, or a
+                pprof/OpenTelemetry profile — compressed forms included — and open it straight in
+                Microscope.</li>
             <li><b>Checkout awareness</b> — reports the branch and commit each window is on, so
                 Microscope can warn when a profile describes different code than you have open.</li>
             <li><b>Zero configuration</b> — Microscope discovers the IDE automatically over IntelliJ's
