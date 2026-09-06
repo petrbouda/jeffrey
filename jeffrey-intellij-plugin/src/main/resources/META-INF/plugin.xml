@@ -35,6 +35,15 @@
             <li><b>Send a recording for analysis</b> — right-click a JFR recording, a heap dump, or a
                 pprof/OpenTelemetry profile — compressed forms included — and open it straight in
                 Microscope.</li>
+            <li><b>Recordings you can spot</b> — every file that action accepts is drawn with the
+                Jeffrey flame icon in the project tree and editor tabs, including the formats
+                IntelliJ has no icon for at all.</li>
+            <li><b>A recording panel in the editor</b> — open a recording and its tab tells you
+                whether Microscope has analysed it, offers the button that does, and lays the views
+                out as tiles: flame graph, allocations, GC, threads, traces and the rest, each with
+                a line on what the page answers. A ready profile also shows its recording window,
+                sample count, event types, sample loss and the auto-analysis findings. Views the
+                recording has no data for stay visible but dimmed.</li>
             <li><b>Checkout awareness</b> — reports the branch and commit each window is on, so
                 Microscope can warn when a profile describes different code than you have open.</li>
             <li><b>Zero configuration</b> — Microscope discovers the IDE automatically over IntelliJ's
@@ -71,6 +80,8 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <httpRequestHandler implementation="cafe.jeffrey.ide.plugin.idea.JeffreyMicroscopeService"/>
+        <fileIconProvider implementation="cafe.jeffrey.ide.plugin.idea.AnalysableFileIconProvider"/>
+        <fileEditorProvider implementation="cafe.jeffrey.ide.plugin.idea.recording.RecordingFileEditorProvider"/>
         <applicationService serviceImplementation="cafe.jeffrey.ide.plugin.idea.ProjectRegistry"/>
         <applicationService serviceImplementation="cafe.jeffrey.ide.plugin.idea.settings.JeffreySettings"/>
         <applicationConfigurable parentId="tools"
