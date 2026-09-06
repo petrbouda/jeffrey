@@ -21,16 +21,21 @@ package cafe.jeffrey.microscope.core.manager.recordings;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse;
 import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse.Finding;
+import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse.HeapFigures;
+import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse.Kind;
 import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse.ProfileSummary;
+import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse.RecordingFigures;
 import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse.State;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.feature.FeatureType;
+import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
+import cafe.jeffrey.shared.common.model.repository.SupportedRecordingFile;
 import cafe.jeffrey.shared.common.model.RecordingFile;
 import cafe.jeffrey.shared.common.InstantUtils;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
@@ -114,7 +119,7 @@ public class IdeRecordingLookup {
                         profileId,
                         filename,
                         sizeInBytes,
-                        summarize(profileManager)))
+                        summarize(profileManager, filename)))
                 // A recording that claims a profile the resolver cannot open describes a profile that
                 // was deleted underneath it. Offering to analyse again beats reporting a broken link.
                 .orElseGet(() -> new IdeRecordingStateResponse(
@@ -134,27 +139,18 @@ public class IdeRecordingLookup {
         return sizeInBytes <= 0 || file.sizeInBytes() == sizeInBytes;
     }
 
-    private ProfileSummary summarize(ProfileManager profileManager) {
+    private ProfileSummary summarize(ProfileManager profileManager, String filename) {
         ProfileInfo info = profileManager.info();
-        CpuTimeSampleLoss loss = profileManager.samplerHealthManager().cpuTimeSampleLoss();
         List<AutoAnalysisResult> findings = profileManager.autoAnalysisManager().analysisResults();
-
-        long sampleCount = 0;
-        int eventTypeCount = 0;
-        for (var summary : profileManager.flamegraphManager().allEventSummaries()) {
-            sampleCount += summary.primary().samples();
-            eventTypeCount++;
-        }
+        boolean heapDump = isHeapDump(filename);
 
         return new ProfileSummary(
+                heapDump ? Kind.HEAP_DUMP : Kind.RECORDING,
                 info.name(),
                 InstantUtils.toEpochMilli(info.profilingStartedAt()),
                 InstantUtils.toEpochMilli(info.profilingFinishedAt()),
-                info.duration() == null ? 0L : info.duration().toMillis(),
-                sampleCount,
-                eventTypeCount,
-                loss == null ? 0L : loss.capturedSamples(),
-                loss == null ? 0L : loss.lostSamples(),
+                heapDump ? null : recordingFigures(profileManager, info),
+                heapDump ? heapFigures(profileManager) : null,
                 !findings.isEmpty(),
                 findings.stream()
                         .limit(FINDINGS_LIMIT)
@@ -164,6 +160,57 @@ public class IdeRecordingLookup {
                                 result.summary()))
                         .toList(),
                 disabledFeatures(profileManager));
+    }
+
+    /**
+     * What the developer double-clicked decides the kind, not what the profile happens to carry. A
+     * recording can have a heap dump attached to it, and opening the {@code .jfr} should still show
+     * the recording's figures rather than the dump's.
+     */
+    private static boolean isHeapDump(String filename) {
+        SupportedRecordingFile type = SupportedRecordingFile.of(filename);
+        return type == SupportedRecordingFile.HEAP_DUMP || type == SupportedRecordingFile.HEAP_DUMP_GZ;
+    }
+
+    private static RecordingFigures recordingFigures(ProfileManager profileManager, ProfileInfo info) {
+        CpuTimeSampleLoss loss = profileManager.samplerHealthManager().cpuTimeSampleLoss();
+
+        long sampleCount = 0;
+        int eventTypeCount = 0;
+        for (var summary : profileManager.flamegraphManager().allEventSummaries()) {
+            sampleCount += summary.primary().samples();
+            eventTypeCount++;
+        }
+
+        return new RecordingFigures(
+                info.duration() == null ? 0L : info.duration().toMillis(),
+                sampleCount,
+                eventTypeCount,
+                loss == null ? 0L : loss.capturedSamples(),
+                loss == null ? 0L : loss.lostSamples());
+    }
+
+    /**
+     * An un-indexed dump reports zeroes and says so rather than being asked for a summary it cannot
+     * produce: building the index is minutes of work on a large heap, and the panel is not the place
+     * to start it by accident.
+     */
+    private static HeapFigures heapFigures(ProfileManager profileManager) {
+        HeapDumpManager heapDumpManager = profileManager.heapDumpManager();
+        if (!heapDumpManager.heapDumpExists() || !heapDumpManager.isCacheReady()) {
+            return new HeapFigures(0L, 0L, 0, 0, false);
+        }
+
+        HeapSummary summary = heapDumpManager.getSummary();
+        if (summary == null) {
+            return new HeapFigures(0L, 0L, 0, 0, false);
+        }
+        return new HeapFigures(
+                summary.totalBytes(),
+                summary.totalInstances(),
+                summary.classCount(),
+                summary.gcRootCount(),
+                true);
     }
 
     /**

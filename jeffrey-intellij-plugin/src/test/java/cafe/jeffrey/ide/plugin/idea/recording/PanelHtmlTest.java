@@ -53,7 +53,7 @@ public class PanelHtmlTest {
     public void headerCarriesNoFiguresBeforeThereIsAProfile() {
         String html = PanelHtml.header(notImported(), FILE, URL);
 
-        assertTrue(html.contains("Flight recording"));
+        assertTrue(html.contains("JVM recording"));
         assertTrue(html.contains("Not analysed yet"));
         assertFalse(html.contains("class='num'"));
     }
@@ -76,7 +76,7 @@ public class PanelHtmlTest {
     public void tilesLinkEveryAvailableViewByItsPath() {
         String html = PanelHtml.details(ready(List.of()), FILE, URL);
 
-        for (ProfileView view : ProfileView.ALL) {
+        for (ProfileView view : ProfileView.RECORDING) {
             assertTrue("no tile for " + view.label(), html.contains(view.label()));
             assertTrue("no link for " + view.label(), html.contains("href='" + view.path() + "'"));
             assertTrue("no icon for " + view.label(), html.contains("<icon src='" + view.iconKey() + "'/>"));
@@ -132,6 +132,57 @@ public class PanelHtmlTest {
         assertFalse(html.contains("tile"));
     }
 
+    // --- heap dumps ---------------------------------------------------------------------------
+
+    @Test
+    public void headerShowsHeapFiguresForAHeapDump() {
+        String html = PanelHtml.header(heapDump(true), FILE, URL);
+
+        assertTrue(html.contains("32.9 MB"));
+        assertTrue(html.contains("retained"));
+        assertTrue(html.contains("737.6 K"));
+        assertTrue(html.contains("GC roots"));
+        // none of the recording vocabulary
+        assertFalse(html.contains("sample loss"));
+        assertFalse(html.contains("event types"));
+    }
+
+    /**
+     * The whole reason the cacheReady flag exists. Four zeroes read as a heap that is empty, rather
+     * than one nobody has indexed yet.
+     */
+    @Test
+    public void saysAnUnindexedDumpIsNotIndexedRatherThanShowingZeroes() {
+        String html = PanelHtml.header(heapDump(false), FILE, URL);
+
+        assertTrue(html.contains("has not been indexed"));
+        assertFalse(html.contains("0 B"));
+        assertFalse(html.contains("retained"));
+    }
+
+    @Test
+    public void offersTheHeapTilesForAHeapDump() {
+        String html = PanelHtml.details(heapDump(true), FILE, URL);
+
+        for (ProfileView view : ProfileView.HEAP) {
+            assertTrue("no tile for " + view.label(), html.contains(view.label()));
+            assertTrue("no link for " + view.label(), html.contains("href='" + view.path() + "'"));
+        }
+        assertFalse("a heap dump has no flame graph", html.contains("href='flamegraphs/primary'"));
+    }
+
+    /**
+     * A dump's verdict is Leak suspects, which leads its grid — so there is no auto-analysis section
+     * to sit empty above it.
+     */
+    @Test
+    public void showsNoAutoAnalysisSectionForAHeapDump() {
+        String html = PanelHtml.details(heapDump(true), FILE, URL);
+
+        assertFalse(html.contains("Auto-analysis"));
+        assertTrue(html.contains("Leak suspects"));
+    }
+
     /**
      * File names are not this plugin's to trust. An apostrophe closes an attribute and an angle
      * bracket opens a tag, and both appear in real file names.
@@ -154,14 +205,25 @@ public class PanelHtmlTest {
 
     private static RecordingState ready(List<String> disabledFeatures) {
         return withSummary(new RecordingState.ProfileSummary(
-                "jeffrey-20260904-180108", 5_539, 44_099, 106, 353, 222, false, List.of(), disabledFeatures));
+                RecordingState.Kind.RECORDING, "jeffrey-20260904-180108",
+                new RecordingState.RecordingFigures(5_539, 44_099, 106, 353, 222),
+                null, false, List.of(), disabledFeatures));
     }
 
     private static RecordingState.ProfileSummary summary(
             long captured, long lost, boolean computed, List<RecordingState.Finding> findings) {
 
         return new RecordingState.ProfileSummary(
-                "jeffrey-20260904-180108", 5_539, 44_099, 106, captured, lost, computed, findings, List.of());
+                RecordingState.Kind.RECORDING, "jeffrey-20260904-180108",
+                new RecordingState.RecordingFigures(5_539, 44_099, 106, captured, lost),
+                null, computed, findings, List.of());
+    }
+
+    private static RecordingState heapDump(boolean cacheReady) {
+        return withSummary(new RecordingState.ProfileSummary(
+                RecordingState.Kind.HEAP_DUMP, "microscope.hprof", null,
+                new RecordingState.HeapFigures(34_536_952L, 737_553L, 15_474, 4_700, cacheReady),
+                false, List.of(), List.of()));
     }
 
     private static RecordingState withSummary(RecordingState.ProfileSummary summary) {

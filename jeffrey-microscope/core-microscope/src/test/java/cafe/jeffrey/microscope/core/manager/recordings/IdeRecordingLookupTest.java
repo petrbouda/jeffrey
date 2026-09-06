@@ -20,11 +20,13 @@ package cafe.jeffrey.microscope.core.manager.recordings;
 
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse;
+import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse.Kind;
 import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse.State;
 import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.profile.common.analysis.AnalysisResult.Severity;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.feature.FeatureType;
+import cafe.jeffrey.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.profile.model.EventSummaryResult.SingleResult;
@@ -51,6 +53,8 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -212,12 +216,14 @@ class IdeRecordingLookupTest {
 
             assertEquals(State.READY.name(), response.state());
             var summary = response.summary();
+            assertEquals(Kind.RECORDING, summary.kind());
             assertEquals("jeffrey-20260904-180108", summary.profileName());
-            assertEquals(42_000L, summary.durationInMillis());
-            assertEquals(1_240_000L, summary.sampleCount());
-            assertEquals(2, summary.eventTypeCount());
-            assertEquals(980_000L, summary.capturedSamples());
-            assertEquals(0L, summary.lostSamples());
+            assertNull(summary.heap(), "a recording carries no heap figures");
+            assertEquals(42_000L, summary.recording().durationInMillis());
+            assertEquals(1_240_000L, summary.recording().sampleCount());
+            assertEquals(2, summary.recording().eventTypeCount());
+            assertEquals(980_000L, summary.recording().capturedSamples());
+            assertEquals(0L, summary.recording().lostSamples());
             assertTrue(summary.analysisComputed());
             assertEquals(1, summary.findings().size());
             assertEquals("WARNING", summary.findings().getFirst().severity());
@@ -240,6 +246,96 @@ class IdeRecordingLookupTest {
             assertEquals(false, summary.analysisComputed());
             assertTrue(summary.findings().isEmpty());
         }
+    }
+
+    @Nested
+    @DisplayName("a heap dump")
+    class HeapDumps {
+
+        private static final Path DUMP_PATH = Path.of("/home/dev/jeffrey/app.hprof");
+
+        @Test
+        void reportsHeapFiguresInsteadOfRecordingOnes() {
+            stubReadyProfile(readyHeapDump(true), "app.hprof");
+
+            var summary = lookup.byPath(DUMP_PATH, SIZE).summary();
+
+            assertEquals(Kind.HEAP_DUMP, summary.kind());
+            assertNull(summary.recording(), "a heap dump has no recording window");
+            assertEquals(512_000_000L, summary.heap().totalBytes());
+            assertEquals(3_400_000L, summary.heap().totalInstances());
+            assertEquals(9_100, summary.heap().classCount());
+            assertEquals(742, summary.heap().gcRootCount());
+            assertTrue(summary.heap().cacheReady());
+        }
+
+        /**
+         * A dump that has not been indexed can answer nothing, and indexing a large heap is minutes of
+         * work. The panel has to say so rather than show four zeroes as if they were facts.
+         */
+        @Test
+        void reportsAnUnindexedDumpAsNotReadyRatherThanAsZeroes() {
+            stubReadyProfile(readyHeapDump(false), "app.hprof");
+
+            var heap = lookup.byPath(DUMP_PATH, SIZE).summary().heap();
+
+            assertFalse(heap.cacheReady());
+            assertEquals(0L, heap.totalBytes());
+        }
+
+        @Test
+        void recognisesACompressedDump() {
+            stubReadyProfile(readyHeapDump(true), "app.hprof.gz");
+
+            assertEquals(
+                    Kind.HEAP_DUMP,
+                    lookup.byPath(Path.of("/home/dev/jeffrey/app.hprof.gz"), SIZE).summary().kind());
+        }
+
+        /**
+         * What was double-clicked decides the kind. A recording with a heap dump attached still shows
+         * the recording's figures when the .jfr is what was opened.
+         */
+        @Test
+        void readsAJfrAsARecordingEvenWhenItCarriesAHeapDump() {
+            ProfileManager profileManager = readyProfile();
+            when(profileManager.heapDumpManager().heapDumpExists()).thenReturn(true);
+            when(profileManager.heapDumpManager().isCacheReady()).thenReturn(true);
+            stubReadyProfile(profileManager, FILENAME);
+
+            var summary = lookup.byPath(RECORDING_PATH, SIZE).summary();
+
+            assertEquals(Kind.RECORDING, summary.kind());
+            assertNotNull(summary.recording());
+            assertNull(summary.heap());
+        }
+    }
+
+    /** Points the lookup at a matching recording whose profile is ready, under the given file name. */
+    private void stubReadyProfile(ProfileManager profileManager, String filename) {
+        when(recordingsManager.listRecordings()).thenReturn(List.of(recordingNamed(filename)));
+        when(profileInitRunRegistry.isRunning(PROFILE_ID)).thenReturn(false);
+        when(profileManagerResolver.find(PROFILE_ID)).thenReturn(Optional.of(profileManager));
+    }
+
+    private static ProfileManager readyHeapDump(boolean cacheReady) {
+        ProfileManager profileManager = readyProfile();
+        when(profileManager.heapDumpManager().heapDumpExists()).thenReturn(true);
+        when(profileManager.heapDumpManager().isCacheReady()).thenReturn(cacheReady);
+        when(profileManager.heapDumpManager().getSummary()).thenReturn(new HeapSummary(
+                512_000_000L, 3_400_000L, 9_100, 742, Instant.parse("2026-09-04T18:01:00Z")));
+        return profileManager;
+    }
+
+    private static Recording recordingNamed(String filename) {
+        return new Recording(
+                "rec-1", filename, null, null, RecordingEventSource.JDK,
+                Instant.parse("2026-09-04T18:02:00Z"),
+                Instant.parse("2026-09-04T18:01:00Z"),
+                Instant.parse("2026-09-04T18:01:42Z"),
+                true, PROFILE_ID, "profile",
+                List.of(new RecordingFile("file-1", "rec-1", filename, SupportedRecordingFile.JFR,
+                        Instant.parse("2026-09-04T18:02:00Z"), SIZE)));
     }
 
     private static ProfileManager readyProfile() {

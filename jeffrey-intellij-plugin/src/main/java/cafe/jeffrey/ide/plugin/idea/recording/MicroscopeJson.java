@@ -62,15 +62,37 @@ final class MicroscopeJson {
             return null;
         }
         return new RecordingState.ProfileSummary(
+                RecordingState.Kind.of(string(summary, "kind")),
                 string(summary, "profileName"),
-                longOr(summary, "durationInMillis", 0L),
-                longOr(summary, "sampleCount", 0L),
-                (int) longOr(summary, "eventTypeCount", 0L),
-                longOr(summary, "capturedSamples", 0L),
-                longOr(summary, "lostSamples", 0L),
+                parseRecordingFigures(object(summary, "recording")),
+                parseHeapFigures(object(summary, "heap")),
                 booleanOr(summary, "analysisComputed", false),
                 parseFindings(array(summary, "findings")),
                 parseStrings(array(summary, "disabledFeatures")));
+    }
+
+    private static RecordingState.RecordingFigures parseRecordingFigures(JsonObject figures) {
+        if (figures == null) {
+            return null;
+        }
+        return new RecordingState.RecordingFigures(
+                longOr(figures, "durationInMillis", 0L),
+                longOr(figures, "sampleCount", 0L),
+                (int) longOr(figures, "eventTypeCount", 0L),
+                longOr(figures, "capturedSamples", 0L),
+                longOr(figures, "lostSamples", 0L));
+    }
+
+    private static RecordingState.HeapFigures parseHeapFigures(JsonObject figures) {
+        if (figures == null) {
+            return null;
+        }
+        return new RecordingState.HeapFigures(
+                longOr(figures, "totalBytes", 0L),
+                longOr(figures, "totalInstances", 0L),
+                (int) longOr(figures, "classCount", 0L),
+                (int) longOr(figures, "gcRootCount", 0L),
+                booleanOr(figures, "cacheReady", false));
     }
 
     private static List<RecordingState.Finding> parseFindings(JsonArray findings) {

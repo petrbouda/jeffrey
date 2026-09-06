@@ -66,18 +66,30 @@ public record RecordingState(
         }
     }
 
+    /** What the profile holds, which decides the figures, the tiles and the agent's skill. */
+    public enum Kind {
+        RECORDING,
+        HEAP_DUMP;
+
+        static Kind of(String wireCode) {
+            return HEAP_DUMP.name().equals(wireCode) ? HEAP_DUMP : RECORDING;
+        }
+    }
+
     /**
      * The figures the panel is allowed to show — the whole list, deliberately. The plugin does not
-     * render profile data; these four numbers and the findings are the narrow exception, and anything
-     * a reader would need a chart for stays in Microscope.
+     * render profile data; four numbers and the findings are the narrow exception, and anything a
+     * reader would need a chart for stays in Microscope.
+     *
+     * <p>Exactly one of {@code recording} and {@code heap} is set. A dump has no recording window and
+     * a recording has no retained size; one flat row of nullable numbers would leave the panel
+     * guessing which of them mean anything.
      */
     public record ProfileSummary(
+            Kind kind,
             String profileName,
-            long durationInMillis,
-            long sampleCount,
-            int eventTypeCount,
-            long capturedSamples,
-            long lostSamples,
+            RecordingFigures recording,
+            HeapFigures heap,
             boolean analysisComputed,
             List<Finding> findings,
             List<String> disabledFeatures) {
@@ -87,6 +99,23 @@ public record RecordingState(
             disabledFeatures = disabledFeatures == null ? List.of() : List.copyOf(disabledFeatures);
         }
 
+        public boolean isHeapDump() {
+            return kind == Kind.HEAP_DUMP;
+        }
+
+        /** The views this profile's tiles are drawn from. */
+        public List<ProfileView> views() {
+            return isHeapDump() ? ProfileView.HEAP : ProfileView.RECORDING;
+        }
+    }
+
+    public record RecordingFigures(
+            long durationInMillis,
+            long sampleCount,
+            int eventTypeCount,
+            long capturedSamples,
+            long lostSamples) {
+
         /** Share of samples the kernel dropped, or -1 when the recording reports no sampler health. */
         public double lossRatio() {
             long total = capturedSamples + lostSamples;
@@ -95,6 +124,18 @@ public record RecordingState(
             }
             return (double) lostSamples / total;
         }
+    }
+
+    /**
+     * @param cacheReady whether the dump has been indexed. An un-indexed dump can answer nothing, so
+     *                   the panel says so rather than printing four zeroes as if they were facts
+     */
+    public record HeapFigures(
+            long totalBytes,
+            long totalInstances,
+            int classCount,
+            int gcRootCount,
+            boolean cacheReady) {
     }
 
     public record Finding(String rule, String severity, String summary) {

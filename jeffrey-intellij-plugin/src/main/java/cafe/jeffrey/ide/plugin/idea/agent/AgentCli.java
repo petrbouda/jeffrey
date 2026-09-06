@@ -43,17 +43,22 @@ public record AgentCli(String displayName, String executable) {
     /**
      * The prompt both agents receive. Deliberately just the profile — no baked-in question.
      *
-     * <p>The method lives in the {@code analyze-jfr} skill, whose description fires on the phrase
-     * below, and the panel does not know what the developer wants to know. A recording that lost a
-     * third of its samples is the case that proves it: an opener like "where is the time going?" would
-     * have the agent rank hot paths that are biased exactly where it matters, instead of noticing the
-     * loss first.
+     * <p>The method lives in the skill, and the panel does not know what the developer wants to know.
+     * A recording that lost a third of its samples is the case that proves it: an opener like "where
+     * is the time going?" would have the agent rank hot paths that are biased exactly where it
+     * matters, instead of noticing the loss first.
      *
-     * <p>The <b>profileId</b>, never the file path: neither agent can parse a JFR, and Microscope has
-     * already done it.
+     * <p>The <b>profileId</b>, never the file path: neither agent can parse a JFR or an hprof, and
+     * Microscope has already done it.
+     *
+     * <p>The wording carries the phrase the right skill triggers on — {@code analyze-jfr} fires on "a
+     * Jeffrey profile", {@code analyze-heap} on "a heap dump". Sending a dump to the recording skill
+     * would have the agent reach for flamegraph tools against a profile that has none.
      */
-    public static String prompt(String profileId) {
-        return "Analyse Jeffrey profile " + profileId;
+    public static String prompt(String profileId, boolean heapDump) {
+        return heapDump
+                ? "Analyse the heap dump in Jeffrey profile " + profileId
+                : "Analyse Jeffrey profile " + profileId;
     }
 
     /** Where the executable lives, or null when it is not on {@code PATH}. */
@@ -70,8 +75,8 @@ public record AgentCli(String displayName, String executable) {
      * quoting, but it is done properly anyway — a command assembled by string concatenation and run in
      * the developer's shell is not the place to assume well-formed input.
      */
-    public String command(String profileId) {
-        return executable + " " + quote(prompt(profileId));
+    public String command(String profileId, boolean heapDump) {
+        return executable + " " + quote(prompt(profileId, heapDump));
     }
 
     private static String quote(String argument) {

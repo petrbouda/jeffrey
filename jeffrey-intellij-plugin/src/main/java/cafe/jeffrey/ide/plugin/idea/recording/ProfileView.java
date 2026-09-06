@@ -25,30 +25,33 @@ import java.util.List;
  *
  * <p>Curated rather than a mirror of every route, for the same reason {@code ProfileMcpTools.VIEWS}
  * is: a name here is a promise that the page answers something. These are the ones worth a click
- * straight off a recording — the rest are one hop away in Microscope's own sidebar, which is where
+ * straight off a file — the rest are one hop away in Microscope's own sidebar, which is where
  * choosing among forty of them belongs.
  *
- * @param iconKey  the key this view's icon is registered under with the HTML kit, used as the
- *                 {@code src} of an {@code <icon>} tag
- * @param label    what the panel calls it
- * @param blurb    one line saying what the page answers — the reason the tiles exist rather than a
- *                 list of names, since "sub-second" means nothing to a reader new to Microscope
- * @param path     the route's own sub-path under {@code /profiles/{profileId}/}
- * @param feature  the {@code FeatureType} name that gates it, or null when the view is always
- *                 offered. Only two of these views are gated at all; see {@link #isAvailable}
+ * <p>Two lists, because a heap dump and a recording answer different questions. Nothing in
+ * {@link #RECORDING} means anything for a dump — there is no flame graph of a heap — and nothing in
+ * {@link #HEAP} means anything for a recording. Offering one list for both would fill half the grid
+ * with tiles that open empty pages.
+ *
+ * @param iconKey the key this view's icon is registered under with the HTML kit, used as the
+ *                {@code src} of an {@code <icon>} tag
+ * @param label   what the panel calls it
+ * @param blurb   one line saying what the page answers — the reason the tiles exist rather than a
+ *                list of names, since "dominator tree" means nothing to a reader new to Microscope
+ * @param path    the route's own sub-path under {@code /profiles/{profileId}/}
+ * @param feature the {@code FeatureType} name that gates it, or null when the view is always offered
  */
 public record ProfileView(String iconKey, String label, String blurb, String path, String feature) {
+
+    /** How many tiles sit in a row. Three fits the blurbs without the labels wrapping. */
+    public static final int COLUMNS = 3;
 
     /** Where the auto-analysis findings the panel lists come from, for the link beside them. */
     public static final ProfileView AUTO_ANALYSIS =
             new ProfileView("analysis", "Auto-analysis", "What Jeffrey flagged", "auto-analysis", null);
 
-    /**
-     * In the order the tiles are laid out — three rows of three, reading left to right. The gated two
-     * are last in their rows on purpose: a dimmed tile at the end of a row reads as an absence, one in
-     * the middle reads as a hole.
-     */
-    public static final List<ProfileView> ALL = List.of(
+    /** A JFR, pprof or OTLP recording. */
+    public static final List<ProfileView> RECORDING = List.of(
             new ProfileView("flame", "Flame graph", "Where the samples landed", "flamegraphs/primary", null),
             AUTO_ANALYSIS,
             new ProfileView("subsecond", "Sub-second", "Second-by-second heatmap", "subsecond/primary", "SUBSECOND"),
@@ -61,22 +64,33 @@ public record ProfileView(String iconKey, String label, String blurb, String pat
             // latency — are hops from here rather than entries of their own, the way the sidebar has it.
             new ProfileView("traces", "Traces", "Spans and operations", "traces/operations", "TRACES"));
 
-    /** How many tiles sit in a row. Three fits the blurbs without the labels wrapping. */
-    public static final int COLUMNS = 3;
+    /**
+     * A heap dump. Leak suspects leads because it is the verdict — the closest thing a dump has to
+     * auto-analysis, and the answer to the question that made someone take the dump.
+     */
+    public static final List<ProfileView> HEAP = List.of(
+            new ProfileView("analysis", "Leak suspects", "What is holding the memory", "heap-dump/leak-suspects", null),
+            new ProfileView("allocations", "Biggest objects", "The largest retained graphs", "heap-dump/biggest-objects", null),
+            new ProfileView("traces", "Dominator tree", "What keeps what alive", "heap-dump/dominator-tree", null),
+            new ProfileView("events", "Histogram", "Instances and bytes per class", "heap-dump/histogram", null),
+            new ProfileView("gc", "GC roots", "Why objects survive collection", "heap-dump/gc-roots", null),
+            new ProfileView("threads", "Threads", "Stacks and what they retain", "heap-dump/threads", null),
+            new ProfileView("jit", "Class loaders", "Loaders and what survived a redeploy", "heap-dump/class-loader-analysis", null),
+            new ProfileView("flame", "Collections", "Wasted capacity in collections", "heap-dump/collection-analysis", null),
+            new ProfileView("subsecond", "OQL", "Query the heap directly", "heap-dump/oql", null));
 
     /**
      * Whether this profile has data behind the view.
      *
      * <p>An ungated view is always available — which is the honest answer, not an optimistic one:
      * Microscope gates only a handful of features, so most of these tiles are offered whether or not
-     * the recording has anything behind them. Traces is the one that is commonly absent, and it is the
-     * reason this check exists at all.
+     * the profile has anything behind them. Traces is the one that is commonly absent.
      */
     public boolean isAvailable(List<String> disabledFeatures) {
         return feature == null || !disabledFeatures.contains(feature);
     }
 
-    /** What the tile says when the recording has no data for it. */
+    /** What the tile says when the profile has no data for it. */
     public String unavailableBlurb() {
         return "Not in this recording";
     }

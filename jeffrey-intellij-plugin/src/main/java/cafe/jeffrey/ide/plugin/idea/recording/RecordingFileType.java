@@ -34,10 +34,10 @@ import javax.swing.Icon;
  * tool window and never opens an editor at all. Declaring the type is what puts the recording panel
  * back in the path.
  *
- * <p><b>Heap dumps are deliberately not claimed.</b> IntelliJ's own heap-dump viewer is a good tool
- * and owns {@code .hprof} already; taking that extension would be a fight worth nothing. Those files
- * still carry the flame icon through {@link cafe.jeffrey.ide.plugin.idea.AnalysableFileIconProvider}
- * and still offer "Analyze in Microscope" — they simply are not what a double-click opens.
+ * <p><b>Heap dumps are claimed too.</b> IntelliJ has its own heap-dump viewer and it is a good one,
+ * so this competes with it rather than replacing it: the platform shows both editors as tabs at the
+ * bottom of the window, and the developer picks. What Microscope adds is the analysis behind the
+ * dump — leak suspects, the dominator tree, retained sizes — and the handoff to an agent.
  *
  * <p>Binary, because it is: saying so keeps the platform from trying to guess an encoding, load the
  * whole file as text, or offer to reformat it.
@@ -48,7 +48,7 @@ public final class RecordingFileType implements FileType {
     public static final RecordingFileType INSTANCE = new RecordingFileType();
 
     private static final String NAME = "JVM Recording";
-    private static final String DESCRIPTION = "JVM recording readable by Jeffrey Microscope";
+    private static final String DESCRIPTION = "JVM recording or heap dump readable by Jeffrey Microscope";
     private static final String DEFAULT_EXTENSION = "jfr";
 
     private RecordingFileType() {
