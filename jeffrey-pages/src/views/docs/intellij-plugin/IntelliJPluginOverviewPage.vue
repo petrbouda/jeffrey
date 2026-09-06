@@ -122,6 +122,13 @@ onMounted(() => {
         <li><i class="bi bi-check2-circle"></i> <strong>Java &amp; Kotlin resolution</strong> — both <code>JavaResolver</code> and <code>KotlinResolver</code> ship with the plugin, so JVM languages resolve symbol locations identically.</li>
       </ul>
 
+      <DocsCallout type="info" title="The analysis stays in Microscope">
+        The plugin does not draw flame graphs, dashboards or charts inside the IDE, and it will not
+        grow a tool window that does. Everything that shows you a profile is a link into Microscope,
+        opened in a browser. One renderer, in one place, so what the IDE points at and what you read
+        cannot drift apart &mdash; and the plugin stays a settings panel and a single menu item.
+      </DocsCallout>
+
       <p>
         Prefer to point Microscope at a different IDE plugin instead? See
         <router-link to="/docs/intellij-plugin/jfr-profiler">Java JFR Profiler Plugin</router-link>.

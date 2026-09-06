@@ -206,6 +206,8 @@ jeffrey/
 │   └── codex/agents/                  # The same two agents as Codex TOMLs, installed by hand
 ├── .claude-plugin/marketplace.json    # Makes the repo a Claude Code plugin marketplace
 ├── .agents/plugins/marketplace.json   # …and a Codex one; Codex reads either
+├── jeffrey-intellij-plugin/           # The IntelliJ companion — standalone Gradle build, never
+│                                      #   renders profile data; links to Microscope instead
 ├── jeffrey-pages/                     # Documentation site
 ├── build/                             # Build configurations
 │   ├── build-microscope/                   # Local application assembly
@@ -431,6 +433,27 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 - AI modules: `jeffrey-microscope/profiles/ai-config/`, `jeffrey-microscope/profiles/oql-assistant/`, `jeffrey-microscope/profiles/duckdb-jfr-mcp/`, `jeffrey-microscope/profiles/duckdb-heapdump-mcp/`
 - Config: `jeffrey.ai.provider=claude`, `jeffrey.ai.model=claude-opus-4-8`
 - **Two directions, do not confuse them.** The modules above run AI *inside* Jeffrey (Jeffrey calls out to a provider). The external MCP server at `POST /api/internal/mcp` is the reverse: an outside coding agent — an interactive Claude Code or Codex session in the developer's own repository — calls *in* and reads every analysed profile. Its analysis families are read-only; the four that are not (`recordings_`, `heap_prepare`, `hubs_`, `ide_`) create profiles or caches, or act on the developer's editor, rather than changing an analysed profile. Two have properties of their own — `jeffrey.microscope.mcp.hubs.enabled` and `jeffrey.microscope.mcp.ide.enabled` — because they are the two that reach outside this server: `hubs_` off the machine Jeffrey runs on, `ide_` into the IntelliJ running beside it. `ide_` is what closes the loop the exports leave open, answering where a frame lives from the IDE's own indexes rather than from a grep; `ide_resolve` deliberately does not move the editor, which `ide_open` does. Its protocol layer is `profiles/mcp-server`, and it also serves the skills as MCP prompts and the profile catalogue as MCP resources, so a client that cannot install a plugin is not left with a hundred tools and no account of how to use them. It is packaged as the `microscope` plugin, which carries a Claude Code manifest (`/plugin install microscope@jeffrey`) and an [Agent Plugins](https://agent-plugins.org/) one (`codex plugin marketplace add petrbouda/jeffrey`) over one set of skills. Two things do not survive the portable format — a user-configurable endpoint URL and the subagents — so a Codex user gets a fixed `localhost:8585` and hand-copied `codex/agents/profile-analyst.toml` and `codex/agents/heap-triage.toml`
+
+## IntelliJ Plugin
+
+`jeffrey-intellij-plugin/` is a **standalone Gradle project**, deliberately outside the Maven reactor
+(it pulls the IntelliJ Platform SDK, and runs on Java 21 because that is the JetBrains Runtime — not
+Jeffrey's 25). It talks to Microscope in both directions: it answers `/api/jeffrey/*` over IntelliJ's
+built-in server (`ping`, `instance`, `navigate`, `resolve`, `has`, `source`) so `IdeBridge` and the
+`ide_` MCP family can locate a frame's source, and it sends a recording or heap dump the other way
+with the *Analyze in Microscope* action, which opens `/quick-open?path=…` in a browser.
+
+**It never renders profile data.** No flame graphs, no dashboards, no charts, no hot-method tool
+window, no gutter or inlay markers carrying figures. Anything that would *show* a reader their
+profile is a link to Microscope, pointing at a profile-scoped view URL (`/profiles/{id}/{view}` — the
+same ones `profiles_viewLink` hands to MCP clients). A second renderer inside the IDE would be a
+second thing to build every view in and a second place for the two to disagree about what a recording
+says. Its UI is therefore a settings panel and one context-menu item, and stays that way.
+
+Two rules that look like omissions and are not: resolution is Java-PSI and platform APIs only, with
+no dependency on the Kotlin plugin or Git4Idea, so nothing can fail to load in an IDE missing either;
+and `resolve` exists separately from `navigate` because an agent grounding a finding must not move
+the developer's cursor.
 
 ## DuckDB MCP Servers
 - You can use MCP Server to connect to DuckDB database to get information about the current data

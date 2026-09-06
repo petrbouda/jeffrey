@@ -5,6 +5,23 @@ a small HTTP API over IntelliJ's built-in server so Microscope can jump from a J
 straight to the corresponding source in the right open IDE window — and fetch source text to show
 inline.
 
+## Scope: no visualization in the IDE
+
+**The plugin never renders profile data.** No flame graphs, no dashboards, no charts, no tool window
+showing hot methods, no gutter or inlay markers carrying per-method figures. Anything that would show
+a reader their profile is a **link to Microscope**, opened in a browser — the way
+*Analyze in Microscope* already works.
+
+This is a decision, not a gap. Microscope is where the analysis lives, and a second renderer inside
+the IDE would be a second thing to build every view in, a second thing to keep consistent with the
+first, and a second place for the two to disagree about what a recording says. The IDE has one job
+here: answer questions about source, and hand files over.
+
+So the plugin's UI stays what it is — a settings panel and a single context-menu item. A feature that
+needs to *show* something belongs in Microscope with a deep link to it; the profile-scoped view URLs
+(`/profiles/{id}/{view}`, the same ones `profiles_viewLink` hands to MCP clients) are what a link
+should point at.
+
 ## How it pairs with Microscope
 
 Microscope's backend talks to this plugin server-side; the default mode
