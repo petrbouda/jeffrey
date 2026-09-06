@@ -44,12 +44,15 @@ public class MicroscopeJsonTest {
                   "filename": "jeffrey-20260904-180108.jfr",
                   "sizeInBytes": 8450244,
                   "summary": {
+                    "kind": "RECORDING",
                     "profileName": "jeffrey-20260904-180108",
-                    "durationInMillis": 42000,
-                    "sampleCount": 1240000,
-                    "eventTypeCount": 18,
-                    "capturedSamples": 980000,
-                    "lostSamples": 0,
+                    "recording": {
+                      "durationInMillis": 42000,
+                      "sampleCount": 1240000,
+                      "eventTypeCount": 18,
+                      "capturedSamples": 980000,
+                      "lostSamples": 0
+                    },
                     "analysisComputed": true,
                     "findings": [
                       {"rule": "gc-pauses", "severity": "WARNING", "summary": "Long GC pauses"}
@@ -62,8 +65,9 @@ public class MicroscopeJsonTest {
 
         assertEquals(RecordingState.Status.READY, state.status());
         assertEquals("profile-1", state.profileId());
-        assertEquals(42_000L, state.summary().durationInMillis());
-        assertEquals(18, state.summary().eventTypeCount());
+        assertEquals(RecordingState.Kind.RECORDING, state.summary().kind());
+        assertEquals(42_000L, state.summary().recording().durationInMillis());
+        assertEquals(18, state.summary().recording().eventTypeCount());
         assertTrue(state.summary().analysisComputed());
         assertEquals(1, state.summary().findings().size());
         assertTrue(state.summary().findings().getFirst().isWarning());
@@ -137,16 +141,16 @@ public class MicroscopeJsonTest {
     @Test
     public void derivesTheLossRatioFromTheCounts() {
         RecordingState clean = MicroscopeJson.parseState(
-                "{\"state\":\"READY\",\"summary\":{\"capturedSamples\":100,\"lostSamples\":0}}",
+                "{\"state\":\"READY\",\"summary\":{\"recording\":{\"capturedSamples\":100,\"lostSamples\":0}}}",
                 FILENAME, SIZE);
         RecordingState lossy = MicroscopeJson.parseState(
-                "{\"state\":\"READY\",\"summary\":{\"capturedSamples\":75,\"lostSamples\":25}}",
+                "{\"state\":\"READY\",\"summary\":{\"recording\":{\"capturedSamples\":75,\"lostSamples\":25}}}",
                 FILENAME, SIZE);
         RecordingState silent = MicroscopeJson.parseState(
                 "{\"state\":\"READY\",\"summary\":{}}", FILENAME, SIZE);
 
-        assertEquals(0.0, clean.summary().lossRatio(), 0.0001);
-        assertEquals(0.25, lossy.summary().lossRatio(), 0.0001);
-        assertEquals(-1.0, silent.summary().lossRatio(), 0.0001);
+        assertEquals(0.0, clean.summary().recording().lossRatio(), 0.0001);
+        assertEquals(0.25, lossy.summary().recording().lossRatio(), 0.0001);
+        assertNull("no recording block means no figures to derive from", silent.summary().recording());
     }
 }

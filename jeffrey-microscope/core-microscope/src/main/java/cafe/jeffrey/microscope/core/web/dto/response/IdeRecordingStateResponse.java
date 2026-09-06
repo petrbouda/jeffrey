@@ -59,27 +59,36 @@ public record IdeRecordingStateResponse(
     }
 
     /**
+     * What kind of thing the profile holds, which decides everything the panel draws below the
+     * header: which four figures, which views, and which skill the agent buttons trigger.
+     */
+    public enum Kind {
+        RECORDING,
+        HEAP_DUMP
+    }
+
+    /**
      * The figures the IDE panel is allowed to show. Deliberately a closed list rather than a slice of
-     * the profile: the plugin does not render profile data, and this is the narrow exception — how
-     * long the recording covers, how much it holds, whether the samples can be trusted, and what
-     * auto-analysis flagged. Anything a reader would need a chart for stays in Microscope.
+     * the profile: the plugin does not render profile data, and this is the narrow exception — four
+     * numbers and what the analysis flagged. Anything a reader would need a chart for stays in
+     * Microscope.
      *
-     * @param sampleCount    total samples across every recorded event type
-     * @param eventTypeCount how many event types the recording carries
-     * @param lostSamples    samples the kernel dropped, 0 when the recording reports no loss at all
-     * @param findings         auto-analysis findings, most severe first; empty when never computed
+     * <p>Exactly one of {@code recording} and {@code heap} is populated, per {@link #kind}. A heap
+     * dump has no recording window and a recording has no retained size; carrying both as one flat row
+     * of nullable numbers would leave the panel guessing which of them mean anything.
+     *
+     * @param findings         auto-analysis findings, most severe first; empty when never computed.
+     *                         Only recordings have these — heap dumps report through leak suspects
      * @param disabledFeatures {@code FeatureType} names this profile has no data for, so the IDE can
      *                         say a view is empty instead of linking the reader to an empty page
      */
     public record ProfileSummary(
+            Kind kind,
             String profileName,
             Long profilingStartedAt,
             Long profilingFinishedAt,
-            long durationInMillis,
-            long sampleCount,
-            int eventTypeCount,
-            long capturedSamples,
-            long lostSamples,
+            RecordingFigures recording,
+            HeapFigures heap,
             boolean analysisComputed,
             List<Finding> findings,
             List<String> disabledFeatures) {
@@ -88,6 +97,31 @@ public record IdeRecordingStateResponse(
             findings = findings == null ? List.of() : List.copyOf(findings);
             disabledFeatures = disabledFeatures == null ? List.of() : List.copyOf(disabledFeatures);
         }
+    }
+
+    /**
+     * @param sampleCount    total samples across every recorded event type
+     * @param eventTypeCount how many event types the recording carries
+     * @param lostSamples    samples the kernel dropped, 0 when the recording reports no loss at all
+     */
+    public record RecordingFigures(
+            long durationInMillis,
+            long sampleCount,
+            int eventTypeCount,
+            long capturedSamples,
+            long lostSamples) {
+    }
+
+    /**
+     * @param cacheReady whether the dump has been indexed. A heap dump that has not been can answer
+     *                   nothing, so the panel says so rather than offering views that come back empty
+     */
+    public record HeapFigures(
+            long totalBytes,
+            long totalInstances,
+            int classCount,
+            int gcRootCount,
+            boolean cacheReady) {
     }
 
     /** One auto-analysis finding, flattened to what a one-line row in the IDE can show. */

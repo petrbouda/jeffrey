@@ -146,7 +146,7 @@ public class MicroscopeClientTest {
         assertEquals(baseUrl + "/profiles/profile-1", client.profileUrl("profile-1"));
         assertEquals(
                 baseUrl + "/profiles/profile-1/flamegraphs/primary",
-                client.viewUrl("profile-1", ProfileView.ALL.getFirst().path()));
+                client.viewUrl("profile-1", ProfileView.RECORDING.getFirst().path()));
     }
 
     private MicroscopeClient client() {

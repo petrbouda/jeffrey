@@ -41,20 +41,46 @@ public class ProfileViewTest {
      */
     @Test
     public void findsAutoAnalysisByIdentityRatherThanByPosition() {
-        assertTrue(ProfileView.ALL.contains(ProfileView.AUTO_ANALYSIS));
+        assertTrue(ProfileView.RECORDING.contains(ProfileView.AUTO_ANALYSIS));
         assertEquals("auto-analysis", ProfileView.AUTO_ANALYSIS.path());
     }
 
-    /** Three per row, so the grid must divide evenly or the last row comes out ragged. */
+    /** Three per row, so each grid must divide evenly or the last row comes out ragged. */
     @Test
-    public void fillsEveryRowOfTheTileGrid() {
-        assertEquals(0, ProfileView.ALL.size() % ProfileView.COLUMNS);
+    public void fillsEveryRowOfBothTileGrids() {
+        assertEquals(0, ProfileView.RECORDING.size() % ProfileView.COLUMNS);
+        assertEquals(0, ProfileView.HEAP.size() % ProfileView.COLUMNS);
+    }
+
+    /**
+     * The two lists share no route. A flame graph means nothing for a heap dump and a dominator tree
+     * means nothing for a recording; an overlap would be a tile that opens an empty page.
+     */
+    @Test
+    public void keepsTheRecordingAndHeapListsDisjoint() {
+        Set<String> recordingPaths = ProfileView.RECORDING.stream().map(ProfileView::path)
+                .collect(java.util.stream.Collectors.toSet());
+        for (ProfileView view : ProfileView.HEAP) {
+            assertFalse("shared route: " + view.path(), recordingPaths.contains(view.path()));
+        }
+    }
+
+    /** Every heap route lives under the heap-dump section of Microscope. */
+    @Test
+    public void pointsEveryHeapViewAtAHeapDumpRoute() {
+        for (ProfileView view : ProfileView.HEAP) {
+            assertTrue(view.path(), view.path().startsWith("heap-dump/"));
+        }
     }
 
     /** Every tile references an icon the panel actually registered, or it renders as a broken tag. */
     @Test
     public void referencesOnlyRegisteredIcons() {
-        for (ProfileView view : ProfileView.ALL) {
+        for (ProfileView view : ProfileView.HEAP) {
+            assertTrue("no icon registered for " + view.iconKey(),
+                    PanelIcons.BY_KEY.containsKey(view.iconKey()));
+        }
+        for (ProfileView view : ProfileView.RECORDING) {
             assertTrue("no icon registered for " + view.iconKey(),
                     PanelIcons.BY_KEY.containsKey(view.iconKey()));
         }
@@ -62,25 +88,25 @@ public class ProfileViewTest {
 
     @Test
     public void gatesOnlyTheViewsMicroscopeCanActuallyDisable() {
-        assertTrue(ProfileView.ALL.stream()
+        assertTrue(ProfileView.RECORDING.stream()
                 .filter(view -> view.feature() != null)
                 .allMatch(view -> Set.of("TRACES", "SUBSECOND").contains(view.feature())));
     }
 
     @Test
     public void treatsAnUngatedViewAsAlwaysAvailable() {
-        ProfileView flame = ProfileView.ALL.getFirst();
+        ProfileView flame = ProfileView.RECORDING.getFirst();
         assertTrue(flame.isAvailable(List.of("TRACES", "HEAP_DUMP")));
 
-        ProfileView traces = ProfileView.ALL.getLast();
+        ProfileView traces = ProfileView.RECORDING.getLast();
         assertTrue(traces.isAvailable(List.of("HEAP_DUMP")));
         assertFalse(traces.isAvailable(List.of("TRACES")));
     }
 
     @Test
     public void offersTraces() {
-        assertTrue(ProfileView.ALL.stream().anyMatch(view -> "Traces".equals(view.label())));
-        assertTrue(ProfileView.ALL.stream().anyMatch(view -> "traces/operations".equals(view.path())));
+        assertTrue(ProfileView.RECORDING.stream().anyMatch(view -> "Traces".equals(view.label())));
+        assertTrue(ProfileView.RECORDING.stream().anyMatch(view -> "traces/operations".equals(view.path())));
     }
 
     /** Two entries pointing at the same page, or one labelled twice, is a list nobody has read. */
@@ -88,7 +114,7 @@ public class ProfileViewTest {
     public void listsEveryViewOnce() {
         Set<String> paths = new HashSet<>();
         Set<String> labels = new HashSet<>();
-        for (ProfileView view : ProfileView.ALL) {
+        for (ProfileView view : ProfileView.RECORDING) {
             assertTrue("duplicate path: " + view.path(), paths.add(view.path()));
             assertTrue("duplicate label: " + view.label(), labels.add(view.label()));
         }
@@ -100,7 +126,9 @@ public class ProfileViewTest {
      */
     @Test
     public void keepsPathsRelativeAndUnslashed() {
-        for (ProfileView view : ProfileView.ALL) {
+        List<ProfileView> all = new java.util.ArrayList<>(ProfileView.RECORDING);
+        all.addAll(ProfileView.HEAP);
+        for (ProfileView view : all) {
             assertFalse(view.path().isBlank());
             assertFalse(view.label().isBlank());
             assertFalse("leading slash: " + view.path(), view.path().startsWith("/"));

@@ -40,6 +40,9 @@ final class PanelHtml {
     private static final String NOT_COMPUTED =
             "Not computed for this profile yet.";
 
+    private static final String NOT_INDEXED =
+            "This heap dump has not been indexed yet — open it in Microscope to build the index.";
+
     private PanelHtml() {
     }
 
@@ -59,12 +62,7 @@ final class PanelHtml {
 
         RecordingState.ProfileSummary summary = state.summary();
         if (summary != null) {
-            html.append("<table><tr>")
-                    .append(stat(Formats.duration(summary.durationInMillis()), "window", false))
-                    .append(stat(Formats.count(summary.sampleCount()), "samples", false))
-                    .append(stat(String.valueOf(summary.eventTypeCount()), "event types", false))
-                    .append(stat(Formats.lossRatio(summary.lossRatio()), "sample loss", lossy(summary)))
-                    .append("</tr></table>");
+            html.append("<table><tr>").append(figures(summary)).append("</tr></table>");
         }
         return html.append("</body></html>").toString();
     }
@@ -82,14 +80,56 @@ final class PanelHtml {
             return html.append(facts(state, file, microscopeUrl)).append("</body></html>").toString();
         }
 
-        html.append(section("Auto-analysis")).append(findings(summary));
-        html.append(section("Open a view")).append(tiles(summary.disabledFeatures()));
+        // Auto-analysis is a recording's verdict. A heap dump's is "Leak suspects", which leads its
+        // tile grid — so a dump gets no findings section rather than an empty one.
+        if (!summary.isHeapDump()) {
+            html.append(section("Auto-analysis")).append(findings(summary));
+        }
+        html.append(section("Open a view")).append(tiles(summary));
         return html.append("</body></html>").toString();
+    }
+
+    /**
+     * Four figures, chosen by what the profile holds. A heap dump has no recording window and a
+     * recording has no retained size; showing one set for both would print numbers that mean nothing.
+     */
+    private static String figures(RecordingState.ProfileSummary summary) {
+        if (summary.isHeapDump()) {
+            return heapFigures(summary.heap());
+        }
+        return recordingFigures(summary.recording());
+    }
+
+    private static String recordingFigures(RecordingState.RecordingFigures figures) {
+        if (figures == null) {
+            return "";
+        }
+        return stat(Formats.duration(figures.durationInMillis()), "window", false)
+                + stat(Formats.count(figures.sampleCount()), "samples", false)
+                + stat(String.valueOf(figures.eventTypeCount()), "event types", false)
+                + stat(Formats.lossRatio(figures.lossRatio()), "sample loss", figures.lossRatio() > 0);
+    }
+
+    /**
+     * An un-indexed dump has no figures to give. Saying so beats four zeroes, which read as a heap
+     * that is empty rather than one that has not been looked at yet.
+     */
+    private static String heapFigures(RecordingState.HeapFigures figures) {
+        if (figures == null) {
+            return "";
+        }
+        if (!figures.cacheReady()) {
+            return "<td colspan='4' class='sml'>" + NOT_INDEXED + "</td>";
+        }
+        return stat(Formats.bytes(figures.totalBytes()), "retained", false)
+                + stat(Formats.count(figures.totalInstances()), "instances", false)
+                + stat(Formats.count(figures.classCount()), "classes", false)
+                + stat(Formats.count(figures.gcRootCount()), "GC roots", false);
     }
 
     private static String title(RecordingState state) {
         return switch (state.status()) {
-            case NOT_IMPORTED, IMPORTED -> "Flight recording";
+            case NOT_IMPORTED, IMPORTED -> "JVM recording";
             case ANALYZING -> "Building the profile";
             case READY -> "Profile ready";
             case UNAVAILABLE -> "Microscope is not reachable";
@@ -108,14 +148,6 @@ final class PanelHtml {
     private static String profileName(RecordingState state) {
         String name = state.summary() == null ? null : state.summary().profileName();
         return name == null || name.isBlank() ? state.filename() : name;
-    }
-
-    /**
-     * Whether the sample loss is worth colouring. Only an actual measured loss is — a recording that
-     * reports no sampler health at all must not be painted as a problem.
-     */
-    private static boolean lossy(RecordingState.ProfileSummary summary) {
-        return summary.lossRatio() > 0;
     }
 
     private static String stat(String value, String label, boolean alarming) {
@@ -151,11 +183,14 @@ final class PanelHtml {
      * because a missing tile teaches nothing, while a dimmed one says the recording lacks that data,
      * which is a fact about the run worth knowing.
      */
-    private static String tiles(List<String> disabledFeatures) {
+    private static String tiles(RecordingState.ProfileSummary summary) {
+        return tiles(summary.views(), summary.disabledFeatures());
+    }
+
+    private static String tiles(List<ProfileView> views, List<String> disabledFeatures) {
         StringBuilder grid = new StringBuilder(1024)
                 .append("<table cellspacing='6' class='tiles'>");
 
-        List<ProfileView> views = ProfileView.ALL;
         for (int i = 0; i < views.size(); i++) {
             if (i % ProfileView.COLUMNS == 0) {
                 grid.append("<tr>");

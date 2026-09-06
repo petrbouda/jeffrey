@@ -451,9 +451,22 @@ URL (`/profiles/{id}/{view}` — the same ones `profiles_viewLink` hands to MCP 
 renderer inside the IDE would be a second thing to build every view in and a second place for the two
 to disagree about what a recording says.
 
-**The exception: the recording panel.** Opening a `.jfr`, heap dump or pprof/OTLP file gives it an
-editor tab (`RecordingFileEditorProvider`, placed *before* the default editor rather than hiding it,
-so Ultimate's own JFR viewer stays a click away). The tab says whether Microscope has analysed the
+**The exception: the recording panel.** Opening a `.jfr`, heap dump or pprof/OTLP file gives it an editor tab
+(`RecordingFileEditorProvider`, placed *before* the default editor rather than hiding it). Reaching it
+requires `RecordingFileType`: a `FileEditorProvider` is consulted only for a file the platform routes
+through the **editor** system, and an unregistered extension is not routed there — on Ultimate a
+double-click reaches `ImportProfilerResultAction`, which loads the recording into the bundled
+profiler's tool window and opens no editor at all. `.hprof` is claimed too, competing with
+IntelliJ's own heap-dump viewer rather than replacing it — the platform shows both as tabs and the
+developer picks.
+
+**A heap dump is not a recording, and the panel says so.** `IdeRecordingStateResponse.Kind` decides
+everything below the header: a recording shows window / samples / event types / sample loss and the
+flamegraph-and-GC tiles, a dump shows retained / instances / classes / GC roots and the
+leak-suspects-and-dominator-tree tiles, and the agent prompt names "heap dump" so `analyze-heap` fires
+instead of `analyze-jfr`. The kind comes from **what was double-clicked**, not from what the profile
+carries — a recording with a dump attached still reads as a recording. A dump whose index has not been
+built reports `cacheReady: false`, and the panel says so rather than printing four zeroes. The tab says whether Microscope has analysed the
 file, offers the button that does, and links out to the views as a 3×3 grid of tiles — and once a
 profile is ready it shows **four figures and the auto-analysis lines, and nothing else**: recording
 window, sample count, event type count, sample-loss share, then one line per finding. That list is the

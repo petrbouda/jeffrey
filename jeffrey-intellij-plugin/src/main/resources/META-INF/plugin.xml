@@ -88,6 +88,15 @@
     <extensions defaultExtensionNs="com.intellij">
         <httpRequestHandler implementation="cafe.jeffrey.ide.plugin.idea.JeffreyMicroscopeService"/>
         <fileIconProvider implementation="cafe.jeffrey.ide.plugin.idea.AnalysableFileIconProvider"/>
+        <!-- Registering the type is what routes a double-click through the editor system, which is
+             where fileEditorProvider is consulted. Without it, Ultimate's bundled profiler takes the
+             open and the recording panel is never asked for. Heap dumps are left to IntelliJ's own
+             viewer on purpose. -->
+        <fileType name="JVM Recording"
+                  implementationClass="cafe.jeffrey.ide.plugin.idea.recording.RecordingFileType"
+                  fieldName="INSTANCE"
+                  extensions="jfr;pprof;otlp;hprof"
+                  patterns="*.jfr.lz4;*.pb.gz;*.hprof.gz"/>
         <fileEditorProvider implementation="cafe.jeffrey.ide.plugin.idea.recording.RecordingFileEditorProvider"/>
         <applicationService serviceImplementation="cafe.jeffrey.ide.plugin.idea.ProjectRegistry"/>
         <applicationService serviceImplementation="cafe.jeffrey.ide.plugin.idea.settings.JeffreySettings"/>

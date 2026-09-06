@@ -47,7 +47,7 @@ public class AgentCliTest {
      */
     @Test
     public void sendsTheProfileIdAndTheSkillsTriggerPhrase() {
-        assertEquals("Analyse Jeffrey profile " + PROFILE_ID, AgentCli.prompt(PROFILE_ID));
+        assertEquals("Analyse Jeffrey profile " + PROFILE_ID, AgentCli.prompt(PROFILE_ID, false));
     }
 
     /**
@@ -57,7 +57,7 @@ public class AgentCliTest {
      */
     @Test
     public void asksNoQuestionOfItsOwn() {
-        String prompt = AgentCli.prompt(PROFILE_ID);
+        String prompt = AgentCli.prompt(PROFILE_ID, false);
         assertFalse(prompt.contains("?"));
         assertFalse(prompt.contains("—"));
     }
@@ -65,17 +65,29 @@ public class AgentCliTest {
     /** And never the file path: neither agent can parse a JFR. */
     @Test
     public void neverMentionsTheRecordingFile() {
-        assertFalse(AgentCli.prompt(PROFILE_ID).contains(".jfr"));
+        assertFalse(AgentCli.prompt(PROFILE_ID, false).contains(".jfr"));
+    }
+
+    /**
+     * A heap dump goes to analyze-heap, which fires on "a heap dump". Sending one to the recording
+     * skill would have the agent reach for flamegraph tools against a profile that has none.
+     */
+    @Test
+    public void namesAHeapDumpSoTheHeapSkillTriggers() {
+        String prompt = AgentCli.prompt(PROFILE_ID, true);
+        assertTrue(prompt.contains("heap dump"));
+        assertTrue(prompt.contains(PROFILE_ID));
+        assertFalse(prompt.contains(".hprof"));
     }
 
     @Test
     public void quotesThePromptAsASingleArgument() {
         assertEquals(
                 "claude \"Analyse Jeffrey profile " + PROFILE_ID + "\"",
-                AgentCli.ALL.getFirst().command(PROFILE_ID));
+                AgentCli.ALL.getFirst().command(PROFILE_ID, false));
         assertEquals(
                 "codex \"Analyse Jeffrey profile " + PROFILE_ID + "\"",
-                AgentCli.ALL.getLast().command(PROFILE_ID));
+                AgentCli.ALL.getLast().command(PROFILE_ID, false));
     }
 
     /**
@@ -84,7 +96,7 @@ public class AgentCliTest {
      */
     @Test
     public void escapesQuotesAndBackslashes() {
-        String command = AgentCli.ALL.getFirst().command("a\"b\\c");
+        String command = AgentCli.ALL.getFirst().command("a\"b\\c", false);
         assertEquals("claude \"Analyse Jeffrey profile a\\\"b\\\\c\"", command);
         assertTrue(command.startsWith("claude \""));
         assertTrue(command.endsWith("\""));

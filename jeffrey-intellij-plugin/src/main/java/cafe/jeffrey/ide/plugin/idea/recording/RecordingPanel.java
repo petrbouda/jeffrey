@@ -182,7 +182,7 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> {
             // No "analyze again": a recording file does not change, so re-analysing the same bytes
             // would only import a second copy and build an identical profile. A file that really has
             // changed no longer matches by name and size, and comes back as never analysed anyway.
-            case READY -> buttonRow(readyButtons(state.profileId()));
+            case READY -> buttonRow(readyButtons(state));
             case ANALYZING -> analyzingControls();
             // Settings appears only here and on a failure — it is the one place the answer is likely
             // to be a wrong address. A button that is always present and almost never the fix teaches
@@ -214,20 +214,22 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> {
      * then looks the same on every machine, and a developer who has never heard of the Codex support
      * can at least see that it exists.
      */
-    private JButton[] readyButtons(String profileId) {
+    private JButton[] readyButtons(RecordingState state) {
+        boolean heapDump = state.summary() != null && state.summary().isHeapDump();
+
         List<JButton> buttons = new ArrayList<>();
-        buttons.add(openButton(profileId));
+        buttons.add(openButton(state.profileId()));
         if (JeffreySettings.getInstance().areAgentsEnabled()) {
             for (AgentCli agent : AgentCli.ALL) {
-                buttons.add(agentButton(agent, profileId));
+                buttons.add(agentButton(agent, state.profileId(), heapDump));
             }
         }
         return buttons.toArray(new JButton[0]);
     }
 
-    private JButton agentButton(AgentCli agent, String profileId) {
+    private JButton agentButton(AgentCli agent, String profileId, boolean heapDump) {
         JButton button = button("Analyse with " + agent.displayName(),
-                event -> launchAgent(agent, profileId));
+                event -> launchAgent(agent, profileId, heapDump));
         if (!agent.isInstalled()) {
             button.setEnabled(false);
         }
@@ -240,9 +242,9 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> {
      * lives in the agent's {@code analyze-jfr} skill, and the panel does not know what the developer
      * wants to ask.
      */
-    private void launchAgent(AgentCli agent, String profileId) {
+    private void launchAgent(AgentCli agent, String profileId, boolean heapDump) {
         Path workingDirectory = workingDirectory();
-        String command = agent.command(profileId);
+        String command = agent.command(profileId, heapDump);
         try {
             AgentLaunchers.current().launch(project, workingDirectory, command);
         } catch (Exception e) {
