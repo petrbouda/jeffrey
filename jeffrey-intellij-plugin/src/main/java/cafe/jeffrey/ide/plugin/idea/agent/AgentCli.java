@@ -61,6 +61,20 @@ public record AgentCli(String displayName, String executable) {
                 : "Analyse Jeffrey profile " + profileId;
     }
 
+    /**
+     * A two-letter badge for the menu and the split button.
+     *
+     * <p>Two rather than one because the first letter collides immediately — Claude and Codex both
+     * start with a C — and derived rather than declared so a new entry in {@link #ALL} needs no
+     * second thought. Vendor logos would read better and are not ours to ship.
+     */
+    public String mark() {
+        if (displayName.length() < 2) {
+            return displayName.toUpperCase();
+        }
+        return Character.toUpperCase(displayName.charAt(0)) + displayName.substring(1, 2).toLowerCase();
+    }
+
     /** Where the executable lives, or null when it is not on {@code PATH}. */
     public File find() {
         return PathEnvironmentVariableUtil.findInPath(executable);

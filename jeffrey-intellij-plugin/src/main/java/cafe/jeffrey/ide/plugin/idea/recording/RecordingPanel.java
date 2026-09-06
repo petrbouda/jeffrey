@@ -20,67 +20,49 @@ package cafe.jeffrey.ide.plugin.idea.recording;
 
 import cafe.jeffrey.ide.plugin.idea.agent.AgentCli;
 import cafe.jeffrey.ide.plugin.idea.agent.AgentLaunchers;
+import cafe.jeffrey.ide.plugin.idea.recording.web.CefPanelRenderer;
 import cafe.jeffrey.ide.plugin.idea.settings.JeffreySettings;
 import com.intellij.ide.BrowserUtil;
+import com.intellij.ide.ui.LafManagerListener;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.ui.components.JBPanel;
-import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.concurrency.AppExecutorUtil;
-import com.intellij.util.ui.ExtendableHTMLViewFactory;
-import com.intellij.util.ui.HTMLEditorKitBuilder;
-import com.intellij.util.ui.JBUI;
-import com.intellij.util.ui.UIUtil;
 
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JButton;
 import javax.swing.JComponent;
-import javax.swing.JEditorPane;
-import javax.swing.JPanel;
-import javax.swing.JProgressBar;
-import javax.swing.event.HyperlinkEvent;
-import javax.swing.text.html.HTMLEditorKit;
 import java.awt.BorderLayout;
-import java.awt.Component;
-import java.awt.Dimension;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * The recording panel: what Microscope knows about this file, and what it can open.
  *
- * <p>Four states, and the panel only ever shows one — never analysed, being analysed, ready, or
- * Microscope not reachable. They are drawn rather than merely logged because the point of the tab is
- * to answer "what happens if I press this" before it is pressed.
+ * <p>Five states, and the panel only ever shows one — never analysed, being analysed, ready,
+ * Microscope not reachable, or an analysis that threw. They are drawn rather than merely logged
+ * because the point of the tab is to answer "what happens if I press this" before it is pressed.
  *
- * <p><b>Hybrid on purpose.</b> The body is markup in two {@link JEditorPane}s wearing the platform's
- * HTML kit — a document is what this content is, and tables express it better than nested
- * {@code GridBagLayout}s. The buttons and the progress bar stay real Swing between them, because an
- * HTML-drawn button always reads as fake and a fake button in an IDE is worse than an ugly one.
+ * <p><b>This class draws nothing.</b> It owns the conversation with Microscope, the state machine
+ * over it, and the actions the page can trigger; a {@link PanelRenderer} turns that into pixels. Two
+ * exist — the IDE's bundled Chromium where it runs, Swing's HTML kit where it does not — and which
+ * one is in use is decided once, here, at construction.
  *
  * <p><b>What it deliberately does not draw.</b> No flame graph, no chart, no hot-method list. The
  * ready state shows four figures and the auto-analysis lines, which is the narrow exception the
  * plugin's rule allows; everything past that is a link into Microscope, because a second renderer
  * here is a second place for the two to disagree about what a recording says.
  */
-public final class RecordingPanel extends JBPanel<RecordingPanel> {
+public final class RecordingPanel extends JBPanel<RecordingPanel> implements PanelActions, Disposable {
 
     private static final Logger LOG = Logger.getInstance(RecordingPanel.class);
 
     private static final String SETTINGS_DISPLAY_NAME = "Jeffrey Plugin";
 
-    private static final int PANEL_INSET = 20;
-    private static final int SECTION_GAP = 16;
-    private static final int BUTTON_GAP = 8;
-    private static final int PROGRESS_WIDTH = 210;
-
     private final Project project;
     private final Path file;
-    private final JPanel content = new JBPanel<>();
+    private final PanelRenderer renderer;
 
     private volatile MicroscopeClient client;
 
@@ -89,151 +71,114 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> {
         this.project = project;
         this.file = file;
         this.client = new MicroscopeClient(JeffreySettings.getInstance().microscopeUrl());
+        this.renderer = createRenderer();
 
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBorder(JBUI.Borders.empty(PANEL_INSET));
-        content.setOpaque(false);
+        add(renderer.component(), BorderLayout.CENTER);
 
-        JBScrollPane scroll = new JBScrollPane(content);
-        scroll.setBorder(JBUI.Borders.empty());
-        add(scroll, BorderLayout.CENTER);
+        // The stylesheet is built from the current theme by both renderers, so a theme switch has to
+        // be a re-render. There was no listener for this before, and the panel only re-themed by
+        // accident when the tab was reselected.
+        ApplicationManager.getApplication().getMessageBus().connect(this)
+                .subscribe(LafManagerListener.TOPIC, (LafManagerListener) source -> renderer.themeChanged());
 
-        showLoading();
+        renderer.showLoading();
         query();
+    }
+
+    /**
+     * Chromium where the runtime has it, Swing's HTML kit otherwise.
+     *
+     * <p>{@code isSupported()} is false on a JBR built without JCEF and inside the JetBrains Client,
+     * so the fallback is not theoretical. Anything thrown while building the browser lands here too:
+     * a tab that renders plainly beats a tab that renders an exception.
+     */
+    private PanelRenderer createRenderer() {
+        if (CefPanelRenderer.isSupported()) {
+            try {
+                CefPanelRenderer cef = new CefPanelRenderer(this, file);
+                Disposer.register(this, cef);
+                return cef;
+            } catch (Exception | LinkageError e) {
+                LOG.warn("Could not start the embedded browser, falling back to the Swing panel", e);
+            }
+        } else {
+            LOG.info("JCEF is unavailable in this runtime, rendering the recording panel with Swing");
+        }
+        return new SwingPanelRenderer(this, file);
+    }
+
+    /** The component the tab should focus — the renderer's, not this wrapper. */
+    public JComponent focusComponent() {
+        return renderer.component();
     }
 
     /** Re-reads the Microscope address, so a corrected URL takes effect without reopening the tab. */
     public void refresh() {
         client = new MicroscopeClient(JeffreySettings.getInstance().microscopeUrl());
-        showLoading();
+        renderer.showLoading();
         query();
+    }
+
+    @Override
+    public void dispose() {
     }
 
     private void query() {
         MicroscopeClient current = client;
         AppExecutorUtil.getAppExecutorService().execute(() -> {
             RecordingState state = current.state(file);
-            ApplicationManager.getApplication().invokeLater(() -> render(state));
+            ApplicationManager.getApplication().invokeLater(() -> renderer.render(state));
         });
     }
 
-    private void analyze() {
+    // --- actions the page can trigger -----------------------------------------------------------
+
+    @Override
+    public void analyze() {
         MicroscopeClient current = client;
-        render(new RecordingState(
+        renderer.render(new RecordingState(
                 RecordingState.Status.ANALYZING, null, null, file.getFileName().toString(), 0L, null));
 
         AppExecutorUtil.getAppExecutorService().execute(() -> {
             try {
                 current.analyze(file);
                 RecordingState state = current.state(file);
-                ApplicationManager.getApplication().invokeLater(() -> render(state));
+                ApplicationManager.getApplication().invokeLater(() -> renderer.render(state));
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 LOG.warn("Analyzing a recording in Microscope failed: file=" + file, e);
-                ApplicationManager.getApplication().invokeLater(() -> showFailure(e));
+                ApplicationManager.getApplication().invokeLater(() -> renderer.showFailure(message(e)));
             }
         });
     }
 
-    // --- rendering ----------------------------------------------------------------------------
-
-    /**
-     * Header pane, then the buttons, then the details pane. Two panes rather than one because the
-     * actions belong between them, and a Swing row cannot live inside an HTML document.
-     */
-    private void render(RecordingState state) {
-        String url = JeffreySettings.getInstance().microscopeUrl();
-
-        content.removeAll();
-        add(htmlPane(PanelHtml.header(state, file, url)));
-        add(gap());
-        add(buttonsFor(state));
-        add(gap());
-        add(htmlPane(PanelHtml.details(state, file, url)));
-        content.add(Box.createVerticalGlue());
-        content.revalidate();
-        content.repaint();
+    @Override
+    public void retry() {
+        refresh();
     }
 
-    private void showLoading() {
-        content.removeAll();
-        add(htmlPane("<html><body><span class='sml'>Asking Microscope about this file…</span></body></html>"));
-        content.add(Box.createVerticalGlue());
-        content.revalidate();
-        content.repaint();
+    @Override
+    public void checkAgain() {
+        query();
     }
 
-    private void showFailure(Exception cause) {
-        String message = cause.getMessage() == null ? cause.toString() : cause.getMessage();
-        content.removeAll();
-        add(htmlPane("<html><body><span class='big'>The analysis did not finish</span><br>"
-                + "<span class='warn'>" + PanelHtml.escape(message) + "</span></body></html>"));
-        add(gap());
-        add(buttonRow(retryButton(), settingsButton()));
-        content.add(Box.createVerticalGlue());
-        content.revalidate();
-        content.repaint();
+    @Override
+    public void openSettings() {
+        ShowSettingsUtil.getInstance().showSettingsDialog(null, SETTINGS_DISPLAY_NAME);
     }
 
-    private JComponent buttonsFor(RecordingState state) {
-        return switch (state.status()) {
-            case NOT_IMPORTED, IMPORTED -> buttonRow(analyzeButton());
-            // No "analyze again": a recording file does not change, so re-analysing the same bytes
-            // would only import a second copy and build an identical profile. A file that really has
-            // changed no longer matches by name and size, and comes back as never analysed anyway.
-            case READY -> buttonRow(readyButtons(state));
-            case ANALYZING -> analyzingControls();
-            // Settings appears only here and on a failure — it is the one place the answer is likely
-            // to be a wrong address. A button that is always present and almost never the fix teaches
-            // the reader to skip the whole row.
-            case UNAVAILABLE -> buttonRow(retryButton(), settingsButton());
-        };
+    @Override
+    public void openProfile() {
+        withProfile(profileId -> BrowserUtil.browse(client.profileUrl(profileId)));
     }
 
-    private JComponent analyzingControls() {
-        JProgressBar progress = new JProgressBar();
-        progress.setIndeterminate(true);
-        progress.setPreferredSize(new Dimension(JBUI.scale(PROGRESS_WIDTH), progress.getPreferredSize().height));
-        progress.setMaximumSize(progress.getPreferredSize());
-        progress.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JPanel column = new JBPanel<>();
-        column.setLayout(new BoxLayout(column, BoxLayout.Y_AXIS));
-        column.setOpaque(false);
-        column.add(progress);
-        column.add(Box.createVerticalStrut(JBUI.scale(BUTTON_GAP)));
-        column.add(buttonRow(button("Check again", event -> query())));
-        return leftAligned(column);
-    }
-
-    /**
-     * Open in Microscope, then one button per known agent.
-     *
-     * <p>An agent that is not installed keeps its button, disabled, rather than disappearing: the row
-     * then looks the same on every machine, and a developer who has never heard of the Codex support
-     * can at least see that it exists.
-     */
-    private JButton[] readyButtons(RecordingState state) {
-        boolean heapDump = state.summary() != null && state.summary().isHeapDump();
-
-        List<JButton> buttons = new ArrayList<>();
-        buttons.add(openButton(state.profileId()));
-        if (JeffreySettings.getInstance().areAgentsEnabled()) {
-            for (AgentCli agent : AgentCli.ALL) {
-                buttons.add(agentButton(agent, state.profileId(), heapDump));
-            }
+    @Override
+    public void openView(String viewPath) {
+        if (viewPath == null || viewPath.isBlank()) {
+            return;
         }
-        return buttons.toArray(new JButton[0]);
-    }
-
-    private JButton agentButton(AgentCli agent, String profileId, boolean heapDump) {
-        JButton button = button("Analyse with " + agent.displayName(),
-                event -> launchAgent(agent, profileId, heapDump));
-        if (!agent.isInstalled()) {
-            button.setEnabled(false);
-        }
-        return button;
+        withProfile(profileId -> BrowserUtil.browse(client.viewUrl(profileId, viewPath)));
     }
 
     /**
@@ -241,15 +186,45 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> {
      * JFR, and Microscope has already done it. The prompt carries no question of its own: the method
      * lives in the agent's {@code analyze-jfr} skill, and the panel does not know what the developer
      * wants to ask.
+     *
+     * <p>Launching also remembers the agent, which is what the split button's primary half runs next
+     * time. Without it that choice would fall to whichever entry {@code AgentCli.ALL} declares first.
      */
-    private void launchAgent(AgentCli agent, String profileId, boolean heapDump) {
-        Path workingDirectory = workingDirectory();
-        String command = agent.command(profileId, heapDump);
-        try {
-            AgentLaunchers.current().launch(project, workingDirectory, command);
-        } catch (Exception e) {
-            LOG.warn("Could not start an agent: agent=" + agent.executable() + " file=" + file, e);
-        }
+    @Override
+    public void launchAgent(AgentCli agent) {
+        JeffreySettings.getInstance().setPreferredAgent(agent.executable());
+
+        AppExecutorUtil.getAppExecutorService().execute(() -> {
+            RecordingState state = client.state(file);
+            if (state.profileId() == null) {
+                LOG.info("Ignoring an agent launch for a recording with no profile: file=" + file);
+                return;
+            }
+            boolean heapDump = state.summary() != null && state.summary().isHeapDump();
+            String command = agent.command(state.profileId(), heapDump);
+            ApplicationManager.getApplication().invokeLater(() -> {
+                try {
+                    AgentLaunchers.current().launch(project, workingDirectory(), command);
+                } catch (Exception e) {
+                    LOG.warn("Could not start an agent: agent=" + agent.executable() + " file=" + file, e);
+                }
+            });
+        });
+    }
+
+    /**
+     * Resolves the profile the panel last saw, rather than one captured when the document was drawn,
+     * so a stale page cannot outlive the profile it described.
+     */
+    private void withProfile(java.util.function.Consumer<String> onProfile) {
+        AppExecutorUtil.getAppExecutorService().execute(() -> {
+            RecordingState state = client.state(file);
+            if (state.profileId() == null) {
+                LOG.info("Ignoring a view link for a recording with no profile: file=" + file);
+                return;
+            }
+            onProfile.accept(state.profileId());
+        });
     }
 
     /** The project root, so the agent starts where the developer's code is, not beside the recording. */
@@ -262,109 +237,7 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> {
         return parent == null ? file : parent;
     }
 
-    private JButton analyzeButton() {
-        return button("Analyze in Microscope", event -> analyze());
-    }
-
-    private JButton openButton(String profileId) {
-        return button("Open in Microscope", event -> BrowserUtil.browse(client.profileUrl(profileId)));
-    }
-
-    private JButton retryButton() {
-        return button("Try again", event -> refresh());
-    }
-
-    private JButton settingsButton() {
-        return button("Settings…", event ->
-                ShowSettingsUtil.getInstance().showSettingsDialog(null, SETTINGS_DISPLAY_NAME));
-    }
-
-    private JButton button(String text, java.awt.event.ActionListener onClick) {
-        JButton button = new JButton(text);
-        button.addActionListener(onClick);
-        return button;
-    }
-
-    private JComponent buttonRow(JButton... buttons) {
-        JPanel row = new JBPanel<>();
-        row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
-        row.setOpaque(false);
-        for (int i = 0; i < buttons.length; i++) {
-            if (i > 0) {
-                row.add(Box.createHorizontalStrut(JBUI.scale(BUTTON_GAP)));
-            }
-            row.add(buttons[i]);
-        }
-        return leftAligned(row);
-    }
-
-    // --- the HTML surface ---------------------------------------------------------------------
-
-    /**
-     * A read-only pane wearing the platform's HTML kit, with the panel's icons registered and the
-     * stylesheet built from the current theme.
-     *
-     * <p>Every link's {@code href} is a Microscope view path, so one listener serves the whole
-     * document — the reason nine {@code ActionLink}s and their nine lambdas are gone.
-     */
-    private JComponent htmlPane(String html) {
-        HTMLEditorKit kit = new HTMLEditorKitBuilder()
-                .withViewFactoryExtensions(
-                        ExtendableHTMLViewFactory.Extensions.icons(PanelIcons.BY_KEY),
-                        ExtendableHTMLViewFactory.Extensions.WORD_WRAP)
-                .withStyleSheet(PanelStyles.current())
-                .build();
-
-        JEditorPane pane = new JEditorPane();
-        pane.setEditorKit(kit);
-        pane.setEditable(false);
-        pane.setOpaque(false);
-        pane.setBorder(JBUI.Borders.empty());
-        pane.setBackground(UIUtil.getPanelBackground());
-        pane.setText(html);
-        pane.setCaretPosition(0);
-        pane.addHyperlinkListener(event -> {
-            if (event.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                openView(event.getDescription());
-            }
-        });
-        return leftAligned(pane);
-    }
-
-    /**
-     * Opens a view path in the browser. Resolved against the profile the panel last saw rather than
-     * captured per link, so a stale document cannot outlive the profile it described.
-     */
-    private void openView(String viewPath) {
-        if (viewPath == null || viewPath.isBlank()) {
-            return;
-        }
-        AppExecutorUtil.getAppExecutorService().execute(() -> {
-            RecordingState state = client.state(file);
-            if (state.profileId() == null) {
-                LOG.info("Ignoring a view link for a recording with no profile: file=" + file);
-                return;
-            }
-            BrowserUtil.browse(client.viewUrl(state.profileId(), viewPath));
-        });
-    }
-
-    private void add(JComponent section) {
-        section.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(section);
-    }
-
-    private JComponent gap() {
-        return (JComponent) Box.createVerticalStrut(JBUI.scale(SECTION_GAP));
-    }
-
-    /**
-     * Keeps a section at its natural height instead of letting BoxLayout stretch it down the tab,
-     * which is what turns a four-row header into a header with a hundred pixels of dead space in it.
-     */
-    private JComponent leftAligned(JComponent component) {
-        component.setAlignmentX(Component.LEFT_ALIGNMENT);
-        component.setMaximumSize(new Dimension(Integer.MAX_VALUE, component.getPreferredSize().height));
-        return component;
+    private static String message(Exception cause) {
+        return cause.getMessage() == null ? cause.toString() : cause.getMessage();
     }
 }

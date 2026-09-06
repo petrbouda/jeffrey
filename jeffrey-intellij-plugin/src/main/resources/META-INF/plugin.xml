@@ -42,12 +42,16 @@
                 whether Microscope has analysed it, offers the button that does, and lays the views
                 out as tiles: flame graph, allocations, GC, threads, traces and the rest, each with
                 a line on what the page answers. A ready profile also shows its recording window,
-                sample count, event types, sample loss and the auto-analysis findings. Views the
-                recording has no data for stay visible but dimmed.</li>
+                sample count, event types, sample loss and the auto-analysis findings, each titled
+                by the rule that fired. Views the recording has no data for stay visible but dimmed.
+                Rendered in the IDE's own browser, so it matches your theme and follows it when you
+                switch.</li>
             <li><b>Hand it to a coding agent</b> — one button starts Claude Code or Codex in a
                 terminal with the profile already identified, so the agent reads it through
-                Microscope rather than trying to parse a JFR it cannot open. An agent that is not
-                installed keeps its button, disabled.</li>
+                Microscope rather than trying to parse a JFR it cannot open. It runs whichever agent
+                you used last, and its menu holds the rest — including the ones Jeffrey supports that
+                this machine does not have, so the row stays one button wide however many it
+                learns.</li>
             <li><b>Checkout awareness</b> — reports the branch and commit each window is on, so
                 Microscope can warn when a profile describes different code than you have open.</li>
             <li><b>Zero configuration</b> — Microscope discovers the IDE automatically over IntelliJ's

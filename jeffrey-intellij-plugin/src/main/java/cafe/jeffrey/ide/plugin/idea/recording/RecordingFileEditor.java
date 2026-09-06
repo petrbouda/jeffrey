@@ -22,6 +22,7 @@ import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorState;
 import com.intellij.openapi.fileEditor.FileEditorStateLevel;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.util.UserDataHolderBase;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
@@ -56,7 +57,7 @@ final class RecordingFileEditor extends UserDataHolderBase implements FileEditor
 
     @Override
     public @Nullable JComponent getPreferredFocusedComponent() {
-        return panel;
+        return panel.focusComponent();
     }
 
     @Override
@@ -102,7 +103,14 @@ final class RecordingFileEditor extends UserDataHolderBase implements FileEditor
     public void removePropertyChangeListener(@NotNull PropertyChangeListener listener) {
     }
 
+    /**
+     * Disposes the panel, and with it the embedded browser where one is in use.
+     *
+     * <p>A JCEF browser holds a Chromium render process of its own, one per open recording, so this
+     * is what keeps a morning of opening recordings from leaving a row of them behind.
+     */
     @Override
     public void dispose() {
+        Disposer.dispose(panel);
     }
 }

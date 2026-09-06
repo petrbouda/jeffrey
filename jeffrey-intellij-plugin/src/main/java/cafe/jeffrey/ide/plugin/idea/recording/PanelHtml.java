@@ -245,21 +245,6 @@ final class PanelHtml {
      * summaries all come from somewhere this plugin does not control.
      */
     static String escape(String text) {
-        if (text == null) {
-            return "";
-        }
-        StringBuilder escaped = new StringBuilder(text.length() + 8);
-        for (int i = 0; i < text.length(); i++) {
-            char c = text.charAt(i);
-            switch (c) {
-                case '&' -> escaped.append("&amp;");
-                case '<' -> escaped.append("&lt;");
-                case '>' -> escaped.append("&gt;");
-                case '"' -> escaped.append("&quot;");
-                case '\'' -> escaped.append("&#39;");
-                default -> escaped.append(c);
-            }
-        }
-        return escaped.toString();
+        return Html.escape(text);
     }
 }

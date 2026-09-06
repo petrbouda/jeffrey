@@ -47,6 +47,7 @@ public final class JeffreySettings implements PersistentStateComponent<JeffreySe
         public boolean enabled = true;
         public String microscopeUrl = DEFAULT_MICROSCOPE_URL;
         public boolean agentsEnabled = true;
+        public String preferredAgent = null;
     }
 
     private State state = new State();
@@ -83,6 +84,21 @@ public final class JeffreySettings implements PersistentStateComponent<JeffreySe
 
     public void setAgentsEnabled(boolean agentsEnabled) {
         state.agentsEnabled = agentsEnabled;
+    }
+
+    /**
+     * The executable of the agent launched last, or null before anything has been.
+     *
+     * <p>The recording panel's split button runs one agent directly, and this is what decides which.
+     * Without it the choice would fall to whichever entry {@code AgentCli.ALL} declares first, which
+     * is invisible from the button and would move under an unrelated edit to that list.
+     */
+    public String preferredAgent() {
+        return state.preferredAgent;
+    }
+
+    public void setPreferredAgent(String preferredAgent) {
+        state.preferredAgent = preferredAgent;
     }
 
     public void setEnabled(boolean enabled) {
