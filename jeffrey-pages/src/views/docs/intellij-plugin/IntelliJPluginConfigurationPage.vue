@@ -88,7 +88,7 @@ jeffrey.microscope.ide.scan.port-end=63362</code></pre>
 
       <h2 id="settings-panel">The Settings Panel</h2>
       <p>
-        <em>Settings &rarr; Tools &rarr; Jeffrey Microscope Plugin</em> carries three things:
+        <em>Settings &rarr; Tools &rarr; Jeffrey Plugin</em> carries three things:
       </p>
       <ul>
         <li><strong>The enable toggle.</strong> While it is off every endpoint answers

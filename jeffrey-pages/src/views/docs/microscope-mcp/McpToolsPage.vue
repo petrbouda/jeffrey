@@ -368,6 +368,8 @@ hubs_download { "sessionRef": "h1Y2ZnLX..." }
 
       <p>Common starting points: <code>jdk.ExecutionSample</code> for on-CPU time, <code>jdk.ObjectAllocationSample</code> for allocation (with <code>useWeight</code> to rank by bytes rather than call count), <code>jdk.JavaMonitorEnter</code> for lock contention (weight is nanoseconds blocked), <code>profiler.WallClockSample</code> for latency including off-CPU &mdash; async-profiler&rsquo;s event, so unlike its neighbours it carries no <code>jdk.</code> prefix. <code>thresholdPct</code> controls how much survives pruning &mdash; raise it for an overview, lower it to chase one path.</p>
 
+      <p><strong>A frame may carry a source line</strong>, as <code>Class.method:214</code>, and it is printed only when every sample at that frame reported the same one. Nodes in the tree are keyed by method name, so one node stands for every sample of that method at that point &mdash; a method called from three places, or a hot loop sampled across its own body, all merge there. Printing whichever line arrived first would hand a reader one call site out of several with nothing saying so, and a plausible wrong line is worse than none for somebody whose next act is to open the file. So a frame without a line was sampled at more than one, or carries no line information at all, as native and inlined frames do: <strong>its absence is not the absence of a location</strong>. There is never a file name &mdash; for that, ask the reader&rsquo;s IDE through <a href="#ide"><code>ide_resolve</code></a>.</p>
+
       <p><strong>Examples.</strong> Arguments are shown as JSON; the tool name omits the server prefix.</p>
       <DocsCodeBlock :code="exFlamegraph" language="json" />
 

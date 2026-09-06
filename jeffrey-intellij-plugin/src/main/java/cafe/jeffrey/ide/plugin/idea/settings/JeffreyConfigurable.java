@@ -30,7 +30,7 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 
 /**
- * Settings panel under <em>Settings → Tools → Jeffrey Microscope Plugin</em>: an enable toggle, the
+ * Settings panel under <em>Settings → Tools → Jeffrey Plugin</em>: an enable toggle, the
  * built-in server port (which Microscope discovers by scanning), and the Microscope address the
  * "Analyze in Microscope" action opens. Access is limited to localhost; there is no token to
  * configure.
@@ -40,9 +40,14 @@ public final class JeffreyConfigurable implements Configurable {
     private JBCheckBox enabledCheckbox;
     private JBTextField microscopeUrlField;
 
+    /**
+     * Kept in step with the {@code displayName} of the {@code applicationConfigurable} declaration:
+     * the settings tree labels the entry from the XML attribute, so a different answer here would be
+     * a second name for the same panel that nothing ever displays.
+     */
     @Override
     public String getDisplayName() {
-        return "Jeffrey Microscope Plugin";
+        return "Jeffrey Plugin";
     }
 
     @Nullable

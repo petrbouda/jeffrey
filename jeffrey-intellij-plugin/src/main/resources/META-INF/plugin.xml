@@ -45,7 +45,7 @@
         <ul>
             <li>Listens on <b>localhost only</b> — never reachable from the network.</li>
             <li>Honors IntelliJ's <b>trusted projects</b>: untrusted projects are never navigated.</li>
-            <li>Toggle it off anytime under <em>Settings → Tools → Jeffrey Microscope Plugin</em>; a
+            <li>Toggle it off anytime under <em>Settings → Tools → Jeffrey Plugin</em>; a
                 disabled IDE is completely invisible to Microscope.</li>
         </ul>
 

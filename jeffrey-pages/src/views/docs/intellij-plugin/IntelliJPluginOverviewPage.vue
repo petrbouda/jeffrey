@@ -28,6 +28,7 @@ const { setHeadings } = useDocHeadings();
 const headings = [
   { id: 'what-it-does', text: 'What It Does', level: 2 },
   { id: 'how-pairing-works', text: 'How Pairing Works', level: 2 },
+  { id: 'endpoints', text: 'What the Plugin Serves', level: 2 },
   { id: 'features', text: 'Features in Microscope', level: 2 }
 ];
 
@@ -64,11 +65,15 @@ onMounted(() => {
 
       <h2 id="what-it-does">What It Does</h2>
       <p>
-        Once installed and running, the plugin lets Microscope ask the IDE three things:
-        &ldquo;which classes do you know about?&rdquo;, &ldquo;open <em>this</em> method
-        in the editor&rdquo;, and &ldquo;send me the source of <em>this</em> class.&rdquo;
-        It also exposes an action that opens any <code>.jfr</code> file in your project directly
-        in Microscope, without going through the Recordings upload flow.
+        Once installed and running, the plugin lets Microscope ask the IDE four things:
+        &ldquo;which classes do you know about?&rdquo;, &ldquo;<em>where</em> is this method,
+        without touching my editor?&rdquo;, &ldquo;open <em>this</em> method in the editor&rdquo;,
+        and &ldquo;send me the source of <em>this</em> class.&rdquo; The second is what an AI agent
+        uses when it needs a file and a line for a finding but has no business moving your cursor.
+      </p>
+      <p>
+        It also exposes an action that sends a recording or heap dump in your project straight to
+        Microscope, without going through the Recordings upload flow.
       </p>
 
       <h2 id="how-pairing-works">How Pairing Works</h2>
@@ -110,6 +115,55 @@ onMounted(() => {
         exposed. Both are covered in
         <router-link to="/docs/intellij-plugin/configuration">Configuration</router-link>.
       </DocsCallout>
+
+      <h2 id="endpoints">What the Plugin Serves</h2>
+      <p>
+        Six endpoints on IntelliJ&rsquo;s built-in server, under <code>/api/jeffrey/</code>. You will
+        not call them by hand &mdash; Microscope does &mdash; but they are what the integration is,
+        and <code>ping</code> is the quickest way to tell whether the plugin is alive:
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Endpoint</th>
+            <th>Answers</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>GET ping</code></td>
+            <td>Liveness, and the protocol version this plugin speaks</td>
+          </tr>
+          <tr>
+            <td><code>GET instance</code></td>
+            <td>This IDE, and every open trusted project &mdash; name, path, focus, branch and HEAD commit</td>
+          </tr>
+          <tr>
+            <td><code>POST navigate</code></td>
+            <td>Resolve a frame, open the file, bring the window to the front</td>
+          </tr>
+          <tr>
+            <td><code>POST resolve</code></td>
+            <td>The same answer with <strong>no editor movement</strong> &mdash; protocol 2 and up</td>
+          </tr>
+          <tr>
+            <td><code>GET has</code></td>
+            <td>Whether a project contains a class, or a class and method</td>
+          </tr>
+          <tr>
+            <td><code>GET source</code></td>
+            <td>A class&rsquo;s source text, attached sources preferred over decompiled</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        <code>resolve</code> exists separately from <code>navigate</code> because they are separate
+        acts, and only one is safe to repeat while somebody is working. It is what the
+        <router-link to="/docs/microscope-mcp/tools#ide"><code>ide_</code> MCP tools</router-link>
+        call, so an agent can check a hundred frames without your editor jumping. A plugin older than
+        protocol 2 does not serve it, and Microscope says so rather than reporting the IDE as offline.
+      </p>
 
       <h2 id="features">Features in Microscope</h2>
       <ul class="usecase-list">
