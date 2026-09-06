@@ -18,11 +18,14 @@
 
 package cafe.jeffrey.ide.plugin.idea.recording;
 
+import cafe.jeffrey.ide.plugin.idea.agent.AgentCli;
+import cafe.jeffrey.ide.plugin.idea.agent.AgentLaunchers;
 import cafe.jeffrey.ide.plugin.idea.settings.JeffreySettings;
 import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.options.ShowSettingsUtil;
+import com.intellij.openapi.project.Project;
 import com.intellij.ui.components.JBPanel;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.util.concurrency.AppExecutorUtil;
@@ -44,6 +47,8 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The recording panel: what Microscope knows about this file, and what it can open.
@@ -73,13 +78,15 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> {
     private static final int BUTTON_GAP = 8;
     private static final int PROGRESS_WIDTH = 210;
 
+    private final Project project;
     private final Path file;
     private final JPanel content = new JBPanel<>();
 
     private volatile MicroscopeClient client;
 
-    public RecordingPanel(Path file) {
+    public RecordingPanel(Project project, Path file) {
         super(new BorderLayout());
+        this.project = project;
         this.file = file;
         this.client = new MicroscopeClient(JeffreySettings.getInstance().microscopeUrl());
 
@@ -175,7 +182,7 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> {
             // No "analyze again": a recording file does not change, so re-analysing the same bytes
             // would only import a second copy and build an identical profile. A file that really has
             // changed no longer matches by name and size, and comes back as never analysed anyway.
-            case READY -> buttonRow(openButton(state.profileId()));
+            case READY -> buttonRow(readyButtons(state.profileId()));
             case ANALYZING -> analyzingControls();
             // Settings appears only here and on a failure — it is the one place the answer is likely
             // to be a wrong address. A button that is always present and almost never the fix teaches
@@ -198,6 +205,59 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> {
         column.add(Box.createVerticalStrut(JBUI.scale(BUTTON_GAP)));
         column.add(buttonRow(button("Check again", event -> query())));
         return leftAligned(column);
+    }
+
+    /**
+     * Open in Microscope, then one button per known agent.
+     *
+     * <p>An agent that is not installed keeps its button, disabled, rather than disappearing: the row
+     * then looks the same on every machine, and a developer who has never heard of the Codex support
+     * can at least see that it exists.
+     */
+    private JButton[] readyButtons(String profileId) {
+        List<JButton> buttons = new ArrayList<>();
+        buttons.add(openButton(profileId));
+        if (JeffreySettings.getInstance().areAgentsEnabled()) {
+            for (AgentCli agent : AgentCli.ALL) {
+                buttons.add(agentButton(agent, profileId));
+            }
+        }
+        return buttons.toArray(new JButton[0]);
+    }
+
+    private JButton agentButton(AgentCli agent, String profileId) {
+        JButton button = button("Analyse with " + agent.displayName(),
+                event -> launchAgent(agent, profileId));
+        if (!agent.isInstalled()) {
+            button.setEnabled(false);
+        }
+        return button;
+    }
+
+    /**
+     * Hands the agent the profile id, never the file path — neither Claude Code nor Codex can parse a
+     * JFR, and Microscope has already done it. The prompt carries no question of its own: the method
+     * lives in the agent's {@code analyze-jfr} skill, and the panel does not know what the developer
+     * wants to ask.
+     */
+    private void launchAgent(AgentCli agent, String profileId) {
+        Path workingDirectory = workingDirectory();
+        String command = agent.command(profileId);
+        try {
+            AgentLaunchers.current().launch(project, workingDirectory, command);
+        } catch (Exception e) {
+            LOG.warn("Could not start an agent: agent=" + agent.executable() + " file=" + file, e);
+        }
+    }
+
+    /** The project root, so the agent starts where the developer's code is, not beside the recording. */
+    private Path workingDirectory() {
+        String basePath = project.getBasePath();
+        if (basePath != null) {
+            return Path.of(basePath);
+        }
+        Path parent = file.getParent();
+        return parent == null ? file : parent;
     }
 
     private JButton analyzeButton() {

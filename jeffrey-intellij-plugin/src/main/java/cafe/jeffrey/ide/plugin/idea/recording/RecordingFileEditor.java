@@ -21,6 +21,7 @@ package cafe.jeffrey.ide.plugin.idea.recording;
 import com.intellij.openapi.fileEditor.FileEditor;
 import com.intellij.openapi.fileEditor.FileEditorState;
 import com.intellij.openapi.fileEditor.FileEditorStateLevel;
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.UserDataHolderBase;
 import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
@@ -43,9 +44,9 @@ final class RecordingFileEditor extends UserDataHolderBase implements FileEditor
     private final VirtualFile file;
     private final RecordingPanel panel;
 
-    RecordingFileEditor(VirtualFile file) {
+    RecordingFileEditor(Project project, VirtualFile file) {
         this.file = file;
-        this.panel = new RecordingPanel(Path.of(file.getPath()));
+        this.panel = new RecordingPanel(project, Path.of(file.getPath()));
     }
 
     @Override

@@ -54,7 +54,7 @@ final class RecordingFileEditorProvider implements FileEditorProvider, DumbAware
 
     @Override
     public @NotNull FileEditor createEditor(@NotNull Project project, @NotNull VirtualFile file) {
-        return new RecordingFileEditor(file);
+        return new RecordingFileEditor(project, file);
     }
 
     @Override

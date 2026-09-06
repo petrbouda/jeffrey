@@ -470,6 +470,17 @@ theme. Swing's HTML engine has no flexbox, grid, `border-radius` or `:hover`, so
 the tiles have square corners; that is the price and it is paid knowingly. Buttons and the progress
 bar stay real Swing between the two panes, because an HTML-drawn button always reads as fake.
 
+The ready state also offers **Analyse with Claude** / **Analyse with Codex**, which send
+`<cli> "Analyse Jeffrey profile <id>"` to a terminal tab. The **profileId, never the file path** —
+neither agent can parse a JFR and Microscope already has — and **no question of its own**: the method
+lives in the `analyze-jfr` skill, whose description fires on that exact phrase, and the panel does not
+know what the developer wants to ask. The agents are a list (`AgentCli.ALL`), not two branches, so the
+next CLI costs a row; an agent missing from `PATH` keeps its button, disabled, so the row looks the
+same on every machine. The Terminal plugin is an **optional** dependency — bundled everywhere but
+switchable off — and `AgentLaunchers` degrades to copying the command instead of losing the feature.
+This is the plugin's one reach outside itself, so it has a switch of its own
+(*Settings → Tools → Jeffrey Plugin*), the way `hubs_` and `ide_` do on the Microscope side.
+
 Two buttons that are deliberately **not** there: *Analyze again* on a ready profile (a recording file
 does not change, so it would only import a second copy and build an identical profile — and a file
 that genuinely changed no longer matches by name and size, so it already comes back as never

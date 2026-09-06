@@ -46,6 +46,7 @@ public final class JeffreySettings implements PersistentStateComponent<JeffreySe
     public static final class State {
         public boolean enabled = true;
         public String microscopeUrl = DEFAULT_MICROSCOPE_URL;
+        public boolean agentsEnabled = true;
     }
 
     private State state = new State();
@@ -67,6 +68,21 @@ public final class JeffreySettings implements PersistentStateComponent<JeffreySe
 
     public boolean isEnabled() {
         return state.enabled;
+    }
+
+    /**
+     * Whether the recording panel offers to hand a profile to a coding agent.
+     *
+     * <p>Has a switch of its own because this is the one thing the plugin does that reaches outside
+     * itself — it starts a process in the developer's shell. {@code hubs_} and {@code ide_} each got a
+     * switch on the Microscope side for the same reason, and this is the same kind of reach.
+     */
+    public boolean areAgentsEnabled() {
+        return state.agentsEnabled;
+    }
+
+    public void setAgentsEnabled(boolean agentsEnabled) {
+        state.agentsEnabled = agentsEnabled;
     }
 
     public void setEnabled(boolean enabled) {

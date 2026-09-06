@@ -44,6 +44,10 @@
                 a line on what the page answers. A ready profile also shows its recording window,
                 sample count, event types, sample loss and the auto-analysis findings. Views the
                 recording has no data for stay visible but dimmed.</li>
+            <li><b>Hand it to a coding agent</b> — one button starts Claude Code or Codex in a
+                terminal with the profile already identified, so the agent reads it through
+                Microscope rather than trying to parse a JFR it cannot open. An agent that is not
+                installed keeps its button, disabled.</li>
             <li><b>Checkout awareness</b> — reports the branch and commit each window is on, so
                 Microscope can warn when a profile describes different code than you have open.</li>
             <li><b>Zero configuration</b> — Microscope discovers the IDE automatically over IntelliJ's
@@ -66,6 +70,9 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.java</depends>
+    <!-- Optional on purpose: the Terminal plugin is bundled everywhere but can be switched off, and
+         the recording panel degrades to copying the agent command rather than losing the feature. -->
+    <depends optional="true" config-file="jeffrey-terminal.xml">org.jetbrains.plugins.terminal</depends>
 
     <actions>
         <action id="cafe.jeffrey.ide.plugin.idea.AnalyzeInMicroscope"
