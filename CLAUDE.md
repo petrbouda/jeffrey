@@ -475,21 +475,57 @@ question is always one more number away, and the answer is the link. All of it c
 call — `GET /api/internal/recordings/by-path` — so the contract the plugin pins is one endpoint rather
 than four, and a figure it shows can only be wrong in one place.
 
-The body is **markup, not layout code**: two `JEditorPane`s wearing the platform's HTML kit
-(`HTMLEditorKitBuilder` + `ExtendableHTMLViewFactory.Extensions.icons`), built by `PanelHtml` with a
-theme-derived stylesheet from `PanelStyles`. Not JCEF — `JBCefApp.isSupported()` is conditional, so a
-browser panel needs a Swing fallback and is therefore built twice, and it inherits none of the IDE's
-theme. Swing's HTML engine has no flexbox, grid, `border-radius` or `:hover`, so layout is tables and
-the tiles have square corners; that is the price and it is paid knowingly. Buttons and the progress
-bar stay real Swing between the two panes, because an HTML-drawn button always reads as fake.
+The body is **a real web page**, rendered in the IDE's bundled Chromium. `RecordingPanel` draws
+nothing: it owns the conversation with Microscope, the state machine over it, and the `PanelActions`
+the page can trigger; a `PanelRenderer` turns that into pixels. `web/CefPanelRenderer` hosts a
+`JBCefBrowser` fed one document by `web/WebPanelHtml` with a stylesheet from `web/WebPanelStyles`,
+which emits the theme exactly once as `:root` custom properties. That is what buys grid, rounded
+corners, `:hover` and a `--u` scale factor for HiDPI — **`--u` carries `px`, and must**, because
+`calc(16*1.0)` is a number rather than a length and CSS drops invalid declarations silently, giving
+an unstyled panel rather than a slightly wrong one.
 
-The ready state also offers **Analyse with Claude** / **Analyse with Codex**, which send
-`<cli> "Analyse Jeffrey profile <id>"` to a terminal tab. The **profileId, never the file path** —
-neither agent can parse a JFR and Microscope already has — and **no question of its own**: the method
-lives in the `analyze-jfr` skill, whose description fires on that exact phrase, and the panel does not
-know what the developer wants to ask. The agents are a list (`AgentCli.ALL`), not two branches, so the
-next CLI costs a row; an agent missing from `PATH` keeps its button, disabled, so the row looks the
-same on every machine. The Terminal plugin is an **optional** dependency — bundled everywhere but
+`SwingPanelRenderer` is the older pane wearing the platform's HTML kit, kept **only** as the fallback
+for where `JBCefApp.isSupported()` says no — a JBR without JCEF, and the JetBrains Client. It costs
+nothing to keep because it is the code that already existed, and it is **not held to visual parity**:
+Swing's engine drops `border-radius`, flexbox and `:hover`, which is the whole reason the other one
+exists. `PanelRenderer` is deliberately **not sealed** — a sealed type may only permit subtypes in its
+own package outside a named module, and the JCEF renderer belongs in `recording.web` beside the
+document it is meaningless without.
+
+Buttons are now **CSS inside the page**, not Swing between two panes, so the row can sit in the
+composition rather than in a frozen horizontal band. Nothing in the document is an `<a href>`: every
+control carries a `data-action`, one delegated listener sends the string over a single `JBCefJSQuery`,
+and a click therefore *cannot* navigate the panel away from itself. Each browser is a Chromium render
+process, so it is a `Disposable` registered with the tab. `RecordingPanel` also subscribes to
+`LafManagerListener` and re-renders — there was no such listener before, and the panel only re-themed
+by accident when the tab was reselected.
+
+Icons are hand-authored inline SVG in `web/PanelSvg`, and that is forced rather than chosen: the
+`<icon src>` extension the Swing kit provides is a Swing view factory and means nothing to Chromium,
+while reaching into `AllIcons` by resource path would pin the plugin to internal paths that move.
+
+The auto-analysis findings are **titled by the rule that fired** — `GC Pauses`, `Thrown Errors` —
+which arrives on `Finding.rule` already. JMC also exposes `IRule.getTopic()` (`garbage_collection`,
+`exceptions`, `lock_instances`), and `AutoAnalysisDataProvider` drops it; grouping findings by
+category would need that field threaded through `AutoAnalysisResult` and the IDE response first.
+
+The accent bar is flame **only when Microscope answered**. Unreachable and failed mute it and the file
+icon, so the panel reads as wrong before a word of it does.
+
+The ready state also hands the profile to a coding agent, sending `<cli> "Analyse Jeffrey profile
+<id>"` to a terminal tab. The **profileId, never the file path** — neither agent can parse a JFR and
+Microscope already has — and **no question of its own**: the method lives in the `analyze-jfr` skill,
+whose description fires on that exact phrase, and the panel does not know what the developer wants to
+ask. The agents are a list (`AgentCli.ALL`), not two branches.
+
+They render as **one split button**, not a button each. The primary half runs `AgentRow.primary()`;
+the chevron holds the rest, grouped into *Ready* and *Not on PATH*. An uninstalled agent stays in that
+menu rather than disappearing — Jeffrey supporting Codex is a fact about Jeffrey, and nobody should
+have to read `AgentCli.ALL` to discover it — but it no longer spends a button on something that cannot
+be pressed, so the row is the same width whether Jeffrey knows two agents or eight. Which agent is
+primary is **the one launched last** (`JeffreySettings.preferredAgent`), falling back to the first
+installed; a split button makes that choice visible, and leaving it to `AgentCli.ALL` declaration order
+would let an unrelated edit to that list silently change what a developer's button does. The Terminal plugin is an **optional** dependency — bundled everywhere but
 switchable off — and `AgentLaunchers` degrades to copying the command instead of losing the feature.
 This is the plugin's one reach outside itself, so it has a switch of its own
 (*Settings → Tools → Jeffrey Plugin*), the way `hubs_` and `ide_` do on the Microscope side.
