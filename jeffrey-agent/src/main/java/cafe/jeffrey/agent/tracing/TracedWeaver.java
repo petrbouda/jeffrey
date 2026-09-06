@@ -22,6 +22,7 @@ import net.bytebuddy.agent.builder.AgentBuilder;
 import net.bytebuddy.agent.builder.ResettableClassFileTransformer;
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.DynamicType;
+import net.bytebuddy.dynamic.loading.ClassInjector;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.utility.JavaModule;
 
@@ -92,6 +93,15 @@ public final class TracedWeaver {
         // add — a class without an annotated method cannot match, the agent's own classes included.
         return new AgentBuilder.Default()
                 .assureReadEdgeFromAndTo(instrumentation, TracedInterceptor.class)
+                // The rebase gives @SuperCall a Callable over the moved body, and that Callable is
+                // an extra class that has to be defined in the woven class's own loader. ByteBuddy
+                // does that by default through ClassLoader#defineClass made accessible, which JDK 26
+                // no longer permits -- weaving there fails with "Reflection-based injection is not
+                // available on the current VM" and every annotated method is silently left alone.
+                // Resolving the injector against the Instrumentation instead opens java.base to
+                // ByteBuddy through redefineModule, which is the one route an agent always has.
+                .with(new AgentBuilder.InjectionStrategy.UsingUnsafe.OfFactory(
+                        ClassInjector.UsingUnsafe.Factory.resolve(instrumentation)))
                 .with(new WeavingListener())
                 .type(declaresMethod(isAnnotatedWith(named(TRACED_ANNOTATION))).and(not(isInterface())))
                 .transform((builder, type, classLoader, module, protectionDomain) -> builder
