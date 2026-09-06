@@ -62,13 +62,14 @@ public class ExternalMcpController extends AbstractMcpStreamableHttpController {
     private final McpRequestGuard guard;
     private final McpServerFeatures features;
 
-    public ExternalMcpController(
-            McpToolsetAssembler assembler,
-            ExternalMcpProperties properties,
-            McpRequestGuard guard) {
-        this(assembler, properties, guard, new McpPromptRegistry());
-    }
-
+    /**
+     * One constructor, deliberately. This class is component-scanned, and Spring picks a constructor
+     * to inject only when there is exactly one — a second, shorter convenience overload made every
+     * candidate ambiguous, so the container fell back to a no-arg constructor that does not exist and
+     * the application failed to start. The prompt registry is a {@code @Bean} in
+     * {@code McpConfiguration} rather than built here for the same reason the toolset is: wiring
+     * belongs in configuration, where it can be seen.
+     */
     public ExternalMcpController(
             McpToolsetAssembler assembler,
             ExternalMcpProperties properties,
