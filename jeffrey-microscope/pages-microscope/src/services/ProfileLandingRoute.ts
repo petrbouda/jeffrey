@@ -37,7 +37,7 @@ const DASHBOARD_SUB_PATH = 'dashboard';
  * with nothing to show. A source that is absent from this map lands on the dashboard.
  */
 const LANDING_SUB_PATHS: ReadonlyMap<string, string> = new Map([
-  [HEAP_DUMP_SOURCE, 'heap-dump/settings'],
+  [HEAP_DUMP_SOURCE, 'heap-dump/overview'],
   [PPROF_SOURCE, 'flamegraphs/primary'],
   [OTEL_SOURCE, 'flamegraphs/primary']
 ]);

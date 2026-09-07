@@ -52,7 +52,7 @@ import java.util.List;
  */
 public class HeapComputeMcpTools {
 
-    private static final String HEAP_VIEW = "heap-dump/settings";
+    private static final String HEAP_VIEW = "heap-dump/overview";
 
     private static final String STEP_STATUS =
             "heap_status reports how far it has got. The stages run in order, and each one's answer "

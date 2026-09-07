@@ -324,10 +324,15 @@ const runtimeRoutes = [
 // Heap dump analysis
 const heapDumpRoutes = [
   {
-    path: 'heap-dump/settings',
-    name: 'profile-heap-dump-settings',
+    path: 'heap-dump/overview',
+    name: 'profile-heap-dump-overview',
     component: () => import('@/views/profiles/detail/ProfileHeapDumpSettings.vue'),
     meta: { layout: 'profile' }
+  },
+  // The overview used to live at heap-dump/settings. Older IDE plugins and bookmarks still say so.
+  {
+    path: 'heap-dump/settings',
+    redirect: { name: 'profile-heap-dump-overview' }
   },
   {
     path: 'heap-dump/histogram',

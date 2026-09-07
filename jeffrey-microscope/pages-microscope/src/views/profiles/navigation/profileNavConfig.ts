@@ -404,7 +404,7 @@ export const profileNavSections: Record<
     {
       title: 'OVERVIEW',
       items: [
-        item('Heap Dump Overview', 'bi-memory', '/heap-dump/settings'),
+        item('Heap Dump Overview', 'bi-memory', '/heap-dump/overview'),
         item('AI Analysis', 'bi-stars', '/heap-dump/ai-analysis', {
           disabledKeys: [HEAP_DUMP_KEY, AI_ANALYSIS_KEY],
           cssClass: AI_ITEM_CLASS

@@ -591,7 +591,7 @@ const selectMode = (mode: ProfileMode) => {
     Traces: `/profiles/${profileId}/traces/operations`,
     Technologies: `/profiles/${profileId}/technologies/hub`,
     Visualization: `/profiles/${profileId}/flamegraphs/primary`,
-    HeapDump: `/profiles/${profileId}/heap-dump/settings`,
+    HeapDump: `/profiles/${profileId}/heap-dump/overview`,
     Tools: `/profiles/${profileId}/tools/rename-frames`
   };
 

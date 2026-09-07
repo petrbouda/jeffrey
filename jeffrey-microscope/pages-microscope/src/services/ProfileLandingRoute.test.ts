@@ -46,7 +46,7 @@ describe('profileLandingRoute', () => {
 
   it('lands a heap dump on its settings page', () => {
     expect(profileLandingRoute(PROFILE_ID, HEAP_DUMP_SOURCE)).toBe(
-      '/profiles/abc123/heap-dump/settings'
+      '/profiles/abc123/heap-dump/overview'
     );
   });
 
