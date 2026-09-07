@@ -381,6 +381,11 @@ public class HubsMcpTools {
         try {
             return resolver.resolveServer(ref.hubId()).info();
         } catch (JeffreyException e) {
+            // The model is told the ref went stale, which is what it can act on. The failure that
+            // actually happened is kept here: without it a hub that is merely unreachable is
+            // indistinguishable, in the logs, from one that was disconnected on purpose.
+            LOG.debug("Hub lookup failed for a session_ref: hub_id={} reason={}",
+                    ref.hubId(), e.getMessage(), e);
             throw staleRef(ref, "its hub is no longer connected to this Jeffrey");
         }
     }
@@ -389,6 +394,8 @@ public class HubsMcpTools {
         try {
             return resolver.resolve(ref.hubId(), ref.workspaceId(), ref.projectId()).projectManager();
         } catch (JeffreyException | StatusRuntimeException e) {
+            LOG.debug("Workspace or project lookup failed for a session_ref: hub_id={} reason={}",
+                    ref.hubId(), e.getMessage(), e);
             throw staleRef(ref, "its workspace or project is no longer there");
         }
     }
@@ -402,6 +409,8 @@ public class HubsMcpTools {
         try {
             session = project.repositoryManager().recordingSession(ref.sessionId());
         } catch (JeffreyException | StatusRuntimeException e) {
+            LOG.debug("Session lookup failed on the hub: hub_id={} session_id={} reason={}",
+                    ref.hubId(), ref.sessionId(), e.getMessage(), e);
             throw staleRef(ref, "hub " + hubInfo.name() + " no longer has it, "
                     + "which usually means retention removed it");
         }

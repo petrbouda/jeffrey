@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,6 +51,7 @@ class JeffreyPluginBridgeTest {
     private static final String BASE_PATH = "/path";
     private static final String IDE_NAME = "IntelliJ IDEA";
     private static final long PID = 9688L;
+    private static final String FQN = "com.example.Foo";
 
     private JeffreyPluginClient client;
     private IdeTargetCache cache;
@@ -188,5 +190,106 @@ class JeffreyPluginBridgeTest {
             assertFalse(result.success());
             assertEquals(IdeFailureReason.UNREACHABLE, result.reason());
         }
+    }
+
+    @Nested
+    class Resolve {
+
+        @Test
+        void answersFromTheCachedPort() {
+            bridge.selectTarget(PROFILE, target(PORT_START));
+            when(client.resolve(eq(PORT_START), any())).thenReturn(resolved());
+
+            IdeResolveResult result = bridge.resolve(resolveRequest());
+
+            assertTrue(result.success());
+            assertEquals("File.java", result.file());
+        }
+
+        /**
+         * A remembered port is a guess about which process is listening there. When the answer says
+         * the endpoint is not served — another IDE took the port, or the developer switched the
+         * integration off — looking again is the same move as for a port that went quiet. It used to
+         * stop here and tell the reader to update a plugin that was current.
+         */
+        @Test
+        void looksAgainWhenTheRememberedPortDoesNotServeResolve() {
+            bridge.selectTarget(PROFILE, target(PORT_START));
+            when(client.resolve(eq(PORT_START), any())).thenThrow(new JeffreyPluginClient.Unsupported());
+            when(client.instance(PORT_END)).thenReturn(Optional.of(instance(PORT_END)));
+            when(client.resolve(eq(PORT_END), any())).thenReturn(resolved());
+
+            IdeResolveResult result = bridge.resolve(resolveRequest());
+
+            assertTrue(result.success());
+            assertEquals(PORT_END, bridge.targetStatus(PROFILE).port());
+        }
+
+        /**
+         * Once the window discovery points at refuses it too, it really is a plugin without the
+         * endpoint, and saying so is the useful answer.
+         */
+        @Test
+        void reportsAnOldPluginWhenTheLiveWindowRefusesToo() {
+            bridge.selectTarget(PROFILE, target(PORT_START));
+            when(client.resolve(eq(PORT_START), any())).thenThrow(new JeffreyPluginClient.Unsupported());
+            when(client.instance(PORT_END)).thenReturn(Optional.of(instance(PORT_END)));
+            when(client.resolve(eq(PORT_END), any())).thenThrow(new JeffreyPluginClient.Unsupported());
+
+            IdeResolveResult result = bridge.resolve(resolveRequest());
+
+            assertFalse(result.success());
+            assertTrue(result.message().toLowerCase(Locale.ROOT).contains("plugin"), result.message());
+        }
+    }
+
+    @Nested
+    class HasClass {
+
+        @Test
+        void asksTheLinkedWindow() {
+            bridge.selectTarget(PROFILE, target(PORT_START));
+            when(client.has(eq(PORT_START), eq(PROJECT_ID), eq(FQN), eq(null))).thenReturn(true);
+
+            assertTrue(bridge.hasClass(PROFILE, FQN));
+        }
+
+        /**
+         * The client answers false both for "the checkout does not have it" and for "nobody answered",
+         * so a no is only believed once a live window has given it. Otherwise a moved port greys out
+         * the buttons for a class that is right there.
+         */
+        @Test
+        void doesNotBelieveANoFromAPortThatMovedOn() {
+            bridge.selectTarget(PROFILE, target(PORT_START));
+            when(client.has(eq(PORT_START), eq(PROJECT_ID), eq(FQN), eq(null))).thenReturn(false);
+            when(client.instance(PORT_END)).thenReturn(Optional.of(instance(PORT_END)));
+            when(client.has(eq(PORT_END), eq(PROJECT_ID), eq(FQN), eq(null))).thenReturn(true);
+
+            assertTrue(bridge.hasClass(PROFILE, FQN));
+        }
+
+        @Test
+        void reportsAClassTheLiveCheckoutDoesNotHave() {
+            bridge.selectTarget(PROFILE, target(PORT_START));
+            when(client.has(eq(PORT_START), eq(PROJECT_ID), eq(FQN), eq(null))).thenReturn(false);
+            when(client.instance(PORT_END)).thenReturn(Optional.of(instance(PORT_END)));
+            when(client.has(eq(PORT_END), eq(PROJECT_ID), eq(FQN), eq(null))).thenReturn(false);
+
+            assertFalse(bridge.hasClass(PROFILE, FQN));
+        }
+
+        /**
+         * Nothing is linked, so there is no checkout to ask. The buttons stay live because pressing
+         * one is how the reader links a window in the first place.
+         */
+        @Test
+        void assumesPresenceWhileNoWindowIsLinked() {
+            assertTrue(bridge.hasClass(PROFILE, FQN));
+        }
+    }
+
+    private static IdeResolveRequest resolveRequest() {
+        return new IdeResolveRequest(PROFILE, FQN, "Foo.bar", 1, null);
     }
 }

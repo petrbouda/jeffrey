@@ -80,7 +80,7 @@ public class IdeMcpTools {
     private static final String NO_IDE_RUNNING =
             "No IntelliJ IDEA window with the Jeffrey plugin is answering on this machine. The plugin "
                     + "is installed from the JetBrains Marketplace as \"Jeffrey Microscope\" and can be "
-                    + "switched off under Settings -> Tools -> Jeffrey Microscope Plugin; a disabled IDE "
+                    + "switched off under Settings -> Tools -> Jeffrey Plugin; a disabled IDE "
                     + "is invisible here. Without one, map frames to code by reading the checkout "
                     + "directly.";
 
@@ -249,10 +249,10 @@ public class IdeMcpTools {
             return unlinked.get();
         }
 
-        // The class stands in for the method: the request carries one because the single-URL bridge
-        // rebuilds a `{fqn}.{method}` path from it and drops the last segment again at the other end.
-        // Passing the class name round-trips to the same class, and there is no method to name here.
-        IdeSourceResult result = ideBridge.fetchSource(new IdeSourceRequest(profileId, fqn, fqn));
+        // No method: this asks for a class, and the field exists only for the single-URL bridge that
+        // addresses source by `{fqn}.{method}`. It used to be required, so this passed the class name
+        // twice to satisfy a field nothing here reads.
+        IdeSourceResult result = ideBridge.fetchSource(new IdeSourceRequest(profileId, fqn, null));
         if (!result.success()) {
             return McpToolOutput.error(result.message());
         }

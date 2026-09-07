@@ -71,8 +71,20 @@ public class AppConfiguration {
 
     private static final Logger LOG = LoggerFactory.getLogger(AppConfiguration.class);
 
-    private static final Duration IDE_CLIENT_CONNECT_TIMEOUT = Duration.ofMillis(100);
-    private static final Duration IDE_CLIENT_READ_TIMEOUT = Duration.ofMillis(200);
+    /**
+     * Discovery walks the whole port range, most of it closed, so both halves are measured in
+     * milliseconds: a scan that waited a second per port would take twenty.
+     */
+    private static final Duration IDE_DISCOVERY_CONNECT_TIMEOUT = Duration.ofMillis(100);
+    private static final Duration IDE_DISCOVERY_READ_TIMEOUT = Duration.ofMillis(200);
+
+    /**
+     * An operation is addressed to a window that has already answered, so connecting is still quick;
+     * what it then does — searching IntelliJ's indexes, reading a whole file — is not, and on a cold
+     * index it is nowhere near a scan's budget.
+     */
+    private static final Duration IDE_OPERATION_CONNECT_TIMEOUT = Duration.ofSeconds(1);
+    private static final Duration IDE_OPERATION_READ_TIMEOUT = Duration.ofSeconds(5);
 
     @Bean
     public Clock applicationClock() {
@@ -105,10 +117,10 @@ public class AppConfiguration {
         return switch (ideMode) {
             case JEFFREY_PLUGIN -> new JeffreyPluginBridge(
                     new PortRange(portStart, portEnd),
-                    new JeffreyPluginClient(ideRestClientBuilder()),
+                    new JeffreyPluginClient(ideDiscoveryClientBuilder(), ideOperationsClientBuilder()),
                     new IdeTargetCache(
                             localCorePersistenceProvider.localCoreRepositories().ideTargetsRepository()));
-            case JFR_PROFILER_PLUGIN -> new JfrProfilerPluginBridge(baseUrl, ideRestClientBuilder());
+            case JFR_PROFILER_PLUGIN -> new JfrProfilerPluginBridge(baseUrl, ideOperationsClientBuilder());
         };
     }
 
@@ -131,14 +143,27 @@ public class AppConfiguration {
     }
 
     /**
-     * Builder for the IDE-plugin REST client, pre-configured with short timeouts so scanning closed
-     * ports stays fast. Returning a {@link RestClient.Builder} (rather than a built client) lets tests
-     * bind a {@code MockRestServiceServer} to the same builder.
+     * Builder for the port scan, with timeouts short enough that a closed port costs almost nothing.
+     * Returning a {@link RestClient.Builder} (rather than a built client) lets tests bind a
+     * {@code MockRestServiceServer} to the same builder.
      */
-    private static RestClient.Builder ideRestClientBuilder() {
+    private static RestClient.Builder ideDiscoveryClientBuilder() {
+        return ideClientBuilder(IDE_DISCOVERY_CONNECT_TIMEOUT, IDE_DISCOVERY_READ_TIMEOUT);
+    }
+
+    /**
+     * Builder for the calls that ask a window to do something. Separate from the scan's because a
+     * resolve on a cold index, or a file handed over whole, does not fit in a scan's budget — and
+     * shared, the timeout turned that into "the IDE window is no longer open".
+     */
+    private static RestClient.Builder ideOperationsClientBuilder() {
+        return ideClientBuilder(IDE_OPERATION_CONNECT_TIMEOUT, IDE_OPERATION_READ_TIMEOUT);
+    }
+
+    private static RestClient.Builder ideClientBuilder(Duration connectTimeout, Duration readTimeout) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(IDE_CLIENT_CONNECT_TIMEOUT);
-        factory.setReadTimeout(IDE_CLIENT_READ_TIMEOUT);
+        factory.setConnectTimeout(connectTimeout);
+        factory.setReadTimeout(readTimeout);
         return RestClient.builder().requestFactory(factory);
     }
 

@@ -26,6 +26,7 @@ import org.springframework.web.client.RestClientResponseException;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Thin HTTP client for a single Jeffrey IntelliJ plugin instance, addressed by port on localhost
@@ -33,26 +34,43 @@ import java.util.Optional;
  * an error response yields an empty/failed result rather than an exception, so callers can probe the
  * whole port range cheaply.
  *
- * <p>The {@link RestClient} is built from a {@link RestClient.Builder} supplied by the configuration
- * (which sets the scan-friendly timeouts). Injecting the builder lets tests bind a Spring
- * {@code MockRestServiceServer} to it.
+ * <p>Two clients, not one, because the two things this class does have nothing in common but their
+ * host. Discovery walks twenty-one closed ports and must give up on each in milliseconds; an
+ * operation asks IntelliJ to search its indexes for a class or to hand over a whole file, which on a
+ * cold index takes longer than any scan should ever wait. Sharing one two-hundred-millisecond read
+ * timeout between them meant a slow but perfectly healthy resolve came back as {@code null} and was
+ * reported to the reader as "the IDE window is no longer open".
+ *
+ * <p>Both are built from {@link RestClient.Builder}s supplied by the configuration. Injecting the
+ * builders lets tests bind a Spring {@code MockRestServiceServer} to either one.
  */
 public final class JeffreyPluginClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(JeffreyPluginClient.class);
 
     private static final String HOST = "127.0.0.1";
+
+    /**
+     * The answers that mean "this server does not have that endpoint" rather than "that endpoint
+     * failed": the route is missing, or it exists for another method.
+     */
+    private static final Set<Integer> ENDPOINT_ABSENT_STATUSES = Set.of(404, 405);
     private static final String BASE = "http://" + HOST + ":{port}/api/jeffrey/";
 
-    private final RestClient restClient;
+    /** Walks the port range: everything here must fail fast on a closed port. */
+    private final RestClient discoveryClient;
 
-    public JeffreyPluginClient(RestClient.Builder restClientBuilder) {
-        this.restClient = restClientBuilder.build();
+    /** Asks a window that answered to do real work, which is allowed to take its time. */
+    private final RestClient operationsClient;
+
+    public JeffreyPluginClient(RestClient.Builder discoveryBuilder, RestClient.Builder operationsBuilder) {
+        this.discoveryClient = discoveryBuilder.build();
+        this.operationsClient = operationsBuilder.build();
     }
 
     public Optional<PluginInstance> instance(int port) {
         try {
-            PluginInstance instance = restClient.get()
+            PluginInstance instance = discoveryClient.get()
                     .uri(BASE + "instance", port)
                     .retrieve()
                     .body(PluginInstance.class);
@@ -71,11 +89,11 @@ public final class JeffreyPluginClient {
     public boolean has(int port, String projectId, String className, String methodName) {
         try {
             PluginHas result = (methodName == null || methodName.isBlank())
-                    ? restClient.get()
+                    ? discoveryClient.get()
                             .uri(BASE + "has?class={class}&projectId={projectId}", port, className, projectId)
                             .retrieve()
                             .body(PluginHas.class)
-                    : restClient.get()
+                    : discoveryClient.get()
                             .uri(BASE + "has?class={class}&method={method}&projectId={projectId}",
                                     port, className, methodName, projectId)
                             .retrieve()
@@ -89,7 +107,7 @@ public final class JeffreyPluginClient {
 
     public PluginNavigateResult navigate(int port, NavigateBody body) {
         try {
-            return restClient.post()
+            return operationsClient.post()
                     .uri(BASE + "navigate", port)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
@@ -109,19 +127,28 @@ public final class JeffreyPluginClient {
      * <p>A plugin too old to know the endpoint answers rather than staying silent, and that is worth
      * telling apart from an IDE that has gone away: {@link Unsupported} is thrown for the first so the
      * caller can say "update the plugin" instead of "the IDE is not running".
+     *
+     * <p>Only a 404 or a 405 means that, though. The plugin also answers 404 when its integration is
+     * switched off, and 500 when a lookup threw inside the IDE — reading either as "too old" told a
+     * developer to update a plugin that was current, and hid the switch they had flipped. Those are
+     * reported as an unavailable window, the same as an unreachable port; the 404 case is
+     * indistinguishable from an old plugin on the wire, and re-discovery is what tells them apart.
      */
     public PluginNavigateResult resolve(int port, NavigateBody body) {
         try {
-            return restClient.post()
+            return operationsClient.post()
                     .uri(BASE + "resolve", port)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
                     .body(PluginNavigateResult.class);
         } catch (RestClientResponseException e) {
-            // The plugin answered and refused: it is running, it simply predates this endpoint.
-            LOG.debug("IDE plugin does not serve resolve: port={} status={}", port, e.getStatusCode());
-            throw new Unsupported();
+            if (ENDPOINT_ABSENT_STATUSES.contains(e.getStatusCode().value())) {
+                LOG.debug("IDE plugin does not serve resolve: port={} status={}", port, e.getStatusCode());
+                throw new Unsupported();
+            }
+            LOG.warn("IDE plugin refused a resolve: port={} status={}", port, e.getStatusCode());
+            return null;
         } catch (Exception e) {
             LOG.warn("Failed to resolve a location via IDE plugin: port={} reason={}", port, e.getMessage());
             return null;
@@ -130,7 +157,7 @@ public final class JeffreyPluginClient {
 
     public PluginSourceResult source(int port, String projectId, String className) {
         try {
-            return restClient.get()
+            return operationsClient.get()
                     .uri(BASE + "source?projectId={projectId}&className={className}", port, projectId, className)
                     .retrieve()
                     .body(PluginSourceResult.class);

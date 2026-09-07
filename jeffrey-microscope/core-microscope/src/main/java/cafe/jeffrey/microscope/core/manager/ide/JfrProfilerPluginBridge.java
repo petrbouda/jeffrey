@@ -144,6 +144,20 @@ public class JfrProfilerPluginBridge implements IdeBridge {
      * endpoint. Like {@link #open(IdeOpenRequest)} this is best-effort: an offline plugin or a class
      * the plugin cannot resolve yields a failed {@link IdeSourceResult} rather than an exception.
      */
+    /**
+     * This bridge addresses source by {@code {fqn}.{method}}, so it is the one that has to insist on a
+     * method. The request itself no longer does: the first-party bridge asks the plugin for a class
+     * and has none to give, and requiring one there made its callers invent it.
+     */
+    private static String requireMethod(IdeSourceRequest request) {
+        if (request.method() == null || request.method().isBlank()) {
+            throw new IllegalArgumentException(
+                    "method is required by the jfr-profiler-plugin bridge, which addresses source "
+                            + "by {fqn}.{method}");
+        }
+        return request.method();
+    }
+
     @Override
     public IdeSourceResult fetchSource(IdeSourceRequest request) {
         if (baseUrl == null) {
@@ -151,7 +165,7 @@ public class JfrProfilerPluginBridge implements IdeBridge {
             return IdeSourceResult.failed(MSG_NO_BASE_URL);
         }
 
-        String url = baseUrl + IDE_PATH_PREFIX + buildEncodedPath(request.fqn(), request.method());
+        String url = baseUrl + IDE_PATH_PREFIX + buildEncodedPath(request.fqn(), requireMethod(request));
         try {
             ResponseEntity<String> response = restClient.get()
                     .uri(URI.create(url))
