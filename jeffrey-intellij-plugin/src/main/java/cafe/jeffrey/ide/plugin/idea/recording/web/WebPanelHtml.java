@@ -84,10 +84,11 @@ public final class WebPanelHtml {
     private static final String NOT_COMPUTED = "Not computed for this profile yet.";
 
     /**
-     * Said while the rule set is still running. No link beside it, deliberately: the analysis it
-     * would offer to start is the one already under way.
+     * Said while the rule set is still running. The message beside it is {@link #BUILDING_EXPLAINS},
+     * which is true however the run started -- the profile's warm-up, or Microscope's own Auto
+     * Analysis page -- and says the thing the reader needs, which is that nobody has to do anything.
      */
-    private static final String ANALYSIS_RUNNING = "Computing the auto-analysis\u2026";
+    private static final String ANALYSIS_RUNNING_TITLE = "Running the analysis rules";
 
     /** A recording the rules cleared. A result, and until now reported as an absence. */
     private static final String NOTHING_FLAGGED = "Nothing flagged.";
@@ -262,6 +263,27 @@ public final class WebPanelHtml {
                 + "</div>";
     }
 
+    /**
+     * Work in progress that cannot say how far along it is: the same box as
+     * {@link #progressCallout}, with the bar left indeterminate.
+     *
+     * <p>A sibling rather than a nullable {@link PipelineBuild} threaded through that method. The
+     * auto analysis has no stages and no progress endpoint -- there is nothing to report about it but
+     * that it is running -- and the one thing this box must not do is draw a determinate bar, which
+     * would sit frozen at zero for the whole wait.
+     *
+     * <p>It carries no action, unlike every other callout. The only one worth offering would start
+     * the run that is already going.
+     */
+    private static String waitingCallout(String title, String message) {
+        return "<div class='callout'>"
+                + "<div class='iw'>" + PanelSvg.spinner() + "</div>"
+                + "<div class='grow'><div class='t'>" + title + "</div>"
+                + "<div class='m'>" + message + "</div>"
+                + "<div class='prog'><i></i></div>"
+                + "</div></div>";
+    }
+
     private static String recordingFigures(RecordingState.RecordingFigures figures) {
         if (figures == null) {
             return "";
@@ -317,11 +339,9 @@ public final class WebPanelHtml {
             // rendering bug rather than as missing data.
             html.append("</div>");
             if (summary.analysisPossible()) {
-                // Still coming. The panel is re-asking, so this line is replaced by the findings
-                // rather than by the reader pressing anything -- which is why it offers nothing to
-                // press.
-                return html.append("<div class='aa-wait'>").append(PanelSvg.spinner())
-                        .append("<span>").append(ANALYSIS_RUNNING).append("</span></div>").toString();
+                // Still coming. The same box the panel uses for the two pipelines, because this is
+                // the same thing happening: Microscope is working, and the tab will update itself.
+                return html.append(waitingCallout(ANALYSIS_RUNNING_TITLE, BUILDING_EXPLAINS)).toString();
             }
             return html.append("<p class='aa-none'>").append(NOT_COMPUTED).append(" ")
                     .append(viewLink(ProfileView.AUTO_ANALYSIS.path(), "Run it in Microscope"))

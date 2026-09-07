@@ -117,8 +117,13 @@ public class WebPanelHtmlTest {
                 null, false, true, List.of(), List.of())));
 
         assertTrue(html.contains("Auto-analysis"));
-        assertTrue(html.contains("Computing the auto-analysis"));
+        assertTrue(html.contains("Running the analysis rules"));
+        assertTrue("the same box the pipelines use", html.contains("class='callout'"));
         assertTrue("the wait carries a spinner", html.contains("class='spin'"));
+        // Indeterminate on purpose: there are no stages to count, and the determinate bar would sit
+        // frozen at zero for the whole wait.
+        assertTrue(html.contains("<div class='prog'><i></i></div>"));
+        assertFalse("the bar cannot report a fraction it does not have", html.contains("prog det"));
         assertFalse(html.contains("Not computed for this profile yet."));
         // The section offers no link of its own -- the run it would start is already going. The
         // auto-analysis tile in the grid below is a different thing and stays where it is.
@@ -136,7 +141,7 @@ public class WebPanelHtmlTest {
         assertTrue(html.contains("Nothing flagged."));
         assertTrue(html.contains("0 findings"));
         assertFalse(html.contains("Not computed for this profile yet."));
-        assertFalse(html.contains("Computing the auto-analysis"));
+        assertFalse(html.contains("Running the analysis rules"));
     }
 
     @Test
