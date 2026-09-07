@@ -28,6 +28,7 @@ import com.intellij.ide.impl.ProjectUtil;
 import com.intellij.ide.trustedProjects.TrustedProjects;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiClass;
@@ -50,6 +51,17 @@ import java.time.Instant;
  * acts on it, and both report it in the same shape so Microscope parses one thing.
  */
 public final class Navigator {
+
+    private static final String REASON_PROJECT_NOT_FOUND = "project-not-found";
+    private static final String REASON_PROJECT_NOT_TRUSTED = "project-not-trusted";
+    private static final String REASON_CLASS_NOT_FOUND = "class-not-found";
+
+    /**
+     * The IDE is still building its indexes, so the lookup cannot be made yet. Said rather than
+     * attempted: a PSI search during dumb mode throws IndexNotReadyException, which left the caller
+     * with a 500 and no idea that waiting a minute would have answered the question.
+     */
+    private static final String REASON_INDEXING = "indexing";
 
     private static final long STALE_THRESHOLD_MILLIS = 86_400_000L; // 1 day
     private static final String CLASS_EXTENSION = "class";
@@ -88,10 +100,13 @@ public final class Navigator {
     private static Located locate(NavigateRequest req) {
         Project project = ProjectRegistry.findProject(req.projectId());
         if (project == null) {
-            return Located.notResolved("project-not-found");
+            return Located.notResolved(REASON_PROJECT_NOT_FOUND);
         }
         if (!TrustedProjects.isProjectTrusted(project)) {
-            return Located.notResolved("project-not-trusted");
+            return Located.notResolved(REASON_PROJECT_NOT_TRUSTED);
+        }
+        if (DumbService.isDumb(project)) {
+            return Located.notResolved(REASON_INDEXING);
         }
 
         Navigation nav = ResolverDispatcher.resolve(project, req);
@@ -119,16 +134,19 @@ public final class Navigator {
 
     public static SourceResponse fetchSource(Project project, String className) {
         if (project == null) {
-            return SourceResponse.notResolved("project-not-found");
+            return SourceResponse.notResolved(REASON_PROJECT_NOT_FOUND);
         }
         if (!TrustedProjects.isProjectTrusted(project)) {
-            return SourceResponse.notResolved("project-not-trusted");
+            return SourceResponse.notResolved(REASON_PROJECT_NOT_TRUSTED);
+        }
+        if (DumbService.isDumb(project)) {
+            return SourceResponse.notResolved(REASON_INDEXING);
         }
         return ReadAction.compute(() -> {
             PsiClass psiClass = ClassUtil.findPsiClass(
                     PsiManager.getInstance(project), className, null, true, GlobalSearchScope.allScope(project));
             if (psiClass == null) {
-                return SourceResponse.notResolved("class-not-found");
+                return SourceResponse.notResolved(REASON_CLASS_NOT_FOUND);
             }
             // Prefer attached sources over the decompiled .class: getNavigationElement() returns the
             // source element when sources are attached, and the compiled element itself otherwise.

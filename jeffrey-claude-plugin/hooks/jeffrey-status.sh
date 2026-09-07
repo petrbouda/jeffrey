@@ -15,7 +15,13 @@
 
 set -uo pipefail
 
-ENDPOINT="${JEFFREY_MCP_ENDPOINT:-http://localhost:8585/api/internal/mcp}"
+# The endpoint the reader configured, then their own override, then the default. The first is what
+# `/plugin` writes for this plugin's endpoint_url setting: Claude Code exports every user config
+# value as CLAUDE_PLUGIN_OPTION_<KEY>, which is how a shell-form hook reads one (${user_config.*}
+# interpolates in exec form only). Without it a reader who moved Jeffrey to another port got working
+# tools and a hook still probing 8585, which opened every session by announcing that the server they
+# were about to use was not answering.
+ENDPOINT="${CLAUDE_PLUGIN_OPTION_ENDPOINT_URL:-${JEFFREY_MCP_ENDPOINT:-http://localhost:8585/api/internal/mcp}}"
 
 if ! command -v curl >/dev/null 2>&1; then
   exit 0

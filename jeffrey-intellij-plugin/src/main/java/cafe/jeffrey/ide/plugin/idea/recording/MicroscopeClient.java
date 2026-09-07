@@ -42,7 +42,7 @@ import java.time.Duration;
  * <p>No IntelliJ types beyond the logger, so the wire handling can be tested against a plain
  * {@code HttpServer}. Every method blocks; callers run them off the EDT.
  */
-public final class MicroscopeClient {
+public final class MicroscopeClient implements AutoCloseable {
 
     private static final Logger LOG = Logger.getInstance(MicroscopeClient.class);
 
@@ -75,6 +75,11 @@ public final class MicroscopeClient {
 
     private static final int HTTP_OK_MIN = 200;
     private static final int HTTP_OK_MAX = 299;
+
+    private static final String HEADER_CONTENT_TYPE = "Content-Type";
+    private static final String CONTENT_TYPE_JSON = "application/json";
+    private static final String FIELD_PATH = "\"path\":";
+    private static final String PATH_SEPARATOR = "/";
 
     private final HttpClient httpClient;
     private final String baseUrl;
@@ -126,10 +131,10 @@ public final class MicroscopeClient {
     }
 
     public String importFromPath(Path file) throws IOException, InterruptedException {
-        String body = "{\"path\":" + quote(file.toAbsolutePath().toString()) + "}";
+        String body = "{" + FIELD_PATH + quote(file.toAbsolutePath().toString()) + "}";
         HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + FROM_PATH))
                 .timeout(QUERY_TIMEOUT)
-                .header("Content-Type", "application/json")
+                .header(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON)
                 .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
                 .build();
 
@@ -240,9 +245,20 @@ public final class MicroscopeClient {
         return quoted.append('"').toString();
     }
 
+    /**
+     * Releases the connection pool and the selector thread behind it.
+     * <p>
+     * A panel builds one of these per settings change, so a developer correcting a typed URL used to
+     * leave a thread and a pool behind for every attempt, for as long as the IDE ran.
+     */
+    @Override
+    public void close() {
+        httpClient.close();
+    }
+
     private static String trimTrailingSlash(String url) {
         String trimmed = url == null ? "" : url.trim();
-        while (trimmed.endsWith("/")) {
+        while (trimmed.endsWith(PATH_SEPARATOR)) {
             trimmed = trimmed.substring(0, trimmed.length() - 1);
         }
         return trimmed;

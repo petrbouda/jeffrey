@@ -64,6 +64,13 @@ final class MicroscopeJson {
     private static final String STAGE_FAILED = "failed";
 
     /**
+     * A stage that ran to a decision that there was nothing to do. It is finished, like a completed
+     * one, and counting it as neither made the line under-report both the stage number and the time
+     * behind it for the whole rest of the run.
+     */
+    private static final String STAGE_SKIPPED = "skipped";
+
+    /**
      * The heap pipeline's progress as one line, or {@code null} when there is no build to draw — the
      * pipeline is idle, or it completed, and either way the panel's next move is to ask for the
      * profile again.
@@ -92,7 +99,7 @@ final class MicroscopeJson {
                 }
                 JsonObject stage = element.getAsJsonObject();
                 String status = string(stage, "status");
-                if (STAGE_COMPLETED.equals(status)) {
+                if (STAGE_COMPLETED.equals(status) || STAGE_SKIPPED.equals(status)) {
                     completed++;
                     elapsed += longOr(stage, "durationMs", 0L);
                 } else if (STAGE_IN_PROGRESS.equals(status) || STAGE_FAILED.equals(status)) {

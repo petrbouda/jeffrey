@@ -205,8 +205,15 @@ public record RecordingState(
 
     public record Finding(String rule, String severity, String summary) {
 
+        /**
+         * The severity the auto-analysis reports for a finding worth colouring. It is an enum name on
+         * the wire, from AutoAnalysisResult, which is why it is spelled once here rather than at the
+         * comparison.
+         */
+        private static final String SEVERITY_WARNING = "WARNING";
+
         public boolean isWarning() {
-            return "WARNING".equals(severity);
+            return SEVERITY_WARNING.equals(severity);
         }
     }
 

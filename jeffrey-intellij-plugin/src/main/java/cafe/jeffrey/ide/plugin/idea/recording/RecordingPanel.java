@@ -36,6 +36,7 @@ import com.intellij.util.concurrency.AppExecutorUtil;
 import javax.swing.JComponent;
 import java.awt.BorderLayout;
 import java.nio.file.Path;
+import java.util.function.Consumer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -144,7 +145,9 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
 
     /** Re-reads the Microscope address, so a corrected URL takes effect without reopening the tab. */
     public void refresh() {
+        MicroscopeClient previous = client;
         client = new MicroscopeClient(JeffreySettings.getInstance().microscopeUrl());
+        previous.close();
         renderer.showLoading();
         query();
     }
@@ -152,6 +155,7 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
     @Override
     public void dispose() {
         disposed = true;
+        client.close();
     }
 
     /**
@@ -380,7 +384,7 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
      * Resolves the profile the panel last saw, rather than one captured when the document was drawn,
      * so a stale page cannot outlive the profile it described.
      */
-    private void withProfile(java.util.function.Consumer<RecordingState> onProfile) {
+    private void withProfile(Consumer<RecordingState> onProfile) {
         AppExecutorUtil.getAppExecutorService().execute(() -> {
             RecordingState state = client.state(file);
             if (state.profileId() == null) {

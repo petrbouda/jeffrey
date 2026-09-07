@@ -474,7 +474,14 @@ for a dump), because the bare `/profiles/{id}` URL redirects to the JFR dashboar
 `ProfileDetail` bounces a heap-dump-only profile off any non-HeapDump path for the same reason. A dump whose index has not been
 built reports `cacheReady: false`, and the panel says so rather than printing four zeroes — in a
 callout with a *Build index* button, the second thing after *Analyze* the panel can make Microscope
-do. `RecordingPanel.buildIndex` posts `heap/initialize-all` and then polls
+do. The **profile view paths those tiles link to** are routes in Microscope's Vue router, a build this one
+cannot see, so the frontend commits `src/router/profile-routes.json` — generated from
+`profileChildRoutes.ts` by a Vitest snapshot, so it cannot go stale — and the plugin's Gradle build
+copies it in as a test resource. `ProfileRouteManifestTest` then fails when a tile names a path the
+router does not serve, which is how one spent a release landing readers on the recordings list
+instead: the router's catch-all makes a wrong path look like a working link to the wrong page.
+
+`RecordingPanel.buildIndex` posts `heap/initialize-all` and then polls
 `heap/init-progress` every two seconds (the API is mounted at `/heap`; `heap-dump` is the UI route prefix), redrawing the callout as the one line
 `HeapIndexBuild` reduces the 13-stage pipeline to (stage N of M, its title, time so far); `query()`
 makes the same progress check for an un-indexed dump so a tab opened mid-build follows it instead of

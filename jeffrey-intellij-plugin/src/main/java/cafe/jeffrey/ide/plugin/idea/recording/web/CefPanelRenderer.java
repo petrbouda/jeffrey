@@ -34,6 +34,7 @@ import com.intellij.ui.jcef.JBCefBrowserBase;
 import com.intellij.ui.jcef.JBCefJSQuery;
 import com.intellij.util.ui.UIUtil;
 
+import java.util.function.Supplier;
 import javax.swing.JComponent;
 import java.nio.file.Path;
 
@@ -144,7 +145,7 @@ public final class CefPanelRenderer implements PanelRenderer, Disposable {
      * <p>The supplier rather than the string, because a redraw after a theme change has to rebuild the
      * stylesheet from the new look and feel — replaying the old string would replay the old colours.
      */
-    private void load(java.util.function.Supplier<String> document) {
+    private void load(Supplier<String> document) {
         lastRender = () -> browser.loadHTML(document.get());
         lastRender.run();
     }

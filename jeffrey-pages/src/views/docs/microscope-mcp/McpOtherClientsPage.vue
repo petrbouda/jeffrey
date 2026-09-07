@@ -191,7 +191,7 @@ const protocolError = `{
       <DocsCodeBlock :code="resourcesCall" language="bash" />
 
       <h2 id="the-wire-protocol">The Wire Protocol</h2>
-      <p>Whatever the client, the endpoint is plain <strong>JSON-RPC 2.0 over HTTP POST</strong>. No SSE stream, no session header, no handshake beyond what the protocol requires. A <code>GET</code> on the endpoint answers <code>405</code>, which is what the MCP specification prescribes for a server that does not offer the optional server-to-client stream &mdash; a client that treats that as fatal rather than as the documented refusal is at fault.</p>
+      <p>Whatever the client, the endpoint is plain <strong>JSON-RPC 2.0 over HTTP POST</strong>. No SSE stream, no session header, no handshake beyond what the protocol requires. A <code>GET</code> on the endpoint answers <code>405</code>, which is what the MCP specification prescribes for a server that does not offer the optional server-to-client stream &mdash; a client that treats that as fatal rather than as the documented refusal is at fault. A client that sends its negotiated <code>MCP-Protocol-Version</code> header on later requests is held to it: a revision this server does not implement is refused with <code>400</code> rather than half-served.</p>
 
       <table>
         <thead>
@@ -229,13 +229,17 @@ const protocolError = `{
             <td><code>notifications/*</code></td>
             <td>Accepted and acknowledged with no body, per JSON-RPC</td>
           </tr>
+          <tr>
+            <td>A batch (a JSON array of requests)</td>
+            <td>Answered with an array holding one response per request that carried an <code>id</code>, in order; <code>202</code> with no body when every element was a notification</td>
+          </tr>
         </tbody>
       </table>
 
       <p>The server speaks <code>2024-11-05</code>, <code>2025-03-26</code> and <code>2025-06-18</code>, and <code>2025-06-18</code> is the default. <code>initialize</code> answers with the version the client asked for when it is one of those three, and with the default when it is not &mdash; echoing back an unrecognised version would promise a revision the server may not speak, so the client is told what it will actually get and decides from there.</p>
 
       <DocsCallout type="info" title="Every tool says whether it writes">
-        Each spec in <code>tools/list</code> carries MCP <code>annotations</code>: <code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code> and <code>openWorldHint</code>. Almost everything Jeffrey exposes only reads a profile, and declares it. What does not is the <code>recordings_</code> family, which creates a profile, and <code>heap_prepare</code>, which builds a cache. <code>destructiveHint</code> is false throughout &mdash; nothing here deletes a profile, a recording or a dump &mdash; and <code>openWorldHint</code> marks the <code>hubs_</code> family, the only one that reaches a machine other than this installation. A client that gates approval on those hints does not need a hand-written deny-list.
+        Each spec in <code>tools/list</code> carries MCP <code>annotations</code>: <code>readOnlyHint</code>, <code>destructiveHint</code>, <code>idempotentHint</code> and <code>openWorldHint</code>. Almost everything Jeffrey exposes only reads a profile, and declares it. Five tools do not: the <code>recordings_</code> family, which creates a profile, <code>heap_prepare</code>, which builds a cache, <code>hubs_download</code>, which pulls a recording off another machine and creates one here, and <code>ide_link</code> and <code>ide_open</code>, which act on the editor running beside Jeffrey. <code>destructiveHint</code> is false throughout &mdash; nothing here deletes a profile, a recording or a dump &mdash; and <code>openWorldHint</code> marks the <code>hubs_</code> and <code>ide_</code> families, the two that reach outside this installation. A client that gates approval on those hints does not need a hand-written deny-list.
       </DocsCallout>
 
       <h2 id="a-session-by-hand">A Session by Hand</h2>
@@ -253,17 +257,20 @@ const protocolError = `{
       <h2 id="errors">Errors</h2>
       <p>Everything answers HTTP <code>200</code>. There are two distinct failure shapes, and a client has to read both.</p>
 
-      <p><strong>A tool that failed</strong> is still a <em>successful</em> JSON-RPC call: the result carries <code>isError: true</code> and the message as text content. An unknown tool name, a bad argument, and a profile with no heap dump all land here.</p>
+      <p><strong>A tool that ran and failed</strong> is still a <em>successful</em> JSON-RPC call: the result carries <code>isError: true</code> and the message as text content. A profile with no heap dump, a query that matched nothing, a hub that stopped answering &mdash; anything the model is meant to read and try differently &mdash; lands here.</p>
       <DocsCodeBlock :code="toolError" language="json" />
 
       <p>This is what MCP specifies, and it is deliberate &mdash; the message is written for a model to act on. A profile with no heap dump, for instance, names the families to use instead.</p>
+
+      <p>A call that never reached a tool is <em>not</em> this. An unknown tool name, an argument the schema does not accept, and a missing required argument come back as protocol errors instead, so a client can tell &ldquo;that tool does not exist&rdquo; from &ldquo;the analysis found nothing&rdquo;.</p>
 
       <p><strong>A protocol-level failure</strong> is a real JSON-RPC error object:</p>
       <DocsCodeBlock :code="protocolError" language="json" />
 
       <ul>
         <li><code>-32601</code> &mdash; unknown method</li>
-        <li><code>-32602</code> &mdash; invalid params, rejected before the tool ran</li>
+        <li><code>-32600</code> &mdash; the body is not a JSON-RPC request: not an object, an empty batch, or no method named</li>
+        <li><code>-32602</code> &mdash; invalid params, rejected before the tool ran: an unknown tool name, a missing required argument, or a value outside what the schema allows</li>
         <li><code>-32603</code> &mdash; an internal failure outside the tool call</li>
       </ul>
 

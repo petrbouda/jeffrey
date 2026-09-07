@@ -66,7 +66,9 @@ public class RecordingAnalysisController {
      *
      * <p>Read-only: a path Microscope has never seen answers {@code NOT_IMPORTED} rather than being
      * imported as a side effect of being asked about. Importing stays an explicit
-     * {@code POST /from-path}, because it copies the file into Microscope's storage.
+     * {@code POST /api/internal/recordings/from-path} — served by {@code RecordingsController} in the
+     * workspaces module, not by this one, though the two share a base path — because it copies the
+     * file into Microscope's storage.
      */
     @GetMapping(value = "/by-path", produces = MediaType.APPLICATION_JSON_VALUE)
     public IdeRecordingStateResponse byPath(

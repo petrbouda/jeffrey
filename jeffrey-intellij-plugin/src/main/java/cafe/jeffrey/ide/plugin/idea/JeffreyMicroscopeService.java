@@ -19,9 +19,11 @@
 package cafe.jeffrey.ide.plugin.idea;
 
 import cafe.jeffrey.ide.plugin.idea.dto.NavigateRequest;
+import com.google.gson.JsonParseException;
 import cafe.jeffrey.ide.plugin.idea.resolver.JavaResolver;
 import cafe.jeffrey.ide.plugin.idea.settings.JeffreySettings;
 import cafe.jeffrey.ide.plugin.idea.util.Json;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.io.BufferExposingByteArrayOutputStream;
 import io.netty.channel.ChannelHandlerContext;
@@ -38,6 +40,7 @@ import org.jetbrains.ide.RestService;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 /**
  * HTTP entry point for the Jeffrey Microscope integration, served over IntelliJ's built-in Netty
@@ -61,6 +64,8 @@ public final class JeffreyMicroscopeService extends RestService {
      */
     static final int PROTOCOL_VERSION = 2;
 
+    private static final Logger LOG = Logger.getInstance(JeffreyMicroscopeService.class);
+
     private static final String SERVICE_NAME = "jeffrey";
 
     private static final String PATH_PING = "ping";
@@ -69,6 +74,20 @@ public final class JeffreyMicroscopeService extends RestService {
     private static final String PATH_RESOLVE = "resolve";
     private static final String PATH_HAS = "has";
     private static final String PATH_SOURCE = "source";
+
+    /**
+     * Which method each endpoint answers on. The platform asks {@link #isMethodSupported} about the
+     * request before it ever reaches {@code execute}, and that question has no path in it, so without
+     * this table a GET on {@code navigate} reached the body parser with an empty string and came back
+     * as a 500 — a malformed request reported as a broken plugin.
+     */
+    private static final Map<String, HttpMethod> METHODS_BY_PATH = Map.of(
+            PATH_PING, HttpMethod.GET,
+            PATH_INSTANCE, HttpMethod.GET,
+            PATH_NAVIGATE, HttpMethod.POST,
+            PATH_RESOLVE, HttpMethod.POST,
+            PATH_HAS, HttpMethod.GET,
+            PATH_SOURCE, HttpMethod.GET);
 
     private static final String PARAM_CLASS = "class";
     private static final String PARAM_METHOD = "method";
@@ -107,16 +126,34 @@ public final class JeffreyMicroscopeService extends RestService {
             return null;
         }
 
-        switch (subPath(urlDecoder.path())) {
-            case PATH_PING -> sendJson(Json.ping(PROTOCOL_VERSION), request, context);
-            case PATH_INSTANCE -> sendJson(Json.instance(ProjectRegistry.getInstance().currentInstance()), request, context);
-            case PATH_NAVIGATE -> handleNavigate(request, context);
-            case PATH_RESOLVE -> handleResolve(request, context);
-            case PATH_HAS -> handleHas(urlDecoder, request, context);
-            case PATH_SOURCE -> handleSource(urlDecoder, request, context);
-            default -> {
-                return "Unknown Jeffrey endpoint";
+        String path = subPath(urlDecoder.path());
+        HttpMethod expected = METHODS_BY_PATH.get(path);
+        if (expected == null) {
+            return "Unknown Jeffrey endpoint";
+        }
+        if (!expected.equals(request.method())) {
+            sendStatus(HttpResponseStatus.METHOD_NOT_ALLOWED, HttpUtil.isKeepAlive(request), context.channel());
+            return null;
+        }
+
+        try {
+            switch (path) {
+                case PATH_PING -> sendJson(Json.ping(PROTOCOL_VERSION), request, context);
+                case PATH_INSTANCE ->
+                        sendJson(Json.instance(ProjectRegistry.getInstance().currentInstance()), request, context);
+                case PATH_NAVIGATE -> handleNavigate(request, context);
+                case PATH_RESOLVE -> handleResolve(request, context);
+                case PATH_HAS -> handleHas(urlDecoder, request, context);
+                case PATH_SOURCE -> handleSource(urlDecoder, request, context);
+                default -> {
+                    return "Unknown Jeffrey endpoint";
+                }
             }
+        } catch (JsonParseException | IllegalStateException | IllegalArgumentException e) {
+            // A body this endpoint could not read. Reported as the client's mistake rather than as a
+            // 500, which Microscope reads as the window having failed and repeats the whole scan over.
+            LOG.debug("Refused a malformed Jeffrey request: path=" + path, e);
+            sendStatus(HttpResponseStatus.BAD_REQUEST, HttpUtil.isKeepAlive(request), context.channel());
         }
         return null;
     }

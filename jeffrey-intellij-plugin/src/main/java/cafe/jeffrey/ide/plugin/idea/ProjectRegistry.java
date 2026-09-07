@@ -31,7 +31,7 @@ import com.intellij.openapi.wm.WindowManager;
 import org.jetbrains.ide.BuiltInServerManager;
 
 import java.awt.Window;
-import java.time.Instant;
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -46,7 +46,24 @@ import java.util.UUID;
 public final class ProjectRegistry {
 
     private final String instanceId = UUID.randomUUID().toString();
-    private final String startedAt = Instant.now().toString();
+    /**
+     * When this IDE's integration came up, reported by {@code instance} so Microscope can tell a
+     * restarted window from the one it remembered.
+     * <p>
+     * The clock is a field rather than a call to {@code Instant.now()} so a test can fix it. There is
+     * no injection point here — the platform constructs an application service itself — so it defaults
+     * to the system clock and is replaced through the package-private constructor.
+     */
+    private final String startedAt;
+
+    @SuppressWarnings("unused")
+    ProjectRegistry() {
+        this(Clock.systemUTC());
+    }
+
+    ProjectRegistry(Clock clock) {
+        this.startedAt = clock.instant().toString();
+    }
     private final long pid = ProcessHandle.current().pid();
 
     public static ProjectRegistry getInstance() {
