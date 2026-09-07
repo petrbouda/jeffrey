@@ -485,7 +485,11 @@ corners, `:hover` and a `--u` scale factor for HiDPI — **`--u` carries `px`, a
 an unstyled panel rather than a slightly wrong one.
 
 `SwingPanelRenderer` is the older pane wearing the platform's HTML kit, kept **only** as the fallback
-for where `JBCefApp.isSupported()` says no — a JBR without JCEF, and the JetBrains Client. It costs
+for where `JBCefApp.isSupported()` says no — a JBR without JCEF, and the JetBrains Client — and for
+an IDE where the JCEF classes are not loadable at all: since 2026.2 JCEF is a plugin of its own,
+declared in `plugin.xml` as the **optional** dependency `com.intellij.modules.jcef` (a core alias on
+older builds), so `RecordingPanel.createRenderer` catches the `LinkageError` from the first mention
+of `CefPanelRenderer` rather than letting the editor tab fail to open. It costs
 nothing to keep because it is the code that already existed, and it is **not held to visual parity**:
 Swing's engine drops `border-radius`, flexbox and `:hover`, which is the whole reason the other one
 exists. `PanelRenderer` is deliberately **not sealed** — a sealed type may only permit subtypes in its

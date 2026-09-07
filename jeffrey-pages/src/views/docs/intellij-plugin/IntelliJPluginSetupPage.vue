@@ -106,6 +106,11 @@ onMounted(() => {
         corners, flexbox and <code>:hover</code>, so it looks flatter. That is the fallback working,
         not the panel breaking.
       </p>
+      <p>
+        Since IntelliJ 2026.2, JCEF ships as a plugin of its own rather than as part of the core IDE,
+        so the Jeffrey plugin declares it as an optional dependency. Nothing to configure: with the
+        JCEF plugin enabled you get the Chromium panel, with it disabled you get the Swing one.
+      </p>
     </div>
 
     <DocsNavFooter />

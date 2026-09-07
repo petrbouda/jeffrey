@@ -1,0 +1,5 @@
+<!-- Declared so the plugin can see the JCEF classes (com.intellij.ui.jcef) where they are present:
+     a core alias up to 2026.1, a plugin of their own from 2026.2. It contributes no extensions of
+     its own: the embedded browser is built by CefPanelRenderer, not registered through one. -->
+<idea-plugin>
+</idea-plugin>

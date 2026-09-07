@@ -91,18 +91,25 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
      * <p>{@code isSupported()} is false on a JBR built without JCEF and inside the JetBrains Client,
      * so the fallback is not theoretical. Anything thrown while building the browser lands here too:
      * a tab that renders plainly beats a tab that renders an exception.
+     *
+     * <p>The guard wraps the {@code isSupported()} call as well, not only the constructor. The JCEF
+     * classes are an optional dependency (a plugin of their own since 2026.2), and when they are
+     * absent the first mention of {@link CefPanelRenderer} fails while that class is being linked
+     * — before any line of it runs. That {@link LinkageError} has to be caught here, one frame up.
      */
     private PanelRenderer createRenderer() {
-        if (CefPanelRenderer.isSupported()) {
-            try {
+        try {
+            if (CefPanelRenderer.isSupported()) {
                 CefPanelRenderer cef = new CefPanelRenderer(this, file);
                 Disposer.register(this, cef);
                 return cef;
-            } catch (Exception | LinkageError e) {
-                LOG.warn("Could not start the embedded browser, falling back to the Swing panel", e);
             }
-        } else {
             LOG.info("JCEF is unavailable in this runtime, rendering the recording panel with Swing");
+        } catch (LinkageError e) {
+            LOG.info("JCEF classes are not present in this IDE, rendering the recording panel with Swing: "
+                    + e);
+        } catch (Exception e) {
+            LOG.warn("Could not start the embedded browser, falling back to the Swing panel", e);
         }
         return new SwingPanelRenderer(this, file);
     }
