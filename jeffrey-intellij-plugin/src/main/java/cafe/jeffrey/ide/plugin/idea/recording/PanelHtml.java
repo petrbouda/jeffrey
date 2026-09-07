@@ -202,11 +202,18 @@ final class PanelHtml {
      * because a missing tile teaches nothing, while a dimmed one says the recording lacks that data,
      * which is a fact about the run worth knowing.
      */
-    private static String tiles(RecordingState.ProfileSummary summary) {
-        return tiles(summary.views(), summary.disabledFeatures());
+    private static String offTile(String icon, String label, String blurb) {
+        return "<td width='" + TILE_WIDTH + "' class='tile off'>"
+                + "<span class='off'>" + icon + "<b>" + escape(label) + "</b><br>"
+                + "<span class='sml'>" + escape(blurb) + "</span></span></td>";
     }
 
-    private static String tiles(List<ProfileView> views, List<String> disabledFeatures) {
+    private static String tiles(RecordingState.ProfileSummary summary) {
+        return tiles(summary.views(), summary.disabledFeatures(), summary.indexMissing());
+    }
+
+    /** {@code locked}: a dump without its index, where every tile is drawn off rather than linked. */
+    private static String tiles(List<ProfileView> views, List<String> disabledFeatures, boolean locked) {
         StringBuilder grid = new StringBuilder(1024)
                 .append("<table cellspacing='6' class='tiles'>");
 
@@ -214,7 +221,7 @@ final class PanelHtml {
             if (i % ProfileView.COLUMNS == 0) {
                 grid.append("<tr>");
             }
-            grid.append(tile(views.get(i), disabledFeatures));
+            grid.append(tile(views.get(i), disabledFeatures, locked));
             if (i % ProfileView.COLUMNS == ProfileView.COLUMNS - 1 || i == views.size() - 1) {
                 grid.append("</tr>");
             }
@@ -222,13 +229,14 @@ final class PanelHtml {
         return grid.append("</table>").toString();
     }
 
-    private static String tile(ProfileView view, List<String> disabledFeatures) {
+    private static String tile(ProfileView view, List<String> disabledFeatures, boolean locked) {
         String icon = "<icon src='" + view.iconKey() + "'/> ";
 
+        if (locked) {
+            return offTile(icon, view.label(), view.blurb());
+        }
         if (!view.isAvailable(disabledFeatures)) {
-            return "<td width='" + TILE_WIDTH + "' class='tile off'>"
-                    + "<span class='off'>" + icon + "<b>" + escape(view.label()) + "</b><br>"
-                    + "<span class='sml'>" + escape(view.unavailableBlurb()) + "</span></span></td>";
+            return offTile(icon, view.label(), view.unavailableBlurb());
         }
 
         return "<td width='" + TILE_WIDTH + "' class='tile'>"

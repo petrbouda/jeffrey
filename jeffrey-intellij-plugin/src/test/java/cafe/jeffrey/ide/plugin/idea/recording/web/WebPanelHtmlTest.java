@@ -21,6 +21,7 @@ package cafe.jeffrey.ide.plugin.idea.recording.web;
 import cafe.jeffrey.ide.plugin.idea.agent.AgentCli;
 import cafe.jeffrey.ide.plugin.idea.agent.AgentRow;
 import cafe.jeffrey.ide.plugin.idea.recording.HeapIndexBuild;
+import cafe.jeffrey.ide.plugin.idea.recording.ProfileView;
 import cafe.jeffrey.ide.plugin.idea.recording.RecordingState;
 import org.junit.Test;
 
@@ -137,6 +138,20 @@ public class WebPanelHtmlTest {
         assertTrue(html.contains("profile ready"));
     }
 
+    /**
+     * Every view of an un-indexed dump opens an empty page, so no tile may be a button. They stay
+     * drawn — dashed and dim, keeping their own blurbs — because they are the views the build brings.
+     */
+    @Test
+    public void anUnindexedHeapDumpLocksEveryTile() {
+        String html = document(heapDump(false));
+
+        assertFalse(html.contains("data-action='view:"));
+        assertEquals(ProfileView.HEAP.size(), count(html, "class='card off'"));
+        assertTrue("the tile keeps its own blurb", html.contains("What is holding the memory"));
+        assertFalse("not the no-data blurb", html.contains("Not in this recording"));
+    }
+
     /** The same box becomes the progress report: stage, of how many, and no second Build button. */
     @Test
     public void aRunningIndexBuildTurnsTheCalloutIntoProgress() {
@@ -149,7 +164,8 @@ public class WebPanelHtmlTest {
         assertTrue(html.contains("1 m 20 s elapsed"));
         assertTrue(html.contains("building the index"));
         assertFalse(html.contains("data-action='build-index'"));
-        assertTrue("the tiles stay on offer", html.contains("data-action='view:heap-dump/leak-suspects'"));
+        assertTrue("the tiles stay drawn", html.contains("Leak suspects"));
+        assertFalse("but locked until the build is done", html.contains("data-action='view:"));
     }
 
     @Test
@@ -317,6 +333,16 @@ public class WebPanelHtmlTest {
     }
 
     // --- fixtures -------------------------------------------------------------------------------
+
+    private static int count(String html, String needle) {
+        int n = 0;
+        int at = html.indexOf(needle);
+        while (at >= 0) {
+            n++;
+            at = html.indexOf(needle, at + needle.length());
+        }
+        return n;
+    }
 
     private static String document(RecordingState state) {
         return document(state, row());

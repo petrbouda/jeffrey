@@ -59,10 +59,7 @@ public record RecordingState(
 
     /** A ready heap dump whose index has not been built: the one state that can offer the build. */
     public boolean needsHeapIndex() {
-        return status == Status.READY
-                && summary != null
-                && summary.isHeapDump()
-                && (summary.heap() == null || !summary.heap().cacheReady());
+        return status == Status.READY && summary != null && summary.indexMissing();
     }
 
     public enum Status {
@@ -136,6 +133,15 @@ public record RecordingState(
 
         public boolean isHeapDump() {
             return kind == Kind.HEAP_DUMP;
+        }
+
+        /**
+         * A dump whose index has not been built. Nothing below the header can answer yet: no
+         * figures, and every view tile opens an empty page, so the panel offers the build and locks
+         * the tiles until it is done.
+         */
+        public boolean indexMissing() {
+            return isHeapDump() && (heap == null || !heap.cacheReady());
         }
 
         /**

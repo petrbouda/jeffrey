@@ -317,22 +317,34 @@ public final class WebPanelHtml {
             html.append("<div class='rule'></div>");
         }
         html.append("<span class='sect'>Open a view</span><div class='views'>");
+        // Until a dump's index exists every view opens an empty page, so every tile is drawn the
+        // way a view with no data is drawn — dashed, dim, and not a button — with its own blurb
+        // kept, because the tile is still the view it will become. The callout above says why.
+        boolean locked = summary.indexMissing();
         for (ProfileView view : summary.views()) {
-            html.append(card(view, summary.disabledFeatures()));
+            html.append(card(view, summary.disabledFeatures(), locked));
         }
         return html.append("</div>").toString();
     }
 
-    private static String card(ProfileView view, List<String> disabledFeatures) {
+    private static String card(ProfileView view, List<String> disabledFeatures, boolean locked) {
         String icon = "<div class='iw'>" + PanelSvg.icon(view.iconKey()) + "</div>";
         String label = "<div><div class='l'>" + Html.escape(view.label()) + "</div>";
 
+        if (locked) {
+            return offCard(icon, label, view.blurb());
+        }
         if (!view.isAvailable(disabledFeatures)) {
-            return "<div class='card off'>" + icon + label
-                    + "<div class='b'>" + Html.escape(view.unavailableBlurb()) + "</div></div></div>";
+            return offCard(icon, label, view.unavailableBlurb());
         }
         return "<button type='button' class='card' data-action='view:" + Html.escape(view.path()) + "'>"
                 + icon + label + "<div class='b'>" + Html.escape(view.blurb()) + "</div></div></button>";
+    }
+
+    /** A tile that cannot be pressed: a div rather than a button, so there is nothing to click. */
+    private static String offCard(String icon, String label, String blurb) {
+        return "<div class='card off'>" + icon + label
+                + "<div class='b'>" + Html.escape(blurb) + "</div></div></div>";
     }
 
     // --- the other states -----------------------------------------------------------------------
