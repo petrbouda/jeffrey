@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.feature.FeatureType;
@@ -95,10 +94,9 @@ public class GrpcMcpTools {
     public String overview(
             @ToolParam(required = false, description = "Which side to report on: 'SERVER' for calls this application "
                     + "answered (the default), 'CLIENT' for calls it made to somebody else.")
-            @ToolParamValues({"SERVER", "CLIENT"})
-            String direction) {
+            ExchangeDirection direction) {
 
-        ExchangeDirection side = ExchangeDirection.from(direction);
+        ExchangeDirection side = direction == null ? ExchangeDirection.SERVER : direction;
         if (DashboardFeature.missing(profileManager, feature(side))) {
             return noData(side);
         }
@@ -126,14 +124,13 @@ public class GrpcMcpTools {
             String service,
             @ToolParam(required = false, description = "Which side to report on: 'SERVER' for calls this application "
                     + "answered (the default), 'CLIENT' for calls it made to somebody else.")
-            @ToolParamValues({"SERVER", "CLIENT"})
-            String direction) {
+            ExchangeDirection direction) {
 
         // Insisted on rather than passed through: the manager reads a null service as "no filter", so
         // an omitted one would return every service's methods under the heading of one service.
         String name = ToolArguments.required(service, "service", NO_SERVICE_RECOVERY);
 
-        ExchangeDirection side = ExchangeDirection.from(direction);
+        ExchangeDirection side = direction == null ? ExchangeDirection.SERVER : direction;
         if (DashboardFeature.missing(profileManager, feature(side))) {
             return noData(side);
         }
@@ -163,10 +160,9 @@ public class GrpcMcpTools {
     public String traffic(
             @ToolParam(required = false, description = "Which side to report on: 'SERVER' for calls this application "
                     + "answered (the default), 'CLIENT' for calls it made to somebody else.")
-            @ToolParamValues({"SERVER", "CLIENT"})
-            String direction) {
+            ExchangeDirection direction) {
 
-        ExchangeDirection side = ExchangeDirection.from(direction);
+        ExchangeDirection side = direction == null ? ExchangeDirection.SERVER : direction;
         if (DashboardFeature.missing(profileManager, feature(side))) {
             return noData(side);
         }

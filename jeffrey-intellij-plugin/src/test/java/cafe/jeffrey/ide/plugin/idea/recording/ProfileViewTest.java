@@ -20,10 +20,12 @@ package cafe.jeffrey.ide.plugin.idea.recording;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static java.util.stream.Collectors.toSet;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -59,7 +61,7 @@ public class ProfileViewTest {
     @Test
     public void keepsTheRecordingAndHeapListsDisjoint() {
         Set<String> recordingPaths = ProfileView.RECORDING.stream().map(ProfileView::path)
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(toSet());
         for (ProfileView view : ProfileView.HEAP) {
             assertFalse("shared route: " + view.path(), recordingPaths.contains(view.path()));
         }
@@ -126,7 +128,7 @@ public class ProfileViewTest {
      */
     @Test
     public void keepsPathsRelativeAndUnslashed() {
-        List<ProfileView> all = new java.util.ArrayList<>(ProfileView.RECORDING);
+        List<ProfileView> all = new ArrayList<>(ProfileView.RECORDING);
         all.addAll(ProfileView.HEAP);
         for (ProfileView view : all) {
             assertFalse(view.path().isBlank());

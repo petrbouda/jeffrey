@@ -76,12 +76,14 @@ final class PanelHtml {
         StringBuilder html = new StringBuilder(2048);
         html.append("<html><body>");
 
+        html.append(buildLine(state.build()));
+
         RecordingState.ProfileSummary summary = state.summary();
         if (summary == null) {
+            // Nothing has been analysed yet, but a pipeline may still be running — a profile being
+            // built has no summary to show and is exactly when the stage line is worth having.
             return html.append(facts(state, file, microscopeUrl)).append("</body></html>").toString();
         }
-
-        html.append(indexBuildLine(state.indexBuild()));
 
         // Auto-analysis is a recording's verdict. A heap dump's is "Leak suspects", which leads its
         // tile grid — so a dump gets no findings section rather than an empty one.
@@ -93,20 +95,24 @@ final class PanelHtml {
     }
 
     /**
-     * The index build as one sentence. Swing's engine has no spinner to offer, so the words carry it:
-     * which stage, of how many, or what went wrong.
+     * A running pipeline as one sentence. Swing's engine has no spinner to offer, so the words carry
+     * it: which stage, of how many, or what went wrong. The heading follows the pipeline, because the
+     * same box now serves a dump being indexed and a recording being read.
      */
-    private static String indexBuildLine(HeapIndexBuild build) {
+    private static String buildLine(PipelineBuild build) {
         if (build == null) {
             return "";
         }
+        boolean indexing = build.pipeline() == PipelineBuild.Pipeline.HEAP_INDEX;
         if (build.failed()) {
-            return "<p class='sml'><b>The index build failed.</b> " + Html.escape(build.failureMessage()) + "</p>";
+            String what = indexing ? "The index build failed." : "The analysis failed.";
+            return "<p class='sml'><b>" + what + "</b> " + Html.escape(build.failureMessage()) + "</p>";
         }
         String where = build.stageCount() > 0
                 ? " — stage " + build.stageNumber() + " of " + build.stageCount() + ", " + Html.escape(build.stageTitle())
                 : "";
-        return "<p class='sml'><b>Building the index…</b>" + where + ". The tab updates itself when it is done.</p>";
+        String what = indexing ? "Building the index…" : "Reading the recording…";
+        return "<p class='sml'><b>" + what + "</b>" + where + ". The tab updates itself when it is done.</p>";
     }
 
     /**

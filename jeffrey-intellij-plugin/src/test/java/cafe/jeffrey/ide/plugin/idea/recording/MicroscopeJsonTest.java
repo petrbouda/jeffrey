@@ -20,6 +20,8 @@ package cafe.jeffrey.ide.plugin.idea.recording;
 
 import org.junit.Test;
 
+import java.util.List;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -113,7 +115,7 @@ public class MicroscopeJsonTest {
                 "{\"state\":\"READY\",\"summary\":{\"disabledFeatures\":[\"TRACES\",\"HEAP_DUMP\"]}}",
                 FILENAME, SIZE);
 
-        assertEquals(java.util.List.of("TRACES", "HEAP_DUMP"), state.summary().disabledFeatures());
+        assertEquals(List.of("TRACES", "HEAP_DUMP"), state.summary().disabledFeatures());
         assertTrue(MicroscopeJson.parseState("{\"state\":\"READY\",\"summary\":{}}", FILENAME, SIZE)
                 .summary().disabledFeatures().isEmpty());
     }

@@ -153,7 +153,7 @@ public final class HubSessionScan {
             throw new IllegalStateException("Interrupted while scanning hubs", e);
         } catch (Exception e) {
             // Individual hubs never fail their future; anything here is a defect worth surfacing.
-            LOG.warn("Hub scan failed", e);
+            LOG.warn("Hub scan failed: hubs={} reason={}", hubs.size(), e.getMessage(), e);
         }
 
         List<Row> rows = new ArrayList<>();

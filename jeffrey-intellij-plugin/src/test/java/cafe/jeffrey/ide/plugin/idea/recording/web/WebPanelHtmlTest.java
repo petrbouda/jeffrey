@@ -20,7 +20,7 @@ package cafe.jeffrey.ide.plugin.idea.recording.web;
 
 import cafe.jeffrey.ide.plugin.idea.agent.AgentCli;
 import cafe.jeffrey.ide.plugin.idea.agent.AgentRow;
-import cafe.jeffrey.ide.plugin.idea.recording.HeapIndexBuild;
+import cafe.jeffrey.ide.plugin.idea.recording.PipelineBuild;
 import cafe.jeffrey.ide.plugin.idea.recording.ProfileView;
 import cafe.jeffrey.ide.plugin.idea.recording.RecordingState;
 import org.junit.Test;
@@ -155,8 +155,8 @@ public class WebPanelHtmlTest {
     /** The same box becomes the progress report: stage, of how many, and no second Build button. */
     @Test
     public void aRunningIndexBuildTurnsTheCalloutIntoProgress() {
-        String html = document(heapDump(false).withIndexBuild(
-                new HeapIndexBuild(HeapIndexBuild.Phase.RUNNING, 5, 13, "dominator", 80_000L, null)));
+        String html = document(heapDump(false).withBuild(
+                new PipelineBuild(PipelineBuild.Pipeline.HEAP_INDEX, PipelineBuild.Phase.RUNNING, 5, 13, "dominator", 80_000L, null)));
 
         assertTrue(html.contains("class='spin'"));
         assertTrue(html.contains("stage 5 of 13"));
@@ -170,8 +170,8 @@ public class WebPanelHtmlTest {
 
     @Test
     public void aFailedIndexBuildKeepsTheBoxAndOffersToGoAgain() {
-        String html = document(heapDump(false).withIndexBuild(
-                new HeapIndexBuild(HeapIndexBuild.Phase.FAILED, 2, 13, "parse", 9_000L, "Java <heap> space")));
+        String html = document(heapDump(false).withBuild(
+                new PipelineBuild(PipelineBuild.Pipeline.HEAP_INDEX, PipelineBuild.Phase.FAILED, 2, 13, "parse", 9_000L, "Java <heap> space")));
 
         assertTrue(html.contains("class='callout bad'"));
         assertTrue(html.contains("The index build failed"));
@@ -239,6 +239,34 @@ public class WebPanelHtmlTest {
         assertTrue(html.contains("data-action='check'"));
         assertTrue(html.contains("class='prog'"));
         assertFalse(html.contains("data-action='analyze'"));
+    }
+
+    /**
+     * Once Microscope has named the run, the bar that never moved gives way to the same box the index
+     * build draws. A recording can take minutes to parse, and an indeterminate bar for all of it is
+     * indistinguishable from one that has hung.
+     */
+    @Test
+    public void analyzingShowsTheStageOnceThereIsOneToShow() {
+        String html = document(analyzing().withBuild(new PipelineBuild(
+                PipelineBuild.Pipeline.PROFILE_INIT,
+                PipelineBuild.Phase.RUNNING, 2, 9, "parse", 12_000L, null)));
+
+        assertTrue(html.contains("stage 2 of 9"));
+        assertTrue("the recording's own word for it, not the heap dump's",
+                html.contains("Reading the recording"));
+        assertFalse("which is what a shared title map would have said", html.contains("Parsing objects"));
+        assertTrue(html.contains("12.0 s elapsed"));
+        assertTrue("still the only thing to press", html.contains("data-action='check'"));
+    }
+
+    /** No run named yet: the indeterminate bar is still the honest drawing. */
+    @Test
+    public void analyzingKeepsThePlainBarUntilMicroscopeNamesTheRun() {
+        String html = document(analyzing());
+
+        assertTrue(html.contains("class='prog'"));
+        assertFalse(html.contains("stage "));
     }
 
     /** The accent goes neutral when Microscope did not answer, so the panel reads as wrong. */

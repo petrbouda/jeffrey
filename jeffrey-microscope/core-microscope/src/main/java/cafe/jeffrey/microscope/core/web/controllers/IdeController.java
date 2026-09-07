@@ -54,7 +54,7 @@ public class IdeController {
     public IdeSourceResponse source(
             @RequestParam(value = "profileId", required = false) String profileId,
             @RequestParam("fqn") String fqn,
-            @RequestParam("method") String method) {
+            @RequestParam(value = "method", required = false) String method) {
         IdeSourceResult result = ideBridge.fetchSource(new IdeSourceRequest(profileId, fqn, method));
         return new IdeSourceResponse(result.success(), result.content(), result.message(), result.decompiled());
     }

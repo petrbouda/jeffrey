@@ -295,6 +295,95 @@ class McpToolsetAssemblerTest {
         }
     }
 
+    /**
+     * What each tool tells a client it will do. This is the contract a person reads in an approval
+     * prompt before they say yes, so it is the one place where a wrong answer costs more than a
+     * confusing one — and it was wrong: {@code hubs_download} inherited its family's read-only hint
+     * and offered a multi-gigabyte cross-machine transfer as a safe read.
+     */
+    @Nested
+    class Annotations {
+
+        /**
+         * Everything that does not only read. Asserted as a set rather than one tool at a time, so a
+         * <em>new</em> write tool that forgets its {@code @McpToolHints} fails here too — the way
+         * this family did.
+         */
+        private static final Set<String> WRITES = Set.of(
+                "recordings_analyzeFile",
+                "recordings_analyzeRecording",
+                "heap_prepare",
+                "hubs_download",
+                "ide_link",
+                "ide_open");
+
+        /** The two families that reach past this installation: another machine, and the editor beside it. */
+        private static final Set<String> REMOTE_PREFIXES = Set.of("hubs", "ide");
+
+        private List<McpToolSpec> specs() {
+            return assembler(true).toolset().specs();
+        }
+
+        @Test
+        void exactlyTheToolsThatWriteSayTheyWrite() {
+            Set<String> declared = specs().stream()
+                    .filter(spec -> !spec.annotations().readOnly())
+                    .map(McpToolSpec::name)
+                    .collect(Collectors.toSet());
+
+            assertEquals(WRITES, declared);
+        }
+
+        /**
+         * {@code openWorldHint} is the other half of what a client shows: not "does this change
+         * something" but "does it leave this machine".
+         */
+        @Test
+        void exactlyTheRemoteFamiliesSayTheyReachOutside() {
+            Set<String> declared = specs().stream()
+                    .filter(spec -> spec.annotations().openWorld())
+                    .map(McpToolSpec::name)
+                    .collect(Collectors.toSet());
+
+            Set<String> remote = specs().stream()
+                    .map(McpToolSpec::name)
+                    .filter(name -> REMOTE_PREFIXES.contains(name.substring(0, name.indexOf('_'))))
+                    .collect(Collectors.toSet());
+
+            assertEquals(remote, declared);
+        }
+
+        /**
+         * The documentation says it in as many words: nothing here deletes a profile, a recording or
+         * a dump. A tool that ever needs to would have to change that sentence as well as this test.
+         */
+        @Test
+        void nothingIsDestructive() {
+            List<String> destructive = specs().stream()
+                    .filter(spec -> spec.annotations().destructive())
+                    .map(McpToolSpec::name)
+                    .toList();
+
+            assertTrue(destructive.isEmpty(), "Tools claiming to be destructive: " + destructive);
+        }
+
+        /**
+         * A family switched off cannot mislead anyone, but the tools that remain still have to be
+         * described correctly — the filter must not take the hints with it.
+         */
+        @Test
+        void keepsTheHintsWhenAFamilyIsSwitchedOff() {
+            Set<String> declared = assembler(false).toolset().specs().stream()
+                    .filter(spec -> !spec.annotations().readOnly())
+                    .map(McpToolSpec::name)
+                    .collect(Collectors.toSet());
+
+            assertFalse(declared.contains("hubs_download"));
+            assertTrue(declared.contains("heap_prepare"));
+            assertTrue(declared.contains("ide_open"));
+        }
+    }
+
     @Nested
     class FamilyFilter {
 

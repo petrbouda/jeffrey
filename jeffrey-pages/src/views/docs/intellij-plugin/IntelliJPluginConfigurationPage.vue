@@ -76,7 +76,26 @@ jeffrey.microscope.ide.scan.port-end=63362</code></pre>
       <p>
         Scanning is lazy and cached: once a window is linked to a profile, the chosen port is reused
         for every jump, and Microscope only re-scans when that port stops responding (IDE restart or
-        port reassignment).
+        port reassignment). A remembered port that answers but does not serve the endpoint &mdash;
+        another IDE took it, or the integration was switched off in that window &mdash; also sends
+        Microscope back to the scan rather than being reported as an out-of-date plugin.
+      </p>
+
+      <h2 id="timeouts">Two Sets of Timeouts</h2>
+      <p>
+        The scan and the real work do not wait the same length of time, and they should not. Walking
+        twenty-one mostly-closed ports has to give up on each in milliseconds (100&nbsp;ms to
+        connect, 200&nbsp;ms to read), while asking a window that already answered to search its
+        indexes for a class, or to hand over a whole file, can take seconds on a cold index. Those
+        calls get a second of connect and five of read. Sharing the scan&rsquo;s budget between the
+        two is what used to turn a slow but perfectly healthy lookup into &ldquo;the selected IDE
+        window is no longer open&rdquo;.
+      </p>
+
+      <p>
+        While IntelliJ is still building its indexes a lookup cannot be made at all, and the plugin
+        says so &mdash; the answer carries the reason <code>indexing</code> rather than failing, so
+        the sensible response is to ask again in a minute rather than to check the configuration.
       </p>
 
       <h2 id="trusted-projects">Trusted Projects</h2>

@@ -35,7 +35,9 @@ import com.intellij.util.concurrency.AppExecutorUtil;
 
 import javax.swing.JComponent;
 import java.awt.BorderLayout;
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.function.Consumer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -62,29 +64,29 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
 
     private static final String SETTINGS_DISPLAY_NAME = "Jeffrey Plugin";
 
-    /** How often the panel asks about a running index build. Stages take seconds to minutes. */
-    private static final long INDEX_POLL_SECONDS = 2;
+    /** How often the panel asks about a running pipeline. Stages take seconds to minutes. */
+    private static final long BUILD_POLL_SECONDS = 2;
 
     /**
      * How many "nothing running" answers in a row end the watch after a build was requested. The
      * run is registered asynchronously, so the first poll can land before it exists; three in a row
      * mean it never will.
      */
-    private static final int INDEX_IDLE_POLLS_TOLERATED = 3;
+    private static final int BUILD_IDLE_POLLS_TOLERATED = 3;
 
     /**
      * How many polls in a row may fail before the watch gives up. One missed answer is a hiccup;
      * five is a Microscope that stopped, or an endpoint that is not there, and a panel that keeps
      * asking every two seconds forever helps nobody.
      */
-    private static final int INDEX_FAILED_POLLS_TOLERATED = 5;
+    private static final int BUILD_FAILED_POLLS_TOLERATED = 5;
 
     private final Project project;
     private final Path file;
     private final PanelRenderer renderer;
 
     /** One watch at a time: a second "Build index" while one is running must not start a second loop. */
-    private final AtomicBoolean watchingIndex = new AtomicBoolean();
+    private final AtomicBoolean watchingBuild = new AtomicBoolean();
 
     private volatile MicroscopeClient client;
     private volatile boolean disposed;
@@ -144,7 +146,9 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
 
     /** Re-reads the Microscope address, so a corrected URL takes effect without reopening the tab. */
     public void refresh() {
+        MicroscopeClient previous = client;
         client = new MicroscopeClient(JeffreySettings.getInstance().microscopeUrl());
+        previous.close();
         renderer.showLoading();
         query();
     }
@@ -152,28 +156,46 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
     @Override
     public void dispose() {
         disposed = true;
+        client.close();
     }
 
     /**
-     * Asks Microscope about the file and draws the answer. A dump whose index is missing gets one
-     * more question — is a build already running? — so a tab opened while Microscope is indexing
-     * shows the build rather than offering to start a second one.
+     * Asks Microscope about the file and draws the answer. A file with something running gets one
+     * more question — how far has it got? — so a tab opened while Microscope is working shows the
+     * progress rather than a bar that never moves, or an offer to start a second build.
+     * <p>
+     * Two pipelines can be running, never both at once: a profile is either still being built out of
+     * the recording, or ready with its dump not yet indexed.
      */
     private void query() {
         MicroscopeClient current = client;
         AppExecutorUtil.getAppExecutorService().execute(() -> {
             RecordingState state = current.state(file);
-            if (state.needsHeapIndex()) {
-                HeapIndexBuild build = progressOrNull(current, state.profileId());
+            PipelineBuild.Pipeline pipeline = runningPipeline(state);
+            if (pipeline != null) {
+                PipelineBuild build = progressOrNull(current, pipeline, state.profileId());
                 if (build != null && !build.failed()) {
-                    RecordingState watched = state.withIndexBuild(build);
+                    RecordingState watched = state.withBuild(build);
                     show(watched);
-                    watchIndexBuild(current, watched);
+                    watchBuild(current, watched, pipeline);
                     return;
                 }
             }
             show(state);
         });
+    }
+
+    /**
+     * Which pipeline this state could be waiting on, or null when it is waiting on nothing.
+     */
+    private static PipelineBuild.Pipeline runningPipeline(RecordingState state) {
+        if (state.needsHeapIndex()) {
+            return PipelineBuild.Pipeline.HEAP_INDEX;
+        }
+        if (state.isAnalysisFollowable()) {
+            return PipelineBuild.Pipeline.PROFILE_INIT;
+        }
+        return null;
     }
 
     // --- actions the page can trigger -----------------------------------------------------------
@@ -234,13 +256,15 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
                 return;
             } catch (Exception e) {
                 LOG.warn("Starting a heap index build in Microscope failed: file=" + file, e);
-                show(state.withIndexBuild(new HeapIndexBuild(
-                        HeapIndexBuild.Phase.FAILED, 0, 0, null, 0L, message(e))));
+                show(state.withBuild(new PipelineBuild(
+                        PipelineBuild.Pipeline.HEAP_INDEX,
+                        PipelineBuild.Phase.FAILED, 0, 0, null, 0L, message(e))));
                 return;
             }
-            show(state.withIndexBuild(new HeapIndexBuild(
-                    HeapIndexBuild.Phase.RUNNING, 0, 0, null, 0L, null)));
-            watchIndexBuild(current, state);
+            show(state.withBuild(new PipelineBuild(
+                    PipelineBuild.Pipeline.HEAP_INDEX,
+                    PipelineBuild.Phase.RUNNING, 0, 0, null, 0L, null)));
+            watchBuild(current, state, PipelineBuild.Pipeline.HEAP_INDEX);
         });
     }
 
@@ -248,36 +272,43 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
      * Polls the build until it stops, one scheduled poll at a time rather than a thread that sleeps.
      * A closed tab ends the watch at the next poll; the build itself carries on in Microscope.
      */
-    private void watchIndexBuild(MicroscopeClient current, RecordingState state) {
-        if (!watchingIndex.compareAndSet(false, true)) {
+    private void watchBuild(MicroscopeClient current, RecordingState state, PipelineBuild.Pipeline pipeline) {
+        if (!watchingBuild.compareAndSet(false, true)) {
             return;
         }
-        pollIndexBuild(current, state, 0, 0);
+        pollBuild(current, state, pipeline, 0, 0);
     }
 
-    private void pollIndexBuild(MicroscopeClient current, RecordingState state, int idlePolls, int failedPolls) {
+    private void pollBuild(
+            MicroscopeClient current,
+            RecordingState state,
+            PipelineBuild.Pipeline pipeline,
+            int idlePolls,
+            int failedPolls) {
+
         if (disposed) {
-            watchingIndex.set(false);
+            watchingBuild.set(false);
             return;
         }
         AppExecutorUtil.getAppScheduledExecutorService().schedule(() -> {
-            HeapIndexBuild build;
+            PipelineBuild build;
             try {
-                build = current.heapIndexProgress(state.profileId());
+                build = readProgress(current, pipeline, state.profileId());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                watchingIndex.set(false);
+                watchingBuild.set(false);
                 return;
             } catch (Exception e) {
                 // One missed poll is not a failed build; the next one will say. Keep watching, up
                 // to a point — then stop and draw whatever Microscope will answer about the file.
-                if (failedPolls + 1 < INDEX_FAILED_POLLS_TOLERATED) {
-                    LOG.info("Could not read the heap index progress, will ask again: file=" + file, e);
-                    pollIndexBuild(current, state, idlePolls, failedPolls + 1);
+                if (failedPolls + 1 < BUILD_FAILED_POLLS_TOLERATED) {
+                    LOG.info("Could not read the pipeline progress, will ask again: file=" + file
+                            + " pipeline=" + pipeline, e);
+                    pollBuild(current, state, pipeline, idlePolls, failedPolls + 1);
                     return;
                 }
-                LOG.warn("Gave up following the heap index build: file=" + file, e);
-                watchingIndex.set(false);
+                LOG.warn("Gave up following the pipeline: file=" + file + " pipeline=" + pipeline, e);
+                watchingBuild.set(false);
                 query();
                 return;
             }
@@ -285,27 +316,42 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
             if (build == null) {
                 // Idle or completed. Right after the request the run may not exist yet, so a few of
                 // these are patience; more than that and there is nothing to wait for.
-                if (idlePolls + 1 < INDEX_IDLE_POLLS_TOLERATED && state.indexBuild() == null) {
-                    pollIndexBuild(current, state, idlePolls + 1, 0);
+                if (idlePolls + 1 < BUILD_IDLE_POLLS_TOLERATED && state.build() == null) {
+                    pollBuild(current, state, pipeline, idlePolls + 1, 0);
                     return;
                 }
-                watchingIndex.set(false);
+                watchingBuild.set(false);
                 query();
                 return;
             }
-            RecordingState watched = state.withIndexBuild(build);
+            RecordingState watched = state.withBuild(build);
             show(watched);
             if (build.failed()) {
-                watchingIndex.set(false);
+                watchingBuild.set(false);
                 return;
             }
-            pollIndexBuild(current, watched, 0, 0);
-        }, INDEX_POLL_SECONDS, TimeUnit.SECONDS);
+            pollBuild(current, watched, pipeline, 0, 0);
+        }, BUILD_POLL_SECONDS, TimeUnit.SECONDS);
     }
 
-    private static HeapIndexBuild progressOrNull(MicroscopeClient current, String profileId) {
+    /**
+     * Both pipelines answer the same shape from endpoints a segment apart, and this is the only place
+     * that has to know which one it is asking.
+     */
+    private static PipelineBuild readProgress(
+            MicroscopeClient current, PipelineBuild.Pipeline pipeline, String profileId)
+            throws IOException, InterruptedException {
+
+        return switch (pipeline) {
+            case HEAP_INDEX -> current.heapIndexProgress(profileId);
+            case PROFILE_INIT -> current.profileInitProgress(profileId);
+        };
+    }
+
+    private static PipelineBuild progressOrNull(
+            MicroscopeClient current, PipelineBuild.Pipeline pipeline, String profileId) {
         try {
-            return current.heapIndexProgress(profileId);
+            return readProgress(current, pipeline, profileId);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
@@ -380,7 +426,7 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
      * Resolves the profile the panel last saw, rather than one captured when the document was drawn,
      * so a stale page cannot outlive the profile it described.
      */
-    private void withProfile(java.util.function.Consumer<RecordingState> onProfile) {
+    private void withProfile(Consumer<RecordingState> onProfile) {
         AppExecutorUtil.getAppExecutorService().execute(() -> {
             RecordingState state = client.state(file);
             if (state.profileId() == null) {

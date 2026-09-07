@@ -54,13 +54,13 @@ public record McpToolAnnotations(
     public static final McpToolAnnotations CREATES = new McpToolAnnotations(false, false, true, false);
 
     /**
-     * A tool that both writes and reaches another machine — the hub family.
-     */
-    public static final McpToolAnnotations CREATES_REMOTE = new McpToolAnnotations(false, false, true, true);
-
-    /**
      * A tool that reads, but reads from something outside this installation — another machine, or
      * another process on this one.
+     * <p>
+     * A family is described by what most of it does. The one tool in such a family that writes —
+     * pulling a hub recording down, opening a file in the editor — says so for itself with
+     * {@link McpToolHints}, which is finer-grained than a family preset can be and is why there is no
+     * write-and-remote preset here.
      */
     public static final McpToolAnnotations READS_REMOTE = new McpToolAnnotations(true, false, true, true);
 }

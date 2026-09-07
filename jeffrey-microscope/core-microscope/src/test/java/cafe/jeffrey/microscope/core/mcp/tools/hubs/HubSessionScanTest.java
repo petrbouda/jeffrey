@@ -51,6 +51,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 class HubSessionScanTest {
@@ -222,7 +224,7 @@ class HubSessionScanTest {
             scan.scan(HubScanFilter.ALL, 0);
 
             // workspaces() would return an empty list rather than failing, so the saving is real.
-            org.mockito.Mockito.verify(hub, org.mockito.Mockito.never()).workspaces();
+            verify(hub, never()).workspaces();
         }
 
         @Test
@@ -281,7 +283,7 @@ class HubSessionScanTest {
 
             ArgumentCaptor<RecordingSessionFilter> captor =
                     ArgumentCaptor.forClass(RecordingSessionFilter.class);
-            org.mockito.Mockito.verify(repo).listRecordingSessions(eq(true), captor.capture());
+            verify(repo).listRecordingSessions(eq(true), captor.capture());
             assertEquals(NOW.minus(Duration.ofHours(1)), captor.getValue().activeFrom());
         }
 
@@ -324,7 +326,7 @@ class HubSessionScanTest {
 
             scan.scan(new HubScanFilter("production", null, null, RecordingSessionFilter.ALL), 0);
 
-            org.mockito.Mockito.verify(filteredOut, org.mockito.Mockito.never()).tryInfo();
+            verify(filteredOut, never()).tryInfo();
         }
 
         @Test

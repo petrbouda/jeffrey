@@ -48,6 +48,13 @@ final class MarkdownTable {
     private final StringBuilder out = new StringBuilder(1024);
     private final int columns;
 
+    /**
+     * What ends a line in a rendered table. Written out rather than taken from the platform: this text
+     * is read by a model, not printed on the terminal of whoever is running Jeffrey, and a table whose
+     * rows ended one way and whose notes ended another was rendering one document in two conventions.
+     */
+    private static final String LINE_BREAK = "\n";
+
     private MarkdownTable(List<String> headers) {
         this.columns = headers.size();
         appendRow(headers);
@@ -85,9 +92,9 @@ final class MarkdownTable {
      * to guess about.
      */
     MarkdownTable note(String note) {
-        out.append(System.lineSeparator()).append(note);
-        if (!note.endsWith(System.lineSeparator())) {
-            out.append(System.lineSeparator());
+        out.append(LINE_BREAK).append(note);
+        if (!note.endsWith(LINE_BREAK)) {
+            out.append(LINE_BREAK);
         }
         return this;
     }
@@ -103,7 +110,7 @@ final class MarkdownTable {
         out.append(ROW_PREFIX)
                 .append(String.join(CELL_SEPARATOR, cells))
                 .append(ROW_SUFFIX)
-                .append('\n');
+                .append(LINE_BREAK);
     }
 
     /**

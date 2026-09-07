@@ -37,9 +37,9 @@ public record RecordingState(
         String filename,
         long sizeInBytes,
         ProfileSummary summary,
-        HeapIndexBuild indexBuild) {
+        PipelineBuild build) {
 
-    /** The state as Microscope reports it, before the panel has asked about any index build. */
+    /** The state as Microscope reports it, before the panel has asked about any pipeline. */
     public RecordingState(
             Status status,
             String recordingId,
@@ -51,11 +51,15 @@ public record RecordingState(
     }
 
     /**
-     * The same state with the index build the panel is watching attached, or detached when
-     * {@code build} is null. The by-path answer does not carry the build — that is a second call the
-     * panel makes only for a dump whose index is missing — so it is joined on here.
+     * The same state with the pipeline the panel is watching attached, or detached when {@code build}
+     * is null. The by-path answer carries no pipeline — that is a second call, made only while
+     * something is running — so it is joined on here.
+     * <p>
+     * One field for both pipelines, because a state cannot be waiting on both: a profile is either
+     * still being built ({@code ANALYZING}) or ready with its dump not yet indexed. The build says
+     * which it is, so nothing has to infer it from the status.
      */
-    public RecordingState withIndexBuild(HeapIndexBuild build) {
+    public RecordingState withBuild(PipelineBuild build) {
         return new RecordingState(status, recordingId, profileId, filename, sizeInBytes, summary, build);
     }
 
@@ -73,6 +77,15 @@ public record RecordingState(
     /** A ready heap dump whose index has not been built: the one state that can offer the build. */
     public boolean needsHeapIndex() {
         return status == Status.READY && summary != null && summary.indexMissing();
+    }
+
+    /**
+     * A profile Microscope is still building, and which profile it is. Both halves matter: the panel
+     * can only follow a run it can name, and a synthesised ANALYZING — the one the panel paints the
+     * moment it presses Analyze — has no id until Microscope answers.
+     */
+    public boolean isAnalysisFollowable() {
+        return status == Status.ANALYZING && profileId != null && !profileId.isBlank();
     }
 
     public enum Status {
@@ -205,8 +218,15 @@ public record RecordingState(
 
     public record Finding(String rule, String severity, String summary) {
 
+        /**
+         * The severity the auto-analysis reports for a finding worth colouring. It is an enum name on
+         * the wire, from AutoAnalysisResult, which is why it is spelled once here rather than at the
+         * comparison.
+         */
+        private static final String SEVERITY_WARNING = "WARNING";
+
         public boolean isWarning() {
-            return "WARNING".equals(severity);
+            return SEVERITY_WARNING.equals(severity);
         }
     }
 

@@ -126,7 +126,7 @@ final class ToolParamTypes {
                 return constant;
             }
         }
-        throw new IllegalArgumentException(
+        throw new ToolDispatchException(
                 "Unknown value '" + name + "'. Expected one of: " + constantNames(type));
     }
 

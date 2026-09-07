@@ -42,7 +42,7 @@ import java.time.Duration;
  * <p>No IntelliJ types beyond the logger, so the wire handling can be tested against a plain
  * {@code HttpServer}. Every method blocks; callers run them off the EDT.
  */
-public final class MicroscopeClient {
+public final class MicroscopeClient implements AutoCloseable {
 
     private static final Logger LOG = Logger.getInstance(MicroscopeClient.class);
 
@@ -55,6 +55,9 @@ public final class MicroscopeClient {
     // The heap API is mounted at /heap; /heap-dump is the UI's route prefix, not the server's.
     private static final String HEAP_BUILD_INDEX = "/heap/initialize-all";
     private static final String HEAP_INDEX_PROGRESS = "/heap/init-progress";
+
+    /** The same pipeline endpoint for the profile itself, one path segment shallower. */
+    private static final String PROFILE_INIT_PROGRESS = "/init-progress";
 
     private static final String RECORDING_ID_FIELD = "recordingId";
     private static final String PROFILE_ID_FIELD = "profileId";
@@ -75,6 +78,11 @@ public final class MicroscopeClient {
 
     private static final int HTTP_OK_MIN = 200;
     private static final int HTTP_OK_MAX = 299;
+
+    private static final String HEADER_CONTENT_TYPE = "Content-Type";
+    private static final String CONTENT_TYPE_JSON = "application/json";
+    private static final String FIELD_PATH = "\"path\":";
+    private static final String PATH_SEPARATOR = "/";
 
     private final HttpClient httpClient;
     private final String baseUrl;
@@ -126,10 +134,10 @@ public final class MicroscopeClient {
     }
 
     public String importFromPath(Path file) throws IOException, InterruptedException {
-        String body = "{\"path\":" + quote(file.toAbsolutePath().toString()) + "}";
+        String body = "{" + FIELD_PATH + quote(file.toAbsolutePath().toString()) + "}";
         HttpRequest request = HttpRequest.newBuilder(URI.create(baseUrl + FROM_PATH))
                 .timeout(QUERY_TIMEOUT)
-                .header("Content-Type", "application/json")
+                .header(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON)
                 .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
                 .build();
 
@@ -169,13 +177,29 @@ public final class MicroscopeClient {
      * or finished. Throws rather than answering null on a bad reply, because the panel is polling and
      * "Microscope stopped answering" and "the build finished" must not read the same.
      */
-    public HeapIndexBuild heapIndexProgress(String profileId) throws IOException, InterruptedException {
+    public PipelineBuild heapIndexProgress(String profileId) throws IOException, InterruptedException {
         HttpResponse<String> response = send(get(
                 baseUrl + PROFILES_API + encode(profileId) + HEAP_INDEX_PROGRESS, QUERY_TIMEOUT));
         if (!isSuccess(response)) {
             throw new IOException("Microscope answered " + response.statusCode() + ": " + response.body());
         }
-        return MicroscopeJson.parseIndexBuild(response.body());
+        return MicroscopeJson.parseBuild(response.body(), PipelineBuild.Pipeline.HEAP_INDEX);
+    }
+
+    /**
+     * Where building the profile has got to, or {@code null} when there is none to watch.
+     * <p>
+     * The recording's own pipeline rather than the heap dump's, answered by the same endpoint shape a
+     * segment further up. Throws on a bad reply for the same reason as its sibling: the panel is
+     * polling, and "Microscope stopped answering" must not read as "the analysis finished".
+     */
+    public PipelineBuild profileInitProgress(String profileId) throws IOException, InterruptedException {
+        HttpResponse<String> response = send(get(
+                baseUrl + PROFILES_API + encode(profileId) + PROFILE_INIT_PROGRESS, QUERY_TIMEOUT));
+        if (!isSuccess(response)) {
+            throw new IOException("Microscope answered " + response.statusCode() + ": " + response.body());
+        }
+        return MicroscopeJson.parseBuild(response.body(), PipelineBuild.Pipeline.PROFILE_INIT);
     }
 
     /** The Microscope page for a profile. */
@@ -240,9 +264,20 @@ public final class MicroscopeClient {
         return quoted.append('"').toString();
     }
 
+    /**
+     * Releases the connection pool and the selector thread behind it.
+     * <p>
+     * A panel builds one of these per settings change, so a developer correcting a typed URL used to
+     * leave a thread and a pool behind for every attempt, for as long as the IDE ran.
+     */
+    @Override
+    public void close() {
+        httpClient.close();
+    }
+
     private static String trimTrailingSlash(String url) {
         String trimmed = url == null ? "" : url.trim();
-        while (trimmed.endsWith("/")) {
+        while (trimmed.endsWith(PATH_SEPARATOR)) {
             trimmed = trimmed.substring(0, trimmed.length() - 1);
         }
         return trimmed;

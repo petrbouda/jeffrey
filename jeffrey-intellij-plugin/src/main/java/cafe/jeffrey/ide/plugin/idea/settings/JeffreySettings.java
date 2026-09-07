@@ -40,6 +40,8 @@ import org.jetbrains.annotations.NotNull;
 @Service(Service.Level.APP)
 public final class JeffreySettings implements PersistentStateComponent<JeffreySettings.State> {
 
+    private static final String PATH_SEPARATOR = "/";
+
     /** The default Microscope address — the port {@code run-microscope.sh} serves on. */
     public static final String DEFAULT_MICROSCOPE_URL = "http://localhost:8585";
 
@@ -116,7 +118,7 @@ public final class JeffreySettings implements PersistentStateComponent<JeffreySe
             return DEFAULT_MICROSCOPE_URL;
         }
         String trimmed = url.trim();
-        return trimmed.endsWith("/") ? trimmed.substring(0, trimmed.length() - 1) : trimmed;
+        return trimmed.endsWith(PATH_SEPARATOR) ? trimmed.substring(0, trimmed.length() - 1) : trimmed;
     }
 
     public void setMicroscopeUrl(String microscopeUrl) {

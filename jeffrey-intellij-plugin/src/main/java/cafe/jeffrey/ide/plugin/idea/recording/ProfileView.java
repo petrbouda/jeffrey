@@ -75,7 +75,7 @@ public record ProfileView(String iconKey, String label, String blurb, String pat
             new ProfileView("events", "Histogram", "Instances and bytes per class", "heap-dump/histogram", null),
             new ProfileView("gc", "GC roots", "Why objects survive collection", "heap-dump/gc-roots", null),
             new ProfileView("threads", "Threads", "Stacks and what they retain", "heap-dump/threads", null),
-            new ProfileView("jit", "Class loaders", "Loaders and what survived a redeploy", "heap-dump/class-loader-analysis", null),
+            new ProfileView("jit", "Class loaders", "Loaders and what survived a redeploy", "heap-dump/classloader-analysis", null),
             new ProfileView("flame", "Collections", "Wasted capacity in collections", "heap-dump/collection-analysis", null),
             new ProfileView("subsecond", "OQL", "Query the heap directly", "heap-dump/oql", null));
 

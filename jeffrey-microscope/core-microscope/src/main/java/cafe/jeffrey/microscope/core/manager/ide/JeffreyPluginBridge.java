@@ -145,6 +145,38 @@ public final class JeffreyPluginBridge implements IdeBridge {
         return sourceResult(result);
     }
 
+    /**
+     * Whether the linked window's checkout contains the class.
+     * <p>
+     * The interface defaults this to true so that a bridge which cannot answer never greys out a
+     * button it knows nothing about. This one can answer — the plugin has served the question all
+     * along, and discovery already asks it once per window — so the default was hiding a real lookup
+     * behind an optimistic guess, and the endpoint that reports it always said yes.
+     */
+    @Override
+    public boolean hasClass(String profileId, String fqn) {
+        if (fqn == null || fqn.isBlank()) {
+            return false;
+        }
+        IdeTarget cached = cache.get(profileId);
+        if (cached == null) {
+            // Nothing is linked yet, so there is no checkout to ask about. True keeps the buttons
+            // live: linking is what the reader is about to be asked to do by pressing one.
+            return true;
+        }
+        if (cached.port() > 0 && client.has(cached.port(), cached.projectId(), fqn, null)) {
+            return true;
+        }
+        // A "no" from the plugin and an unreachable window look the same from here, because the
+        // client answers false for both. So a no is checked once against a re-discovered instance;
+        // only then is it the checkout's answer rather than a stale port's.
+        IdeTarget live = reresolve(profileId, cached);
+        if (live == null) {
+            return true;
+        }
+        return client.has(live.port(), live.projectId(), fqn, null);
+    }
+
     @Override
     public IdeTargetsResult discoverTargets(String profileId, String fqn) {
         List<IdeInstanceView> instances = new ArrayList<>();
@@ -192,12 +224,32 @@ public final class JeffreyPluginBridge implements IdeBridge {
         // A target restored from the store carries no port: the one it had described a process that
         // has since restarted. Going straight to discovery skips a call that cannot land, and the
         // warning it would have logged.
-        T result = cached.port() > 0 ? call.apply(cached) : null;
+        T result = cached.port() > 0 ? callOrRediscover(cached, call) : null;
         if (result != null) {
             return result;
         }
         IdeTarget live = reresolve(profileId, cached);
         return live == null ? null : call.apply(live);
+    }
+
+    /**
+     * The cached call, treating "this plugin has no such endpoint" as a reason to look again rather
+     * than as an answer.
+     * <p>
+     * A remembered port is only a guess about which process is listening there. When something else
+     * has taken it — another IDE, an older Jeffrey plugin, the same one with its integration switched
+     * off — the honest next step is the same as for a port that went quiet: find the window again. The
+     * refusal is only final once it comes from the instance discovery actually points at, which is
+     * what the caller sees when this rethrows.
+     */
+    private <T> T callOrRediscover(IdeTarget cached, Function<IdeTarget, T> call) {
+        try {
+            return call.apply(cached);
+        } catch (JeffreyPluginClient.Unsupported e) {
+            LOG.debug("Linked IDE window does not serve the endpoint, re-discovering: port={}",
+                    cached.port());
+            return null;
+        }
     }
 
     /**

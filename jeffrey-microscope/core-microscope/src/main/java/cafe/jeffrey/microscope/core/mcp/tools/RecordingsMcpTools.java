@@ -21,6 +21,7 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.profile.mcp.McpToolHints;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.shared.common.model.Recording;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
@@ -150,10 +151,16 @@ public class RecordingsMcpTools {
             throw new IllegalArgumentException("A recording id is required. Call recordings_list to see them.");
         }
 
-        LOG.info("Analyzing a stored recording over MCP: recordingId={}", recordingId);
+        LOG.info("Analyzing a stored recording over MCP: recording_id={}", recordingId);
         return analyzed(recordingId.trim(), null);
     }
 
+    /*
+     * Reads. Its family is registered as writing because the tools that build a profile sit in
+     * it, and a member that only reports has to say so for itself — the same inheritance that let
+     * hubs_download offer a cross-machine transfer as a safe read, running the other way.
+     */
+    @McpToolHints
     @Tool(description = "Every recording in the Quick Analysis store, whether or not it has been "
             + "analysed. Use it to find a recording that was uploaded but never analysed, or to check "
             + "whether a file is already in Jeffrey before importing it again.")
@@ -180,6 +187,12 @@ public class RecordingsMcpTools {
     }
 
 
+    /*
+     * Reads. Its family is registered as writing because the tools that build a profile sit in
+     * it, and a member that only reports has to say so for itself — the same inheritance that let
+     * hubs_download offer a cross-machine transfer as a safe read, running the other way.
+     */
+    @McpToolHints
     @Tool(description = "How far the analysis of a recording has got, and the profile id once it is "
             + "ready to use. Call it when recordings_analyzeFile or recordings_analyzeRecording came "
             + "back with a status of running rather than a profile id — a large recording takes longer "

@@ -39,7 +39,7 @@ dependencies {
     intellijPlatform {
         // SDK type + version come from gradle.properties (platformType=IC, platformVersion=2025.1.2).
         // Building against the 2025.1 SDK is deliberate: the platform APIs this plugin calls
-        // (ReadAction.compute, com.intellij.ide.impl.TrustedProjects.isTrusted) are stable there —
+        // (ReadAction.compute, com.intellij.ide.trustedProjects.TrustedProjects.isProjectTrusted) are stable there —
         // not deprecated/experimental as they became in 2026.1 — so the verifier reports no API
         // warnings, while sinceBuild=251 keeps the plugin installable on 2025.* and every newer IDE.
         create(
@@ -71,3 +71,29 @@ intellijPlatform {
 
 // BasePlatformTestCase is JUnit 3/4-based, so the test task uses the default JUnit 4 runner
 // (no useJUnitPlatform()).
+
+// The profile view paths this plugin links to are routes in the Microscope frontend, which is a
+// separate build this one cannot see. The frontend commits a manifest of them (generated from its
+// own router by a Vitest snapshot, so it cannot go stale), and it is copied in here as a test
+// resource: ProfileRouteManifestTest then fails the build when a tile points at a path the router
+// does not serve. That is how a heap-dump tile spent a release landing readers on the recordings
+// list — the two builds had no way to disagree out loud.
+val profileRouteManifest = layout.projectDirectory
+    .file("../jeffrey-microscope/pages-microscope/src/router/profile-routes.json")
+
+val copyProfileRouteManifest by tasks.registering(Copy::class) {
+    from(profileRouteManifest)
+    into(layout.buildDirectory.dir("generated/test-resources"))
+}
+
+sourceSets {
+    test {
+        resources {
+            srcDir(layout.buildDirectory.dir("generated/test-resources"))
+        }
+    }
+}
+
+tasks.processTestResources {
+    dependsOn(copyProfileRouteManifest)
+}

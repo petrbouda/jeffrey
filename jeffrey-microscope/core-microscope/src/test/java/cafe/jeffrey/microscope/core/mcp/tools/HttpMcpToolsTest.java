@@ -22,6 +22,7 @@ import cafe.jeffrey.profile.feature.FeatureType;
 import cafe.jeffrey.profile.manager.ProfileCustomManager;
 import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
 import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.profile.manager.custom.ExchangeDirection;
 import cafe.jeffrey.profile.manager.custom.HttpManager;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpHeader;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpMethodStats;
@@ -29,6 +30,9 @@ import cafe.jeffrey.profile.manager.custom.model.http.HttpOverviewData;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpSlowRequest;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpStatusStats;
 import cafe.jeffrey.profile.manager.custom.model.http.HttpUriInfo;
+import cafe.jeffrey.profile.mcp.ReflectiveToolset;
+import cafe.jeffrey.profile.mcp.ToolDispatchException;
+import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.ProfileInfo;
 import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import org.junit.jupiter.api.AfterEach;
@@ -284,7 +288,7 @@ class HttpMcpToolsTest {
         void readsTheClientSideWhenAskedFor() {
             when(httpManager.overviewData()).thenReturn(data(List.of(uri("https://payments/charge"))));
 
-            String out = tools().overview("CLIENT");
+            String out = tools().overview(ExchangeDirection.CLIENT);
 
             assertTrue(out.contains("payments/charge"), out);
             assertTrue(out.contains("mode=client"), out);
@@ -307,16 +311,33 @@ class HttpMcpToolsTest {
                     .thenReturn(List.of(FeatureType.HTTP_CLIENT_DASHBOARD));
             when(httpManager.overviewData()).thenReturn(data(List.of(uri("/api/orders"))));
 
-            assertTrue(tools().overview("CLIENT").contains("no client-side HTTP data"));
-            assertTrue(tools().overview("SERVER").contains("requestCount"));
+            assertTrue(tools().overview(ExchangeDirection.CLIENT).contains("no client-side HTTP data"));
+            assertTrue(tools().overview(ExchangeDirection.SERVER).contains("requestCount"));
+        }
+
+        /**
+         * The refusal moved to the schema when the argument became a real {@code enum}: the binder
+         * knows the constants, so it names them without the tool having to. Exercised through a
+         * toolset rather than a direct call, because a direct call can no longer express the mistake.
+         */
+        @Test
+        void refusesAnUnknownDirectionByName() {
+            ReflectiveToolset toolset = new ReflectiveToolset(tools(), "http");
+
+            ToolDispatchException thrown = assertThrows(ToolDispatchException.class,
+                    () -> toolset.call("http_overview", Json.createObject().put("direction", "inbound")));
+
+            assertTrue(thrown.getMessage().contains("SERVER, CLIENT"), thrown.getMessage());
         }
 
         @Test
-        void refusesAnUnknownDirectionByName() {
-            IllegalArgumentException thrown = assertThrows(
-                    IllegalArgumentException.class, () -> tools().overview("inbound"));
+        void acceptsADirectionInAnyCase() {
+            when(httpManager.overviewData()).thenReturn(data(List.of(uri("https://payments/charge"))));
+            ReflectiveToolset toolset = new ReflectiveToolset(tools(), "http");
 
-            assertTrue(thrown.getMessage().contains("SERVER, CLIENT"), thrown.getMessage());
+            String out = toolset.call("http_overview", Json.createObject().put("direction", "client"));
+
+            assertTrue(out.contains("mode=client"), out);
         }
     }
 }

@@ -10,11 +10,15 @@ One package, two plugin formats. **Claude Code** reads `.claude-plugin/plugin.js
 the other [Agent Plugins](https://agent-plugins.org/) clients read the root `plugin.json` and
 `mcp.json`. The skills and the MCP server underneath are the same files for both.
 
-Every analysis tool is **read-only**, and every tool now says so in its MCP annotations rather than
-leaving a client to infer it. The exceptions are `recordings_` and `hubs_`, which create profiles
-rather than changing them, and `heap_prepare`, which writes only a cache. `hubs_` is the one family
-that reaches off the machine Jeffrey runs on, and the one with a switch of its own:
-`jeffrey.microscope.mcp.hubs.enabled=false`.
+Every analysis tool is **read-only**, and every tool says so in its MCP annotations rather than
+leaving a client to infer it. Six do not read: `recordings_analyzeFile` and `recordings_analyzeRecording`, which create profiles
+rather than changing them, `heap_prepare`, which writes only a cache, `hubs_download`, which pulls one
+off another machine, and `ide_link` and `ide_open`, which act on the editor running beside Jeffrey
+rather than on any profile. Each declares itself, so the reading members of those same families -
+`recordings_list`, `recordings_status`, `heap_status` - are not swept up with them. Two families
+reach outside this server and have switches of their own —
+`jeffrey.microscope.mcp.hubs.enabled=false` for the one that leaves the machine, and
+`jeffrey.microscope.mcp.ide.enabled=false` for the one that reaches into the developer's IntelliJ.
 
 Full documentation: [Microscope MCP](https://www.jeffrey-analyst.cafe/docs/microscope-mcp) —
 [Claude Code](https://www.jeffrey-analyst.cafe/docs/microscope-mcp/claude-code),
@@ -131,8 +135,8 @@ route, and will build a missing dominator tree or report with `heap_prepare` rat
 empty result.
 
 Claude Code gets them from the plugin as `microscope:profile-analyst` and `microscope:heap-triage`,
-restricted to the read-only MCP families so they cannot touch your files, import a recording or
-propose an edit. **Agent Plugins
+restricted to the reading tools so they cannot touch your files, import a recording, pull one off a
+hub, move your editor or propose an edit. **Agent Plugins
 defines only skills and MCP servers**, so Codex cannot receive an agent from a plugin — copy
 [`codex/agents/profile-analyst.toml`](codex/agents/profile-analyst.toml) and
 [`codex/agents/heap-triage.toml`](codex/agents/heap-triage.toml) to `~/.codex/agents/` instead. Those
@@ -156,8 +160,9 @@ instrument for a shared installation, and it composes with the three per-family 
 
 ## Permissions
 
-Both clients ask before each tool the first time. Every Jeffrey tool except `recordings_` and
-`hubs_` is read-only, so approving the family once is usually what you want.
+Both clients ask before each tool the first time. Every Jeffrey tool reads except the five named
+above, so approving a family once is usually what you want — `hubs_` and `ide_` are the two worth
+reading twice, since one moves data off another machine and the other acts on your editor.
 
 Claude Code, from the prompt or up front with `/permissions`:
 

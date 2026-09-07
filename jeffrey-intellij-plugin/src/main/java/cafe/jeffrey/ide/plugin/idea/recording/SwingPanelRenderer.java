@@ -183,7 +183,7 @@ public final class SwingPanelRenderer implements PanelRenderer {
         List<JButton> buttons = new ArrayList<>();
         buttons.add(button("Open in Microscope", event -> actions.openProfile()));
         if (state.needsHeapIndex()) {
-            HeapIndexBuild build = state.indexBuild();
+            PipelineBuild build = state.build();
             boolean building = build != null && !build.failed();
             JButton buildIndex = button(building ? "Building index…" : "Build index", event -> actions.buildIndex());
             buildIndex.setEnabled(!building);

@@ -272,8 +272,9 @@ public class McpToolsetAssembler {
         }
         if (!heapDumpManager.isCacheReady()) {
             throw new IllegalArgumentException(
-                    "The heap dump of profile " + profileId + " is still being indexed. Open it once in "
-                            + "the Jeffrey UI to build the index, then try again.");
+                    "The heap dump of profile " + profileId + " is not indexed yet, and the analysis "
+                            + "tools read the index rather than the dump. Call heap_prepare to build it "
+                            + "and heap_status to follow it; the tools answer once it reports ready.");
         }
         return new HeapDumpMcpTools(new HeapDumpManagerToolsDelegate(heapDumpManager));
     }

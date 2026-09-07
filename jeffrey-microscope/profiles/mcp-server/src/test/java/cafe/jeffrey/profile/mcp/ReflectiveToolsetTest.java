@@ -66,8 +66,20 @@ class ReflectiveToolsetTest {
     }
 
     @Test
-    void defaultsMissingPrimitiveArgumentsToZero() {
-        assertEquals("2", toolset.call("test_add", Json.createObject().put("a", 2)));
+    void defaultsAnOmittedOptionalPrimitiveToZero() {
+        assertEquals("2", toolset.call("test_addOptional", Json.createObject().put("a", 2)));
+    }
+
+    /**
+     * The schema said the argument was required, so a call without it is a call this tool cannot serve.
+     * Binding it to zero instead would answer a question nobody asked, and the model would read the sum
+     * of one number as the sum of two.
+     */
+    @Test
+    void refusesACallOmittingARequiredArgument() {
+        ToolDispatchException e = assertThrows(ToolDispatchException.class,
+                () -> toolset.call("test_add", Json.createObject().put("a", 2)));
+        assertTrue(e.getMessage().contains("b"), e.getMessage());
     }
 
     @Test
@@ -129,6 +141,13 @@ class ReflectiveToolsetTest {
         public String add(
                 @ToolParam(description = "first addend") int a,
                 @ToolParam(description = "second addend") int b) {
+            return String.valueOf(a + b);
+        }
+
+        @Tool(description = "Add two integers, both of them optional")
+        public String addOptional(
+                @ToolParam(required = false, description = "first addend") int a,
+                @ToolParam(required = false, description = "second addend") int b) {
             return String.valueOf(a + b);
         }
 

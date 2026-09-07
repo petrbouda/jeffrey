@@ -58,7 +58,7 @@ public final class CompositeToolset implements McpToolProvider {
     public String call(String toolName, JsonNode arguments) {
         McpToolProvider provider = providersByToolName.get(toolName);
         if (provider == null) {
-            throw new IllegalArgumentException("Unknown tool: " + toolName);
+            throw new ToolDispatchException("Unknown tool: " + toolName);
         }
         return provider.call(toolName, arguments);
     }

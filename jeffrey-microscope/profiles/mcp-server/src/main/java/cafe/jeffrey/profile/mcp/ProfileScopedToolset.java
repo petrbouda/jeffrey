@@ -100,8 +100,13 @@ public final class ProfileScopedToolset<T> implements McpToolProvider {
     public String call(String toolName, JsonNode arguments) {
         Method method = index.method(toolName);
         String profileId = readProfileId(arguments);
+        // Bound before the profile is resolved, so that an argument the schema does not accept is
+        // refused as the protocol error it is whether or not the profile exists. Resolving first made
+        // the answer depend on which mistake was noticed: a bad enum against a missing profile came
+        // back as "profile not found", which sends the caller after the wrong one of its two errors.
+        Object[] args = index.bindArguments(method, arguments);
         T target = targetResolver.apply(profileId);
-        return ToolInvocation.invoke(toolName, method, target, index.bindArguments(method, arguments));
+        return ToolInvocation.invoke(toolName, method, target, args);
     }
 
     /**
@@ -114,11 +119,11 @@ public final class ProfileScopedToolset<T> implements McpToolProvider {
     private static String readProfileId(JsonNode arguments) {
         JsonNode node = arguments == null ? null : arguments.get(PROFILE_ID_ARGUMENT);
         if (node == null || node.isNull()) {
-            throw new IllegalArgumentException(PROFILE_ID_ARGUMENT + " is required");
+            throw new ToolDispatchException(PROFILE_ID_ARGUMENT + " is required");
         }
         String profileId = node.asString();
         if (profileId == null || profileId.isBlank()) {
-            throw new IllegalArgumentException(PROFILE_ID_ARGUMENT + " is required");
+            throw new ToolDispatchException(PROFILE_ID_ARGUMENT + " is required");
         }
         return profileId;
     }

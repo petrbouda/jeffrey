@@ -20,12 +20,16 @@ package cafe.jeffrey.microscope.core.mcp;
 import cafe.jeffrey.profile.mcp.McpResource;
 import cafe.jeffrey.profile.mcp.McpResourceProvider;
 import cafe.jeffrey.profile.mcp.McpToolProvider;
+import cafe.jeffrey.profile.mcp.McpToolSpec;
 import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * The parts of a profile a client can fetch by URI instead of by tool call.
@@ -62,13 +66,28 @@ public class McpResources implements McpResourceProvider {
     private static final String EVENT_TYPE_ARGUMENT = "eventType";
 
     private final McpToolProvider toolset;
+    private final Set<String> availableTools;
 
     public McpResources(McpToolProvider toolset) {
         this.toolset = toolset;
+        this.availableTools = toolset.specs().stream()
+                .map(McpToolSpec::name)
+                .collect(Collectors.toUnmodifiableSet());
     }
 
+    /**
+     * Only the resources whose tool this installation actually advertises.
+     * <p>
+     * Reading a resource runs a tool, so a resource whose tool the family filter left out could be
+     * listed and then fail on every read — the client is told the profile catalogue exists and then
+     * that {@code profiles_list} does not. Narrowing the advertisement is the honest half of that: a
+     * server configured down to one family offers the resources that family can serve, and no others.
+     */
     @Override
     public List<McpResource> resources() {
+        if (!availableTools.contains(PROFILES_LIST_TOOL)) {
+            return List.of();
+        }
         return List.of(new McpResource(
                 PROFILES_URI,
                 "Analysed profiles",
@@ -79,20 +98,25 @@ public class McpResources implements McpResourceProvider {
 
     @Override
     public List<McpResource> templates() {
-        return List.of(
-                new McpResource(
-                        SUMMARY_TEMPLATE,
-                        "Profile summary",
-                        "What one profile is, what it can answer, every event type it recorded, and its "
-                                + "auto-analysis findings where they have been computed.",
-                        McpResource.APPLICATION_JSON),
-                new McpResource(
-                        FLAMEGRAPH_TEMPLATE,
-                        "Flamegraph export",
-                        "The call tree of one event type as Markdown, with the reading instructions for "
-                                + "that event type. Use jdk.ExecutionSample for on-CPU time, "
-                                + "jdk.ObjectAllocationSample for allocation.",
-                        McpResource.TEXT_MARKDOWN));
+        List<McpResource> templates = new ArrayList<>();
+        if (availableTools.contains(PROFILE_SUMMARY_TOOL)) {
+            templates.add(new McpResource(
+                    SUMMARY_TEMPLATE,
+                    "Profile summary",
+                    "What one profile is, what it can answer, every event type it recorded, and its "
+                            + "auto-analysis findings where they have been computed.",
+                    McpResource.APPLICATION_JSON));
+        }
+        if (availableTools.contains(FLAMEGRAPH_EXPORT_TOOL)) {
+            templates.add(new McpResource(
+                    FLAMEGRAPH_TEMPLATE,
+                    "Flamegraph export",
+                    "The call tree of one event type as Markdown, with the reading instructions for "
+                            + "that event type. Use jdk.ExecutionSample for on-CPU time, "
+                            + "jdk.ObjectAllocationSample for allocation.",
+                    McpResource.TEXT_MARKDOWN));
+        }
+        return List.copyOf(templates);
     }
 
     @Override

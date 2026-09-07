@@ -128,6 +128,55 @@ class McpToolOutputTest {
         assertEquals("{\"title\":\"cpu\",\"rows\":[\"a\",\"b\"]}", rendered);
     }
 
+    /**
+     * The record of what was lost is part of the answer, so it has to be inside the cap rather than
+     * appended past it. Attaching it after the trim loop had already stopped at the ceiling pushed the
+     * rendering back over, and the cut that followed left JSON ending mid-token with a Markdown
+     * sentence stuck to it — the one outcome this method exists to prevent.
+     */
+    @Test
+    void keepsAnOversizedJsonResultParseableOnceTheTruncationRecordIsAttached() {
+        List<String> rows = new ArrayList<>();
+        // Sized so the trimmed rendering lands just under the cap, leaving no room for the record.
+        for (int i = 0; i < 4_000; i++) {
+            rows.add("row-" + i + "-" + "y".repeat(55));
+        }
+
+        String json = McpToolOutput.json(new Dashboard("t", rows));
+
+        assertTrue(json.length() <= McpToolOutput.MAX_CHARS, "length=" + json.length());
+        assertFalse(json.contains("TRUNCATED:"), "a JSON answer must not carry the Markdown note");
+        JsonNode parsed = Json.readTree(json);
+        assertNotNull(parsed.get("_truncated"));
+    }
+
+    /**
+     * A bare list is the case the record had nowhere to hang: it was trimmed and handed back short with
+     * nothing saying so, which reads exactly like a complete list of that length.
+     */
+    @Test
+    void saysSoWhenATopLevelListHadToLoseRows() {
+        List<String> rows = new ArrayList<>();
+        for (int i = 0; i < 20_000; i++) {
+            rows.add("row-" + i + "-" + "z".repeat(40));
+        }
+
+        String json = McpToolOutput.json(rows);
+
+        JsonNode parsed = Json.readTree(json);
+        assertTrue(parsed.isObject(), "a trimmed list is wrapped so the record has somewhere to hang");
+        assertTrue(parsed.get("items").size() < rows.size());
+        assertNotNull(parsed.get("_truncated"));
+        assertTrue(json.length() <= McpToolOutput.MAX_CHARS);
+    }
+
+    @Test
+    void leavesAListThatFitsAsAList() {
+        String json = McpToolOutput.json(List.of("a", "b"));
+
+        assertEquals("[\"a\",\"b\"]", json);
+    }
+
     @Test
     void marksErrorsSoTheModelCanTellThemFromData() {
         assertTrue(McpToolOutput.error("nothing here").startsWith("Error: "));

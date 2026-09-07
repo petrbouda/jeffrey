@@ -48,6 +48,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -313,18 +314,25 @@ class RecordingsMcpToolsTest {
             // one under test rather than a race.
             RecordingsMcpTools slow = new RecordingsMcpTools(
                     recordingsManager, runRegistry, new BoundedJobs<>(Duration.ofMillis(50)));
+            // Held open by the test rather than by a sleep, so the work is still running when the
+            // budget expires without leaving a thread asleep for five seconds after the assertions.
+            CountDownLatch release = new CountDownLatch(1);
             when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
-                Thread.sleep(Duration.ofSeconds(5));
+                release.await();
                 return PROFILE_ID;
             });
 
-            String result = slow.analyzeRecording(RECORDING_ID);
+            try {
+                String result = slow.analyzeRecording(RECORDING_ID);
 
-            assertTrue(result.contains("\"status\":\"running\""));
-            assertTrue(result.contains(RECORDING_ID));
-            // Explicitly null rather than absent: the field is always there, and its emptiness is what
-            // says there is no profile to reach for yet.
-            assertTrue(result.contains("\"profileId\":null"), result);
+                assertTrue(result.contains("\"status\":\"running\""));
+                assertTrue(result.contains(RECORDING_ID));
+                // Explicitly null rather than absent: the field is always there, and its emptiness is
+                // what says there is no profile to reach for yet.
+                assertTrue(result.contains("\"profileId\":null"), result);
+            } finally {
+                release.countDown();
+            }
         }
 
         /**
