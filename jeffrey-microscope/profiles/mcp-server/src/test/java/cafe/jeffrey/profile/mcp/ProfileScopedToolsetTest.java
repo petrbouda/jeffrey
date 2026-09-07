@@ -110,6 +110,22 @@ class ProfileScopedToolsetTest {
             assertEquals(List.of("profile-1", "profile-2"), resolvedProfileIds);
         }
 
+        /**
+         * Which of two mistakes gets reported must not depend on the order they are noticed in. A
+         * value the schema does not accept is the caller's own error whether or not the profile it
+         * named exists, and resolving first answered "profile not found" to a call whose argument was
+         * the thing actually wrong.
+         */
+        @Test
+        void refusesABadArgumentWithoutResolvingTheProfile() {
+            ToolDispatchException e = assertThrows(ToolDispatchException.class,
+                    () -> toolset.call("sample_describe", Json.createObject()
+                            .put(ProfileScopedToolset.PROFILE_ID_ARGUMENT, "profile-1")));
+
+            assertTrue(e.getMessage().contains("suffix"), e.getMessage());
+            assertEquals(List.of(), resolvedProfileIds);
+        }
+
         @Test
         void rejectsAMissingProfileId() {
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class,

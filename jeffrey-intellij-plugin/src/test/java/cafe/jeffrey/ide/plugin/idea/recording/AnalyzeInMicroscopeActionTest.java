@@ -44,6 +44,8 @@ public class AnalyzeInMicroscopeActionTest {
     private static final String EXPECTED_TEMPLATE = "/quick-open?path=";
 
     private static final String CONFIGURED_URL = "http://192.168.1.10:9000";
+    private static final String LOCAL_URL = "http://localhost:9000";
+    private static final String PREFIXED_URL = "https://jeffrey.internal/microscope";
     private static final String PLAIN_PATH = "/home/petr/recordings/run.jfr";
     private static final String SPACED_PATH = "/home/petr/My Recordings/run.jfr";
     private static final String PLUS_PATH = "/home/petr/run+1.jfr";
@@ -99,18 +101,18 @@ public class AnalyzeInMicroscopeActionTest {
 
     @Test
     public void trimsATrailingSlashFromTheConfiguredAddress() {
-        assertEquals("http://localhost:9000", microscopeUrl("http://localhost:9000/"));
+        assertEquals(LOCAL_URL, microscopeUrl(LOCAL_URL + "/"));
     }
 
     /** A base with a path keeps it — only the slash that would double up in the link comes off. */
     @Test
     public void keepsAPathPrefixOnTheConfiguredAddress() {
-        assertEquals("https://jeffrey.internal/microscope", microscopeUrl("https://jeffrey.internal/microscope/"));
+        assertEquals(PREFIXED_URL, microscopeUrl(PREFIXED_URL + "/"));
     }
 
     @Test
     public void trimsSurroundingWhitespace() {
-        assertEquals("http://localhost:9000", microscopeUrl("  http://localhost:9000/  "));
+        assertEquals(LOCAL_URL, microscopeUrl("  " + LOCAL_URL + "/  "));
     }
 
     /**

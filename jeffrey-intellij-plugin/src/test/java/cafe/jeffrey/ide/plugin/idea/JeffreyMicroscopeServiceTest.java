@@ -58,7 +58,11 @@ public class JeffreyMicroscopeServiceTest extends BasePlatformTestCase {
     private static final String HAS = "has";
     private static final String SOURCE = "source";
 
+    private static final String UNKNOWN_ENDPOINT = "flamegraph";
     private static final String UNKNOWN_ENDPOINT_MESSAGE = "Unknown Jeffrey endpoint";
+
+    private static final String PROTOCOL_VERSION_FIELD = "\"protocolVersion\":";
+    private static final String BROWSER_ORIGIN = "http://evil.example";
 
     private static final String EMPTY_BODY = "";
     private static final String BROKEN_BODY = "{\"className\": ";
@@ -81,7 +85,7 @@ public class JeffreyMicroscopeServiceTest extends BasePlatformTestCase {
         assertNull(exchange.text());
         assertEquals(HttpResponseStatus.OK, exchange.status());
         assertTrue(exchange.body(), exchange.body()
-                .contains("\"protocolVersion\":" + JeffreyMicroscopeService.PROTOCOL_VERSION));
+                .contains(PROTOCOL_VERSION_FIELD + JeffreyMicroscopeService.PROTOCOL_VERSION));
     }
 
     /**
@@ -103,7 +107,7 @@ public class JeffreyMicroscopeServiceTest extends BasePlatformTestCase {
 
     /** A path with no entry in the table is an error the caller reads, not a 405 about the verb. */
     public void testAnUnknownEndpointIsNotAMethodProblem() throws IOException {
-        Exchange exchange = call(HttpMethod.GET, "flamegraph", EMPTY_BODY);
+        Exchange exchange = call(HttpMethod.GET, UNKNOWN_ENDPOINT, EMPTY_BODY);
 
         assertEquals(UNKNOWN_ENDPOINT_MESSAGE, exchange.text());
         assertNull(exchange.response());
@@ -148,9 +152,12 @@ public class JeffreyMicroscopeServiceTest extends BasePlatformTestCase {
 
     public void testARequestWithAnOriginIsLeftToThePlatform() {
         FullHttpRequest request = request(HttpMethod.GET, PING, EMPTY_BODY);
-        request.headers().set(HttpHeaderNames.ORIGIN, "http://evil.example");
+        request.headers().set(HttpHeaderNames.ORIGIN, BROWSER_ORIGIN);
 
-        assertFalse(HttpRequestHandler.OriginCheckResult.ALLOW.equals(service.isOriginAllowed(request)));
+        HttpRequestHandler.OriginCheckResult result = service.isOriginAllowed(request);
+
+        assertTrue("a browser Origin must not be waved through: " + result,
+                result != HttpRequestHandler.OriginCheckResult.ALLOW);
     }
 
     private Exchange call(HttpMethod method, String path, String body) throws IOException {

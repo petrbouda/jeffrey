@@ -40,6 +40,25 @@ public class HeapIndexBuildJsonTest {
             + "{\"id\":\"threads\",\"status\":\"pending\"},"
             + "{\"id\":\"biggest\",\"status\":\"pending\"}]}";
 
+    /** A run in which the string analysis found nothing to do and was skipped. */
+    private static final String WITH_SKIPPED_STAGE = "{\"state\":\"running\",\"stages\":["
+            + "{\"id\":\"load\",\"status\":\"completed\",\"durationMs\":4000},"
+            + "{\"id\":\"strings\",\"status\":\"skipped\",\"durationMs\":1000},"
+            + "{\"id\":\"dominator\",\"status\":\"in_progress\",\"elapsedMs\":5000},"
+            + "{\"id\":\"threads\",\"status\":\"pending\"}]}";
+
+    /** The same run in the moment between two stages: one finished, one skipped, none started yet. */
+    private static final String SKIPPED_AND_NOTHING_RUNNING = "{\"state\":\"running\",\"stages\":["
+            + "{\"id\":\"load\",\"status\":\"completed\",\"durationMs\":4000},"
+            + "{\"id\":\"strings\",\"status\":\"skipped\",\"durationMs\":1000},"
+            + "{\"id\":\"dominator\",\"status\":\"pending\"},"
+            + "{\"id\":\"threads\",\"status\":\"pending\"}]}";
+
+    private static final String SKIPPED_THEN_FAILED = "{\"state\":\"failed\",\"errorMessage\":\"Java heap space\","
+            + "\"stages\":[{\"id\":\"load\",\"status\":\"completed\",\"durationMs\":4000},"
+            + "{\"id\":\"strings\",\"status\":\"skipped\",\"durationMs\":1000},"
+            + "{\"id\":\"dominator\",\"status\":\"failed\",\"durationMs\":2000}]}";
+
     @Test
     public void namesTheRunningStageAndAddsUpTheTimeSoFar() {
         HeapIndexBuild build = MicroscopeJson.parseIndexBuild(RUNNING);
@@ -62,6 +81,42 @@ public class HeapIndexBuildJsonTest {
         assertEquals(1, build.stageNumber());
         assertEquals("Loading the dump", build.stageTitle());
         assertEquals(0.0, build.fraction(), 1e-9);
+    }
+
+    /**
+     * A skipped stage is finished. The backend's {@code StageStatus} treats it as terminal, and
+     * counting it as neither running nor done left the line naming a stage that had already gone by
+     * and under-reporting the time behind it for the rest of the run.
+     */
+    @Test
+    public void countsASkippedStageAsFinished() {
+        HeapIndexBuild build = MicroscopeJson.parseIndexBuild(WITH_SKIPPED_STAGE);
+
+        assertEquals(3, build.stageNumber());
+        assertEquals(4, build.stageCount());
+        assertEquals("Dominator tree", build.stageTitle());
+        assertEquals(10_000L, build.elapsedMs());
+        assertEquals(2 / 4.0, build.fraction(), 1e-9);
+    }
+
+    /** With nothing in progress, the stage after the last finished one is the one to name — and a skipped stage is one. */
+    @Test
+    public void namesTheStageAfterASkippedOneWhenNothingIsRunning() {
+        HeapIndexBuild build = MicroscopeJson.parseIndexBuild(SKIPPED_AND_NOTHING_RUNNING);
+
+        assertEquals(3, build.stageNumber());
+        assertEquals("Dominator tree", build.stageTitle());
+        assertEquals(5_000L, build.elapsedMs());
+    }
+
+    /** Time spent on a skipped stage is still time the developer waited, failure or not. */
+    @Test
+    public void addsASkippedStagesDurationToTheElapsedTime() {
+        HeapIndexBuild build = MicroscopeJson.parseIndexBuild(SKIPPED_THEN_FAILED);
+
+        assertTrue(build.failed());
+        assertEquals(3, build.stageNumber());
+        assertEquals(7_000L, build.elapsedMs());
     }
 
     @Test
