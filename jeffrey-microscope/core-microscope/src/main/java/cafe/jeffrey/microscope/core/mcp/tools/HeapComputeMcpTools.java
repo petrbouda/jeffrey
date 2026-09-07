@@ -102,6 +102,11 @@ public class HeapComputeMcpTools {
                 UiLinks.view(profileId, HEAP_VIEW)));
     }
 
+    /*
+     * Reads. Its family is registered as writing because heap_prepare builds the index; this one
+     * only reports how that build is going, and says so rather than inheriting the claim.
+     */
+    @McpToolHints
     @Tool(description = "How far heap_prepare has got on this profile: every stage with its state and, "
             + "once finished, how long it took. Poll it after heap_prepare rather than retrying the "
             + "report tool, which cannot tell 'still building' from 'never asked for'. A profile whose "

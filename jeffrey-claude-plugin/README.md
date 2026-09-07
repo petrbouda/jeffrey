@@ -11,9 +11,11 @@ the other [Agent Plugins](https://agent-plugins.org/) clients read the root `plu
 `mcp.json`. The skills and the MCP server underneath are the same files for both.
 
 Every analysis tool is **read-only**, and every tool says so in its MCP annotations rather than
-leaving a client to infer it. Four do not read: `recordings_` and `hubs_download`, which create
-profiles rather than changing them, `heap_prepare`, which writes only a cache, and `ide_link` and
-`ide_open`, which act on the editor running beside Jeffrey rather than on any profile. Two families
+leaving a client to infer it. Six do not read: `recordings_analyzeFile` and `recordings_analyzeRecording`, which create profiles
+rather than changing them, `heap_prepare`, which writes only a cache, `hubs_download`, which pulls one
+off another machine, and `ide_link` and `ide_open`, which act on the editor running beside Jeffrey
+rather than on any profile. Each declares itself, so the reading members of those same families -
+`recordings_list`, `recordings_status`, `heap_status` - are not swept up with them. Two families
 reach outside this server and have switches of their own —
 `jeffrey.microscope.mcp.hubs.enabled=false` for the one that leaves the machine, and
 `jeffrey.microscope.mcp.ide.enabled=false` for the one that reaches into the developer's IntelliJ.

@@ -37,7 +37,6 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
