@@ -535,6 +535,24 @@ which arrives on `Finding.rule` already. JMC also exposes `IRule.getTopic()` (`g
 `exceptions`, `lock_instances`), and `AutoAnalysisDataProvider` drops it; grouping findings by
 category would need that field threaded through `AutoAnalysisResult` and the IDE response first.
 
+They also **arrive after the profile does**. `ProfileInitStages.WARMUP` starts the rule set and does
+not wait for it — "the stage covers starting them, not finishing them" — so a recording reaches READY
+with its findings still in flight, and the panel that asked once painted that gap as *never computed*
+for the life of the tab. It now draws the **same callout the two pipelines use** — spinner, *Running
+the analysis rules*, and a bar left **indeterminate**, because there are no stages to count and a
+determinate one would sit frozen at zero for the whole wait (`waitingCallout`, a sibling of
+`progressCallout` rather than a nullable `PipelineBuild` threaded through it). It is the one callout
+with no action: the only button worth offering would start the run already going. Meanwhile the panel
+re-asks `by-path` every three seconds, for three minutes, until `RecordingState.awaitingAnalysis()`
+stops holding. What makes that terminable is on the
+Microscope side: `analysisComputed` is `AutoAnalysisManager.isComputed()` — whether the cache key is
+**present** — rather than whether the findings list is non-empty, because a run that flagged nothing
+caches an empty list and read the old way is indistinguishable from a run that never happened. That
+recording now reads `Nothing flagged.`, and `analysisPossible` (from `canGenerate()`) is what
+separates a wait from a recording whose file is gone, which keeps the old sentence and its link. A
+Microscope too old to send the field defaults it to false, so the panel behaves as it always did
+rather than waiting on an answer that will never come.
+
 The header well draws the **flame for a recording and an object graph for a heap dump** (`PanelSvg`
 key `heap`, `JeffreyIcons.HEAP_DUMP` on the Swing side), decided by `RecordingState.isHeapDumpFile()`
 — the summary's kind once Microscope answered, the file name before — so an `.hprof` wears it from

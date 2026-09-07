@@ -23,10 +23,12 @@ import org.junit.Test;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
- * Where "Open in Microscope" lands. It used to be the bare profile URL for both kinds, which
- * Microscope redirects to the JFR dashboard — a page a heap dump has nothing to put on.
+ * The questions the panel asks a state before drawing it: where "Open in Microscope" lands, and
+ * whether the auto analysis is still on its way.
  */
 public class RecordingStateTest {
 
@@ -40,7 +42,42 @@ public class RecordingStateTest {
         assertEquals("heap-dump/overview", summary(RecordingState.Kind.HEAP_DUMP).landingPath());
     }
 
+    /**
+     * A ready profile whose findings have not arrived. The warm-up starts the rule set without
+     * waiting for it, so this is the ordinary state for the first seconds after an import.
+     */
+    @Test
+    public void aReadyProfileWithoutItsFindingsIsStillWaitingForThem() {
+        assertTrue(state(RecordingState.Status.READY, summary(false, true)).awaitingAnalysis());
+    }
+
+    @Test
+    public void anAnalysisThatCannotRunIsNotWaitedFor() {
+        assertFalse(state(RecordingState.Status.READY, summary(false, false)).awaitingAnalysis());
+    }
+
+    @Test
+    public void anAnalysisThatLandedIsNotWaitedFor() {
+        assertFalse(state(RecordingState.Status.READY, summary(true, true)).awaitingAnalysis());
+    }
+
+    /** Nothing is waited for before the profile exists -- there is no analysis to wait on yet. */
+    @Test
+    public void aProfileStillBeingBuiltIsNotWaitedFor() {
+        assertFalse(state(RecordingState.Status.ANALYZING, null).awaitingAnalysis());
+    }
+
+    private static RecordingState state(RecordingState.Status status, RecordingState.ProfileSummary summary) {
+        return new RecordingState(status, "rec-1", "profile-1", "app.jfr", 1_024L, summary);
+    }
+
+    private static RecordingState.ProfileSummary summary(boolean computed, boolean possible) {
+        return new RecordingState.ProfileSummary(
+                RecordingState.Kind.RECORDING, "profile", null, null, computed, possible,
+                List.of(), List.of());
+    }
+
     private static RecordingState.ProfileSummary summary(RecordingState.Kind kind) {
-        return new RecordingState.ProfileSummary(kind, "profile", null, null, false, List.of(), List.of());
+        return new RecordingState.ProfileSummary(kind, "profile", null, null, false, false, List.of(), List.of());
     }
 }

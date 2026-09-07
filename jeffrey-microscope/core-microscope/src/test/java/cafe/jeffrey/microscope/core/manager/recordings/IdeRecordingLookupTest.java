@@ -225,6 +225,7 @@ class IdeRecordingLookupTest {
             assertEquals(980_000L, summary.recording().capturedSamples());
             assertEquals(0L, summary.recording().lostSamples());
             assertTrue(summary.analysisComputed());
+            assertTrue(summary.analysisPossible());
             assertEquals(1, summary.findings().size());
             assertEquals("WARNING", summary.findings().getFirst().severity());
             // TRACES from the profile itself, HEAP_DUMP because no dump is attached — the panel needs
@@ -233,18 +234,54 @@ class IdeRecordingLookupTest {
             assertEquals("Long GC pauses", summary.findings().getFirst().summary());
         }
 
+        /**
+         * The case the {@code isComputed} flag exists for: the rules ran and cleared the recording.
+         * Read off the findings list, that is indistinguishable from never having run, and the panel
+         * would offer to run an analysis that is already done.
+         */
         @Test
-        void reportsAnalysisNotComputedRatherThanNoFindings() {
-            when(recordingsManager.listRecordings()).thenReturn(List.of(recording("rec-1", true, SIZE)));
-            when(profileInitRunRegistry.isRunning(PROFILE_ID)).thenReturn(false);
+        void reportsAnAnalysisThatFlaggedNothingAsComputed() {
             ProfileManager profileManager = readyProfile();
             when(profileManager.autoAnalysisManager().analysisResults()).thenReturn(List.of());
-            when(profileManagerResolver.find(PROFILE_ID)).thenReturn(Optional.of(profileManager));
+            stubReady(profileManager);
 
             var summary = lookup.byPath(RECORDING_PATH, SIZE).summary();
 
-            assertEquals(false, summary.analysisComputed());
+            assertTrue(summary.analysisComputed());
             assertTrue(summary.findings().isEmpty());
+        }
+
+        @Test
+        void reportsAnAnalysisStillRunningAsNotComputedButPossible() {
+            ProfileManager profileManager = readyProfile();
+            when(profileManager.autoAnalysisManager().analysisResults()).thenReturn(List.of());
+            when(profileManager.autoAnalysisManager().isComputed()).thenReturn(false);
+            stubReady(profileManager);
+
+            var summary = lookup.byPath(RECORDING_PATH, SIZE).summary();
+
+            assertFalse(summary.analysisComputed());
+            assertTrue(summary.analysisPossible(), "the recording file is still on disk");
+        }
+
+        @Test
+        void reportsAnAnalysisThatCanNeverRunAsImpossible() {
+            ProfileManager profileManager = readyProfile();
+            when(profileManager.autoAnalysisManager().analysisResults()).thenReturn(List.of());
+            when(profileManager.autoAnalysisManager().isComputed()).thenReturn(false);
+            when(profileManager.autoAnalysisManager().canGenerate()).thenReturn(false);
+            stubReady(profileManager);
+
+            var summary = lookup.byPath(RECORDING_PATH, SIZE).summary();
+
+            assertFalse(summary.analysisComputed());
+            assertFalse(summary.analysisPossible(), "the recording file the rules read is gone");
+        }
+
+        private void stubReady(ProfileManager profileManager) {
+            when(recordingsManager.listRecordings()).thenReturn(List.of(recording("rec-1", true, SIZE)));
+            when(profileInitRunRegistry.isRunning(PROFILE_ID)).thenReturn(false);
+            when(profileManagerResolver.find(PROFILE_ID)).thenReturn(Optional.of(profileManager));
         }
     }
 
@@ -358,6 +395,8 @@ class IdeRecordingLookupTest {
                 new AutoAnalysisResult(
                         "gc-pauses", Severity.WARNING, "3 pauses above 200 ms",
                         "Long GC pauses", "Tune the collector", "341")));
+        when(profileManager.autoAnalysisManager().isComputed()).thenReturn(true);
+        when(profileManager.autoAnalysisManager().canGenerate()).thenReturn(true);
         // Deep stubs answer null for an unstubbed List, and the disabled-features scan reads one.
         when(profileManager.featuresManager().getDisabledFeatures()).thenReturn(List.of(FeatureType.TRACES));
         when(profileManager.heapDumpManager().heapDumpExists()).thenReturn(false);

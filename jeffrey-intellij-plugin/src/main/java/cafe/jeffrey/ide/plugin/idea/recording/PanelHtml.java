@@ -40,6 +40,16 @@ final class PanelHtml {
     private static final String NOT_COMPUTED =
             "Not computed for this profile yet.";
 
+    /**
+     * What the other renderer says in a callout, said here in one line: no box, no spinner and no
+     * bar, because Swing's HTML kit draws none of them and this pane is not held to the other one's
+     * appearance. No link either -- the run it would offer is already under way.
+     */
+    private static final String ANALYSIS_RUNNING =
+            "Running the analysis rules \u2014 the tab updates itself when it is done.";
+
+    private static final String NOTHING_FLAGGED = "Nothing flagged.";
+
     private static final String NOT_INDEXED =
             "This heap dump has not been indexed yet — open it in Microscope to build the index.";
 
@@ -188,8 +198,16 @@ final class PanelHtml {
 
     private static String findings(RecordingState.ProfileSummary summary) {
         if (!summary.analysisComputed()) {
+            if (summary.analysisPossible()) {
+                return "<table><tr><td class='sml'>" + ANALYSIS_RUNNING + "</td></tr></table>";
+            }
             return "<table><tr><td class='sml'>" + NOT_COMPUTED + " "
                     + link(ProfileView.AUTO_ANALYSIS.path(), "Run it in Microscope")
+                    + "</td></tr></table>";
+        }
+        if (summary.findings().isEmpty()) {
+            return "<table><tr><td class='sml'>" + NOTHING_FLAGGED + " "
+                    + link(ProfileView.AUTO_ANALYSIS.path(), "Auto-analysis")
                     + "</td></tr></table>";
         }
 

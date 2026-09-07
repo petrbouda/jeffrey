@@ -98,11 +98,50 @@ public class WebPanelHtmlTest {
         String html = document(withSummary(new RecordingState.ProfileSummary(
                 RecordingState.Kind.RECORDING, "profile",
                 new RecordingState.RecordingFigures(5_539, 44_099, 106, 353, 222),
-                null, false, List.of(), List.of())));
+                null, false, false, List.of(), List.of())));
 
         assertTrue(html.contains("Auto-analysis"));
         assertTrue(html.contains("Not computed for this profile yet."));
         assertTrue(html.contains("data-action='view:auto-analysis'"));
+    }
+
+    /**
+     * The gap between a profile being ready and its findings existing. Saying "not computed" there is
+     * wrong, and offering to run the analysis is worse: the run is already going.
+     */
+    @Test
+    public void anAnalysisStillRunningSaysSoAndOffersNothingToPress() {
+        String html = document(withSummary(new RecordingState.ProfileSummary(
+                RecordingState.Kind.RECORDING, "profile",
+                new RecordingState.RecordingFigures(5_539, 44_099, 106, 353, 222),
+                null, false, true, List.of(), List.of())));
+
+        assertTrue(html.contains("Auto-analysis"));
+        assertTrue(html.contains("Running the analysis rules"));
+        assertTrue("the same box the pipelines use", html.contains("class='callout'"));
+        assertTrue("the wait carries a spinner", html.contains("class='spin'"));
+        // Indeterminate on purpose: there are no stages to count, and the determinate bar would sit
+        // frozen at zero for the whole wait.
+        assertTrue(html.contains("<div class='prog'><i></i></div>"));
+        assertFalse("the bar cannot report a fraction it does not have", html.contains("prog det"));
+        assertFalse(html.contains("Not computed for this profile yet."));
+        // The section offers no link of its own -- the run it would start is already going. The
+        // auto-analysis tile in the grid below is a different thing and stays where it is.
+        assertFalse("nothing to press while it runs", html.contains("Run it in Microscope"));
+    }
+
+    /** A recording the rules cleared is a result, and used to be reported as an absence. */
+    @Test
+    public void anAnalysisThatFlaggedNothingSaysSoRatherThanLookingUnfinished() {
+        String html = document(withSummary(new RecordingState.ProfileSummary(
+                RecordingState.Kind.RECORDING, "profile",
+                new RecordingState.RecordingFigures(5_539, 44_099, 106, 353, 222),
+                null, true, true, List.of(), List.of())));
+
+        assertTrue(html.contains("Nothing flagged."));
+        assertTrue(html.contains("0 findings"));
+        assertFalse(html.contains("Not computed for this profile yet."));
+        assertFalse(html.contains("Running the analysis rules"));
     }
 
     @Test
@@ -215,7 +254,7 @@ public class WebPanelHtmlTest {
     @Test
     public void aRecordingWithNoFiguresDoesNotBorrowTheHeapMessage() {
         String html = document(withSummary(new RecordingState.ProfileSummary(
-                RecordingState.Kind.RECORDING, "profile", null, null, true, List.of(), List.of())));
+                RecordingState.Kind.RECORDING, "profile", null, null, true, true, List.of(), List.of())));
 
         assertFalse(html.contains("has not been indexed yet"));
         assertFalse(html.contains("class='figs'"));
@@ -411,14 +450,14 @@ public class WebPanelHtmlTest {
         return withSummary(new RecordingState.ProfileSummary(
                 RecordingState.Kind.RECORDING, "jeffrey-20260904-180108",
                 new RecordingState.RecordingFigures(5_539, 44_099, 106, 353, 222),
-                null, true, findings, disabled));
+                null, true, true, findings, disabled));
     }
 
     private static RecordingState heapDump(boolean cacheReady) {
         return withSummary(new RecordingState.ProfileSummary(
                 RecordingState.Kind.HEAP_DUMP, "microscope.hprof", null,
                 new RecordingState.HeapFigures(34_536_952L, 737_553L, 15_474, 4_700, cacheReady),
-                false, List.of(), List.of()));
+                false, false, List.of(), List.of()));
     }
 
     private static RecordingState withSummary(RecordingState.ProfileSummary summary) {
