@@ -36,6 +36,8 @@ import com.intellij.util.concurrency.AppExecutorUtil;
 import javax.swing.JComponent;
 import java.awt.BorderLayout;
 import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The recording panel: what Microscope knows about this file, and what it can open.
@@ -60,11 +62,32 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
 
     private static final String SETTINGS_DISPLAY_NAME = "Jeffrey Plugin";
 
+    /** How often the panel asks about a running index build. Stages take seconds to minutes. */
+    private static final long INDEX_POLL_SECONDS = 2;
+
+    /**
+     * How many "nothing running" answers in a row end the watch after a build was requested. The
+     * run is registered asynchronously, so the first poll can land before it exists; three in a row
+     * mean it never will.
+     */
+    private static final int INDEX_IDLE_POLLS_TOLERATED = 3;
+
+    /**
+     * How many polls in a row may fail before the watch gives up. One missed answer is a hiccup;
+     * five is a Microscope that stopped, or an endpoint that is not there, and a panel that keeps
+     * asking every two seconds forever helps nobody.
+     */
+    private static final int INDEX_FAILED_POLLS_TOLERATED = 5;
+
     private final Project project;
     private final Path file;
     private final PanelRenderer renderer;
 
+    /** One watch at a time: a second "Build index" while one is running must not start a second loop. */
+    private final AtomicBoolean watchingIndex = new AtomicBoolean();
+
     private volatile MicroscopeClient client;
+    private volatile boolean disposed;
 
     public RecordingPanel(Project project, Path file) {
         super(new BorderLayout());
@@ -91,18 +114,25 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
      * <p>{@code isSupported()} is false on a JBR built without JCEF and inside the JetBrains Client,
      * so the fallback is not theoretical. Anything thrown while building the browser lands here too:
      * a tab that renders plainly beats a tab that renders an exception.
+     *
+     * <p>The guard wraps the {@code isSupported()} call as well, not only the constructor. The JCEF
+     * classes are an optional dependency (a plugin of their own since 2026.2), and when they are
+     * absent the first mention of {@link CefPanelRenderer} fails while that class is being linked
+     * — before any line of it runs. That {@link LinkageError} has to be caught here, one frame up.
      */
     private PanelRenderer createRenderer() {
-        if (CefPanelRenderer.isSupported()) {
-            try {
+        try {
+            if (CefPanelRenderer.isSupported()) {
                 CefPanelRenderer cef = new CefPanelRenderer(this, file);
                 Disposer.register(this, cef);
                 return cef;
-            } catch (Exception | LinkageError e) {
-                LOG.warn("Could not start the embedded browser, falling back to the Swing panel", e);
             }
-        } else {
             LOG.info("JCEF is unavailable in this runtime, rendering the recording panel with Swing");
+        } catch (LinkageError e) {
+            LOG.info("JCEF classes are not present in this IDE, rendering the recording panel with Swing: "
+                    + e);
+        } catch (Exception e) {
+            LOG.warn("Could not start the embedded browser, falling back to the Swing panel", e);
         }
         return new SwingPanelRenderer(this, file);
     }
@@ -121,13 +151,28 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
 
     @Override
     public void dispose() {
+        disposed = true;
     }
 
+    /**
+     * Asks Microscope about the file and draws the answer. A dump whose index is missing gets one
+     * more question — is a build already running? — so a tab opened while Microscope is indexing
+     * shows the build rather than offering to start a second one.
+     */
     private void query() {
         MicroscopeClient current = client;
         AppExecutorUtil.getAppExecutorService().execute(() -> {
             RecordingState state = current.state(file);
-            ApplicationManager.getApplication().invokeLater(() -> renderer.render(state));
+            if (state.needsHeapIndex()) {
+                HeapIndexBuild build = progressOrNull(current, state.profileId());
+                if (build != null && !build.failed()) {
+                    RecordingState watched = state.withIndexBuild(build);
+                    show(watched);
+                    watchIndexBuild(current, watched);
+                    return;
+                }
+            }
+            show(state);
         });
     }
 
@@ -142,8 +187,7 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
         AppExecutorUtil.getAppExecutorService().execute(() -> {
             try {
                 current.analyze(file);
-                RecordingState state = current.state(file);
-                ApplicationManager.getApplication().invokeLater(() -> renderer.render(state));
+                query();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
@@ -168,9 +212,129 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
         ShowSettingsUtil.getInstance().showSettingsDialog(null, SETTINGS_DISPLAY_NAME);
     }
 
+    /**
+     * Starts the index build and follows it. The panel redraws on every poll — the callout is what
+     * moves, the rest of the page stays — and drops back to an ordinary ready state, figures and all,
+     * once the pipeline is no longer running.
+     */
+    @Override
+    public void buildIndex() {
+        MicroscopeClient current = client;
+        AppExecutorUtil.getAppExecutorService().execute(() -> {
+            RecordingState state = current.state(file);
+            if (!state.needsHeapIndex()) {
+                LOG.info("Ignoring an index build for a file that does not need one: file=" + file);
+                show(state);
+                return;
+            }
+            try {
+                current.buildHeapIndex(state.profileId());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            } catch (Exception e) {
+                LOG.warn("Starting a heap index build in Microscope failed: file=" + file, e);
+                show(state.withIndexBuild(new HeapIndexBuild(
+                        HeapIndexBuild.Phase.FAILED, 0, 0, null, 0L, message(e))));
+                return;
+            }
+            show(state.withIndexBuild(new HeapIndexBuild(
+                    HeapIndexBuild.Phase.RUNNING, 0, 0, null, 0L, null)));
+            watchIndexBuild(current, state);
+        });
+    }
+
+    /**
+     * Polls the build until it stops, one scheduled poll at a time rather than a thread that sleeps.
+     * A closed tab ends the watch at the next poll; the build itself carries on in Microscope.
+     */
+    private void watchIndexBuild(MicroscopeClient current, RecordingState state) {
+        if (!watchingIndex.compareAndSet(false, true)) {
+            return;
+        }
+        pollIndexBuild(current, state, 0, 0);
+    }
+
+    private void pollIndexBuild(MicroscopeClient current, RecordingState state, int idlePolls, int failedPolls) {
+        if (disposed) {
+            watchingIndex.set(false);
+            return;
+        }
+        AppExecutorUtil.getAppScheduledExecutorService().schedule(() -> {
+            HeapIndexBuild build;
+            try {
+                build = current.heapIndexProgress(state.profileId());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                watchingIndex.set(false);
+                return;
+            } catch (Exception e) {
+                // One missed poll is not a failed build; the next one will say. Keep watching, up
+                // to a point — then stop and draw whatever Microscope will answer about the file.
+                if (failedPolls + 1 < INDEX_FAILED_POLLS_TOLERATED) {
+                    LOG.info("Could not read the heap index progress, will ask again: file=" + file, e);
+                    pollIndexBuild(current, state, idlePolls, failedPolls + 1);
+                    return;
+                }
+                LOG.warn("Gave up following the heap index build: file=" + file, e);
+                watchingIndex.set(false);
+                query();
+                return;
+            }
+
+            if (build == null) {
+                // Idle or completed. Right after the request the run may not exist yet, so a few of
+                // these are patience; more than that and there is nothing to wait for.
+                if (idlePolls + 1 < INDEX_IDLE_POLLS_TOLERATED && state.indexBuild() == null) {
+                    pollIndexBuild(current, state, idlePolls + 1, 0);
+                    return;
+                }
+                watchingIndex.set(false);
+                query();
+                return;
+            }
+            RecordingState watched = state.withIndexBuild(build);
+            show(watched);
+            if (build.failed()) {
+                watchingIndex.set(false);
+                return;
+            }
+            pollIndexBuild(current, watched, 0, 0);
+        }, INDEX_POLL_SECONDS, TimeUnit.SECONDS);
+    }
+
+    private static HeapIndexBuild progressOrNull(MicroscopeClient current, String profileId) {
+        try {
+            return current.heapIndexProgress(profileId);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void show(RecordingState state) {
+        if (disposed) {
+            return;
+        }
+        ApplicationManager.getApplication().invokeLater(() -> renderer.render(state));
+    }
+
+    /**
+     * Opens the profile where its kind says it should open — a recording on the dashboard, a dump on
+     * its overview. The bare profile URL is not used: Microscope redirects it to the JFR dashboard
+     * whatever the profile holds, and a heap dump would land on a summary of events it has none of.
+     */
     @Override
     public void openProfile() {
-        withProfile(profileId -> BrowserUtil.browse(client.profileUrl(profileId)));
+        withProfile(state -> {
+            RecordingState.ProfileSummary summary = state.summary();
+            String url = summary == null
+                    ? client.profileUrl(state.profileId())
+                    : client.viewUrl(state.profileId(), summary.landingPath());
+            BrowserUtil.browse(url);
+        });
     }
 
     @Override
@@ -178,7 +342,7 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
         if (viewPath == null || viewPath.isBlank()) {
             return;
         }
-        withProfile(profileId -> BrowserUtil.browse(client.viewUrl(profileId, viewPath)));
+        withProfile(state -> BrowserUtil.browse(client.viewUrl(state.profileId(), viewPath)));
     }
 
     /**
@@ -216,14 +380,14 @@ public final class RecordingPanel extends JBPanel<RecordingPanel> implements Pan
      * Resolves the profile the panel last saw, rather than one captured when the document was drawn,
      * so a stale page cannot outlive the profile it described.
      */
-    private void withProfile(java.util.function.Consumer<String> onProfile) {
+    private void withProfile(java.util.function.Consumer<RecordingState> onProfile) {
         AppExecutorUtil.getAppExecutorService().execute(() -> {
             RecordingState state = client.state(file);
             if (state.profileId() == null) {
                 LOG.info("Ignoring a view link for a recording with no profile: file=" + file);
                 return;
             }
-            onProfile.accept(state.profileId());
+            onProfile.accept(state);
         });
     }
 

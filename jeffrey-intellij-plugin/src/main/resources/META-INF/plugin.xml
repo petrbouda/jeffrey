@@ -43,7 +43,10 @@
                 out as tiles: flame graph, allocations, GC, threads, traces and the rest, each with
                 a line on what the page answers. A ready profile also shows its recording window,
                 sample count, event types, sample loss and the auto-analysis findings, each titled
-                by the rule that fired. Views the recording has no data for stay visible but dimmed.
+                by the rule that fired. Views the recording has no data for stay visible but dimmed,
+                and so do a heap dump's views until its index is built.
+                A heap dump whose index is not built yet offers to build it, right there, and shows
+                the build's progress until the figures arrive.
                 Rendered in the IDE's own browser, so it matches your theme and follows it when you
                 switch.</li>
             <li><b>Hand it to a coding agent</b> — one button starts Claude Code or Codex in a
@@ -77,6 +80,11 @@
     <!-- Optional on purpose: the Terminal plugin is bundled everywhere but can be switched off, and
          the recording panel degrades to copying the agent command rather than losing the feature. -->
     <depends optional="true" config-file="jeffrey-terminal.xml">org.jetbrains.plugins.terminal</depends>
+    <!-- JCEF (com.intellij.ui.jcef) was a module alias of the core IDE up to 2026.1 and became a
+         separate plugin in 2026.2, where a plugin that does not name it cannot even load the classes.
+         Optional rather than required: the recording panel already has a Swing fallback for a
+         runtime without Chromium, so a disabled JCEF plugin must degrade to it, not unload us. -->
+    <depends optional="true" config-file="jeffrey-jcef.xml">com.intellij.modules.jcef</depends>
 
     <actions>
         <action id="cafe.jeffrey.ide.plugin.idea.AnalyzeInMicroscope"

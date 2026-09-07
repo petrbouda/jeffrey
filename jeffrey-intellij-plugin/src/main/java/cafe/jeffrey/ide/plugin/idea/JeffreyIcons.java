@@ -34,6 +34,9 @@ public final class JeffreyIcons {
 
     public static final Icon FILE = IconLoader.getIcon("/icons/jeffrey-icon.svg", JeffreyIcons.class);
 
+    /** The heap dump's counterpart to the flame: an object graph, in the same flat orange. */
+    public static final Icon HEAP_DUMP = IconLoader.getIcon("/icons/heap-dump.svg", JeffreyIcons.class);
+
     private JeffreyIcons() {
     }
 }

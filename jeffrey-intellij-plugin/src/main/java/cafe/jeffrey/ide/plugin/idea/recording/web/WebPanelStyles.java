@@ -262,8 +262,34 @@ final class WebPanelStyles {
                   overflow:hidden;max-width:calc(280*var(--u));margin-bottom:calc(14*var(--u))}
             .prog i{display:block;height:100%;width:38%;border-radius:calc(2*var(--u));background:var(--fl);
                     animation:slide 1.5s ease-in-out infinite}
+            .prog.det i{animation:none;transition:width .4s}
             @keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(365%)}}
-            @media (prefers-reduced-motion:reduce){.prog i{animation:none;width:100%;opacity:.5}}
+            @media (prefers-reduced-motion:reduce){.prog i{animation:none;width:100%;opacity:.5}
+                                                   .prog.det i{width:var(--w,0)}}
+
+            .callout{display:flex;gap:calc(12*var(--u));align-items:center;
+                     padding:calc(12*var(--u)) calc(14*var(--u));border:calc(1*var(--u)) solid var(--fl-line);
+                     border-radius:calc(8*var(--u));background:var(--fl-soft);margin:0 0 calc(20*var(--u))}
+            .callout .iw{width:calc(28*var(--u));height:calc(28*var(--u));border-radius:calc(7*var(--u));
+                         flex:none;background:var(--bg);color:var(--fl);display:flex;align-items:center;
+                         justify-content:center;border:calc(1*var(--u)) solid var(--fl-line)}
+            .callout .grow{flex:1;min-width:0}
+            .callout .t{font-size:calc(13.5*var(--u));font-weight:600}
+            .callout .m{font-size:calc(12.5*var(--u));color:var(--sec);margin-top:calc(1*var(--u))}
+            .callout .btn{flex:none}
+            .callout .prog{margin:calc(8*var(--u)) 0 0;max-width:none}
+            .callout.bad{border-color:var(--err);background:transparent}
+            .callout.bad .iw{color:var(--err);border-color:var(--err)}
+            .callout.bad .m{font-family:var(--mono);-webkit-user-select:text;user-select:text;
+                            white-space:pre-wrap;word-break:break-word}
+
+            .spin{width:calc(16*var(--u));height:calc(16*var(--u));flex:none;display:block;
+                  animation:turn .9s linear infinite}
+            .spin circle{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;
+                         stroke-dasharray:32 60}
+            .spin .track{stroke-dasharray:none;opacity:.18}
+            @keyframes turn{to{transform:rotate(360deg)}}
+            @media (prefers-reduced-motion:reduce){.spin{animation:none}}
 
             .err{display:flex;gap:calc(11*var(--u));align-items:flex-start;
                  padding:calc(12*var(--u)) calc(14*var(--u));border:calc(1*var(--u)) solid var(--err);

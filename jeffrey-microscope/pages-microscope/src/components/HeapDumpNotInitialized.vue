@@ -23,7 +23,7 @@
     </div>
     <h5>Heap Dump Not Initialized</h5>
     <p>{{ message }}</p>
-    <router-link :to="`/profiles/${profileId}/heap-dump/settings`" class="btn btn-primary">
+    <router-link :to="`/profiles/${profileId}/heap-dump/overview`" class="btn btn-primary">
       <i class="bi bi-arrow-right me-2"></i>
       Go to Heap Dump Overview
     </router-link>

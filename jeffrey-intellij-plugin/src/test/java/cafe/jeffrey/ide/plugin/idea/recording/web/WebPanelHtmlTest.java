@@ -20,6 +20,8 @@ package cafe.jeffrey.ide.plugin.idea.recording.web;
 
 import cafe.jeffrey.ide.plugin.idea.agent.AgentCli;
 import cafe.jeffrey.ide.plugin.idea.agent.AgentRow;
+import cafe.jeffrey.ide.plugin.idea.recording.HeapIndexBuild;
+import cafe.jeffrey.ide.plugin.idea.recording.ProfileView;
 import cafe.jeffrey.ide.plugin.idea.recording.RecordingState;
 import org.junit.Test;
 
@@ -131,7 +133,82 @@ public class WebPanelHtmlTest {
         String html = document(heapDump(false));
 
         assertFalse(html.contains("class='figs'"));
-        assertTrue(html.contains("has not been indexed yet"));
+        assertTrue(html.contains("The index has not been built"));
+        assertTrue("the remedy sits beside the sentence", html.contains("data-action='build-index'"));
+        assertTrue(html.contains("profile ready"));
+    }
+
+    /**
+     * Every view of an un-indexed dump opens an empty page, so no tile may be a button. They stay
+     * drawn — dashed and dim, keeping their own blurbs — because they are the views the build brings.
+     */
+    @Test
+    public void anUnindexedHeapDumpLocksEveryTile() {
+        String html = document(heapDump(false));
+
+        assertFalse(html.contains("data-action='view:"));
+        assertEquals(ProfileView.HEAP.size(), count(html, "class='card off'"));
+        assertTrue("the tile keeps its own blurb", html.contains("What is holding the memory"));
+        assertFalse("not the no-data blurb", html.contains("Not in this recording"));
+    }
+
+    /** The same box becomes the progress report: stage, of how many, and no second Build button. */
+    @Test
+    public void aRunningIndexBuildTurnsTheCalloutIntoProgress() {
+        String html = document(heapDump(false).withIndexBuild(
+                new HeapIndexBuild(HeapIndexBuild.Phase.RUNNING, 5, 13, "dominator", 80_000L, null)));
+
+        assertTrue(html.contains("class='spin'"));
+        assertTrue(html.contains("stage 5 of 13"));
+        assertTrue(html.contains("Dominator tree"));
+        assertTrue(html.contains("1 m 20 s elapsed"));
+        assertTrue(html.contains("building the index"));
+        assertFalse(html.contains("data-action='build-index'"));
+        assertTrue("the tiles stay drawn", html.contains("Leak suspects"));
+        assertFalse("but locked until the build is done", html.contains("data-action='view:"));
+    }
+
+    @Test
+    public void aFailedIndexBuildKeepsTheBoxAndOffersToGoAgain() {
+        String html = document(heapDump(false).withIndexBuild(
+                new HeapIndexBuild(HeapIndexBuild.Phase.FAILED, 2, 13, "parse", 9_000L, "Java <heap> space")));
+
+        assertTrue(html.contains("class='callout bad'"));
+        assertTrue(html.contains("The index build failed"));
+        assertTrue("Microscope's words, escaped", html.contains("Java &lt;heap&gt; space"));
+        assertTrue(html.contains("data-action='build-index'"));
+        assertFalse(html.contains("class='spin'"));
+    }
+
+    /** The header well says what the file is: the flame for a recording, the object graph for a dump. */
+    @Test
+    public void theHeaderWellDrawsTheObjectGraphForAHeapDumpAndTheFlameForARecording() {
+        String heap = PanelSvg.icon("heap", "ico ico-lg");
+        String flame = PanelSvg.icon("flame", "ico ico-lg");
+
+        assertTrue(document(heapDump(true)).contains(heap));
+        assertFalse(document(heapDump(true)).contains(flame));
+        assertTrue(document(ready(List.of(), List.of())).contains(flame));
+        assertFalse(document(ready(List.of(), List.of())).contains(heap));
+    }
+
+    /** Before Microscope has answered, the file name alone decides the glyph. */
+    @Test
+    public void anUnanalysedHprofAlreadyWearsTheObjectGraph() {
+        RecordingState dump = new RecordingState(
+                RecordingState.Status.NOT_IMPORTED, null, null, "service.hprof", 2_300_000_000L, null);
+
+        assertTrue(document(dump).contains(PanelSvg.icon("heap", "ico ico-lg")));
+        assertTrue(document(notImported()).contains(PanelSvg.icon("flame", "ico ico-lg")));
+    }
+
+    /** An indexed dump has figures; the callout has nothing to say and must not appear. */
+    @Test
+    public void anIndexedHeapDumpShowsFiguresAndNoCallout() {
+        String html = document(heapDump(true));
+
+        assertTrue(html.contains("class='figs'"));
+        assertFalse(html.contains("class='callout"));
     }
 
     /** The not-indexed sentence is about heap dumps; a recording without figures must not claim it. */
@@ -278,6 +355,16 @@ public class WebPanelHtmlTest {
     }
 
     // --- fixtures -------------------------------------------------------------------------------
+
+    private static int count(String html, String needle) {
+        int n = 0;
+        int at = html.indexOf(needle);
+        while (at >= 0) {
+            n++;
+            at = html.indexOf(needle, at + needle.length());
+        }
+        return n;
+    }
 
     private static String document(RecordingState state) {
         return document(state, row());

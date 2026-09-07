@@ -442,7 +442,10 @@ When unsure whether a request is "make it cleaner" or "make it faster", ask. Def
 Jeffrey's 25). It talks to Microscope in both directions: it answers `/api/jeffrey/*` over IntelliJ's
 built-in server (`ping`, `instance`, `navigate`, `resolve`, `has`, `source`) so `IdeBridge` and the
 `ide_` MCP family can locate a frame's source, and it sends a recording or heap dump the other way
-with the *Analyze in Microscope* action, which opens `/quick-open?path=…` in a browser.
+with the *Analyze in Microscope* action, which opens `/quick-open?path=…` in a browser. Quick Open
+lands by the recording's kind: the `from-path` import answers with the recording's `eventSource`
+alongside its id, and `profileLandingRoute` turns `HEAP_DUMP` into the overview rather than the
+JFR dashboard the bare profile URL defaults to.
 
 **It never renders profile data**, with one bounded exception written down below. No flame graphs,
 no dashboards, no charts, no hot-method list, no gutter or inlay markers carrying figures. Anything
@@ -465,8 +468,20 @@ everything below the header: a recording shows window / samples / event types / 
 flamegraph-and-GC tiles, a dump shows retained / instances / classes / GC roots and the
 leak-suspects-and-dominator-tree tiles, and the agent prompt names "heap dump" so `analyze-heap` fires
 instead of `analyze-jfr`. The kind comes from **what was double-clicked**, not from what the profile
-carries — a recording with a dump attached still reads as a recording. A dump whose index has not been
-built reports `cacheReady: false`, and the panel says so rather than printing four zeroes. The tab says whether Microscope has analysed the
+carries — a recording with a dump attached still reads as a recording. It also decides where *Open in
+Microscope* lands (`ProfileSummary.landingPath()`: `dashboard` for a recording, `heap-dump/overview`
+for a dump), because the bare `/profiles/{id}` URL redirects to the JFR dashboard without looking;
+`ProfileDetail` bounces a heap-dump-only profile off any non-HeapDump path for the same reason. A dump whose index has not been
+built reports `cacheReady: false`, and the panel says so rather than printing four zeroes — in a
+callout with a *Build index* button, the second thing after *Analyze* the panel can make Microscope
+do. `RecordingPanel.buildIndex` posts `heap/initialize-all` and then polls
+`heap/init-progress` every two seconds (the API is mounted at `/heap`; `heap-dump` is the UI route prefix), redrawing the callout as the one line
+`HeapIndexBuild` reduces the 13-stage pipeline to (stage N of M, its title, time so far); `query()`
+makes the same progress check for an un-indexed dump so a tab opened mid-build follows it instead of
+offering a second one. Idle and completed both parse to `null` — the panel's answer to either is to
+ask for the profile again. While the index is missing every view tile is drawn **off** (dashed, dim,
+a `div` rather than a button, keeping its own blurb) by `ProfileSummary.indexMissing()`, because
+every one of them would open an empty page; the callout above is what says why. The tab says whether Microscope has analysed the
 file, offers the button that does, and links out to the views as a 3×3 grid of tiles — and once a
 profile is ready it shows **four figures and the auto-analysis lines, and nothing else**: recording
 window, sample count, event type count, sample-loss share, then one line per finding. That list is the
@@ -485,7 +500,11 @@ corners, `:hover` and a `--u` scale factor for HiDPI — **`--u` carries `px`, a
 an unstyled panel rather than a slightly wrong one.
 
 `SwingPanelRenderer` is the older pane wearing the platform's HTML kit, kept **only** as the fallback
-for where `JBCefApp.isSupported()` says no — a JBR without JCEF, and the JetBrains Client. It costs
+for where `JBCefApp.isSupported()` says no — a JBR without JCEF, and the JetBrains Client — and for
+an IDE where the JCEF classes are not loadable at all: since 2026.2 JCEF is a plugin of its own,
+declared in `plugin.xml` as the **optional** dependency `com.intellij.modules.jcef` (a core alias on
+older builds), so `RecordingPanel.createRenderer` catches the `LinkageError` from the first mention
+of `CefPanelRenderer` rather than letting the editor tab fail to open. It costs
 nothing to keep because it is the code that already existed, and it is **not held to visual parity**:
 Swing's engine drops `border-radius`, flexbox and `:hover`, which is the whole reason the other one
 exists. `PanelRenderer` is deliberately **not sealed** — a sealed type may only permit subtypes in its
@@ -509,7 +528,10 @@ which arrives on `Finding.rule` already. JMC also exposes `IRule.getTopic()` (`g
 `exceptions`, `lock_instances`), and `AutoAnalysisDataProvider` drops it; grouping findings by
 category would need that field threaded through `AutoAnalysisResult` and the IDE response first.
 
-The accent bar is flame **only when Microscope answered**. Unreachable and failed mute it and the file
+The header well draws the **flame for a recording and an object graph for a heap dump** (`PanelSvg`
+key `heap`, `JeffreyIcons.HEAP_DUMP` on the Swing side), decided by `RecordingState.isHeapDumpFile()`
+— the summary's kind once Microscope answered, the file name before — so an `.hprof` wears it from
+the first paint. The accent bar is flame **only when Microscope answered**. Unreachable and failed mute it and the file
 icon, so the panel reads as wrong before a word of it does.
 
 The ready state also hands the profile to a coding agent, sending `<cli> "Analyse Jeffrey profile

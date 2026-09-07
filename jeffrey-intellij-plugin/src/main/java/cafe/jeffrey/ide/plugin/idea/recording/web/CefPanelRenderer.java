@@ -64,6 +64,7 @@ public final class CefPanelRenderer implements PanelRenderer, Disposable {
     private static final String ACTION_CHECK = "check";
     private static final String ACTION_SETTINGS = "settings";
     private static final String ACTION_OPEN = "open";
+    private static final String ACTION_BUILD_INDEX = "build-index";
 
     private final PanelActions actions;
     private final Path file;
@@ -174,6 +175,7 @@ public final class CefPanelRenderer implements PanelRenderer, Disposable {
             case ACTION_CHECK -> actions.checkAgain();
             case ACTION_SETTINGS -> actions.openSettings();
             case ACTION_OPEN -> actions.openProfile();
+            case ACTION_BUILD_INDEX -> actions.buildIndex();
             // An action the page sent that this build does not know is a bug in the pairing, not in
             // the developer's click — say so in the log and do nothing visible.
             default -> LOG.warn("Unknown panel action: action=" + action + " file=" + file);

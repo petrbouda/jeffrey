@@ -182,6 +182,13 @@ public final class SwingPanelRenderer implements PanelRenderer {
 
         List<JButton> buttons = new ArrayList<>();
         buttons.add(button("Open in Microscope", event -> actions.openProfile()));
+        if (state.needsHeapIndex()) {
+            HeapIndexBuild build = state.indexBuild();
+            boolean building = build != null && !build.failed();
+            JButton buildIndex = button(building ? "Building index…" : "Build index", event -> actions.buildIndex());
+            buildIndex.setEnabled(!building);
+            buttons.add(buildIndex);
+        }
         if (JeffreySettings.getInstance().areAgentsEnabled()) {
             for (AgentCli agent : AgentCli.ALL) {
                 buttons.add(agentButton(agent, heapDump));

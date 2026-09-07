@@ -55,7 +55,8 @@ final class PanelHtml {
     static String header(RecordingState state, Path file, String microscopeUrl) {
         StringBuilder html = new StringBuilder(512);
         html.append("<html><body>");
-        html.append("<table><tr><td width='34'><icon src='flame'/></td><td>")
+        String kindIcon = state.isHeapDumpFile() ? "heap" : "flame";
+        html.append("<table><tr><td width='34'><icon src='").append(kindIcon).append("'/></td><td>")
                 .append("<span class='big'>").append(escape(title(state))).append("</span><br>")
                 .append("<span class='sml'>").append(escape(subtitle(state, file, microscopeUrl))).append("</span>")
                 .append("</td></tr></table>");
@@ -80,6 +81,8 @@ final class PanelHtml {
             return html.append(facts(state, file, microscopeUrl)).append("</body></html>").toString();
         }
 
+        html.append(indexBuildLine(state.indexBuild()));
+
         // Auto-analysis is a recording's verdict. A heap dump's is "Leak suspects", which leads its
         // tile grid — so a dump gets no findings section rather than an empty one.
         if (!summary.isHeapDump()) {
@@ -87,6 +90,23 @@ final class PanelHtml {
         }
         html.append(section("Open a view")).append(tiles(summary));
         return html.append("</body></html>").toString();
+    }
+
+    /**
+     * The index build as one sentence. Swing's engine has no spinner to offer, so the words carry it:
+     * which stage, of how many, or what went wrong.
+     */
+    private static String indexBuildLine(HeapIndexBuild build) {
+        if (build == null) {
+            return "";
+        }
+        if (build.failed()) {
+            return "<p class='sml'><b>The index build failed.</b> " + Html.escape(build.failureMessage()) + "</p>";
+        }
+        String where = build.stageCount() > 0
+                ? " — stage " + build.stageNumber() + " of " + build.stageCount() + ", " + Html.escape(build.stageTitle())
+                : "";
+        return "<p class='sml'><b>Building the index…</b>" + where + ". The tab updates itself when it is done.</p>";
     }
 
     /**
@@ -183,11 +203,18 @@ final class PanelHtml {
      * because a missing tile teaches nothing, while a dimmed one says the recording lacks that data,
      * which is a fact about the run worth knowing.
      */
-    private static String tiles(RecordingState.ProfileSummary summary) {
-        return tiles(summary.views(), summary.disabledFeatures());
+    private static String offTile(String icon, String label, String blurb) {
+        return "<td width='" + TILE_WIDTH + "' class='tile off'>"
+                + "<span class='off'>" + icon + "<b>" + escape(label) + "</b><br>"
+                + "<span class='sml'>" + escape(blurb) + "</span></span></td>";
     }
 
-    private static String tiles(List<ProfileView> views, List<String> disabledFeatures) {
+    private static String tiles(RecordingState.ProfileSummary summary) {
+        return tiles(summary.views(), summary.disabledFeatures(), summary.indexMissing());
+    }
+
+    /** {@code locked}: a dump without its index, where every tile is drawn off rather than linked. */
+    private static String tiles(List<ProfileView> views, List<String> disabledFeatures, boolean locked) {
         StringBuilder grid = new StringBuilder(1024)
                 .append("<table cellspacing='6' class='tiles'>");
 
@@ -195,7 +222,7 @@ final class PanelHtml {
             if (i % ProfileView.COLUMNS == 0) {
                 grid.append("<tr>");
             }
-            grid.append(tile(views.get(i), disabledFeatures));
+            grid.append(tile(views.get(i), disabledFeatures, locked));
             if (i % ProfileView.COLUMNS == ProfileView.COLUMNS - 1 || i == views.size() - 1) {
                 grid.append("</tr>");
             }
@@ -203,13 +230,14 @@ final class PanelHtml {
         return grid.append("</table>").toString();
     }
 
-    private static String tile(ProfileView view, List<String> disabledFeatures) {
+    private static String tile(ProfileView view, List<String> disabledFeatures, boolean locked) {
         String icon = "<icon src='" + view.iconKey() + "'/> ";
 
+        if (locked) {
+            return offTile(icon, view.label(), view.blurb());
+        }
         if (!view.isAvailable(disabledFeatures)) {
-            return "<td width='" + TILE_WIDTH + "' class='tile off'>"
-                    + "<span class='off'>" + icon + "<b>" + escape(view.label()) + "</b><br>"
-                    + "<span class='sml'>" + escape(view.unavailableBlurb()) + "</span></span></td>";
+            return offTile(icon, view.label(), view.unavailableBlurb());
         }
 
         return "<td width='" + TILE_WIDTH + "' class='tile'>"

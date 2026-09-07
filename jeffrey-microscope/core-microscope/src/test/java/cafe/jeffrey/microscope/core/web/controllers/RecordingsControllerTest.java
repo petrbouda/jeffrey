@@ -27,9 +27,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.shared.ui.workspace.bridge.RecordingProfileInfoProvider;
+import cafe.jeffrey.shared.common.model.Recording;
+import cafe.jeffrey.shared.common.model.RecordingEventSource;
 import cafe.jeffrey.shared.ui.workspace.controller.RecordingsController;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -83,6 +87,28 @@ class RecordingsControllerTest {
                 .hasStatusOk()
                 .bodyJson()
                 .extractingPath("$.recordingId").asString().isEqualTo("rec-1");
+    }
+
+    /**
+     * The import says what kind of recording it was, so the caller can open the profile where that
+     * kind lands — a heap dump on its overview, not on the JFR dashboard.
+     */
+    @Test
+    void importFromPathTellsTheRecordingsEventSource() {
+        when(recordingsManager.importRecordingFromPath(any())).thenReturn("rec-1");
+        when(recordingsManager.findRecording("rec-1")).thenReturn(Optional.of(new Recording(
+                "rec-1", "dump.hprof", null, null, RecordingEventSource.HEAP_DUMP,
+                Instant.EPOCH, null, null, false, null, null, List.of())));
+
+        MockMvcTester mvc = mockMvcTesterFor(new RecordingsController(recordingsManager, RecordingProfileInfoProvider.NOOP));
+
+        assertThat(mvc.post().uri("/api/internal/recordings/from-path")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"path":"/tmp/dump.hprof"}"""))
+                .hasStatusOk()
+                .bodyJson()
+                .extractingPath("$.eventSource").asString().isEqualTo("HEAP_DUMP");
     }
 
     @Test

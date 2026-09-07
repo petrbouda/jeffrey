@@ -43,6 +43,9 @@ import java.util.Locale;
  */
 public final class AnalysableFiles {
 
+    /** The heap dump forms among the suffixes above; everything else the action accepts is a recording. */
+    private static final List<String> HEAP_DUMP_SUFFIXES = List.of(".hprof", ".hprof.gz");
+
     private static final List<String> ANALYSABLE_SUFFIXES = List.of(
             ".jfr",
             ".jfr.lz4",
@@ -67,6 +70,24 @@ public final class AnalysableFiles {
      * {@link VirtualFile} check so the rule — the part that is easy to get wrong and was — can be
      * tested without an IDE fixture.
      */
+    /**
+     * Whether a file name is a heap dump's. The kind comes from what was double-clicked, so the
+     * panel can say "heap dump" — and draw the object graph rather than the flame — before Microscope
+     * has answered anything about the file.
+     */
+    public static boolean isHeapDumpName(String name) {
+        if (name == null) {
+            return false;
+        }
+        String lower = name.toLowerCase(Locale.ROOT);
+        for (String suffix : HEAP_DUMP_SUFFIXES) {
+            if (lower.endsWith(suffix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     static boolean analysableName(String name) {
         // Locale.ROOT, matching Microscope: under a Turkish locale the default toLowerCase() maps I to
         // a dotless i, which would let a machine's language setting decide what the menu offers.

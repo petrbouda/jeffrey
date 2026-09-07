@@ -47,7 +47,7 @@ public class PanelSvgTest {
     /** The glyphs the document uses directly, outside the tile grid. */
     @Test
     public void thePanelsOwnGlyphsExist() {
-        for (String key : List.of("flame", "warn", "offline", "chevron")) {
+        for (String key : List.of("flame", "heap", "index", "warn", "offline", "chevron")) {
             assertTrue("missing glyph: " + key, PanelSvg.has(key));
         }
     }

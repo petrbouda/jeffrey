@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.ide.plugin.idea.recording;
 
+import cafe.jeffrey.ide.plugin.idea.AnalysableFiles;
+
 import java.util.List;
 
 /**
@@ -34,7 +36,44 @@ public record RecordingState(
         String profileId,
         String filename,
         long sizeInBytes,
-        ProfileSummary summary) {
+        ProfileSummary summary,
+        HeapIndexBuild indexBuild) {
+
+    /** The state as Microscope reports it, before the panel has asked about any index build. */
+    public RecordingState(
+            Status status,
+            String recordingId,
+            String profileId,
+            String filename,
+            long sizeInBytes,
+            ProfileSummary summary) {
+        this(status, recordingId, profileId, filename, sizeInBytes, summary, null);
+    }
+
+    /**
+     * The same state with the index build the panel is watching attached, or detached when
+     * {@code build} is null. The by-path answer does not carry the build — that is a second call the
+     * panel makes only for a dump whose index is missing — so it is joined on here.
+     */
+    public RecordingState withIndexBuild(HeapIndexBuild build) {
+        return new RecordingState(status, recordingId, profileId, filename, sizeInBytes, summary, build);
+    }
+
+    /**
+     * Whether this file is a heap dump. Microscope's answer when there is one, the file name until
+     * then — the two agree, because Microscope decides by the same name.
+     */
+    public boolean isHeapDumpFile() {
+        if (summary != null) {
+            return summary.isHeapDump();
+        }
+        return AnalysableFiles.isHeapDumpName(filename);
+    }
+
+    /** A ready heap dump whose index has not been built: the one state that can offer the build. */
+    public boolean needsHeapIndex() {
+        return status == Status.READY && summary != null && summary.indexMissing();
+    }
 
     public enum Status {
         /** Microscope has never seen this file. */
@@ -94,6 +133,12 @@ public record RecordingState(
             List<Finding> findings,
             List<String> disabledFeatures) {
 
+        /** Where a recording opens: the JFR summary dashboard. */
+        private static final String RECORDING_LANDING = "dashboard";
+
+        /** Where a dump opens: its overview. A dump has no dashboard, and Microscope's bare profile URL leads there. */
+        private static final String HEAP_DUMP_LANDING = "heap-dump/overview";
+
         public ProfileSummary {
             findings = findings == null ? List.of() : List.copyOf(findings);
             disabledFeatures = disabledFeatures == null ? List.of() : List.copyOf(disabledFeatures);
@@ -101,6 +146,26 @@ public record RecordingState(
 
         public boolean isHeapDump() {
             return kind == Kind.HEAP_DUMP;
+        }
+
+        /**
+         * A dump whose index has not been built. Nothing below the header can answer yet: no
+         * figures, and every view tile opens an empty page, so the panel offers the build and locks
+         * the tiles until it is done.
+         */
+        public boolean indexMissing() {
+            return isHeapDump() && (heap == null || !heap.cacheReady());
+        }
+
+        /**
+         * The page "Open in Microscope" lands on, as a sub-path under the profile.
+         *
+         * <p>Named here rather than left to Microscope's bare profile URL, because that URL redirects
+         * to the JFR dashboard without looking at what the profile is — which for a dump is a page
+         * about data it does not have. The kind is known on this side, so the link says where it goes.
+         */
+        public String landingPath() {
+            return isHeapDump() ? HEAP_DUMP_LANDING : RECORDING_LANDING;
         }
 
         /** The views this profile's tiles are drawn from. */
@@ -146,6 +211,6 @@ public record RecordingState(
     }
 
     public static RecordingState unavailable(String filename, long sizeInBytes) {
-        return new RecordingState(Status.UNAVAILABLE, null, null, filename, sizeInBytes, null);
+        return new RecordingState(Status.UNAVAILABLE, null, null, filename, sizeInBytes, null, null);
     }
 }

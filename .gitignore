@@ -80,3 +80,5 @@ jeffrey-hub/http-client/
 
 # Playwright MCP browser-session artifacts
 .playwright-mcp/
+
+.codex

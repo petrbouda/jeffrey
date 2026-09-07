@@ -22,6 +22,12 @@ import HttpUtils from '@shared/services/HttpUtils';
 import type RecordingGroup from '@workspaces/services/api/model/RecordingGroup';
 import type Recording from '@workspaces/services/api/model/Recording';
 
+/** What an import answers with: the recording's id and its event source, e.g. HEAP_DUMP. */
+export interface ImportedRecording {
+  recordingId: string;
+  eventSource: string | null;
+}
+
 export default class RecordingsClient extends BasePlatformClient {
   constructor() {
     super('/recordings');
@@ -57,10 +63,13 @@ export default class RecordingsClient extends BasePlatformClient {
       .then(response => response.data.recordingId);
   }
 
-  async importFromPath(path: string): Promise<string> {
-    return super
-      .post<{ recordingId: string }>('/from-path', { path }, { suppressToast: true })
-      .then(r => r.recordingId);
+  /**
+   * Imports a file from a path on the machine Microscope runs on. The answer carries the recording's
+   * event source as well as its id, because the caller's next move is to analyse and open it, and
+   * where a profile opens depends on what it is — a heap dump has no JFR dashboard to land on.
+   */
+  async importFromPath(path: string): Promise<ImportedRecording> {
+    return super.post<ImportedRecording>('/from-path', { path }, { suppressToast: true });
   }
 
   async listRecordings(): Promise<Recording[]> {

@@ -38,6 +38,7 @@ final class PanelIcons {
 
     static final Map<String, Icon> BY_KEY = Map.of(
             "flame", JeffreyIcons.FILE,
+            "heap", JeffreyIcons.HEAP_DUMP,
             "analysis", AllIcons.General.InspectionsEye,
             "subsecond", AllIcons.Vcs.History,
             "allocations", AllIcons.Actions.ProfileMemory,

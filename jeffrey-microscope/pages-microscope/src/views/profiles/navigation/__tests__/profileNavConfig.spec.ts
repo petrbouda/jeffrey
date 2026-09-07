@@ -184,7 +184,7 @@ describe('profileNavConfig', () => {
     expect(getModeForPath(profilePath('/technologies/method-tracing/slowest'))).toBe('Technologies');
     expect(getModeForPath(profilePath('/flamegraphs/primary'))).toBe('Visualization');
     expect(getModeForPath(profilePath('/subsecond/primary'))).toBe('Visualization');
-    expect(getModeForPath(profilePath('/heap-dump/settings'))).toBe('HeapDump');
+    expect(getModeForPath(profilePath('/heap-dump/overview'))).toBe('HeapDump');
     expect(getModeForPath(profilePath('/tools/rename-frames'))).toBe('Tools');
   });
 });

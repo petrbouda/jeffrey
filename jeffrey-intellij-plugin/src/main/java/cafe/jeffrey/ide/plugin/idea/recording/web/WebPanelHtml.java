@@ -23,6 +23,7 @@ import cafe.jeffrey.ide.plugin.idea.agent.AgentRow;
 import cafe.jeffrey.ide.plugin.idea.recording.Formats;
 import cafe.jeffrey.ide.plugin.idea.recording.Html;
 import cafe.jeffrey.ide.plugin.idea.recording.ProfileView;
+import cafe.jeffrey.ide.plugin.idea.recording.HeapIndexBuild;
 import cafe.jeffrey.ide.plugin.idea.recording.RecordingState;
 
 import java.nio.file.Path;
@@ -47,9 +48,25 @@ public final class WebPanelHtml {
     /** How the page calls back into Java. Defined by the bridge script the renderer supplies. */
     private static final String SEND = "window.__jeffrey";
 
+    private static final String NOT_INDEXED_TITLE = "The index has not been built";
+
     private static final String NOT_INDEXED =
-            "This heap dump has not been indexed yet, so it has no figures to show. Open it in "
-            + "Microscope to build the index — the views below cannot answer anything until it exists.";
+            "No figures, and the views below cannot answer anything until it exists. "
+            + "A large dump takes a few minutes.";
+
+    private static final String BUILDING_TITLE = "Building the index";
+
+    private static final String BUILDING_EXPLAINS = "The tab updates itself when it is done.";
+
+    private static final String BUILD_FAILED_TITLE = "The index build failed";
+
+    private static final String SUBTITLE_READY = "profile ready";
+
+    /** The header well: the flame for a recording, the object graph for a heap dump. */
+    private static final String ICON_RECORDING = "flame";
+    private static final String ICON_HEAP_DUMP = "heap";
+
+    private static final String SUBTITLE_BUILDING = "building the index";
 
     private static final String ANALYZE_EXPLAINS =
             "Analysing copies the recording into Microscope, parses its events and builds the views. "
@@ -125,7 +142,7 @@ public final class WebPanelHtml {
         return switch (state.status()) {
             case READY -> ready(content);
             case NOT_IMPORTED, IMPORTED -> notAnalysed(content);
-            case ANALYZING -> analyzing();
+            case ANALYZING -> analyzing(content);
             case UNAVAILABLE -> unavailable(content);
         };
     }
@@ -140,13 +157,15 @@ public final class WebPanelHtml {
             return notAnalysed(content);
         }
 
+        HeapIndexBuild build = content.state().indexBuild();
+        boolean building = build != null && !build.failed();
         String subtitle = (summary.isHeapDump() ? "Heap dump" : "JFR recording")
                 + " · " + Formats.bytes(content.state().sizeInBytes())
-                + " · profile ready";
+                + " · " + (building ? SUBTITLE_BUILDING : SUBTITLE_READY);
 
         StringBuilder html = new StringBuilder(4096);
         html.append(accent(false))
-                .append(header("flame", false,
+                .append(header(kindIcon(content.state()), false,
                         "<div class='fname'>" + Html.escape(profileName(content.state())) + "</div>",
                         subtitle,
                         readyActions(content)));
@@ -160,7 +179,7 @@ public final class WebPanelHtml {
         // Only a dump explains itself here. A recording that reported no figures is a different and
         // rarer thing, and telling its reader about a heap index would be a lie with a straight face.
         if (figures.isEmpty() && summary.isHeapDump()) {
-            html.append("<p class='note'>").append(NOT_INDEXED).append("</p>");
+            html.append(indexCallout(build));
         }
         // A heap dump gets no findings section at all rather than an empty one: its verdict is Leak
         // suspects, which already leads its tile grid.
@@ -178,6 +197,47 @@ public final class WebPanelHtml {
             return heapFigures(summary.heap());
         }
         return recordingFigures(summary.recording());
+    }
+
+    // --- the index callout ----------------------------------------------------------------------
+
+    /**
+     * One box that says where the dump's index is. The sentence and its remedy are one object, and
+     * while the build runs the same box becomes the progress report — which stage, of how many, for
+     * how long — rather than a spinner somewhere else. A failure keeps the box and turns it red,
+     * with Microscope's own words and the button to go again.
+     */
+    private static String indexCallout(HeapIndexBuild build) {
+        if (build == null) {
+            return "<div class='callout'>"
+                    + "<div class='iw'>" + PanelSvg.icon("index") + "</div>"
+                    + "<div class='grow'><div class='t'>" + NOT_INDEXED_TITLE + "</div>"
+                    + "<div class='m'>" + NOT_INDEXED + "</div></div>"
+                    + button("build-index", "Build index", true, false)
+                    + "</div>";
+        }
+        if (build.failed()) {
+            return "<div class='callout bad'>"
+                    + "<div class='iw'>" + PanelSvg.icon("warn") + "</div>"
+                    + "<div class='grow'><div class='t'>" + BUILD_FAILED_TITLE + "</div>"
+                    + "<div class='m'>" + Html.escape(build.failureMessage()) + "</div></div>"
+                    + button("build-index", "Try again", false, false)
+                    + "</div>";
+        }
+        String where = build.stageCount() > 0
+                ? " · stage " + build.stageNumber() + " of " + build.stageCount()
+                : "";
+        String elapsed = build.elapsedMs() > 0 ? " · " + Formats.duration(build.elapsedMs()) + " elapsed" : "";
+        int percent = (int) Math.round(build.fraction() * 100);
+        return "<div class='callout'>"
+                + "<div class='iw'>" + PanelSvg.spinner() + "</div>"
+                + "<div class='grow'><div class='t'>" + BUILDING_TITLE
+                + "<span class='tnum'>" + where + "</span></div>"
+                + "<div class='m'>" + Html.escape(build.stageTitle()) + elapsed + ". " + BUILDING_EXPLAINS + "</div>"
+                + "<div class='prog det' style='--w:" + percent + "%'><i style='width:" + percent + "%'></i></div>"
+                + "</div>"
+                + button("open", "Watch in Microscope", false, false)
+                + "</div>";
     }
 
     private static String recordingFigures(RecordingState.RecordingFigures figures) {
@@ -261,29 +321,41 @@ public final class WebPanelHtml {
             html.append("<div class='rule'></div>");
         }
         html.append("<span class='sect'>Open a view</span><div class='views'>");
+        // Until a dump's index exists every view opens an empty page, so every tile is drawn the
+        // way a view with no data is drawn — dashed, dim, and not a button — with its own blurb
+        // kept, because the tile is still the view it will become. The callout above says why.
+        boolean locked = summary.indexMissing();
         for (ProfileView view : summary.views()) {
-            html.append(card(view, summary.disabledFeatures()));
+            html.append(card(view, summary.disabledFeatures(), locked));
         }
         return html.append("</div>").toString();
     }
 
-    private static String card(ProfileView view, List<String> disabledFeatures) {
+    private static String card(ProfileView view, List<String> disabledFeatures, boolean locked) {
         String icon = "<div class='iw'>" + PanelSvg.icon(view.iconKey()) + "</div>";
         String label = "<div><div class='l'>" + Html.escape(view.label()) + "</div>";
 
+        if (locked) {
+            return offCard(icon, label, view.blurb());
+        }
         if (!view.isAvailable(disabledFeatures)) {
-            return "<div class='card off'>" + icon + label
-                    + "<div class='b'>" + Html.escape(view.unavailableBlurb()) + "</div></div></div>";
+            return offCard(icon, label, view.unavailableBlurb());
         }
         return "<button type='button' class='card' data-action='view:" + Html.escape(view.path()) + "'>"
                 + icon + label + "<div class='b'>" + Html.escape(view.blurb()) + "</div></div></button>";
+    }
+
+    /** A tile that cannot be pressed: a div rather than a button, so there is nothing to click. */
+    private static String offCard(String icon, String label, String blurb) {
+        return "<div class='card off'>" + icon + label
+                + "<div class='b'>" + Html.escape(blurb) + "</div></div></div>";
     }
 
     // --- the other states -----------------------------------------------------------------------
 
     private static String notAnalysed(Content content) {
         return accent(false)
-                + header("flame", false, plainTitle("Not analysed yet"),
+                + header(kindIcon(content.state()), false, plainTitle("Not analysed yet"),
                         "Microscope has not seen this file",
                         buttons(button("analyze", "Analyze in Microscope", true, false)))
                 + "<div class='body' style='padding-top:calc(20*var(--u))'>"
@@ -292,9 +364,9 @@ public final class WebPanelHtml {
                 + "</div>";
     }
 
-    private static String analyzing() {
+    private static String analyzing(Content content) {
         return accent(false)
-                + header("flame", false, plainTitle("Building the profile"),
+                + header(kindIcon(content.state()), false, plainTitle("Building the profile"),
                         "Parsing events and building views…",
                         buttons(button("check", "Check again", false, false)))
                 + "<div class='body' style='padding-top:calc(20*var(--u))'>"
@@ -416,6 +488,10 @@ public final class WebPanelHtml {
                 + PanelSvg.icon(iconKey, "ico ico-lg") + "</div>"
                 + "<div>" + title + "<div class='sub'>" + Html.escape(subtitle) + "</div></div>"
                 + actions + "</div>";
+    }
+
+    private static String kindIcon(RecordingState state) {
+        return state.isHeapDumpFile() ? ICON_HEAP_DUMP : ICON_RECORDING;
     }
 
     private static String plainTitle(String text) {

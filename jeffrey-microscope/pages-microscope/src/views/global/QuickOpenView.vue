@@ -98,10 +98,14 @@ onMounted(async () => {
   }
 
   try {
-    const recordingId = await recordingsClient.importFromPath(path);
+    const imported = await recordingsClient.importFromPath(path);
     status.value = 'analyzing';
-    const profileId = await recordingsClient.analyzeRecording(recordingId, { suppressToast: true });
-    await router.replace(profileLandingRoute(profileId));
+    const profileId = await recordingsClient.analyzeRecording(imported.recordingId, {
+      suppressToast: true
+    });
+    // Land by kind: a heap dump opens on its overview, not on the JFR dashboard the bare profile
+    // route would pick without looking.
+    await router.replace(profileLandingRoute(profileId, imported.eventSource));
   } catch (error) {
     status.value = 'error';
     errorMessage.value = extractError(error);

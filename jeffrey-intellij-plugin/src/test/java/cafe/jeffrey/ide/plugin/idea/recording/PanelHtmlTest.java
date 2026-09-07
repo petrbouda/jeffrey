@@ -219,6 +219,22 @@ public class PanelHtmlTest {
                 null, computed, findings, List.of());
     }
 
+    /** The Swing pane gets the same rule: an un-indexed dump's tiles carry no link at all. */
+    @Test
+    public void anUnindexedHeapDumpLocksEveryTile() {
+        String html = PanelHtml.details(heapDump(false), FILE, URL);
+
+        assertFalse(html.contains("heap-dump/leak-suspects"));
+        assertTrue(html.contains("tile off"));
+        assertTrue(html.contains("What is holding the memory"));
+    }
+
+    @Test
+    public void theHeaderIconFollowsTheKindOfFile() {
+        assertTrue(PanelHtml.header(heapDump(true), FILE, URL).contains("<icon src='heap'/>"));
+        assertFalse(PanelHtml.header(heapDump(true), FILE, URL).contains("<icon src='flame'/>"));
+    }
+
     private static RecordingState heapDump(boolean cacheReady) {
         return withSummary(new RecordingState.ProfileSummary(
                 RecordingState.Kind.HEAP_DUMP, "microscope.hprof", null,
