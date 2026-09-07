@@ -62,6 +62,10 @@ public final class WebPanelHtml {
 
     private static final String SUBTITLE_READY = "profile ready";
 
+    /** The header well: the flame for a recording, the object graph for a heap dump. */
+    private static final String ICON_RECORDING = "flame";
+    private static final String ICON_HEAP_DUMP = "heap";
+
     private static final String SUBTITLE_BUILDING = "building the index";
 
     private static final String ANALYZE_EXPLAINS =
@@ -138,7 +142,7 @@ public final class WebPanelHtml {
         return switch (state.status()) {
             case READY -> ready(content);
             case NOT_IMPORTED, IMPORTED -> notAnalysed(content);
-            case ANALYZING -> analyzing();
+            case ANALYZING -> analyzing(content);
             case UNAVAILABLE -> unavailable(content);
         };
     }
@@ -161,7 +165,7 @@ public final class WebPanelHtml {
 
         StringBuilder html = new StringBuilder(4096);
         html.append(accent(false))
-                .append(header("flame", false,
+                .append(header(kindIcon(content.state()), false,
                         "<div class='fname'>" + Html.escape(profileName(content.state())) + "</div>",
                         subtitle,
                         readyActions(content)));
@@ -351,7 +355,7 @@ public final class WebPanelHtml {
 
     private static String notAnalysed(Content content) {
         return accent(false)
-                + header("flame", false, plainTitle("Not analysed yet"),
+                + header(kindIcon(content.state()), false, plainTitle("Not analysed yet"),
                         "Microscope has not seen this file",
                         buttons(button("analyze", "Analyze in Microscope", true, false)))
                 + "<div class='body' style='padding-top:calc(20*var(--u))'>"
@@ -360,9 +364,9 @@ public final class WebPanelHtml {
                 + "</div>";
     }
 
-    private static String analyzing() {
+    private static String analyzing(Content content) {
         return accent(false)
-                + header("flame", false, plainTitle("Building the profile"),
+                + header(kindIcon(content.state()), false, plainTitle("Building the profile"),
                         "Parsing events and building views…",
                         buttons(button("check", "Check again", false, false)))
                 + "<div class='body' style='padding-top:calc(20*var(--u))'>"
@@ -484,6 +488,10 @@ public final class WebPanelHtml {
                 + PanelSvg.icon(iconKey, "ico ico-lg") + "</div>"
                 + "<div>" + title + "<div class='sub'>" + Html.escape(subtitle) + "</div></div>"
                 + actions + "</div>";
+    }
+
+    private static String kindIcon(RecordingState state) {
+        return state.isHeapDumpFile() ? ICON_HEAP_DUMP : ICON_RECORDING;
     }
 
     private static String plainTitle(String text) {

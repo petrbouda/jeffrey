@@ -86,6 +86,17 @@ final class PanelSvg {
             "<circle cx='8' cy='8' r='6.2' fill='none' stroke='currentColor' stroke-width='1.3'/>"
             + "<path d='M3.6 3.6l8.8 8.8' stroke='currentColor' stroke-width='1.3'/>";
 
+    /**
+     * A heap dump: three objects and the references between them. The flame is the recording's —
+     * samples over time — and this is its counterpart, the object graph a dump is a snapshot of.
+     */
+    private static final String HEAP =
+            "<circle cx='4' cy='4' r='1.9' fill='none' stroke='currentColor' stroke-width='1.3'/>"
+            + "<circle cx='12' cy='6' r='1.9' fill='none' stroke='currentColor' stroke-width='1.3'/>"
+            + "<circle cx='7' cy='12' r='1.9' fill='none' stroke='currentColor' stroke-width='1.3'/>"
+            + "<path d='M5.8 4.5 10.2 5.6 M4.6 5.8 6.4 10.2 M10.7 7.4 8.4 10.8'"
+            + " stroke='currentColor' stroke-width='1.3' stroke-linecap='round'/>";
+
     private static final String INDEX =
             "<path d='M2.4 3.6h11.2 M2.4 8h11.2 M2.4 12.4h6.4' stroke='currentColor' stroke-width='1.3'"
             + " stroke-linecap='round'/>"
@@ -108,6 +119,7 @@ final class PanelSvg {
             Map.entry("traces", TRACES),
             Map.entry("warn", WARN),
             Map.entry("offline", OFFLINE),
+            Map.entry("heap", HEAP),
             Map.entry("index", INDEX),
             Map.entry("chevron", CHEVRON));
 

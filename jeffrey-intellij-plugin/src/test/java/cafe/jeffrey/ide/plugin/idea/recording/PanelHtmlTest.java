@@ -229,6 +229,12 @@ public class PanelHtmlTest {
         assertTrue(html.contains("What is holding the memory"));
     }
 
+    @Test
+    public void theHeaderIconFollowsTheKindOfFile() {
+        assertTrue(PanelHtml.header(heapDump(true), FILE, URL).contains("<icon src='heap'/>"));
+        assertFalse(PanelHtml.header(heapDump(true), FILE, URL).contains("<icon src='flame'/>"));
+    }
+
     private static RecordingState heapDump(boolean cacheReady) {
         return withSummary(new RecordingState.ProfileSummary(
                 RecordingState.Kind.HEAP_DUMP, "microscope.hprof", null,

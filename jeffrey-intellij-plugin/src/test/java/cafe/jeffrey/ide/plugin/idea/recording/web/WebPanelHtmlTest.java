@@ -180,6 +180,28 @@ public class WebPanelHtmlTest {
         assertFalse(html.contains("class='spin'"));
     }
 
+    /** The header well says what the file is: the flame for a recording, the object graph for a dump. */
+    @Test
+    public void theHeaderWellDrawsTheObjectGraphForAHeapDumpAndTheFlameForARecording() {
+        String heap = PanelSvg.icon("heap", "ico ico-lg");
+        String flame = PanelSvg.icon("flame", "ico ico-lg");
+
+        assertTrue(document(heapDump(true)).contains(heap));
+        assertFalse(document(heapDump(true)).contains(flame));
+        assertTrue(document(ready(List.of(), List.of())).contains(flame));
+        assertFalse(document(ready(List.of(), List.of())).contains(heap));
+    }
+
+    /** Before Microscope has answered, the file name alone decides the glyph. */
+    @Test
+    public void anUnanalysedHprofAlreadyWearsTheObjectGraph() {
+        RecordingState dump = new RecordingState(
+                RecordingState.Status.NOT_IMPORTED, null, null, "service.hprof", 2_300_000_000L, null);
+
+        assertTrue(document(dump).contains(PanelSvg.icon("heap", "ico ico-lg")));
+        assertTrue(document(notImported()).contains(PanelSvg.icon("flame", "ico ico-lg")));
+    }
+
     /** An indexed dump has figures; the callout has nothing to say and must not appear. */
     @Test
     public void anIndexedHeapDumpShowsFiguresAndNoCallout() {

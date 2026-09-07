@@ -55,7 +55,8 @@ final class PanelHtml {
     static String header(RecordingState state, Path file, String microscopeUrl) {
         StringBuilder html = new StringBuilder(512);
         html.append("<html><body>");
-        html.append("<table><tr><td width='34'><icon src='flame'/></td><td>")
+        String kindIcon = state.isHeapDumpFile() ? "heap" : "flame";
+        html.append("<table><tr><td width='34'><icon src='").append(kindIcon).append("'/></td><td>")
                 .append("<span class='big'>").append(escape(title(state))).append("</span><br>")
                 .append("<span class='sml'>").append(escape(subtitle(state, file, microscopeUrl))).append("</span>")
                 .append("</td></tr></table>");

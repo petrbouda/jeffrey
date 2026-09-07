@@ -528,7 +528,10 @@ which arrives on `Finding.rule` already. JMC also exposes `IRule.getTopic()` (`g
 `exceptions`, `lock_instances`), and `AutoAnalysisDataProvider` drops it; grouping findings by
 category would need that field threaded through `AutoAnalysisResult` and the IDE response first.
 
-The accent bar is flame **only when Microscope answered**. Unreachable and failed mute it and the file
+The header well draws the **flame for a recording and an object graph for a heap dump** (`PanelSvg`
+key `heap`, `JeffreyIcons.HEAP_DUMP` on the Swing side), decided by `RecordingState.isHeapDumpFile()`
+— the summary's kind once Microscope answered, the file name before — so an `.hprof` wears it from
+the first paint. The accent bar is flame **only when Microscope answered**. Unreachable and failed mute it and the file
 icon, so the panel reads as wrong before a word of it does.
 
 The ready state also hands the profile to a coding agent, sending `<cli> "Analyse Jeffrey profile

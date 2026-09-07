@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.ide.plugin.idea.recording;
 
+import cafe.jeffrey.ide.plugin.idea.AnalysableFiles;
+
 import java.util.List;
 
 /**
@@ -55,6 +57,17 @@ public record RecordingState(
      */
     public RecordingState withIndexBuild(HeapIndexBuild build) {
         return new RecordingState(status, recordingId, profileId, filename, sizeInBytes, summary, build);
+    }
+
+    /**
+     * Whether this file is a heap dump. Microscope's answer when there is one, the file name until
+     * then — the two agree, because Microscope decides by the same name.
+     */
+    public boolean isHeapDumpFile() {
+        if (summary != null) {
+            return summary.isHeapDump();
+        }
+        return AnalysableFiles.isHeapDumpName(filename);
     }
 
     /** A ready heap dump whose index has not been built: the one state that can offer the build. */
