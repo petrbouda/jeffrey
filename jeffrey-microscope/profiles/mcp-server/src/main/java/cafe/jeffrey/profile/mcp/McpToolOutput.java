@@ -51,6 +51,13 @@ public final class McpToolOutput {
 
     /** Where the record of what was trimmed is attached on a JSON answer that had to lose rows. */
     private static final String TRUNCATED_FIELD = "_truncated";
+
+    /**
+     * Where a top-level array goes when it had to be trimmed. A record of the loss can only be attached
+     * to an object, and a list handed back short with nothing saying so is the silent truncation this
+     * class exists to prevent.
+     */
+    private static final String WRAPPED_ARRAY_FIELD = "items";
     private static final String TRUNCATED_KEPT = "kept";
     private static final String TRUNCATED_ORIGINAL = "original";
     private static final String ARRAY_LABEL_PREFIX = "array";
@@ -90,6 +97,10 @@ public final class McpToolOutput {
      * until the rendered form fits. What comes back is always parseable, and it carries a
      * {@code _truncated} entry naming each array that lost rows and how many it had, so a reader can see
      * that it is looking at part of a list rather than a short one.
+     * <p>
+     * A value that is itself an array comes back unchanged while it fits, and as
+     * {@code {"items": [...], "_truncated": {...}}} when it did not: the record has to hang off an
+     * object, and a shortened list with nothing saying so is the case this method exists for.
      */
     public static String json(Object value) {
         String rendered = Json.toString(value);
@@ -106,11 +117,22 @@ public final class McpToolOutput {
 
     /**
      * Shortens the biggest array in the tree until the whole thing fits, recording what it took.
+     * <p>
+     * The record of what was lost is attached <em>before</em> the size is judged, not after. Attaching
+     * it afterwards is what made this method able to return the one thing it exists to prevent: the
+     * loop would stop at the cap, the record would push the rendering back over it, and {@code capped}
+     * would then cut the JSON mid-token and append a Markdown sentence to it.
+     * <p>
+     * A bare array is answered as an object wrapping it, for the same reason. The record can only hang
+     * off an object, and a list silently returned short is exactly the failure this class is for.
      */
     private static String trimToFit(JsonNode tree) {
         ObjectNode truncated = Json.createObject();
-        String rendered = Json.toString(tree);
-        for (int pass = 0; pass < MAX_TRIM_PASSES && rendered.length() > MAX_CHARS; pass++) {
+        for (int pass = 0; pass < MAX_TRIM_PASSES; pass++) {
+            String rendered = render(tree, truncated);
+            if (rendered.length() <= MAX_CHARS) {
+                return rendered;
+            }
             NamedArray largest = largestArray(tree);
             if (largest == null || largest.node().isEmpty()) {
                 break;
@@ -122,14 +144,28 @@ public final class McpToolOutput {
                 node.remove(node.size() - 1);
             }
             recordTrim(truncated, largest, before);
-            rendered = Json.toString(tree);
         }
-        if (!truncated.isEmpty() && tree.isObject()) {
+        // Out of passes, or a tree of scalars no array trimming could reclaim room from. Cutting is all
+        // that is left, and the cut form says so in the note it carries.
+        return capped(render(tree, truncated));
+    }
+
+    /**
+     * Renders the tree with the record of what was trimmed attached, wrapping a bare array in an object
+     * so the record has somewhere to hang.
+     */
+    private static String render(JsonNode tree, ObjectNode truncated) {
+        if (truncated.isEmpty()) {
+            return Json.toString(tree);
+        }
+        if (tree.isObject()) {
             ((ObjectNode) tree).set(TRUNCATED_FIELD, truncated);
-            rendered = Json.toString(tree);
+            return Json.toString(tree);
         }
-        // A tree of scalars can still overrun what any array trimming could reclaim.
-        return capped(rendered);
+        ObjectNode wrapper = Json.createObject();
+        wrapper.set(WRAPPED_ARRAY_FIELD, tree);
+        wrapper.set(TRUNCATED_FIELD, truncated);
+        return Json.toString(wrapper);
     }
 
     /**

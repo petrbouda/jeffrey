@@ -18,6 +18,8 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
+import cafe.jeffrey.profile.mcp.CompositeToolset;
+import cafe.jeffrey.profile.mcp.McpToolProvider;
 import cafe.jeffrey.profile.mcp.ReflectiveToolset;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
@@ -34,6 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Set;
 
 @ExtendWith(MockitoExtension.class)
@@ -54,6 +58,18 @@ class ExternalMcpControllerTest {
 
     @Mock
     McpToolsetAssembler assembler;
+
+    /**
+     * The toolset the endpoint serves in these tests. A composite rather than one family, because the
+     * resources are backed by real tool names — a fixture without them would let a resource be
+     * advertised that nothing could read.
+     */
+    private static McpToolProvider toolset() {
+        return new CompositeToolset(List.of(
+                new ReflectiveToolset(new SampleTools(), "sample"),
+                new ReflectiveToolset(new ProfilesTools(), "profiles"),
+                new ReflectiveToolset(new FlamegraphTools(), "flamegraph")));
+    }
 
     private MockMvcTester mvcWith(boolean enabled) {
         return mockMvcTesterFor(new ExternalMcpController(
@@ -108,18 +124,21 @@ class ExternalMcpControllerTest {
          */
         @Test
         void listsTheAssembledTools() {
-            when(assembler.toolset()).thenReturn(new ReflectiveToolset(new SampleTools(), "sample"));
+            when(assembler.toolset()).thenReturn(toolset());
 
             assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(TOOLS_LIST))
                     .hasStatusOk()
                     .bodyJson()
                     .extractingPath("$.result.tools[*].name").asArray()
-                    .containsExactly("sample_boom", "sample_ping");
+                    .containsExactly(
+                            "sample_boom", "sample_ping",
+                            "profiles_list", "profiles_summary",
+                            "flamegraph_export");
         }
 
         @Test
         void callsATool() {
-            when(assembler.toolset()).thenReturn(new ReflectiveToolset(new SampleTools(), "sample"));
+            when(assembler.toolset()).thenReturn(toolset());
 
             assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(TOOLS_CALL))
                     .hasStatusOk()
@@ -133,7 +152,7 @@ class ExternalMcpControllerTest {
          */
         @Test
         void reportsAFailingToolAsAToolError() {
-            when(assembler.toolset()).thenReturn(new ReflectiveToolset(new SampleTools(), "sample"));
+            when(assembler.toolset()).thenReturn(toolset());
 
             String failing = """
                     {"jsonrpc":"2.0","id":4,"method":"tools/call",
@@ -194,7 +213,31 @@ class ExternalMcpControllerTest {
     @Nested
     class ProtocolVersion {
 
-    
+        @Test
+        void answersAnUnknownProtocolVersionWithTheOneItSpeaks() {
+            String future = """
+                    {"jsonrpc":"2.0","id":1,"method":"initialize",
+                     "params":{"protocolVersion":"2099-01-01","capabilities":{}}}""";
+
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(future))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.result.protocolVersion").asString().isEqualTo("2025-06-18");
+        }
+
+        @Test
+        void keepsAnOlderVersionItStillSpeaks() {
+            String older = """
+                    {"jsonrpc":"2.0","id":1,"method":"initialize",
+                     "params":{"protocolVersion":"2024-11-05","capabilities":{}}}""";
+
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(older))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.result.protocolVersion").asString().isEqualTo("2024-11-05");
+        }
+    }
+
     /**
      * The workflows ship as plugin skills, which a client that cannot install a plugin cannot read.
      * Serving them as prompts is how Cursor, VS Code and Kiro get them.
@@ -261,6 +304,7 @@ class ExternalMcpControllerTest {
 
         @Test
         void listsTheCatalogue() {
+            when(assembler.toolset()).thenReturn(toolset());
             String list = """
                     {"jsonrpc":"2.0","id":9,"method":"resources/list"}""";
 
@@ -276,6 +320,7 @@ class ExternalMcpControllerTest {
          */
         @Test
         void listsThePerProfileTemplatesSeparately() {
+            when(assembler.toolset()).thenReturn(toolset());
             String list = """
                     {"jsonrpc":"2.0","id":10,"method":"resources/templates/list"}""";
 
@@ -286,8 +331,26 @@ class ExternalMcpControllerTest {
                     .contains("jeffrey://profile/{profileId}/summary");
         }
 
+        /**
+         * Reading a resource runs a tool, so an installation narrowed to one family must not advertise
+         * a resource whose tool it left out — the client would be told the catalogue exists and then
+         * that the tool behind it does not.
+         */
+        @Test
+        void advertisesNoResourceWhoseToolThisInstallationLeftOut() {
+            when(assembler.toolset()).thenReturn(new ReflectiveToolset(new SampleTools(), "sample"));
+            String list = """
+                    {"jsonrpc":"2.0","id":12,"method":"resources/list"}""";
+
+            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(list))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .extractingPath("$.result.resources").asArray().isEmpty();
+        }
+
         @Test
         void refusesAUriItDoesNotServe() {
+            when(assembler.toolset()).thenReturn(toolset());
             String read = """
                     {"jsonrpc":"2.0","id":11,"method":"resources/read",
                      "params":{"uri":"jeffrey://nonsense"}}""";
@@ -303,28 +366,31 @@ class ExternalMcpControllerTest {
          * Echoing a version the server may not speak promises something it cannot keep, so an
          * unrecognised one is answered with what this server does implement.
          */
-        @Test
-        void answersAnUnknownProtocolVersionWithTheOneItSpeaks() {
-            String future = """
-                    {"jsonrpc":"2.0","id":1,"method":"initialize",
-                     "params":{"protocolVersion":"2099-01-01","capabilities":{}}}""";
+    /**
+     * Stands in for the profiles family, so {@code jeffrey://profiles} and the summary template have
+     * the tools behind them that the real assembler would provide.
+     */
+    public static class ProfilesTools {
 
-            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(future))
-                    .hasStatusOk()
-                    .bodyJson()
-                    .extractingPath("$.result.protocolVersion").asString().isEqualTo("2025-06-18");
+        @Tool(description = "Every analysed profile")
+        public String list() {
+            return "| id |\n| -- |\n| p-1 |";
         }
 
-        @Test
-        void keepsAnOlderVersionItStillSpeaks() {
-            String older = """
-                    {"jsonrpc":"2.0","id":1,"method":"initialize",
-                     "params":{"protocolVersion":"2024-11-05","capabilities":{}}}""";
+        @Tool(description = "What one profile holds")
+        public String summary(
+                @ToolParam(required = false, description = "profile") String profileId) {
+            return "{\"profileId\":\"" + profileId + "\"}";
+        }
+    }
 
-            assertThat(mvcWith(true).post().uri(URI).contentType(APPLICATION_JSON).content(older))
-                    .hasStatusOk()
-                    .bodyJson()
-                    .extractingPath("$.result.protocolVersion").asString().isEqualTo("2024-11-05");
+    public static class FlamegraphTools {
+
+        @Tool(description = "The call tree of one event type")
+        public String export(
+                @ToolParam(required = false, description = "profile") String profileId,
+                @ToolParam(required = false, description = "event type") String eventType) {
+            return "flames for " + eventType;
         }
     }
 

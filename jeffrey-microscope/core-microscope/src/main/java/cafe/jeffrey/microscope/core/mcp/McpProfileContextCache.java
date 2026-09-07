@@ -44,6 +44,14 @@ import java.util.concurrent.TimeUnit;
  * Eviction is driven by the injected {@link Clock}, so a test can advance time and call
  * {@link #evictIdle} directly; the background sweep that normally calls it is opt-out for exactly that
  * reason. Same shape as {@code HeapDumpSessionCache}, which solves the same problem for heap dumps.
+ * <p>
+ * A context is touched when a call resolves it, not when that call finishes, so what keeps the sweep
+ * from closing a lease out from under work in progress is the gap between the two: the idle timeout is
+ * half an hour, and a tool call that could still be running by then does not exist — the longest a tool
+ * waits for anything is {@code BoundedJobs.WAIT_BUDGET}, three quarters of a minute, after which it
+ * answers and leaves the work to carry on without the context. Shortening the timeout towards the scale
+ * of a call, or giving a tool an unbounded wait, would need in-flight tracking here to replace the
+ * invariant.
  */
 public final class McpProfileContextCache implements AutoCloseable {
 
@@ -114,6 +122,10 @@ public final class McpProfileContextCache implements AutoCloseable {
      */
     McpProfileContext context(String profileId) {
         Instant now = clock.instant();
+        // Resolving the profile and acquiring its lease happen inside the mapping function, which is
+        // what makes two calls arriving together share one lease rather than take one each. It also
+        // holds the map's bin lock across that work, so nothing in this function may reach back into
+        // this cache: the map would refuse the recursive update.
         McpProfileContext context = contexts.computeIfAbsent(profileId, id -> {
             ProfileManager profileManager = profileManagerResolver.resolve(id);
             LOG.debug("Opening MCP profile context: profile_id={}", id);

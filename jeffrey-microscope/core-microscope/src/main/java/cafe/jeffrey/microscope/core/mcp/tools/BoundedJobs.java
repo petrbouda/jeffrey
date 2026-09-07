@@ -101,7 +101,14 @@ public class BoundedJobs<K, V> {
         }
 
         try {
-            return Optional.of(job.get(budget.toMillis(), TimeUnit.MILLISECONDS));
+            V result = job.get(budget.toMillis(), TimeUnit.MILLISECONDS);
+            if (result == null) {
+                // Empty already means "still running", so a null result cannot be reported as one.
+                // Nothing here supplies null today; saying so is what keeps a future one from being
+                // read as a job that never finished.
+                throw new IllegalStateException("A bounded MCP job returned no result: key=" + key);
+            }
+            return Optional.of(result);
         } catch (TimeoutException e) {
             // Not a failure: the work carries on and the caller is told how to follow it.
             return Optional.empty();
@@ -129,6 +136,11 @@ public class BoundedJobs<K, V> {
     private static RuntimeException asRuntime(Throwable cause) {
         if (cause instanceof RuntimeException runtime) {
             return runtime;
+        }
+        if (cause == null) {
+            // ExecutionException does not promise a cause. Without this the failure that reaches the
+            // model is a NullPointerException from this line, which says nothing about the job.
+            return new IllegalStateException("A bounded MCP job failed without reporting a cause");
         }
         return new IllegalStateException(cause.getMessage(), cause);
     }

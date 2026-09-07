@@ -142,7 +142,9 @@ class ProfileScopedToolsetTest {
     }
 
     private static ObjectNode arguments(String profileId) {
-        return Json.createObject().put(ProfileScopedToolset.PROFILE_ID_ARGUMENT, profileId);
+        return Json.createObject()
+                .put(ProfileScopedToolset.PROFILE_ID_ARGUMENT, profileId)
+                .put("suffix", "");
     }
 
     private McpToolSpec specOf(String name) {

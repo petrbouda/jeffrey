@@ -128,7 +128,7 @@ public class TraceAttributesMcpTools {
             @ToolParam(required = false, description = "Where the key comes from, as traces_attributeKeys reported it: "
                     + "ATTRIBUTE (the default), EVENT_FIELD, SPAN_SHAPE, NOTIFICATION_ATTRIBUTE or "
                     + "NOTIFICATION_SHAPE")
-            String source,
+            TraceAttributeSource source,
             @ToolParam(required = false, description = "The owner from traces_attributeKeys - for an EVENT_FIELD this is "
                     + "the event type declaring it, and it is required there. Omit when the key row "
                     + "showed none.")
@@ -137,13 +137,13 @@ public class TraceAttributesMcpTools {
             String eventType,
             @ToolParam(required = false, description = "Order by one of: TOTAL_TIME (default), TRACES, P50, P95, MAX, "
                     + "ERRORS, VALUE")
-            String sort,
+            TraceAttributeValueSortField sort,
             @ToolParam(required = false, description = "Maximum number of values to return (default 25, maximum 200)")
             Integer limit) {
 
         TraceAttributeValueQuery query = new TraceAttributeValueQuery(
                 keyId(key, source, owner),
-                valueSort(sort),
+                orDefault(sort, TraceAttributeValueSortField.TOTAL_TIME),
                 true,
                 ToolArguments.boundedLimit(limit, DEFAULT_LIMIT, MAX_LIMIT),
                 blankToNull(eventType));
@@ -172,26 +172,28 @@ public class TraceAttributesMcpTools {
             String key,
             @ToolParam(required = true, description = "How to match: EQ (the default), NOT_EQ, CONTAINS, GT, GTE, LT, "
                     + "LTE, or EXISTS for 'carried the key at all'")
-            String operator,
+            TraceAttributeOperator operator,
             @ToolParam(required = false, description = "The value to match. Not needed for EXISTS.")
             String value,
             @ToolParam(required = false, description = "Key source as traces_attributeKeys reported it: ATTRIBUTE (the "
                     + "default), EVENT_FIELD, SPAN_SHAPE, NOTIFICATION_ATTRIBUTE, NOTIFICATION_SHAPE")
-            String source,
+            TraceAttributeSource source,
             @ToolParam(required = false, description = "Key owner, required for an EVENT_FIELD")
             String owner,
             @ToolParam(required = false, description = "TRACE (the default) matches when any span of the trace satisfies "
                     + "the condition; SPAN requires one single span to satisfy it")
-            String scope,
+            TraceAttributeScope scope,
             @ToolParam(required = false, description = "Maximum number of traces to return (default 25, maximum 200)")
             Integer limit) {
 
         TraceAttributeCondition condition = new TraceAttributeCondition(
-                keyId(key, source, owner), operator(operator), blankToNull(value));
+                keyId(key, source, owner),
+                orDefault(operator, TraceAttributeOperator.EQ),
+                blankToNull(value));
 
         TraceAttributeSearchQuery query = new TraceAttributeSearchQuery(
                 List.of(condition),
-                scope(scope),
+                orDefault(scope, TraceAttributeScope.TRACE),
                 TraceSortField.DURATION,
                 true,
                 ToolArguments.boundedLimit(limit, DEFAULT_LIMIT, MAX_LIMIT),
@@ -213,68 +215,32 @@ public class TraceAttributesMcpTools {
      * The triple that identifies a key. Rejected by name rather than defaulted when the source is
      * unknown: guessing ATTRIBUTE for what was really an EVENT_FIELD silently returns nothing.
      */
-    private static TraceAttributeKeyId keyId(String key, String source, String owner) {
+    private static TraceAttributeKeyId keyId(String key, TraceAttributeSource source, String owner) {
         if (key == null || key.isBlank()) {
             throw new IllegalArgumentException("key is required; traces_attributeKeys lists them");
         }
-        return new TraceAttributeKeyId(source(source), blankToNull(owner), key.trim());
+        return new TraceAttributeKeyId(
+                orDefault(source, TraceAttributeSource.ATTRIBUTE), blankToNull(owner), key.trim());
     }
 
-    private static TraceAttributeSource source(String value) {
-        if (value == null || value.isBlank()) {
-            return TraceAttributeSource.ATTRIBUTE;
-        }
-        try {
-            return TraceAttributeSource.valueOf(value.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Unknown attribute source '" + value
-                    + "'. Valid sources: ATTRIBUTE, EVENT_FIELD, SPAN_SHAPE, NOTIFICATION_ATTRIBUTE, "
-                    + "NOTIFICATION_SHAPE");
-        }
-    }
-
-    private static TraceAttributeOperator operator(String value) {
-        if (value == null || value.isBlank()) {
-            return TraceAttributeOperator.EQ;
-        }
-        try {
-            return TraceAttributeOperator.valueOf(value.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Unknown operator '" + value
-                    + "'. Valid operators: EQ, NOT_EQ, CONTAINS, GT, GTE, LT, LTE, EXISTS");
-        }
-    }
-
-    private static TraceAttributeScope scope(String value) {
-        if (value == null || value.isBlank()) {
-            return TraceAttributeScope.TRACE;
-        }
-        try {
-            return TraceAttributeScope.valueOf(value.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(
-                    "Unknown scope '" + value + "'. Valid scopes: TRACE, SPAN");
-        }
-    }
-
-    private static TraceAttributeValueSortField valueSort(String value) {
-        if (value == null || value.isBlank()) {
-            return TraceAttributeValueSortField.TOTAL_TIME;
-        }
-        try {
-            return TraceAttributeValueSortField.valueOf(value.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Unknown sort '" + value
-                    + "'. Valid sorts: TOTAL_TIME, TRACES, P50, P95, MAX, ERRORS, VALUE");
-        }
+    /**
+     * The value an omitted optional argument stands for.
+     * <p>
+     * These used to be four parsers reading a string and refusing what they did not recognise. The
+     * schema now carries the alternatives — a real {@code enum} parameter advertises its constants and
+     * the binder refuses an unknown one by name — so all that is left of them is which constant the
+     * argument means when it is not there at all.
+     */
+    private static <E extends Enum<E>> E orDefault(E value, E fallback) {
+        return value == null ? fallback : value;
     }
 
     private static Map<String, String> keyQuery(
-            String key, String source, String owner, String eventType) {
+            String key, TraceAttributeSource source, String owner, String eventType) {
 
         Map<String, String> query = UiLinks.query();
         query.put(KEY_PARAM, key);
-        query.put(SOURCE_PARAM, source);
+        query.put(SOURCE_PARAM, source == null ? null : source.name());
         query.put(OWNER_PARAM, owner);
         query.put(EVENT_TYPE_PARAM, eventType);
         return query;

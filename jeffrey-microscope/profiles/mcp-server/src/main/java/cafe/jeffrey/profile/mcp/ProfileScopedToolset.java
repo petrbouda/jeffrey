@@ -114,11 +114,11 @@ public final class ProfileScopedToolset<T> implements McpToolProvider {
     private static String readProfileId(JsonNode arguments) {
         JsonNode node = arguments == null ? null : arguments.get(PROFILE_ID_ARGUMENT);
         if (node == null || node.isNull()) {
-            throw new IllegalArgumentException(PROFILE_ID_ARGUMENT + " is required");
+            throw new ToolDispatchException(PROFILE_ID_ARGUMENT + " is required");
         }
         String profileId = node.asString();
         if (profileId == null || profileId.isBlank()) {
-            throw new IllegalArgumentException(PROFILE_ID_ARGUMENT + " is required");
+            throw new ToolDispatchException(PROFILE_ID_ARGUMENT + " is required");
         }
         return profileId;
     }

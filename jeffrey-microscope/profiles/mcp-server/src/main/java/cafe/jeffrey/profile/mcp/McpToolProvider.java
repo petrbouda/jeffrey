@@ -43,7 +43,7 @@ public sealed interface McpToolProvider
     /**
      * Invokes a tool by its MCP name and returns its textual result.
      *
-     * @throws IllegalArgumentException if the tool name is unknown or a required argument is missing
+     * @throws ToolDispatchException if the tool name is unknown or an argument does not fit the schema
      */
     String call(String toolName, JsonNode arguments);
 }

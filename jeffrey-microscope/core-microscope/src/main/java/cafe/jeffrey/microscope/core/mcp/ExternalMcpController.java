@@ -46,9 +46,13 @@ import tools.jackson.databind.JsonNode;
  * live setting checked per request. While it is off the endpoint answers 404: a disabled server should
  * look like no server at all, not like one refusing to talk.
  * <p>
- * Every tool it exposes is read-only. There is no authentication yet, so the endpoint carries the same
- * trust assumption as the rest of {@code /api/internal/**}: reachable means trusted. That is why the
- * documentation asks for a loopback bind, an SSH tunnel or a reverse proxy in front of anything wider.
+ * Almost every tool it exposes reads. Four families do not — importing a recording, building a heap
+ * index, pulling a recording off a hub, and acting on the developer's editor — and none of them changes
+ * an analysed profile; each says what it does through its {@code readOnlyHint}, and the two that reach
+ * outside this server have switches of their own. There is no authentication yet, so the endpoint
+ * carries the same trust assumption as the rest of {@code /api/internal/**}: reachable means trusted.
+ * That is why the documentation asks for a loopback bind, an SSH tunnel or a reverse proxy in front of
+ * anything wider.
  */
 @RestController
 @RequestMapping("/api/internal/mcp")
@@ -56,6 +60,12 @@ public class ExternalMcpController extends AbstractMcpStreamableHttpController {
 
     /** Where a refused request is told why, outside the JSON-RPC envelope it never entered. */
     private static final String REFUSAL_FIELD = "error";
+
+    /**
+     * The revision the client settled on at {@code initialize}, which the specification asks it to
+     * repeat on every later request. Passed to the envelope, which refuses one it does not implement.
+     */
+    private static final String PROTOCOL_VERSION_HEADER = "MCP-Protocol-Version";
 
     private final McpToolsetAssembler assembler;
     private final ExternalMcpProperties properties;
@@ -101,6 +111,6 @@ public class ExternalMcpController extends AbstractMcpStreamableHttpController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Json.createObject().put(REFUSAL_FIELD, refusal));
         }
-        return dispatch(request, features);
+        return dispatch(request, httpRequest.getHeader(PROTOCOL_VERSION_HEADER), features);
     }
 }

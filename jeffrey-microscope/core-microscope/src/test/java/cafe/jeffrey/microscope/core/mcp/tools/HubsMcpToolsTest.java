@@ -30,6 +30,9 @@ import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionRef;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
+import cafe.jeffrey.profile.mcp.ReflectiveToolset;
+import cafe.jeffrey.profile.mcp.ToolDispatchException;
+import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.model.ProjectInfo;
 import cafe.jeffrey.shared.common.model.Recording;
@@ -289,7 +292,7 @@ class HubsMcpToolsTest {
             when(hubsManager.findAll()).thenReturn(List.of(production));
             noLocalRecordings();
 
-            tools.sessions(null, null, null, null, "active", null);
+            tools.sessions(null, null, null, null, RecordingStatus.ACTIVE, null);
 
             ArgumentCaptor<RecordingSessionFilter> captor =
                     ArgumentCaptor.forClass(RecordingSessionFilter.class);
@@ -297,10 +300,17 @@ class HubsMcpToolsTest {
             assertEquals(RecordingStatus.ACTIVE, captor.getValue().status());
         }
 
+        /**
+         * The status is a real {@code enum} argument now, so the schema carries the two constants and
+         * the binder refuses anything else. The mistake can only be made through a call, which is
+         * where the test now makes it.
+         */
         @Test
         void rejectsAStatusThatIsNotOne() {
-            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                    () -> tools.sessions(null, null, null, null, "RUNNING", null));
+            ReflectiveToolset toolset = new ReflectiveToolset(tools, "hubs");
+
+            ToolDispatchException e = assertThrows(ToolDispatchException.class,
+                    () -> toolset.call("hubs_sessions", Json.createObject().put("status", "RUNNING")));
 
             assertTrue(e.getMessage().contains("ACTIVE"), e.getMessage());
         }

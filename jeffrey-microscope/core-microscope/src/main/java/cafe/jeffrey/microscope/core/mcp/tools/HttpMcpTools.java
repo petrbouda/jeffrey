@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.feature.FeatureType;
@@ -108,10 +107,9 @@ public class HttpMcpTools {
     public String overview(
             @ToolParam(required = false, description = "Which side to report on: 'SERVER' for requests this application "
                     + "answered (the default), 'CLIENT' for requests it made to somebody else.")
-            @ToolParamValues({"SERVER", "CLIENT"})
-            String direction) {
+            ExchangeDirection direction) {
 
-        ExchangeDirection side = ExchangeDirection.from(direction);
+        ExchangeDirection side = direction == null ? ExchangeDirection.SERVER : direction;
         if (DashboardFeature.missing(profileManager, feature(side))) {
             return noData(side);
         }
@@ -141,15 +139,14 @@ public class HttpMcpTools {
             String uri,
             @ToolParam(required = false, description = "Which side the endpoint belongs to: 'SERVER' (the default) or "
                     + "'CLIENT'. Use the same one http_overview listed it under.")
-            @ToolParamValues({"SERVER", "CLIENT"})
-            String direction) {
+            ExchangeDirection direction) {
 
         // Insisted on rather than passed through: the manager reads a null uri as "no filter", so an
         // omitted one would produce the whole dashboard and this tool would hand back its busiest
         // endpoint as though it were the one that was asked for.
         String endpoint = ToolArguments.required(uri, "uri", NO_URI_RECOVERY);
 
-        ExchangeDirection side = ExchangeDirection.from(direction);
+        ExchangeDirection side = direction == null ? ExchangeDirection.SERVER : direction;
         if (DashboardFeature.missing(profileManager, feature(side))) {
             return noData(side);
         }

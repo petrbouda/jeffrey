@@ -47,7 +47,6 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -149,14 +148,14 @@ public class TracesMcpTools {
             @ToolParam(required = false, description = "Order by one of: TOTAL_TIME, P50, P95, P99, MAX, COUNT, ERRORS, "
                     + "NOTIFICATIONS, NAME. Defaults to TOTAL_TIME, which surfaces where the wall-clock "
                     + "actually went.")
-            String sort,
+            TraceOperationSortField sort,
             @ToolParam(required = false, description = "Maximum number of operations to return (default 50)")
             Integer limit) {
 
         TraceOperationListQuery query = new TraceOperationListQuery(
                 search,
                 Boolean.TRUE.equals(errorsOnly),
-                sortField(sort),
+                sort == null ? TraceOperationSortField.TOTAL_TIME : sort,
                 true,
                 ToolArguments.boundedLimit(limit, DEFAULT_OPERATIONS_LIMIT, MAX_LIMIT),
                 0);
@@ -436,18 +435,6 @@ public class TracesMcpTools {
                 requireText(name, "name"),
                 requireText(kind, "kind"),
                 requireText(eventType, "eventType"));
-    }
-
-    private static TraceOperationSortField sortField(String sort) {
-        if (sort == null || sort.isBlank()) {
-            return TraceOperationSortField.TOTAL_TIME;
-        }
-        try {
-            return TraceOperationSortField.valueOf(sort.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Unknown sort field: " + sort
-                    + ". One of: TOTAL_TIME, P50, P95, P99, MAX, COUNT, ERRORS, NOTIFICATIONS, NAME.");
-        }
     }
 
     private static String requireText(String value, String argument) {

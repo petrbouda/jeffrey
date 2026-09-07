@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.profile.manager.ProfileManager;
@@ -75,8 +74,7 @@ public class IoMcpTools {
             + "because a blocked thread produces no samples.")
     public String overview(
             @ToolParam(required = true, description = "Which I/O to report: 'SOCKET' for network, 'FILE' for disk")
-            @ToolParamValues({"SOCKET", "FILE"})
-            String kind) {
+            IoKind kind) {
 
         IoKind ioKind = requireKind(kind);
         IoOverview overview = profileManager.ioManager().overview(ioKind);
@@ -100,8 +98,7 @@ public class IoMcpTools {
             + "and maximum time. Use it after io_overview to see which endpoint the time went to.")
     public String endpoints(
             @ToolParam(required = true, description = "Which I/O to report: 'SOCKET' for network, 'FILE' for disk")
-            @ToolParamValues({"SOCKET", "FILE"})
-            String kind) {
+            IoKind kind) {
 
         IoKind ioKind = requireKind(kind);
         List<IoEndpoint> endpoints = profileManager.ioManager().endpoints(ioKind);
@@ -121,8 +118,7 @@ public class IoMcpTools {
             + "endpoint look identical in the totals and different here.")
     public String slowest(
             @ToolParam(required = true, description = "Which I/O to report: 'SOCKET' for network, 'FILE' for disk")
-            @ToolParamValues({"SOCKET", "FILE"})
-            String kind) {
+            IoKind kind) {
 
         IoKind ioKind = requireKind(kind);
         List<IoOperation> operations = profileManager.ioManager().slowestOperations(ioKind);
@@ -137,15 +133,16 @@ public class IoMcpTools {
                 UiLinks.view(profileId(), view(ioKind))));
     }
 
-    private static IoKind requireKind(String kind) {
-        if (kind == null || kind.isBlank()) {
+    /**
+     * The schema names the two kinds and the binder refuses anything else, so all that is left to say
+     * here is that the argument has to be there at all — it decides which half of the I/O data the
+     * answer describes, and there is no sensible default between sockets and files.
+     */
+    private static IoKind requireKind(IoKind kind) {
+        if (kind == null) {
             throw new IllegalArgumentException("kind is required: one of SOCKET, FILE");
         }
-        try {
-            return IoKind.valueOf(kind.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Unknown I/O kind '" + kind + "'. Valid kinds: SOCKET, FILE");
-        }
+        return kind;
     }
 
     private static String noData(IoKind kind) {

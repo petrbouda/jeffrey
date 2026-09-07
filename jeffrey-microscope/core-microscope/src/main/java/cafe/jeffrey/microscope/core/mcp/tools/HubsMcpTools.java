@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.server.HubManager;
@@ -28,6 +27,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubScanFilter;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionRef;
 import cafe.jeffrey.microscope.core.mcp.tools.hubs.HubSessionScan;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
+import cafe.jeffrey.profile.mcp.McpToolHints;
 import cafe.jeffrey.profile.mcp.McpToolOutput;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
@@ -185,8 +185,7 @@ public class HubsMcpTools {
             Integer withinLastMinutes,
             @ToolParam(required = false, description = "Only sessions in this status: ACTIVE for one still recording, "
                     + "FINISHED for one that has stopped. Omit for both")
-            @ToolParamValues({"ACTIVE", "FINISHED"})
-            String status,
+            RecordingStatus status,
             @ToolParam(required = false, description = "Most rows to return across all hubs. Default 50, maximum 500")
             Integer limit) {
 
@@ -221,6 +220,12 @@ public class HubsMcpTools {
         return table.note(footer(result)).render();
     }
 
+    /*
+     * The one tool in this family that writes. The family is advertised READS_REMOTE because the other
+     * two observe; this one creates a local recording and can move gigabytes across a network to do it,
+     * which is exactly the case a client's read-only hint is there to let a reader approve knowingly.
+     */
+    @McpToolHints(readOnly = false, openWorld = true)
     @Tool(description = "Download one recording session from its hub into this Jeffrey, merging the "
             + "session's finished recording files into a single local recording and bringing its "
             + "artifacts - heap dumps, JVM and application logs - with it. Takes the session_ref from "
@@ -304,7 +309,7 @@ public class HubsMcpTools {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Interrupted while probing hubs", e);
         } catch (Exception e) {
-            LOG.warn("Failed to probe hubs", e);
+            LOG.warn("Failed to probe hubs: reason={}", e.getMessage(), e);
         }
 
         Map<String, Optional<String>> versions = new HashMap<>();
@@ -317,7 +322,8 @@ public class HubsMcpTools {
         return versions;
     }
 
-    private RecordingSessionFilter sessionFilter(Integer withinLastMinutes, String status, int limit) {
+    private RecordingSessionFilter sessionFilter(
+            Integer withinLastMinutes, RecordingStatus status, int limit) {
         RecordingSessionFilter filter = RecordingSessionFilter.ALL;
         if (withinLastMinutes != null) {
             if (withinLastMinutes < 1) {
@@ -327,28 +333,9 @@ public class HubsMcpTools {
             filter = RecordingSessionFilter.activeWithinLast(
                     Duration.ofMinutes(withinLastMinutes), clock.instant());
         }
-        return filter.withStatus(parseStatus(status)).withLimit(limit);
+        return filter.withStatus(status).withLimit(limit);
     }
 
-    /**
-     * Parsed by hand rather than declared as an enum parameter: the tool schema only carries the
-     * simple types, and an enum would advertise as a string and then fail inside the reflective
-     * call rather than here, where the message can say what the accepted values are.
-     */
-    private static RecordingStatus parseStatus(String status) {
-        if (status == null || status.isBlank()) {
-            return null;
-        }
-        String upper = status.trim().toUpperCase(Locale.ROOT);
-        if (upper.equals(RecordingStatus.ACTIVE.name())) {
-            return RecordingStatus.ACTIVE;
-        }
-        if (upper.equals(RecordingStatus.FINISHED.name())) {
-            return RecordingStatus.FINISHED;
-        }
-        throw new IllegalArgumentException(
-                "Unknown session status: " + status + ". Use ACTIVE or FINISHED, or omit it for both.");
-    }
 
     private static String emptyResult(Integer withinLastMinutes) {
         if (withinLastMinutes == null) {

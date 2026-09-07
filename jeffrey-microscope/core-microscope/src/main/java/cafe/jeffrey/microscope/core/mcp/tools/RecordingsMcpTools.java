@@ -150,7 +150,7 @@ public class RecordingsMcpTools {
             throw new IllegalArgumentException("A recording id is required. Call recordings_list to see them.");
         }
 
-        LOG.info("Analyzing a stored recording over MCP: recordingId={}", recordingId);
+        LOG.info("Analyzing a stored recording over MCP: recording_id={}", recordingId);
         return analyzed(recordingId.trim(), null);
     }
 

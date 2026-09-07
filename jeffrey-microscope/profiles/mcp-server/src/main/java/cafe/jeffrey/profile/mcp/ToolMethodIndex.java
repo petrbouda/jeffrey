@@ -30,6 +30,7 @@ import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -60,6 +61,7 @@ final class ToolMethodIndex {
     private static final String SCHEMA_ENUM = "enum";
 
     private final Map<String, Method> methodsByToolName = new LinkedHashMap<>();
+    private final Map<Method, Set<String>> requiredParamsByMethod = new LinkedHashMap<>();
     private final List<McpToolSpec> specs = new ArrayList<>();
 
     /**
@@ -113,10 +115,12 @@ final class ToolMethodIndex {
                                 + ": a @Tool method must not be overloaded, and two of them must not "
                                 + "declare the same @Tool(name=...).");
             }
+            ObjectNode inputSchema = buildInputSchema(method, syntheticParams);
+            requiredParamsByMethod.put(method, declaredRequiredParams(method));
             specs.add(new McpToolSpec(
                     toolName,
                     ToolUtils.getToolDescription(method),
-                    buildInputSchema(method, syntheticParams),
+                    inputSchema,
                     annotationsOf(method, defaultAnnotations)));
         }
     }
@@ -160,28 +164,54 @@ final class ToolMethodIndex {
     }
 
     /**
-     * @throws IllegalArgumentException if no {@code @Tool} method carries that name
+     * @throws ToolDispatchException if no {@code @Tool} method carries that name
      */
     Method method(String toolName) {
         Method method = methodsByToolName.get(toolName);
         if (method == null) {
-            throw new IllegalArgumentException("Unknown tool: " + toolName);
+            throw new ToolDispatchException("Unknown tool: " + toolName);
         }
         return method;
     }
 
     /**
      * Binds the supplied JSON arguments to the method's parameters, by name.
+     * <p>
+     * An argument the schema marks required and the call omits is refused here rather than passed on as
+     * a null the tool has to notice: the schema is the contract, and a tool reading its own arguments
+     * for absence would be checking the same thing in a hundred places, differently.
+     *
+     * @throws ToolDispatchException if a required argument is missing or a value does not fit its type
      */
     Object[] bindArguments(Method method, JsonNode arguments) {
         Parameter[] parameters = method.getParameters();
+        Set<String> required = requiredParamsByMethod.getOrDefault(method, Set.of());
         Object[] args = new Object[parameters.length];
         for (int i = 0; i < parameters.length; i++) {
             Parameter parameter = parameters[i];
-            JsonNode value = arguments == null ? null : arguments.get(parameter.getName());
+            String name = parameter.getName();
+            JsonNode value = arguments == null ? null : arguments.get(name);
+            if (required.contains(name) && (value == null || value.isNull())) {
+                throw new ToolDispatchException("Missing required argument: " + name);
+            }
             args[i] = ToolParamTypes.convert(value, parameter.getType());
         }
         return args;
+    }
+
+    /**
+     * The method's own parameters that the schema marks required. Synthetic parameters are not here:
+     * they are the caller's, and whoever injected one checks for it where it is read.
+     */
+    private static Set<String> declaredRequiredParams(Method method) {
+        Set<String> required = new LinkedHashSet<>();
+        for (Parameter parameter : method.getParameters()) {
+            ToolParam toolParam = parameter.getAnnotation(ToolParam.class);
+            if (toolParam != null && toolParam.required()) {
+                required.add(parameter.getName());
+            }
+        }
+        return required;
     }
 
     private static ObjectNode buildInputSchema(Method method, List<SyntheticParam> syntheticParams) {
